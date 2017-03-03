@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# Distribution / packaging
+.cache/
+build/
+dist/
+*.egg-info/
+*.sublime-*
+
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+
+# Sphinx documentation
+docs/_build/
+
+
+# IPython Notebook
+.ipynb_checkpoints
+

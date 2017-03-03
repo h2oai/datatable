@@ -1,2 +1,2 @@
 # datatable
-data.table for Python
+R's data.table for Python
