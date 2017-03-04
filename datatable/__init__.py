@@ -3,6 +3,9 @@
 from __future__ import division, print_function, unicode_literals
 
 from .__version__ import version as __version__
+from .dt import DataTable
+
+__all__ = ("__version__", "DataTable")
 
 
-__all__ = ("__version__", )
+DataTable.__module__ = "datatable"

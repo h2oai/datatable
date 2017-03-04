@@ -6,11 +6,25 @@ Build script for the `datatable` module.
     $ python setup.py bdist_wheel
     $ twine upload dist/*
 """
-from setuptools import find_packages, setup
-from datatable.__version__ import version
+import re
+from setuptools import find_packages
+from distutils.core import setup, Extension
 
-packages = find_packages(exclude=["tests*", "docs*"])
 
+# Determine the version
+version = None
+with open("datatable/__version__.py") as f:
+    rx = re.compile(r"""version\s*=\s*['"]([\d.]*)['"]\s*""")
+    for line in f:
+        mm = re.match(rx, line)
+        if mm is not None:
+            version = mm.group(1)
+            break
+if version is None:
+    raise RuntimeError("Could not detect version from the __version__.py file")
+
+
+# Main setup
 setup(
     name="datatable",
     version=version,
@@ -30,12 +44,11 @@ setup(
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
     ],
     keywords=["datatable", "data", "dataframe", "pandas"],
 
-    packages=packages,
+    packages=find_packages(exclude=["tests*", "docs*"]),
 
     # Runtime dependencies
     install_requires=[],
@@ -44,6 +57,11 @@ setup(
         "pytest-cov",
     ],
 
-    # This module doesn't expect to introspect its own source code.
-    zip_safe=True,
+    zip_safe=False,
+
+    ext_modules=[
+        Extension("_datatable",
+                  include_dirs=["c"],
+                  sources=["c/datatablemodule.c", "c/datatable.c"])
+    ],
 )

@@ -2,6 +2,8 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
 
+import _datatable as c
+
 __all__ = ("DataTable", )
 
 
@@ -13,6 +15,8 @@ class DataTable(object):
         self._names = None  # type: List[str]
         self._types = None  # type: List[str]
         self._cols = None   # type: List[Col]
+        self._dt = c.DataTable()
+
 
     def __call__(self, rows=None, select=None, update=None, groupby=None,
                  join=None, sort=None, limit=None):
