@@ -1,6 +1,7 @@
 #include "datatable.h"
 #include "structmember.h"
-#include "climits.h"
+#include "limits.h"
+
 
 /* should be moved to utilities I guess... */
 static PyObject* none() {
@@ -46,11 +47,10 @@ static void dt_Datatable_dealloc(dt_DatatableObject* self)
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* dt_Datatable_window(PyObject* self_, PyObject* args)
+static PyObject* dt_Datatable_window(dt_DatatableObject* self, PyObject* args)
 {
     int col0, ncols, nrows;
     long row0;
-    dt_DatatableObject *self = (dt_DatatableObject*) self_;
 
     if (!PyArg_ParseTuple(args, "iili", &col0, &ncols, &row0, &nrows))
         return NULL;
