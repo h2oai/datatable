@@ -38,7 +38,9 @@ PyInit__datatable(void) {
     PyObject* m;
 
     dt_DatatableType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&dt_DatatableType) < 0)
+    dt_DtWindowType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&dt_DatatableType) < 0 ||
+        PyType_Ready(&dt_DtWindowType) < 0)
         return NULL;
 
     m = PyModule_Create(&datatablemodule);
@@ -47,5 +49,6 @@ PyInit__datatable(void) {
 
     Py_INCREF(&dt_DatatableType);
     PyModule_AddObject(m, "DataTable", (PyObject *)&dt_DatatableType);
+    PyModule_AddObject(m, "DataWindow", (PyObject *)&dt_DtWindowType);
     return m;
 }
