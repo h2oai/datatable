@@ -35,8 +35,8 @@ setup(
     url="https://github.com/h2oai/datatable.git",
 
     # Author details
-    author="Matt Dowle",
-    author_email="mattd@h2o.ai",
+    author="Matt Dowle & Pasha Stetsenko",
+    author_email="mattd@h2o.ai, pasha@h2o.ai",
 
     license="Apache v2.0",
 

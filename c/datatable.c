@@ -47,7 +47,7 @@ static void dt_Datatable_dealloc(dt_DatatableObject* self)
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* dt_Datatable_window(dt_DatatableObject* self, PyObject* args)
+static PyObject* dt_Datatable_view(dt_DatatableObject* self, PyObject* args)
 {
     int col0, ncols, nrows;
     long row0;
@@ -55,8 +55,8 @@ static PyObject* dt_Datatable_window(dt_DatatableObject* self, PyObject* args)
     if (!PyArg_ParseTuple(args, "iili", &col0, &ncols, &row0, &nrows))
         return NULL;
 
-    dt_DtWindowObject *res = (dt_DtWindowObject*)
-            PyObject_CallObject((PyObject*) &dt_DtWindowType, NULL);
+    dt_DtViewObject *res = (dt_DtViewObject*)
+            PyObject_CallObject((PyObject*) &dt_DtViewType, NULL);
     if (res == NULL) return NULL;
 
     res->col0 = col0;
@@ -107,16 +107,16 @@ static PyObject* dt_Datatable_window(dt_DatatableObject* self, PyObject* args)
 }
 
 
-PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
+PyDoc_STRVAR(dtdoc_view, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns");
 PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows");
 PyDoc_STRVAR(dtdoc_row0, "Index of the first row");
-PyDoc_STRVAR(dtdoc_windowdata, "Datatable's data within the specified window");
+PyDoc_STRVAR(dtdoc_viewdata, "Datatable's data within the specified window");
 
 
 static PyMethodDef dt_Datatable_methods[] = {
-    {"window", (PyCFunction)dt_Datatable_window, METH_VARARGS, dtdoc_window},
+    {"window", (PyCFunction)dt_Datatable_view, METH_VARARGS, dtdoc_view},
     {NULL, NULL}           /* sentinel */
 };
 
@@ -181,33 +181,33 @@ PyTypeObject dt_DatatableType = {
 
 
 /*------------------------------------------------------------------------------
- * DtWindow type
+ * DtView type
  *----------------------------------------------------------------------------*/
 
 
-static void dt_DtWindow_dealloc(dt_DtWindowObject* self)
+static void dt_DtView_dealloc(dt_DtViewObject* self)
 {
     Py_XDECREF(self->data);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
-static PyMemberDef dt_DtWindow_members[] = {
-    {"ncols", T_INT,  offsetof(dt_DtWindowObject, ncols), READONLY, dtdoc_ncols},
-    {"nrows", T_INT,  offsetof(dt_DtWindowObject, nrows), READONLY, dtdoc_nrows},
-    {"col0",  T_INT,  offsetof(dt_DtWindowObject, col0), READONLY, dtdoc_col0},
-    {"row0",  T_LONG, offsetof(dt_DtWindowObject, row0), READONLY, dtdoc_row0},
-    {"data",  T_OBJECT_EX, offsetof(dt_DtWindowObject, data), READONLY, dtdoc_windowdata},
+static PyMemberDef dt_DtView_members[] = {
+    {"ncols", T_INT,  offsetof(dt_DtViewObject, ncols), READONLY, dtdoc_ncols},
+    {"nrows", T_INT,  offsetof(dt_DtViewObject, nrows), READONLY, dtdoc_nrows},
+    {"col0",  T_INT,  offsetof(dt_DtViewObject, col0), READONLY, dtdoc_col0},
+    {"row0",  T_LONG, offsetof(dt_DtViewObject, row0), READONLY, dtdoc_row0},
+    {"data",  T_OBJECT_EX, offsetof(dt_DtViewObject, data), READONLY, dtdoc_viewdata},
     {NULL}                 /* sentinel */
 };
 
 
-PyTypeObject dt_DtWindowType = {
+PyTypeObject dt_DtViewType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_datatable.DataWindow",            /* tp_name */
-    sizeof(dt_DtWindowObject),          /* tp_basicsize */
+    "_datatable.DataView",              /* tp_name */
+    sizeof(dt_DtViewObject),            /* tp_basicsize */
     0,                                  /* tp_itemsize */
-    (destructor)dt_DtWindow_dealloc,    /* tp_dealloc */
+    (destructor)dt_DtView_dealloc,      /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
@@ -223,7 +223,7 @@ PyTypeObject dt_DtWindowType = {
     0,                                  /* tp_setattro */
     0,                                  /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-    "DtWindow object",                  /* tp_doc */
+    "DtView object",                    /* tp_doc */
     0,                                  /* tp_traverse */
     0,                                  /* tp_clear */
     0,                                  /* tp_richcompare */
@@ -231,5 +231,5 @@ PyTypeObject dt_DtWindowType = {
     0,                                  /* tp_iter */
     0,                                  /* tp_iternext */
     0,                                  /* tp_methods */
-    dt_DtWindow_members,                /* tp_members */
+    dt_DtView_members,                  /* tp_members */
 };
