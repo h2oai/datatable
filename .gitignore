@@ -9,7 +9,6 @@ __pycache__/
 build/
 dist/
 *.egg-info/
-*.sublime-*
 
 
 # Coverage reports
@@ -25,3 +24,8 @@ docs/_build/
 # IPython Notebook
 .ipynb_checkpoints
 
+
+# Project managers
+.idea/
+datatable.iml
+*.sublime-*

@@ -1,11 +1,14 @@
 #include <Python.h>
 
 typedef enum dt_Coltype {
-    DT_DOUBLE,
-    DT_LONG,
-    DT_STRING,
-    DT_BOOL,
-    DT_OBJECT
+    DT_AUTO    = 0,  /* special "marker" type to indicate that the system should
+                        autodetect the column's type from the data. This value
+                        cannot be used in an actual Datatable instance. */
+    DT_DOUBLE  = 1,
+    DT_LONG    = 2,
+    DT_STRING  = 3,
+    DT_BOOL    = 4,
+    DT_OBJECT  = 5
 } dt_Coltype;
 
 typedef union dt_Coldata {
