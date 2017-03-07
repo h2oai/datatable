@@ -62,6 +62,6 @@ setup(
     ext_modules=[
         Extension("_datatable",
                   include_dirs=["c"],
-                  sources=["c/datatablemodule.c", "c/datatable.c"])
+                  sources=["c/datatablemodule.c", "c/datatable.c", "c/dtutils.c"])
     ],
 )
