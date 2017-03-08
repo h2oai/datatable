@@ -1,9 +1,6 @@
 #include <Python.h>
 #include "datatable.h"
-
-#if sizeof(char) != sizeof(unsigned char)
-#error "Violated assumption: sizeof(char) is not same as sizeof(unsigned char)"
-#endif
+#include "dtutils.h"
 
 
 static PyObject* some_function(PyObject *self, PyObject *args) {
@@ -39,6 +36,12 @@ static struct PyModuleDef datatablemodule = {
 PyMODINIT_FUNC
 PyInit__datatable(void) {
     PyObject *m;
+
+    // Sanity checks
+    assert(sizeof(char) == sizeof(unsigned char));
+
+    Py_int0 = PyLong_FromLong(0);
+    Py_int1 = PyLong_FromLong(1);
 
     dt_DatatableType.tp_new = PyType_GenericNew;
     dt_DtViewType.tp_new = PyType_GenericNew;

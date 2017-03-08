@@ -27,5 +27,3 @@ PyObject* decref(PyObject *x) {
     return NULL;
 }
 
-Py_int0 = PyLong_FromLong(0);
-Py_int1 = PyLong_FromLong(1);
