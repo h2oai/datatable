@@ -13,7 +13,19 @@ PyObject* none(void) {
 /**
  * Make and return a new reference for the provided PyObject
  */
-PyObject* makeref(PyObject* x) {
+PyObject* incref(PyObject *x) {
     Py_INCREF(x);
     return x;
 }
+
+
+/**
+ * "Unmake" the provided object and return NULL
+ */
+PyObject* decref(PyObject *x) {
+    Py_XDECREF(x);
+    return NULL;
+}
+
+Py_int0 = PyLong_FromLong(0);
+Py_int1 = PyLong_FromLong(1);

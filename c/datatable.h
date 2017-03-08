@@ -1,9 +1,11 @@
+#ifndef Dt_DATATABLE_H
+#define Dt_DATATABLE_H
 #include <Python.h>
 
 typedef enum dt_Coltype {
-    DT_AUTO    = 0,  /* special "marker" type to indicate that the system should
-                        autodetect the column's type from the data. This value
-                        cannot be used in an actual Datatable instance. */
+    DT_AUTO    = 0,  // special "marker" type to indicate that the system should
+                     // autodetect the column's type from the data. This value
+                     // cannot be used in an actual Datatable instance.
     DT_DOUBLE  = 1,
     DT_LONG    = 2,
     DT_STRING  = 3,
@@ -14,9 +16,9 @@ typedef enum dt_Coltype {
 typedef union dt_Coldata {
     double *ddouble;
     long   *dlong;
-    char*  *dstring;
+    char   **dstring;
     unsigned char *dbool;  /* 0 = False, 1 = True, 2 = NaN */
-    PyObject* *dobject;
+    PyObject **dobject;
 } dt_Coldata;
 
 
@@ -43,7 +45,9 @@ typedef struct dt_DtViewObject {
     int ncols;
     long row0;
     int nrows;
-    PyObject* data;
+    PyObject *data;
 } dt_DtViewObject;
 
 PyTypeObject dt_DtViewType;
+
+#endif

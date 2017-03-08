@@ -1,10 +1,13 @@
 #include <Python.h>
 #include "datatable.h"
 
+#if sizeof(char) != sizeof(unsigned char)
+#error "Violated assumption: sizeof(char) is not same as sizeof(unsigned char)"
+#endif
 
 
-static PyObject* some_function(PyObject* self, PyObject* args) {
-    PyObject* result = NULL;
+static PyObject* some_function(PyObject *self, PyObject *args) {
+    PyObject *result = NULL;
     if (PyArg_ParseTuple(args, "")) {
         result = PyLong_FromLong(0);
     }
@@ -35,7 +38,7 @@ static struct PyModuleDef datatablemodule = {
 /* Called when Python program imports the module */
 PyMODINIT_FUNC
 PyInit__datatable(void) {
-    PyObject* m;
+    PyObject *m;
 
     dt_DatatableType.tp_new = PyType_GenericNew;
     dt_DtViewType.tp_new = PyType_GenericNew;
@@ -48,7 +51,7 @@ PyInit__datatable(void) {
         return NULL;
 
     Py_INCREF(&dt_DatatableType);
-    PyModule_AddObject(m, "DataTable", (PyObject *)&dt_DatatableType);
-    PyModule_AddObject(m, "DataView", (PyObject *)&dt_DtViewType);
+    PyModule_AddObject(m, "DataTable", (PyObject*) &dt_DatatableType);
+    PyModule_AddObject(m, "DataView", (PyObject*) &dt_DtViewType);
     return m;
 }
