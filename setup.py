@@ -51,7 +51,7 @@ setup(
     packages=find_packages(exclude=["tests*", "docs*"]),
 
     # Runtime dependencies
-    install_requires=[],
+    install_requires=["typesentry"],
     tests_require=[
         "pytest>=3.0",
         "pytest-cov",
