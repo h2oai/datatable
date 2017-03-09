@@ -11,6 +11,23 @@ grey = term.bright_black
 
 
 class DataFrameWidget(object):
+    """
+    Widget for displaying frame's data interactively.
+
+    This widget will show the data in form of the table, and then (if
+    necessary) enter into the "interactive" mode, responding to user's input in
+    order to move the viewport.
+
+    Along the Y dimension, we will display at most `VIEW_NROWS_MAX` rows. Less
+    if the terminal doesn't fit that many. However if the terminal cannot fit
+    at least `VIEW_NROWS_MIN` rows then the interactive mode will be disabled.
+    The position of the viewport along Y will be restricted so that the fixed
+    amount of rows is always displayed (for example if frame_nrows=100 and
+    view_nrows=30, then view_row0 cannot exceed 70).
+    """
+
+    VIEW_NROWS_MIN = 10
+    VIEW_NROWS_MAX = 30
 
     def __init__(self, nrows, ncols, viewdata_callback):
         """
@@ -36,12 +53,16 @@ class DataFrameWidget(object):
         self._view_col0 = 0
         self._view_row0 = 0
         self._view_ncols = 30
-        self._view_nrows = 20
+        self._view_nrows = DataFrameWidget.VIEW_NROWS_MAX
 
-        #
-        self._max_row0 = max(0, nrows - self._view_nrows)
+        # Largest allowed values for ``self._view_(col|row)0``
+        self._max_row0 = 0
+        self._max_col0 = max(0, ncols - 1)
+        self._adjust_viewport()
 
+        # Display state
         self._n_displayed_lines = 0
+        self._show_types = False
 
 
     def render(self, interactive=True):
@@ -51,13 +72,14 @@ class DataFrameWidget(object):
         try:
             for ch in wait_for_keypresses(0.5):
                 if not ch: continue
-                if ch == "q" or ch == "Q": return
+                if ch == "q" or ch == "Q": break
                 uch = ch.name if ch.is_sequence else ch.upper()
                 if uch in DataFrameWidget._MOVES:
                     DataFrameWidget._MOVES[uch](self)
                 # print(uch)
         except KeyboardInterrupt:
             pass
+        print()
 
 
     def draw(self, show_nav=True):
@@ -73,21 +95,25 @@ class DataFrameWidget(object):
 
         columns = [indexcolumn]
         for i in range(len(colnames)):
-            col = _Column(name=colnames[i], ctype=coltypes[i], data=coldata[i])
+            name = term.green(coltypes[i]) if self._show_types else colnames[i]
+            col = _Column(name=name, ctype=coltypes[i], data=coldata[i])
             columns.append(col)
         columns[-1].margin = ""
 
         # Adjust widths of columns
         total_width = sum(col.width + len(col.margin) for col in columns)
-        remaining_width = term.width
-        if total_width > remaining_width:
+        remaining_space = term.width - total_width
+        if remaining_space < 0:
+            remaining_width = term.width
             for i, col in enumerate(columns):
                 col.width = min(col.width, remaining_width, _Column.MAX_WIDTH)
-                remaining_width -= col.width + 2
-                if remaining_width < 0:
+                remaining_width -= col.width + len(col.margin)
+                if remaining_width <= 0:
                     remaining_width = 0
-                if remaining_width < 2:
                     col.margin = ""
+                    self._view_ncols = i + 1
+        # elif self._maybe_adjust_viewport_horizontally(remaining_space):
+        #     return self.draw(show_nav)
 
         # Generate the elements of the display
         header = ["".join(col.header for col in columns),
@@ -103,7 +129,8 @@ class DataFrameWidget(object):
             remaining_width = term.width
             nav_elements = [grey("Press") + " q " + grey("to quit"),
                             "  ↑←↓→ " + grey("to move"),
-                            "  wasd " + grey("to page")]
+                            "  wasd " + grey("to page"),
+                            "  t " + grey("toggle types")]
             for elem in nav_elements:
                 l = term.length(elem)
                 if l > remaining_width:
@@ -113,10 +140,10 @@ class DataFrameWidget(object):
 
         # Render the table
         lines = header + rows + footer
-        out = (term.move_up * self._n_displayed_lines +
+        out = (term.move_x(0) + term.move_up * self._n_displayed_lines +
                (term.clear_eol + "\n").join(lines))
-        print(out)
-        self._n_displayed_lines = len(lines)
+        print(out, end="")
+        self._n_displayed_lines = len(lines) - 1
 
 
     #---------------------------------------------------------------------------
@@ -133,6 +160,7 @@ class DataFrameWidget(object):
         "S": lambda self: self._move_viewport(dy=self._view_nrows),
         "A": lambda self: self._move_viewport(dx=-self._view_ncols),
         "D": lambda self: self._move_viewport(dx=self._view_ncols),
+        "T": lambda self: self._toggle_types(),
     }
 
     def _fetch_data(self):
@@ -141,7 +169,7 @@ class DataFrameWidget(object):
 
         This method will adjust the view window if it goes out-of-bounds.
         """
-        self._view_col0 = clamp(self._view_col0, 0, self._frame_ncols - 1)
+        self._view_col0 = clamp(self._view_col0, 0, self._max_col0)
         self._view_row0 = clamp(self._view_row0, 0, self._max_row0)
         self._view_ncols = clamp(self._view_ncols, 0,
                                  self._frame_ncols - self._view_col0)
@@ -152,13 +180,41 @@ class DataFrameWidget(object):
 
 
     def _move_viewport(self, dx=0, dy=0):
-        newcol0 = clamp(self._view_col0 + dx, 0, self._frame_ncols - 1)
+        newcol0 = clamp(self._view_col0 + dx, 0, self._max_col0)
         newrow0 = clamp(self._view_row0 + dy, 0, self._max_row0)
         if newcol0 != self._view_col0 or newrow0 != self._view_row0:
             self._view_col0 = newcol0
             self._view_row0 = newrow0
             self.draw()
 
+
+    def _toggle_types(self):
+        self._show_types = not self._show_types
+        self.draw()
+
+
+    def _maybe_adjust_viewport_horizontally(self, right_margin):
+        """
+        :returns: True if the viewport needs to be re-rendered, False otherwise
+        """
+        if self._view_ncols == self._frame_ncols and self._view_col0 == 0:
+            return False
+        # There is more space available: adjust number of columns displayed
+        if self._view_col0 + self._view_ncols < self._frame_nrows:
+            self._view_ncols += 1
+        else:
+            self._view_col0 -= 1
+            self._view_ncols += 1
+
+
+    def _adjust_viewport(self):
+        # Adjust Y position
+        new_nrows = min(DataFrameWidget.VIEW_NROWS_MAX,
+                        max(term.height - 5, DataFrameWidget.VIEW_NROWS_MIN),
+                        self._frame_nrows)
+        self._view_nrows = new_nrows
+        self._max_row0 = self._frame_nrows - new_nrows
+        self._view_row0 = min(self._view_row0, self._max_row0)
 
 
 
@@ -195,7 +251,7 @@ class _Column(object):
         self._rmargin = "  "
         if ctype == "real":
             self._align_at_dot()
-        self._width = max(len(name),
+        self._width = max(term.length(name),
                           max(len(field) for field in self._strdata))
 
 
@@ -282,7 +338,7 @@ class _Column(object):
 
 
     def _format(self, value):
-        diff = self._width - len(value)
+        diff = self._width - term.length(value)
         if diff >= 0:
             whitespace = " " * diff
             if self._alignleft:
