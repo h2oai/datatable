@@ -3,12 +3,28 @@
 #include "dtutils.h"
 
 
-static PyObject* some_function(PyObject *self, PyObject *args) {
-    PyObject *result = NULL;
-    if (PyArg_ParseTuple(args, "")) {
-        result = PyLong_FromLong(0);
+static PyObject* dumpster(PyObject *self, PyObject *args) {
+    PyObject *arg;
+    if (!PyArg_ParseTuple(args, "O", &arg))
+        return NULL;
+
+    long s = _PyObject_VAR_SIZE(Py_TYPE(arg), Py_SIZE(arg));
+    printf("VAR_SIZE = %ld\n", s);
+    printf("Py_SIZE = %ld\n", Py_SIZE(arg));
+    printf("tp_basicsize = %ld\n", Py_TYPE(arg)->tp_basicsize);
+    printf("tp_itemsize = %ld\n", Py_TYPE(arg)->tp_itemsize);
+    printf("tp_name = %s\n", Py_TYPE(arg)->tp_name);
+    char *buf = malloc(sizeof(char) * s * 3 + 1);
+    char *ptr = (char*) (void*) arg;
+    const char *hex = "0123456789ABCDEF";
+    for (int i = 0; i < s; i++) {
+        char ch = ptr[i];
+        buf[i*3 + 0] = hex[(ch & 0xF0) >> 4];
+        buf[i*3 + 1] = hex[ch & 0x0F];
+        buf[i*3 + 2] = ' ';
     }
-    return result;
+    buf[s*3] = 0;
+    return PyUnicode_FromStringAndSize(buf, s*3);
 }
 
 
@@ -17,8 +33,8 @@ static PyObject* some_function(PyObject *self, PyObject *args) {
 // Module definition
 //------------------------------------------------------------------------------
 
-static PyMethodDef DatatableMethods[] = {
-    {"test", some_function, METH_VARARGS, "Just a test function"},
+static PyMethodDef DatatableModuleMethods[] = {
+    {"dumpster", dumpster, METH_VARARGS, "Just a test function"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -29,7 +45,7 @@ static struct PyModuleDef datatablemodule = {
     "module doc",  /* module documentation */
     -1,            /* size of per-interpreter state of the module, or -1
                       if the module keeps state in global variables */
-    DatatableMethods
+    DatatableModuleMethods
 };
 
 /* Called when Python program imports the module */

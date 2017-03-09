@@ -381,16 +381,16 @@ static PyObject* dt_Datatable_view(dt_DatatableObject *self, PyObject *args)
     PyObject *view = PyList_New((Py_ssize_t) ncols);
     if (view == NULL) return NULL;
 
+    PyObject *types = PyList_New((Py_ssize_t) ncols);
+    if (types == NULL) goto fail;
+
     for (Py_ssize_t i = 0; i < ncols; ++i) {
         dt_Coltype coltype = self->coltypes[col0 + i];
         dt_Coldata coldata = self->columns[col0 + i];
+        PyList_SET_ITEM(types, i, PyLong_FromLong(coltype));
         PyObject *collist = PyList_New((Py_ssize_t) nrows);
-        if (collist == NULL) {
-            Py_DECREF(view);
-            return NULL;
-        } else {
-            PyList_SET_ITEM(view, i, collist);
-        }
+        if (collist == NULL) goto fail;
+        PyList_SET_ITEM(view, i, collist);
         PyObject *value;
         for (Py_ssize_t j = 0; j < nrows; ++j) {
             switch (coltype) {
@@ -422,21 +422,27 @@ static PyObject* dt_Datatable_view(dt_DatatableObject *self, PyObject *args)
 
                 case DT_AUTO:
                     PyErr_SetString(PyExc_RuntimeError, "Internal error: column of type DT_AUTO found");
-                    return decref(view);
+                    goto fail;
             }
             PyList_SET_ITEM(collist, j, value);
         }
     }
 
     dt_DtViewObject *res = (dt_DtViewObject*) dt_DtViewType.tp_alloc(&dt_DtViewType, 0);
-    if (res == NULL) return decref(view);
+    if (res == NULL) goto fail;
 
     res->col0 = col0;
     res->ncols = ncols;
     res->row0 = row0;
     res->nrows = nrows;
+    res->types = types;
     res->data = view;
     return (PyObject*) res;
+
+fail:
+    Py_XDECREF(view);
+    Py_XDECREF(types);
+    return NULL;
 }
 
 
@@ -445,6 +451,7 @@ PyDoc_STRVAR(dtdoc_ncols, "Number of columns");
 PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows");
 PyDoc_STRVAR(dtdoc_row0, "Index of the first row");
+PyDoc_STRVAR(dtdoc_viewtypes, "Types of the columns within the view");
 PyDoc_STRVAR(dtdoc_viewdata, "Datatable's data within the specified window");
 PyDoc_STRVAR(dtdoc_fromlist, "Create Datatable from a list");
 
@@ -523,6 +530,7 @@ PyTypeObject dt_DatatableType = {
 static void dt_DtView_dealloc(dt_DtViewObject *self)
 {
     Py_XDECREF(self->data);
+    Py_XDECREF(self->types);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -532,6 +540,7 @@ static PyMemberDef dt_DtView_members[] = {
     {"nrows", T_INT,  offsetof(dt_DtViewObject, nrows), READONLY, dtdoc_nrows},
     {"col0",  T_INT,  offsetof(dt_DtViewObject, col0), READONLY, dtdoc_col0},
     {"row0",  T_LONG, offsetof(dt_DtViewObject, row0), READONLY, dtdoc_row0},
+    {"types", T_OBJECT_EX, offsetof(dt_DtViewObject, types), READONLY, dtdoc_viewtypes},
     {"data",  T_OBJECT_EX, offsetof(dt_DtViewObject, data), READONLY, dtdoc_viewdata},
     {NULL}                 /* sentinel */
 };

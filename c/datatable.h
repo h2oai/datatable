@@ -45,6 +45,7 @@ typedef struct dt_DtViewObject {
     int ncols;
     long row0;
     int nrows;
+    PyObject *types;
     PyObject *data;
 } dt_DtViewObject;
 
