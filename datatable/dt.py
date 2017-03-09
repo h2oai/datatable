@@ -3,19 +3,101 @@
 from __future__ import division, print_function, unicode_literals
 
 import _datatable as c
+from .widget import DataFrameWidget
 
 __all__ = ("DataTable", )
 
 
 class DataTable(object):
+    _id_counter_ = 0
+    _dt_types = ["auto", "real", "int", "str", "bool", "obj"]
 
-    def __init__(self):
-        self._ncols = None  # type: int
-        self._nrows = None  # type: int
-        self._names = None  # type: List[str]
-        self._types = None  # type: List[str]
-        self._cols = None   # type: List[Col]
-        self._dt = c.DataTable()
+    def __init__(self, src=None):
+        DataTable._id_counter_ += 1
+        self._id = DataTable._id_counter_  # type: int
+        self._ncols = 0     # type: int
+        self._nrows = 0     # type: int
+        self._names = None  # type: Tuple[str]
+        self._types = None  # type: Tuple[str]
+        self._dt = None     # type: c.DataTable
+        self._fill_from_source(src)
+
+
+    #---------------------------------------------------------------------------
+    # Basic properties
+    #---------------------------------------------------------------------------
+
+    @property
+    def ncols(self):
+        """Number of columns in the datatable."""
+        return self._ncols
+
+    @property
+    def nrows(self):
+        """Number of rows in the datatable."""
+        return self._nrows
+
+    @property
+    def shape(self):
+        """Tuple (number of rows, number of columns) in the datatable."""
+        return (self._nrows, self._ncols)
+
+    @property
+    def names(self):
+        """Tuple of column names."""
+        return self._names
+
+
+    #---------------------------------------------------------------------------
+    # Display
+    #---------------------------------------------------------------------------
+
+    def __repr__(self):
+        srows = "%d row%s" % (self._nrows, "" if self._nrows == 1 else "")
+        scols = "%d col%s" % (self._ncols, "" if self._ncols == 1 else "")
+        return "<DataTable #%d (%s x %s)>" % (self._id, srows, scols)
+
+    def _display_in_terminal_(self):
+        self.view()
+
+    def _data_viewer(self, col0, ncols, row0, nrows):
+        view = self._dt.window(col0, ncols, row0, nrows)
+        return {
+            "names": self._names[col0 : col0 + ncols],
+            "types": [DataTable._dt_types[t] for t in view.types],
+            "columns": view.data,
+        }
+
+    def view(self):
+        widget = DataFrameWidget(self._nrows, self._ncols, self._data_viewer)
+        widget.render()
+
+
+    #---------------------------------------------------------------------------
+    # Initialization helpers
+    #---------------------------------------------------------------------------
+
+    def _fill_from_source(self, src):
+        if isinstance(src, list):
+            self._fill_from_list(src)
+        elif isinstance(src, (tuple, set)):
+            self._fill_from_list(list(src))
+        elif isinstance(src, dict):
+            self._fill_from_list(list(src.values()), names=tuple(src.keys()))
+        else:
+            self._dt = c.DataTable()
+
+
+    def _fill_from_list(self, src, names=None):
+        self._dt = c.DataTable.from_list(src)
+        self._ncols = self._dt.ncols
+        self._nrows = self._dt.nrows
+        if not names:
+            names = tuple("C%d" % (i + 1) for i in range(self._ncols))
+        if not isinstance(names, tuple):
+            names = tuple(names)
+        assert len(names) == self._ncols
+        self._names = names
 
 
     def __call__(self, rows=None, select=None, update=None, groupby=None,

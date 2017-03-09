@@ -7,8 +7,8 @@ Build script for the `datatable` module.
     $ twine upload dist/*
 """
 import re
-from setuptools import find_packages
-from distutils.core import setup, Extension
+from setuptools import setup, find_packages
+from distutils.core import Extension
 
 
 # Determine the version
@@ -51,7 +51,7 @@ setup(
     packages=find_packages(exclude=["tests*", "docs*"]),
 
     # Runtime dependencies
-    install_requires=["typesentry"],
+    install_requires=["typesentry", "blessed"],
     tests_require=[
         "pytest>=3.0",
         "pytest-cov",
