@@ -4,7 +4,8 @@ from __future__ import division, print_function, unicode_literals
 import time
 
 from datatable.utils.misc import plural_form, clamp
-from datatable.utils.terminal import term, wait_for_keypresses, register_onresize
+from datatable.utils.terminal import (
+    term, wait_for_keypresses, register_onresize)
 
 grey = term.bright_black
 
@@ -70,6 +71,7 @@ class DataFrameWidget(object):
         self._colwidths = {}
         self._term_width = term.width
         self._term_height = term.height
+        self._jump_string = None
 
 
     def render(self):
@@ -86,11 +88,19 @@ class DataFrameWidget(object):
                         break
                     else:
                         continue
-                if ch == "q" or ch == "Q": break
                 uch = ch.name if ch.is_sequence else ch.upper()
-                if uch in DataFrameWidget._MOVES:
-                    DataFrameWidget._MOVES[uch](self)
-                # print(uch)
+                if self._jump_string is None:
+                    if uch == "Q" or uch == "KEY_ESCAPE": break
+                    if uch in DataFrameWidget._MOVES:
+                        DataFrameWidget._MOVES[uch](self)
+                else:
+                    if uch == "Q" or uch == "KEY_ESCAPE":
+                        self._jump_string = None
+                        self.draw()
+                    elif uch == "KEY_DELETE" or uch == "KEY_BACKSPACE":
+                        self._jump_to(self._jump_string[:-1])
+                    elif uch in "0123456789:":
+                        self._jump_to(self._jump_string + uch)
         except KeyboardInterrupt:
             pass
         register_onresize(old_handler)
@@ -159,21 +169,25 @@ class DataFrameWidget(object):
         # Display hint about navigation keys
         if self._interactive:
             remaining_width = term.width
-            nav_elements = [grey("Press") + " q " + grey("to quit"),
-                            "  ↑←↓→ " + grey("to move"),
-                            "  wasd " + grey("to page"),
-                            "  t " + grey("toggle types")]
-            for elem in nav_elements:
-                l = term.length(elem)
-                if l > remaining_width:
-                    break
-                remaining_width -= l
-                footer[2] += elem
+            if self._jump_string is None:
+                nav_elements = [grey("Press") + " q " + grey("to quit"),
+                                "  ↑←↓→ " + grey("to move"),
+                                "  wasd " + grey("to page"),
+                                "  t " + grey("to toggle types"),
+                                "  g " + grey("to jump")]
+                for elem in nav_elements:
+                    l = term.length(elem)
+                    if l > remaining_width:
+                        break
+                    remaining_width -= l
+                    footer[2] += elem
+            else:
+                footer[2] = grey("Go to (row:col): ") + self._jump_string
 
         # Render the table
         lines = header + rows + footer
         out = (term.move_x(0) + term.move_up * self._n_displayed_lines +
-               (term.clear_eol + "\n").join(lines))
+               (term.clear_eol + "\n").join(lines) + term.clear_eol)
         print(out, end="")
         self._n_displayed_lines = len(lines) - 1
 
@@ -196,6 +210,7 @@ class DataFrameWidget(object):
         "A": lambda self: self._move_viewport(dx=-self._view_ncols),
         "D": lambda self: self._move_viewport(dx=max(1, self._view_ncols - 1)),
         "T": lambda self: self._toggle_types(),
+        "G": lambda self: self._toggle_jump_mode(),
     }
 
     def _fetch_data(self):
@@ -226,22 +241,42 @@ class DataFrameWidget(object):
             return w
 
 
-    def _move_viewport(self, dx=0, dy=0, x=None, y=None):
+    def _move_viewport(self, dx=0, dy=0, x=None, y=None, force_draw=False):
         if x is None:
             x = self._view_col0 + dx
         if y is None:
             y = self._view_row0 + dy
-        newcol0 = clamp(x, 0, self._max_col0)
-        newrow0 = clamp(y, 0, self._max_row0)
-        if newcol0 != self._view_col0 or newrow0 != self._view_row0:
-            self._view_col0 = newcol0
-            self._view_row0 = newrow0
+        ncol0 = clamp(x, 0, self._max_col0)
+        nrow0 = clamp(y, 0, self._max_row0)
+        if ncol0 != self._view_col0 or nrow0 != self._view_row0 or force_draw:
+            self._view_col0 = ncol0
+            self._view_row0 = nrow0
             self.draw()
 
 
     def _toggle_types(self):
         self._show_types = not self._show_types
         self.draw()
+
+
+    def _toggle_jump_mode(self):
+        assert self._jump_string is None
+        self._jump_string = ""
+        self.draw()
+
+
+    def _jump_to(self, newloc):
+        parts = newloc.split(":")
+        if parts[0]:
+            newy = int(parts[0]) - self._view_nrows // 2
+        else:
+            newy = None
+        if len(parts) >= 2 and parts[1]:
+            newx = int(parts[1])
+        else:
+            newx = None
+        self._jump_string = ":".join(parts[:2])
+        self._move_viewport(x=newx, y=newy, force_draw=True)
 
 
     def _adjust_viewport(self):
