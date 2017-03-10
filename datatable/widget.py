@@ -24,6 +24,9 @@ class DataFrameWidget(object):
     The position of the viewport along Y will be restricted so that the fixed
     amount of rows is always displayed (for example if frame_nrows=100 and
     view_nrows=30, then view_row0 cannot exceed 70).
+
+    Along dimension X, everything is slightly more complicated since all
+    columns may have different width.
     """
 
     VIEW_NROWS_MIN = 10
@@ -63,11 +66,13 @@ class DataFrameWidget(object):
         # Display state
         self._n_displayed_lines = 0
         self._show_types = False
+        self._interactive = True
+        self._colwidths = {}
 
 
-    def render(self, interactive=True):
-        self.draw(show_nav=interactive)
-        if not interactive:
+    def render(self):
+        self.draw()
+        if not self._interactive:
             return
         try:
             for ch in wait_for_keypresses(0.5):
@@ -79,41 +84,58 @@ class DataFrameWidget(object):
                 # print(uch)
         except KeyboardInterrupt:
             pass
-        print()
+        print(term.move_x(0) + term.clear_eol)
 
 
-    def draw(self, show_nav=True):
+    def draw(self):
         data = self._fetch_data()
         colnames = data["names"]
         coltypes = data["types"]
         coldata = data["columns"]
 
+        # Create column with row indices
         indices = range(self._view_row0, self._view_row0 + self._view_nrows)
         indexcolumn = _Column(name="", ctype="int", data=indices)
         indexcolumn.color = grey
         indexcolumn.margin = "  "
 
+        # Data columns
         columns = [indexcolumn]
-        for i in range(len(colnames)):
+        for i in range(self._view_ncols):
             name = term.green(coltypes[i]) if self._show_types else colnames[i]
             col = _Column(name=name, ctype=coltypes[i], data=coldata[i])
+            if self._view_ncols < self._frame_ncols:
+                col.width = min(col.width, _Column.MAX_WIDTH)
+            self._colwidths[i + self._view_col0] = col.width
             columns.append(col)
         columns[-1].margin = ""
 
         # Adjust widths of columns
         total_width = sum(col.width + len(col.margin) for col in columns)
-        remaining_space = term.width - total_width
-        if remaining_space < 0:
-            remaining_width = term.width
+        extra_space = term.width - total_width
+        if extra_space > 0:
+            if self._view_col0 + self._view_ncols < self._frame_ncols:
+                self._view_ncols += max(1, extra_space // 8)
+                return self.draw()
+            elif self._view_col0 > 0:
+                w = self._fetch_column_width(self._view_col0 - 1)
+                if w + 2 <= extra_space:
+                    self._view_col0 -= 1
+                    self._view_ncols += 1
+                    self._max_col0 = self._view_col0
+                    return self.draw()
+        else:
+            if self._max_col0 == self._view_col0:
+                self._max_col0 += 1
+            available_width = term.width
             for i, col in enumerate(columns):
-                col.width = min(col.width, remaining_width, _Column.MAX_WIDTH)
-                remaining_width -= col.width + len(col.margin)
-                if remaining_width <= 0:
-                    remaining_width = 0
+                col.width = min(col.width, available_width)
+                available_width -= col.width + len(col.margin)
+                if available_width <= 0:
+                    available_width = 0
                     col.margin = ""
+                else:
                     self._view_ncols = i + 1
-        # elif self._maybe_adjust_viewport_horizontally(remaining_space):
-        #     return self.draw(show_nav)
 
         # Generate the elements of the display
         header = ["".join(col.header for col in columns),
@@ -125,7 +147,7 @@ class DataFrameWidget(object):
         footer = ["", "[%s x %s]" % (srows, scols), ""]
 
         # Display hint about navigation keys
-        if show_nav:
+        if self._interactive:
             remaining_width = term.width
             nav_elements = [grey("Press") + " q " + grey("to quit"),
                             "  ↑←↓→ " + grey("to move"),
@@ -155,11 +177,14 @@ class DataFrameWidget(object):
         "KEY_RIGHT": lambda self: self._move_viewport(dx=1),
         "KEY_UP": lambda self: self._move_viewport(dy=-1),
         "KEY_DOWN": lambda self: self._move_viewport(dy=1),
-        "KEY_SLEFT": lambda self: self._move_viewport(dx=-self._view_col0),
+        "KEY_SLEFT": lambda self: self._move_viewport(x=0),
+        "KEY_SRIGHT": lambda self: self._move_viewport(x=self._max_col0),
+        "KEY_SUP": lambda self: self._move_viewport(y=0),
+        "KEY_SDOWN": lambda self: self._move_viewport(y=self._max_row0),
         "W": lambda self: self._move_viewport(dy=-self._view_nrows),
         "S": lambda self: self._move_viewport(dy=self._view_nrows),
         "A": lambda self: self._move_viewport(dx=-self._view_ncols),
-        "D": lambda self: self._move_viewport(dx=self._view_ncols),
+        "D": lambda self: self._move_viewport(dx=max(1, self._view_ncols - 1)),
         "T": lambda self: self._toggle_types(),
     }
 
@@ -178,10 +203,26 @@ class DataFrameWidget(object):
         return self._data_callback(self._view_col0, self._view_ncols,
                                    self._view_row0, self._view_nrows)
 
+    def _fetch_column_width(self, icol):
+        if icol in self._colwidths:
+            return self._colwidths[icol]
+        else:
+            data = self._data_callback(icol, 1, self._view_row0,
+                                       self._view_nrows)
+            col = _Column(name=data["names"][0], ctype=data["types"][0],
+                          data=data["columns"][0])
+            w = min(col.width, _Column.MAX_WIDTH)
+            self._colwidths[icol] = w
+            return w
 
-    def _move_viewport(self, dx=0, dy=0):
-        newcol0 = clamp(self._view_col0 + dx, 0, self._max_col0)
-        newrow0 = clamp(self._view_row0 + dy, 0, self._max_row0)
+
+    def _move_viewport(self, dx=0, dy=0, x=None, y=None):
+        if x is None:
+            x = self._view_col0 + dx
+        if y is None:
+            y = self._view_row0 + dy
+        newcol0 = clamp(x, 0, self._max_col0)
+        newrow0 = clamp(y, 0, self._max_row0)
         if newcol0 != self._view_col0 or newrow0 != self._view_row0:
             self._view_col0 = newcol0
             self._view_row0 = newrow0
@@ -191,20 +232,6 @@ class DataFrameWidget(object):
     def _toggle_types(self):
         self._show_types = not self._show_types
         self.draw()
-
-
-    def _maybe_adjust_viewport_horizontally(self, right_margin):
-        """
-        :returns: True if the viewport needs to be re-rendered, False otherwise
-        """
-        if self._view_ncols == self._frame_ncols and self._view_col0 == 0:
-            return False
-        # There is more space available: adjust number of columns displayed
-        if self._view_col0 + self._view_ncols < self._frame_nrows:
-            self._view_ncols += 1
-        else:
-            self._view_col0 -= 1
-            self._view_ncols += 1
 
 
     def _adjust_viewport(self):

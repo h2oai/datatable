@@ -4,6 +4,7 @@ from __future__ import division, print_function, unicode_literals
 
 import _datatable as c
 from .widget import DataFrameWidget
+from datatable.utils.misc import plural_form
 
 __all__ = ("DataTable", )
 
@@ -53,8 +54,8 @@ class DataTable(object):
     #---------------------------------------------------------------------------
 
     def __repr__(self):
-        srows = "%d row%s" % (self._nrows, "" if self._nrows == 1 else "")
-        scols = "%d col%s" % (self._ncols, "" if self._ncols == 1 else "")
+        srows = plural_form(self._nrows, "row")
+        scols = plural_form(self._ncols, "col")
         return "<DataTable #%d (%s x %s)>" % (self._id, srows, scols)
 
     def _display_in_terminal_(self):
@@ -63,7 +64,7 @@ class DataTable(object):
     def _data_viewer(self, col0, ncols, row0, nrows):
         view = self._dt.window(col0, ncols, row0, nrows)
         return {
-            "names": self._names[col0 : col0 + ncols],
+            "names": self._names[col0:col0 + ncols],
             "types": [DataTable._dt_types[t] for t in view.types],
             "columns": view.data,
         }
