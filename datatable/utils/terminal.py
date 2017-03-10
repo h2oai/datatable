@@ -7,7 +7,7 @@ from __future__ import division, print_function, unicode_literals
 import sys
 import blessed
 
-__all__ = ("term", "wait_for_keypresses")
+__all__ = ("term", "wait_for_keypresses", "register_onresize")
 
 
 # Initialize the terminal
@@ -47,3 +47,9 @@ def wait_for_keypresses(refresh_rate=1):
     with term.cbreak():
         while True:
             yield term.inkey(timeout=refresh_rate)
+
+
+
+def register_onresize(callback):
+    import signal
+    return signal.signal(signal.SIGWINCH, callback)

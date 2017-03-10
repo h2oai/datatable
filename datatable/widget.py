@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 import time
 
 from datatable.utils.misc import plural_form, clamp
-from datatable.utils.terminal import term, wait_for_keypresses
+from datatable.utils.terminal import term, wait_for_keypresses, register_onresize
 
 grey = term.bright_black
 
@@ -68,15 +68,24 @@ class DataFrameWidget(object):
         self._show_types = False
         self._interactive = True
         self._colwidths = {}
+        self._term_width = term.width
+        self._term_height = term.height
 
 
     def render(self):
         self.draw()
         if not self._interactive:
             return
+        old_handler = register_onresize(self._onresize)
         try:
             for ch in wait_for_keypresses(0.5):
-                if not ch: continue
+                if not ch:
+                    # Signal handler could have invalidated interactive mode
+                    # of the widget -- in which case we need to stop rendering
+                    if not self._interactive:
+                        break
+                    else:
+                        continue
                 if ch == "q" or ch == "Q": break
                 uch = ch.name if ch.is_sequence else ch.upper()
                 if uch in DataFrameWidget._MOVES:
@@ -84,6 +93,7 @@ class DataFrameWidget(object):
                 # print(uch)
         except KeyboardInterrupt:
             pass
+        register_onresize(old_handler)
         print(term.move_x(0) + term.clear_eol)
 
 
@@ -242,6 +252,16 @@ class DataFrameWidget(object):
         self._view_nrows = new_nrows
         self._max_row0 = self._frame_nrows - new_nrows
         self._view_row0 = min(self._view_row0, self._max_row0)
+
+
+    def _onresize(self, signum, stkfrm):
+        if self._term_width > term.width:
+            self._interactive = False
+        else:
+            self._adjust_viewport()
+            self._term_width = term.width
+            self._term_height = term.height
+            self.draw()
 
 
 
