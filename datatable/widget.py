@@ -94,7 +94,7 @@ class DataFrameWidget(object):
                     if uch in DataFrameWidget._MOVES:
                         DataFrameWidget._MOVES[uch](self)
                 else:
-                    if uch == "Q" or uch == "KEY_ESCAPE":
+                    if uch in {"Q", "KEY_ESCAPE", "KEY_ENTER"}:
                         self._jump_string = None
                         self.draw()
                     elif uch == "KEY_DELETE" or uch == "KEY_BACKSPACE":
