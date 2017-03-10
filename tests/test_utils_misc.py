@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import random
 
 from tests import datatable
 
@@ -18,6 +19,7 @@ def test_plural_form():
     assert plural(7, "try") == "7 tries"
     assert plural(8, "elf") == "8 elves"
     assert plural(3, "buff") == "3 buffs"
+    assert plural(9, "life") == "9 lives"
     assert plural(1021, "loss") == "1021 losses"
     assert plural(4, "mesh") == "4 meshes"
     assert plural(5, "branch") == "5 branches"
@@ -40,3 +42,50 @@ def test_clamp():
     assert clamp(-5, -5, -3) == -5
     assert clamp(-6, -5, -3) == -5
     assert clamp(0.3, 0, 1) == 0.3
+
+
+
+def test_normalize_slice():
+    norm = datatable.utils.misc.normalize_slice
+
+    class Checker(object):
+        def __init__(self, src):
+            self._src = src
+
+        def __getitem__(self, item):
+            assert isinstance(item, slice)
+            start, count, step = norm(item, len(self._src))
+            res1 = self._src[item]
+            res2 = "".join(self._src[start + i * step] for i in range(count))
+            assert res1 == res2
+
+        def __repr__(self):
+            return "Checker(%s)" % self._src
+
+
+    for src in ["", "z", "xy", "Hello", "'tis just a flesh wound!"]:
+        check = Checker(src)
+        check[::]
+        for t in (0, 1, 2, 3, 5, 6, 7, 12, 100, -1, -2, -3, -5, -6, -9, -99):
+            check[t:]
+            check[t::2]
+            check[t::3]
+            check[t::-1]
+            check[t::-2]
+            check[t::-3]
+            check[:t]
+            check[:t:2]
+            check[:t:3]
+            check[:t:-1]
+            check[:t:-2]
+            check[:t:-3]
+            check[t:2 * t]
+
+        start_choices = [None] * 10 + list(range(-10, 10)) + [-1000, 1000]
+        stop_choices = start_choices
+        step_choices = [None, None, 1, -1, 2, -2, 3, -3]
+        for _ in range(1000):
+            start = random.choice(start_choices)
+            stop = random.choice(stop_choices)
+            step = random.choice(step_choices)
+            check[slice(start, stop, step)]
