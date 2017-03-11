@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import pytest
 import random
 
 from tests import datatable
@@ -89,3 +90,49 @@ def test_normalize_slice():
             stop = random.choice(stop_choices)
             step = random.choice(step_choices)
             check[slice(start, stop, step)]
+
+
+
+def test_normalize_range():
+    norm = datatable.utils.misc.normalize_range
+
+    class Checker(object):
+        def __init__(self, src):
+            self._src = src
+
+        def range(self, start, stop, step):
+            n = len(self._src)
+            rng = range(start, stop, step)
+            res = norm(rng, n)
+            if res is None:
+                array = list(rng)
+                assert (array[0] < -n or array[0] >= n or array[-1] < -n or
+                        array[-1] >= n or array[0] >= 0 and array[-1] < 0 or
+                        array[0] < 0 and array[-1] >= 0)
+            else:
+                nstart, ncount, nstep = res
+                assert ncount >= 0 and nstart >= 0 and nstep == step
+                if ncount > 0:
+                    assert nstart < n
+                    assert 0 <= nstart + (ncount - 1) * nstep < n
+                res1 = "".join(self._src[i] for i in rng)
+                res2 = "".join(self._src[nstart + i * nstep]
+                               for i in range(ncount))
+                assert res1 == res2
+
+        def __repr__(self):
+            return "Checker(%s)" % self._src
+
+    for src in ["", "z", "xy", "Hello", "'tis just a flesh wound!"]:
+        check = Checker(src)
+        check.range(0, 0, 1)
+
+        start_choices = [0] * 10 + list(range(-10, 10)) + [-1000, 1000]
+        stop_choices = start_choices
+        step_choices = [1, -1, 2, -2, 3, -3, 5, 10]
+        for _ in range(10000):
+            start = random.choice(start_choices)
+            stop = random.choice(stop_choices)
+            step = random.choice(step_choices)
+            check.range(start, stop, step)
+
