@@ -261,6 +261,7 @@ static void _make_0rows_column(dt_Coltype *coltype, dt_Coldata *coldata) {
         case DT_STRING: coldata->dstring = NULL;  break;
         case DT_OBJECT: coldata->dobject = NULL;  break;
     }
+    assert(0);
 }
 
 
@@ -289,6 +290,7 @@ static int _allocate_column(dt_Coltype *coltype, dt_Coldata *coldata, long nrows
             /* Don't do anything -- not an instantiable column type */
             return 0;
     }
+    assert(0);
 }
 
 
@@ -301,13 +303,14 @@ static int _allocate_column(dt_Coltype *coltype, dt_Coldata *coldata, long nrows
  */
 static void _deallocate_column(dt_Coltype *coltype, dt_Coldata *coldata) {
     switch (*coltype) {
-        case DT_DOUBLE: free(coldata->ddouble);  break;
-        case DT_LONG:   free(coldata->dlong);    break;
-        case DT_BOOL:   free(coldata->dbool);    break;
-        case DT_STRING: free(coldata->dstring);  break;
-        case DT_OBJECT: free(coldata->dobject);  break;
-        case DT_AUTO:   /* Noop */               break;
+        case DT_DOUBLE: free(coldata->ddouble);  return;
+        case DT_LONG:   free(coldata->dlong);    return;
+        case DT_BOOL:   free(coldata->dbool);    return;
+        case DT_STRING: free(coldata->dstring);  return;
+        case DT_OBJECT: free(coldata->dobject);  return;
+        case DT_AUTO:   /* Noop */               return;
     }
+    assert(0);
 }
 
 

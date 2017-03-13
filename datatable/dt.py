@@ -2,9 +2,14 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
 
+import types
+
 import _datatable as c
 from .widget import DataFrameWidget
-from datatable.utils.misc import plural_form
+
+from datatable.lazy import _LazyDataTable
+from datatable.utils.misc import normalize_slice, normalize_range, plural_form
+from datatable.utils.typechecks import is_type, TypeError, ValueError
 
 __all__ = ("DataTable", )
 
@@ -16,11 +21,13 @@ class DataTable(object):
     def __init__(self, src=None):
         DataTable._id_counter_ += 1
         self._id = DataTable._id_counter_  # type: int
-        self._ncols = 0     # type: int
-        self._nrows = 0     # type: int
-        self._names = None  # type: Tuple[str]
-        self._types = None  # type: Tuple[str]
-        self._dt = None     # type: c.DataTable
+        self._ncols = 0      # type: int
+        self._nrows = 0      # type: int
+        self._types = None   # type: Tuple[str]
+        self._names = None   # type: Tuple[str]
+        # Mapping of column names to their indices
+        self._inames = None  # type: Dict[str, int]
+        self._dt = None      # type: c.DataTable
         self._fill_from_source(src)
 
 
@@ -99,6 +106,7 @@ class DataTable(object):
             names = tuple(names)
         assert len(names) == self._ncols
         self._names = names
+        self._inames = {n: i for i, n in enumerate(names)}
 
 
     def __call__(self, rows=None, select=None, update=None, groupby=None,
@@ -109,7 +117,7 @@ class DataTable(object):
         :param rows:
             Which rows to operate upon. Could be one of the following:
 
-                - ... (or omitted), representing all rows of the datatable
+                - ... (ellipsis), representing all rows of the datatable
                 - an integer, representing a single row
                 - an list or tuple of integers, representing several rows
                 - a slice, representing some range of rows
@@ -235,4 +243,98 @@ class DataTable(object):
             the ``select`` clause. This can also be a slice, which effectively
             applies that slice to the resulting datatable.
         """
-        pass
+        rows_selector = self._rows_selector(rows)
+        print(rows_selector)
+
+
+    def _rows_selector(self, arg, nested=False):
+        """
+        Normalize the selector given by ``arg`` and ensure its correctness.
+        """
+        nrows = self._nrows
+        if arg is Ellipsis:
+            arg = [slice(0, nrows, 1)]
+
+        if isinstance(arg, (int, slice, range)):
+            arg = [arg]
+
+        if isinstance(arg, types.GeneratorType):
+            # If an iterator is provided, eagerize it first. Otherwise there
+            # is no way of testing whether the produced indices are valid
+            arg = list(arg)
+
+        if isinstance(arg, list):
+            bases = []
+            counts = []
+            strides = []
+            for i, elem in enumerate(arg):
+                if isinstance(elem, int):
+                    if elem < -nrows or elem >= nrows:
+                        s = "datatable contains %s; row index %d is invalid" \
+                            % (plural_form(nrows, "row"), elem)
+                        raise ValueError(s)
+                    if elem < 0:
+                        elem += nrows
+                    bases.append(elem)
+                elif isinstance(elem, (range, slice)):
+                    # If range/slice extends beyond the bounds of the datatble,
+                    # we coerce it into the correct range without raising an
+                    # error. This mimics the default Python's behavior, eg
+                    #     "test"[-100:100] == "test"
+                    if elem.step == 0:
+                        raise ValueError("In %r step must not be 0" % elem)
+                    if not (is_type(elem.start, int, None) and
+                            is_type(elem.stop, int, None) and
+                            is_type(elem.step, int, None)):
+                        raise ValueError("%r is not integer-valued" % elem)
+                    if isinstance(elem, range):
+                        res = normalize_range(elem, nrows)
+                        if res is None:
+                            s = "Invalid %r for a datatable with %s" \
+                                % (elem, plural_form(nrows, "row"))
+                            raise ValueError(s)
+                        start, count, step = res
+                    else:
+                        start, count, step = normalize_slice(elem, nrows)
+                    if count == 1:
+                        bases.append(start)
+                    elif count > 1:
+                        if len(counts) < len(bases):
+                            counts += [1] * (len(bases) - len(counts))
+                            strides += [1] * (len(bases) - len(strides))
+                        bases.append(start)
+                        counts.append(count)
+                        strides.append(step)
+                    # if count == 0 then don't do anything
+                else:
+                    raise TypeError("Invalid row specifier %r at element "
+                                    "%d of the `rows` list" % (elem, i))
+            return (bases, counts or None, strides or None)
+
+        if isinstance(arg, DataTable):
+            if arg.ncols != 1:
+                raise ValueError("`rows` argument should be a single-column "
+                                 "datatable, got %r" % arg)
+            if arg.nrows != self.nrows:
+                raise ValueError("`rows` datatable has %s, which is incompa"
+                                 "tible with current datatable having %s"
+                                 % (plural_form(arg.nrows, "row"),
+                                    plural_form(self.nrows, "row")))
+            col0type = arg._types[0]
+            if col0type != "bool":
+                raise TypeError("`rows` datatable should contain a boolean "
+                                "column, however it has type %s" % col0type)
+            return arg
+
+        if isinstance(arg, types.FunctionType) and not nested:
+            ss = arg(_LazyDataTable(src=self))
+            return self._rows_selector(ss, True)
+
+        if isinstance(arg, _LazyDataTable):
+            return arg
+
+        if nested:
+            raise TypeError("Unexpected result produced by the `rows` "
+                            "function: %r" % arg)
+        else:
+            raise TypeError("Unexpected `rows` argument: %r" % arg)

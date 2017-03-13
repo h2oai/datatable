@@ -4,11 +4,12 @@
 Utility for checking types at runtime.
 """
 import typesentry
-from typesentry import checker_for_type, U
+from typesentry import U
 
 _tc = typesentry.Config()
 typed = _tc.typed
 is_type = _tc.is_type
+TypeError = _tc.TypeError
+ValueError = _tc.ValueError
 
-
-__all__ = ("typed", "checker_for_type", "U")
+__all__ = ("typed", "is_type", "U", "TypeError", "ValueError")

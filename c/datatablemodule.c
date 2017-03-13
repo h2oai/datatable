@@ -39,7 +39,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
-static struct PyModuleDef datatablemodule = {
+static PyModuleDef datatablemodule = {
     PyModuleDef_HEAD_INIT,
     "_datatable",  /* name of the module */
     "module doc",  /* module documentation */
