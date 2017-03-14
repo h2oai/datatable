@@ -1,6 +1,5 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
 *$py.class
 
 
@@ -26,6 +25,7 @@ docs/_build/
 
 
 # Project managers
-.idea/
+.idea/*
+!.idea/inspectionProfiles
 datatable.iml
 *.sublime-*
