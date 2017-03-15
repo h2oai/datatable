@@ -1,5 +1,6 @@
 #include <Python.h>
 #include "datatable.h"
+#include "datawindow.h"
 #include "dtutils.h"
 #include "rows.h"
 
@@ -46,10 +47,10 @@ PyInit__datatable(void) {
     Py_int1 = PyLong_FromLong(1);
 
     dt_DatatableType.tp_new = PyType_GenericNew;
-    dt_DtViewType.tp_new = PyType_GenericNew;
+    dt_DataWindowType.tp_new = PyType_GenericNew;
     dt_RowsIndexType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&dt_DatatableType) < 0 ||
-        PyType_Ready(&dt_DtViewType) < 0 ||
+        PyType_Ready(&dt_DataWindowType) < 0 ||
         PyType_Ready(&dt_RowsIndexType) < 0)
         return NULL;
 
@@ -58,7 +59,10 @@ PyInit__datatable(void) {
         return NULL;
 
     Py_INCREF(&dt_DatatableType);
+    Py_INCREF(&dt_DataWindowType);
+    Py_INCREF(&dt_RowsIndexType);
     PyModule_AddObject(m, "DataTable", (PyObject*) &dt_DatatableType);
-    PyModule_AddObject(m, "DataView", (PyObject*) &dt_DtViewType);
+    PyModule_AddObject(m, "DataWindow", (PyObject*) &dt_DataWindowType);
+    PyModule_AddObject(m, "RowsIndex", (PyObject*) &dt_RowsIndexType);
     return m;
 }

@@ -30,18 +30,6 @@ PyTypeObject dt_DatatableType;
 
 
 
-/*--- Message type for transferring Datatable's data into Python -------------*/
 
-typedef struct dt_DtViewObject {
-    PyObject_HEAD
-    int col0;
-    int ncols;
-    long row0;
-    int nrows;
-    PyObject *types;
-    PyObject *data;
-} dt_DtViewObject;
-
-PyTypeObject dt_DtViewType;
 
 #endif

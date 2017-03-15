@@ -4,6 +4,7 @@
 #include "datatable.h"
 #include "dtutils.h"
 #include "rows.h"
+#include "datawindow.h"
 
 
 static int _fill_1_column(PyObject *list, dt_Coltype *coltype, void **coldata);
@@ -419,91 +420,21 @@ static void dt_Datatable_dealloc(dt_DatatableObject *self)
 
 static PyObject* dt_Datatable_view(dt_DatatableObject *self, PyObject *args)
 {
-    int col0, ncols, nrows;
-    long row0;
-    if (!PyArg_ParseTuple(args, "iili", &col0, &ncols, &row0, &nrows))
+    long col0, ncols, row0, nrows;
+    if (!PyArg_ParseTuple(args, "llll", &col0, &ncols, &row0, &nrows))
         return NULL;
 
-    if (col0 < 0 || col0 + ncols > self->ncols || row0 < 0 || row0 + nrows > self->nrows) {
-        PyErr_SetString(PyExc_ValueError, "Invalid data window bounds");
-        return NULL;
-    }
+    PyObject *nargs = Py_BuildValue("Ollll", self, col0, ncols, row0, nrows);
+    PyObject *res = PyObject_CallObject((PyObject*) &dt_DataWindowType, nargs);
+    Py_XDECREF(nargs);
 
-    PyObject *view = PyList_New((Py_ssize_t) ncols);
-    if (view == NULL) return NULL;
-
-    PyObject *types = PyList_New((Py_ssize_t) ncols);
-    if (types == NULL) goto fail;
-
-    for (Py_ssize_t i = 0; i < ncols; ++i) {
-        dt_Coltype coltype = self->coltypes[col0 + i];
-        void *coldata = self->columns[col0 + i];
-        PyList_SET_ITEM(types, i, PyLong_FromLong(coltype));
-        PyObject *collist = PyList_New((Py_ssize_t) nrows);
-        if (collist == NULL) goto fail;
-        PyList_SET_ITEM(view, i, collist);
-        PyObject *value;
-        for (Py_ssize_t j = 0; j < nrows; ++j) {
-            switch (coltype) {
-                case DT_DOUBLE: {
-                    double x = ((double*)coldata)[row0 + j];
-                    value = isnan(x) ? none() : (PyObject*) PyFloat_FromDouble(x);
-                }   break;
-
-                case DT_LONG: {
-                    long x = ((long*)coldata)[row0 + j];
-                    value = x == LONG_MIN? none() : (PyObject*) PyLong_FromLong(x);
-                }   break;
-
-                case DT_STRING: {
-                    char* x = ((char**)coldata)[row0 + j];
-                    value = x == NULL? none() : (PyObject*) PyUnicode_FromString(x);
-                }   break;
-
-                case DT_BOOL: {
-                    unsigned char x = ((char*)coldata)[row0 + j];
-                    value = x == 0? Py_int0 : x == 1? Py_int1 : Py_None;
-                    Py_INCREF(value);
-                }   break;
-
-                case DT_OBJECT:
-                    value = ((PyObject**)coldata)[row0 + j];
-                    Py_INCREF(value);
-                    break;
-
-                case DT_AUTO:
-                    PyErr_SetString(PyExc_RuntimeError, "Internal error: column of type DT_AUTO found");
-                    goto fail;
-            }
-            PyList_SET_ITEM(collist, j, value);
-        }
-    }
-
-    dt_DtViewObject *res = (dt_DtViewObject*) dt_DtViewType.tp_alloc(&dt_DtViewType, 0);
-    if (res == NULL) goto fail;
-
-    res->col0 = col0;
-    res->ncols = ncols;
-    res->row0 = row0;
-    res->nrows = nrows;
-    res->types = types;
-    res->data = view;
-    return (PyObject*) res;
-
-fail:
-    Py_XDECREF(view);
-    Py_XDECREF(types);
-    return NULL;
+    return res;
 }
 
 
-PyDoc_STRVAR(dtdoc_view, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns");
-PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows");
-PyDoc_STRVAR(dtdoc_row0, "Index of the first row");
-PyDoc_STRVAR(dtdoc_viewtypes, "Types of the columns within the view");
-PyDoc_STRVAR(dtdoc_viewdata, "Datatable's data within the specified window");
+PyDoc_STRVAR(dtdoc_view, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_fromlist, "Create Datatable from a list");
 PyDoc_STRVAR(dtdoc_omni, "Main function for datatable transformation");
 
@@ -570,63 +501,4 @@ PyTypeObject dt_DatatableType = {
     0,                                  /* tp_weaklist */
     0,                                  /* tp_del */
     0,                                  /* tp_version_tag */
-};
-
-
-
-
-/*------------------------------------------------------------------------------
- * DtView type
- *----------------------------------------------------------------------------*/
-
-
-static void dt_DtView_dealloc(dt_DtViewObject *self)
-{
-    Py_XDECREF(self->data);
-    Py_XDECREF(self->types);
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}
-
-
-static PyMemberDef dt_DtView_members[] = {
-    {"ncols", T_INT,  offsetof(dt_DtViewObject, ncols), READONLY, dtdoc_ncols},
-    {"nrows", T_INT,  offsetof(dt_DtViewObject, nrows), READONLY, dtdoc_nrows},
-    {"col0",  T_INT,  offsetof(dt_DtViewObject, col0), READONLY, dtdoc_col0},
-    {"row0",  T_LONG, offsetof(dt_DtViewObject, row0), READONLY, dtdoc_row0},
-    {"types", T_OBJECT_EX, offsetof(dt_DtViewObject, types), READONLY, dtdoc_viewtypes},
-    {"data",  T_OBJECT_EX, offsetof(dt_DtViewObject, data), READONLY, dtdoc_viewdata},
-    {NULL}                 /* sentinel */
-};
-
-
-PyTypeObject dt_DtViewType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    "_datatable.DataView",              /* tp_name */
-    sizeof(dt_DtViewObject),            /* tp_basicsize */
-    0,                                  /* tp_itemsize */
-    (destructor)dt_DtView_dealloc,      /* tp_dealloc */
-    0,                                  /* tp_print */
-    0,                                  /* tp_getattr */
-    0,                                  /* tp_setattr */
-    0,                                  /* tp_compare */
-    0,                                  /* tp_repr */
-    0,                                  /* tp_as_number */
-    0,                                  /* tp_as_sequence */
-    0,                                  /* tp_as_mapping */
-    0,                                  /* tp_hash  */
-    0,                                  /* tp_call */
-    0,                                  /* tp_str */
-    0,                                  /* tp_getattro */
-    0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-    "DtView object",                    /* tp_doc */
-    0,                                  /* tp_traverse */
-    0,                                  /* tp_clear */
-    0,                                  /* tp_richcompare */
-    0,                                  /* tp_weaklistoffset */
-    0,                                  /* tp_iter */
-    0,                                  /* tp_iternext */
-    0,                                  /* tp_methods */
-    dt_DtView_members,                  /* tp_members */
 };
