@@ -6,11 +6,10 @@
 #include "rows.h"
 
 
-static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *coldata);
-static void _make_0rows_column(dt_Coltype *coltype, dt_Coldata *coldata);
-static int _allocate_column(dt_Coltype *coltype, dt_Coldata *coldata, long nrows);
-static void _deallocate_column(dt_Coltype *coltype, dt_Coldata *coldata);
-static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Coltype *coltype, dt_Coldata *coldata);
+static int _fill_1_column(PyObject *list, dt_Coltype *coltype, void **coldata);
+static int _allocate_column(dt_Coltype *coltype, void **coldata, long nrows);
+static void _deallocate_column(dt_Coltype *coltype, void **coldata);
+static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Coltype *coltype, void **coldata);
 static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Coltype* types);
 
 
@@ -22,146 +21,65 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
         return NULL;
 
     int ncols = self->ncols;
+    long nrows = rows->kind == RI_ARRAY? rows->riArray.length :
+                 rows->kind == RI_SLICE? rows->riSlice.count : 0;
     dt_Coltype* types = self->coltypes;
+
+    dt_DatatableObject *res = _preallocate_Datatable(nrows, ncols, types);
+    if (res == NULL) return NULL;
 
     // For now we can only filter rows. So do just that
     switch (rows->kind) {
         case RI_ARRAY: {
-            long nrows = rows->riArray.length;
-
-            dt_DatatableObject *res = _preallocate_Datatable(nrows, ncols, types);
-            if (res == NULL) return NULL;
-
             long *indices = rows->riArray.rows;
             for (int j = 0; j < ncols; ++j) {
-                dt_Coldata *srccol = self->columns + j;
-                dt_Coldata *trgcol = res->columns + j;
-                switch (types[j]) {
-                    case DT_DOUBLE: {
-                        for (long i = 0; i < nrows; ++i) {
-                            long row = indices[i];
-                            trgcol->ddouble[row] = srccol->ddouble[row];
-                        }
-                    }   break;
-
-                    case DT_LONG: {
-                        for (long i = 0; i < nrows; ++i) {
-                            long row = indices[i];
-                            trgcol->dlong[row] = srccol->dlong[row];
-                        }
-                    }   break;
-
-                    case DT_BOOL: {
-                        for (long i = 0; i < nrows; ++i) {
-                            long row = indices[i];
-                            trgcol->dbool[row] = srccol->dbool[row];
-                        }
-                    }   break;
-
-                    case DT_STRING: {
-                        // Not implemented
-                    }   break;
-
-                    case DT_OBJECT: {
-                        for (long i = 0; i < nrows; ++i) {
-                            long row = indices[i];
-                            Py_XINCREF(trgcol->dobject[row] = srccol->dobject[row]);
-                        }
-                    } break;
-
-                    default:
-                        assert(0);
+                void *srccol = self->columns[j];
+                void *trgcol = res->columns[j];
+                int elemsize = dt_Coltype_size[types[j]];
+                for (long i = 0; i < nrows; ++i) {
+                    memcpy(trgcol + i*elemsize, srccol + indices[i]*elemsize, elemsize);
                 }
             }
-
-            return res;
-        }
+        }   break;
 
         case RI_SLICE: {
             long start = rows->riSlice.start;
             long count = rows->riSlice.count;
             long step = rows->riSlice.step;
 
-            dt_DatatableObject *res = _preallocate_Datatable(count, ncols, types);
-            if (res == NULL) return NULL;
-
             if (step == 1) {
                 // Slice is a contiguous memory range -- use memcpy
                 for (int j = 0; j < ncols; ++j) {
-                    dt_Coldata *srccol = self->columns + j;
-                    dt_Coldata *trgcol = res->columns + j;
-                    switch (types[j]) {
-                        case DT_DOUBLE:
-                            memcpy((void*)trgcol->ddouble, (void*)(srccol->ddouble + start),
-                                   sizeof(double) * count);
-                            break;
-                        case DT_LONG:
-                            memcpy((void*)trgcol->dlong, (void*)(srccol->dlong + start),
-                                   sizeof(long) * count);
-                            break;
-                        case DT_BOOL:
-                            memcpy((void*)trgcol->dbool, (void*)(srccol->dbool + start),
-                                   sizeof(char) * count);
-                            break;
-                        case DT_STRING:
-                            // not implemented
-                            break;
-                        case DT_OBJECT:
-                            memcpy((void*)trgcol->dobject, (void*)(srccol->dobject + start),
-                                   sizeof(PyObject*) * count);
-                            for (int i = 0; i < count; i++) {
-                                Py_XINCREF(trgcol->dobject[i]);
-                            }
-                            break;
-                        case DT_AUTO:
-                            assert(0);
-                    }
+                    void *srccol = self->columns[j];
+                    void *trgcol = res->columns[j];
+                    int elemsize = dt_Coltype_size[types[j]];
+                    memcpy(trgcol, srccol + start*elemsize, count*elemsize);
                 }
             } else {
                 for (int j = 0; j < ncols; ++j) {
-                    dt_Coldata *srccol = self->columns + j;
-                    dt_Coldata *trgcol = res->columns + j;
-                    switch (types[j]) {
-                        case DT_DOUBLE: {
-                            for (long i = 0, row = start; i < count; ++i, row += step) {
-                                trgcol->ddouble[row] = srccol->ddouble[row];
-                            }
-                        }   break;
-
-                        case DT_LONG: {
-                            for (long i = 0, row = start; i < count; ++i, row += step) {
-                                trgcol->dlong[row] = srccol->dlong[row];
-                            }
-                        }   break;
-
-                        case DT_BOOL: {
-                            for (long i = 0, row = start; i < count; ++i, row += step) {
-                                trgcol->dbool[row] = srccol->dbool[row];
-                            }
-                        }   break;
-
-                        case DT_STRING: {
-                            // Not implemented
-                        }   break;
-
-                        case DT_OBJECT: {
-                            for (long i = 0, row = start; i < count; ++i, row += step) {
-                                Py_XINCREF(trgcol->dobject[row] = srccol->dobject[row]);
-                            }
-                        } break;
-
-                        case DT_AUTO:
-                        default:
-                            assert(0);
+                    void *srccol = self->columns[j];
+                    void *trgcol = res->columns[j];
+                    int elemsize = dt_Coltype_size[types[j]];
+                    for (long i = 0, row = start; i < count; ++i, row += step) {
+                        memcpy(trgcol + i*elemsize, srccol + row*elemsize, elemsize);
                     }
                 }
             }
-            return res;
-        }
+        }   break;
 
         default:
             assert(0);
     }
+
+    for (int j = 0; j < ncols; ++j) {
+        if (types[j] == DT_OBJECT) {
+            PyObject* ptr = (PyObject*) (res->columns + j);
+            for (long i = 0; i < nrows; ++i) {
+                Py_XINCREF(ptr + i);
+            }
+        }
+    }
+    return res;
 }
 
 
@@ -176,7 +94,7 @@ static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Colt
     dt_Coltype* coltypes = (dt_Coltype*) clone(types, sizeof(dt_Coltype) * ncols);
     if (coltypes == NULL) goto fail;
 
-    dt_Coldata* columns = (dt_Coldata*) clone(NULL, sizeof(dt_Coldata) * ncols);
+    void **columns = (void**) clone(NULL, sizeof(void*) * ncols);
     if (columns == NULL) goto fail;
 
     for (int i = 0; i < ncols; i++) {
@@ -268,8 +186,8 @@ static PyObject* dt_Datatable_fromlist(PyTypeObject *type, PyObject *args)
     }
 
     // Allocate memory for the datatable
-    self->coltypes = (dt_Coltype*) malloc(sizeof(dt_Coltype) * self->ncols);
-    self->columns = (dt_Coldata*) malloc(sizeof(dt_Coldata) * self->ncols);
+    self->coltypes = malloc(sizeof(dt_Coltype) * self->ncols);
+    self->columns = malloc(sizeof(void*) * self->ncols);
     if (self->coltypes == NULL || self->columns == NULL) return decref((PyObject*) self);
 
     // Fill the data
@@ -294,10 +212,11 @@ static PyObject* dt_Datatable_fromlist(PyTypeObject *type, PyObject *args)
  *     by reference to fill in the column's data.
  * @returns 0 on success, -1 on error
  */
-static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *coldata) {
+static int _fill_1_column(PyObject *list, dt_Coltype *coltype, void **coldata) {
     long nrows = (long) Py_SIZE(list);
     if (nrows == 0) {
-        _make_0rows_column(coltype, coldata);
+        *coltype = DT_DOUBLE;
+        *coldata = NULL;
         return 0;
     }
 
@@ -305,6 +224,7 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
     if (ret == -1) return -1;
 
     int overflow;
+    void *col = *coldata;
     for (long i = 0; i < nrows; ++i) {
         PyObject *item = PyList_GET_ITEM(list, i);  // borrowed ref
         PyTypeObject *itemtype = Py_TYPE(item);     // borrowed ref
@@ -312,11 +232,11 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
         if (item == Py_None) {
             //---- store NaN value ----
             switch (*coltype) {
-                case DT_DOUBLE: coldata->ddouble[i] = NAN; break;
-                case DT_LONG:   coldata->dlong[i] = LONG_MIN; break;
-                case DT_BOOL:   coldata->dbool[i] = 2; break;
-                case DT_STRING: coldata->dstring[i] = NULL; break;
-                case DT_OBJECT: coldata->dobject[i] = incref(item); break;
+                case DT_DOUBLE: ((double*)col)[i] = NAN; break;
+                case DT_LONG:   ((long*)col)[i] = LONG_MIN; break;
+                case DT_BOOL:   ((char*)col)[i] = 2; break;
+                case DT_STRING: ((char**)col)[i] = NULL; break;
+                case DT_OBJECT: ((PyObject**)col)[i] = incref(item); break;
                 case DT_AUTO:   /* do nothing */ break;
             }
 
@@ -328,18 +248,18 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
                     long val = PyLong_AsLongAndOverflow(item, &overflow);
                     if (overflow)
                         return _switch_to_coltype(DT_DOUBLE, list, coltype, coldata);
-                    coldata->dlong[i] = val;
+                    ((long*)col)[i] = val;
                 }   break;
 
                 case DT_DOUBLE:
-                    coldata->ddouble[i] = PyLong_AsDouble(item);
+                    ((double*)col)[i] = PyLong_AsDouble(item);
                     break;
 
                 case DT_BOOL: {
                     long val = PyLong_AsLongAndOverflow(item, &overflow);
                     if (overflow || (val != 0 && val != 1))
                         return _switch_to_coltype(overflow? DT_DOUBLE : DT_LONG, list, coltype, coldata);
-                    coldata->dbool[i] = (unsigned char) val;
+                    ((char*)col)[i] = (unsigned char) val;
                 } break;
 
                 case DT_STRING:
@@ -347,7 +267,7 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
                     return _switch_to_coltype(DT_OBJECT, list, coltype, coldata);
 
                 case DT_OBJECT:
-                    coldata->dobject[i] = incref(item);
+                    ((PyObject**)col)[i] = incref(item);
                     break;
 
                 case DT_AUTO: {
@@ -366,20 +286,20 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
             double val = PyFloat_AS_DOUBLE(item);
             switch (*coltype) {
                 case DT_DOUBLE:
-                    coldata->ddouble[i] = val;
+                    ((double*)col)[i] = val;
                     break;
 
                 case DT_LONG: {
                     double intpart, fracpart = modf(val, &intpart);
                     if (fracpart != 0 || intpart <= LONG_MIN || intpart >LONG_MAX)
                         return _switch_to_coltype(DT_DOUBLE, list, coltype, coldata);
-                    coldata->dlong[i] = (long) intpart;
+                    ((long*)col)[i] = (long) intpart;
                 }   break;
 
                 case DT_BOOL: {
                     if (val != 0 && val != 1)
                         return _switch_to_coltype(DT_DOUBLE, list, coltype, coldata);
-                    coldata->dbool[i] = (unsigned char) (val == 1);
+                    ((char*)col)[i] = (char) (val == 1);
                 }   break;
 
                 case DT_STRING:
@@ -387,7 +307,7 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
                     return _switch_to_coltype(DT_OBJECT, list, coltype, coldata);
 
                 case DT_OBJECT:
-                    coldata->dobject[i] = incref(item);
+                    ((PyObject**)col)[i] = incref(item);
                     break;
 
                 case DT_AUTO: {
@@ -403,11 +323,11 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
         } else if (itemtype == &PyBool_Type) {
             unsigned char val = (item == Py_True);
             switch (*coltype) {
-                case DT_BOOL:   coldata->dbool[i] = val;  break;
-                case DT_LONG:   coldata->dlong[i] = (long) val;  break;
-                case DT_DOUBLE: coldata->ddouble[i] = (double) val;  break;
-                case DT_STRING: coldata->dstring[i] = val? strdup("1") : strdup("0"); break;
-                case DT_OBJECT: coldata->dobject[i] = incref(item);  break;
+                case DT_BOOL:   ((char*)col)[i] = val;  break;
+                case DT_LONG:   ((long*)col)[i] = (long) val;  break;
+                case DT_DOUBLE: ((double*)col)[i] = (double) val;  break;
+                case DT_STRING: ((char**)col)[i] = val? strdup("1") : strdup("0"); break;
+                case DT_OBJECT: ((PyObject**)col)[i] = incref(item);  break;
                 case DT_AUTO:   return _switch_to_coltype(DT_BOOL, list, coltype, coldata);
             }
 
@@ -416,7 +336,7 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
 
         } else {
             if (*coltype == DT_OBJECT) {
-                coldata->dobject[i] = incref(item);
+                ((PyObject**)col)[i] = incref(item);
             } else {
                 // These checks will be true only if someone subclassed base
                 // types, in which case we still want to treat them as
@@ -438,77 +358,33 @@ static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *colda
 }
 
 
-/**
- * Create a single column of data with 0 rows. This just sets the pointer
- * for the allocated data array to NULL (since creating 0-elements arrays may
- * not be portable in C).
- */
-static void _make_0rows_column(dt_Coltype *coltype, dt_Coldata *coldata) {
-    switch (*coltype) {
-        case DT_AUTO:   *coltype = DT_DOUBLE;  /* fall-through */
-        case DT_DOUBLE: coldata->ddouble = NULL;  break;
-        case DT_LONG:   coldata->dlong = NULL;    break;
-        case DT_BOOL:   coldata->dbool = NULL;    break;
-        case DT_STRING: coldata->dstring = NULL;  break;
-        case DT_OBJECT: coldata->dobject = NULL;  break;
-    }
-    assert(0);
-}
-
 
 /**
  * Allocate memory in ``coldata`` for ``nrows`` elements of type ``coltype``.
  * @returns 0 on success, -1 on error
  */
-static int _allocate_column(dt_Coltype *coltype, dt_Coldata *coldata, long nrows) {
-    switch (*coltype) {
-        case DT_DOUBLE:
-            coldata->ddouble = (double*) malloc(sizeof(double) * nrows);
-            return coldata->ddouble == NULL? -1 : 0;
-        case DT_LONG:
-            coldata->dlong = (long*) malloc(sizeof(long) * nrows);
-            return coldata->dlong == NULL? -1 : 0;
-        case DT_BOOL:
-            coldata->dbool = (unsigned char*) malloc(sizeof(char) * nrows);
-            return coldata->dbool == NULL? -1 : 0;
-        case DT_STRING:
-            coldata->dstring = (char**) malloc(sizeof(char*) * nrows);
-            return coldata->dstring == NULL? -1 : 0;
-        case DT_OBJECT:
-            coldata->dobject = (PyObject**) malloc(sizeof(PyObject*) * nrows);
-            return coldata->dobject == NULL? -1 : 0;
-        case DT_AUTO:
-            /* Don't do anything -- not an instantiable column type */
-            return 0;
-    }
-    assert(0);
+static int _allocate_column(dt_Coltype *coltype, void **coldata, long nrows) {
+    *coldata = malloc(dt_Coltype_size[*coltype] * nrows);
+    return *coldata == NULL? -1 : 0;
 }
 
 
 /**
  * Free memory in ``coldata`` of type ``coltype``.
  *
- * Note: when called on a DT_OBJECT column, this will not Py_DECREF inddividual
+ * Note: when called on a DT_OBJECT column, this will not Py_DECREF individual
  * elements, since this function does not know how many of those elements were
  * actually put in.
  */
-static void _deallocate_column(dt_Coltype *coltype, dt_Coldata *coldata) {
-    switch (*coltype) {
-        case DT_DOUBLE: free(coldata->ddouble);  return;
-        case DT_LONG:   free(coldata->dlong);    return;
-        case DT_BOOL:   free(coldata->dbool);    return;
-        case DT_STRING: free(coldata->dstring);  return;
-        case DT_OBJECT: free(coldata->dobject);  return;
-        case DT_AUTO:   /* Noop */               return;
-    }
-    assert(0);
+static void _deallocate_column(dt_Coltype *coltype, void **coldata) {
+    free(*coldata);
 }
 
 
 /**
  * Switch to a different column type and then re-run `_fill_1_column()`.
  */
-static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Coltype *coltype, dt_Coldata *coldata) {
+static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Coltype *coltype, void **coldata) {
     _deallocate_column(coltype, coldata);
     *coltype = newtype;
     return _fill_1_column(list, coltype, coldata);
@@ -525,33 +401,14 @@ static void dt_Datatable_dealloc(dt_DatatableObject *self)
     if (self->ncols > 0) {
         for (int i = 0; i < self->ncols; ++i) {
             dt_Coltype ctype = self->coltypes[i];
-            dt_Coldata cdata = self->columns[i];
-            switch (ctype) {
-                case DT_DOUBLE:
-                    free(cdata.ddouble);
-                    break;
-                case DT_LONG:
-                    free(cdata.dlong);
-                    break;
-                case DT_STRING:
-                    for (int j = self->nrows - 1; j >= 0; --j) {
-                        free(cdata.dstring[j]);
-                    }
-                    free(cdata.dstring);
-                    break;
-                case DT_BOOL:
-                    free(cdata.dbool);
-                    break;
-                case DT_OBJECT:
-                    for (int j = self->nrows - 1; j >= 0; --j) {
-                        Py_XDECREF(cdata.dobject[j]);
-                    }
-                    free(cdata.dobject);
-                    break;
-                case DT_AUTO:
-                    /* error */
-                    break;
+            void *cdata = self->columns[i];
+            if (ctype == DT_OBJECT) {
+                PyObject** ptr = (PyObject**) cdata;
+                for (int j = self->nrows - 1; j >= 0; --j) {
+                    Py_XDECREF(ptr[j]);
+                }
             }
+            free(cdata);
         }
     }
     free(self->coltypes);
@@ -580,7 +437,7 @@ static PyObject* dt_Datatable_view(dt_DatatableObject *self, PyObject *args)
 
     for (Py_ssize_t i = 0; i < ncols; ++i) {
         dt_Coltype coltype = self->coltypes[col0 + i];
-        dt_Coldata coldata = self->columns[col0 + i];
+        void *coldata = self->columns[col0 + i];
         PyList_SET_ITEM(types, i, PyLong_FromLong(coltype));
         PyObject *collist = PyList_New((Py_ssize_t) nrows);
         if (collist == NULL) goto fail;
@@ -589,28 +446,28 @@ static PyObject* dt_Datatable_view(dt_DatatableObject *self, PyObject *args)
         for (Py_ssize_t j = 0; j < nrows; ++j) {
             switch (coltype) {
                 case DT_DOUBLE: {
-                    double x = coldata.ddouble[row0 + j];
+                    double x = ((double*)coldata)[row0 + j];
                     value = isnan(x) ? none() : (PyObject*) PyFloat_FromDouble(x);
                 }   break;
 
                 case DT_LONG: {
-                    long x = coldata.dlong[row0 + j];
+                    long x = ((long*)coldata)[row0 + j];
                     value = x == LONG_MIN? none() : (PyObject*) PyLong_FromLong(x);
                 }   break;
 
                 case DT_STRING: {
-                    char* x = coldata.dstring[row0 + j];
+                    char* x = ((char**)coldata)[row0 + j];
                     value = x == NULL? none() : (PyObject*) PyUnicode_FromString(x);
                 }   break;
 
                 case DT_BOOL: {
-                    unsigned char x = coldata.dbool[row0 + j];
+                    unsigned char x = ((char*)coldata)[row0 + j];
                     value = x == 0? Py_int0 : x == 1? Py_int1 : Py_None;
                     Py_INCREF(value);
                 }   break;
 
                 case DT_OBJECT:
-                    value = coldata.dobject[row0 + j];
+                    value = ((PyObject**)coldata)[row0 + j];
                     Py_INCREF(value);
                     break;
 

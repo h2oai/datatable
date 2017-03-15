@@ -30,7 +30,7 @@ PyObject* rows_from_slice(PyObject *self, PyObject *args)
 PyObject* rows_from_array(PyObject *self, PyObject *args)
 {
     PyObject *list;
-    if (!PyArg_ParseTuple(args, "o!:rows_list", &PyList_Type, &list))
+    if (!PyArg_ParseTuple(args, "O!:rows_from_array", &PyList_Type, &list))
         return NULL;
 
     long len = (long) PyList_Size(list);

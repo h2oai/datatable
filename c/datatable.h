@@ -5,7 +5,7 @@
 typedef enum dt_Coltype {
     DT_AUTO    = 0,  // special "marker" type to indicate that the system should
                      // autodetect the column's type from the data. This value
-                     // cannot be used in an actual Datatable instance.
+                     // must not be used in an actual Datatable instance.
     DT_DOUBLE  = 1,
     DT_LONG    = 2,
     DT_STRING  = 3,
@@ -13,14 +13,7 @@ typedef enum dt_Coltype {
     DT_OBJECT  = 5
 } dt_Coltype;
 
-typedef union dt_Coldata {
-    double *ddouble;
-    long   *dlong;
-    char   **dstring;
-    unsigned char *dbool;  /* 0 = False, 1 = True, 2 = NaN */
-    PyObject **dobject;
-} dt_Coldata;
-
+int dt_Coltype_size[6];
 
 
 /*--- Main Datatable object --------------------------------------------------*/
@@ -30,7 +23,7 @@ typedef struct dt_DatatableObject {
     int  ncols;
     long nrows;
     dt_Coltype *coltypes;
-    dt_Coldata *columns;
+    void **columns;
 } dt_DatatableObject;
 
 PyTypeObject dt_DatatableType;
