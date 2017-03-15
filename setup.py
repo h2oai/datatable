@@ -6,6 +6,7 @@ Build script for the `datatable` module.
     $ python setup.py bdist_wheel
     $ twine upload dist/*
 """
+import os
 import re
 from setuptools import setup, find_packages
 from distutils.core import Extension
@@ -22,6 +23,12 @@ with open("datatable/__version__.py") as f:
             break
 if version is None:
     raise RuntimeError("Could not detect version from the __version__.py file")
+
+
+# Find all C source files in the "c/" directory
+c_sources = [os.path.join("c", filename)
+             for filename in os.listdir("c")
+             if filename.endswith(".c")]
 
 
 # Main setup
@@ -62,6 +69,6 @@ setup(
     ext_modules=[
         Extension("_datatable",
                   include_dirs=["c"],
-                  sources=["c/datatablemodule.c", "c/datatable.c", "c/dtutils.c"])
+                  sources=c_sources)
     ],
 )

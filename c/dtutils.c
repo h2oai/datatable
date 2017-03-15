@@ -27,3 +27,22 @@ PyObject* decref(PyObject *x) {
     return NULL;
 }
 
+
+static void set_oom_error_message(long n) {
+    static char str[80];
+    sprintf(str, "Out of memory: unable to allocate %ld bytes", n);
+    PyErr_SetString(PyExc_RuntimeError, str);
+}
+
+
+void* clone(void *src, long n_bytes) {
+    void* copy = malloc(n_bytes);
+    if (copy == NULL) {
+        set_oom_error_message(n_bytes);
+        return NULL;
+    }
+    if (src != NULL) {
+        memcpy(copy, src, n_bytes);
+    }
+    return copy;
+}

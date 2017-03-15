@@ -3,17 +3,208 @@
 #include "limits.h"
 #include "datatable.h"
 #include "dtutils.h"
+#include "rows.h"
 
-
-//======================================================================================================================
-// Make Datatable from a Python list
-//======================================================================================================================
 
 static int _fill_1_column(PyObject *list, dt_Coltype *coltype, dt_Coldata *coldata);
 static void _make_0rows_column(dt_Coltype *coltype, dt_Coldata *coldata);
 static int _allocate_column(dt_Coltype *coltype, dt_Coldata *coldata, long nrows);
 static void _deallocate_column(dt_Coltype *coltype, dt_Coldata *coldata);
 static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Coltype *coltype, dt_Coldata *coldata);
+static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Coltype* types);
+
+
+
+static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
+
+    dt_RowsIndexObject *rows;
+    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowsIndexType, &rows))
+        return NULL;
+
+    int ncols = self->ncols;
+    dt_Coltype* types = self->coltypes;
+
+    // For now we can only filter rows. So do just that
+    switch (rows->kind) {
+        case RI_ARRAY: {
+            long nrows = rows->riArray.length;
+
+            dt_DatatableObject *res = _preallocate_Datatable(nrows, ncols, types);
+            if (res == NULL) return NULL;
+
+            long *indices = rows->riArray.rows;
+            for (int j = 0; j < ncols; ++j) {
+                dt_Coldata *srccol = self->columns + j;
+                dt_Coldata *trgcol = res->columns + j;
+                switch (types[j]) {
+                    case DT_DOUBLE: {
+                        for (long i = 0; i < nrows; ++i) {
+                            long row = indices[i];
+                            trgcol->ddouble[row] = srccol->ddouble[row];
+                        }
+                    }   break;
+
+                    case DT_LONG: {
+                        for (long i = 0; i < nrows; ++i) {
+                            long row = indices[i];
+                            trgcol->dlong[row] = srccol->dlong[row];
+                        }
+                    }   break;
+
+                    case DT_BOOL: {
+                        for (long i = 0; i < nrows; ++i) {
+                            long row = indices[i];
+                            trgcol->dbool[row] = srccol->dbool[row];
+                        }
+                    }   break;
+
+                    case DT_STRING: {
+                        // Not implemented
+                    }   break;
+
+                    case DT_OBJECT: {
+                        for (long i = 0; i < nrows; ++i) {
+                            long row = indices[i];
+                            Py_XINCREF(trgcol->dobject[row] = srccol->dobject[row]);
+                        }
+                    } break;
+
+                    default:
+                        assert(0);
+                }
+            }
+
+            return res;
+        }
+
+        case RI_SLICE: {
+            long start = rows->riSlice.start;
+            long count = rows->riSlice.count;
+            long step = rows->riSlice.step;
+
+            dt_DatatableObject *res = _preallocate_Datatable(count, ncols, types);
+            if (res == NULL) return NULL;
+
+            if (step == 1) {
+                // Slice is a contiguous memory range -- use memcpy
+                for (int j = 0; j < ncols; ++j) {
+                    dt_Coldata *srccol = self->columns + j;
+                    dt_Coldata *trgcol = res->columns + j;
+                    switch (types[j]) {
+                        case DT_DOUBLE:
+                            memcpy((void*)trgcol->ddouble, (void*)(srccol->ddouble + start),
+                                   sizeof(double) * count);
+                            break;
+                        case DT_LONG:
+                            memcpy((void*)trgcol->dlong, (void*)(srccol->dlong + start),
+                                   sizeof(long) * count);
+                            break;
+                        case DT_BOOL:
+                            memcpy((void*)trgcol->dbool, (void*)(srccol->dbool + start),
+                                   sizeof(char) * count);
+                            break;
+                        case DT_STRING:
+                            // not implemented
+                            break;
+                        case DT_OBJECT:
+                            memcpy((void*)trgcol->dobject, (void*)(srccol->dobject + start),
+                                   sizeof(PyObject*) * count);
+                            for (int i = 0; i < count; i++) {
+                                Py_XINCREF(trgcol->dobject[i]);
+                            }
+                            break;
+                        case DT_AUTO:
+                            assert(0);
+                    }
+                }
+            } else {
+                for (int j = 0; j < ncols; ++j) {
+                    dt_Coldata *srccol = self->columns + j;
+                    dt_Coldata *trgcol = res->columns + j;
+                    switch (types[j]) {
+                        case DT_DOUBLE: {
+                            for (long i = 0, row = start; i < count; ++i, row += step) {
+                                trgcol->ddouble[row] = srccol->ddouble[row];
+                            }
+                        }   break;
+
+                        case DT_LONG: {
+                            for (long i = 0, row = start; i < count; ++i, row += step) {
+                                trgcol->dlong[row] = srccol->dlong[row];
+                            }
+                        }   break;
+
+                        case DT_BOOL: {
+                            for (long i = 0, row = start; i < count; ++i, row += step) {
+                                trgcol->dbool[row] = srccol->dbool[row];
+                            }
+                        }   break;
+
+                        case DT_STRING: {
+                            // Not implemented
+                        }   break;
+
+                        case DT_OBJECT: {
+                            for (long i = 0, row = start; i < count; ++i, row += step) {
+                                Py_XINCREF(trgcol->dobject[row] = srccol->dobject[row]);
+                            }
+                        } break;
+
+                        case DT_AUTO:
+                        default:
+                            assert(0);
+                    }
+                }
+            }
+            return res;
+        }
+
+        default:
+            assert(0);
+    }
+}
+
+
+static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Coltype* types)
+{
+    int n_columns_allocated = 0;
+    PyTypeObject* dttype = &dt_DatatableType;
+
+    dt_DatatableObject* res = (dt_DatatableObject*) dttype->tp_alloc(dttype, 0);
+    if (res == NULL) goto fail;
+
+    dt_Coltype* coltypes = (dt_Coltype*) clone(types, sizeof(dt_Coltype) * ncols);
+    if (coltypes == NULL) goto fail;
+
+    dt_Coldata* columns = (dt_Coldata*) clone(NULL, sizeof(dt_Coldata) * ncols);
+    if (columns == NULL) goto fail;
+
+    for (int i = 0; i < ncols; i++) {
+        int ret = _allocate_column(coltypes + i, columns + i, nrows);
+        if (ret == -1) goto fail;
+        n_columns_allocated++;
+    }
+
+    res->ncols = ncols;
+    res->nrows = nrows;
+    res->coltypes = coltypes;
+    res->columns = columns;
+    return res;
+
+fail:
+    for (int i = 0; i < n_columns_allocated; i++) {
+        _deallocate_column(coltypes + i, columns + i);
+    }
+    free(coltypes);
+    free(columns);
+    Py_XDECREF(res);
+    return NULL;
+}
+
+
+//======================================================================================================================
+// Make Datatable from a Python list
+//======================================================================================================================
 
 
 /**
@@ -457,11 +648,13 @@ PyDoc_STRVAR(dtdoc_row0, "Index of the first row");
 PyDoc_STRVAR(dtdoc_viewtypes, "Types of the columns within the view");
 PyDoc_STRVAR(dtdoc_viewdata, "Datatable's data within the specified window");
 PyDoc_STRVAR(dtdoc_fromlist, "Create Datatable from a list");
+PyDoc_STRVAR(dtdoc_omni, "Main function for datatable transformation");
 
 
 static PyMethodDef dt_Datatable_methods[] = {
     {"window", (PyCFunction)dt_Datatable_view, METH_VARARGS, dtdoc_view},
     {"from_list", (PyCFunction)dt_Datatable_fromlist, METH_VARARGS | METH_CLASS, dtdoc_fromlist},
+    {"omni", (PyCFunction)omni, METH_VARARGS, dtdoc_omni},
     {NULL, NULL}           /* sentinel */
 };
 

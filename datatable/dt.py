@@ -3,7 +3,9 @@
 from __future__ import division, print_function, unicode_literals
 
 import types
+from typing import Dict, Tuple
 
+# noinspection PyUnresolvedReferences
 import _datatable as c
 from .widget import DataFrameWidget
 
@@ -119,9 +121,9 @@ class DataTable(object):
 
                 - ... (ellipsis), representing all rows of the datatable
                 - an integer, representing a single row
-                - an list or tuple of integers, representing several rows
-                - a slice, representing some range of rows
-                - a list or tuple of slices
+                - a list of integers, representing several rows
+                - a slice / range, representing some range of rows
+                - a list of slices / ranges
                 - a ``DataTable`` with a single boolean column and having same
                   number of rows as the current datatable, this will select
                   only those rows in the current datatable where the ``rows``
@@ -244,6 +246,16 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         rows_selector = self._rows_selector(rows)
+        if rows_selector.__class__.__name__ == "RowsIndex":
+            res = DataTable()
+            res._dt = self._dt.omni(rows_selector)
+            res._ncols = res._dt.ncols
+            res._nrows = res._dt.nrows
+            res._names = self._names
+            res._inames = self._inames
+            res._types = self._types
+            return res
+
         print(rows_selector)
 
 
@@ -253,13 +265,13 @@ class DataTable(object):
         """
         nrows = self._nrows
         if arg is Ellipsis:
-            arg = [slice(0, nrows, 1)]
+            return c.rows_from_slice(0, nrows, 1)
 
         if isinstance(arg, (int, slice, range)):
             arg = [arg]
 
         if isinstance(arg, types.GeneratorType):
-            # If an iterator is provided, eagerize it first. Otherwise there
+            # If an iterator is provided, materialize it first. Otherwise there
             # is no way of testing whether the produced indices are valid
             arg = list(arg)
 
@@ -277,7 +289,7 @@ class DataTable(object):
                         elem += nrows
                     bases.append(elem)
                 elif isinstance(elem, (range, slice)):
-                    # If range/slice extends beyond the bounds of the datatble,
+                    # If range/slice extends beyond the bounds of the datatable,
                     # we coerce it into the correct range without raising an
                     # error. This mimics the default Python's behavior, eg
                     #     "test"[-100:100] == "test"
@@ -309,15 +321,21 @@ class DataTable(object):
                 else:
                     raise TypeError("Invalid row specifier %r at element "
                                     "%d of the `rows` list" % (elem, i))
-            return (bases, counts or None, strides or None)
+            if counts:
+                if len(bases) == 1:
+                    return c.rows_from_slice(bases[0], counts[0], strides[0])
+                else:
+                    return (bases, counts, strides)
+            else:
+                return c.rows_from_array(bases)
 
         if isinstance(arg, DataTable):
             if arg.ncols != 1:
                 raise ValueError("`rows` argument should be a single-column "
                                  "datatable, got %r" % arg)
             if arg.nrows != self.nrows:
-                raise ValueError("`rows` datatable has %s, which is incompa"
-                                 "tible with current datatable having %s"
+                raise ValueError("`rows` datatable has %s, which is incompatible "
+                                 "with current datatable having %s"
                                  % (plural_form(arg.nrows, "row"),
                                     plural_form(self.nrows, "row")))
             col0type = arg._types[0]

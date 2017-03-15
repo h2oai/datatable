@@ -1,31 +1,7 @@
 #include <Python.h>
 #include "datatable.h"
 #include "dtutils.h"
-
-
-static PyObject* dumpster(PyObject *self, PyObject *args) {
-    PyObject *arg;
-    if (!PyArg_ParseTuple(args, "O", &arg))
-        return NULL;
-
-    long s = _PyObject_VAR_SIZE(Py_TYPE(arg), Py_SIZE(arg));
-    printf("VAR_SIZE = %ld\n", s);
-    printf("Py_SIZE = %ld\n", Py_SIZE(arg));
-    printf("tp_basicsize = %ld\n", Py_TYPE(arg)->tp_basicsize);
-    printf("tp_itemsize = %ld\n", Py_TYPE(arg)->tp_itemsize);
-    printf("tp_name = %s\n", Py_TYPE(arg)->tp_name);
-    char *buf = malloc(sizeof(char) * s * 3 + 1);
-    char *ptr = (char*) (void*) arg;
-    const char *hex = "0123456789ABCDEF";
-    for (int i = 0; i < s; i++) {
-        char ch = ptr[i];
-        buf[i*3 + 0] = hex[(ch & 0xF0) >> 4];
-        buf[i*3 + 1] = hex[ch & 0x0F];
-        buf[i*3 + 2] = ' ';
-    }
-    buf[s*3] = 0;
-    return PyUnicode_FromStringAndSize(buf, s*3);
-}
+#include "rows.h"
 
 
 
@@ -34,7 +10,10 @@ static PyObject* dumpster(PyObject *self, PyObject *args) {
 //------------------------------------------------------------------------------
 
 static PyMethodDef DatatableModuleMethods[] = {
-    {"dumpster", dumpster, METH_VARARGS, "Just a test function"},
+    {"rows_from_slice", rows_from_slice, METH_VARARGS,
+        "Row selector constructed from a slice of rows"},
+    {"rows_from_array", rows_from_array, METH_VARARGS,
+        "Row selector constructed from a list of row indices"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -61,8 +40,10 @@ PyInit__datatable(void) {
 
     dt_DatatableType.tp_new = PyType_GenericNew;
     dt_DtViewType.tp_new = PyType_GenericNew;
+    dt_RowsIndexType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&dt_DatatableType) < 0 ||
-        PyType_Ready(&dt_DtViewType) < 0)
+        PyType_Ready(&dt_DtViewType) < 0 ||
+        PyType_Ready(&dt_RowsIndexType) < 0)
         return NULL;
 
     m = PyModule_Create(&datatablemodule);
