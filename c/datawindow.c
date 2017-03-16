@@ -169,7 +169,7 @@ static int _check_consistency(
     }
     if (dt->src != NULL && dt->src->src != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
-            "Invalid view: must not have as parent another view");
+            "Invalid view: must not have another view as a parent");
         return 0;
     }
 

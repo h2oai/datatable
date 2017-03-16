@@ -479,7 +479,8 @@ PyDoc_STRVAR(dtdoc_nrows, "Number of rows");
 PyDoc_STRVAR(dtdoc_view, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_fromlist, "Create Datatable from a list");
 PyDoc_STRVAR(dtdoc_omni, "Main function for datatable transformation");
-
+PyDoc_STRVAR(dtdoc_src, "Source datatable for a view");
+PyDoc_STRVAR(dtdoc_row_index, "Row index (within the source datatable) for a view");
 
 static PyMethodDef dt_Datatable_methods[] = {
     {"window", (PyCFunction)dt_Datatable_view, METH_VARARGS, dtdoc_view},
@@ -488,9 +489,15 @@ static PyMethodDef dt_Datatable_methods[] = {
     {NULL, NULL}           /* sentinel */
 };
 
+
+#define Member(name, type) {#name, type, offsetof(dt_DatatableObject, name), \
+                            READONLY, dtdoc_ ## name}
+
 static PyMemberDef dt_Datatable_members[] = {
-    {"ncols", T_INT,  offsetof(dt_DatatableObject, ncols), READONLY, dtdoc_ncols},
-    {"nrows", T_LONG, offsetof(dt_DatatableObject, nrows), READONLY, dtdoc_nrows},
+    Member(ncols, T_INT),
+    Member(nrows, T_LONG),
+    Member(src, T_OBJECT),
+    Member(row_index, T_OBJECT),
     {NULL}                 /* sentinel */
 };
 
