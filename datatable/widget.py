@@ -32,6 +32,7 @@ class DataFrameWidget(object):
 
     VIEW_NROWS_MIN = 10
     VIEW_NROWS_MAX = 30
+    RIGHT_MARGIN = 2
 
     def __init__(self, nrows, ncols, viewdata_callback):
         """
@@ -132,7 +133,7 @@ class DataFrameWidget(object):
 
         # Adjust widths of columns
         total_width = sum(col.width + len(col.margin) for col in columns)
-        extra_space = term.width - total_width
+        extra_space = term.width - total_width - DataFrameWidget.RIGHT_MARGIN
         if extra_space > 0:
             if self._view_col0 + self._view_ncols < self._frame_ncols:
                 self._view_ncols += max(1, extra_space // 8)
@@ -147,7 +148,7 @@ class DataFrameWidget(object):
         else:
             if self._max_col0 == self._view_col0:
                 self._max_col0 += 1
-            available_width = term.width
+            available_width = term.width - DataFrameWidget.RIGHT_MARGIN
             for i, col in enumerate(columns):
                 col.width = min(col.width, available_width)
                 available_width -= col.width + len(col.margin)
@@ -290,7 +291,7 @@ class DataFrameWidget(object):
 
 
     def _onresize(self, signum, stkfrm):
-        if self._term_width > term.width:
+        if term.width < self._term_width:
             self._interactive = False
         else:
             self._adjust_viewport()
