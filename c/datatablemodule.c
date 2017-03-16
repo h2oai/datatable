@@ -48,10 +48,10 @@ PyInit__datatable(void) {
 
     dt_DatatableType.tp_new = PyType_GenericNew;
     dt_DataWindowType.tp_new = PyType_GenericNew;
-    dt_RowsIndexType.tp_new = PyType_GenericNew;
+    dt_RowIndexType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&dt_DatatableType) < 0 ||
         PyType_Ready(&dt_DataWindowType) < 0 ||
-        PyType_Ready(&dt_RowsIndexType) < 0)
+        PyType_Ready(&dt_RowIndexType) < 0)
         return NULL;
 
     m = PyModule_Create(&datatablemodule);
@@ -60,9 +60,9 @@ PyInit__datatable(void) {
 
     Py_INCREF(&dt_DatatableType);
     Py_INCREF(&dt_DataWindowType);
-    Py_INCREF(&dt_RowsIndexType);
+    Py_INCREF(&dt_RowIndexType);
     PyModule_AddObject(m, "DataTable", (PyObject*) &dt_DatatableType);
     PyModule_AddObject(m, "DataWindow", (PyObject*) &dt_DataWindowType);
-    PyModule_AddObject(m, "RowsIndex", (PyObject*) &dt_RowsIndexType);
+    PyModule_AddObject(m, "RowsIndex", (PyObject*) &dt_RowIndexType);
     return m;
 }

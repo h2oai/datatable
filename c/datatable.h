@@ -64,7 +64,7 @@ typedef struct dt_DatatableObject {
     int  ncols;
     long nrows;
     struct dt_DatatableObject *src;
-    dt_RowsIndexObject *row_index;
+    dt_RowIndexObject *row_index;
     dt_Column *columns;
 
 } dt_DatatableObject;

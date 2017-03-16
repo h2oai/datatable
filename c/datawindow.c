@@ -52,7 +52,7 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
         PyList_SET_ITEM(types, i, py_coltype);
     }
 
-    dt_RowsIndexObject *rindex = dt->row_index;
+    dt_RowIndexObject *rindex = dt->row_index;
     int indirect_array = rindex && rindex->kind == RI_ARRAY;
 
     // Create and fill-in the `data` list
@@ -74,9 +74,9 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
         for (long j = 0; j < view_nrows; ++j) {
             long irow = view_row0 + j;
             if (indirect) {
-                irow = indirect_array? rindex->riArray.rows[irow]
-                                     : rindex->riSlice.start +
-                                       rindex->riSlice.step * irow;
+                irow = indirect_array? rindex->array[irow]
+                                     : rindex->slice.start +
+                                       rindex->slice.step * irow;
             }
             switch (column.type) {
                 case DT_DOUBLE: {
@@ -156,7 +156,7 @@ static int _check_consistency(
     }
 
     // verify that the datatable is internally consistent
-    dt_RowsIndexObject *rindex = dt->row_index;
+    dt_RowIndexObject *rindex = dt->row_index;
     if (rindex == NULL && dt->src != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Invalid datatable: .src is present, but .row_index is null");
@@ -177,16 +177,16 @@ static int _check_consistency(
     if (rindex != NULL) {
         switch (rindex->kind) {
             case RI_ARRAY: {
-                if (rindex->riArray.length != dt->nrows) {
+                if (rindex->length != dt->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: row index has %ld elements, while the "
                         "view itself has .nrows = %ld",
-                        rindex->riArray.length, dt->nrows);
+                        rindex->length, dt->nrows);
                     return 0;
                 }
                 for (long j = 0; j < nrows; ++j) {
                     long irow = row0 + j;
-                    long irowsrc = rindex->riArray.rows[irow];
+                    long irowsrc = rindex->array[irow];
                     if (irowsrc < 0 || irowsrc >= dt->src->nrows) {
                         PyErr_Format(PyExc_RuntimeError,
                             "Invalid view: row %ld of the view references non-"
@@ -198,9 +198,9 @@ static int _check_consistency(
             }   break;
 
             case RI_SLICE: {
-                long start = rindex->riSlice.start;
-                long count = rindex->riSlice.count;
-                long finish = start + (count - 1) * rindex->riSlice.step;
+                long start = rindex->slice.start;
+                long count = rindex->length;
+                long finish = start + (count - 1) * rindex->slice.step;
                 if (count != dt->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: row index has %ld elements, while the "

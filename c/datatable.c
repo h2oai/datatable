@@ -17,13 +17,12 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args)
 {
     dt_Column *columns = NULL;
 
-    dt_RowsIndexObject *rows;
-    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowsIndexType, &rows))
+    dt_RowIndexObject *rows;
+    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowIndexType, &rows))
         return NULL;
 
     int ncols = self->ncols;
-    long nrows = rows->kind == RI_ARRAY? rows->riArray.length :
-                 rows->kind == RI_SLICE? rows->riSlice.count : 0;
+    long nrows = rows->length;
 
     dt_DatatableObject* res = (dt_DatatableObject*)
         PyObject_CallObject((PyObject*) &dt_DatatableType, NULL);
@@ -56,8 +55,8 @@ fail:
 /*
 static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
 
-    dt_RowsIndexObject *rows;
-    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowsIndexType, &rows))
+    dt_RowIndexObject *rows;
+    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowIndexType, &rows))
         return NULL;
 
     int ncols = self->ncols;

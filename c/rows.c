@@ -21,22 +21,22 @@ PyObject* rows_from_slice(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    dt_RowsIndexObject *res = dt_RowsIndex_NEW();
+    dt_RowIndexObject *res = dt_RowsIndex_NEW();
     if (res == NULL) return NULL;
 
     if (dt->row_index == NULL) {
         res->kind = RI_SLICE;
-        res->riSlice.start = start;
-        res->riSlice.count = count;
-        res->riSlice.step = step;
+        res->length = count;
+        res->slice.start = start;
+        res->slice.step = step;
     }
     else if (dt->row_index->kind == RI_SLICE) {
-        long srcstart = dt->row_index->riSlice.start;
-        long srcstep = dt->row_index->riSlice.step;
+        long srcstart = dt->row_index->slice.start;
+        long srcstep = dt->row_index->slice.step;
         res->kind = RI_SLICE;
-        res->riSlice.start = srcstart + srcstep * start;
-        res->riSlice.count = count;
-        res->riSlice.step = step * srcstep;
+        res->length = count;
+        res->slice.start = srcstart + srcstep * start;
+        res->slice.step = step * srcstep;
     }
     else if (dt->row_index->kind == RI_ARRAY) {
         long *data = malloc(sizeof(long) * count);
@@ -44,13 +44,13 @@ PyObject* rows_from_slice(PyObject *self, PyObject *args)
             Py_DECREF(res);
             return NULL;
         }
-        long *srcrows = dt->row_index->riArray.rows;
+        long *srcrows = dt->row_index->array;
         for (long i = 0; i < count; ++i) {
             data[i] = srcrows[start + i * step];
         }
         res->kind = RI_ARRAY;
-        res->riArray.length = count;
-        res->riArray.rows = data;
+        res->length = count;
+        res->array = data;
     } else assert(0);
     return (PyObject*) res;
 }
@@ -69,7 +69,7 @@ PyObject* rows_from_array(PyObject *self, PyObject *args)
                           &dt_DatatableType, &dt, &PyList_Type, &list))
         return NULL;
 
-    dt_RowsIndexObject *res = dt_RowsIndex_NEW();
+    dt_RowIndexObject *res = dt_RowsIndex_NEW();
     if (res == NULL) return NULL;
 
     long len = (long) PyList_Size(list);
@@ -86,15 +86,15 @@ PyObject* rows_from_array(PyObject *self, PyObject *args)
         }
     }
     else if (dt->row_index->kind == RI_SLICE) {
-        long srcstart = dt->row_index->riSlice.start;
-        long srcstep = dt->row_index->riSlice.step;
+        long srcstart = dt->row_index->slice.start;
+        long srcstep = dt->row_index->slice.step;
         for (long i = 0; i < len; ++i) {
             long x = PyLong_AsLong(PyList_GET_ITEM(list, i));
             data[i] = srcstart + x * srcstep;
         }
     }
     else if (dt->row_index->kind == RI_ARRAY) {
-        long *srcrows = dt->row_index->riArray.rows;
+        long *srcrows = dt->row_index->array;
         for (long i = 0; i < len; ++i) {
             long x = PyLong_AsLong(PyList_GET_ITEM(list, i));
             data[i] = srcrows[x];
@@ -102,8 +102,8 @@ PyObject* rows_from_array(PyObject *self, PyObject *args)
     } else assert(0);
 
     res->kind = RI_ARRAY;
-    res->riArray.length = len;
-    res->riArray.rows = data;
+    res->length = len;
+    res->array = data;
     return (PyObject*) res;
 }
 
@@ -111,18 +111,18 @@ PyObject* rows_from_array(PyObject *self, PyObject *args)
 
 //------ RowsIndex -------------------------------------------------------------
 
-static void dt_RowsIndex_dealloc(dt_RowsIndexObject *self)
+static void dt_RowsIndex_dealloc(dt_RowIndexObject *self)
 {
     if (self->kind == RI_ARRAY)
-        free(self->riArray.rows);
+        free(self->array);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
-PyTypeObject dt_RowsIndexType = {
+PyTypeObject dt_RowIndexType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_datatable.RowsIndex",             /* tp_name */
-    sizeof(dt_RowsIndexObject),         /* tp_basicsize */
+    sizeof(dt_RowIndexObject),         /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)dt_RowsIndex_dealloc,   /* tp_dealloc */
 };
