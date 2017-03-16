@@ -40,7 +40,7 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args)
 
     res->ncols = ncols;
     res->nrows = nrows;
-    res->src = self;
+    res->src = self->src == NULL? self : self->src;
     res->row_index = rows;
     res->columns = columns;
     Py_XINCREF(self);
@@ -440,13 +440,13 @@ static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Column *col
 
 static void dt_Datatable_dealloc(dt_DatatableObject *self)
 {
-    if (self->ncols > 0) {
+    if (self->ncols) {
         for (int i = 0; i < self->ncols; ++i) {
             dt_Column column = self->columns[i];
             if (column.type == DT_OBJECT) {
-                PyObject** ptr = (PyObject**) column.data;
-                for (int j = self->nrows - 1; j >= 0; --j) {
-                    Py_XDECREF(ptr[j]);
+                int j = self->nrows;
+                while (--j >= 0) {
+                    Py_XDECREF(((PyObject**) column.data)[j]);
                 }
             }
             free(column.data);

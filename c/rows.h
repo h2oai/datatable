@@ -27,6 +27,9 @@ typedef struct dt_RowsIndexObject {
 PyTypeObject dt_RowsIndexType;
 
 
+#define dt_RowsIndex_NEW() ((dt_RowsIndexObject*) \
+    PyObject_CallObject((PyObject*) &dt_RowsIndexType, NULL))
+
 PyObject* rows_from_slice(PyObject *self, PyObject *args);
 PyObject* rows_from_array(PyObject *self, PyObject *args);
 

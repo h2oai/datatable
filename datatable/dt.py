@@ -265,7 +265,7 @@ class DataTable(object):
         """
         nrows = self._nrows
         if arg is Ellipsis:
-            return c.rows_from_slice(0, nrows, 1)
+            return c.rows_from_slice(self._dt, 0, nrows, 1)
 
         if isinstance(arg, (int, slice, range)):
             arg = [arg]
@@ -323,11 +323,12 @@ class DataTable(object):
                                     "%d of the `rows` list" % (elem, i))
             if counts:
                 if len(bases) == 1:
-                    return c.rows_from_slice(bases[0], counts[0], strides[0])
+                    return c.rows_from_slice(self._dt,
+                                             bases[0], counts[0], strides[0])
                 else:
                     return (bases, counts, strides)
             else:
-                return c.rows_from_array(bases)
+                return c.rows_from_array(self._dt, bases)
 
         if isinstance(arg, DataTable):
             if arg.ncols != 1:
