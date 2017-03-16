@@ -41,7 +41,10 @@ typedef enum dt_Coltype {
     DT_OBJECT  = 5
 } dt_Coltype;
 
-int dt_Coltype_size[6];
+#define DT_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
+
+int dt_Coltype_size[DT_COUNT];
+
 
 
 /*--- Column -----------------------------------------------------------------*/

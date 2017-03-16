@@ -4,10 +4,28 @@
 #include "dtutils.h"
 #include "structmember.h"
 
+// Forward declarations
+static int _check_consistency(
+    dt_DatatableObject *dt, long col0, long ncols, long row0, long nrows);
 
+
+/**
+ * DataWindow object constructor. This constructor takes a datatable, and
+ * coordinates of a data window, and extracts the data from the datatable
+ * within the provided window as a pythonic list of lists.
+ *
+ * Keyword arguments are not supported (and ignored).
+ *
+ * :param dt: the datatable whose data window we want to extract.
+ * :param col0: index of the first column of the data window.
+ * :param ncols: the width of the data window (in columns).
+ * :param row0: index of the first row of the data window.
+ * :param nrows: the height of the data window (in rows).
+ */
 static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
 {
     PyObject *types = NULL, *view = NULL;
+    assert(self->types == NULL && self->data == NULL);
 
     // Parse arguments and check their validity
     dt_DatatableObject *dt;
@@ -16,12 +34,8 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
                           &dt_DatatableType, &dt,
                           &view_col0, &view_ncols, &view_row0, &view_nrows))
         return -1;
-
-    if (view_col0 < 0 || view_col0 + view_ncols > dt->ncols ||
-        view_row0 < 0 || view_row0 + view_nrows > dt->nrows) {
-        PyErr_SetString(PyExc_ValueError, "Invalid data window bounds");
+    if (!_check_consistency(dt, view_col0, view_ncols, view_row0, view_nrows))
         return -1;
-    }
 
     // Create and fill-in the `types` list
     types = PyList_New((Py_ssize_t) view_ncols);
@@ -47,7 +61,6 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
     for (long i = 0; i < view_ncols; ++i) {
         dt_Column column = dt->columns[view_col0 + i];
         int indirect = (column.data == NULL);
-        // Note that we do not allow double-indirection here...
         void *coldata = indirect? dt->src->columns[column.index].data
                                 : column.data;
 
@@ -82,7 +95,7 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
                 }   break;
 
                 case DT_BOOL: {
-                    unsigned char x = ((char*)coldata)[irow];
+                    char x = ((char*)coldata)[irow];
                     value = x == 0? Py_int0 : x == 1? Py_int1 : Py_None;
                     Py_INCREF(value);
                 }   break;
@@ -93,25 +106,12 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
                 }   break;
 
                 default:
-                    printf("Unknown column type: %d\n", column.type);
-                    printf("indirect = %d\n", indirect);
-                    printf("coldata = %p\n", coldata);
-                    printf("rowindex = %p\n", rindex);
-                    printf("rowindex kind = %d\n", rindex? rindex->kind : -1);
-                    printf("dtsrc = %p\n", dt->src);
-                    PyErr_SetString(PyExc_RuntimeError, "Unknown column type");
-                    goto fail;
-            }
-            if (value == NULL) {
-                for (; j < view_nrows; ++j) PyList_SET_ITEM(py_coldata, j, NULL);
-                goto fail;
+                    assert(0);
             }
             PyList_SET_ITEM(py_coldata, j, value);
         }
     }
 
-    Py_XDECREF(self->types);  // Just in case these were already initialized
-    Py_XDECREF(self->data);
     self->col0 = view_col0;
     self->ncols = view_ncols;
     self->row0 = view_row0;
@@ -120,13 +120,157 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
     self->data = view;
     return 0;
 
-fail:
+    fail:
     Py_XDECREF(view);
     Py_XDECREF(types);
     return -1;
 }
 
 
+/**
+ * This function meticulously checks the supplied datatable for internal
+ * consistency, and raises an informative error if any problem is found.
+ * Strictly speaking, this function is normally not needed if the datatable
+ * class is implemented properly; but it is also relatively cheap to do these
+ * checks on each datawindow request, so why not... We can always decide to
+ * turn this off in production.
+ *
+ * :param dt: reference to a datatable being inspected
+ * :param col0: index of the first column to check
+ * :param ncols: number of columns to check
+ * :param row0: index of the first row to check
+ * :param nrows: number of rows to check
+ * :returns: 1 on success, 0 on failure
+ */
+static int _check_consistency(
+    dt_DatatableObject *dt, long col0, long ncols, long row0, long nrows)
+{
+    // check correctness of the data window
+    if (col0 < 0 || ncols < 0 || col0 + ncols > dt->ncols ||
+        row0 < 0 || nrows < 0 || row0 + nrows > dt->nrows) {
+        PyErr_Format(PyExc_ValueError,
+            "Invalid data window bounds: datatable is [%ld x %ld], "
+            "whereas requested window is [%ld..+%ld x %ld..+%ld]",
+            dt->nrows, dt->ncols, row0, nrows, col0, ncols);
+        return 0;
+    }
+
+    // verify that the datatable is internally consistent
+    dt_RowsIndexObject *rindex = dt->row_index;
+    if (rindex == NULL && dt->src != NULL) {
+        PyErr_SetString(PyExc_RuntimeError,
+            "Invalid datatable: .src is present, but .row_index is null");
+        return 0;
+    }
+    if (rindex != NULL && dt->src == NULL) {
+        PyErr_SetString(PyExc_RuntimeError,
+            "Invalid datatable: .src is null, while .row_index is present");
+        return 0;
+    }
+    if (dt->src != NULL && dt->src->src != NULL) {
+        PyErr_SetString(PyExc_RuntimeError,
+            "Invalid view: must not have as parent another view");
+        return 0;
+    }
+
+    // verify that the row index (if present) is valid
+    if (rindex != NULL) {
+        switch (rindex->kind) {
+            case RI_ARRAY: {
+                if (rindex->riArray.length != dt->nrows) {
+                    PyErr_Format(PyExc_RuntimeError,
+                        "Invalid view: row index has %ld elements, while the "
+                        "view itself has .nrows = %ld",
+                        rindex->riArray.length, dt->nrows);
+                    return 0;
+                }
+                for (long j = 0; j < nrows; ++j) {
+                    long irow = row0 + j;
+                    long irowsrc = rindex->riArray.rows[irow];
+                    if (irowsrc < 0 || irowsrc >= dt->src->nrows) {
+                        PyErr_Format(PyExc_RuntimeError,
+                            "Invalid view: row %ld of the view references non-"
+                            "existing row %ld in the parent datatable",
+                            irow, irowsrc);
+                        return 0;
+                    }
+                }
+            }   break;
+
+            case RI_SLICE: {
+                long start = rindex->riSlice.start;
+                long count = rindex->riSlice.count;
+                long finish = start + (count - 1) * rindex->riSlice.step;
+                if (count != dt->nrows) {
+                    PyErr_Format(PyExc_RuntimeError,
+                        "Invalid view: row index has %ld elements, while the "
+                        "view itself has .nrows = %ld", count, dt->nrows);
+                    return 0;
+                }
+                if (start < 0 || start >= dt->src->nrows) {
+                    PyErr_Format(PyExc_RuntimeError,
+                        "Invalid view: first row references an invalid row "
+                        "%ld in the parent datatable", start);
+                    return 0;
+                }
+                if (finish < 0 || finish >= dt->src->nrows) {
+                    PyErr_Format(PyExc_RuntimeError,
+                        "Invalid view: last row references an invalid row "
+                        "%ld in the parent datatable", finish);
+                    return 0;
+                }
+            }   break;
+
+            default:
+                PyErr_Format(PyExc_RuntimeError,
+                    "Unexpected row index kind = %d", rindex->kind);
+                return 0;
+        }
+    }
+
+    // check each column within the window for correctness
+    for (long i = 0; i < ncols; ++i) {
+        long icol = col0 + i;
+        dt_Column col = dt->columns[icol];
+        if (col.type == DT_AUTO) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid datatable: column %ld has type DT_AUTO", icol);
+            return 0;
+        }
+        if (col.type <= 0 || col.type >= DT_COUNT) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid datatable: column %ld has unknown type %d",
+                icol, col.type);
+            return 0;
+        }
+        if (col.data == NULL && dt->src == NULL) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid datatable: column %ld has no data, while the "
+                "datatable does not have a parent", icol);
+            return 0;
+        }
+        if (col.data == NULL && (col.index < 0 ||
+                                 col.index >= dt->src->ncols)) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid view: column %ld references non-existing column "
+                "%ld in the parent datatable", icol, col.index);
+            return 0;
+        }
+        if (col.data == NULL && col.type != dt->src->columns[col.index].type) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid view: column %ld of type %d references column "
+                "%ld of type %d",
+                icol, col.type, col.index, dt->src->columns[col.index].type);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
+/**
+ * Destructor
+ */
 static void __dealloc__(dt_DataWindowObject *self)
 {
     Py_XDECREF(self->data);
