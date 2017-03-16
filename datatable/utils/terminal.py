@@ -23,7 +23,7 @@ term = blessed.Terminal()
 def _new_displayhook(value):
     if value is None:
         return
-    if hasattr(value, "_display_in_terminal_"):
+    if hasattr(value, "_display_in_terminal_") and type(value) is not type:
         value._display_in_terminal_()
     else:
         _original_displayhook(value)
