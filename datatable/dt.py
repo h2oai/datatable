@@ -356,3 +356,17 @@ class DataTable(object):
                             "function: %r" % arg)
         else:
             raise TypeError("Unexpected `rows` argument: %r" % arg)
+
+
+    def __getitem__(self, item):
+        """Simpler version than __call__, but allows slice literals."""
+        if isinstance(item, tuple):
+            if len(item) == 1:
+                return self(rows=..., select=item[0])
+            if len(item) == 2:
+                return self(rows=item[0], select=item[1])
+            if len(item) == 3:
+                return self(rows=item[0], select=item[1], groupby=item[2])
+            raise ValueError("Selector %r is not supported" % item)
+        else:
+            return self(rows=..., select=item)
