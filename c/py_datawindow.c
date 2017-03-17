@@ -45,7 +45,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     types = PyList_New((Py_ssize_t) ncols);
     if (types == NULL) goto fail;
     for (int64_t i = col0; i < col1; ++i) {
-        dt_Column column = dt->columns[i];
+        Column column = dt->columns[i];
         PyObject *py_coltype = PyLong_FromLong(column.type);
         if (py_coltype == NULL) goto fail;
         PyList_SET_ITEM(types, n_init_types++, py_coltype);
@@ -62,10 +62,10 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     view = PyList_New((Py_ssize_t) ncols);
     if (view == NULL) goto fail;
     for (int64_t i = col0; i < col1; ++i) {
-        dt_Column column = dt->columns[i];
+        Column column = dt->columns[i];
         int realdata = (column.data != NULL);
         void *coldata = realdata? column.data
-                                : dt->src->columns[column.index].data;
+                                : dt->src->columns[column.srcindex].data;
 
         PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
         if (py_coldata == NULL) goto fail;
@@ -236,7 +236,8 @@ static int _check_consistency(
 
     // check each column within the window for correctness
     for (long i = col0; i < col1; ++i) {
-        dt_Column col = dt->columns[i];
+        Column col = dt->columns[i];
+        Column *srccols = dt->src == NULL? NULL : dt->src->columns;
         if (col.type == DT_AUTO) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has type DT_AUTO", i);
@@ -254,18 +255,18 @@ static int _check_consistency(
                 "datatable does not have a parent", i);
             return 0;
         }
-        if (col.data == NULL && (col.index < 0 ||
-                                 col.index >= dt->src->ncols)) {
+        if (col.data == NULL && (col.srcindex < 0 ||
+                                 col.srcindex >= dt->src->ncols)) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid view: column %ld references non-existing column "
-                "%ld in the parent datatable", i, col.index);
+                "%ld in the parent datatable", i, col.srcindex);
             return 0;
         }
-        if (col.data == NULL && col.type != dt->src->columns[col.index].type) {
+        if (col.data == NULL && col.type != srccols[col.srcindex].type) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid view: column %ld of type %d references column "
                 "%ld of type %d",
-                i, col.type, col.index, dt->src->columns[col.index].type);
+                i, col.type, col.srcindex, srccols[col.srcindex].type);
             return 0;
         }
     }

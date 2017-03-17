@@ -2,7 +2,8 @@
 #define Dt_DATATABLE_H
 #include <Python.h>
 
-typedef struct RowIndex RowIndex;
+typedef struct RowIndex RowIndex; // break circular dependency between .h files
+
 
 /**
  * Type for a column.
@@ -33,29 +34,29 @@ typedef struct RowIndex RowIndex;
  *     types. Each element is a `PyObject*`. Missing values are `NULL`s.
  *
  */
-typedef enum dt_Coltype {
+typedef enum ColType {
     DT_AUTO    = 0,
     DT_DOUBLE  = 1,
     DT_LONG    = 2,
     DT_STRING  = 3,
     DT_BOOL    = 4,
     DT_OBJECT  = 5
-} dt_Coltype;
+} ColType;
 
 #define DT_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
 
-int dt_Coltype_size[DT_COUNT];
+int ColType_size[DT_COUNT];
 
 
 
 /*--- Column -----------------------------------------------------------------*/
 
-typedef struct dt_Column {
+typedef struct Column {
     void* data;
-    long index;
-    dt_Coltype type;
-    void* stats;
-} dt_Column;
+    ColType type;
+    int32_t srcindex;
+    // RollupStats* stats;
+} Column;
 
 
 /*--- Main Datatable object --------------------------------------------------*/
@@ -66,7 +67,7 @@ typedef struct dt_DatatableObject {
     long nrows;
     struct dt_DatatableObject *src;
     RowIndex *rowindex;
-    dt_Column *columns;
+    Column *columns;
 
 } dt_DatatableObject;
 

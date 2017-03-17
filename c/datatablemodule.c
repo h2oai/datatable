@@ -37,12 +37,12 @@ PyInit__datatable(void) {
     // Sanity checks
     assert(sizeof(char) == sizeof(unsigned char));
 
-    dt_Coltype_size[DT_AUTO] = 0;
-    dt_Coltype_size[DT_DOUBLE] = sizeof(double);
-    dt_Coltype_size[DT_LONG] = sizeof(long);
-    dt_Coltype_size[DT_BOOL] = sizeof(char);
-    dt_Coltype_size[DT_STRING] = sizeof(char*);
-    dt_Coltype_size[DT_OBJECT] = sizeof(PyObject*);
+    ColType_size[DT_AUTO] = 0;
+    ColType_size[DT_DOUBLE] = sizeof(double);
+    ColType_size[DT_LONG] = sizeof(long);
+    ColType_size[DT_BOOL] = sizeof(char);
+    ColType_size[DT_STRING] = sizeof(char*);
+    ColType_size[DT_OBJECT] = sizeof(PyObject*);
 
     Py_int0 = PyLong_FromLong(0);
     Py_int1 = PyLong_FromLong(1);

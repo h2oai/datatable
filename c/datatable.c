@@ -8,15 +8,15 @@
 #include "py_rowindex.h"
 
 
-static int _fill_1_column(PyObject *list, dt_Column *column);
-static int _allocate_column(dt_Column *column, long nrows);
-static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Column *column);
-// static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Coltype* types);
+static int _fill_1_column(PyObject *list, Column *column);
+static int _allocate_column(Column *column, long nrows);
+static int _switch_to_coltype(ColType newtype, PyObject *list, Column *column);
+// static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, ColType* types);
 
 
 static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args)
 {
-    dt_Column *columns = NULL;
+    Column *columns = NULL;
 
     RowIndex_PyObject *rows;
     if (!PyArg_ParseTuple(args, "O!:omni", &RowIndex_PyType, &rows))
@@ -31,13 +31,13 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args)
         PyObject_CallObject((PyObject*) &dt_DatatableType, NULL);
     if (res == NULL) goto fail;
 
-    columns = malloc(sizeof(dt_Column) * ncols);
+    columns = malloc(sizeof(Column) * ncols);
     if (columns == NULL) goto fail;
     for (int i = 0; i < ncols; ++i) {
         columns[i].data = NULL;
-        columns[i].index = i;
+        columns[i].srcindex = i;
         columns[i].type = self->columns[i].type;
-        columns[i].stats = NULL;
+        // columns[i].stats = NULL;
     }
 
     res->ncols = ncols;
@@ -68,7 +68,7 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
     int ncols = self->ncols;
     long nrows = rows->kind == RI_ARRAY? rows->riArray.length :
                  rows->kind == RI_SLICE? rows->riSlice.count : 0;
-    dt_Coltype* types = malloc(ncols * sizeof(dt_Coltype));
+    ColType* types = malloc(ncols * sizeof(ColType));
     if (types == NULL) return NULL;
     for (int i = 0; i < ncols; ++i)
         types[i] = self->columns[i].type;
@@ -83,7 +83,7 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
             for (int j = 0; j < ncols; ++j) {
                 void *srccol = self->columns[j].data;
                 void *trgcol = res->columns[j].data;
-                int elemsize = dt_Coltype_size[types[j]];
+                int elemsize = ColType_size[types[j]];
                 for (long i = 0; i < nrows; ++i) {
                     memcpy(trgcol + i*elemsize, srccol + indices[i]*elemsize, elemsize);
                 }
@@ -100,14 +100,14 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
                 for (int j = 0; j < ncols; ++j) {
                     void *srccol = self->columns[j].data;
                     void *trgcol = res->columns[j].data;
-                    int elemsize = dt_Coltype_size[types[j]];
+                    int elemsize = ColType_size[types[j]];
                     memcpy(trgcol, srccol + start*elemsize, count*elemsize);
                 }
             } else {
                 for (int j = 0; j < ncols; ++j) {
                     void *srccol = self->columns[j].data;
                     void *trgcol = res->columns[j].data;
-                    int elemsize = dt_Coltype_size[types[j]];
+                    int elemsize = ColType_size[types[j]];
                     for (long i = 0, row = start; i < count; ++i, row += step) {
                         memcpy(trgcol + i*elemsize, srccol + row*elemsize, elemsize);
                     }
@@ -131,7 +131,7 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
     return res;
 }
 
-static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Coltype *types)
+static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, ColType *types)
 {
     int n_columns_allocated = 0;
     PyTypeObject* dttype = &dt_DatatableType;
@@ -139,7 +139,7 @@ static dt_DatatableObject* _preallocate_Datatable(long nrows, int ncols, dt_Colt
     dt_DatatableObject* res = (dt_DatatableObject*) dttype->tp_alloc(dttype, 0);
     if (res == NULL) goto fail;
 
-    dt_Column *columns = clone(NULL, sizeof(dt_Column*) * ncols);
+    Column *columns = clone(NULL, sizeof(Column*) * ncols);
     if (columns == NULL) goto fail;
 
     for (int i = 0; i < ncols; i++) {
@@ -236,13 +236,13 @@ static PyObject* dt_Datatable_fromlist(PyTypeObject *type, PyObject *args)
 
     // Allocate memory for the datatable's columns
     int ncols = self->ncols;
-    self->columns = malloc(sizeof(dt_Column) * ncols);
+    self->columns = malloc(sizeof(Column) * ncols);
     if (self->columns == NULL) goto fail;
     for (int i = 0; i < ncols; ++i) {
         self->columns[i].type = DT_AUTO;
         self->columns[i].data = NULL;
-        self->columns[i].index = -1;
-        self->columns[i].stats = NULL;
+        self->columns[i].srcindex = -1;
+        // self->columns[i].stats = NULL;
     }
 
     // Fill the data
@@ -267,11 +267,11 @@ fail:
  * @param list: the data source.
  * @param coltype: the desired dtype for the column; if DT_AUTO then this value
  *     will be modified in-place to an appropriate type.
- * @param coldata: pointer to a ``dt_Coltype`` structure that will be modified
+ * @param coldata: pointer to a ``ColType`` structure that will be modified
  *     by reference to fill in the column's data.
  * @returns 0 on success, -1 on error
  */
-static int _fill_1_column(PyObject *list, dt_Column *column) {
+static int _fill_1_column(PyObject *list, Column *column) {
     long nrows = (long) Py_SIZE(list);
     if (nrows == 0) {
         column->data = NULL;
@@ -421,8 +421,8 @@ static int _fill_1_column(PyObject *list, dt_Column *column) {
  * Allocate memory in ``coldata`` for ``nrows`` elements of type ``coltype``.
  * @returns 0 on success, -1 on error
  */
-static int _allocate_column(dt_Column *column, long nrows) {
-    column->data = malloc(dt_Coltype_size[column->type] * nrows);
+static int _allocate_column(Column *column, long nrows) {
+    column->data = malloc(ColType_size[column->type] * nrows);
     return column->data == NULL? -1 : 0;
 }
 
@@ -431,7 +431,7 @@ static int _allocate_column(dt_Column *column, long nrows) {
 /**
  * Switch to a different column type and then re-run `_fill_1_column()`.
  */
-static int _switch_to_coltype(dt_Coltype newtype, PyObject *list, dt_Column *column) {
+static int _switch_to_coltype(ColType newtype, PyObject *list, Column *column) {
     free(column->data);
     column->type = newtype;
     return _fill_1_column(list, column);
@@ -447,7 +447,7 @@ static void dt_Datatable_dealloc(dt_DatatableObject *self)
 {
     if (self->ncols) {
         for (int i = 0; i < self->ncols; ++i) {
-            dt_Column column = self->columns[i];
+            Column column = self->columns[i];
             if (column.type == DT_OBJECT) {
                 int j = self->nrows;
                 while (--j >= 0) {
