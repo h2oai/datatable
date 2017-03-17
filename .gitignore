@@ -29,3 +29,7 @@ docs/_build/
 !.idea/inspectionProfiles
 datatable.iml
 *.sublime-*
+
+
+# Landfill area
+temp/*

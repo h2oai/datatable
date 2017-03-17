@@ -1,12 +1,12 @@
 #include <Python.h>
 #include "datatable.h"
-#include "datawindow.h"
 #include "dtutils.h"
 #include "structmember.h"
+#include "py_datawindow.h"
 
 // Forward declarations
-static int _check_consistency(
-    dt_DatatableObject *dt, long col0, long ncols, long row0, long nrows);
+static int _check_consistency(dt_DatatableObject *dt, int64_t row0,
+                              int64_t row1, int64_t col0, int64_t col1);
 
 
 /**
@@ -14,70 +14,65 @@ static int _check_consistency(
  * coordinates of a data window, and extracts the data from the datatable
  * within the provided window as a pythonic list of lists.
  *
- * Keyword arguments are not supported (and ignored).
- *
  * :param dt: the datatable whose data window we want to extract.
- * :param col0: index of the first column of the data window.
- * :param ncols: the width of the data window (in columns).
  * :param row0: index of the first row of the data window.
- * :param nrows: the height of the data window (in rows).
+ * :param row1: index of the last + 1 row of the data window.
+ * :param col0: index of the first column of the data window.
+ * :param col1: index of the last + 1 column of the data window.
  */
-static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
+static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 {
+    dt_DatatableObject *dt;
     PyObject *types = NULL, *view = NULL;
-    assert(self->types == NULL && self->data == NULL);
+    int n_init_types = 0;
+    int n_init_cols = 0;
+    int64_t row0, row1, col0, col1;
 
     // Parse arguments and check their validity
-    dt_DatatableObject *dt;
-    long view_col0, view_ncols, view_row0, view_nrows;
-    if (!PyArg_ParseTuple(args, "O!llll:DataWindow.__init__",
-                          &dt_DatatableType, &dt,
-                          &view_col0, &view_ncols, &view_row0, &view_nrows))
-        return -1;
-    if (!_check_consistency(dt, view_col0, view_ncols, view_row0, view_nrows))
+    static char *kwlist[] = {"dt", "row0", "row1", "col0", "col1", NULL};
+    int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!llll:DataWindow.__init__",
+                                          kwlist, &dt_DatatableType, &dt,
+                                          &row0, &row1, &col0, &col1);
+    if (!ret || !_check_consistency(dt, row0, row1, col0, col1))
         return -1;
 
+    // Window dimensions
+    int64_t ncols = col1 - col0;
+    int64_t nrows = row1 - row0;
+
     // Create and fill-in the `types` list
-    types = PyList_New((Py_ssize_t) view_ncols);
+    types = PyList_New((Py_ssize_t) ncols);
     if (types == NULL) goto fail;
-    for (long i = 0; i < view_ncols; ++i) {
-        dt_Column column = dt->columns[view_col0 + i];
+    for (int64_t i = col0; i < col1; ++i) {
+        dt_Column column = dt->columns[i];
         PyObject *py_coltype = PyLong_FromLong(column.type);
-        if (py_coltype == NULL) {
-            // Set all remaining list elements to null, o/w Python will attempt
-            // to free() them, which will likely crash
-            for (; i < view_ncols; ++i) PyList_SET_ITEM(types, i, NULL);
-            goto fail;
-        }
-        PyList_SET_ITEM(types, i, py_coltype);
+        if (py_coltype == NULL) goto fail;
+        PyList_SET_ITEM(types, n_init_types++, py_coltype);
     }
 
     dt_RowIndexObject *rindex = dt->row_index;
     int indirect_array = rindex && rindex->kind == RI_ARRAY;
 
     // Create and fill-in the `data` list
-    view = PyList_New((Py_ssize_t) view_ncols);
+    view = PyList_New((Py_ssize_t) ncols);
     if (view == NULL) goto fail;
-    for (long i = 0; i < view_ncols; ++i) {
-        dt_Column column = dt->columns[view_col0 + i];
-        int indirect = (column.data == NULL);
-        void *coldata = indirect? dt->src->columns[column.index].data
-                                : column.data;
+    for (int64_t i = col0; i < col1; ++i) {
+        dt_Column column = dt->columns[i];
+        int realdata = (column.data != NULL);
+        void *coldata = realdata? column.data
+                                : dt->src->columns[column.index].data;
 
-        PyObject *py_coldata = PyList_New((Py_ssize_t) view_nrows);
-        if (py_coldata == NULL) {
-            for (; i < view_ncols; ++i) PyList_SET_ITEM(view, i, NULL);
-            goto fail;
-        }
-        PyList_SET_ITEM(view, i, py_coldata);
-        PyObject *value;
-        for (long j = 0; j < view_nrows; ++j) {
-            long irow = view_row0 + j;
-            if (indirect) {
-                irow = indirect_array? rindex->array[irow]
-                                     : rindex->slice.start +
-                                       rindex->slice.step * irow;
-            }
+        PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
+        if (py_coldata == NULL) goto fail;
+        PyList_SET_ITEM(view, n_init_cols++, py_coldata);
+
+        int n_init_rows = 0;
+        for (int64_t j = row0; j < row1; ++j) {
+            int64_t irow = realdata? j :
+                           indirect_array? rindex->array[j] :
+                                           rindex->slice.start +
+                                           rindex->slice.step * j;
+            PyObject *value = NULL;
             switch (column.type) {
                 case DT_DOUBLE: {
                     double x = ((double*)coldata)[irow];
@@ -85,7 +80,7 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
                 }   break;
 
                 case DT_LONG: {
-                    long x = ((long*)coldata)[irow];
+                    int64_t x = ((int64_t*)coldata)[irow];
                     value = x == LONG_MIN? none() : PyLong_FromLong(x);
                 }   break;
 
@@ -102,27 +97,34 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
 
                 case DT_OBJECT: {
                     value = ((PyObject**)coldata)[irow];
-                    Py_INCREF(value);
+                    Py_XINCREF(value);
                 }   break;
 
                 default:
                     assert(0);
             }
-            PyList_SET_ITEM(py_coldata, j, value);
+            if (value == NULL) {
+                while (n_init_rows < nrows)
+                    PyList_SET_ITEM(py_coldata, n_init_rows++, NULL);
+                goto fail;
+            }
+            PyList_SET_ITEM(py_coldata, n_init_rows++, value);
         }
     }
 
-    self->col0 = view_col0;
-    self->ncols = view_ncols;
-    self->row0 = view_row0;
-    self->nrows = view_nrows;
-    self->types = types;
-    self->data = view;
+    self->row0 = row0;
+    self->row1 = row1;
+    self->col0 = col0;
+    self->col1 = col1;
+    self->types = (PyListObject*) types;
+    self->data = (PyListObject*) view;
     return 0;
 
-    fail:
-    Py_XDECREF(view);
+  fail:
+    while (n_init_types < ncols) PyList_SET_ITEM(types, n_init_types++, NULL);
+    while (n_init_cols < ncols) PyList_SET_ITEM(view, n_init_cols++, NULL);
     Py_XDECREF(types);
+    Py_XDECREF(view);
     return -1;
 }
 
@@ -136,22 +138,23 @@ static int __init__(dt_DataWindowObject *self, PyObject *args, PyObject *kwds)
  * turn this off in production.
  *
  * :param dt: reference to a datatable being inspected
- * :param col0: index of the first column to check
- * :param ncols: number of columns to check
- * :param row0: index of the first row to check
- * :param nrows: number of rows to check
+ * :param row0: index of the first row of the data window.
+ * :param row1: index of the last + 1 row of the data window.
+ * :param col0: index of the first column of the data window.
+ * :param col1: index of the last + 1 column of the data window.
  * :returns: 1 on success, 0 on failure
  */
 static int _check_consistency(
-    dt_DatatableObject *dt, long col0, long ncols, long row0, long nrows)
+    dt_DatatableObject *dt,
+    int64_t row0, int64_t row1, int64_t col0, int64_t col1)
 {
     // check correctness of the data window
-    if (col0 < 0 || ncols < 0 || col0 + ncols > dt->ncols ||
-        row0 < 0 || nrows < 0 || row0 + nrows > dt->nrows) {
+    if (col0 < 0 || col1 < col0 || col1 > dt->ncols ||
+        row0 < 0 || row1 < row0 || row1 > dt->nrows) {
         PyErr_Format(PyExc_ValueError,
             "Invalid data window bounds: datatable is [%ld x %ld], "
-            "whereas requested window is [%ld..+%ld x %ld..+%ld]",
-            dt->nrows, dt->ncols, row0, nrows, col0, ncols);
+            "whereas requested window is [%ld..%ld x %ld..%ld]",
+            dt->nrows, dt->ncols, row0, row1, col0, col1);
         return 0;
     }
 
@@ -184,14 +187,13 @@ static int _check_consistency(
                         rindex->length, dt->nrows);
                     return 0;
                 }
-                for (long j = 0; j < nrows; ++j) {
-                    long irow = row0 + j;
-                    long irowsrc = rindex->array[irow];
-                    if (irowsrc < 0 || irowsrc >= dt->src->nrows) {
+                for (long j = row0; j < row1; ++j) {
+                    long jsrc = rindex->array[j];
+                    if (jsrc < 0 || jsrc >= dt->src->nrows) {
                         PyErr_Format(PyExc_RuntimeError,
                             "Invalid view: row %ld of the view references non-"
-                            "existing row %ld in the parent datatable",
-                            irow, irowsrc);
+                            "existing row %ld in the source datatable",
+                            j, jsrc);
                         return 0;
                     }
                 }
@@ -229,38 +231,37 @@ static int _check_consistency(
     }
 
     // check each column within the window for correctness
-    for (long i = 0; i < ncols; ++i) {
-        long icol = col0 + i;
-        dt_Column col = dt->columns[icol];
+    for (long i = col0; i < col1; ++i) {
+        dt_Column col = dt->columns[i];
         if (col.type == DT_AUTO) {
             PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has type DT_AUTO", icol);
+                "Invalid datatable: column %ld has type DT_AUTO", i);
             return 0;
         }
         if (col.type <= 0 || col.type >= DT_COUNT) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has unknown type %d",
-                icol, col.type);
+                i, col.type);
             return 0;
         }
         if (col.data == NULL && dt->src == NULL) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has no data, while the "
-                "datatable does not have a parent", icol);
+                "datatable does not have a parent", i);
             return 0;
         }
         if (col.data == NULL && (col.index < 0 ||
                                  col.index >= dt->src->ncols)) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid view: column %ld references non-existing column "
-                "%ld in the parent datatable", icol, col.index);
+                "%ld in the parent datatable", i, col.index);
             return 0;
         }
         if (col.data == NULL && col.type != dt->src->columns[col.index].type) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid view: column %ld of type %d references column "
                 "%ld of type %d",
-                icol, col.type, col.index, dt->src->columns[col.index].type);
+                i, col.type, col.index, dt->src->columns[col.index].type);
             return 0;
         }
     }
@@ -271,7 +272,7 @@ static int _check_consistency(
 /**
  * Destructor
  */
-static void __dealloc__(dt_DataWindowObject *self)
+static void __dealloc__(DataWindow_PyObject *self)
 {
     Py_XDECREF(self->data);
     Py_XDECREF(self->types);
@@ -282,32 +283,32 @@ static void __dealloc__(dt_DataWindowObject *self)
 //------ Declare the DataWindow object -----------------------------------------
 
 PyDoc_STRVAR(dtdoc_datawindow, "DataWindow object");
-PyDoc_STRVAR(dtdoc_ncols, "Number of columns");
-PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
-PyDoc_STRVAR(dtdoc_nrows, "Number of rows");
 PyDoc_STRVAR(dtdoc_row0, "Index of the first row");
+PyDoc_STRVAR(dtdoc_row1, "Index of the last row exclusive");
+PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
+PyDoc_STRVAR(dtdoc_col1, "Index of the last column exclusive");
 PyDoc_STRVAR(dtdoc_types, "Types of the columns within the view");
 PyDoc_STRVAR(dtdoc_data, "Datatable's data within the specified window");
 
 
-#define Member(name, type) {#name, type, offsetof(dt_DataWindowObject, name), \
+#define Member(name, type) {#name, type, offsetof(DataWindow_PyObject, name), \
                             READONLY, dtdoc_ ## name}
 
 static PyMemberDef members[] = {
-    Member(col0, T_LONG),
-    Member(ncols, T_LONG),
     Member(row0, T_LONG),
-    Member(nrows, T_LONG),
+    Member(row1, T_LONG),
+    Member(col0, T_LONG),
+    Member(col1, T_LONG),
     Member(types, T_OBJECT_EX),
     Member(data, T_OBJECT_EX),
     {NULL}  // sentinel
 };
 
 
-PyTypeObject dt_DataWindowType = {
+PyTypeObject DataWindow_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_datatable.DataWindow",            /* tp_name */
-    sizeof(dt_DataWindowObject),        /* tp_basicsize */
+    sizeof(DataWindow_PyObject),        /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)__dealloc__,            /* tp_dealloc */
     0,                                  /* tp_print */

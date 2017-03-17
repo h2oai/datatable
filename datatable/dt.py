@@ -70,10 +70,10 @@ class DataTable(object):
     def _display_in_terminal_(self):
         self.view()
 
-    def _data_viewer(self, col0, ncols, row0, nrows):
-        view = self._dt.window(col0, ncols, row0, nrows)
+    def _data_viewer(self, row0, row1, col0, col1):
+        view = self._dt.window(row0, row1, col0, col1)
         return {
-            "names": self._names[col0:col0 + ncols],
+            "names": self._names[col0:col1],
             "types": [DataTable._dt_types[t] for t in view.types],
             "columns": view.data,
         }

@@ -1,5 +1,5 @@
-#ifndef dt_DATAWINDOW_H
-#define dt_DATAWINDOW_H
+#ifndef dt_PY_DATAWINDOW_H
+#define dt_PY_DATAWINDOW_H
 #include <Python.h>
 
 
@@ -16,32 +16,32 @@
  * since they are able to view only a limited amount of data in their viewport
  * anyways.
  */
-typedef struct dt_DataWindowObject {
+typedef struct DataWindow_PyObject {
     PyObject_HEAD
 
-    // Coordinates of the window returned: `ncols` columns starting from `col0`
-    // and `nrows` rows starting from `row0`.
-    long col0;
-    long ncols;
-    long row0;
-    long nrows;
+    // Coordinates of the window returned: `row0`..`row1` x `col0`..`col1`.
+    // `row0` is the first row to include, `row1` is 1 after the last. The
+    // number of rows in the window is thus `row1 - row0`. Similarly with cols.
+    int64_t row0, row1;
+    int64_t col0, col1;
 
-    // List of types (dt_Coltype) of each column returned. This list will have
-    // `ncols` elements.
-    PyObject *types;
+    // List of types (ColType) of each column returned. This list will have
+    // `col1 - col0` elements.
+    PyListObject *types;
 
     // Actual data within the window, represented as a PyList of PyLists of
     // Python primitives (such as PyLong, PyFloat, etc). The data is returned
     // in column-major order, i.e. each element of the list `data` represents
     // a single column from the parent datatable. The number of elements in
-    // this list is `ncols`; and each element is a list of `nrows` items.
-    PyObject *data;
+    // this list is `col1 - col0`; and each element is a list of `row1 - row0`
+    // items.
+    PyListObject *data;
 
-} dt_DataWindowObject;
+} DataWindow_PyObject;
 
 
-/** Python type corresponding to dt_DataWindowObject. */
-PyTypeObject dt_DataWindowType;
+/** Python type corresponding to DataWindow_PyObject. */
+PyTypeObject DataWindow_PyType;
 
 
 #endif

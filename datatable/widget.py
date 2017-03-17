@@ -226,8 +226,10 @@ class DataFrameWidget(object):
                                  self._frame_ncols - self._view_col0)
         self._view_nrows = clamp(self._view_nrows, 0,
                                  self._frame_nrows - self._view_row0)
-        return self._data_callback(self._view_col0, self._view_ncols,
-                                   self._view_row0, self._view_nrows)
+        return self._data_callback(self._view_row0,
+                                   self._view_row0 + self._view_nrows,
+                                   self._view_col0,
+                                   self._view_col0 + self._view_ncols)
 
     def _fetch_column_width(self, icol):
         if icol in self._colwidths:

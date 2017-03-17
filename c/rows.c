@@ -111,7 +111,7 @@ PyObject* rows_from_array(PyObject *self, PyObject *args)
 
 //------ RowsIndex -------------------------------------------------------------
 
-static void dt_RowsIndex_dealloc(dt_RowIndexObject *self)
+static void dt_RowIndex_dealloc(dt_RowIndexObject *self)
 {
     if (self->kind == RI_ARRAY)
         free(self->array);
@@ -122,7 +122,7 @@ static void dt_RowsIndex_dealloc(dt_RowIndexObject *self)
 PyTypeObject dt_RowIndexType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_datatable.RowsIndex",             /* tp_name */
-    sizeof(dt_RowIndexObject),         /* tp_basicsize */
+    sizeof(dt_RowIndexObject),          /* tp_basicsize */
     0,                                  /* tp_itemsize */
-    (destructor)dt_RowsIndex_dealloc,   /* tp_dealloc */
+    (destructor)dt_RowIndex_dealloc,    /* tp_dealloc */
 };

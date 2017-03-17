@@ -4,7 +4,7 @@
 #include "datatable.h"
 #include "dtutils.h"
 #include "rows.h"
-#include "datawindow.h"
+#include "py_datawindow.h"
 
 
 static int _fill_1_column(PyObject *list, dt_Column *column);
@@ -461,12 +461,12 @@ static void dt_Datatable_dealloc(dt_DatatableObject *self)
 
 static PyObject* dt_Datatable_view(dt_DatatableObject *self, PyObject *args)
 {
-    long col0, ncols, row0, nrows;
-    if (!PyArg_ParseTuple(args, "llll", &col0, &ncols, &row0, &nrows))
+    int64_t row0, row1, col0, col1;
+    if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
         return NULL;
 
-    PyObject *nargs = Py_BuildValue("Ollll", self, col0, ncols, row0, nrows);
-    PyObject *res = PyObject_CallObject((PyObject*) &dt_DataWindowType, nargs);
+    PyObject *nargs = Py_BuildValue("Ollll", self, row0, row1, col0, col1);
+    PyObject *res = PyObject_CallObject((PyObject*) &DataWindow_PyType, nargs);
     Py_XDECREF(nargs);
 
     return res;
