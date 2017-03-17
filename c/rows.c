@@ -3,126 +3,81 @@
 
 
 /**
- * Construct a RowsIndex object from the given slice applied to the provided
- * datatable. If the datatable is a view on another datatable, then the
- * returned RowsIndex will refer to the datatable's parent.
+ * Given a datatable and a slice spec `(start, count, step)`, constructs a
+ * RowIndex object corresponding to applying this slice to the datatable.
  */
-PyObject* rows_from_slice(PyObject *self, PyObject *args)
+RowIndex* dt_select_row_slice(
+    dt_DatatableObject *dt, int64_t start, int64_t count, int64_t step)
 {
-    long start, count, step;
-    dt_DatatableObject *dt;
-    if (!PyArg_ParseTuple(args, "O!lll:rows_slice",
-                          &dt_DatatableType, &dt, &start, &count, &step))
-        return NULL;
-
-    if (start < 0 || count < 0) {
-        PyErr_SetString(PyExc_ValueError,
-                        "`start` and `count` must be nonnegative");
-        return NULL;
-    }
-
-    dt_RowIndexObject *res = dt_RowsIndex_NEW();
+    RowIndex *res = malloc(sizeof(RowIndex));
     if (res == NULL) return NULL;
 
-    if (dt->row_index == NULL) {
-        res->kind = RI_SLICE;
+    if (dt->rowindex == NULL) {
+        res->type = RI_SLICE;
         res->length = count;
         res->slice.start = start;
         res->slice.step = step;
     }
-    else if (dt->row_index->kind == RI_SLICE) {
-        long srcstart = dt->row_index->slice.start;
-        long srcstep = dt->row_index->slice.step;
-        res->kind = RI_SLICE;
+    else if (dt->rowindex->type == RI_SLICE) {
+        int64_t srcstart = dt->rowindex->slice.start;
+        int64_t srcstep = dt->rowindex->slice.step;
+        res->type = RI_SLICE;
         res->length = count;
         res->slice.start = srcstart + srcstep * start;
         res->slice.step = step * srcstep;
     }
-    else if (dt->row_index->kind == RI_ARRAY) {
-        long *data = malloc(sizeof(long) * count);
+    else if (dt->rowindex->type == RI_ARRAY) {
+        int64_t *data = malloc(sizeof(int64_t) * count);
         if (data == NULL) {
-            Py_DECREF(res);
+            free(res);
             return NULL;
         }
-        long *srcrows = dt->row_index->array;
-        for (long i = 0; i < count; ++i) {
-            data[i] = srcrows[start + i * step];
+        int64_t *srcrows = dt->rowindex->indices;
+        for (int64_t i = 0, isrc = start; i < count; i++, isrc += step) {
+            data[i] = srcrows[isrc];
         }
-        res->kind = RI_ARRAY;
+        res->type = RI_ARRAY;
         res->length = count;
-        res->array = data;
+        res->indices = data;
     } else assert(0);
-    return (PyObject*) res;
+
+    return res;
 }
 
 
-/**
- * Construct a RowsIndex object from the given list of row indices, applied to
- * the provided datatable. If the datatable is a view on another datatable,
- * then the returned RowsIndex will refer to the parent.
- */
-PyObject* rows_from_array(PyObject *self, PyObject *args)
-{
-    dt_DatatableObject *dt;
-    PyObject *list;
-    if (!PyArg_ParseTuple(args, "O!O!:rows_from_array",
-                          &dt_DatatableType, &dt, &PyList_Type, &list))
-        return NULL;
 
-    dt_RowIndexObject *res = dt_RowsIndex_NEW();
+
+RowIndex* dt_select_row_indices(
+    dt_DatatableObject *dt, int64_t* data, int64_t len)
+{
+    RowIndex *res = malloc(sizeof(RowIndex));
     if (res == NULL) return NULL;
 
-    long len = (long) PyList_Size(list);
-    long *data = malloc(sizeof(long) * len);
-    if (data == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to allocate memory");
-        Py_DECREF(res);
-        return NULL;
-    }
-
-    if (dt->row_index == NULL) {
-        for (long i = 0; i < len; ++i) {
-            data[i] = PyLong_AsLong(PyList_GET_ITEM(list, i));
+    if (dt->rowindex == NULL) {}
+    else if (dt->rowindex->type == RI_SLICE) {
+        int64_t srcstart = dt->rowindex->slice.start;
+        int64_t srcstep = dt->rowindex->slice.step;
+        for (int64_t i = 0; i < len; ++i) {
+            data[i] = srcstart + data[i] * srcstep;
         }
     }
-    else if (dt->row_index->kind == RI_SLICE) {
-        long srcstart = dt->row_index->slice.start;
-        long srcstep = dt->row_index->slice.step;
-        for (long i = 0; i < len; ++i) {
-            long x = PyLong_AsLong(PyList_GET_ITEM(list, i));
-            data[i] = srcstart + x * srcstep;
-        }
-    }
-    else if (dt->row_index->kind == RI_ARRAY) {
-        long *srcrows = dt->row_index->array;
-        for (long i = 0; i < len; ++i) {
-            long x = PyLong_AsLong(PyList_GET_ITEM(list, i));
-            data[i] = srcrows[x];
+    else if (dt->rowindex->type == RI_ARRAY) {
+        int64_t *srcrows = dt->rowindex->indices;
+        for (int64_t i = 0; i < len; ++i) {
+            data[i] = srcrows[data[i]];
         }
     } else assert(0);
 
-    res->kind = RI_ARRAY;
+    res->type = RI_ARRAY;
     res->length = len;
-    res->array = data;
-    return (PyObject*) res;
+    res->indices = data;
+    return res;
 }
 
 
 
-//------ RowsIndex -------------------------------------------------------------
-
-static void dt_RowIndex_dealloc(dt_RowIndexObject *self)
-{
-    if (self->kind == RI_ARRAY)
-        free(self->array);
-    Py_TYPE(self)->tp_free((PyObject*)self);
+void dt_rowindex_dealloc(RowIndex *ri) {
+    if (ri->type == RI_ARRAY) {
+        free(ri->indices);
+    }
 }
-
-
-PyTypeObject dt_RowIndexType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    "_datatable.RowsIndex",             /* tp_name */
-    sizeof(dt_RowIndexObject),          /* tp_basicsize */
-    0,                                  /* tp_itemsize */
-    (destructor)dt_RowIndex_dealloc,    /* tp_dealloc */
-};

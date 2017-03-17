@@ -2,6 +2,7 @@
 #include "datatable.h"
 #include "dtutils.h"
 #include "structmember.h"
+#include "rows.h"
 #include "py_datawindow.h"
 
 // Forward declarations
@@ -50,8 +51,12 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         PyList_SET_ITEM(types, n_init_types++, py_coltype);
     }
 
-    dt_RowIndexObject *rindex = dt->row_index;
-    int indirect_array = rindex && rindex->kind == RI_ARRAY;
+    RowIndex *rindex = dt->rowindex;
+    int rindex_is_array = rindex && rindex->type == RI_ARRAY;
+    int rindex_is_slice = rindex && rindex->type == RI_SLICE;
+    int64_t *rindexarray = rindex_is_array? rindex->indices : NULL;
+    int64_t rindexstart = rindex_is_slice? rindex->slice.start : 0;
+    int64_t rindexstep = rindex_is_slice? rindex->slice.step : 0;
 
     // Create and fill-in the `data` list
     view = PyList_New((Py_ssize_t) ncols);
@@ -69,9 +74,8 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         int n_init_rows = 0;
         for (int64_t j = row0; j < row1; ++j) {
             int64_t irow = realdata? j :
-                           indirect_array? rindex->array[j] :
-                                           rindex->slice.start +
-                                           rindex->slice.step * j;
+                           rindex_is_array? rindexarray[j] :
+                                            rindexstart + rindexstep * j;
             PyObject *value = NULL;
             switch (column.type) {
                 case DT_DOUBLE: {
@@ -159,7 +163,7 @@ static int _check_consistency(
     }
 
     // verify that the datatable is internally consistent
-    dt_RowIndexObject *rindex = dt->row_index;
+    RowIndex *rindex = dt->rowindex;
     if (rindex == NULL && dt->src != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Invalid datatable: .src is present, but .row_index is null");
@@ -178,7 +182,7 @@ static int _check_consistency(
 
     // verify that the row index (if present) is valid
     if (rindex != NULL) {
-        switch (rindex->kind) {
+        switch (rindex->type) {
             case RI_ARRAY: {
                 if (rindex->length != dt->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
@@ -188,7 +192,7 @@ static int _check_consistency(
                     return 0;
                 }
                 for (long j = row0; j < row1; ++j) {
-                    long jsrc = rindex->array[j];
+                    long jsrc = rindex->indices[j];
                     if (jsrc < 0 || jsrc >= dt->src->nrows) {
                         PyErr_Format(PyExc_RuntimeError,
                             "Invalid view: row %ld of the view references non-"
@@ -225,7 +229,7 @@ static int _check_consistency(
 
             default:
                 PyErr_Format(PyExc_RuntimeError,
-                    "Unexpected row index kind = %d", rindex->kind);
+                    "Unexpected row index of type = %d", rindex->type);
                 return 0;
         }
     }

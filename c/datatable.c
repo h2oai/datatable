@@ -5,6 +5,7 @@
 #include "dtutils.h"
 #include "rows.h"
 #include "py_datawindow.h"
+#include "py_rowindex.h"
 
 
 static int _fill_1_column(PyObject *list, dt_Column *column);
@@ -17,12 +18,14 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args)
 {
     dt_Column *columns = NULL;
 
-    dt_RowIndexObject *rows;
-    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowIndexType, &rows))
+    RowIndex_PyObject *rows;
+    if (!PyArg_ParseTuple(args, "O!:omni", &RowIndex_PyType, &rows))
+        return NULL;
+    if (rows->ref == NULL)
         return NULL;
 
     int ncols = self->ncols;
-    long nrows = rows->length;
+    long nrows = rows->ref->length;
 
     dt_DatatableObject* res = (dt_DatatableObject*)
         PyObject_CallObject((PyObject*) &dt_DatatableType, NULL);
@@ -40,10 +43,13 @@ static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args)
     res->ncols = ncols;
     res->nrows = nrows;
     res->src = self->src == NULL? self : self->src;
-    res->row_index = rows;
+    res->rowindex = rows->ref;
     res->columns = columns;
     Py_XINCREF(self);
     Py_XINCREF(rows);
+
+    // The RowIndex object provided has changed an owner
+    rows->ref = NULL;
     return res;
 
 fail:
@@ -55,8 +61,8 @@ fail:
 /*
 static dt_DatatableObject* omni(dt_DatatableObject *self, PyObject* args) {
 
-    dt_RowIndexObject *rows;
-    if (!PyArg_ParseTuple(args, "O!:omni", &dt_RowIndexType, &rows))
+    RowIndex_PyObject *rows;
+    if (!PyArg_ParseTuple(args, "O!:omni", &RowIndex_PyType, &rows))
         return NULL;
 
     int ncols = self->ncols;
@@ -453,8 +459,8 @@ static void dt_Datatable_dealloc(dt_DatatableObject *self)
         }
     }
     free(self->columns);
+    free(self->rowindex);
     Py_XDECREF(self->src);
-    Py_XDECREF(self->row_index);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -479,7 +485,6 @@ PyDoc_STRVAR(dtdoc_view, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_fromlist, "Create Datatable from a list");
 PyDoc_STRVAR(dtdoc_omni, "Main function for datatable transformation");
 PyDoc_STRVAR(dtdoc_src, "Source datatable for a view");
-PyDoc_STRVAR(dtdoc_row_index, "Row index (within the source datatable) for a view");
 
 static PyMethodDef dt_Datatable_methods[] = {
     {"window", (PyCFunction)dt_Datatable_view, METH_VARARGS, dtdoc_view},
@@ -496,7 +501,6 @@ static PyMemberDef dt_Datatable_members[] = {
     Member(ncols, T_INT),
     Member(nrows, T_LONG),
     Member(src, T_OBJECT),
-    Member(row_index, T_OBJECT),
     {NULL}                 /* sentinel */
 };
 

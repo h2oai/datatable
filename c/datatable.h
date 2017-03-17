@@ -1,7 +1,8 @@
 #ifndef Dt_DATATABLE_H
 #define Dt_DATATABLE_H
 #include <Python.h>
-#include "rows.h"
+
+typedef struct RowIndex RowIndex;
 
 /**
  * Type for a column.
@@ -64,7 +65,7 @@ typedef struct dt_DatatableObject {
     int  ncols;
     long nrows;
     struct dt_DatatableObject *src;
-    dt_RowIndexObject *row_index;
+    RowIndex *rowindex;
     dt_Column *columns;
 
 } dt_DatatableObject;

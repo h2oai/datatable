@@ -1,31 +1,28 @@
 #ifndef Dt_ROWS_H
 #define Dt_ROWS_H
 #include <Python.h>
+#include "datatable.h"
 
-typedef enum dt_RowIndexKind {
+typedef enum RowIndexType {
     RI_ARRAY,
     RI_SLICE,
-} dt_RowIndexKind;
+} RowIndexType;
 
 
-typedef struct dt_RowIndexObject {
-    PyObject_HEAD
-    dt_RowIndexKind kind;
-    long length;
+typedef struct RowIndex {
+    RowIndexType type;
+    int64_t length;
     union {
-        long* array;
-        struct { long start, step; } slice;
+        int64_t* indices;
+        struct { int64_t start, step; } slice;
     };
-} dt_RowIndexObject;
-
-PyTypeObject dt_RowIndexType;
+} RowIndex;
 
 
-#define dt_RowsIndex_NEW() ((dt_RowIndexObject*) \
-    PyObject_CallObject((PyObject*) &dt_RowIndexType, NULL))
-
-PyObject* rows_from_slice(PyObject *self, PyObject *args);
-PyObject* rows_from_array(PyObject *self, PyObject *args);
-
+RowIndex* dt_select_row_slice(
+    dt_DatatableObject *dt, int64_t start, int64_t count, int64_t step);
+RowIndex* dt_select_row_indices(
+    dt_DatatableObject *dt, int64_t* data, int64_t len);
+void dt_rowindex_dealloc(RowIndex *ri);
 
 #endif
