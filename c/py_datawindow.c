@@ -4,10 +4,11 @@
 #include "structmember.h"
 #include "rows.h"
 #include "py_datawindow.h"
+#include "py_datatable.h"
 
 // Forward declarations
-static int _check_consistency(dt_DatatableObject *dt, int64_t row0,
-                              int64_t row1, int64_t col0, int64_t col1);
+static int _check_consistency(DataTable *dt, int64_t row0, int64_t row1,
+                              int64_t col0, int64_t col1);
 
 
 /**
@@ -23,7 +24,8 @@ static int _check_consistency(dt_DatatableObject *dt, int64_t row0,
  */
 static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 {
-    dt_DatatableObject *dt;
+    DataTable_PyObject *pydt;
+    DataTable *dt;
     PyObject *types = NULL, *view = NULL;
     int n_init_types = 0;
     int n_init_cols = 0;
@@ -32,8 +34,9 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     // Parse arguments and check their validity
     static char *kwlist[] = {"dt", "row0", "row1", "col0", "col1", NULL};
     int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!llll:DataWindow.__init__",
-                                          kwlist, &dt_DatatableType, &dt,
+                                          kwlist, &DataTable_PyType, &pydt,
                                           &row0, &row1, &col0, &col1);
+    dt = pydt == NULL? NULL : pydt->ref;
     if (!ret || !_check_consistency(dt, row0, row1, col0, col1))
         return -1;
 
@@ -65,7 +68,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         Column column = dt->columns[i];
         int realdata = (column.data != NULL);
         void *coldata = realdata? column.data
-                                : dt->src->columns[column.srcindex].data;
+                                : dt->source->columns[column.srcindex].data;
 
         PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
         if (py_coldata == NULL) goto fail;
@@ -149,8 +152,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
  * :returns: 1 on success, 0 on failure
  */
 static int _check_consistency(
-    dt_DatatableObject *dt,
-    int64_t row0, int64_t row1, int64_t col0, int64_t col1)
+    DataTable *dt, int64_t row0, int64_t row1, int64_t col0, int64_t col1)
 {
     // check correctness of the data window
     if (col0 < 0 || col1 < col0 || col1 > dt->ncols ||
@@ -164,17 +166,17 @@ static int _check_consistency(
 
     // verify that the datatable is internally consistent
     RowIndex *rindex = dt->rowindex;
-    if (rindex == NULL && dt->src != NULL) {
+    if (rindex == NULL && dt->source != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
-            "Invalid datatable: .src is present, but .row_index is null");
+            "Invalid datatable: .source is present, but .rowindex is null");
         return 0;
     }
-    if (rindex != NULL && dt->src == NULL) {
+    if (rindex != NULL && dt->source == NULL) {
         PyErr_SetString(PyExc_RuntimeError,
-            "Invalid datatable: .src is null, while .row_index is present");
+            "Invalid datatable: .source is null, while .rowindex is present");
         return 0;
     }
-    if (dt->src != NULL && dt->src->src != NULL) {
+    if (dt->source != NULL && dt->source->source != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Invalid view: must not have another view as a parent");
         return 0;
@@ -193,7 +195,7 @@ static int _check_consistency(
                 }
                 for (long j = row0; j < row1; ++j) {
                     long jsrc = rindex->indices[j];
-                    if (jsrc < 0 || jsrc >= dt->src->nrows) {
+                    if (jsrc < 0 || jsrc >= dt->source->nrows) {
                         PyErr_Format(PyExc_RuntimeError,
                             "Invalid view: row %ld of the view references non-"
                             "existing row %ld in the source datatable",
@@ -213,13 +215,13 @@ static int _check_consistency(
                         "view itself has .nrows = %ld", count, dt->nrows);
                     return 0;
                 }
-                if (start < 0 || start >= dt->src->nrows) {
+                if (start < 0 || start >= dt->source->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: first row references an invalid row "
                         "%ld in the parent datatable", start);
                     return 0;
                 }
-                if (finish < 0 || finish >= dt->src->nrows) {
+                if (finish < 0 || finish >= dt->source->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: last row references an invalid row "
                         "%ld in the parent datatable", finish);
@@ -237,7 +239,7 @@ static int _check_consistency(
     // check each column within the window for correctness
     for (long i = col0; i < col1; ++i) {
         Column col = dt->columns[i];
-        Column *srccols = dt->src == NULL? NULL : dt->src->columns;
+        Column *srccols = dt->source == NULL? NULL : dt->source->columns;
         if (col.type == DT_AUTO) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has type DT_AUTO", i);
@@ -249,14 +251,14 @@ static int _check_consistency(
                 i, col.type);
             return 0;
         }
-        if (col.data == NULL && dt->src == NULL) {
+        if (col.data == NULL && dt->source == NULL) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has no data, while the "
                 "datatable does not have a parent", i);
             return 0;
         }
         if (col.data == NULL && (col.srcindex < 0 ||
-                                 col.srcindex >= dt->src->ncols)) {
+                                 col.srcindex >= dt->source->ncols)) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid view: column %ld references non-existing column "
                 "%ld in the parent datatable", i, col.srcindex);

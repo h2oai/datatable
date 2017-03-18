@@ -1,77 +1,69 @@
-#ifndef Dt_DATATABLE_H
-#define Dt_DATATABLE_H
-#include <Python.h>
+#ifndef dt_DATATABLE_H
+#define dt_DATATABLE_H
+#include <inttypes.h>
+#include "coltype.h"
 
 typedef struct RowIndex RowIndex; // break circular dependency between .h files
+typedef struct Column Column;
 
 
+/*----------------------------------------------------------------------------*/
 /**
- * Type for a column.
+ * The DataTable
  *
- * DT_AUTO
- *     special "marker" type to indicate that the system should autodetect the
- *     column's type from the data. This value must not be used in an actual
- *     DataTable instance.
+ * `nrows`, `ncols`
+ *     Data dimensions: number of rows and number of columns. We do not support
+ *     more than 2 dimensions as Numpy or TensorFlow do.
  *
- * DT_DOUBLE
- *     column for storing floating-point values. Each element is a `double`.
- *     Missing values are represented natively as `NA` values.
+ * `source`
+ *     If this field is not NULL, then the current datatable is a view on the
+ *     referenced datatable. The referenced datatable cannot be also a view,
+ *     that is the following invariant holds:
+ *         self->source == NULL || self->source->source == NULL
+ *     This reference is *not* owned by the current datatable, however it is
+ *     mirrored in the controller DataTable_PyObject.
  *
- * DT_LONG
- *     column for storing integer values. Each element is a 64-bit integer.
- *     Missing values are represented as the `LONG_MIN` constant.
+ * `rowindex`
+ *     This field is present if and only if the datatable is a view (i.e.
+ *     `source` != NULL). In this case `rowindex` describes which rows from the
+ *     source datatable are "selected" into the current datatable.
+ *     This reference is owned by the current datatable (in particular you
+ *     should not construct a RowIndex_PyObject from it).
  *
- * DT_BOOL
- *     column for storing boolean (0/1) values. Each element is a `char`
- *     (1-byte integer). Value of 0 is considered False, 1 is True, and all
- *     other values represent missing values (usually stored as value 2).
- *
- * DT_STRING
- *     (not implemented)
- *
- * DT_OBJECT
- *     column for storing all other values of arbitrary (possibly heterogeneous)
- *     types. Each element is a `PyObject*`. Missing values are `NULL`s.
+ * `columns`
+ *     The array of columns within the datatable. This array contains `ncols`
+ *     elements, and each column has the same number of rows: `nrows`.
+ */
+typedef struct DataTable {
+    int64_t nrows;
+    int64_t ncols;
+    struct DataTable *source;
+    struct RowIndex *rowindex;
+    struct Column *columns;
+
+} DataTable;
+
+
+
+/*----------------------------------------------------------------------------*/
+/**
+ * Single column within a datatable.
  *
  */
-typedef enum ColType {
-    DT_AUTO    = 0,
-    DT_DOUBLE  = 1,
-    DT_LONG    = 2,
-    DT_STRING  = 3,
-    DT_BOOL    = 4,
-    DT_OBJECT  = 5
-} ColType;
-
-#define DT_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
-
-int ColType_size[DT_COUNT];
-
-
-
-/*--- Column -----------------------------------------------------------------*/
-
 typedef struct Column {
     void* data;
-    ColType type;
-    int32_t srcindex;
+    enum ColType type;
+    int64_t srcindex;
     // RollupStats* stats;
 } Column;
 
 
-/*--- Main Datatable object --------------------------------------------------*/
 
-typedef struct dt_DatatableObject {
-    PyObject_HEAD
-    int  ncols;
-    long nrows;
-    struct dt_DatatableObject *src;
-    RowIndex *rowindex;
-    Column *columns;
+/*---- Methods ---------------------------------------------------------------*/
+typedef void objcol_deallocator(void*, int64_t);
 
-} dt_DatatableObject;
-
-PyTypeObject dt_DatatableType;
+DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex);
+void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col);
 
 
 #endif

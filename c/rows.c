@@ -1,5 +1,6 @@
+#include <stdlib.h>
+#include <assert.h>
 #include "rows.h"
-#include "datatable.h"
 
 
 /**
@@ -7,7 +8,7 @@
  * RowIndex object corresponding to applying this slice to the datatable.
  */
 RowIndex* dt_select_row_slice(
-    dt_DatatableObject *dt, int64_t start, int64_t count, int64_t step)
+    DataTable *dt, int64_t start, int64_t count, int64_t step)
 {
     RowIndex *res = malloc(sizeof(RowIndex));
     if (res == NULL) return NULL;
@@ -47,8 +48,7 @@ RowIndex* dt_select_row_slice(
 
 
 
-RowIndex* dt_select_row_indices(
-    dt_DatatableObject *dt, int64_t* data, int64_t len)
+RowIndex* dt_select_row_indices(DataTable *dt, int64_t* data, int64_t len)
 {
     RowIndex *res = malloc(sizeof(RowIndex));
     if (res == NULL) return NULL;
@@ -76,8 +76,10 @@ RowIndex* dt_select_row_indices(
 
 
 
-void dt_rowindex_dealloc(RowIndex *ri) {
-    if (ri->type == RI_ARRAY) {
-        free(ri->indices);
+void dt_RowIndex_dealloc(RowIndex *rowindex) {
+    if (rowindex == NULL) return;
+    if (rowindex->type == RI_ARRAY) {
+        free(rowindex->indices);
     }
+    free(rowindex);
 }

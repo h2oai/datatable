@@ -1,5 +1,5 @@
 #include <Python.h>
-#include "datatable.h"
+#include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowindex.h"
 #include "dtutils.h"
@@ -16,6 +16,8 @@ static PyMethodDef DatatableModuleMethods[] = {
         "Row selector constructed from a slice of rows"},
     {"select_row_indices", (PyCFunction)select_row_indices, METH_VARARGS,
         "Row selector constructed from a list of row indices"},
+    {"datatable_from_list", (PyCFunction)dt_DataTable_fromlist, METH_VARARGS,
+        "Create Datatable from a list"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -47,10 +49,10 @@ PyInit__datatable(void) {
     Py_int0 = PyLong_FromLong(0);
     Py_int1 = PyLong_FromLong(1);
 
-    dt_DatatableType.tp_new = PyType_GenericNew;
+    DataTable_PyType.tp_new = PyType_GenericNew;
     DataWindow_PyType.tp_new = PyType_GenericNew;
     RowIndex_PyType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&dt_DatatableType) < 0 ||
+    if (PyType_Ready(&DataTable_PyType) < 0 ||
         PyType_Ready(&DataWindow_PyType) < 0 ||
         PyType_Ready(&RowIndex_PyType) < 0)
         return NULL;
@@ -59,10 +61,10 @@ PyInit__datatable(void) {
     if (m == NULL)
         return NULL;
 
-    Py_INCREF(&dt_DatatableType);
+    Py_INCREF(&DataTable_PyType);
     Py_INCREF(&DataWindow_PyType);
     Py_INCREF(&RowIndex_PyType);
-    PyModule_AddObject(m, "DataTable", (PyObject*) &dt_DatatableType);
+    PyModule_AddObject(m, "DataTable", (PyObject*) &DataTable_PyType);
     PyModule_AddObject(m, "DataWindow", (PyObject*) &DataWindow_PyType);
     PyModule_AddObject(m, "RowIndex", (PyObject*) &RowIndex_PyType);
     return m;

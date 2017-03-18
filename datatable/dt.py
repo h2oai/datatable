@@ -99,7 +99,7 @@ class DataTable(object):
 
 
     def _fill_from_list(self, src, names=None):
-        self._dt = c.DataTable.from_list(src)
+        self._dt = c.datatable_from_list(src)
         self._ncols = self._dt.ncols
         self._nrows = self._dt.nrows
         if not names:

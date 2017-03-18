@@ -1,3 +1,4 @@
+#include "py_datatable.h"
 #include "py_rowindex.h"
 #include "rows.h"
 #include "datatable.h"
@@ -10,9 +11,9 @@
 RowIndex_PyObject* select_row_slice(PyObject *self, PyObject *args)
 {
     int64_t start, count, step;
-    dt_DatatableObject *dt;
+    DataTable_PyObject *dt;
     if (!PyArg_ParseTuple(args, "O!lll:rows_slice",
-                          &dt_DatatableType, &dt, &start, &count, &step))
+                          &DataTable_PyType, &dt, &start, &count, &step))
         return NULL;
 
     if (start < 0 || count < 0) {
@@ -24,7 +25,7 @@ RowIndex_PyObject* select_row_slice(PyObject *self, PyObject *args)
     RowIndex *rowindex = NULL;
     RowIndex_PyObject *res = NULL;
 
-    rowindex = dt_select_row_slice(dt, start, count, step);
+    rowindex = dt_select_row_slice(dt->ref, start, count, step);
     res = RowIndex_PyNEW();
     if (res == NULL || rowindex == NULL) goto fail;
 
@@ -45,7 +46,7 @@ RowIndex_PyObject* select_row_slice(PyObject *self, PyObject *args)
  */
 RowIndex_PyObject* select_row_indices(PyObject *self, PyObject *args)
 {
-    dt_DatatableObject *dt;
+    DataTable_PyObject *dt;
     PyObject *list;
     RowIndex *rowindex = NULL;
     RowIndex_PyObject *res = NULL;
@@ -53,7 +54,7 @@ RowIndex_PyObject* select_row_indices(PyObject *self, PyObject *args)
 
     // Unpack arguments and check their validity
     if (!PyArg_ParseTuple(args, "O!O!:select_row_indices",
-                          &dt_DatatableType, &dt, &PyList_Type, &list))
+                          &DataTable_PyType, &dt, &PyList_Type, &list))
         return NULL;
 
     // Convert Pythonic List into a regular C array of longs
@@ -65,7 +66,7 @@ RowIndex_PyObject* select_row_indices(PyObject *self, PyObject *args)
     }
 
     // Construct and return the RowIndex object
-    rowindex = dt_select_row_indices(dt, data, len);
+    rowindex = dt_select_row_indices(dt->ref, data, len);
     res = RowIndex_PyNEW();
     if (res == NULL || rowindex == NULL) goto fail;
     res->ref = rowindex;
@@ -84,9 +85,9 @@ RowIndex_PyObject* select_row_indices(PyObject *self, PyObject *args)
 
 static void __dealloc__(RowIndex_PyObject *self)
 {
-    if (self->ref) {
-        dt_rowindex_dealloc(self->ref);
-        free(self->ref);
+    if (self->ref != NULL) {
+        dt_RowIndex_dealloc(self->ref);
+        self->ref = NULL;
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
