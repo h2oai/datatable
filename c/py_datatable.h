@@ -40,6 +40,8 @@ typedef struct DataTable_PyObject {
 
 PyTypeObject DataTable_PyType;
 
+PyObject **py_string_coltypes;
+
 
 #define DataTable_PyNew() ((DataTable_PyObject*) \
         PyObject_CallObject((PyObject*) &DataTable_PyType, NULL))
@@ -48,5 +50,7 @@ PyTypeObject DataTable_PyType;
 // Exported methods
 DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args);
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
+
+void init_py_datatable();
 
 #endif

@@ -57,6 +57,11 @@ class DataTable(object):
         """Tuple of column names."""
         return self._names
 
+    @property
+    def types(self):
+        """Tuple of column types."""
+        return self._types
+
 
     #---------------------------------------------------------------------------
     # Display
@@ -89,7 +94,10 @@ class DataTable(object):
 
     def _fill_from_source(self, src):
         if isinstance(src, list):
-            self._fill_from_list(src)
+            if isinstance(src[0], list):
+                self._fill_from_list(src)
+            else:
+                self._fill_from_list([src])
         elif isinstance(src, (tuple, set)):
             self._fill_from_list(list(src))
         elif isinstance(src, dict):
@@ -102,6 +110,7 @@ class DataTable(object):
         self._dt = c.datatable_from_list(src)
         self._ncols = self._dt.ncols
         self._nrows = self._dt.nrows
+        self._types = self._dt.types
         if not names:
             names = tuple("C%d" % (i + 1) for i in range(self._ncols))
         if not isinstance(names, tuple):

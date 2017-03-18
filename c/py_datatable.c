@@ -7,6 +7,16 @@
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
 
+void init_py_datatable() {
+    py_string_coltypes = malloc(sizeof(PyObject*) * DT_COUNT);
+    py_string_coltypes[DT_AUTO]   = PyUnicode_FromString("auto");
+    py_string_coltypes[DT_DOUBLE] = PyUnicode_FromString("real");
+    py_string_coltypes[DT_LONG]   = PyUnicode_FromString("int");
+    py_string_coltypes[DT_BOOL]   = PyUnicode_FromString("bool");
+    py_string_coltypes[DT_STRING] = PyUnicode_FromString("str");
+    py_string_coltypes[DT_OBJECT] = PyUnicode_FromString("obj");
+}
+
 
 /**
  * "Main" function that drives transformation of datatables.
@@ -67,6 +77,18 @@ static PyObject* get_ncols(DataTable_PyObject *self) {
     return PyLong_FromLong(self->ref->ncols);
 }
 
+static PyObject* get_types(DataTable_PyObject *self) {
+    int64_t i = self->ref->ncols;
+    PyObject *list = PyTuple_New((Py_ssize_t) i);
+    if (list == NULL) return NULL;
+    while (--i >= 0) {
+        ColType ct = self->ref->columns[i].type;
+        PyTuple_SET_ITEM(list, i, py_string_coltypes[ct]);
+        Py_INCREF(py_string_coltypes[ct]);
+    }
+    return list;
+}
+
 
 static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 {
@@ -109,6 +131,7 @@ void dt_DataTable_dealloc_objcol(void *data, int64_t nrows) {
 PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
+PyDoc_STRVAR(dtdoc_types, "List of column types");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
@@ -120,6 +143,7 @@ static PyMethodDef datatable_methods[] = {
 static PyGetSetDef datatable_getseters[] = {
     {"nrows", (getter)get_nrows, NULL, dtdoc_nrows, NULL},
     {"ncols", (getter)get_ncols, NULL, dtdoc_ncols, NULL},
+    {"types", (getter)get_types, NULL, dtdoc_types, NULL},
     {NULL}  /* sentinel */
 };
 

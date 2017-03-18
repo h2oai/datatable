@@ -61,6 +61,8 @@ PyInit__datatable(void) {
     if (m == NULL)
         return NULL;
 
+    init_py_datatable();
+
     Py_INCREF(&DataTable_PyType);
     Py_INCREF(&DataWindow_PyType);
     Py_INCREF(&RowIndex_PyType);
