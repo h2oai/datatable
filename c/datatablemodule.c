@@ -3,7 +3,7 @@
 #include "py_datawindow.h"
 #include "py_rowindex.h"
 #include "dtutils.h"
-#include "rows.h"
+#include "rowindex.h"
 
 
 

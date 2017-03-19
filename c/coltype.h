@@ -1,7 +1,7 @@
 #ifndef dt_COLTYPE_H
 #define dt_COLTYPE_H
 
-/*----------------------------------------------------------------------------*/
+
 /**
  * Type for a column.
  *
@@ -28,7 +28,7 @@
  *
  * DT_OBJECT
  *     column for storing all other values of arbitrary (possibly heterogeneous)
- *     types. Each element is a `PyObject*`. Missing values are `NULL`s.
+ *     types. Each element is a `PyObject*`. Missing values are `Py_None`s.
  *
  */
 typedef enum ColType {

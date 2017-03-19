@@ -1,6 +1,5 @@
 #include "py_datatable.h"
 #include "py_rowindex.h"
-#include "rows.h"
 #include "datatable.h"
 
 

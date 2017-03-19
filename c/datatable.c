@@ -3,7 +3,7 @@
 #include "limits.h"
 #include "datatable.h"
 #include "dtutils.h"
-#include "rows.h"
+#include "rowindex.h"
 #include "py_datawindow.h"
 #include "py_rowindex.h"
 

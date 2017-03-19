@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <assert.h>
-#include "rows.h"
+#include "rowindex.h"
 
 
 /**

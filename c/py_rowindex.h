@@ -1,7 +1,7 @@
 #ifndef dt_PY_ROWINDEX_H
 #define dt_PY_ROWINDEX_H
 #include <Python.h>
-#include "rows.h"
+#include "rowindex.h"
 
 
 /**

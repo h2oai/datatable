@@ -2,7 +2,7 @@
 #include "datatable.h"
 #include "dtutils.h"
 #include "structmember.h"
-#include "rows.h"
+#include "rowindex.h"
 #include "py_datawindow.h"
 #include "py_datatable.h"
 
