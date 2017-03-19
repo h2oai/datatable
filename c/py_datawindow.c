@@ -128,8 +128,6 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     return 0;
 
   fail:
-    while (n_init_types < ncols) PyList_SET_ITEM(types, n_init_types++, NULL);
-    while (n_init_cols < ncols) PyList_SET_ITEM(view, n_init_cols++, NULL);
     Py_XDECREF(types);
     Py_XDECREF(view);
     return -1;

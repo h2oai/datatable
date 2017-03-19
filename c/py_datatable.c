@@ -117,7 +117,7 @@ static void __dealloc__(DataTable_PyObject *self)
 
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows) {
     PyObject **coldata = data;
-    int j = nrows;
+    int64_t j = nrows;
     while (--j >= 0)
         Py_XDECREF(coldata[j]);
 }

@@ -7,7 +7,6 @@
 #include "dtutils.h"
 
 static int _fill_1_column(PyObject *list, Column *column);
-static int _allocate_column(Column *column, long nrows);
 static int _switch_to_coltype(ColType newtype, PyObject *list, Column *column);
 
 
@@ -70,19 +69,16 @@ DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args)
     dt->nrows = item0size;
 
     // Allocate memory for the datatable's columns
-    dt->columns = malloc(sizeof(Column) * dt->ncols);
+    dt->columns = calloc(sizeof(Column), dt->ncols);
     if (dt->columns == NULL) goto fail;
-    for (int64_t i = 0; i < dt->ncols; ++i) {
-        dt->columns[i].type = DT_AUTO;
-        dt->columns[i].data = NULL;
-        dt->columns[i].srcindex = -1;
-        // dt->columns[i].stats = NULL;
-    }
 
     // Fill the data
-    for (int64_t i = 0; i < dt->ncols; ++i) {
+    Column *col = dt->columns;
+    for (int64_t i = 0; i < dt->ncols; ++i, col++) {
+        col->type = DT_AUTO;
+        col->srcindex = -1;
         PyObject *src = PyList_GET_ITEM(list, i);
-        int ret = _fill_1_column(src, dt->columns + i);
+        int ret = _fill_1_column(src, col);
         if (ret == -1) goto fail;
     }
 
@@ -114,8 +110,8 @@ static int _fill_1_column(PyObject *list, Column *column) {
         return 0;
     }
 
-    int ret = _allocate_column(column, nrows);
-    if (ret == -1) return -1;
+    column->data = malloc(ColType_size[column->type] * nrows);
+    if (column->data == NULL) return -1;
 
     int overflow;
     void *col = column->data;
@@ -248,17 +244,6 @@ static int _fill_1_column(PyObject *list, Column *column) {
         return _switch_to_coltype(DT_DOUBLE, list, column);
     }
     return 0;
-}
-
-
-
-/**
- * Allocate memory in ``coldata`` for ``nrows`` elements of type ``coltype``.
- * @returns 0 on success, -1 on error
- */
-static int _allocate_column(Column *column, long nrows) {
-    column->data = malloc(ColType_size[column->type] * nrows);
-    return column->data == NULL? -1 : 0;
 }
 
 
