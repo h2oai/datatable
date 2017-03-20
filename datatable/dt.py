@@ -257,7 +257,7 @@ class DataTable(object):
         rows_selector = self._rows_selector(rows)
         if rows_selector.__class__.__name__ == "RowIndex":
             res = DataTable()
-            res._dt = self._dt.omni(rows_selector)
+            res._dt = self._dt(rows_selector)
             res._ncols = res._dt.ncols
             res._nrows = res._dt.nrows
             res._names = self._names
@@ -274,7 +274,7 @@ class DataTable(object):
         """
         nrows = self._nrows
         if arg is Ellipsis:
-            return c.select_row_slice(self._dt, 0, nrows, 1)
+            return c.select_row_slice(0, nrows, 1)
 
         if isinstance(arg, (int, slice, range)):
             arg = [arg]
@@ -332,12 +332,11 @@ class DataTable(object):
                                     "%d of the `rows` list" % (elem, i))
             if counts:
                 if len(bases) == 1:
-                    return c.select_row_slice(self._dt,
-                                             bases[0], counts[0], strides[0])
+                    return c.select_row_slice(bases[0], counts[0], strides[0])
                 else:
                     return (bases, counts, strides)
             else:
-                return c.select_row_indices(self._dt, bases)
+                return c.select_row_indices(bases)
 
         if isinstance(arg, DataTable):
             if arg.ncols != 1:

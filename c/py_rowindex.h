@@ -24,8 +24,10 @@ PyTypeObject RowIndex_PyType;
 #define RowIndex_PyNEW() ((RowIndex_PyObject*) \
     PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL))
 
-RowIndex_PyObject* select_row_slice(PyObject *self, PyObject *args);
-RowIndex_PyObject* select_row_indices(PyObject *self, PyObject *args);
+
+
+RowIndex_PyObject* RowIndexPy_from_slice(PyObject *self, PyObject *args);
+RowIndex_PyObject* RowIndexPy_from_array(PyObject *self, PyObject *args);
 
 
 #endif

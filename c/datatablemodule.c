@@ -3,7 +3,6 @@
 #include "py_datawindow.h"
 #include "py_rowindex.h"
 #include "dtutils.h"
-#include "rowindex.h"
 
 
 
@@ -12,9 +11,9 @@
 //------------------------------------------------------------------------------
 
 static PyMethodDef DatatableModuleMethods[] = {
-    {"select_row_slice", (PyCFunction)select_row_slice, METH_VARARGS,
+    {"select_row_slice", (PyCFunction)RowIndexPy_from_slice, METH_VARARGS,
         "Row selector constructed from a slice of rows"},
-    {"select_row_indices", (PyCFunction)select_row_indices, METH_VARARGS,
+    {"select_row_indices", (PyCFunction)RowIndexPy_from_array, METH_VARARGS,
         "Row selector constructed from a list of row indices"},
     {"datatable_from_list", (PyCFunction)dt_DataTable_fromlist, METH_VARARGS,
         "Create Datatable from a list"},

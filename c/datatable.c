@@ -1,28 +1,46 @@
-#include "Python.h"
-#include "structmember.h"
-#include "limits.h"
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 #include "datatable.h"
-#include "dtutils.h"
 #include "rowindex.h"
-#include "py_datawindow.h"
-#include "py_rowindex.h"
+
+// Forward declarations
+static void* _extract_column(DataTable *dt, int64_t i, RowIndex *rowindex);
 
 
 /**
- * Main "driver" function for the DataTable. This function corresponds to
- * DataTable.__call__ in Python.
+ * Main "driver" function for the DataTable. Corresponds to DataTable.__call__
+ * in Python.
  */
 DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
 {
     int64_t ncols = self->ncols;
     int64_t nrows = rowindex->length;
 
-    Column *columns = malloc(sizeof(Column) * ncols);
+    // Computed on-demand only if we detect that it is needed
+    RowIndex *merged_rowindex = NULL;
+
+    Column *columns = calloc(sizeof(Column), ncols);
     if (columns == NULL) return NULL;
+
     for (int i = 0; i < ncols; ++i) {
-        columns[i].data = NULL;
-        columns[i].srcindex = i;
         columns[i].type = self->columns[i].type;
+        if (self->columns[i].data == NULL) {
+            if (merged_rowindex == NULL) {
+                merged_rowindex = RowIndex_merge(self->rowindex, rowindex);
+            }
+            columns[i].data = NULL;
+            columns[i].srcindex = self->columns[i].srcindex;
+        }
+        else if (self->source == NULL) {
+            columns[i].data = NULL;
+            columns[i].srcindex = i;
+        }
+        else {
+            columns[i].srcindex = -1;
+            columns[i].data = _extract_column(self, i, rowindex);
+            if (columns[i].data == NULL) goto fail;
+        }
     }
 
     DataTable *res = malloc(sizeof(DataTable));
@@ -30,10 +48,60 @@ DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
 
     res->nrows = nrows;
     res->ncols = ncols;
-    res->source = self->source == NULL? self : self->source;
-    res->rowindex = rowindex;
+    res->source = self->source != NULL? self->source : self;
+    res->rowindex = merged_rowindex != NULL? merged_rowindex : rowindex;
     res->columns = columns;
     return res;
+
+  fail:
+    free(columns);
+    RowIndex_dealloc(merged_rowindex);
+    return NULL;
+}
+
+
+/**
+ * Copy data from i-th column in the datatable `dt` into a newly allocated
+ * array. The caller is given ownership of this new array. The data is
+ * extracted according to the provided `rowindex`.
+ */
+static void* _extract_column(DataTable *dt, int64_t i, RowIndex *rowindex)
+{
+    int64_t n = rowindex->length;
+    ColType coltype = dt->columns[i].type;
+    void *coldata = dt->columns[i].data;
+    assert(coldata != NULL);
+
+    int elemsize = ColType_size[coltype];
+    void *newdata = malloc(n * elemsize);
+    if (newdata == NULL) return NULL;
+    if (rowindex->type == RI_SLICE) {
+        int64_t start = rowindex->slice.start;
+        int64_t step = rowindex->slice.step;
+        if (step == 1) {
+            memcpy(newdata, coldata + start * elemsize, n * elemsize);
+        } else {
+            void *newdataptr = newdata;
+            void *sourceptr = coldata + start * elemsize;
+            int64_t stepsize = step * elemsize;
+            for (int64_t j = 0; j < n; j++) {
+                memcpy(newdataptr, sourceptr, elemsize);
+                newdataptr += elemsize;
+                sourceptr += stepsize;
+            }
+        }
+    }
+    else if (rowindex->type == RI_ARRAY) {
+        void *newdataptr = newdata;
+        int64_t *rowindices = rowindex->indices;
+        for (int64_t j = 0; j < n; j++) {
+            memcpy(newdataptr, coldata + rowindices[j] * elemsize, elemsize);
+            newdataptr += elemsize;
+        }
+    }
+    else assert(0);
+
+    return newdata;
 }
 
 
@@ -52,7 +120,7 @@ void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col)
     if (self == NULL) return;
 
     self->source = NULL;  // .source reference is not owned by this object
-    dt_RowIndex_dealloc(self->rowindex);
+    RowIndex_dealloc(self->rowindex);
     self->rowindex = NULL;
     int64_t i = self->ncols;
     while (--i >= 0) {

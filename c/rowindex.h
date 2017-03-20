@@ -18,9 +18,11 @@ typedef struct RowIndex {
 } RowIndex;
 
 
-RowIndex* dt_select_row_slice(
-    DataTable *dt, int64_t start, int64_t count, int64_t step);
-RowIndex* dt_select_row_indices(DataTable *dt, int64_t* data, int64_t len);
-void dt_RowIndex_dealloc(RowIndex *ri);
+
+RowIndex* RowIndex_from_slice(int64_t start, int64_t count, int64_t step);
+RowIndex* RowIndex_from_array(int64_t* array, int64_t length);
+RowIndex* RowIndex_merge(RowIndex *risrc, RowIndex *rinew);
+void RowIndex_dealloc(RowIndex *rowindex);
+
 
 #endif
