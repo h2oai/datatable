@@ -2,9 +2,12 @@
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowindex.h"
+#include "dtutils.h"
 
 // Forward declarations
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
+
+static PyObject *strRowIndexTypeArray, *strRowIndexTypeSlice;
 
 
 void init_py_datatable() {
@@ -15,6 +18,8 @@ void init_py_datatable() {
     py_string_coltypes[DT_BOOL]   = PyUnicode_FromString("bool");
     py_string_coltypes[DT_STRING] = PyUnicode_FromString("str");
     py_string_coltypes[DT_OBJECT] = PyUnicode_FromString("obj");
+    strRowIndexTypeArray = PyUnicode_FromString("array");
+    strRowIndexTypeSlice = PyUnicode_FromString("slice");
 }
 
 
@@ -89,6 +94,14 @@ static PyObject* get_types(DataTable_PyObject *self) {
     return list;
 }
 
+static PyObject* get_rowindex_type(DataTable_PyObject *self) {
+    if (self->ref->rowindex == NULL)
+        return none();
+    RowIndexType rit = self->ref->rowindex->type;
+    return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
+           rit == RI_ARRAY? incref(strRowIndexTypeArray) : none();
+}
+
 
 static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 {
@@ -123,6 +136,26 @@ void dt_DataTable_dealloc_objcol(void *data, int64_t nrows) {
 }
 
 
+static PyObject* test(DataTable_PyObject *self, PyObject *args)
+{
+    void *ptr;
+    if (!PyArg_ParseTuple(args, "l", &ptr))
+        return NULL;
+
+    DataTable *dt = self->ref;
+    int64_t *buf = calloc(sizeof(int64_t), dt->nrows);
+
+    int64_t (*func)(DataTable*, int64_t*) = ptr;
+    int64_t res = func(dt, buf);
+
+    PyObject *list = PyList_New(res);
+    for (int64_t i = 0; i < res; i++) {
+        PyList_SET_ITEM(list, i, PyLong_FromLong(buf[i]));
+    }
+    free(buf);
+    return list;
+}
+
 
 //======================================================================================================================
 // DataTable type definition
@@ -132,18 +165,24 @@ PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
+PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row numbers: 'slice' or 'array'");
+PyDoc_STRVAR(dtdoc_test, "");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
 static PyMethodDef datatable_methods[] = {
     METHOD1(window),
+    METHOD1(test),
     {NULL, NULL}           /* sentinel */
 };
 
+#define GETSET1(name) {#name, (getter)get_##name, NULL, dtdoc_##name, NULL}
+
 static PyGetSetDef datatable_getseters[] = {
-    {"nrows", (getter)get_nrows, NULL, dtdoc_nrows, NULL},
-    {"ncols", (getter)get_ncols, NULL, dtdoc_ncols, NULL},
-    {"types", (getter)get_types, NULL, dtdoc_types, NULL},
+    GETSET1(nrows),
+    GETSET1(ncols),
+    GETSET1(types),
+    GETSET1(rowindex_type),
     {NULL}  /* sentinel */
 };
 
