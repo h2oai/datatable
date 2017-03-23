@@ -82,24 +82,50 @@ static PyObject* get_ncols(DataTable_PyObject *self) {
     return PyLong_FromLong(self->ref->ncols);
 }
 
-static PyObject* get_types(DataTable_PyObject *self) {
+static PyObject* get_types(DataTable_PyObject *self)
+{
     int64_t i = self->ref->ncols;
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
         ColType ct = self->ref->columns[i].type;
-        PyTuple_SET_ITEM(list, i, py_string_coltypes[ct]);
-        Py_INCREF(py_string_coltypes[ct]);
+        PyTuple_SET_ITEM(list, i, incref(py_string_coltypes[ct]));
     }
     return list;
 }
 
-static PyObject* get_rowindex_type(DataTable_PyObject *self) {
+static PyObject* get_rowindex_type(DataTable_PyObject *self)
+{
     if (self->ref->rowindex == NULL)
         return none();
     RowIndexType rit = self->ref->rowindex->type;
     return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
            rit == RI_ARRAY? incref(strRowIndexTypeArray) : none();
+}
+
+/**
+ * If the datatable is a view, then return the tuple of source column numbers
+ * for all columns in the current datatable. That is, we return the tuple
+ *     tuple(col.srcindex  for col in self.columns)
+ * If any column contains computed data, then its "index" will be returned
+ * as None.
+ * If the datatable is not a view, return None.
+ */
+static PyObject* get_view_colnumbers(DataTable_PyObject *self)
+{
+    if (self->ref->source == NULL)
+        return none();
+    int64_t i = self->ref->ncols;
+    Column *columns = self->ref->columns;
+    PyObject *list = PyTuple_New((Py_ssize_t) i);
+    if (list == NULL) return NULL;
+    while (--i >= 0) {
+        int isdatacol = columns[i].data == NULL;
+        int64_t srcindex = columns[i].srcindex;
+        PyObject *idx = isdatacol? PyLong_FromLong(srcindex) : none();
+        PyTuple_SET_ITEM(list, i, idx);
+    }
+    return list;
 }
 
 
@@ -166,6 +192,7 @@ PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row numbers: 'slice' or 'array'");
+PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 PyDoc_STRVAR(dtdoc_test, "");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
@@ -183,6 +210,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(ncols),
     GETSET1(types),
     GETSET1(rowindex_type),
+    GETSET1(view_colnumbers),
     {NULL}  /* sentinel */
 };
 
