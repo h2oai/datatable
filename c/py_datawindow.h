@@ -44,4 +44,6 @@ typedef struct DataWindow_PyObject {
 PyTypeObject DataWindow_PyType;
 
 
+int init_py_datawindow(PyObject *module);
+
 #endif

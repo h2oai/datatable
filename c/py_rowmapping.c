@@ -3,6 +3,16 @@
 #include "datatable.h"
 
 
+int init_py_rowmapping(PyObject *module)
+{
+    RowMapping_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&RowMapping_PyType) < 0) return 0;
+    Py_INCREF(&RowMapping_PyType);
+    PyModule_AddObject(module, "RowMapping", (PyObject*) &RowMapping_PyType);
+    return 1;
+}
+
+
 
 RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args)
 {

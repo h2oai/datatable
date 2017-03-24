@@ -35,10 +35,17 @@ static PyModuleDef datatablemodule = {
 /* Called when Python program imports the module */
 PyMODINIT_FUNC
 PyInit__datatable(void) {
-    PyObject *m;
-
     // Sanity checks
     assert(sizeof(char) == sizeof(unsigned char));
+
+    // Instantiate module object
+    PyObject *m = PyModule_Create(&datatablemodule);
+    if (m == NULL) return NULL;
+
+    // Initialize submodules
+    if (!init_py_datatable(m)) return NULL;
+    if (!init_py_datawindow(m)) return NULL;
+    if (!init_py_rowmapping(m)) return NULL;
 
     ColType_size[DT_AUTO] = 0;
     ColType_size[DT_DOUBLE] = sizeof(double);
@@ -50,25 +57,5 @@ PyInit__datatable(void) {
     Py_int0 = PyLong_FromLong(0);
     Py_int1 = PyLong_FromLong(1);
 
-    DataTable_PyType.tp_new = PyType_GenericNew;
-    DataWindow_PyType.tp_new = PyType_GenericNew;
-    RowMapping_PyType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&DataTable_PyType) < 0 ||
-        PyType_Ready(&DataWindow_PyType) < 0 ||
-        PyType_Ready(&RowMapping_PyType) < 0)
-        return NULL;
-
-    m = PyModule_Create(&datatablemodule);
-    if (m == NULL)
-        return NULL;
-
-    init_py_datatable();
-
-    Py_INCREF(&DataTable_PyType);
-    Py_INCREF(&DataWindow_PyType);
-    Py_INCREF(&RowMapping_PyType);
-    PyModule_AddObject(m, "DataTable", (PyObject*) &DataTable_PyType);
-    PyModule_AddObject(m, "DataWindow", (PyObject*) &DataWindow_PyType);
-    PyModule_AddObject(m, "RowMapping", (PyObject*) &RowMapping_PyType);
     return m;
 }

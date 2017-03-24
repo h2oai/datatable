@@ -51,6 +51,6 @@ PyObject **py_string_coltypes;
 DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args);
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
-void init_py_datatable();
+int init_py_datatable(PyObject *module);
 
 #endif

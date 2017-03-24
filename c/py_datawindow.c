@@ -10,6 +10,15 @@
 static int _check_consistency(DataTable *dt, int64_t row0, int64_t row1,
                               int64_t col0, int64_t col1);
 
+int init_py_datawindow(PyObject *module)
+{
+    DataWindow_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&DataWindow_PyType) < 0) return 0;
+    Py_INCREF(&DataWindow_PyType);
+    PyModule_AddObject(module, "DataWindow", (PyObject*) &DataWindow_PyType);
+    return 1;
+}
+
 
 /**
  * DataWindow object constructor. This constructor takes a datatable, and

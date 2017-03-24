@@ -10,7 +10,14 @@ void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 static PyObject *strRowMappingTypeArray, *strRowMappingTypeSlice;
 
 
-void init_py_datatable() {
+int init_py_datatable(PyObject *module) {
+    // Register DataTable_PyType on the module
+    DataTable_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&DataTable_PyType) < 0) return 0;
+    Py_INCREF(&DataTable_PyType);
+    PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
+
+    // initialize auxiliary data
     py_string_coltypes = malloc(sizeof(PyObject*) * DT_COUNT);
     py_string_coltypes[DT_AUTO]   = PyUnicode_FromString("auto");
     py_string_coltypes[DT_DOUBLE] = PyUnicode_FromString("real");
@@ -20,6 +27,7 @@ void init_py_datatable() {
     py_string_coltypes[DT_OBJECT] = PyUnicode_FromString("obj");
     strRowMappingTypeArray = PyUnicode_FromString("array");
     strRowMappingTypeSlice = PyUnicode_FromString("slice");
+    return 1;
 }
 
 
