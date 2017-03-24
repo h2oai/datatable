@@ -11,12 +11,18 @@
 //------------------------------------------------------------------------------
 
 static PyMethodDef DatatableModuleMethods[] = {
-    {"rowmapping_from_slice", (PyCFunction)RowMappingPy_from_slice, METH_VARARGS,
+    {"rowmapping_from_slice", (PyCFunction)RowMappingPy_from_slice,
+        METH_VARARGS,
         "Row selector constructed from a slice of rows"},
-    {"select_row_indices", (PyCFunction)RowMappingPy_from_array, METH_VARARGS,
+    {"rowmapping_from_array", (PyCFunction)RowMappingPy_from_array,
+        METH_VARARGS,
         "Row selector constructed from a list of row indices"},
-    {"select_with_filter", (PyCFunction)RowMappingPy_from_filter, METH_VARARGS,
+    {"rowmapping_from_filter", (PyCFunction)RowMappingPy_from_filter,
+        METH_VARARGS,
         "Row selector constructed using a filter function"},
+    {"rowmapping_from_column", (PyCFunction)RowMappingPy_from_column,
+        METH_VARARGS,
+        "Row selector constructed from a single-boolean-column datatable"},
     {"datatable_from_list", (PyCFunction)dt_DataTable_fromlist, METH_VARARGS,
         "Create Datatable from a list"},
 

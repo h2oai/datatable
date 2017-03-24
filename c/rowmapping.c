@@ -42,6 +42,13 @@ RowMapping* RowMapping_from_array(int64_t* array, int64_t length)
 }
 
 
+/**
+ * Construct a `RowMapping` object using a `filter` function. The `filter`
+ * function takes the datatable as the first argument, an output buffer as the
+ * second, and the range of rows to scan as the third + forth. Then it scans
+ * the provided range of rows and writes the row indices that it selected into
+ * the output buffer. The function then returns the number of rows it selected.
+ */
 RowMapping* RowMapping_from_filter(DataTable* dt, filter_fn filter)
 {
     RowMapping *res = malloc(sizeof(RowMapping));
@@ -56,6 +63,56 @@ RowMapping* RowMapping_from_filter(DataTable* dt, filter_fn filter)
     res->length = n_rows_selected;
     res->indices = buf;
     return res;
+}
+
+
+/**
+ * Construct a `RowMapping` object using a single-boolean-column datatable
+ * `filter`. The mapping will contain only those rows where the `filter`
+ * datatable contains truthful values.
+ */
+RowMapping* RowMapping_from_column(DataTable *filter)
+{
+    RowMapping *res = malloc(sizeof(RowMapping));
+    if (res == NULL) return NULL;
+
+    int64_t nrows = filter->nrows;
+    assert(filter->ncols == 1);
+    char *data = filter->columns[0].data;
+
+    int64_t *out = malloc(sizeof(int64_t) * nrows);
+    if (out == NULL) return NULL;
+    int64_t n_rows_selected = 0;
+    if (data == NULL) {
+        int64_t srcindex = filter->columns[0].srcindex;
+        data = filter->source->columns[srcindex].data;
+        if (filter->rowmapping->type == RI_SLICE) {
+            int64_t j = filter->rowmapping->slice.start;
+            int64_t step = filter->rowmapping->slice.step;
+            for (int64_t i = 0; i < nrows; i++, j += step) {
+                if (data[j] == 1)
+                    out[n_rows_selected++] = i;
+            }
+        } else if (filter->rowmapping->type == RI_ARRAY) {
+            int64_t *indices = filter->rowmapping->indices;
+            for (int64_t i = 0; i < nrows; i++) {
+                if (data[indices[i]] == 1)
+                    out[n_rows_selected++] = i;
+            }
+        } else assert(0);
+    } else {
+        for (int64_t i = 0; i < nrows; i++) {
+            if (data[i] == 1)
+                out[n_rows_selected++] = i;
+        }
+    }
+    realloc(out, sizeof(int64_t) * n_rows_selected);
+
+    res->type = RI_ARRAY;
+    res->length = n_rows_selected;
+    res->indices = out;
+    return res;
+
 }
 
 

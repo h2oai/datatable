@@ -122,4 +122,5 @@ def normalize_range(e, n):
         finish += n
         if start < 0 or start >= n or finish < 0 or finish >= n:
             return None
+    assert count >= 0
     return (start, count, e.step)

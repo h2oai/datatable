@@ -101,6 +101,31 @@ RowMapping_PyObject* RowMappingPy_from_filter(PyObject *self, PyObject *args)
 }
 
 
+RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
+{
+    DataTable_PyObject *pydt = NULL;
+    RowMapping *rowmapping = NULL;
+    RowMapping_PyObject *res = NULL;
+
+    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_column",
+                          &DataTable_PyType, &pydt))
+        return NULL;
+
+    rowmapping = RowMapping_from_column(pydt->ref);
+    res = RowMapping_PyNEW();
+    if (res == NULL || rowmapping == NULL) goto fail;
+    res->ref = rowmapping;
+    return res;
+
+  fail:
+    RowMapping_dealloc(rowmapping);
+    Py_XDECREF(res);
+    return NULL;
+}
+
+
+
+
 //------ RowMapping PyObject -----------------------------------------------------
 
 static void __dealloc__(RowMapping_PyObject *self)

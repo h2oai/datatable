@@ -18,7 +18,7 @@ def select_by_expression(expr):
     llvm = fix_clang_llvm(c_to_llvm(cc))
     compile_llvmir(_engine, llvm)
     fn_ptr = _engine.get_function_address(gen._function_name)
-    return c.select_with_filter(expr._src._dt, fn_ptr)
+    return c.rowmapping_from_filter(expr._src._dt, fn_ptr)
 
 
 

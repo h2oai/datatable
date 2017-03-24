@@ -9,8 +9,9 @@ from .widget import DataFrameWidget
 
 from datatable.expr import DataTableExpr
 from datatable.llvm import select_by_expression
-from datatable.utils.misc import normalize_slice, normalize_range, plural_form
-from datatable.utils.typechecks import is_type, TypeError, ValueError
+from datatable.utils.misc import normalize_slice, normalize_range
+from datatable.utils.misc import plural_form as plural
+from datatable.utils.typechecks import TypeError, ValueError
 
 __all__ = ("DataTable", )
 
@@ -67,9 +68,9 @@ class DataTable(object):
     #---------------------------------------------------------------------------
 
     def __repr__(self):
-        srows = plural_form(self._nrows, "row")
-        scols = plural_form(self._ncols, "col")
-        return "<DataTable #%d (%s x %s)>" % (self._id, srows, scols)
+        srows = plural(self._nrows, "row")
+        scols = plural(self._ncols, "col")
+        return f"<DataTable #{self._id} ({srows} x {scols})>"
 
     def _display_in_terminal_(self):
         self.view()
@@ -293,10 +294,12 @@ class DataTable(object):
         if isinstance(arg, (int, slice, range)):
             arg = [arg]
 
+        from_generator = False
         if isinstance(arg, types.GeneratorType):
             # If an iterator is given, materialize it first. Otherwise there
             # is no way of telling whether the produced indices are valid
             arg = list(arg)
+            from_generator = True
 
         if isinstance(arg, (list, tuple, set)):
             bases = []
@@ -305,67 +308,67 @@ class DataTable(object):
             for i, elem in enumerate(arg):
                 if isinstance(elem, int):
                     if elem < -nrows or elem >= nrows:
-                        s = "datatable contains %s; row index %d is invalid" \
-                            % (plural_form(nrows, "row"), elem)
-                        raise ValueError(s)
+                        raise ValueError(
+                            f"datatable contains {plural(nrows, 'row')}; "
+                            f"row {elem} is invalid")
                     if elem < 0:
                         elem += nrows
                     bases.append(elem)
                 elif isinstance(elem, (range, slice)):
-                    # If range/slice extends beyond the bounds of the datatable,
-                    # we coerce it into the correct range without raising an
-                    # error. This mimics the default Python's behavior, eg
-                    #     "test"[-100:100] == "test"
                     if elem.step == 0:
                         raise ValueError("In %r step must not be 0" % elem)
-                    if not (is_type(elem.start, int, None) and
-                            is_type(elem.stop, int, None) and
-                            is_type(elem.step, int, None)):
-                        raise ValueError("%r is not integer-valued" % elem)
+                    if not all(x is None or isinstance(x, int)
+                               for x in (elem.start, elem.stop, elem.step)):
+                        raise ValueError(f"{elem} is not integer-valued")
                     if isinstance(elem, range):
                         res = normalize_range(elem, nrows)
                         if res is None:
-                            s = "Invalid %r for a datatable with %s" \
-                                % (elem, plural_form(nrows, "row"))
-                            raise ValueError(s)
-                        start, count, step = res
+                            raise ValueError(
+                                f"Invalid {elem} for a datatable with "
+                                f"{plural(nrows, 'row')}")
                     else:
-                        start, count, step = normalize_slice(elem, nrows)
-                    if count == 1:
+                        res = normalize_slice(elem, nrows)
+                    start, count, step = res
+                    assert count >= 0
+                    if count == 0:
+                        pass  # don't do anything
+                    elif count == 1:
                         bases.append(start)
-                    elif count > 1:
+                    else:
                         if len(counts) < len(bases):
                             counts += [1] * (len(bases) - len(counts))
                             strides += [1] * (len(bases) - len(strides))
                         bases.append(start)
                         counts.append(count)
                         strides.append(step)
-                    # if count == 0 then don't do anything
                 else:
-                    raise TypeError("Invalid row specifier %r at element "
-                                    "%d of the `rows` list" % (elem, i))
-            if counts:
-                if len(bases) == 1:
-                    return c.rowmapping_from_slice(bases[0], counts[0], strides[0])
-                else:
-                    return (bases, counts, strides)
+                    if from_generator:
+                        raise TypeError(f"Invalid row selector {elem} "
+                                        f"generated at position {i}")
+                    else:
+                        raise TypeError(f"Invalid row selector {elem} at "
+                                        f"element {i} of the `rows` list")
+            if not counts:
+                return c.rowmapping_from_array(bases)
+            elif len(bases) == 1:
+                return c.rowmapping_from_slice(bases[0], counts[0], strides[0])
             else:
-                return c.select_row_indices(bases)
+                return (bases, counts, strides)
 
         if isinstance(arg, DataTable):
             if arg.ncols != 1:
                 raise ValueError("`rows` argument should be a single-column "
-                                 "datatable, got %r" % arg)
-            if arg.nrows != self.nrows:
-                raise ValueError("`rows` datatable has %s, which is incompatible "
-                                 "with current datatable having %s"
-                                 % (plural_form(arg.nrows, "row"),
-                                    plural_form(self.nrows, "row")))
-            col0type = arg._types[0]
+                                 f"datatable, got {arg}")
+            col0type = arg.types[0]
             if col0type != "bool":
-                raise TypeError("`rows` datatable should contain a boolean "
-                                "column, however it has type %s" % col0type)
-            return arg
+                raise TypeError("`rows` datatable should be a boolean column, "
+                                f"however it has type {col0type}")
+            if arg.nrows != self.nrows:
+                s1rows = plural(arg.nrows, "row")
+                s2rows = plural(self.nrows, "row")
+                raise ValueError(f"`rows` datatable has {s1rows}, but applied "
+                                 f"to a datatable with {s2rows}")
+            return c.rowmapping_from_column(arg._dt)
 
         if isinstance(arg, types.FunctionType) and not nested:
             ss = arg(DataTableExpr(src=self))

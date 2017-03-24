@@ -30,6 +30,7 @@ extern PyTypeObject RowMapping_PyType;
 RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_filter(PyObject *self, PyObject *args);
+RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args);
 
 int init_py_rowmapping(PyObject *module);
 
