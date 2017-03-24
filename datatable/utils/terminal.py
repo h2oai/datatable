@@ -1,9 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 """
 Various functions to help display something in a terminal.
 """
-from __future__ import division, print_function, unicode_literals
 import sys
 import blessed
 
