@@ -66,6 +66,30 @@ RowIndex_PyObject* RowIndexPy_from_array(PyObject *self, PyObject *args)
 
 
 
+RowIndex_PyObject* RowIndexPy_from_filter(PyObject *self, PyObject *args)
+{
+    DataTable_PyObject *pydt;
+    RowIndex *rowindex = NULL;
+    RowIndex_PyObject *res = NULL;
+    void *fnptr;
+
+    if (!PyArg_ParseTuple(args, "O!l:RowIndex.from_filter", &DataTable_PyType,
+                          &pydt, &fnptr))
+        return NULL;
+
+    rowindex = RowIndex_from_filter(pydt->ref, fnptr);
+    res = RowIndex_PyNEW();
+    if (res == NULL || rowindex == NULL) goto fail;
+    res->ref = rowindex;
+    return res;
+
+  fail:
+    RowIndex_dealloc(rowindex);
+    Py_XDECREF(res);
+    return NULL;
+}
+
+
 //------ RowIndex PyObject -----------------------------------------------------
 
 static void __dealloc__(RowIndex_PyObject *self)

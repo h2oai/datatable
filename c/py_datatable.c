@@ -82,6 +82,10 @@ static PyObject* get_ncols(DataTable_PyObject *self) {
     return PyLong_FromLong(self->ref->ncols);
 }
 
+static PyObject* get_isview(DataTable_PyObject *self) {
+    return incref(self->ref->source == NULL? Py_False : Py_True);
+}
+
 static PyObject* get_types(DataTable_PyObject *self)
 {
     int64_t i = self->ref->ncols;
@@ -191,6 +195,7 @@ PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
+PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
 PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row numbers: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 PyDoc_STRVAR(dtdoc_test, "");
@@ -209,6 +214,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(nrows),
     GETSET1(ncols),
     GETSET1(types),
+    GETSET1(isview),
     GETSET1(rowindex_type),
     GETSET1(view_colnumbers),
     {NULL}  /* sentinel */

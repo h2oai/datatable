@@ -28,6 +28,7 @@ PyTypeObject RowIndex_PyType;
 
 RowIndex_PyObject* RowIndexPy_from_slice(PyObject *self, PyObject *args);
 RowIndex_PyObject* RowIndexPy_from_array(PyObject *self, PyObject *args);
+RowIndex_PyObject* RowIndexPy_from_filter(PyObject *self, PyObject *args);
 
 
 #endif

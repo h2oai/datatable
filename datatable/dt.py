@@ -9,7 +9,8 @@ from typing import Dict, Tuple
 import _datatable as c
 from .widget import DataFrameWidget
 
-from datatable.lazy import _LazyDataTable
+from datatable.expr import DataTableExpr
+from datatable.llvm import select_by_expression
 from datatable.utils.misc import normalize_slice, normalize_range, plural_form
 from datatable.utils.typechecks import is_type, TypeError, ValueError
 
@@ -354,11 +355,11 @@ class DataTable(object):
             return arg
 
         if isinstance(arg, types.FunctionType) and not nested:
-            ss = arg(_LazyDataTable(src=self))
+            ss = arg(DataTableExpr(src=self))
             return self._rows_selector(ss, True)
 
-        if isinstance(arg, _LazyDataTable):
-            return arg
+        if isinstance(arg, DataTableExpr):
+            return select_by_expression(arg)
 
         if nested:
             raise TypeError("Unexpected result produced by the `rows` "

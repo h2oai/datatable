@@ -42,6 +42,23 @@ RowIndex* RowIndex_from_array(int64_t* array, int64_t length)
 }
 
 
+RowIndex* RowIndex_from_filter(DataTable* dt, filter_fn filter)
+{
+    RowIndex *res = malloc(sizeof(RowIndex));
+    if (res == NULL) return NULL;
+
+    int64_t *buf = malloc(sizeof(int64_t) * dt->nrows);
+    if (buf == NULL) return NULL;
+    int64_t n_rows_selected = filter(dt, buf, 0, dt->nrows);
+    realloc(buf, sizeof(int64_t) * n_rows_selected);
+
+    res->type = RI_ARRAY;
+    res->length = n_rows_selected;
+    res->indices = buf;
+    return res;
+}
+
+
 /**
  * Merge two `RowIndex`es, and return the combined `RowIndex`. Specifically,
  * suppose there are objects A, B, C such that the map from A rows onto B is
