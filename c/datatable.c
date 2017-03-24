@@ -2,23 +2,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include "datatable.h"
-#include "rowindex.h"
+#include "rowmapping.h"
 
 // Forward declarations
-static void* _extract_column(DataTable *dt, int64_t i, RowIndex *rowindex);
+static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping);
 
 
 /**
  * Main "driver" function for the DataTable. Corresponds to DataTable.__call__
  * in Python.
  */
-DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
+DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
 {
     int64_t ncols = self->ncols;
-    int64_t nrows = rowindex->length;
+    int64_t nrows = rowmapping->length;
 
     // Computed on-demand only if we detect that it is needed
-    RowIndex *merged_rowindex = NULL;
+    RowMapping *merged_rowindex = NULL;
 
     Column *columns = calloc(sizeof(Column), ncols);
     if (columns == NULL) return NULL;
@@ -27,7 +27,7 @@ DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
         columns[i].type = self->columns[i].type;
         if (self->columns[i].data == NULL) {
             if (merged_rowindex == NULL) {
-                merged_rowindex = RowIndex_merge(self->rowindex, rowindex);
+                merged_rowindex = RowMapping_merge(self->rowmapping, rowmapping);
             }
             columns[i].data = NULL;
             columns[i].srcindex = self->columns[i].srcindex;
@@ -38,7 +38,7 @@ DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
         }
         else {
             columns[i].srcindex = -1;
-            columns[i].data = _extract_column(self, i, rowindex);
+            columns[i].data = _extract_column(self, i, rowmapping);
             if (columns[i].data == NULL) goto fail;
         }
     }
@@ -49,13 +49,13 @@ DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
     res->nrows = nrows;
     res->ncols = ncols;
     res->source = self->source != NULL? self->source : self;
-    res->rowindex = merged_rowindex != NULL? merged_rowindex : rowindex;
+    res->rowmapping = merged_rowindex != NULL? merged_rowindex : rowmapping;
     res->columns = columns;
     return res;
 
   fail:
     free(columns);
-    RowIndex_dealloc(merged_rowindex);
+    RowMapping_dealloc(merged_rowindex);
     return NULL;
 }
 
@@ -63,11 +63,11 @@ DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex)
 /**
  * Copy data from i-th column in the datatable `dt` into a newly allocated
  * array. The caller is given ownership of this new array. The data is
- * extracted according to the provided `rowindex`.
+ * extracted according to the provided `rowmapping`.
  */
-static void* _extract_column(DataTable *dt, int64_t i, RowIndex *rowindex)
+static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
 {
-    int64_t n = rowindex->length;
+    int64_t n = rowmapping->length;
     ColType coltype = dt->columns[i].type;
     void *coldata = dt->columns[i].data;
     assert(coldata != NULL);
@@ -75,9 +75,9 @@ static void* _extract_column(DataTable *dt, int64_t i, RowIndex *rowindex)
     int elemsize = ColType_size[coltype];
     void *newdata = malloc(n * elemsize);
     if (newdata == NULL) return NULL;
-    if (rowindex->type == RI_SLICE) {
-        int64_t start = rowindex->slice.start;
-        int64_t step = rowindex->slice.step;
+    if (rowmapping->type == RI_SLICE) {
+        int64_t start = rowmapping->slice.start;
+        int64_t step = rowmapping->slice.step;
         if (step == 1) {
             memcpy(newdata, coldata + start * elemsize, n * elemsize);
         } else {
@@ -91,9 +91,9 @@ static void* _extract_column(DataTable *dt, int64_t i, RowIndex *rowindex)
             }
         }
     }
-    else if (rowindex->type == RI_ARRAY) {
+    else if (rowmapping->type == RI_ARRAY) {
         void *newdataptr = newdata;
-        int64_t *rowindices = rowindex->indices;
+        int64_t *rowindices = rowmapping->indices;
         for (int64_t j = 0; j < n; j++) {
             memcpy(newdataptr, coldata + rowindices[j] * elemsize, elemsize);
             newdataptr += elemsize;
@@ -120,8 +120,8 @@ void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col)
     if (self == NULL) return;
 
     self->source = NULL;  // .source reference is not owned by this object
-    RowIndex_dealloc(self->rowindex);
-    self->rowindex = NULL;
+    RowMapping_dealloc(self->rowmapping);
+    self->rowmapping = NULL;
     int64_t i = self->ncols;
     while (--i >= 0) {
         Column column = self->columns[i];

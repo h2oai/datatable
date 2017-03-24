@@ -37,7 +37,7 @@ DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args)
     dt = malloc(sizeof(DataTable));
     if (self == NULL || dt == NULL) goto fail;
     dt->source = NULL;
-    dt->rowindex = NULL;
+    dt->rowmapping = NULL;
     dt->columns = NULL;
 
     // if the supplied list is empty, return the empty Datatable object

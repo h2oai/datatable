@@ -1,13 +1,13 @@
 #include "datatable.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
-#include "py_rowindex.h"
+#include "py_rowmapping.h"
 #include "dtutils.h"
 
 // Forward declarations
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
-static PyObject *strRowIndexTypeArray, *strRowIndexTypeSlice;
+static PyObject *strRowMappingTypeArray, *strRowMappingTypeSlice;
 
 
 void init_py_datatable() {
@@ -18,8 +18,8 @@ void init_py_datatable() {
     py_string_coltypes[DT_BOOL]   = PyUnicode_FromString("bool");
     py_string_coltypes[DT_STRING] = PyUnicode_FromString("str");
     py_string_coltypes[DT_OBJECT] = PyUnicode_FromString("obj");
-    strRowIndexTypeArray = PyUnicode_FromString("array");
-    strRowIndexTypeSlice = PyUnicode_FromString("slice");
+    strRowMappingTypeArray = PyUnicode_FromString("array");
+    strRowMappingTypeSlice = PyUnicode_FromString("slice");
 }
 
 
@@ -27,7 +27,7 @@ void init_py_datatable() {
  * "Main" function that drives transformation of datatables.
  *
  * :param rows:
- *     A row selector (a `RowIndex_PyObject` object). This cannot be None --
+ *     A row selector (a `RowMapping_PyObject` object). This cannot be None --
  *     instead supply row index spanning all rows in the datatable.
  *
  * ... more to be added ...
@@ -35,13 +35,13 @@ void init_py_datatable() {
 static DataTable_PyObject*
 __call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
 {
-    RowIndex_PyObject *rows = NULL;
+    RowMapping_PyObject *rows = NULL;
     DataTable *dtres = NULL;
     DataTable_PyObject *pyres = NULL;
 
     static char *kwlist[] = {"rows", NULL};
     int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!:DataTable.__call__",
-                                          kwlist, &RowIndex_PyType, &rows);
+                                          kwlist, &RowMapping_PyType, &rows);
     if (!ret || rows->ref == NULL) return NULL;
 
     dtres = dt_DataTable_call(self->ref, rows->ref);
@@ -100,11 +100,11 @@ static PyObject* get_types(DataTable_PyObject *self)
 
 static PyObject* get_rowindex_type(DataTable_PyObject *self)
 {
-    if (self->ref->rowindex == NULL)
+    if (self->ref->rowmapping == NULL)
         return none();
-    RowIndexType rit = self->ref->rowindex->type;
-    return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
-           rit == RI_ARRAY? incref(strRowIndexTypeArray) : none();
+    RowMappingType rit = self->ref->rowmapping->type;
+    return rit == RI_SLICE? incref(strRowMappingTypeSlice) :
+           rit == RI_ARRAY? incref(strRowMappingTypeArray) : none();
 }
 
 /**

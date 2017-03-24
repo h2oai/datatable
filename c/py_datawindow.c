@@ -2,7 +2,7 @@
 #include "datatable.h"
 #include "dtutils.h"
 #include "structmember.h"
-#include "rowindex.h"
+#include "rowmapping.h"
 #include "py_datawindow.h"
 #include "py_datatable.h"
 
@@ -54,7 +54,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         PyList_SET_ITEM(types, n_init_types++, py_coltype);
     }
 
-    RowIndex *rindex = dt->rowindex;
+    RowMapping *rindex = dt->rowmapping;
     int rindex_is_array = rindex && rindex->type == RI_ARRAY;
     int rindex_is_slice = rindex && rindex->type == RI_SLICE;
     int64_t *rindexarray = rindex_is_array? rindex->indices : NULL;
@@ -163,15 +163,15 @@ static int _check_consistency(
     }
 
     // verify that the datatable is internally consistent
-    RowIndex *rindex = dt->rowindex;
+    RowMapping *rindex = dt->rowmapping;
     if (rindex == NULL && dt->source != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
-            "Invalid datatable: .source is present, but .rowindex is null");
+            "Invalid datatable: .source is present, but .rowmapping is null");
         return 0;
     }
     if (rindex != NULL && dt->source == NULL) {
         PyErr_SetString(PyExc_RuntimeError,
-            "Invalid datatable: .source is null, while .rowindex is present");
+            "Invalid datatable: .source is null, while .rowmapping is present");
         return 0;
     }
     if (dt->source != NULL && dt->source->source != NULL) {

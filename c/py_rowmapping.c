@@ -1,13 +1,13 @@
 #include "py_datatable.h"
-#include "py_rowindex.h"
+#include "py_rowmapping.h"
 #include "datatable.h"
 
 
 
-RowIndex_PyObject* RowIndexPy_from_slice(PyObject *self, PyObject *args)
+RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args)
 {
     int64_t start, count, step;
-    if (!PyArg_ParseTuple(args, "lll:RowIndex.from_slice",
+    if (!PyArg_ParseTuple(args, "lll:RowMapping.from_slice",
                           &start, &count, &step))
         return NULL;
 
@@ -17,29 +17,30 @@ RowIndex_PyObject* RowIndexPy_from_slice(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    RowIndex *rowindex = RowIndex_from_slice(start, count, step);
-    RowIndex_PyObject *res = RowIndex_PyNEW();
-    if (res == NULL || rowindex == NULL) goto fail;
+    RowMapping *rowmapping = RowMapping_from_slice(start, count, step);
+    RowMapping_PyObject *res = RowMapping_PyNEW();
+    if (res == NULL || rowmapping == NULL) goto fail;
 
-    res->ref = rowindex;
+    res->ref = rowmapping;
     return res;
 
   fail:
-    RowIndex_dealloc(rowindex);
+    RowMapping_dealloc(rowmapping);
     Py_XDECREF(res);
     return NULL;
 }
 
 
-RowIndex_PyObject* RowIndexPy_from_array(PyObject *self, PyObject *args)
+RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
 {
     PyObject *list;
-    RowIndex *rowindex = NULL;
-    RowIndex_PyObject *res = NULL;
+    RowMapping *rowmapping = NULL;
+    RowMapping_PyObject *res = NULL;
     int64_t *data = NULL;
 
     // Unpack arguments and check their validity
-    if (!PyArg_ParseTuple(args, "O!:RowIndex.from_array", &PyList_Type, &list))
+    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
+                          &PyList_Type, &list))
         return NULL;
 
     // Convert Pythonic List into a regular C array of longs
@@ -50,59 +51,59 @@ RowIndex_PyObject* RowIndexPy_from_array(PyObject *self, PyObject *args)
         data[i] = PyLong_AsLong(PyList_GET_ITEM(list, i));
     }
 
-    // Construct and return the RowIndex object
-    rowindex = RowIndex_from_array(data, len);
-    res = RowIndex_PyNEW();
-    if (res == NULL || rowindex == NULL) goto fail;
-    res->ref = rowindex;
+    // Construct and return the RowMapping object
+    rowmapping = RowMapping_from_array(data, len);
+    res = RowMapping_PyNEW();
+    if (res == NULL || rowmapping == NULL) goto fail;
+    res->ref = rowmapping;
     return res;
 
   fail:
     free(data);
-    RowIndex_dealloc(rowindex);
+    RowMapping_dealloc(rowmapping);
     Py_XDECREF(res);
     return NULL;
 }
 
 
 
-RowIndex_PyObject* RowIndexPy_from_filter(PyObject *self, PyObject *args)
+RowMapping_PyObject* RowMappingPy_from_filter(PyObject *self, PyObject *args)
 {
     DataTable_PyObject *pydt;
-    RowIndex *rowindex = NULL;
-    RowIndex_PyObject *res = NULL;
+    RowMapping *rowmapping = NULL;
+    RowMapping_PyObject *res = NULL;
     void *fnptr;
 
-    if (!PyArg_ParseTuple(args, "O!l:RowIndex.from_filter", &DataTable_PyType,
+    if (!PyArg_ParseTuple(args, "O!l:RowMapping.from_filter", &DataTable_PyType,
                           &pydt, &fnptr))
         return NULL;
 
-    rowindex = RowIndex_from_filter(pydt->ref, fnptr);
-    res = RowIndex_PyNEW();
-    if (res == NULL || rowindex == NULL) goto fail;
-    res->ref = rowindex;
+    rowmapping = RowMapping_from_filter(pydt->ref, fnptr);
+    res = RowMapping_PyNEW();
+    if (res == NULL || rowmapping == NULL) goto fail;
+    res->ref = rowmapping;
     return res;
 
   fail:
-    RowIndex_dealloc(rowindex);
+    RowMapping_dealloc(rowmapping);
     Py_XDECREF(res);
     return NULL;
 }
 
 
-//------ RowIndex PyObject -----------------------------------------------------
+//------ RowMapping PyObject -----------------------------------------------------
 
-static void __dealloc__(RowIndex_PyObject *self)
+static void __dealloc__(RowMapping_PyObject *self)
 {
-    RowIndex_dealloc(self->ref);
+    RowMapping_dealloc(self->ref);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
-PyTypeObject RowIndex_PyType = {
+PyTypeObject RowMapping_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_datatable.RowIndex",              /* tp_name */
-    sizeof(RowIndex_PyObject),          /* tp_basicsize */
+    "_datatable.RowMapping",            /* tp_name */
+    sizeof(RowMapping_PyObject),        /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)__dealloc__,            /* tp_dealloc */
     0,                                  /* tp_print */

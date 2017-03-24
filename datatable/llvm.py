@@ -105,10 +105,10 @@ class CodeGenerator(object):
         if self._make_srcvars:
             out += "  Column *srccolumns = dt->src->columns;\n"
             if rowindex_type == "array":
-                out += "  int64 *rowindices = dt->rowindex->indices;\n"
+                out += "  int64 *rowindices = dt->rowmapping->indices;\n"
             else:
-                out += "  int64 slice_start = dt->rowindex->slice.start;\n"
-                out += "  int64 slice_step = dt->rowindex->slice.step;\n"
+                out += "  int64 slice_start = dt->rowmapping->slice.start;\n"
+                out += "  int64 slice_step = dt->rowmapping->slice.step;\n"
         for expr in self._colvars.values():
             out += "  %s;\n" % expr.declaration
         out += "  for (int64 i = rowfr; i < rowto; i++) {\n"
@@ -166,17 +166,17 @@ class CodeColumn(object):
 
 
 _datastructures = """
-enum RowIndexType {RI_ARRAY, RI_SLICE};
+enum RowMappingType {RI_ARRAY, RI_SLICE};
 enum ColType {DT_AUTO, DT_DOUBLE, DT_LONG, DT_STRING, DT_BOOL, DT_OBJECT};
 typedef long long int int64;
-typedef struct RowIndex {
-    enum RowIndexType type;
+typedef struct RowMapping {
+    enum RowMappingType type;
     int64 length;
     union {
         int64* indices;
         struct { int64 start, step; } slice;
     };
-} RowIndex;
+} RowMapping;
 typedef struct Column {
     void* data;
     enum ColType type;
@@ -185,7 +185,7 @@ typedef struct Column {
 typedef struct DataTable {
   int64 nrows, ncols;
   struct DataTable *source;
-  struct RowIndex *rowindex;
+  struct RowMapping *rowmapping;
   struct Column *columns;
 } DataTable;
 

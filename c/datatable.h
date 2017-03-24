@@ -3,7 +3,8 @@
 #include <inttypes.h>
 #include "coltype.h"
 
-typedef struct RowIndex RowIndex; // break circular dependency between .h files
+// break circular dependency between .h files
+typedef struct RowMapping RowMapping;
 typedef struct Column Column;
 
 
@@ -23,12 +24,12 @@ typedef struct Column Column;
  *     This reference is *not* owned by the current datatable, however it is
  *     mirrored in the controller DataTable_PyObject.
  *
- * :param rowindex:
+ * :param rowmapping:
  *     This field is present if and only if the datatable is a view (i.e.
- *     `source` != NULL). In this case `rowindex` describes which rows from the
+ *     `source` != NULL). In this case `rowmapping` describes which rows from the
  *     source datatable are "selected" into the current datatable.
  *     This reference is owned by the current datatable (in particular you
- *     should not construct a RowIndex_PyObject from it).
+ *     should not construct a RowMapping_PyObject from it).
  *
  * :param columns:
  *     The array of columns within the datatable. This array contains `ncols`
@@ -38,7 +39,7 @@ typedef struct DataTable {
     int64_t nrows;
     int64_t ncols;
     struct DataTable *source;
-    struct RowIndex *rowindex;
+    struct RowMapping *rowmapping;
     struct Column *columns;
 
 } DataTable;
@@ -59,7 +60,7 @@ typedef struct DataTable {
  * by NULL `data` field. Then the `srcindex` attribute gives the index of the
  * column in the `source` datatable to which the current column defers. The
  * values from the "source" column must be extracted according to the current
- * datatable's `rowindex`.
+ * datatable's `rowmapping`.
  *
  * :param data:
  *     Raw data storage. This is a plain array with `nrows` elements, where the
@@ -96,7 +97,7 @@ typedef struct Column {
 /*---- Methods ---------------------------------------------------------------*/
 typedef void objcol_deallocator(void*, int64_t);
 
-DataTable* dt_DataTable_call(DataTable *self, RowIndex *rowindex);
+DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping);
 void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col);
 
 

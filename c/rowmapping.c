@@ -1,11 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "rowindex.h"
+#include "rowmapping.h"
 
 
 /**
- * Construct a `RowIndex` object from triple `(start, count, step)`.
+ * Construct a `RowMapping` object from triple `(start, count, step)`.
  *
  * Note that we depart from Python's standard of using `(start, end, step)` to
  * denote a slice -- having a `count` gives several advantages:
@@ -14,9 +14,9 @@
  *   - with explicit `count` the `step` may safely be 0.
  *   - there is no difference in handling positive/negative steps.
  */
-RowIndex* RowIndex_from_slice(int64_t start, int64_t count, int64_t step)
+RowMapping* RowMapping_from_slice(int64_t start, int64_t count, int64_t step)
 {
-    RowIndex *res = malloc(sizeof(RowIndex));
+    RowMapping *res = malloc(sizeof(RowMapping));
     if (res == NULL) return NULL;
     res->type = RI_SLICE;
     res->length = count;
@@ -27,13 +27,13 @@ RowIndex* RowIndex_from_slice(int64_t start, int64_t count, int64_t step)
 
 
 /**
- * Construct a `RowIndex` object from a plain list of (int64_t) row indices.
+ * Construct a `RowMapping` object from a plain list of (int64_t) row indices.
  * This function steals ownership of the `array` -- the caller should not
  * attempt to free it afterwards.
  */
-RowIndex* RowIndex_from_array(int64_t* array, int64_t length)
+RowMapping* RowMapping_from_array(int64_t* array, int64_t length)
 {
-    RowIndex *res = malloc(sizeof(RowIndex));
+    RowMapping *res = malloc(sizeof(RowMapping));
     if (res == NULL) return NULL;
     res->type = RI_ARRAY;
     res->length = length;
@@ -42,9 +42,9 @@ RowIndex* RowIndex_from_array(int64_t* array, int64_t length)
 }
 
 
-RowIndex* RowIndex_from_filter(DataTable* dt, filter_fn filter)
+RowMapping* RowMapping_from_filter(DataTable* dt, filter_fn filter)
 {
-    RowIndex *res = malloc(sizeof(RowIndex));
+    RowMapping *res = malloc(sizeof(RowMapping));
     if (res == NULL) return NULL;
 
     int64_t *buf = malloc(sizeof(int64_t) * dt->nrows);
@@ -60,17 +60,17 @@ RowIndex* RowIndex_from_filter(DataTable* dt, filter_fn filter)
 
 
 /**
- * Merge two `RowIndex`es, and return the combined `RowIndex`. Specifically,
+ * Merge two `RowMapping`s, and return the combined `RowMapping`. Specifically,
  * suppose there are objects A, B, C such that the map from A rows onto B is
  * described by the index `risrc`, and the map from rows of B onto C is given
- * by `rinew`. Then the "merged" RowIndex will describe how rows of A are
+ * by `rinew`. Then the "merged" RowMapping will describe how rows of A are
  * mapped onto rows of C.
  * Row index `risrc` may also be NULL, in which case a clone of `rinew` is
  * returned.
  */
-RowIndex* RowIndex_merge(RowIndex *risrc, RowIndex *rinew)
+RowMapping* RowMapping_merge(RowMapping *risrc, RowMapping *rinew)
 {
-    RowIndex *res = malloc(sizeof(RowIndex));
+    RowMapping *res = malloc(sizeof(RowMapping));
     if (res == NULL || rinew == NULL) return NULL;
     int64_t n = rinew->length;
     res->type = rinew->type;
@@ -128,12 +128,12 @@ RowIndex* RowIndex_merge(RowIndex *risrc, RowIndex *rinew)
 
 
 /**
- * RowIndex's destructor.
+ * RowMapping's destructor.
  */
-void RowIndex_dealloc(RowIndex *rowindex) {
-    if (rowindex == NULL) return;
-    if (rowindex->type == RI_ARRAY) {
-        free(rowindex->indices);
+void RowMapping_dealloc(RowMapping *rowmapping) {
+    if (rowmapping == NULL) return;
+    if (rowmapping->type == RI_ARRAY) {
+        free(rowmapping->indices);
     }
-    free(rowindex);
+    free(rowmapping);
 }

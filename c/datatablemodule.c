@@ -1,7 +1,7 @@
 #include <Python.h>
 #include "py_datatable.h"
 #include "py_datawindow.h"
-#include "py_rowindex.h"
+#include "py_rowmapping.h"
 #include "dtutils.h"
 
 
@@ -11,11 +11,11 @@
 //------------------------------------------------------------------------------
 
 static PyMethodDef DatatableModuleMethods[] = {
-    {"select_row_slice", (PyCFunction)RowIndexPy_from_slice, METH_VARARGS,
+    {"select_row_slice", (PyCFunction)RowMappingPy_from_slice, METH_VARARGS,
         "Row selector constructed from a slice of rows"},
-    {"select_row_indices", (PyCFunction)RowIndexPy_from_array, METH_VARARGS,
+    {"select_row_indices", (PyCFunction)RowMappingPy_from_array, METH_VARARGS,
         "Row selector constructed from a list of row indices"},
-    {"select_with_filter", (PyCFunction)RowIndexPy_from_filter, METH_VARARGS,
+    {"select_with_filter", (PyCFunction)RowMappingPy_from_filter, METH_VARARGS,
         "Row selector constructed using a filter function"},
     {"datatable_from_list", (PyCFunction)dt_DataTable_fromlist, METH_VARARGS,
         "Create Datatable from a list"},
@@ -52,10 +52,10 @@ PyInit__datatable(void) {
 
     DataTable_PyType.tp_new = PyType_GenericNew;
     DataWindow_PyType.tp_new = PyType_GenericNew;
-    RowIndex_PyType.tp_new = PyType_GenericNew;
+    RowMapping_PyType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&DataTable_PyType) < 0 ||
         PyType_Ready(&DataWindow_PyType) < 0 ||
-        PyType_Ready(&RowIndex_PyType) < 0)
+        PyType_Ready(&RowMapping_PyType) < 0)
         return NULL;
 
     m = PyModule_Create(&datatablemodule);
@@ -66,9 +66,9 @@ PyInit__datatable(void) {
 
     Py_INCREF(&DataTable_PyType);
     Py_INCREF(&DataWindow_PyType);
-    Py_INCREF(&RowIndex_PyType);
+    Py_INCREF(&RowMapping_PyType);
     PyModule_AddObject(m, "DataTable", (PyObject*) &DataTable_PyType);
     PyModule_AddObject(m, "DataWindow", (PyObject*) &DataWindow_PyType);
-    PyModule_AddObject(m, "RowIndex", (PyObject*) &RowIndex_PyType);
+    PyModule_AddObject(m, "RowMapping", (PyObject*) &RowMapping_PyType);
     return m;
 }

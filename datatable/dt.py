@@ -133,7 +133,7 @@ class DataTable(object):
                 - an integer, representing a single row
                 - a list of integers, representing several rows
                 - a slice / range, representing some range of rows
-                - a list of slices / ranges
+                - a list of integers, slices, or ranges
                 - a ``DataTable`` with a single boolean column and having same
                   number of rows as the current datatable, this will select
                   only those rows in the current datatable where the ``rows``
@@ -256,7 +256,7 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         rows_selector = self._rows_selector(rows)
-        if rows_selector.__class__.__name__ == "RowIndex":
+        if rows_selector.__class__.__name__ == "RowMapping":
             res = DataTable()
             res._dt = self._dt(rows_selector)
             res._ncols = res._dt.ncols
@@ -272,6 +272,10 @@ class DataTable(object):
     def _rows_selector(self, arg, nested=False):
         """
         Normalize the selector given by ``arg`` and ensure its correctness.
+
+        :param arg: same as parameter `rows` in self.__call__
+        :param nested:
+        :return: a RowMapping object
         """
         nrows = self._nrows
         if arg is Ellipsis:
