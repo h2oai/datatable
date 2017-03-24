@@ -49,7 +49,6 @@ def normalize_slice(e, n):
         step = 1
     assert isinstance(step, int) and step != 0
 
-    start = None
     if e.start is None:
         start = 0 if step > 0 else n - 1
     else:
@@ -62,7 +61,6 @@ def normalize_slice(e, n):
     assert isinstance(start, int) and 0 <= start < n, \
         "Invalid start: %r" % start
 
-    count = None
     if e.stop is None:
         if step > 0:
             count = (n - 1 - start) // step + 1

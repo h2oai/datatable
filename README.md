@@ -61,3 +61,16 @@ might need to build it manually. This involves the following:
      ```
      (presumably your OS X version should be 10.7 or higher) and
      restart step 2.
+
+
+## Testing
+
+  1. Make sure that `pytest` is installed in your virtualenv:
+     ```bash
+     $ pip install pytest
+     $ pip install pytest-cov
+     ```
+  2. Run the tests:
+     ```bash
+     python -m pytest
+     ```

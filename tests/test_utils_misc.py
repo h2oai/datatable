@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-import pytest
 import random
 
 from tests import datatable
 
+# `datatable` doesn't export its `utils`, hence the warning
+# noinspection PyUnresolvedReferences
+utils_misc = datatable.utils.misc
+
 
 def test_plural_form():
-    plural = datatable.utils.misc.plural_form
+    plural = utils_misc.plural_form
     assert plural(0, "egg") == "0 eggs"
     assert plural(1, "egg") == "1 egg"
     assert plural(2, "egg") == "2 eggs"
@@ -30,7 +33,7 @@ def test_plural_form():
 
 
 def test_clamp():
-    clamp = datatable.utils.misc.clamp
+    clamp = utils_misc.clamp
     assert clamp(0, 1, 10) == 1
     assert clamp(1, 1, 10) == 1
     assert clamp(2, 1, 10) == 2
@@ -46,85 +49,84 @@ def test_clamp():
 
 
 
+class SliceChecker(object):
+    def __init__(self, source):
+        self._src = source
+
+    def __getitem__(self, item):
+        assert isinstance(item, slice)
+        start, count, step = utils_misc.normalize_slice(item, len(self._src))
+        res1 = self._src[item]
+        res2 = "".join(self._src[start + i * step] for i in range(count))
+        return res1 == res2
+
+    def __repr__(self):
+        return "Checker(%s)" % self._src
+
+
 def test_normalize_slice():
-    norm = datatable.utils.misc.normalize_slice
-
-    class Checker(object):
-        def __init__(self, src):
-            self._src = src
-
-        def __getitem__(self, item):
-            assert isinstance(item, slice)
-            start, count, step = norm(item, len(self._src))
-            res1 = self._src[item]
-            res2 = "".join(self._src[start + i * step] for i in range(count))
-            assert res1 == res2
-
-        def __repr__(self):
-            return "Checker(%s)" % self._src
-
-
     for src in ["", "z", "xy", "Hello", "'tis just a flesh wound!"]:
-        check = Checker(src)
-        check[::]
+        check = SliceChecker(src)
+        assert check[::]
         for t in (0, 1, 2, 3, 5, 6, 7, 12, 100, -1, -2, -3, -5, -6, -9, -99):
-            check[t:]
-            check[t::2]
-            check[t::3]
-            check[t::-1]
-            check[t::-2]
-            check[t::-3]
-            check[:t]
-            check[:t:2]
-            check[:t:3]
-            check[:t:-1]
-            check[:t:-2]
-            check[:t:-3]
-            check[t:2 * t]
+            assert check[t:]
+            assert check[t::2]
+            assert check[t::3]
+            assert check[t::-1]
+            assert check[t::-2]
+            assert check[t::-3]
+            assert check[:t]
+            assert check[:t:2]
+            assert check[:t:3]
+            assert check[:t:-1]
+            assert check[:t:-2]
+            assert check[:t:-3]
+            assert check[t:2 * t]
 
-        start_choices = [None] * 10 + list(range(-10, 10)) + [-1000, 1000]
+        start_choices = [-1000, 1000, None] + [None] * 9 + list(range(-10, 10))
         stop_choices = start_choices
         step_choices = [None, None, 1, -1, 2, -2, 3, -3]
         for _ in range(1000):
             start = random.choice(start_choices)
             stop = random.choice(stop_choices)
             step = random.choice(step_choices)
-            check[slice(start, stop, step)]
+            assert check[slice(start, stop, step)]
+
+
+
+
+class RangeChecker(object):
+    def __init__(self, src):
+        self._src = src
+
+    def range(self, start, stop, step):
+        n = len(self._src)
+        rng = range(start, stop, step)
+        res = utils_misc.normalize_range(rng, n)
+        if res is None:
+            array = list(rng)
+            assert (not(-n <= array[0] < n and -n <= array[-1] < n)
+                    or array[0] >= 0 > array[-1] or
+                    array[0] < 0 <= array[-1])
+        else:
+            nstart, ncount, nstep = res
+            assert ncount >= 0 and nstart >= 0 and nstep == step
+            if ncount > 0:
+                assert nstart < n
+                assert 0 <= nstart + (ncount - 1) * nstep < n
+            res1 = "".join(self._src[i] for i in rng)
+            res2 = "".join(self._src[nstart + i * nstep]
+                           for i in range(ncount))
+            assert res1 == res2
+
+    def __repr__(self):
+        return "Checker(%s)" % self._src
 
 
 
 def test_normalize_range():
-    norm = datatable.utils.misc.normalize_range
-
-    class Checker(object):
-        def __init__(self, src):
-            self._src = src
-
-        def range(self, start, stop, step):
-            n = len(self._src)
-            rng = range(start, stop, step)
-            res = norm(rng, n)
-            if res is None:
-                array = list(rng)
-                assert (array[0] < -n or array[0] >= n or array[-1] < -n or
-                        array[-1] >= n or array[0] >= 0 and array[-1] < 0 or
-                        array[0] < 0 and array[-1] >= 0)
-            else:
-                nstart, ncount, nstep = res
-                assert ncount >= 0 and nstart >= 0 and nstep == step
-                if ncount > 0:
-                    assert nstart < n
-                    assert 0 <= nstart + (ncount - 1) * nstep < n
-                res1 = "".join(self._src[i] for i in rng)
-                res2 = "".join(self._src[nstart + i * nstep]
-                               for i in range(ncount))
-                assert res1 == res2
-
-        def __repr__(self):
-            return "Checker(%s)" % self._src
-
     for src in ["", "z", "xy", "Hello", "'tis just a flesh wound!"]:
-        check = Checker(src)
+        check = RangeChecker(src)
         check.range(0, 0, 1)
 
         start_choices = [0] * 10 + list(range(-10, 10)) + [-1000, 1000]
@@ -135,4 +137,3 @@ def test_normalize_range():
             stop = random.choice(stop_choices)
             step = random.choice(step_choices)
             check.range(start, stop, step)
-
