@@ -39,18 +39,18 @@ class DataTable(object):
     #---------------------------------------------------------------------------
 
     @property
-    def ncols(self):
-        """Number of columns in the datatable."""
-        return self._ncols
-
-    @property
     def nrows(self):
         """Number of rows in the datatable."""
         return self._nrows
 
     @property
+    def ncols(self):
+        """Number of columns in the datatable."""
+        return self._ncols
+
+    @property
     def shape(self):
-        """Tuple (number of rows, number of columns) in the datatable."""
+        """Tuple (number of rows, number of columns)."""
         return (self._nrows, self._ncols)
 
     @property
@@ -129,15 +129,28 @@ class DataTable(object):
         :param rows:
             Which rows to operate upon. Could be one of the following:
 
-                - ... (ellipsis), representing all rows of the datatable
-                - an integer, representing a single row
-                - a list of integers, representing several rows
-                - a slice / range, representing some range of rows
-                - a list of integers, slices, or ranges
+                - ... (ellipsis), representing all rows of the datatable.
+                - an integer, representing a single row at the given index. The
+                  rows are numbered starting from 0. Negative indices are
+                  allowed, indicating rows counted from the end of the
+                  datatable (i.e. -1 is the last row).
+                - a slice, representing some ordered subset of rows. The slice
+                  has exactly the same semantics as in Python, for example
+                  `slice(None, 10)` will select the first 10 rows, and
+                  `slice(None, None, -1)` will select all rows in reverse.
+                - a range, also representing some subset of rows. The range has
+                  the semantics of a list into which this range would expand.
+                  This is very similar to a slice, except with regard
+                  to negative indices. For example in order to select all rows
+                  in reverse for a datatable with N rows, you'd write
+                  `range(N-1, -1, -1)`, whereas a slice with the same triple of
+                  parameters produces a 0-rows result (because `N - 1` and `-1`
+                  is the same row).
+                - a list / tuple / generator of integers, slices, or ranges.
                 - a ``DataTable`` with a single boolean column and having same
                   number of rows as the current datatable, this will select
-                  only those rows in the current datatable where the ``rows``
-                  datatable has truthful value
+                  only those rows in the current datatable where the provided
+                  column has truthful value
                 - a function that takes a single parameter -- the current
                   datatable -- and returns any of the selectors mentioned
                   above. Within this function, the frame behaves lazily.
@@ -256,17 +269,15 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         rows_selector = self._rows_selector(rows)
-        if rows_selector.__class__.__name__ == "RowMapping":
-            res = DataTable()
-            res._dt = self._dt(rows_selector)
-            res._ncols = res._dt.ncols
-            res._nrows = res._dt.nrows
-            res._names = self._names
-            res._inames = self._inames
-            res._types = self._types
-            return res
 
-        print(rows_selector)
+        res = DataTable()
+        res._dt = self._dt(rows_selector)
+        res._ncols = res._dt.ncols
+        res._nrows = res._dt.nrows
+        res._names = self._names
+        res._inames = self._inames
+        res._types = self._types
+        return res
 
 
     def _rows_selector(self, arg, nested=False):
@@ -279,17 +290,17 @@ class DataTable(object):
         """
         nrows = self._nrows
         if arg is Ellipsis:
-            return c.select_row_slice(0, nrows, 1)
+            return c.rowmapping_from_slice(0, nrows, 1)
 
         if isinstance(arg, (int, slice, range)):
             arg = [arg]
 
         if isinstance(arg, types.GeneratorType):
-            # If an iterator is provided, materialize it first. Otherwise there
-            # is no way of testing whether the produced indices are valid
+            # If an iterator is given, materialize it first. Otherwise there
+            # is no way of telling whether the produced indices are valid
             arg = list(arg)
 
-        if isinstance(arg, list):
+        if isinstance(arg, (list, tuple, set)):
             bases = []
             counts = []
             strides = []
@@ -337,7 +348,7 @@ class DataTable(object):
                                     "%d of the `rows` list" % (elem, i))
             if counts:
                 if len(bases) == 1:
-                    return c.select_row_slice(bases[0], counts[0], strides[0])
+                    return c.rowmapping_from_slice(bases[0], counts[0], strides[0])
                 else:
                     return (bases, counts, strides)
             else:

@@ -11,7 +11,7 @@
 //------------------------------------------------------------------------------
 
 static PyMethodDef DatatableModuleMethods[] = {
-    {"select_row_slice", (PyCFunction)RowMappingPy_from_slice, METH_VARARGS,
+    {"rowmapping_from_slice", (PyCFunction)RowMappingPy_from_slice, METH_VARARGS,
         "Row selector constructed from a slice of rows"},
     {"select_row_indices", (PyCFunction)RowMappingPy_from_array, METH_VARARGS,
         "Row selector constructed from a list of row indices"},

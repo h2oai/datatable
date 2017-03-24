@@ -42,8 +42,8 @@ setup(
     url="https://github.com/h2oai/datatable.git",
 
     # Author details
-    author="Matt Dowle & Pasha Stetsenko",
-    author_email="mattd@h2o.ai, pasha@h2o.ai",
+    author="Pasha Stetsenko & Matt Dowle",
+    author_email="pasha@h2o.ai, mattd@h2o.ai",
 
     license="Apache v2.0",
 
@@ -53,18 +53,18 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3.6",
     ],
-    keywords=["datatable", "data", "dataframe", "pandas"],
+    keywords=["datatable", "data", "dataframe", "munging", "numpy", "pandas"],
 
-    packages=find_packages(exclude=["tests*", "docs*"]),
+    packages=find_packages(exclude=["tests*", "docs*", "c*", "temp*"]),
 
     # Runtime dependencies
-    install_requires=["typesentry", "blessed"],
+    install_requires=["typesentry", "blessed", "llvmlite"],
     tests_require=[
         "pytest>=3.0",
         "pytest-cov",
     ],
 
-    zip_safe=False,
+    zip_safe=True,
 
     ext_modules=[
         Extension("_datatable",

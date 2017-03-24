@@ -46,3 +46,6 @@ void* clone(void *src, long n_bytes) {
     }
     return copy;
 }
+
+PyObject *Py_int0;
+PyObject *Py_int1;

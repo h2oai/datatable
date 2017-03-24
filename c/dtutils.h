@@ -10,8 +10,8 @@ PyObject* decref(PyObject* x);
 
 void* clone(void *src, long n_bytes);
 
-PyObject *Py_int0;
-PyObject *Py_int1;
+extern PyObject *Py_int0;
+extern PyObject *Py_int1;
 
 
 #endif

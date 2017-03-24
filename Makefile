@@ -8,6 +8,7 @@ build:
 	pip install . --upgrade
 
 clean:
+	rm -rf .cache
 	rm -rf build
 	rm -rf datatable.egg-info
 	find . -type d -name "__pycache__" -exec rm -rf {} +

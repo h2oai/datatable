@@ -18,7 +18,7 @@ typedef struct RowMapping_PyObject {
     RowMapping *ref;
 } RowMapping_PyObject;
 
-PyTypeObject RowMapping_PyType;
+extern PyTypeObject RowMapping_PyType;
 
 
 // This macro instantiates a new `RowMapping_PyObject` object (with refcnt 1)

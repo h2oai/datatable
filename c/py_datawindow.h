@@ -41,7 +41,7 @@ typedef struct DataWindow_PyObject {
 
 
 /** Python type corresponding to DataWindow_PyObject. */
-PyTypeObject DataWindow_PyType;
+extern PyTypeObject DataWindow_PyType;
 
 
 int init_py_datawindow(PyObject *module);

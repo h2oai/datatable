@@ -9,6 +9,8 @@ void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
 static PyObject *strRowMappingTypeArray, *strRowMappingTypeSlice;
 
+PyObject **py_string_coltypes;
+
 
 int init_py_datatable(PyObject *module) {
     // Register DataTable_PyType on the module

@@ -38,9 +38,9 @@ typedef struct DataTable_PyObject {
 } DataTable_PyObject;
 
 
-PyTypeObject DataTable_PyType;
+extern PyTypeObject DataTable_PyType;
 
-PyObject **py_string_coltypes;
+extern PyObject **py_string_coltypes;
 
 
 #define DataTable_PyNew() ((DataTable_PyObject*) \

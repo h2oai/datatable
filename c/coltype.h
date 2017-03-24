@@ -42,7 +42,7 @@ typedef enum ColType {
 
 #define DT_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
 
-int ColType_size[DT_COUNT];
+extern int ColType_size[DT_COUNT];
 
 
 #endif
