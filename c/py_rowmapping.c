@@ -41,6 +41,54 @@ RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args)
 }
 
 
+
+RowMapping_PyObject*
+RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
+{
+    PyObject *pystarts, *pycounts, *pysteps;
+    int64_t *starts = NULL, *counts = NULL, *steps = NULL;
+    RowMapping *rowmapping = NULL;
+    RowMapping_PyObject *res = NULL;
+
+    // Unpack arguments
+    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
+                          &PyList_Type, &pystarts, &PyList_Type, &pycounts,
+                          &PyList_Type, &pysteps))
+        return NULL;
+
+    int64_t n = (int64_t) PyList_Size(pystarts);
+    int64_t n2 = (int64_t) PyList_Size(pycounts);
+    int64_t n3 = (int64_t) PyList_Size(pysteps);
+    assert (n >= n2 && n >= n3);
+    starts = malloc(sizeof(int64_t) * n);
+    counts = malloc(sizeof(int64_t) * n);
+    steps = malloc(sizeof(int64_t) * n);
+    if (starts == NULL || counts == NULL || steps == NULL) goto fail;
+
+    // Convert Pythonic lists into regular C arrays of longs
+    for (int64_t i = 0; i < n; i++) {
+        starts[i] = PyLong_AsLong(PyList_GET_ITEM(pystarts, i));
+        counts[i] = i < n2? PyLong_AsLong(PyList_GET_ITEM(pycounts, i)) : 1;
+        steps[i] = i < n3? PyLong_AsLong(PyList_GET_ITEM(pysteps, i)) : 1;
+    }
+
+    // Construct and return the RowMapping object
+    rowmapping = RowMapping_from_slicelist(starts, counts, steps, n);
+    res = RowMapping_PyNEW();
+    if (res == NULL || rowmapping == NULL) goto fail;
+    res->ref = rowmapping;
+    return res;
+
+  fail:
+    free(starts);
+    free(counts);
+    free(steps);
+    RowMapping_dealloc(rowmapping);
+    return NULL;
+}
+
+
+
 RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
 {
     PyObject *list;

@@ -353,7 +353,7 @@ class DataTable(object):
             elif len(bases) == 1:
                 return c.rowmapping_from_slice(bases[0], counts[0], strides[0])
             else:
-                return (bases, counts, strides)
+                return c.rowmapping_from_slicelist(bases, counts, strides)
 
         if isinstance(arg, DataTable):
             if arg.ncols != 1:

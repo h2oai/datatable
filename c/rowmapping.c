@@ -27,6 +27,38 @@ RowMapping* RowMapping_from_slice(int64_t start, int64_t count, int64_t step)
 
 
 /**
+ * Construct a `RowMapping` object from a series of triples `(start, count,
+ * step)`. The triples are given as 3 separate arrays.
+ */
+RowMapping* RowMapping_from_slicelist(int64_t *starts, int64_t *counts,
+                                      int64_t *steps, int64_t n)
+{
+    RowMapping *res = malloc(sizeof(RowMapping));
+    if (res == NULL) return NULL;
+
+    int64_t count = 0;
+    for (int64_t i = 0; i < n; i++) count += counts[i];
+
+    int64_t *rows = malloc(sizeof(int64_t) * count);
+    int64_t *rowsptr = rows;
+    if (rows == NULL) return NULL;
+    for (int64_t i = 0; i < n; i++) {
+        int64_t j = starts[i];
+        int64_t cnt = counts[i];
+        int64_t step = steps[i];
+        for (int64_t k = 0; k < cnt; k++, j += step)
+            *rowsptr++ = j;
+    }
+    assert(rowsptr - rows == count);
+
+    res->type = RI_ARRAY;
+    res->length = count;
+    res->indices = rows;
+    return res;
+}
+
+
+/**
  * Construct a `RowMapping` object from a plain list of (int64_t) row indices.
  * This function steals ownership of the `array` -- the caller should not
  * attempt to free it afterwards.
