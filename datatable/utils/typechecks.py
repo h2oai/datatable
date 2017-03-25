@@ -11,5 +11,7 @@ typed = _tc.typed
 is_type = _tc.is_type
 TypeError = _tc.TypeError
 ValueError = _tc.ValueError
+TypeError.__module__ = "dt"
+ValueError.__module__ = "dt"
 
 __all__ = ("typed", "is_type", "U", "TypeError", "ValueError")

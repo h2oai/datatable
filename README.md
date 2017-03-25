@@ -74,3 +74,7 @@ might need to build it manually. This involves the following:
      ```bash
      python -m pytest
      ```
+  3. Generate coverage report:
+     ```bash
+     $ python -m pytest --cov=datatable --cov-report=html
+     ```

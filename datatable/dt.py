@@ -62,6 +62,11 @@ class DataTable(object):
         """Tuple of column types."""
         return self._types
 
+    @property
+    def internal(self):
+        """Access to the underlying C DataTable object."""
+        return self._dt
+
 
     #---------------------------------------------------------------------------
     # Display
@@ -160,9 +165,6 @@ class DataTable(object):
             ``update``. Possible values:
 
                 - ..., to select all columns in the current frame
-                - dt.GROUP symbol, which can be used only when a ``groupby`` is
-                  requested. This symbol selects all columns that were grouped
-                  upon.
                 - an integer, selecting a single column at the given index
                 - a string, selecting a single column by name
                 - a slice, selecting a range of columns
@@ -283,13 +285,12 @@ class DataTable(object):
         """
         Normalize the selector given by ``arg`` and ensure its correctness.
 
-        :param arg: same as parameter `rows` in self.__call__
+        :param arg: same as parameter ``rows`` in self.__call__
         :param nested:
-        :return: a RowMapping object
+        :return: a :class:`RowMapping` object
         """
-        nrows = self._nrows
         if arg is Ellipsis:
-            return c.rowmapping_from_slice(0, nrows, 1)
+            return c.rowmapping_from_slice(0, self.nrows, 1)
 
         if isinstance(arg, (int, slice, range)):
             arg = [arg]
@@ -302,18 +303,20 @@ class DataTable(object):
             from_generator = True
 
         if isinstance(arg, (list, tuple, set)):
+            nrows = self._nrows
             bases = []
             counts = []
             strides = []
             for i, elem in enumerate(arg):
                 if isinstance(elem, int):
-                    if elem < -nrows or elem >= nrows:
+                    if -nrows <= elem < nrows:
+                        if elem < 0:
+                            elem += nrows
+                        bases.append(elem)
+                    else:
                         raise ValueError(
                             f"datatable contains {plural(nrows, 'row')}; "
                             f"row {elem} is invalid")
-                    if elem < 0:
-                        elem += nrows
-                    bases.append(elem)
                 elif isinstance(elem, (range, slice)):
                     if elem.step == 0:
                         raise ValueError("In %r step must not be 0" % elem)
@@ -343,11 +346,11 @@ class DataTable(object):
                         strides.append(step)
                 else:
                     if from_generator:
-                        raise TypeError(f"Invalid row selector {elem} "
-                                        f"generated at position {i}")
+                        raise ValueError(f"Invalid row selector {elem!r} "
+                                         f"generated at position {i}")
                     else:
-                        raise TypeError(f"Invalid row selector {elem} at "
-                                        f"element {i} of the `rows` list")
+                        raise ValueError(f"Invalid row selector {elem!r} at "
+                                         f"element {i} of the `rows` list")
             if not counts:
                 return c.rowmapping_from_array(bases)
             elif len(bases) == 1:

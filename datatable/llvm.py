@@ -15,8 +15,14 @@ def select_by_expression(expr):
     assert isinstance(expr, DataTableExpr)
     gen = CodeGenerator(expr)
     cc = gen._make_c_function()
-    llvm = fix_clang_llvm(c_to_llvm(cc))
-    compile_llvmir(_engine, llvm)
+    try:
+        llvm = fix_clang_llvm(c_to_llvm(cc))
+        compile_llvmir(_engine, llvm)
+    except RuntimeError as e:
+        print("Error while trying to compile this code:")
+        print(cc)
+        print()
+        raise e
     fn_ptr = _engine.get_function_address(gen._function_name)
     return c.rowmapping_from_filter(expr._src._dt, fn_ptr)
 
@@ -89,8 +95,8 @@ class CodeGenerator(object):
     def _make_c_function(self):
         res = self._expr_to_c(self._root_expr)
         if self._make_srcvars:
-            rowindex_type = self._root_expr._src._dt.rowindex_type
-            assert rowindex_type == "slice" or rowindex_type == "array"
+            rowmapping_type = self._root_expr._src._dt.rowmapping_type
+            assert rowmapping_type == "slice" or rowmapping_type == "array"
 
         # File headers
         out = ""
@@ -105,7 +111,7 @@ class CodeGenerator(object):
         out += "  Column *columns = dt->columns;\n"
         if self._make_srcvars:
             out += "  Column *srccolumns = dt->src->columns;\n"
-            if rowindex_type == "array":
+            if rowmapping_type == "array":
                 out += "  int64 *rowindices = dt->rowmapping->indices;\n"
             else:
                 out += "  int64 slice_start = dt->rowmapping->slice.start;\n"
@@ -114,11 +120,12 @@ class CodeGenerator(object):
             out += "  %s;\n" % expr.declaration
         out += "  for (int64 i = rowfr; i < rowto; i++) {\n"
         if self._make_srcvars:
-            if rowindex_type == "array":
+            if rowmapping_type == "array":
                 out += "    int64 j = rowindices[i];\n"
             else:
                 out += "    int64 j = slice_start + i * slice_step;\n"
-        out += "    if (%s) {\n" % res
+        out += "    int test = %s;\n" % res
+        out += "    if (test) {\n"
         out += "      *outptr++ = %s;\n" % self._index_to_select
         out += "    }\n"
         out += "  }\n"
@@ -164,6 +171,8 @@ class CodeColumn(object):
         self.declaration = ("%s *%s = %s[%d].data"
                             % (self.dtype, self.varname, datasource, idx))
         self.usage = self.varname + ("[i]" if self.srcindex is None else "[j]")
+        if self.coltype == "bool":
+            self.usage = "(%s == 1)" % self.usage
 
 
 _datastructures = """
