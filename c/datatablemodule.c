@@ -1,4 +1,5 @@
 #include <Python.h>
+#include "py_colmapping.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
@@ -26,6 +27,9 @@ static PyMethodDef DatatableModuleMethods[] = {
     {"rowmapping_from_column", (PyCFunction)RowMappingPy_from_column,
         METH_VARARGS,
         "Row selector constructed from a single-boolean-column datatable"},
+    {"colmapping_from_array", (PyCFunction)ColMappingPy_from_array,
+        METH_VARARGS,
+        "Column selector constructed from a list of column indices"},
     {"datatable_from_list", (PyCFunction)dt_DataTable_fromlist, METH_VARARGS,
         "Create Datatable from a list"},
 
@@ -55,6 +59,7 @@ PyInit__datatable(void) {
     if (!init_py_datatable(m)) return NULL;
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowmapping(m)) return NULL;
+    if (!init_py_colmapping(m)) return NULL;
 
     ColType_size[DT_AUTO] = 0;
     ColType_size[DT_DOUBLE] = sizeof(double);
