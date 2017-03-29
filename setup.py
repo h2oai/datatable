@@ -26,9 +26,11 @@ if version is None:
 
 
 # Find all C source files in the "c/" directory
-c_sources = [os.path.join("c", filename)
-             for filename in os.listdir("c")
-             if filename.endswith(".c")]
+c_sources = []
+for root, dirs, files in os.walk("c"):
+    for name in files:
+        if name.endswith(".c"):
+            c_sources.append(os.path.join(root, name))
 
 
 # Main setup
