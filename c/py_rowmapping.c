@@ -60,9 +60,9 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
     int64_t n2 = (int64_t) PyList_Size(pycounts);
     int64_t n3 = (int64_t) PyList_Size(pysteps);
     assert (n >= n2 && n >= n3);
-    starts = malloc(sizeof(int64_t) * n);
-    counts = malloc(sizeof(int64_t) * n);
-    steps = malloc(sizeof(int64_t) * n);
+    starts = malloc(sizeof(int64_t) * (size_t)n);
+    counts = malloc(sizeof(int64_t) * (size_t)n);
+    steps = malloc(sizeof(int64_t) * (size_t)n);
     if (starts == NULL || counts == NULL || steps == NULL) goto fail;
 
     // Convert Pythonic lists into regular C arrays of longs
@@ -103,7 +103,7 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
 
     // Convert Pythonic List into a regular C array of longs
     int64_t len = (int64_t) PyList_Size(list);
-    data = malloc(sizeof(int64_t) * len);
+    data = malloc(sizeof(int64_t) * (size_t)len);
     if (data == NULL) goto fail;
     for (int64_t i = 0; i < len; ++i) {
         data[i] = PyLong_AsLong(PyList_GET_ITEM(list, i));
@@ -136,7 +136,7 @@ RowMapping_PyObject* RowMappingPy_from_filter(PyObject *self, PyObject *args)
                           &pydt, &fnptr))
         return NULL;
 
-    rowmapping = RowMapping_from_filter(pydt->ref, fnptr);
+    rowmapping = RowMapping_from_filter(pydt->ref, (filter_fn)fnptr);
     res = RowMapping_PyNEW();
     if (res == NULL || rowmapping == NULL) goto fail;
     res->ref = rowmapping;
@@ -220,4 +220,5 @@ PyTypeObject RowMapping_PyType = {
     0,                                  /* tp_descr_set */
     0,                                  /* tp_dictoffset */
     0,                                  /* tp_init */
+    0,0,0,0,0,0,0,0,0,0,0,0
 };

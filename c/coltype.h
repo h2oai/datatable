@@ -1,5 +1,6 @@
 #ifndef dt_COLTYPE_H
 #define dt_COLTYPE_H
+#include <stdlib.h>
 
 
 /**
@@ -42,7 +43,7 @@ typedef enum ColType {
 
 #define DT_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
 
-extern int ColType_size[DT_COUNT];
+extern size_t ColType_size[DT_COUNT];
 
 
 #endif

@@ -27,7 +27,7 @@ ColMapping_PyObject* ColMappingPy_from_array(PyObject *self, PyObject *args)
 
     // Convert Pythonic List into a regular C array of longs
     int64_t len = (int64_t) PyList_Size(list);
-    data = malloc(sizeof(int64_t) * len);
+    data = malloc(sizeof(int64_t) * (size_t)len);
     if (data == NULL) goto fail;
     for (int64_t i = 0; i < len; ++i) {
         data[i] = PyLong_AsLong(PyList_GET_ITEM(list, i));
@@ -96,4 +96,5 @@ PyTypeObject ColMapping_PyType = {
     0,                                  /* tp_descr_set */
     0,                                  /* tp_dictoffset */
     0,                                  /* tp_init */
+    0,0,0,0,0,0,0,0,0,0,0,0
 };

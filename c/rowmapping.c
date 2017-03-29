@@ -39,7 +39,7 @@ RowMapping* RowMapping_from_slicelist(int64_t *starts, int64_t *counts,
     int64_t count = 0;
     for (int64_t i = 0; i < n; i++) count += counts[i];
 
-    int64_t *rows = malloc(sizeof(int64_t) * count);
+    int64_t *rows = malloc(sizeof(int64_t) * (size_t)count);
     int64_t *rowsptr = rows;
     if (rows == NULL) return NULL;
     for (int64_t i = 0; i < n; i++) {
@@ -86,10 +86,10 @@ RowMapping* RowMapping_from_filter(DataTable* dt, filter_fn filter)
     RowMapping *res = malloc(sizeof(RowMapping));
     if (res == NULL) return NULL;
 
-    int64_t *buf = malloc(sizeof(int64_t) * dt->nrows);
+    int64_t *buf = malloc(sizeof(int64_t) * (size_t)dt->nrows);
     if (buf == NULL) return NULL;
     int64_t n_rows_selected = filter(dt, buf, 0, dt->nrows);
-    realloc(buf, sizeof(int64_t) * n_rows_selected);
+    realloc(buf, sizeof(int64_t) * (size_t)n_rows_selected);
 
     res->type = RI_ARRAY;
     res->length = n_rows_selected;
@@ -112,7 +112,7 @@ RowMapping* RowMapping_from_column(DataTable *filter)
     assert(filter->ncols == 1);
     char *data = filter->columns[0].data;
 
-    int64_t *out = malloc(sizeof(int64_t) * nrows);
+    int64_t *out = malloc(sizeof(int64_t) * (size_t)nrows);
     if (out == NULL) return NULL;
     int64_t n_rows_selected = 0;
     if (data == NULL) {
@@ -138,7 +138,7 @@ RowMapping* RowMapping_from_column(DataTable *filter)
                 out[n_rows_selected++] = i;
         }
     }
-    realloc(out, sizeof(int64_t) * n_rows_selected);
+    realloc(out, sizeof(int64_t) * (size_t)n_rows_selected);
 
     res->type = RI_ARRAY;
     res->length = n_rows_selected;
@@ -167,9 +167,9 @@ RowMapping* RowMapping_merge(RowMapping *risrc, RowMapping *rinew)
 
     if (rinew->type == RI_ARRAY) {
         int64_t *rowsnew = rinew->indices;
-        res->indices = malloc(sizeof(int64_t) * n);
+        res->indices = malloc(sizeof(int64_t) * (size_t)n);
         if (risrc == NULL) {
-            memcpy(res->indices, rowsnew, sizeof(int64_t) * n);
+            memcpy(res->indices, rowsnew, sizeof(int64_t) * (size_t)n);
         }
         else if (risrc->type == RI_ARRAY) {
             int64_t *rowssrc = risrc->indices;
@@ -195,7 +195,7 @@ RowMapping* RowMapping_merge(RowMapping *risrc, RowMapping *rinew)
         }
         else if (risrc->type == RI_ARRAY) {
             res->type = RI_ARRAY;
-            res->indices = malloc(sizeof(int64_t) * n);
+            res->indices = malloc(sizeof(int64_t) * (size_t)n);
             if (res->indices == NULL) return NULL;
             int64_t *rowssrc = risrc->indices;
             for (int64_t i = 0, inew = startnew; i < n; ++i, inew += stepnew) {

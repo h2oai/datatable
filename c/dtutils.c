@@ -36,7 +36,7 @@ static void set_oom_error_message(long n) {
 
 
 void* clone(void *src, long n_bytes) {
-    void* copy = malloc(n_bytes);
+    void* copy = malloc((size_t)n_bytes);
     if (copy == NULL) {
         set_oom_error_message(n_bytes);
         return NULL;

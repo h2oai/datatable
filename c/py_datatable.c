@@ -85,11 +85,11 @@ __call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
 
 
 static PyObject* get_nrows(DataTable_PyObject *self) {
-    return PyLong_FromLong(self->ref->nrows);
+    return PyLong_FromLongLong(self->ref->nrows);
 }
 
 static PyObject* get_ncols(DataTable_PyObject *self) {
-    return PyLong_FromLong(self->ref->ncols);
+    return PyLong_FromLongLong(self->ref->ncols);
 }
 
 static PyObject* get_isview(DataTable_PyObject *self) {
@@ -136,7 +136,7 @@ static PyObject* get_view_colnumbers(DataTable_PyObject *self)
     while (--i >= 0) {
         int isdatacol = columns[i].data == NULL;
         int64_t srcindex = columns[i].srcindex;
-        PyObject *idx = isdatacol? PyLong_FromLong(srcindex) : none();
+        PyObject *idx = isdatacol? PyLong_FromLongLong(srcindex) : none();
         PyTuple_SET_ITEM(list, i, idx);
     }
     return list;
@@ -176,26 +176,6 @@ void dt_DataTable_dealloc_objcol(void *data, int64_t nrows) {
 }
 
 
-static PyObject* test(DataTable_PyObject *self, PyObject *args)
-{
-    void *ptr;
-    if (!PyArg_ParseTuple(args, "l", &ptr))
-        return NULL;
-
-    DataTable *dt = self->ref;
-    int64_t *buf = calloc(sizeof(int64_t), dt->nrows);
-
-    int64_t (*func)(DataTable*, int64_t*) = ptr;
-    int64_t res = func(dt, buf);
-
-    PyObject *list = PyList_New(res);
-    for (int64_t i = 0; i < res; i++) {
-        PyList_SET_ITEM(list, i, PyLong_FromLong(buf[i]));
-    }
-    free(buf);
-    return list;
-}
-
 
 //======================================================================================================================
 // DataTable type definition
@@ -208,14 +188,12 @@ PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
 PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
-PyDoc_STRVAR(dtdoc_test, "");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
 static PyMethodDef datatable_methods[] = {
     METHOD1(window),
-    METHOD1(test),
-    {NULL, NULL}           /* sentinel */
+    {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
 #define GETSET1(name) {#name, (getter)get_##name, NULL, dtdoc_##name, NULL}
@@ -227,7 +205,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(isview),
     GETSET1(rowmapping_type),
     GETSET1(view_colnumbers),
-    {NULL}  /* sentinel */
+    {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
 
 PyTypeObject DataTable_PyType = {
@@ -278,4 +256,5 @@ PyTypeObject DataTable_PyType = {
     0,                                  /* tp_weaklist */
     0,                                  /* tp_del */
     0,                                  /* tp_version_tag */
+    0,                                  /* tp_finalize */
 };

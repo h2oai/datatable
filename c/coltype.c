@@ -1,3 +1,3 @@
 #include "coltype.h"
 
-int ColType_size[DT_COUNT];
+size_t ColType_size[DT_COUNT];

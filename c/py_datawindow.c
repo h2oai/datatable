@@ -97,7 +97,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 
                 case DT_LONG: {
                     int64_t x = ((int64_t*)coldata)[irow];
-                    value = x == LONG_MIN? none() : PyLong_FromLong(x);
+                    value = x == LONG_MIN? none() : PyLong_FromLongLong(x);
                 }   break;
 
                 case DT_STRING: {
@@ -116,6 +116,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                     Py_XINCREF(value);
                 }   break;
 
+                case DT_AUTO:
                 default:
                     assert(0);
             }
@@ -200,8 +201,8 @@ static int _check_consistency(
                         rindex->length, dt->nrows);
                     return 0;
                 }
-                for (long j = row0; j < row1; ++j) {
-                    long jsrc = rindex->indices[j];
+                for (int64_t j = row0; j < row1; ++j) {
+                    int64_t jsrc = rindex->indices[j];
                     if (jsrc < 0 || jsrc >= dt->source->nrows) {
                         PyErr_Format(PyExc_RuntimeError,
                             "Invalid view: row %ld of the view references non-"
@@ -213,9 +214,9 @@ static int _check_consistency(
             }   break;
 
             case RI_SLICE: {
-                long start = rindex->slice.start;
-                long count = rindex->length;
-                long finish = start + (count - 1) * rindex->slice.step;
+                int64_t start = rindex->slice.start;
+                int64_t count = rindex->length;
+                int64_t finish = start + (count - 1) * rindex->slice.step;
                 if (count != dt->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: row index has %ld elements, while the "
@@ -244,7 +245,7 @@ static int _check_consistency(
     }
 
     // check each column within the window for correctness
-    for (long i = col0; i < col1; ++i) {
+    for (int64_t i = col0; i < col1; ++i) {
         Column col = dt->columns[i];
         Column *srccols = dt->source == NULL? NULL : dt->source->columns;
         if (col.type == DT_AUTO) {
@@ -315,7 +316,7 @@ static PyMemberDef members[] = {
     Member(col1, T_LONG),
     Member(types, T_OBJECT_EX),
     Member(data, T_OBJECT_EX),
-    {NULL}  // sentinel
+    {NULL, 0, 0, 0, NULL}  // sentinel
 };
 
 
@@ -356,4 +357,5 @@ PyTypeObject DataWindow_PyType = {
     0,                                  /* tp_descr_set */
     0,                                  /* tp_dictoffset */
     (initproc)__init__,                 /* tp_init */
+    0,0,0,0,0,0,0,0,0,0,0,0
 };

@@ -20,7 +20,7 @@ DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
     // Computed on-demand only if we detect that it is needed
     RowMapping *merged_rowindex = NULL;
 
-    Column *columns = calloc(sizeof(Column), ncols);
+    Column *columns = calloc(sizeof(Column), (size_t)ncols);
     if (columns == NULL) return NULL;
 
     for (int i = 0; i < ncols; ++i) {
@@ -67,24 +67,24 @@ DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
  */
 static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
 {
-    int64_t n = rowmapping->length;
+    uint64_t n = (uint64_t) rowmapping->length;
     ColType coltype = dt->columns[i].type;
     void *coldata = dt->columns[i].data;
     assert(coldata != NULL);
 
-    int elemsize = ColType_size[coltype];
-    void *newdata = malloc(n * elemsize);
+    size_t elemsize = ColType_size[coltype];
+    void *newdata = malloc((size_t)n * elemsize);
     if (newdata == NULL) return NULL;
     if (rowmapping->type == RI_SLICE) {
-        int64_t start = rowmapping->slice.start;
+        uint64_t start = (uint64_t) rowmapping->slice.start;
         int64_t step = rowmapping->slice.step;
         if (step == 1) {
             memcpy(newdata, coldata + start * elemsize, n * elemsize);
         } else {
             void *newdataptr = newdata;
             void *sourceptr = coldata + start * elemsize;
-            int64_t stepsize = step * elemsize;
-            for (int64_t j = 0; j < n; j++) {
+            int64_t stepsize = step * (int64_t)elemsize;
+            for (uint64_t j = 0; j < n; j++) {
                 memcpy(newdataptr, sourceptr, elemsize);
                 newdataptr += elemsize;
                 sourceptr += stepsize;
@@ -94,8 +94,8 @@ static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
     else if (rowmapping->type == RI_ARRAY) {
         void *newdataptr = newdata;
         int64_t *rowindices = rowmapping->indices;
-        for (int64_t j = 0; j < n; j++) {
-            memcpy(newdataptr, coldata + rowindices[j] * elemsize, elemsize);
+        for (uint64_t j = 0; j < n; j++) {
+            memcpy(newdataptr, coldata + (uint64_t)rowindices[j] * elemsize, elemsize);
             newdataptr += elemsize;
         }
     }

@@ -9,7 +9,7 @@ ColMapping_from_array(int64_t *array, int64_t length, DataTable *dt)
     if (res == NULL) return NULL;
     res->length = length;
     res->indices = array;
-    res->coltypes = malloc(sizeof(ColType) * length);
+    res->coltypes = malloc(sizeof(ColType) * (size_t)length);
     if (res->coltypes == NULL) goto fail;
     Column *columns = dt->columns;
     for (int64_t i = 0; i < length; i++) {

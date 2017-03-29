@@ -69,7 +69,7 @@ DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args)
     dt->nrows = item0size;
 
     // Allocate memory for the datatable's columns
-    dt->columns = calloc(sizeof(Column), dt->ncols);
+    dt->columns = calloc(sizeof(Column), (size_t)dt->ncols);
     if (dt->columns == NULL) goto fail;
 
     // Fill the data
@@ -95,11 +95,8 @@ DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args)
 /**
  * Create a single column of data from the python list.
  *
- * @param list: the data source.
- * @param coltype: the desired dtype for the column; if DT_AUTO then this value
- *     will be modified in-place to an appropriate type.
- * @param coldata: pointer to a ``ColType`` structure that will be modified
- *     by reference to fill in the column's data.
+ * @param list the data source.
+ * @param column the column object to be filled with data.
  * @returns 0 on success, -1 on error
  */
 static int _fill_1_column(PyObject *list, Column *column) {
@@ -110,7 +107,7 @@ static int _fill_1_column(PyObject *list, Column *column) {
         return 0;
     }
 
-    column->data = malloc(ColType_size[column->type] * nrows);
+    column->data = malloc(ColType_size[column->type] * (size_t)nrows);
     if (column->data == NULL) return -1;
 
     int overflow;
@@ -149,7 +146,7 @@ static int _fill_1_column(PyObject *list, Column *column) {
                     long val = PyLong_AsLongAndOverflow(item, &overflow);
                     if (overflow || (val != 0 && val != 1))
                         return _switch_to_coltype(overflow? DT_DOUBLE : DT_LONG, list, column);
-                    ((char*)col)[i] = (unsigned char) val;
+                    ((unsigned char*)col)[i] = (unsigned char) val;
                 } break;
 
                 case DT_STRING:
@@ -212,7 +209,7 @@ static int _fill_1_column(PyObject *list, Column *column) {
         } else if (itemtype == &PyBool_Type) {
             unsigned char val = (item == Py_True);
             switch (column->type) {
-                case DT_BOOL:   ((char*)col)[i] = val;  break;
+                case DT_BOOL:   ((unsigned char*)col)[i] = val;  break;
                 case DT_LONG:   ((long*)col)[i] = (long) val;  break;
                 case DT_DOUBLE: ((double*)col)[i] = (double) val;  break;
                 case DT_STRING: ((char**)col)[i] = val? strdup("1") : strdup("0"); break;

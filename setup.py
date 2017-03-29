@@ -71,6 +71,28 @@ setup(
     ext_modules=[
         Extension("_datatable",
                   include_dirs=["c"],
-                  sources=c_sources)
+                  sources=c_sources,
+                  # Ignored warnings:
+                  #   -Wreserved-id-macro : triggers for python internals
+                  #   -Wpadded: warning about gaps in a struct, which are normal
+                  #   -Wunused-parameter: standard PyCFunction takes 2 params,
+                  #       even if one of them is NULL
+                  #   -Wpointer-arith: this warns about treating (void*) as
+                  #       (char*), which is a GNU extension. However since we
+                  #       only ever want to compile in GCC / CLang, such use is
+                  #       appropriate.
+                  #   -Wcovered-switch-default: we add `default` statement to
+                  #       an exhaustive switch to guard against memory
+                  #       corruption and careless enum definition expansion.
+                  #   -Wfloat-equal: this warning is just plain wrong...
+                  #       Comparing x == 0 or x == 1 is always safe.
+                  extra_compile_args=["-Weverything",
+                                      "-Wno-reserved-id-macro",
+                                      "-Wno-padded",
+                                      "-Wno-unused-parameter",
+                                      "-Wno-pointer-arith",
+                                      "-Wno-covered-switch-default",
+                                      "-Wno-float-equal",
+                                      "-fopenmp"])
     ],
 )

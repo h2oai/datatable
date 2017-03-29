@@ -5,6 +5,8 @@
 #include "py_rowmapping.h"
 #include "dtutils.h"
 
+PyMODINIT_FUNC PyInit__datatable(void);
+
 
 
 //------------------------------------------------------------------------------
@@ -42,7 +44,8 @@ static PyModuleDef datatablemodule = {
     "module doc",  /* module documentation */
     -1,            /* size of per-interpreter state of the module, or -1
                       if the module keeps state in global variables */
-    DatatableModuleMethods
+    DatatableModuleMethods,
+    0,0,0,0,
 };
 
 /* Called when Python program imports the module */
@@ -50,6 +53,8 @@ PyMODINIT_FUNC
 PyInit__datatable(void) {
     // Sanity checks
     assert(sizeof(char) == sizeof(unsigned char));
+    assert(sizeof(void) == 1);
+    assert(sizeof(size_t) == sizeof(int64_t));  // should this be an assert?
 
     // Instantiate module object
     PyObject *m = PyModule_Create(&datatablemodule);
