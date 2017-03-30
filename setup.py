@@ -86,6 +86,8 @@ setup(
                   #       corruption and careless enum definition expansion.
                   #   -Wfloat-equal: this warning is just plain wrong...
                   #       Comparing x == 0 or x == 1 is always safe.
+                  #   -Wgnu-statement-expression: we use GNU statement-as-
+                  #       expression syntax in some macros...
                   extra_compile_args=["-Weverything",
                                       "-Wno-reserved-id-macro",
                                       "-Wno-padded",
@@ -93,6 +95,7 @@ setup(
                                       "-Wno-pointer-arith",
                                       "-Wno-covered-switch-default",
                                       "-Wno-float-equal",
+                                      "-Wno-gnu-statement-expression",
                                       "-fopenmp"])
     ],
 )

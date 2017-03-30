@@ -3,6 +3,7 @@
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
+#include "fread_impl.h"
 #include "dtutils.h"
 
 PyMODINIT_FUNC PyInit__datatable(void);
@@ -34,6 +35,8 @@ static PyMethodDef DatatableModuleMethods[] = {
         "Column selector constructed from a list of column indices"},
     {"datatable_from_list", (PyCFunction)dt_DataTable_fromlist, METH_VARARGS,
         "Create Datatable from a list"},
+    {"fread", (PyCFunction)freadPy, METH_VARARGS,
+        "Read a text file and convert into a datatable"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -54,6 +57,7 @@ PyInit__datatable(void) {
     // Sanity checks
     assert(sizeof(char) == sizeof(unsigned char));
     assert(sizeof(void) == 1);
+    assert('\0' == (char)0);
     assert(sizeof(size_t) == sizeof(int64_t));  // should this be an assert?
 
     // Instantiate module object

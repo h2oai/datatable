@@ -39,4 +39,8 @@ typedef struct FReadExtraArgs {
                             PyUnicode_FromFormat(format, __VA_ARGS__)); \
     }
 
+
+
+PyObject* freadPy(PyObject *self, PyObject *args);
+
 #endif

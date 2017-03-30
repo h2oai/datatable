@@ -37,7 +37,7 @@ typedef enum FRColType {
 
 
 typedef void (*colfilter_fun_t)(FRColType **, const char **, int64_t, void*);
-typedef struct FReadExtraArgs;
+typedef struct FReadExtraArgs FReadExtraArgs;
 
 
 // *****************************************************************************
@@ -57,14 +57,14 @@ typedef struct FReadArgs {
     // mark is not allowed as a separator.
     char sep;
 
-    // Maximum number of rows to read, or 0 to read the entire dataset.
+    // Maximum number of rows to read, or -1 to read the entire dataset.
     int64_t nrows;
 
     // Is there a header at the beginning of the file? 0=no, 1=yes, 2=auto
     int header;
 
     // NULL-terminated list of strings that should be converted into NA values.
-    const char **nastrings;
+    const char* const* nastrings;
 
     // Number of input lines to skip when reading the file.
     int64_t skipLines;
