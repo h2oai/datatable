@@ -33,6 +33,13 @@ class DataTable(object):
         self._fill_from_source(src)
 
 
+    @staticmethod
+    def mmap(columns):
+        self = DataTable()
+        self._fill_from_pdt(columns)
+        return self
+
+
     #---------------------------------------------------------------------------
     # Basic properties
     #---------------------------------------------------------------------------
@@ -124,6 +131,20 @@ class DataTable(object):
         self._names = names
         self._inames = {n: i for i, n in enumerate(names)}
 
+
+    def _fill_from_pdt(self, columns):
+        self._dt = c.dt_from_memmap(columns)
+        self._ncols = self._dt.ncols
+        self._nrows = self._dt.nrows
+        self._types = self._dt.types
+        self._names = tuple("C%d" % (i + 1) for i in range(self._ncols))
+        self._inames = {n: i for i, n in enumerate(self._names)}
+
+
+
+    #---------------------------------------------------------------------------
+    # Main processor function
+    #---------------------------------------------------------------------------
 
     def __call__(self, rows=None, select=None, update=None, groupby=None,
                  join=None, sort=None, limit=None):
