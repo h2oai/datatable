@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import os
 import re
 import subprocess
 from llvmlite import binding
@@ -52,7 +53,8 @@ _engine = create_execution_engine()
 
 
 def c_to_llvm(code):
-    proc = subprocess.Popen(args=["clang", "-x", "c", "-S", "-emit-llvm",
+    clang = os.environ.get("CLANG", "clang")
+    proc = subprocess.Popen(args=[clang, "-x", "c", "-S", "-emit-llvm",
                                   "-o", "-", "-"],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
@@ -110,7 +112,7 @@ class CodeGenerator(object):
         out += "  int64 *outptr = out;\n"
         out += "  Column *columns = dt->columns;\n"
         if self._make_srcvars:
-            out += "  Column *srccolumns = dt->src->columns;\n"
+            out += "  Column *srccolumns = dt->source->columns;\n"
             if rowmapping_type == "array":
                 out += "  int64 *rowindices = dt->rowmapping->indices;\n"
             else:
@@ -177,7 +179,7 @@ class CodeColumn(object):
 
 _datastructures = """
 enum RowMappingType {RI_ARRAY, RI_SLICE};
-enum ColType {DT_AUTO, DT_DOUBLE, DT_LONG, DT_STRING, DT_BOOL, DT_OBJECT};
+enum DataLType {DT_MU, DT_REAL, DT_INTEGER, DT_STRING, DT_BOOLEAN, DT_OBJECT};
 typedef long long int int64;
 typedef struct RowMapping {
     enum RowMappingType type;
@@ -189,7 +191,7 @@ typedef struct RowMapping {
 } RowMapping;
 typedef struct Column {
     void* data;
-    enum ColType type;
+    enum DataLType type;
     int64 srcindex;
 } Column;
 typedef struct DataTable {
@@ -228,3 +230,5 @@ _ops_to_c = {
     "le": "<=",
     "ge": ">=",
 }
+
+
