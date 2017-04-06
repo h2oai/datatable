@@ -20,11 +20,11 @@ int init_py_datatable(PyObject *module) {
     PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
 
     // initialize auxiliary data
-    py_string_coltypes = malloc(sizeof(PyObject*) * DT_COUNT);
-    py_string_coltypes[DT_AUTO]   = PyUnicode_FromString("auto");
-    py_string_coltypes[DT_DOUBLE] = PyUnicode_FromString("real");
-    py_string_coltypes[DT_LONG]   = PyUnicode_FromString("int");
-    py_string_coltypes[DT_BOOL]   = PyUnicode_FromString("bool");
+    py_string_coltypes = malloc(sizeof(PyObject*) * DT_LTYPE_COUNT);
+    py_string_coltypes[DT_MU]   = PyUnicode_FromString("auto");
+    py_string_coltypes[DT_REAL] = PyUnicode_FromString("real");
+    py_string_coltypes[DT_INTEGER]   = PyUnicode_FromString("int");
+    py_string_coltypes[DT_BOOLEAN]   = PyUnicode_FromString("bool");
     py_string_coltypes[DT_STRING] = PyUnicode_FromString("str");
     py_string_coltypes[DT_OBJECT] = PyUnicode_FromString("obj");
     strRowMappingTypeArray = PyUnicode_FromString("array");
@@ -102,7 +102,7 @@ static PyObject* get_types(DataTable_PyObject *self)
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        ColType ct = self->ref->columns[i].type;
+        DataLType ct = self->ref->columns[i].type;
         PyTuple_SET_ITEM(list, i, incref(py_string_coltypes[ct]));
     }
     return list;

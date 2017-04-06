@@ -7,7 +7,7 @@
 #include "dtutils.h"
 
 static int _fill_1_column(PyObject *list, Column *column);
-static int _switch_to_coltype(ColType newtype, PyObject *list, Column *column);
+static int _switch_to_coltype(DataLType newtype, PyObject *list, Column *column);
 
 
 /**
@@ -75,7 +75,7 @@ DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args)
     // Fill the data
     Column *col = dt->columns;
     for (int64_t i = 0; i < dt->ncols; ++i, col++) {
-        col->type = DT_AUTO;
+        col->type = DT_MU;
         col->srcindex = -1;
         PyObject *src = PyList_GET_ITEM(list, i);
         int ret = _fill_1_column(src, col);
@@ -103,7 +103,7 @@ static int _fill_1_column(PyObject *list, Column *column) {
     long nrows = (long) Py_SIZE(list);
     if (nrows == 0) {
         column->data = NULL;
-        column->type = DT_DOUBLE;
+        column->type = DT_REAL;
         return 0;
     }
 
@@ -119,33 +119,33 @@ static int _fill_1_column(PyObject *list, Column *column) {
         if (item == Py_None) {
             //---- store NaN value ----
             switch (column->type) {
-                case DT_DOUBLE: ((double*)col)[i] = NAN; break;
-                case DT_LONG:   ((long*)col)[i] = LONG_MIN; break;
-                case DT_BOOL:   ((char*)col)[i] = 2; break;
+                case DT_REAL: ((double*)col)[i] = NAN; break;
+                case DT_INTEGER:   ((long*)col)[i] = LONG_MIN; break;
+                case DT_BOOLEAN:   ((char*)col)[i] = 2; break;
                 case DT_STRING: ((char**)col)[i] = NULL; break;
                 case DT_OBJECT: ((PyObject**)col)[i] = incref(item); break;
-                case DT_AUTO:   /* do nothing */ break;
+                case DT_MU:   /* do nothing */ break;
             }
 
         } else if (itemtype == &PyLong_Type) {
             //---- store an integer ----
             long_case:
             switch (column->type) {
-                case DT_LONG: {
+                case DT_INTEGER: {
                     long val = PyLong_AsLongAndOverflow(item, &overflow);
                     if (overflow)
-                        return _switch_to_coltype(DT_DOUBLE, list, column);
+                        return _switch_to_coltype(DT_REAL, list, column);
                     ((long*)col)[i] = val;
                 }   break;
 
-                case DT_DOUBLE:
+                case DT_REAL:
                     ((double*)col)[i] = PyLong_AsDouble(item);
                     break;
 
-                case DT_BOOL: {
+                case DT_BOOLEAN: {
                     long val = PyLong_AsLongAndOverflow(item, &overflow);
                     if (overflow || (val != 0 && val != 1))
-                        return _switch_to_coltype(overflow? DT_DOUBLE : DT_LONG, list, column);
+                        return _switch_to_coltype(overflow? DT_REAL : DT_INTEGER, list, column);
                     ((unsigned char*)col)[i] = (unsigned char) val;
                 } break;
 
@@ -157,11 +157,11 @@ static int _fill_1_column(PyObject *list, Column *column) {
                     ((PyObject**)col)[i] = incref(item);
                     break;
 
-                case DT_AUTO: {
+                case DT_MU: {
                     long val = PyLong_AsLongAndOverflow(item, &overflow);
                     return _switch_to_coltype(
-                        (val == 0 || val == 1) && !overflow? DT_BOOL :
-                        overflow? DT_DOUBLE : DT_LONG, list, column
+                        (val == 0 || val == 1) && !overflow? DT_BOOLEAN :
+                        overflow? DT_REAL : DT_INTEGER, list, column
                     );
                 }
             }
@@ -171,20 +171,20 @@ static int _fill_1_column(PyObject *list, Column *column) {
             float_case: {}
             double val = PyFloat_AS_DOUBLE(item);
             switch (column->type) {
-                case DT_DOUBLE:
+                case DT_REAL:
                     ((double*)col)[i] = val;
                     break;
 
-                case DT_LONG: {
+                case DT_INTEGER: {
                     double intpart, fracpart = modf(val, &intpart);
                     if (fracpart != 0 || intpart <= LONG_MIN || intpart >LONG_MAX)
-                        return _switch_to_coltype(DT_DOUBLE, list, column);
+                        return _switch_to_coltype(DT_REAL, list, column);
                     ((long*)col)[i] = (long) intpart;
                 }   break;
 
-                case DT_BOOL: {
+                case DT_BOOLEAN: {
                     if (val != 0 && val != 1)
-                        return _switch_to_coltype(DT_DOUBLE, list, column);
+                        return _switch_to_coltype(DT_REAL, list, column);
                     ((char*)col)[i] = (char) (val == 1);
                 }   break;
 
@@ -196,11 +196,11 @@ static int _fill_1_column(PyObject *list, Column *column) {
                     ((PyObject**)col)[i] = incref(item);
                     break;
 
-                case DT_AUTO: {
+                case DT_MU: {
                     double intpart, fracpart = modf(val, &intpart);
                     return _switch_to_coltype(
-                        val == 0 || val == 1? DT_BOOL :
-                        fracpart == 0 && (LONG_MIN < intpart && intpart < LONG_MAX)? DT_LONG : DT_DOUBLE,
+                        val == 0 || val == 1? DT_BOOLEAN :
+                        fracpart == 0 && (LONG_MIN < intpart && intpart < LONG_MAX)? DT_INTEGER : DT_REAL,
                         list, column
                     );
                 }
@@ -209,12 +209,12 @@ static int _fill_1_column(PyObject *list, Column *column) {
         } else if (itemtype == &PyBool_Type) {
             unsigned char val = (item == Py_True);
             switch (column->type) {
-                case DT_BOOL:   ((unsigned char*)col)[i] = val;  break;
-                case DT_LONG:   ((long*)col)[i] = (long) val;  break;
-                case DT_DOUBLE: ((double*)col)[i] = (double) val;  break;
+                case DT_BOOLEAN:   ((unsigned char*)col)[i] = val;  break;
+                case DT_INTEGER:   ((long*)col)[i] = (long) val;  break;
+                case DT_REAL: ((double*)col)[i] = (double) val;  break;
                 case DT_STRING: ((char**)col)[i] = val? strdup("1") : strdup("0"); break;
                 case DT_OBJECT: ((PyObject**)col)[i] = incref(item);  break;
-                case DT_AUTO:   return _switch_to_coltype(DT_BOOL, list, column);
+                case DT_MU:   return _switch_to_coltype(DT_BOOLEAN, list, column);
             }
 
         } else if (itemtype == &PyUnicode_Type) {
@@ -236,9 +236,9 @@ static int _fill_1_column(PyObject *list, Column *column) {
         }
     }
 
-    // If all values in the column were NaNs, then cast that column as DT_DOUBLE
-    if (column->type == DT_AUTO) {
-        return _switch_to_coltype(DT_DOUBLE, list, column);
+    // If all values in the column were NaNs, then cast that column as DT_REAL
+    if (column->type == DT_MU) {
+        return _switch_to_coltype(DT_REAL, list, column);
     }
     return 0;
 }
@@ -248,7 +248,7 @@ static int _fill_1_column(PyObject *list, Column *column) {
 /**
  * Switch to a different column type and then re-run `_fill_1_column()`.
  */
-static int _switch_to_coltype(ColType newtype, PyObject *list, Column *column) {
+static int _switch_to_coltype(DataLType newtype, PyObject *list, Column *column) {
     free(column->data);
     column->type = newtype;
     return _fill_1_column(list, column);

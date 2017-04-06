@@ -1,7 +1,7 @@
 #ifndef dt_DATATABLE_H
 #define dt_DATATABLE_H
 #include <inttypes.h>
-#include "coltype.h"
+#include "types.h"
 
 // break circular dependency between .h files
 typedef struct RowMapping RowMapping;
@@ -69,15 +69,8 @@ typedef struct DataTable {
  *     is in the `source` datatable.
  *
  * :param type:
- *     Type of data within the column (the enum is defined in coltype.h).
- *     Here's the correspondence between the values of the `type` field and
- *     the type of the `data` storage:
- *         DT_AUTO:    --
- *         DT_DOUBLE:  double
- *         DT_LONG:    int64_t
- *         DT_STRING:  ?
- *         DT_BOOL:    char
- *         DT_OBJECT:  PyObject*
+ *     Type of data within the column (the enum is defined in types.h).
+ *     TODO: convert to DataSType
  *
  * :param srcindex:
  *     This parameter is meaningful only if `data` is NULL. In that case it
@@ -87,7 +80,7 @@ typedef struct DataTable {
  */
 typedef struct Column {
     void* data;
-    enum ColType type;
+    enum DataLType type;
     int64_t srcindex;
     // RollupStats* stats;
 } Column;

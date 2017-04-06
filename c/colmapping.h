@@ -1,13 +1,13 @@
 #ifndef dt_COLMAPPING_H
 #define dt_COLMAPPING_H
-#include "coltype.h"
+#include "types.h"
 #include "datatable.h"
 
 
 typedef struct ColMapping {
     int64_t length;
     int64_t *indices;
-    ColType *coltypes;
+    DataLType *coltypes;
 } ColMapping;
 
 

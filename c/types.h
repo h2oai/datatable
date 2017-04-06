@@ -1,0 +1,294 @@
+#ifndef dt_COLTYPE_H
+#define dt_COLTYPE_H
+#include <stdlib.h>
+
+
+/**
+ * "Logical" type of a data column.
+ *
+ * Logical type is supposed to match the user's notion of a column type. For
+ * example logical "DT_INTEGER" type corresponds to the mathematical set of
+ * integers, and thus reflects the usual notion of what the "integer" *is*.
+ *
+ * Each logical type has multiple underlying "storage" types, that describe
+ * how the type is actually stored in memory. For example, DT_INTEGER can be
+ * stored as an 8-, 16-, 32- or a 64-bit integer. All "storage" types within
+ * a single logical type should be freely interchangeable: operators or
+ * functions that accept certain logical type should be able to work with any
+ * its storage subtype.
+ *
+ * Different logical types may or may not be interchangeable, depending on the
+ * use case. For example, most binary operators would promote boolean ->
+ * integer -> real; however some operators / functions may not. For example,
+ * bit shift operators require integer (or boolean) arguments.
+ *
+ *
+ * DT_MU
+ *     special "marker" type for a column that has unknown type. For example,
+ *     this can be used to indicate that the system should autodetect the
+ *     column's type from the data. This type has no storage types.
+ *
+ * DT_BOOLEAN
+ *     column for storing boolean (0/1) values. Right now we only allow to
+ *     store booleans as 1-byte signed chars. In most arithmetic expressions
+ *     booleans are automatically promoted to integers (or reals) if needed.
+ *
+ * DT_INTEGER
+ *     integer values, equivalent of ℤ in mathematics. We support multiple
+ *     storage sizes for integers: from 8 bits to 64 bits, but do not allow
+ *     arbitrary-length integers. In most expressions integers will be
+ *     automatically promoted to reals if needed.
+ *
+ * DT_REAL
+ *     real values, equivalent of ℝ in mathematics. We store these in either
+ *     fixed- or floating-point format.
+ *
+ * DT_STRING
+ *     all strings are encoded in MUTF-8 (modified UTF-8), whose only
+ *     distinction from the regular UTF-8 is that the null character is encoded
+ *     as 0xC080 and not 0x00. In MUTF-8 null byte cannot appear, and is only
+ *     used as an end-of-string marker.
+ *
+ * DT_OBJECT
+ *     column for storing all other values of arbitrary (possibly heterogeneous)
+ *     types. Each element is a `PyObject*`. Missing values are `Py_None`s.
+ *
+ */
+typedef enum DataLType {
+    DT_MU       = 0,
+    DT_BOOLEAN  = 1,
+    DT_INTEGER  = 2,
+    DT_REAL     = 3,
+    DT_STRING   = 4,
+    DT_DATETIME = 5,
+    DT_DURATION = 6,  // ?
+    DT_OBJECT   = 7
+} DataLType;
+
+#define DT_LTYPE_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
+
+
+
+/**
+ * "Storage" type of a data column.
+ *
+ * These storage types are in 1-to-many correspondence with the logical types.
+ * That is, a single logical type may have multiple storage types, but not the
+ * other way around.
+ *
+ * DT_VOID
+ *     "Fake" type, its use indicates an error.
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * DT_BOOLEAN_I8
+ *     elem: signed char (1 byte)
+ *     NA:   -128
+ *     A boolean with True = 1, False = 0. All other values are invalid.
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * DT_INTEGER_I8
+ *     elem: signed char (1 byte)
+ *     NA:   -2**7 = -128
+ *     An integer in the range -127 .. 127.
+ *
+ * DT_INTEGER_I16
+ *     elem: short int (2 bytes)
+ *     NA:   -2**15 = -32768
+ *     An integer in the range -32767 .. 32767.
+ *
+ * DT_INTEGER_I32
+ *     elem: int (4 bytes)
+ *     NA:   -2**31 = -2147483648
+ *     An integer in the range -2147483647 .. 2147483647.
+ *
+ * DT_INTEGER_I64
+ *     elem: long int (8 bytes)
+ *     NA:   -2**63 = -9223372036854775808
+ *     An integer in the range -9223372036854775807 .. 9223372036854775807.
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * DT_REAL_F32
+ *     elem: float (4 bytes)
+ *     NA:   0x7F8007A2
+ *     Floating-point real number, corresponding to C's `float` (IEEE 754). We
+ *     designate a specific NAN payload to mean the NA value; whereas all other
+ *     numbers starting with 0x7F8 or 0xFF8 should be treated as actual NANs (or
+ *     infinities).
+ *
+ * DT_REAL_F64
+ *     elem: double (8 bytes)
+ *     NA:   0x7FF00000000007A2
+ *     Floating-point real number, corresponding to C's `double` (IEEE 754).
+ *
+ * DT_REAL_I16
+ *     elem: short int (2 bytes)
+ *     NA:   -2**15 = -32768
+ *     meta: `scale` (char); `currency` (int)
+ *     The fixed-point real number (aka decimal); the scale variable in the meta
+ *     indicates the number of digits after the decimal point. For example,
+ *     number 7.11 can be stored as integer 711 with scale = 2.
+ *     Note that this is different from IEEE 754 "decimal" format, since we
+ *     include scale into the meta information of the column, rather than into
+ *     each value. Thus, all values will have common scale, which greatly
+ *     simplifies their use.
+ *     The `currency` meta is optional. If present (non-0), it indicates the
+ *     unicode codepoint of a currency symbol to be printed in front of the
+ *     value in display. Two columns with different non-0 currency symbols are
+ *     considered incompatible.
+ *
+ * DT_REAL_I32
+ *     elem: int (4 bytes)
+ *     NA:   -2**31
+ *     meta: `scale` (char); `currency` (int)
+ *     Fixed-point real number stored as a 32-bit integer.
+ *
+ * DT_REAL_I64
+ *     elem: long int (8 bytes)
+ *     NA:   -2**63
+ *     meta: `scale` (char); `currency` (int)
+ *     Fixed-point real number stored as a 64-bit integer.
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * DT_STRING_UI32_VCHAR
+ *     elem: int (4 bytes) + char[]
+ *     NA:   2**32
+ *     meta: `buffer` (char*)
+ *     Variable-width strings. The actual string data is stored in the `buffer`,
+ *     and each element in the column is just a 32-bit offset within that
+ *     buffer. All strings within the buffer are stored contiguously without
+ *     gaps (null values are skipped). The strings are encoded in MUTF-8, and
+ *     are \0-terminated. The `buffer` array is "owned" by the column, and will
+ *     be freed if the column is removed.
+ *
+ * DT_STRING_UI64_VCHAR
+ *     elem: long int (8 bytes) + char[]
+ *     NA:   2**64
+ *     meta: `buffer` (char*)
+ *     Variable-width strings: same as DT_STRING_UI32_VCHAR but use 64-bit
+ *     offsets.
+ *
+ * DT_STRING_FCHAR
+ *     elem: char[] (n bytes)
+ *     NA:   "\0\0...\0"
+ *     meta: `n` (char)
+ *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
+ *     constant width `n` and are therefore stored as `char[n]` arrays. They are
+ *     *not* null-terminated, however strings that are shorter than `n` in width
+ *     will be \0-padded. The width `n` is given in the metadata.
+ *
+ * DT_STRING_UI8_ENUM
+ *     elem: unsigned char (1 byte)
+ *     NA:   256
+ *     meta: `buffer` (char*), `offsets` (int[])
+ *     String column stored as a categorical variable (aka "factor" or "enum").
+ *     This type is suitable for columns with low cardinality, i.e. having no
+ *     more than 255 distinct string values.
+ *     Meta information contains `buffer` with the character data, and `offsets`
+ *     array which tells where the string for each level is located within the
+ *     `buffer`.
+ *
+ * DT_STRING_UI16_ENUM
+ *     elem: unsigned short int (2 bytes)
+ *     NA:   65536
+ *     meta: `buffer` (char*), `offsets` (int[])
+ *     Strings stored as a categorical variable with no more than 65535 distinct
+ *     levels.
+ *
+ * DT_STRING_UI32_ENUM
+ *     elem: unsigned int (4 bytes)
+ *     NA:   2**32
+ *     meta: `buffer` (char*), `offsets` (int[])
+ *     Strings stored as a categorical variable with no more than 4294967296
+ *     distinct levels.
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * DT_DATETIME_I64_EPOCH
+ *     elem: long int (8 bytes)
+ *     NA:   -2**63
+ *     Timestamp, stored as the number of microseconds since 0000-03-01. The
+ *     allowed time range is ≈290,000 years around the epoch. The time is
+ *     assumed to be in UTC, and does not allow specifying a time zone.
+ *
+ * DT_DATETIME_I64_PRTMN
+ *     elem: long int (8 bytes)
+ *     NA:   -2**63
+ *     Timestamp, stored as YYYYMMDDhhmmssmmmuuu, i.e. concatenated date parts.
+ *     The widths of each subfield are:
+ *         YYYY: years,        18 bits (signed)
+ *           MM: months,        4 bits
+ *           DD: days,          5 bits
+ *           hh: hours,         5 bits
+ *           mm: minutes,       6 bits
+ *           ss: seconds,       6 bits
+ *          mmm: milliseconds, 10 bits
+ *          uuu: microseconds, 10 bits
+ *     The allowed time range is ≈131,000 years around the epoch. The time is
+ *     in UTC, and does not allow specifying a time zone.
+ *
+ * DT_DATETIME_I32_TIME
+ *     elem: int (4 bytes)
+ *     NA:   -2**31
+ *     Time only: the number of milliseconds since midnight. The allowed time
+ *     range is ≈24 days.
+ *
+ * DT_DATETIME_I32_DATE
+ *     elem: int (4 bytes)
+ *     NA:   -2**31
+ *     Date only: the number of days since 0000-03-01. The allowed time range
+ *     is ≈245,000 years.
+ *
+ * DT_DATETIME_I16_MONTH
+ *     elem: short int (2 bytes)
+ *     NA:   -2**15
+ *     Year+month only: the number of months since 0000-03-01. The allowed time
+ *     range is up to year 2730.
+ *     This type is specifically designed for business applications. It allows
+ *     adding/subtraction in monthly/yearly intervals (other datetime types do
+ *     not allow that since months/years have uneven lengths).
+ *
+ */
+typedef enum DataSType {
+    DT_VOID = 0,
+    DT_BOOLEAN_I8,
+    DT_INTEGER_I8,
+    DT_INTEGER_I16,
+    DT_INTEGER_I32,
+    DT_INTEGER_I64,
+    DT_REAL_F32,
+    DT_REAL_F64,
+    DT_REAL_I16,
+    DT_REAL_I32,
+    DT_REAL_I64,
+    DT_STRING_UI32_VCHAR,
+    DT_STRING_UI64_VCHAR,
+    DT_STRING_FCHAR,
+    DT_STRING_UI8_ENUM,
+    DT_STRING_UI16_ENUM,
+    DT_STRING_UI32_ENUM,
+    DT_DATETIME_I64_EPOCH,
+    DT_DATETIME_I64_PRTMN,
+    DT_DATETIME_I32_TIME,
+    DT_DATETIME_I32_DATE,
+    DT_DATETIME_I16_MONTH,
+} DataSType;
+
+#define DT_STYPES_COUNT  (DT_DATETIME_I64_PRTMN + 1)
+
+
+extern size_t ColType_size[DT_LTYPE_COUNT];
+
+/**
+ * Mapping of storage types into logical types.
+ */
+extern int STypeToLType[DT_STYPES_COUNT + 1];
+
+
+// Initializer function
+int init_types(void);
+
+#endif

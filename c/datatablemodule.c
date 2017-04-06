@@ -5,6 +5,7 @@
 #include "py_rowmapping.h"
 #include "fread_impl.h"
 #include "dtutils.h"
+#include "types.h"
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -125,9 +126,9 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
             PyErr_Format(PyExc_ValueError, "Cannot find . in column %s", colname);
             return NULL;
         }
-        int elemtype = strcmp(dotptr + 1, "bool") == 0? DT_BOOL :
-                       strcmp(dotptr + 1, "int64") == 0? DT_LONG :
-                       strcmp(dotptr + 1, "double") == 0? DT_DOUBLE : 0;
+        int elemtype = strcmp(dotptr + 1, "bool") == 0? DT_BOOLEAN :
+                       strcmp(dotptr + 1, "int64") == 0? DT_INTEGER :
+                       strcmp(dotptr + 1, "double") == 0? DT_REAL : 0;
         if (!elemtype) {
             PyErr_Format(PyExc_ValueError, "Unknown column type: %s", dotptr + 1);
             return NULL;
@@ -248,13 +249,7 @@ PyInit__datatable(void) {
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowmapping(m)) return NULL;
     if (!init_py_colmapping(m)) return NULL;
-
-    ColType_size[DT_AUTO] = 0;
-    ColType_size[DT_DOUBLE] = sizeof(double);
-    ColType_size[DT_LONG] = sizeof(long);
-    ColType_size[DT_BOOL] = sizeof(char);
-    ColType_size[DT_STRING] = sizeof(char*);
-    ColType_size[DT_OBJECT] = sizeof(PyObject*);
+    if (!init_types()) return NULL;
 
     Py_int0 = PyLong_FromLong(0);
     Py_int1 = PyLong_FromLong(1);

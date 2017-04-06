@@ -90,12 +90,12 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                                             rindexstart + rindexstep * j;
             PyObject *value = NULL;
             switch (column.type) {
-                case DT_DOUBLE: {
+                case DT_REAL: {
                     double x = ((double*)coldata)[irow];
                     value = isnan(x)? none() : PyFloat_FromDouble(x);
                 }   break;
 
-                case DT_LONG: {
+                case DT_INTEGER: {
                     int64_t x = ((int64_t*)coldata)[irow];
                     value = x == LONG_MIN? none() : PyLong_FromLongLong(x);
                 }   break;
@@ -105,7 +105,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                     value = x == NULL? none() : PyUnicode_FromString(x);
                 }   break;
 
-                case DT_BOOL: {
+                case DT_BOOLEAN: {
                     char x = ((char*)coldata)[irow];
                     value = x == 0? Py_int0 : x == 1? Py_int1 : Py_None;
                     Py_INCREF(value);
@@ -116,7 +116,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                     Py_XINCREF(value);
                 }   break;
 
-                case DT_AUTO:
+                case DT_MU:
                 default:
                     assert(0);
             }
@@ -248,12 +248,12 @@ static int _check_consistency(
     for (int64_t i = col0; i < col1; ++i) {
         Column col = dt->columns[i];
         Column *srccols = dt->source == NULL? NULL : dt->source->columns;
-        if (col.type == DT_AUTO) {
+        if (col.type == DT_MU) {
             PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has type DT_AUTO", i);
+                "Invalid datatable: column %ld has type DT_MU", i);
             return 0;
         }
-        if (col.type <= 0 || col.type >= DT_COUNT) {
+        if (col.type <= 0 || col.type >= DT_LTYPE_COUNT) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has unknown type %d",
                 i, col.type);
