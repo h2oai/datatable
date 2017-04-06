@@ -71,9 +71,10 @@ def test_rows_integer(dt0):
     assert as_list(dt0(2)) == [[1], [9], [1.3]]
     assert as_list(dt0(4)) == [[0], [None], [100000]]
     assert as_list(dt0[1, :]) == [[1], [-11], [1]]
-    assert_valueerror(dt0, 10, "datatable contains 10 rows; row 10 is invalid")
-    assert_valueerror(dt0, -11, "row -11 is invalid")
-    assert_valueerror(dt0, -20, "row -20 is invalid")
+    assert_valueerror(dt0, 10,
+                      "datatable contains 10 rows; row number 10 is invalid")
+    assert_valueerror(dt0, -11, "row number -11 is invalid")
+    assert_valueerror(dt0, -20, "row number -20 is invalid")
 
 
 def test_rows_slice(dt0):
@@ -158,7 +159,7 @@ def test_rows_multislice(dt0):
     assert_valueerror(
         dt0, [1, "hey"],
         "Invalid row selector 'hey' at element 1 of the `rows` list")
-    assert_valueerror(dt0, [1, -1, 5, -11], "row -11 is invalid")
+    assert_valueerror(dt0, [1, -1, 5, -11], "row number -11 is invalid")
 
 
 def test_rows_column(dt0):

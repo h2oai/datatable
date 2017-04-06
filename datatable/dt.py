@@ -161,8 +161,8 @@ class DataTable(object):
                   datatable (i.e. -1 is the last row).
                 - a slice, representing some ordered subset of rows. The slice
                   has exactly the same semantics as in Python, for example
-                  `slice(None, 10)` will select the first 10 rows, and
-                  `slice(None, None, -1)` will select all rows in reverse.
+                  `slice(None, 10)` selects the first 10 rows, and
+                  `slice(None, None, -1)` selects all rows in reverse.
                 - a range, also representing some subset of rows. The range has
                   the semantics of a list into which this range would expand.
                   This is very similar to a slice, except with regard
@@ -291,6 +291,7 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         rows_selector = self._rows_selector(rows)
+        cols_selector = self._cols_selector(select)
 
         res = DataTable()
         res._dt = self._dt(rows_selector)
@@ -318,7 +319,7 @@ class DataTable(object):
 
         from_generator = False
         if isinstance(arg, types.GeneratorType):
-            # If an iterator is given, materialize it first. Otherwise there
+            # If a iterator is given, materialize it first. Otherwise there
             # is no way of telling whether the produced indices are valid
             arg = list(arg)
             from_generator = True
@@ -337,12 +338,13 @@ class DataTable(object):
                     else:
                         raise ValueError(
                             f"datatable contains {plural(nrows, 'row')}; "
-                            f"row {elem} is invalid")
+                            f"row number {elem} is invalid")
                 elif isinstance(elem, (range, slice)):
                     if elem.step == 0:
                         raise ValueError("In %r step must not be 0" % elem)
                     if not all(x is None or isinstance(x, int)
                                for x in (elem.start, elem.stop, elem.step)):
+                        self.__slice = elem
                         raise ValueError(f"{elem} is not integer-valued")
                     if isinstance(elem, range):
                         res = normalize_range(elem, nrows)
@@ -406,6 +408,84 @@ class DataTable(object):
                             "function: %r" % arg)
         else:
             raise TypeError("Unexpected `rows` argument: %r" % arg)
+
+
+    def _cols_selector(self, arg):
+        """
+        Normalize the column selector ``arg`` and ensure its correctness.
+
+        :param arg: same as parameter ``select`` in self.__call__
+        :return: a :class:`ColMapping` object
+        """
+        if arg is Ellipsis:
+            return list(range(self.ncols))
+
+        if isinstance(arg, (int, str, slice)):
+            arg = [arg]
+
+        if isinstance(arg, (list, tuple)):
+            ncols = self._ncols
+            names = self._names
+            out = []
+            for col in arg:
+                if isinstance(col, int):
+                    if -ncols <= col < ncols:
+                        if col < 0:
+                            col += ncols
+                        out.append((col, self._names[col]))
+                    else:
+                        n_columns = plural(ncols, "column")
+                        raise ValueError(f"datatable has {n_columns}; column "
+                                         f"number {col} is invalid")
+                elif isinstance(col, str):
+                    if col in self._inames:
+                        out.append((self._inames[col], col))
+                    else:
+                        raise ValueError(f"Column {col!r} not found in the "
+                                         f"datatable")
+                elif isinstance(col, slice):
+                    start = col.start
+                    stop = col.stop
+                    step = col.step
+                    if isinstance(start, str) or isinstance(stop, str):
+                        if start is None:
+                            col0 = 0
+                        elif isinstance(start, str):
+                            if start in self._inames:
+                                col0 = self._inames[start]
+                            else:
+                                raise ValueError(f"Column name {start!r} not "
+                                                 "found in the datatable")
+                        else:
+                            raise ValueError("The slice should start with a "
+                                             f"column name: {col}")
+                        if stop is None:
+                            col1 = ncols
+                        elif isinstance(stop, str):
+                            if stop in self._inames:
+                                col1 = self._inames[stop] + 1
+                            else:
+                                raise ValueError(f"Column name {stop!r} not "
+                                                 "found in the datatable")
+                        else:
+                            raise ValueError("The slice should end with a "
+                                             f"column name: {col}")
+                        if step is None or step == 1:
+                            step = 1
+                        else:
+                            raise ValueError("Column name slices cannot use "
+                                             "strides: {col}")
+                        if col1 <= col0:
+                            col0, col1, step = col1 - 1, col0 - 1, -1
+                    else:
+                        if not all(x is None or isinstance(x, int)
+                                   for x in (start, stop, step)):
+                            raise ValueError(f"{col} is not integer-valued")
+                        col0, col1, step = normalize_slice(col, ncols)
+                    for i in range(col0, col1, step):
+                        out.append((i, self._names[i]))
+
+            return out
 
 
     def __getitem__(self, item):
