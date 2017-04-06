@@ -57,7 +57,7 @@ setup(
     ],
     keywords=["datatable", "data", "dataframe", "munging", "numpy", "pandas"],
 
-    packages=find_packages(exclude=["tests*", "docs*", "c*", "temp*"]),
+    packages=find_packages("datatable"),
 
     # Runtime dependencies
     install_requires=["typesentry", "blessed", "llvmlite"],
