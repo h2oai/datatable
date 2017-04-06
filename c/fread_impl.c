@@ -1,71 +1,119 @@
 #include "fread_impl.h"
 
 
-#define TRY(x) ({ PyObject *z = x; if (z == NULL) goto fail; z; })
-#define XDECREF(x)      Py_XDECREF(x); x = NULL
-#define XDECREF2(x, y)  Py_XDECREF(x); Py_XDECREF(y); x = y = NULL
+#define ATTR(pyobj, attr)  PyObject_GetAttrString(pyobj, attr)
+
+#define TOSTRING(pyobj, dflt) ({                                               \
+    char *res = dflt;                                                          \
+    PyObject *x = pyobj;                                                       \
+    if (x == NULL) goto fail;                                                  \
+    if (x != Py_None) {                                                        \
+        PyObject *y = PyUnicode_AsEncodedString(x, "utf-8", "strict");         \
+        if (y == NULL) goto fail;                                              \
+        res = PyBytes_AsString(y);                                             \
+        Py_DECREF(y);                                                          \
+    }                                                                          \
+    Py_DECREF(x);                                                              \
+    res;                                                                       \
+})
+
+#define TOFSSTRING(pyobj, dflt) ({                                             \
+    char *res = dflt;                                                          \
+    PyObject *x = pyobj;                                                       \
+    if (x == NULL) goto fail;                                                  \
+    if (x != Py_None) {                                                        \
+        PyObject *y = PyUnicode_EncodeFSDefault(x);                            \
+        if (y == NULL) goto fail;                                              \
+        res = PyBytes_AsString(y);                                             \
+        Py_DECREF(y);                                                          \
+    }                                                                          \
+    Py_DECREF(x);                                                              \
+    res;                                                                       \
+})
+
+#define TOCHAR(pyobj, dflt) ({                                                 \
+    char res = dflt;                                                           \
+    PyObject *x = pyobj;                                                       \
+    if (x == NULL) goto fail;                                                  \
+    if (x != Py_None) {                                                        \
+        res = (char)PyUnicode_ReadChar(x, 0);                                  \
+    }                                                                          \
+    Py_DECREF(x);                                                              \
+    res;                                                                       \
+})
+
+#define TOINT64(pyobj, dflt) ({                                                \
+    int64_t res = dflt;                                                        \
+    PyObject *x = pyobj;                                                       \
+    if (x == NULL) goto fail;                                                  \
+    if (x != Py_None) {                                                        \
+        res = PyLong_AsLongLong(x);                                            \
+    }                                                                          \
+    Py_DECREF(x);                                                              \
+    res;                                                                       \
+})
+
+#define TOBOOL(pyobj, dflt) ({                                                 \
+    int res = dflt;                                                            \
+    PyObject *x = pyobj;                                                       \
+    if (x == NULL) goto fail;                                                  \
+    if (x != Py_None) {                                                        \
+        res = (x == Py_True);                                                  \
+    }                                                                          \
+    Py_DECREF(x);                                                              \
+    res;                                                                       \
+})
+
+#define TOSTRINGLIST(pyobj, dflt) ({                                           \
+    char **res = dflt;                                                         \
+    PyObject *x = pyobj;                                                       \
+    if (x == NULL) goto fail;                                                  \
+    if (x != Py_None) {                                                        \
+        Py_ssize_t count = PyList_Size(x);                                     \
+        res = calloc(sizeof(char*), count + 1);                                \
+        for (int i = 0; i < count; i++) {                                      \
+            PyObject *item = PyList_GetItem(x, i);                             \
+            PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");  \
+            if (y == NULL) {                                                   \
+                for (int j = 0; j < i; j++) free(res[j]);                      \
+                free(res);                                                     \
+                goto fail;                                                     \
+            }                                                                  \
+            res[i] = PyBytes_AsString(y);                                      \
+            Py_DECREF(y);                                                      \
+        }                                                                      \
+    }                                                                          \
+    Py_DECREF(x);                                                              \
+    res;                                                                       \
+})
+
+void free_string(const char *s) {
+    union { const char *immutable; char *mutable; } u;
+    u.immutable = s;
+    free(u.mutable);
+}
+
 
 
 PyObject* freadPy(PyObject *self, PyObject *args)
 {
     PyObject *freader;
     FReadArgs *frargs = NULL;
-    PyObject *a = NULL, *b = NULL;
-    char **nastrings = NULL;
     FReadExtraArgs *extra = NULL;
 
     if (!PyArg_ParseTuple(args, "O:fread", &freader))
         goto fail;
 
-    frargs = calloc(sizeof(FReadArgs), 1);  // zero-out all pointers
+    frargs = calloc(sizeof(frargs), 1);  // zero-out all pointers
     if (!frargs) goto fail;
 
-    a = TRY(PyObject_GetAttrString(freader, "filename"));
-    if (a == Py_None) {
-        frargs->filename = NULL;
-    } else {
-        b = TRY(PyUnicode_EncodeFSDefault(a));
-        frargs->filename = PyBytes_AsString(b);
-    }
-    XDECREF2(a, b);
-
-    a = TRY(PyObject_GetAttrString(freader, "text"));
-    if (a == Py_None) {
-        frargs->input = NULL;
-    } else {
-        b = TRY(PyUnicode_AsEncodedString(a, "utf-8", "strict"));
-        frargs->input = PyBytes_AsString(b);
-    }
-    XDECREF2(a, b);
-
-
-    a = TRY(PyObject_GetAttrString(freader, "separator"));
-    frargs->sep = (a == Py_None)? 0 : (char)PyUnicode_ReadChar(a, 0);
-    XDECREF(a);
-
-    a = TRY(PyObject_GetAttrString(freader, "max_nrows"));
-    frargs->nrows = (a == Py_None)? 0 : PyLong_AsLongLong(a);
-    XDECREF(a);
-
-    a = TRY(PyObject_GetAttrString(freader, "header"));
-    frargs->header = (a == Py_False)? 0 : (a == Py_True)? 1 : 2;
-    XDECREF(a);
-
-    a = TRY(PyObject_GetAttrString(freader, "na_strings"));
-    int n_nastrings = (int) PyList_Size(a);
-    nastrings = malloc(sizeof(char**) * (size_t)(n_nastrings + 1));
-    for (int i = 0; i < n_nastrings; i++) {
-        PyObject *item = PyList_GetItem(a, i);  // borrowed reference
-        b = TRY(PyUnicode_AsEncodedString(item, "utf-8", "strict"));
-        nastrings[i] = PyBytes_AsString(b);
-    }
-    nastrings[n_nastrings] = NULL;
-    frargs->nastrings = (const char* const*) nastrings;
-    XDECREF2(a, b);
-
-    a = TRY(PyObject_GetAttrString(freader, "verbose"));
-    frargs->verbose = (a == Py_True);
-    XDECREF(a);
+    frargs->filename = TOFSSTRING(ATTR(freader, "filename"), NULL);
+    frargs->input = TOSTRING(ATTR(freader, "text"), NULL);
+    frargs->sep = TOCHAR(ATTR(freader, "separator"), '\0');
+    frargs->nrows = TOINT64(ATTR(freader, "max_nrows"), 0);
+    frargs->header = TOBOOL(ATTR(freader, "header"), 2);
+    frargs->verbose = TOBOOL(ATTR(freader, "verbose"), 0);
+    frargs->nastrings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
 
     extra = malloc(sizeof(FReadExtraArgs));
     extra->freader = freader;
@@ -77,13 +125,16 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     return PyLong_FromLong(res);
 
   fail:
-    if (nastrings) {
-        char **ptr = nastrings;
-        while (*ptr++) free(*ptr);
-        free(nastrings);
+    if (frargs) {
+        if (frargs->nastrings) {
+            char **ptr = frargs->nastrings;
+            while (*ptr++) free(*ptr);
+            free(frargs->nastrings);
+        }
+        free_string(frargs->filename);
+        free_string(frargs->input);
+        free(frargs->extra);
+        free(frargs);
     }
-    free(extra);
-    free(frargs);
-    XDECREF2(a, b);
     return NULL;
 }
