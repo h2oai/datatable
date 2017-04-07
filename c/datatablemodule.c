@@ -3,9 +3,9 @@
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
+#include "py_types.h"
 #include "fread_impl.h"
 #include "dtutils.h"
-#include "types.h"
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -168,7 +168,7 @@ PyInit__datatable(void) {
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowmapping(m)) return NULL;
     if (!init_py_colmapping(m)) return NULL;
-    if (!init_types()) return NULL;
+    if (!init_py_types(m)) return NULL;
 
     Py_int0 = PyLong_FromLong(0);
     Py_int1 = PyLong_FromLong(1);

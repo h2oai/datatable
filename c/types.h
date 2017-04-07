@@ -1,5 +1,5 @@
-#ifndef dt_COLTYPE_H
-#define dt_COLTYPE_H
+#ifndef dt_TYPES_H
+#define dt_TYPES_H
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -66,7 +66,7 @@ typedef enum DataLType {
     DT_OBJECT   = 7
 } DataLType;
 
-#define DT_LTYPE_COUNT DT_OBJECT + 1  // 1 more than the largest DT_* type
+#define DT_LTYPES_COUNT  (DT_OBJECT + 1)  // 1 more than the largest DT_* type
 
 
 
@@ -296,6 +296,7 @@ typedef enum DataSType {
  * Information about STypes, for programmatic access.
  */
 typedef struct STypeInfo {
+    char   code[4];
     size_t elemsize;
     _Bool  hasmeta;
     DataLType ltype;
@@ -356,6 +357,6 @@ static inline double __nand__(void) {
 /*----------------------------------------------------------------------------*/
 
 // Initializer function
-int init_types(void);
+void init_types(void);
 
 #endif

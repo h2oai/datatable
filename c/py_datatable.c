@@ -2,14 +2,14 @@
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
+#include "py_types.h"
 #include "dtutils.h"
 
 // Forward declarations
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
-static PyObject *strRowMappingTypeArray, *strRowMappingTypeSlice;
-
-PyObject **py_string_coltypes;
+static PyObject *strRowMappingTypeArray;
+static PyObject *strRowMappingTypeSlice;
 
 
 int init_py_datatable(PyObject *module) {
@@ -19,14 +19,6 @@ int init_py_datatable(PyObject *module) {
     Py_INCREF(&DataTable_PyType);
     PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
 
-    // initialize auxiliary data
-    py_string_coltypes = malloc(sizeof(PyObject*) * DT_LTYPE_COUNT);
-    py_string_coltypes[DT_MU]   = PyUnicode_FromString("auto");
-    py_string_coltypes[DT_REAL] = PyUnicode_FromString("real");
-    py_string_coltypes[DT_INTEGER]   = PyUnicode_FromString("int");
-    py_string_coltypes[DT_BOOLEAN]   = PyUnicode_FromString("bool");
-    py_string_coltypes[DT_STRING] = PyUnicode_FromString("str");
-    py_string_coltypes[DT_OBJECT] = PyUnicode_FromString("obj");
     strRowMappingTypeArray = PyUnicode_FromString("array");
     strRowMappingTypeSlice = PyUnicode_FromString("slice");
     return 1;
@@ -96,6 +88,7 @@ static PyObject* get_isview(DataTable_PyObject *self) {
     return incref(self->ref->source == NULL? Py_False : Py_True);
 }
 
+
 static PyObject* get_types(DataTable_PyObject *self)
 {
     int64_t i = self->ref->ncols;
@@ -104,10 +97,24 @@ static PyObject* get_types(DataTable_PyObject *self)
     while (--i >= 0) {
         DataSType st = self->ref->columns[i].stype;
         DataLType lt = stype_info[st].ltype;
-        PyTuple_SET_ITEM(list, i, incref(py_string_coltypes[lt]));
+        PyTuple_SET_ITEM(list, i, incref(py_ltype_names[lt]));
     }
     return list;
 }
+
+
+static PyObject* get_stypes(DataTable_PyObject *self)
+{
+    int64_t i = self->ref->ncols;
+    PyObject *list = PyTuple_New((Py_ssize_t) i);
+    if (list == NULL) return NULL;
+    while (--i >= 0) {
+        DataSType st = self->ref->columns[i].stype;
+        PyTuple_SET_ITEM(list, i, incref(py_stype_names[st]));
+    }
+    return list;
+}
+
 
 static PyObject* get_rowmapping_type(DataTable_PyObject *self)
 {
@@ -186,6 +193,7 @@ PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
+PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
 PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
@@ -203,6 +211,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(nrows),
     GETSET1(ncols),
     GETSET1(types),
+    GETSET1(stypes),
     GETSET1(isview),
     GETSET1(rowmapping_type),
     GETSET1(view_colnumbers),

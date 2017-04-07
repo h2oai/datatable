@@ -26,6 +26,7 @@ class DataTable(object):
         self._ncols = 0      # type: int
         self._nrows = 0      # type: int
         self._types = None   # type: Tuple[str]
+        self._stypes = None  # type: Tuple[str]
         self._names = None   # type: Tuple[str]
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
@@ -68,6 +69,13 @@ class DataTable(object):
     def types(self):
         """Tuple of column types."""
         return self._types
+
+    @property
+    def stypes(self):
+        """Tuple of column storage types."""
+        if self._stypes is None:
+            self._stypes = self._dt.stypes
+        return self._stypes
 
     @property
     def internal(self):
