@@ -23,8 +23,8 @@ DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
     Column *columns = calloc(sizeof(Column), (size_t)ncols);
     if (columns == NULL) return NULL;
 
-    for (int i = 0; i < ncols; ++i) {
-        columns[i].type = self->columns[i].type;
+    for (int64_t i = 0; i < ncols; ++i) {
+        columns[i].stype = self->columns[i].stype;
         if (self->columns[i].data == NULL) {
             if (merged_rowindex == NULL) {
                 merged_rowindex = RowMapping_merge(self->rowmapping, rowmapping);
@@ -68,11 +68,14 @@ DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
 static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
 {
     uint64_t n = (uint64_t) rowmapping->length;
-    DataLType coltype = dt->columns[i].type;
+    DataSType stype = dt->columns[i].stype;
     void *coldata = dt->columns[i].data;
     assert(coldata != NULL);
 
-    size_t elemsize = ColType_size[coltype];
+    size_t elemsize = stype_info[stype].elemsize;
+    if (stype == DT_STRING_FCHAR) {
+        elemsize = ((FixcharMeta*)dt->columns[i].meta)->n;
+    }
     void *newdata = malloc((size_t)n * elemsize);
     if (newdata == NULL) return NULL;
     if (rowmapping->type == RI_SLICE) {
@@ -126,11 +129,12 @@ void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col)
     while (--i >= 0) {
         Column column = self->columns[i];
         if (column.data != NULL) {
-            if (column.type == DT_OBJECT) {
-                (*dealloc_col)(column.data, self->nrows);
-            }
+            // if (column.stype == DT_OBJECT) {
+            //     (*dealloc_col)(column.data, self->nrows);
+            // }
             free(column.data);
         }
+        // free(column.meta);
     }
     free(self->columns);
     free(self);

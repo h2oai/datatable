@@ -9,11 +9,11 @@ ColMapping_from_array(int64_t *array, int64_t length, DataTable *dt)
     if (res == NULL) return NULL;
     res->length = length;
     res->indices = array;
-    res->coltypes = malloc(sizeof(DataLType) * (size_t)length);
-    if (res->coltypes == NULL) goto fail;
+    res->stypes = malloc(sizeof(DataSType) * (size_t)length);
+    if (res->stypes == NULL) goto fail;
     Column *columns = dt->columns;
     for (int64_t i = 0; i < length; i++) {
-        res->coltypes[i] = columns[array[i]].type;
+        res->stypes[i] = columns[array[i]].stype;
     }
     return res;
 
@@ -43,8 +43,9 @@ ColMapping* ColMapping_alloc(int64_t length)
 
 void ColMapping_dealloc(ColMapping *colmapping)
 {
-    if (colmapping == NULL) return;
-    free(colmapping->indices);
-    free(colmapping->coltypes);
-    free(colmapping);
+    if (colmapping != NULL) {
+        free(colmapping->indices);
+        free(colmapping->stypes);
+        free(colmapping);
+    }
 }

@@ -18,7 +18,7 @@ __all__ = ("DataTable", )
 
 class DataTable(object):
     _id_counter_ = 0
-    _dt_types = ["auto", "real", "int", "str", "bool", "obj"]
+    _dt_types = ["mu", "bool", "int", "real", "str", "time", "duration", "obj"]
 
     def __init__(self, src=None):
         DataTable._id_counter_ += 1

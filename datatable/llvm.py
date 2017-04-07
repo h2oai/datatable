@@ -178,20 +178,21 @@ class CodeColumn(object):
 
 
 _datastructures = """
-enum RowMappingType {RI_ARRAY, RI_SLICE};
-enum DataLType {DT_MU, DT_REAL, DT_INTEGER, DT_STRING, DT_BOOLEAN, DT_OBJECT};
+typedef int RowMappingType;
+typedef int DataSType;
 typedef long long int int64;
 typedef struct RowMapping {
-    enum RowMappingType type;
+    RowMappingType type;
     int64 length;
     union {
-        int64* indices;
+        int64 *indices;
         struct { int64 start, step; } slice;
     };
 } RowMapping;
 typedef struct Column {
-    void* data;
-    enum DataLType type;
+    void *data;
+    DataSType type;
+    void *meta;
     int64 srcindex;
 } Column;
 typedef struct DataTable {

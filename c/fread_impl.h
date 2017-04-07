@@ -12,20 +12,20 @@ typedef struct FReadExtraArgs {
 // Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
 //     if (cond) STOP("Bad things happened: %s", smth_bad);
 //
-#define fread_STOP(format, ...) \
+#define STOP(...) \
     { \
-        PyErr_FormatString(format, __VA_ARGS__); \
+        PyErr_Format(PyExc_RuntimeError, __VA_ARGS__); \
         fread_onexit(); \
-        return NULL; \
+        return 0; \
     }
 
 
 // This macro raises a warning using Python's standard warning mechanism. Usage:
 //     if (cond) WARN("Attention: %s", smth_smelly);
 //
-#define fread_WARN(format, ...) \
+#define WARN(...) \
     { \
-        PyErr_WarnFormat(&PyExc_RuntimeWarning, 1, format, __VA_ARGS__); \
+        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__); \
     }
 
 
@@ -33,10 +33,10 @@ typedef struct FReadExtraArgs {
 //     VLOG("Nothing suspicious here, move along...");
 // The macro assumes that variables `verbose` and `args` are present in the
 // local scope.
-#define fread_VLOG(format, ...) \
+#define VLOG(...) \
     if (verbose) { \
         PyObject_CallMethod(args->extra->freader, "_vlog", "O", \
-                            PyUnicode_FromFormat(format, __VA_ARGS__)); \
+                            PyUnicode_FromFormat(__VA_ARGS__)); \
     }
 
 

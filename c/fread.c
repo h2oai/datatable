@@ -7,13 +7,18 @@
 // *****************************************************************************
 #include "fread.h"
 #include "fread_impl.h"
-#define STOP(...) fread_STOP(__VA_ARGS__)
-#define WARN(...) fread_WARN(__VA_ARGS__)
-#define VLOG(...) fread_VLOG(__VA_ARGS__)
 
-
-int fread_main(FReadArgs *self, void *out)
+static void fread_onexit(void)
 {
-  return 1;
+
 }
 
+
+int fread_main(FReadArgs *args, void *out)
+{
+    _Bool verbose = args->verbose;
+    VLOG("hi");
+    WARN("careful");
+    STOP("error");
+    // return 1;
+}

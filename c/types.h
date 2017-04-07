@@ -1,6 +1,7 @@
 #ifndef dt_COLTYPE_H
 #define dt_COLTYPE_H
 #include <stdlib.h>
+#include <stdint.h>
 
 
 /**
@@ -155,7 +156,7 @@ typedef enum DataLType {
  *
  * DT_STRING_UI32_VCHAR
  *     elem: int (4 bytes) + char[]
- *     NA:   2**32
+ *     NA:   2**32-1
  *     meta: `buffer` (char*)
  *     Variable-width strings. The actual string data is stored in the `buffer`,
  *     and each element in the column is just a 32-bit offset within that
@@ -166,7 +167,7 @@ typedef enum DataLType {
  *
  * DT_STRING_UI64_VCHAR
  *     elem: long int (8 bytes) + char[]
- *     NA:   2**64
+ *     NA:   2**64-1
  *     meta: `buffer` (char*)
  *     Variable-width strings: same as DT_STRING_UI32_VCHAR but use 64-bit
  *     offsets.
@@ -174,7 +175,7 @@ typedef enum DataLType {
  * DT_STRING_FCHAR
  *     elem: char[] (n bytes)
  *     NA:   "\0\0...\0"
- *     meta: `n` (char)
+ *     meta: `n` (int)
  *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
  *     constant width `n` and are therefore stored as `char[n]` arrays. They are
  *     *not* null-terminated, however strings that are shorter than `n` in width
@@ -182,7 +183,7 @@ typedef enum DataLType {
  *
  * DT_STRING_UI8_ENUM
  *     elem: unsigned char (1 byte)
- *     NA:   256
+ *     NA:   255
  *     meta: `buffer` (char*), `offsets` (int[])
  *     String column stored as a categorical variable (aka "factor" or "enum").
  *     This type is suitable for columns with low cardinality, i.e. having no
@@ -193,17 +194,19 @@ typedef enum DataLType {
  *
  * DT_STRING_UI16_ENUM
  *     elem: unsigned short int (2 bytes)
- *     NA:   65536
+ *     NA:   65535
  *     meta: `buffer` (char*), `offsets` (int[])
  *     Strings stored as a categorical variable with no more than 65535 distinct
  *     levels.
  *
  * DT_STRING_UI32_ENUM
  *     elem: unsigned int (4 bytes)
- *     NA:   2**32
+ *     NA:   2**32-1
  *     meta: `buffer` (char*), `offsets` (int[])
- *     Strings stored as a categorical variable with no more than 4294967296
- *     distinct levels.
+ *     Strings stored as a categorical variable with no more than 2**32 distinct
+ *     levels. (The combined size of all categorical strings may not exceed
+ *     2**32 too).
+ *
  *
  * -----------------------------------------------------------------------------
  *
@@ -251,6 +254,13 @@ typedef enum DataLType {
  *     adding/subtraction in monthly/yearly intervals (other datetime types do
  *     not allow that since months/years have uneven lengths).
  *
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * DT_OBJECT_PTR
+ *     elem: PyObject*
+ *     NA:   &Py_None
+ *
  */
 typedef enum DataSType {
     DT_VOID = 0,
@@ -275,18 +285,75 @@ typedef enum DataSType {
     DT_DATETIME_I32_TIME,
     DT_DATETIME_I32_DATE,
     DT_DATETIME_I16_MONTH,
+    DT_OBJECT_PYPTR,
 } DataSType;
 
-#define DT_STYPES_COUNT  (DT_DATETIME_I64_PRTMN + 1)
+#define DT_STYPES_COUNT  (DT_OBJECT_PYPTR + 1)
 
 
-extern size_t ColType_size[DT_LTYPE_COUNT];
 
 /**
- * Mapping of storage types into logical types.
+ * Information about STypes, for programmatic access.
  */
-extern int STypeToLType[DT_STYPES_COUNT + 1];
+typedef struct STypeInfo {
+    size_t elemsize;
+    _Bool  hasmeta;
+    DataLType ltype;
+} STypeInfo;
 
+extern STypeInfo stype_info[DT_STYPES_COUNT];
+
+
+/**
+ * Structs for meta information associated with particular types.
+ */
+typedef struct DecimalMeta {  // DT_REAL_IXX
+    uint8_t  scale;
+    uint32_t currency;
+} DecimalMeta;
+
+typedef struct VarcharMeta {  // DT_STRING_UIXX_VCHAR
+    char *buffer;
+    uint32_t buffer_length;
+} VarcharMeta;
+
+typedef struct FixcharMeta {  // DT_STRING_FCHAR
+    uint32_t n;
+} FixcharMeta;
+
+typedef struct EnumMeta {  // DT_STRING_UIXX_ENUM
+    char *buffer;
+    uint32_t *offsets;
+    uint32_t num_levels;
+    uint32_t buffer_length;
+} EnumMeta;
+
+
+/**
+ * NA constants
+ */
+static inline float __nanf__(void) {
+    const union { uint32_t i; float f; } x = { 0x7F8007A2ul };
+    return x.f;
+}
+static inline double __nand__(void) {
+    const union { uint64_t i; double d; } x = { 0x7FF00000000007A2ull };
+    return x.d;
+}
+
+#define NA_I8    INT8_MIN
+#define NA_I16   INT16_MIN
+#define NA_I32   INT32_MIN
+#define NA_I64   INT64_MIN
+#define NA_UI8   UINT8_MAX
+#define NA_UI16  UINT16_MAX
+#define NA_UI32  UINT32_MAX
+#define NA_UI64  UINT64_MAX
+#define NA_F32   __nanf__()
+#define NA_F64   __nand__()
+
+
+/*----------------------------------------------------------------------------*/
 
 // Initializer function
 int init_types(void);

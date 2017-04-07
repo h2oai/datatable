@@ -70,8 +70,8 @@
     if (x == NULL) goto fail;                                                  \
     if (x != Py_None) {                                                        \
         Py_ssize_t count = PyList_Size(x);                                     \
-        res = calloc(sizeof(char*), count + 1);                                \
-        for (int i = 0; i < count; i++) {                                      \
+        res = calloc(sizeof(char*), (size_t)(count + 1));                      \
+        for (Py_ssize_t i = 0; i < count; i++) {                               \
             PyObject *item = PyList_GetItem(x, i);                             \
             PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");  \
             if (y == NULL) {                                                   \
@@ -87,7 +87,7 @@
     res;                                                                       \
 })
 
-void free_string(const char *s) {
+static void free_string(const char *s) {
     union { const char *immutable; char *mutable; } u;
     u.immutable = s;
     free(u.mutable);

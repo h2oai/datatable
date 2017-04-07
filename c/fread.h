@@ -64,7 +64,7 @@ typedef struct FReadArgs {
     int header;
 
     // NULL-terminated list of strings that should be converted into NA values.
-    const char* const* nastrings;
+    char **nastrings;
 
     // Number of input lines to skip when reading the file.
     int64_t skipLines;

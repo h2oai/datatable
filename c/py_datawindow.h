@@ -29,6 +29,9 @@ typedef struct DataWindow_PyObject {
     // `col1 - col0` elements.
     PyListObject *types;
 
+    // List of storage types (DataSType) for each column returned.
+    PyListObject *stypes;
+
     // Actual data within the window, represented as a PyList of PyLists of
     // Python primitives (such as PyLong, PyFloat, etc). The data is returned
     // in column-major order, i.e. each element of the list `data` represents

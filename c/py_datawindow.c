@@ -35,8 +35,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 {
     DataTable_PyObject *pydt;
     DataTable *dt;
-    PyObject *types = NULL, *view = NULL;
-    int n_init_types = 0;
+    PyObject *stypes = NULL, *ltypes = NULL, *view = NULL;
     int n_init_cols = 0;
     int64_t row0, row1, col0, col1;
 
@@ -53,14 +52,17 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     int64_t ncols = col1 - col0;
     int64_t nrows = row1 - row0;
 
-    // Create and fill-in the `types` list
-    types = PyList_New((Py_ssize_t) ncols);
-    if (types == NULL) goto fail;
-    for (int64_t i = col0; i < col1; ++i) {
+    // Create and fill-in the `stypes` list
+    stypes = PyList_New((Py_ssize_t) ncols);
+    ltypes = PyList_New((Py_ssize_t) ncols);
+    if (stypes == NULL || ltypes == NULL) goto fail;
+    for (int64_t i = col0; i < col1; i++) {
         Column column = dt->columns[i];
-        PyObject *py_coltype = PyLong_FromLong(column.type);
-        if (py_coltype == NULL) goto fail;
-        PyList_SET_ITEM(types, n_init_types++, py_coltype);
+        PyObject *py_stype = PyLong_FromLong(column.stype);
+        PyObject *py_ltype = PyLong_FromLong(stype_info[column.stype].ltype);
+        if (py_stype == NULL || py_ltype == NULL) goto fail;
+        PyList_SET_ITEM(ltypes, i - col0, py_ltype);
+        PyList_SET_ITEM(stypes, i - col0, py_stype);
     }
 
     RowMapping *rindex = dt->rowmapping;
@@ -89,34 +91,28 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                            rindex_is_array? rindexarray[j] :
                                             rindexstart + rindexstep * j;
             PyObject *value = NULL;
-            switch (column.type) {
-                case DT_REAL: {
+            switch (column.stype) {
+                case DT_REAL_F64: {
                     double x = ((double*)coldata)[irow];
                     value = isnan(x)? none() : PyFloat_FromDouble(x);
                 }   break;
 
-                case DT_INTEGER: {
+                case DT_INTEGER_I64: {
                     int64_t x = ((int64_t*)coldata)[irow];
                     value = x == LONG_MIN? none() : PyLong_FromLongLong(x);
                 }   break;
 
-                case DT_STRING: {
-                    char* x = ((char**)coldata)[irow];
-                    value = x == NULL? none() : PyUnicode_FromString(x);
-                }   break;
-
-                case DT_BOOLEAN: {
+                case DT_BOOLEAN_I8: {
                     char x = ((char*)coldata)[irow];
                     value = x == 0? Py_int0 : x == 1? Py_int1 : Py_None;
                     Py_INCREF(value);
                 }   break;
 
-                case DT_OBJECT: {
+                case DT_OBJECT_PYPTR: {
                     value = ((PyObject**)coldata)[irow];
                     Py_XINCREF(value);
                 }   break;
 
-                case DT_MU:
                 default:
                     assert(0);
             }
@@ -133,12 +129,13 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     self->row1 = row1;
     self->col0 = col0;
     self->col1 = col1;
-    self->types = (PyListObject*) types;
+    self->types = (PyListObject*) ltypes;
+    self->stypes = (PyListObject*) stypes;
     self->data = (PyListObject*) view;
     return 0;
 
   fail:
-    Py_XDECREF(types);
+    Py_XDECREF(stypes);
     Py_XDECREF(view);
     return -1;
 }
@@ -248,15 +245,15 @@ static int _check_consistency(
     for (int64_t i = col0; i < col1; ++i) {
         Column col = dt->columns[i];
         Column *srccols = dt->source == NULL? NULL : dt->source->columns;
-        if (col.type == DT_MU) {
+        if (col.stype == DT_VOID) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has type DT_MU", i);
             return 0;
         }
-        if (col.type <= 0 || col.type >= DT_LTYPE_COUNT) {
+        if (col.stype <= 0 || col.stype >= DT_STYPES_COUNT) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has unknown type %d",
-                i, col.type);
+                i, col.stype);
             return 0;
         }
         if (col.data == NULL && dt->source == NULL) {
@@ -272,11 +269,11 @@ static int _check_consistency(
                 "%ld in the parent datatable", i, col.srcindex);
             return 0;
         }
-        if (col.data == NULL && col.type != srccols[col.srcindex].type) {
+        if (col.data == NULL && col.stype != srccols[col.srcindex].stype) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid view: column %ld of type %d references column "
                 "%ld of type %d",
-                i, col.type, col.srcindex, srccols[col.srcindex].type);
+                i, col.stype, col.srcindex, srccols[col.srcindex].stype);
             return 0;
         }
     }
@@ -291,6 +288,7 @@ static void __dealloc__(DataWindow_PyObject *self)
 {
     Py_XDECREF(self->data);
     Py_XDECREF(self->types);
+    Py_XDECREF(self->stypes);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -303,6 +301,7 @@ PyDoc_STRVAR(dtdoc_row1, "Index of the last row exclusive");
 PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
 PyDoc_STRVAR(dtdoc_col1, "Index of the last column exclusive");
 PyDoc_STRVAR(dtdoc_types, "Types of the columns within the view");
+PyDoc_STRVAR(dtdoc_stypes, "Storage types of the columns within the view");
 PyDoc_STRVAR(dtdoc_data, "Datatable's data within the specified window");
 
 
@@ -315,6 +314,7 @@ static PyMemberDef members[] = {
     Member(col0, T_LONG),
     Member(col1, T_LONG),
     Member(types, T_OBJECT_EX),
+    Member(stypes, T_OBJECT_EX),
     Member(data, T_OBJECT_EX),
     {NULL, 0, 0, 0, NULL}  // sentinel
 };

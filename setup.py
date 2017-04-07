@@ -88,6 +88,9 @@ setup(
                   #       Comparing x == 0 or x == 1 is always safe.
                   #   -Wgnu-statement-expression: we use GNU statement-as-
                   #       expression syntax in some macros...
+                  #   -Wswitch-enum: generates spurious warnings about missing
+                  #       cases even if `default` clause is present. -Wswitch
+                  #       does not suffer from this drawback.
                   extra_compile_args=["-Weverything",
                                       "-Wno-reserved-id-macro",
                                       "-Wno-padded",
@@ -96,6 +99,7 @@ setup(
                                       "-Wno-covered-switch-default",
                                       "-Wno-float-equal",
                                       "-Wno-gnu-statement-expression",
+                                      "-Wno-switch-enum",
                                       "-fopenmp"])
     ],
 )
