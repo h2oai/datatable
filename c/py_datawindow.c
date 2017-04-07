@@ -77,9 +77,12 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     if (view == NULL) goto fail;
     for (int64_t i = col0; i < col1; ++i) {
         Column column = dt->columns[i];
-        int realdata = (column.data != NULL);
-        void *coldata = realdata? column.data
-                                : dt->source->columns[column.srcindex].data;
+        void *coldata = column.data;
+        int realdata = (coldata != NULL);
+        if (!realdata) {
+            column = dt->source->columns[column.srcindex];
+            coldata = column.data;
+        }
 
         PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
         if (py_coldata == NULL) goto fail;
@@ -90,37 +93,8 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
             int64_t irow = realdata? j :
                            rindex_is_array? rindexarray[j] :
                                             rindexstart + rindexstep * j;
-            PyObject *value = NULL;
-            switch (column.stype) {
-                case DT_REAL_F64: {
-                    double x = ((double*)coldata)[irow];
-                    value = isnan(x)? none() : PyFloat_FromDouble(x);
-                }   break;
-
-                case DT_INTEGER_I64: {
-                    int64_t x = ((int64_t*)coldata)[irow];
-                    value = x == LONG_MIN? none() : PyLong_FromLongLong(x);
-                }   break;
-
-                case DT_BOOLEAN_I8: {
-                    char x = ((char*)coldata)[irow];
-                    value = x == 0? Py_int0 : x == 1? Py_int1 : Py_None;
-                    Py_INCREF(value);
-                }   break;
-
-                case DT_OBJECT_PYPTR: {
-                    value = ((PyObject**)coldata)[irow];
-                    Py_XINCREF(value);
-                }   break;
-
-                default:
-                    assert(0);
-            }
-            if (value == NULL) {
-                while (n_init_rows < nrows)
-                    PyList_SET_ITEM(py_coldata, n_init_rows++, NULL);
-                goto fail;
-            }
+            PyObject *value = py_stype_formatters[column.stype](&column, irow);
+            if (value == NULL) goto fail;
             PyList_SET_ITEM(py_coldata, n_init_rows++, value);
         }
     }
