@@ -5,6 +5,7 @@
 #include "rowmapping.h"
 #include "py_datawindow.h"
 #include "py_datatable.h"
+#include "py_types.h"
 
 // Forward declarations
 static int _check_consistency(DataTable *dt, int64_t row0, int64_t row1,
@@ -58,11 +59,10 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     if (stypes == NULL || ltypes == NULL) goto fail;
     for (int64_t i = col0; i < col1; i++) {
         Column column = dt->columns[i];
-        PyObject *py_stype = PyLong_FromLong(column.stype);
-        PyObject *py_ltype = PyLong_FromLong(stype_info[column.stype].ltype);
-        if (py_stype == NULL || py_ltype == NULL) goto fail;
-        PyList_SET_ITEM(ltypes, i - col0, py_ltype);
-        PyList_SET_ITEM(stypes, i - col0, py_stype);
+        DataSType stype = column.stype;
+        DataLType ltype = stype_info[column.stype].ltype;
+        PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
+        PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
     }
 
     RowMapping *rindex = dt->rowmapping;

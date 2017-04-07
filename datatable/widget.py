@@ -66,7 +66,7 @@ class DataFrameWidget(object):
 
         # Display state
         self._n_displayed_lines = 0
-        self._show_types = False
+        self._show_types = 0
         self._interactive = True
         self._colwidths = {}
         self._term_width = term.width
@@ -111,6 +111,7 @@ class DataFrameWidget(object):
         data = self._fetch_data()
         colnames = data["names"]
         coltypes = data["types"]
+        stypes = data["stypes"]
         coldata = data["columns"]
 
         # Create column with row indices
@@ -122,7 +123,12 @@ class DataFrameWidget(object):
         # Data columns
         columns = [indexcolumn]
         for i in range(self._view_ncols):
-            name = term.green(coltypes[i]) if self._show_types else colnames[i]
+            if self._show_types == 1:
+                name = term.green(coltypes[i])
+            elif self._show_types == 2:
+                name = term.cyan(stypes[i])
+            else:
+                name = colnames[i]
             col = _Column(name=name, ctype=coltypes[i], data=coldata[i])
             if self._view_ncols < self._frame_ncols:
                 col.width = min(col.width, _Column.MAX_WIDTH)
@@ -257,7 +263,7 @@ class DataFrameWidget(object):
 
 
     def _toggle_types(self):
-        self._show_types = not self._show_types
+        self._show_types = (self._show_types + 1) % 3
         self.draw()
 
 

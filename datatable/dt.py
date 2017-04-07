@@ -18,7 +18,6 @@ __all__ = ("DataTable", )
 
 class DataTable(object):
     _id_counter_ = 0
-    _dt_types = ["mu", "bool", "int", "real", "str", "time", "duration", "obj"]
 
     def __init__(self, src=None):
         DataTable._id_counter_ += 1
@@ -99,7 +98,8 @@ class DataTable(object):
         view = self._dt.window(row0, row1, col0, col1)
         return {
             "names": self._names[col0:col1],
-            "types": [DataTable._dt_types[t] for t in view.types],
+            "types": view.types,
+            "stypes": view.stypes,
             "columns": view.data,
         }
 
