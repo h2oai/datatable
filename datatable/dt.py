@@ -11,7 +11,7 @@ from datatable.expr import DataTableExpr
 from datatable.llvm import select_by_expression
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import TypeError, ValueError
+from datatable.utils.typechecks import TypeError, ValueError, typed
 
 __all__ = ("DataTable", )
 
@@ -433,7 +433,6 @@ class DataTable(object):
 
         if isinstance(arg, (list, tuple)):
             ncols = self._ncols
-            names = self._names
             out = []
             for col in arg:
                 if isinstance(col, int):
@@ -508,3 +507,17 @@ class DataTable(object):
             raise ValueError("Selector %r is not supported" % item)
         else:
             return self(rows=..., select=item)
+
+
+    @typed(name=str)
+    def colindex(self, name):
+        """
+        Return index of the column ``name``.
+
+        :param str name: name of the column to find the index for.
+        :raises ValueError: if such column does not exist.
+        """
+        if name in self._inames:
+            return self._inames[name]
+        else:
+            raise ValueError("Column %r does not exist in %r" % (name, self))
