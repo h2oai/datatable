@@ -12,8 +12,8 @@ int init_py_types(PyObject *module)
 {
     init_types();
 
-    pyBoolFalse = PyUnicode_FromString("0");
-    pyBoolTrue  = PyUnicode_FromString("1");
+    pyBoolFalse = PyLong_FromLong(0);
+    pyBoolTrue  = PyLong_FromLong(1);
     if (pyBoolFalse == NULL || pyBoolTrue == NULL) return 0;
 
     py_ltype_names[DT_MU]       = PyUnicode_FromString("mu");
