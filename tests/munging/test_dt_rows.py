@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 from tests import datatable as dt
+from math import isnan
 
 
 #-------------------------------------------------------------------------------
@@ -18,21 +19,24 @@ def dt0():
         "colC": [5,   1, 1.3,   0.1,  1e5,  0, -2.6,  -14, nan,    2],
     })
 
-def assert_valueerror(dt0, rows, error_message):
+
+def assert_valueerror(datatable, rows, error_message):
     with pytest.raises(ValueError) as e:
-        dt0(rows=rows)
+        datatable(rows=rows)
     assert str(e.type) == "<class 'dt.ValueError'>"
     assert error_message in str(e.value)
 
-def assert_typeerror(dt0, rows, error_message):
+
+def assert_typeerror(datatable, rows, error_message):
     with pytest.raises(TypeError) as e:
-        dt0(rows=rows)
+        datatable(rows=rows)
     assert str(e.type) == "<class 'dt.TypeError'>"
     assert error_message in str(e.value)
 
-def as_list(d):
-    nrows, ncols = d.shape
-    return d._dt.window(0, nrows, 0, ncols).data
+
+def as_list(datatable):
+    nrows, ncols = datatable.shape
+    return datatable.internal.window(0, nrows, 0, ncols).data
 
 
 
@@ -67,7 +71,8 @@ def test_rows_integer(dt0):
         assert dt1.internal.rowmapping_type == "array"
         assert dt1.internal.view_colnumbers == (0, 1, 2)
     assert as_list(dt0(0)) == [[0], [7], [5]]
-    assert as_list(dt0(-2)) == [[1], [1], [None]]
+    assert as_list(dt0(-2))[:2] == [[1], [1]]
+    assert isnan(as_list(dt0(-2))[2][0])
     assert as_list(dt0(2)) == [[1], [9], [1.3]]
     assert as_list(dt0(4)) == [[0], [None], [100000]]
     assert as_list(dt0[1, :]) == [[1], [-11], [1]]
@@ -98,8 +103,10 @@ def test_rows_slice(dt0):
     assert as_list(dt0[4:-2, :])[1] == [None, 0, 0, -1]
     assert as_list(dt0[20:, :])[2] == []
     assert_valueerror(dt0, slice(0, 10, 0), "step must not be 0")
+    # noinspection PyTypeChecker
     assert_valueerror(dt0, slice(3, 5.7),
                       "slice(3, 5.7, None) is not integer-valued")
+    # noinspection PyTypeChecker
     assert_valueerror(dt0, slice("colA", "colC"),
                       "slice('colA', 'colC', None) is not integer-valued")
 
