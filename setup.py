@@ -32,6 +32,9 @@ for root, dirs, files in os.walk("c"):
         if name.endswith(".c"):
             c_sources.append(os.path.join(root, name))
 
+# Find python source directories
+packages = find_packages(exclude=["tests", "temp", "c"])
+print("\nFound packages: %r\n" % packages)
 
 # Main setup
 setup(
@@ -57,7 +60,7 @@ setup(
     ],
     keywords=["datatable", "data", "dataframe", "munging", "numpy", "pandas"],
 
-    packages=find_packages("datatable"),
+    packages=packages,
 
     # Runtime dependencies
     install_requires=["typesentry", "blessed", "llvmlite"],
