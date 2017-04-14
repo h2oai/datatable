@@ -34,8 +34,6 @@ class DataTable(object):
         self._fill_from_source(src)
 
 
-    @staticmethod
-
 
     #---------------------------------------------------------------------------
     # Basic properties
@@ -314,8 +312,6 @@ class DataTable(object):
         # Number of columns that are referenced from the parent datatable
         n_col_refs = sum(isinstance(col[0], (ColSelectorExpr, int))
                          for col in cols)
-        print("cols = %r" % cols)
-        print("N cols as refs = %d out of %d" % (n_col_refs, len(cols)))
 
         if n_col_refs == len(cols):
             colidxs = [

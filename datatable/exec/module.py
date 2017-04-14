@@ -94,7 +94,6 @@ class EvaluationModule(object):
 
     def run(self):
         cc = self.generate_c_code()
-        print(cc)
         funcs = [self._filter_block.function_name]
         ptrs = inject_c_code(cc, funcs)
         assert len(ptrs) == 1
@@ -110,9 +109,7 @@ class EvaluationModule(object):
         ceval.run_mbr(ptrs[0], self._filter_block._nrows)
         idx_nrows = self._stack.index("rowmapping_nrows")
         res_nrows = ceval.get_stack_value(idx_nrows, 1)
-        print("Resulting number of rows = %d" % res_nrows)
         self.rowmapping = ceval.get_stack_value(idx_nrows, 257)
-        print(self.rowmapping)
 
 
 

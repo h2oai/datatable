@@ -86,7 +86,7 @@ RowMapping* RowMapping_from_i32_array(int32_t* array, int32_t length)
     if (res == NULL) return NULL;
     res->type = RI_ARRAY;
     res->length = length;
-    res->indices = malloc(4 * (size_t)length);
+    res->indices = malloc(8 * (size_t)length);
     if (res->indices == NULL) return NULL;
     for (int32_t i = 0; i < length; i++) {
         res->indices[i] = (int32_t) array[i];
