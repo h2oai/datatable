@@ -13,6 +13,8 @@ class BinaryOpExpr(ExprNode):
         super().__init__()
         if not isinstance(lhs, ExprNode):
             lhs = LiteralNode(lhs)
+        if not isinstance(rhs, ExprNode):
+            rhs = LiteralNode(rhs)
         self.op = op
         self.lhs = lhs
         self.rhs = rhs

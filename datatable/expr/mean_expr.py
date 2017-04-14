@@ -54,8 +54,13 @@ class MeanReducer(ExprNode):
         block.add_prologue_expr(f"{res_ctype} {v} = stack[{i}].f8;")
         return v
 
-    def _isna(self, context):
-        return "0"
+
+    def _isna(self, block):
+        if self.skipna:
+            return "0"
+        else:
+            return "ISNA_F64(%s)" % self.value(block)
+
 
     def _notna(self, block):
-        return self._value(block)
+        return self.value(block)
