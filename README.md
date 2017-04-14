@@ -28,6 +28,19 @@ $ source ~/py36/bin/activate
 
 ## Troubleshooting
 
+If you see errors such as `"unknown type name 'PyModuleDef'"` or `"void
+function 'PyInit__datatable' should not return a value`" -- it means you are
+running under an old version of Python. Please switch to Python3.6 as described
+above.
+
+If there is an error about `"unrecognized command line option ‘-Weverything’"`,
+then you need to use `clang` as the compiler. Download Clang + LLVM 4.0, and
+then specify environment variable
+    ```bash
+    export CC="/path/to/clang"
+    ```
+Runnind `$CC --version` should tell you that you have Clang version 4.0.
+
 If you run into installation errors with `llvmlite` dependency, you
 might need to build it manually. This involves the following:
 
