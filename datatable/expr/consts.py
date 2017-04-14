@@ -97,6 +97,7 @@ for i, st1 in enumerate(stypes_ladder):
 
 for st1 in stypes_ladder:
     for st2 in stypes_ladder:
+        ops_rules[("/", st1, st2)] = "f8r"
         for op in [">", ">=", "<", "<=", "==", "!="]:
             ops_rules[(op, st1, st2)] = "i1b"
 
