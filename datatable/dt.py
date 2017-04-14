@@ -158,7 +158,7 @@ class DataTable(object):
     #---------------------------------------------------------------------------
 
     @timeit
-    def __call__(self, rows=None, select=None
+    def __call__(self, rows=None, select=None, verbose=False
                  #update=None, groupby=None, join=None, sort=None, limit=None
                  ):
         """
@@ -226,6 +226,9 @@ class DataTable(object):
                 - a function that takes a single argument -- the current
                   datatable -- and returns any of the selectors above. Within
                   the function any operations on the frame will be lazy.
+
+        :param verbose:
+            Lots of output, for debug purposes mainly.
         """
         """
         :param update:
@@ -313,6 +316,9 @@ class DataTable(object):
         # Number of columns that are referenced from the parent datatable
         n_col_refs = sum(isinstance(col[0], (ColSelectorExpr, int))
                          for col in cols)
+        if verbose:
+            print("Selecting %d columns, where %d of them are references" %
+                  (len(cols), n_col_refs))
 
         if n_col_refs == len(cols):
             colidxs = [
@@ -325,7 +331,7 @@ class DataTable(object):
                 rowmapping = c.rowmapping_from_column(rows_selector)
             elif isinstance(rows_selector, ExprNode):
                 mod = EvaluationModule(rows=rows_selector)
-                mod.run()
+                mod.run(verbose)
                 rowmapping = mod.rowmapping
             else:
                 rowmapping = rows_selector

@@ -103,9 +103,13 @@ class EvaluationModule(object):
         return out
 
 
-    def run(self):
+    def run(self, verbose=False):
         cc = self.generate_c_code()
-        # print(cc)
+        if verbose:
+            print("C code generated:")
+            print("-" * 80)
+            print(cc)
+            print("-" * 80)
         funcs = [fn.function_name for fn in self._functions]
         ptrs = inject_c_code(cc, funcs)
         assert len(ptrs) == len(funcs)
