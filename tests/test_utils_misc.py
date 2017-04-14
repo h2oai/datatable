@@ -10,6 +10,7 @@ utils_misc = datatable.utils.misc
 
 
 def test_plural_form():
+    """Focus on testing plural form of the word."""
     plural = utils_misc.plural_form
     assert plural(0, "egg") == "0 eggs"
     assert plural(1, "egg") == "1 egg"
@@ -30,6 +31,25 @@ def test_plural_form():
     assert plural(1, "foot", "feet") == "1 foot"
     assert plural(7, "foot", "feet") == "7 feet"
 
+
+def test_plural_form2():
+    """Focus on testing large numbers."""
+    plural = utils_misc.plural_form
+    assert plural(1, "cow") == "1 cow"
+    assert plural(10, "cow") == "10 cows"
+    assert plural(1234, "cow") == "1234 cows"
+    assert plural(78789, "cow") == "78789 cows"
+    assert plural(99999, "cow") == "99999 cows"
+    assert plural(123456, "cow") == "123,456 cows"
+    assert plural(1234567, "cow") == "1,234,567 cows"
+    assert plural(12002000, "cow") == "12,002,000 cows"
+    assert plural(912024001, "cow") == "912,024,001 cows"
+    assert plural(9223372036854775807, "cow") == \
+        "9,223,372,036,854,775,807 cows"
+    assert plural(-1, "cow") == "-1 cow"
+    assert plural(-100, "cow") == "-100 cows"
+    assert plural(-99999, "cow") == "-99999 cows"
+    assert plural(-1234567890, "cow") == "-1,234,567,890 cows"
 
 
 def test_clamp():

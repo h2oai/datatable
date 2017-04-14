@@ -7,9 +7,25 @@ __all__ = ("clamp", "normalize_slice", "plural_form", "timeit")
 
 
 def plural_form(n, singular, plural=None):
-    if n == 1 or n == -1:
+    nabs = abs(n)
+
+    if nabs == 1:
         return "%d %s" % (n, singular)
     else:
+        if nabs < 100000:
+            nstr = str(n)
+        else:
+            nstr = ""
+            while nabs:
+                if nabs < 1000:
+                    nstr = str(nabs) + nstr
+                    break
+                else:
+                    nstr = ",%03d%s" % (nabs % 1000, nstr)
+                    nabs = nabs // 1000
+            if n < 0:
+                nstr = "-" + nstr
+
         if not plural:
             last_letter = singular[-1]
             prev_letter = singular[-2] if len(singular) >= 2 else ""
@@ -27,7 +43,7 @@ def plural_form(n, singular, plural=None):
                 plural = singular + "es"
             else:
                 plural = singular + "s"
-        return "%d %s" % (n, plural)
+        return "%s %s" % (nstr, plural)
 
 
 def clamp(x, lb, ub):
