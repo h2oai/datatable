@@ -3,8 +3,9 @@
 
 from .__version__ import version as __version__
 from .dt import DataTable
+from .memmap import open
 
-__all__ = ("__version__", "DataTable")
+__all__ = ("__version__", "DataTable", "open")
 
 
 DataTable.__module__ = "datatable"

@@ -97,6 +97,7 @@ typedef struct Column {
     enum DataSType stype;
     void *meta;
     int64_t srcindex;
+    int8_t mmapped;
     // RollupStats* stats;
 } Column;
 

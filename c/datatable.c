@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include "datatable.h"
 #include "rowmapping.h"
 #include "colmapping.h"
@@ -135,7 +136,12 @@ void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col)
             // if (column.stype == DT_OBJECT) {
             //     (*dealloc_col)(column.data, self->nrows);
             // }
-            free(column.data);
+            if (column.mmapped) {
+                size_t elemsize = stype_info[column.stype].elemsize;
+                munmap(column.data, elemsize * (size_t)self->nrows);
+            } else {
+                free(column.data);
+            }
         }
         // free(column.meta);
     }

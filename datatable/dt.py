@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import os
 import types
 from typing import Dict, Tuple
 
@@ -34,10 +35,6 @@ class DataTable(object):
 
 
     @staticmethod
-    def mmap(columns):
-        self = DataTable()
-        self._fill_from_pdt(columns)
-        return self
 
 
     #---------------------------------------------------------------------------
@@ -140,12 +137,20 @@ class DataTable(object):
         self._inames = {n: i for i, n in enumerate(names)}
 
 
-    def _fill_from_pdt(self, columns):
+    def _fill_from_pdt(self, dirname):
+        with open(os.path.join(dirname, "_info.pdt")) as inp:
+            nrows = int(next(inp))
+            columns = []
+            colnames = []
+            for line in inp:
+                stype, colname, f = line.strip().split(" ", 3)
+                columns.append(os.path.join(dirname, f))
+                colnames.append(colname)
         self._dt = c.dt_from_memmap(columns)
-        self._ncols = self._dt.ncols
-        self._nrows = self._dt.nrows
+        self._ncols = len(columns)
+        self._nrows = nrows
         self._types = self._dt.types
-        self._names = tuple("C%d" % (i + 1) for i in range(self._ncols))
+        self._names = tuple(colnames)
         self._inames = {n: i for i, n in enumerate(self._names)}
 
 

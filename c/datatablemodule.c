@@ -91,6 +91,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
         dt->columns[i].stype = elemtype;
         dt->columns[i].srcindex = -1;
         dt->columns[i].data = mmp;
+        dt->columns[i].mmapped = 1;
     }
 
     dt->nrows = nrows;

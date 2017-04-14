@@ -138,6 +138,7 @@ typedef struct Column {
     DataSType type;
     void *meta;
     int64_t srcindex;
+    int8_t mmapped;
 } Column;
 
 typedef struct DataTable {
