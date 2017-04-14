@@ -160,8 +160,8 @@ typedef union Value {
 
 typedef union { uint64_t i; double d; } double_repr;
 typedef union { uint32_t i; float f; } float_repr;
-static inline int ISNA_F4(float x) { float_repr xx; xx.f = x; return xx.i == 0x7F8007A2u; }
-static inline int ISNA_F8(double x) { double_repr xx; xx.d = x; return xx.i == 0x7FF00000000007A2ull; }
+static inline int ISNA_F32(float x) { float_repr xx; xx.f = x; return xx.i == 0x7F8007A2u; }
+static inline int ISNA_F64(double x) { double_repr xx; xx.d = x; return xx.i == 0x7FF00000000007A2ull; }
 static inline float __nanf__(void) { const float_repr x = { 0x7F8007A2ul }; return x.f; }
 static inline double __nand__(void) { const double_repr x = { 0x7FF00000000007A2ull }; return x.d; }
 

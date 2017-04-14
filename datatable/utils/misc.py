@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import functools
+import time
 
-__all__ = ("clamp", "normalize_slice", "plural_form")
+__all__ = ("clamp", "normalize_slice", "plural_form", "timeit")
 
 
 def plural_form(n, singular, plural=None):
@@ -124,3 +126,15 @@ def normalize_range(e, n):
             return None
     assert count >= 0
     return (start, count, e.step)
+
+
+def timeit(func):
+    @functools.wraps(func)
+    def timed(*args, **kwds):
+        t0 = time.time()
+        result = func(*args, **kwds)
+        t = time.time() - t0
+        print("Time taken: %d ms" % (t * 1000))
+        return result
+
+    return timed

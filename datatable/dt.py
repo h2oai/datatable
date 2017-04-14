@@ -10,7 +10,7 @@ from .widget import DataFrameWidget
 
 from datatable.exec import EvaluationModule
 from datatable.expr import DatatableExpr, ExprNode, ColSelectorExpr
-from datatable.utils.misc import normalize_slice, normalize_range
+from datatable.utils.misc import normalize_slice, normalize_range, timeit
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
 
@@ -157,6 +157,7 @@ class DataTable(object):
     # Main processor function
     #---------------------------------------------------------------------------
 
+    @timeit
     def __call__(self, rows=None, select=None
                  #update=None, groupby=None, join=None, sort=None, limit=None
                  ):
