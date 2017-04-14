@@ -20,6 +20,7 @@ class MRBlock(object):
         self._dts = []
         self._nrows = -1
         self._name = "mrb%d" % mod.next_fun_counter()
+        self._previous_function = None
 
     @property
     def function_name(self):
@@ -90,23 +91,28 @@ class MRBlock(object):
     def add_evaluated_expr(self, key, var):
         self._evaluated_exprs[key] = var
 
+
     def add_prologue_expr(self, expr):
         self._prologue.append(expr)
 
+
     def add_mainloop_expr(self, expr):
-        # if self.loop_filter:
-        #     self.filtloop.append(expr)
-        # else:
-        self._mainloop.append(expr)
+        if self._filtloop:
+            self._filtloop.append(expr)
+        else:
+            self._mainloop.append(expr)
+
 
     def add_epilogue_expr(self, expr):
         self._epilogue.append(expr)
+
 
     def set_filter(self, expr):
         if self._filter is not None:
             raise ValueError("Attempt to overwrite existing filter %s"
                              % self._filter)
         self._filter = expr
+
 
     def add_filter_output(self, idx):
         """
@@ -123,7 +129,6 @@ class MRBlock(object):
             stype = "i8i"
             alloc = self._nrows * 8
         ctype = ctypes_map[stype]
-        itype = itypes_map[stype]
         out_var = "out%d" % (idx + 1)
         self._prologue.append("%s *%s = stack[%d].ptr;"
                               % (ctype, out_var, idx + 1))
@@ -160,10 +165,8 @@ class MRBlock(object):
         for expr in self._epilogue:
             out += "  %s\n" % expr
         out += "}\n"
-        # if self._prev_function:
-        #     out += "\n\n"
-        #     out += self._prev_function.generate_c()
         return out
+
 
     def _check_datatable_compatibility(self, dt):
         if self._nrows == -1:
@@ -171,3 +174,15 @@ class MRBlock(object):
         elif self._nrows != dt.nrows:
             raise ValueError("Incompatible datatable %r in the function that "
                              "iterates over %d rows" % (dt, self._nrows))
+
+
+    @property
+    def previous_function(self):
+        if self._previous_function is None:
+            self._previous_function = MRBlock(self._module)
+            self._module.add_mrblock(self._previous_function)
+        return self._previous_function
+
+
+    def add_stack_variable(self, name):
+        return self._module.add_stack_variable(name)

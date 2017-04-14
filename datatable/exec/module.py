@@ -18,6 +18,7 @@ class EvaluationModule(object):
     def __init__(self, rows=None):
         self._stack = []
         self._outputs = []
+        self._functions = []
         self._filter_block = None
         self._output_block = MRBlock(self)
         self._rows_expr = None
@@ -34,6 +35,7 @@ class EvaluationModule(object):
         n = len(self._stack)
         self._rows_expr = expr
         self._filter_block = MRBlock(self)
+        self._functions.append(self._filter_block)
         self._stack.append("rowmapping_nrows")
         self._stack.append("rowmapping")
         testvar = expr.value_or_0(self._filter_block)
@@ -47,6 +49,9 @@ class EvaluationModule(object):
         r = expr.value(self._output_block)
         self._outputs.append(r)
 
+
+    def add_mrblock(self, fn):
+        self._functions.insert(0, fn)
 
     def use_datatable(self, dt):
         """
@@ -63,6 +68,11 @@ class EvaluationModule(object):
             self._stack.append(dt)
             return len(self._stack) - 1
 
+
+    def add_stack_variable(self, name):
+        n = len(self._stack)
+        self._stack.append(name)
+        return n
 
     def next_fun_counter(self):
         EvaluationModule._counter += 1
@@ -87,16 +97,18 @@ class EvaluationModule(object):
             out += " *   [%d] = %s\n" % (i, st)
         out += " **/\n"
         out += "\n\n"
-        out += self._filter_block.generate_c_code()
-        # out += self._output_block.generate_c_code()
+        for fn in self._functions:
+            out += fn.generate_c_code()
+            out += "\n\n"
         return out
 
 
     def run(self):
         cc = self.generate_c_code()
-        funcs = [self._filter_block.function_name]
+        # print(cc)
+        funcs = [fn.function_name for fn in self._functions]
         ptrs = inject_c_code(cc, funcs)
-        assert len(ptrs) == 1
+        assert len(ptrs) == len(funcs)
         stack = [
             x.internal if isinstance(x, datatable.DataTable) else
             x if isinstance(x, c.RowMapping) else
@@ -106,7 +118,8 @@ class EvaluationModule(object):
         ]
         ceval = c.Evaluator()
         ceval.generate_stack(stack)
-        ceval.run_mbr(ptrs[0], self._filter_block._nrows)
+        for fnptr in ptrs:
+            ceval.run_mbr(fnptr, self._filter_block._nrows)
         idx_nrows = self._stack.index("rowmapping_nrows")
         res_nrows = ceval.get_stack_value(idx_nrows, 1)
         self.rowmapping = ceval.get_stack_value(idx_nrows, 257)

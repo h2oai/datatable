@@ -6,15 +6,18 @@ from .binary_expr import BinaryOpExpr
 from .column_expr import ColSelectorExpr
 from .datatable_expr import DatatableExpr
 from .literal_expr import LiteralNode
+from .mean_expr import MeanReducer, mean
 from .relop_expr import RelationalOpExpr
 from .unary_expr import UnaryOpExpr
 
 __all__ = (
+    "mean",
     "BinaryOpExpr",
     "ColSelectorExpr",
     "DatatableExpr",
     "ExprNode",
     "LiteralNode",
+    "MeanReducer",
     "RelationalOpExpr",
     "UnaryOpExpr",
 )

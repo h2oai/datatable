@@ -4,8 +4,9 @@
 from .__version__ import version as __version__
 from .dt import DataTable
 from .memmap import open
+from .expr import mean
 
-__all__ = ("__version__", "DataTable", "open")
+__all__ = ("__version__", "DataTable", "mean", "open")
 
 
 DataTable.__module__ = "datatable"
