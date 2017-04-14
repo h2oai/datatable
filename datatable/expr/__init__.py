@@ -9,12 +9,14 @@ from .literal_expr import LiteralNode
 from .mean_expr import MeanReducer, mean
 from .minmax_expr import MinMaxReducer, min, max
 from .relop_expr import RelationalOpExpr
+from .sd_expr import StdevReducer, sd
 from .unary_expr import UnaryOpExpr
 
 __all__ = (
     "max",
     "mean",
     "min",
+    "sd",
     "BinaryOpExpr",
     "ColSelectorExpr",
     "DatatableExpr",
@@ -23,5 +25,6 @@ __all__ = (
     "MeanReducer",
     "MinMaxReducer",
     "RelationalOpExpr",
+    "StdevReducer",
     "UnaryOpExpr",
 )

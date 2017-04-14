@@ -103,6 +103,7 @@ for st1 in stypes_ladder:
 
 for st in stypes_ladder:
     ops_rules[("mean", st)] = st if st[-1] == "r" else "f8r"
+    ops_rules[("sd", st)] = st if st[-1] == "r" else "f8r"
 
 ops_rules[("+", "i1b", "i1b")] = "i1i"
 ops_rules[("-", "i1b", "i1b")] = "i1i"
