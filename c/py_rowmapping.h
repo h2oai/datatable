@@ -32,6 +32,7 @@ RowMapping_PyObject* RowMappingPy_from_slicelist(PyObject *self, PyObject *a);
 RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_filter(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args);
+RowMapping_PyObject* RowMappingPy_from_RowMapping(RowMapping* rowmapping);
 
 int init_py_rowmapping(PyObject *module);
 

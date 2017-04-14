@@ -110,7 +110,7 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
     }
 
     // Construct and return the RowMapping object
-    rowmapping = RowMapping_from_array(data, len);
+    rowmapping = RowMapping_from_i64_array(data, len);
     res = RowMapping_PyNEW();
     if (res == NULL || rowmapping == NULL) goto fail;
     res->ref = rowmapping;
@@ -172,14 +172,37 @@ RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
 }
 
 
+RowMapping_PyObject* RowMappingPy_from_RowMapping(RowMapping* rowmapping)
+{
+    if (rowmapping == NULL) return NULL;
+    RowMapping_PyObject *res = RowMapping_PyNEW();
+    if (res == NULL) return NULL;
+    res->ref = rowmapping;
+    return res;
+}
 
 
-//------ RowMapping PyObject -----------------------------------------------------
+//------ RowMapping PyObject ---------------------------------------------------
 
 static void __dealloc__(RowMapping_PyObject *self)
 {
     RowMapping_dealloc(self->ref);
     Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+static PyObject* __repr__(RowMapping_PyObject *self)
+{
+    RowMapping *rwm = self->ref;
+    if (rwm == NULL)
+        return PyUnicode_FromString("_RowMapping(NULL)");
+    if (rwm->type == RI_ARRAY) {
+        return PyUnicode_FromFormat("_RowMapping(int[%ld])", rwm->length);
+    }
+    if (rwm->type == RI_SLICE) {
+        return PyUnicode_FromFormat("_RowMapping(%ld:%ld:%ld)",
+            rwm->slice.start, rwm->length, rwm->slice.step);
+    }
+    return NULL;
 }
 
 
@@ -193,7 +216,7 @@ PyTypeObject RowMapping_PyType = {
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
     0,                                  /* tp_compare */
-    0,                                  /* tp_repr */
+    (reprfunc)__repr__,                 /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */
     0,                                  /* tp_as_mapping */

@@ -103,6 +103,8 @@ setup(
                                       "-Wno-float-equal",
                                       "-Wno-gnu-statement-expression",
                                       "-Wno-switch-enum",
-                                      "-fopenmp"])
+                                      "-fopenmp",
+                                      ],
+                  ),
     ],
 )

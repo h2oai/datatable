@@ -64,13 +64,34 @@ RowMapping* RowMapping_from_slicelist(int64_t *starts, int64_t *counts,
  * This function steals ownership of the `array` -- the caller should not
  * attempt to free it afterwards.
  */
-RowMapping* RowMapping_from_array(int64_t* array, int64_t length)
+RowMapping* RowMapping_from_i64_array(int64_t* array, int64_t length)
 {
     RowMapping *res = malloc(sizeof(RowMapping));
     if (res == NULL) return NULL;
     res->type = RI_ARRAY;
     res->length = length;
     res->indices = array;
+    return res;
+}
+
+
+/**
+ * Construct a `RowMapping` object from a plain list of (int64_t) row indices.
+ * This function steals ownership of the `array` -- the caller should not
+ * attempt to free it afterwards.
+ */
+RowMapping* RowMapping_from_i32_array(int32_t* array, int32_t length)
+{
+    RowMapping *res = malloc(sizeof(RowMapping));
+    if (res == NULL) return NULL;
+    res->type = RI_ARRAY;
+    res->length = length;
+    res->indices = malloc(4 * (size_t)length);
+    if (res->indices == NULL) return NULL;
+    for (int32_t i = 0; i < length; i++) {
+        res->indices[i] = (int32_t) array[i];
+    }
+    free(array);
     return res;
 }
 

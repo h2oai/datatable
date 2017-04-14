@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+# Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+
+import datatable.expr
+from .consts import ctypes_map, nas_map
+
+
+
+class ExprNode(object):
+    """
+    Basic building block for the evaluation expression(s) which could be passed
+    as parameters ``rows``, ``select``, etc in the main ``datatable(...)`` call.
+    For example, an expression such as
+
+        f.colX > f.colY + 5
+
+    becomes a tree of :class:`ExprNode`s, where the root of the tree is the
+    :class:`RelationalOpExpr` node with `op = "gt"` and 2 child nodes
+    representing sub-trees `f.colX` and `f.colY + 5`. The former is a
+    :class:`ColSelectorExpr` object corresponding to column "colX", and the
+    latter is a :class:`BinaryOpExpr` node with `op = "add"` and 2 more
+    children: `f.colY` and `5`.
+
+    Once built, the tree of ``ExprNode``s is then used to generate C code for
+    evaluation of the expression.
+
+    Each ``ExprNode`` represents a single column of values (or a scalar), with
+    a particular ``stype``. Multi-column expressions are not supported.
+
+    This class is abstract and should not be instantiated explicitly.
+    """
+
+    def __init__(self):
+        self.stype = None
+
+
+    @property
+    def ctype(self):
+        return ctypes_map[self.stype]
+
+
+    #----- Binary operators ----------------------------------------------------
+
+    def __add__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "+", other)
+
+    def __sub__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "-", other)
+
+    def __mul__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "*", other)
+
+    def __truediv__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "/", other)
+
+    def __floordiv__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "//", other)
+
+    def __mod__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "%", other)
+
+    def __pow__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "**", other)
+
+    def __and__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "&&", other)
+
+    def __or__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "||", other)
+
+    def __lshift__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "<<", other)
+
+    def __rshift__(self, other):
+        return datatable.expr.BinaryOpExpr(self, ">>", other)
+
+
+    def __radd__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "+", self)
+
+    def __rsub__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "-", self)
+
+    def __rmul__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "*", self)
+
+    def __rtruediv__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "/", self)
+
+    def __rfloordiv__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "//", self)
+
+    def __rmod__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "%", self)
+
+    def __rpow__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "**", self)
+
+    def __rand__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "&&", self)
+
+    def __ror__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "||", self)
+
+    def __rlshift__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "<<", self)
+
+    def __rrshift__(self, other):
+        return datatable.expr.BinaryOpExpr(other, ">>", self)
+
+
+    #----- Relational operators ------------------------------------------------
+
+    def __eq__(self, other):
+        return datatable.expr.RelationalOpExpr(self, "==", other)
+
+    def __ne__(self, other):
+        return datatable.expr.RelationalOpExpr(self, "!=", other)
+
+    def __lt__(self, other):
+        return datatable.expr.RelationalOpExpr(self, "<", other)
+
+    def __gt__(self, other):
+        return datatable.expr.RelationalOpExpr(self, ">", other)
+
+    def __le__(self, other):
+        return datatable.expr.RelationalOpExpr(self, "<=", other)
+
+    def __ge__(self, other):
+        return datatable.expr.RelationalOpExpr(self, ">=", other)
+
+
+    #----- Unary operators -----------------------------------------------------
+
+    def __bool__(self):
+        """Coercion to boolean: forbidden."""
+        raise TypeError(
+            "Expression %s cannot be cast to bool.\n\n"
+            "You may be seeing this error because either:\n"
+            "  * you tried to use chained inequality such as\n"
+            "        0 < f.A < 100\n"
+            "    If so please rewrite it as\n"
+            "        (0 < f.A) & (f.A < 100)\n\n"
+            "  * you used keywords and/or, for example\n"
+            "        f.A < 0 or f.B >= 1\n"
+            "    If so then replace keywords with operators `&` or `|`:\n"
+            "        (f.A < 0) | (f.B >= 1)\n"
+            "    Be mindful that `&` / `|` have higher precedence than `and`\n"
+            "    or `or`, so make sure to use parentheses appropriately.\n\n"
+            "  * you used expression in the `if` statement, for example:\n"
+            "        f.A if f.A > 0 else -f.A\n"
+            "    You may write this as a ternary operator instead:\n"
+            "        (f.A > 0) & f.A | -f.A\n\n"
+            "  * you explicitly cast the expression into `bool`:\n"
+            "        bool(f.B)\n"
+            "    this can be replaced with an explicit comparison operator:\n"
+            "        f.B != 0\n"
+            % self
+        )
+
+    def __neg__(self):
+        """Unary minus: -expr."""
+        return datatable.expr.UnaryOpExpr("neg", self)
+
+    def __pos__(self):
+        """Unary plus (no-op)."""
+        return self
+
+
+    def __str__(self):
+        """
+        String representation of the expression.
+
+        This method is not just for debug purposes. Stringified expression is
+        used as a key in the dictionary of all objects that were evaluated, to
+        ensure that no subexpression is evaluated more than once. Thus, __str__
+        should return representation that is in 1-to-1 correspondence with the
+        expression being evaluated (within the single call to `datatable(...)`).
+
+        Expression returned by __str__ should be properly parenthesized to
+        ensure that it can be used as-is to form combinations with other
+        expressions.
+        """
+        raise NotImplementedError("Class %s should implement method __str__"
+                                  % self.__class__.__name__)
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self)
+
+
+    def isna(self, block):
+        """
+        Generate C code to determine whether the expression evaluates to NA.
+
+        This may return either True (if the expression is always NA), or False
+        (if the expression is never NA), or a string containing C expression
+        which can be evaluated within the ``block`` to find the "NA-ness" of
+        the `i`-th element of the current expression.
+
+        Usually ``isna()`` will create a variable within the ``block`` to hold
+        the "NA-status" of the current expression, and then return just the
+        name of that variable. If so, such variable should be declared as type
+        `int` in C code, and evaluate to either 0 or 1.
+        """
+        key = "%s.isna" % self
+        res = block.get_evaluated_expr(key)
+        if res is None:
+            res = self._isna(block)
+            block.add_evaluated_expr(key, res)
+        return res
+
+    def _isna(self, block):
+        # This method is parallel to `isna()` and should implement the actual
+        # code-generation functionality. The public `isna()` method just handles
+        # caching/reusing of the result.
+        raise NotImplementedError("Class %s should implement method _isna()"
+                                  % self.__class__.__name__)
+
+
+    def notna(self, block):
+        """
+        Generate C code to compute the value of the expression when it is known
+        to be not NA.
+
+        This will return a string which can be evaluated within the ``block``s
+        main loop to find the value of the expression within the context where
+        it is known that the expression is not NA. The string may or may not
+        represent a single C variable (usually the latter).
+
+        For example, consider expression `(x + y)`. Then
+            (x + y).isna = x.isna | y.isna;
+            (x + y).notna = (x + y);
+            (x + y).value = (x + y).isna? NA : (x + y);
+        Note that evaluating `(x + y).notna` and saving it into a variable is
+        problematic: if either x or y are NAs then the arithmetic operation may
+        overflow, or worse in other contexts.
+
+        If `self.isna()` returns `True` (i.e. the expression is always NA), then
+        this method should still return a valid C expression, although it
+        doesn't really matter which one.
+        """
+        key = "%s.notna" % self
+        res = block.get_evaluated_expr(key)
+        if res is None:
+            res = self._notna(block)
+            block.add_evaluated_expr(key, res)
+        return res
+
+    def _notna(self, block):
+        # This method is parallel to `notna()` and should implement the actual
+        # code-generation functionality. The public `notna()` method just
+        # handles caching/reusing of the result.
+        raise NotImplementedError("Class %s should implement method _notna()"
+                                  % self.__class__.__name__)
+
+
+    def value(self, block):
+        """
+        Generate C code to compute the value of the expression.
+
+        This will return a string (usually a variable name) that when evaluated
+        within the ``block``s main loop will return the "final" value of the
+        expression. This is a combination of :meth:`isna` and :meth:`notna`.
+        """
+        key = str(self)
+        res = block.get_evaluated_expr(key)
+        if res is None:
+            res = self._value(block)
+            block.add_evaluated_expr(key, res)
+        return res
+
+    def _value(self, block):
+        # This method is parallel to `value()` and should implement the actual
+        # code-generation functionality. The public `value()` method just
+        # handles caching/reusing of the result.
+        # This is a default implementation that computes the value in terms of
+        # .isna() / .notna(), however children classes may override this if
+        # necessary.
+        res = block.make_variable()
+        na = nas_map[self.stype]
+        ctype = self.ctype
+        isna = self.isna(block)
+        notna = self.notna(block)
+        if isna is True:
+            return na
+        elif isna is False:
+            block.add_mainloop_expr("%s %s = %s;" % (ctype, res, notna))
+        else:
+            block.add_mainloop_expr("%s %s = %s? %s : %s;" %
+                                    (ctype, res, isna, na, notna))
+        return res
+
+
+    def value_or_0(self, block):
+        """
+        Return either the value of the expression, or 0 if expression is NA.
+        """
+        key = "%s.val0" % self
+        res = block.get_evaluated_expr(key)
+        if res is None:
+            res = self._value_or_0(block)
+            block.add_evaluated_expr(key, res)
+        return res
+
+    def _value_or_0(self, block):
+        isna = self.isna(block)
+        if isna is True:
+            return "0"
+        elif isna is False:
+            return self.value(block)
+        else:
+            res = block.make_variable()
+            notna = self.notna(block)
+            block.add_mainloop_expr("%s %s = %s? 0 : %s;" %
+                                    (self.ctype, res, isna, notna))
+            return res

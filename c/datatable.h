@@ -5,6 +5,7 @@
 
 // break circular dependency between .h files
 typedef struct RowMapping RowMapping;
+typedef struct ColMapping ColMapping;
 typedef struct Column Column;
 
 
@@ -19,7 +20,7 @@ typedef struct Column Column;
  *
  * :param source:
  *     If this field is not NULL, then the current datatable is a view on the
- *     referenced datatable. The referenced datatable cannot be also a view,
+ *     ``source`` datatable. The referenced datatable cannot be also a view,
  *     that is the following invariant holds:
  *
  *         (self->source == NULL) || (self->source->source == NULL)
@@ -104,7 +105,8 @@ typedef struct Column {
 /*---- Methods ---------------------------------------------------------------*/
 typedef void objcol_deallocator(void*, int64_t);
 
-DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping);
+DataTable* dt_DataTable_call(
+    DataTable *self, RowMapping *rowmapping, ColMapping * colmapping);
 void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col);
 
 

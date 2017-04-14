@@ -2,6 +2,7 @@
 #include "py_colmapping.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
+#include "py_evaluator.h"
 #include "py_rowmapping.h"
 #include "py_types.h"
 #include "fread_impl.h"
@@ -130,7 +131,8 @@ static PyMethodDef DatatableModuleMethods[] = {
         "Create Datatable from a list"},
     {"fread", (PyCFunction)freadPy, METH_VARARGS,
         "Read a text file and convert into a datatable"},
-    {"dt_from_memmap", (PyCFunction)dt_from_memmap, METH_VARARGS, "Load DataTable from the pdt files"},
+    {"dt_from_memmap", (PyCFunction)dt_from_memmap, METH_VARARGS,
+        "Load DataTable from the pdt files"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -168,6 +170,7 @@ PyInit__datatable(void) {
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowmapping(m)) return NULL;
     if (!init_py_colmapping(m)) return NULL;
+    if (!init_py_evaluator(m)) return NULL;
     if (!init_py_types(m)) return NULL;
 
     Py_int0 = PyLong_FromLong(0);

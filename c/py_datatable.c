@@ -1,4 +1,5 @@
 #include "datatable.h"
+#include "py_colmapping.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
@@ -32,23 +33,29 @@ int init_py_datatable(PyObject *module) {
  *     A row selector (a `RowMapping_PyObject` object). This cannot be None --
  *     instead supply row index spanning all rows in the datatable.
  *
+ * :param cols:
+ *     A column selector (:class:`ColMapping_PyObject`).
+ *
  * ... more to be added ...
  */
 static DataTable_PyObject*
 __call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
 {
     RowMapping_PyObject *rows = NULL;
+    ColMapping_PyObject *cols = NULL;
     DataTable *dtres = NULL;
     DataTable_PyObject *pyres = NULL;
 
-    static char *kwlist[] = {"rows", NULL};
-    int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!:DataTable.__call__",
-                                          kwlist, &RowMapping_PyType, &rows);
-    if (!ret || rows->ref == NULL) return NULL;
+    static char *kwlist[] = {"rows", "cols", NULL};
+    int ret = PyArg_ParseTupleAndKeywords(args, kwds,
+        "O!O!:DataTable.__call__", kwlist,
+        &RowMapping_PyType, &rows, &ColMapping_PyType, &cols
+    );
+    if (!ret || rows->ref == NULL || cols->ref == NULL) return NULL;
 
-    dtres = dt_DataTable_call(self->ref, rows->ref);
+    dtres = dt_DataTable_call(self->ref, rows->ref, cols->ref);
     if (dtres == NULL) goto fail;
-    rows->ref = NULL; // The reference ownership is transferred to `dtres`
+    rows->ref = NULL;  // The reference ownership is transferred to `dtres`
 
     pyres = DataTable_PyNew();
     if (pyres == NULL) goto fail;

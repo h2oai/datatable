@@ -88,9 +88,9 @@
 })
 
 static void free_string(const char *s) {
-    union { const char *immutable; char *mutable; } u;
-    u.immutable = s;
-    free(u.mutable);
+    union { const char *immut; char *mut; } u;
+    u.immut = s;
+    free(u.mut);
 }
 
 

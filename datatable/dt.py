@@ -7,8 +7,8 @@ from typing import Dict, Tuple
 import _datatable as c
 from .widget import DataFrameWidget
 
-from datatable.expr import DataTableExpr
-from datatable.llvm import select_by_expression
+from datatable.exec import EvaluationModule
+from datatable.expr import DatatableExpr, ExprNode, ColSelectorExpr
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
@@ -154,8 +154,9 @@ class DataTable(object):
     # Main processor function
     #---------------------------------------------------------------------------
 
-    def __call__(self, rows=None, select=None, update=None, groupby=None,
-                 join=None, sort=None, limit=None):
+    def __call__(self, rows=None, select=None
+                 #update=None, groupby=None, join=None, sort=None, limit=None
+                 ):
         """
         Perform computation on a datatable, and return the result.
 
@@ -221,7 +222,8 @@ class DataTable(object):
                 - a function that takes a single argument -- the current
                   datatable -- and returns any of the selectors above. Within
                   the function any operations on the frame will be lazy.
-
+        """
+        """
         :param update:
             When this parameter is specified, it causes an in-place
             modification of the current datatable. This parameter is exclusive
@@ -298,17 +300,44 @@ class DataTable(object):
             the ``select`` clause. This can also be a slice, which effectively
             applies that slice to the resulting datatable.
         """
-        rows_selector = self._rows_selector(rows)
-        cols_selector = self._cols_selector(select)
+        if select is None:
+            select = Ellipsis
 
-        res = DataTable()
-        res._dt = self._dt(rows_selector)
-        res._ncols = res._dt.ncols
-        res._nrows = res._dt.nrows
-        res._names = self._names
-        res._inames = self._inames
-        res._types = self._types
-        return res
+        rows_selector = self._rows_selector(rows)
+        cols = self._cols_selector(select)
+
+        # Number of columns that are referenced from the parent datatable
+        n_col_refs = sum(isinstance(col[0], (ColSelectorExpr, int))
+                         for col in cols)
+        print("cols = %r" % cols)
+        print("N cols as refs = %d out of %d" % (n_col_refs, len(cols)))
+
+        if n_col_refs == len(cols):
+            colidxs = [
+                col[0].colid if isinstance(col[0], ColSelectorExpr) else col[0]
+                for col in cols
+            ]
+            colmapping = c.colmapping_from_array(colidxs, self._dt)
+
+            if isinstance(rows_selector, DataTable):
+                rowmapping = c.rowmapping_from_column(rows_selector)
+            elif isinstance(rows_selector, ExprNode):
+                mod = EvaluationModule(rows=rows_selector)
+                mod.run()
+                rowmapping = mod.rowmapping
+            else:
+                rowmapping = rows_selector
+
+            res = DataTable()
+            res._dt = self._dt(rowmapping, colmapping)
+            res._ncols = res._dt.ncols
+            res._nrows = res._dt.nrows
+            res._names = self._names
+            res._inames = self._inames
+            res._types = self._types
+            return res
+
+        raise NotImplementedError
 
 
     def _rows_selector(self, arg, nested=False):
@@ -317,7 +346,10 @@ class DataTable(object):
 
         :param arg: same as parameter ``rows`` in self.__call__
         :param nested:
-        :return: a :class:`RowMapping` object
+        :return: one of:
+            * a :class:`RowMapping` object,
+            * a single-boolean-column :class:`DataTable`,
+            * an :class:`ExprNode` with boolean `stype`.
         """
         if arg is Ellipsis:
             return c.rowmapping_from_slice(0, self.nrows, 1)
@@ -327,8 +359,8 @@ class DataTable(object):
 
         from_generator = False
         if isinstance(arg, types.GeneratorType):
-            # If a iterator is given, materialize it first. Otherwise there
-            # is no way of telling whether the produced indices are valid
+            # If an iterator is given, materialize it first. Otherwise there
+            # is no way of telling whether the produced indices are valid.
             arg = list(arg)
             from_generator = True
 
@@ -405,11 +437,12 @@ class DataTable(object):
             return c.rowmapping_from_column(arg._dt)
 
         if isinstance(arg, types.FunctionType) and not nested:
-            ss = arg(DataTableExpr(src=self))
-            return self._rows_selector(ss, True)
+            dtexpr = DatatableExpr(self)
+            res = arg(dtexpr)
+            return self._rows_selector(res, True)
 
-        if isinstance(arg, DataTableExpr):
-            return select_by_expression(arg)
+        if isinstance(arg, ExprNode):
+            return arg
 
         if nested:
             raise TypeError("Unexpected result produced by the `rows` "
@@ -418,17 +451,22 @@ class DataTable(object):
             raise TypeError("Unexpected `rows` argument: %r" % arg)
 
 
-    def _cols_selector(self, arg):
+    def _cols_selector(self, arg, nested=False):
         """
         Normalize the column selector ``arg`` and ensure its correctness.
 
         :param arg: same as parameter ``select`` in self.__call__
-        :return: a :class:`ColMapping` object
+        :return: a list where each element is a tuple (column definition, 
+            column name), and "definition" can be one of:
+                * an integer column index, indicating that the column with this
+                  index should be copied from the source;
+                * an :class:`ExprNode` object describing how the column should
+                  be computed.
         """
         if arg is Ellipsis:
-            return list(range(self.ncols))
+            return [(i, ) for i in range(self.ncols)]
 
-        if isinstance(arg, (int, str, slice)):
+        if isinstance(arg, (int, str, slice, ExprNode)):
             arg = [arg]
 
         if isinstance(arg, (list, tuple)):
@@ -492,7 +530,17 @@ class DataTable(object):
                     for i in range(col0, col1, step):
                         out.append((i, self._names[i]))
 
+                elif isinstance(col, ExprNode):
+                    out.append((col, str(col)))
+
             return out
+
+        if isinstance(arg, types.FunctionType) and not nested:
+            dtexpr = DatatableExpr(self)
+            res = arg(dtexpr)
+            return self._cols_selector(res, True)
+
+        raise ValueError("Unknown `select` argument: %r" % arg)
 
 
     def __getitem__(self, item):

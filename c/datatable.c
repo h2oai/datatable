@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "datatable.h"
 #include "rowmapping.h"
+#include "colmapping.h"
 
 // Forward declarations
 static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping);
@@ -12,9 +13,10 @@ static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping);
  * Main "driver" function for the DataTable. Corresponds to DataTable.__call__
  * in Python.
  */
-DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
+DataTable* dt_DataTable_call(
+    DataTable *self, RowMapping *rowmapping, ColMapping *colmapping)
 {
-    int64_t ncols = self->ncols;
+    int64_t ncols = colmapping->length;
     int64_t nrows = rowmapping->length;
 
     // Computed on-demand only if we detect that it is needed
@@ -24,21 +26,22 @@ DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping)
     if (columns == NULL) return NULL;
 
     for (int64_t i = 0; i < ncols; ++i) {
-        columns[i].stype = self->columns[i].stype;
-        if (self->columns[i].data == NULL) {
+        columns[i].stype = colmapping->stypes[i];
+        int64_t j = colmapping->indices[i];
+        if (self->columns[j].data == NULL) {
             if (merged_rowindex == NULL) {
                 merged_rowindex = RowMapping_merge(self->rowmapping, rowmapping);
             }
             columns[i].data = NULL;
-            columns[i].srcindex = self->columns[i].srcindex;
+            columns[i].srcindex = self->columns[j].srcindex;
         }
         else if (self->source == NULL) {
             columns[i].data = NULL;
-            columns[i].srcindex = i;
+            columns[i].srcindex = j;
         }
         else {
             columns[i].srcindex = -1;
-            columns[i].data = _extract_column(self, i, rowmapping);
+            columns[i].data = _extract_column(self, j, rowmapping);
             if (columns[i].data == NULL) goto fail;
         }
     }
