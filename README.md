@@ -81,13 +81,11 @@ might need to build it manually. This involves the following:
      restart step 2.
 
   4. If you're getting error about missing
-     `"llvmlite/binding/libllvmlite.dylib"`, then it might have had
-     been accidentally built in wrong location. Check whether the file
-     with this name exist in some other Python folder on your system
-     (for example in "/Library/Frameworks/Python.framework/Versions/*")
-     and if so copy that file into the folder
-     ```
-     $(dirname $(which python))/../lib/python3.6/site-packages/llvmlite/binding
+     `"llvmlite/binding/libllvmlite.dylib"`, then it is a
+     [known problem](https://github.com/Rdatatable/data.table/pull/2084) of
+     `llvmlite` package. You may try to install from this location:
+     ```bash
+     pip install -i https://pypi.anaconda.org/sklam/simple llvmlite
      ```
 
 
