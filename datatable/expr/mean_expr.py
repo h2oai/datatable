@@ -38,20 +38,25 @@ class MeanReducer(ExprNode):
         arg_notna = self.expr.notna(pf)
         res_ctype = ctypes_map[self.stype]
         if self.skipna:
-            pf.add_prologue_expr(f"long double {vsum} = 0;")
-            pf.add_prologue_expr(f"int64_t {vcnt} = 0;")
-            pf.add_mainloop_expr(f"{vsum} += {arg_isna}? 0 : {arg_notna};")
-            pf.add_mainloop_expr(f"{vcnt} += {arg_isna};")
-            pf.add_epilogue_expr(f"{res_ctype} {vres} = {vsum} / {vcnt};")
+            pf.add_prologue_expr("long double %s = 0;" % vsum)
+            pf.add_prologue_expr("int64_t %s = 0;" % vcnt)
+            pf.add_mainloop_expr("%s += %s? 0 : %s;"
+                                 % (vsum, arg_isna, arg_notna))
+            pf.add_mainloop_expr("%s += %s;" % (vcnt, arg_isna))
+            pf.add_epilogue_expr("%s %s = %s / %s;"
+                                 % (res_ctype, vres, vsum, vcnt))
         else:
-            pf.add_prologue_expr(f"long double {vsum} = 0;")
-            pf.add_prologue_expr(f"int {visna} = 0;")
-            pf.add_mainloop_expr(f"{visna} |= {arg_isna};")
-            pf.add_mainloop_expr(f"{vsum} += {visna}? 0 : ({arg_notna});")
-            pf.add_epilogue_expr(f"{res_ctype} {vres} = {visna}? "
-                                 f"{nas_map[self.stype]} : ({vsum} / nrows);")
-        pf.add_epilogue_expr(f"stack[{i}].f8 = {vres};")
-        block.add_prologue_expr(f"{res_ctype} {v} = stack[{i}].f8;")
+            pf.add_prologue_expr("long double %s = 0;" % vsum)
+            pf.add_prologue_expr("int %s = 0;" % visna)
+            pf.add_mainloop_expr("%s |= %s;" % (visna, arg_isna))
+            pf.add_mainloop_expr("%s += %s? 0 : (%s);"
+                                 % (vsum, visna, arg_notna))
+            pf.add_epilogue_expr("%s %s = %s? %s : (%s / nrows);"
+                                 % (res_ctype, vres, visna,
+                                    nas_map[self.stype], vsum))
+        pf.add_epilogue_expr("stack[%d].f8 = %s;" % (i, vres))
+        block.add_prologue_expr("%s %s = stack[%d].f8;"
+                                % (res_ctype, v, i))
         return v
 
 
