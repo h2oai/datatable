@@ -84,7 +84,7 @@ class DataTable(object):
     def __repr__(self):
         srows = plural(self._nrows, "row")
         scols = plural(self._ncols, "col")
-        return f"<DataTable #{self._id} ({srows} x {scols})>"
+        return "<DataTable #%d (%s x %s)>" % (self._id, srows, scols)
 
     def _display_in_terminal_(self):
         self.view()
@@ -385,21 +385,21 @@ class DataTable(object):
                         bases.append(elem)
                     else:
                         raise ValueError(
-                            f"datatable contains {plural(nrows, 'row')}; "
-                            f"row number {elem} is invalid")
+                            "datatable contains %s; row number %d is invalid"
+                            % (plural(nrows, "row"), elem))
                 elif isinstance(elem, (range, slice)):
                     if elem.step == 0:
                         raise ValueError("In %r step must not be 0" % elem)
                     if not all(x is None or isinstance(x, int)
                                for x in (elem.start, elem.stop, elem.step)):
                         self.__slice = elem
-                        raise ValueError(f"{elem} is not integer-valued")
+                        raise ValueError("%r is not integer-valued" % elem)
                     if isinstance(elem, range):
                         res = normalize_range(elem, nrows)
                         if res is None:
                             raise ValueError(
-                                f"Invalid {elem} for a datatable with "
-                                f"{plural(nrows, 'row')}")
+                                "Invalid %r for a datatable with %s"
+                                % (elem, plural(nrows, "row")))
                     else:
                         res = normalize_slice(elem, nrows)
                     start, count, step = res
@@ -417,11 +417,13 @@ class DataTable(object):
                         strides.append(step)
                 else:
                     if from_generator:
-                        raise ValueError(f"Invalid row selector {elem!r} "
-                                         f"generated at position {i}")
+                        raise ValueError(
+                            "Invalid row selector %r generated at position %d"
+                            % (elem, i))
                     else:
-                        raise ValueError(f"Invalid row selector {elem!r} at "
-                                         f"element {i} of the `rows` list")
+                        raise ValueError(
+                            "Invalid row selector %r at element %d of the "
+                            "`rows` list" % (elem, i))
             if not counts:
                 return c.rowmapping_from_array(bases)
             elif len(bases) == 1:
@@ -432,16 +434,16 @@ class DataTable(object):
         if isinstance(arg, DataTable):
             if arg.ncols != 1:
                 raise ValueError("`rows` argument should be a single-column "
-                                 f"datatable, got {arg}")
+                                 "datatable, got %r" % arg)
             col0type = arg.types[0]
             if col0type != "bool":
                 raise TypeError("`rows` datatable should be a boolean column, "
-                                f"however it has type {col0type}")
+                                "however it has type %s" % col0type)
             if arg.nrows != self.nrows:
                 s1rows = plural(arg.nrows, "row")
                 s2rows = plural(self.nrows, "row")
-                raise ValueError(f"`rows` datatable has {s1rows}, but applied "
-                                 f"to a datatable with {s2rows}")
+                raise ValueError("`rows` datatable has %s, but applied to a "
+                                 "datatable with %s" % (s1rows, s2rows))
             return c.rowmapping_from_column(arg._dt)
 
         if isinstance(arg, types.FunctionType) and not nested:
@@ -464,7 +466,7 @@ class DataTable(object):
         Normalize the column selector ``arg`` and ensure its correctness.
 
         :param arg: same as parameter ``select`` in self.__call__
-        :return: a list where each element is a tuple (column definition, 
+        :return: a list where each element is a tuple (column definition,
             column name), and "definition" can be one of:
                 * an integer column index, indicating that the column with this
                   index should be copied from the source;
@@ -488,14 +490,15 @@ class DataTable(object):
                         out.append((col, self._names[col]))
                     else:
                         n_columns = plural(ncols, "column")
-                        raise ValueError(f"datatable has {n_columns}; column "
-                                         f"number {col} is invalid")
+                        raise ValueError(
+                            "datatable has %s; column number %d is invalid"
+                            % (n_columns, col))
                 elif isinstance(col, str):
                     if col in self._inames:
                         out.append((self._inames[col], col))
                     else:
-                        raise ValueError(f"Column {col!r} not found in the "
-                                         f"datatable")
+                        raise ValueError(
+                            "Column %r not found in the datatable" % col)
                 elif isinstance(col, slice):
                     start = col.start
                     stop = col.stop
@@ -507,33 +510,35 @@ class DataTable(object):
                             if start in self._inames:
                                 col0 = self._inames[start]
                             else:
-                                raise ValueError(f"Column name {start!r} not "
-                                                 "found in the datatable")
+                                raise ValueError(
+                                    "Column name %r not found in the datatable"
+                                    % start)
                         else:
-                            raise ValueError("The slice should start with a "
-                                             f"column name: {col}")
+                            raise ValueError(
+                                "The slice should start with a column name: %s"
+                                % col)
                         if stop is None:
                             col1 = ncols
                         elif isinstance(stop, str):
                             if stop in self._inames:
                                 col1 = self._inames[stop] + 1
                             else:
-                                raise ValueError(f"Column name {stop!r} not "
-                                                 "found in the datatable")
+                                raise ValueError("Column name %r not found in "
+                                                 "the datatable" % stop)
                         else:
                             raise ValueError("The slice should end with a "
-                                             f"column name: {col}")
+                                             "column name: %r" % col)
                         if step is None or step == 1:
                             step = 1
                         else:
                             raise ValueError("Column name slices cannot use "
-                                             "strides: {col}")
+                                             "strides: %r" % col)
                         if col1 <= col0:
                             col0, col1, step = col1 - 1, col0 - 1, -1
                     else:
                         if not all(x is None or isinstance(x, int)
                                    for x in (start, stop, step)):
-                            raise ValueError(f"{col} is not integer-valued")
+                            raise ValueError("%r is not integer-valued" % col)
                         col0, col1, step = normalize_slice(col, ncols)
                     for i in range(col0, col1, step):
                         out.append((i, self._names[i]))
