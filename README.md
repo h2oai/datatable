@@ -34,12 +34,17 @@ running under an old version of Python. Please switch to Python3.6 as described
 above.
 
 If there is an error about `"unrecognized command line option ‘-Weverything’"`,
-then you need to use `clang` as the compiler. Download Clang + LLVM 4.0, and
+then you need to use `clang` as the compiler. Download
+[Clang + LLVM 4.0](http://releases.llvm.org/download.html#4.0.0), and
 then specify environment variable
     ```bash
-    export CC="/path/to/clang"
+    export CC="/path/to/clang+llvm_4.0/bin/clang"
     ```
 Runnind `$CC --version` should tell you that you have Clang version 4.0.
+
+Likewise, if you run into an error `"clang: unsupported option ‘-fopenmp’`",
+then your system's Clang is outdated -- please follow the step above to
+install Clang+LLVM version 4.0.
 
 If you run into installation errors with `llvmlite` dependency, you
 might need to build it manually. This involves the following:
