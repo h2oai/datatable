@@ -172,6 +172,20 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 }
 
 
+DataTable_PyObject* pyDataTable_from_DataTable(DataTable *dt)
+{
+    DataTable_PyObject *pydt = DataTable_PyNew();
+    if (pydt == NULL) return NULL;
+    if (dt->source != NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "Cannot wrap a view datatable");
+        return NULL;
+    }
+
+    pydt->ref = dt;
+    pydt->source = NULL;
+    return pydt;
+}
+
 
 /**
  * Deallocator function, called when the object is being garbage-collected.

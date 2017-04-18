@@ -117,22 +117,14 @@ class DataTable(object):
             self._fill_from_list(list(src))
         elif isinstance(src, dict):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
+        elif isinstance(src, c.DataTable):
+            self._fill_from_dt(src)
         else:
             self._dt = c.DataTable()
 
 
     def _fill_from_list(self, src, names=None):
-        self._dt = c.datatable_from_list(src)
-        self._ncols = self._dt.ncols
-        self._nrows = self._dt.nrows
-        self._types = self._dt.types
-        if not names:
-            names = tuple("C%d" % (i + 1) for i in range(self._ncols))
-        if not isinstance(names, tuple):
-            names = tuple(names)
-        assert len(names) == self._ncols
-        self._names = names
-        self._inames = {n: i for i, n in enumerate(names)}
+        self._fill_from_dt(c.datatable_from_list(src), names=names)
 
 
     def _fill_from_pdt(self, dirname):
@@ -144,12 +136,22 @@ class DataTable(object):
                 stype, colname, f = line.strip().split(" ", 3)
                 columns.append(os.path.join(dirname, f))
                 colnames.append(colname)
-        self._dt = c.dt_from_memmap(columns)
-        self._ncols = len(columns)
-        self._nrows = nrows
-        self._types = self._dt.types
-        self._names = tuple(colnames)
-        self._inames = {n: i for i, n in enumerate(self._names)}
+        self._fill_from_dt(c.dt_from_memmap(columns), names=colnames)
+        assert self.nrows == nrows, "Wrong number of rows read: %d" % self.nrows
+
+
+    def _fill_from_dt(self, dt, names=None):
+        self._dt = dt
+        self._ncols = dt.ncols
+        self._nrows = dt.nrows
+        self._types = dt.types
+        if not names:
+            names = tuple("C%d" % (i + 1) for i in range(self._ncols))
+        if not isinstance(names, tuple):
+            names = tuple(names)
+        assert len(names) == self._ncols
+        self._names = names
+        self._inames = {n: i for i, n in enumerate(names)}
 
 
 

@@ -4,12 +4,17 @@ import os
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
+from datatable.dt import DataTable
 from datatable.utils.typechecks import typed, U
+from datatable.utils.terminal import term
 
+
+_log_color = term.bright_black
 
 
 def fread(filename="", **params):
-    pass
+    freader = FReader(filename=filename, **params)
+    return freader.read()
 
 
 
@@ -26,6 +31,9 @@ class FReader(object):
         self._header = None     # type: bool
         self._nastrings = []    # type: List[str]
         self._verbose = False   # type: bool
+
+        self._log_newline = True
+
         self.filename = filename
         self.text = text
         self.separator = separator
@@ -48,7 +56,7 @@ class FReader(object):
             if filename.startswith("~"):
                 filename = os.path.expanduser(filename)
             if "\x00" in filename:
-                raise ValueError(f"Path {filename} contains NULs")
+                raise ValueError("Path %s contains NULs" % filename)
             self._filename = filename
             self._text = None
 
@@ -64,7 +72,7 @@ class FReader(object):
             self._text = None
         else:
             if "\x00" in text:
-                raise ValueError(f"Text contains NUL characters")
+                raise ValueError("Text contains NUL characters")
             self._text = text
             self._filename = None
 
@@ -80,11 +88,11 @@ class FReader(object):
             self._separator = None
         else:
             if len(separator) > 1:
-                raise ValueError(f"Multi-character separator {separator!r} "
-                                 "not supported")
-            if ord(s) > 127:
-                raise ValueError(f"The separator should be an ASCII character, "
-                                 f"got {separator!r}")
+                raise ValueError("Multi-character separator %r not supported"
+                                 % separator)
+            if ord(separator) > 127:
+                raise ValueError("The separator should be an ASCII character, "
+                                 "got %r" % separator)
             self._separator = separator
 
 
@@ -134,7 +142,11 @@ class FReader(object):
 
 
     def read(self):
-        return c.fread(self)
+        dt = c.fread(self)
+        return DataTable(dt)
 
     def _vlog(self, message):
-        print(message)
+        if self._log_newline:
+            print("  ", end="")
+        self._log_newline = message.endswith("\n")
+        print(_log_color(message), end="")

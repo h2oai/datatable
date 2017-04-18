@@ -1,5 +1,5 @@
-#ifndef dt_FREAD_H
-#define dt_FREAD_H
+#ifndef dt_FREAD_IMPL_H
+#define dt_FREAD_IMPL_H
 #include <Python.h>
 #include "fread.h"
 
@@ -15,7 +15,7 @@ typedef struct FReadExtraArgs {
 #define STOP(...) \
     { \
         PyErr_Format(PyExc_RuntimeError, __VA_ARGS__); \
-        fread_onexit(); \
+        freadCleanup(); \
         return 0; \
     }
 
@@ -23,7 +23,7 @@ typedef struct FReadExtraArgs {
 // This macro raises a warning using Python's standard warning mechanism. Usage:
 //     if (cond) WARN("Attention: %s", smth_smelly);
 //
-#define WARN(...) \
+#define DTWARN(...) \
     { \
         PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__); \
     }
@@ -33,14 +33,13 @@ typedef struct FReadExtraArgs {
 //     VLOG("Nothing suspicious here, move along...");
 // The macro assumes that variables `verbose` and `args` are present in the
 // local scope.
-#define VLOG(...) \
-    if (verbose) { \
-        PyObject_CallMethod(args->extra->freader, "_vlog", "O", \
-                            PyUnicode_FromFormat(__VA_ARGS__)); \
-    }
+#define DTPRINT(...) log_message(args.freader, __VA_ARGS__)
 
 
 
 PyObject* freadPy(PyObject *self, PyObject *args);
+
+void log_message(PyObject* freader, const char *format, ...);
+
 
 #endif
