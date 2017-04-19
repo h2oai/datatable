@@ -106,10 +106,13 @@ setup(
                 "-Wno-gnu-statement-expression",
                 "-Wno-switch-enum",
                 "-Werror=implicit-function-declaration",
-                # "-fopenmp",
+                "-fopenmp",
                 # "-ggdb", "-O0",
             ],
-            extra_link_args=["-v"],
+            extra_link_args=[
+                "-v",
+                "-arch", "x86_64",
+            ],
         ),
     ],
 )

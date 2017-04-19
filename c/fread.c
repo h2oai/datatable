@@ -19,9 +19,7 @@
   #include <stdio.h>     // vsnprintf
   #include <math.h>      // ceil, sqrt, isfinite
 #endif
-// #include <omp.h>
-#define omp_get_thread_num() 0
-#define omp_get_num_threads() 1
+#include <omp.h>
 #include "fread.h"
 #include "freadLookups.h"
 
