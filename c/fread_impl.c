@@ -47,22 +47,6 @@ static PyObject *colNamesList = NULL;
     res;                                                                       \
 })
 
-#define TOFSSTRING(pyobj, dflt) ({                                             \
-    char *res = dflt;                                                          \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        PyObject *y = PyUnicode_EncodeFSDefault(x);                            \
-        if (y == NULL) goto fail;                                              \
-        char *buf = PyBytes_AsString(y);                                       \
-        Py_DECREF(y);                                                          \
-        res = malloc(PyBytes_Size(y) + 1);                                     \
-        memcpy(res, buf, PyBytes_Size(y) + 1);                                 \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
 #define TOCHAR(pyobj, dflt) ({                                                 \
     char res = dflt;                                                           \
     PyObject *x = pyobj;                                                       \
@@ -138,7 +122,7 @@ PyObject* freadPy(PyObject *self, PyObject *args)
 
     freadMainArgs frargs;
 
-    frargs.filename = TOFSSTRING(ATTR(freader, "filename"), NULL);
+    frargs.filename = TOSTRING(ATTR(freader, "filename"), NULL);
     frargs.input = TOSTRING(ATTR(freader, "text"), NULL);
     frargs.sep = TOCHAR(ATTR(freader, "separator"), '\0');
     frargs.dec = '.';
@@ -154,6 +138,7 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     frargs.fill = 0;
     frargs.showProgress = 0;
     frargs.nth = 1;
+    frargs.warningsAreErrors = 0;
     if (frargs.nrowLimit < 0)
         frargs.nrowLimit = LONG_MAX;
 
