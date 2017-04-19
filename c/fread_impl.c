@@ -2,8 +2,8 @@
 #include "fread_impl.h"
 #include "py_datatable.h"
 
-static const size_t colTypeSizes[NUMTYPES] = {0, 1, 4, 8, 8, 8};
-static const int colType_to_stype[NUMTYPES] = {
+static const size_t colTypeSizes[NUMTYPE] = {0, 1, 4, 8, 8, 8};
+static const int colType_to_stype[NUMTYPE] = {
     DT_VOID,
     DT_BOOLEAN_I8,
     DT_INTEGER_I32,
