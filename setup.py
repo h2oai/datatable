@@ -36,6 +36,11 @@ for root, dirs, files in os.walk("c"):
 packages = find_packages(exclude=["tests", "temp", "c"])
 print("\nFound packages: %r\n" % packages)
 
+
+if "CC" in os.environ:
+    os.environ["CC"] += " -fopenmp"
+
+
 # Main setup
 setup(
     name="datatable",
