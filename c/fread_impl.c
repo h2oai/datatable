@@ -4,7 +4,7 @@
 #include "py_utils.h"
 
 static const size_t colTypeSizes[NUMTYPE] = {0, 1, 4, 8, 8, 8};
-static const int colType_to_stype[NUMTYPE] = {
+static const DataSType colType_to_stype[NUMTYPE] = {
     DT_VOID,
     DT_BOOLEAN_I8,
     DT_INTEGER_I32,
@@ -27,7 +27,9 @@ static DataTable *dt = NULL;
 
 static PyObject *colNamesList = NULL;
 
-
+static char *filename = NULL;
+static char *input = NULL;
+static char **na_strings = NULL;
 
 
 PyObject* freadPy(PyObject *self, PyObject *args)
@@ -44,9 +46,12 @@ PyObject* freadPy(PyObject *self, PyObject *args)
 
     freadMainArgs frargs;
 
-    frargs.filename = TOSTRING(ATTR(freader, "filename"), NULL);
-    frargs.input = TOSTRING(ATTR(freader, "text"), NULL);
-    frargs.sep = TOCHAR(ATTR(freader, "separator"), '\0');
+    filename = TOSTRING(ATTR(freader, "filename"), NULL);
+    input = TOSTRING(ATTR(freader, "text"), NULL);
+    na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
+    frargs.filename = filename;
+    frargs.input = input;
+    frargs.sep = TOCHAR(ATTR(freader, "separator"), 0);
     frargs.dec = '.';
     frargs.quote = '"';
     frargs.nrowLimit = TOINT64(ATTR(freader, "max_nrows"), 0);
@@ -54,7 +59,7 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     frargs.skipString = NULL;
     frargs.header = TOBOOL(ATTR(freader, "header"), NA_BOOL8);
     frargs.verbose = TOBOOL(ATTR(freader, "verbose"), 0);
-    frargs.NAstrings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
+    frargs.NAstrings = (const char* const*) na_strings;
     frargs.stripWhite = 1;
     frargs.skipEmptyLines = 1;
     frargs.fill = 0;
@@ -65,8 +70,8 @@ PyObject* freadPy(PyObject *self, PyObject *args)
         frargs.nrowLimit = LONG_MAX;
 
     int na_count = 0;
-    if (frargs.NAstrings != NULL)
-        for (; frargs.NAstrings[na_count] != NULL; na_count++);
+    if (na_strings != NULL)
+        for (; na_strings[na_count] != NULL; na_count++);
     frargs.nNAstrings = na_count;
 
     frargs.freader = freader;
@@ -88,14 +93,14 @@ PyObject* freadPy(PyObject *self, PyObject *args)
 
 
 void cleanup_fread_session(freadMainArgs *frargs) {
+    free(filename); filename = NULL;
+    free(input); input = NULL;
     if (frargs) {
-        if (frargs->NAstrings) {
-            char **ptr = frargs->NAstrings;
+        if (na_strings) {
+            char **ptr = na_strings;
             while (*ptr++) free(*ptr);
-            free(frargs->NAstrings);
+            free(na_strings);
         }
-        free(frargs->filename);
-        free(frargs->input);
         Py_XDECREF(frargs->freader);
     }
     Py_XDECREF(freader);
@@ -124,7 +129,7 @@ _Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor, int ncol
  * Allocate memory for the datatable being read
  */
 size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
-    Column *columns = calloc(sizeof(Column), ncols - ndrop);
+    Column *columns = calloc(sizeof(Column), (size_t)(ncols - ndrop));
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
         if (type != CT_DROP) {
@@ -139,7 +144,7 @@ size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
     }
 
     dt = malloc(sizeof(DataTable));
-    dt->nrows = nrows;
+    dt->nrows = (int64_t) nrows;
     dt->ncols = ncols - ndrop;
     dt->source = NULL;
     dt->rowmapping = NULL;
@@ -154,18 +159,19 @@ void setFinalNrow(uint64_t nrows) {
         size_t new_size = stype_info[col.stype].elemsize * nrows;
         realloc(col.data, new_size);
     }
-    dt->nrows = nrows;
+    dt->nrows = (int64_t) nrows;
 }
 
 
 void reallocColType(int col, colType newType) {
-    size_t new_alloc_size = colTypeSizes[newType] * dt->nrows;
+    size_t new_alloc_size = colTypeSizes[newType] * (size_t)dt->nrows;
     realloc(dt->columns[col].data, new_alloc_size);
 }
 
 
 void pushBuffer(int8_t *types, int ncols, void **buff, const char *anchor,
-                int nStringCols, int nNonStringCols, int nRows, uint64_t ansi)
+                int nStringCols, int nNonStringCols, uint32_t nRows,
+                uint64_t ansi)
 {
     for (int i = 0; i < ncols; i++) {
         Column col = dt->columns[i];

@@ -105,7 +105,7 @@ typedef struct freadMainArgs
   const char *skipString;
 
   // List of strings that should be converted into NA values.
-  const char **NAstrings;
+  const char * const* NAstrings;
 
   // Number of entries in the `NAstrings` array.
   int32_t nNAstrings;
@@ -191,7 +191,8 @@ void reallocColType(int col, colType newType);
  * ansi: starting row where to put the data from the buffers into the final DT
  */
 void pushBuffer(int8_t *type, int ncol, void **buff, const char *anchor,
-                int nStringCols, int nNonStringCols, int nRows, uint64_t ansi);
+                int nStringCols, int nNonStringCols, uint32_t nRows,
+                uint64_t ansi);
 
 
 /**
