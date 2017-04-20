@@ -154,32 +154,46 @@ typedef enum DataLType {
  *
  * -----------------------------------------------------------------------------
  *
- * DT_STRING_U32_VCHAR
+ * DT_STRING_I32_VCHAR
  *     elem: int (4 bytes) + char[]
- *     NA:   2**32-1
- *     meta: `buffer` (char*)
- *     Variable-width strings. The actual string data is stored in the `buffer`,
- *     and each element in the column is just a 32-bit offset within that
- *     buffer. All strings within the buffer are stored contiguously without
- *     gaps (null values are skipped). The strings are encoded in MUTF-8, and
- *     are \0-terminated. The `buffer` array is "owned" by the column, and will
- *     be freed if the column is removed.
+ *     NA:   negative numbers
+ *     meta: `offoff` (int)
+ *     Variable-width strings. The data buffer has the following structure:
+ *     The first byte is 0xFF; then comes a section with string data: all non-NA
+ *     strings are UTF-8 encoded and placed end-to-end. Thi section is padded by
+ *     \xFF-bytes to have length which is a multiple of 4. After that comes the
+ *     array of int32_t primitives representing offsets of each string in the
+ *     buffer. In particular, each entry is the offset of the last byte of the
+ *     string within the data buffer. NA strings are encoded as negation of the
+ *     previous string's offset.
+ *     Thus, i'th string is NA if its offset is negative, otherwise its a valid
+ *     string whose starting offset is `start(i) = i? abs(off(i-1)) - 1 : 0`,
+ *     ending offset is `end(i) = off(i) - 1`, and `len(i) = end(i) - start(i)`.
+ *     For example, a column with 4 values `[N/A, "hello", "", N/A]` will be
+ *     encoded as a buffer of size 24 = 5 + 3 + 4 * 4:
+ *         h e l l o \xFF \xFF \xFF <-1> <6> <6> <-6>
+ *         meta = 8
+ *     (where "<n>" denotes the 4-byte sequence encoding integer `n`).
+ *     Meta information stores the offset of the section with offsets. Thus the
+ *     total buffer size is always `offoff` + 4 * `nrows`.
+ *     Note: 0xFF is used for padding because it's not a valid UTF-8 byte.
  *
- * DT_STRING_U64_VCHAR
+ * DT_STRING_I64_VCHAR
  *     elem: long int (8 bytes) + char[]
- *     NA:   2**64-1
- *     meta: `buffer` (char*)
- *     Variable-width strings: same as DT_STRING_U32_VCHAR but use 64-bit
- *     offsets.
+ *     NA:   negative numbers
+ *     meta: `offoff` (long int)
+ *     Variable-width strings: same as DT_STRING_I32_VCHAR but use 64-bit
+ *     offsets and pad the buffer to a multiple of 8.
  *
  * DT_STRING_FCHAR
  *     elem: char[] (n bytes)
- *     NA:   "\0\0...\0"
+ *     NA:   \xFF \xFF ... \xFF
  *     meta: `n` (int)
  *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
  *     constant width `n` and are therefore stored as `char[n]` arrays. They are
  *     *not* null-terminated, however strings that are shorter than `n` in width
- *     will be \0-padded. The width `n` is given in the metadata.
+ *     will be \xFF-padded. The width `n` is given in the metadata. String data
+ *     is encoded in UTF-8.
  *
  * DT_STRING_U8_ENUM
  *     elem: unsigned char (1 byte)
@@ -274,8 +288,8 @@ typedef enum DataSType {
     DT_REAL_I16,
     DT_REAL_I32,
     DT_REAL_I64,
-    DT_STRING_U32_VCHAR,
-    DT_STRING_U64_VCHAR,
+    DT_STRING_I32_VCHAR,
+    DT_STRING_I64_VCHAR,
     DT_STRING_FCHAR,
     DT_STRING_U8_ENUM,
     DT_STRING_U16_ENUM,

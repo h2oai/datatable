@@ -10,7 +10,7 @@ static const DataSType colType_to_stype[NUMTYPE] = {
     DT_INTEGER_I32,
     DT_INTEGER_I64,
     DT_REAL_F64,
-    DT_STRING_U64_VCHAR,
+    DT_STRING_I64_VCHAR,
 };
 
 // Forward declarations

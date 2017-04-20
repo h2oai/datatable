@@ -16,8 +16,8 @@ void init_types(void) {
     stype_info[DT_REAL_I16]           = (STypeInfo){"i2r", 2, 1, DT_REAL};
     stype_info[DT_REAL_I32]           = (STypeInfo){"i4r", 4, 1, DT_REAL};
     stype_info[DT_REAL_I64]           = (STypeInfo){"i8r", 8, 1, DT_REAL};
-    stype_info[DT_STRING_U32_VCHAR]   = (STypeInfo){"u4s", 4, 1, DT_STRING};
-    stype_info[DT_STRING_U64_VCHAR]   = (STypeInfo){"u8s", 8, 1, DT_STRING};
+    stype_info[DT_STRING_I32_VCHAR]   = (STypeInfo){"i4s", 4, 1, DT_STRING};
+    stype_info[DT_STRING_I64_VCHAR]   = (STypeInfo){"i8s", 8, 1, DT_STRING};
     stype_info[DT_STRING_FCHAR]       = (STypeInfo){"c#s", 0, 1, DT_STRING};
     stype_info[DT_STRING_U8_ENUM]     = (STypeInfo){"u1e", 1, 1, DT_STRING};
     stype_info[DT_STRING_U16_ENUM]    = (STypeInfo){"u2e", 2, 1, DT_STRING};
