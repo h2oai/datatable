@@ -92,7 +92,7 @@ static PyObject* get_stack_value(Evaluator_PyObject *self, PyObject *args)
         case 2: return PyLong_FromLong(v.i2);
         case 3: return PyLong_FromLong(v.i1);
         case 4: return PyFloat_FromDouble(v.f8);
-        case 5: return PyFloat_FromDouble(v.f4);
+        case 5: return PyFloat_FromDouble((double)v.f4);
         case 257: {
             int32_t n = v.i4;
             int32_t *arr = (int32_t*) self->stack[idx + 1].ptr;

@@ -37,6 +37,60 @@ void* clone(void *src, size_t n_bytes);
 
 
 /**
+ * Helper method that attempts to retrieve python object `x`, but executes
+ * "goto fail" if not successful.
+ */
+#define TRY(x) ({                                                              \
+    PyObject *y = x;                                                           \
+    if (y == NULL) goto fail;                                                  \
+    y;                                                                         \
+})
+
+
+/**
+ * Similar to `malloc(n)`, but in case of error set the error string and then
+ * execute "goto fail".
+ */
+#define MALLOC(n) ({                                                           \
+    void *malloc_res = malloc((size_t)(n));                                    \
+    if (malloc_res == NULL) {                                                  \
+        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);    \
+        goto fail;                                                             \
+    }                                                                          \
+    malloc_res;                                                                \
+})
+
+
+/**
+ * Similar to `calloc(s, n)`, but in case of error set the error string and
+ * then execute "goto fail".
+ */
+#define CALLOC(s, n) ({                                                        \
+    void *calloc_res = calloc(s, (size_t)(n));                                 \
+    if (calloc_res == NULL) {                                                  \
+        size_t sz = (s)*(size_t)(n);                                           \
+        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", sz);   \
+        goto fail;                                                             \
+    }                                                                          \
+    calloc_res;                                                                \
+})
+
+
+/**
+ * Similar to `realloc(n)`, but in case of error set the error string and then
+ * execute "goto fail".
+ */
+#define REALLOC(ptr, n) ({                                                     \
+    void *realloc_res = realloc(ptr, (size_t)(n));                             \
+    if (realloc_res == NULL) {                                                 \
+        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);    \
+        goto fail;                                                             \
+    }                                                                          \
+    realloc_res;                                                               \
+})
+
+
+/**
  * Returned named attribute of a python object. This is a shortcut for
  * ``PyObject_GetAttrString``.
  */
@@ -59,7 +113,7 @@ void* clone(void *src, size_t n_bytes);
         char *buf = PyBytes_AsString(y);                                       \
         Py_DECREF(y);                                                          \
         size_t len = (size_t) PyBytes_Size(y);                                 \
-        res = malloc(len + 1);                                                 \
+        res = MALLOC(len + 1);                                                 \
         memcpy(res, buf, len + 1);                                             \
     }                                                                          \
     Py_DECREF(x);                                                              \

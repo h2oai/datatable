@@ -72,7 +72,7 @@ static PyObject* stype_integer_i64_tostring(Column *col, int64_t row)
 static PyObject* stype_real_f32_tostring(Column *col, int64_t row)
 {
     float x = ((float*)col->data)[row];
-    return x == NA_F32? none() : PyFloat_FromDouble(x);
+    return x == NA_F32? none() : PyFloat_FromDouble((double)x);
 }
 
 static PyObject* stype_real_f64_tostring(Column *col, int64_t row)

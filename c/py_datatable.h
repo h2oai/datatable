@@ -47,7 +47,8 @@ extern PyTypeObject DataTable_PyType;
 
 
 // Exported methods
-DataTable_PyObject* dt_DataTable_fromlist(PyTypeObject *type, PyObject *args);
+DataTable_PyObject* pyDataTable_from_list_of_lists(PyTypeObject *type,
+                                                   PyObject *args);
 DataTable_PyObject* pyDataTable_from_DataTable(DataTable *dt);
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
