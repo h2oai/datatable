@@ -1,6 +1,6 @@
 #include <Python.h>
 #include "datatable.h"
-#include "dtutils.h"
+#include "py_utils.h"
 #include "structmember.h"
 #include "rowmapping.h"
 #include "py_datawindow.h"

@@ -29,17 +29,14 @@ typedef struct FReadExtraArgs {
     }
 
 
-// Log a message, but only in "verbose" mode. Usage:
-//     VLOG("Nothing suspicious here, move along...");
-// The macro assumes that variables `verbose` and `args` are present in the
-// local scope.
-#define DTPRINT(...) log_message(args.freader, __VA_ARGS__)
+// Print message to the output log. Usage:
+//     DTPRINT("Nothing suspicious here, move along...");
+//
+void DTPRINT(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 
 
 PyObject* freadPy(PyObject *self, PyObject *args);
-
-void log_message(PyObject* freader, const char *format, ...);
 
 
 #endif

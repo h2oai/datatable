@@ -1,6 +1,7 @@
 #include <string.h>  // memcpy
 #include "fread_impl.h"
 #include "py_datatable.h"
+#include "py_utils.h"
 
 static const size_t colTypeSizes[NUMTYPE] = {0, 1, 4, 8, 8, 8};
 static const int colType_to_stype[NUMTYPE] = {
@@ -9,7 +10,7 @@ static const int colType_to_stype[NUMTYPE] = {
     DT_INTEGER_I32,
     DT_INTEGER_I64,
     DT_REAL_F64,
-    DT_STRING_UI64_VCHAR,
+    DT_STRING_U64_VCHAR,
 };
 
 // Forward declarations
@@ -29,87 +30,8 @@ static PyObject *colNamesList = NULL;
 
 
 
-#define ATTR(pyobj, attr)  PyObject_GetAttrString(pyobj, attr)
-
-#define TOSTRING(pyobj, dflt) ({                                               \
-    char *res = dflt;                                                          \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        PyObject *y = PyUnicode_AsEncodedString(x, "utf-8", "strict");         \
-        if (y == NULL) goto fail;                                              \
-        char *buf = PyBytes_AsString(y);                                       \
-        Py_DECREF(y);                                                          \
-        res = malloc(PyBytes_Size(y) + 1);                                     \
-        memcpy(res, buf, PyBytes_Size(y) + 1);                                 \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-#define TOCHAR(pyobj, dflt) ({                                                 \
-    char res = dflt;                                                           \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        res = (char)PyUnicode_ReadChar(x, 0);                                  \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-#define TOINT64(pyobj, dflt) ({                                                \
-    int64_t res = dflt;                                                        \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        res = PyLong_AsLongLong(x);                                            \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-#define TOBOOL(pyobj, dflt) ({                                                 \
-    int res = dflt;                                                            \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        res = (x == Py_True);                                                  \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-#define TOSTRINGLIST(pyobj, dflt) ({                                           \
-    char **res = dflt;                                                         \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        Py_ssize_t count = PyList_Size(x);                                     \
-        res = calloc(sizeof(char*), (size_t)(count + 1));                      \
-        for (Py_ssize_t i = 0; i < count; i++) {                               \
-            PyObject *item = PyList_GetItem(x, i);                             \
-            PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");  \
-            if (y == NULL) {                                                   \
-                for (int j = 0; j < i; j++) free(res[j]);                      \
-                free(res);                                                     \
-                goto fail;                                                     \
-            }                                                                  \
-            res[i] = PyBytes_AsString(y);                                      \
-            Py_DECREF(y);                                                      \
-        }                                                                      \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-
-
-
 PyObject* freadPy(PyObject *self, PyObject *args)
 {
-    FReadExtraArgs *extra = NULL;
-
     if (freader != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
@@ -256,7 +178,8 @@ void pushBuffer(int8_t *types, int ncols, void **buff, const char *anchor,
 void progress(double percent/*[0,1]*/, double ETA/*secs*/) {}
 
 
-void log_message(PyObject* freader, const char *format, ...) {
+__attribute__((format(printf, 1, 2)))
+void DTPRINT(const char *format, ...) {
     va_list args;
     va_start(args, format);
     static char msg[2000];

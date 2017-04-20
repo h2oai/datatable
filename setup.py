@@ -107,6 +107,7 @@ setup(
                 "-Wno-switch-enum",
                 "-Werror=implicit-function-declaration",
                 "-fopenmp",
+                "-std=gnu11",
                 # "-ggdb", "-O0",
             ],
             extra_link_args=[

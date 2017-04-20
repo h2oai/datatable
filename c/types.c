@@ -16,12 +16,12 @@ void init_types(void) {
     stype_info[DT_REAL_I16]           = (STypeInfo){"i2r", 2, 1, DT_REAL};
     stype_info[DT_REAL_I32]           = (STypeInfo){"i4r", 4, 1, DT_REAL};
     stype_info[DT_REAL_I64]           = (STypeInfo){"i8r", 8, 1, DT_REAL};
-    stype_info[DT_STRING_UI32_VCHAR]  = (STypeInfo){"u4s", 4, 1, DT_STRING};
-    stype_info[DT_STRING_UI64_VCHAR]  = (STypeInfo){"u8s", 8, 1, DT_STRING};
+    stype_info[DT_STRING_U32_VCHAR]   = (STypeInfo){"u4s", 4, 1, DT_STRING};
+    stype_info[DT_STRING_U64_VCHAR]   = (STypeInfo){"u8s", 8, 1, DT_STRING};
     stype_info[DT_STRING_FCHAR]       = (STypeInfo){"c#s", 0, 1, DT_STRING};
-    stype_info[DT_STRING_UI8_ENUM]    = (STypeInfo){"u1e", 1, 1, DT_STRING};
-    stype_info[DT_STRING_UI16_ENUM]   = (STypeInfo){"u2e", 2, 1, DT_STRING};
-    stype_info[DT_STRING_UI32_ENUM]   = (STypeInfo){"u4e", 4, 1, DT_STRING};
+    stype_info[DT_STRING_U8_ENUM]     = (STypeInfo){"u1e", 1, 1, DT_STRING};
+    stype_info[DT_STRING_U16_ENUM]    = (STypeInfo){"u2e", 2, 1, DT_STRING};
+    stype_info[DT_STRING_U32_ENUM]    = (STypeInfo){"u4e", 4, 1, DT_STRING};
     stype_info[DT_DATETIME_I64_EPOCH] = (STypeInfo){"i8d", 8, 0, DT_DATETIME};
     stype_info[DT_DATETIME_I64_PRTMN] = (STypeInfo){"i8w", 8, 0, DT_DATETIME};
     stype_info[DT_DATETIME_I32_TIME]  = (STypeInfo){"i4t", 4, 0, DT_DATETIME};

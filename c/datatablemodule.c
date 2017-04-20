@@ -5,8 +5,8 @@
 #include "py_evaluator.h"
 #include "py_rowmapping.h"
 #include "py_types.h"
+#include "py_utils.h"
 #include "fread_impl.h"
-#include "dtutils.h"
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -173,9 +173,6 @@ PyInit__datatable(void) {
     if (!init_py_colmapping(m)) return NULL;
     if (!init_py_evaluator(m)) return NULL;
     if (!init_py_types(m)) return NULL;
-
-    Py_int0 = PyLong_FromLong(0);
-    Py_int1 = PyLong_FromLong(1);
 
     return m;
 }

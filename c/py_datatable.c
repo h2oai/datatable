@@ -4,7 +4,7 @@
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
 #include "py_types.h"
-#include "dtutils.h"
+#include "py_utils.h"
 
 // Forward declarations
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);

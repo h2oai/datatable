@@ -1,7 +1,7 @@
 #include "py_evaluator.h"
 #include "py_datatable.h"
 #include "py_rowmapping.h"
-#include "dtutils.h"
+#include "py_utils.h"
 
 
 int init_py_evaluator(PyObject *module) {

@@ -154,7 +154,7 @@ typedef enum DataLType {
  *
  * -----------------------------------------------------------------------------
  *
- * DT_STRING_UI32_VCHAR
+ * DT_STRING_U32_VCHAR
  *     elem: int (4 bytes) + char[]
  *     NA:   2**32-1
  *     meta: `buffer` (char*)
@@ -165,11 +165,11 @@ typedef enum DataLType {
  *     are \0-terminated. The `buffer` array is "owned" by the column, and will
  *     be freed if the column is removed.
  *
- * DT_STRING_UI64_VCHAR
+ * DT_STRING_U64_VCHAR
  *     elem: long int (8 bytes) + char[]
  *     NA:   2**64-1
  *     meta: `buffer` (char*)
- *     Variable-width strings: same as DT_STRING_UI32_VCHAR but use 64-bit
+ *     Variable-width strings: same as DT_STRING_U32_VCHAR but use 64-bit
  *     offsets.
  *
  * DT_STRING_FCHAR
@@ -181,7 +181,7 @@ typedef enum DataLType {
  *     *not* null-terminated, however strings that are shorter than `n` in width
  *     will be \0-padded. The width `n` is given in the metadata.
  *
- * DT_STRING_UI8_ENUM
+ * DT_STRING_U8_ENUM
  *     elem: unsigned char (1 byte)
  *     NA:   255
  *     meta: `buffer` (char*), `offsets` (int[])
@@ -192,14 +192,14 @@ typedef enum DataLType {
  *     array which tells where the string for each level is located within the
  *     `buffer`.
  *
- * DT_STRING_UI16_ENUM
+ * DT_STRING_U16_ENUM
  *     elem: unsigned short int (2 bytes)
  *     NA:   65535
  *     meta: `buffer` (char*), `offsets` (int[])
  *     Strings stored as a categorical variable with no more than 65535 distinct
  *     levels.
  *
- * DT_STRING_UI32_ENUM
+ * DT_STRING_U32_ENUM
  *     elem: unsigned int (4 bytes)
  *     NA:   2**32-1
  *     meta: `buffer` (char*), `offsets` (int[])
@@ -274,12 +274,12 @@ typedef enum DataSType {
     DT_REAL_I16,
     DT_REAL_I32,
     DT_REAL_I64,
-    DT_STRING_UI32_VCHAR,
-    DT_STRING_UI64_VCHAR,
+    DT_STRING_U32_VCHAR,
+    DT_STRING_U64_VCHAR,
     DT_STRING_FCHAR,
-    DT_STRING_UI8_ENUM,
-    DT_STRING_UI16_ENUM,
-    DT_STRING_UI32_ENUM,
+    DT_STRING_U8_ENUM,
+    DT_STRING_U16_ENUM,
+    DT_STRING_U32_ENUM,
     DT_DATETIME_I64_EPOCH,
     DT_DATETIME_I64_PRTMN,
     DT_DATETIME_I32_TIME,

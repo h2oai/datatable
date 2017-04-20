@@ -4,7 +4,7 @@
  *
  */
 #include "py_datatable.h"
-#include "dtutils.h"
+#include "py_utils.h"
 
 static int _fill_1_column(PyObject *list, Column *column);
 static int _switch_to_coltype(DataSType newtype, PyObject *list, Column *column);
