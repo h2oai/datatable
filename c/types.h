@@ -161,7 +161,7 @@ typedef enum DataLType {
  *     Variable-width strings. The data buffer has the following structure:
  *     The first byte is 0xFF; then comes a section with string data: all non-NA
  *     strings are UTF-8 encoded and placed end-to-end. Thi section is padded by
- *     \xFF-bytes to have length which is a multiple of 4. After that comes the
+ *     0xFF-bytes to have length which is a multiple of 4. After that comes the
  *     array of int32_t primitives representing offsets of each string in the
  *     buffer. In particular, each entry is the offset of the last byte of the
  *     string within the data buffer. NA strings are encoded as negation of the
@@ -171,7 +171,7 @@ typedef enum DataLType {
  *     ending offset is `end(i) = off(i) - 1`, and `len(i) = end(i) - start(i)`.
  *     For example, a column with 4 values `[N/A, "hello", "", N/A]` will be
  *     encoded as a buffer of size 24 = 5 + 3 + 4 * 4:
- *         h e l l o \xFF \xFF \xFF <-1> <6> <6> <-6>
+ *         h e l l o 0xFF 0xFF 0xFF <-1> <6> <6> <-6>
  *         meta = 8
  *     (where "<n>" denotes the 4-byte sequence encoding integer `n`).
  *     Meta information stores the offset of the section with offsets. Thus the
@@ -187,12 +187,12 @@ typedef enum DataLType {
  *
  * DT_STRING_FCHAR
  *     elem: char[] (n bytes)
- *     NA:   \xFF \xFF ... \xFF
+ *     NA:   0xFF 0xFF ... 0xFF
  *     meta: `n` (int)
  *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
  *     constant width `n` and are therefore stored as `char[n]` arrays. They are
  *     *not* null-terminated, however strings that are shorter than `n` in width
- *     will be \xFF-padded. The width `n` is given in the metadata. String data
+ *     will be 0xFF-padded. The width `n` is given in the metadata. String data
  *     is encoded in UTF-8.
  *
  * DT_STRING_U8_ENUM
@@ -327,9 +327,8 @@ typedef struct DecimalMeta {  // DT_REAL_IXX
     uint32_t currency;
 } DecimalMeta;
 
-typedef struct VarcharMeta {  // DT_STRING_UIXX_VCHAR
-    char *buffer;
-    uint32_t buffer_length;
+typedef struct VarcharMeta {  // DT_STRING_IXX_VCHAR
+    int64_t offoff;
 } VarcharMeta;
 
 typedef struct FixcharMeta {  // DT_STRING_FCHAR

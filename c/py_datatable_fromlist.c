@@ -82,6 +82,7 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
 
 
 //---- Helper macros -----------------------------------------------------------
+#define MIN(a, b)   ((a) < (b)? (a) : (b))
 #define TYPE_SWITCH(s)  { stype = s; goto start_over; }
 #define SET_I1B(v)  ((int8_t*)data)[i] = (v)
 #define SET_I1I(v)  ((int8_t*)data)[i] = (v)
@@ -89,6 +90,7 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
 #define SET_I4I(v)  ((int32_t*)data)[i] = (v)
 #define SET_I8I(v)  ((int64_t*)data)[i] = (v)
 #define SET_F8R(v)  ((double*)data)[i] = (v)
+#define SET_I4S(v)  ((int32_t*)data)[i] = (v)
 #define SET_P8P(v)  ((PyObject**)data)[i] = (v)
 #define DEFAULT(s)  default: \
                     PyErr_Format(PyExc_RuntimeError, \
@@ -114,7 +116,7 @@ Column* column_from_list(PyObject *list)
     column->data = NULL;
     column->mmapped = 0;
 
-    int64_t nrows = (int64_t) Py_SIZE(list);
+    size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
         column->stype = DT_REAL_F64;
         return 0;
@@ -122,12 +124,24 @@ Column* column_from_list(PyObject *list)
 
     DataSType stype = DT_VOID;
     void *data = NULL;
+    char *strbuffer = NULL;
+    size_t strbuffer_size = 0;
+    size_t strbuffer_ptr = 0;
     int overflow = 0;
     while (stype < DT_STYPES_COUNT) {
         start_over:
-        data = REALLOC(data, stype_info[stype].elemsize * (size_t)nrows);
+        data = REALLOC(data, stype_info[stype].elemsize * nrows);
+        if (stype == DT_STRING_I32_VCHAR) {
+            strbuffer_size = MIN(nrows * 1000, 1 << 20);
+            strbuffer_ptr = 0;
+            strbuffer = MALLOC(strbuffer_size);
+        } else if (strbuffer) {
+            free(strbuffer);
+            strbuffer = NULL;
+            strbuffer_size = 0;
+        }
 
-        for (int64_t i = 0; i < nrows; i++) {
+        for (size_t i = 0; i < nrows; i++) {
             PyObject *item = PyList_GET_ITEM(list, i);  // borrowed ref
             PyTypeObject *itemtype = Py_TYPE(item);     // borrowed ref
 
@@ -141,6 +155,8 @@ Column* column_from_list(PyObject *list)
                     case DT_INTEGER_I32:  SET_I4I(NA_I32); break;
                     case DT_INTEGER_I64:  SET_I8I(NA_I64); break;
                     case DT_REAL_F64:     SET_F8R(NA_F64); break;
+                    case DT_STRING_I32_VCHAR:
+                        SET_I4S((int32_t)(-strbuffer_ptr-1)); break;
                     case DT_OBJECT_PYPTR: SET_P8P(none()); break;
                     DEFAULT("Py_None")
                 }
@@ -253,8 +269,33 @@ Column* column_from_list(PyObject *list)
             } else
             //---- store a string ----
             if (itemtype == &PyUnicode_Type) {
-                // Not implemented yet
-                TYPE_SWITCH(DT_OBJECT_PYPTR);
+                switch (stype) {
+                    case DT_OBJECT_PYPTR:
+                        SET_P8P(incref(item));  break;
+
+                    case DT_STRING_I32_VCHAR: {
+                        PyObject *pybytes = TRY(
+                            PyUnicode_AsEncodedString(item, "utf-8", "strict"));
+                        size_t len = (size_t) PyBytes_GET_SIZE(pybytes);
+                        char *bytesbuf = PyBytes_AsString(pybytes);
+                        if (strbuffer_ptr + len > strbuffer_size) {
+                            size_t nextptr = strbuffer_ptr + len;
+                            size_t nrowsleft = nrows - i - 1;
+                            size_t avgrowsize = nextptr / (i + 1);
+                            strbuffer_size = nextptr + nrowsleft * avgrowsize;
+                            strbuffer = realloc(strbuffer, strbuffer_size);
+                        }
+                        if (len > 0) {
+                            memcpy(strbuffer + strbuffer_ptr, bytesbuf, len);
+                            strbuffer_ptr += len;
+                        }
+                        // TODO: handle int64 buffers
+                        SET_I4S((int32_t)(strbuffer_ptr + 1));
+                    } break;
+
+                    default:
+                        TYPE_SWITCH(DT_STRING_I32_VCHAR);
+                }
             } else
             //---- store an object ----
             {
@@ -269,6 +310,16 @@ Column* column_from_list(PyObject *list)
         // this case we just force the column to be DT_BOOLEAN_I8
         if (stype == DT_VOID)
             TYPE_SWITCH(DT_BOOLEAN_I8);
+
+        if (stype == DT_STRING_I32_VCHAR) {
+            size_t offoff = (strbuffer_ptr + 3) >> 2 << 2;
+            size_t final_size = offoff + 4 * (size_t)nrows;
+            strbuffer = realloc(strbuffer, final_size);
+            memcpy(strbuffer + offoff, data, 4 * (size_t)nrows);
+            data = strbuffer;
+            column->meta = malloc(sizeof(VarcharMeta));
+            ((VarcharMeta*)(column->meta))->offoff = (int64_t) offoff;
+        }
 
         column->data = data;
         column->stype = stype;
