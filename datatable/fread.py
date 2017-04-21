@@ -33,6 +33,7 @@ class FReader(object):
         self._verbose = False   # type: bool
 
         self._log_newline = True
+        self._colnames = None
 
         self.filename = filename
         self.text = text
@@ -143,7 +144,7 @@ class FReader(object):
 
     def read(self):
         dt = c.fread(self)
-        return DataTable(dt)
+        return DataTable(dt, colnames=self._colnames)
 
     def _vlog(self, message):
         if self._log_newline:

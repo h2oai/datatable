@@ -1,5 +1,5 @@
 #include <string.h>  // memcpy
-#include "fread_impl.h"
+#include "fread.h"
 #include "py_datatable.h"
 #include "py_utils.h"
 
@@ -32,6 +32,13 @@ static char *input = NULL;
 static char **na_strings = NULL;
 
 
+
+/**
+ * Python wrapper around `freadMain()`. This function extracts the arguments
+ * from the provided :class:`FReader` python object, converts them into the
+ * `freadMainArgs` structure, and then passes that structure to the `freadMain`
+ * function.
+ */
 PyObject* freadPy(PyObject *self, PyObject *args)
 {
     if (freader != NULL) {
@@ -68,11 +75,6 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     frargs.warningsAreErrors = 0;
     if (frargs.nrowLimit < 0)
         frargs.nrowLimit = LONG_MAX;
-
-    int na_count = 0;
-    if (na_strings != NULL)
-        for (; na_strings[na_count] != NULL; na_count++);
-    frargs.nNAstrings = na_count;
 
     frargs.freader = freader;
     Py_INCREF(freader);
@@ -120,6 +122,7 @@ _Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor, int ncol
         PyObject *col = PyUnicode_FromStringAndSize(anchor + ocol.off, ocol.len);
         PyTuple_SET_ITEM(colNamesList, i, col);
     }
+    PyObject_SetAttrString(freader, "_colnames", colNamesList);
 
     return 1;  // continue reading the file
 }

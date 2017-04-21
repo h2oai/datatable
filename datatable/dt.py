@@ -20,7 +20,7 @@ __all__ = ("DataTable", )
 class DataTable(object):
     _id_counter_ = 0
 
-    def __init__(self, src=None):
+    def __init__(self, src=None, colnames=None):
         DataTable._id_counter_ += 1
         self._id = DataTable._id_counter_  # type: int
         self._ncols = 0      # type: int
@@ -31,7 +31,7 @@ class DataTable(object):
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
         self._dt = None      # type: c.DataTable
-        self._fill_from_source(src)
+        self._fill_from_source(src, colnames=colnames)
 
 
 
@@ -107,18 +107,18 @@ class DataTable(object):
     # Initialization helpers
     #---------------------------------------------------------------------------
 
-    def _fill_from_source(self, src):
+    def _fill_from_source(self, src, colnames):
         if isinstance(src, list):
             if isinstance(src[0], list):
-                self._fill_from_list(src)
+                self._fill_from_list(src, names=colnames)
             else:
-                self._fill_from_list([src])
+                self._fill_from_list([src], names=colnames)
         elif isinstance(src, (tuple, set)):
-            self._fill_from_list(list(src))
+            self._fill_from_list(list(src), names=colnames)
         elif isinstance(src, dict):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
         elif isinstance(src, c.DataTable):
-            self._fill_from_dt(src)
+            self._fill_from_dt(src, names=colnames)
         else:
             self._dt = c.DataTable()
 

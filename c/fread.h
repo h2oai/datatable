@@ -12,18 +12,6 @@
 #include "fread_impl.h"
 
 
-typedef enum CharacterEncoding {
-  FREAD_ENC_AUTO,
-  FREAD_ENC_LATIN1,
-  FREAD_ENC_UTF8,
-  FREAD_ENC_UTF16BE,
-  FREAD_ENC_UTF16LE,
-  FREAD_ENC_GB18030,
-  FREAD_ENC_BIG5,
-  FREAD_ENC_SHIFTJIS,
-} CharacterEncoding;
-
-
 // Ordered hierarchy of types
 typedef enum {
   NEG = -1,    // dummy to force signed type; sign bit used for out-of-sample type bump management
@@ -41,8 +29,8 @@ extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
 
 
-// Strings are pushed by fread_main using an offset from an anchor address plus string length
-// freadR.c then manages strings appropriately
+// Strings are pushed by fread_main using an offset from an anchor address plus
+// string length fread_impl.c then manages strings appropriately
 typedef struct {
   int32_t len;  // signed to distinguish NA vs empty ""
   uint32_t off;
@@ -104,11 +92,10 @@ typedef struct freadMainArgs
   // with `skipLines`.
   const char *skipString;
 
-  // List of strings that should be converted into NA values.
+  // NULL-terminated list of strings that should be converted into NA values.
+  // The last entry in this array is NULL (sentinel), which lets us know where
+  // the array ends.
   const char * const* NAstrings;
-
-  // Number of entries in the `NAstrings` array.
-  int32_t nNAstrings;
 
   // Strip the whitespace from fields (usually True).
   _Bool stripWhite;
@@ -130,18 +117,20 @@ typedef struct freadMainArgs
   // Emit extra debug-level information.
   _Bool verbose;
 
-  // If true, then warnings should be treated as errors. (This field is
-  // checked from the DTWARN macro).
+  // If true, then this field instructs `fread` to treat warnings as errors. In
+  // particular in R this setting is turned on whenever `option(warn=2)` is set,
+  // in which case calling the standard `warning()` raises an exception.
+  // However `fread` still needs to know that the exception will be raised, so
+  // that it can do proper cleanup / resource deallocation -- otherwise memory
+  // leaks would occur.
   _Bool warningsAreErrors;
 
 
-  // File encoding, auto-detected by default.
-  CharacterEncoding encoding;
-
   // Any additional implementation-specific parameters.
-  PyObject *freader;
+  EXTRA_FIELDS
 
 } freadMainArgs;
+
 
 
 // *****************************************************************************

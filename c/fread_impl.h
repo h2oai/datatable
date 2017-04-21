@@ -1,12 +1,10 @@
 #ifndef dt_FREAD_IMPL_H
 #define dt_FREAD_IMPL_H
 #include <Python.h>
-#include "fread.h"
 
 
-typedef struct FReadExtraArgs {
-    PyObject *freader;
-} FReadExtraArgs;
+#define EXTRA_FIELDS  PyObject *freader;
+
 
 
 // Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
