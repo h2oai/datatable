@@ -90,13 +90,32 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
 #define SET_I4I(v)  ((int32_t*)data)[i] = (v)
 #define SET_I8I(v)  ((int64_t*)data)[i] = (v)
 #define SET_F8R(v)  ((double*)data)[i] = (v)
-#define SET_I4S(v)  ((int32_t*)data)[i] = (v)
 #define SET_P8P(v)  ((PyObject**)data)[i] = (v)
-#define DEFAULT(s)  default: \
-                    PyErr_Format(PyExc_RuntimeError, \
-                        "Stype %d has not been implemented for case %s", \
-                        stype, s); \
+#define DEFAULT(s)  default:                                                   \
+                    PyErr_Format(PyExc_RuntimeError,                           \
+                        "Stype %d has not been implemented for case %s",       \
+                        stype, s);                                             \
                     goto fail;
+
+// TODO: handle int64 buffers
+#define SET_I4S(buf, len) {                                                    \
+    size_t nextptr = strbuffer_ptr + (size_t) (len);                           \
+    if (nextptr > strbuffer_size) {                                            \
+        strbuffer_size = nextptr + (nrows - i - 1) * (nextptr / (i + 1));      \
+        strbuffer = REALLOC(strbuffer, strbuffer_size);                        \
+    }                                                                          \
+    if ((len) > 0) {                                                           \
+        memcpy(strbuffer + strbuffer_ptr, buf, (size_t) (len));                \
+        strbuffer_ptr += (size_t) (len);                                       \
+    }                                                                          \
+    ((int32_t*)data)[i] = (int32_t) (strbuffer_ptr + 1);                       \
+}
+
+#define WRITE_STR(s) {                                                         \
+    PyObject *pybytes = TRY(PyUnicode_AsEncodedString(s, "utf-8", "strict"));  \
+    SET_I4S(PyBytes_AsString(pybytes), (size_t) PyBytes_GET_SIZE(pybytes));    \
+    Py_DECREF(pybytes);                                                        \
+}
 
 
 /**
@@ -156,7 +175,8 @@ Column* column_from_list(PyObject *list)
                     case DT_INTEGER_I64:  SET_I8I(NA_I64); break;
                     case DT_REAL_F64:     SET_F8R(NA_F64); break;
                     case DT_STRING_I32_VCHAR:
-                        SET_I4S((int32_t)(-strbuffer_ptr-1)); break;
+                        ((int32_t*)data)[i] = (int32_t) (-strbuffer_ptr-1);
+                        break;
                     case DT_OBJECT_PYPTR: SET_P8P(none()); break;
                     DEFAULT("Py_None")
                 }
@@ -171,6 +191,9 @@ Column* column_from_list(PyObject *list)
                     case DT_INTEGER_I32:  SET_I4I((int32_t)val);  break;
                     case DT_INTEGER_I64:  SET_I8I((int64_t)val);  break;
                     case DT_REAL_F64:     SET_F8R((double)val);  break;
+                    case DT_STRING_I32_VCHAR:
+                        SET_I4S(val? "True" : "False", 5 - val);
+                        break;
                     case DT_OBJECT_PYPTR: SET_P8P(incref(item));  break;
                     case DT_VOID:         TYPE_SWITCH(DT_BOOLEAN_I8);
                     DEFAULT("Py_True/Py_False")
@@ -213,6 +236,12 @@ Column* column_from_list(PyObject *list)
                     case DT_REAL_F64: {
                         // TODO: check for overflows
                         SET_F8R(PyLong_AsDouble(item));
+                    } break;
+
+                    case DT_STRING_I32_VCHAR: {
+                        PyObject *str = TRY(PyObject_Str(item));
+                        WRITE_STR(str);
+                        Py_DECREF(str);
                     } break;
 
                     case DT_OBJECT_PYPTR: {
@@ -264,37 +293,21 @@ Column* column_from_list(PyObject *list)
                         }
                     } break;
 
+                    case DT_STRING_I32_VCHAR: {
+                        PyObject *str = TRY(PyObject_Str(item));
+                        WRITE_STR(str);
+                        Py_DECREF(str);
+                    } break;
+
                     DEFAULT("PyFloat_Type")
                 }
             } else
             //---- store a string ----
             if (itemtype == &PyUnicode_Type) {
                 switch (stype) {
-                    case DT_OBJECT_PYPTR:
-                        SET_P8P(incref(item));  break;
-
-                    case DT_STRING_I32_VCHAR: {
-                        PyObject *pybytes = TRY(
-                            PyUnicode_AsEncodedString(item, "utf-8", "strict"));
-                        size_t len = (size_t) PyBytes_GET_SIZE(pybytes);
-                        char *bytesbuf = PyBytes_AsString(pybytes);
-                        if (strbuffer_ptr + len > strbuffer_size) {
-                            size_t nextptr = strbuffer_ptr + len;
-                            size_t nrowsleft = nrows - i - 1;
-                            size_t avgrowsize = nextptr / (i + 1);
-                            strbuffer_size = nextptr + nrowsleft * avgrowsize;
-                            strbuffer = realloc(strbuffer, strbuffer_size);
-                        }
-                        if (len > 0) {
-                            memcpy(strbuffer + strbuffer_ptr, bytesbuf, len);
-                            strbuffer_ptr += len;
-                        }
-                        // TODO: handle int64 buffers
-                        SET_I4S((int32_t)(strbuffer_ptr + 1));
-                    } break;
-
-                    default:
-                        TYPE_SWITCH(DT_STRING_I32_VCHAR);
+                    case DT_OBJECT_PYPTR:     SET_P8P(incref(item));  break;
+                    case DT_STRING_I32_VCHAR: WRITE_STR(item);  break;
+                    default:                  TYPE_SWITCH(DT_STRING_I32_VCHAR);
                 }
             } else
             //---- store an object ----
@@ -314,10 +327,10 @@ Column* column_from_list(PyObject *list)
         if (stype == DT_STRING_I32_VCHAR) {
             size_t offoff = (strbuffer_ptr + 3) >> 2 << 2;
             size_t final_size = offoff + 4 * (size_t)nrows;
-            strbuffer = realloc(strbuffer, final_size);
+            strbuffer = REALLOC(strbuffer, final_size);
             memcpy(strbuffer + offoff, data, 4 * (size_t)nrows);
             data = strbuffer;
-            column->meta = malloc(sizeof(VarcharMeta));
+            column->meta = MALLOC(sizeof(VarcharMeta));
             ((VarcharMeta*)(column->meta))->offoff = (int64_t) offoff;
         }
 

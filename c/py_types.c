@@ -82,7 +82,7 @@ static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
 
 static PyObject* stype_vchar_i32_tostring(Column *col, int64_t row)
 {
-    int32_t offoff = (int32_t)(((VarcharMeta*)(col->meta))->offoff);
+    int32_t offoff = (int32_t) ((VarcharMeta*) col->meta)->offoff;
     int32_t *offsets = (int32_t*)(col->data + offoff);
     if (offsets[row] < 0)
         return none();
