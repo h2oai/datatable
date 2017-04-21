@@ -325,7 +325,7 @@ Column* column_from_list(PyObject *list)
             TYPE_SWITCH(DT_BOOLEAN_I8);
 
         if (stype == DT_STRING_I32_VCHAR) {
-            size_t offoff = (strbuffer_ptr + 3) >> 2 << 2;
+            size_t offoff = (strbuffer_ptr + (1 << 3) - 1) >> 3 << 3;
             size_t final_size = offoff + 4 * (size_t)nrows;
             strbuffer = REALLOC(strbuffer, final_size);
             memcpy(strbuffer + offoff, data, 4 * (size_t)nrows);
@@ -342,6 +342,7 @@ Column* column_from_list(PyObject *list)
   fail:
     if (column) {
         free(column->data);
+        free(column->meta);
         free(column);
     }
     return NULL;

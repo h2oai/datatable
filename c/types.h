@@ -157,11 +157,11 @@ typedef enum DataLType {
  * DT_STRING_I32_VCHAR
  *     elem: int (4 bytes) + char[]
  *     NA:   negative numbers
- *     meta: `offoff` (int)
+ *     meta: `offoff` (long int)
  *     Variable-width strings. The data buffer has the following structure:
  *     The first byte is 0xFF; then comes a section with string data: all non-NA
  *     strings are UTF-8 encoded and placed end-to-end. Thi section is padded by
- *     0xFF-bytes to have length which is a multiple of 4. After that comes the
+ *     0xFF-bytes to have length which is a multiple of 8. After that comes the
  *     array of int32_t primitives representing offsets of each string in the
  *     buffer. In particular, each entry is the offset of the last byte of the
  *     string within the data buffer. NA strings are encoded as negation of the
@@ -183,7 +183,7 @@ typedef enum DataLType {
  *     NA:   negative numbers
  *     meta: `offoff` (long int)
  *     Variable-width strings: same as DT_STRING_I32_VCHAR but use 64-bit
- *     offsets and pad the buffer to a multiple of 8.
+ *     offsets.
  *
  * DT_STRING_FCHAR
  *     elem: char[] (n bytes)
