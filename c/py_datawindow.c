@@ -221,7 +221,7 @@ static int _check_consistency(
         Column *srccols = dt->source == NULL? NULL : dt->source->columns;
         if (col.stype == DT_VOID) {
             PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has type DT_MU", i);
+                "Invalid datatable: column %ld has type DT_VOID", i);
             return 0;
         }
         if (col.stype <= 0 || col.stype >= DT_STYPES_COUNT) {
@@ -248,6 +248,13 @@ static int _check_consistency(
                 "Invalid view: column %ld of type %d references column "
                 "%ld of type %d",
                 i, col.stype, col.srcindex, srccols[col.srcindex].stype);
+            return 0;
+        }
+        if (col.meta == NULL && stype_info[col.stype].hasmeta) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid datatable: column %ld has type %s but meta info is "
+                "missing",
+                i, stype_info[col.stype].code);
             return 0;
         }
     }

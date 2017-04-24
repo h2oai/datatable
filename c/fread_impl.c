@@ -10,11 +10,13 @@ static const DataSType colType_to_stype[NUMTYPE] = {
     DT_INTEGER_I32,
     DT_INTEGER_I64,
     DT_REAL_F64,
-    DT_STRING_I64_VCHAR,
+    DT_STRING_I32_VCHAR,
 };
 
 // Forward declarations
 void cleanup_fread_session(freadMainArgs *frargs);
+
+inline float max(float a, float b) { return a < b? b : a; }
 
 
 // Python FReader object, which holds specifications for the current reader
@@ -31,6 +33,10 @@ static char *filename = NULL;
 static char *input = NULL;
 static char **na_strings = NULL;
 
+static char **strbufs = NULL;
+static int32_t *strbuf_ptrs = NULL;
+static int32_t *strbuf_sizes = NULL;
+static size_t strbuf_count = 0;
 
 
 /**
@@ -105,6 +111,13 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         }
         Py_XDECREF(frargs->freader);
     }
+    if (strbuf_count) {
+        for (size_t i = 0; i < strbuf_count; i++) free(strbufs[i]);
+        free(strbuf_sizes); strbuf_sizes = NULL;
+        free(strbuf_ptrs); strbuf_ptrs = NULL;
+        free(strbufs); strbufs = NULL;
+        strbuf_count = 0;
+    }
     Py_XDECREF(freader);
     Py_XDECREF(colNamesList);
     dt = NULL;
@@ -133,17 +146,25 @@ _Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor, int ncol
  */
 size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
     Column *columns = calloc(sizeof(Column), (size_t)(ncols - ndrop));
+    size_t n_string_cols = 0;
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
-        if (type != CT_DROP) {
-            size_t alloc_size = colTypeSizes[type] * nrows;
-            columns[j].data = malloc(alloc_size);
-            columns[j].stype = colType_to_stype[type];
-            columns[j].meta = NULL;
-            columns[j].srcindex = -1;
-            columns[j].mmapped = 0;
-            j++;
-        }
+        if (type == CT_DROP)
+            continue;
+        size_t alloc_size = colTypeSizes[type] * nrows;
+        columns[j].data = malloc(alloc_size);
+        columns[j].stype = colType_to_stype[type];
+        columns[j].meta = NULL;
+        columns[j].srcindex = -1;
+        columns[j].mmapped = 0;
+        if (type == CT_STRING) n_string_cols++;
+        j++;
+    }
+    if (n_string_cols > 0) {
+        strbufs = calloc(sizeof(char*), n_string_cols);
+        strbuf_sizes = calloc(sizeof(int32_t), n_string_cols);
+        strbuf_ptrs = calloc(sizeof(int32_t), n_string_cols);
+        strbuf_count = n_string_cols;
     }
 
     dt = malloc(sizeof(DataTable));
@@ -157,18 +178,36 @@ size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
 
 
 void setFinalNrow(uint64_t nrows) {
+    int k = 0;
     for (int i = 0; i < dt->ncols; i++) {
-        Column col = dt->columns[i];
-        size_t new_size = stype_info[col.stype].elemsize * nrows;
-        realloc(col.data, new_size);
+        Column *col = &dt->columns[i];
+        if (col->stype == DT_STRING_I32_VCHAR) {
+            int32_t curr_size = strbuf_ptrs[k];
+            int32_t padding = (8 - (curr_size & 7)) & 7;
+            int32_t offoff = curr_size + padding;
+            int32_t offs_size = 4 * (int32_t)nrows;
+            int32_t final_size = offoff + offs_size;
+            unsigned char *final_ptr = realloc(strbufs[k], (size_t)final_size);
+            memset(final_ptr + curr_size, 0xFF, padding);
+            memcpy(final_ptr + offoff, col->data, offs_size);
+            free(col->data);
+            col->data = final_ptr;
+            strbufs[k] = NULL;  // col->data now "owns" this pointer
+            col->meta = malloc(sizeof(VarcharMeta));
+            ((VarcharMeta*)(col->meta))->offoff = (int64_t) offoff;
+            k++;
+        } else {
+            size_t new_size = stype_info[col->stype].elemsize * nrows;
+            realloc(col->data, new_size);
+        }
     }
     dt->nrows = (int64_t) nrows;
 }
 
 
-void reallocColType(int col, colType newType) {
+void reallocColType(int colidx, colType newType) {
     size_t new_alloc_size = colTypeSizes[newType] * (size_t)dt->nrows;
-    realloc(dt->columns[col].data, new_alloc_size);
+    realloc(dt->columns[colidx].data, new_alloc_size);
 }
 
 
@@ -176,10 +215,45 @@ void pushBuffer(int8_t *types, int ncols, void **buff, const char *anchor,
                 int nStringCols, int nNonStringCols, uint32_t nRows,
                 uint64_t ansi)
 {
-    for (int i = 0; i < ncols; i++) {
-        Column col = dt->columns[i];
-        size_t elemsize = stype_info[col.stype].elemsize;
-        memcpy(col.data + ansi * elemsize, buff[i], nRows * elemsize);
+    int i = 0;  // index within the `types`
+    int j = 0;  // index within `dt->columns` and `buff`
+    int k = 0;  // index within `strbufs` & others
+    for (; i < ncols; i++) {
+        if (types[i] == CT_DROP)
+            continue;
+        Column *col = &dt->columns[j];
+        if (types[i] == CT_STRING) {
+            lenOff* relstrings = buff[j];
+            int32_t off = strbuf_ptrs[k];
+            int32_t size = strbuf_sizes[k];
+            int32_t slen = 0;  // total length of all strings to be written
+            for (uint32_t n = 0; n < nRows; n++) {
+                int32_t len = relstrings[n].len;
+                slen += (len == NA_LENOFF)? 0 : len;
+            }
+            if (size < slen + off) {
+                float g = ((float)dt->nrows) / (ansi + nRows);
+                int32_t newsize = (int32_t)((slen + off) * max(1.05f, g));
+                strbufs[k] = realloc(strbufs[k], (size_t)newsize);
+                strbuf_sizes[k] = newsize;
+            }
+            for (uint32_t n = 0; n < nRows; n++) {
+                int32_t len = relstrings[n].len;
+                if (len == NA_LENOFF) {
+                    ((int32_t*)col->data)[ansi + n] = -off - 1;
+                } else {
+                    memcpy(strbufs[k] + off, anchor + relstrings[n].off, len);
+                    off += len;
+                    ((int32_t*)col->data)[ansi + n] = off + 1;
+                }
+            }
+            strbuf_ptrs[k] = off;
+            k++;
+        } else {
+            size_t elemsize = stype_info[col->stype].elemsize;
+            memcpy(col->data + ansi * elemsize, buff[j], nRows * elemsize);
+        }
+        j++;
     }
 }
 
