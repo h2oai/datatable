@@ -7,6 +7,9 @@
 #include <Python.h>
 
 
+inline int64_t min(int64_t a, int64_t b) { return a < b? a : b; }
+
+
 /**
  * Create and return a new instance of python's None object
  * (actually, this reuses Py_None singleton, increasing its REFCNT)
