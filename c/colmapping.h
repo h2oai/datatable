@@ -7,7 +7,7 @@
 typedef struct ColMapping {
     int64_t length;
     int64_t *indices;
-    DataSType *stypes;
+    SType *stypes;
 } ColMapping;
 
 

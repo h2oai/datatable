@@ -25,11 +25,11 @@ typedef struct DataWindow_PyObject {
     int64_t row0, row1;
     int64_t col0, col1;
 
-    // List of types (DataLType) of each column returned. This list will have
+    // List of types (LType) of each column returned. This list will have
     // `col1 - col0` elements.
     PyListObject *types;
 
-    // List of storage types (DataSType) for each column returned.
+    // List of storage types (SType) for each column returned.
     PyListObject *stypes;
 
     // Actual data within the window, represented as a PyList of PyLists of

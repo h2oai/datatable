@@ -43,7 +43,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
             PyErr_Format(PyExc_ValueError, "Cannot find . in column %s", colname);
             return NULL;
         }
-        DataSType elemtype = strcmp(dotptr + 1, "bool") == 0? ST_BOOLEAN_I1 :
+        SType elemtype = strcmp(dotptr + 1, "bool") == 0? ST_BOOLEAN_I1 :
                              strcmp(dotptr + 1, "int64") == 0? ST_INTEGER_I8 :
                              strcmp(dotptr + 1, "double") == 0? ST_REAL_F8 : 0;
         if (!elemtype) {
@@ -159,7 +159,7 @@ PyInit__datatable(void) {
     assert('\0' == (char)0);
     // Used in llvm.py
     assert(sizeof(long long int) == sizeof(int64_t));
-    assert(sizeof(DataSType) == sizeof(int));
+    assert(sizeof(SType) == sizeof(int));
     // If this is not true, then we won't be able to memory-map files, create
     // arrays with more than 2**31 elements, etc.
     assert(sizeof(size_t) >= sizeof(int64_t));

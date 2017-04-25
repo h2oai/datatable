@@ -4,7 +4,7 @@
 #include "py_utils.h"
 
 static const size_t colTypeSizes[NUMTYPE] = {0, 1, 4, 8, 8, 8};
-static const DataSType colType_to_stype[NUMTYPE] = {
+static const SType colType_to_stype[NUMTYPE] = {
     ST_VOID,
     ST_BOOLEAN_I1,
     ST_INTEGER_I4,

@@ -72,7 +72,7 @@ DataTable* dt_DataTable_call(
 static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
 {
     uint64_t n = (uint64_t) rowmapping->length;
-    DataSType stype = dt->columns[i].stype;
+    SType stype = dt->columns[i].stype;
     void *coldata = dt->columns[i].data;
     assert(coldata != NULL);
 

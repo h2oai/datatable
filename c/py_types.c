@@ -20,43 +20,43 @@ static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)
 static PyObject* stype_integer_i8_tostring(Column *col, int64_t row)
 {
     int8_t x = ((int8_t*)col->data)[row];
-    return x == NA_I8? none() : PyLong_FromLong(x);
+    return x == NA_I1? none() : PyLong_FromLong(x);
 }
 
 static PyObject* stype_integer_i16_tostring(Column *col, int64_t row)
 {
     int16_t x = ((int16_t*)col->data)[row];
-    return x == NA_I16? none() : PyLong_FromLong(x);
+    return x == NA_I2? none() : PyLong_FromLong(x);
 }
 
 static PyObject* stype_integer_i32_tostring(Column *col, int64_t row)
 {
     int32_t x = ((int32_t*)col->data)[row];
-    return x == NA_I32? none() : PyLong_FromLong(x);
+    return x == NA_I4? none() : PyLong_FromLong(x);
 }
 
 static PyObject* stype_integer_i64_tostring(Column *col, int64_t row)
 {
     int64_t x = ((int64_t*)col->data)[row];
-    return x == NA_I64? none() : PyLong_FromLongLong(x);
+    return x == NA_I8? none() : PyLong_FromLongLong(x);
 }
 
 static PyObject* stype_real_f32_tostring(Column *col, int64_t row)
 {
     float x = ((float*)col->data)[row];
-    return x == NA_F32? none() : PyFloat_FromDouble((double)x);
+    return x == NA_F4? none() : PyFloat_FromDouble((double)x);
 }
 
 static PyObject* stype_real_f64_tostring(Column *col, int64_t row)
 {
     double x = ((double*)col->data)[row];
-    return x == NA_F64? none() : PyFloat_FromDouble(x);
+    return x == NA_F8? none() : PyFloat_FromDouble(x);
 }
 
 static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
 {
     int16_t x = ((int16_t*)col->data)[row];
-    if (x == NA_I16) return none();
+    if (x == NA_I2) return none();
     DecimalMeta *meta = col->meta;
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
@@ -65,7 +65,7 @@ static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
 static PyObject* stype_real_i32_tostring(Column *col, int64_t row)
 {
     int32_t x = ((int32_t*)col->data)[row];
-    if (x == NA_I32) return none();
+    if (x == NA_I4) return none();
     DecimalMeta *meta = col->meta;
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
@@ -74,7 +74,7 @@ static PyObject* stype_real_i32_tostring(Column *col, int64_t row)
 static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
 {
     int64_t x = ((int64_t*)col->data)[row];
-    if (x == NA_I64) return none();
+    if (x == NA_I8) return none();
     DecimalMeta *meta = col->meta;
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
@@ -152,7 +152,7 @@ int init_py_types(PyObject *module)
     py_stype_formatters[ST_DATETIME_I4_TIME]  = stype_notimpl;
     py_stype_formatters[ST_DATETIME_I4_DATE]  = stype_notimpl;
     py_stype_formatters[ST_DATETIME_I2_MONTH] = stype_notimpl;
-    py_stype_formatters[DT_OBJECT_PYPTR]       = stype_object_pyptr_tostring;
+    py_stype_formatters[ST_OBJECT_PYPTR]       = stype_object_pyptr_tostring;
 
     return 1;
 }

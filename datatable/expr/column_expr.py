@@ -26,7 +26,7 @@ class ColSelectorExpr(ExprNode):
         val = self.value(block)
         isna = val + "_isna"
         na = nas_map[self.stype]
-        if na == "NA_F32" or na == "NA_F64":
+        if na == "NA_F4" or na == "NA_F8":
             block.add_mainloop_expr("int %s = IS%s(%s);" % (isna, na, val))
         else:
             block.add_mainloop_expr("int %s = (%s == %s);" % (isna, val, na))

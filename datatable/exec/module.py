@@ -137,7 +137,7 @@ _module_header = """/**
 #include <math.h>    // sqrt(), pow(), etc
 
 typedef int RowMappingType;
-typedef int DataSType;
+typedef int SType;
 
 typedef struct RowMapping {
     RowMappingType type;
@@ -150,7 +150,7 @@ typedef struct RowMapping {
 
 typedef struct Column {
     void *data;
-    DataSType type;
+    SType type;
     void *meta;
     int64_t srcindex;
     int8_t mmapped;
@@ -183,16 +183,16 @@ static inline int ISNA_F64(double x) { double_repr xx; xx.d = x; return xx.i == 
 static inline float __nanf__(void) { const float_repr x = { 0x7F8007A2ul }; return x.f; }
 static inline double __nand__(void) { const double_repr x = { 0x7FF00000000007A2ull }; return x.d; }
 
-#define NA_I8    (-128)
-#define NA_I16   (-32768)
-#define NA_I32   (-2147483647-1)
-#define NA_I64   (-9223372036854775807-1)
-#define NA_UI8   255u
-#define NA_UI16  65535u
-#define NA_UI32  4294967295u
-#define NA_UI64  18446744073709551615u
-#define NA_F32   __nanf__()
-#define NA_F64   __nand__()
+#define NA_I1    (-128)
+#define NA_I2   (-32768)
+#define NA_I4   (-2147483647-1)
+#define NA_I8   (-9223372036854775807-1)
+#define NA_U1   255u
+#define NA_U2  65535u
+#define NA_U4  4294967295u
+#define NA_U8  18446744073709551615u
+#define NA_F4   __nanf__()
+#define NA_F8   __nand__()
 
 """
 

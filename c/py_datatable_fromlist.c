@@ -141,7 +141,7 @@ Column* column_from_list(PyObject *list)
         return 0;
     }
 
-    DataSType stype = ST_VOID;
+    SType stype = ST_VOID;
     void *data = NULL;
     char *strbuffer = NULL;
     size_t strbuffer_size = 0;
@@ -168,16 +168,16 @@ Column* column_from_list(PyObject *list)
             if (item == Py_None) {
                 switch (stype) {
                     case ST_VOID:         /* do nothing */ break;
-                    case ST_BOOLEAN_I1:   SET_I1B(NA_I8);  break;
-                    case ST_INTEGER_I1:   SET_I1I(NA_I8);  break;
-                    case ST_INTEGER_I2:  SET_I2I(NA_I16); break;
-                    case ST_INTEGER_I4:  SET_I4I(NA_I32); break;
-                    case ST_INTEGER_I8:  SET_I8I(NA_I64); break;
-                    case ST_REAL_F8:     SET_F8R(NA_F64); break;
+                    case ST_BOOLEAN_I1:   SET_I1B(NA_I1);  break;
+                    case ST_INTEGER_I1:   SET_I1I(NA_I1);  break;
+                    case ST_INTEGER_I2:  SET_I2I(NA_I2); break;
+                    case ST_INTEGER_I4:  SET_I4I(NA_I4); break;
+                    case ST_INTEGER_I8:  SET_I8I(NA_I8); break;
+                    case ST_REAL_F8:     SET_F8R(NA_F8); break;
                     case ST_STRING_I4_VCHAR:
                         ((int32_t*)data)[i] = (int32_t) (-strbuffer_ptr-1);
                         break;
-                    case DT_OBJECT_PYPTR: SET_P8P(none()); break;
+                    case ST_OBJECT_PYPTR: SET_P8P(none()); break;
                     DEFAULT("Py_None")
                 }
             } else
@@ -194,7 +194,7 @@ Column* column_from_list(PyObject *list)
                     case ST_STRING_I4_VCHAR:
                         SET_I4S(val? "True" : "False", 5 - val);
                         break;
-                    case DT_OBJECT_PYPTR: SET_P8P(incref(item));  break;
+                    case ST_OBJECT_PYPTR: SET_P8P(incref(item));  break;
                     case ST_VOID:         TYPE_SWITCH(ST_BOOLEAN_I1);
                     DEFAULT("Py_True/Py_False")
                 }
@@ -209,7 +209,7 @@ Column* column_from_list(PyObject *list)
                     case ST_INTEGER_I4:
                     case ST_INTEGER_I8: {
                         int64_t v = PyLong_AsInt64AndOverflow(item, &overflow);
-                        if (overflow || v == NA_I64) TYPE_SWITCH(ST_REAL_F8);
+                        if (overflow || v == NA_I8) TYPE_SWITCH(ST_REAL_F8);
                         int64_t aval = llabs(v);
                         if (stype == ST_BOOLEAN_I1 && (v == 0 || v == 1))
                             SET_I1B((int8_t)v);
@@ -244,7 +244,7 @@ Column* column_from_list(PyObject *list)
                         Py_DECREF(str);
                     } break;
 
-                    case DT_OBJECT_PYPTR: {
+                    case ST_OBJECT_PYPTR: {
                         SET_P8P(incref(item));
                     } break;
 
@@ -258,7 +258,7 @@ Column* column_from_list(PyObject *list)
                 double val = PyFloat_AS_DOUBLE(item);
                 switch (stype) {
                     case ST_REAL_F8:      SET_F8R(val);  break;
-                    case DT_OBJECT_PYPTR:  SET_P8P(incref(item));  break;
+                    case ST_OBJECT_PYPTR:  SET_P8P(incref(item));  break;
 
                     case ST_VOID:
                     case ST_BOOLEAN_I1:
@@ -305,17 +305,17 @@ Column* column_from_list(PyObject *list)
             //---- store a string ----
             if (itemtype == &PyUnicode_Type) {
                 switch (stype) {
-                    case DT_OBJECT_PYPTR:     SET_P8P(incref(item));  break;
+                    case ST_OBJECT_PYPTR:     SET_P8P(incref(item));  break;
                     case ST_STRING_I4_VCHAR: WRITE_STR(item);  break;
                     default:                  TYPE_SWITCH(ST_STRING_I4_VCHAR);
                 }
             } else
             //---- store an object ----
             {
-                if (stype == DT_OBJECT_PYPTR)
+                if (stype == ST_OBJECT_PYPTR)
                     SET_P8P(incref(item));
                 else
-                    TYPE_SWITCH(DT_OBJECT_PYPTR);
+                    TYPE_SWITCH(ST_OBJECT_PYPTR);
             }
         } // end of `for (i = 0; i < nrows; i++)`
 

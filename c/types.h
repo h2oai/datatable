@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 
+// =============================================================================
+
 /**
  * "Logical" type of a data column.
  *
@@ -58,7 +60,7 @@
  *     types. Each element is a `PyObject*`. Missing values are `Py_None`s.
  *
  */
-typedef enum DataLType {
+typedef enum LType {
     LT_MU       = 0,
     LT_BOOLEAN  = 1,
     LT_INTEGER  = 2,
@@ -67,11 +69,13 @@ typedef enum DataLType {
     LT_DATETIME = 5,
     LT_DURATION = 6,
     LT_OBJECT   = 7,
-} DataLType;
+} LType;
 
 #define DT_LTYPES_COUNT  (LT_OBJECT + 1)  // 1 + the largest LT_* type
 
 
+
+// =============================================================================
 
 /**
  * "Storage" type of a data column.
@@ -279,58 +283,80 @@ typedef enum DataLType {
  *     NA:   &Py_None
  *
  */
-typedef enum DataSType {
-    ST_VOID = 0,
-    ST_BOOLEAN_I1,
-    ST_INTEGER_I1,
-    ST_INTEGER_I2,
-    ST_INTEGER_I4,
-    ST_INTEGER_I8,
-    ST_REAL_F4,
-    ST_REAL_F8,
-    ST_REAL_I2,
-    ST_REAL_I4,
-    ST_REAL_I8,
-    ST_STRING_I4_VCHAR,
-    ST_STRING_I8_VCHAR,
-    ST_STRING_FCHAR,
-    ST_STRING_U1_ENUM,
-    ST_STRING_U2_ENUM,
-    ST_STRING_U4_ENUM,
-    ST_DATETIME_I8_EPOCH,
-    ST_DATETIME_I8_PRTMN,
-    ST_DATETIME_I4_TIME,
-    ST_DATETIME_I4_DATE,
-    ST_DATETIME_I2_MONTH,
-    DT_OBJECT_PYPTR,
-} DataSType;
+typedef enum SType {
+    ST_VOID              = 0,
+    ST_BOOLEAN_I1        = 1,
+    ST_INTEGER_I1        = 2,
+    ST_INTEGER_I2        = 3,
+    ST_INTEGER_I4        = 4,
+    ST_INTEGER_I8        = 5,
+    ST_REAL_F4           = 6,
+    ST_REAL_F8           = 7,
+    ST_REAL_I2           = 8,
+    ST_REAL_I4           = 9,
+    ST_REAL_I8           = 10,
+    ST_STRING_I4_VCHAR   = 11,
+    ST_STRING_I8_VCHAR   = 12,
+    ST_STRING_FCHAR      = 13,
+    ST_STRING_U1_ENUM    = 14,
+    ST_STRING_U2_ENUM    = 15,
+    ST_STRING_U4_ENUM    = 16,
+    ST_DATETIME_I8_EPOCH = 17,
+    ST_DATETIME_I8_PRTMN = 18,
+    ST_DATETIME_I4_TIME  = 19,
+    ST_DATETIME_I4_DATE  = 20,
+    ST_DATETIME_I2_MONTH = 21,
+    ST_OBJECT_PYPTR      = 22,
+} SType;
 
-#define DT_STYPES_COUNT  (DT_OBJECT_PYPTR + 1)
+#define DT_STYPES_COUNT  (ST_OBJECT_PYPTR + 1)
 
 
+// =============================================================================
 
 /**
- * Information about STypes, for programmatic access.
+ * Information about `SType`s, for programmatic access.
+ *
+ * code:
+ *     0-terminated 3-character string representing the stype in a form easily
+ *     understandable by humans.
+ *
+ * elemsize:
+ *     number of storage bytes per element (for fixed-size types), so that the
+ *     amount of memory required to store a column with `n` rows would be
+ *     `n * elemsize`. For variable-size types, this field gives the minimal
+ *     storage size per element.
+ *
+ * hasmeta:
+ *     is there some meta information associated with the field? Note that the
+ *     type of the meta information is not specified here: the programmer should
+ *     know which meta structs correspond to which stypes herself.
+ *
+ * ltype:
+ *     which :enum:`LType` corresponds to this SType.
+ *
  */
 typedef struct STypeInfo {
     char   code[4];
     size_t elemsize;
     _Bool  hasmeta;
-    DataLType ltype;
+    LType ltype;
 } STypeInfo;
 
 extern STypeInfo stype_info[DT_STYPES_COUNT];
 
 
+// =============================================================================
+
 /**
  * Structs for meta information associated with particular types.
  */
-typedef struct DecimalMeta {  // DT_REAL_IXX
-    uint8_t  scale;
+typedef struct DecimalMeta {  // ST_REAL_IX
+    uint32_t  scale;
     uint32_t currency;
 } DecimalMeta;
 
-typedef struct VarcharMeta {  // DT_STRING_IXX_VCHAR
+typedef struct VarcharMeta {  // ST_STRING_IX_VCHAR
     int64_t offoff;
 } VarcharMeta;
 
@@ -338,7 +364,7 @@ typedef struct FixcharMeta {  // ST_STRING_FCHAR
     uint32_t n;
 } FixcharMeta;
 
-typedef struct EnumMeta {  // DT_STRING_UIXX_ENUM
+typedef struct EnumMeta {     // ST_STRING_UX_ENUM
     char *buffer;
     uint32_t *offsets;
     uint32_t num_levels;
@@ -346,31 +372,31 @@ typedef struct EnumMeta {  // DT_STRING_UIXX_ENUM
 } EnumMeta;
 
 
+// =============================================================================
+
 /**
  * NA constants
+ *
+ * Integer-based NAs can be compared by value (e.g. `x == NA_I4`), whereas
+ * floating-point NAs require special functions `ISNA_F4(x)` and `ISNA_F8(x)`.
  */
-static inline float __nanf__(void) {
-    const union { uint32_t i; float f; } x = { 0x7F8007A2ul };
-    return x.f;
-}
-static inline double __nand__(void) {
-    const union { uint64_t i; double d; } x = { 0x7FF00000000007A2ull };
-    return x.d;
-}
 
-#define NA_I8    INT8_MIN
-#define NA_I16   INT16_MIN
-#define NA_I32   INT32_MIN
-#define NA_I64   INT64_MIN
-#define NA_UI8   UINT8_MAX
-#define NA_UI16  UINT16_MAX
-#define NA_UI32  UINT32_MAX
-#define NA_UI64  UINT64_MAX
-#define NA_F32   __nanf__()
-#define NA_F64   __nand__()
+extern const int8_t   NA_I1;
+extern const int16_t  NA_I2;
+extern const int32_t  NA_I4;
+extern const int64_t  NA_I8;
+extern const uint8_t  NA_U1;
+extern const uint16_t NA_U2;
+extern const uint32_t NA_U4;
+extern const uint64_t NA_U8;
+extern       float    NA_F4;
+extern       double   NA_F8;
+
+inline int ISNA_F4(float x);
+inline int ISNA_F8(double x);
 
 
-/*----------------------------------------------------------------------------*/
+// =============================================================================
 
 // Initializer function
 void init_types(void);

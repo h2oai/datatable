@@ -59,8 +59,8 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     if (stypes == NULL || ltypes == NULL) goto fail;
     for (int64_t i = col0; i < col1; i++) {
         Column column = dt->columns[i];
-        DataSType stype = column.stype;
-        DataLType ltype = stype_info[column.stype].ltype;
+        SType stype = column.stype;
+        LType ltype = stype_info[column.stype].ltype;
         PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
         PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
     }

@@ -115,8 +115,8 @@ static PyObject* get_types(DataTable_PyObject *self)
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        DataSType st = self->ref->columns[i].stype;
-        DataLType lt = stype_info[st].ltype;
+        SType st = self->ref->columns[i].stype;
+        LType lt = stype_info[st].ltype;
         PyTuple_SET_ITEM(list, i, incref(py_ltype_names[lt]));
     }
     return list;
@@ -129,7 +129,7 @@ static PyObject* get_stypes(DataTable_PyObject *self)
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        DataSType st = self->ref->columns[i].stype;
+        SType st = self->ref->columns[i].stype;
         PyTuple_SET_ITEM(list, i, incref(py_stype_names[st]));
     }
     return list;

@@ -94,7 +94,7 @@ typedef struct DataTable {
  */
 typedef struct Column {
     void* data;
-    enum DataSType stype;
+    enum SType stype;
     void *meta;
     int64_t srcindex;
     int8_t mmapped;
