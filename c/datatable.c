@@ -118,7 +118,7 @@ static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
  *
  * :param dealloc_col
  *     Pointer to a function that will be used to clean up data within columns
- *     of type DT_OBJECT (these objects are Python-native). The function will
+ *     of type LT_OBJECT (these objects are Python-native). The function will
  *     be passed two parameters: a `void*` pointer to the underlying data buffer
  *     and the number of rows in the column.
  */
@@ -133,7 +133,7 @@ void dt_DataTable_dealloc(DataTable *self, objcol_deallocator *dealloc_col)
     while (--i >= 0) {
         Column column = self->columns[i];
         if (column.data != NULL) {
-            // if (column.stype == DT_OBJECT) {
+            // if (column.stype == LT_OBJECT) {
             //     (*dealloc_col)(column.data, self->nrows);
             // }
             if (column.mmapped) {

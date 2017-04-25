@@ -8,11 +8,11 @@
  * "Logical" type of a data column.
  *
  * Logical type is supposed to match the user's notion of a column type. For
- * example logical "DT_INTEGER" type corresponds to the mathematical set of
+ * example logical "LT_INTEGER" type corresponds to the mathematical set of
  * integers, and thus reflects the usual notion of what the "integer" *is*.
  *
  * Each logical type has multiple underlying "storage" types, that describe
- * how the type is actually stored in memory. For example, DT_INTEGER can be
+ * how the type is actually stored in memory. For example, LT_INTEGER can be
  * stored as an 8-, 16-, 32- or a 64-bit integer. All "storage" types within
  * a single logical type should be freely interchangeable: operators or
  * functions that accept certain logical type should be able to work with any
@@ -24,49 +24,52 @@
  * bit shift operators require integer (or boolean) arguments.
  *
  *
- * DT_MU
+ * LT_MU
  *     special "marker" type for a column that has unknown type. For example,
  *     this can be used to indicate that the system should autodetect the
  *     column's type from the data. This type has no storage types.
  *
- * DT_BOOLEAN
+ * LT_BOOLEAN
  *     column for storing boolean (0/1) values. Right now we only allow to
  *     store booleans as 1-byte signed chars. In most arithmetic expressions
  *     booleans are automatically promoted to integers (or reals) if needed.
  *
- * DT_INTEGER
+ * LT_INTEGER
  *     integer values, equivalent of ℤ in mathematics. We support multiple
  *     storage sizes for integers: from 8 bits to 64 bits, but do not allow
  *     arbitrary-length integers. In most expressions integers will be
  *     automatically promoted to reals if needed.
  *
- * DT_REAL
+ * LT_REAL
  *     real values, equivalent of ℝ in mathematics. We store these in either
  *     fixed- or floating-point format.
  *
- * DT_STRING
+ * LT_STRING
  *     all strings are encoded in MUTF-8 (modified UTF-8), whose only
  *     distinction from the regular UTF-8 is that the null character is encoded
  *     as 0xC080 and not 0x00. In MUTF-8 null byte cannot appear, and is only
  *     used as an end-of-string marker.
  *
- * DT_OBJECT
+ * LT_DATETIME
+ * LT_DURATION
+ *
+ * LT_OBJECT
  *     column for storing all other values of arbitrary (possibly heterogeneous)
  *     types. Each element is a `PyObject*`. Missing values are `Py_None`s.
  *
  */
 typedef enum DataLType {
-    DT_MU       = 0,
-    DT_BOOLEAN  = 1,
-    DT_INTEGER  = 2,
-    DT_REAL     = 3,
-    DT_STRING   = 4,
-    DT_DATETIME = 5,
-    DT_DURATION = 6,  // ?
-    DT_OBJECT   = 7
+    LT_MU       = 0,
+    LT_BOOLEAN  = 1,
+    LT_INTEGER  = 2,
+    LT_REAL     = 3,
+    LT_STRING   = 4,
+    LT_DATETIME = 5,
+    LT_DURATION = 6,
+    LT_OBJECT   = 7,
 } DataLType;
 
-#define DT_LTYPES_COUNT  (DT_OBJECT + 1)  // 1 more than the largest DT_* type
+#define DT_LTYPES_COUNT  (LT_OBJECT + 1)  // 1 + the largest LT_* type
 
 
 
