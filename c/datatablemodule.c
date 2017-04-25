@@ -43,9 +43,9 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
             PyErr_Format(PyExc_ValueError, "Cannot find . in column %s", colname);
             return NULL;
         }
-        DataSType elemtype = strcmp(dotptr + 1, "bool") == 0? DT_BOOLEAN_I8 :
-                             strcmp(dotptr + 1, "int64") == 0? DT_INTEGER_I64 :
-                             strcmp(dotptr + 1, "double") == 0? DT_REAL_F64 : 0;
+        DataSType elemtype = strcmp(dotptr + 1, "bool") == 0? ST_BOOLEAN_I1 :
+                             strcmp(dotptr + 1, "int64") == 0? ST_INTEGER_I8 :
+                             strcmp(dotptr + 1, "double") == 0? ST_REAL_F8 : 0;
         if (!elemtype) {
             PyErr_Format(PyExc_ValueError, "Unknown column type: %s", dotptr + 1);
             return NULL;

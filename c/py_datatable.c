@@ -228,7 +228,7 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
         const int buff_size = 1 << 20;
         int stype = col->stype;
         int64_t total_size = stype_info[stype].elemsize * dt->nrows;
-        if (stype == DT_STRING_I32_VCHAR || stype == DT_STRING_I64_VCHAR) {
+        if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
             total_size += ((VarcharMeta*)col->meta)->offoff;
         }
         int64_t bytes_written = 0;

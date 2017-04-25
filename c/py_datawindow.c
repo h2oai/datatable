@@ -219,9 +219,9 @@ static int _check_consistency(
     for (int64_t i = col0; i < col1; ++i) {
         Column col = dt->columns[i];
         Column *srccols = dt->source == NULL? NULL : dt->source->columns;
-        if (col.stype == DT_VOID) {
+        if (col.stype == ST_VOID) {
             PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has type DT_VOID", i);
+                "Invalid datatable: column %ld has type ST_VOID", i);
             return 0;
         }
         if (col.stype <= 0 || col.stype >= DT_STYPES_COUNT) {

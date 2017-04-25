@@ -77,7 +77,7 @@ static void* _extract_column(DataTable *dt, int64_t i, RowMapping *rowmapping)
     assert(coldata != NULL);
 
     size_t elemsize = stype_info[stype].elemsize;
-    if (stype == DT_STRING_FCHAR) {
+    if (stype == ST_STRING_FCHAR) {
         elemsize = ((FixcharMeta*)dt->columns[i].meta)->n;
     }
     void *newdata = malloc((size_t)n * elemsize);

@@ -80,41 +80,41 @@ typedef enum DataLType {
  * That is, a single logical type may have multiple storage types, but not the
  * other way around.
  *
- * DT_VOID
+ * ST_VOID
  *     "Fake" type, its use indicates an error.
  *
  * -----------------------------------------------------------------------------
  *
- * DT_BOOLEAN_I8
+ * ST_BOOLEAN_I1
  *     elem: signed char (1 byte)
  *     NA:   -128
  *     A boolean with True = 1, False = 0. All other values are invalid.
  *
  * -----------------------------------------------------------------------------
  *
- * DT_INTEGER_I8
+ * ST_INTEGER_I1
  *     elem: signed char (1 byte)
  *     NA:   -2**7 = -128
  *     An integer in the range -127 .. 127.
  *
- * DT_INTEGER_I16
+ * ST_INTEGER_I2
  *     elem: short int (2 bytes)
  *     NA:   -2**15 = -32768
  *     An integer in the range -32767 .. 32767.
  *
- * DT_INTEGER_I32
+ * ST_INTEGER_I4
  *     elem: int (4 bytes)
  *     NA:   -2**31 = -2147483648
  *     An integer in the range -2147483647 .. 2147483647.
  *
- * DT_INTEGER_I64
+ * ST_INTEGER_I8
  *     elem: long int (8 bytes)
  *     NA:   -2**63 = -9223372036854775808
  *     An integer in the range -9223372036854775807 .. 9223372036854775807.
  *
  * -----------------------------------------------------------------------------
  *
- * DT_REAL_F32
+ * ST_REAL_F4
  *     elem: float (4 bytes)
  *     NA:   0x7F8007A2
  *     Floating-point real number, corresponding to C's `float` (IEEE 754). We
@@ -122,12 +122,12 @@ typedef enum DataLType {
  *     numbers starting with 0x7F8 or 0xFF8 should be treated as actual NANs (or
  *     infinities).
  *
- * DT_REAL_F64
+ * ST_REAL_F8
  *     elem: double (8 bytes)
  *     NA:   0x7FF00000000007A2
  *     Floating-point real number, corresponding to C's `double` (IEEE 754).
  *
- * DT_REAL_I16
+ * ST_REAL_I2
  *     elem: short int (2 bytes)
  *     NA:   -2**15 = -32768
  *     meta: `scale` (char); `currency` (int)
@@ -143,13 +143,13 @@ typedef enum DataLType {
  *     value in display. Two columns with different non-0 currency symbols are
  *     considered incompatible.
  *
- * DT_REAL_I32
+ * ST_REAL_I4
  *     elem: int (4 bytes)
  *     NA:   -2**31
  *     meta: `scale` (char); `currency` (int)
  *     Fixed-point real number stored as a 32-bit integer.
  *
- * DT_REAL_I64
+ * ST_REAL_I8
  *     elem: long int (8 bytes)
  *     NA:   -2**63
  *     meta: `scale` (char); `currency` (int)
@@ -157,7 +157,7 @@ typedef enum DataLType {
  *
  * -----------------------------------------------------------------------------
  *
- * DT_STRING_I32_VCHAR
+ * ST_STRING_I4_VCHAR
  *     elem: int (4 bytes) + char[]
  *     NA:   negative numbers
  *     meta: `offoff` (long int)
@@ -181,14 +181,14 @@ typedef enum DataLType {
  *     total buffer size is always `offoff` + 4 * `nrows`.
  *     Note: 0xFF is used for padding because it's not a valid UTF-8 byte.
  *
- * DT_STRING_I64_VCHAR
+ * ST_STRING_I8_VCHAR
  *     elem: long int (8 bytes) + char[]
  *     NA:   negative numbers
  *     meta: `offoff` (long int)
- *     Variable-width strings: same as DT_STRING_I32_VCHAR but use 64-bit
+ *     Variable-width strings: same as ST_STRING_I4_VCHAR but use 64-bit
  *     offsets.
  *
- * DT_STRING_FCHAR
+ * ST_STRING_FCHAR
  *     elem: char[] (n bytes)
  *     NA:   0xFF 0xFF ... 0xFF
  *     meta: `n` (int)
@@ -198,7 +198,7 @@ typedef enum DataLType {
  *     will be 0xFF-padded. The width `n` is given in the metadata. String data
  *     is encoded in UTF-8.
  *
- * DT_STRING_U8_ENUM
+ * ST_STRING_U1_ENUM
  *     elem: unsigned char (1 byte)
  *     NA:   255
  *     meta: `buffer` (char*), `offsets` (int[])
@@ -209,14 +209,14 @@ typedef enum DataLType {
  *     array which tells where the string for each level is located within the
  *     `buffer`.
  *
- * DT_STRING_U16_ENUM
+ * ST_STRING_U2_ENUM
  *     elem: unsigned short int (2 bytes)
  *     NA:   65535
  *     meta: `buffer` (char*), `offsets` (int[])
  *     Strings stored as a categorical variable with no more than 65535 distinct
  *     levels.
  *
- * DT_STRING_U32_ENUM
+ * ST_STRING_U4_ENUM
  *     elem: unsigned int (4 bytes)
  *     NA:   2**32-1
  *     meta: `buffer` (char*), `offsets` (int[])
@@ -227,14 +227,14 @@ typedef enum DataLType {
  *
  * -----------------------------------------------------------------------------
  *
- * DT_DATETIME_I64_EPOCH
+ * ST_DATETIME_I8_EPOCH
  *     elem: long int (8 bytes)
  *     NA:   -2**63
  *     Timestamp, stored as the number of microseconds since 0000-03-01. The
  *     allowed time range is ≈290,000 years around the epoch. The time is
  *     assumed to be in UTC, and does not allow specifying a time zone.
  *
- * DT_DATETIME_I64_PRTMN
+ * ST_DATETIME_I8_PRTMN
  *     elem: long int (8 bytes)
  *     NA:   -2**63
  *     Timestamp, stored as YYYYMMDDhhmmssmmmuuu, i.e. concatenated date parts.
@@ -250,19 +250,19 @@ typedef enum DataLType {
  *     The allowed time range is ≈131,000 years around the epoch. The time is
  *     in UTC, and does not allow specifying a time zone.
  *
- * DT_DATETIME_I32_TIME
+ * ST_DATETIME_I4_TIME
  *     elem: int (4 bytes)
  *     NA:   -2**31
  *     Time only: the number of milliseconds since midnight. The allowed time
  *     range is ≈24 days.
  *
- * DT_DATETIME_I32_DATE
+ * ST_DATETIME_I4_DATE
  *     elem: int (4 bytes)
  *     NA:   -2**31
  *     Date only: the number of days since 0000-03-01. The allowed time range
  *     is ≈245,000 years.
  *
- * DT_DATETIME_I16_MONTH
+ * ST_DATETIME_I2_MONTH
  *     elem: short int (2 bytes)
  *     NA:   -2**15
  *     Year+month only: the number of months since 0000-03-01. The allowed time
@@ -274,34 +274,34 @@ typedef enum DataLType {
  *
  * -----------------------------------------------------------------------------
  *
- * DT_OBJECT_PTR
+ * ST_OBJECT_PTR
  *     elem: PyObject*
  *     NA:   &Py_None
  *
  */
 typedef enum DataSType {
-    DT_VOID = 0,
-    DT_BOOLEAN_I8,
-    DT_INTEGER_I8,
-    DT_INTEGER_I16,
-    DT_INTEGER_I32,
-    DT_INTEGER_I64,
-    DT_REAL_F32,
-    DT_REAL_F64,
-    DT_REAL_I16,
-    DT_REAL_I32,
-    DT_REAL_I64,
-    DT_STRING_I32_VCHAR,
-    DT_STRING_I64_VCHAR,
-    DT_STRING_FCHAR,
-    DT_STRING_U8_ENUM,
-    DT_STRING_U16_ENUM,
-    DT_STRING_U32_ENUM,
-    DT_DATETIME_I64_EPOCH,
-    DT_DATETIME_I64_PRTMN,
-    DT_DATETIME_I32_TIME,
-    DT_DATETIME_I32_DATE,
-    DT_DATETIME_I16_MONTH,
+    ST_VOID = 0,
+    ST_BOOLEAN_I1,
+    ST_INTEGER_I1,
+    ST_INTEGER_I2,
+    ST_INTEGER_I4,
+    ST_INTEGER_I8,
+    ST_REAL_F4,
+    ST_REAL_F8,
+    ST_REAL_I2,
+    ST_REAL_I4,
+    ST_REAL_I8,
+    ST_STRING_I4_VCHAR,
+    ST_STRING_I8_VCHAR,
+    ST_STRING_FCHAR,
+    ST_STRING_U1_ENUM,
+    ST_STRING_U2_ENUM,
+    ST_STRING_U4_ENUM,
+    ST_DATETIME_I8_EPOCH,
+    ST_DATETIME_I8_PRTMN,
+    ST_DATETIME_I4_TIME,
+    ST_DATETIME_I4_DATE,
+    ST_DATETIME_I2_MONTH,
     DT_OBJECT_PYPTR,
 } DataSType;
 
@@ -334,7 +334,7 @@ typedef struct VarcharMeta {  // DT_STRING_IXX_VCHAR
     int64_t offoff;
 } VarcharMeta;
 
-typedef struct FixcharMeta {  // DT_STRING_FCHAR
+typedef struct FixcharMeta {  // ST_STRING_FCHAR
     uint32_t n;
 } FixcharMeta;
 

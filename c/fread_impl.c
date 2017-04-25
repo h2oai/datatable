@@ -5,12 +5,12 @@
 
 static const size_t colTypeSizes[NUMTYPE] = {0, 1, 4, 8, 8, 8};
 static const DataSType colType_to_stype[NUMTYPE] = {
-    DT_VOID,
-    DT_BOOLEAN_I8,
-    DT_INTEGER_I32,
-    DT_INTEGER_I64,
-    DT_REAL_F64,
-    DT_STRING_I32_VCHAR,
+    ST_VOID,
+    ST_BOOLEAN_I1,
+    ST_INTEGER_I4,
+    ST_INTEGER_I8,
+    ST_REAL_F8,
+    ST_STRING_I4_VCHAR,
 };
 
 // Forward declarations
@@ -181,7 +181,7 @@ void setFinalNrow(uint64_t nrows) {
     int k = 0;
     for (int i = 0; i < dt->ncols; i++) {
         Column *col = &dt->columns[i];
-        if (col->stype == DT_STRING_I32_VCHAR) {
+        if (col->stype == ST_STRING_I4_VCHAR) {
             int32_t curr_size = strbuf_ptrs[k];
             int32_t padding = (8 - (curr_size & 7)) & 7;
             int32_t offoff = curr_size + padding;

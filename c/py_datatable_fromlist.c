@@ -137,11 +137,11 @@ Column* column_from_list(PyObject *list)
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
-        column->stype = DT_REAL_F64;
+        column->stype = ST_REAL_F8;
         return 0;
     }
 
-    DataSType stype = DT_VOID;
+    DataSType stype = ST_VOID;
     void *data = NULL;
     char *strbuffer = NULL;
     size_t strbuffer_size = 0;
@@ -150,7 +150,7 @@ Column* column_from_list(PyObject *list)
     while (stype < DT_STYPES_COUNT) {
         start_over:
         data = REALLOC(data, stype_info[stype].elemsize * nrows);
-        if (stype == DT_STRING_I32_VCHAR) {
+        if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);
             strbuffer_ptr = 0;
             strbuffer = MALLOC(strbuffer_size);
@@ -167,14 +167,14 @@ Column* column_from_list(PyObject *list)
             //---- store None value ----
             if (item == Py_None) {
                 switch (stype) {
-                    case DT_VOID:         /* do nothing */ break;
-                    case DT_BOOLEAN_I8:   SET_I1B(NA_I8);  break;
-                    case DT_INTEGER_I8:   SET_I1I(NA_I8);  break;
-                    case DT_INTEGER_I16:  SET_I2I(NA_I16); break;
-                    case DT_INTEGER_I32:  SET_I4I(NA_I32); break;
-                    case DT_INTEGER_I64:  SET_I8I(NA_I64); break;
-                    case DT_REAL_F64:     SET_F8R(NA_F64); break;
-                    case DT_STRING_I32_VCHAR:
+                    case ST_VOID:         /* do nothing */ break;
+                    case ST_BOOLEAN_I1:   SET_I1B(NA_I8);  break;
+                    case ST_INTEGER_I1:   SET_I1I(NA_I8);  break;
+                    case ST_INTEGER_I2:  SET_I2I(NA_I16); break;
+                    case ST_INTEGER_I4:  SET_I4I(NA_I32); break;
+                    case ST_INTEGER_I8:  SET_I8I(NA_I64); break;
+                    case ST_REAL_F8:     SET_F8R(NA_F64); break;
+                    case ST_STRING_I4_VCHAR:
                         ((int32_t*)data)[i] = (int32_t) (-strbuffer_ptr-1);
                         break;
                     case DT_OBJECT_PYPTR: SET_P8P(none()); break;
@@ -185,60 +185,60 @@ Column* column_from_list(PyObject *list)
             if (item == Py_True || item == Py_False) {
                 int8_t val = (item == Py_True);
                 switch (stype) {
-                    case DT_BOOLEAN_I8:   SET_I1B(val);  break;
-                    case DT_INTEGER_I8:   SET_I1I(val);  break;
-                    case DT_INTEGER_I16:  SET_I2I((int16_t)val);  break;
-                    case DT_INTEGER_I32:  SET_I4I((int32_t)val);  break;
-                    case DT_INTEGER_I64:  SET_I8I((int64_t)val);  break;
-                    case DT_REAL_F64:     SET_F8R((double)val);  break;
-                    case DT_STRING_I32_VCHAR:
+                    case ST_BOOLEAN_I1:   SET_I1B(val);  break;
+                    case ST_INTEGER_I1:   SET_I1I(val);  break;
+                    case ST_INTEGER_I2:  SET_I2I((int16_t)val);  break;
+                    case ST_INTEGER_I4:  SET_I4I((int32_t)val);  break;
+                    case ST_INTEGER_I8:  SET_I8I((int64_t)val);  break;
+                    case ST_REAL_F8:     SET_F8R((double)val);  break;
+                    case ST_STRING_I4_VCHAR:
                         SET_I4S(val? "True" : "False", 5 - val);
                         break;
                     case DT_OBJECT_PYPTR: SET_P8P(incref(item));  break;
-                    case DT_VOID:         TYPE_SWITCH(DT_BOOLEAN_I8);
+                    case ST_VOID:         TYPE_SWITCH(ST_BOOLEAN_I1);
                     DEFAULT("Py_True/Py_False")
                 }
             } else
             //---- store an integer ----
             if (itemtype == &PyLong_Type || PyLong_Check(item)) {
                 switch (stype) {
-                    case DT_VOID:
-                    case DT_BOOLEAN_I8:
-                    case DT_INTEGER_I8:
-                    case DT_INTEGER_I16:
-                    case DT_INTEGER_I32:
-                    case DT_INTEGER_I64: {
+                    case ST_VOID:
+                    case ST_BOOLEAN_I1:
+                    case ST_INTEGER_I1:
+                    case ST_INTEGER_I2:
+                    case ST_INTEGER_I4:
+                    case ST_INTEGER_I8: {
                         int64_t v = PyLong_AsInt64AndOverflow(item, &overflow);
-                        if (overflow || v == NA_I64) TYPE_SWITCH(DT_REAL_F64);
+                        if (overflow || v == NA_I64) TYPE_SWITCH(ST_REAL_F8);
                         int64_t aval = llabs(v);
-                        if (stype == DT_BOOLEAN_I8 && (v == 0 || v == 1))
+                        if (stype == ST_BOOLEAN_I1 && (v == 0 || v == 1))
                             SET_I1B((int8_t)v);
-                        else if (stype == DT_INTEGER_I8 && aval <= 127)
+                        else if (stype == ST_INTEGER_I1 && aval <= 127)
                             SET_I1I((int8_t)v);
-                        else if (stype == DT_INTEGER_I16 && aval <= 32767)
+                        else if (stype == ST_INTEGER_I2 && aval <= 32767)
                             SET_I2I((int16_t)v);
-                        else if (stype == DT_INTEGER_I32 && aval <= INT32_MAX)
+                        else if (stype == ST_INTEGER_I4 && aval <= INT32_MAX)
                             SET_I4I((int32_t)v);
-                        else if (stype == DT_INTEGER_I64 && aval <= INT64_MAX)
+                        else if (stype == ST_INTEGER_I8 && aval <= INT64_MAX)
                             SET_I8I(v);
                         else {
-                            // stype is DT_VOID, or current stype is too small
+                            // stype is ST_VOID, or current stype is too small
                             // to hold the value `v`.
-                            TYPE_SWITCH(aval <= 1? DT_BOOLEAN_I8 :
-                                        aval <= 127? DT_INTEGER_I8 :
-                                        aval <= 32767? DT_INTEGER_I16 :
-                                        aval <= INT32_MAX? DT_INTEGER_I32 :
-                                        aval <= INT64_MAX? DT_INTEGER_I64 :
-                                        DT_REAL_F64);
+                            TYPE_SWITCH(aval <= 1? ST_BOOLEAN_I1 :
+                                        aval <= 127? ST_INTEGER_I1 :
+                                        aval <= 32767? ST_INTEGER_I2 :
+                                        aval <= INT32_MAX? ST_INTEGER_I4 :
+                                        aval <= INT64_MAX? ST_INTEGER_I8 :
+                                        ST_REAL_F8);
                         }
                     } break;
 
-                    case DT_REAL_F64: {
+                    case ST_REAL_F8: {
                         // TODO: check for overflows
                         SET_F8R(PyLong_AsDouble(item));
                     } break;
 
-                    case DT_STRING_I32_VCHAR: {
+                    case ST_STRING_I4_VCHAR: {
                         PyObject *str = TRY(PyObject_Str(item));
                         WRITE_STR(str);
                         Py_DECREF(str);
@@ -257,43 +257,43 @@ Column* column_from_list(PyObject *list)
                 // The following call retrieves the underlying primitive:
                 double val = PyFloat_AS_DOUBLE(item);
                 switch (stype) {
-                    case DT_REAL_F64:      SET_F8R(val);  break;
+                    case ST_REAL_F8:      SET_F8R(val);  break;
                     case DT_OBJECT_PYPTR:  SET_P8P(incref(item));  break;
 
-                    case DT_VOID:
-                    case DT_BOOLEAN_I8:
-                    case DT_INTEGER_I8:
-                    case DT_INTEGER_I16:
-                    case DT_INTEGER_I32:
-                    case DT_INTEGER_I64: {
+                    case ST_VOID:
+                    case ST_BOOLEAN_I1:
+                    case ST_INTEGER_I1:
+                    case ST_INTEGER_I2:
+                    case ST_INTEGER_I4:
+                    case ST_INTEGER_I8: {
                         // Split the double into integer and fractional parts
                         double n, f = modf(val, &n);
                         if (f == 0 && n <= INT64_MAX && n >= -INT64_MAX) {
                             int64_t v = (int64_t) n;
                             int64_t a = llabs(v);
-                            if (stype == DT_BOOLEAN_I8 && (n == 0 || n == 1))
+                            if (stype == ST_BOOLEAN_I1 && (n == 0 || n == 1))
                                 SET_I1B((int8_t)v);
-                            else if (stype == DT_INTEGER_I8 && a <= 127)
+                            else if (stype == ST_INTEGER_I1 && a <= 127)
                                 SET_I1I((int8_t)v);
-                            else if (stype == DT_INTEGER_I16 && a <= 32767)
+                            else if (stype == ST_INTEGER_I2 && a <= 32767)
                                 SET_I2I((int16_t)v);
-                            else if (stype == DT_INTEGER_I32 && a <= INT32_MAX)
+                            else if (stype == ST_INTEGER_I4 && a <= INT32_MAX)
                                 SET_I4I((int32_t)v);
-                            else if (stype == DT_INTEGER_I64)
+                            else if (stype == ST_INTEGER_I8)
                                 SET_I8I(v);
                             else {
-                                TYPE_SWITCH(n == 0 || n == 1? DT_BOOLEAN_I8 :
-                                            a <= 127? DT_INTEGER_I8 :
-                                            a <= 32767? DT_INTEGER_I16 :
-                                            a <= INT32_MAX? DT_INTEGER_I32 :
-                                            DT_INTEGER_I64);
+                                TYPE_SWITCH(n == 0 || n == 1? ST_BOOLEAN_I1 :
+                                            a <= 127? ST_INTEGER_I1 :
+                                            a <= 32767? ST_INTEGER_I2 :
+                                            a <= INT32_MAX? ST_INTEGER_I4 :
+                                            ST_INTEGER_I8);
                             }
                         } else {
-                            TYPE_SWITCH(DT_REAL_F64);
+                            TYPE_SWITCH(ST_REAL_F8);
                         }
                     } break;
 
-                    case DT_STRING_I32_VCHAR: {
+                    case ST_STRING_I4_VCHAR: {
                         PyObject *str = TRY(PyObject_Str(item));
                         WRITE_STR(str);
                         Py_DECREF(str);
@@ -306,8 +306,8 @@ Column* column_from_list(PyObject *list)
             if (itemtype == &PyUnicode_Type) {
                 switch (stype) {
                     case DT_OBJECT_PYPTR:     SET_P8P(incref(item));  break;
-                    case DT_STRING_I32_VCHAR: WRITE_STR(item);  break;
-                    default:                  TYPE_SWITCH(DT_STRING_I32_VCHAR);
+                    case ST_STRING_I4_VCHAR: WRITE_STR(item);  break;
+                    default:                  TYPE_SWITCH(ST_STRING_I4_VCHAR);
                 }
             } else
             //---- store an object ----
@@ -319,12 +319,12 @@ Column* column_from_list(PyObject *list)
             }
         } // end of `for (i = 0; i < nrows; i++)`
 
-        // At this point `stype` can be DT_VOID if all values were `None`s. In
-        // this case we just force the column to be DT_BOOLEAN_I8
-        if (stype == DT_VOID)
-            TYPE_SWITCH(DT_BOOLEAN_I8);
+        // At this point `stype` can be ST_VOID if all values were `None`s. In
+        // this case we just force the column to be ST_BOOLEAN_I1
+        if (stype == ST_VOID)
+            TYPE_SWITCH(ST_BOOLEAN_I1);
 
-        if (stype == DT_STRING_I32_VCHAR) {
+        if (stype == ST_STRING_I4_VCHAR) {
             size_t offoff = (strbuffer_ptr + (1 << 3) - 1) >> 3 << 3;
             size_t final_size = offoff + 4 * (size_t)nrows;
             strbuffer = REALLOC(strbuffer, final_size);
