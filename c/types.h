@@ -134,7 +134,7 @@ typedef enum LType {
  * ST_REAL_I2
  *     elem: short int (2 bytes)
  *     NA:   -2**15 = -32768
- *     meta: `scale` (char); `currency` (int)
+ *     meta: `scale` (int)
  *     The fixed-point real number (aka decimal); the scale variable in the meta
  *     indicates the number of digits after the decimal point. For example,
  *     number 7.11 can be stored as integer 711 with scale = 2.
@@ -142,21 +142,17 @@ typedef enum LType {
  *     include scale into the meta information of the column, rather than into
  *     each value. Thus, all values will have common scale, which greatly
  *     simplifies their use.
- *     The `currency` meta is optional. If present (non-0), it indicates the
- *     unicode codepoint of a currency symbol to be printed in front of the
- *     value in display. Two columns with different non-0 currency symbols are
- *     considered incompatible.
  *
  * ST_REAL_I4
  *     elem: int (4 bytes)
  *     NA:   -2**31
- *     meta: `scale` (char); `currency` (int)
+ *     meta: `scale` (int)
  *     Fixed-point real number stored as a 32-bit integer.
  *
  * ST_REAL_I8
  *     elem: long int (8 bytes)
  *     NA:   -2**63
- *     meta: `scale` (char); `currency` (int)
+ *     meta: `scale` (int)
  *     Fixed-point real number stored as a 64-bit integer.
  *
  * -----------------------------------------------------------------------------
@@ -199,34 +195,42 @@ typedef enum LType {
  *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
  *     constant width `n` and are therefore stored as `char[n]` arrays. They are
  *     *not* null-terminated, however strings that are shorter than `n` in width
- *     will be 0xFF-padded. The width `n` is given in the metadata. String data
- *     is encoded in UTF-8.
+ *     will be \0-padded. The width `n` > 0 is given in the metadata. String
+ *     data is encoded in UTF-8. The NA value is encoded as a sequence of 0xFF
+ *     bytes, which is not a valid UTF-8 string.
  *
  * ST_STRING_U1_ENUM
  *     elem: unsigned char (1 byte)
  *     NA:   255
- *     meta: `buffer` (char*), `offsets` (int[])
+ *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     String column stored as a categorical variable (aka "factor" or "enum").
  *     This type is suitable for columns with low cardinality, i.e. having no
  *     more than 255 distinct string values.
- *     Meta information contains `buffer` with the character data, and `offsets`
- *     array which tells where the string for each level is located within the
- *     `buffer`.
+ *     The data is stored in a buffer with 3 regions: first comes the string
+ *     data, padded to a multiple of 8 bytes; then comes the array of int32
+ *     offsets within the data buffer, these offsets describe the boundaries of
+ *     individual strings within the data section (this array is also padded
+ *     to a multiple of 8 bytes); finally comes the array of categorical
+ *     indices. Meta information contains offsets of the second and the third
+ *     sections. The layout of the first 2 sections is exactly the same as
+ *     that of the ST_STRING_I4_VCHAR type.
  *
  * ST_STRING_U2_ENUM
  *     elem: unsigned short int (2 bytes)
  *     NA:   65535
- *     meta: `buffer` (char*), `offsets` (int[])
+ *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 65535 distinct
- *     levels.
+ *     levels. The layout is exactly the same as that of ST_STRING_U1_ENUM, only
+ *     the last section uses 2 bytes per element instead of just 1 byte.
  *
  * ST_STRING_U4_ENUM
  *     elem: unsigned int (4 bytes)
  *     NA:   2**32-1
- *     meta: `buffer` (char*), `offsets` (int[])
- *     Strings stored as a categorical variable with no more than 2**32 distinct
- *     levels. (The combined size of all categorical strings may not exceed
- *     2**32 too).
+ *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
+ *     Strings stored as a categorical variable with no more than 2**32-1
+ *     distinct levels. (The combined size of all categorical strings may not
+ *     exceed 2**32 too). The layout is same as that of ST_STRING_U1_ENUM, only
+ *     the last section uses 4 bytes per element instead of just 1 byte.
  *
  *
  * -----------------------------------------------------------------------------
@@ -350,10 +354,26 @@ extern STypeInfo stype_info[DT_STYPES_COUNT];
 
 /**
  * Structs for meta information associated with particular types.
+ *
+ * DecimalMeta (ST_REAL_I2, ST_REAL_I4, ST_REAL_I8)
+ *     scale: the number of digits after the decimal point. For example stored
+ *            value 123 represents actual value 1.23 when `scale = 2`, or
+ *            actual value 123000 when `scale = -3`.
+ *
+ * VarcharMeta (ST_STRING_I4_VCHAR, ST_STRING_I8_VCHAR)
+ *     offoff: location within the data buffer of the section with offsets.
+ *
+ * FixcharMeta (ST_STRING_FCHAR)
+ *     n: number of characters in the fixed-width string.
+ *
+ * EnumMeta (ST_STRING_U1_ENUM, ST_STRING_U2_ENUM, ST_STRING_U4_ENUM)
+ *     offoff: location within the data buffer of the section with offsets.
+ *     dataoff: location of the section with categorical levels (one per row).
+ *     nlevels: total number of categorical levels.
+ *
  */
 typedef struct DecimalMeta {  // ST_REAL_IX
-    uint32_t  scale;
-    uint32_t currency;
+    int32_t scale;
 } DecimalMeta;
 
 typedef struct VarcharMeta {  // ST_STRING_IX_VCHAR
@@ -361,14 +381,13 @@ typedef struct VarcharMeta {  // ST_STRING_IX_VCHAR
 } VarcharMeta;
 
 typedef struct FixcharMeta {  // ST_STRING_FCHAR
-    uint32_t n;
+    int32_t n;
 } FixcharMeta;
 
 typedef struct EnumMeta {     // ST_STRING_UX_ENUM
-    char *buffer;
-    uint32_t *offsets;
-    uint32_t num_levels;
-    uint32_t buffer_length;
+    int64_t offoff;
+    int64_t dataoff;
+    int32_t nlevels;
 } EnumMeta;
 
 
