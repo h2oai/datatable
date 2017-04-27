@@ -11,7 +11,8 @@
 // Forward declarations
 void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
 
-static PyObject *strRowMappingTypeArray;
+static PyObject *strRowMappingTypeArr32;
+static PyObject *strRowMappingTypeArr64;
 static PyObject *strRowMappingTypeSlice;
 
 
@@ -22,7 +23,8 @@ int init_py_datatable(PyObject *module) {
     Py_INCREF(&DataTable_PyType);
     PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
 
-    strRowMappingTypeArray = PyUnicode_FromString("array");
+    strRowMappingTypeArr32 = PyUnicode_FromString("arr32");
+    strRowMappingTypeArr64 = PyUnicode_FromString("arr64");
     strRowMappingTypeSlice = PyUnicode_FromString("slice");
     return 1;
 }
@@ -140,9 +142,10 @@ static PyObject* get_rowmapping_type(DataTable_PyObject *self)
 {
     if (self->ref->rowmapping == NULL)
         return none();
-    RowMappingType rit = self->ref->rowmapping->type;
-    return rit == RI_SLICE? incref(strRowMappingTypeSlice) :
-           rit == RI_ARRAY? incref(strRowMappingTypeArray) : none();
+    RowMappingType rmt = self->ref->rowmapping->type;
+    return rmt == RM_SLICE? incref(strRowMappingTypeSlice) :
+           rmt == RM_ARR32? incref(strRowMappingTypeArr32) :
+           rmt == RM_ARR64? incref(strRowMappingTypeArr64) : none();
 }
 
 /**

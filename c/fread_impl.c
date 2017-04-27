@@ -16,7 +16,6 @@ static const SType colType_to_stype[NUMTYPE] = {
 // Forward declarations
 void cleanup_fread_session(freadMainArgs *frargs);
 
-inline float max(float a, float b) { return a < b? b : a; }
 
 
 // Python FReader object, which holds specifications for the current reader
@@ -233,7 +232,7 @@ void pushBuffer(int8_t *types, int ncols, void **buff, const char *anchor,
             }
             if (size < slen + off) {
                 float g = ((float)dt->nrows) / (ansi + nRows);
-                int32_t newsize = (int32_t)((slen + off) * max(1.05f, g));
+                int32_t newsize = (int32_t)((slen + off) * max_f4(1.05f, g));
                 strbufs[k] = realloc(strbufs[k], (size_t)newsize);
                 strbuf_sizes[k] = newsize;
             }

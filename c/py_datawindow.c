@@ -66,9 +66,11 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     }
 
     RowMapping *rindex = dt->rowmapping;
-    int rindex_is_array = rindex && rindex->type == RI_ARRAY;
-    int rindex_is_slice = rindex && rindex->type == RI_SLICE;
-    int64_t *rindexarray = rindex_is_array? rindex->indices : NULL;
+    int rindex_is_arr32 = rindex && rindex->type == RM_ARR32;
+    int rindex_is_arr64 = rindex && rindex->type == RM_ARR64;
+    int rindex_is_slice = rindex && rindex->type == RM_SLICE;
+    int32_t *rindexarr32 = rindex_is_arr32? rindex->ind32 : NULL;
+    int64_t *rindexarr64 = rindex_is_arr64? rindex->ind64 : NULL;
     int64_t rindexstart = rindex_is_slice? rindex->slice.start : 0;
     int64_t rindexstep = rindex_is_slice? rindex->slice.step : 0;
 
@@ -91,7 +93,8 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         int n_init_rows = 0;
         for (int64_t j = row0; j < row1; ++j) {
             int64_t irow = isdata? j :
-                           rindex_is_array? rindexarray[j] :
+                           rindex_is_arr32? rindexarr32[j] :
+                           rindex_is_arr64? rindexarr64[j] :
                                             rindexstart + rindexstep * j;
             PyObject *value = py_stype_formatters[column->stype](column, irow);
             if (value == NULL) goto fail;
@@ -164,7 +167,7 @@ static int _check_consistency(
     // verify that the row index (if present) is valid
     if (rindex != NULL) {
         switch (rindex->type) {
-            case RI_ARRAY: {
+            case RM_ARR32: {
                 if (rindex->length != dt->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: row index has %ld elements, while the "
@@ -172,8 +175,8 @@ static int _check_consistency(
                         rindex->length, dt->nrows);
                     return 0;
                 }
-                for (int64_t j = row0; j < row1; ++j) {
-                    int64_t jsrc = rindex->indices[j];
+                for (int32_t j = row0; j < row1; ++j) {
+                    int32_t jsrc = rindex->ind32[j];
                     if (jsrc < 0 || jsrc >= dt->source->nrows) {
                         PyErr_Format(PyExc_RuntimeError,
                             "Invalid view: row %ld of the view references non-"
@@ -184,7 +187,27 @@ static int _check_consistency(
                 }
             }   break;
 
-            case RI_SLICE: {
+            case RM_ARR64: {
+                if (rindex->length != dt->nrows) {
+                    PyErr_Format(PyExc_RuntimeError,
+                        "Invalid view: row index has %ld elements, while the "
+                        "view itself has .nrows = %ld",
+                        rindex->length, dt->nrows);
+                    return 0;
+                }
+                for (int64_t j = row0; j < row1; ++j) {
+                    int64_t jsrc = rindex->ind64[j];
+                    if (jsrc < 0 || jsrc >= dt->source->nrows) {
+                        PyErr_Format(PyExc_RuntimeError,
+                            "Invalid view: row %ld of the view references non-"
+                            "existing row %ld in the source datatable",
+                            j, jsrc);
+                        return 0;
+                    }
+                }
+            }   break;
+
+            case RM_SLICE: {
                 int64_t start = rindex->slice.start;
                 int64_t count = rindex->length;
                 int64_t finish = start + (count - 1) * rindex->slice.step;

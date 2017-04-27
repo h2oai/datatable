@@ -58,7 +58,7 @@ DataTable* dt_DataTable_call(
 
   fail:
     free(columns);
-    RowMapping_dealloc(merged_rowindex);
+    rowmapping_dealloc(merged_rowindex);
     return NULL;
 }
 
@@ -74,7 +74,7 @@ void datatable_dealloc(DataTable *self)
     if (self == NULL) return;
 
     self->source = NULL;  // .source reference is not owned by this object
-    RowMapping_dealloc(self->rowmapping);
+    rowmapping_dealloc(self->rowmapping);
     for (int64_t i = 0; i < self->ncols; i++) {
         column_dealloc(self->columns[i]);
     }

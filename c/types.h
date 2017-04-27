@@ -1,24 +1,28 @@
 #ifndef dt_TYPES_H
 #define dt_TYPES_H
-#include <assert.h>  // static_assert
-#include <stdlib.h>  // size_t
+#include <sys/_types.h>
+#include <sys/_types/_size_t.h>   // size_t
+#include <sys/_types/_ssize_t.h>  // ssize_t
 #include <stdint.h>  // int*_t
 
 
 
 //==============================================================================
-
+/**
+ * _32BIT_ -- flag whether the platform is 32-bit
+ * _64BIT_ -- flag whether the platform is 64-bit
+ */
 #if INTPTR_MAX == INT32_MAX
-    #define _32BIT_
-    static_assert(sizeof(void*) == 4, "Expected sizeof(void*) to be 4 bytes");
+    #define _32BIT_  1
+    #define _64BIT_  0
 #elif INTPTR_MAX == INT64_MAX
-    #define _64BIT_
-    static_assert(sizeof(void*) == 8, "Expected sizeof(void*) to be 8 bytes");
+    #define _32BIT_  0
+    #define _64BIT_  1
 #else
     #error "Environment neither 32 nor 64 bit."
 #endif
-static_assert(sizeof(void*) == sizeof(size_t),
-              "sizeof(size_t) != sizeof(void*)");
+
+#define intXX(bits)  int ## bits ## _t
 
 
 //==============================================================================
@@ -86,7 +90,7 @@ typedef enum LType {
     LT_DATETIME = 5,
     LT_DURATION = 6,
     LT_OBJECT   = 7,
-} LType;
+} __attribute__ ((__packed__)) LType;
 
 #define DT_LTYPES_COUNT  (LT_OBJECT + 1)  // 1 + the largest LT_* type
 
@@ -102,7 +106,7 @@ typedef enum LType {
  * other way around.
  *
  * ST_VOID
- *     "Fake" type, its use indicates an error.
+ *     "Fake" type, column with this stype is in an invalid state.
  *
  * -----------------------------------------------------------------------------
  *
@@ -331,8 +335,6 @@ typedef enum SType {
 } __attribute__ ((__packed__)) SType;
 
 #define DT_STYPES_COUNT  (ST_OBJECT_PYPTR + 1)
-
-static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
 
 
 

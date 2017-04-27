@@ -3,21 +3,26 @@
 #include "datatable.h"
 
 
-int init_py_rowmapping(PyObject *module)
+static RowMapping_PyObject* pyrowmapping(RowMapping *src)
 {
-    RowMapping_PyType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&RowMapping_PyType) < 0) return 0;
-    Py_INCREF(&RowMapping_PyType);
-    PyModule_AddObject(module, "RowMapping", (PyObject*) &RowMapping_PyType);
-    return 1;
+    if (src == NULL) return NULL;
+    RowMapping_PyObject *res = (RowMapping_PyObject*) \
+        PyObject_CallObject((PyObject*) &RowMapping_PyType, NULL);
+    if (res == NULL) {
+        rowmapping_dealloc(src);
+        return NULL;
+    }
+    res->ref = src;
+    return res;
 }
 
 
-
-RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args)
+RowMapping_PyObject*
+RowMappingPy_from_slice(PyObject *self, PyObject *args)
 {
     int64_t start, count, step;
-    if (!PyArg_ParseTuple(args, "lll:RowMapping.from_slice",
+
+    if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
                           &start, &count, &step))
         return NULL;
 
@@ -27,17 +32,7 @@ RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    RowMapping *rowmapping = RowMapping_from_slice(start, count, step);
-    RowMapping_PyObject *res = RowMapping_PyNEW();
-    if (res == NULL || rowmapping == NULL) goto fail;
-
-    res->ref = rowmapping;
-    return res;
-
-  fail:
-    RowMapping_dealloc(rowmapping);
-    Py_XDECREF(res);
-    return NULL;
+    return pyrowmapping(rowmapping_from_slice(start, count, step));
 }
 
 
@@ -73,7 +68,7 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
     }
 
     // Construct and return the RowMapping object
-    rowmapping = RowMapping_from_slicelist(starts, counts, steps, n);
+    rowmapping = rowmapping_from_slicelist(starts, counts, steps, n);
     res = RowMapping_PyNEW();
     if (res == NULL || rowmapping == NULL) goto fail;
     res->ref = rowmapping;
@@ -83,7 +78,7 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
     free(starts);
     free(counts);
     free(steps);
-    RowMapping_dealloc(rowmapping);
+    rowmapping_dealloc(rowmapping);
     return NULL;
 }
 
@@ -110,7 +105,7 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
     }
 
     // Construct and return the RowMapping object
-    rowmapping = RowMapping_from_i64_array(data, len);
+    rowmapping = rowmapping_from_i64_array(data, len);
     res = RowMapping_PyNEW();
     if (res == NULL || rowmapping == NULL) goto fail;
     res->ref = rowmapping;
@@ -118,35 +113,11 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
 
   fail:
     free(data);
-    RowMapping_dealloc(rowmapping);
+    rowmapping_dealloc(rowmapping);
     Py_XDECREF(res);
     return NULL;
 }
 
-
-
-RowMapping_PyObject* RowMappingPy_from_filter(PyObject *self, PyObject *args)
-{
-    DataTable_PyObject *pydt;
-    RowMapping *rowmapping = NULL;
-    RowMapping_PyObject *res = NULL;
-    void *fnptr;
-
-    if (!PyArg_ParseTuple(args, "O!l:RowMapping.from_filter", &DataTable_PyType,
-                          &pydt, &fnptr))
-        return NULL;
-
-    rowmapping = RowMapping_from_filter(pydt->ref, (filter_fn)fnptr);
-    res = RowMapping_PyNEW();
-    if (res == NULL || rowmapping == NULL) goto fail;
-    res->ref = rowmapping;
-    return res;
-
-  fail:
-    RowMapping_dealloc(rowmapping);
-    Py_XDECREF(res);
-    return NULL;
-}
 
 
 RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
@@ -166,7 +137,7 @@ RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
     return res;
 
   fail:
-    RowMapping_dealloc(rowmapping);
+    rowmapping_dealloc(rowmapping);
     Py_XDECREF(res);
     return NULL;
 }
@@ -182,23 +153,29 @@ RowMapping_PyObject* RowMappingPy_from_RowMapping(RowMapping* rowmapping)
 }
 
 
-//------ RowMapping PyObject ---------------------------------------------------
+//==============================================================================
+//  RowMapping PyObject
+//==============================================================================
 
 static void __dealloc__(RowMapping_PyObject *self)
 {
-    RowMapping_dealloc(self->ref);
+    rowmapping_dealloc(self->ref);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
+
 
 static PyObject* __repr__(RowMapping_PyObject *self)
 {
     RowMapping *rwm = self->ref;
     if (rwm == NULL)
         return PyUnicode_FromString("_RowMapping(NULL)");
-    if (rwm->type == RI_ARRAY) {
-        return PyUnicode_FromFormat("_RowMapping(int[%ld])", rwm->length);
+    if (rwm->type == RM_ARR32) {
+        return PyUnicode_FromFormat("_RowMapping(int32[%ld])", rwm->length);
     }
-    if (rwm->type == RI_SLICE) {
+    if (rwm->type == RM_ARR64) {
+        return PyUnicode_FromFormat("_RowMapping(int64[%ld])", rwm->length);
+    }
+    if (rwm->type == RM_SLICE) {
         return PyUnicode_FromFormat("_RowMapping(%ld:%ld:%ld)",
             rwm->slice.start, rwm->length, rwm->slice.step);
     }
@@ -245,3 +222,14 @@ PyTypeObject RowMapping_PyType = {
     0,                                  /* tp_init */
     0,0,0,0,0,0,0,0,0,0,0,0
 };
+
+
+// Add PyRowMapping object to the Python module
+int init_py_rowmapping(PyObject *module)
+{
+    RowMapping_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&RowMapping_PyType) < 0) return 0;
+    Py_INCREF(&RowMapping_PyType);
+    PyModule_AddObject(module, "RowMapping", (PyObject*) &RowMapping_PyType);
+    return 1;
+}

@@ -4,10 +4,11 @@
 #include "types.h"
 #include "column.h"
 
-// break circular dependency between .h files
+// avoid circular dependency between .h files
 typedef struct RowMapping RowMapping;
 typedef struct ColMapping ColMapping;
 typedef struct Column Column;
+typedef struct DataTable DataTable;
 
 
 
@@ -18,8 +19,10 @@ typedef struct Column Column;
  *
  * nrows
  * ncols
- *     Data dimensions: number of rows and number of columns. We do not support
- *     more than 2 dimensions as Numpy or TensorFlow do.
+ *     Data dimensions: number of rows and columns in the datatable. We do not
+ *     support more than 2 dimensions as Numpy or TensorFlow.
+ *     On 32-bit platforms maximum number of rows/columns is 2**31-1. On 64-bit
+ *     platforms the maximum is 2**63-1.
  *
  * source
  *     If this field is not NULL, then the current datatable is a view on the
@@ -50,11 +53,11 @@ typedef struct Column Column;
  *     which determines the actual struct type.
  */
 typedef struct DataTable {
-    int64_t nrows;
-    int64_t ncols;
-    struct DataTable *source;
-    struct RowMapping *rowmapping;
-    struct Column **columns;
+    ssize_t     nrows;
+    ssize_t     ncols;
+    DataTable  *source;
+    RowMapping *rowmapping;
+    Column    **columns;
 
 } DataTable;
 

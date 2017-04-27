@@ -5,9 +5,8 @@
 #ifndef dt_PYUTILS_H
 #define dt_PYUTILS_H
 #include <Python.h>
+#include "utils.h"
 
-
-inline int64_t min(int64_t a, int64_t b) { return a < b? a : b; }
 
 
 /**
@@ -38,16 +37,6 @@ inline int64_t min(int64_t a, int64_t b) { return a < b? a : b; }
  */
 void* clone(void *src, size_t n_bytes);
 
-
-/**
- * Helper method that attempts to retrieve python object `x`, but executes
- * "goto fail" if not successful.
- */
-#define TRY(x) ({                                                              \
-    void *y = x;                                                               \
-    if (y == NULL) goto fail;                                                  \
-    y;                                                                         \
-})
 
 
 /**

@@ -35,7 +35,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
         elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
 
     // "Slice" rowmapping with step = 1 is a simple subsection of the column
-    if (rowmapping->type == RI_SLICE && rowmapping->slice.step == 1) {
+    if (rowmapping->type == RM_SLICE && rowmapping->slice.step == 1) {
         size_t start = (size_t) rowmapping->slice.start;
         switch (stype) {
             #define CASE_IX_VCHAR(etype, abs) {                                \
@@ -81,26 +81,26 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
     // In all other cases we need to iterate through the rowmapping and fetch
     // the required elements manually.
     switch (stype) {
-        #define JINIT_SLICE \
-            int64_t start = rowmapping->slice.start; \
-            int64_t step = rowmapping->slice.step; \
-            int64_t j = start - step;
-        #define JINIT_ARRAY \
-            int64_t *rowindices = rowmapping->indices;
-        #define JITER_SLICE \
+        #define JINIT_SLICE                                                    \
+            ssize_t start = rowmapping->slice.start;                           \
+            ssize_t step = rowmapping->slice.step;                             \
+            ssize_t j = start - step;
+        #define JITER_SLICE                                                    \
             j += step;
-        #define JITER_ARRAY \
-            int64_t j = rowindices[i];
+        #define JINIT_ARR(bits)                                                \
+            intXX(bits) *rowindices = rowmapping->ind ## bits;
+        #define JITER_ARR(bits)                                                \
+            intXX(bits) j = rowindices[i];
 
-        #define CASE_IX_VCHAR(etype, abs, JINIT, JITER) {                      \
+        #define CASE_IX_VCHAR_SUB(ctype, abs, JINIT, JITER) {                  \
             size_t offoff = (size_t)((VarcharMeta*) col->meta)->offoff;        \
-            etype *offs = (etype*)(col->data + offoff);                        \
+            ctype *offs = (ctype*)(col->data + offoff);                        \
             size_t datasize = 0;                                               \
             {   JINIT                                                          \
                 for (size_t i = 0; i < nrows; i++) {                           \
                     JITER                                                      \
                     if (offs[j] > 0) {                                         \
-                        etype prevoff = j? abs(offs[j - 1]) : 1;               \
+                        ctype prevoff = j? abs(offs[j - 1]) : 1;               \
                         datasize += (size_t)(offs[j] - prevoff);               \
                     }                                                          \
                 }                                                              \
@@ -112,13 +112,13 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
             res->data = TRY(malloc(res->alloc_size));                          \
             ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;             \
             {   JINIT                                                          \
-                etype lastoff = 1;                                             \
+                ctype lastoff = 1;                                             \
                 void *dest = res->data;                                        \
-                etype *resoffs = (etype*)(res->data + offoff);                 \
+                ctype *resoffs = (ctype*)(res->data + offoff);                 \
                 for (size_t i = 0; i < nrows; i++) {                           \
                     JITER                                                      \
                     if (offs[j] > 0) {                                         \
-                        etype prevoff = j? abs(offs[j - 1]) : 1;               \
+                        ctype prevoff = j? abs(offs[j - 1]) : 1;               \
                         size_t len = (size_t)(offs[j] - prevoff);              \
                         if (len) {                                             \
                             memcpy(dest, col->data + prevoff - 1, len);        \
@@ -132,18 +132,19 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 memset(dest, 0xFF, padding);                                   \
             }                                                                  \
         }
-        case ST_STRING_I4_VCHAR:
-            if (rowmapping->type == RI_SLICE)
-                CASE_IX_VCHAR(int32_t, abs, JINIT_SLICE, JITER_SLICE)
-            else
-                CASE_IX_VCHAR(int32_t, abs, JINIT_ARRAY, JITER_ARRAY)
+        #define CASE_IX_VCHAR(ctype, abs)                                      \
+            if (rowmapping->type == RM_SLICE)                                  \
+                CASE_IX_VCHAR_SUB(ctype, abs, JINIT_SLICE, JITER_SLICE)        \
+            else if (rowmapping->type == RM_ARR32)                             \
+                CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(32), JITER_ARR(32))    \
+            else if (rowmapping->type == RM_ARR64)                             \
+                CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(64), JITER_ARR(64))    \
             break;
-        case ST_STRING_I8_VCHAR:
-            if (rowmapping->type == RI_SLICE)
-                CASE_IX_VCHAR(int64_t, llabs, JINIT_SLICE, JITER_SLICE)
-            else
-                CASE_IX_VCHAR(int64_t, llabs, JINIT_ARRAY, JITER_ARRAY)
-            break;
+
+        case ST_STRING_I4_VCHAR: CASE_IX_VCHAR(int32_t, abs)
+        case ST_STRING_I8_VCHAR: CASE_IX_VCHAR(int64_t, llabs)
+
+        #undef CASE_IX_VCHAR_SUB
         #undef CASE_IX_VCHAR
         #undef JINIT_SLICE
         #undef JINIT_ARRAY
@@ -161,7 +162,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
             res->data = TRY(malloc(alloc_size));
             res->alloc_size = alloc_size;
             void *dest = res->data;
-            if (rowmapping->type == RI_SLICE) {
+            if (rowmapping->type == RM_SLICE) {
                 size_t stepsize = (size_t) rowmapping->slice.step * elemsize;
                 void *src = col->data + (size_t) rowmapping->slice.start * elemsize;
                 for (size_t i = 0; i < nrows; i++) {
@@ -169,9 +170,17 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                     dest += elemsize;
                     src += stepsize;
                 }
-            } else {
-                assert(rowmapping->type == RI_ARRAY);
-                int64_t *rowindices = rowmapping->indices;
+            } else
+            if (rowmapping->type == RM_ARR32) {
+                int32_t *rowindices = rowmapping->ind32;
+                for (size_t i = 0; i < nrows; i++) {
+                    size_t j = (size_t) rowindices[i];
+                    memcpy(dest, col->data + j*elemsize, elemsize);
+                    dest += elemsize;
+                }
+            } else
+            if (rowmapping->type == RM_ARR32) {
+                int64_t *rowindices = rowmapping->ind64;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
                     memcpy(dest, col->data + j*elemsize, elemsize);
