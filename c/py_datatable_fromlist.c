@@ -66,16 +66,13 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
     // Fill the data
     for (int64_t i = 0; i < dt->ncols; i++) {
         PyObject *src = PyList_GET_ITEM(list, i);
-        Column *col = column_from_list(src);
-        if (col == NULL) goto fail;
-        memcpy(dt->columns + i, col, sizeof(Column));
-        free(col);
+        dt->columns[i] = TRY(column_from_list(src));
     }
 
     return pyDataTable_from_DataTable(dt);
 
   fail:
-    dt_DataTable_dealloc(dt, &dt_DataTable_dealloc_objcol);
+    datatable_dealloc(dt);
     return NULL;
 }
 
@@ -130,10 +127,10 @@ Column* column_from_list(PyObject *list)
 
     Column *column = NULL;
     column = MALLOC(sizeof(Column));
-    column->srcindex = -1;
     column->meta = NULL;
     column->data = NULL;
-    column->mmapped = 0;
+    column->mtype = MT_DATA;
+    column->alloc_size = 0;
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
@@ -148,8 +145,10 @@ Column* column_from_list(PyObject *list)
     size_t strbuffer_ptr = 0;
     int overflow = 0;
     while (stype < DT_STYPES_COUNT) {
-        start_over:
-        data = REALLOC(data, stype_info[stype].elemsize * nrows);
+        start_over: {}
+        size_t alloc_size = stype_info[stype].elemsize * (size_t)nrows;
+        data = REALLOC(data, alloc_size);
+        column->alloc_size = alloc_size;
         if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);
             strbuffer_ptr = 0;
@@ -330,6 +329,7 @@ Column* column_from_list(PyObject *list)
             strbuffer = REALLOC(strbuffer, final_size);
             memcpy(strbuffer + offoff, data, 4 * (size_t)nrows);
             data = strbuffer;
+            column->alloc_size = final_size;
             column->meta = MALLOC(sizeof(VarcharMeta));
             ((VarcharMeta*)(column->meta))->offoff = (int64_t) offoff;
         }
@@ -340,10 +340,6 @@ Column* column_from_list(PyObject *list)
     }
 
   fail:
-    if (column) {
-        free(column->data);
-        free(column->meta);
-        free(column);
-    }
+    column_dealloc(column);
     return NULL;
 }

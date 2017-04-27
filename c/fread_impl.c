@@ -94,7 +94,7 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     return (PyObject*) pydt;
 
   fail:
-    dt_DataTable_dealloc(dt, NULL);
+    datatable_dealloc(dt);
     cleanup_fread_session(&frargs);
     return NULL;
 }
@@ -145,18 +145,18 @@ _Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor, int ncol
  * Allocate memory for the datatable being read
  */
 size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
-    Column *columns = calloc(sizeof(Column), (size_t)(ncols - ndrop));
+    Column **columns = calloc(sizeof(Column*), (size_t)(ncols - ndrop));
     size_t n_string_cols = 0;
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
         if (type == CT_DROP)
             continue;
-        size_t alloc_size = colTypeSizes[type] * nrows;
-        columns[j].data = malloc(alloc_size);
-        columns[j].stype = colType_to_stype[type];
-        columns[j].meta = NULL;
-        columns[j].srcindex = -1;
-        columns[j].mmapped = 0;
+        size_t alloc_size = colTypeSizes[type] * (size_t)nrows;
+        columns[j]->data = malloc(alloc_size);
+        columns[j]->mtype = MT_DATA;
+        columns[j]->stype = colType_to_stype[type];
+        columns[j]->meta = NULL;
+        columns[j]->alloc_size = alloc_size;
         if (type == CT_STRING) n_string_cols++;
         j++;
     }
@@ -180,7 +180,7 @@ size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
 void setFinalNrow(uint64_t nrows) {
     int k = 0;
     for (int i = 0; i < dt->ncols; i++) {
-        Column *col = &dt->columns[i];
+        Column *col = dt->columns[i];
         if (col->stype == ST_STRING_I4_VCHAR) {
             int32_t curr_size = strbuf_ptrs[k];
             int32_t padding = (8 - (curr_size & 7)) & 7;
@@ -197,7 +197,7 @@ void setFinalNrow(uint64_t nrows) {
             ((VarcharMeta*)(col->meta))->offoff = (int64_t) offoff;
             k++;
         } else {
-            size_t new_size = stype_info[col->stype].elemsize * nrows;
+            size_t new_size = stype_info[col->stype].elemsize * (size_t)nrows;
             realloc(col->data, new_size);
         }
     }
@@ -207,7 +207,7 @@ void setFinalNrow(uint64_t nrows) {
 
 void reallocColType(int colidx, colType newType) {
     size_t new_alloc_size = colTypeSizes[newType] * (size_t)dt->nrows;
-    realloc(dt->columns[colidx].data, new_alloc_size);
+    realloc(dt->columns[colidx]->data, new_alloc_size);
 }
 
 
@@ -221,7 +221,7 @@ void pushBuffer(int8_t *types, int ncols, void **buff, const char *anchor,
     for (; i < ncols; i++) {
         if (types[i] == CT_DROP)
             continue;
-        Column *col = &dt->columns[j];
+        Column *col = dt->columns[j];
         if (types[i] == CT_STRING) {
             lenOff* relstrings = buff[j];
             int32_t off = strbuf_ptrs[k];

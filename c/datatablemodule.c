@@ -88,10 +88,11 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
             return NULL;
         }
 
-        dt->columns[i].stype = elemtype;
-        dt->columns[i].srcindex = -1;
-        dt->columns[i].data = mmp;
-        dt->columns[i].mmapped = 1;
+        dt->columns[i]->data = mmp;
+        dt->columns[i]->stype = elemtype;
+        dt->columns[i]->mtype = MT_MMAPPED;
+        dt->columns[i]->meta = NULL;
+        dt->columns[i]->alloc_size = (size_t) filesize;
     }
 
     dt->nrows = nrows;

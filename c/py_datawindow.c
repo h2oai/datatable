@@ -58,9 +58,9 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     ltypes = PyList_New((Py_ssize_t) ncols);
     if (stypes == NULL || ltypes == NULL) goto fail;
     for (int64_t i = col0; i < col1; i++) {
-        Column column = dt->columns[i];
-        SType stype = column.stype;
-        LType ltype = stype_info[column.stype].ltype;
+        Column *column = dt->columns[i];
+        SType stype = column->stype;
+        LType ltype = stype_info[stype].ltype;
         PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
         PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
     }
@@ -76,12 +76,12 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     view = PyList_New((Py_ssize_t) ncols);
     if (view == NULL) goto fail;
     for (int64_t i = col0; i < col1; ++i) {
-        Column column = dt->columns[i];
-        void *coldata = column.data;
-        int realdata = (coldata != NULL);
-        if (!realdata) {
-            column = dt->source->columns[column.srcindex];
-            coldata = column.data;
+        Column *column = dt->columns[i];
+        void *coldata = column->data;
+        int isdata = (column->mtype != MT_VIEW);
+        if (!isdata) {
+            column = dt->source->columns[((ViewColumn*)column)->srcindex];
+            coldata = column->data;
         }
 
         PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
@@ -90,10 +90,10 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 
         int n_init_rows = 0;
         for (int64_t j = row0; j < row1; ++j) {
-            int64_t irow = realdata? j :
+            int64_t irow = isdata? j :
                            rindex_is_array? rindexarray[j] :
                                             rindexstart + rindexstep * j;
-            PyObject *value = py_stype_formatters[column.stype](&column, irow);
+            PyObject *value = py_stype_formatters[column->stype](column, irow);
             if (value == NULL) goto fail;
             PyList_SET_ITEM(py_coldata, n_init_rows++, value);
         }
@@ -217,44 +217,42 @@ static int _check_consistency(
 
     // check each column within the window for correctness
     for (int64_t i = col0; i < col1; ++i) {
-        Column col = dt->columns[i];
-        Column *srccols = dt->source == NULL? NULL : dt->source->columns;
-        if (col.stype == ST_VOID) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has type ST_VOID", i);
-            return 0;
-        }
-        if (col.stype <= 0 || col.stype >= DT_STYPES_COUNT) {
+        Column *col = dt->columns[i];
+        Column **srccols = dt->source == NULL? NULL : dt->source->columns;
+        if (col->stype < 1 || col->stype >= DT_STYPES_COUNT) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has unknown type %d",
-                i, col.stype);
+                i, col->stype);
             return 0;
         }
-        if (col.data == NULL && dt->source == NULL) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has no data, while the "
-                "datatable does not have a parent", i);
-            return 0;
+        if (col->mtype == MT_VIEW) {
+            ViewColumn *vcol = (ViewColumn*) col;
+            size_t srcindex = vcol->srcindex;
+            if (dt->source == NULL) {
+                PyErr_Format(PyExc_RuntimeError,
+                    "Invalid datatable: column %ld is a view, while the "
+                    "datatable has no parent", i);
+                return 0;
+            }
+            if ((int64_t)srcindex >= dt->source->ncols) {
+                PyErr_Format(PyExc_RuntimeError,
+                    "Invalid view: column %ld references non-existing column "
+                    "%ld in the parent datatable", i, srcindex);
+                return 0;
+            }
+            if (vcol->stype != srccols[srcindex]->stype) {
+                PyErr_Format(PyExc_RuntimeError,
+                    "Invalid view: column %ld of type %d references column "
+                    "%ld of type %d",
+                    i, vcol->stype, srcindex, srccols[srcindex]->stype);
+                return 0;
+            }
         }
-        if (col.data == NULL && (col.srcindex < 0 ||
-                                 col.srcindex >= dt->source->ncols)) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid view: column %ld references non-existing column "
-                "%ld in the parent datatable", i, col.srcindex);
-            return 0;
-        }
-        if (col.data == NULL && col.stype != srccols[col.srcindex].stype) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid view: column %ld of type %d references column "
-                "%ld of type %d",
-                i, col.stype, col.srcindex, srccols[col.srcindex].stype);
-            return 0;
-        }
-        if (col.meta == NULL && stype_info[col.stype].hasmeta) {
+        if (col->meta == NULL && stype_info[col->stype].metasize > 0) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has type %s but meta info is "
                 "missing",
-                i, stype_info[col.stype].code);
+                i, stype_info[col->stype].code);
             return 0;
         }
     }

@@ -79,7 +79,7 @@ __call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
     return pyres;
 
   fail:
-    dt_DataTable_dealloc(dtres, &dt_DataTable_dealloc_objcol);
+    datatable_dealloc(dtres);
     Py_XDECREF(pyres);
     return NULL;
 }
@@ -115,7 +115,7 @@ static PyObject* get_types(DataTable_PyObject *self)
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        SType st = self->ref->columns[i].stype;
+        SType st = self->ref->columns[i]->stype;
         LType lt = stype_info[st].ltype;
         PyTuple_SET_ITEM(list, i, incref(py_ltype_names[lt]));
     }
@@ -129,7 +129,7 @@ static PyObject* get_stypes(DataTable_PyObject *self)
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        SType st = self->ref->columns[i].stype;
+        SType st = self->ref->columns[i]->stype;
         PyTuple_SET_ITEM(list, i, incref(py_stype_names[st]));
     }
     return list;
@@ -158,13 +158,14 @@ static PyObject* get_view_colnumbers(DataTable_PyObject *self)
     if (self->ref->source == NULL)
         return none();
     int64_t i = self->ref->ncols;
-    Column *columns = self->ref->columns;
+    Column **columns = self->ref->columns;
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        int isdatacol = columns[i].data == NULL;
-        int64_t srcindex = columns[i].srcindex;
-        PyObject *idx = isdatacol? PyLong_FromLongLong(srcindex) : none();
+        int isviewcol = columns[i]->mtype == MT_VIEW;
+        PyObject *idx = isviewcol
+            ? PyLong_FromSize_t(((ViewColumn*)columns[i])->srcindex)
+            : none();
         PyTuple_SET_ITEM(list, i, idx);
     }
     return list;
@@ -215,7 +216,7 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    Column *col = &dt->columns[colidx];
+    Column *col = dt->columns[colidx];
     int fd = creat(filename, 0666);
     if (fd == -1) {
         PyErr_Format(PyExc_RuntimeError,
@@ -227,7 +228,7 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
         // NOTE: write() is unable to write more than 2^32 bytes at once
         const int buff_size = 1 << 20;
         int stype = col->stype;
-        int64_t total_size = stype_info[stype].elemsize * dt->nrows;
+        int64_t total_size = (int64_t)stype_info[stype].elemsize * dt->nrows;
         if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
             total_size += ((VarcharMeta*)col->meta)->offoff;
         }
@@ -263,17 +264,11 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
  */
 static void __dealloc__(DataTable_PyObject *self)
 {
-    dt_DataTable_dealloc(self->ref, &dt_DataTable_dealloc_objcol);
+    datatable_dealloc(self->ref);
     Py_XDECREF(self->source);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-void dt_DataTable_dealloc_objcol(void *data, int64_t nrows) {
-    PyObject **coldata = data;
-    int64_t j = nrows;
-    while (--j >= 0)
-        Py_XDECREF(coldata[j]);
-}
 
 
 

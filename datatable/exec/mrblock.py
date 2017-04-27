@@ -47,7 +47,7 @@ class MRBlock(object):
             self._check_datatable_compatibility(dt)
             idt = self._module.use_datatable(dt)
             var = "dt%d_columns" % idt
-            self._prologue.append("Column *%s = stack[%d].dt->columns;"
+            self._prologue.append("Column **%s = stack[%d].dt->columns;"
                                   % (var, idt))
             self._evaluated_exprs[key] = var
         return self._evaluated_exprs[key]
@@ -63,7 +63,7 @@ class MRBlock(object):
             srccols_var = "dt%d_srccols" % idt
             indx_var = "j%d" % idt
             rowmapping_type = dt.internal.rowmapping_type
-            self._prologue.append("Column *%s = %s->source->columns;"
+            self._prologue.append("Column **%s = %s->source->columns;"
                                   % (srccols_var, sdt))
             if rowmapping_type == "array":
                 rowidx_var = "dt%d_rowindx" % idt

@@ -44,7 +44,7 @@ class ColSelectorExpr(ExprNode):
         else:
             srccols, idxloop = block.get_dt_srccolumns(self.dtexpr)
             data_array = "%s[%d]" % (srccols, self.view_colid)
-        block.add_prologue_expr("%s *%s_data = %s.data;" %
+        block.add_prologue_expr("%s *%s_data = %s->data;" %
                                 (self.ctype, v, data_array))
         block.add_mainloop_expr("%s %s = %s_data[%s];  // %s" %
                                 (self.ctype, v, v, idxloop, self))

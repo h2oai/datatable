@@ -1,10 +1,27 @@
 #ifndef dt_TYPES_H
 #define dt_TYPES_H
-#include <stdlib.h>
-#include <stdint.h>
+#include <assert.h>  // static_assert
+#include <stdlib.h>  // size_t
+#include <stdint.h>  // int*_t
 
 
-// =============================================================================
+
+//==============================================================================
+
+#if INTPTR_MAX == INT32_MAX
+    #define _32BIT_
+    static_assert(sizeof(void*) == 4, "Expected sizeof(void*) to be 4 bytes");
+#elif INTPTR_MAX == INT64_MAX
+    #define _64BIT_
+    static_assert(sizeof(void*) == 8, "Expected sizeof(void*) to be 8 bytes");
+#else
+    #error "Environment neither 32 nor 64 bit."
+#endif
+static_assert(sizeof(void*) == sizeof(size_t),
+              "sizeof(size_t) != sizeof(void*)");
+
+
+//==============================================================================
 
 /**
  * "Logical" type of a data column.
@@ -75,7 +92,7 @@ typedef enum LType {
 
 
 
-// =============================================================================
+//==============================================================================
 
 /**
  * "Storage" type of a data column.
@@ -311,12 +328,15 @@ typedef enum SType {
     ST_DATETIME_I4_DATE  = 20,
     ST_DATETIME_I2_MONTH = 21,
     ST_OBJECT_PYPTR      = 22,
-} SType;
+} __attribute__ ((__packed__)) SType;
 
 #define DT_STYPES_COUNT  (ST_OBJECT_PYPTR + 1)
 
+static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
 
-// =============================================================================
+
+
+//==============================================================================
 
 /**
  * Information about `SType`s, for programmatic access.
@@ -331,26 +351,34 @@ typedef enum SType {
  *     `n * elemsize`. For variable-size types, this field gives the minimal
  *     storage size per element.
  *
- * hasmeta:
- *     is there some meta information associated with the field? Note that the
- *     type of the meta information is not specified here: the programmer should
- *     know which meta structs correspond to which stypes herself.
+ * metasize:
+ *     size of the meta structure associated with the field. If the field
+ *     doesn't need meta then this will be zero.
+ *
+ * varwidth:
+ *     flag indicating whether the field is variable-width. If this is false,
+ *     then the column is a plain array of elements, each of `elemsize` bytes
+ *     (except for ST_STRING_FCHAR, where each element's size is `meta->n`).
+ *     If this flag is true, then the field has more complex layout and
+ *     specialized logic to handle that layout.
  *
  * ltype:
  *     which :enum:`LType` corresponds to this SType.
  *
  */
 typedef struct STypeInfo {
-    char   code[4];
-    size_t elemsize;
-    _Bool  hasmeta;
-    LType ltype;
+    char    code[4];
+    size_t  elemsize;
+    size_t  metasize;
+    _Bool   varwidth;
+    LType   ltype;
 } STypeInfo;
 
 extern STypeInfo stype_info[DT_STYPES_COUNT];
 
 
-// =============================================================================
+
+//==============================================================================
 
 /**
  * Structs for meta information associated with particular types.
@@ -391,7 +419,8 @@ typedef struct EnumMeta {     // ST_STRING_UX_ENUM
 } EnumMeta;
 
 
-// =============================================================================
+
+//==============================================================================
 
 /**
  * NA constants
@@ -415,9 +444,12 @@ inline int ISNA_F4(float x);
 inline int ISNA_F8(double x);
 
 
-// =============================================================================
+
+//==============================================================================
 
 // Initializer function
 void init_types(void);
+
+
 
 #endif

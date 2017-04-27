@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "rowmapping.h"
+#include "py_utils.h"
 
 
 /**
@@ -121,25 +122,24 @@ RowMapping* RowMapping_from_filter(DataTable* dt, filter_fn filter)
 
 
 /**
- * Construct a `RowMapping` object using a single-boolean-column datatable
- * `filter`. The mapping will contain only those rows where the `filter`
- * datatable contains truthful values.
+ * Construct a `RowMapping` object using a boolean column `filter`. The mapping
+ * will contain only those rows where the `filter` contains truthful values.
  */
 RowMapping* RowMapping_from_column(DataTable *filter)
 {
-    RowMapping *res = malloc(sizeof(RowMapping));
-    if (res == NULL) return NULL;
+    RowMapping *res = NULL;
+    res = TRY(malloc(sizeof(RowMapping)));
 
+    if (filter->ncols != 1) goto fail;
+    Column *col = filter->columns[0];
     int64_t nrows = filter->nrows;
-    assert(filter->ncols == 1);
-    char *data = filter->columns[0].data;
+    int8_t *data = col->data;
 
-    int64_t *out = malloc(sizeof(int64_t) * (size_t)nrows);
-    if (out == NULL) return NULL;
+    int64_t *out = TRY(malloc(8 * (size_t)nrows));
     int64_t n_rows_selected = 0;
-    if (data == NULL) {
-        int64_t srcindex = filter->columns[0].srcindex;
-        data = filter->source->columns[srcindex].data;
+    if (col->mtype == MT_VIEW) {
+        size_t srcindex = ((ViewColumn*)col)->srcindex;
+        data = filter->source->columns[srcindex]->data;
         if (filter->rowmapping->type == RI_SLICE) {
             int64_t j = filter->rowmapping->slice.start;
             int64_t step = filter->rowmapping->slice.step;
@@ -160,13 +160,16 @@ RowMapping* RowMapping_from_column(DataTable *filter)
                 out[n_rows_selected++] = i;
         }
     }
-    realloc(out, sizeof(int64_t) * (size_t)n_rows_selected);
+    realloc(out, 8 * (size_t)n_rows_selected);
 
     res->type = RI_ARRAY;
     res->length = n_rows_selected;
     res->indices = out;
     return res;
 
+  fail:
+    RowMapping_dealloc(res);
+    return NULL;
 }
 
 

@@ -44,7 +44,7 @@ void* clone(void *src, size_t n_bytes);
  * "goto fail" if not successful.
  */
 #define TRY(x) ({                                                              \
-    PyObject *y = x;                                                           \
+    void *y = x;                                                               \
     if (y == NULL) goto fail;                                                  \
     y;                                                                         \
 })

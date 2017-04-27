@@ -11,9 +11,9 @@ ColMapping_from_array(int64_t *array, int64_t length, DataTable *dt)
     res->indices = array;
     res->stypes = malloc(sizeof(SType) * (size_t)length);
     if (res->stypes == NULL) goto fail;
-    Column *columns = dt->columns;
+    Column **columns = dt->columns;
     for (int64_t i = 0; i < length; i++) {
-        res->stypes[i] = columns[array[i]].stype;
+        res->stypes[i] = columns[array[i]]->stype;
     }
     return res;
 
