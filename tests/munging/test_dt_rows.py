@@ -68,7 +68,7 @@ def test_rows_integer(dt0):
         assert dt1.names == ("colA", "colB", "colC")
         assert dt1.types == ("bool", "int", "real")
         assert dt1.internal.isview
-        assert dt1.internal.rowmapping_type == "array"
+        assert dt1.internal.rowmapping_type == "arr32"
         assert dt1.internal.view_colnumbers == (0, 1, 2)
     assert as_list(dt0(0)) == [[0], [7], [5]]
     assert as_list(dt0(-2))[:2] == [[1], [1]]
@@ -95,7 +95,7 @@ def test_rows_slice(dt0):
         assert dt1.types == ("bool", "int", "real")
         assert dt1.internal.isview
         assert dt1.internal.view_colnumbers == (0, 1, 2)
-        assert dt1.internal.rowmapping_type == "slice" if nrows > 1 else "array"
+        assert dt1.internal.rowmapping_type == "slice" if nrows > 1 else "arr32"
     assert as_list(dt0[:5, :])[0] == [0, 1, 1, None, 0]
     assert as_list(dt0[::-1, :])[1] == [None, 1, -1, 0, 0, None, 1e4, 9, -11, 7]
     assert as_list(dt0[::3, :])[1] == [7, 10000, 0, None]
@@ -125,7 +125,7 @@ def test_rows_range(dt0):
         assert dt1.types == ("bool", "int", "real")
         assert dt1.internal.isview
         assert dt1.internal.view_colnumbers == (0, 1, 2)
-        assert dt1.internal.rowmapping_type == "slice" if nrows > 1 else "array"
+        assert dt1.internal.rowmapping_type == "slice" if nrows > 1 else "arr32"
     assert_valueerror(dt0, range(15),
                       "Invalid range(0, 15) for a datatable with 10 rows")
     assert_valueerror(dt0, range(-5, 5),
@@ -138,7 +138,7 @@ def test_rows_generator(dt0):
     dt1 = dt0(g)
     assert dt1.shape == (4, 3)
     assert dt1.internal.isview
-    assert dt1.internal.rowmapping_type == "array"
+    assert dt1.internal.rowmapping_type == "arr32"
     assert_valueerror(dt0, (i if i % 3 < 2 else str(-i) for i in range(10)),
                       "Invalid row selector '-2' generated at position 2")
 
@@ -156,7 +156,7 @@ def test_rows_multislice(dt0):
         assert dt1.types == ("bool", "int", "real")
         assert dt1.internal.isview
         assert dt1.internal.view_colnumbers == (0, 1, 2)
-        assert dt1.internal.rowmapping_type == "array"
+        assert dt1.internal.rowmapping_type == "arr32"
     assert as_list(dt0([3, 9, 1, 0]))[0] == [None, 1, 1, 0]
     assert as_list(dt0((2, 5, 5, -1)))[1] == [9, 0, 0, None]
     assert (as_list(dt0([slice(5, None), slice(None, 5)]))[1] ==
@@ -177,7 +177,7 @@ def test_rows_column(dt0):
     assert dt1.types == ("bool", "int", "real")
     assert dt1.internal.isview
     assert dt1.internal.view_colnumbers == (0, 1, 2)
-    assert dt1.internal.rowmapping_type == "array"
+    assert dt1.internal.rowmapping_type == "arr32"
     assert as_list(dt1)[1] == [7, 9, 10000, -1, 1]
     assert_valueerror(dt0, dt0,
                       "`rows` argument should be a single-column datatable")
@@ -192,7 +192,7 @@ def test_rows_function(dt0):
     dt1 = dt0(lambda f: f.colA)
     assert dt1.shape == (5, 3)
     assert dt1.internal.isview
-    assert dt1.internal.rowmapping_type == "array"
+    assert dt1.internal.rowmapping_type == "arr32"
     assert as_list(dt1)[1] == [-11, 9, 0, 1, None]
     dt2 = dt0(lambda f: [5, 7, 9])
     assert dt2.shape == (3, 3)
@@ -220,21 +220,21 @@ def test_chained_slice(dt0):
     assert as_list(dt3) == [[0, 1], [None, 0], [100000, -2.6]]
     dt4 = dt1[(1, 0, 3, 2), :]
     assert dt4.shape == (4, 3)
-    assert dt4.internal.rowmapping_type == "array"
+    assert dt4.internal.rowmapping_type == "arr32"
     assert as_list(dt4) == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
 
 
 def test_chained_array(dt0):
     dt1 = dt0[(2, 5, 1, 1, 1, 0), :]
     assert dt1.shape == (6, 3)
-    assert dt1.internal.rowmapping_type == "array"
+    assert dt1.internal.rowmapping_type == "arr32"
     dt2 = dt1[::2, :]
     assert dt2.shape == (3, 3)
-    assert dt2.internal.rowmapping_type == "array"
+    assert dt2.internal.rowmapping_type == "arr32"
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
     dt3 = dt1[::-1, :]
     assert dt3.shape == (6, 3)
-    assert dt3.internal.rowmapping_type == "array"
+    assert dt3.internal.rowmapping_type == "arr32"
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
     dt4 = dt1[(2, 3, 0), :]
     assert dt4.shape == (3, 3)

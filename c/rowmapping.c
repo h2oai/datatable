@@ -102,10 +102,10 @@ RowMapping* rowmapping_from_slice(ssize_t start, ssize_t count, ssize_t step)
     RowMapping *res = NULL;
     res = TRY(malloc(sizeof(RowMapping)));
 
-    // check that 0 <= start, count, start + count*step <= INTPTR_MAX
+    // check that 0 <= start, count, start + (count-1)*step <= INTPTR_MAX
     if (start < 0 || count < 0) goto fail;
-    if (count > 0 && step < -(start/count)) goto fail;
-    if (count > 0 && step > (INTPTR_MAX - start)/count) goto fail;
+    if (count > 1 && step < -(start/(count - 1))) goto fail;
+    if (count > 1 && step > (INTPTR_MAX - start)/(count - 1)) goto fail;
 
     res->type = RM_SLICE;
     res->length = count;
@@ -146,7 +146,8 @@ RowMapping* rowmapping_from_slicelist(
         ssize_t len = counts[i];
         if (len == 0) continue;
         if (len < 0 || start < 0) goto fail;
-        if (step < -(start/len) || step > (INTPTR_MAX - start)/len) goto fail;
+        if (len > 1 && step < -(start/(len - 1))) goto fail;
+        if (len > 1 && step > (INTPTR_MAX - start)/(len - 1)) goto fail;
         if (count + len > INTPTR_MAX) goto fail;
         ssize_t end = start + step*(len - 1);
         if (end > maxidx) maxidx = end;

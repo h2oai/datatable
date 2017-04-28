@@ -51,9 +51,10 @@ RowMappingPy_from_slice(PyObject *self, PyObject *args)
     VALASSERT(start <= INTPTR_MAX, "start is too large: %lld", start)
     VALASSERT(count <= INTPTR_MAX, "count is too large: %lld", count)
     VALASSERT(llabs(step) <= INTPTR_MAX, "step is too large: %lld", step)
-    if (count > 0) {
-        VALASSERT(step >= -(start/count), "Last item in slice is negative")
-        VALASSERT(step <= (INTPTR_MAX - start)/count,
+    if (count > 1) {
+        VALASSERT(step >= -(start/(count - 1)),
+                  "Last item in slice is negative")
+        VALASSERT(step <= (INTPTR_MAX - start)/(count - 1),
                   "Last item in the slice exceeds integer bound")
     }
 
@@ -105,9 +106,10 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
         VALASSERT(count >= 0, "count must be nonnegative, got %zd", count)
         VALASSERT(total_count + count <= INTPTR_MAX,
                   "Total size of the rowmapping is too large")
-        if (count > 0) {
-            VALASSERT(step >= -(start/count), "Last item in slice is negative")
-            VALASSERT(step <= (INTPTR_MAX - start)/count,
+        if (count > 1) {
+            VALASSERT(step >= -(start/(count - 1)),
+                      "Last item in slice is negative")
+            VALASSERT(step <= (INTPTR_MAX - start)/(count - 1),
                       "Last item in the slice exceeds integer bound")
         }
         starts[i] = start;

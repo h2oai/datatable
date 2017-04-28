@@ -429,6 +429,7 @@ class DataTable(object):
             if not counts:
                 return c.rowmapping_from_array(bases)
             elif len(bases) == 1:
+                print(bases[0], counts[0], strides[0])
                 return c.rowmapping_from_slice(bases[0], counts[0], strides[0])
             else:
                 return c.rowmapping_from_slicelist(bases, counts, strides)
