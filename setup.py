@@ -41,6 +41,11 @@ if "CC" in os.environ:
     os.environ["CC"] += " -fopenmp"
 
 
+# Force to build for a 64-bit platform only
+os.environ["ARCHFLAGS"] = "-arch x86_64"
+
+
+
 # Main setup
 setup(
     name="datatable",
@@ -111,6 +116,7 @@ setup(
                 "-Wno-gnu-statement-expression",
                 "-Wno-switch-enum",
                 "-Werror=implicit-function-declaration",
+                "-Werror=incompatible-pointer-types",
                 "-fopenmp",
                 "-std=gnu11",
                 # "-ggdb", "-O0",

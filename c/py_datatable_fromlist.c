@@ -38,14 +38,14 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
     dt->ncols = 0;
 
     // If the supplied list is empty, return the empty Datatable object
-    int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
+    ssize_t listsize = Py_SIZE(list);  // works both for lists and tuples
     if (listsize == 0) {
         return pyDataTable_from_DataTable(dt);
     }
 
     // Basic check validity of the provided data.
-    int64_t item0size = Py_SIZE(PyList_GET_ITEM(list, 0));
-    for (int64_t i = 0; i < listsize; ++i) {
+    ssize_t item0size = Py_SIZE(PyList_GET_ITEM(list, 0));
+    for (ssize_t i = 0; i < listsize; ++i) {
         PyObject *item = PyList_GET_ITEM(list, i);
         if (!PyList_Check(item)) {
             PyErr_SetString(PyExc_ValueError,
@@ -64,7 +64,7 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
     dt->columns = CALLOC(sizeof(Column), dt->ncols);
 
     // Fill the data
-    for (int64_t i = 0; i < dt->ncols; i++) {
+    for (ssize_t i = 0; i < dt->ncols; i++) {
         PyObject *src = PyList_GET_ITEM(list, i);
         dt->columns[i] = TRY(column_from_list(src));
     }

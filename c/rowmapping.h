@@ -58,6 +58,8 @@ typedef struct RowMapping {
 
 
 //==============================================================================
+// Public API
+//==============================================================================
 
 /**
  * Reduce storage method of rowmapping `rwm` from RM_ARR64 to RM_ARR32, if

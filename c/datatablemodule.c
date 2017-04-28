@@ -24,7 +24,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &list))
         return NULL;
 
-    int64_t ncols = PyList_Size(list);
+    ssize_t ncols = PyList_Size(list);
 
     DataTable *dt = malloc(sizeof(DataTable));
     if (dt == NULL) return NULL;
@@ -34,7 +34,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
     dt->columns = malloc(sizeof(Column) * (size_t)ncols);
     if (dt->columns == NULL) return NULL;
 
-    int64_t nrows = -1;
+    ssize_t nrows = -1;
     for (int i = 0; i < ncols; i++) {
         PyObject *item = PyList_GetItem(list, i);
         char *colname = PyUnicode_AsUTF8(item);
@@ -70,21 +70,28 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
             PyErr_Format(PyExc_RuntimeError, "File is empty: %s", colname);
             return NULL;
         }
+        if (filesize > INTPTR_MAX) {
+            close(fd);
+            PyErr_Format(PyExc_ValueError,
+                "File is too big for a 32-bit platform: %lld bytes", filesize);
+            return NULL;
+        }
         void *mmp = mmap(NULL, (size_t)filesize, PROT_READ, MAP_PRIVATE, fd, 0);
         if (mmp == MAP_FAILED) {
             close(fd);
             PyErr_Format(PyExc_RuntimeError, "Failed to memory-map the file: %s", colname);
             return NULL;
         }
-        // This is no longer needed
+        // After memory-mapping the file, its descriptor is no longer needed
         close(fd);
 
-        int64_t nelems = filesize / (int64_t)elemsize;
+        ssize_t nelems = (ssize_t)filesize / (ssize_t)elemsize;
         if (nrows == -1)
             nrows = nelems;
         else if (nrows != nelems) {
-            PyErr_Format(PyExc_RuntimeError, "File %s contains %lld rows, whereas previous column(s) had %lld rows",
-                         colname, nelems, nrows);
+            PyErr_Format(PyExc_RuntimeError,
+                "File %s contains %zd rows, whereas previous column(s) had %zd rows",
+                colname, nelems, nrows);
             return NULL;
         }
 
@@ -147,6 +154,9 @@ static PyModuleDef datatablemodule = {
     DatatableModuleMethods,
     0,0,0,0,
 };
+
+static_assert(sizeof(ssize_t) == sizeof(Py_ssize_t),
+              "ssize_t and Py_ssize_t should refer to the same type");
 
 /* Called when Python program imports the module */
 PyMODINIT_FUNC

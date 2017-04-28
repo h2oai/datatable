@@ -144,8 +144,18 @@ _Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor, int ncol
  * Allocate memory for the datatable being read
  */
 size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
+    if (nrows > INTPTR_MAX) {
+        PyErr_Format(PyExc_ValueError,
+            "Unable to create DataTable with %llu rows: current platform "
+            "supports at most %zd rows", nrows, INTPTR_MAX);
+        return 0;
+    }
+
     Column **columns = calloc(sizeof(Column*), (size_t)(ncols - ndrop));
+    if (columns == NULL) return 0;
+
     size_t n_string_cols = 0;
+    size_t total_alloc_size = 0;
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
         if (type == CT_DROP)
@@ -158,6 +168,7 @@ size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
         columns[j]->alloc_size = alloc_size;
         if (type == CT_STRING) n_string_cols++;
         j++;
+        total_alloc_size += alloc_size;
     }
     if (n_string_cols > 0) {
         strbufs = calloc(sizeof(char*), n_string_cols);
@@ -167,7 +178,7 @@ size_t allocateDT(int8_t *types, int ncols, int ndrop, uint64_t nrows) {
     }
 
     dt = malloc(sizeof(DataTable));
-    dt->nrows = (int64_t) nrows;
+    dt->nrows = (ssize_t) nrows;
     dt->ncols = ncols - ndrop;
     dt->source = NULL;
     dt->rowmapping = NULL;
@@ -200,7 +211,7 @@ void setFinalNrow(uint64_t nrows) {
             realloc(col->data, new_size);
         }
     }
-    dt->nrows = (int64_t) nrows;
+    dt->nrows = (ssize_t) nrows;
 }
 
 

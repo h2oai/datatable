@@ -1,5 +1,6 @@
 #include "py_colmapping.h"
 #include "py_datatable.h"
+#include "py_utils.h"
 
 
 int init_py_colmapping(PyObject *module)
@@ -18,7 +19,7 @@ ColMapping_PyObject* ColMappingPy_from_array(PyObject *self, PyObject *args)
     DataTable_PyObject *dt;
     ColMapping *colmapping = NULL;
     ColMapping_PyObject *res = NULL;
-    int64_t *data = NULL;
+    ssize_t *data = NULL;
 
     // Unpack arguments and check their validity
     if (!PyArg_ParseTuple(args, "O!O!:ColMapping.from_array",
@@ -26,11 +27,10 @@ ColMapping_PyObject* ColMappingPy_from_array(PyObject *self, PyObject *args)
         return NULL;
 
     // Convert Pythonic List into a regular C array of longs
-    int64_t len = (int64_t) PyList_Size(list);
-    data = malloc(sizeof(int64_t) * (size_t)len);
-    if (data == NULL) goto fail;
-    for (int64_t i = 0; i < len; ++i) {
-        data[i] = PyLong_AsLong(PyList_GET_ITEM(list, i));
+    ssize_t len = PyList_Size(list);
+    data = MALLOC(sizeof(ssize_t) * (size_t)len);
+    for (ssize_t i = 0; i < len; ++i) {
+        data[i] = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
     }
 
     // Construct and return the ColMapping object

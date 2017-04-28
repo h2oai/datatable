@@ -97,13 +97,13 @@ static PyObject* get_stack_value(Evaluator_PyObject *self, PyObject *args)
             int32_t n = v.i4;
             int32_t *arr = (int32_t*) self->stack[idx + 1].ptr;
             RowMapping *rwm = rowmapping_from_i32_array(arr, n);
-            return (PyObject*) RowMappingPy_from_RowMapping(rwm);
+            return (PyObject*) RowMappingPy_from_rowmapping(rwm);
         }
         case 258: {
-            int64_t n = v.i4;
+            int64_t n = v.i8;
             int64_t *arr = (int64_t*) self->stack[idx + 1].ptr;
-            RowMapping *rwm = rowmapping_from_i64_array(arr, n);
-            return (PyObject*) RowMappingPy_from_RowMapping(rwm);
+            RowMapping *rwm = rowmapping_from_i64_array(arr, (ssize_t)n);
+            return (PyObject*) RowMappingPy_from_rowmapping(rwm);
         }
         default:
             PyErr_Format(PyExc_ValueError, "Unsupported value type %d", type);

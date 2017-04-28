@@ -6,23 +6,11 @@
 #include <stdint.h>  // int*_t
 
 
-
-//==============================================================================
-/**
- * _32BIT_ -- flag whether the platform is 32-bit
- * _64BIT_ -- flag whether the platform is 64-bit
- */
-#if INTPTR_MAX == INT32_MAX
-    #define _32BIT_  1
-    #define _64BIT_  0
-#elif INTPTR_MAX == INT64_MAX
-    #define _32BIT_  0
-    #define _64BIT_  1
-#else
-    #error "Environment neither 32 nor 64 bit."
-#endif
-
+// intXX(32)  =>  int32_t
+// intXX(64)  =>  int64_t
+// etc.
 #define intXX(bits)  int ## bits ## _t
+
 
 
 //==============================================================================

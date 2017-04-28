@@ -3,7 +3,7 @@
 
 
 ColMapping*
-ColMapping_from_array(int64_t *array, int64_t length, DataTable *dt)
+ColMapping_from_array(ssize_t *array, ssize_t length, DataTable *dt)
 {
     ColMapping *res = malloc(sizeof(ColMapping));
     if (res == NULL) return NULL;
@@ -12,7 +12,7 @@ ColMapping_from_array(int64_t *array, int64_t length, DataTable *dt)
     res->stypes = malloc(sizeof(SType) * (size_t)length);
     if (res->stypes == NULL) goto fail;
     Column **columns = dt->columns;
-    for (int64_t i = 0; i < length; i++) {
+    for (ssize_t i = 0; i < length; i++) {
         res->stypes[i] = columns[array[i]]->stype;
     }
     return res;
@@ -24,12 +24,12 @@ ColMapping_from_array(int64_t *array, int64_t length, DataTable *dt)
 
 
 /*
-ColMapping* ColMapping_alloc(int64_t length)
+ColMapping* ColMapping_alloc(ssize_t length)
 {
     ColMapping *res = malloc(sizeof(ColMapping));
     if (res == NULL) return NULL;
     res->length = length;
-    res->indices = malloc(sizeof(int64_t) * length);
+    res->indices = malloc(sizeof(ssize_t) * length);
     res->coltypes = malloc(sizeof(LType) * length);
     if (res->indices == NULL || res->coltypes == NULL) goto fail;
     return res;

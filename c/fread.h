@@ -155,6 +155,8 @@ _Bool userOverride(int8_t *type, lenOff *colNames, const char *anchor, int ncol)
  * ncols: number of elements in the array
  * ndrop: count of columns that have type[i] == CT_DROP (and should not be allocated)
  * nrows: number of rows in the datatable
+ * return: total size of the Datatable created (for reporting purposes). If the
+ *         return value is 0, then it indicates an error.
  */
 size_t allocateDT(int8_t *type, int ncols, int ndrop, uint64_t nrows);
 

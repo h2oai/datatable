@@ -21,17 +21,13 @@ typedef struct RowMapping_PyObject {
 extern PyTypeObject RowMapping_PyType;
 
 
-// This macro instantiates a new `RowMapping_PyObject` object (with refcnt 1)
-#define RowMapping_PyNEW() ((RowMapping_PyObject*) \
-    PyObject_CallObject((PyObject*) &RowMapping_PyType, NULL))
-
 
 
 RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_slicelist(PyObject *self, PyObject *a);
 RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args);
-RowMapping_PyObject* RowMappingPy_from_RowMapping(RowMapping* rowmapping);
+RowMapping_PyObject* RowMappingPy_from_rowmapping(RowMapping* rowmapping);
 
 int init_py_rowmapping(PyObject *module);
 

@@ -8,8 +8,8 @@
 #include "py_types.h"
 
 // Forward declarations
-static int _check_consistency(DataTable *dt, int64_t row0, int64_t row1,
-                              int64_t col0, int64_t col1);
+static int _check_consistency(DataTable *dt, ssize_t row0, ssize_t row1,
+                              ssize_t col0, ssize_t col1);
 
 int init_py_datawindow(PyObject *module)
 {
@@ -38,11 +38,11 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     DataTable *dt;
     PyObject *stypes = NULL, *ltypes = NULL, *view = NULL;
     int n_init_cols = 0;
-    int64_t row0, row1, col0, col1;
+    ssize_t row0, row1, col0, col1;
 
     // Parse arguments and check their validity
     static char *kwlist[] = {"dt", "row0", "row1", "col0", "col1", NULL};
-    int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!llll:DataWindow.__init__",
+    int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!nnnn:DataWindow.__init__",
                                           kwlist, &DataTable_PyType, &pydt,
                                           &row0, &row1, &col0, &col1);
     dt = pydt == NULL? NULL : pydt->ref;
@@ -50,14 +50,14 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         return -1;
 
     // Window dimensions
-    int64_t ncols = col1 - col0;
-    int64_t nrows = row1 - row0;
+    ssize_t ncols = col1 - col0;
+    ssize_t nrows = row1 - row0;
 
     // Create and fill-in the `stypes` list
     stypes = PyList_New((Py_ssize_t) ncols);
     ltypes = PyList_New((Py_ssize_t) ncols);
     if (stypes == NULL || ltypes == NULL) goto fail;
-    for (int64_t i = col0; i < col1; i++) {
+    for (ssize_t i = col0; i < col1; i++) {
         Column *column = dt->columns[i];
         SType stype = column->stype;
         LType ltype = stype_info[stype].ltype;
@@ -71,13 +71,13 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     int rindex_is_slice = rindex && rindex->type == RM_SLICE;
     int32_t *rindexarr32 = rindex_is_arr32? rindex->ind32 : NULL;
     int64_t *rindexarr64 = rindex_is_arr64? rindex->ind64 : NULL;
-    int64_t rindexstart = rindex_is_slice? rindex->slice.start : 0;
-    int64_t rindexstep = rindex_is_slice? rindex->slice.step : 0;
+    ssize_t rindexstart = rindex_is_slice? rindex->slice.start : 0;
+    ssize_t rindexstep = rindex_is_slice? rindex->slice.step : 0;
 
     // Create and fill-in the `data` list
     view = PyList_New((Py_ssize_t) ncols);
     if (view == NULL) goto fail;
-    for (int64_t i = col0; i < col1; ++i) {
+    for (ssize_t i = col0; i < col1; ++i) {
         Column *column = dt->columns[i];
         void *coldata = column->data;
         int isdata = (column->mtype != MT_VIEW);
@@ -91,10 +91,10 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         PyList_SET_ITEM(view, n_init_cols++, py_coldata);
 
         int n_init_rows = 0;
-        for (int64_t j = row0; j < row1; ++j) {
-            int64_t irow = isdata? j :
+        for (ssize_t j = row0; j < row1; ++j) {
+            ssize_t irow = isdata? j :
                            rindex_is_arr32? rindexarr32[j] :
-                           rindex_is_arr64? rindexarr64[j] :
+                           rindex_is_arr64? (ssize_t) rindexarr64[j] :
                                             rindexstart + rindexstep * j;
             PyObject *value = py_stype_formatters[column->stype](column, irow);
             if (value == NULL) goto fail;
@@ -134,7 +134,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
  * :returns: 1 on success, 0 on failure
  */
 static int _check_consistency(
-    DataTable *dt, int64_t row0, int64_t row1, int64_t col0, int64_t col1)
+    DataTable *dt, ssize_t row0, ssize_t row1, ssize_t col0, ssize_t col1)
 {
     // check correctness of the data window
     if (col0 < 0 || col1 < col0 || col1 > dt->ncols ||
@@ -175,7 +175,7 @@ static int _check_consistency(
                         rindex->length, dt->nrows);
                     return 0;
                 }
-                for (int32_t j = row0; j < row1; ++j) {
+                for (ssize_t j = row0; j < row1; ++j) {
                     int32_t jsrc = rindex->ind32[j];
                     if (jsrc < 0 || jsrc >= dt->source->nrows) {
                         PyErr_Format(PyExc_RuntimeError,

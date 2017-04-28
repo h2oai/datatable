@@ -12,8 +12,8 @@
 DataTable* dt_DataTable_call(
     DataTable *self, RowMapping *rowmapping, ColMapping *colmapping)
 {
-    int64_t ncols = colmapping->length;
-    int64_t nrows = rowmapping->length;
+    ssize_t ncols = colmapping->length;
+    ssize_t nrows = rowmapping->length;
 
     // Computed on-demand only if we detect that it is needed
     RowMapping *merged_rowindex = NULL;
@@ -21,8 +21,8 @@ DataTable* dt_DataTable_call(
     Column **columns = calloc(sizeof(Column*), (size_t)ncols);
     if (columns == NULL) return NULL;
 
-    for (int64_t i = 0; i < ncols; ++i) {
-        int64_t j = colmapping->indices[i];
+    for (ssize_t i = 0; i < ncols; ++i) {
+        ssize_t j = colmapping->indices[i];
         Column *colj = self->columns[j];
         if (colj->mtype == MT_VIEW) {
             if (merged_rowindex == NULL) {
