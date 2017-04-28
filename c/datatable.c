@@ -26,7 +26,7 @@ DataTable* dt_DataTable_call(
         Column *colj = self->columns[j];
         if (colj->mtype == MT_VIEW) {
             if (merged_rowindex == NULL) {
-                merged_rowindex = RowMapping_merge(self->rowmapping, rowmapping);
+                merged_rowindex = rowmapping_merge(self->rowmapping, rowmapping);
             }
             ViewColumn *viewcol = TRY(malloc(sizeof(ViewColumn)));
             viewcol->mtype = MT_VIEW;

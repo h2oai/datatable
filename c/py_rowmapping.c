@@ -1,6 +1,7 @@
 #include "py_datatable.h"
 #include "py_rowmapping.h"
 #include "datatable.h"
+#include "utils.h"
 
 
 static RowMapping_PyObject* pyrowmapping(RowMapping *src)
@@ -122,23 +123,32 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
 
 RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
 {
-    DataTable_PyObject *pydt = NULL;
+    DataTable *dt = NULL;
     RowMapping *rowmapping = NULL;
-    RowMapping_PyObject *res = NULL;
 
-    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_column",
-                          &DataTable_PyType, &pydt))
+    if (!PyArg_ParseTuple(args, "O&:RowMapping.from_column",
+                          &dt_from_pydt, &dt))
         return NULL;
 
-    rowmapping = RowMapping_from_column(pydt->ref);
-    res = RowMapping_PyNEW();
-    if (res == NULL || rowmapping == NULL) goto fail;
-    res->ref = rowmapping;
-    return res;
+    if (dt->ncols != 1) {
+        PyErr_SetString(PyExc_ValueError, "Expected a single-column datatable");
+        return NULL;
+    }
+    Column *col = dt->columns[0];
+    if (col->stype != ST_BOOLEAN_I1) {
+        PyErr_SetString(PyExc_ValueError, "A boolean column is required");
+        return NULL;
+    }
+
+    rowmapping = (col->mtype == MT_VIEW)
+        ? rowmapping_from_column_with_rowmapping(
+            dt->source->columns[((ViewColumn*)col)->srcindex], dt->rowmapping)
+        : rowmapping_from_datacolumn(col, dt->nrows);
+
+    return TRY(pyrowmapping(rowmapping));
 
   fail:
     rowmapping_dealloc(rowmapping);
-    Py_XDECREF(res);
     return NULL;
 }
 

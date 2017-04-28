@@ -60,6 +60,12 @@ typedef struct RowMapping {
 //==============================================================================
 
 /**
+ * Reduce storage method of rowmapping `rwm` from RM_ARR64 to RM_ARR32, if
+ * possible.
+ */
+_Bool rowmapping_compactify(RowMapping *rwm);
+
+/**
  * Construct a "slice" RowMapping object from triple `(start, count, step)`.
  */
 RowMapping* rowmapping_from_slice(ssize_t start, ssize_t count, ssize_t step);
@@ -79,9 +85,22 @@ RowMapping* rowmapping_from_slicelist(
 RowMapping* rowmapping_from_i64_array(int64_t *array, ssize_t n);
 RowMapping* rowmapping_from_i32_array(int32_t *array, ssize_t n);
 
-RowMapping* RowMapping_from_column(DataTable *filter);
+/**
+ * Construct a `RowMapping` object using a boolean data column `col`.
+ */
+RowMapping* rowmapping_from_datacolumn(Column *col, ssize_t nrows);
 
-RowMapping* RowMapping_merge(RowMapping *risrc, RowMapping *rinew);
+/**
+ * Construct a `RowMapping` object using a boolean data column `col` with
+ * another RowMapping applied to it.
+ */
+RowMapping* rowmapping_from_column_with_rowmapping(
+    Column *col, RowMapping *rmp);
+
+/**
+ * Combine two RowMappings: `rwm_ab` + `rwm_bc` => `rwm_ac`.
+ */
+RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc);
 
 /**
  * RowMapping's destructor.

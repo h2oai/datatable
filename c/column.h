@@ -99,6 +99,8 @@ static_assert(sizeof(MType) == 1, "MType should be 1 byte in size");
 static_assert(sizeof(SType) == 1, "SType should be 1 byte in size");
 static_assert(offsetof(Column, mtype) == offsetof(ViewColumn, mtype),
               "mtype fields should be co-located to allow type punning");
+static_assert(offsetof(Column, stype) == offsetof(ViewColumn, stype),
+              "stype fields should be co-located to allow type punning");
 
 
 /**
