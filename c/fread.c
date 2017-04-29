@@ -354,7 +354,7 @@ static _Bool StrtoI32_bare(const char **this, void *target)
     // The max (2147483647) is 10 digits long, hence <=10.
     // Leading 0 (such as 001 and 099 but not 0, +0 or -0) will return false and cause bump to _padded which has the
     // option to treat as integer or string with further cost. Otherwise width would not be sufficient check here in _bare.
-} 
+}
 
 
 static _Bool StrtoI32_full(const char **this, void *target)
@@ -536,7 +536,7 @@ int freadMain(freadMainArgs __args) {
     if (nth <= 0) STOP("nThreads must be >= 1, received %d", nth);
     nth = umin(nth, omp_get_max_threads());
     if (nth < args.nth) DTPRINT("Limited nth=%d to omp_get_max_threads()=%d\n", args.nth, nth);
-    
+
     typeOnStack = false;
     type = NULL;
     size = NULL;
@@ -1191,7 +1191,7 @@ int freadMain(freadMainArgs __args) {
     } else nJumps=1;
     int64_t initialBuffRows = allocnrow / nJumps;
     nth = umin(nJumps, nth);
-    
+
     read:  // we'll return here to reread any columns with out-of-sample type exceptions
     #pragma omp parallel num_threads(nth)
     {
@@ -1214,13 +1214,13 @@ int freadMain(freadMainArgs __args) {
         if (stopTeam) continue;
         double t0=0, t1=0;
         if (verbose) { t1 = t0 = wallclock(); }
-        
+
         if (myNrow) {
           // On the 2nd iteration onwards for this thread, push the data from the previous jump
           // Convoluted because the ordered section has to be last in some OpenMP implementations :
           // http://stackoverflow.com/questions/43540605/must-ordered-be-at-the-end
           // Hence why loop goes to nJumps+nth. Logically, this clause belongs after the ordered section.
-          
+
           // Push buffer now to impl so that :
           //   i) lenoff.off can be "just" 32bit int from a local anchor rather than a 64bit offset from a global anchor
           //  ii) impl can do it in parallel if it wishes, otherwise it can have an orphan critical directive
@@ -1258,7 +1258,7 @@ int freadMain(freadMainArgs __args) {
         }
         thisJumpStart=ch;
         if (verbose) { t1=wallclock(); thNextGoodLine+=t1-t0; t0=t1; }
-        
+
         char *myBuffPos = myBuff;
         while (ch<nextJump) {
           if (myNrow == myBuffRows) {
@@ -1369,7 +1369,7 @@ int freadMain(freadMainArgs __args) {
               myBuffPos += size[j++];
             }
           }
-          if (ch<eof && *ch!=eol) { 
+          if (ch<eof && *ch!=eol) {
             #pragma omp critical
             if (!stopTeam) {
               stopTeam = true;
@@ -1434,7 +1434,7 @@ int freadMain(freadMainArgs __args) {
       }
       if (nTypeBump) {
         if (hasPrinted || verbose) DTPRINT("Rereading %d columns due to out-of-sample type exceptions.\n", nTypeBumpCols);
-        if (verbose) DTPRINT(typeBumpMsg);
+        if (verbose) DTPRINT("%s", typeBumpMsg);
         // TODO - construct and output the copy and pastable colClasses argument so user can avoid the reread time in future.
         free(typeBumpMsg);
       }
@@ -1492,7 +1492,7 @@ int freadMain(freadMainArgs __args) {
         DTPRINT(" ncol=%d and header detection\n", ncol);
       DTPRINT("%8.3fs (%3.0f%%) Column type detection using %d sample rows\n",
         tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
-      DTPRINT("%8.3fs (%3.0f%%) Allocation of %d rows x %d cols (%.3fGB)\n", 
+      DTPRINT("%8.3fs (%3.0f%%) Allocation of %d rows x %d cols (%.3fGB)\n",
         tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, allocnrow, ncol, DTbytes/(1024.0*1024*1024));
       thNextGoodLine/=nth; thRead/=nth; thPush/=nth;
       double thWaiting = tRead-tAlloc-thNextGoodLine-thRead-thPush;
