@@ -167,12 +167,13 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
     if (columns == NULL) return 0;
 
     size_t n_string_cols = 0;
-    size_t total_alloc_size = 0;
+    size_t total_alloc_size = sizeof(Column*) * (ncols - ndrop);
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
         if (type == CT_DROP)
             continue;
         size_t alloc_size = colTypeSizes[type] * (size_t)nrows;
+        columns[j] = malloc(sizeof(Column));
         columns[j]->data = malloc(alloc_size);
         columns[j]->mtype = MT_DATA;
         columns[j]->stype = colType_to_stype[type];
@@ -181,13 +182,14 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
         assert(stype_info[columns[j]->stype].elemsize == sizes[i]);
         if (type == CT_STRING) n_string_cols++;
         j++;
-        total_alloc_size += alloc_size;
+        total_alloc_size += alloc_size + sizeof(Column);
     }
     if (n_string_cols > 0) {
         strbufs = calloc(sizeof(char*), n_string_cols);
         strbuf_sizes = calloc(sizeof(int32_t), n_string_cols);
         strbuf_ptrs = calloc(sizeof(int32_t), n_string_cols);
         strbuf_count = n_string_cols;
+        total_alloc_size += n_string_cols * (sizeof(char*) + 4 + 4);
     }
 
     dt = malloc(sizeof(DataTable));
@@ -196,7 +198,8 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
     dt->source = NULL;
     dt->rowmapping = NULL;
     dt->columns = columns;
-    return 0;
+    total_alloc_size += sizeof(DataTable);
+    return total_alloc_size;
 }
 
 
