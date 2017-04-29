@@ -1,8 +1,6 @@
 #ifndef dt_TYPES_H
 #define dt_TYPES_H
-#include <sys/_types.h>
-#include <sys/_types/_size_t.h>   // size_t
-#include <sys/_types/_ssize_t.h>  // ssize_t
+#include <stddef.h>  // size_t
 #include <stdint.h>  // int*_t
 
 
@@ -11,6 +9,10 @@
 // etc.
 #define intXX(bits)  int ## bits ## _t
 
+#ifndef _SSIZE_T
+#define _SSIZE_T 1
+typedef int64_t ssize_t;
+#endif
 
 
 //==============================================================================
