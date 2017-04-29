@@ -14,14 +14,15 @@
 
 // Ordered hierarchy of types
 typedef enum {
-  NEG = -1,    // dummy to force signed type; sign bit used for out-of-sample type bump management
-  CT_DROP = 0, // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
-  CT_BOOL8,    // signed char; first type enum value must be 1 not 0 so that it can be negated to -1.
-  CT_INT32,    // signed int32_t
-  CT_INT64,    // signed int64_t
-  CT_FLOAT64,  // double (64-bit IEEE 754 float)
-  CT_STRING,   // lenOff typedef below
-  NUMTYPE      // placeholder for the number of types including drop; used for allocation and loop bounds
+  NEG = -1,       // dummy to force signed type; sign bit used for out-of-sample type bump management
+  CT_DROP = 0,    // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
+  CT_BOOL8,       // int8_t; first type enum value must be 1 not 0 so that it can be negated to -1.
+  CT_INT32_BARE,  // int32_t bare bones fast
+  CT_INT32_FULL,  // int32_t if spaces or quotes can surround the value
+  CT_INT64,       // int64_t
+  CT_FLOAT64,     // double (64-bit IEEE 754 float)
+  CT_STRING,      // lenOff struct below
+  NUMTYPE         // placeholder for the number of types including drop; used for allocation and loop bounds
 } colType;
 
 extern size_t typeSize[NUMTYPE];
@@ -30,7 +31,7 @@ extern const long double pow10lookup[701];
 
 
 // Strings are pushed by fread_main using an offset from an anchor address plus
-// string length fread_impl.c then manages strings appropriately
+// string length; fread_impl.c then manages strings appropriately
 typedef struct {
   int32_t len;  // signed to distinguish NA vs empty ""
   uint32_t off;
@@ -135,7 +136,7 @@ typedef struct freadMainArgs
 
 // *****************************************************************************
 
-int freadMain(freadMainArgs args);
+int freadMain(freadMainArgs __args);
 
 /**
  * Opportunity to bump up types of columns, if the user so wishes (currently
@@ -158,7 +159,7 @@ _Bool userOverride(int8_t *type, lenOff *colNames, const char *anchor, int ncol)
  * return: total size of the Datatable created (for reporting purposes). If the
  *         return value is 0, then it indicates an error.
  */
-size_t allocateDT(int8_t *type, int ncols, int ndrop, uint64_t nrows);
+size_t allocateDT(int8_t *type, int8_t *size, int ncols, int ndrop, uint64_t nrows);
 
 
 /**
@@ -181,9 +182,9 @@ void reallocColType(int col, colType newType);
  * nRows: number of rows in the buffer
  * ansi: starting row where to put the data from the buffers into the final DT
  */
-void pushBuffer(int8_t *type, int ncol, void **buff, const char *anchor,
-                int nStringCols, int nNonStringCols, uint32_t nRows,
-                uint64_t ansi);
+void pushBuffer(const void *buff, const char *anchor, int nRows,
+                int64_t DTi, int rowsize,
+                int nStringCols, int nNonStringCols);
 
 
 /**
@@ -191,7 +192,7 @@ void pushBuffer(int8_t *type, int ncol, void **buff, const char *anchor,
  * was. The function should adjust the datatable, reallocing the buffers if
  * necessary.
  */
-void setFinalNrow(uint64_t nrow);
+void setFinalNrow(uint64_t nrows);
 
 
 /**
