@@ -121,6 +121,7 @@ setup(
             ],
             extra_link_args=[
                 "-v",
+                "-fopenmp",
             ],
         ),
     ],
