@@ -40,10 +40,8 @@ print("\nFound packages: %r\n" % packages)
 if "CC" in os.environ:
     os.environ["CC"] += " -fopenmp"
 
-
 # Force to build for a 64-bit platform only
-os.environ["ARCHFLAGS"] = "-arch x86_64"
-
+os.environ["ARCHFLAGS"] = "-m64"
 
 
 # Main setup
@@ -123,7 +121,6 @@ setup(
             ],
             extra_link_args=[
                 "-v",
-                "-arch", "x86_64",
             ],
         ),
     ],
