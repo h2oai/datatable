@@ -34,7 +34,7 @@ def inject_c_code(cc, func_names):
 
 def _create_execution_engine():
     """
-    Create an ExecutionEngine suitable for JIT code generation on the host 
+    Create an ExecutionEngine suitable for JIT code generation on the host
     CPU. The engine is reusable for any number of modules.
     """
     # Initialization...
@@ -51,7 +51,16 @@ def _create_execution_engine():
 
 
 def _c_to_llvm(code):
-    clang = os.environ.get("CC", "clang")
+    if "LLVM4" in os.environ:
+        clang = "%s/bin/clang" % os.path.expanduser(os.environ["LLVM4"])
+        if not os.path.isfile(clang):
+            raise RuntimeError("File %s not found. Please ensure that variable "
+                               "LLVM4 points to a valid Clang+Llvm-4.0 "
+                               "installation folder" % clang)
+    else:
+        raise RuntimeError("Environment variable LLVM4 is not set. This "
+                           "variable should point to the Clang+Llvm-4.0 "
+                           "installation folder.")
     proc = subprocess.Popen(args=[clang, "-x", "c", "-S", "-emit-llvm",
                                   "-o", "-", "-"],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,

@@ -8,6 +8,7 @@ Build script for the `datatable` module.
 """
 import os
 import re
+import subprocess
 from setuptools import setup, find_packages
 from distutils.core import Extension
 
@@ -37,14 +38,52 @@ packages = find_packages(exclude=["tests", "temp", "c"])
 print("\nFound packages: %r\n" % packages)
 
 
-if "CC" in os.environ:
-    os.environ["CC"] += " -fopenmp"
+#-------------------------------------------------------------------------------
+# Prepare the environment
+#-------------------------------------------------------------------------------
 
+# 1. Verify the LLVM4 installation directory
+if "LLVM4" in os.environ:
+    llvm4 = os.path.expanduser(os.environ["LLVM4"])
+    if llvm4.endswith("/"):
+        llvm4 = llvm4[:-1]
+    if " " in llvm4:
+        raise ValueError("LLVM4 directory %r contains spaces -- this is not "
+                         "supported, please move the folder, or make a symlink "
+                         "or provide a 'short' name (if on Windows)" % llvm4)
+    if not os.path.isdir(llvm4):
+        raise ValueError("Variable LLVM4 = %r is not a directory" % llvm4)
+    llvm_config = os.path.join(llvm4, "bin", "llvm-config")
+    clang = os.path.join(llvm4, "bin", "clang")
+    libs = os.path.join(llvm4, "lib")
+    includes = os.path.join(llvm4, "include")
+    for f in [llvm_config, clang, libs, includes]:
+        if not os.path.exists(f):
+            raise RuntimeError("Cannot find %r inside the LLVM4 folder. "
+                               "Is this a valid installation?" % f)
+    ver = subprocess.check_output([llvm_config, "--version"]).decode().strip()
+    if not ver.startswith("4.0."):
+        raise RuntimeError("Wrong LLVM version: expected 4.0.x but "
+                           "found %s" % ver)
+else:
+    raise RuntimeError("Environment variable LLVM4 is not set. Please set this "
+                       "variable to the location of the Clang+Llvm-4.0.0 "
+                       "distribution, which you can download from "
+                       "http://releases.llvm.org/download.html#4.0.0")
+
+# Compiler
+os.environ["CC"] = clang + " -fopenmp"
+# Linker flags
+os.environ["LDFLAGS"] = "-L%s -rpath %s" % (libs, libs)
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
+# If we need to install llvmlite, this would help
+os.environ["LLVM_CONFIG"] = llvm_config
 
 
+#-------------------------------------------------------------------------------
 # Main setup
+#-------------------------------------------------------------------------------
 setup(
     name="datatable",
     version=version,
