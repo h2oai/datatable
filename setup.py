@@ -74,7 +74,7 @@ else:
 # Compiler
 os.environ["CC"] = clang + " -fopenmp"
 # Linker flags
-os.environ["LDFLAGS"] = "-L%s -rpath %s" % (libs, libs)
+os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, libs)
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
