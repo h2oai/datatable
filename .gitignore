@@ -11,9 +11,11 @@ dist/
 
 
 # Coverage reports
-htmlcov/
+pycov/
+ccov/
 .coverage
 coverage.xml
+coverage.info
 
 
 # Sphinx documentation

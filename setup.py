@@ -156,11 +156,13 @@ setup(
                 "-Werror=incompatible-pointer-types",
                 "-fopenmp",
                 "-std=gnu11",
+                # "-coverage",
                 # "-ggdb", "-O0",
             ],
             extra_link_args=[
                 "-v",
                 "-fopenmp",
+                # "-coverage",
             ],
         ),
     ],
