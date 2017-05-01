@@ -167,7 +167,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
     if (columns == NULL) return 0;
 
     size_t n_string_cols = 0;
-    size_t total_alloc_size = sizeof(Column*) * (ncols - ndrop);
+    size_t total_alloc_size = sizeof(Column*) * (size_t)(ncols - ndrop);
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
         if (type == CT_DROP)
@@ -214,8 +214,8 @@ void setFinalNrow(uint64_t nrows) {
             int32_t offs_size = 4 * (int32_t)nrows;
             int32_t final_size = offoff + offs_size;
             unsigned char *final_ptr = realloc(strbufs[k], (size_t)final_size);
-            memset(final_ptr + curr_size, 0xFF, padding);
-            memcpy(final_ptr + offoff, col->data, offs_size);
+            memset(final_ptr + curr_size, 0xFF, (size_t)padding);
+            memcpy(final_ptr + offoff, col->data, (size_t)offs_size);
             free(col->data);
             col->data = final_ptr;
             strbufs[k] = NULL;  // col->data now "owns" this pointer
@@ -224,7 +224,7 @@ void setFinalNrow(uint64_t nrows) {
             k++;
         } else {
             size_t new_size = stype_info[col->stype].elemsize * (size_t)nrows;
-            realloc(col->data, new_size);
+            col->data = realloc(col->data, new_size);
         }
     }
     dt->nrows = (ssize_t) nrows;
@@ -232,8 +232,9 @@ void setFinalNrow(uint64_t nrows) {
 
 
 void reallocColType(int colidx, colType newType) {
+    Column *col = dt->columns[colidx];
     size_t new_alloc_size = colTypeSizes[newType] * (size_t)dt->nrows;
-    realloc(dt->columns[colidx]->data, new_alloc_size);
+    col->data = realloc(col->data, new_alloc_size);
 }
 
 
@@ -272,10 +273,11 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
             for (int n = 0; n < nrows; n++) {
                 int32_t  len  = ((const lenOff*)srcptr)->len;
                 uint32_t aoff = ((const lenOff*)srcptr)->off;
-                if (len == NA_LENOFF) {
+                if (len < 0) {
+                    assert(len == NA_LENOFF);
                     *destptr++ = -off - 1;
                 } else {
-                    memcpy(strbufs[k] + off, anchor + aoff, len);
+                    memcpy(strbufs[k] + off, anchor + aoff, (size_t)len);
                     off += len;
                     *destptr++ = off + 1;
                 }
