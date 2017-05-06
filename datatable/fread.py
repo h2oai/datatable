@@ -21,9 +21,10 @@ def fread(filename="", **params):
 class FReader(object):
 
     @typed(filename=str, text=str, separator=str, max_nrows=int, header=bool,
-           na_strings=[str])
+           na_strings=[str], fill=bool)
     def __init__(self, filename=None, text=None, separator=None, max_nrows=None,
-                 header=None, na_strings=None, verbose=False, **args):
+                 header=None, na_strings=None, verbose=False, fill=False,
+                 **args):
         self._filename = None   # type: str
         self._text = None       # type: str
         self._separator = None  # type: str
@@ -31,6 +32,7 @@ class FReader(object):
         self._header = None     # type: bool
         self._nastrings = []    # type: List[str]
         self._verbose = False   # type: bool
+        self._fill = False      # type: bool
 
         self._log_newline = True
         self._colnames = None
@@ -42,6 +44,7 @@ class FReader(object):
         self.header = header
         self.na_strings = na_strings
         self.verbose = verbose
+        self.fill = fill
 
 
     @property
@@ -142,6 +145,16 @@ class FReader(object):
         self._verbose = verbose
 
 
+    @property
+    def fill(self):
+        return self._fill
+
+    @fill.setter
+    @typed(fill=bool)
+    def fill(self, fill):
+        self._fill = fill
+
+
     def read(self):
         dt = c.fread(self)
         return DataTable(dt, colnames=self._colnames)
@@ -150,4 +163,4 @@ class FReader(object):
         if self._log_newline:
             print("  ", end="")
         self._log_newline = message.endswith("\n")
-        print(_log_color(message), end="")
+        print(_log_color(message), end="", flush=True)
