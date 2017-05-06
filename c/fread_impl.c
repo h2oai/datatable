@@ -16,6 +16,12 @@ static const SType colType_to_stype[NUMTYPE] = {
     ST_STRING_I4_VCHAR,
 };
 
+typedef struct StrBuf {
+    char *buf;
+    int32_t ptr;
+    int32_t size;
+} StrBuf;
+
 // Forward declarations
 void cleanup_fread_session(freadMainArgs *frargs);
 
@@ -35,15 +41,10 @@ static char *filename = NULL;
 static char *input = NULL;
 static char **na_strings = NULL;
 
-static char **strbufs = NULL;
-static int32_t *strbuf_ptrs = NULL;
-static int32_t *strbuf_sizes = NULL;
-static size_t strbuf_count = 0;
-
 static ssize_t ncols = 0;
 static int8_t *types = NULL;
 static int8_t *sizes = NULL;
-
+static StrBuf **strbufs = NULL;
 
 
 /**
@@ -82,7 +83,7 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     frargs.NAstrings = (const char* const*) na_strings;
     frargs.stripWhite = 1;
     frargs.skipEmptyLines = 1;
-    frargs.fill = 0;
+    frargs.fill = TOBOOL(ATTR(freader, "fill"), 0);
     frargs.showProgress = 0;
     frargs.nth = 1;
     frargs.warningsAreErrors = 0;
@@ -118,13 +119,10 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         }
         Py_XDECREF(frargs->freader);
     }
-    if (strbuf_count) {
-        for (size_t i = 0; i < strbuf_count; i++) free(strbufs[i]);
-        free(strbuf_sizes); strbuf_sizes = NULL;
-        free(strbuf_ptrs); strbuf_ptrs = NULL;
-        free(strbufs); strbufs = NULL;
-        strbuf_count = 0;
+    for (size_t i = 0; i < ncols; i++) {
+        free(strbufs[i]);
     }
+    free(strbufs); strbufs = NULL;
     Py_XDECREF(freader);
     Py_XDECREF(colNamesList);
     dt = NULL;
@@ -164,10 +162,11 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
     }
 
     Column **columns = calloc(sizeof(Column*), (size_t)(ncols - ndrop));
-    if (columns == NULL) return 0;
+    strbufs = (StrBuf**) calloc(sizeof(StrBuf*), (size_t)(ncols));
+    if (columns == NULL || strbufs == NULL) return 0;
 
-    size_t n_string_cols = 0;
-    size_t total_alloc_size = sizeof(Column*) * (size_t)(ncols - ndrop);
+    size_t total_alloc_size = sizeof(Column*) * (size_t)(ncols - ndrop) +
+                              sizeof(StrBuf*) * (size_t)(ncols - ndrop);
     for (int i = 0, j = 0; i < ncols; i++) {
         int8_t type = types[i];
         if (type == CT_DROP)
@@ -180,16 +179,17 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
         columns[j]->meta = NULL;
         columns[j]->alloc_size = alloc_size;
         assert(stype_info[columns[j]->stype].elemsize == sizes[i]);
-        if (type == CT_STRING) n_string_cols++;
+        if (type == CT_STRING) {
+            strbufs[j] = malloc(sizeof(StrBuf));
+            if (strbufs[j] == NULL) return 0;
+            strbufs[j]->buf = malloc(nrows*10);
+            if (strbufs[j]->buf == NULL) return 0;
+            strbufs[j]->ptr = 0;
+            strbufs[j]->size = nrows*10;
+            total_alloc_size += sizeof(StrBuf) + nrows * 10;
+        }
         j++;
         total_alloc_size += alloc_size + sizeof(Column);
-    }
-    if (n_string_cols > 0) {
-        strbufs = calloc(sizeof(char*), n_string_cols);
-        strbuf_sizes = calloc(sizeof(int32_t), n_string_cols);
-        strbuf_ptrs = calloc(sizeof(int32_t), n_string_cols);
-        strbuf_count = n_string_cols;
-        total_alloc_size += n_string_cols * (sizeof(char*) + 4 + 4);
     }
 
     dt = malloc(sizeof(DataTable));
@@ -204,24 +204,23 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
 
 
 void setFinalNrow(uint64_t nrows) {
-    int k = 0;
     for (int i = 0; i < dt->ncols; i++) {
         Column *col = dt->columns[i];
         if (col->stype == ST_STRING_I4_VCHAR) {
-            int32_t curr_size = strbuf_ptrs[k];
+            assert(strbufs[i] != NULL);
+            int32_t curr_size = strbufs[i]->ptr;
             int32_t padding = (8 - (curr_size & 7)) & 7;
             int32_t offoff = curr_size + padding;
             int32_t offs_size = 4 * (int32_t)nrows;
             int32_t final_size = offoff + offs_size;
-            unsigned char *final_ptr = realloc(strbufs[k], (size_t)final_size);
+            unsigned char *final_ptr = realloc(strbufs[i]->buf, (size_t)final_size);
             memset(final_ptr + curr_size, 0xFF, (size_t)padding);
             memcpy(final_ptr + offoff, col->data, (size_t)offs_size);
             free(col->data);
             col->data = final_ptr;
-            strbufs[k] = NULL;  // col->data now "owns" this pointer
+            strbufs[i]->buf = NULL;  // col->data now "owns" this pointer
             col->meta = malloc(sizeof(VarcharMeta));
             ((VarcharMeta*)(col->meta))->offoff = (int64_t) offoff;
-            k++;
         } else {
             size_t new_size = stype_info[col->stype].elemsize * (size_t)nrows;
             col->data = realloc(col->data, new_size);
@@ -235,6 +234,12 @@ void reallocColType(int colidx, colType newType) {
     Column *col = dt->columns[colidx];
     size_t new_alloc_size = colTypeSizes[newType] * (size_t)dt->nrows;
     col->data = realloc(col->data, new_alloc_size);
+    if (newType == CT_STRING) {
+        strbufs[colidx] = malloc(sizeof(StrBuf));
+        strbufs[colidx]->buf = malloc(new_alloc_size * 4);
+        strbufs[colidx]->ptr = 0;
+        strbufs[colidx]->size = new_alloc_size * 4;
+    }
 }
 
 
@@ -243,8 +248,7 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
                 int nStringCols, int nNonStringCols)
 {
     int i = 0;  // index within the `types` and `sizes`
-    int j = 0;  // index within `dt->columns` and `buff`
-    int k = 0;  // index within `strbufs` & others
+    int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
     int ptr = 0;  // offset within the buffer of the current column
     for (; i < ncols; i++) {
         if (types[i] == CT_DROP)
@@ -260,13 +264,14 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
                 slen += (len == NA_LENOFF)? 0 : len;
                 srcptr += rowSize;
             }
-            int32_t off = strbuf_ptrs[k];
-            int32_t size = strbuf_sizes[k];
+            assert(strbufs[j] != NULL);
+            int32_t off = strbufs[j]->ptr;
+            int32_t size = strbufs[j]->size;
             if (size < slen + off) {
                 float g = ((float)dt->nrows) / (row0 + nrows);
                 int32_t newsize = (int32_t)((slen + off) * max_f4(1.05f, g));
-                strbufs[k] = realloc(strbufs[k], (size_t)newsize);
-                strbuf_sizes[k] = newsize;
+                strbufs[j]->buf = realloc(strbufs[j]->buf, (size_t)newsize);
+                strbufs[j]->size = newsize;
             }
             srcptr = buff + ptr;
             int32_t *destptr = col->data + row0;
@@ -277,14 +282,13 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
                     assert(len == NA_LENOFF);
                     *destptr++ = -off - 1;
                 } else {
-                    memcpy(strbufs[k] + off, anchor + aoff, (size_t)len);
+                    memcpy(strbufs[j]->buf + off, anchor + aoff, (size_t)len);
                     off += len;
                     *destptr++ = off + 1;
                 }
                 srcptr += rowSize;
             }
-            strbuf_ptrs[k] = off;
-            k++;
+            strbufs[j]->ptr = off;
 
         } else if (types[i] > 0) {
             size_t elemsize = (size_t) sizes[i];
@@ -304,13 +308,17 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
 
 void progress(double percent/*[0,1]*/, double ETA/*secs*/) {}
 
-
 __attribute__((format(printf, 1, 2)))
 void DTPRINT(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    static char msg[2000];
-    vsnprintf(msg, 2000, format, args);
+    char *msg;
+    if (strcmp(format, "%s") == 0) {
+        msg = va_arg(args, char*);
+    } else {
+        msg = (char*) alloca(2001);
+        vsnprintf(msg, 2000, format, args);
+    }
     va_end(args);
     PyObject_CallMethod(freader, "_vlog", "O", PyUnicode_FromString(msg));
 }
