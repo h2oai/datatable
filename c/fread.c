@@ -83,6 +83,10 @@ void freadCleanup(void)
       if (ret) DTPRINT("System errno %d unmapping file\n", errno);
     #endif
     mmp = NULL;
+  } else {
+    if (eof) *(char *)eof = '\0';
+    // for direct char * input (e.g. tests) we temporarily put eol there so restore '\0'
+    // if (eof) for when file is empty and STOP() is called before eof has been set (test 885)
   }
   fileSize = 0;
   sep = eol = eol2 = quote = dec = '\0';
@@ -333,25 +337,25 @@ static _Bool StrtoI64(const char **this, void *target)
 static _Bool StrtoI32_bare(const char **this, void *target)
 {
     const char *ch = *this;
-    if (ch>=eof || *ch==sep || *ch==eol) { *(int32_t *)target = NA_INT32; return true; }
+    if (*ch==sep || *ch==eol) { *(int32_t *)target = NA_INT32; return true; }
     if (sep==' ') return false;  // bare doesn't do sep=' '. TODO - remove
     _Bool neg = *ch=='-';
     ch += (neg || *ch=='+');
     const char *start = ch;  // for overflow guard using field width
-    int64_t acc = 0;
-    unsigned digit;
-    while (ch<eof && (digit=(unsigned)(*ch-'0'))<10) {
-      acc *= 10;
+    uint_fast64_t acc = 0;   // using unsigned to be clear that acc will never be negative
+    uint_fast8_t digit;
+    while ( (digit=(unsigned)(*ch-'0'))<10 ) {  // see init.c for checks of unsigned cast
+      acc *= 10;     // optimizer has best chance here; e.g. (x<<2 + x)<<2 or x<<3 + x<<2
       acc += digit;
       ch++;
     }
     *(int32_t *)target = neg ? -acc : acc;
     *this = ch;
-    return (ch>=eof || *ch==sep || *ch==eol) &&
+    return (*ch==sep || *ch==eol) &&
            (acc ? *start!='0' && acc<=INT32_MAX && (ch-start)<=10 : ch-start==1);
     // If false, both *target and where *this is moved on to, are undefined.
     // INT32 range is NA==-2147483648(INT32_MIN) then symmetric [-2147483647,+2147483647] so we can just test INT32_MAX
-    // The max (2147483647) is 10 digits long, hence <=10.
+    // The max (2147483647) happens to be 10 digits long, hence <=10.
     // Leading 0 (such as 001 and 099 but not 0, +0 or -0) will return false and cause bump to _padded which has the
     // option to treat as integer or string with further cost. Otherwise width would not be sufficient check here in _bare.
 }
@@ -536,7 +540,7 @@ int freadMain(freadMainArgs __args) {
     if (nth <= 0) STOP("nThreads must be >= 1, received %d", nth);
     nth = umin(nth, omp_get_max_threads());
     if (nth < args.nth) DTPRINT("Limited nth=%d to omp_get_max_threads()=%d\n", args.nth, nth);
-
+    
     typeOnStack = false;
     type = NULL;
     size = NULL;
@@ -622,7 +626,7 @@ int freadMain(freadMainArgs __args) {
         // Mac doesn't appear to support MAP_POPULATE anyway (failed on CRAN when I tried).
         // TO DO?: MAP_HUGETLB for Linux but seems to need admin to setup first. My Hugepagesize is 2MB (>>2KB, so promising)
         //         https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt
-        mmp = mmap(NULL, fileSize, PROT_READ, MAP_PRIVATE, fd, 0);
+        mmp = mmap(NULL, fileSize+1, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);  // COW pages. +1 for '\0' we'll add
         close(fd);  // we don't need to keep file handle open
         if (mmp == MAP_FAILED) {
 #else
@@ -644,15 +648,15 @@ int freadMain(freadMainArgs __args) {
         if (GetFileSizeEx(hFile,&liFileSize)==0) { CloseHandle(hFile); STOP("GetFileSizeEx failed (returned 0) on file: %s", fnam); }
         fileSize = (size_t)liFileSize.QuadPart;
         if (fileSize<=0) { CloseHandle(hFile); STOP("File is empty: %s", fnam); }
-        DWORD hi = (fileSize) >> 32;
-        DWORD lo = (fileSize) & 0xFFFFFFFFull;
-        HANDLE hMap=CreateFileMapping(hFile, NULL, PAGE_WRITECOPY, hi, lo, NULL);  // tried very hard again on 26 April 2017 to over-map file on Windows
-        if (hMap==NULL) { CloseHandle(hFile); STOP("This is Windows, CreateFileMapping returned error %d for file %s", GetLastError(), fnam); }
         if (verbose) {
             DTPRINT("File opened, size %.6f GB.\n", (double)fileSize/(1024*1024*1024));
             DTPRINT("Memory mapping ... ");
         }
-        mmp = MapViewOfFile(hMap,FILE_MAP_COPY,0,0,fileSize);
+        DWORD hi = (fileSize) >> 32;            // tried very very hard again on 26 & 27th April 2017 to over-map file by 1 byte
+        DWORD lo = (fileSize) & 0xFFFFFFFFull;  // on Windows for COW/FILE_MAP_COPY on read-only file, with no joy.
+        HANDLE hMap=CreateFileMapping(hFile, NULL, PAGE_WRITECOPY, hi, lo, NULL); 
+        if (hMap==NULL) { CloseHandle(hFile); STOP("This is Windows, CreateFileMapping returned error %d for file %s", GetLastError(), fnam); }
+        mmp = MapViewOfFile(hMap,FILE_MAP_COPY,0,0,fileSize);  // fileSize must be <= hilo passed to CreateFileMapping above.
         CloseHandle(hMap);  // we don't need to keep the file open; the MapView keeps an internal reference;
         CloseHandle(hFile); //   see https://msdn.microsoft.com/en-us/library/windows/desktop/aa366537(v=vs.85).aspx
         if (mmp == NULL) {
@@ -667,7 +671,7 @@ int freadMain(freadMainArgs __args) {
             }
         }
         sof = (const char*) mmp;
-        eof = sof+fileSize;  // byte after last byte of file.  Never dereference eof as it's not mapped.
+        eof = sof+fileSize;  // byte after last byte of file.
         if (verbose) DTPRINT("ok\n");  // to end 'Memory mapping ... '
     } else {
         sof = NULL;
@@ -728,6 +732,16 @@ int freadMain(freadMainArgs __args) {
         } else
             STOP("Internal error: if no \\r or \\n found then ch should be eof");
     }
+    // Ensure file ends with eol so we don't need to check 'ch<eof && *ch...' everywhere in deep loops just because
+    // the very last field in the file might finish abrubtly with no final \n (or \r\n on Windows).
+    // The file was opened readonly and mapped with page level copy-on-write so this won't write to file.
+    // On Windows we may only have a problem if the file i) does not end with newline already AND ii) it is an exact multiple
+    // of the VirtualAlloc block size (64k) -- for such rare cases we could ask the Windows user to add an ending newline.
+    // TODO - only need to do this *eof write if final data line does end abrubtly. This is a first step for now to see if it works.
+    // On Linux and Mac it's safe since mmap() there accepts fileSize+1. On Windows, it writes into the last page MAP_COMMIT'd for this
+    // file which is ok I think as VirtualAlloc() allocates on boundaries (64k on Windows). There may be a way on Windows
+    // using Zw* lower level but I haven't yet managed to include headers correctly (I asked on r-package-devel on 28 Apr).
+    *(char *)eof = eol;
 
     // ********************************************************************************************
     //   Position to line skip+1 or line containing skip="string"
@@ -1191,7 +1205,7 @@ int freadMain(freadMainArgs __args) {
     } else nJumps=1;
     int64_t initialBuffRows = allocnrow / nJumps;
     nth = umin(nJumps, nth);
-
+    
     read:  // we'll return here to reread any columns with out-of-sample type exceptions
     #pragma omp parallel num_threads(nth)
     {
@@ -1214,13 +1228,13 @@ int freadMain(freadMainArgs __args) {
         if (stopTeam) continue;
         double t0=0, t1=0;
         if (verbose) { t1 = t0 = wallclock(); }
-
+        
         if (myNrow) {
           // On the 2nd iteration onwards for this thread, push the data from the previous jump
           // Convoluted because the ordered section has to be last in some OpenMP implementations :
           // http://stackoverflow.com/questions/43540605/must-ordered-be-at-the-end
           // Hence why loop goes to nJumps+nth. Logically, this clause belongs after the ordered section.
-
+          
           // Push buffer now to impl so that :
           //   i) lenoff.off can be "just" 32bit int from a local anchor rather than a 64bit offset from a global anchor
           //  ii) impl can do it in parallel if it wishes, otherwise it can have an orphan critical directive
@@ -1258,7 +1272,7 @@ int freadMain(freadMainArgs __args) {
         }
         thisJumpStart=ch;
         if (verbose) { t1=wallclock(); thNextGoodLine+=t1-t0; t0=t1; }
-
+        
         char *myBuffPos = myBuff;
         while (ch<nextJump) {
           if (myNrow == myBuffRows) {
@@ -1369,7 +1383,7 @@ int freadMain(freadMainArgs __args) {
               myBuffPos += size[j++];
             }
           }
-          if (ch<eof && *ch!=eol) {
+          if (ch<eof && *ch!=eol) { 
             #pragma omp critical
             if (!stopTeam) {
               stopTeam = true;
@@ -1434,7 +1448,7 @@ int freadMain(freadMainArgs __args) {
       }
       if (nTypeBump) {
         if (hasPrinted || verbose) DTPRINT("Rereading %d columns due to out-of-sample type exceptions.\n", nTypeBumpCols);
-        if (verbose) DTPRINT("%s", typeBumpMsg);
+        if (verbose) DTPRINT(typeBumpMsg);
         // TODO - construct and output the copy and pastable colClasses argument so user can avoid the reread time in future.
         free(typeBumpMsg);
       }
@@ -1492,7 +1506,7 @@ int freadMain(freadMainArgs __args) {
         DTPRINT(" ncol=%d and header detection\n", ncol);
       DTPRINT("%8.3fs (%3.0f%%) Column type detection using %d sample rows\n",
         tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
-      DTPRINT("%8.3fs (%3.0f%%) Allocation of %d rows x %d cols (%.3fGB)\n",
+      DTPRINT("%8.3fs (%3.0f%%) Allocation of %d rows x %d cols (%.3fGB)\n", 
         tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, allocnrow, ncol, DTbytes/(1024.0*1024*1024));
       thNextGoodLine/=nth; thRead/=nth; thPush/=nth;
       double thWaiting = tRead-tAlloc-thNextGoodLine-thRead-thPush;
