@@ -342,8 +342,8 @@ class DataTable(object):
             res._dt = self._dt(rowmapping, colmapping)
             res._ncols = res._dt.ncols
             res._nrows = res._dt.nrows
-            res._names = self._names
-            res._inames = self._inames
+            res._names = tuple(name for _, name in cols)
+            res._inames = {n: i for i, n in enumerate(res._names)}
             res._types = self._types
             return res
 
@@ -476,7 +476,7 @@ class DataTable(object):
                   be computed.
         """
         if arg is Ellipsis:
-            return [(i, ) for i in range(self.ncols)]
+            return [(i, self._names[i]) for i in range(self.ncols)]
 
         if isinstance(arg, (int, str, slice, ExprNode)):
             arg = [arg]
