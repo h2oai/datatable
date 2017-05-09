@@ -119,13 +119,15 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         }
         Py_XDECREF(frargs->freader);
     }
-    for (ssize_t i = 0; i < ncols; i++) {
-        if (strbufs[i]) {
-            free(strbufs[i]->buf);
-            free(strbufs[i]);
+    if (strbufs) {
+        for (ssize_t i = 0; i < ncols; i++) {
+            if (strbufs[i]) {
+                free(strbufs[i]->buf);
+                free(strbufs[i]);
+            }
         }
+        free(strbufs); strbufs = NULL;
     }
-    free(strbufs); strbufs = NULL;
     Py_XDECREF(freader);
     Py_XDECREF(colNamesList);
     dt = NULL;
