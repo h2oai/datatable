@@ -25,7 +25,7 @@ typedef enum {
   NUMTYPE         // placeholder for the number of types including drop; used for allocation and loop bounds
 } colType;
 
-extern size_t typeSize[NUMTYPE];
+extern int8_t typeSize[NUMTYPE];
 extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
 
@@ -159,7 +159,7 @@ _Bool userOverride(int8_t *type, lenOff *colNames, const char *anchor, int ncol)
  * return: total size of the Datatable created (for reporting purposes). If the
  *         return value is 0, then it indicates an error.
  */
-size_t allocateDT(int8_t *type, int8_t *size, int ncols, int ndrop, uint64_t nrows);
+size_t allocateDT(int8_t *type, int8_t *size, int ncols, int ndrop, int64_t nrows);
 
 
 /**
@@ -192,7 +192,7 @@ void pushBuffer(const void *buff, const char *anchor, int nRows,
  * was. The function should adjust the datatable, reallocing the buffers if
  * necessary.
  */
-void setFinalNrow(uint64_t nrows);
+void setFinalNrow(int64_t nrows);
 
 
 /**

@@ -21,9 +21,13 @@
 // This macro raises a warning using Python's standard warning mechanism. Usage:
 //     if (cond) WARN("Attention: %s", smth_smelly);
 //
-#define DTWARN(...) \
-    { \
-        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__); \
+#define DTWARN(...)                                                            \
+    {                                                                          \
+        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__);                \
+        if (warningsAreErrors) {                                               \
+            freadCleanup();                                                    \
+            return 0;                                                          \
+        }                                                                      \
     }
 
 
