@@ -67,5 +67,5 @@ might need to build it manually. This involves the following:
      ```
   3. Generate coverage report:
      ```bash
-     $ python -m pytest --cov=datatable --cov-report=html
+     $ make coverage
      ```
