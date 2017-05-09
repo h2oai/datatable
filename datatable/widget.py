@@ -421,7 +421,7 @@ class _Column(object):
 
 
     def _align_at_dot(self):
-        tails = [len(x) - x.rfind(".") - 1 for x in self._strdata]
+        tails = [_float_tail(x) for x in self._strdata]
         maxtail = max(tails)
         self._strdata = [v + " " * (maxtail - tails[j])
                          for j, v in enumerate(self._strdata)]
@@ -437,3 +437,12 @@ class _Column(object):
                 return whitespace + value
         else:
             return value[:self._width - 1] + "…"
+
+
+
+def _float_tail(x):
+    idot = x.rfind(".")
+    if idot >= 0:
+        return len(x) - idot - 1
+    else:
+        return -1
