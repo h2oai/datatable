@@ -95,6 +95,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
             return NULL;
         }
 
+        dt->columns[i] = malloc(sizeof(Column));
         dt->columns[i]->data = mmp;
         dt->columns[i]->stype = elemtype;
         dt->columns[i]->mtype = MT_MMAPPED;
