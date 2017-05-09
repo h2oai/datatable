@@ -139,7 +139,9 @@ _Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor, int nco
     colNamesList = PyTuple_New(ncols_);
     for (int i = 0; i < ncols_; i++) {
         lenOff ocol = colNames[i];
-        PyObject *col = PyUnicode_FromStringAndSize(anchor + ocol.off, ocol.len);
+        PyObject *col =
+            ocol.len > 0? PyUnicode_FromStringAndSize(anchor + ocol.off, ocol.len)
+                        : PyUnicode_FromFormat("V%d", i);
         PyTuple_SET_ITEM(colNamesList, i, col);
     }
     PyObject_SetAttrString(freader, "_colnames", colNamesList);
@@ -152,7 +154,7 @@ _Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor, int nco
  * Allocate memory for the datatable being read
  */
 size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
-                  uint64_t nrows) {
+                  int64_t nrows) {
     types = types_;
     sizes = sizes_;
     ncols = (ssize_t) ncols_;
@@ -184,11 +186,11 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
         if (type == CT_STRING) {
             strbufs[j] = malloc(sizeof(StrBuf));
             if (strbufs[j] == NULL) return 0;
-            strbufs[j]->buf = malloc(nrows * 10);
+            strbufs[j]->buf = malloc((size_t)nrows * 10);
             if (strbufs[j]->buf == NULL) return 0;
             strbufs[j]->ptr = 0;
             strbufs[j]->size = (size_t)nrows * 10;
-            total_alloc_size += sizeof(StrBuf) + nrows * 10;
+            total_alloc_size += sizeof(StrBuf) + (size_t)nrows * 10;
         }
         j++;
         total_alloc_size += alloc_size + sizeof(Column);
@@ -205,7 +207,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
 }
 
 
-void setFinalNrow(uint64_t nrows) {
+void setFinalNrow(int64_t nrows) {
     for (int i = 0, j = 0; i < ncols; i++) {
         int type = types[i];
         if (type == CT_DROP)
@@ -237,7 +239,7 @@ void setFinalNrow(uint64_t nrows) {
         }
         j++;
     }
-    dt->nrows = (ssize_t) nrows;
+    dt->nrows = nrows;
 }
 
 
