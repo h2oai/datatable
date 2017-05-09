@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>  // static_assert
 #include "types.h"
 
@@ -94,4 +97,12 @@ void init_types(void)
     STI(ST_DATETIME_I2_MONTH, "i2d", 2, 0,                   0, LT_DATETIME)
     STI(ST_OBJECT_PYPTR,      "p8p", 8, 0,                   0, LT_OBJECT)
     #undef STI
+
+    //---- More static asserts -------------------------------------------------
+    for (int i = -128; i <= 127; i++) {
+        char ch = (char) i;
+        int test1 = (ch >= '0' && ch <= '9');
+        int test2 = ((uint_fast8_t)(ch - '0') < 10);
+        assert(test1 == test2);
+    }
 }
