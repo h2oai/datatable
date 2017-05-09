@@ -13,7 +13,8 @@ _builtin_max = max
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
     if len(args) == 1 and isinstance(args[0], ExprNode):
-        return MinMaxReducer(args[0], True, kwds.get("skipna", True))
+        skipna = kwds.get("skipna", True)
+        return MinMaxReducer(args[0], ismin=True, skipna=skipna)
     else:
         return _builtin_min(*args, **kwds)
 
@@ -21,7 +22,8 @@ def min(*args, **kwds):
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
     if len(args) == 1 and isinstance(args[0], ExprNode):
-        return MinMaxReducer(args[0], False, kwds.get("skipna", True))
+        skipna = kwds.get("skipna", True)
+        return MinMaxReducer(args[0], ismin=False, skipna=skipna)
     else:
         return _builtin_max(*args, **kwds)
 
@@ -74,9 +76,9 @@ class MinMaxReducer(ExprNode):
 
     def _isna(self, block):
         if self.stype == "f8r":
-            return "ISNA_F64(%s)" % self.value(block)
+            return "ISNA_F8(%s)" % self.value(block)
         elif self.stype == "f4r":
-            return "ISNA_F32(%s)" % self.value(block)
+            return "ISNA_F4(%s)" % self.value(block)
         else:
             return "(%s == %s)" % (self.value(block), nas_map[self.stype])
 

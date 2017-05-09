@@ -67,7 +67,7 @@ class StdevReducer(ExprNode):
         if self.skipna:
             return "0"
         else:
-            return "ISNA_F64(%s)" % self.value(block)
+            return "ISNA_F8(%s)" % self.value(block)
 
 
     def _notna(self, block):
