@@ -5,6 +5,7 @@ from ._expr import ExprNode
 from .binary_expr import BinaryOpExpr
 from .column_expr import ColSelectorExpr
 from .datatable_expr import DatatableExpr
+from .isna_expr import isna
 from .literal_expr import LiteralNode
 from .mean_expr import MeanReducer, mean
 from .minmax_expr import MinMaxReducer, min, max
@@ -17,6 +18,7 @@ __all__ = (
     "mean",
     "min",
     "sd",
+    "isna",
     "BinaryOpExpr",
     "ColSelectorExpr",
     "DatatableExpr",

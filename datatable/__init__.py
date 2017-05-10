@@ -6,10 +6,10 @@ from .dt import DataTable
 from .fread import fread, FReader
 from .memmap import open
 from .nff import save
-from .expr import mean, min, max, sd
+from .expr import mean, min, max, sd, isna
 
 __all__ = ("__version__", "DataTable", "max", "mean", "min", "open", "sd",
-           "fread", "FReader", "save")
+           "isna", "fread", "FReader", "save")
 
 
 DataTable.__module__ = "datatable"
