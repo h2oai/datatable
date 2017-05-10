@@ -537,13 +537,16 @@ class DataTable(object):
                                              "strides: %r" % col)
                         if col1 <= col0:
                             col0, col1, step = col1 - 1, col0 - 1, -1
+                        for i in range(col0, col1, step):
+                            out.append((i, self._names[i]))
                     else:
                         if not all(x is None or isinstance(x, int)
                                    for x in (start, stop, step)):
                             raise ValueError("%r is not integer-valued" % col)
-                        col0, col1, step = normalize_slice(col, ncols)
-                    for i in range(col0, col1, step):
-                        out.append((i, self._names[i]))
+                        col0, count, step = normalize_slice(col, ncols)
+                        for i in range(count):
+                            j = col0 + i * step
+                            out.append((j, self._names[j]))
 
                 elif isinstance(col, ExprNode):
                     out.append((col, str(col)))
