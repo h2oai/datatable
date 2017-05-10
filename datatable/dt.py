@@ -536,7 +536,8 @@ class DataTable(object):
                             raise ValueError("Column name slices cannot use "
                                              "strides: %r" % col)
                         if col1 <= col0:
-                            col0, col1, step = col1 - 1, col0 - 1, -1
+                            col1 -= 2
+                            step = -1
                         for i in range(col0, col1, step):
                             out.append((i, self._names[i]))
                     else:
