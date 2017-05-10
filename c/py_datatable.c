@@ -239,7 +239,7 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
         const void *ptr = col->data;
         while (bytes_written < total_size) {
             int64_t nbytes = min(total_size - bytes_written, buff_size);
-            ssize_t written = write(fd, ptr, (size_t)nbytes);
+            int64_t written = write(fd, ptr, (size_t)nbytes);
             if (written <= 0) {
                 PyErr_Format(PyExc_RuntimeError,
                              "Error %d when writing to file", errno);

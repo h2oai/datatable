@@ -19,7 +19,7 @@ ColMapping_PyObject* ColMappingPy_from_array(PyObject *self, PyObject *args)
     DataTable_PyObject *dt;
     ColMapping *colmapping = NULL;
     ColMapping_PyObject *res = NULL;
-    ssize_t *data = NULL;
+    int64_t *data = NULL;
 
     // Unpack arguments and check their validity
     if (!PyArg_ParseTuple(args, "O!O!:ColMapping.from_array",
@@ -27,9 +27,9 @@ ColMapping_PyObject* ColMappingPy_from_array(PyObject *self, PyObject *args)
         return NULL;
 
     // Convert Pythonic List into a regular C array of longs
-    ssize_t len = PyList_Size(list);
-    data = MALLOC(sizeof(ssize_t) * (size_t)len);
-    for (ssize_t i = 0; i < len; ++i) {
+    int64_t len = PyList_Size(list);
+    data = MALLOC(sizeof(int64_t) * (size_t)len);
+    for (int64_t i = 0; i < len; ++i) {
         data[i] = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
     }
 

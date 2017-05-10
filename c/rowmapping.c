@@ -15,30 +15,30 @@ static_assert(offsetof(RowMapping, ind32) == offsetof(RowMapping, ind64),
 /**
  * Internal macro to help iterate over a rowmapping. Assumes that macro `CODE`
  * is defined in scope, and substitutes it into the body of each loop. Within
- * the macro, variable `ssize_t j` can be used to refer to the source row that
- * was rowmapped, and `ssize_t i` is the "destination" index.
+ * the macro, variable `int64_t j` can be used to refer to the source row that
+ * was rowmapped, and `int64_t i` is the "destination" index.
  */
 #define ITER_ALL {                                                             \
     RowMappingType rmtype = rowmapping->type;                                  \
-    ssize_t nrows = rowmapping->length;                                        \
+    int64_t nrows = rowmapping->length;                                        \
     if (rmtype == RM_SLICE) {                                                  \
-        ssize_t start = rowmapping->slice.start;                               \
-        ssize_t step = rowmapping->slice.step;                                 \
-        for (ssize_t i = 0, j = start; i < nrows; i++, j+= step) {             \
+        int64_t start = rowmapping->slice.start;                               \
+        int64_t step = rowmapping->slice.step;                                 \
+        for (int64_t i = 0, j = start; i < nrows; i++, j+= step) {             \
             CODE                                                               \
         }                                                                      \
     }                                                                          \
     else if (rmtype == RM_ARR32) {                                             \
         int32_t *indices = rowmapping->ind32;                                  \
-        for (ssize_t i = 0; i < nrows; i++) {                                  \
-            ssize_t j = (ssize_t) indices[i];                                  \
+        for (int64_t i = 0; i < nrows; i++) {                                  \
+            int64_t j = (int64_t) indices[i];                                  \
             CODE                                                               \
         }                                                                      \
     }                                                                          \
     else if (rmtype == RM_ARR64) {                                             \
         int64_t *indices = rowmapping->ind64;                                  \
-        for (ssize_t i = 0; i < nrows; i++) {                                  \
-            ssize_t j = (ssize_t) indices[i];                                  \
+        for (int64_t i = 0; i < nrows; i++) {                                  \
+            int64_t j = (int64_t) indices[i];                                  \
             CODE                                                               \
         }                                                                      \
     }                                                                          \
@@ -55,7 +55,7 @@ _Bool rowmapping_compactify(RowMapping *rwm)
 {
     if (rwm->type != RM_ARR64) return 0;
     assert(rwm->length > 0);
-    ssize_t len = rwm->length;
+    int64_t len = rwm->length;
     int64_t first = rwm->ind64[0];
     int64_t last = rwm->ind64[len - 1];
     // Quick check: if the first or the last elements (or the length) are OOB
@@ -67,7 +67,7 @@ _Bool rowmapping_compactify(RowMapping *rwm)
     int64_t *src = rwm->ind64;
     int32_t *res = malloc(sizeof(int32_t) * (size_t)len);
     if (res == NULL) return 0;
-    for (ssize_t i = 0; i < len; i++) {
+    for (int64_t i = 0; i < len; i++) {
         int64_t j = src[i];
         if (j <= INT32_MAX)
             res[i] = (int32_t) j;
@@ -97,7 +97,7 @@ _Bool rowmapping_compactify(RowMapping *rwm)
  *
  * Returns a new `RowMapping` object, or NULL if such object cannot be created.
  */
-RowMapping* rowmapping_from_slice(ssize_t start, ssize_t count, ssize_t step)
+RowMapping* rowmapping_from_slice(int64_t start, int64_t count, int64_t step)
 {
     RowMapping *res = NULL;
     res = TRY(malloc(sizeof(RowMapping)));
@@ -128,7 +128,7 @@ RowMapping* rowmapping_from_slice(ssize_t start, ssize_t count, ssize_t step)
  * one is sufficient to hold all the indices.
  */
 RowMapping* rowmapping_from_slicelist(
-    ssize_t *starts, ssize_t *counts, ssize_t *steps, ssize_t n)
+    int64_t *starts, int64_t *counts, int64_t *steps, int64_t n)
 {
     if (n < 0) return NULL;
     size_t nn = (size_t) n;
@@ -138,18 +138,18 @@ RowMapping* rowmapping_from_slicelist(
 
     // Compute the total number of elements, and the largest index that needs
     // to be stored. Also check for potential overflows / invalid values.
-    ssize_t count = 0;
-    ssize_t maxidx = 0;
+    int64_t count = 0;
+    int64_t maxidx = 0;
     for (size_t i = 0; i < nn; i++) {
-        ssize_t start = starts[i];
-        ssize_t step = steps[i];
-        ssize_t len = counts[i];
+        int64_t start = starts[i];
+        int64_t step = steps[i];
+        int64_t len = counts[i];
         if (len == 0) continue;
         if (len < 0 || start < 0) goto fail;
         if (len > 1 && step < -(start/(len - 1))) goto fail;
         if (len > 1 && step > (INTPTR_MAX - start)/(len - 1)) goto fail;
         if (count + len > INTPTR_MAX) goto fail;
-        ssize_t end = start + step*(len - 1);
+        int64_t end = start + step*(len - 1);
         if (end > maxidx) maxidx = end;
         if (start > maxidx) maxidx = start;
         count += len;
@@ -198,7 +198,7 @@ RowMapping* rowmapping_from_slicelist(
  */
 #define ROWMAPPING_FROM_IXX_ARRAY(bits)                                        \
     RowMapping*                                                                \
-    rowmapping_from_i ## bits ## _array(intXX(bits)* array, ssize_t n)         \
+    rowmapping_from_i ## bits ## _array(intXX(bits)* array, int64_t n)         \
     {                                                                          \
         RowMapping *res = NULL;                                                \
         res = TRY(malloc(sizeof(RowMapping)));                                 \
@@ -225,7 +225,7 @@ ROWMAPPING_FROM_IXX_ARRAY(64)
  * This function will create an RM_ARR32/64 RowMapping, depending on what is
  * minimally required.
  */
-RowMapping* rowmapping_from_datacolumn(Column *col, ssize_t nrows)
+RowMapping* rowmapping_from_datacolumn(Column *col, int64_t nrows)
 {
     RowMapping *res = NULL;
     res = TRY(malloc(sizeof(RowMapping)));
@@ -234,9 +234,9 @@ RowMapping* rowmapping_from_datacolumn(Column *col, ssize_t nrows)
     if (col->stype != ST_BOOLEAN_I1) goto fail;
 
     int8_t *data = col->data;
-    ssize_t nout = 0;
-    ssize_t maxrow = 0;
-    for (ssize_t i = 0; i < nrows; i++)
+    int64_t nout = 0;
+    int64_t maxrow = 0;
+    for (int64_t i = 0; i < nrows; i++)
         if (data[i] == 1) {
             nout++;
             maxrow = i;
@@ -244,7 +244,7 @@ RowMapping* rowmapping_from_datacolumn(Column *col, ssize_t nrows)
 
     #define MAKE_ROWMAPPING(bits)                                              \
         intXX(bits) *out = TRY(malloc((bits >> 3) * (size_t)nout));            \
-        for (ssize_t i = 0, j = 0; i < nrows; i++) {                           \
+        for (int64_t i = 0, j = 0; i < nrows; i++) {                           \
             if (data[i] == 1)                                                  \
                 out[j++] = (intXX(bits)) i;                                    \
         }                                                                      \
@@ -286,8 +286,8 @@ rowmapping_from_column_with_rowmapping(Column *col, RowMapping *rowmapping)
 
     int8_t *data = col->data;
 
-    ssize_t nouts = 0;
-    ssize_t maxrow = 0;
+    int64_t nouts = 0;
+    int64_t maxrow = 0;
     #define CODE                                                               \
         if (data[j] == 1) {                                                    \
             nouts++;                                                           \
@@ -345,15 +345,15 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
 
     RowMapping *res = NULL;
     res = TRY(malloc(sizeof(RowMapping)));
-    ssize_t n = rwm_bc->length;
+    int64_t n = rwm_bc->length;
     RowMappingType type_bc = rwm_bc->type;
     RowMappingType type_ab = rwm_ab == NULL? 0 : rwm_ab->type;
     res->length = n;
 
     switch (type_bc) {
         case RM_SLICE: {
-            ssize_t start_bc = rwm_bc->slice.start;
-            ssize_t step_bc = rwm_bc->slice.step;
+            int64_t start_bc = rwm_bc->slice.start;
+            int64_t step_bc = rwm_bc->slice.step;
             if (rwm_ab == NULL) {
                 res->type = RM_SLICE;
                 res->slice.start = start_bc;
@@ -361,8 +361,8 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
             }
             else if (type_ab == RM_SLICE) {
                 // Product of 2 slices is again a slice.
-                ssize_t start_ab = rwm_ab->slice.start;
-                ssize_t step_ab = rwm_ab->slice.step;
+                int64_t start_ab = rwm_ab->slice.start;
+                int64_t step_ab = rwm_ab->slice.step;
                 res->type = RM_SLICE;
                 res->slice.start = start_ab + step_ab * start_bc;
                 res->slice.step = step_ab * step_bc;
@@ -374,8 +374,8 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
                 res->type = RM_SLICE;
                 res->slice.step = 0;
                 res->slice.start = (type_ab == RM_ARR32)
-                    ? (ssize_t) rwm_ab->ind32[start_bc]
-                    : (ssize_t) rwm_ab->ind64[start_bc];
+                    ? (int64_t) rwm_ab->ind32[start_bc]
+                    : (int64_t) rwm_ab->ind64[start_bc];
             }
             else if (type_ab == RM_ARR32) {
                 // if A->B is ARR32, then all indices in B are int32, and thus
@@ -383,7 +383,7 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
                 // a slice with step_bc = 0 and n > INT32_MAX).
                 int32_t *rowsres = TRY(malloc(sizeof(int32_t) * (size_t)n));
                 int32_t *rowssrc = rwm_ab->ind32;
-                for (ssize_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
+                for (int64_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
                     rowsres[i] = rowssrc[ic];
                 }
                 res->type = RM_ARR32;
@@ -395,7 +395,7 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
                 // attempt to compactify later.
                 int64_t *rowsres = TRY(malloc(sizeof(int64_t) * (size_t)n));
                 int64_t *rowssrc = rwm_ab->ind64;
-                for (ssize_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
+                for (int64_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
                     rowsres[i] = rowssrc[ic];
                 }
                 res->type = RM_ARR64;
@@ -413,17 +413,17 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
                 memcpy(res->ind32, rwm_bc->ind32, elemsize * (size_t)n);
             }
             else if (type_ab == RM_SLICE) {
-                ssize_t start_ab = rwm_ab->slice.start;
-                ssize_t step_ab = rwm_ab->slice.step;
+                int64_t start_ab = rwm_ab->slice.start;
+                int64_t step_ab = rwm_ab->slice.step;
                 int64_t *rowsres = TRY(malloc(sizeof(int64_t) * (size_t)n));
                 if (type_bc == RM_ARR32) {
                     int32_t *rows_bc = rwm_bc->ind32;
-                    for (ssize_t i = 0; i < n; i++) {
+                    for (int64_t i = 0; i < n; i++) {
                         rowsres[i] = start_ab + rows_bc[i] * step_ab;
                     }
                 } else {
                     int64_t *rows_bc = rwm_bc->ind64;
-                    for (ssize_t i = 0; i < n; i++) {
+                    for (int64_t i = 0; i < n; i++) {
                         rowsres[i] = start_ab + rows_bc[i] * step_ab;
                     }
                 }
@@ -435,7 +435,7 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
                 int32_t *rows_ac = TRY(malloc(sizeof(int32_t) * (size_t)n));
                 int32_t *rows_ab = rwm_ab->ind32;
                 int32_t *rows_bc = rwm_bc->ind32;
-                for (ssize_t i = 0; i < n; i++) {
+                for (int64_t i = 0; i < n; i++) {
                     rows_ac[i] = rows_ab[rows_bc[i]];
                 }
                 res->type = RM_ARR32;
@@ -446,7 +446,7 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
                 #define CASE_AB_BC(bits_ab, bits_bc)                           \
                     intXX(bits_ab) *rows_ab = rwm_ab->ind ## bits_ab;          \
                     intXX(bits_bc) *rows_bc = rwm_bc->ind ## bits_bc;          \
-                    for (ssize_t i = 0; i < n; i++) {                          \
+                    for (int64_t i = 0; i < n; i++) {                          \
                         rows_ac[i] = rows_ab[rows_bc[i]];                      \
                     }
                 if (type_ab == RM_ARR32 && type_bc == RM_ARR64) {

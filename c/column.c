@@ -82,9 +82,9 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
     // the required elements manually.
     switch (stype) {
         #define JINIT_SLICE                                                    \
-            ssize_t start = rowmapping->slice.start;                           \
-            ssize_t step = rowmapping->slice.step;                             \
-            ssize_t j = start - step;
+            int64_t start = rowmapping->slice.start;                           \
+            int64_t step = rowmapping->slice.step;                             \
+            int64_t j = start - step;
         #define JITER_SLICE                                                    \
             j += step;
         #define JINIT_ARR(bits)                                                \

@@ -5,14 +5,14 @@
 
 
 typedef struct ColMapping {
-    ssize_t length;
-    ssize_t *indices;
+    int64_t length;
+    int64_t *indices;
     SType *stypes;
 } ColMapping;
 
 
-ColMapping* ColMapping_from_array(ssize_t *array, ssize_t len, DataTable *dt);
-// ColMapping* ColMapping_alloc(ssize_t length);
+ColMapping* ColMapping_from_array(int64_t *array, int64_t len, DataTable *dt);
+// ColMapping* ColMapping_alloc(int64_t length);
 void ColMapping_dealloc(ColMapping *colmapping);
 
 

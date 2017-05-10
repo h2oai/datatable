@@ -59,7 +59,7 @@ RowMappingPy_from_slice(PyObject *self, PyObject *args)
     }
 
     RowMapping *res = rowmapping_from_slice(
-        (ssize_t)start, (ssize_t)count, (ssize_t)step
+        (int64_t)start, (int64_t)count, (int64_t)step
     );
     return RowMappingPy_from_rowmapping(res);
 }
@@ -75,7 +75,7 @@ RowMapping_PyObject*
 RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
 {
     PyObject *pystarts = NULL, *pycounts = NULL, *pysteps = NULL;
-    ssize_t *starts = NULL, *counts = NULL, *steps = NULL;
+    int64_t *starts = NULL, *counts = NULL, *steps = NULL;
     RowMapping *res = NULL;
 
     // Unpack arguments
@@ -84,19 +84,19 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
                           &PyList_Type, &pysteps))
         return NULL;
 
-    ssize_t n1 = PyList_Size(pystarts);
-    ssize_t n2 = PyList_Size(pycounts);
-    ssize_t n3 = PyList_Size(pysteps);
+    int64_t n1 = PyList_Size(pystarts);
+    int64_t n2 = PyList_Size(pycounts);
+    int64_t n3 = PyList_Size(pysteps);
     VALASSERT(n1 >= n2, "counts array cannot be longer than the starts array")
     VALASSERT(n1 >= n3, "steps array cannot be longer than the starts array")
-    starts = TRY(malloc(sizeof(ssize_t) * (size_t)n1));
-    counts = TRY(malloc(sizeof(ssize_t) * (size_t)n1));
-    steps  = TRY(malloc(sizeof(ssize_t) * (size_t)n1));
+    starts = TRY(malloc(sizeof(int64_t) * (size_t)n1));
+    counts = TRY(malloc(sizeof(int64_t) * (size_t)n1));
+    steps  = TRY(malloc(sizeof(int64_t) * (size_t)n1));
 
     // Convert Pythonic lists into regular C arrays of longs
-    ssize_t start, count, step;
-    ssize_t total_count = 0;
-    for (ssize_t i = 0; i < n1; i++) {
+    int64_t start, count, step;
+    int64_t total_count = 0;
+    for (int64_t i = 0; i < n1; i++) {
         start = PyLong_AsSsize_t(PyList_GET_ITEM(pystarts, i));
         count = i < n2? PyLong_AsSsize_t(PyList_GET_ITEM(pycounts, i)) : 1;
         step  = i < n3? PyLong_AsSsize_t(PyList_GET_ITEM(pysteps, i)) : 1;
@@ -148,10 +148,10 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
         return NULL;
 
     // Convert Pythonic List into a regular C array of int32's/int64's
-    ssize_t len = PyList_Size(list);
+    int64_t len = PyList_Size(list);
     data32 = TRY(malloc(4 * (size_t)len));
-    for (ssize_t i = 0; i < len; i++) {
-        ssize_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
+    for (int64_t i = 0; i < len; i++) {
+        int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
         if (x == -1 && PyErr_Occurred()) goto fail;
         VALASSERT(x >= 0, "Negative indices not allowed: %zd", x)
         if (data64) {
@@ -161,7 +161,7 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
         } else {
             assert(_64BIT_);
             data64 = TRY(malloc(8 * (size_t)len));
-            for (ssize_t j = 0; j < i; j++)
+            for (int64_t j = 0; j < i; j++)
                 data64[j] = (int64_t) data32[j];
             free(data32);
             data32 = NULL;

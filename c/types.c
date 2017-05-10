@@ -14,7 +14,7 @@ static_assert(INTPTR_MAX == INT64_MAX,
 
 static_assert(sizeof(void*) == 8, "Expected size(void*) to be 8 bytes");
 static_assert(sizeof(void*) == sizeof(size_t), "size(size_t) != size(void*)");
-static_assert(sizeof(void*) == sizeof(ssize_t), "size(ssize_t) != size(void*)");
+static_assert(sizeof(void*) == sizeof(int64_t), "size(int64_t) != size(void*)");
 
 static_assert(sizeof(int8_t) == 1, "int8_t should be 1-byte");
 static_assert(sizeof(int16_t) == 2, "int16_t should be 2-byte");

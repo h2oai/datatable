@@ -8,9 +8,9 @@ from .consts import ctypes_map, nas_map
 
 class ExprNode(object):
     """
-    Basic building block for the evaluation expression(s) which could be passed
-    as parameters ``rows``, ``select``, etc in the main ``datatable(...)`` call.
-    For example, an expression such as
+    Basic building block for evaluation expression(s) that are passed as
+    parameters ``rows``, ``select``, etc in the main ``datatable(...)`` call.
+    For example, expression
 
         f.colX > f.colY + 5
 

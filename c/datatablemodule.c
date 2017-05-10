@@ -24,7 +24,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &list))
         return NULL;
 
-    ssize_t ncols = PyList_Size(list);
+    int64_t ncols = PyList_Size(list);
 
     DataTable *dt = malloc(sizeof(DataTable));
     if (dt == NULL) return NULL;
@@ -34,7 +34,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
     dt->columns = malloc(sizeof(Column) * (size_t)ncols);
     if (dt->columns == NULL) return NULL;
 
-    ssize_t nrows = -1;
+    int64_t nrows = -1;
     for (int i = 0; i < ncols; i++) {
         PyObject *item = PyList_GetItem(list, i);
         char *colname = PyUnicode_AsUTF8(item);
@@ -85,7 +85,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
         // After memory-mapping the file, its descriptor is no longer needed
         close(fd);
 
-        ssize_t nelems = (ssize_t)filesize / (ssize_t)elemsize;
+        int64_t nelems = (int64_t)filesize / (int64_t)elemsize;
         if (nrows == -1)
             nrows = nelems;
         else if (nrows != nelems) {
@@ -156,8 +156,8 @@ static PyModuleDef datatablemodule = {
     0,0,0,0,
 };
 
-static_assert(sizeof(ssize_t) == sizeof(Py_ssize_t),
-              "ssize_t and Py_ssize_t should refer to the same type");
+static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
+              "int64_t and Py_ssize_t should refer to the same type");
 
 /* Called when Python program imports the module */
 PyMODINIT_FUNC

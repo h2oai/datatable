@@ -41,7 +41,7 @@ static char *filename = NULL;
 static char *input = NULL;
 static char **na_strings = NULL;
 
-static ssize_t ncols = 0;
+static int64_t ncols = 0;
 static int8_t *types = NULL;
 static int8_t *sizes = NULL;
 static StrBuf **strbufs = NULL;
@@ -120,7 +120,7 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         Py_XDECREF(frargs->freader);
     }
     if (strbufs) {
-        for (ssize_t i = 0; i < ncols; i++) {
+        for (int64_t i = 0; i < ncols; i++) {
             if (strbufs[i]) {
                 free(strbufs[i]->buf);
                 free(strbufs[i]);
@@ -159,7 +159,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
                   int64_t nrows) {
     types = types_;
     sizes = sizes_;
-    ncols = (ssize_t) ncols_;
+    ncols = (int64_t) ncols_;
 
     if (nrows > INTPTR_MAX) {
         PyErr_Format(PyExc_ValueError,
@@ -199,7 +199,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
     }
 
     dt = malloc(sizeof(DataTable));
-    dt->nrows = (ssize_t) nrows;
+    dt->nrows = (int64_t) nrows;
     dt->ncols = ncols - ndrop;
     dt->source = NULL;
     dt->rowmapping = NULL;

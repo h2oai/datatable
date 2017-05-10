@@ -9,10 +9,6 @@
 // etc.
 #define intXX(bits)  int ## bits ## _t
 
-#ifndef _SSIZE_T
-#define _SSIZE_T 1
-typedef int64_t ssize_t;
-#endif
 
 
 //==============================================================================

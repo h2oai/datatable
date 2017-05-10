@@ -41,17 +41,17 @@ typedef enum RowMappingType {
  *         start, start + step, start + 2*step, ..., start + (length - 1)*step
  *     The `start` is a nonnegative number, while `step` may be positive,
  *     negative or zero (however `start + (length - 1)*step` must be nonnegative
- *     and being able to fit inside `ssize_t`). The variable `start` is declared
- *     as `ssize_t` because if it was `size_t` then it wouldn't be possible to
+ *     and being able to fit inside `int64_t`). The variable `start` is declared
+ *     as `int64_t` because if it was `size_t` then it wouldn't be possible to
  *     do simple addition `start + step`.
  */
 typedef struct RowMapping {
     RowMappingType type;
-    ssize_t length;
+    int64_t length;
     union {
         int32_t *ind32;
         int64_t *ind64;
-        struct { ssize_t start, step; } slice;
+        struct { int64_t start, step; } slice;
     };
 } RowMapping;
 
@@ -70,7 +70,7 @@ _Bool rowmapping_compactify(RowMapping *rwm);
 /**
  * Construct a "slice" RowMapping object from triple `(start, count, step)`.
  */
-RowMapping* rowmapping_from_slice(ssize_t start, ssize_t count, ssize_t step);
+RowMapping* rowmapping_from_slice(int64_t start, int64_t count, int64_t step);
 
 /**
  * Construct an "array" RowMapping object from a series of triples `(start,
@@ -78,19 +78,19 @@ RowMapping* rowmapping_from_slice(ssize_t start, ssize_t count, ssize_t step);
  * depending on the sizes and indices within the slicelist.
  */
 RowMapping* rowmapping_from_slicelist(
-    ssize_t *starts, ssize_t *counts, ssize_t *steps, ssize_t n);
+    int64_t *starts, int64_t *counts, int64_t *steps, int64_t n);
 
 /**
  * Construct a `RowMapping` object from a plain list of int64_t/int32_t row
  * indices.
  */
-RowMapping* rowmapping_from_i64_array(int64_t *array, ssize_t n);
-RowMapping* rowmapping_from_i32_array(int32_t *array, ssize_t n);
+RowMapping* rowmapping_from_i64_array(int64_t *array, int64_t n);
+RowMapping* rowmapping_from_i32_array(int32_t *array, int64_t n);
 
 /**
  * Construct a `RowMapping` object using a boolean data column `col`.
  */
-RowMapping* rowmapping_from_datacolumn(Column *col, ssize_t nrows);
+RowMapping* rowmapping_from_datacolumn(Column *col, int64_t nrows);
 
 /**
  * Construct a `RowMapping` object using a boolean data column `col` with

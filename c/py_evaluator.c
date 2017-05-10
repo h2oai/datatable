@@ -102,7 +102,7 @@ static PyObject* get_stack_value(Evaluator_PyObject *self, PyObject *args)
         case 258: {
             int64_t n = v.i8;
             int64_t *arr = (int64_t*) self->stack[idx + 1].ptr;
-            RowMapping *rwm = rowmapping_from_i64_array(arr, (ssize_t)n);
+            RowMapping *rwm = rowmapping_from_i64_array(arr, (int64_t)n);
             return (PyObject*) RowMappingPy_from_rowmapping(rwm);
         }
         default:

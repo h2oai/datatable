@@ -53,8 +53,8 @@ typedef struct DataTable DataTable;
  *     which determines the actual struct type.
  */
 typedef struct DataTable {
-    ssize_t     nrows;
-    ssize_t     ncols;
+    int64_t     nrows;
+    int64_t     ncols;
     DataTable  *source;
     RowMapping *rowmapping;
     Column    **columns;
