@@ -298,9 +298,10 @@ rowmapping_from_column_with_rowmapping(Column *col, RowMapping *rowmapping)
 
     if (nouts <= INT32_MAX && maxrow <= INT32_MAX) {
         int32_t *out = TRY(malloc(sizeof(int32_t) * (size_t)nouts));
+        int32_t k = 0;
         #define CODE                                                           \
             if (data[j] == 1) {                                                \
-                out[j++] = (int32_t) i;                                        \
+                out[k++] = (int32_t) i;                                        \
             }
         ITER_ALL
         #undef CODE
@@ -308,9 +309,10 @@ rowmapping_from_column_with_rowmapping(Column *col, RowMapping *rowmapping)
         res->type = RM_ARR32;
     } else {
         int64_t *out = TRY(malloc(sizeof(int64_t) * (size_t)nouts));
+        int64_t k = 0;
         #define CODE                                                           \
             if (data[j] == 1) {                                                \
-                out[j++] = (int64_t) i;                                        \
+                out[k++] = (int64_t) i;                                        \
             }
         ITER_ALL
         #undef CODE
