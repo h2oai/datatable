@@ -168,7 +168,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
         return 0;
     }
 
-    Column **columns = calloc(sizeof(Column*), (size_t)(ncols - ndrop));
+    Column **columns = calloc(sizeof(Column*), (size_t)(ncols - ndrop + 1));
     strbufs = (StrBuf**) calloc(sizeof(StrBuf*), (size_t)(ncols));
     if (columns == NULL || strbufs == NULL) return 0;
 

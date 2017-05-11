@@ -9,8 +9,6 @@
 #include "py_utils.h"
 
 // Forward declarations
-void dt_DataTable_dealloc_objcol(void *data, int64_t nrows);
-
 static PyObject *strRowMappingTypeArr32;
 static PyObject *strRowMappingTypeArr64;
 static PyObject *strRowMappingTypeSlice;
@@ -262,6 +260,26 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
 }
 
 
+
+static PyObject*
+verify_integrity(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    _Bool fix = 0;
+
+    if (!PyArg_ParseTuple(args, "b", &fix))
+        return NULL;
+
+    char *errors;
+    int res = dt_verify_integrity(dt, &errors, fix);
+    if (res) {
+        printf("%s", errors);
+    }
+    return PyLong_FromLong(res);
+}
+
+
+
 /**
  * Deallocator function, called when the object is being garbage-collected.
  */
@@ -280,6 +298,7 @@ static void __dealloc__(DataTable_PyObject *self)
 //======================================================================================================================
 
 PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
+PyDoc_STRVAR(dtdoc_verify_integrity, "Check and repair the datatable");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
@@ -292,6 +311,7 @@ PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 
 static PyMethodDef datatable_methods[] = {
     METHOD1(window),
+    METHOD1(verify_integrity),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

@@ -169,9 +169,9 @@ typedef enum LType {
  *     NA:   negative numbers
  *     meta: `offoff` (long int)
  *     Variable-width strings. The data buffer has the following structure:
- *     The first byte is 0xFF; then comes a section with string data: all non-NA
- *     strings are UTF-8 encoded and placed end-to-end. Thi section is padded by
- *     0xFF-bytes to have length which is a multiple of 8. After that comes the
+ *     First comes a section with string data: all non-NA strings are UTF-8
+ *     encoded and placed end-to-end. This section is padded by 0xFF bytes so
+ *     that it has a length which is a multiple of 8. After that comes the
  *     array of int32_t primitives representing offsets of each string in the
  *     buffer. In particular, each entry is the offset of the last byte of the
  *     string within the data buffer. NA strings are encoded as negation of the
@@ -180,7 +180,7 @@ typedef enum LType {
  *     string whose starting offset is `start(i) = i? abs(off(i-1)) - 1 : 0`,
  *     ending offset is `end(i) = off(i) - 1`, and `len(i) = end(i) - start(i)`.
  *     For example, a column with 4 values `[N/A, "hello", "", N/A]` will be
- *     encoded as a buffer of size 24 = 5 + 3 + 4 * 4:
+ *     encoded as a buffer of size 24 = (5 + 0) + (3) + (4 * 4):
  *         h e l l o 0xFF 0xFF 0xFF <-1> <6> <6> <-6>
  *         meta = 8
  *     (where "<n>" denotes the 4-byte sequence encoding integer `n`).

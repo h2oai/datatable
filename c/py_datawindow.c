@@ -166,15 +166,15 @@ static int _check_consistency(
 
     // verify that the row index (if present) is valid
     if (rindex != NULL) {
+        if (rindex->length != dt->nrows) {
+            PyErr_Format(PyExc_RuntimeError,
+                "Invalid view: row index has %lld elements, while the "
+                "view itself has .nrows = %lld",
+                rindex->length, dt->nrows);
+            return 0;
+        }
         switch (rindex->type) {
             case RM_ARR32: {
-                if (rindex->length != dt->nrows) {
-                    PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: row index has %ld elements, while the "
-                        "view itself has .nrows = %ld",
-                        rindex->length, dt->nrows);
-                    return 0;
-                }
                 for (int64_t j = row0; j < row1; ++j) {
                     int32_t jsrc = rindex->ind32[j];
                     if (jsrc < 0 || jsrc >= dt->source->nrows) {
@@ -188,13 +188,6 @@ static int _check_consistency(
             }   break;
 
             case RM_ARR64: {
-                if (rindex->length != dt->nrows) {
-                    PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: row index has %ld elements, while the "
-                        "view itself has .nrows = %ld",
-                        rindex->length, dt->nrows);
-                    return 0;
-                }
                 for (int64_t j = row0; j < row1; ++j) {
                     int64_t jsrc = rindex->ind64[j];
                     if (jsrc < 0 || jsrc >= dt->source->nrows) {
@@ -211,12 +204,6 @@ static int _check_consistency(
                 int64_t start = rindex->slice.start;
                 int64_t count = rindex->length;
                 int64_t finish = start + (count - 1) * rindex->slice.step;
-                if (count != dt->nrows) {
-                    PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: row index has %ld elements, while the "
-                        "view itself has .nrows = %ld", count, dt->nrows);
-                    return 0;
-                }
                 if (start < 0 || start >= dt->source->nrows) {
                     PyErr_Format(PyExc_RuntimeError,
                         "Invalid view: first row references an invalid row "
