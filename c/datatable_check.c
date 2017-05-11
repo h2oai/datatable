@@ -13,10 +13,10 @@
 
 #ifdef __APPLE__
     #include <malloc/malloc.h>  // size_t malloc_size(const void *)
-#elif _WIN32
+#elif defined _WIN32
     #include <malloc.h>  // size_t _msize(void *)
     #define malloc_size  _msize
-#elif __linux__
+#elif defined __linux__
     #include <malloc.h>  // size_t malloc_usable_size(void *) __THROW
     #define malloc_size  malloc_usable_size
 #else
@@ -28,7 +28,7 @@
  * Return the size of the array `ptr`, or 0 if the platform doesn't allow
  * such functionality.
  */
-static size_t array_size(const void *ptr, size_t elemsize) {
+static size_t array_size(void *ptr, size_t elemsize) {
     #ifdef MALLOC_SIZE_UNAVAILABLE
     return 0;
     #endif

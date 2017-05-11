@@ -12,7 +12,7 @@ from datatable.utils.typechecks import typed
 @typed(dt=DataTable, dest=str)
 def save(dt, dest):
     """
-    Save datatable in binary NNF format.
+    Save datatable in binary NFF format.
 
     :param dt: DataTable to be saved
     :param dest: destination where the datatable should be saved.
@@ -23,7 +23,7 @@ def save(dt, dest):
     os.makedirs(dest)
     metafile = os.path.join(dest, "_meta.nff")
     with open(metafile, "w") as outmeta:
-        outmeta.write("# NNF1\n")
+        outmeta.write("# NFF1\n")
         outmeta.write("# nrows=%d\n" % dt.nrows)
         outmeta.write('"filename","stype","colname","meta"\n')
         for i in range(dt.ncols):
