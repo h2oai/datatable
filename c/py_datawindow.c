@@ -10,13 +10,29 @@
 // Forward declarations
 static int _check_consistency(DataTable *dt, int64_t row0, int64_t row1,
                               int64_t col0, int64_t col1);
+static int _init_hexview(
+    DataWindow_PyObject *self, DataTable *dt, int64_t column,
+    int64_t row0, int64_t row1, int64_t col0, int64_t col1);
 
+static PyObject* hexcodes[257];
+
+// Module initialization
 int init_py_datawindow(PyObject *module)
 {
     DataWindow_PyType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&DataWindow_PyType) < 0) return 0;
     Py_INCREF(&DataWindow_PyType);
     PyModule_AddObject(module, "DataWindow", (PyObject*) &DataWindow_PyType);
+
+    for (int i = 0; i < 256; i++) {
+        int8_t d0 = i & 0x0F;
+        int8_t d1 = (i >> 4) & 0x0F;
+        char buf[2];
+        buf[0] = d1 < 10? ('0' + d1) : ('A' + (d1 - 10));
+        buf[1] = d0 < 10? ('0' + d0) : ('A' + (d0 - 10));
+        hexcodes[i] = PyUnicode_FromStringAndSize(buf, 2);
+    }
+    hexcodes[256] = PyUnicode_FromStringAndSize("  ", 2);
     return 1;
 }
 
@@ -26,27 +42,48 @@ int init_py_datawindow(PyObject *module)
  * coordinates of a data window, and extracts the data from the datatable
  * within the provided window as a pythonic list of lists.
  *
- * :param dt: the datatable whose data window we want to extract.
- * :param row0: index of the first row of the data window.
- * :param row1: index of the last + 1 row of the data window.
- * :param col0: index of the first column of the data window.
- * :param col1: index of the last + 1 column of the data window.
+ * :param dt
+ *     The datatable whose data window we want to extract.
+ *
+ * :param row0, row1
+ *     Index of the first / last+1 row of the data window.
+ *
+ * :param col0, col1
+ *     Index of the first / last+1 column of the data window.
+ *
+ * :param column (optional)
+ *     If specified, then a "hex view" data window will be returned instead of
+ *     the regular data window. The `column` parameter specifies the index of
+ *     the column (within the datatable `dt`) whose binary data is accessed. The
+ *     rows of the returned datawindow correspond to 16-byte chunks of the
+ *     column's binary data. There will be 17 columns in the returned data
+ *     window, first 16 are hex representations of each byte within the 16-byte
+ *     chunk, and the last column is ASCII rendering of the same chunk.
  */
-static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
+static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 {
     DataTable_PyObject *pydt;
     DataTable *dt;
     PyObject *stypes = NULL, *ltypes = NULL, *view = NULL;
     int n_init_cols = 0;
     int64_t row0, row1, col0, col1;
+    int64_t column = -1;
 
     // Parse arguments and check their validity
-    static char *kwlist[] = {"dt", "row0", "row1", "col0", "col1", NULL};
-    int ret = PyArg_ParseTupleAndKeywords(args, kwds, "O!nnnn:DataWindow.__init__",
-                                          kwlist, &DataTable_PyType, &pydt,
-                                          &row0, &row1, &col0, &col1);
+    static char *kwlist[] =
+        {"dt", "row0", "row1", "col0", "col1", "column", NULL};
+    int ret = PyArg_ParseTupleAndKeywords(
+        args, kwds, "O!nnnn|n:DataWindow.__init__", kwlist,
+        &DataTable_PyType, &pydt, &row0, &row1, &col0, &col1, &column
+    );
+    if (!ret) return -1;
+
     dt = pydt == NULL? NULL : pydt->ref;
-    if (!ret || !_check_consistency(dt, row0, row1, col0, col1))
+    if (column >= 0) {
+        return _init_hexview(self, dt, column, row0, row1, col0, col1);
+    }
+
+    if (!_check_consistency(dt, row0, row1, col0, col1))
         return -1;
 
     // Window dimensions
@@ -58,8 +95,8 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     ltypes = PyList_New((Py_ssize_t) ncols);
     if (stypes == NULL || ltypes == NULL) goto fail;
     for (int64_t i = col0; i < col1; i++) {
-        Column *column = dt->columns[i];
-        SType stype = column->stype;
+        Column *col = dt->columns[i];
+        SType stype = col->stype;
         LType ltype = stype_info[stype].ltype;
         PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
         PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
@@ -78,12 +115,12 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     view = PyList_New((Py_ssize_t) ncols);
     if (view == NULL) goto fail;
     for (int64_t i = col0; i < col1; ++i) {
-        Column *column = dt->columns[i];
-        void *coldata = column->data;
-        int isdata = (column->mtype != MT_VIEW);
+        Column *col = dt->columns[i];
+        void *coldata = col->data;
+        int isdata = (col->mtype != MT_VIEW);
         if (!isdata) {
-            column = dt->source->columns[((ViewColumn*)column)->srcindex];
-            coldata = column->data;
+            col = dt->source->columns[((ViewColumn*)col)->srcindex];
+            coldata = col->data;
         }
 
         PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
@@ -96,7 +133,7 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                            rindex_is_arr32? rindexarr32[j] :
                            rindex_is_arr64? (int64_t) rindexarr64[j] :
                                             rindexstart + rindexstep * j;
-            PyObject *value = py_stype_formatters[column->stype](column, irow);
+            PyObject *value = py_stype_formatters[col->stype](col, irow);
             if (value == NULL) goto fail;
             PyList_SET_ITEM(py_coldata, n_init_rows++, value);
         }
@@ -113,10 +150,105 @@ static int __init__(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 
   fail:
     Py_XDECREF(stypes);
+    Py_XDECREF(ltypes);
     Py_XDECREF(view);
     return -1;
 }
 
+
+
+static int _init_hexview(
+    DataWindow_PyObject *self, DataTable *dt, int64_t colidx,
+    int64_t row0, int64_t row1, int64_t col0, int64_t col1)
+{
+    PyObject *viewdata = NULL;
+    PyObject *ltypes = NULL;
+    PyObject *stypes = NULL;
+    // printf("_init_hexview(%p, %d)\n", dt, colidx);
+
+    if (colidx < 0 || colidx >= dt->ncols) {
+        PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
+        return -1;
+    }
+    Column *column = dt->columns[colidx];
+
+    if (column->mtype == MT_VIEW) {
+        PyErr_Format(PyExc_ValueError,
+            "Column %ld is a 'view' -- hexview is not available", colidx);
+        return -1;
+    }
+    int64_t maxrows = ((int64_t) column->alloc_size + 15) >> 4;
+    if (col0 < 0 || col1 < col0 || col1 > 17 ||
+        row0 < 0 || row1 < row0 || row1 > maxrows) {
+        PyErr_Format(PyExc_ValueError,
+            "Invalid data window bounds: [%ld..%ld x %ld..%ld] "
+            "for a column with allocation size %zd",
+            row0, row1, col0, col1, column->alloc_size);
+        return -1;
+    }
+    // Window dimensions
+    int64_t ncols = col1 - col0;
+    int64_t nrows = row1 - row0;
+    // printf("ncols = %ld, nrows = %ld\n", ncols, nrows);
+
+    // Create and fill-in the `stypes`/`ltypes` lists
+    stypes = TRY(PyList_New(ncols));
+    ltypes = TRY(PyList_New(ncols));
+    for (int64_t i = 0; i < ncols; i++) {
+        PyList_SET_ITEM(ltypes, i, incref(py_ltype_names[LT_STRING]));
+        PyList_SET_ITEM(stypes, i, incref(py_stype_names[ST_STRING_FCHAR]));
+    }
+
+    uint8_t *coldata = (uint8_t*)(column->data + 16 * row0);
+    uint8_t *coldata_end = (uint8_t*)(column->data + column->alloc_size);
+    // printf("coldata = %p, end = %p\n", coldata, coldata_end);
+    viewdata = TRY(PyList_New(ncols));
+    for (int i = 0; i < ncols; i++) {
+        PyObject *py_coldata = TRY(PyList_New(nrows));
+        PyList_SET_ITEM(viewdata, i, py_coldata);
+
+        if (i < 16) {
+            for (int j = 0; j < nrows; j++) {
+                uint8_t *ch = coldata + i + (j * 16);
+                PyList_SET_ITEM(py_coldata, j,
+                    incref(ch < coldata_end? hexcodes[*ch] : hexcodes[256]));
+            }
+        }
+        if (i == 16) {
+            for (int j = 0; j < nrows; j++) {
+                char buf[16];
+                for (int k = 0; k < 16; k++) {
+                    uint8_t *ch = coldata + k + (j * 16);
+                    buf[k] = ch >= coldata_end? ' ' :
+                             (*ch < 0x20 ||( *ch >= 0x7F && *ch < 0xA0))? '.' :
+                             (char) *ch;
+                }
+                PyObject *str =
+                    TRY(PyUnicode_Decode(buf, 16, "Latin1", "strict"));
+                PyList_SET_ITEM(py_coldata, j, str);
+            }
+        }
+    }
+
+    self->row0 = row0;
+    self->row1 = row1;
+    self->col0 = col0;
+    self->col1 = col1;
+    self->data = (PyListObject*) viewdata;
+    self->types = (PyListObject*) ltypes;
+    self->stypes = (PyListObject*) stypes;
+    return 0;
+
+  fail:
+    Py_XDECREF(viewdata);
+    Py_XDECREF(stypes);
+    Py_XDECREF(ltypes);
+    return -1;
+}
+
+
+
+//==============================================================================
 
 /**
  * This function meticulously checks the supplied datatable for internal
@@ -345,6 +477,6 @@ PyTypeObject DataWindow_PyType = {
     0,                                  /* tp_descr_get */
     0,                                  /* tp_descr_set */
     0,                                  /* tp_dictoffset */
-    (initproc)__init__,                 /* tp_init */
+    (initproc)_init_,                   /* tp_init */
     0,0,0,0,0,0,0,0,0,0,0,0
 };

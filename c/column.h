@@ -13,9 +13,9 @@ typedef struct RowMapping RowMapping;
 //==============================================================================
 
 typedef enum MType {
-    MT_DATA    = 1,
-    MT_MMAPPED = 2,
-    MT_VIEW    = 3,
+    MT_DATA  = 1,
+    MT_MMAP  = 2,
+    MT_VIEW  = 3,
 } __attribute__ ((__packed__)) MType;
 
 
@@ -37,7 +37,7 @@ typedef enum MType {
  *
  * mtype
  *     "Memory" type of the column -- i.e. where the data is actually stored.
- *     Possible values are MT_DATA (column is stored in RAM) and MT_MMAPPED
+ *     Possible values are MT_DATA (column is stored in RAM) and MT_MMAP
  *     (memory-mapped from disk).
  *
  * stype

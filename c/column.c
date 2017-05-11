@@ -10,7 +10,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
     SType stype = col->stype;
     size_t metasize = stype_info[stype].metasize;
     // Cannot extract from an MT_VIEW column
-    if (!(stype == MT_DATA || stype == MT_MMAPPED)) return NULL;
+    if (!(stype == MT_DATA || stype == MT_MMAP)) return NULL;
 
     // Create the new Column object. Note that `meta` is cloned from the
     // source, which may need adjustment for some cases.
@@ -211,7 +211,7 @@ void column_dealloc(Column *col)
             free(col->data);
             free(col->meta);
             break;
-        case MT_MMAPPED:
+        case MT_MMAP:
             munmap(col->data, col->alloc_size);
             free(col->meta);
             break;

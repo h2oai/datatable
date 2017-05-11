@@ -413,7 +413,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 exp_allocsize += (size_t)offoff;
             if (col->alloc_size != exp_allocsize) {
                 ERR("Column %lld reports incorrect allocation size: %zd vs "
-                    "expected %zd bytes\n", i, col->alloc_size, exp_allocsize);
+                    "expected %zd bytes (actually allocated: %zd bytes)\n",
+                    i, col->alloc_size, exp_allocsize, act_allocsize);
                 if (fix) {
                     col->alloc_size = exp_allocsize;
                     fixed_errors++;

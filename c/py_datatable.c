@@ -2,6 +2,7 @@
 #include <unistd.h>  // write, fsync, close
 #include "datatable.h"
 #include "py_colmapping.h"
+#include "py_column.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
@@ -280,10 +281,27 @@ verify_integrity(DataTable_PyObject *self, PyObject *args)
 
 
 
+static PyObject*
+column(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    int64_t colidx;
+    if (!PyArg_ParseTuple(args, "l:column", &colidx))
+        return NULL;
+    if (colidx < 0 || colidx >= dt->ncols) {
+        PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
+        return NULL;
+    }
+    Column_PyObject *pycol = pyColumn_from_Column(dt->columns[colidx]);
+    return (PyObject*) pycol;
+}
+
+
+
 /**
  * Deallocator function, called when the object is being garbage-collected.
  */
-static void __dealloc__(DataTable_PyObject *self)
+static void _dealloc_(DataTable_PyObject *self)
 {
     datatable_dealloc(self->ref);
     Py_XDECREF(self->source);
@@ -306,12 +324,14 @@ PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
 PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
+PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
 static PyMethodDef datatable_methods[] = {
     METHOD1(window),
     METHOD1(verify_integrity),
+    METHOD1(column),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
@@ -333,7 +353,7 @@ PyTypeObject DataTable_PyType = {
     "_datatable.DataTable",             /* tp_name */
     sizeof(DataTable_PyObject),         /* tp_basicsize */
     0,                                  /* tp_itemsize */
-    (destructor)__dealloc__,            /* tp_dealloc */
+    (destructor)_dealloc_,              /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */

@@ -20,7 +20,7 @@ typedef struct DataWindow_PyObject {
     PyObject_HEAD
 
     // Coordinates of the window returned: `row0`..`row1` x `col0`..`col1`.
-    // `row0` is the first row to include, `row1` is 1 after the last. The
+    // `row0` is the first row to include, `row1` is one after the last. The
     // number of rows in the window is thus `row1 - row0`. Similarly with cols.
     int64_t row0, row1;
     int64_t col0, col1;

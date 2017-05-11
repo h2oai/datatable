@@ -1,5 +1,6 @@
 #include <Python.h>
 #include "py_colmapping.h"
+#include "py_column.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_evaluator.h"
@@ -98,7 +99,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
         dt->columns[i] = malloc(sizeof(Column));
         dt->columns[i]->data = mmp;
         dt->columns[i]->stype = elemtype;
-        dt->columns[i]->mtype = MT_MMAPPED;
+        dt->columns[i]->mtype = MT_MMAP;
         dt->columns[i]->meta = NULL;
         dt->columns[i]->alloc_size = (size_t) filesize;
     }
@@ -184,6 +185,7 @@ PyInit__datatable(void) {
     if (!init_py_colmapping(m)) return NULL;
     if (!init_py_evaluator(m)) return NULL;
     if (!init_py_types(m)) return NULL;
+    if (!init_py_column(m)) return NULL;
 
     return m;
 }
