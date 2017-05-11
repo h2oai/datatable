@@ -238,6 +238,7 @@ void setFinalNrow(int64_t nrows) {
             size_t new_size = stype_info[colType_to_stype[type]].elemsize * (size_t)nrows;
             col->data = realloc(col->data, new_size);
             col->stype = colType_to_stype[type];
+            col->alloc_size = new_size;
         }
         j++;
     }
