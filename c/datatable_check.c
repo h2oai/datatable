@@ -501,7 +501,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         push_error(errors, &errlen, "%d error%s found, and %d fixed\n",
                    found_errors, (found_errors == 1? " was" : "s were"),
                    fixed_errors);
-    }
-    return (found_errors? DTCK_ERRORS_FOUND : 0) |
-           (found_errors == fixed_errors? DTCK_ERRORS_FIXED : 0);
+        return DTCK_ERRORS_FOUND |
+               (found_errors == fixed_errors? DTCK_ERRORS_FIXED : 0);
+    } else
+        return 0;
 }

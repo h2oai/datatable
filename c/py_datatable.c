@@ -274,9 +274,9 @@ verify_integrity(DataTable_PyObject *self, PyObject *args)
     char *errors;
     int res = dt_verify_integrity(dt, &errors, fix);
     if (res) {
-        printf("%s", errors);
-    }
-    return PyLong_FromLong(res);
+        return PyUnicode_FromString(errors);
+    } else
+        return none();
 }
 
 
