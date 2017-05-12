@@ -426,7 +426,6 @@ class DataTable(object):
                         raise ValueError("In %r step must not be 0" % elem)
                     if not all(x is None or isinstance(x, int)
                                for x in (elem.start, elem.stop, elem.step)):
-                        self.__slice = elem
                         raise ValueError("%r is not integer-valued" % elem)
                     if isinstance(elem, range):
                         res = normalize_range(elem, nrows)

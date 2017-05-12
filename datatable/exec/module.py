@@ -196,4 +196,5 @@ static inline double __nand__(void) { const double_repr x = { 0x7FF00000000007A2
 #define NA_F4  __nanf__()
 #define NA_F8  __nand__()
 
+
 """
