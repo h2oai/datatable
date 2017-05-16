@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from ._expr import ExprNode
+from .base_expr import BaseExpr
 from .consts import ctypes_map, nas_map
 
 __all__ = ("min", "max", "MinMaxReducer")
@@ -12,7 +12,7 @@ _builtin_max = max
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], ExprNode):
+    if len(args) == 1 and isinstance(args[0], BaseExpr):
         skipna = kwds.get("skipna", True)
         return MinMaxReducer(args[0], ismin=True, skipna=skipna)
     else:
@@ -21,7 +21,7 @@ def min(*args, **kwds):
 
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], ExprNode):
+    if len(args) == 1 and isinstance(args[0], BaseExpr):
         skipna = kwds.get("skipna", True)
         return MinMaxReducer(args[0], ismin=False, skipna=skipna)
     else:
@@ -29,7 +29,7 @@ def max(*args, **kwds):
 
 
 
-class MinMaxReducer(ExprNode):
+class MinMaxReducer(BaseExpr):
 
     def __init__(self, expr, ismin, skipna=True):
         super().__init__()

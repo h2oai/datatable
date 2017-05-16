@@ -3,7 +3,7 @@
 import types
 
 import datatable
-from datatable.expr import DatatableExpr, ExprNode
+from datatable.expr import DatatableExpr, BaseExpr
 from datatable.graph.node import Node
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
@@ -157,7 +157,7 @@ class DataColumn_RFNode(RowFilterNode):
 
 class FilterExpr_RFNode(RowFilterNode):
 
-    @typed(expr=ExprNode)
+    @typed(expr=BaseExpr)
     def __init__(self, expr):
         super().__init__()
         self._expr = expr
@@ -276,7 +276,7 @@ def make_rowfilter(rows, dt, _nested=False):
         lazydt = DatatableExpr(dt)
         return make_rowfilter(rows(lazydt), dt, _nested=True)
 
-    if isinstance(rows, ExprNode):
+    if isinstance(rows, BaseExpr):
         return FilterExpr_RFNode(rows)
 
     if _nested:

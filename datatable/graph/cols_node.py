@@ -3,7 +3,7 @@
 import types
 
 from .node import Node
-from datatable.expr import DatatableExpr, ExprNode
+from datatable.expr import DatatableExpr, BaseExpr
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
 
@@ -88,7 +88,7 @@ def make_columnset(cols, dt, _nested=False):
     if cols is Ellipsis:
         return SliceView_CSNode(dt, 0, dt.ncols, 1)
 
-    if isinstance(cols, (int, str, slice, ExprNode)):
+    if isinstance(cols, (int, str, slice, BaseExpr)):
         cols = [cols]
 
     if isinstance(cols, (list, tuple)):
@@ -159,7 +159,7 @@ def make_columnset(cols, dt, _nested=False):
                         j = col0 + i * step
                         out.append((j, dt._names[j]))
 
-            elif isinstance(col, ExprNode):
+            elif isinstance(col, BaseExpr):
                 out.append((col, str(col)))
 
         return out

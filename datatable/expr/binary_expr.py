@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from ._expr import ExprNode
+from .base_expr import BaseExpr
 from .literal_expr import LiteralNode
 from .consts import ops_rules, decimal_stypes, division_ops
 
 
 
-class BinaryOpExpr(ExprNode):
+class BinaryOpExpr(BaseExpr):
 
     def __init__(self, lhs, op, rhs):
         super().__init__()
-        if not isinstance(lhs, ExprNode):
+        if not isinstance(lhs, BaseExpr):
             lhs = LiteralNode(lhs)
-        if not isinstance(rhs, ExprNode):
+        if not isinstance(rhs, BaseExpr):
             rhs = LiteralNode(rhs)
         self.op = op
         self.lhs = lhs

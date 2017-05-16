@@ -6,7 +6,7 @@ from .consts import ctypes_map, nas_map
 
 
 
-class ExprNode(object):
+class BaseExpr(object):
     """
     Basic building block for evaluation expression(s) that are passed as
     parameters ``rows``, ``select``, etc in the main ``datatable(...)`` call.
@@ -14,17 +14,17 @@ class ExprNode(object):
 
         f.colX > f.colY + 5
 
-    becomes a tree of :class:`ExprNode`s, where the root of the tree is the
+    becomes a tree of :class:`BaseExpr`s, where the root of the tree is the
     :class:`RelationalOpExpr` node with `op = "gt"` and 2 child nodes
     representing sub-trees `f.colX` and `f.colY + 5`. The former is a
     :class:`ColSelectorExpr` object corresponding to column "colX", and the
     latter is a :class:`BinaryOpExpr` node with `op = "add"` and 2 more
     children: `f.colY` and `5`.
 
-    Once built, the tree of ``ExprNode``s is then used to generate C code for
+    Once built, the tree of ``BaseExpr``s is then used to generate C code for
     evaluation of the expression.
 
-    Each ``ExprNode`` represents a single column of values (or a scalar), with
+    Each ``BaseExpr`` represents a single column of values (or a scalar), with
     a particular ``stype``. Multi-column expressions are not supported.
 
     This class is abstract and should not be instantiated explicitly.

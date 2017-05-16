@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from ._expr import ExprNode
+from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
 from .column_expr import ColSelectorExpr
 from .datatable_expr import DatatableExpr
@@ -22,7 +22,7 @@ __all__ = (
     "BinaryOpExpr",
     "ColSelectorExpr",
     "DatatableExpr",
-    "ExprNode",
+    "BaseExpr",
     "LiteralNode",
     "MeanReducer",
     "MinMaxReducer",

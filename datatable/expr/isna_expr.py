@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from ._expr import ExprNode
+from .base_expr import BaseExpr
 
 __all__ = ("isna", )
 
 
-class Isna(ExprNode):
+class Isna(BaseExpr):
 
     def __init__(self, arg):
         super().__init__()
@@ -34,6 +34,6 @@ class Isna(ExprNode):
 def isna(x):
     if x is None:
         return True
-    if isinstance(x, ExprNode):
+    if isinstance(x, BaseExpr):
         return Isna(x)
     return False

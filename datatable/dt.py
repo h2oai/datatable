@@ -9,7 +9,7 @@ import _datatable as c
 from .widget import DataFrameWidget
 
 from datatable.exec import EvaluationModule
-from datatable.expr import DatatableExpr, ExprNode, ColSelectorExpr
+from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
 from datatable.utils.misc import normalize_slice, normalize_range, timeit
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
@@ -365,7 +365,7 @@ class DataTable(object):
 
             if isinstance(rows_selector, DataTable):
                 rowmapping = c.rowmapping_from_column(rows_selector)
-            elif isinstance(rows_selector, ExprNode):
+            elif isinstance(rows_selector, BaseExpr):
                 mod = EvaluationModule(rows=rows_selector)
                 mod.run(verbose)
                 rowmapping = mod.rowmapping
@@ -404,7 +404,7 @@ class DataTable(object):
         :return: one of:
             * a :class:`RowMapping` object,
             * a single-boolean-column :class:`DataTable`,
-            * an :class:`ExprNode` with boolean `stype`.
+            * an :class:`BaseExpr` with boolean `stype`.
         """
         if arg is Ellipsis:
             return c.rowmapping_from_slice(0, self.nrows, 1)
@@ -497,7 +497,7 @@ class DataTable(object):
             res = arg(dtexpr)
             return self._rows_selector(res, True)
 
-        if isinstance(arg, ExprNode):
+        if isinstance(arg, BaseExpr):
             return arg
 
         if nested:
@@ -516,13 +516,13 @@ class DataTable(object):
             column name), and "definition" can be one of:
                 * an integer column index, indicating that the column with this
                   index should be copied from the source;
-                * an :class:`ExprNode` object describing how the column should
+                * an :class:`BaseExpr` object describing how the column should
                   be computed.
         """
         if arg is Ellipsis:
             return [(i, self._names[i]) for i in range(self.ncols)]
 
-        if isinstance(arg, (int, str, slice, ExprNode)):
+        if isinstance(arg, (int, str, slice, BaseExpr)):
             arg = [arg]
 
         if isinstance(arg, (list, tuple)):
@@ -593,7 +593,7 @@ class DataTable(object):
                             j = col0 + i * step
                             out.append((j, self._names[j]))
 
-                elif isinstance(col, ExprNode):
+                elif isinstance(col, BaseExpr):
                     out.append((col, str(col)))
 
             return out

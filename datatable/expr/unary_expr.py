@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from ._expr import ExprNode
+from .base_expr import BaseExpr
 
 
 
-class UnaryOpExpr(ExprNode):
+class UnaryOpExpr(BaseExpr):
 
     def __init__(self, op, arg):
         super().__init__()

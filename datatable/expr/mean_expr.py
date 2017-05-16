@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from ._expr import ExprNode
+from .base_expr import BaseExpr
 from .consts import ops_rules, decimal_stypes, ctypes_map, nas_map
 
 
@@ -9,7 +9,7 @@ def mean(expr, skipna=True):
     return MeanReducer(expr, skipna)
 
 
-class MeanReducer(ExprNode):
+class MeanReducer(BaseExpr):
 
     def __init__(self, expr, skipna=True):
         super().__init__()
