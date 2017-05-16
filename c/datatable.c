@@ -65,6 +65,47 @@ DataTable* dt_DataTable_call(
 
 
 /**
+ * Create new DataTable given its number of rows, and the array of `Column`
+ * objects.
+ */
+DataTable* datatable_assemble(int64_t nrows, Column **cols)
+{
+    if (cols == NULL) return NULL;
+    int64_t ncols = 0;
+    while(cols[ncols] != NULL) ncols++;
+
+    DataTable *res = malloc(sizeof(DataTable));
+    if (res == NULL) return NULL;
+    res->nrows = nrows;
+    res->ncols = ncols;
+    res->source = NULL;
+    res->rowmapping = NULL;
+    res->columns = cols;
+    return res;
+}
+
+
+
+DataTable*
+datatable_assemble_view(DataTable *src, RowMapping *rm, Column **cols)
+{
+    if (src == NULL || rm == NULL || cols == NULL) return NULL;
+    int64_t ncols = 0;
+    while(cols[ncols] != NULL) ncols++;
+
+    DataTable *res = malloc(sizeof(DataTable));
+    if (res == NULL) return NULL;
+    res->nrows = rm->length;
+    res->ncols = ncols;
+    res->source = src;
+    res->rowmapping = rm;
+    res->columns = cols;
+    return res;
+}
+
+
+
+/**
  * Free memory occupied by the :class:`DataTable` object. This function should
  * be called from `DataTable_PyObject`s deallocator only.
  */

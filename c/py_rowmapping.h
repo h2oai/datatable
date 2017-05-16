@@ -22,7 +22,8 @@ extern PyTypeObject RowMapping_PyType;
 
 
 
-
+RowMapping* rowmapping_from_pyarray(PyObject *list);
+RowMapping* rowmapping_from_pyslicelist(PyObject*, PyObject*, PyObject*);
 RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args);
 RowMapping_PyObject* RowMappingPy_from_slicelist(PyObject *self, PyObject *a);
 RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args);

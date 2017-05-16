@@ -65,25 +65,15 @@ RowMappingPy_from_slice(PyObject *self, PyObject *args)
 }
 
 
-
 /**
  * Construct a RowMapping object from a list of tuples (start, count, step)
  * that are given in the form of 3 arrays start[], count[], step[].
  * This is a Python wrapper for :func:`rowmapping_from_slicelist`.
  */
-RowMapping_PyObject*
-RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
+RowMapping* rowmapping_from_pyslicelist(PyObject *pystarts, PyObject *pycounts,
+                                        PyObject *pysteps)
 {
-    PyObject *pystarts = NULL, *pycounts = NULL, *pysteps = NULL;
     int64_t *starts = NULL, *counts = NULL, *steps = NULL;
-    RowMapping *res = NULL;
-
-    // Unpack arguments
-    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
-                          &PyList_Type, &pystarts, &PyList_Type, &pycounts,
-                          &PyList_Type, &pysteps))
-        return NULL;
-
     int64_t n1 = PyList_Size(pystarts);
     int64_t n2 = PyList_Size(pycounts);
     int64_t n3 = PyList_Size(pysteps);
@@ -95,32 +85,18 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
 
     // Convert Pythonic lists into regular C arrays of longs
     int64_t start, count, step;
-    int64_t total_count = 0;
     for (int64_t i = 0; i < n1; i++) {
         start = PyLong_AsSsize_t(PyList_GET_ITEM(pystarts, i));
         count = i < n2? PyLong_AsSsize_t(PyList_GET_ITEM(pycounts, i)) : 1;
         step  = i < n3? PyLong_AsSsize_t(PyList_GET_ITEM(pysteps, i)) : 1;
         if ((start == -1 || count  == -1 || step == -1) &&
             PyErr_Occurred()) goto fail;
-        VALASSERT(start >= 0, "start must be nonnegative, got %zd", start)
-        VALASSERT(count >= 0, "count must be nonnegative, got %zd", count)
-        VALASSERT(total_count + count <= INTPTR_MAX,
-                  "Total size of the rowmapping is too large")
-        if (count > 1) {
-            VALASSERT(step >= -(start/(count - 1)),
-                      "Last item in slice is negative")
-            VALASSERT(step <= (INTPTR_MAX - start)/(count - 1),
-                      "Last item in the slice exceeds integer bound")
-        }
         starts[i] = start;
         counts[i] = count;
         steps[i] = step;
-        total_count += count;
     }
 
-    // Construct and return the RowMapping object
-    res = rowmapping_from_slicelist(starts, counts, steps, n1);
-    return RowMappingPy_from_rowmapping(res);
+    return rowmapping_from_slicelist(starts, counts, steps, n1);
 
   fail:
     free(starts);
@@ -132,20 +108,31 @@ RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
 
 
 /**
+ * Python wrapper for `rowmapping_from_pyslicelist`.
+ */
+RowMapping_PyObject*
+RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
+{
+    PyObject *pystarts = NULL, *pycounts = NULL, *pysteps = NULL;
+    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
+                          &PyList_Type, &pystarts, &PyList_Type, &pycounts,
+                          &PyList_Type, &pysteps))
+        return NULL;
+
+    RowMapping *res = rowmapping_from_pyslicelist(pystarts, pycounts, pysteps);
+    return RowMappingPy_from_rowmapping(res);
+}
+
+
+
+/**
  * Construct RowMapping object from an array of indices. This is a wrapper
  * for :func:`rowmapping_from_i32_array` / :func:`rowmapping_from_i64_array`.
  */
-RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
+RowMapping* rowmapping_from_pyarray(PyObject *list)
 {
-    PyObject *list;
-    RowMapping *res = NULL;
     int32_t *data32 = NULL;
     int64_t *data64 = NULL;
-
-    // Unpack arguments and check their validity
-    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
-                          &PyList_Type, &list))
-        return NULL;
 
     // Convert Pythonic List into a regular C array of int32's/int64's
     int64_t len = PyList_Size(list);
@@ -155,30 +142,44 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
         if (x == -1 && PyErr_Occurred()) goto fail;
         VALASSERT(x >= 0, "Negative indices not allowed: %zd", x)
         if (data64) {
-            data64[i] = (int64_t) x;
+            data64[i] = x;
         } else if (x <= INT32_MAX) {
             data32[i] = (int32_t) x;
         } else {
-            assert(_64BIT_);
             data64 = TRY(malloc(8 * (size_t)len));
             for (int64_t j = 0; j < i; j++)
                 data64[j] = (int64_t) data32[j];
             free(data32);
             data32 = NULL;
-            data64[i] = (int64_t) x;
+            data64[i] = x;
         }
     }
 
     // Construct and return the RowMapping object
-    res = data32? rowmapping_from_i32_array(data32, len)
-                : rowmapping_from_i64_array(data64, len);
-    return RowMappingPy_from_rowmapping(res);
+    return data32? rowmapping_from_i32_array(data32, len)
+                 : rowmapping_from_i64_array(data64, len);
 
   fail:
     free(data32);
     free(data64);
-    rowmapping_dealloc(res);
     return NULL;
+}
+
+
+
+/**
+ * Pythonic wrapper for `rowmapping_from_pyarray`.
+ */
+RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
+{
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
+                          &PyList_Type, &list))
+        return NULL;
+
+    RowMapping *res = rowmapping_from_pyarray(list);
+    if (res == NULL) return NULL;
+    return RowMappingPy_from_rowmapping(res);
 }
 
 

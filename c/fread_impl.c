@@ -96,7 +96,7 @@ PyObject* freadPy(PyObject *self, PyObject *args)
     int res = freadMain(frargs);
     if (!res) goto fail;
 
-    DataTable_PyObject *pydt = pyDataTable_from_DataTable(dt);
+    DataTable_PyObject *pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
     cleanup_fread_session(&frargs);
     return (PyObject*) pydt;

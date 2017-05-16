@@ -147,6 +147,13 @@ static PyObject* get_rowmapping_type(DataTable_PyObject *self)
            rmt == RM_ARR64? incref(strRowMappingTypeArr64) : none();
 }
 
+
+static PyObject* get_datatable_ptr(DataTable_PyObject *self)
+{
+    return PyLong_FromLongLong((long long int)self->ref);
+}
+
+
 /**
  * If the datatable is a view, then return the tuple of source column numbers
  * for all columns in the current datatable. That is, we return the tuple
@@ -188,7 +195,7 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 }
 
 
-DataTable_PyObject* pyDataTable_from_DataTable(DataTable *dt)
+DataTable_PyObject* pydt_from_dt(DataTable *dt)
 {
     DataTable_PyObject *pydt = DataTable_PyNew();
     if (pydt == NULL) return NULL;
@@ -325,6 +332,7 @@ PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
 PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
+PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
@@ -345,6 +353,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(isview),
     GETSET1(rowmapping_type),
     GETSET1(view_colnumbers),
+    GETSET1(datatable_ptr),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
 

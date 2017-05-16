@@ -13,6 +13,8 @@ from datatable.expr import DatatableExpr, ExprNode, ColSelectorExpr
 from datatable.utils.misc import normalize_slice, normalize_range, timeit
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
+from datatable.graph import (DatatableEvaluatorNode, make_rowfilter,
+                             make_columnset)
 
 __all__ = ("DataTable", )
 
@@ -380,6 +382,17 @@ class DataTable(object):
             return res
 
         raise NotImplementedError
+
+
+    def call(self, rows=None, select=None):
+        if select is None:
+            select = Ellipsis
+        dtnode = DatatableEvaluatorNode(
+            self,
+            rows=make_rowfilter(rows, self),
+            select=make_columnset(select, self),
+        )
+        dtnode.execute()
 
 
     def _rows_selector(self, arg, nested=False):

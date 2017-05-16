@@ -50,7 +50,7 @@ extern PyTypeObject DataTable_PyType;
 int dt_from_pydt(PyObject *object, void *address);
 DataTable_PyObject* pyDataTable_from_list_of_lists(PyTypeObject *type,
                                                    PyObject *args);
-DataTable_PyObject* pyDataTable_from_DataTable(DataTable *dt);
+DataTable_PyObject* pydt_from_dt(DataTable *dt);
 PyObject* write_column_to_file(PyObject *self, PyObject *args);
 
 int init_py_datatable(PyObject *module);

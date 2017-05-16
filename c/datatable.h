@@ -81,6 +81,10 @@ DataTable* dt_DataTable_call(
 
 int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix);
 
+DataTable* datatable_assemble(int64_t nrows, Column **cols);
+DataTable*
+datatable_assemble_view(DataTable *src, RowMapping *rm, Column **cols);
+
 void datatable_dealloc(DataTable *self);
 
 
