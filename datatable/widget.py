@@ -337,12 +337,16 @@ class _Column(object):
         self._type = ctype
         self._color = color
         self._alignleft = ctype in {"str", "enum", "time"}
+        # May be empty if the column has 0 rows.
         self._strdata = list(self._stringify_data(data))
         self._rmargin = "  "
         if ctype == "real":
             self._align_at_dot()
-        self._width = max(term.length(name),
-                          max(len(field) for field in self._strdata))
+        if self._strdata:
+            self._width = max(term.length(name), 2,
+                              max(len(field) for field in self._strdata))
+        else:
+            self._width = max(term.length(name), 2)
 
 
     #---------------------------------------------------------------------------
@@ -421,6 +425,8 @@ class _Column(object):
 
 
     def _align_at_dot(self):
+        if not self._strdata:
+            return
         tails = [_float_tail(x) for x in self._strdata]
         maxtail = max(tails)
         self._strdata = [v + " " * (maxtail - tails[j])
