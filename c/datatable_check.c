@@ -45,7 +45,7 @@ static void push_error(char **out, size_t* len, const char *format, ...) {
     if (ret < 0) return;
     size_t n = (size_t) ret;
     va_end(args);
-    *out = realloc(*out, *len + n);
+    *out = (char*) realloc(*out, *len + n);
     if (*out == NULL) return;
     memcpy(*out + *len, buf, n + 1);
     *len += n;
@@ -141,7 +141,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     int found_errors = 0;
     int fixed_errors = 0;
     size_t errlen = 0;
-    *errors = calloc(1, 1);
+    *errors = (char*) calloc(1, 1);
 
     RowMapping *rm = dt->rowmapping;
     DataTable *src = dt->source;
@@ -172,7 +172,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         ERR("Number of columns is negative: %lld\n", ncols);
         if (!fix) return DTCK_ERRORS_FOUND;
         dt->ncols = ncols = 0;
-        dt->columns = realloc(cols, sizeof(Column*));
+        dt->columns = (Column**) realloc(cols, sizeof(Column*));
         dt->columns[0] = NULL;
         fixed_errors++;
     }
@@ -228,7 +228,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         if (fixed_errors < found_errors) return DTCK_ERRORS_FOUND;
         if (fix && i > j) {
             dt->ncols = ncols = j;
-            dt->columns = realloc(dt->columns, (size_t) ncols + 1);
+            dt->columns = (Column**) realloc(dt->columns, (size_t) ncols + 1);
         }
     }
 

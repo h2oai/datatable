@@ -113,6 +113,8 @@ extra_compile_args = [
     "-Wno-float-equal",
     "-Wno-gnu-statement-expression",
     "-Wno-switch-enum",
+    # "-Wno-c++98-compat-pedantic",
+    # "-Wno-old-style-cast",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
     "-fopenmp",

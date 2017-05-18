@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-import datatable.expr
+import datatable
 from .consts import ctypes_map, nas_map
 
 
 
 class BaseExpr(object):
     """
-    Basic building block for evaluation expression(s) that are passed as
-    parameters ``rows``, ``select``, etc in the main ``datatable(...)`` call.
-    For example, expression
+    This class represents a function applied to a single datatable row.
+
+    In the MapReduce terminology this class corresponds to the "Map" step.
+    Multiple `BaseExpr`s may be composed with each other, in which case they all
+    operate simultaneously on the same row.
+
+    This class is the basic building block for evaluation expression(s) that are
+    passed as parameters ``rows``, ``select``, etc in the main
+    ``datatable(...)`` call. For example, expression
 
         f.colX > f.colY + 5
 
@@ -22,21 +28,46 @@ class BaseExpr(object):
     children: `f.colY` and `5`.
 
     Once built, the tree of ``BaseExpr``s is then used to generate C code for
-    evaluation of the expression.
+    evaluation of the expression. The C code is produced within the context of
+    an :class:`IteratorNode`, which encapsulates a C function that performs
+    iteration over the rows of a datatable.
 
-    Each ``BaseExpr`` represents a single column of values (or a scalar), with
-    a particular ``stype``. Multi-column expressions are not supported.
+    Each ``BaseExpr`` maps to a single (scalar) value, having a particular
+    ``stype``. Multi-column expressions are not supported (yet).
 
     This class is abstract and should not be instantiated explicitly.
     """
 
     def __init__(self):
-        self.stype = None
+        self._stype = None
+
+
+    @property
+    def stype(self):
+        """
+        "Storage type" of the column produced by this expression.
+
+        The stype is a 3-char string such as 'i8i', 'f4r', 'i4s', etc -- see
+        file `c/types.c` for the description of these types.
+
+        Each class deriving from ``BaseExpr`` is expected to set the
+        ``self._stype`` property in its initializer.
+        """
+        assert self._stype is not None
+        return self._stype
 
 
     @property
     def ctype(self):
-        return ctypes_map[self.stype]
+        """
+        C type of an individual element produced by this expression.
+
+        This is a helper property useful for code generation. For the string
+        columns it will return the type of the element within the "offsets"
+        part of the data.
+        """
+        return ctypes_map[self._stype]
+
 
 
     #----- Binary operators ----------------------------------------------------
@@ -167,6 +198,9 @@ class BaseExpr(object):
         return self
 
 
+
+    #----- Code generation -----------------------------------------------------
+
     def __str__(self):
         """
         String representation of the expression.
@@ -175,7 +209,7 @@ class BaseExpr(object):
         used as a key in the dictionary of all objects that were evaluated, to
         ensure that no subexpression is evaluated more than once. Thus, __str__
         should return representation that is in 1-to-1 correspondence with the
-        expression being evaluated (within the single call to `datatable(...)`).
+        expression being evaluated (within the single `IteratorNode`).
 
         Expression returned by __str__ should be properly parenthesized to
         ensure that it can be used as-is to form combinations with other
@@ -188,65 +222,63 @@ class BaseExpr(object):
         return "%s(%s)" % (self.__class__.__name__, self)
 
 
-    def isna(self, block):
+    def isna(self, inode):
         """
         Generate C code to determine whether the expression evaluates to NA.
 
         This may return either True (if the expression is always NA), or False
         (if the expression is never NA), or a string containing C expression
-        which can be evaluated within the ``block`` to find the "NA-ness" of
-        the `i`-th element of the current expression.
+        which can be evaluated within the ``inode`` to find the "NA-ness" of
+        the expression for the `i`-th row of the datatable.
 
-        Usually ``isna()`` will create a variable within the ``block`` to hold
-        the "NA-status" of the current expression, and then return just the
+        Usually ``isna()`` will create a variable within the ``inode`` to
+        hold the "NA-status" of the current expression, and then return just the
         name of that variable. If so, such variable should be declared as type
         `int` in C code, and evaluate to either 0 or 1.
         """
         key = "%s.isna" % self
-        res = block.get_evaluated_expr(key)
-        if res is None:
-            res = self._isna(block)
-            block.add_evaluated_expr(key, res)
-        return res
+        res = inode.get_keyvar(key)
+        return res or self._isna(key, inode)
 
-    def _isna(self, block):
+    def _isna(self, key, inode):
         # This method is parallel to `isna()` and should implement the actual
         # code-generation functionality. The public `isna()` method just handles
         # caching/reusing of the result.
-        raise NotImplementedError("Class %s should implement method _isna()"
+        raise NotImplementedError("Class %s should implement method `_isna()`"
                                   % self.__class__.__name__)
 
 
-    def notna(self, block):
+    def notna(self, inode):
         """
         Generate C code to compute the value of the expression when it is known
         to be not NA.
 
-        This will return a string which can be evaluated within the ``block``s
-        main loop to find the value of the expression within the context where
-        it is known that the expression is not NA. The string may or may not
-        represent a single C variable (usually the latter).
+        This will return a string which can be evaluated within the
+        ``inode``s main loop to find the value of the expression within the
+        context where it is known that the expression is not NA. For example,
+        this can be used as follows: "{expr.isna}? NA : {expr.notna}", or
+        "if (!{expr.isna} && {expr.notna} > 0) {...}". As such, when
+        implementing this method (or its sibling ``_notna()``) you should
+        usually avoid to store the expression into a C variable, or if you do
+        make sure that the assignment happens in the same context as evaluation.
 
         For example, consider expression `(x + y)`. Then
             (x + y).isna = x.isna | y.isna;
             (x + y).notna = (x + y);
             (x + y).value = (x + y).isna? NA : (x + y);
-        Note that evaluating `(x + y).notna` and saving it into a variable is
-        problematic: if either x or y are NAs then the arithmetic operation may
-        overflow, or worse in other contexts.
+        Which could be translated into the following C code:
+            int x_y_isna = x_isna | y_isna;
+            int64_t x_y_value = x_y_isna? NA_I8 : (x + y);
 
         If `self.isna()` returns `True` (i.e. the expression is always NA), then
         this method should still return a valid C expression, although it
         doesn't really matter which one.
         """
         key = "%s.notna" % self
-        res = block.get_evaluated_expr(key)
-        if res is None:
-            res = self._notna(block)
-            block.add_evaluated_expr(key, res)
-        return res
+        res = inode.get_keyvar(key)
+        return res or self._notna(key, inode)
 
-    def _notna(self, block):
+    def _notna(self, key, inode):
         # This method is parallel to `notna()` and should implement the actual
         # code-generation functionality. The public `notna()` method just
         # handles caching/reusing of the result.
@@ -254,63 +286,60 @@ class BaseExpr(object):
                                   % self.__class__.__name__)
 
 
-    def value(self, block):
+    def value(self, inode):
         """
-        Generate C code to compute the value of the expression.
+        Generate C code to compute the *value* of the current expression.
 
         This will return a string (usually a variable name) that when evaluated
-        within the ``block``s main loop will return the "final" value of the
+        within the ``inode``s main loop will return the "final" value of the
         expression. This is a combination of :meth:`isna` and :meth:`notna`.
         """
         key = str(self)
-        res = block.get_evaluated_expr(key)
-        if res is None:
-            res = self._value(block)
-            block.add_evaluated_expr(key, res)
-        return res
+        var = inode.get_keyvar(key)
+        return var or self._value(key, inode)
 
-    def _value(self, block):
+    def _value(self, key, inode):
         # This method is parallel to `value()` and should implement the actual
         # code-generation functionality. The public `value()` method just
         # handles caching/reusing of the result.
         # This is a default implementation that computes the value in terms of
         # .isna() / .notna(), however children classes may override this if
         # necessary.
-        res = block.make_variable()
+        res = inode.make_keyvar(key)
         na = nas_map[self.stype]
         ctype = self.ctype
-        isna = self.isna(block)
-        notna = self.notna(block)
+        isna = self.isna(inode)
+        notna = self.notna(inode)
         if isna is True:
             return na
         elif isna is False:
-            block.add_mainloop_expr("%s %s = %s;" % (ctype, res, notna))
+            inode.addto_mainloop("{type} {var} = {value};"
+                                 .format(type=ctype, var=res, value=notna))
         else:
-            block.add_mainloop_expr("%s %s = %s? %s : %s;" %
-                                    (ctype, res, isna, na, notna))
+            inode.addto_mainloop("{type} {var} = {isna}? {na} : {value};"
+                                 .format(type=ctype, var=res, isna=isna,
+                                         na=na, value=notna))
         return res
 
 
-    def value_or_0(self, block):
+    def value_or_0(self, inode):
         """
         Return either the value of the expression, or 0 if expression is NA.
         """
+        # Not sure if this method is actually needed here...
         key = "%s.val0" % self
-        res = block.get_evaluated_expr(key)
-        if res is None:
-            res = self._value_or_0(block)
-            block.add_evaluated_expr(key, res)
-        return res
+        res = inode.get_keyvar(key)
+        return res or self._value_or_0(key, inode)
 
-    def _value_or_0(self, block):
-        isna = self.isna(block)
+    def _value_or_0(self, key, inode):
+        isna = self.isna(inode)
         if isna is True:
             return "0"
         elif isna is False:
-            return self.value(block)
+            return self.value(inode)
         else:
-            res = block.make_variable()
-            notna = self.notna(block)
-            block.add_mainloop_expr("%s %s = %s? 0 : %s;" %
-                                    (self.ctype, res, isna, notna))
+            res = inode.make_keyvar(key)
+            inode.addto_mainloop("{type} {var} = {isna}? 0 : {value};"
+                                 .format(type=self.ctype, var=res, isna=isna,
+                                         value=self.notna(inode)))
             return res

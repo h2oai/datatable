@@ -37,7 +37,7 @@ class MinMaxReducer(BaseExpr):
         self._skipna = skipna
         self._op = "<" if ismin else ">"
         self._name = "min" if ismin else "max"
-        self.stype = expr.stype
+        self._stype = expr.stype
 
 
     def __str__(self):

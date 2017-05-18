@@ -50,6 +50,7 @@ class DatatableEvaluatorNode(Node):
         columns = self._select.cget_columns(context)
         fnname = context.make_variable_name("get_datatable")
         fn = "DataTable* %s(void) {\n" % fnname
+        fn += "    init();\n"
 
         if self._select.n_view_columns == 0:
             fn += self._gen_cbody_only_data_cols(context, rowmapping, columns)

@@ -100,6 +100,36 @@ RowMapping* rowmapping_from_column_with_rowmapping(
     Column *col, RowMapping *rmp);
 
 /**
+ * Construct a `RowMapping` object using an external filter function. This
+ * filter function takes a range of rows `row0:row1` and an output buffer,
+ * and writes the indices of the selected rows into that buffer. The
+ * `rowmapping_from_filterfn` function then handles assemnling that output
+ * into final RowMapping structure, as well as distributing the work load
+ * among multiple threads.
+ *
+ * The 32-bit version of the function should be called when `nrows` does not
+ * exceed INT32_MAX, and the 64-bit version otherwise.
+ *
+ * @param filterfn
+ *     Pointer to the filter function with the signature `(row0, row1, out,
+ *     nouts) -> int`. The filter function has to determine which rows in the
+ *     range `row0:row1` test positive, and write their indices into the array
+ *     `out`. It should also store in the variable `nouts` the number of rows
+ *     selected.
+ *
+ * @param nrows
+ *     Number of rows in the datatable that is being filtered.
+ */
+RowMapping* rowmapping_from_filterfn32(
+    int (*filterfn)(int64_t row0, int64_t row1, int32_t *out, int32_t *nouts),
+    int64_t nrows
+);
+RowMapping* rowmapping_from_filterfn64(
+    int (*filterfn)(int64_t row0, int64_t row1, int64_t *out, int32_t *nouts),
+    int64_t nrows
+);
+
+/**
  * Combine two RowMappings: `rwm_ab` + `rwm_bc` => `rwm_ac`.
  */
 RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc);

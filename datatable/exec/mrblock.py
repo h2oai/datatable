@@ -85,10 +85,10 @@ class MRBlock(object):
         return self._evaluated_exprs[key]
 
 
-    def get_evaluated_expr(self, key):
+    def get_keyvar(self, key):
         return self._evaluated_exprs.get(key, None)
 
-    def add_evaluated_expr(self, key, var):
+    def add_keyexpr(self, key, var):
         self._evaluated_exprs[key] = var
 
 

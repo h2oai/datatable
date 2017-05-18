@@ -15,12 +15,12 @@ class MeanReducer(BaseExpr):
         super().__init__()
         self.expr = expr
         self.skipna = skipna
-        self.stype = ops_rules.get(("mean", expr.stype), None)
-        if self.stype is None:
+        self._stype = ops_rules.get(("mean", expr.stype), None)
+        if self._stype is None:
             raise ValueError(
                 "Cannot compute mean of a variable of type %s" % expr.stype)
         self.scale = 0
-        if self.stype in decimal_stypes:
+        if self._stype in decimal_stypes:
             self.scale = expr.scale
 
 

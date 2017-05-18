@@ -11,7 +11,7 @@ class UnaryOpExpr(BaseExpr):
         super().__init__()
         self.op = op
         self.arg = arg
-        self.stype = arg.stype
+        self._stype = arg.stype
 
 
     def _isna(self, block):

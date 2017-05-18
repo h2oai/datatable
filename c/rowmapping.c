@@ -48,8 +48,9 @@ static_assert(offsetof(RowMapping, ind32) == offsetof(RowMapping, ind64),
 
 
 /**
- * Attempt to compactify an ARR64 RowMapping `rwm`, and return True if
- * successful or False otherwise. The RowMapping object is modified in-place.
+ * Given an ARR64 RowMapping `rwm` attempt to compactify it (i.e. convert into
+ * an ARR32 rowmapping), and return True if successful. The RowMapping object
+ * is modified in-place.
  */
 _Bool rowmapping_compactify(RowMapping *rwm)
 {
@@ -474,6 +475,61 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
     return NULL;
 }
 
+
+
+/**
+ * Construct a `RowMapping` object using an external filter function. This
+ * filter function takes a range of rows `row0:row1` and an output buffer,
+ * and writes the indices of the selected rows into that buffer. The
+ * `rowmapping_from_filterfn` function then handles assemnling that output
+ * into final RowMapping structure, as well as distributing the work load
+ * among multiple threads.
+ */
+RowMapping* rowmapping_from_filterfn32(
+    int (*filterfn)(int64_t row0, int64_t row1, int32_t *out, int32_t *nouts),
+    int64_t nrows
+) {
+    int32_t out_allocated = 65536;  // number of int32_t elements in `out`
+    int32_t out_size = 0;
+    int32_t *out = malloc(out_allocated * sizeof(int32_t));
+    int chunk_size = 65536;
+    int num_chunks = (nrows + chunk_size - 1) / chunk_size;
+    #pragma omp parallel
+    {
+        int32_t *buf = malloc(chunk_size * sizeof(int32_t));
+        int32_t *dest = out;
+        int32_t buf_size = 0;
+        #pragma omp for ordered schedule(dynamic)
+        for (int i = 0; i <= num_chunks; i++) {
+            if (buf_size) {
+                memcpy(dest, buf, buf_size * sizeof(int32_t));
+                buf_size = 0;
+            }
+            if (i < num_chunks) {
+                int64_t row0 = i * chunk_size;
+                int64_t row1 = min(row0 + chunk_size, nrows);
+                filterfn(row0, row1, buf, &buf_size);
+            }
+            #pragma omp ordered
+            {
+                dest = out + out_size;
+                out_size += buf_size;
+                if (out_size > out_allocated) {
+                    double approx = (double)out_size * num_chunks/(i + 1) + 0.5;
+                    out_allocated = min(nrows, (int32_t)approx);
+                    out = realloc(out, out_allocated * sizeof(int32_t));
+                }
+            }
+        }
+    }
+    out = realloc(out, out_size * sizeof(int32_t));
+    return rowmapping_from_i32_array(out, out_size);
+}
+
+RowMapping* rowmapping_from_filterfn64(
+    int (*filterfn)(int64_t row0, int64_t row1, int64_t *out, int32_t *nouts),
+    int64_t nrows
+) { return NULL; }
 
 
 /**

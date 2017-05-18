@@ -12,31 +12,33 @@ class RelationalOpExpr(BaseExpr):
         super().__init__()
         if not isinstance(rhs, BaseExpr):
             rhs = LiteralNode(rhs)
-        self.op = op
-        self.lhs = lhs
-        self.rhs = rhs
-        self.stype = "i1b"
+        # `op` is one of "==", "!=", ">", "<", ">=", "<="
+        self._op = op
+        self._lhs = lhs
+        self._rhs = rhs
+        self._stype = "i1b"
 
 
-    def _isna(self, block):
+    def _isna(self, key, inode):
         return False
 
 
-    def _notna(self, block):
-        lhs_isna = self.lhs.isna(block)
-        rhs_isna = self.rhs.isna(block)
+    def _notna(self, key, inode):
+        lhs_isna = self._lhs.isna(inode)
+        rhs_isna = self._rhs.isna(inode)
         if lhs_isna is True or rhs_isna is True:
             return "0"
         conditions = []
         if lhs_isna is not False:
-            conditions.append("!%s" % lhs_isna)
+            conditions.append("!" + lhs_isna)
         if rhs_isna is not False:
-            conditions.append("!%s" % rhs_isna)
-        lhs_value = self.lhs.notna(block)
-        rhs_value = self.rhs.notna(block)
-        conditions.append("(%s %s %s)" % (lhs_value, self.op, rhs_value))
-        return "(%s)" % " && ".join(conditions)
+            conditions.append("!" + rhs_isna)
+        conditions.append("({lhs} {op} {rhs})"
+                          .format(lhs=self._lhs.notna(inode),
+                                  rhs=self._rhs.notna(inode),
+                                  op=self._op))
+        return "(" + " && ".join(conditions) + ")"
 
 
     def __str__(self):
-        return "(%s %s %s)" % (self.lhs, self.op, self.rhs)
+        return "(%s %s %s)" % (self._lhs, self._op, self._rhs)

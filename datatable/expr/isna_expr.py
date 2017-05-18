@@ -11,7 +11,7 @@ class Isna(BaseExpr):
     def __init__(self, arg):
         super().__init__()
         self._arg = arg
-        self.stype = "i1b"
+        self._stype = "i1b"
 
 
     def _isna(self, block):

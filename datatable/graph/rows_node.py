@@ -5,6 +5,7 @@ import types
 import datatable
 from datatable.expr import DatatableExpr, BaseExpr
 from datatable.graph.node import Node
+from datatable.graph.iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import typed, ValueError, TypeError
@@ -58,7 +59,6 @@ class RowFilterNode(Node):
             self._cname = self._gen_c(context)
         return self._cname
 
-
     #---- Private/protected ----------------------------------------------------
 
     def _gen_c(self, context):
@@ -76,6 +76,7 @@ class RowFilterNode(Node):
 
     def _gen_c_body(self, context):
         raise NotImplementedError
+
 
 
 
@@ -163,7 +164,10 @@ class FilterExpr_RFNode(RowFilterNode):
         self._expr = expr
 
     def _gen_c_body(self, context):
-        pass
+        context.add_extern("rowmapping_from_filterfn")
+        filter_node = FilterNode(self._expr)
+        f = filter_node.generate_c(context)
+        return ("", "rowmapping_from_filterfn(%s)" % f)
 
 
 

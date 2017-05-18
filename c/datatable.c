@@ -12,13 +12,14 @@
 DataTable* dt_DataTable_call(
     DataTable *self, RowMapping *rowmapping, ColMapping *colmapping)
 {
+    DataTable *res = NULL;
     int64_t ncols = colmapping->length;
     int64_t nrows = rowmapping->length;
 
     // Computed on-demand only if we detect that it is needed
     RowMapping *merged_rowindex = NULL;
 
-    Column **columns = calloc(sizeof(Column*), (size_t)ncols);
+    Column **columns = (Column**) calloc(sizeof(Column*), (size_t)ncols);
     if (columns == NULL) return NULL;
 
     for (int64_t i = 0; i < ncols; ++i) {
@@ -28,25 +29,25 @@ DataTable* dt_DataTable_call(
             if (merged_rowindex == NULL) {
                 merged_rowindex = rowmapping_merge(self->rowmapping, rowmapping);
             }
-            ViewColumn *viewcol = TRY(malloc(sizeof(ViewColumn)));
+            ViewColumn *viewcol = (ViewColumn*) TRY(malloc(sizeof(ViewColumn)));
             viewcol->mtype = MT_VIEW;
             viewcol->srcindex = ((ViewColumn*) colj)->srcindex;
             viewcol->stype = colj->stype;
             columns[i] = (Column*) viewcol;
         }
         else if (self->source == NULL) {
-            ViewColumn *viewcol = TRY(malloc(sizeof(ViewColumn)));
+            ViewColumn *viewcol = (ViewColumn*) TRY(malloc(sizeof(ViewColumn)));
             viewcol->mtype = MT_VIEW;
             viewcol->srcindex = (size_t) j;
             viewcol->stype = colj->stype;
             columns[i] = (Column*) viewcol;
         }
         else {
-            columns[i] = TRY(column_extract(colj, rowmapping));
+            columns[i] = (Column*) TRY(column_extract(colj, rowmapping));
         }
     }
 
-    DataTable *res = malloc(sizeof(DataTable));
+    res = (DataTable*) malloc(sizeof(DataTable));
     if (res == NULL) return NULL;
 
     res->nrows = nrows;
@@ -74,7 +75,7 @@ DataTable* datatable_assemble(int64_t nrows, Column **cols)
     int64_t ncols = 0;
     while(cols[ncols] != NULL) ncols++;
 
-    DataTable *res = malloc(sizeof(DataTable));
+    DataTable *res = (DataTable*) malloc(sizeof(DataTable));
     if (res == NULL) return NULL;
     res->nrows = nrows;
     res->ncols = ncols;
@@ -93,7 +94,7 @@ datatable_assemble_view(DataTable *src, RowMapping *rm, Column **cols)
     int64_t ncols = 0;
     while(cols[ncols] != NULL) ncols++;
 
-    DataTable *res = malloc(sizeof(DataTable));
+    DataTable *res = (DataTable*) malloc(sizeof(DataTable));
     if (res == NULL) return NULL;
     res->nrows = rm->length;
     res->ncols = ncols;

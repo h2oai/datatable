@@ -36,16 +36,6 @@ static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
 #define NA_F8_BITS 0x7FF00000000007A2ull
 typedef union { uint32_t i; float f; } float_repr;
 typedef union { uint64_t i; double f; } double_repr;
-inline int ISNA_F4(float x) {
-    float_repr xx;
-    xx.f = x;
-    return xx.i == NA_F4_BITS;
-}
-inline int ISNA_F8(double x) {
-    double_repr xx;
-    xx.f = x;
-    return xx.i == NA_F8_BITS;
-}
 
 const int8_t   NA_I1 = INT8_MIN;
 const int16_t  NA_I2 = INT16_MIN;
@@ -57,6 +47,24 @@ const uint32_t NA_U4 = UINT32_MAX;
 const uint64_t NA_U8 = UINT64_MAX;
 float NA_F4;
 double NA_F8;
+
+inline int ISNA_F4(float x) {
+    float_repr xx;
+    xx.f = x;
+    return xx.i == NA_F4_BITS;
+}
+inline int ISNA_F8(double x) {
+    double_repr xx;
+    xx.f = x;
+    return xx.i == NA_F8_BITS;
+}
+inline int ISNA_I1(int8_t x) { return x == NA_I1; }
+inline int ISNA_I2(int16_t x) { return x == NA_I2; }
+inline int ISNA_I4(int32_t x) { return x == NA_I4; }
+inline int ISNA_I8(int64_t x) { return x == NA_I8; }
+inline int ISNA_U1(uint8_t x) { return x == NA_U1; }
+inline int ISNA_U2(uint16_t x) { return x == NA_U2; }
+inline int ISNA_U4(uint32_t x) { return x == NA_U4; }
 
 
 

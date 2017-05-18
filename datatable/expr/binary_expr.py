@@ -18,11 +18,11 @@ class BinaryOpExpr(BaseExpr):
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
-        self.stype = ops_rules.get((self.op, lhs.stype, rhs.stype), None)
-        if self.stype is None:
+        self._stype = ops_rules.get((self.op, lhs.stype, rhs.stype), None)
+        if self._stype is None:
             raise TypeError("Operation %s not allowed on operands of types "
                             "%s and %s" % (self.op, lhs.stype, rhs.stype))
-        if self.stype in decimal_stypes:
+        if self._stype in decimal_stypes:
             self.scale = max(lhs.scale, rhs.scale)
 
 

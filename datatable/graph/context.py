@@ -17,6 +17,7 @@ class EvaluationContext(object):
         self._functions = {}
         self._global_declarations = ""
         self._extern_declarations = ""
+        self._initializer_declarations = ""
         self._global_names = set()
 
 
@@ -51,9 +52,21 @@ class EvaluationContext(object):
             self._global_names.add(name)
             self._extern_declarations += "extern %s;\n" % _externs[name]
 
+    def add_initializer(self, expr):
+        self._initializer_declarations += "    %s;\n" % expr
+
     def make_variable_name(self, prefix="v"):
         self._var_counter += 1
         return prefix + str(self._var_counter)
+
+    def get_dtvar(self, dt):
+        varname = "dt" + str(dt._id)
+        if varname not in self._global_names:
+            ptr = dt.internal.datatable_ptr
+            self.add_global(varname, "DataTable*", "NULL")
+            self.add_initializer("{varname} = (DataTable*) {ptr}L"
+                                 .format(varname=varname, ptr=ptr))
+        return varname
 
 
     def _gen_module(self):
@@ -65,6 +78,10 @@ class EvaluationContext(object):
         out += "\n\n"
         out += "// Global variables\n"
         out += self._global_declarations
+        out += "\n"
+        out += "static void init(void) {\n"
+        out += self._initializer_declarations
+        out += "}\n"
         out += "\n\n\n"
         for fnbody in self._functions.values():
             out += fnbody
@@ -74,6 +91,15 @@ class EvaluationContext(object):
 
 
 _externs = {
+    "ISNA_F4": "inline int ISNA_F4(float)",
+    "ISNA_F8": "inline int ISNA_F8(double)",
+    "ISNA_I1": "inline int ISNA_I1(int8_t)",
+    "ISNA_I2": "inline int ISNA_I2(int16_t)",
+    "ISNA_I4": "inline int ISNA_I4(int32_t)",
+    "ISNA_I8": "inline int ISNA_I8(int64_t)",
+    "ISNA_U1": "inline int ISNA_U1(uint8_t)",
+    "ISNA_U2": "inline int ISNA_U2(uint16_t)",
+    "ISNA_U4": "inline int ISNA_U4(uint32_t)",
     "datatable_assemble":
         "DataTable* datatable_assemble(int64_t nrows, Column **cols)",
     "datatable_assemble_view":
@@ -85,6 +111,8 @@ _externs = {
         "DataTable_PyObject* pydt_from_dt(DataTable *dt)",
     "rowmapping_from_datacolumn":
         "RowMapping* rowmapping_from_datacolumn(Column *col, int64_t nrows)",
+    "rowmapping_from_filterfn":
+        "RowMapping* rowmapping_from_filterfn(FilterFn *filterfn)",
     "rowmapping_from_pyarray":
         "RowMapping* rowmapping_from_pyarray(PyObject*)",
     "rowmapping_from_pyslicelist":

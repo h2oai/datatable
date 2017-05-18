@@ -53,12 +53,16 @@ class DatatableExpr(object):
 
 
     def __repr__(self):
-        return "DatatableExpr(dt#%d)" % self._datatable.id
+        return "DatatableExpr(dt#%d)" % self._datatable._id
+
+
+    def __str__(self):
+        return "dt" + str(self._datatable._id)
 
 
     def __dir__(self):
         # This will supply column names for tab completion
-        # (is there a context where tab completion will be used I wonder?)
+        # (is there a context where tab completion will be used, I wonder?)
         return self._datatable.names
 
 

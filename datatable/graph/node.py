@@ -3,4 +3,5 @@
 
 
 class Node(object):
+    # It is unclear as of yet what common functionality among nodes exist
     pass

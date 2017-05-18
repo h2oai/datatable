@@ -9,13 +9,14 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
 {
     SType stype = col->stype;
     size_t metasize = stype_info[stype].metasize;
+    size_t nrows, elemsize;
     // Cannot extract from an MT_VIEW column
-    if (!(stype == MT_DATA || stype == MT_MMAP)) return NULL;
+    if (col->mtype == MT_VIEW) return NULL;
 
     // Create the new Column object. Note that `meta` is cloned from the
     // source, which may need adjustment for some cases.
     Column *res = NULL;
-    res = TRY(malloc(sizeof(Column)));
+    res = (Column*) TRY(malloc(sizeof(Column)));
     res->data = NULL;
     res->mtype = MT_DATA;
     res->stype = stype;
@@ -24,13 +25,13 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
 
     // If `rowmapping` is not provided, then it's a plain clone.
     if (rowmapping == NULL) {
-        res->data = TRY(clone(col->data, col->alloc_size));
+        res->data = (char*) TRY(clone(col->data, col->alloc_size));
         res->alloc_size = col->alloc_size;
         return res;
     }
 
-    size_t nrows = (size_t) rowmapping->length;
-    size_t elemsize = stype_info[stype].elemsize;
+    nrows = (size_t) rowmapping->length;
+    elemsize = stype_info[stype].elemsize;
     if (stype == ST_STRING_FCHAR)
         elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
 
@@ -48,7 +49,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 size_t offssize = nrows * elemsize;                            \
                 offoff = datasize + padding;                                   \
                 res->alloc_size = datasize + padding + offssize;               \
-                res->data = TRY(malloc(res->alloc_size));                      \
+                res->data = (char*) TRY(malloc(res->alloc_size));              \
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;          \
                 memcpy(res->data, col->data + (size_t)off0, datasize);         \
                 memset(res->data + datasize, 0xFF, padding);                   \
@@ -66,12 +67,13 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
             case ST_STRING_U2_ENUM:
             case ST_STRING_U4_ENUM:
                 assert(0);  // not implemented yet
+                break;
 
             default: {
                 assert(!stype_info[stype].varwidth);
                 size_t alloc_size = nrows * elemsize;
                 size_t offset = start * elemsize;
-                res->data = TRY(clone(col->data + offset, alloc_size));
+                res->data = (char*) TRY(clone(col->data + offset, alloc_size));
                 res->alloc_size = alloc_size;
             } break;
         }
@@ -109,11 +111,11 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
             size_t offssize = nrows * elemsize;                                \
             offoff = datasize + padding;                                       \
             res->alloc_size = offoff + offssize;                               \
-            res->data = TRY(malloc(res->alloc_size));                          \
+            res->data = (char*) TRY(malloc(res->alloc_size));                  \
             ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;             \
             {   JINIT                                                          \
                 ctype lastoff = 1;                                             \
-                void *dest = res->data;                                        \
+                char *dest = res->data;                                        \
                 ctype *resoffs = (ctype*)(res->data + offoff);                 \
                 for (size_t i = 0; i < nrows; i++) {                           \
                     JITER                                                      \
@@ -155,16 +157,17 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
         case ST_STRING_U2_ENUM:
         case ST_STRING_U4_ENUM:
             assert(0);  // not implemented yet
+            break;
 
         default: {
             assert(!stype_info[stype].varwidth);
             size_t alloc_size = nrows * elemsize;
-            res->data = TRY(malloc(alloc_size));
+            res->data = (char*) TRY(malloc(alloc_size));
             res->alloc_size = alloc_size;
-            void *dest = res->data;
+            char *dest = res->data;
             if (rowmapping->type == RM_SLICE) {
                 size_t stepsize = (size_t) rowmapping->slice.step * elemsize;
-                void *src = col->data + (size_t) rowmapping->slice.start * elemsize;
+                char *src = col->data + (size_t) rowmapping->slice.start * elemsize;
                 for (size_t i = 0; i < nrows; i++) {
                     memcpy(dest, src, elemsize);
                     dest += elemsize;
