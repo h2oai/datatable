@@ -16,7 +16,7 @@ from datatable.utils.typechecks import typed, ValueError, TypeError
 
 class RowFilterNode(Node):
     """
-    Base class for various row filters.
+    Base class for nodes that filter datatable's rows creating a RowMapping.
 
     A RowFilter encapsulates the `rows` argument in the main datatable
     evaluation function. This node is designed in such a way that it always
@@ -61,16 +61,17 @@ class RowFilterNode(Node):
         return self._cname
 
 
+    # TODO: add pyget_rowmapping()
+
+
     #---- Private/protected ----------------------------------------------------
 
     def _gen_c(self):
         (cbody, res) = self._gen_c_body()
         fn = "static RowMapping* get_rowmapping(void) {\n"
-        fn += "    if (rowmapping == NULL) {\n"
+        fn += "    if (rowmapping != NULL) return rowmapping;\n"
         fn += cbody
-        fn += "        rowmapping = %s;\n" % res
-        fn += "    }\n"
-        fn += "    return rowmapping;\n"
+        fn += "    return (rowmapping = %s);\n" % res
         fn += "}\n"
         self.context.add_global("rowmapping", "RowMapping*", "NULL")
         self.context.add_function("get_rowmapping", fn)

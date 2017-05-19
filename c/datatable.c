@@ -38,7 +38,7 @@ DataTable* dt_DataTable_call(
         else if (self->source == NULL) {
             ViewColumn *viewcol = (ViewColumn*) TRY(malloc(sizeof(ViewColumn)));
             viewcol->mtype = MT_VIEW;
-            viewcol->srcindex = (size_t) j;
+            viewcol->srcindex = j;
             viewcol->stype = colj->stype;
             columns[i] = (Column*) viewcol;
         }

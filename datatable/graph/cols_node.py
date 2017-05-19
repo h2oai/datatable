@@ -11,7 +11,11 @@ from datatable.utils.misc import normalize_slice
 
 class ColumnSetNode(Node):
     """
-    Base class for all "column set" nodes.
+    Base class for nodes that create columns of a datatable.
+
+    A ColumnSetNode encapsulates the `select` or `update` arguments of the main
+    datatable evaluation function. In the C layer it creates a function that
+    constructs and returns a ``Column**`` array of columns.
     """
 
 
@@ -51,6 +55,15 @@ class SliceView_CSNode(ColumnSetNode):
             return self._dt.names[self._start:end:self._step]
 
     def cget_columns(self):
+        """
+        Return a name of C function that will create a `Column**` array.
+
+        More specifically, this function will insert into the current evaluation
+        context the C code of a function with the following signature:
+            Column** get_columns(void);
+        This function will allocate and fill the `Column**` array, and then
+        relinquish the ownership of that pointer to the caller.
+        """
         if not self._cname:
             self._cname = self._gen_c()
         return self._cname

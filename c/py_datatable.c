@@ -173,7 +173,7 @@ static PyObject* get_view_colnumbers(DataTable_PyObject *self)
     while (--i >= 0) {
         int isviewcol = columns[i]->mtype == MT_VIEW;
         PyObject *idx = isviewcol
-            ? PyLong_FromSize_t(((ViewColumn*)columns[i])->srcindex)
+            ? PyLong_FromLong(((ViewColumn*)columns[i])->srcindex)
             : none();
         PyTuple_SET_ITEM(list, i, idx);
     }

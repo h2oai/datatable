@@ -155,10 +155,14 @@ _externs = {
     "ISNA_U1": "int ISNA_U1(uint8_t)",
     "ISNA_U2": "int ISNA_U2(uint16_t)",
     "ISNA_U4": "int ISNA_U4(uint32_t)",
+    "columns_from_slice":
+        "Column** columns_from_slice"
+        "(DataTable *dt, int64_t start, int64_t count, int64_t step)",
     "pydatatable_assemble":
-        "PyObject* pydatatable_assemble(int64_t nrows, Column **cols)",
+        "DataTable_PyObject* pydatatable_assemble"
+        "(int64_t nrows, Column **cols)",
     "pydatatable_assemble_view":
-        "PyObject* pydatatable_assemble_view"
+        "DataTable_PyObject* pydatatable_assemble_view"
         "(DataTable_PyObject *src, RowMapping *rm, Column **cols)",
     "pydt_from_dt":
         "DataTable_PyObject* pydt_from_dt(DataTable*, DataTable_PyObject*)",

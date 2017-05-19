@@ -78,7 +78,7 @@ class DatatableEvaluatorNode(Node):
         fn = ""
         fn += "    int64_t nrows = %s()->nrows;\n" % frowmapping
         fn += "    Column** columns = %s();\n" % fcolumns
-        fn += "    return pydatatable_assemble(nrows, columns);\n"
+        fn += "    return (PyObject*) pydatatable_assemble(nrows, columns);\n"
         return fn
 
 
@@ -86,7 +86,7 @@ class DatatableEvaluatorNode(Node):
         self.context.add_extern("pydatatable_assemble_view")
         return ("    RowMapping *rm = {make_rowmapping}();\n"
                 "    Column **columns = {make_columns}();\n"
-                "    return pydatatable_assemble_view"
+                "    return (PyObject*) pydatatable_assemble_view"
                 "((DataTable_PyObject*){dtptr}, rm, columns);\n"
                 .format(dtptr=id(self._dt.internal),
                         make_rowmapping=frowmapping,

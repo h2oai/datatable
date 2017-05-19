@@ -20,4 +20,35 @@ float max_f4(float a, float b);
 })
 
 
+/**
+ * Use this macro to malloc a memory region and assign it to a variable. For
+ * example, to malloc an array of 1000 integers:
+ *
+ *     int32_t *arr;
+ *     dtmalloc(arr, int32_t, 1000);
+ *
+ * The macro checks that the allocation was successful, and performs `goto fail`
+ * otherwise.
+ **/
+#ifdef __cplusplus
+    #define dtmalloc(ptr, T, n) do {                                           \
+        ptr = (T*) malloc((size_t)(n) * sizeof(T));                            \
+        if (ptr == nullptr) goto fail;                                         \
+    } while(0)
+#else
+    #define dtmalloc(ptr, T, n) do {                                           \
+        ptr = malloc((size_t)(n) * sizeof(T));                                 \
+        if (ptr == NULL) goto fail;                                            \
+    } while(0)
+#endif
+
+
+/**
+ * Macro to free the memory previously allocated with `dtmalloc`.
+ * (Currently it's same as system `free`, however that may change in the future).
+ **/
+#define dtfree  free
+
+
+
 #endif

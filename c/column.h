@@ -55,11 +55,11 @@ typedef enum MType {
  *
  */
 typedef struct Column {
-    void   *data;        // 8(4)
+    void   *data;        // 8
     MType   mtype;       // 1
     SType   stype;       // 1
-    void   *meta;        // 8(4)
-    size_t  alloc_size;  // 8(4)
+    void   *meta;        // 8
+    size_t  alloc_size;  // 8
 } Column;
 
 
@@ -86,7 +86,7 @@ typedef struct Column {
  *
  */
 typedef struct ViewColumn {
-    size_t  srcindex;    // 8(4)
+    int64_t srcindex;    // 8
     MType   mtype;       // 1
     SType   stype;       // 1
 } ViewColumn;

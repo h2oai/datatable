@@ -37,7 +37,7 @@ static PyObject* get_isview(Column_PyObject *self) {
 static PyObject* get_srcindex(Column_PyObject *self) {
     ViewColumn *col = (ViewColumn*) self->ref;
     return (col->mtype == MT_VIEW)
-            ? PyLong_FromSize_t(col->srcindex)
+            ? PyLong_FromLong(col->srcindex)
             : none();
 }
 

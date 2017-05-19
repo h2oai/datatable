@@ -369,14 +369,14 @@ static int _check_consistency(
         }
         if (col->mtype == MT_VIEW) {
             ViewColumn *vcol = (ViewColumn*) col;
-            size_t srcindex = vcol->srcindex;
+            int64_t srcindex = vcol->srcindex;
             if (dt->source == NULL) {
                 PyErr_Format(PyExc_RuntimeError,
                     "Invalid datatable: column %ld is a view, while the "
                     "datatable has no parent", i);
                 return 0;
             }
-            if ((int64_t)srcindex >= dt->source->ncols) {
+            if (srcindex >= dt->source->ncols || srcindex < 0) {
                 PyErr_Format(PyExc_RuntimeError,
                     "Invalid view: column %ld references non-existing column "
                     "%ld in the parent datatable", i, srcindex);

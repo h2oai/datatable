@@ -344,8 +344,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         SType stype = col->stype;
 
         if (col->mtype == MT_VIEW) {
-            size_t srcindex = ((ViewColumn*)col)->srcindex;
-            if (srcindex >= (size_t)src->ncols) {
+            int64_t srcindex = ((ViewColumn*)col)->srcindex;
+            if (srcindex >= src->ncols || srcindex < 0) {
                 ERR("Column %lld references non-existing column %zd in the "
                     "source datatable\n", i, srcindex);
                 if (fix) {
