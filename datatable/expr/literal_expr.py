@@ -27,25 +27,25 @@ class LiteralNode(BaseExpr):
                 self._stype = "f8r"
         elif isinstance(arg, float):
             aarg = abs(arg)
-            sarg = str(aarg)
-            ndec = len(sarg) - sarg.find(".") - 1
-            if ndec <= 6:
-                tenp = 10**ndec
-                self.arg = int(arg * tenp + 0.001)
-                self.scale = ndec
-                assert self.arg / tenp == arg
-                aarg = abs(self.arg)
-                if aarg < 32768:
-                    self._stype = "i2r"
-                elif aarg < 1 << 31:
-                    self._stype = "i4r"
-                elif aarg < 1 << 63:
-                    self._stype = "i8r"
-                else:
-                    self.arg = arg
-                    self._stype = "f8r"
-                    self.scale = 0
-            elif aarg < 3.4e38:
+            # sarg = str(aarg)
+            # ndec = len(sarg) - sarg.find(".") - 1
+            # if ndec <= 6:
+            #     tenp = 10**ndec
+            #     self.arg = int(arg * tenp + 0.001)
+            #     self.scale = ndec
+            #     assert self.arg / tenp == arg
+            #     aarg = abs(self.arg)
+            #     if aarg < 32768:
+            #         self._stype = "i2r"
+            #     elif aarg < 1 << 31:
+            #         self._stype = "i4r"
+            #     elif aarg < 1 << 63:
+            #         self._stype = "i8r"
+            #     else:
+            #         self.arg = arg
+            #         self._stype = "f8r"
+            #         self.scale = 0
+            if aarg < 3.4e38:
                 self._stype = "f4r"
             else:
                 self._stype = "f8r"
