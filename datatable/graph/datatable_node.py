@@ -10,6 +10,8 @@ from datatable.utils.typechecks import typed
 
 
 
+#===============================================================================
+
 class DatatableEvaluatorNode(Node):
     """
     Root node for a datatable evaluation graph.
@@ -34,39 +36,45 @@ class DatatableEvaluatorNode(Node):
 
     @typed(rows=RowFilterNode, select=ColumnSetNode)
     def __init__(self, dt, rows=None, select=None):
+        super().__init__()
         self._dt = dt
         self._rows = rows
         self._select = select
 
 
     def execute(self, verbose=False):
-        context = EvaluationContext()
-        dtgetter = self.cget_datatable(context)
-        _dt = context.execute(dtgetter, verbose=verbose)
+        self.use_context(EvaluationContext())
+        dtgetter = self.cget_datatable()
+        _dt = self.context.execute(dtgetter, verbose=verbose)
         return datatable.DataTable(_dt, colnames=self._select.column_names)
 
 
 
-    def cget_datatable(self, context):
-        rowmapping = self._rows.cget_rowmapping(context)
-        columns = self._select.cget_columns(context)
-        fnname = context.make_variable_name("get_datatable")
+    def cget_datatable(self):
+        rowmapping = self._rows.cget_rowmapping()
+        columns = self._select.cget_columns()
+        fnname = self.context.make_variable_name("get_datatable")
         fn = "PyObject* %s(void) {\n" % fnname
         fn += "    init();\n"
 
         if self._select.n_view_columns == 0:
-            fn += self._gen_cbody_only_data_cols(context, rowmapping, columns)
+            fn += self._gen_cbody_only_data_cols(rowmapping, columns)
         else:
             assert not self._select.dt.internal.isview
-            fn += self._gen_cbody_dt_not_view(context, rowmapping, columns)
+            fn += self._gen_cbody_dt_not_view(rowmapping, columns)
 
         fn += "}\n"
-        context.add_function(fnname, fn)
+        self._context.add_function(fnname, fn)
         return fnname
 
 
-    def _gen_cbody_only_data_cols(self, context, frowmapping, fcolumns):
-        context.add_extern("pydatatable_assemble")
+    def on_context_set(self):
+        self._rows.use_context(self.context)
+        self._select.use_context(self.context)
+
+
+    def _gen_cbody_only_data_cols(self, frowmapping, fcolumns):
+        self.context.add_extern("pydatatable_assemble")
         fn = ""
         fn += "    int64_t nrows = %s()->nrows;\n" % frowmapping
         fn += "    Column** columns = %s();\n" % fcolumns
@@ -74,8 +82,8 @@ class DatatableEvaluatorNode(Node):
         return fn
 
 
-    def _gen_cbody_dt_not_view(self, context, frowmapping, fcolumns):
-        context.add_extern("pydatatable_assemble_view")
+    def _gen_cbody_dt_not_view(self, frowmapping, fcolumns):
+        self.context.add_extern("pydatatable_assemble_view")
         return ("    RowMapping *rm = {make_rowmapping}();\n"
                 "    Column **columns = {make_columns}();\n"
                 "    return pydatatable_assemble_view"

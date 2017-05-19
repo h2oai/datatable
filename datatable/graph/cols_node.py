@@ -10,9 +10,10 @@ from datatable.utils.misc import normalize_slice
 
 
 class ColumnSetNode(Node):
+    """
+    Base class for all "column set" nodes.
+    """
 
-    def __init__(self):
-        pass
 
 
 #===============================================================================
@@ -49,19 +50,19 @@ class SliceView_CSNode(ColumnSetNode):
             end = self._start + self._count * self._step
             return self._dt.names[self._start:end:self._step]
 
-    def cget_columns(self, context):
+    def cget_columns(self):
         if not self._cname:
-            self._cname = self._gen_c(context)
+            self._cname = self._gen_c()
         return self._cname
 
 
-    def _gen_c(self, context):
-        varname = context.make_variable_name()
+    def _gen_c(self):
+        varname = self.context.make_variable_name()
         fnname = "get_" + varname
         ncols = self._count
         dt_isview = self._dt.internal.isview
-        if not context.has_function(fnname):
-            dtvar = context.get_dtvar(self._dt)
+        if not self.context.has_function(fnname):
+            dtvar = self.context.get_dtvar(self._dt)
             fn = "static Column** %s(void) {\n" % fnname
             fn += "    ViewColumn **cols = calloc(%d, sizeof(ViewColumn*));\n" \
                   % (ncols + 1)
@@ -83,7 +84,7 @@ class SliceView_CSNode(ColumnSetNode):
             fn += "    cols[%d] = NULL;\n" % ncols
             fn += "    return (Column**) cols;\n"
             fn += "}\n"
-            context.add_function(fnname, fn)
+            self.context.add_function(fnname, fn)
         return fnname
 
 

@@ -30,6 +30,7 @@ class IteratorNode(Node):
     """
 
     def __init__(self):
+        super().__init__()
         self._preamble = []
         self._mainloop = []
         self._epilogue = []
@@ -89,11 +90,10 @@ class IteratorNode(Node):
 
     #---- Node interface -------------------------------------------------------
 
-    def generate_c(self, context):
+    def generate_c(self):
         if self._fnname is not None:
             return self._fnname
-        self._context = context
-        self._pregenerate(context)
+        self._pregenerate()
         args = "int64_t row0, int64_t row1"
         if self._extraargs:
             args += ", " + self._extraargs
@@ -110,15 +110,15 @@ class IteratorNode(Node):
                              mainloop="\n        ".join(self._mainloop),
                              epilogue="\n    ".join(self._epilogue),
                              )
-        context.add_function(self._fnname, fn)
+        self.context.add_function(self._fnname, fn)
         return self._fnname
 
 
 
     #---- Private/protected ----------------------------------------------------
 
-    def _pregenerate(self, context):
-        self._fnname = context.make_variable_name("iterfn")
+    def _pregenerate(self):
+        self._fnname = self.context.make_variable_name("iterfn")
 
 
 
@@ -131,8 +131,8 @@ class FilterNode(IteratorNode):
         super().__init__()
         self._filter_expr = expr
 
-    def _pregenerate(self, context):
-        self._fnname = context.make_variable_name("filter")
+    def _pregenerate(self):
+        self._fnname = self.context.make_variable_name("filter")
         self._extraargs = "int32_t *out, int32_t *n_outs"
         v = self._filter_expr.value_or_0(inode=self)
         self.addto_preamble("int64_t j = 0;")

@@ -4,8 +4,8 @@ import types
 
 import datatable
 from datatable.expr import DatatableExpr, BaseExpr
-from datatable.graph.node import Node
-from datatable.graph.iterator_node import FilterNode
+from .node import Node
+from .iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import typed, ValueError, TypeError
@@ -24,7 +24,7 @@ class RowFilterNode(Node):
     does not fuse with any other nodes (for example with the `ColumnSetNode`).
     This is because it is not generally possible to know in advance the size
     of the rowmapping produced, which means that the output array has to be
-    over-allocated and then its chunks moves around in order to assemble the
+    over-allocated and then its chunks moved around in order to assemble the
     final rowmapping (when executing in parallel). If we were to fuse the
     creation of rowmapping with the creation of output columns, then complexity
     of the code and the memory footprint and the number of memmoves would have
@@ -38,12 +38,13 @@ class RowFilterNode(Node):
     is done in a separate step, and that step is already fusable with the
     ColumnSet production.
     """
+
     def __init__(self):
         super().__init__()
         self._cname = None
 
 
-    def cget_rowmapping(self, context):
+    def cget_rowmapping(self):
         """
         Return name of the C function that when executed creates a RowMapping.
 
@@ -56,13 +57,14 @@ class RowFilterNode(Node):
             RowMapping* cget_rowmapping(void);
         """
         if not self._cname:
-            self._cname = self._gen_c(context)
+            self._cname = self._gen_c()
         return self._cname
+
 
     #---- Private/protected ----------------------------------------------------
 
-    def _gen_c(self, context):
-        (cbody, res) = self._gen_c_body(context)
+    def _gen_c(self):
+        (cbody, res) = self._gen_c_body()
         fn = "static RowMapping* get_rowmapping(void) {\n"
         fn += "    if (rowmapping == NULL) {\n"
         fn += cbody
@@ -70,11 +72,11 @@ class RowFilterNode(Node):
         fn += "    }\n"
         fn += "    return rowmapping;\n"
         fn += "}\n"
-        context.add_global("rowmapping", "RowMapping*", "NULL")
-        context.add_function("get_rowmapping", fn)
+        self.context.add_global("rowmapping", "RowMapping*", "NULL")
+        self.context.add_function("get_rowmapping", fn)
         return "get_rowmapping"
 
-    def _gen_c_body(self, context):
+    def _gen_c_body(self):
         raise NotImplementedError
 
 
@@ -91,8 +93,8 @@ class Slice_RFNode(RowFilterNode):
         self._count = count
         self._step = step
 
-    def _gen_c_body(self, context):
-        context.add_extern("rowmapping_from_slice")
+    def _gen_c_body(self):
+        self.context.add_extern("rowmapping_from_slice")
         expr = ("rowmapping_from_slice(%d, %d, %d)"
                 % (self._start, self._count, self._step))
         return ("", expr)
@@ -107,8 +109,8 @@ class Array_RFNode(RowFilterNode):
         super().__init__()
         self._array = array
 
-    def _gen_c_body(self, context):
-        context.add_extern("rowmapping_from_pyarray")
+    def _gen_c_body(self):
+        self.context.add_extern("rowmapping_from_pyarray")
         body = "        PyObject *list = (PyObject*) %dLL;\n" % id(self._array)
         expr = "rowmapping_from_pyarray(list)"
         return (body, expr)
@@ -125,8 +127,8 @@ class MultiSlice_RFNode(RowFilterNode):
         self._counts = counts
         self._steps = steps
 
-    def _gen_c_body(self, context):
-        context.add_extern("rowmapping_from_pyslicelist")
+    def _gen_c_body(self):
+        self.context.add_extern("rowmapping_from_pyslicelist")
         body = ""
         body += "        PyObject *a = (PyObject*) %dLL;\n" % id(self._bases)
         body += "        PyObject *b = (PyObject*) %dLL;\n" % id(self._counts)
@@ -144,8 +146,8 @@ class DataColumn_RFNode(RowFilterNode):
         super().__init__()
         self._column_dt = dt
 
-    def _gen_c_body(self, context):
-        context.add_extern("rowmapping_from_datacolumn")
+    def _gen_c_body(self):
+        self.context.add_extern("rowmapping_from_datacolumn")
         dt_ptr = self._column_dt.internal.datatable_ptr
         body = "        DataTable *dt = (DataTable*) %dL;\n" % dt_ptr
         expr = "rowmapping_from_datacolumn(dt->columns[0], dt->nrows)"
@@ -162,10 +164,11 @@ class FilterExpr_RFNode(RowFilterNode):
         super().__init__()
         self._expr = expr
 
-    def _gen_c_body(self, context):
-        context.add_extern("rowmapping_from_filterfn32")
+    def _gen_c_body(self):
+        self.context.add_extern("rowmapping_from_filterfn32")
         filter_node = FilterNode(self._expr)
-        f = filter_node.generate_c(context)
+        filter_node.use_context(self.context)
+        f = filter_node.generate_c()
         nrows = filter_node.nrows
         return ("", "rowmapping_from_filterfn32(&%s, %d)" % (f, nrows))
 
