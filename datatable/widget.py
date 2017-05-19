@@ -429,7 +429,7 @@ class _Column(object):
             return
         tails = [_float_tail(x) for x in self._strdata]
         maxtail = max(tails)
-        self._strdata = [v + " " * (maxtail - tails[j])
+        self._strdata = [v if v == "nan" else v + " " * (maxtail - tails[j])
                          for j, v in enumerate(self._strdata)]
 
 
