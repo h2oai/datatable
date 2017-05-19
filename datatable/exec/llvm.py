@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 from llvmlite import binding
+from datatable.utils.terminal import term
 
 __all__ = ("inject_c_code", )
 
@@ -25,9 +26,21 @@ def inject_c_code(cc, func_names):
             else:
                 raise e
     except RuntimeError as e:
-        print("\nError while trying to compile this code:\n")
-        print(cc)
-        print()
+        mm = re.search(r"<stdin>:(\d+):(\d+):\s*(.*)", e.args[0])
+        if mm:
+            lineno = int(mm.group(1))
+            charno = int(mm.group(2))
+            lines = cc.split("\n")
+            for i in range(len(lines)):
+                print(lines[i])
+                if i == lineno - 1:
+                    print(" " * (charno - 1) +
+                          term.bold("^--- ") +
+                          term.bright_red(mm.group(3)))
+        else:
+            print("\nError while trying to compile this code:\n")
+            print(cc)
+            print()
         raise e
     return [_engine.get_function_address(f) for f in func_names]
 

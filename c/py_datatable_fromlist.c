@@ -40,7 +40,7 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
     // If the supplied list is empty, return the empty Datatable object
     int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
     if (listsize == 0) {
-        return pydt_from_dt(dt);
+        return pydt_from_dt(dt, NULL);
     }
 
     // Basic check validity of the provided data.
@@ -69,7 +69,7 @@ pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
         dt->columns[i] = TRY(column_from_list(src));
     }
 
-    return pydt_from_dt(dt);
+    return pydt_from_dt(dt, NULL);
 
   fail:
     datatable_dealloc(dt);

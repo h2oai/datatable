@@ -37,6 +37,7 @@ class IteratorNode(Node):
         self._extraargs = None
         self._keyvars = {}
         self._var_counter = 0
+        self._nrows = 1
         self._context = None
 
 
@@ -74,6 +75,16 @@ class IteratorNode(Node):
 
     def add_extern(self, name):
         self._context.add_extern(name)
+
+    def check_num_rows(self, nrows):
+        if self._nrows == 1:
+            self._nrows = nrows
+        else:
+            assert nrows == 1 or nrows == self._nrows
+
+    @property
+    def nrows(self):
+        return self._nrows
 
 
     #---- Node interface -------------------------------------------------------
@@ -122,7 +133,7 @@ class FilterNode(IteratorNode):
 
     def _pregenerate(self, context):
         self._fnname = context.make_variable_name("filter")
-        self._extraargs = "int32_t *out, int64_t *n_outs"
+        self._extraargs = "int32_t *out, int32_t *n_outs"
         v = self._filter_expr.value(inode=self)
         self.addto_preamble("int64_t j = 0;")
         self.addto_mainloop("if (%s) {" % v)

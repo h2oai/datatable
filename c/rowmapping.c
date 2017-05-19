@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <assert.h>  // assert, static_assert
 #include "rowmapping.h"
+#include "omp.h"
 #include "types.h"
 #include "utils.h"
 
@@ -489,41 +490,46 @@ RowMapping* rowmapping_from_filterfn32(
     int (*filterfn)(int64_t row0, int64_t row1, int32_t *out, int32_t *nouts),
     int64_t nrows
 ) {
-    int32_t out_allocated = 65536;  // number of int32_t elements in `out`
-    int32_t out_size = 0;
-    int32_t *out = malloc(out_allocated * sizeof(int32_t));
-    int chunk_size = 65536;
-    int num_chunks = (nrows + chunk_size - 1) / chunk_size;
+    // int32_t *out0 = malloc((size_t)nrows * sizeof(int32_t));
+    // int32_t nouts = 0;
+    // filterfn(0, nrows, out0, &nouts);
+    // out0 = realloc(out0, nouts * sizeof(int32_t));
+    // return rowmapping_from_i32_array(out0, nouts);
+
+    size_t out_length = 0;
+    int32_t *out = malloc((size_t)nrows * sizeof(int32_t));
+    int64_t rows_per_chunk = 65536;
+    int64_t num_chunks = (nrows + rows_per_chunk - 1) / rows_per_chunk;
     #pragma omp parallel
     {
-        int32_t *buf = malloc(chunk_size * sizeof(int32_t));
-        int32_t *dest = out;
-        int32_t buf_size = 0;
-        #pragma omp for ordered schedule(dynamic)
-        for (int i = 0; i <= num_chunks; i++) {
-            if (buf_size) {
-                memcpy(dest, buf, buf_size * sizeof(int32_t));
-                buf_size = 0;
+        // Intermediate buffer where each thread stores the row numbers it found
+        // before they are consolidated into the final buffer `out`.
+        int32_t *buf = malloc((size_t)rows_per_chunk * sizeof(int32_t));
+        // Number of elements that are currently being held in `buf`.
+        int32_t buf_length = 0;
+        size_t target_offset = 0;
+
+        #pragma omp for ordered schedule(dynamic, 1)
+        for (int64_t i = 0; i <= num_chunks; i++) {
+            if (buf_length) {
+                memcpy(out + target_offset, buf, (size_t)buf_length * sizeof(int32_t));
+                buf_length = 0;
             }
             if (i < num_chunks) {
-                int64_t row0 = i * chunk_size;
-                int64_t row1 = min(row0 + chunk_size, nrows);
-                filterfn(row0, row1, buf, &buf_size);
+                int64_t row0 = i * rows_per_chunk;
+                int64_t row1 = min(row0 + rows_per_chunk, nrows);
+                filterfn(row0, row1, buf, &buf_length);
             }
             #pragma omp ordered
             {
-                dest = out + out_size;
-                out_size += buf_size;
-                if (out_size > out_allocated) {
-                    double approx = (double)out_size * num_chunks/(i + 1) + 0.5;
-                    out_allocated = min(nrows, (int32_t)approx);
-                    out = realloc(out, out_allocated * sizeof(int32_t));
-                }
+                target_offset = out_length;
+                out_length += (size_t) buf_length;
             }
         }
+        free(buf);
     }
-    out = realloc(out, out_size * sizeof(int32_t));
-    return rowmapping_from_i32_array(out, out_size);
+    out = realloc(out, out_length * sizeof(int32_t));
+    return rowmapping_from_i32_array(out, (int64_t)out_length);
 }
 
 RowMapping* rowmapping_from_filterfn64(

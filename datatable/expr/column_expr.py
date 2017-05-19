@@ -20,6 +20,7 @@ class ColSelectorExpr(BaseExpr):
 
     def _value(self, key, inode):
         v = inode.make_keyvar(key, key, exact=True)
+        inode.check_num_rows(self._dtexpr.nrows)
         assert v == key
         if self._view_colid is None:
             datavar = key + "_data"

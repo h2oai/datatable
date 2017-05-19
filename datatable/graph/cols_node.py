@@ -59,20 +59,26 @@ class SliceView_CSNode(ColumnSetNode):
         varname = context.make_variable_name()
         fnname = "get_" + varname
         ncols = self._count
+        dt_isview = self._dt.internal.isview
         if not context.has_function(fnname):
+            dtvar = context.get_dtvar(self._dt)
             fn = "static Column** %s(void) {\n" % fnname
             fn += "    ViewColumn **cols = calloc(%d, sizeof(ViewColumn*));\n" \
                   % (ncols + 1)
-            fn += "    Column **srccols = dt->source->columns;\n"
+            if dt_isview:
+                fn += "    Column **srccols = {dt}->source->columns;\n" \
+                      .format(dt=dtvar)
+            else:
+                fn += "    Column **srccols = {dt}->columns;\n".format(dt=dtvar)
             fn += "    if (cols == NULL) return NULL;\n"
-            fn += "    int64_t j = %dLL;\n" % self._start
+            fn += "    int64_t j = %dL;\n" % self._start
             fn += "    for (int64_t i = 0; i < %d; i++) {\n" % ncols
             fn += "        cols[i] = malloc(sizeof(ViewColumn));\n"
             fn += "        if (cols[i] == NULL) return NULL;\n"
             fn += "        cols[i]->srcindex = j;\n"
             fn += "        cols[i]->mtype = MT_VIEW;\n"
             fn += "        cols[i]->stype = srccols[j]->stype;\n"
-            fn += "        j += %dLL;\n" % self._step
+            fn += "        j += %dL;\n" % self._step
             fn += "    }\n"
             fn += "    cols[%d] = NULL;\n" % ncols
             fn += "    return (Column**) cols;\n"

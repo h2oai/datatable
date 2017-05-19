@@ -195,18 +195,30 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 }
 
 
-DataTable_PyObject* pydt_from_dt(DataTable *dt)
+DataTable_PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src)
 {
+    if (dt == NULL) return NULL;
     DataTable_PyObject *pydt = DataTable_PyNew();
     if (pydt == NULL) return NULL;
-    if (dt->source != NULL) {
+    if (dt->source != NULL && src == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot wrap a view datatable");
         return NULL;
     }
 
     pydt->ref = dt;
-    pydt->source = NULL;
+    pydt->source = src;
     return pydt;
+}
+
+DataTable_PyObject* pydatatable_assemble(int64_t nrows, Column **cols)
+{
+    return pydt_from_dt(datatable_assemble(nrows, cols), NULL);
+}
+
+DataTable_PyObject*
+pydatatable_assemble_view(DataTable_PyObject *src, RowMapping *rm, Column **cols)
+{
+    return pydt_from_dt(datatable_assemble_view(src->ref, rm, cols), src);
 }
 
 

@@ -428,15 +428,15 @@ extern const uint64_t NA_U8;
 extern       float    NA_F4;
 extern       double   NA_F8;
 
-inline int ISNA_F4(float x);
-inline int ISNA_F8(double x);
-inline int ISNA_I1(int8_t x);
-inline int ISNA_I2(int16_t x);
-inline int ISNA_I4(int32_t x);
-inline int ISNA_I8(int64_t x);
-inline int ISNA_U1(uint8_t x);
-inline int ISNA_U2(uint16_t x);
-inline int ISNA_U4(uint32_t x);
+int ISNA_F4(float x);
+int ISNA_F8(double x);
+int ISNA_I1(int8_t x);
+int ISNA_I2(int16_t x);
+int ISNA_I4(int32_t x);
+int ISNA_I8(int64_t x);
+int ISNA_U1(uint8_t x);
+int ISNA_U2(uint16_t x);
+int ISNA_U4(uint32_t x);
 
 
 

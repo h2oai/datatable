@@ -17,6 +17,8 @@ PyMODINIT_FUNC PyInit__datatable(void);
 
 // where should this be moved?
 PyObject *dt_from_memmap(PyObject *self, PyObject *args);
+PyObject* exec_function(PyObject *self, PyObject *args);
+
 
 PyObject *dt_from_memmap(PyObject *self, PyObject *args)
 {
@@ -114,6 +116,16 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
     return (PyObject*)pydt;
 }
 
+PyObject* exec_function(PyObject *self, PyObject *args)
+{
+    void *fnptr;
+    PyObject *fnargs = NULL;
+
+    if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
+        return NULL;
+
+    return ((PyCFunction) fnptr)(self, fnargs);
+}
 
 
 //------------------------------------------------------------------------------
@@ -144,6 +156,8 @@ static PyMethodDef DatatableModuleMethods[] = {
         "Load DataTable from the pdt files"},
     {"write_column_to_file", (PyCFunction)write_column_to_file, METH_VARARGS,
         "Write a single Column to a file on disk"},
+    {"exec_function", (PyCFunction)exec_function, METH_VARARGS,
+        "Execute a PyCFunction passed as a pointer"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };

@@ -26,9 +26,9 @@ class BinaryOpExpr(BaseExpr):
             self.scale = max(lhs.scale, rhs.scale)
 
 
-    def _isna(self, block):
-        lhs_isna = self.lhs.isna(block)
-        rhs_isna = self.rhs.isna(block)
+    def _isna(self, key, inode):
+        lhs_isna = self.lhs.isna(inode)
+        rhs_isna = self.rhs.isna(inode)
         if lhs_isna is True or rhs_isna is True:
             return True
         conditions = []
@@ -37,18 +37,18 @@ class BinaryOpExpr(BaseExpr):
         if rhs_isna is not False:
             conditions.append(rhs_isna)
         if self.op in division_ops:
-            conditions.append("(%s == 0)" % self.rhs.notna(block))
+            conditions.append("(%s == 0)" % self.rhs.notna(inode))
         if not conditions:
             return False
-        isna = block.make_variable("isna")
+        isna = inode.make_keyvar(key, "isna")
         expr = "int %s = %s;" % (isna, " | ".join(conditions))
-        block.add_mainloop_expr(expr)
+        inode.addto_mainloop(expr)
         return isna
 
 
-    def _notna(self, block):
-        lhs = self.lhs.notna(block)
-        rhs = self.rhs.notna(block)
+    def _notna(self, key, inode):
+        lhs = self.lhs.notna(inode)
+        rhs = self.rhs.notna(inode)
         return "(%s %s %s)" % (lhs, self.op, rhs)
 
 

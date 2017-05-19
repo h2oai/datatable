@@ -50,9 +50,11 @@ extern PyTypeObject DataTable_PyType;
 int dt_from_pydt(PyObject *object, void *address);
 DataTable_PyObject* pyDataTable_from_list_of_lists(PyTypeObject *type,
                                                    PyObject *args);
-DataTable_PyObject* pydt_from_dt(DataTable *dt);
+DataTable_PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src);
 PyObject* write_column_to_file(PyObject *self, PyObject *args);
-
+DataTable_PyObject* pydatatable_assemble(int64_t nrows, Column **cols);
+DataTable_PyObject* pydatatable_assemble_view(DataTable_PyObject *src, RowMapping *rm,
+                                              Column **cols);
 int init_py_datatable(PyObject *module);
 
 #endif

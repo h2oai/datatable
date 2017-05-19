@@ -164,10 +164,11 @@ class FilterExpr_RFNode(RowFilterNode):
         self._expr = expr
 
     def _gen_c_body(self, context):
-        context.add_extern("rowmapping_from_filterfn")
+        context.add_extern("rowmapping_from_filterfn32")
         filter_node = FilterNode(self._expr)
         f = filter_node.generate_c(context)
-        return ("", "rowmapping_from_filterfn(%s)" % f)
+        nrows = filter_node.nrows
+        return ("", "rowmapping_from_filterfn32(&%s, %d)" % (f, nrows))
 
 
 

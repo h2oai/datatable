@@ -41,15 +41,14 @@ class DatatableEvaluatorNode(Node):
     def execute(self):
         context = EvaluationContext()
         dtgetter = self.cget_datatable(context)
-        context.execute()
-        print("// dtgetter = %r" % dtgetter)
+        return context.execute(dtgetter)
 
 
     def cget_datatable(self, context):
         rowmapping = self._rows.cget_rowmapping(context)
         columns = self._select.cget_columns(context)
         fnname = context.make_variable_name("get_datatable")
-        fn = "DataTable* %s(void) {\n" % fnname
+        fn = "PyObject* %s(void) {\n" % fnname
         fn += "    init();\n"
 
         if self._select.n_view_columns == 0:
@@ -67,20 +66,20 @@ class DatatableEvaluatorNode(Node):
 
 
     def _gen_cbody_only_data_cols(self, context, frowmapping, fcolumns):
-        context.add_extern("datatable_assemble")
+        context.add_extern("pydatatable_assemble")
         fn = ""
         fn += "    int64_t nrows = %s()->nrows;\n" % frowmapping
         fn += "    Column** columns = %s();\n" % fcolumns
-        fn += "    return datatable_assemble(nrows, columns);\n"
+        fn += "    return pydatatable_assemble(nrows, columns);\n"
         return fn
 
 
     def _gen_cbody_dt_not_view(self, context, frowmapping, fcolumns):
-        context.add_extern("datatable_assemble_view")
-        dtptr = self._dt.internal.datatable_ptr
-        fn = ""
-        fn += "    DataTable *src = (DataTable*) %dULL;\n" % dtptr
-        fn += "    RowMapping *rm = %s();\n" % frowmapping
-        fn += "    Column **columns = %s();\n" % fcolumns
-        fn += "    return datatable_assemble_view(src, rm, columns);\n"
-        return fn
+        context.add_extern("pydatatable_assemble_view")
+        return ("    RowMapping *rm = {make_rowmapping}();\n"
+                "    Column **columns = {make_columns}();\n"
+                "    return pydatatable_assemble_view"
+                "((DataTable_PyObject*){dtptr}, rm, columns);\n"
+                .format(dtptr=id(self._dt.internal),
+                        make_rowmapping=frowmapping,
+                        make_columns=fcolumns))
