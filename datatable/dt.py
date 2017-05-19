@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
+import time
 import types
 from typing import Dict, Tuple
 
@@ -191,8 +192,7 @@ class DataTable(object):
     # Main processor function
     #---------------------------------------------------------------------------
 
-    # @timeit
-    def __call__(self, rows=None, select=None, verbose=False
+    def __call__(self, rows=None, select=None, verbose=False, timeit=False
                  #update=None, groupby=None, join=None, sort=None, limit=None
                  ):
         """
@@ -341,14 +341,19 @@ class DataTable(object):
             the ``select`` clause. This can also be a slice, which effectively
             applies that slice to the resulting datatable.
         """
+        if timeit:
+            time0 = time.time()
         if select is None:
             select = Ellipsis
+
         dtnode = DatatableEvaluatorNode(
             self,
             rows=make_rowfilter(rows, dt=self),
             select=make_columnset(select, dt=self),
         )
         res = dtnode.execute(verbose=verbose)
+        if timeit:
+            print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
 
 
