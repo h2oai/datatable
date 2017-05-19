@@ -124,9 +124,10 @@ RowMapping* rowmapping_from_slice(int64_t start, int64_t count, int64_t step)
 
 /**
  * Construct an "array" `RowMapping` object from a series of triples
- * `(start, count, step)`. The triples are given as 3 separate arrays.
+ * `(start, count, step)`. The triples are given as 3 separate arrays of starts,
+ * of counts and of steps.
  *
- * This will create either a RM_ARR32 or RM_ARR64 object, depending on which
+ * This will create either an RM_ARR32 or RM_ARR64 object, depending on which
  * one is sufficient to hold all the indices.
  */
 RowMapping* rowmapping_from_slicelist(
@@ -175,7 +176,6 @@ RowMapping* rowmapping_from_slicelist(
     if (count <= INT32_MAX && maxidx <= INT32_MAX) {
         CREATE_ROWMAPPING(32)
     } else {
-        assert(_64BIT_);
         CREATE_ROWMAPPING(64)
     }
 
@@ -479,40 +479,82 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
 
 
 /**
- * Construct a `RowMapping` object using an external filter function. This
- * filter function takes a range of rows `row0:row1` and an output buffer,
- * and writes the indices of the selected rows into that buffer. The
- * `rowmapping_from_filterfn` function then handles assemnling that output
- * into final RowMapping structure, as well as distributing the work load
- * among multiple threads.
+ * Construct a `RowMapping` object using an external filter function. The
+ * provided filter function is expected to take a range of rows `row0:row1` and
+ * an output buffer, and writes the indices of the selected rows into that
+ * buffer. This function then handles assembling that output into a
+ * final RowMapping structure, as well as distributing the work load among
+ * multiple threads.
+ *
+ * @param filterfn
+ *     Pointer to the filter function with the signature `(row0, row1, out,
+ *     nouts) -> int`. The filter function has to determine which rows in the
+ *     range `row0:row1` are to be included, and write their indices into the
+ *     array `out`. It should also store in the variable `nouts` the number of
+ *     rows selected.
+ *
+ * @param nrows
+ *     Number of rows in the datatable that is being filtered.
  */
 RowMapping* rowmapping_from_filterfn32(
     int (*filterfn)(int64_t row0, int64_t row1, int32_t *out, int32_t *nouts),
     int64_t nrows
 ) {
-    size_t out_length = 0;
+    // Output buffer, where we will write the indices of selected rows. This
+    // buffer is preallocated to the length of the original dataset, and it will
+    // be re-alloced to the proper length in the end. The reason we don't want
+    // to scale this array dynamically is because it reduces performance (at
+    // least some of the reallocs will have to memmove the data, and moreover
+    // the realloc has to occur within a critical section, slowing down the
+    // team of threads).
     int32_t *out = malloc((size_t)nrows * sizeof(int32_t));
+    // Number of elements that were written (or tentatively written) into the
+    // array `out`.
+    size_t out_length = 0;
+    // We divide the range of rows 0:nrows into `num_chunks` pieces, each
+    // (except the very last one) having `rows_per_chunk` rows. Each such piece
+    // is a fundamental unit of work for this function: every thread in the team
+    // works on a single chunk at a time, and then moves on to the next chunk
+    // in the queue.
     int64_t rows_per_chunk = 65536;
     int64_t num_chunks = (nrows + rows_per_chunk - 1) / rows_per_chunk;
+
     #pragma omp parallel
     {
         // Intermediate buffer where each thread stores the row numbers it found
-        // before they are consolidated into the final buffer `out`.
+        // before they are consolidated into the final output buffer.
         int32_t *buf = malloc((size_t)rows_per_chunk * sizeof(int32_t));
         // Number of elements that are currently being held in `buf`.
         int32_t buf_length = 0;
+        // Offset (within the output buffer) where this thread needs to save the
+        // contents of its temporary buffer `buf`.
+        // The algorithm works as follows: first, the thread calls `filterfn` to
+        // fill up its buffer `buf`. After `filterfn` finishes, the variable
+        // `buf_length` will contain the number of rows that were selected from
+        // the current (`i`th) chunk. Those row numbers are stored in `buf`.
+        // Then the thread enters the "ordered" section, where it stores the
+        // current length of the output buffer into the `out_offset` variable,
+        // and increases the `out_offset` as if it already copied the result
+        // there. However the actual copying is done outside the "ordered"
+        // section so as to block all other threads as little as possible.
         size_t out_offset = 0;
 
         #pragma omp for ordered schedule(dynamic, 1)
         for (int64_t i = 0; i < num_chunks; i++) {
             if (buf_length) {
+                // This clause is conceptually located after the "ordered"
+                // section -- however due to a bug in libgOMP the "ordered"
+                // section must come last in the loop. So in order to circumvent
+                // the bug, this block had to be moved to the front of the loop.
                 size_t bufsize = (size_t)buf_length * sizeof(int32_t);
                 memcpy(out + out_offset, buf, bufsize);
                 buf_length = 0;
             }
+
             int64_t row0 = i * rows_per_chunk;
             int64_t row1 = min(row0 + rows_per_chunk, nrows);
-            filterfn(row0, row1, buf, &buf_length);
+            (*filterfn)(row0, row1, buf, &buf_length);
+
             #pragma omp ordered
             {
                 out_offset = out_length;
@@ -525,16 +567,26 @@ RowMapping* rowmapping_from_filterfn32(
             size_t bufsize = (size_t)buf_length * sizeof(int32_t);
             memcpy(out + out_offset, buf, bufsize);
         }
+        // End of #pragma omp parallel: clean up any temporary variables.
         free(buf);
     }
+
+    // In the end we shrink the outpupt buffer to the size corresponding to the
+    // actual number of elements written.
     out = realloc(out, out_length * sizeof(int32_t));
+
+    // Create and return the final rowmapping object from the array of int32
+    // indices `out`.
     return rowmapping_from_i32_array(out, (int64_t)out_length);
 }
+
+
 
 RowMapping* rowmapping_from_filterfn64(
     int (*filterfn)(int64_t row0, int64_t row1, int64_t *out, int32_t *nouts),
     int64_t nrows
 ) { return NULL; }
+
 
 
 /**
