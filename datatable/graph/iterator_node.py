@@ -134,7 +134,7 @@ class FilterNode(IteratorNode):
     def _pregenerate(self, context):
         self._fnname = context.make_variable_name("filter")
         self._extraargs = "int32_t *out, int32_t *n_outs"
-        v = self._filter_expr.value(inode=self)
+        v = self._filter_expr.value_or_0(inode=self)
         self.addto_preamble("int64_t j = 0;")
         self.addto_mainloop("if (%s) {" % v)
         self.addto_mainloop("    out[j++] = i;")

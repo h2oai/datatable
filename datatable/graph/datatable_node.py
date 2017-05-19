@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
+import datatable
 from .node import Node
 from .context import EvaluationContext
 from .rows_node import RowFilterNode
@@ -38,10 +39,12 @@ class DatatableEvaluatorNode(Node):
         self._select = select
 
 
-    def execute(self):
+    def execute(self, verbose=False):
         context = EvaluationContext()
         dtgetter = self.cget_datatable(context)
-        return context.execute(dtgetter)
+        _dt = context.execute(dtgetter, verbose=verbose)
+        return datatable.DataTable(_dt, colnames=self._select.column_names)
+
 
 
     def cget_datatable(self, context):
@@ -59,9 +62,6 @@ class DatatableEvaluatorNode(Node):
 
         fn += "}\n"
         context.add_function(fnname, fn)
-        print("// rowmapping = %r" % rowmapping)
-        print("// columns = %r" % columns)
-        print("// n_view_columns = %r" % self._select.n_view_columns)
         return fnname
 
 

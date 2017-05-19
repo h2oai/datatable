@@ -311,7 +311,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                     "while %lld elements were expected\n", n_allocd, nrows);
                 return DTCK_ERRORS_FOUND;
             }
-            int32_t max = nrows < INT32_MAX? (int32_t) nrows - 1 : INT32_MAX;
+            int32_t max = src_nrows < INT32_MAX? (int32_t) src_nrows - 1
+                                               : INT32_MAX;
             for (int32_t i = 0; i < nrows; i++) {
                 if (rmdata[i] < 0 || rmdata[i] > max) {
                     ERR("Rowmapping[%d] = %d is invalid\n", i, rmdata[i]);

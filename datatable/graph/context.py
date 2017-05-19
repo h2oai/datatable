@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-import datatable
 import _datatable
 from datatable.exec.llvm import inject_c_code
 
@@ -32,8 +31,7 @@ class EvaluationContext(object):
             print(cc)
             print("-" * 80)
         assert len(ptrs) == 1
-        _dt = _datatable.exec_function(ptrs[0])
-        return datatable.DataTable(_dt)
+        return _datatable.exec_function(ptrs[0])
 
 
     @property

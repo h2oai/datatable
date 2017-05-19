@@ -490,12 +490,6 @@ RowMapping* rowmapping_from_filterfn32(
     int (*filterfn)(int64_t row0, int64_t row1, int32_t *out, int32_t *nouts),
     int64_t nrows
 ) {
-    // int32_t *out0 = malloc((size_t)nrows * sizeof(int32_t));
-    // int32_t nouts = 0;
-    // filterfn(0, nrows, out0, &nouts);
-    // out0 = realloc(out0, nouts * sizeof(int32_t));
-    // return rowmapping_from_i32_array(out0, nouts);
-
     size_t out_length = 0;
     int32_t *out = malloc((size_t)nrows * sizeof(int32_t));
     int64_t rows_per_chunk = 65536;
@@ -507,24 +501,29 @@ RowMapping* rowmapping_from_filterfn32(
         int32_t *buf = malloc((size_t)rows_per_chunk * sizeof(int32_t));
         // Number of elements that are currently being held in `buf`.
         int32_t buf_length = 0;
-        size_t target_offset = 0;
+        size_t out_offset = 0;
 
         #pragma omp for ordered schedule(dynamic, 1)
-        for (int64_t i = 0; i <= num_chunks; i++) {
+        for (int64_t i = 0; i < num_chunks; i++) {
             if (buf_length) {
-                memcpy(out + target_offset, buf, (size_t)buf_length * sizeof(int32_t));
+                size_t bufsize = (size_t)buf_length * sizeof(int32_t);
+                memcpy(out + out_offset, buf, bufsize);
                 buf_length = 0;
             }
-            if (i < num_chunks) {
-                int64_t row0 = i * rows_per_chunk;
-                int64_t row1 = min(row0 + rows_per_chunk, nrows);
-                filterfn(row0, row1, buf, &buf_length);
-            }
+            int64_t row0 = i * rows_per_chunk;
+            int64_t row1 = min(row0 + rows_per_chunk, nrows);
+            filterfn(row0, row1, buf, &buf_length);
             #pragma omp ordered
             {
-                target_offset = out_length;
+                out_offset = out_length;
                 out_length += (size_t) buf_length;
             }
+        }
+        // Note: if the underlying array is small, then some threads may have
+        // done nothing at all, and their buffers would be empty.
+        if (buf_length) {
+            size_t bufsize = (size_t)buf_length * sizeof(int32_t);
+            memcpy(out + out_offset, buf, bufsize);
         }
         free(buf);
     }

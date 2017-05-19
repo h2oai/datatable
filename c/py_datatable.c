@@ -204,6 +204,7 @@ DataTable_PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src)
         PyErr_SetString(PyExc_RuntimeError, "Cannot wrap a view datatable");
         return NULL;
     }
+    Py_XINCREF(src);
 
     pydt->ref = dt;
     pydt->source = src;
@@ -287,7 +288,7 @@ verify_integrity(DataTable_PyObject *self, PyObject *args)
     DataTable *dt = self->ref;
     _Bool fix = 0;
 
-    if (!PyArg_ParseTuple(args, "b", &fix))
+    if (!PyArg_ParseTuple(args, "|b", &fix))
         return NULL;
 
     char *errors;

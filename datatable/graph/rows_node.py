@@ -146,9 +146,8 @@ class DataColumn_RFNode(RowFilterNode):
 
     def _gen_c_body(self, context):
         context.add_extern("rowmapping_from_datacolumn")
-        dt_ptr = id(self._column_dt.internal)
-        body = "        DataTable *dt = ((DataTable_PyObject*) %dLL)->ref;\n" \
-               % dt_ptr
+        dt_ptr = self._column_dt.internal.datatable_ptr
+        body = "        DataTable *dt = (DataTable*) %dL;\n" % dt_ptr
         expr = "rowmapping_from_datacolumn(dt->columns[0], dt->nrows)"
         return (body, expr)
 
@@ -253,8 +252,6 @@ def make_rowfilter(rows, dt, _nested=False):
         if not counts:
             if len(bases) == 1:
                 return Slice_RFNode(bases[0], 1, 1)
-            elif len(bases) == 2:
-                return Slice_RFNode(bases[0], 2, bases[1] - bases[0])
             else:
                 return Array_RFNode(bases)
         elif len(bases) == 1:

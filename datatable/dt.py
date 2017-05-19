@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
-import time
 import types
 from typing import Dict, Tuple
 
@@ -9,9 +8,7 @@ from typing import Dict, Tuple
 import _datatable as c
 from .widget import DataFrameWidget
 
-from datatable.exec import EvaluationModule
-from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
-from datatable.utils.misc import normalize_slice, normalize_range, timeit
+from datatable.utils.misc import timeit
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
 from datatable.graph import (DatatableEvaluatorNode, make_rowfilter,
@@ -194,7 +191,7 @@ class DataTable(object):
     # Main processor function
     #---------------------------------------------------------------------------
 
-    @timeit
+    # @timeit
     def __call__(self, rows=None, select=None, verbose=False
                  #update=None, groupby=None, join=None, sort=None, limit=None
                  ):
@@ -344,16 +341,14 @@ class DataTable(object):
             the ``select`` clause. This can also be a slice, which effectively
             applies that slice to the resulting datatable.
         """
-        t0 = time.time()
         if select is None:
             select = Ellipsis
         dtnode = DatatableEvaluatorNode(
             self,
-            rows=make_rowfilter(rows, self),
-            select=make_columnset(select, self),
+            rows=make_rowfilter(rows, dt=self),
+            select=make_columnset(select, dt=self),
         )
-        res = dtnode.execute()
-        print("Time taken = %.3fs" % (time.time() - t0))
+        res = dtnode.execute(verbose=verbose)
         return res
 
 

@@ -154,16 +154,23 @@ def make_columnset(cols, dt, _nested=False):
                     if col1 <= col0:
                         col1 -= 2
                         step = -1
-                    for i in range(col0, col1, step):
-                        out.append((i, dt._names[i]))
+                    if len(cols) == 1:
+                        count = (col1 - col0) / step
+                        return SliceView_CSNode(dt, col0, count, step)
+                    else:
+                        for i in range(col0, col1, step):
+                            out.append((i, dt._names[i]))
                 else:
                     if not all(x is None or isinstance(x, int)
                                for x in (start, stop, step)):
                         raise ValueError("%r is not integer-valued" % col)
                     col0, count, step = normalize_slice(col, ncols)
-                    for i in range(count):
-                        j = col0 + i * step
-                        out.append((j, dt._names[j]))
+                    if len(cols) == 1:
+                        return SliceView_CSNode(dt, col0, count, step)
+                    else:
+                        for i in range(count):
+                            j = col0 + i * step
+                            out.append((j, dt._names[j]))
 
             elif isinstance(col, BaseExpr):
                 out.append((col, str(col)))
@@ -173,7 +180,6 @@ def make_columnset(cols, dt, _nested=False):
     if isinstance(cols, types.FunctionType) and not _nested:
         dtexpr = DatatableExpr(dt)
         res = cols(dtexpr)
-        return dt._cols_selector(res, True)
+        return make_columnset(res, dt, nested=True)
 
     raise ValueError("Unknown `select` argument: %r" % cols)
-
