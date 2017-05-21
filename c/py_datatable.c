@@ -219,6 +219,7 @@ DataTable_PyObject* pydatatable_assemble(int64_t nrows, Column **cols)
 DataTable_PyObject*
 pydatatable_assemble_view(DataTable_PyObject *src, RowMapping *rm, Column **cols)
 {
+    if (src == NULL) return NULL;
     return pydt_from_dt(datatable_assemble_view(src->ref, rm, cols), src);
 }
 

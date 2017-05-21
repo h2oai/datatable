@@ -9,6 +9,8 @@ from datatable.utils.misc import normalize_slice
 
 
 
+#===============================================================================
+
 class ColumnSetNode(Node):
     """
     Base class for nodes that create columns of a datatable.
@@ -18,6 +20,25 @@ class ColumnSetNode(Node):
     constructs and returns a ``Column**`` array of columns.
     """
 
+    def __init__(self, dt):
+        super().__init__()
+        self._dt = dt
+        self._cname = None
+        self._n_columns = 0
+        self._n_view_columns = 0
+
+    @property
+    def dt(self):  # is this used anywhere?
+        return self._dt
+
+    @property
+    def n_columns(self):
+        return self._n_columns
+
+    @property
+    def n_view_columns(self):
+        return self._n_view_columns
+
 
 
 #===============================================================================
@@ -25,33 +46,19 @@ class ColumnSetNode(Node):
 class SliceView_CSNode(ColumnSetNode):
 
     def __init__(self, dt, start, count, step):
-        super().__init__()
-        self._dt = dt
+        super().__init__(dt)
         self._start = start
-        self._count = count
         self._step = step
-        self._cname = ""
-
-    @property
-    def dt(self):
-        return self._dt
-
-    @property
-    def n_columns(self):
-        return self._count
-
-    @property
-    def n_view_columns(self):
-        # All columns are view columns
-        return self._count
+        self._n_columns = count
+        self._n_view_columns = count  # All columns are view columns
 
     @property
     def column_names(self):
         if self._step == 0:
             s = self._dt.names[self._start]
-            return tuple([s] * self._count)
+            return tuple([s] * self._n_columns)
         else:
-            end = self._start + self._count * self._step
+            end = self._start + self._n_columns * self._step
             return self._dt.names[self._start:end:self._step]
 
     def cget_columns(self):
@@ -72,7 +79,7 @@ class SliceView_CSNode(ColumnSetNode):
     def _gen_c(self):
         varname = self.context.make_variable_name()
         fnname = "get_" + varname
-        ncols = self._count
+        ncols = self._n_columns
         dt_isview = self._dt.internal.isview
         if not self.context.has_function(fnname):
             dtvar = self.context.get_dtvar(self._dt)
@@ -104,96 +111,108 @@ class SliceView_CSNode(ColumnSetNode):
 
 #===============================================================================
 
+class Mixed_CSNode(ColumnSetNode):
+
+    def __init__(self, dt, elems):
+        super().__init__(dt)
+        self._elems = elems
+        self._n_columns = len(elems)
+        self._n_view_columns = sum(isinstance(x, int) for x in elems)
+
+
+
+
+
+#===============================================================================
+
 def make_columnset(cols, dt, _nested=False):
     if cols is Ellipsis:
         return SliceView_CSNode(dt, 0, dt.ncols, 1)
 
     if isinstance(cols, (int, str, slice, BaseExpr)):
-        cols = [cols]
+        # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
+        pcol = process_column(cols, dt)
+        if isinstance(pcol, int):
+            return SliceView_CSNode(dt, pcol, 1, 1)
+        elif isinstance(pcol, tuple):
+            return SliceView_CSNode(dt, *pcol)
+        else:
+            assert isinstance(pcol, BaseExpr)
+            return Mixed_CSNode(dt, [pcol])
 
     if isinstance(cols, (list, tuple)):
-        ncols = dt._ncols
         out = []
         for col in cols:
-            if isinstance(col, int):
-                if -ncols <= col < ncols:
-                    if col < 0:
-                        col += ncols
-                    out.append((col, dt._names[col]))
-                else:
-                    n_columns = plural(ncols, "column")
-                    raise ValueError(
-                        "datatable has %s; column number %d is invalid"
-                        % (n_columns, col))
-            elif isinstance(col, str):
-                if col in dt._inames:
-                    out.append((dt._inames[col], col))
-                else:
-                    raise ValueError(
-                        "Column %r not found in the datatable" % col)
-            elif isinstance(col, slice):
-                start = col.start
-                stop = col.stop
-                step = col.step
-                if isinstance(start, str) or isinstance(stop, str):
-                    if start is None:
-                        col0 = 0
-                    elif isinstance(start, str):
-                        if start in dt._inames:
-                            col0 = dt._inames[start]
-                        else:
-                            raise ValueError(
-                                "Column name %r not found in the datatable"
-                                % start)
-                    else:
-                        raise ValueError(
-                            "The slice should start with a column name: %s"
-                            % col)
-                    if stop is None:
-                        col1 = ncols
-                    elif isinstance(stop, str):
-                        if stop in dt._inames:
-                            col1 = dt._inames[stop] + 1
-                        else:
-                            raise ValueError("Column name %r not found in "
-                                             "the datatable" % stop)
-                    else:
-                        raise ValueError("The slice should end with a "
-                                         "column name: %r" % col)
-                    if step is None or step == 1:
-                        step = 1
-                    else:
-                        raise ValueError("Column name slices cannot use "
-                                         "strides: %r" % col)
-                    if col1 <= col0:
-                        col1 -= 2
-                        step = -1
-                    if len(cols) == 1:
-                        count = (col1 - col0) / step
-                        return SliceView_CSNode(dt, col0, count, step)
-                    else:
-                        for i in range(col0, col1, step):
-                            out.append((i, dt._names[i]))
-                else:
-                    if not all(x is None or isinstance(x, int)
-                               for x in (start, stop, step)):
-                        raise ValueError("%r is not integer-valued" % col)
-                    col0, count, step = normalize_slice(col, ncols)
-                    if len(cols) == 1:
-                        return SliceView_CSNode(dt, col0, count, step)
-                    else:
-                        for i in range(count):
-                            j = col0 + i * step
-                            out.append((j, dt._names[j]))
-
-            elif isinstance(col, BaseExpr):
-                out.append((col, str(col)))
-
+            pcol = process_column(col, dt)
+            if isinstance(pcol, int):
+                out.append((pcol, dt.names[pcol]))
+            elif isinstance(pcol, tuple):
+                start, count, step = pcol
+                for i in range(count):
+                    j = start + i * step
+                    out.append((j, dt.names[j]))
+            else:
+                out.append((pcol, str(col)))
         return out
 
     if isinstance(cols, types.FunctionType) and not _nested:
-        dtexpr = DatatableExpr(dt)
-        res = cols(dtexpr)
+        res = cols(DatatableExpr(dt))
         return make_columnset(res, dt, nested=True)
 
     raise ValueError("Unknown `select` argument: %r" % cols)
+
+
+
+def process_column(col, dt):
+    """
+    Helper function to verify the validity of a single column selector.
+
+    Given datatable `dt` and a column description `col`, this function returns:
+      * either the numeric index of the column
+      * a numeric slice, as a triple (start, count, step)
+      * or a `BaseExpr` object
+    """
+    if isinstance(col, int):
+        ncols = dt.ncols
+        if -ncols <= col < ncols:
+            return col % ncols
+        else:
+            raise ValueError("Column index {col} is invalid for a datatable "
+                             "with {ncolumns}"
+                             .format(col=col, ncolumns=plural(ncols, "column")))
+
+    if isinstance(col, str):
+        # This raises an exception if `col` cannot be found in the datatable
+        return dt.colindex(col)
+
+    if isinstance(col, slice):
+        start = col.start
+        stop = col.stop
+        step = col.step
+        if isinstance(start, str) or isinstance(stop, str):
+            col0 = None
+            col1 = None
+            if start is None:
+                col0 = 0
+            elif isinstance(start, str):
+                col0 = dt.colindex(start)
+            if stop is None:
+                col1 = dt.ncols - 1
+            elif isinstance(stop, str):
+                col1 = dt.colindex(stop)
+            if col0 is None or col1 is None:
+                raise ValueError("Slice %r is invalid: cannot mix numeric and "
+                                 "string column names" % col)
+            if step is not None:
+                raise ValueError("Column name slices cannot use "
+                                 "strides: %r" % col)
+            return (col0, abs(col1 - col0) + 1, 1 if col1 >= col0 else -1)
+        elif all(x is None or isinstance(x, int) for x in (start, stop, step)):
+            return normalize_slice(col, dt.ncols)
+        else:
+            raise ValueError("%r is not integer-valued" % col)
+
+    if isinstance(col, BaseExpr):
+        return col
+
+    raise TypeError("Unknown column format: %r" % col)

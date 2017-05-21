@@ -2,7 +2,8 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 import datatable
-from .consts import ctypes_map, nas_map
+from .consts import ctypes_map, itypes_map, nas_map
+
 
 
 
@@ -67,6 +68,14 @@ class BaseExpr(object):
         part of the data.
         """
         return ctypes_map[self._stype]
+
+
+    @property
+    def itype(self):
+        """
+        SType of the element, expressed as an integer (same as ST_* constants).
+        """
+        return itypes_map[self._stype]
 
 
 
