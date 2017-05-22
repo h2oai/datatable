@@ -40,6 +40,7 @@ class IteratorNode(Node):
         self._var_counter = 0
         self._nrows = 1
         self._context = None
+        self._loopvar = "i"
 
 
 
@@ -93,19 +94,20 @@ class IteratorNode(Node):
     def generate_c(self):
         if self._fnname is not None:
             return self._fnname
-        self._pregenerate()
+        self._prepare()
         args = "int64_t row0, int64_t row1"
         if self._extraargs:
             args += ", " + self._extraargs
         fn = ("static int {func}({args}) {{\n"
               "    {preamble}\n"
-              "    for (int64_t i = row0; i < row1; i++) {{\n"
+              "    for (int64_t {i} = row0; {i} < row1; {i}++) {{\n"
               "        {mainloop}\n"
               "    }}\n"
               "    {epilogue}\n"
               "    return 0;\n"
               "}}\n").format(func=self._fnname,
                              args=args,
+                             i=self._loopvar,
                              preamble="\n    ".join(self._preamble),
                              mainloop="\n        ".join(self._mainloop),
                              epilogue="\n    ".join(self._epilogue),
@@ -117,7 +119,7 @@ class IteratorNode(Node):
 
     #---- Private/protected ----------------------------------------------------
 
-    def _pregenerate(self):
+    def _prepare(self):
         self._fnname = self.context.make_variable_name("iterfn")
 
 
@@ -131,7 +133,7 @@ class FilterNode(IteratorNode):
         super().__init__()
         self._filter_expr = expr
 
-    def _pregenerate(self):
+    def _prepare(self):
         self._fnname = self.context.make_variable_name("filter")
         self._extraargs = "int32_t *out, int32_t *n_outs"
         v = self._filter_expr.value_or_0(inode=self)
@@ -140,3 +142,27 @@ class FilterNode(IteratorNode):
         self.addto_mainloop("    out[j++] = i;")
         self.addto_mainloop("}")
         self.addto_epilogue("*n_outs = j;")
+
+
+class MapNode(IteratorNode):
+
+    def __init__(self, exprs, rowmapping):
+        super().__init__()
+        self._exprs = exprs
+        self._rowmapping = rowmapping
+
+    def add_expression(self, expr):
+        self._exprs.append(expr)
+
+    def _prepare(self):
+        self._fnname = self.context.make_variable_name("map")
+        self._extraargs = "void **out"
+        self._loopvar = "i0"
+        self.addto_mainloop("int64_t i = i0;\n")
+        for i, expr in enumerate(self._exprs):
+            ctype = expr.ctype
+            value = expr.value(inode=self)
+            self.addto_preamble("{ctype} *out{i} = ({ctype}*) (out[{i}]);\n"
+                                .format(ctype=ctype, i=i))
+            self.addto_mainloop("out{i}[i0] = {value};\n"
+                                .format(i=i, value=value))

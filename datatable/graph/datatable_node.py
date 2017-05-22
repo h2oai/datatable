@@ -44,14 +44,15 @@ class DatatableEvaluatorNode(Node):
 
     def execute(self, verbose=False):
         self.use_context(EvaluationContext())
-        dtgetter = self.cget_datatable()
-        _dt = self.context.execute(dtgetter, verbose=verbose)
+        mainfn = self.cget_datatable()
+        _dt = self.context.execute(mainfn, verbose=verbose)
         return datatable.DataTable(_dt, colnames=self._select.column_names)
 
 
 
     def cget_datatable(self):
         rowmapping = self._rows.cget_rowmapping()
+        self._select.use_rowmapping(self._rows, self._dt)
         columns = self._select.cget_columns()
         fnname = self.context.make_variable_name("get_datatable")
         fn = "PyObject* %s(void) {\n" % fnname
@@ -76,7 +77,7 @@ class DatatableEvaluatorNode(Node):
     def _gen_cbody_only_data_cols(self, frowmapping, fcolumns):
         self.context.add_extern("pydatatable_assemble")
         fn = ""
-        fn += "    int64_t nrows = %s()->nrows;\n" % frowmapping
+        fn += "    int64_t nrows = %s()->length;\n" % frowmapping
         fn += "    Column** columns = %s();\n" % fcolumns
         fn += "    return (PyObject*) pydatatable_assemble(nrows, columns);\n"
         return fn

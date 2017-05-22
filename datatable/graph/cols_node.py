@@ -3,6 +3,7 @@
 import types
 
 from .node import Node
+from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
@@ -23,12 +24,16 @@ class ColumnSetNode(Node):
     def __init__(self, dt):
         super().__init__()
         self._dt = dt
+        self._rowmapping = None
+        self._rowmappingdt = None
         self._cname = None
         self._n_columns = 0
         self._n_view_columns = 0
+        self._column_names = tuple()
 
     @property
-    def dt(self):  # is this used anywhere?
+    def dt(self):
+        # TODO: merge self._dt with self._rowmappingdt
         return self._dt
 
     @property
@@ -39,27 +44,14 @@ class ColumnSetNode(Node):
     def n_view_columns(self):
         return self._n_view_columns
 
-
-
-#===============================================================================
-
-class SliceView_CSNode(ColumnSetNode):
-
-    def __init__(self, dt, start, count, step):
-        super().__init__(dt)
-        self._start = start
-        self._step = step
-        self._n_columns = count
-        self._n_view_columns = count  # All columns are view columns
-
     @property
     def column_names(self):
-        if self._step == 0:
-            s = self._dt.names[self._start]
-            return tuple([s] * self._n_columns)
-        else:
-            end = self._start + self._n_columns * self._step
-            return self._dt.names[self._start:end:self._step]
+        assert len(self._column_names) == self._n_columns
+        return self._column_names
+
+    def use_rowmapping(self, rowmapping, dt):
+        self._rowmapping = rowmapping
+        self._rowmappingdt = dt
 
     def cget_columns(self):
         """
@@ -75,37 +67,48 @@ class SliceView_CSNode(ColumnSetNode):
             self._cname = self._gen_c()
         return self._cname
 
+    def _gen_c(self):
+        raise NotImplementedError("Class %s should implement ._gen_c() method"
+                                  % self.__class__.__name__)
+
+
+
+#===============================================================================
+
+class SliceView_CSNode(ColumnSetNode):
+
+    def __init__(self, dt, start, count, step):
+        super().__init__(dt)
+        self._start = start
+        self._step = step
+        self._n_columns = count
+        self._n_view_columns = count  # All columns are view columns
+        self._column_names = self._make_column_names()
+
+
+    def _make_column_names(self):
+        if self._step == 0:
+            s = self._dt.names[self._start]
+            return tuple([s] * self._n_columns)
+        else:
+            end = self._start + self._n_columns * self._step
+            return self._dt.names[self._start:end:self._step]
+
 
     def _gen_c(self):
-        varname = self.context.make_variable_name()
-        fnname = "get_" + varname
-        ncols = self._n_columns
-        dt_isview = self._dt.internal.isview
+        fnname = "get_columns"
         if not self.context.has_function(fnname):
             dtvar = self.context.get_dtvar(self._dt)
-            fn = "static Column** %s(void) {\n" % fnname
-            fn += "    ViewColumn **cols = calloc(%d, sizeof(ViewColumn*));\n" \
-                  % (ncols + 1)
-            if dt_isview:
-                fn += "    Column **srccols = {dt}->source->columns;\n" \
-                      .format(dt=dtvar)
-            else:
-                fn += "    Column **srccols = {dt}->columns;\n".format(dt=dtvar)
-            fn += "    if (cols == NULL) return NULL;\n"
-            fn += "    int64_t j = %dL;\n" % self._start
-            fn += "    for (int64_t i = 0; i < %d; i++) {\n" % ncols
-            fn += "        cols[i] = malloc(sizeof(ViewColumn));\n"
-            fn += "        if (cols[i] == NULL) return NULL;\n"
-            fn += "        cols[i]->srcindex = j;\n"
-            fn += "        cols[i]->mtype = MT_VIEW;\n"
-            fn += "        cols[i]->stype = srccols[j]->stype;\n"
-            fn += "        j += %dL;\n" % self._step
-            fn += "    }\n"
-            fn += "    cols[%d] = NULL;\n" % ncols
-            fn += "    return (Column**) cols;\n"
-            fn += "}\n"
+            fn = ("static Column** {fnname}(void) {{\n"
+                  "    return columns_from_slice"
+                  "({dt}, {start}, {count}, {step});\n"
+                  "}}\n"
+                  .format(fnname=fnname, dt=dtvar, start=self._start,
+                          count=self._n_columns, step=self._step))
             self.context.add_function(fnname, fn)
+            self.context.add_extern("columns_from_slice")
         return fnname
+
 
 
 
@@ -113,12 +116,34 @@ class SliceView_CSNode(ColumnSetNode):
 
 class Mixed_CSNode(ColumnSetNode):
 
-    def __init__(self, dt, elems):
+    def __init__(self, dt, elems, names):
         super().__init__(dt)
         self._elems = elems
         self._n_columns = len(elems)
         self._n_view_columns = sum(isinstance(x, int) for x in elems)
+        self._column_names = names
 
+    def _gen_c(self):
+        fnname = "get_columns"
+        if not self.context.has_function(fnname):
+            mapnode = MapNode([elem for elem in self._elems
+                               if isinstance(elem, BaseExpr)],
+                              rowmapping=self._rowmapping)
+            mapnode.use_context(self.context)
+            mapfn = mapnode.generate_c()
+            dtvar = self.context.get_dtvar(self._dt)
+            rowmapping = self._rowmapping.cget_rowmapping()
+            fn = ("static Column** {fnname}(void) {{\n"
+                  "    PyObject *elems = (PyObject*) {elemsptr}L;\n"
+                  "    RowMapping *rowmapping = {rowmapping_getter}();\n"
+                  "    return columns_from_pymixed(elems, {dt}, rowmapping, "
+                  "&{mapfn});\n"
+                  "}}\n"
+                  .format(fnname=fnname, mapfn=mapfn, elemsptr=id(self._elems),
+                          dt=dtvar, rowmapping_getter=rowmapping))
+            self.context.add_function(fnname, fn)
+            self.context.add_extern("columns_from_pymixed")
+        return fnname
 
 
 
@@ -138,26 +163,30 @@ def make_columnset(cols, dt, _nested=False):
             return SliceView_CSNode(dt, *pcol)
         else:
             assert isinstance(pcol, BaseExpr)
-            return Mixed_CSNode(dt, [pcol])
+            return Mixed_CSNode(dt, [pcol], names=[str(cols)])
 
     if isinstance(cols, (list, tuple)):
-        out = []
+        outcols = []
+        colnames = []
         for col in cols:
             pcol = process_column(col, dt)
             if isinstance(pcol, int):
-                out.append((pcol, dt.names[pcol]))
+                outcols.append(pcol)
+                colnames.append(dt.names[pcol])
             elif isinstance(pcol, tuple):
                 start, count, step = pcol
                 for i in range(count):
                     j = start + i * step
-                    out.append((j, dt.names[j]))
+                    outcols.append(j)
+                    colnames.append(dt.names[j])
             else:
-                out.append((pcol, str(col)))
-        return out
+                outcols.append(pcol)
+                colnames.append(str(col))
+        return Mixed_CSNode(dt, outcols, colnames)
 
     if isinstance(cols, types.FunctionType) and not _nested:
         res = cols(DatatableExpr(dt))
-        return make_columnset(res, dt, nested=True)
+        return make_columnset(res, dt, _nested=True)
 
     raise ValueError("Unknown `select` argument: %r" % cols)
 

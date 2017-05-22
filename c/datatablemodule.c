@@ -1,6 +1,6 @@
 #include <Python.h>
-#include "py_colmapping.h"
 #include "py_column.h"
+#include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_evaluator.h"
@@ -145,9 +145,9 @@ static PyMethodDef DatatableModuleMethods[] = {
     {"rowmapping_from_column", (PyCFunction)RowMappingPy_from_column,
         METH_VARARGS,
         "Row selector constructed from a single-boolean-column datatable"},
-    {"colmapping_from_array", (PyCFunction)ColMappingPy_from_array,
+    {"pycolumns_from_pymixed", (PyCFunction)pycolumns_from_pymixed,
         METH_VARARGS,
-        "Column selector constructed from a list of column indices"},
+        "Column selector constructed from a mixed list"},
     {"datatable_from_list", (PyCFunction)pyDataTable_from_list_of_lists,
         METH_VARARGS, "Create Datatable from a list"},
     {"fread", (PyCFunction)freadPy, METH_VARARGS,
@@ -197,7 +197,6 @@ PyInit__datatable(void) {
     if (!init_py_datatable(m)) return NULL;
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowmapping(m)) return NULL;
-    if (!init_py_colmapping(m)) return NULL;
     if (!init_py_evaluator(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!init_py_column(m)) return NULL;

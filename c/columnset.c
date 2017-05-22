@@ -62,7 +62,7 @@ Column** columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
 
 Column** columns_from_mapfn(
     SType *stypes, int64_t ncols, int64_t nrows,
-    void (*mapfn)(int64_t row0, int64_t row1, void** out)
+    int (*mapfn)(int64_t row0, int64_t row1, void** out)
 ) {
     void **out = NULL;
     Column **columns = NULL;
@@ -94,3 +94,47 @@ Column** columns_from_mapfn(
     return NULL;
 }
 
+
+Column** columns_from_mixed(
+    int64_t *spec,
+    int64_t ncols,
+    DataTable *dt,
+    RowMapping *rowmapping,
+    int (*mapfn)(int64_t row0, int64_t row1, void** out)
+) {
+    void **out = NULL;
+    Column **columns = NULL;
+    size_t nrows = (size_t) rowmapping->length;
+    dtmalloc(out, void*, ncols);
+    dtmalloc(columns, Column*, ncols + 1);
+    int64_t j = 0;
+    for (int64_t i = 0; i < ncols; i++) {
+        if (spec[i] >= 0) {
+            ViewColumn *viewcol = NULL;
+            dtmalloc(viewcol, ViewColumn, 1);
+            columns[i] = (Column*) viewcol;
+            viewcol->srcindex = spec[i];
+            viewcol->mtype = MT_VIEW;
+            viewcol->stype = dt->columns[spec[i]]->stype;
+        } else {
+            SType stype = (SType)(-spec[i]);
+            size_t elemsize = stype_info[stype].elemsize;
+            out[j] = malloc(elemsize * nrows);
+            dtmalloc(columns[i], Column, 1);
+            columns[i]->data = out[j];
+            columns[i]->mtype = MT_DATA;
+            columns[i]->stype = stype;
+            columns[i]->meta = NULL;
+            columns[i]->alloc_size = elemsize * nrows;
+            j++;
+        }
+    }
+    columns[ncols] = NULL;
+
+    (*mapfn)(0, (int64_t)nrows, out);
+    return columns;
+
+  fail:
+    dtfree(out);
+    return NULL;
+}

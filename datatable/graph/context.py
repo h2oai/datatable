@@ -142,6 +142,24 @@ typedef struct DataTable {
   struct Column **columns;
 } DataTable;
 
+typedef union { uint64_t i; double d; } double_repr;
+typedef union { uint32_t i; float f; } float_repr;
+static inline int ISNA_F4(float x) { float_repr xx; xx.f = x; return xx.i == 0x7F8007A2u; }
+static inline int ISNA_F8(double x) { double_repr xx; xx.d = x; return xx.i == 0x7FF00000000007A2ull; }
+static inline float __nanf__(void) { const float_repr x = { 0x7F8007A2ul }; return x.f; }
+static inline double __nand__(void) { const double_repr x = { 0x7FF00000000007A2ull }; return x.d; }
+
+#define NA_I1  (-128)
+#define NA_I2  (-32768)
+#define NA_I4  (-2147483647-1)
+#define NA_I8  (-9223372036854775807-1)
+#define NA_U1  255u
+#define NA_U2  65535u
+#define NA_U4  4294967295u
+#define NA_U8  18446744073709551615u
+#define NA_F4  __nanf__()
+#define NA_F8  __nand__()
+
 """
 
 
@@ -158,6 +176,10 @@ _externs = {
     "columns_from_slice":
         "Column** columns_from_slice"
         "(DataTable *dt, int64_t start, int64_t count, int64_t step)",
+    "columns_from_pymixed":
+        "Column** columns_from_pymixed(PyObject *elems, DataTable *dt, "
+        "RowMapping *rowmapping, "
+        "int (*mapfn)(int64_t row0, int64_t row1, void** out))",
     "pydatatable_assemble":
         "DataTable_PyObject* pydatatable_assemble"
         "(int64_t nrows, Column **cols)",

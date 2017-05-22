@@ -1,7 +1,6 @@
 #include <fcntl.h>   // open
 #include <unistd.h>  // write, fsync, close
 #include "datatable.h"
-#include "py_colmapping.h"
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
@@ -41,6 +40,7 @@ int init_py_datatable(PyObject *module) {
  *
  * ... more to be added ...
  */
+/*
 static DataTable_PyObject*
 __call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
 {
@@ -84,7 +84,7 @@ __call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
     Py_XDECREF(pyres);
     return NULL;
 }
-
+*/
 
 int dt_from_pydt(PyObject *object, void *address) {
     DataTable **ans = address;
@@ -126,11 +126,12 @@ static PyObject* get_types(DataTable_PyObject *self)
 
 static PyObject* get_stypes(DataTable_PyObject *self)
 {
-    int64_t i = self->ref->ncols;
+    DataTable *dt = self->ref;
+    int64_t i = dt->ncols;
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        SType st = self->ref->columns[i]->stype;
+        SType st = dt->columns[i]->stype;
         PyTuple_SET_ITEM(list, i, incref(py_stype_names[st]));
     }
     return list;
@@ -386,7 +387,7 @@ PyTypeObject DataTable_PyType = {
     0,                                  /* tp_as_sequence */
     0,                                  /* tp_as_mapping */
     0,                                  /* tp_hash  */
-    (ternaryfunc)__call__,              /* tp_call */
+    0,                                  /* tp_call */
     0,                                  /* tp_str */
     0,                                  /* tp_getattro */
     0,                                  /* tp_setattro */

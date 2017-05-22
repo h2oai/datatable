@@ -1,4 +1,3 @@
-#include "colmapping.h"
 #include "datatable.h"
 #include "py_utils.h"
 #include "rowmapping.h"
@@ -9,6 +8,7 @@
  * Main "driver" function for the DataTable. Corresponds to DataTable.__call__
  * in Python.
  */
+/*
 DataTable* dt_DataTable_call(
     DataTable *self, RowMapping *rowmapping, ColMapping *colmapping)
 {
@@ -62,7 +62,7 @@ DataTable* dt_DataTable_call(
     rowmapping_dealloc(merged_rowindex);
     return NULL;
 }
-
+*/
 
 
 /**
