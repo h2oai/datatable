@@ -2,14 +2,11 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
 import time
-import types
-from typing import Dict, Tuple
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
 from .widget import DataFrameWidget
 
-from datatable.utils.misc import timeit
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
 from datatable.graph import (DatatableEvaluatorNode, make_rowfilter,
@@ -201,7 +198,7 @@ class DataTable(object):
         :param rows:
             Which rows to operate upon. Could be one of the following:
 
-                - ... (ellipsis), representing all rows of the datatable.
+                - ... or None, representing all rows of the datatable.
                 - an integer, representing a single row at the given index. The
                   rows are numbered starting from 0. Negative indices are
                   allowed, indicating rows counted from the end of the
@@ -343,6 +340,8 @@ class DataTable(object):
         """
         if timeit:
             time0 = time.time()
+        if rows is None:
+            rows = Ellipsis
         if select is None:
             select = Ellipsis
 
