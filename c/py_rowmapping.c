@@ -11,64 +11,29 @@
     }
 
 
-
 /**
  * Create a new RowMapping_PyObject by wrapping the provided RowMapping
  * object `src`. The returned object will assume ownership of `src`. If `src`
  * is NULL then this function also returns NULL.
  */
-RowMapping_PyObject* RowMappingPy_from_rowmapping(RowMapping *src)
+static PyObject* py(RowMapping *src)
 {
     if (src == NULL) return NULL;
-    RowMapping_PyObject *res = (RowMapping_PyObject*)
-        PyObject_CallObject((PyObject*) &RowMapping_PyType, NULL);
-    if (res == NULL) {
-        rowmapping_dealloc(src);
-        return NULL;
-    }
-    res->ref = src;
+    PyObject *res = PyObject_CallObject((PyObject*) &RowMapping_PyType, NULL);
+    ((RowMapping_PyObject*) res)->ref = src;
     return res;
 }
 
 
 
-/**
- * Construct a (py)RowMapping "slice" object given a tuple (start, count, step).
- * This is a Python wrapper for :func:`rowmapping_from_slice`.
- */
-RowMapping_PyObject*
-RowMappingPy_from_slice(PyObject *self, PyObject *args)
-{
-    int64_t start, count, step;
-
-    if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
-                          &start, &count, &step))
-        return NULL;
-
-    // Check slice validity
-    VALASSERT(start >= 0, "start must be nonnegative, got %lld", start)
-    VALASSERT(count >= 0, "count must be nonnegative, got %lld", count)
-    VALASSERT(start <= INTPTR_MAX, "start is too large: %lld", start)
-    VALASSERT(count <= INTPTR_MAX, "count is too large: %lld", count)
-    VALASSERT(llabs(step) <= INTPTR_MAX, "step is too large: %lld", step)
-    if (count > 1) {
-        VALASSERT(step >= -(start/(count - 1)),
-                  "Last item in slice is negative")
-        VALASSERT(step <= (INTPTR_MAX - start)/(count - 1),
-                  "Last item in the slice exceeds integer bound")
-    }
-
-    RowMapping *res = rowmapping_from_slice(
-        (int64_t)start, (int64_t)count, (int64_t)step
-    );
-    return RowMappingPy_from_rowmapping(res);
-}
-
+//==============================================================================
 
 /**
  * Construct a RowMapping object from a list of tuples (start, count, step)
  * that are given in the form of 3 arrays start[], count[], step[].
  * This is a Python wrapper for :func:`rowmapping_from_slicelist`.
+ *
+ * TODO: merge with pyrowmapping_from_pyslicelist
  */
 RowMapping* rowmapping_from_pyslicelist(PyObject *pystarts, PyObject *pycounts,
                                         PyObject *pysteps)
@@ -103,24 +68,6 @@ RowMapping* rowmapping_from_pyslicelist(PyObject *pystarts, PyObject *pycounts,
     free(counts);
     free(steps);
     return NULL;
-}
-
-
-
-/**
- * Python wrapper for `rowmapping_from_pyslicelist`.
- */
-RowMapping_PyObject*
-RowMappingPy_from_slicelist(PyObject *self, PyObject *args)
-{
-    PyObject *pystarts = NULL, *pycounts = NULL, *pysteps = NULL;
-    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
-                          &PyList_Type, &pystarts, &PyList_Type, &pycounts,
-                          &PyList_Type, &pysteps))
-        return NULL;
-
-    RowMapping *res = rowmapping_from_pyslicelist(pystarts, pycounts, pysteps);
-    return RowMappingPy_from_rowmapping(res);
 }
 
 
@@ -167,19 +114,48 @@ RowMapping* rowmapping_from_pyarray(PyObject *list)
 
 
 
+//==============================================================================
+
 /**
- * Pythonic wrapper for `rowmapping_from_pyarray`.
+ * Construct a (py)RowMapping "slice" object given a tuple (start, count, step).
+ * This is a Python wrapper for :func:`rowmapping_from_slice`.
  */
-RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
+PyObject* pyrowmapping_from_slice(PyObject *self, PyObject *args)
+{
+    int64_t start, count, step;
+    if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
+                          &start, &count, &step))
+        return NULL;
+    return py(rowmapping_from_slice(start, count, step));
+}
+
+
+
+/**
+ * Python wrapper for :func:`rowmapping_from_pyslicelist`.
+ */
+PyObject* pyrowmapping_from_slicelist(PyObject *self, PyObject *args)
+{
+    PyObject *pystarts, *pycounts, *pysteps;
+    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
+                          &PyList_Type, &pystarts, &PyList_Type, &pycounts,
+                          &PyList_Type, &pysteps))
+        return NULL;
+    return py(rowmapping_from_pyslicelist(pystarts, pycounts, pysteps));
+}
+
+
+
+/**
+ * Python wrapper for `rowmapping_from_pyarray`.
+ */
+PyObject* pyrowmapping_from_array(PyObject *self, PyObject *args)
 {
     PyObject *list;
     if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
                           &PyList_Type, &list))
         return NULL;
-
-    RowMapping *res = rowmapping_from_pyarray(list);
-    if (res == NULL) return NULL;
-    return RowMappingPy_from_rowmapping(res);
+    return py(rowmapping_from_pyarray(list));
 }
 
 
@@ -190,11 +166,10 @@ RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args)
  * with the indices that corresponds to the rows where the boolean column has
  * true values (all false / NA columns are skipped).
  */
-RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
+PyObject* pyrowmapping_from_column(PyObject *self, PyObject *args)
 {
     DataTable *dt = NULL;
     RowMapping *rowmapping = NULL;
-
     if (!PyArg_ParseTuple(args, "O&:RowMapping.from_column",
                           &dt_from_pydt, &dt))
         return NULL;
@@ -214,11 +189,7 @@ RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
             dt->source->columns[((ViewColumn*)col)->srcindex], dt->rowmapping)
         : rowmapping_from_datacolumn(col, dt->nrows);
 
-    return TRY(RowMappingPy_from_rowmapping(rowmapping));
-
-  fail:
-    rowmapping_dealloc(rowmapping);
-    return NULL;
+    return py(rowmapping);
 }
 
 
@@ -228,14 +199,14 @@ RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args)
 //  RowMapping PyObject
 //==============================================================================
 
-static void __dealloc__(RowMapping_PyObject *self)
+static void dealloc(RowMapping_PyObject *self)
 {
     rowmapping_dealloc(self->ref);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
-static PyObject* __repr__(RowMapping_PyObject *self)
+static PyObject* repr(RowMapping_PyObject *self)
 {
     RowMapping *rwm = self->ref;
     if (rwm == NULL)
@@ -254,17 +225,18 @@ static PyObject* __repr__(RowMapping_PyObject *self)
 }
 
 
+
 PyTypeObject RowMapping_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_datatable.RowMapping",            /* tp_name */
     sizeof(RowMapping_PyObject),        /* tp_basicsize */
     0,                                  /* tp_itemsize */
-    (destructor)__dealloc__,            /* tp_dealloc */
+    (destructor)dealloc,                /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
     0,                                  /* tp_compare */
-    (reprfunc)__repr__,                 /* tp_repr */
+    (reprfunc)repr,                     /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */
     0,                                  /* tp_as_mapping */

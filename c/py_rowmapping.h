@@ -24,11 +24,10 @@ extern PyTypeObject RowMapping_PyType;
 
 RowMapping* rowmapping_from_pyarray(PyObject *list);
 RowMapping* rowmapping_from_pyslicelist(PyObject*, PyObject*, PyObject*);
-RowMapping_PyObject* RowMappingPy_from_slice(PyObject *self, PyObject *args);
-RowMapping_PyObject* RowMappingPy_from_slicelist(PyObject *self, PyObject *a);
-RowMapping_PyObject* RowMappingPy_from_array(PyObject *self, PyObject *args);
-RowMapping_PyObject* RowMappingPy_from_column(PyObject *self, PyObject *args);
-RowMapping_PyObject* RowMappingPy_from_rowmapping(RowMapping* rowmapping);
+PyObject* pyrowmapping_from_slice(PyObject*, PyObject *args);
+PyObject* pyrowmapping_from_slicelist(PyObject*, PyObject *args);
+PyObject* pyrowmapping_from_array(PyObject*, PyObject *args);
+PyObject* pyrowmapping_from_column(PyObject*, PyObject *args);
 
 int init_py_rowmapping(PyObject *module);
 

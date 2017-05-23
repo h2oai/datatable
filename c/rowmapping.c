@@ -102,12 +102,12 @@ _Bool rowmapping_compactify(RowMapping *rwm)
 RowMapping* rowmapping_from_slice(int64_t start, int64_t count, int64_t step)
 {
     RowMapping *res = NULL;
-    res = TRY(malloc(sizeof(RowMapping)));
+    dtmalloc(res, RowMapping, 1);
 
-    // check that 0 <= start, count, start + (count-1)*step <= INTPTR_MAX
-    if (start < 0 || count < 0) goto fail;
-    if (count > 1 && step < -(start/(count - 1))) goto fail;
-    if (count > 1 && step > (INTPTR_MAX - start)/(count - 1)) goto fail;
+    // check that 0 <= start, count, start + (count-1)*step <= INT64_MAX
+    if (start < 0 || count < 0 ||
+        (count > 1 && step < -(start/(count - 1))) ||
+        (count > 1 && step > (INT64_MAX - start)/(count - 1))) goto fail;
 
     res->type = RM_SLICE;
     res->length = count;
