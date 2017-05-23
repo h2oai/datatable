@@ -6,7 +6,7 @@ from .binary_expr import BinaryOpExpr
 from .column_expr import ColSelectorExpr
 from .datatable_expr import DatatableExpr
 from .isna_expr import isna
-from .literal_expr import LiteralNode
+from .literal_expr import LiteralExpr
 from .mean_expr import MeanReducer, mean
 from .minmax_expr import MinMaxReducer, min, max
 from .relop_expr import RelationalOpExpr
@@ -23,7 +23,7 @@ __all__ = (
     "ColSelectorExpr",
     "DatatableExpr",
     "BaseExpr",
-    "LiteralNode",
+    "LiteralExpr",
     "MeanReducer",
     "MinMaxReducer",
     "RelationalOpExpr",

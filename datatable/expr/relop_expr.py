@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .literal_expr import LiteralNode
+from .literal_expr import LiteralExpr
 
 
 
@@ -11,7 +11,7 @@ class RelationalOpExpr(BaseExpr):
     def __init__(self, lhs, op, rhs):
         super().__init__()
         if not isinstance(rhs, BaseExpr):
-            rhs = LiteralNode(rhs)
+            rhs = LiteralExpr(rhs)
         # `op` is one of "==", "!=", ">", "<", ">=", "<="
         self._op = op
         self._lhs = lhs

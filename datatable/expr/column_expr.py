@@ -18,6 +18,11 @@ class ColSelectorExpr(BaseExpr):
         self._stype = dtexpr.stypes[colindex]
         self._view_colid = dtexpr.get_column_srcindex(self._colid)
 
+    @property
+    def col_index(self):
+        return self._colid
+
+
     def _value(self, key, inode):
         v = inode.make_keyvar(key, key, exact=True)
         inode.check_num_rows(self._dtexpr.nrows)

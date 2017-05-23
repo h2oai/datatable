@@ -4,7 +4,7 @@ import types
 
 from .node import Node
 from .iterator_node import MapNode
-from datatable.expr import DatatableExpr, BaseExpr
+from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
 
@@ -240,6 +240,9 @@ def process_column(col, dt):
             return normalize_slice(col, dt.ncols)
         else:
             raise ValueError("%r is not integer-valued" % col)
+
+    if isinstance(col, ColSelectorExpr):
+        return col.col_index
 
     if isinstance(col, BaseExpr):
         return col

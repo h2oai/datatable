@@ -5,7 +5,7 @@ from .base_expr import BaseExpr
 from .consts import nas_map
 
 
-class LiteralNode(BaseExpr):
+class LiteralExpr(BaseExpr):
 
     def __init__(self, arg):
         super().__init__()

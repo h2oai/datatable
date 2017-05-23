@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .literal_expr import LiteralNode
+from .literal_expr import LiteralExpr
 from .consts import ops_rules, decimal_stypes, division_ops
 
 
@@ -12,9 +12,9 @@ class BinaryOpExpr(BaseExpr):
     def __init__(self, lhs, op, rhs):
         super().__init__()
         if not isinstance(lhs, BaseExpr):
-            lhs = LiteralNode(lhs)
+            lhs = LiteralExpr(lhs)
         if not isinstance(rhs, BaseExpr):
-            rhs = LiteralNode(rhs)
+            rhs = LiteralExpr(rhs)
         self.op = op
         self.lhs = lhs
         self.rhs = rhs

@@ -144,6 +144,9 @@ class FilterNode(IteratorNode):
         self.addto_epilogue("*n_outs = j;")
 
 
+
+#===============================================================================
+
 class MapNode(IteratorNode):
 
     def __init__(self, exprs, rowmapping):
