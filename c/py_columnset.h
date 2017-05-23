@@ -4,6 +4,14 @@
 #include "datatable.h"
 #include "rowmapping.h"
 
+typedef struct ColumnSet_PyObject {
+    PyObject_HEAD
+    Column **columns;
+} ColumnSet_PyObject;
+
+
+extern PyTypeObject ColumnSet_PyType;
+
 
 PyObject* pycolumns_from_pymixed(PyObject *self, PyObject *args);
 

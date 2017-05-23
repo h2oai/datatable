@@ -39,7 +39,7 @@ static_assert(offsetof(RowMapping, ind32) == offsetof(RowMapping, ind64),
     else if (rmtype == RM_ARR64) {                                             \
         int64_t *indices = rowmapping->ind64;                                  \
         for (int64_t i = 0; i < nrows; i++) {                                  \
-            int64_t j = (int64_t) indices[i];                                  \
+            int64_t j = indices[i];                                            \
             CODE                                                               \
         }                                                                      \
     }                                                                          \

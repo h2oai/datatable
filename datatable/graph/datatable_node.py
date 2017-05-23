@@ -12,7 +12,7 @@ from datatable.utils.typechecks import typed
 
 #===============================================================================
 
-class DatatableEvaluatorNode(Node):
+class DatatableNode(Node):
     """
     Root node for a datatable evaluation graph.
 
@@ -29,7 +29,7 @@ class DatatableEvaluatorNode(Node):
 
     Example:
 
-        dtnode = DatatableEvaluatorNode(rows_node, select_node, ...)
+        dtnode = DatatableNode(rows_node, select_node, ...)
         dtout = dtnode.execute()
 
     """

@@ -9,7 +9,7 @@ from .widget import DataFrameWidget
 
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
-from datatable.graph import (DatatableEvaluatorNode, make_rowfilter,
+from datatable.graph import (DatatableNode, make_rowfilter,
                              make_columnset)
 
 __all__ = ("DataTable", )
@@ -345,7 +345,7 @@ class DataTable(object):
         if select is None:
             select = Ellipsis
 
-        dtnode = DatatableEvaluatorNode(
+        dtnode = DatatableNode(
             self,
             rows=make_rowfilter(rows, dt=self),
             select=make_columnset(select, dt=self),
