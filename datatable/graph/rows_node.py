@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import types
 
+import _datatable
 import datatable
 from datatable.expr import DatatableExpr, BaseExpr
 from .node import Node
@@ -39,53 +40,21 @@ class RowFilterNode(Node):
     ColumnSet production.
     """
 
-    def __init__(self):
+    def __init__(self, rows, dt):
         super().__init__()
-        self._cname = None
+        self._target = _make_rowfilter(rows, dt)
 
+    def _added_into_soup(self):
+        self.soup.add("rows:target", self._target)
 
-    def cget_rowmapping(self):
-        """
-        Return name of the C function that when executed creates a RowMapping.
-
-        Specifically, this function will insert into the `context` the C code
-        needed to construct and return the RowMapping. The C function will
-        memoize its result, so that calling it multiple times is efficient.
-        Likewise, this `cget_rowmapping` method can also be called multiple
-        times safely. The generated C function will have the signature
-
-            RowMapping* cget_rowmapping(void);
-        """
-        if not self._cname:
-            self._cname = self._gen_c()
-        return self._cname
-
-
-    # TODO: add pyget_rowmapping()
-
-
-    #---- Private/protected ----------------------------------------------------
-
-    def _gen_c(self):
-        (cbody, res) = self._gen_c_body()
-        fn = "static RowMapping* get_rowmapping(void) {\n"
-        fn += "    if (rowmapping != NULL) return rowmapping;\n"
-        fn += cbody
-        fn += "    return (rowmapping = %s);\n" % res
-        fn += "}\n"
-        self.context.add_global("rowmapping", "RowMapping*", "NULL")
-        self.context.add_function("get_rowmapping", fn)
-        return "get_rowmapping"
-
-    def _gen_c_body(self):
-        raise NotImplementedError
-
+    def get_result(self):
+        return self._target.get_result()
 
 
 
 #===============================================================================
 
-class Slice_RFNode(RowFilterNode):
+class SliceRowsNode(Node):
 
     def __init__(self, start, count, step):
         super().__init__()
@@ -94,33 +63,29 @@ class Slice_RFNode(RowFilterNode):
         self._count = count
         self._step = step
 
-    def _gen_c_body(self):
-        self.context.add_extern("rowmapping_from_slice")
-        expr = ("rowmapping_from_slice(%d, %d, %d)"
-                % (self._start, self._count, self._step))
-        return ("", expr)
+    def get_result(self):
+        return _datatable.rowmapping_from_slice(
+            self._start, self._count, self._step
+        )
 
 
 
 #===============================================================================
 
-class Array_RFNode(RowFilterNode):
+class Array_RFNode(Node):
 
     def __init__(self, array):
         super().__init__()
         self._array = array
 
-    def _gen_c_body(self):
-        self.context.add_extern("rowmapping_from_pyarray")
-        body = "        PyObject *list = (PyObject*) %dLL;\n" % id(self._array)
-        expr = "rowmapping_from_pyarray(list)"
-        return (body, expr)
+    def get_result(self):
+        return _datatable.rowmapping_from_array(self._array)
 
 
 
 #===============================================================================
 
-class MultiSlice_RFNode(RowFilterNode):
+class MultiSlice_RFNode(Node):
 
     def __init__(self, bases, counts, steps):
         super().__init__()
@@ -128,56 +93,50 @@ class MultiSlice_RFNode(RowFilterNode):
         self._counts = counts
         self._steps = steps
 
-    def _gen_c_body(self):
-        self.context.add_extern("rowmapping_from_pyslicelist")
-        body = ""
-        body += "        PyObject *a = (PyObject*) %dLL;\n" % id(self._bases)
-        body += "        PyObject *b = (PyObject*) %dLL;\n" % id(self._counts)
-        body += "        PyObject *c = (PyObject*) %dLL;\n" % id(self._steps)
-        expr = "rowmapping_from_pyslicelist(a, b, c)"
-        return (body, expr)
+    def get_result(self):
+        return _datatable.rowmapping_from_slicelist(
+            self._bases, self._counts, self._steps
+        )
 
 
 
 #===============================================================================
 
-class DataColumn_RFNode(RowFilterNode):
+class DataColumn_RFNode(Node):
 
     def __init__(self, dt):
         super().__init__()
         self._column_dt = dt
 
-    def _gen_c_body(self):
-        self.context.add_extern("rowmapping_from_datacolumn")
-        dt_ptr = self._column_dt.internal.datatable_ptr
-        body = "        DataTable *dt = (DataTable*) %dL;\n" % dt_ptr
-        expr = "rowmapping_from_datacolumn(dt->columns[0], dt->nrows)"
-        return (body, expr)
+    def get_result(self):
+        return _datatable.rowmapping_from_column(self._column_dt.internal)
 
 
 
 #===============================================================================
 
-class FilterExpr_RFNode(RowFilterNode):
+class FilterExpr_RFNode(Node):
 
     @typed(expr=BaseExpr)
     def __init__(self, expr):
         super().__init__()
         self._expr = expr
+        self._fnode = None
 
-    def _gen_c_body(self):
-        self.context.add_extern("rowmapping_from_filterfn32")
-        filter_node = FilterNode(self._expr)
-        filter_node.use_context(self.context)
-        f = filter_node.generate_c()
-        nrows = filter_node.nrows
-        return ("", "rowmapping_from_filterfn32(&%s, %d)" % (f, nrows))
+    def _added_into_soup(self):
+        self._fnode = FilterNode(self._expr)
+        self.soup.add("rows_filter", self._fnode)
+
+    def get_result(self):
+        fnptr = self._fnode.get_result()
+        nrows = self._fnode.nrows
+        return _datatable.rowmapping_from_filterfn(fnptr, nrows)
 
 
 
 #===============================================================================
 
-def make_rowfilter(rows, dt, _nested=False):
+def _make_rowfilter(rows, dt, _nested=False):
     """
     Create a :class:`RowFilterNode` corresponding to descriptor `rows`.
 
@@ -189,8 +148,8 @@ def make_rowfilter(rows, dt, _nested=False):
     :param dt: the datatable
     """
     nrows = dt.nrows
-    if rows is Ellipsis:
-        return Slice_RFNode(0, nrows, 1)
+    if rows is Ellipsis or rows is None:
+        return SliceRowsNode(0, nrows, 1)
 
     # from_scalar = False
     if isinstance(rows, (int, slice, range)):
@@ -255,11 +214,11 @@ def make_rowfilter(rows, dt, _nested=False):
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
-                return Slice_RFNode(bases[0], 1, 1)
+                return SliceRowsNode(bases[0], 1, 1)
             else:
                 return Array_RFNode(bases)
         elif len(bases) == 1:
-            return Slice_RFNode(bases[0], counts[0], steps[0])
+            return SliceRowsNode(bases[0], counts[0], steps[0])
         else:
             return MultiSlice_RFNode(bases, counts, steps)
 
@@ -280,7 +239,7 @@ def make_rowfilter(rows, dt, _nested=False):
 
     if isinstance(rows, types.FunctionType):
         lazydt = DatatableExpr(dt)
-        return make_rowfilter(rows(lazydt), dt, _nested=True)
+        return _make_rowfilter(rows(lazydt), dt, _nested=True)
 
     if isinstance(rows, BaseExpr):
         return FilterExpr_RFNode(rows)

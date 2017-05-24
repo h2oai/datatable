@@ -4,18 +4,19 @@
 # Collection of classes to construct a graph for datatable evaluation. All
 # classes herein are meant for internal use only.
 #
-from .context import EvaluationContext
+from .soup import NodeSoup
 from .datatable_node import DatatableNode
 from .node import Node
-from .rows_node import RowFilterNode, make_rowfilter
+from .rows_node import RowFilterNode
 from .cols_node import make_columnset
+from .context import CModuleNode
 
 
 __all__ = (
+    "CModuleNode",
     "DatatableNode",
-    "EvaluationContext",
+    "NodeSoup",
     "Node",
     "RowFilterNode",
-    "make_rowfilter",
     "make_columnset",
 )

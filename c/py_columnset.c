@@ -1,5 +1,6 @@
 #include "columnset.h"
 #include "py_columnset.h"
+#include "py_datatable.h"
 #include "py_utils.h"
 #include "utils.h"
 
@@ -8,7 +9,42 @@ static PyObject* py(Column **columns)
 {
     if (columns == NULL) return NULL;
     PyObject *res = PyObject_CallObject((PyObject*) &ColumnSet_PyType, NULL);
+    if (res == NULL) return NULL;
     ((ColumnSet_PyObject*) res)->columns = columns;
+    return res;
+}
+
+/**
+ * Helper function to be used with `PyArg_ParseTuple()` in order to extract
+ * a `Column**` pointer out of the arguments tuple. Usage:
+ *
+ *     Column **columns;
+ *     if (!PyArg_ParseTuple(args, "O&", &columnset_unwrap, &columns))
+ *         return NULL;
+ */
+int columnset_unwrap(PyObject *object, void *address) {
+    Column ***ans = address;
+    if (!PyObject_TypeCheck(object, &ColumnSet_PyType)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected argument of type ColumnSet");
+        return 0;
+    }
+    *ans = ((ColumnSet_PyObject*)object)->columns;
+    return 1;
+}
+
+
+//==============================================================================
+
+PyObject* pycolumns_from_slice(PyObject *self, PyObject *args)
+{
+    DataTable *dt;
+    int64_t start, count, step;
+    if (!PyArg_ParseTuple(args, "O&LLL:columns_from_slice",
+                          &dt_unwrap, &dt, &start, &count, &step))
+        return NULL;
+
+    PyObject* res = py(columns_from_slice(dt, start, count, step));
     return res;
 }
 
@@ -57,12 +93,25 @@ Column** columns_from_pymixed(
 static void dealloc(ColumnSet_PyObject *self)
 {
     Column **ptr = self->columns;
-    while (*ptr) {
-        free(*ptr);
-        ptr++;
+    if (ptr) {
+        while (*ptr) {
+            free(*ptr);
+            ptr++;
+        }
+        free(self->columns);
     }
-    free(self->columns);
     Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+
+static PyObject* repr(ColumnSet_PyObject *self)
+{
+    Column **ptr = self->columns;
+    if (ptr == NULL)
+        return PyUnicode_FromString("_ColumnSet(NULL)");
+    int ncols = 0;
+    while (ptr[ncols]) ncols++;
+    return PyUnicode_FromFormat("_ColumnSet(ncols=%d)", ncols);
 }
 
 
@@ -77,7 +126,7 @@ PyTypeObject ColumnSet_PyType = {
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
     0,                                  /* tp_compare */
-    0,                                  /* tp_repr */
+    (reprfunc)repr,                     /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */
     0,                                  /* tp_as_mapping */
@@ -117,3 +166,14 @@ PyTypeObject ColumnSet_PyType = {
     0,                                  /* tp_version_tag */
     0,                                  /* tp_finalize */
 };
+
+
+// Add PyColumnSet object to the Python module
+int init_py_columnset(PyObject *module)
+{
+    ColumnSet_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&ColumnSet_PyType) < 0) return 0;
+    Py_INCREF(&ColumnSet_PyType);
+    PyModule_AddObject(module, "ColumnSet", (PyObject*) &ColumnSet_PyType);
+    return 1;
+}

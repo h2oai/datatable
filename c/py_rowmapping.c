@@ -25,19 +25,59 @@ static PyObject* py(RowMapping *src)
 }
 
 
+/**
+ * Helper function to be used with `PyArg_ParseTuple()` in order to extract
+ * a `RowMapping` object out of the arguments tuple. Usage:
+ *
+ *     RowMapping *rwm;
+ *     if (!PyArg_ParseTuple(args, "O&", &rowmapping_unwrap, &rwm))
+ *         return NULL;
+ */
+int rowmapping_unwrap(PyObject *object, void *address) {
+    RowMapping **ans = address;
+    if (!PyObject_TypeCheck(object, &RowMapping_PyType)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected argument of type RowMapping");
+        return 0;
+    }
+    *ans = ((RowMapping_PyObject*)object)->ref;
+    return 1;
+}
+
+
+
 
 //==============================================================================
+
+/**
+ * Construct a (py)RowMapping "slice" object given a tuple (start, count, step).
+ * This is a Python wrapper for :func:`rowmapping_from_slice`.
+ */
+PyObject* pyrowmapping_from_slice(PyObject *self, PyObject *args)
+{
+    int64_t start, count, step;
+    if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
+                          &start, &count, &step))
+        return NULL;
+    return py(rowmapping_from_slice(start, count, step));
+}
+
+
 
 /**
  * Construct a RowMapping object from a list of tuples (start, count, step)
  * that are given in the form of 3 arrays start[], count[], step[].
  * This is a Python wrapper for :func:`rowmapping_from_slicelist`.
- *
- * TODO: merge with pyrowmapping_from_pyslicelist
  */
-RowMapping* rowmapping_from_pyslicelist(PyObject *pystarts, PyObject *pycounts,
-                                        PyObject *pysteps)
+PyObject* pyrowmapping_from_slicelist(PyObject *self, PyObject *args)
 {
+    PyObject *pystarts, *pycounts, *pysteps;
+    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
+                          &PyList_Type, &pystarts,
+                          &PyList_Type, &pycounts,
+                          &PyList_Type, &pysteps))
+        return NULL;
+
     int64_t *starts = NULL, *counts = NULL, *steps = NULL;
     int64_t n1 = PyList_Size(pystarts);
     int64_t n2 = PyList_Size(pycounts);
@@ -61,7 +101,7 @@ RowMapping* rowmapping_from_pyslicelist(PyObject *pystarts, PyObject *pycounts,
         steps[i] = step;
     }
 
-    return rowmapping_from_slicelist(starts, counts, steps, n1);
+    return py(rowmapping_from_slicelist(starts, counts, steps, n1));
 
   fail:
     free(starts);
@@ -76,14 +116,19 @@ RowMapping* rowmapping_from_pyslicelist(PyObject *pystarts, PyObject *pycounts,
  * Construct RowMapping object from an array of indices. This is a wrapper
  * for :func:`rowmapping_from_i32_array` / :func:`rowmapping_from_i64_array`.
  */
-RowMapping* rowmapping_from_pyarray(PyObject *list)
+PyObject* pyrowmapping_from_array(PyObject *self, PyObject *args)
 {
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
+                          &PyList_Type, &list))
+        return NULL;
+
     int32_t *data32 = NULL;
     int64_t *data64 = NULL;
 
     // Convert Pythonic List into a regular C array of int32's/int64's
     int64_t len = PyList_Size(list);
-    data32 = TRY(malloc(4 * (size_t)len));
+    dtmalloc(data32, int32_t, len);
     for (int64_t i = 0; i < len; i++) {
         int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
         if (x == -1 && PyErr_Occurred()) goto fail;
@@ -93,7 +138,7 @@ RowMapping* rowmapping_from_pyarray(PyObject *list)
         } else if (x <= INT32_MAX) {
             data32[i] = (int32_t) x;
         } else {
-            data64 = TRY(malloc(8 * (size_t)len));
+            dtmalloc(data64, int64_t, len);
             for (int64_t j = 0; j < i; j++)
                 data64[j] = (int64_t) data32[j];
             free(data32);
@@ -103,59 +148,13 @@ RowMapping* rowmapping_from_pyarray(PyObject *list)
     }
 
     // Construct and return the RowMapping object
-    return data32? rowmapping_from_i32_array(data32, len)
-                 : rowmapping_from_i64_array(data64, len);
+    return data32? py(rowmapping_from_i32_array(data32, len))
+                 : py(rowmapping_from_i64_array(data64, len));
 
   fail:
-    free(data32);
-    free(data64);
+    dtfree(data32);
+    dtfree(data64);
     return NULL;
-}
-
-
-
-//==============================================================================
-
-/**
- * Construct a (py)RowMapping "slice" object given a tuple (start, count, step).
- * This is a Python wrapper for :func:`rowmapping_from_slice`.
- */
-PyObject* pyrowmapping_from_slice(PyObject *self, PyObject *args)
-{
-    int64_t start, count, step;
-    if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
-                          &start, &count, &step))
-        return NULL;
-    return py(rowmapping_from_slice(start, count, step));
-}
-
-
-
-/**
- * Python wrapper for :func:`rowmapping_from_pyslicelist`.
- */
-PyObject* pyrowmapping_from_slicelist(PyObject *self, PyObject *args)
-{
-    PyObject *pystarts, *pycounts, *pysteps;
-    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
-                          &PyList_Type, &pystarts, &PyList_Type, &pycounts,
-                          &PyList_Type, &pysteps))
-        return NULL;
-    return py(rowmapping_from_pyslicelist(pystarts, pycounts, pysteps));
-}
-
-
-
-/**
- * Python wrapper for `rowmapping_from_pyarray`.
- */
-PyObject* pyrowmapping_from_array(PyObject *self, PyObject *args)
-{
-    PyObject *list;
-    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
-                          &PyList_Type, &list))
-        return NULL;
-    return py(rowmapping_from_pyarray(list));
 }
 
 
@@ -171,7 +170,7 @@ PyObject* pyrowmapping_from_column(PyObject *self, PyObject *args)
     DataTable *dt = NULL;
     RowMapping *rowmapping = NULL;
     if (!PyArg_ParseTuple(args, "O&:RowMapping.from_column",
-                          &dt_from_pydt, &dt))
+                          &dt_unwrap, &dt))
         return NULL;
 
     if (dt->ncols != 1) {
@@ -192,6 +191,29 @@ PyObject* pyrowmapping_from_column(PyObject *self, PyObject *args)
     return py(rowmapping);
 }
 
+
+
+/**
+ * Construct a rowmapping object given a pointer to a filtering function and
+ * the number of rows that has to be filtered. This is a wrapper around
+ * `rowmapping_from_filterfn[32|64]`.
+ */
+PyObject* pyrowmapping_from_filterfn(PyObject* self, PyObject *args)
+{
+    long long _fnptr, _nrows;
+    if (!PyArg_ParseTuple(args, "LL:RowMapping.from_filterfn",
+                          &_fnptr, &_nrows))
+        return NULL;
+
+    int64_t nrows = (int64_t) _nrows;
+    if (nrows <= INT32_MAX) {
+        rowmapping_filterfn32 *fnptr = (rowmapping_filterfn32*)_fnptr;
+        return py(rowmapping_from_filterfn32(fnptr, nrows));
+    } else {
+        rowmapping_filterfn64 *fnptr = (rowmapping_filterfn64*)_fnptr;
+        return py(rowmapping_from_filterfn64(fnptr, nrows));
+    }
+}
 
 
 

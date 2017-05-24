@@ -2,12 +2,13 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 import _datatable
+from .node import Node
 from datatable.exec.llvm import inject_c_code
 
 
 
 # Perhaps this should be moved into the 'exec' folder
-class EvaluationContext(object):
+class CModuleNode(Node):
     """
     Replacement for :class:`EvaluationModule`.
     """
@@ -20,6 +21,22 @@ class EvaluationContext(object):
         self._extern_declarations = ""
         self._initializer_declarations = ""
         self._global_names = set()
+        self._exported_functions = []
+        self._function_pointers = None
+
+
+    def get_result(self, n):
+        assert n is not None
+        if not self._function_pointers:
+            cc = self._gen_module()
+            print("C code generated:")
+            print("-" * 80)
+            print(cc)
+            print("-" * 80)
+            self._function_pointers = \
+                inject_c_code(cc, self._exported_functions)
+        assert n < len(self._function_pointers)
+        return self._function_pointers[n]
 
 
     def execute(self, mainfn, verbose=False):
@@ -46,6 +63,10 @@ class EvaluationContext(object):
         assert name not in self._global_names
         self._functions[name] = body
         self._global_names.add(name)
+        if not body.startswith("static"):
+            self._exported_functions.append(name)
+            return len(self._exported_functions) - 1
+        return None
 
     def add_global(self, name, ctype, initvalue=None):
         assert name not in self._global_names
@@ -73,9 +94,7 @@ class EvaluationContext(object):
         varname = "dt" + str(dt._id)
         if varname not in self._global_names:
             ptr = dt.internal.datatable_ptr
-            self.add_global(varname, "DataTable*", "NULL")
-            self.add_initializer("{varname} = (DataTable*) {ptr}L"
-                                 .format(varname=varname, ptr=ptr))
+            self.add_global(varname, "DataTable*", "(DataTable*) %dL" % ptr)
         return varname
 
 
@@ -193,11 +212,6 @@ _externs = {
     "rowmapping_from_filterfn32":
         "RowMapping* rowmapping_from_filterfn32"
         "(int (*filter)(int64_t, int64_t, int32_t*, int32_t*), int64_t nrows)",
-    "rowmapping_from_pyarray":
-        "RowMapping* rowmapping_from_pyarray(PyObject*)",
-    "rowmapping_from_pyslicelist":
-        "RowMapping* rowmapping_from_pyslicelist"
-        "(PyObject *starts, PyObject *counts, PyObject *steps)",
     "rowmapping_from_slice":
         "RowMapping* rowmapping_from_slice(int64_t, int64_t, int64_t)",
 }

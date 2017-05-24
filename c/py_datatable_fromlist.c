@@ -20,8 +20,8 @@ static Column* column_from_list(PyObject *list);
  * Otherwise, we assume that the list represents a single data column, and
  * build the datatable appropriately.
  */
-DataTable_PyObject*
-pyDataTable_from_list_of_lists(PyTypeObject *type, PyObject *args)
+PyObject*
+pydatatable_from_list_of_lists(PyTypeObject *type, PyObject *args)
 {
     DataTable *dt = NULL;
     PyObject *list;

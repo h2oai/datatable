@@ -116,7 +116,7 @@ RowMapping* rowmapping_from_slice(int64_t start, int64_t count, int64_t step)
     return res;
 
   fail:
-    free(res);
+    dtfree(res);
     return NULL;
 }
 

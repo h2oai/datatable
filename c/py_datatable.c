@@ -2,6 +2,7 @@
 #include <unistd.h>  // write, fsync, close
 #include "datatable.h"
 #include "py_column.h"
+#include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_rowmapping.h"
@@ -14,79 +15,28 @@ static PyObject *strRowMappingTypeArr64;
 static PyObject *strRowMappingTypeSlice;
 
 
-int init_py_datatable(PyObject *module) {
-    // Register DataTable_PyType on the module
-    DataTable_PyType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&DataTable_PyType) < 0) return 0;
-    Py_INCREF(&DataTable_PyType);
-    PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
-
-    strRowMappingTypeArr32 = PyUnicode_FromString("arr32");
-    strRowMappingTypeArr64 = PyUnicode_FromString("arr64");
-    strRowMappingTypeSlice = PyUnicode_FromString("slice");
-    return 1;
-}
-
-
 /**
- * "Main" function that drives transformation of datatables.
- *
- * :param rows:
- *     A row selector (a `RowMapping_PyObject` object). This cannot be None --
- *     instead supply row index spanning all rows in the datatable.
- *
- * :param cols:
- *     A column selector (:class:`ColMapping_PyObject`).
- *
- * ... more to be added ...
+ * Create a new DataTable_PyObject by wrapping the provided DataTable `dt`.
+ * If `dt` is a view, then the source `DataTable_PyObject` must also be given.
+ * The returned object will assume ownership of the datatable `dt`. If `dt`
+ * is NULL then this function also returns NULL.
  */
-/*
-static DataTable_PyObject*
-__call__(DataTable_PyObject *self, PyObject *args, PyObject *kwds)
+PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src)
 {
-    RowMapping_PyObject *rows = NULL;
-    ColMapping_PyObject *cols = NULL;
-    DataTable *dtres = NULL;
-    DataTable_PyObject *pyres = NULL;
-
-    static char *kwlist[] = {"rows", "cols", NULL};
-    int ret = PyArg_ParseTupleAndKeywords(args, kwds,
-        "O!O!:DataTable.__call__", kwlist,
-        &RowMapping_PyType, &rows, &ColMapping_PyType, &cols
-    );
-    if (!ret || rows->ref == NULL || cols->ref == NULL) return NULL;
-
-    dtres = dt_DataTable_call(self->ref, rows->ref, cols->ref);
-    if (dtres == NULL) goto fail;
-    rows->ref = NULL;  // The reference ownership is transferred to `dtres`
-
-    pyres = DataTable_PyNew();
-    if (pyres == NULL) goto fail;
-    pyres->ref = dtres;
-    if (dtres->source == NULL)
-        pyres->source = NULL;
-    else {
-        if (dtres->source == self->ref)
-            pyres->source = self;
-        else if (dtres->source == self->ref->source)
-            pyres->source = self->source;
-        else {
-            PyErr_SetString(PyExc_RuntimeError, "Unknown source dataframe");
-            goto fail;
-        }
-        Py_XINCREF(pyres->source);
+    if (dt == NULL) return NULL;
+    if (dt->source != NULL && src == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "Cannot wrap a view datatable");
+        return NULL;
     }
-
-    return pyres;
-
-  fail:
-    datatable_dealloc(dtres);
-    Py_XDECREF(pyres);
-    return NULL;
+    PyObject *pydt = PyObject_CallObject((PyObject*) &DataTable_PyType, NULL);
+    ((DataTable_PyObject*) pydt)->ref = dt;
+    ((DataTable_PyObject*) pydt)->source = src;
+    Py_XINCREF(src);
+    return pydt;
 }
-*/
+#define py pydt_from_dt
 
-int dt_from_pydt(PyObject *object, void *address) {
+int dt_unwrap(PyObject *object, void *address) {
     DataTable **ans = address;
     if (!PyObject_TypeCheck(object, &DataTable_PyType)) {
         PyErr_SetString(PyExc_TypeError, "Expected object of type DataTable");
@@ -196,33 +146,36 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 }
 
 
-DataTable_PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src)
+
+PyObject* pydatatable_assemble(PyObject *self, PyObject *args)
 {
-    if (dt == NULL) return NULL;
-    DataTable_PyObject *pydt = DataTable_PyNew();
-    if (pydt == NULL) return NULL;
-    if (dt->source != NULL && src == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "Cannot wrap a view datatable");
+    int64_t nrows;
+    Column **cols;
+    if (!PyArg_ParseTuple(args, "L!O&:datatable_assemble",
+                          &nrows, &columnset_unwrap, &cols))
         return NULL;
-    }
-    Py_XINCREF(src);
-
-    pydt->ref = dt;
-    pydt->source = src;
-    return pydt;
+    return py(datatable_assemble(nrows, cols), NULL);
 }
 
-DataTable_PyObject* pydatatable_assemble(int64_t nrows, Column **cols)
+
+
+PyObject* pydatatable_assemble_view(PyObject *self, PyObject *args)
 {
-    return pydt_from_dt(datatable_assemble(nrows, cols), NULL);
+    DataTable_PyObject *srcdt;
+    RowMapping_PyObject *pyrwm;
+    ColumnSet_PyObject *pycols;
+    if (!PyArg_ParseTuple(args, "O!O!O!:datatable_assemble_view",
+                          &DataTable_PyType, &srcdt,
+                          &RowMapping_PyType, &pyrwm,
+                          &ColumnSet_PyType, &pycols))
+        return NULL;
+    RowMapping *rowmapping = pyrwm->ref;
+    pyrwm->ref = NULL;
+    Column **columns = pycols->columns;
+    pycols->columns = NULL;
+    return py(datatable_assemble_view(srcdt->ref, rowmapping, columns), srcdt);
 }
 
-DataTable_PyObject*
-pydatatable_assemble_view(DataTable_PyObject *src, RowMapping *rm, Column **cols)
-{
-    if (src == NULL) return NULL;
-    return pydt_from_dt(datatable_assemble_view(src->ref, rm, cols), src);
-}
 
 
 PyObject* write_column_to_file(PyObject *self, PyObject *args)
@@ -232,7 +185,7 @@ PyObject* write_column_to_file(PyObject *self, PyObject *args)
     int64_t colidx = -1;
 
     if (!PyArg_ParseTuple(args, "sO&l:write_column_to_file",
-        &filename, &dt_from_pydt, &dt, &colidx))
+        &filename, &dt_unwrap, &dt, &colidx))
         return NULL;
 
     if (colidx < 0 || colidx >= dt->ncols) {
@@ -422,3 +375,17 @@ PyTypeObject DataTable_PyType = {
     0,                                  /* tp_version_tag */
     0,                                  /* tp_finalize */
 };
+
+
+int init_py_datatable(PyObject *module) {
+    // Register DataTable_PyType on the module
+    DataTable_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&DataTable_PyType) < 0) return 0;
+    Py_INCREF(&DataTable_PyType);
+    PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
+
+    strRowMappingTypeArr32 = PyUnicode_FromString("arr32");
+    strRowMappingTypeArr64 = PyUnicode_FromString("arr64");
+    strRowMappingTypeSlice = PyUnicode_FromString("slice");
+    return 1;
+}

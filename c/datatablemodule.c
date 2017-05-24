@@ -106,13 +106,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args)
     }
 
     dt->nrows = nrows;
-
-    DataTable_PyObject *pydt = DataTable_PyNew();
-    if (pydt == NULL) return NULL;
-    pydt->ref = dt;
-    pydt->source = NULL;
-
-    return (PyObject*)pydt;
+    return pydt_from_dt(dt, NULL);
 }
 
 PyObject* exec_function(PyObject *self, PyObject *args)
@@ -131,23 +125,18 @@ PyObject* exec_function(PyObject *self, PyObject *args)
 // Module definition
 //------------------------------------------------------------------------------
 
+#define METHOD0(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
+
 static PyMethodDef DatatableModuleMethods[] = {
-    {"rowmapping_from_slice", (PyCFunction)pyrowmapping_from_slice,
-        METH_VARARGS,
-        "Row selector constructed from a slice of rows"},
-    {"rowmapping_from_slicelist", (PyCFunction)pyrowmapping_from_slicelist,
-        METH_VARARGS,
-        "Row selector constructed from a 'slicelist'"},
-    {"rowmapping_from_array", (PyCFunction)pyrowmapping_from_array,
-        METH_VARARGS,
-        "Row selector constructed from a list of row indices"},
-    {"rowmapping_from_column", (PyCFunction)pyrowmapping_from_column,
-        METH_VARARGS,
-        "Row selector constructed from a single-boolean-column datatable"},
-    {"pycolumns_from_pymixed", (PyCFunction)pycolumns_from_pymixed,
-        METH_VARARGS,
-        "Column selector constructed from a mixed list"},
-    {"datatable_from_list", (PyCFunction)pyDataTable_from_list_of_lists,
+    METHOD0(columns_from_pymixed),
+    METHOD0(columns_from_slice),
+    METHOD0(datatable_assemble_view),
+    METHOD0(rowmapping_from_slice),
+    METHOD0(rowmapping_from_slicelist),
+    METHOD0(rowmapping_from_array),
+    METHOD0(rowmapping_from_column),
+    METHOD0(rowmapping_from_filterfn),
+    {"datatable_from_list", (PyCFunction)pydatatable_from_list_of_lists,
         METH_VARARGS, "Create Datatable from a list"},
     {"fread", (PyCFunction)freadPy, METH_VARARGS,
         "Read a text file and convert into a datatable"},
@@ -198,6 +187,7 @@ PyInit__datatable(void) {
     if (!init_py_rowmapping(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!init_py_column(m)) return NULL;
+    if (!init_py_columnset(m)) return NULL;
 
     return m;
 }

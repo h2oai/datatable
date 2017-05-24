@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import types
 
+import _datatable
 from .node import Node
 from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
@@ -53,24 +54,6 @@ class ColumnSetNode(Node):
         self._rowmapping = rowmapping
         self._rowmappingdt = dt
 
-    def cget_columns(self):
-        """
-        Return a name of C function that will create a `Column**` array.
-
-        More specifically, this function will insert into the current evaluation
-        context the C code of a function with the following signature:
-            Column** get_columns(void);
-        This function will allocate and fill the `Column**` array, and then
-        relinquish the ownership of that pointer to the caller.
-        """
-        if not self._cname:
-            self._cname = self._gen_c()
-        return self._cname
-
-    def _gen_c(self):
-        raise NotImplementedError("Class %s should implement ._gen_c() method"
-                                  % self.__class__.__name__)
-
 
 
 #===============================================================================
@@ -95,20 +78,11 @@ class SliceView_CSNode(ColumnSetNode):
             return self._dt.names[self._start:end:self._step]
 
 
-    def _gen_c(self):
-        fnname = "get_columns"
-        if not self.context.has_function(fnname):
-            dtvar = self.context.get_dtvar(self._dt)
-            fn = ("static Column** {fnname}(void) {{\n"
-                  "    return columns_from_slice"
-                  "({dt}, {start}, {count}, {step});\n"
-                  "}}\n"
-                  .format(fnname=fnname, dt=dtvar, start=self._start,
-                          count=self._n_columns, step=self._step))
-            self.context.add_function(fnname, fn)
-            self.context.add_extern("columns_from_slice")
-        return fnname
-
+    def get_result(self):
+        res = _datatable.columns_from_slice(self._dt.internal, self._start,
+                                            self._n_columns, self._step)
+        print(res)
+        return res
 
 
 
@@ -125,13 +99,13 @@ class Mixed_CSNode(ColumnSetNode):
 
     def _gen_c(self):
         fnname = "get_columns"
-        if not self.context.has_function(fnname):
+        if not self.soup.has_function(fnname):
             mapnode = MapNode([elem for elem in self._elems
                                if isinstance(elem, BaseExpr)],
                               rowmapping=self._rowmapping)
-            mapnode.use_context(self.context)
+            mapnode.use_context(self.soup)
             mapfn = mapnode.generate_c()
-            dtvar = self.context.get_dtvar(self._dt)
+            dtvar = self.soup.get_dtvar(self._dt)
             rowmapping = self._rowmapping.cget_rowmapping()
             fn = ("static Column** {fnname}(void) {{\n"
                   "    PyObject *elems = (PyObject*) {elemsptr}L;\n"
@@ -141,8 +115,8 @@ class Mixed_CSNode(ColumnSetNode):
                   "}}\n"
                   .format(fnname=fnname, mapfn=mapfn, elemsptr=id(self._elems),
                           dt=dtvar, rowmapping_getter=rowmapping))
-            self.context.add_function(fnname, fn)
-            self.context.add_extern("columns_from_pymixed")
+            self.soup.add_function(fnname, fn)
+            self.soup.add_extern("columns_from_pymixed")
         return fnname
 
 
@@ -151,7 +125,7 @@ class Mixed_CSNode(ColumnSetNode):
 #===============================================================================
 
 def make_columnset(cols, dt, _nested=False):
-    if cols is Ellipsis:
+    if cols is Ellipsis or cols is None:
         return SliceView_CSNode(dt, 0, dt.ncols, 1)
 
     if isinstance(cols, (int, str, slice, BaseExpr)):

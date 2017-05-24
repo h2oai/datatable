@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from .context import EvaluationContext
 
 
 class Node(object):
@@ -10,22 +9,28 @@ class Node(object):
     """
 
     def __init__(self):
-        self._context = None  # type: EvaluationContext
-
-
-    def use_context(self, context):
-        assert isinstance(context, EvaluationContext)
-        assert self._context is None, "Attempt to set context for a second time"
-        self._context = context
-        self.on_context_set()
-
-
-    def on_context_set(self):
-        pass
+        self._soup = None  # type: NodeSoup
 
 
     @property
-    def context(self):
-        assert self._context, ("Context was not set on a node of class %s"
+    def soup(self):
+        if self._soup is None:
+            raise RuntimeError("Node %s was not added to a NodeSoup"
                                % self.__class__.__name__)
-        return self._context
+        return self._soup
+
+    @soup.setter
+    def soup(self, s):
+        self._soup = s
+        self._added_into_soup()
+
+
+    def _added_into_soup(self):
+        pass
+
+    def stir(self):
+        pass
+
+    def get_result(self):
+        raise NotImplementedError("%s.get_result() is not implemented"
+                                  % self.__class__.__name__)

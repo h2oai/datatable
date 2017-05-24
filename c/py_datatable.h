@@ -42,19 +42,14 @@ extern PyTypeObject DataTable_PyType;
 
 
 
-#define DataTable_PyNew() ((DataTable_PyObject*) \
-        PyObject_CallObject((PyObject*) &DataTable_PyType, NULL))
-
 
 // Exported methods
-int dt_from_pydt(PyObject *object, void *address);
-DataTable_PyObject* pyDataTable_from_list_of_lists(PyTypeObject *type,
-                                                   PyObject *args);
-DataTable_PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src);
+int dt_unwrap(PyObject *object, void *address);
+PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src);
+PyObject* pydatatable_from_list_of_lists(PyTypeObject *type, PyObject *args);
 PyObject* write_column_to_file(PyObject *self, PyObject *args);
-DataTable_PyObject* pydatatable_assemble(int64_t nrows, Column **cols);
-DataTable_PyObject* pydatatable_assemble_view(DataTable_PyObject *src, RowMapping *rm,
-                                              Column **cols);
+PyObject* pydatatable_assemble(PyObject *self, PyObject *args);
+PyObject* pydatatable_assemble_view(PyObject *self, PyObject *args);
 int init_py_datatable(PyObject *module);
 
 #endif

@@ -39,9 +39,18 @@ class IteratorNode(Node):
         self._keyvars = {}
         self._var_counter = 0
         self._nrows = 1
-        self._context = None
         self._loopvar = "i"
+        self._cnode = None
+        self._fnidx = None
 
+    def _added_into_soup(self):
+        self._cnode = self.soup.get("c")
+
+    def stir(self):
+        self._fnidx = self.generate_c()
+
+    def get_result(self):
+        return self._cnode.get_result(self._fnidx)
 
 
     #---- User interface -------------------------------------------------------
@@ -73,10 +82,10 @@ class IteratorNode(Node):
         return v
 
     def get_dtvar(self, dt):
-        return self._context.get_dtvar(dt)
+        return self._cnode.get_dtvar(dt)
 
     def add_extern(self, name):
-        self._context.add_extern(name)
+        self._cnode.add_extern(name)
 
     def check_num_rows(self, nrows):
         if self._nrows == 1:
@@ -92,13 +101,11 @@ class IteratorNode(Node):
     #---- Node interface -------------------------------------------------------
 
     def generate_c(self):
-        if self._fnname is not None:
-            return self._fnname
         self._prepare()
         args = "int64_t row0, int64_t row1"
         if self._extraargs:
             args += ", " + self._extraargs
-        fn = ("static int {func}({args}) {{\n"
+        fn = ("int {func}({args}) {{\n"
               "    {preamble}\n"
               "    for (int64_t {i} = row0; {i} < row1; {i}++) {{\n"
               "        {mainloop}\n"
@@ -112,15 +119,14 @@ class IteratorNode(Node):
                              mainloop="\n        ".join(self._mainloop),
                              epilogue="\n    ".join(self._epilogue),
                              )
-        self.context.add_function(self._fnname, fn)
-        return self._fnname
+        return self._cnode.add_function(self._fnname, fn)
 
 
 
     #---- Private/protected ----------------------------------------------------
 
     def _prepare(self):
-        self._fnname = self.context.make_variable_name("iterfn")
+        self._fnname = self._cnode.make_variable_name("iterfn")
 
 
 
@@ -134,7 +140,7 @@ class FilterNode(IteratorNode):
         self._filter_expr = expr
 
     def _prepare(self):
-        self._fnname = self.context.make_variable_name("filter")
+        self._fnname = self._cnode.make_variable_name("filter")
         self._extraargs = "int32_t *out, int32_t *n_outs"
         v = self._filter_expr.value_or_0(inode=self)
         self.addto_preamble("int64_t j = 0;")
@@ -158,7 +164,7 @@ class MapNode(IteratorNode):
         self._exprs.append(expr)
 
     def _prepare(self):
-        self._fnname = self.context.make_variable_name("map")
+        self._fnname = self._cnode.make_variable_name("map")
         self._extraargs = "void **out"
         self._loopvar = "i0"
         self.addto_mainloop("int64_t i = i0;\n")

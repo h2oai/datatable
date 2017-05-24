@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "columnset.h"
 #include "utils.h"
 

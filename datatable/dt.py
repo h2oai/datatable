@@ -9,8 +9,7 @@ from .widget import DataFrameWidget
 
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
-from datatable.graph import (DatatableNode, make_rowfilter,
-                             make_columnset)
+from datatable.graph import DatatableNode, RowFilterNode, make_columnset, NodeSoup
 
 __all__ = ("DataTable", )
 
@@ -340,17 +339,12 @@ class DataTable(object):
         """
         if timeit:
             time0 = time.time()
-        if rows is None:
-            rows = Ellipsis
-        if select is None:
-            select = Ellipsis
-
-        dtnode = DatatableNode(
-            self,
-            rows=make_rowfilter(rows, dt=self),
-            select=make_columnset(select, dt=self),
-        )
-        res = dtnode.execute(verbose=verbose)
+        soup = NodeSoup(verbose=verbose)
+        soup.add("rows", RowFilterNode(rows, dt=self))
+        soup.add("select", make_columnset(select, dt=self))
+        soup.add("result", DatatableNode(self))
+        soup.stir()
+        res = soup.stew()
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
