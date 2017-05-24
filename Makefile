@@ -3,6 +3,7 @@
 all:
 	$(MAKE) clean
 	$(MAKE) build
+	$(MAKE) test
 
 .PHONY: build
 build:
@@ -17,6 +18,10 @@ clean:
 	rm -rf datatable.egg-info
 	rm -f *.so
 	find . -type d -name "__pycache__" -exec rm -rf {} +
+
+.PHONY: test
+test:
+	pytest
 
 .PHONY: valgrind
 valgrind:
