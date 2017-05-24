@@ -183,15 +183,15 @@ static inline double _nand_(void) { double_repr x = { BIN_NAF8 }; return x.d; }
 
 
 _externs = {
-    "ISNA_F4": "inline int ISNA_F4(float x) "
+    "ISNA_F4": "static int ISNA_F4(float x) "
                "{ float_repr xx; xx.f = x; return xx.i == BIN_NAF4; }",
-    "ISNA_F8": "inline int ISNA_F8(double x) "
+    "ISNA_F8": "static int ISNA_F8(double x) "
                "{ double_repr xx; xx.d = x; return xx.i == BIN_NAF8; }",
-    "ISNA_I1": "inline int ISNA_I1(int8_t x) { return x == NA_I1; }",
-    "ISNA_I2": "inline int ISNA_I2(int16_t x) { return x == NA_I2; }",
-    "ISNA_I4": "inline int ISNA_I4(int32_t x) { return x == NA_I4; }",
-    "ISNA_I8": "inline int ISNA_I8(int64_t x) { return x == NA_I8; }",
-    "ISNA_U1": "inline int ISNA_U1(uint8_t x) { return x == NA_U1; }",
-    "ISNA_U2": "inline int ISNA_U2(uint16_t x) { return x == NA_U2; }",
-    "ISNA_U4": "inline int ISNA_U4(uint32_t x) { return x == NA_U4; }",
+    "ISNA_I1": "static int ISNA_I1(int8_t x) { return x == NA_I1; }",
+    "ISNA_I2": "static int ISNA_I2(int16_t x) { return x == NA_I2; }",
+    "ISNA_I4": "static int ISNA_I4(int32_t x) { return x == NA_I4; }",
+    "ISNA_I8": "static int ISNA_I8(int64_t x) { return x == NA_I8; }",
+    "ISNA_U1": "static int ISNA_U1(uint8_t x) { return x == NA_U1; }",
+    "ISNA_U2": "static int ISNA_U2(uint16_t x) { return x == NA_U2; }",
+    "ISNA_U4": "static int ISNA_U4(uint32_t x) { return x == NA_U4; }",
 }
