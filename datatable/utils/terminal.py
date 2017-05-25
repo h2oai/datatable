@@ -10,7 +10,17 @@ __all__ = ("term", "wait_for_keypresses", "register_onresize")
 
 
 # Initialize the terminal
-term = blessed.Terminal()
+class MyTerminal(blessed.Terminal):
+    def __init__(self):
+        super().__init__()
+        self.override_width = 0
+
+    @property
+    def width(self):
+        return self.override_width or blessed.Terminal.width.fget(self)
+
+
+term = MyTerminal()
 
 
 # Override sys.displayhook to allow better control over what is being printed

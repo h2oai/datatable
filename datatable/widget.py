@@ -2,9 +2,9 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import time
 
+import datatable
 from datatable.utils.misc import plural_form, clamp
-from datatable.utils.terminal import (
-    term, wait_for_keypresses, register_onresize)
+from datatable.utils.terminal import term, register_onresize
 
 grey = term.bright_black
 
@@ -80,7 +80,7 @@ class DataFrameWidget(object):
             return
         old_handler = register_onresize(self._onresize)
         try:
-            for ch in wait_for_keypresses(0.5):
+            for ch in datatable.utils.terminal.wait_for_keypresses(0.5):
                 if not ch:
                     # Signal handler could have invalidated interactive mode
                     # of the widget -- in which case we need to stop rendering

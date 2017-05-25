@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-import os
 import time
 
 # noinspection PyUnresolvedReferences
@@ -83,7 +82,8 @@ class DataTable(object):
         scols = plural(self._ncols, "col")
         return "<DataTable #%d (%s x %s)>" % (self._id, srows, scols)
 
-    def _display_in_terminal_(self):
+    def _display_in_terminal_(self):  # pragma: no cover
+        # This method is called from the display hook set from .utils.terminal
         self.view()
 
     def _data_viewer(self, row0, row1, col0, col1):
@@ -143,30 +143,23 @@ class DataTable(object):
             else:
                 self._fill_from_list([src], names=colnames)
         elif isinstance(src, (tuple, set)):
-            self._fill_from_list(list(src), names=colnames)
+            self._fill_from_list([list(src)], names=colnames)
         elif isinstance(src, dict):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
         elif isinstance(src, c.DataTable):
             self._fill_from_dt(src, names=colnames)
-        else:
+        elif src is None:
             self._dt = c.DataTable()
+            self._names = tuple()
+            self._types = tuple()
+            self._stypes = tuple()
+            self._inames = dict()
+        else:
+            raise TypeError("Cannot create DataTable from %r" % src)
 
 
     def _fill_from_list(self, src, names=None):
         self._fill_from_dt(c.datatable_from_list(src), names=names)
-
-
-    def _fill_from_pdt(self, dirname):
-        with open(os.path.join(dirname, "_info.pdt")) as inp:
-            nrows = int(next(inp))
-            columns = []
-            colnames = []
-            for line in inp:
-                stype, colname, f = line.strip().split(" ", 3)
-                columns.append(os.path.join(dirname, f))
-                colnames.append(colname)
-        self._fill_from_dt(c.dt_from_memmap(columns), names=colnames)
-        assert self.nrows == nrows, "Wrong number of rows read: %d" % self.nrows
 
 
     def _fill_from_dt(self, dt, names=None):
@@ -357,9 +350,9 @@ class DataTable(object):
                 return self(rows=..., select=item[0])
             if len(item) == 2:
                 return self(rows=item[0], select=item[1])
-            if len(item) == 3:
-                return self(rows=item[0], select=item[1], groupby=item[2])
-            raise ValueError("Selector %r is not supported" % item)
+            # if len(item) == 3:
+            #     return self(rows=item[0], select=item[1], groupby=item[2])
+            raise ValueError("Selector %r is not supported" % (item, ))
         else:
             return self(rows=..., select=item)
 
