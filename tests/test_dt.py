@@ -143,6 +143,15 @@ def test_constructor():
     assert d4.names == tuple()
     assert d4.types == tuple()
     assert d4.stypes == tuple()
+    d5 = dt.DataTable([])
+    assert d5.shape == (0, 0)
+    assert d5.names == tuple()
+    assert d5.types == tuple()
+    assert d5.stypes == tuple()
+    d6 = dt.DataTable([[]])
+    assert d6.shape == (0, 1)
+    assert d6.names == ("C1", )
+    assert d6.types == ("bool", )
 
     with pytest.raises(TypeError) as e:
         dt.DataTable("scratch")

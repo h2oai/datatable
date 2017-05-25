@@ -138,7 +138,7 @@ class DataTable(object):
 
     def _fill_from_source(self, src, colnames):
         if isinstance(src, list):
-            if isinstance(src[0], list):
+            if not src or isinstance(src[0], list):
                 self._fill_from_list(src, names=colnames)
             else:
                 self._fill_from_list([src], names=colnames)
@@ -149,11 +149,7 @@ class DataTable(object):
         elif isinstance(src, c.DataTable):
             self._fill_from_dt(src, names=colnames)
         elif src is None:
-            self._dt = c.DataTable()
-            self._names = tuple()
-            self._types = tuple()
-            self._stypes = tuple()
-            self._inames = dict()
+            self._fill_from_list([])
         else:
             raise TypeError("Cannot create DataTable from %r" % src)
 

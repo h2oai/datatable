@@ -20,8 +20,7 @@ static Column* column_from_list(PyObject *list);
  * Otherwise, we assume that the list represents a single data column, and
  * build the datatable appropriately.
  */
-PyObject*
-pydatatable_from_list_of_lists(PyTypeObject *type, PyObject *args)
+PyObject* pydatatable_from_list(PyTypeObject *type, PyObject *args)
 {
     DataTable *dt = NULL;
     PyObject *list;
@@ -30,7 +29,7 @@ pydatatable_from_list_of_lists(PyTypeObject *type, PyObject *args)
         return NULL;
 
     // Create a new (empty) DataTable instance
-    dt = MALLOC(sizeof(DataTable));
+    dtmalloc(dt, DataTable, 1);
     dt->source = NULL;
     dt->rowmapping = NULL;
     dt->columns = NULL;
@@ -40,6 +39,8 @@ pydatatable_from_list_of_lists(PyTypeObject *type, PyObject *args)
     // If the supplied list is empty, return the empty Datatable object
     int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
     if (listsize == 0) {
+        dtmalloc(dt->columns, Column*, 1);
+        dt->columns[0] = NULL;
         return pydt_from_dt(dt, NULL);
     }
 
@@ -61,7 +62,8 @@ pydatatable_from_list_of_lists(PyTypeObject *type, PyObject *args)
 
     dt->ncols = listsize;
     dt->nrows = item0size;
-    dt->columns = CALLOC(sizeof(Column), dt->ncols);
+    dtmalloc(dt->columns, Column*, dt->ncols + 1);
+    dt->columns[dt->ncols] = NULL;
 
     // Fill the data
     for (int64_t i = 0; i < dt->ncols; i++) {
@@ -126,7 +128,7 @@ Column* column_from_list(PyObject *list)
     if (list == NULL || !PyList_Check(list)) return NULL;
 
     Column *column = NULL;
-    column = MALLOC(sizeof(Column));
+    dtmalloc(column, Column, 1);
     column->meta = NULL;
     column->data = NULL;
     column->mtype = MT_DATA;
@@ -134,8 +136,8 @@ Column* column_from_list(PyObject *list)
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
-        column->stype = ST_REAL_F8;
-        return 0;
+        column->stype = ST_BOOLEAN_I1;
+        return column;
     }
 
     SType stype = ST_VOID;
