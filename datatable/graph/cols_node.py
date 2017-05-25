@@ -95,28 +95,20 @@ class Mixed_CSNode(ColumnSetNode):
         self._n_columns = len(elems)
         self._n_view_columns = sum(isinstance(x, int) for x in elems)
         self._column_names = names
+        self._mapnode = None
 
-    def _gen_c(self):
-        fnname = "get_columns"
-        if not self.soup.has_function(fnname):
-            mapnode = MapNode([elem for elem in self._elems
-                               if isinstance(elem, BaseExpr)],
-                              rowmapping=self._rowmapping)
-            mapnode.use_context(self.soup)
-            mapfn = mapnode.generate_c()
-            dtvar = self.soup.get_dtvar(self._dt)
-            rowmapping = self._rowmapping.cget_rowmapping()
-            fn = ("static Column** {fnname}(void) {{\n"
-                  "    PyObject *elems = (PyObject*) {elemsptr}L;\n"
-                  "    RowMapping *rowmapping = {rowmapping_getter}();\n"
-                  "    return columns_from_pymixed(elems, {dt}, rowmapping, "
-                  "&{mapfn});\n"
-                  "}}\n"
-                  .format(fnname=fnname, mapfn=mapfn, elemsptr=id(self._elems),
-                          dt=dtvar, rowmapping_getter=rowmapping))
-            self.soup.add_function(fnname, fn)
-            self.soup.add_extern("columns_from_pymixed")
-        return fnname
+    def _added_into_soup(self):
+        self._rowmapping = self.soup.get("rows")
+        self._mapnode = MapNode([elem for elem in self._elems
+                                 if isinstance(elem, BaseExpr)],
+                                rowmapping=self._rowmapping)
+        self.soup.add("columns_mapfn", self._mapnode)
+
+    def get_result(self):
+        fnptr = self._mapnode.get_result()
+        rowmapping = self._rowmapping.get_result()
+        return _datatable.columns_from_pymixed(self._elems, self._dt.internal,
+                                               rowmapping, fnptr)
 
 
 
@@ -155,6 +147,25 @@ def make_columnset(cols, dt, _nested=False):
             else:
                 outcols.append(pcol)
                 colnames.append(str(col))
+        return Mixed_CSNode(dt, outcols, colnames)
+
+    if isinstance(cols, dict):
+        outcols = []
+        colnames = []
+        for name, col in cols.items():
+            pcol = process_column(col, dt)
+            colnames.append(name)
+            if isinstance(pcol, int):
+                outcols.append(pcol)
+            elif isinstance(pcol, tuple):
+                start, count, step = pcol
+                for i in range(count):
+                    j = start + i * step
+                    outcols.append(j)
+                    if i > 0:
+                        colnames.append(name + str(i))
+            else:
+                outcols.append(pcol)
         return Mixed_CSNode(dt, outcols, colnames)
 
     if isinstance(cols, types.FunctionType) and not _nested:

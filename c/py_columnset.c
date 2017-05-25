@@ -1,6 +1,7 @@
 #include "columnset.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
+#include "py_rowmapping.h"
 #include "py_utils.h"
 #include "utils.h"
 
@@ -53,9 +54,18 @@ PyObject* pycolumns_from_slice(PyObject *self, PyObject *args)
 PyObject* pycolumns_from_pymixed(PyObject *self, PyObject *args)
 {
     PyObject *elems;
-    if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &elems))
+    DataTable *dt;
+    RowMapping *rwm;
+    long long rawptr;
+    if (!PyArg_ParseTuple(args, "O!O&O&L:columns_from_pymixed",
+                          &PyList_Type, &elems,
+                          &dt_unwrap, &dt,
+                          &rowmapping_unwrap, &rwm,
+                          &rawptr))
         return NULL;
-    return py(columns_from_pymixed(elems, NULL, NULL, NULL));
+
+    columnset_mapfn *fnptr = (columnset_mapfn*) rawptr;
+    return py(columns_from_pymixed(elems, dt, rwm, fnptr));
 }
 
 
@@ -64,7 +74,7 @@ Column** columns_from_pymixed(
     PyObject *elems,
     DataTable *dt,
     RowMapping *rowmapping,
-    int (*mapfn)(int64_t row0, int64_t row1, void** out)
+    columnset_mapfn *mapfn
 ) {
     int64_t ncols = PyList_Size(elems);
     int64_t *spec = NULL;
