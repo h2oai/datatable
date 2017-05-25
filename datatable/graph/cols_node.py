@@ -8,6 +8,7 @@ from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
+from datatable.utils.typechecks import ValueError, TypeError
 
 
 
@@ -38,21 +39,9 @@ class ColumnSetNode(Node):
         return self._dt
 
     @property
-    def n_columns(self):
-        return self._n_columns
-
-    @property
-    def n_view_columns(self):
-        return self._n_view_columns
-
-    @property
     def column_names(self):
-        assert len(self._column_names) == self._n_columns
         return self._column_names
 
-    def use_rowmapping(self, rowmapping, dt):
-        self._rowmapping = rowmapping
-        self._rowmappingdt = dt
 
 
 
@@ -64,23 +53,29 @@ class SliceView_CSNode(ColumnSetNode):
         super().__init__(dt)
         self._start = start
         self._step = step
-        self._n_columns = count
-        self._n_view_columns = count  # All columns are view columns
+        self._count = count
         self._column_names = self._make_column_names()
 
 
     def _make_column_names(self):
         if self._step == 0:
             s = self._dt.names[self._start]
-            return tuple([s] * self._n_columns)
+            return tuple([s] * self._count)
         else:
-            end = self._start + self._n_columns * self._step
+            end = self._start + self._count * self._step
+            if end < 0:
+                # If step is negative, then `end` can become negative. However
+                # slice() would reinterpret that negative index as counting from
+                # the end, which is not what we want. For example triple
+                # (3, 2, -2) denotes indices [3, 1], which can be achieved using
+                # slice [3::-2] but not slice [3:-1:-2].
+                end = None
             return self._dt.names[self._start:end:self._step]
 
 
     def get_result(self):
         res = _datatable.columns_from_slice(self._dt.internal, self._start,
-                                            self._n_columns, self._step)
+                                            self._count, self._step)
         return res
 
 
@@ -92,8 +87,6 @@ class Mixed_CSNode(ColumnSetNode):
     def __init__(self, dt, elems, names):
         super().__init__(dt)
         self._elems = elems
-        self._n_columns = len(elems)
-        self._n_view_columns = sum(isinstance(x, int) for x in elems)
         self._column_names = names
         self._mapnode = None
 
@@ -128,7 +121,7 @@ def make_columnset(cols, dt, _nested=False):
             return SliceView_CSNode(dt, *pcol)
         else:
             assert isinstance(pcol, BaseExpr)
-            return Mixed_CSNode(dt, [pcol], names=[str(cols)])
+            return Mixed_CSNode(dt, [pcol], names=["V0"])
 
     if isinstance(cols, (list, tuple)):
         outcols = []
@@ -190,7 +183,7 @@ def process_column(col, dt):
         if -ncols <= col < ncols:
             return col % ncols
         else:
-            raise ValueError("Column index {col} is invalid for a datatable "
+            raise ValueError("Column index `{col}` is invalid for a datatable "
                              "with {ncolumns}"
                              .format(col=col, ncolumns=plural(ncols, "column")))
 

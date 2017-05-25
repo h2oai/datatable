@@ -44,11 +44,12 @@ def test_dt_properties(dt0):
 
 
 def test_dt_call(dt0, capsys):
-    # Such simple query should evaluate instantly, and we check for that.
-    dt0(timeit=True)
+    dt1 = dt0(timeit=True)
+    assert dt1.shape == dt0.shape
+    assert dt1.internal.isview and dt1.internal.rowmapping_type == "slice"
     out, err = capsys.readouterr()
     assert err == ""
-    assert "Time taken: 0 ms" in out
+    assert "Time taken:" in out
 
 
 def test_dt_view(dt0, monkeypatch, capsys):

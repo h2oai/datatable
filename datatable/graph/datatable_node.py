@@ -36,8 +36,8 @@ class DatatableNode(Node):
         selectnode = self.soup.get("select")
         rowmapping = rowsnode.get_result()
         columns = selectnode.get_result()
-        dt = selectnode.dt.internal
-        res_dt = _datatable.datatable_assemble_view(dt, rowmapping, columns)
+        _dt = selectnode.dt.internal
+        res_dt = _datatable.datatable_assemble_view(_dt, rowmapping, columns)
         return datatable.DataTable(res_dt, colnames=selectnode.column_names)
 
 
