@@ -72,6 +72,7 @@ def test_dt0_properties(dt0):
     assert dt0.internal.isview is False
     assert dt0.internal.rowmapping_type is None
     assert dt0.internal.view_colnumbers is None
+    assert dt0.internal.verify_integrity() is None
 
 
 def test_rows_ellipsis(dt0):

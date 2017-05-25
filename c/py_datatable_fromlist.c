@@ -327,6 +327,7 @@ Column* column_from_list(PyObject *list)
             size_t offoff = (strbuffer_ptr + (1 << 3) - 1) >> 3 << 3;
             size_t final_size = offoff + 4 * (size_t)nrows;
             strbuffer = REALLOC(strbuffer, final_size);
+            memset(strbuffer + strbuffer_ptr, 0xFF, offoff - strbuffer_ptr);
             memcpy(strbuffer + offoff, data, 4 * (size_t)nrows);
             data = strbuffer;
             column->alloc_size = final_size;

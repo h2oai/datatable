@@ -40,6 +40,7 @@ def test_dt_properties(dt0):
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
     assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
+    assert dt0.internal.verify_integrity() is None
 
 
 def test_dt_call(dt0, capsys):
@@ -106,7 +107,7 @@ def test__hex(dt0, monkeypatch, capsys):
             "Meta: offoff=16\n"
             "    00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F                  \n"
             "--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ----------------\n"
-            " 0  31  32  68  65  6C  6C  6F  77  6F  72  6C  64  00  00  00  00  12helloworld....\n"
+            " 0  31  32  68  65  6C  6C  6F  77  6F  72  6C  64  FF  FF  FF  FF  12helloworldÿÿÿÿ\n"
             " 1  02  00  00  00  03  00  00  00  08  00  00  00  0D  00  00  00  ................\n"
             in out)
 

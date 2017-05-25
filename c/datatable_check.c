@@ -486,6 +486,9 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                         if (fix) {
                             ((unsigned char*) col->data)[j] = 0xFF;
                             fixed_errors++;
+                        } else {
+                            // Do not report this error more than once
+                            break;
                         }
                     }
                 }
