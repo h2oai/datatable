@@ -81,7 +81,6 @@ class SliceView_CSNode(ColumnSetNode):
     def get_result(self):
         res = _datatable.columns_from_slice(self._dt.internal, self._start,
                                             self._n_columns, self._step)
-        print(res)
         return res
 
 

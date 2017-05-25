@@ -29,10 +29,6 @@ class CModuleNode(Node):
         assert n is not None
         if not self._function_pointers:
             cc = self._gen_module()
-            print("C code generated:")
-            print("-" * 80)
-            print(cc)
-            print("-" * 80)
             self._function_pointers = \
                 inject_c_code(cc, self._exported_functions)
         assert n < len(self._function_pointers)

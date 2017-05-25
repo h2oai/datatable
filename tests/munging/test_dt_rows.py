@@ -211,6 +211,7 @@ def test_rows_multislice(dt0):
     assert_valueerror(dt0, [1, -1, 5, -11], "Row `-11` is invalid")
 
 
+
 def test_rows_column(dt0):
     """
     Test the use of a boolean column as a filter:
@@ -232,6 +233,7 @@ def test_rows_column(dt0):
                       "datatable with 10 rows")
 
 
+
 def test_rows_function(dt0):
     """
     Test that it is possible to use a lambda-expression as a filter:
@@ -241,16 +243,22 @@ def test_rows_function(dt0):
     assert dt1.shape == (5, 3)
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [-11, 9, 0, 1, None]
+
     dt2 = dt0(lambda f: [5, 7, 9])
     assert dt2.shape == (3, 3)
     assert as_list(dt2)[1] == [0, -1, None]
+
     dt3 = dt0(lambda f: f.colA < f.colB)
-    assert dt3.ncols == 3
+    assert dt3.shape == (2, 3)
+    assert as_list(dt3) == [[0, 1], [7, 9], [5, 1.3]]
+
     dt4 = dt0(lambda f: f.colB == 0)
     assert dt4.shape == (2, 3)
     assert as_list(dt4) == [[0, 1], [0, 0], [0, -2.6]]
+
     assert_typeerror(dt0, lambda f: "boooo!",
                      "Unexpected result produced by the `rows` function")
+
 
 
 @pytest.mark.skip(reason="Need to implement columnsets over view datatables")
