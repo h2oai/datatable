@@ -87,8 +87,6 @@ os.environ["LLVM_CONFIG"] = llvm_config
 # Ignored warnings:
 #   -Wreserved-id-macro : triggers for python internals
 #   -Wpadded: warning about gaps in a struct, which are normal
-#   -Wunused-parameter: standard PyCFunction takes 2 params,
-#       even if one of them is NULL
 #   -Wpointer-arith: this warns about treating (void*) as
 #       (char*), which is a GNU extension. However since we
 #       only ever want to compile in GCC / CLang, such use is
@@ -107,7 +105,6 @@ extra_compile_args = [
     "-Weverything",
     "-Wno-reserved-id-macro",
     "-Wno-padded",
-    "-Wno-unused-parameter",
     "-Wno-pointer-arith",
     "-Wno-covered-switch-default",
     "-Wno-float-equal",

@@ -27,18 +27,18 @@ float max_f4(float a, float b);
  *     int32_t *arr;
  *     dtmalloc(arr, int32_t, 1000);
  *
- * The macro checks that the allocation was successful, and performs `goto fail`
- * otherwise.
+ * The macro checks that the allocation was successful, and if not it executes
+ * `return NULL`.
  **/
 #ifdef __cplusplus
     #define dtmalloc(ptr, T, n) do {                                           \
         ptr = (T*) malloc((size_t)(n) * sizeof(T));                            \
-        if (ptr == nullptr) goto fail;                                         \
+        if (ptr == nullptr) return nullptr;                                    \
     } while(0)
 #else
     #define dtmalloc(ptr, T, n) do {                                           \
         ptr = malloc((size_t)(n) * sizeof(T));                                 \
-        if (ptr == NULL) goto fail;                                            \
+        if (ptr == NULL) return NULL;                                          \
     } while(0)
 #endif
 
@@ -48,6 +48,12 @@ float max_f4(float a, float b);
  * (Currently it's same as system `free`, however that may change in the future).
  **/
 #define dtfree  free
+
+
+/**
+ * Mark a function parameter as deliberately unused.
+ **/
+#define UNUSED(x)  __attribute__((unused)) x
 
 
 

@@ -147,7 +147,7 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 
 
 
-PyObject* pydatatable_assemble(PyObject *self, PyObject *args)
+PyObject* pydatatable_assemble(UU, PyObject *args)
 {
     int64_t nrows;
     Column **cols;
@@ -159,7 +159,7 @@ PyObject* pydatatable_assemble(PyObject *self, PyObject *args)
 
 
 
-PyObject* pydatatable_assemble_view(PyObject *self, PyObject *args)
+PyObject* pydatatable_assemble_view(UU, PyObject *args)
 {
     DataTable_PyObject *srcdt;
     RowMapping_PyObject *pyrwm;
@@ -178,7 +178,7 @@ PyObject* pydatatable_assemble_view(PyObject *self, PyObject *args)
 
 
 
-PyObject* write_column_to_file(PyObject *self, PyObject *args)
+PyObject* write_column_to_file(UU, PyObject *args)
 {
     const char *filename = NULL;
     DataTable *dt = NULL;

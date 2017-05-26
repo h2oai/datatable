@@ -19,7 +19,7 @@ PyObject *dt_from_memmap(PyObject *self, PyObject *args);
 PyObject* exec_function(PyObject *self, PyObject *args);
 
 
-PyObject *dt_from_memmap(PyObject *self, PyObject *args)
+PyObject *dt_from_memmap(UU, PyObject *args)
 {
     PyObject *list;
 

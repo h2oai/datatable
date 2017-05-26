@@ -53,7 +53,7 @@ static StrBuf **strbufs = NULL;
  * `freadMainArgs` structure, and then passes that structure to the `freadMain`
  * function.
  */
-PyObject* freadPy(PyObject *self, PyObject *args)
+PyObject* freadPy(UU, PyObject *args)
 {
     if (freader != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -137,7 +137,9 @@ void cleanup_fread_session(freadMainArgs *frargs) {
 
 
 
-_Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor, int ncols_) {
+_Bool userOverride(
+    UNUSED(int8_t *types_), lenOff *colNames, const char *anchor, int ncols_
+) {
     colNamesList = PyTuple_New(ncols_);
     for (int i = 0; i < ncols_; i++) {
         lenOff ocol = colNames[i];
@@ -263,7 +265,7 @@ void reallocColType(int colidx, colType newType) {
 
 void pushBuffer(const void *buff, const char *anchor, int nrows,
                 int64_t row0, int rowSize,
-                int nStringCols, int nNonStringCols)
+                UNUSED(int nStringCols), UNUSED(int nNonStringCols))
 {
     int i = 0;  // index within the `types` and `sizes`
     int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
@@ -328,7 +330,12 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
 }
 
 
-void progress(double percent/*[0,1]*/, double ETA/*secs*/) {}
+void progress(double percent/*[0,1]*/, double ETA/*secs*/)
+{
+    (void)percent;
+    (void)ETA;
+}
+
 
 __attribute__((format(printf, 1, 2)))
 void DTPRINT(const char *format, ...) {

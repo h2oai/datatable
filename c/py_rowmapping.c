@@ -1,7 +1,6 @@
 #include "py_datatable.h"
 #include "py_rowmapping.h"
-#include "datatable.h"
-#include "utils.h"
+#include "py_utils.h"
 
 
 #define VALASSERT(test, ...)                                                   \
@@ -53,7 +52,7 @@ int rowmapping_unwrap(PyObject *object, void *address) {
  * Construct a (py)RowMapping "slice" object given a tuple (start, count, step).
  * This is a Python wrapper for :func:`rowmapping_from_slice`.
  */
-PyObject* pyrowmapping_from_slice(PyObject *self, PyObject *args)
+PyObject* pyrowmapping_from_slice(UU, PyObject *args)
 {
     int64_t start, count, step;
     if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
@@ -69,7 +68,7 @@ PyObject* pyrowmapping_from_slice(PyObject *self, PyObject *args)
  * that are given in the form of 3 arrays start[], count[], step[].
  * This is a Python wrapper for :func:`rowmapping_from_slicelist`.
  */
-PyObject* pyrowmapping_from_slicelist(PyObject *self, PyObject *args)
+PyObject* pyrowmapping_from_slicelist(UU, PyObject *args)
 {
     PyObject *pystarts, *pycounts, *pysteps;
     if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
@@ -116,7 +115,7 @@ PyObject* pyrowmapping_from_slicelist(PyObject *self, PyObject *args)
  * Construct RowMapping object from an array of indices. This is a wrapper
  * for :func:`rowmapping_from_i32_array` / :func:`rowmapping_from_i64_array`.
  */
-PyObject* pyrowmapping_from_array(PyObject *self, PyObject *args)
+PyObject* pyrowmapping_from_array(UU, PyObject *args)
 {
     PyObject *list;
     if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
@@ -165,7 +164,7 @@ PyObject* pyrowmapping_from_array(PyObject *self, PyObject *args)
  * with the indices that corresponds to the rows where the boolean column has
  * true values (all false / NA columns are skipped).
  */
-PyObject* pyrowmapping_from_column(PyObject *self, PyObject *args)
+PyObject* pyrowmapping_from_column(UU, PyObject *args)
 {
     DataTable *dt = NULL;
     RowMapping *rowmapping = NULL;
@@ -198,7 +197,7 @@ PyObject* pyrowmapping_from_column(PyObject *self, PyObject *args)
  * the number of rows that has to be filtered. This is a wrapper around
  * `rowmapping_from_filterfn[32|64]`.
  */
-PyObject* pyrowmapping_from_filterfn(PyObject* self, PyObject *args)
+PyObject* pyrowmapping_from_filterfn(UU, PyObject *args)
 {
     long long _fnptr, _nrows;
     if (!PyArg_ParseTuple(args, "LL:RowMapping.from_filterfn",

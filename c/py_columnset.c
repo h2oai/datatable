@@ -37,7 +37,7 @@ int columnset_unwrap(PyObject *object, void *address) {
 
 //==============================================================================
 
-PyObject* pycolumns_from_slice(PyObject *self, PyObject *args)
+PyObject* pycolumns_from_slice(UU, PyObject *args)
 {
     DataTable *dt;
     int64_t start, count, step;
@@ -51,7 +51,7 @@ PyObject* pycolumns_from_slice(PyObject *self, PyObject *args)
 
 
 
-PyObject* pycolumns_from_pymixed(PyObject *self, PyObject *args)
+PyObject* pycolumns_from_pymixed(UU, PyObject *args)
 {
     PyObject *elems;
     DataTable *dt;

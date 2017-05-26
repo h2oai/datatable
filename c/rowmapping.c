@@ -496,10 +496,9 @@ RowMapping* rowmapping_merge(RowMapping *rwm_ab, RowMapping *rwm_bc)
  * @param nrows
  *     Number of rows in the datatable that is being filtered.
  */
-RowMapping* rowmapping_from_filterfn32(
-    int (*filterfn)(int64_t row0, int64_t row1, int32_t *out, int32_t *nouts),
-    int64_t nrows
-) {
+RowMapping*
+rowmapping_from_filterfn32(rowmapping_filterfn32 *filterfn, int64_t nrows)
+{
     // Output buffer, where we will write the indices of selected rows. This
     // buffer is preallocated to the length of the original dataset, and it will
     // be re-alloced to the proper length in the end. The reason we don't want
@@ -507,11 +506,12 @@ RowMapping* rowmapping_from_filterfn32(
     // least some of the reallocs will have to memmove the data, and moreover
     // the realloc has to occur within a critical section, slowing down the
     // team of threads).
-    int32_t *out = malloc((size_t)nrows * sizeof(int32_t));
-    // Number of elements that were written (or tentatively written) into the
-    // array `out`.
+    int32_t *out;
+    dtmalloc(out, int32_t, nrows);
+    // Number of elements that were written (or tentatively written) so far
+    // into the array `out`.
     size_t out_length = 0;
-    // We divide the range of rows 0:nrows into `num_chunks` pieces, each
+    // We divide the range of rows [0:nrows] into `num_chunks` pieces, each
     // (except the very last one) having `rows_per_chunk` rows. Each such piece
     // is a fundamental unit of work for this function: every thread in the team
     // works on a single chunk at a time, and then moves on to the next chunk
@@ -582,10 +582,13 @@ RowMapping* rowmapping_from_filterfn32(
 
 
 
-RowMapping* rowmapping_from_filterfn64(
-    int (*filterfn)(int64_t row0, int64_t row1, int64_t *out, int32_t *nouts),
-    int64_t nrows
-) { return NULL; }
+RowMapping*
+rowmapping_from_filterfn64(rowmapping_filterfn64 *filterfn, int64_t nrows)
+{
+    (void)filterfn;
+    (void)nrows;
+    return NULL;
+}
 
 
 

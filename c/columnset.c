@@ -25,10 +25,6 @@ columns_from_slice(DataTable *dt, int64_t start, int64_t count, int64_t step)
     }
     columns[count] = NULL;
     return (Column**) columns;
-
-  fail:
-    dtfree(columns);
-    return NULL;
 }
 
 
@@ -53,10 +49,6 @@ Column** columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
     }
     columns[ncols] = NULL;
     return (Column**) columns;
-
-  fail:
-    dtfree(columns);
-    return NULL;
 }
 
 
@@ -89,10 +81,6 @@ Column** columns_from_mapfn(
 
     (*mapfn)(0, nrows, out);
     return columns;
-
-  fail:
-    dtfree(out);
-    return NULL;
 }
 
 
@@ -134,8 +122,4 @@ Column** columns_from_mixed(
 
     (*mapfn)(0, (int64_t)nrows, out);
     return columns;
-
-  fail:
-    dtfree(out);
-    return NULL;
 }
