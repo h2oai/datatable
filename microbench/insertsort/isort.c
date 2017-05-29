@@ -54,23 +54,22 @@ static void iinsert1(int *x, uint8_t *o, uint8_t n)
 }
 
 
-static void iinsert2(int *x, int *o, int n)
+static void iinsert2(const int *x, int *y, int n, int* restrict tmp)
 {
-    static int oo[1024];
-    oo[0] = 0;
+    tmp[0] = 0;
     for (int i = 1; i < n; i++) {
         int xi = x[i];
         int j = i;
-        while (j && xi < x[oo[j - 1]]) {
-            oo[j] = oo[j - 1];
+        while (j && xi < x[tmp[j - 1]]) {
+            tmp[j] = tmp[j - 1];
             j--;
         }
-        oo[j] = i;
+        tmp[j] = i;
     }
     for (int i = 0; i < n; i++) {
-        oo[i] = o[oo[i]];
+        tmp[i] = y[tmp[i]];
     }
-    memcpy(o, oo, n * sizeof(int));
+    memcpy(y, tmp, n * sizeof(int));
 }
 
 
@@ -99,6 +98,7 @@ int main(int argc, char **argv)
     }
     int *wx = malloc(alloc_size);
     int *wy = malloc(alloc_size);
+    int *tmp = malloc(alloc_size);
 
     // Check correctness
     memcpy(wx, x, alloc_size);
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     memcpy(copy, wy, alloc_size);
     memcpy(wx, x, alloc_size);
     memcpy(wy, y, alloc_size);
-    iinsert2(wx, wy, size);
+    iinsert2(wx, wy, size, tmp);
     for (int i = 0; i < size; i++) {
         if (copy[i] != wy[i]) {
             printf("Results are different!\n");
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
         for (int i = 0; i < iters; i++) {
             memcpy(wx, x, alloc_size);
             memcpy(wy, y, alloc_size);
-            iinsert2(wx, wy, size);
+            iinsert2(wx, wy, size, tmp);
         }
     }
     stop_timeri(iters);
