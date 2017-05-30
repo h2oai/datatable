@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "datatable.h"
 #include "py_utils.h"
 #include "rowmapping.h"
@@ -102,6 +103,45 @@ datatable_assemble_view(DataTable *src, RowMapping *rm, Column **cols)
     res->rowmapping = rm;
     res->columns = cols;
     return res;
+}
+
+
+static int _compare_ints(const void *a, const void *b) {
+    const int x = *(const int*)a;
+    const int y = *(const int*)b;
+    return (x > y) - (x < y);
+}
+void dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
+{
+    if (n == 0) return;
+    qsort(cols_to_remove, (size_t)n, sizeof(int), _compare_ints);
+    Column **columns = dt->columns;
+    int j = 0;
+    int next_col_to_remove = cols_to_remove[0];
+    int k = 0;
+    int n_view_columns_remaining = 0;
+    for (int i = 0; i <= dt->ncols; i++) {
+        if (i == next_col_to_remove) {
+            column_dealloc(columns[i]);
+            columns[i] = NULL;
+            do {
+                k++;
+                next_col_to_remove = k < n? cols_to_remove[k] : -1;
+            } while (next_col_to_remove == i);
+        } else {
+            columns[j++] = columns[i];
+            n_view_columns_remaining += (columns[i] && columns[i]->mtype == MT_VIEW);
+        }
+    }
+    // This may not be the same as `j` if there were repeating columns
+    dt->ncols = j - 1;
+    dt->columns = realloc(dt->columns, (size_t)j * sizeof(Column*));
+    if (n_view_columns_remaining == 0 && dt->source) {
+        // TODO: make sure that the PyDataTable also clears reference to source
+        rowmapping_dealloc(dt->rowmapping);
+        dt->source = NULL;
+        dt->rowmapping = NULL;
+    }
 }
 
 
