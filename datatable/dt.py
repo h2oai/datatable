@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import time
+from types import GeneratorType
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
+import datatable
 from .widget import DataFrameWidget
 
 from datatable.utils.misc import plural_form as plural
@@ -340,7 +342,16 @@ class DataTable(object):
 
 
     def __getitem__(self, item):
-        """Simpler version than __call__, but allows slice literals."""
+        """
+        Simpler version than __call__, but allows slice literals.
+
+        Example:
+            dt[5]        # 6-th column
+            dt[5, :]     # 6-th row
+            dt[:10, -1]  # first 10 rows of the last column
+            dt[::-1]     # all rows of the datatable in reverse order
+        etc.
+        """
         if isinstance(item, tuple):
             if len(item) == 1:
                 return self(rows=..., select=item[0])
@@ -351,6 +362,51 @@ class DataTable(object):
             raise ValueError("Selector %r is not supported" % (item, ))
         else:
             return self(rows=..., select=item)
+
+
+    def __delitem__(self, item):
+        """
+        Delete columns / rows from the datatable.
+
+        Example:
+            del dt["colA"]
+            del dt[:, ("A", "B")]
+            del dt[::2]
+            del dt["col5":"col9"]
+            del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
+        """
+        if isinstance(item, (str, int, slice)):
+            pcol = datatable.graph.cols_node.process_column(item, self)
+            if isinstance(pcol, int):
+                return self._delete_columns([pcol])
+            if isinstance(pcol, tuple):
+                start, count, step = pcol
+                r = range(start, start + count * step, step)
+                return self._delete_columns(list(r))
+
+        elif isinstance(item, (GeneratorType, list, set)):
+            cols = []
+            for it in item:
+                pcol = datatable.graph.cols_node.process_column(it, self)
+                if isinstance(pcol, int):
+                    cols.append(pcol)
+                else:
+                    raise TypeError("Invalid column specifier %r" % it)
+            return self._delete_columns(cols)
+
+        raise TypeError("Cannot delete %r from the datatable" % item)
+
+
+    def _delete_columns(self, cols):
+        cols = sorted(list(set(cols)))
+        self._dt.delete_columns(cols)
+        assert self._ncols - len(cols) == self._dt.ncols
+        newnames = self.names[:cols[0]]
+        for i in range(1, len(cols)):
+            newnames += self.names[(cols[i - 1] + 1):cols[i]]
+        newnames += self.names[cols[-1] + 1:]
+        self._fill_from_dt(self._dt, names=newnames)
+
 
 
     @typed(name=str)

@@ -28,13 +28,13 @@ PyObject *dt_from_memmap(UU, PyObject *args)
 
     int64_t ncols = PyList_Size(list);
 
-    DataTable *dt = malloc(sizeof(DataTable));
-    if (dt == NULL) return NULL;
+    DataTable *dt = NULL;
+    dtmalloc(dt, DataTable, 1);
     dt->ncols = ncols;
     dt->source = NULL;
     dt->rowmapping = NULL;
-    dt->columns = malloc(sizeof(Column) * (size_t)ncols);
-    if (dt->columns == NULL) return NULL;
+    dtmalloc(dt->columns, Column*, ncols + 1);
+    dt->columns[ncols] = NULL;
 
     int64_t nrows = -1;
     for (int i = 0; i < ncols; i++) {
@@ -97,7 +97,7 @@ PyObject *dt_from_memmap(UU, PyObject *args)
             return NULL;
         }
 
-        dt->columns[i] = malloc(sizeof(Column));
+        dtmalloc(dt->columns[i], Column, 1);
         dt->columns[i]->data = mmp;
         dt->columns[i]->stype = elemtype;
         dt->columns[i]->mtype = MT_MMAP;

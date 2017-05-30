@@ -273,6 +273,27 @@ column(DataTable_PyObject *self, PyObject *args)
 
 
 
+static PyObject* delete_columns(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
+        return NULL;
+
+    int ncols = (int) PyList_Size(list);
+    int *cols_to_remove = NULL;
+    dtmalloc(cols_to_remove, int, ncols);
+    for (int i = 0; i < ncols; i++) {
+        PyObject *item = PyList_GET_ITEM(list, i);
+        cols_to_remove[i] = (int) PyLong_AsLong(item);
+    }
+    dt_delete_columns(dt, cols_to_remove, ncols);
+
+    return none();
+}
+
+
+
 /**
  * Deallocator function, called when the object is being garbage-collected.
  */
@@ -301,6 +322,7 @@ PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'
 PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
+PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
@@ -308,6 +330,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(window),
     METHOD1(verify_integrity),
     METHOD1(column),
+    METHOD1(delete_columns),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

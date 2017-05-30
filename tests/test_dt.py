@@ -26,6 +26,10 @@ def assert_valueerror(datatable, rows, error_message):
     assert str(e.type) == "<class 'dt.ValueError'>"
     assert error_message in str(e.value)
 
+def as_list(datatable):
+    nrows, ncols = datatable.shape
+    return datatable.internal.window(0, nrows, 0, ncols).data
+
 
 
 #-------------------------------------------------------------------------------
@@ -91,6 +95,63 @@ def test_dt_getitem(dt0):
     with pytest.raises(ValueError) as e:
         dt0[0, 1, 2, 3]
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
+
+
+
+def test_dt_delitem():
+    """
+    Test deleting columns from a datatable.
+    Note: don't use dt0 here, because this test will modify it, potentially
+    invalidating other tests.
+    """
+    def smalldt():
+        return dt.DataTable([[i] for i in range(16)],
+                            colnames="ABCDEFGHIJKLMNOP")
+
+    d0 = smalldt()
+    del d0["A"]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 15)
+    assert d0.names == tuple("BCDEFGHIJKLMNOP")
+    d0 = smalldt()
+    del d0["B"]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 15)
+    assert d0.names == tuple("ACDEFGHIJKLMNOP")
+    d0 = smalldt()
+    del d0[-1]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 15)
+    assert d0.names == tuple("ABCDEFGHIJKLMNO")
+    del d0["E":"J"]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 9)
+    assert d0.names == tuple("ABCDKLMNO")
+    assert as_list(d0) == [[0], [1], [2], [3], [10], [11], [12], [13], [14]]
+    del d0[::2]
+    assert d0.names == tuple("BDLN")
+    assert as_list(d0) == [[1], [3], [11], [13]]
+    del d0[0]
+    assert d0.names == tuple("DLN")
+    assert as_list(d0) == [[3], [11], [13]]
+    del d0[:]
+    assert d0.names == tuple()
+    assert d0.shape == (1, 0)
+    d0 = smalldt()
+    del d0[[0, 3, 0, 5, 0, 9]]
+    assert d0.internal.verify_integrity() is None
+    assert d0.names == tuple("BCEGHIKLMNOP")
+    assert d0.shape == (1, 12)
+    with pytest.raises(TypeError) as e:
+        del d0[0.5]
+    assert "Cannot delete 0.5 from the datatable" in str(e.value)
+    with pytest.raises(TypeError):
+        del d0[d0]
+    with pytest.raises(TypeError):
+        del d0[[1, 2, 1, 0.7]]
+    with pytest.raises(TypeError):
+        del d0[[slice(10), 2, 0]]
+
 
 
 def test__hex(dt0, monkeypatch, capsys):
