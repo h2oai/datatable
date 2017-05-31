@@ -326,17 +326,17 @@ Column* column_from_list(PyObject *list)
             TYPE_SWITCH(ST_BOOLEAN_I1);
 
         if (stype == ST_STRING_I4_VCHAR) {
-            size_t padding_size = (8 - (strbuffer_ptr & 7)) & 7;
-            size_t offoff = strbuffer_ptr + padding_size + sizeof(int32_t);
-            size_t final_size = offoff + sizeof(int32_t) * (size_t)nrows;
+            size_t esz = sizeof(int32_t);
+            size_t padding_size = ((8 - (strbuffer_ptr & 7)) & 7) + esz;
+            size_t offoff = strbuffer_ptr + padding_size;
+            size_t final_size = offoff + esz * (size_t)nrows;
             strbuffer = REALLOC(strbuffer, final_size);
             memset(strbuffer + strbuffer_ptr, 0xFF, padding_size);
-            memcpy(strbuffer + offoff, data, sizeof(int32_t) * (size_t)nrows);
-            *((int32_t*) add_ptr(strbuffer, strbuffer_ptr + padding_size)) = -1;
+            memcpy(strbuffer + offoff, data, esz * (size_t)nrows);
             data = strbuffer;
             column->alloc_size = final_size;
             column->meta = MALLOC(sizeof(VarcharMeta));
-            ((VarcharMeta*)(column->meta))->offoff = (int64_t) offoff;
+            ((VarcharMeta*) column->meta)->offoff = (int64_t) offoff;
         }
 
         column->data = data;
