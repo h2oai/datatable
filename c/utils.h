@@ -35,9 +35,25 @@ float max_f4(float a, float b);
         ptr = (T*) malloc((size_t)(n) * sizeof(T));                            \
         if (ptr == nullptr) return nullptr;                                    \
     } while(0)
+    #define dtrealloc(ptr, T, n) do {                                          \
+        ptr = (T*) realloc(ptr, (size_t)(n) * sizeof(T));                      \
+        if (ptr == nullptr) return nullptr;                                    \
+    } while(0)
+    #define dtrealloc_v(ptr, n) do {                                           \
+        ptr = realloc(ptr, (size_t)(n));                                       \
+        if (ptr == nullptr) return nullptr;                                    \
+    } while(0)
 #else
     #define dtmalloc(ptr, T, n) do {                                           \
         ptr = malloc((size_t)(n) * sizeof(T));                                 \
+        if (ptr == NULL) return NULL;                                          \
+    } while(0)
+    #define dtrealloc(ptr, T, n) do {                                          \
+        ptr = realloc(ptr, (size_t)(n) * sizeof(T));                           \
+        if (ptr == NULL) return NULL;                                          \
+    } while(0)
+    #define dtrealloc_v(ptr, n) do {                                           \
+        ptr = realloc(ptr, (size_t)(n));                                       \
         if (ptr == NULL) return NULL;                                          \
     } while(0)
 #endif
@@ -48,6 +64,15 @@ float max_f4(float a, float b);
  * (Currently it's same as system `free`, however that may change in the future).
  **/
 #define dtfree  free
+
+
+/**
+ * Macro for safe pointer arithmetic on `void*` pointers. Normally we'd want to
+ * say simply `ptr + n`, but this is not in standard C, and produces a warning
+ * on Clang compiler (and in C++ such operation is straight prohibited...).
+ */
+#define add_ptr(ptr, n)  ((void*)((unsigned char*)(ptr) + (n)))
+
 
 
 /**

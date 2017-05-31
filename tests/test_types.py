@@ -45,13 +45,14 @@ def stypes():
     with open(file2, "r") as f:
         txt2 = f.read()
     mm = re.findall(r"STI\((\w+),\s*\"(...)\",\s*(\d+),\s*(?:0|sizeof\((\w+)\))"
-                    r",\s*(\d),\s*(?:0|(\w+))\)", txt2)
-    for name, ctype, elemsize, meta, varwidth, ltype in mm:
+                    r",\s*(\d),\s*(?:0|(\w+)),\s*&?(\w+)\)", txt2)
+    for name, ctype, elemsize, meta, varwidth, ltype, na in mm:
         stypes[name]["stype"] = ctype
         stypes[name]["elemsize"] = int(elemsize)
         stypes[name]["meta"] = meta
         stypes[name]["varwidth"] = bool(int(varwidth))
         stypes[name]["ltype"] = ltype
+        stypes[name]["na"] = na
 
     # Fill-in ctypes
     for ct in stypes.values():

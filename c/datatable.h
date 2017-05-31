@@ -76,15 +76,12 @@ typedef struct DataTable {
 
 //==============================================================================
 
-DataTable* dt_DataTable_call(
-    DataTable *self, RowMapping *rowmapping, ColMapping *colmapping);
-
+DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping, ColMapping *colmapping);
 int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix);
-
 DataTable* datatable_assemble(int64_t nrows, Column **cols);
-DataTable*
-datatable_assemble_view(DataTable *src, RowMapping *rm, Column **cols);
+DataTable* datatable_assemble_view(DataTable *dt, RowMapping *rm, Column **cols);
 void dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
+DataTable* dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols);
 
 void datatable_dealloc(DataTable *self);
 

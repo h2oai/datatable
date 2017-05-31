@@ -10,7 +10,8 @@ from .widget import DataFrameWidget
 
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import TypeError, ValueError, typed
-from datatable.graph import DatatableNode, RowFilterNode, make_columnset, NodeSoup
+from datatable.graph import (DatatableNode, RowFilterNode, make_columnset,
+                             NodeSoup)
 
 __all__ = ("DataTable", )
 
@@ -421,3 +422,126 @@ class DataTable(object):
             return self._inames[name]
         else:
             raise ValueError("Column %r does not exist in %r" % (name, self))
+
+
+
+    def append(self, *dts, force=False, ignore_names=False):
+        """
+        Append datatables `dts` to the bottom of the current datatable.
+
+        :param dts: one or more datatable to append. These datatables should
+            have the same columnar structure as the current datatable (unless
+            option `force` is turned on).
+        :param bool force: if True, then the datatables are allowed to have
+            mismatching set of columns. In this case the gaps in the data will
+            be filled with NAs.
+        :param ignore_names: by default, the columns in datatables are matched
+            by their names. For example, if one datatable has columns ["colA",
+            "colB", "colC"] and the other ["colB", "colA", "colC"] then we will
+            swap the first two columns of the appended datatable before doing
+            the append. However if `ignore_names` is True, then the columns
+            will be matched according to their order, i.e. i-th column in the
+            current datatable to the i-th column in each appended datatable.
+        """
+        n = self.ncols
+        # List of tuples (DataTable, [int]), where the second element of the
+        # tuple is the array of column indices within the datatable being
+        # appended.
+        spec = []
+        final_ncols = n
+        final_names = self.names
+        if ignore_names:
+            # Append by column numbers
+            for dt in dts:
+                if isinstance(dt, DataTable):
+                    if dt.ncols != n and not force:
+                        raise ValueError("Cannot append datatable with %s to "
+                                         "a datatable with %s. If you want to "
+                                         "ignore this error and fill missing "
+                                         "columns with NAs, specify force=True"
+                                         % (plural(dt.ncols, "column"),
+                                            plural(n, "column")))
+                    spec.append((dt.internal, list(range(dt.ncols))))
+                    final_ncols = max(n, dt.ncols)
+                else:
+                    raise TypeError("Argument %r to .append() should be a "
+                                    "DataTable" % dt)
+        elif force:
+            # Append by column names, filling with NAs as necessary
+            if len(self._inames) == n:
+                inames = self._inames
+            else:
+                inames = dict()
+                for i, col in enumerate(self.names):
+                    if col in inames:
+                        if isinstance(inames[col], list):
+                            inames[col].append(i)
+                        else:
+                            inames[col] = [inames[col], i]
+                    else:
+                        inames[col] = i
+            final_names = list(self.names)
+            for dt in dts:
+                if isinstance(dt, DataTable):
+                    res = [None] * n
+                    used_inames = dict()
+                    for i, col in enumerate(dt.names):
+                        icol = inames.get(col)
+                        if icol is None:
+                            final_names.append(col)
+                            inames[col] = len(final_names) - 1
+                            used_inames[col] = 1
+                            res.append(i)
+                        elif isinstance(icol, int):
+                            if used_inames[col]:
+                                final_names.append(col)
+                                used_inames[col] += 1
+                                inames[col] = [icol, len(final_names) - 1]
+                                res.append(i)
+                            else:
+                                used_inames[col] = 1
+                                res[icol] = i
+                        else:
+                            u = used_inames[col] or 0
+                            if u >= len(icol):
+                                final_names.append(col)
+                                used_inames[col] += 1
+                                inames[col].append(len(final_names) - 1)
+                                res.append(i)
+                            else:
+                                used_inames[col] = u + 1
+                                res[icol[u]] = i
+                    spec.append((dt.internal, res))
+                else:
+                    raise TypeError("Argument %r to .append() should be a "
+                                    "DataTable" % dt)
+            final_ncols = len(final_names)
+        else:
+            # Append by column names, raise error if names do not match
+            for dt in dts:
+                if isinstance(dt, DataTable):
+                    if dt.ncols != n:
+                        raise ValueError("Cannot append datatable with %s to "
+                                         "a datatable with %s. If you want to "
+                                         "ignore this error and fill missing "
+                                         "columns with NAs, specify force=True"
+                                         % (plural(dt.ncols, "column"),
+                                            plural(n, "column")))
+                    res = []
+                    for i, col in enumerate(dt.names):
+                        idx = self._inames.get(col)
+                        if idx is None:
+                            raise ValueError("Column '%s' is not found in the "
+                                             "current datatable. If you want "
+                                             "to ignore this error and fill "
+                                             "missing columns with NAs, specify"
+                                             " force=True" % col)
+                        else:
+                            res.append(idx)
+                    spec.append((dt.internal, res))
+                else:
+                    raise TypeError("Argument %r to .append() should be a "
+                                    "DataTable" % dt)
+        self._dt.rbind(final_ncols, spec)
+        self._fill_from_dt(self._dt, names=final_names)
+        return self

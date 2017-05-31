@@ -79,31 +79,31 @@ void init_types(void)
     NA_F4 = ((float_repr){ .i = NA_F4_BITS }).f;
     NA_F8 = ((double_repr){ .i = NA_F8_BITS }).f;
 
-    #define STI(T, code, csize, msize, vw, ltype) \
-        stype_info[T] = (STypeInfo){code, csize, msize, vw, ltype};
-    STI(ST_VOID,              "---", 0, 0,                   0, 0)
-    STI(ST_BOOLEAN_I1,        "i1b", 1, 0,                   0, LT_BOOLEAN)
-    STI(ST_INTEGER_I1,        "i1i", 1, 0,                   0, LT_INTEGER)
-    STI(ST_INTEGER_I2,        "i2i", 2, 0,                   0, LT_INTEGER)
-    STI(ST_INTEGER_I4,        "i4i", 4, 0,                   0, LT_INTEGER)
-    STI(ST_INTEGER_I8,        "i8i", 8, 0,                   0, LT_INTEGER)
-    STI(ST_REAL_F4,           "f4r", 4, 0,                   0, LT_REAL)
-    STI(ST_REAL_F8,           "f8r", 8, 0,                   0, LT_REAL)
-    STI(ST_REAL_I2,           "i2r", 2, sizeof(DecimalMeta), 0, LT_REAL)
-    STI(ST_REAL_I4,           "i4r", 4, sizeof(DecimalMeta), 0, LT_REAL)
-    STI(ST_REAL_I8,           "i8r", 8, sizeof(DecimalMeta), 0, LT_REAL)
-    STI(ST_STRING_I4_VCHAR,   "i4s", 4, sizeof(VarcharMeta), 1, LT_STRING)
-    STI(ST_STRING_I8_VCHAR,   "i8s", 8, sizeof(VarcharMeta), 1, LT_STRING)
-    STI(ST_STRING_FCHAR,      "c#s", 0, sizeof(FixcharMeta), 0, LT_STRING)
-    STI(ST_STRING_U1_ENUM,    "u1e", 1, sizeof(EnumMeta),    1, LT_STRING)
-    STI(ST_STRING_U2_ENUM,    "u2e", 2, sizeof(EnumMeta),    1, LT_STRING)
-    STI(ST_STRING_U4_ENUM,    "u4e", 4, sizeof(EnumMeta),    1, LT_STRING)
-    STI(ST_DATETIME_I8_EPOCH, "i8d", 8, 0,                   0, LT_DATETIME)
-    STI(ST_DATETIME_I8_PRTMN, "i8w", 8, 0,                   0, LT_DATETIME)
-    STI(ST_DATETIME_I4_TIME,  "i4t", 4, 0,                   0, LT_DATETIME)
-    STI(ST_DATETIME_I4_DATE,  "i4d", 4, 0,                   0, LT_DATETIME)
-    STI(ST_DATETIME_I2_MONTH, "i2d", 2, 0,                   0, LT_DATETIME)
-    STI(ST_OBJECT_PYPTR,      "p8p", 8, 0,                   0, LT_OBJECT)
+    #define STI(T, code, csize, msize, vw, ltype, na) \
+        stype_info[T] = (STypeInfo){code, csize, msize, vw, ltype, na}
+    STI(ST_VOID,              "---", 0, 0,                   0, 0,           NULL);
+    STI(ST_BOOLEAN_I1,        "i1b", 1, 0,                   0, LT_BOOLEAN,  &NA_I1);
+    STI(ST_INTEGER_I1,        "i1i", 1, 0,                   0, LT_INTEGER,  &NA_I1);
+    STI(ST_INTEGER_I2,        "i2i", 2, 0,                   0, LT_INTEGER,  &NA_I2);
+    STI(ST_INTEGER_I4,        "i4i", 4, 0,                   0, LT_INTEGER,  &NA_I4);
+    STI(ST_INTEGER_I8,        "i8i", 8, 0,                   0, LT_INTEGER,  &NA_I8);
+    STI(ST_REAL_F4,           "f4r", 4, 0,                   0, LT_REAL,     &NA_F4);
+    STI(ST_REAL_F8,           "f8r", 8, 0,                   0, LT_REAL,     &NA_F8);
+    STI(ST_REAL_I2,           "i2r", 2, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I2);
+    STI(ST_REAL_I4,           "i4r", 4, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I4);
+    STI(ST_REAL_I8,           "i8r", 8, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I8);
+    STI(ST_STRING_I4_VCHAR,   "i4s", 4, sizeof(VarcharMeta), 1, LT_STRING,   NULL);
+    STI(ST_STRING_I8_VCHAR,   "i8s", 8, sizeof(VarcharMeta), 1, LT_STRING,   NULL);
+    STI(ST_STRING_FCHAR,      "c#s", 0, sizeof(FixcharMeta), 0, LT_STRING,   NULL);
+    STI(ST_STRING_U1_ENUM,    "u1e", 1, sizeof(EnumMeta),    1, LT_STRING,   &NA_U1);
+    STI(ST_STRING_U2_ENUM,    "u2e", 2, sizeof(EnumMeta),    1, LT_STRING,   &NA_U2);
+    STI(ST_STRING_U4_ENUM,    "u4e", 4, sizeof(EnumMeta),    1, LT_STRING,   &NA_U4);
+    STI(ST_DATETIME_I8_EPOCH, "i8d", 8, 0,                   0, LT_DATETIME, &NA_I8);
+    STI(ST_DATETIME_I8_PRTMN, "i8w", 8, 0,                   0, LT_DATETIME, &NA_I8);
+    STI(ST_DATETIME_I4_TIME,  "i4t", 4, 0,                   0, LT_DATETIME, &NA_I4);
+    STI(ST_DATETIME_I4_DATE,  "i4d", 4, 0,                   0, LT_DATETIME, &NA_I4);
+    STI(ST_DATETIME_I2_MONTH, "i2d", 2, 0,                   0, LT_DATETIME, &NA_I2);
+    STI(ST_OBJECT_PYPTR,      "p8p", 8, 0,                   0, LT_OBJECT,   NULL);
     #undef STI
 
     //---- More static asserts -------------------------------------------------

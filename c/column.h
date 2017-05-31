@@ -111,6 +111,7 @@ static_assert(offsetof(Column, stype) == offsetof(ViewColumn, stype),
  */
 Column* column_extract(Column *col, RowMapping *rowmapping);
 
+
 /**
  * Free all memory owned by the column, and then the column itself.
  */
