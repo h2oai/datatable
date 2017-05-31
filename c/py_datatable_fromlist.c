@@ -168,9 +168,9 @@ Column* column_from_list(PyObject *list)
             //---- store None value ----
             if (item == Py_None) {
                 switch (stype) {
-                    case ST_VOID:         /* do nothing */ break;
-                    case ST_BOOLEAN_I1:   SET_I1B(NA_I1);  break;
-                    case ST_INTEGER_I1:   SET_I1I(NA_I1);  break;
+                    case ST_VOID:        /* do nothing */ break;
+                    case ST_BOOLEAN_I1:  SET_I1B(NA_I1);  break;
+                    case ST_INTEGER_I1:  SET_I1I(NA_I1);  break;
                     case ST_INTEGER_I2:  SET_I2I(NA_I2); break;
                     case ST_INTEGER_I4:  SET_I4I(NA_I4); break;
                     case ST_INTEGER_I8:  SET_I8I(NA_I8); break;
@@ -186,8 +186,8 @@ Column* column_from_list(PyObject *list)
             if (item == Py_True || item == Py_False) {
                 int8_t val = (item == Py_True);
                 switch (stype) {
-                    case ST_BOOLEAN_I1:   SET_I1B(val);  break;
-                    case ST_INTEGER_I1:   SET_I1I(val);  break;
+                    case ST_BOOLEAN_I1:  SET_I1B(val);  break;
+                    case ST_INTEGER_I1:  SET_I1I(val);  break;
                     case ST_INTEGER_I2:  SET_I2I((int16_t)val);  break;
                     case ST_INTEGER_I4:  SET_I4I((int32_t)val);  break;
                     case ST_INTEGER_I8:  SET_I8I((int64_t)val);  break;
@@ -225,7 +225,7 @@ Column* column_from_list(PyObject *list)
                         else {
                             // stype is ST_VOID, or current stype is too small
                             // to hold the value `v`.
-                            TYPE_SWITCH(aval <= 1? ST_BOOLEAN_I1 :
+                            TYPE_SWITCH(v == 0 || v == 1? ST_BOOLEAN_I1 :
                                         aval <= 127? ST_INTEGER_I1 :
                                         aval <= 32767? ST_INTEGER_I2 :
                                         aval <= INT32_MAX? ST_INTEGER_I4 :
@@ -258,7 +258,7 @@ Column* column_from_list(PyObject *list)
                 // The following call retrieves the underlying primitive:
                 double val = PyFloat_AS_DOUBLE(item);
                 switch (stype) {
-                    case ST_REAL_F8:      SET_F8R(val);  break;
+                    case ST_REAL_F8:       SET_F8R(val);  break;
                     case ST_OBJECT_PYPTR:  SET_P8P(incref(item));  break;
 
                     case ST_VOID:
