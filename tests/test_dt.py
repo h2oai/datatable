@@ -165,12 +165,13 @@ def test__hex(dt0, monkeypatch, capsys):
     print(out)
     assert ("Column 6, Name: 'G'\n"
             "Ltype: str, Stype: i4s, Mtype: data\n"
-            "Data size: 32\n"
-            "Meta: offoff=16\n"
+            "Data size: 36\n"
+            "Meta: offoff=20\n"
             "    00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F                  \n"
             "--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ----------------\n"
             " 0  31  32  68  65  6C  6C  6F  77  6F  72  6C  64  FF  FF  FF  FF  12helloworldÿÿÿÿ\n"
-            " 1  02  00  00  00  03  00  00  00  08  00  00  00  0D  00  00  00  ................\n"
+            " 1  FF  FF  FF  FF  02  00  00  00  03  00  00  00  08  00  00  00  ÿÿÿÿ............\n"
+            " 2  0D  00  00  00                                                  ....            \n"
             in out)
 
     with pytest.raises(ValueError) as e:

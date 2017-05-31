@@ -1,5 +1,6 @@
 #ifdef NDEBUG
-#undef NDEBUG
+    // Macro NDEBUG, if present, disables all assert statements.
+    #undef NDEBUG
 #endif
 #include <assert.h>  // static_assert
 #include "types.h"
@@ -34,8 +35,8 @@ static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
 
 #define NA_F4_BITS 0x7F8007A2u
 #define NA_F8_BITS 0x7FF00000000007A2ull
-typedef union { uint32_t i; float f; } float_repr;
-typedef union { uint64_t i; double f; } double_repr;
+typedef union { uint32_t i; float f; } _flt;
+typedef union { uint64_t i; double f; } _dbl;
 
 const int8_t   NA_I1 = INT8_MIN;
 const int16_t  NA_I2 = INT16_MIN;
@@ -48,21 +49,13 @@ const uint64_t NA_U8 = UINT64_MAX;
 float NA_F4;
 double NA_F8;
 
-inline int ISNA_F4(float x) {
-    float_repr xx;
-    xx.f = x;
-    return xx.i == NA_F4_BITS;
-}
-inline int ISNA_F8(double x) {
-    double_repr xx;
-    xx.f = x;
-    return xx.i == NA_F8_BITS;
-}
-inline int ISNA_I1(int8_t x) { return x == NA_I1; }
-inline int ISNA_I2(int16_t x) { return x == NA_I2; }
-inline int ISNA_I4(int32_t x) { return x == NA_I4; }
-inline int ISNA_I8(int64_t x) { return x == NA_I8; }
-inline int ISNA_U1(uint8_t x) { return x == NA_U1; }
+inline int ISNA_F4(float x)    { return ((_flt){ .f = x }).i == NA_F4_BITS; }
+inline int ISNA_F8(double x)   { return ((_dbl){ .f = x }).i == NA_F8_BITS; }
+inline int ISNA_I1(int8_t x)   { return x == NA_I1; }
+inline int ISNA_I2(int16_t x)  { return x == NA_I2; }
+inline int ISNA_I4(int32_t x)  { return x == NA_I4; }
+inline int ISNA_I8(int64_t x)  { return x == NA_I8; }
+inline int ISNA_U1(uint8_t x)  { return x == NA_U1; }
 inline int ISNA_U2(uint16_t x) { return x == NA_U2; }
 inline int ISNA_U4(uint32_t x) { return x == NA_U4; }
 
@@ -76,8 +69,8 @@ STypeInfo stype_info[DT_STYPES_COUNT];
 
 void init_types(void)
 {
-    NA_F4 = ((float_repr){ .i = NA_F4_BITS }).f;
-    NA_F8 = ((double_repr){ .i = NA_F8_BITS }).f;
+    NA_F4 = ((_flt){ .i = NA_F4_BITS }).f;
+    NA_F8 = ((_dbl){ .i = NA_F8_BITS }).f;
 
     #define STI(T, code, csize, msize, vw, ltype, na) \
         stype_info[T] = (STypeInfo){code, csize, msize, vw, ltype, na}
@@ -107,6 +100,7 @@ void init_types(void)
     #undef STI
 
     //---- More static asserts -------------------------------------------------
+    // This checks validity of a cast used in the fread.c
     for (int i = -128; i <= 127; i++) {
         char ch = (char) i;
         int test1 = (ch >= '0' && ch <= '9');
