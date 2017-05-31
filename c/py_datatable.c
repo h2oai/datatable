@@ -289,6 +289,49 @@ static PyObject* delete_columns(DataTable_PyObject *self, PyObject *args)
     }
     dt_delete_columns(dt, cols_to_remove, ncols);
 
+    dtfree(cols_to_remove);
+    return none();
+}
+
+
+
+static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    int final_ncols;
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "iO!:delete_columns",
+                          &final_ncols, &PyList_Type, &list))
+        return NULL;
+
+    int ndts = (int) PyList_Size(list);
+    DataTable **dts = NULL;
+    dtmalloc(dts, DataTable*, ndts);
+    int **cols_to_append = NULL;
+    dtmalloc(cols_to_append, int*, final_ncols);
+    for (int i = 0; i < final_ncols; i++) {
+        dtmalloc(cols_to_append[i], int, ndts);
+    }
+    for (int i = 0; i < ndts; i++) {
+        PyObject *item = PyList_GET_ITEM(list, i);
+        DataTable *dti;
+        PyObject *colslist;
+        if (!PyArg_ParseTuple(item, "O&O!",
+                              &dt_unwrap, &dti, &PyList_Type, &colslist))
+            return NULL;
+        int ncolsi = (int) PyList_Size(colslist);
+        int j = 0;
+        for (; j < ncolsi; j++) {
+            PyObject *itemj = PyList_GET_ITEM(colslist, j);
+            cols_to_append[j][i] = (itemj == Py_None)? -1
+                                   : (int) PyLong_AsLong(itemj);
+        }
+        dts[i] = dti;
+    }
+    dt_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+
+    dtfree(cols_to_append);
+    dtfree(dts);
     return none();
 }
 
@@ -323,6 +366,7 @@ PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
 PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
+PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
@@ -331,6 +375,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(verify_integrity),
     METHOD1(column),
     METHOD1(delete_columns),
+    METHOD1(rbind),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
