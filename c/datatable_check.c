@@ -5,6 +5,7 @@
 #include "datatable.h"
 #include "rowmapping.h"
 #include "types.h"
+#include "utils.h"
 
 
 //==============================================================================
@@ -72,6 +73,10 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     return buf;
 }
 
+/**
+ * Check whether the memory buffer contains a valid UTF-8 string. The buffer
+ * is given by two pointers, for the beginning and the end (exlusively).
+ */
 static _Bool
 is_valid_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     const unsigned char *ptr = ptr0;
@@ -386,14 +391,15 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             int64_t offoff = -1;
             if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
                 offoff = ((VarcharMeta*) col->meta)->offoff;
-                if (offoff < 0) {
+                int elemsize = stype == ST_STRING_I4_VCHAR? 4 : 8;
+                if (offoff <= 0) {
                     ERR("String data section in column %lld has negative length"
                         ": %lld\n", i, offoff);
                     continue;
                 }
-                if ((offoff & 7) != 0) {
+                if ((offoff & (elemsize - 1)) != 0) {
                     ERR("String data section in column %lld has a length which "
-                        "is not a multiple of 8: %lld", i, offoff);
+                        "is not a multiple of %d: %lld\n", i, elemsize, offoff);
                     // This might be fixable... unclear
                     continue;
                 }
@@ -445,8 +451,12 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
 
             if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
                 #define CASE(T) {                                              \
-                    T *offsets = (T*)(col->data + offoff);                     \
+                    T *offsets = (T*) add_ptr(col->data, offoff);              \
                     T lastoff = 1;                                             \
+                    if (offoff && offsets[-1] != -1) {                         \
+                        ERR("Number -1 was not found in front of the offsets " \
+                            "section\n");                                      \
+                    }                                                          \
                     for (int64_t j = 0; j < nrows; j++) {                      \
                         T oj = offsets[j];                                     \
                         if (oj < 0 ? (oj != -lastoff) : (oj < lastoff)) {      \
@@ -462,7 +472,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                             break;                                             \
                         } else                                                 \
                         if (oj > 0 &&                                          \
-                            !is_valid_utf8(cdata + lastoff-1, cdata + oj-1)) { \
+                            !is_valid_utf8(cdata + lastoff, cdata + oj))     { \
                             ERR("Invalid utf8 string in column %lld row %lld:" \
                                 " '%s'\n", i, j, repr_utf8(cdata + lastoff,    \
                                                            cdata + oj));       \
@@ -472,7 +482,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                     strdata_size = (int64_t) lastoff - 1;                      \
                 }
                 int64_t strdata_size = 0;
-                const unsigned char *cdata = (const unsigned char*) col->data;
+                const uint8_t *cdata = ((const uint8_t*) col->data) - 1;
                 if (stype == ST_STRING_I4_VCHAR)
                     CASE(int32_t)
                 else
@@ -480,7 +490,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 #undef CASE
 
                 for (int64_t j = strdata_size; j < offoff; j++) {
-                    if (((unsigned char*) col->data)[j] != 0xFF) {
+                    if (((uint8_t*) col->data)[j] != 0xFF) {
                         ERR("String data section in column %lld is not padded "
                             "with '\\xFF's", i);
                         if (fix) {

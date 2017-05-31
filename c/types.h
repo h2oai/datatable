@@ -171,18 +171,19 @@ typedef enum LType {
  *     Variable-width strings. The data buffer has the following structure:
  *     First comes a section with string data: all non-NA strings are UTF-8
  *     encoded and placed end-to-end. This section is padded by 0xFF bytes so
- *     that it has a length which is a multiple of 8. After that comes the
- *     array of int32_t primitives representing offsets of each string in the
- *     buffer. In particular, each entry is the offset of the last byte of the
+ *     that it has a length which is a multiple of 8. Then come 4 bytes
+ *     representing int32_t value -1. After that comes the array of int32_t
+ *     primitives representing offsets of each string in the buffer.
+ *     In particular, each entry is 2 + the offset of the last byte of the
  *     string within the data buffer. NA strings are encoded as negation of the
- *     previous string's offset.
+ *     previous string's entry.
  *     Thus, i'th string is NA if its offset is negative, otherwise its a valid
- *     string whose starting offset is `start(i) = i? abs(off(i-1)) - 1 : 0`,
+ *     string whose starting offset is `start(i) = abs(off(i-1)) - 1`,
  *     ending offset is `end(i) = off(i) - 1`, and `len(i) = end(i) - start(i)`.
- *     For example, a column with 4 values `[N/A, "hello", "", N/A]` will be
- *     encoded as a buffer of size 24 = (5 + 0) + (3) + (4 * 4):
- *         h e l l o 0xFF 0xFF 0xFF <-1> <6> <6> <-6>
- *         meta = 8
+ *     For example, a column with 4 values `[NA, "hello", "", NA]` will be
+ *     encoded as a buffer of size 28 = (0 + 5 + 0 + 0) + (3) + 4 + (4 * 4):
+ *         data = h e l l o 0xFF 0xFF 0xFF <-1> <-1> <6> <6> <-6>
+ *         meta = 12
  *     (where "<n>" denotes the 4-byte sequence encoding integer `n`).
  *     Meta information stores the offset of the section with offsets. Thus the
  *     total buffer size is always `offoff` + 4 * `nrows`.
