@@ -3,7 +3,7 @@
 
 import _datatable
 from .node import Node
-from datatable.exec.llvm import inject_c_code
+from .llvm import inject_c_code
 
 
 
