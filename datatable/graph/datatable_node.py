@@ -37,7 +37,7 @@ class DatatableNode(Node):
         rowmapping = rowsnode.get_result()
         columns = selectnode.get_result()
         _dt = selectnode.dt.internal
-        res_dt = _datatable.datatable_assemble_view(_dt, rowmapping, columns)
+        res_dt = _datatable.datatable_assemble(rowmapping, columns)
         return datatable.DataTable(res_dt, colnames=selectnode.column_names)
 
 

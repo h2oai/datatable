@@ -182,9 +182,8 @@ PyObject* pyrowmapping_from_column(UU, PyObject *args)
         return NULL;
     }
 
-    rowmapping = (col->mtype == MT_VIEW)
-        ? rowmapping_from_column_with_rowmapping(
-            dt->source->columns[((ViewColumn*)col)->srcindex], dt->rowmapping)
+    rowmapping = dt->rowmapping
+        ? rowmapping_from_column_with_rowmapping(col, dt->rowmapping)
         : rowmapping_from_datacolumn(col, dt->nrows);
 
     return py(rowmapping);

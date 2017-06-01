@@ -121,10 +121,7 @@ _header = """
 
 typedef int RowMappingType;
 typedef int8_t SType;
-typedef struct PyObject PyObject;
-typedef struct DataTable_PyObject DataTable_PyObject;
-typedef enum MType
-    { MT_DATA=1, MT_MMAP=2, MT_VIEW=3 } __attribute__ ((__packed__)) MType;
+typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
 
 typedef struct RowMapping {
     RowMappingType type;
@@ -138,21 +135,15 @@ typedef struct RowMapping {
 
 typedef struct Column {
     void   *data;
-    MType   mtype;
-    SType   stype;
     void   *meta;
     size_t  alloc_size;
-} Column;
-
-typedef struct ViewColumn {
-    size_t  srcindex;
+    int     refcount;
     MType   mtype;
     SType   stype;
-} ViewColumn;
+} Column;
 
 typedef struct DataTable {
   int64_t nrows, ncols;
-  struct DataTable *source;
   struct RowMapping *rowmapping;
   struct Column **columns;
 } DataTable;

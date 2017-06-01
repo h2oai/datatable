@@ -31,7 +31,7 @@ PyObject *dt_from_memmap(UU, PyObject *args)
     DataTable *dt = NULL;
     dtmalloc(dt, DataTable, 1);
     dt->ncols = ncols;
-    dt->source = NULL;
+    dt->nrows = 0;
     dt->rowmapping = NULL;
     dtmalloc(dt->columns, Column*, ncols + 1);
     dt->columns[ncols] = NULL;
@@ -106,7 +106,7 @@ PyObject *dt_from_memmap(UU, PyObject *args)
     }
 
     dt->nrows = nrows;
-    return pydt_from_dt(dt, NULL);
+    return pydt_from_dt(dt);
 }
 
 PyObject* exec_function(PyObject *self, PyObject *args)
@@ -130,7 +130,7 @@ PyObject* exec_function(PyObject *self, PyObject *args)
 static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(columns_from_pymixed),
     METHOD0(columns_from_slice),
-    METHOD0(datatable_assemble_view),
+    METHOD0(datatable_assemble),
     METHOD0(rowmapping_from_slice),
     METHOD0(rowmapping_from_slicelist),
     METHOD0(rowmapping_from_array),
