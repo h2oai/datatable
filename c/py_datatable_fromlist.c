@@ -100,7 +100,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
     size_t nextptr = strbuffer_ptr + (size_t) (len);                           \
     if (nextptr > strbuffer_size) {                                            \
         strbuffer_size = nextptr + (nrows - i - 1) * (nextptr / (i + 1));      \
-        strbuffer = REALLOC(strbuffer, strbuffer_size);                        \
+        dtrealloc(strbuffer, char, strbuffer_size);                            \
     }                                                                          \
     if ((len) > 0) {                                                           \
         memcpy(strbuffer + strbuffer_ptr, buf, (size_t) (len));                \
@@ -149,15 +149,14 @@ Column* column_from_list(PyObject *list)
     while (stype < DT_STYPES_COUNT) {
         start_over: {}
         size_t alloc_size = stype_info[stype].elemsize * (size_t)nrows;
-        data = REALLOC(data, alloc_size);
+        dtrealloc_v(data, alloc_size);
         column->alloc_size = alloc_size;
         if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);
             strbuffer_ptr = 0;
-            strbuffer = MALLOC(strbuffer_size);
+            dtmalloc(strbuffer, char, strbuffer_size);
         } else if (strbuffer) {
-            free(strbuffer);
-            strbuffer = NULL;
+            dtfree(strbuffer);
             strbuffer_size = 0;
         }
 
@@ -307,7 +306,7 @@ Column* column_from_list(PyObject *list)
             if (itemtype == &PyUnicode_Type) {
                 switch (stype) {
                     case ST_OBJECT_PYPTR:     SET_P8P(incref(item));  break;
-                    case ST_STRING_I4_VCHAR: WRITE_STR(item);  break;
+                    case ST_STRING_I4_VCHAR:  WRITE_STR(item);  break;
                     default:                  TYPE_SWITCH(ST_STRING_I4_VCHAR);
                 }
             } else
@@ -330,12 +329,12 @@ Column* column_from_list(PyObject *list)
             size_t padding_size = ((8 - (strbuffer_ptr & 7)) & 7) + esz;
             size_t offoff = strbuffer_ptr + padding_size;
             size_t final_size = offoff + esz * (size_t)nrows;
-            strbuffer = REALLOC(strbuffer, final_size);
+            dtrealloc(strbuffer, char, final_size);
             memset(strbuffer + strbuffer_ptr, 0xFF, padding_size);
             memcpy(strbuffer + offoff, data, esz * (size_t)nrows);
             data = strbuffer;
             column->alloc_size = final_size;
-            column->meta = MALLOC(sizeof(VarcharMeta));
+            dtmalloc(column->meta, VarcharMeta, 1);
             ((VarcharMeta*) column->meta)->offoff = (int64_t) offoff;
         }
 

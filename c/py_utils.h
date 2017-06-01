@@ -21,77 +21,12 @@
 #define UU2  UNUSED(PyObject *_unused2)
 
 
-/**
- * Create and return a new instance of python's None object
- * (actually, this reuses Py_None singleton, increasing its REFCNT)
- */
-#define none() incref(Py_None)
 
-
-/**
- * Return PyObject* `x`, after having its reference count increased.
- */
-#define incref(x) ({ PyObject *y = x; Py_XINCREF(y); y; })
-
-
-/**
- * Decrement reference count of `x` and return NULL.
- */
-#define decref(x) ({ Py_XDECREF(x); NULL; })
-
-
-/**
- * Return clone of the memory buffer `src` of size `n_bytes`. This function
- * will allocate and return new memory buffer for the copy, and it will be the
- * responsibility of the caller to free the cloned buffer.
- * If this function is unable to allocate the necessary memory range, it will
- * set an error message, and return NULL.
- */
+PyObject* none(void);
+PyObject* incref(PyObject *x);
+PyObject* decref(PyObject *x);
 void* clone(void *src, size_t n_bytes);
 
-
-
-/**
- * Similar to `malloc(n)`, but in case of error set the error string and then
- * execute "goto fail".
- */
-#define MALLOC(n) ({                                                           \
-    void *malloc_res = malloc((size_t)(n));                                    \
-    if (malloc_res == NULL) {                                                  \
-        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);    \
-        goto fail;                                                             \
-    }                                                                          \
-    malloc_res;                                                                \
-})
-
-
-/**
- * Similar to `calloc(s, n)`, but in case of error set the error string and
- * then execute "goto fail".
- */
-#define CALLOC(s, n) ({                                                        \
-    void *calloc_res = calloc(s, (size_t)(n));                                 \
-    if (calloc_res == NULL) {                                                  \
-        size_t sz = (s)*(size_t)(n);                                           \
-        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", sz);   \
-        goto fail;                                                             \
-    }                                                                          \
-    calloc_res;                                                                \
-})
-
-
-/**
- * Similar to `realloc(n)`, but in case of error set the error string and then
- * execute "goto fail".
- */
-#define REALLOC(ptr, n) ({                                                     \
-    void *realloc_res = realloc(ptr, (size_t)(n));                             \
-    if (realloc_res == NULL) {                                                 \
-        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);    \
-        goto fail;                                                             \
-    }                                                                          \
-    realloc_res;                                                               \
-})
 
 
 /**
@@ -117,7 +52,7 @@ void* clone(void *src, size_t n_bytes);
         char *buf = PyBytes_AsString(y);                                       \
         Py_DECREF(y);                                                          \
         size_t len = (size_t) PyBytes_Size(y);                                 \
-        res = MALLOC(len + 1);                                                 \
+        dtmalloc(res, char, len + 1);                                          \
         memcpy(res, buf, len + 1);                                             \
     }                                                                          \
     Py_DECREF(x);                                                              \
