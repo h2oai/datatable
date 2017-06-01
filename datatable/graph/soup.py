@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-import _datatable
 from .node import Node
 from .context import CModuleNode
-from datatable.exec.llvm import inject_c_code
 
 
 
