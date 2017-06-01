@@ -189,13 +189,11 @@ def test_cols_colselector(dt0, tbl0):
     assert dt1.shape == (6, 2)
     assert dt1.names == ("A", "C")
     assert dt1.internal.isview and dt1.internal.rowmapping_type == "slice"
-    assert dt1.internal.view_colnumbers == (0, 2)
     assert as_list(dt1) == [tbl0[0], tbl0[2]]
     dt3 = dt0[lambda f: {"x": f.A, "y": f.D}]
     assert dt3.shape == (6, 2)
     assert dt3.names == ("x", "y")
     assert dt3.internal.isview and dt3.internal.rowmapping_type == "slice"
-    assert dt3.internal.view_colnumbers == (0, 3)
 
 
 def test_cols_expression(dt0, tbl0):
@@ -219,7 +217,6 @@ def test_cols_expression(dt0, tbl0):
     assert dt3.names == ("foo", "a", "b", "c")
     assert dt3.types == ("real", "int", "int", "real")
     assert dt3.internal.isview and dt3.internal.rowmapping_type == "slice"
-    assert dt3.internal.view_colnumbers == (None, 0, 1, 2)
     assert as_list(dt3)[0] == [tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                for i in range(6)]
 

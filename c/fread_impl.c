@@ -96,7 +96,7 @@ PyObject* freadPy(UU, PyObject *args)
     int res = freadMain(frargs);
     if (!res) goto fail;
 
-    PyObject *pydt = pydt_from_dt(dt, NULL);
+    PyObject *pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
     cleanup_fread_session(&frargs);
     return pydt;
@@ -203,7 +203,6 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
     dt = malloc(sizeof(DataTable));
     dt->nrows = (int64_t) nrows;
     dt->ncols = ncols - ndrop;
-    dt->source = NULL;
     dt->rowmapping = NULL;
     dt->columns = columns;
     total_alloc_size += sizeof(DataTable);

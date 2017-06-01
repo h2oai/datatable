@@ -28,7 +28,6 @@ class DatatableExpr(object):
 
     def __init__(self, datatable):
         self._datatable = datatable
-        self._datatable_colmap = datatable.internal.view_colnumbers
 
 
     def __getattr__(self, name):
@@ -91,13 +90,6 @@ class DatatableExpr(object):
     @property
     def stypes(self):
         return self._datatable.stypes
-
-
-    def get_column_srcindex(self, colindex):
-        if self._datatable_colmap is None:
-            return None
-        else:
-            return self._datatable_colmap[colindex]
 
 
     def get_dtname(self):

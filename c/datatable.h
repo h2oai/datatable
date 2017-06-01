@@ -24,26 +24,11 @@ typedef struct DataTable DataTable;
  *     On 32-bit platforms maximum number of rows/columns is 2**31-1. On 64-bit
  *     platforms the maximum is 2**63-1.
  *
- * source
- *     If this field is not NULL, then the current datatable is a view on the
- *     ``source`` datatable. The referenced datatable cannot be also a view,
- *     that is the following invariant holds:
- *
- *         (self->source == NULL) || (self->source->source == NULL)
- *
- *     This reference is *not* owned by the current datatable, however it is
- *     mirrored in the controller DataTable_PyObject.
- *
  * rowmapping
- *     This field is present if and only if the datatable is a view, i.e. the
- *     following invariant must hold:
- *
- *         (self->source == NULL) == (self->rowmapping == NULL)
- *
- *     This field describes which rows from the source datatable are "selected"
- *     into the current datatable. This reference is owned by the current
- *     datatable (in particular you should not construct a RowMapping_PyObject
- *     from it).
+ *     If this field is not NULL, then the current datatable is a "view", that
+ *     is all columns should be accessed not directly but via this rowmapping.
+ *     This pointer is owned by the current datatable (in particular you should
+ *     not construct a RowMapping_PyObject from it).
  *
  * columns
  *     The array of columns within the datatable. This array contains `ncols`
@@ -55,7 +40,6 @@ typedef struct DataTable DataTable;
 typedef struct DataTable {
     int64_t     nrows;
     int64_t     ncols;
-    DataTable  *source;
     RowMapping *rowmapping;
     Column    **columns;
 
@@ -76,11 +60,9 @@ typedef struct DataTable {
 
 //==============================================================================
 
-DataTable* dt_DataTable_call(DataTable *self, RowMapping *rowmapping, ColMapping *colmapping);
 int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix);
-DataTable* datatable_assemble(int64_t nrows, Column **cols);
-DataTable* datatable_assemble_view(DataTable *dt, RowMapping *rm, Column **cols);
-void dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
+DataTable* datatable_assemble(RowMapping *rowmapping, Column **cols);
+DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
 DataTable* dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols);
 
 void datatable_dealloc(DataTable *self);

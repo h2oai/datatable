@@ -165,8 +165,9 @@ def test__hex(dt0, monkeypatch, capsys):
     print(out)
     assert ("Column 6, Name: 'G'\n"
             "Ltype: str, Stype: i4s, Mtype: data\n"
-            "Data size: 36\n"
+            "Bytes: 36\n"
             "Meta: offoff=20\n"
+            "Refcnt: 1\n"
             "    00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F                  \n"
             "--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ----------------\n"
             " 0  31  32  68  65  6C  6C  6F  77  6F  72  6C  64  FF  FF  FF  FF  12helloworldÿÿÿÿ\n"
@@ -180,7 +181,10 @@ def test__hex(dt0, monkeypatch, capsys):
 
     dt0[::2]._hex(1)
     out, err = capsys.readouterr()
+    print(out)
     assert ("Column 1, Name: 'C'\n"
-            "Ltype: bool, Stype: i1b, Mtype: view\n"
-            "Column index in the source datatable: 2\n"
+            "Ltype: bool, Stype: i1b, Mtype: data\n"
+            "Bytes: 4\n"
+            "Meta: None\n"
+            "Refcnt: 2\n"
             in out)

@@ -29,22 +29,9 @@ static PyObject* get_ltype(Column_PyObject *self) {
 }
 
 
-static PyObject* get_isview(Column_PyObject *self) {
-    return incref(self->ref->mtype == MT_VIEW? Py_True : Py_False);
-}
-
-
-static PyObject* get_srcindex(Column_PyObject *self) {
-    ViewColumn *col = (ViewColumn*) self->ref;
-    return (col->mtype == MT_VIEW)
-            ? PyLong_FromLong(col->srcindex)
-            : none();
-}
-
-
 static PyObject* get_data_size(Column_PyObject *self) {
     Column *col = self->ref;
-    return PyLong_FromSize_t(col->mtype == MT_VIEW? 0 : col->alloc_size);
+    return PyLong_FromSize_t(col->alloc_size);
 }
 
 
@@ -79,6 +66,11 @@ static PyObject* get_meta(Column_PyObject *self) {
 }
 
 
+static PyObject* get_refcount(Column_PyObject *self) {
+    return PyLong_FromLong(self->ref->refcount);
+}
+
+
 int init_py_column(PyObject *module) {
     // Register Column_PyType on the module
     Column_PyType.tp_new = PyType_GenericNew;
@@ -89,7 +81,6 @@ int init_py_column(PyObject *module) {
     py_rowmappingtypes[0] = NULL;
     py_rowmappingtypes[MT_DATA] = PyUnicode_FromString("data");
     py_rowmappingtypes[MT_MMAP] = PyUnicode_FromString("mmap");
-    py_rowmappingtypes[MT_VIEW] = PyUnicode_FromString("view");
     return 1;
 }
 
@@ -102,20 +93,18 @@ int init_py_column(PyObject *module) {
 PyDoc_STRVAR(dtdoc_ltype, "'Logical' type of the column");
 PyDoc_STRVAR(dtdoc_stype, "'Storage' type of the column");
 PyDoc_STRVAR(dtdoc_mtype, "'Memory' type of the column: data, memmap or view");
-PyDoc_STRVAR(dtdoc_isview, "Is this a view column?");
-PyDoc_STRVAR(dtdoc_srcindex, "View column's index in the source datatable");
 PyDoc_STRVAR(dtdoc_data_size, "The amount of memory taken by column's data");
 PyDoc_STRVAR(dtdoc_meta, "String representation of the column's `meta` struct");
+PyDoc_STRVAR(dtdoc_refcount, "Reference count of the column");
 
 #define GETSET1(name) {#name, (getter)get_##name, NULL, dtdoc_##name, NULL}
 static PyGetSetDef column_getseters[] = {
     GETSET1(mtype),
     GETSET1(stype),
     GETSET1(ltype),
-    GETSET1(isview),
-    GETSET1(srcindex),
     GETSET1(data_size),
     GETSET1(meta),
+    GETSET1(refcount),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
 #undef GETSET1

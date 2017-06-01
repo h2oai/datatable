@@ -232,7 +232,6 @@ RowMapping* rowmapping_from_datacolumn(Column *col, int64_t nrows)
     RowMapping *res = NULL;
     res = TRY(malloc(sizeof(RowMapping)));
 
-    if (col->mtype == MT_VIEW) goto fail;
     if (col->stype != ST_BOOLEAN_I1) goto fail;
 
     int8_t *data = col->data;
@@ -283,7 +282,6 @@ rowmapping_from_column_with_rowmapping(Column *col, RowMapping *rowmapping)
     RowMapping *res = NULL;
     res = TRY(malloc(sizeof(RowMapping)));
 
-    if (col->mtype == MT_VIEW) goto fail;
     if (col->stype != ST_BOOLEAN_I1) goto fail;
 
     int8_t *data = col->data;

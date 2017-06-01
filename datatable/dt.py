@@ -124,15 +124,12 @@ class DataTable(object):
         print("Column %d, Name: %r" % (colidx, self._names[colidx]))
         print("Ltype: %s, Stype: %s, Mtype: %s"
               % (col.ltype, col.stype, col.mtype))
-        if col.isview:
-            print("Column index in the source datatable: %d" % col.srcindex)
-            return
-        else:
-            datasize = col.data_size
-            print("Data size: %d" % datasize)
-            print("Meta: %s" % col.meta)
-            widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
-            widget.render()
+        datasize = col.data_size
+        print("Bytes: %d" % datasize)
+        print("Meta: %s" % col.meta)
+        print("Refcnt: %d" % col.refcount)
+        widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
+        widget.render()
 
 
     #---------------------------------------------------------------------------

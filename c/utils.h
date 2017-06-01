@@ -35,6 +35,10 @@ float max_f4(float a, float b);
         ptr = (T*) malloc((size_t)(n) * sizeof(T));                            \
         if (ptr == nullptr) return nullptr;                                    \
     } while(0)
+    #define dtmalloc_v(ptr, n) do {                                            \
+        ptr = malloc((size_t)(n));                                             \
+        if (ptr == nullptr) return nullptr;                                    \
+    } while(0)
     #define dtrealloc(ptr, T, n) do {                                          \
         ptr = (T*) realloc(ptr, (size_t)(n) * sizeof(T));                      \
         if (ptr == nullptr) return nullptr;                                    \
@@ -46,6 +50,10 @@ float max_f4(float a, float b);
 #else
     #define dtmalloc(ptr, T, n) do {                                           \
         ptr = malloc((size_t)(n) * sizeof(T));                                 \
+        if (ptr == NULL) return NULL;                                          \
+    } while(0)
+    #define dtmalloc_v(ptr, n) do {                                            \
+        ptr = malloc((size_t)(n));                                             \
         if (ptr == NULL) return NULL;                                          \
     } while(0)
     #define dtrealloc(ptr, T, n) do {                                          \

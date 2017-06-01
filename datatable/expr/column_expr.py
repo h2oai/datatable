@@ -16,7 +16,6 @@ class ColSelectorExpr(BaseExpr):
         self._dtexpr = dtexpr
         self._colid = colindex
         self._stype = dtexpr.stypes[colindex]
-        self._view_colid = dtexpr.get_column_srcindex(self._colid)
 
     @property
     def col_index(self):
@@ -27,7 +26,7 @@ class ColSelectorExpr(BaseExpr):
         v = inode.make_keyvar(key, key, exact=True)
         inode.check_num_rows(self._dtexpr.nrows)
         assert v == key
-        if self._view_colid is None:
+        if True:
             datavar = key + "_data"
             inode.make_keyvar(datavar, datavar, exact=True)
             dtcols = self._get_dt_columns(inode)

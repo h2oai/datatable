@@ -30,7 +30,6 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
 
     // Create a new (empty) DataTable instance
     dtmalloc(dt, DataTable, 1);
-    dt->source = NULL;
     dt->rowmapping = NULL;
     dt->columns = NULL;
     dt->nrows = 0;
@@ -41,7 +40,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
     if (listsize == 0) {
         dtmalloc(dt->columns, Column*, 1);
         dt->columns[0] = NULL;
-        return pydt_from_dt(dt, NULL);
+        return pydt_from_dt(dt);
     }
 
     // Basic check validity of the provided data.
@@ -71,7 +70,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
         dt->columns[i] = TRY(column_from_list(src));
     }
 
-    return pydt_from_dt(dt, NULL);
+    return pydt_from_dt(dt);
 
   fail:
     datatable_dealloc(dt);
@@ -133,6 +132,7 @@ Column* column_from_list(PyObject *list)
     column->data = NULL;
     column->mtype = MT_DATA;
     column->alloc_size = 0;
+    column->refcount = 1;
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
@@ -345,6 +345,6 @@ Column* column_from_list(PyObject *list)
     }
 
   fail:
-    column_dealloc(column);
+    column_decref(column);
     return NULL;
 }
