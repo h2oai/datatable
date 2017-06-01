@@ -85,7 +85,7 @@ def test_cols_string(dt0, tbl0):
         assert dt1.names == (s, )
         assert dt1.internal.isview and dt1.internal.rowmapping_type == "slice"
         assert as_list(dt1)[0] == tbl0["ABCD".index(s)]
-    assert_valueerror(dt0, "Z", "Column 'Z' does not exist in <DataTable")
+    assert_valueerror(dt0, "Z", "Column `Z` does not exist in <DataTable")
 
 
 def test_cols_intslice(dt0, tbl0):
@@ -128,7 +128,7 @@ def test_cols_strslice(dt0, tbl0):
     assert as_list(dt0["D":"A"]) == tbl0[::-1]
     assert as_list(dt0["B":]) == tbl0[1:]
     assert as_list(dt0[:"C"]) == tbl0[:3]
-    assert_valueerror(dt0, slice("a", "D"), "Column 'a' does not exist")
+    assert_valueerror(dt0, slice("a", "D"), "Column `a` does not exist")
     assert_valueerror(dt0, slice("A", "D", 2),
                       "Column name slices cannot use strides")
     assert_valueerror(dt0, slice("A", 3),

@@ -75,11 +75,20 @@ def test_dt_view(dt0, monkeypatch, capsys):
 
 
 def test_dt_colindex(dt0):
+    assert dt0.colindex(0) == 0
+    assert dt0.colindex(1) == 1
+    assert dt0.colindex(-1) == 6
     for i, ch in enumerate("ABCDEFG"):
         assert dt0.colindex(ch) == i
     with pytest.raises(ValueError) as e:
         dt0.colindex("a")
-    assert "Column 'a' does not exist" in str(e.value)
+    assert "Column `a` does not exist" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0.colindex(7)
+    assert "Column index `7` is invalid for a datatable with" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0.colindex(-8)
+    assert "Column index `-8` is invalid for a datatable with" in str(e.value)
 
 
 def test_dt_getitem(dt0):
@@ -188,3 +197,15 @@ def test__hex(dt0, monkeypatch, capsys):
             "Meta: None\n"
             "Refcnt: 2\n"
             in out)
+
+
+def test_rename():
+    d0 = dt.DataTable([[1], [2], ["hello"]])
+    assert d0.names == ("C1", "C2", "C3")
+    d0.rename({0: "x", "C2": "y", -1: "z"})
+    assert d0.names == ("x", "y", "z")
+    with pytest.raises(TypeError):
+        d0.rename(["a", "b"])
+    with pytest.raises(ValueError) as e:
+        d0.rename({"xxx": "yyy"})
+    assert "Column `xxx` does not exist" in str(e.value)
