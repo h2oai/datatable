@@ -9,7 +9,7 @@ import datatable
 from .widget import DataFrameWidget
 
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import TypeError, ValueError, typed
+from datatable.utils.typechecks import TypeError, ValueError, typed, U
 from datatable.graph import (DatatableNode, RowFilterNode, make_columnset,
                              NodeSoup)
 
@@ -407,18 +407,33 @@ class DataTable(object):
 
 
 
-    @typed(name=str)
+    @typed(name=U(str, int))
     def colindex(self, name):
         """
         Return index of the column ``name``.
 
-        :param str name: name of the column to find the index for.
-        :raises ValueError: if such column does not exist.
+        :param name: name of the column to find the index for. This can also
+            be an index of a column, in which case the index is checked that
+            it doesn't go out-of-bounds, and negative index is converted into
+            positive.
+        :raises ValueError: if the requested column does not exist.
         """
-        if name in self._inames:
-            return self._inames[name]
+        if isinstance(name, str):
+            if name in self._inames:
+                return self._inames[name]
+            else:
+                raise ValueError("Column `%s` does not exist in %r"
+                                 % (name, self))
         else:
-            raise ValueError("Column %r does not exist in %r" % (name, self))
+            n = self._ncols
+            if 0 <= name < n:
+                return name
+            elif -n <= name < 0:
+                return name + n
+            else:
+                raise ValueError("Column index `%d` is invalid for a "
+                                 "datatable with %s"
+                                 % (name, plural(n, "column")))
 
 
 
@@ -542,3 +557,19 @@ class DataTable(object):
         self._dt.rbind(final_ncols, spec)
         self._fill_from_dt(self._dt, names=final_names)
         return self
+
+
+
+    @typed(columns={U(str, int): str})
+    def rename(self, columns):
+        """
+        Rename columns of the datatable.
+
+        :param columns: dictionary of the {old_name: new_name} entries.
+        :returns: None
+        """
+        names = list(self._names)
+        for oldname, newname in columns.items():
+            idx = self.colindex(oldname)
+            names[idx] = newname
+        self._fill_from_dt(self._dt, names=names)
