@@ -17,21 +17,13 @@ static PyObject *strRowMappingTypeSlice;
 
 /**
  * Create a new DataTable_PyObject by wrapping the provided DataTable `dt`.
- * If `dt` is a view, then the source `DataTable_PyObject` must also be given.
- * The returned object will assume ownership of the datatable `dt`. If `dt`
- * is NULL then this function also returns NULL.
+ * If `dt` is NULL then this function also returns NULL.
  */
-PyObject* pydt_from_dt(DataTable *dt, DataTable_PyObject *src)
+PyObject* pydt_from_dt(DataTable *dt)
 {
     if (dt == NULL) return NULL;
-    if (dt->source != NULL && src == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "Cannot wrap a view datatable");
-        return NULL;
-    }
     PyObject *pydt = PyObject_CallObject((PyObject*) &DataTable_PyType, NULL);
     ((DataTable_PyObject*) pydt)->ref = dt;
-    ((DataTable_PyObject*) pydt)->source = src;
-    Py_XINCREF(src);
     return pydt;
 }
 #define py pydt_from_dt
@@ -56,7 +48,7 @@ static PyObject* get_ncols(DataTable_PyObject *self) {
 }
 
 static PyObject* get_isview(DataTable_PyObject *self) {
-    return incref(self->ref->source == NULL? Py_False : Py_True);
+    return incref(self->ref->rowmapping == NULL? Py_False : Py_True);
 }
 
 
@@ -105,33 +97,6 @@ static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 }
 
 
-/**
- * If the datatable is a view, then return the tuple of source column numbers
- * for all columns in the current datatable. That is, we return the tuple
- *     tuple(col.srcindex  for col in self.columns)
- * If any column contains computed data, then its "index" will be returned
- * as None.
- * If the datatable is not a view, return None.
- */
-static PyObject* get_view_colnumbers(DataTable_PyObject *self)
-{
-    if (self->ref->source == NULL)
-        return none();
-    int64_t i = self->ref->ncols;
-    Column **columns = self->ref->columns;
-    PyObject *list = PyTuple_New((Py_ssize_t) i);
-    if (list == NULL) return NULL;
-    while (--i >= 0) {
-        int isviewcol = columns[i]->mtype == MT_VIEW;
-        PyObject *idx = isviewcol
-            ? PyLong_FromLong(((ViewColumn*)columns[i])->srcindex)
-            : none();
-        PyTuple_SET_ITEM(list, i, idx);
-    }
-    return list;
-}
-
-
 static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 {
     int64_t row0, row1, col0, col1;
@@ -149,23 +114,9 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 
 PyObject* pydatatable_assemble(UU, PyObject *args)
 {
-    int64_t nrows;
-    Column **cols;
-    if (!PyArg_ParseTuple(args, "L!O&:datatable_assemble",
-                          &nrows, &columnset_unwrap, &cols))
-        return NULL;
-    return py(datatable_assemble(nrows, cols), NULL);
-}
-
-
-
-PyObject* pydatatable_assemble_view(UU, PyObject *args)
-{
-    DataTable_PyObject *srcdt;
     RowMapping_PyObject *pyrwm;
     ColumnSet_PyObject *pycols;
-    if (!PyArg_ParseTuple(args, "O!O!O!:datatable_assemble_view",
-                          &DataTable_PyType, &srcdt,
+    if (!PyArg_ParseTuple(args, "O!O!:datatable_assemble_view",
                           &RowMapping_PyType, &pyrwm,
                           &ColumnSet_PyType, &pycols))
         return NULL;
@@ -173,7 +124,7 @@ PyObject* pydatatable_assemble_view(UU, PyObject *args)
     pyrwm->ref = NULL;
     Column **columns = pycols->columns;
     pycols->columns = NULL;
-    return py(datatable_assemble_view(srcdt->ref, rowmapping, columns), srcdt);
+    return py(datatable_assemble(rowmapping, columns));
 }
 
 
@@ -273,13 +224,76 @@ column(DataTable_PyObject *self, PyObject *args)
 
 
 
+static PyObject* delete_columns(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
+        return NULL;
+
+    int ncols = (int) PyList_Size(list);
+    int *cols_to_remove = NULL;
+    dtmalloc(cols_to_remove, int, ncols);
+    for (int i = 0; i < ncols; i++) {
+        PyObject *item = PyList_GET_ITEM(list, i);
+        cols_to_remove[i] = (int) PyLong_AsLong(item);
+    }
+    dt_delete_columns(dt, cols_to_remove, ncols);
+
+    dtfree(cols_to_remove);
+    return none();
+}
+
+
+
+static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    int final_ncols;
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "iO!:delete_columns",
+                          &final_ncols, &PyList_Type, &list))
+        return NULL;
+
+    int ndts = (int) PyList_Size(list);
+    DataTable **dts = NULL;
+    dtmalloc(dts, DataTable*, ndts);
+    int **cols_to_append = NULL;
+    dtmalloc(cols_to_append, int*, final_ncols);
+    for (int i = 0; i < final_ncols; i++) {
+        dtmalloc(cols_to_append[i], int, ndts);
+    }
+    for (int i = 0; i < ndts; i++) {
+        PyObject *item = PyList_GET_ITEM(list, i);
+        DataTable *dti;
+        PyObject *colslist;
+        if (!PyArg_ParseTuple(item, "O&O!",
+                              &dt_unwrap, &dti, &PyList_Type, &colslist))
+            return NULL;
+        int ncolsi = (int) PyList_Size(colslist);
+        int j = 0;
+        for (; j < ncolsi; j++) {
+            PyObject *itemj = PyList_GET_ITEM(colslist, j);
+            cols_to_append[j][i] = (itemj == Py_None)? -1
+                                   : (int) PyLong_AsLong(itemj);
+        }
+        dts[i] = dti;
+    }
+    dt_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+
+    dtfree(cols_to_append);
+    dtfree(dts);
+    return none();
+}
+
+
+
 /**
  * Deallocator function, called when the object is being garbage-collected.
  */
 static void _dealloc_(DataTable_PyObject *self)
 {
     datatable_dealloc(self->ref);
-    Py_XDECREF(self->source);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -298,9 +312,10 @@ PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
 PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'");
-PyDoc_STRVAR(dtdoc_view_colnumbers, "List of source column indices in a view");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
+PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
+PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
@@ -308,6 +323,8 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(window),
     METHOD1(verify_integrity),
     METHOD1(column),
+    METHOD1(delete_columns),
+    METHOD1(rbind),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
@@ -320,7 +337,6 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(stypes),
     GETSET1(isview),
     GETSET1(rowmapping_type),
-    GETSET1(view_colnumbers),
     GETSET1(datatable_ptr),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };

@@ -17,11 +17,6 @@ Column** columns_from_slice(
 
 Column** columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols);
 
-Column** columns_from_mapfn(
-    SType *stypes, int64_t ncols, int64_t nrows, columnset_mapfn *fn
-);
-
-
 Column** columns_from_mixed(
     int64_t *spec,
     int64_t ncols,

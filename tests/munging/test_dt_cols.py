@@ -85,7 +85,7 @@ def test_cols_string(dt0, tbl0):
         assert dt1.names == (s, )
         assert dt1.internal.isview and dt1.internal.rowmapping_type == "slice"
         assert as_list(dt1)[0] == tbl0["ABCD".index(s)]
-    assert_valueerror(dt0, "Z", "Column 'Z' does not exist in <DataTable")
+    assert_valueerror(dt0, "Z", "Column `Z` does not exist in <DataTable")
 
 
 def test_cols_intslice(dt0, tbl0):
@@ -128,7 +128,7 @@ def test_cols_strslice(dt0, tbl0):
     assert as_list(dt0["D":"A"]) == tbl0[::-1]
     assert as_list(dt0["B":]) == tbl0[1:]
     assert as_list(dt0[:"C"]) == tbl0[:3]
-    assert_valueerror(dt0, slice("a", "D"), "Column 'a' does not exist")
+    assert_valueerror(dt0, slice("a", "D"), "Column `a` does not exist")
     assert_valueerror(dt0, slice("A", "D", 2),
                       "Column name slices cannot use strides")
     assert_valueerror(dt0, slice("A", 3),
@@ -189,13 +189,11 @@ def test_cols_colselector(dt0, tbl0):
     assert dt1.shape == (6, 2)
     assert dt1.names == ("A", "C")
     assert dt1.internal.isview and dt1.internal.rowmapping_type == "slice"
-    assert dt1.internal.view_colnumbers == (0, 2)
     assert as_list(dt1) == [tbl0[0], tbl0[2]]
     dt3 = dt0[lambda f: {"x": f.A, "y": f.D}]
     assert dt3.shape == (6, 2)
     assert dt3.names == ("x", "y")
     assert dt3.internal.isview and dt3.internal.rowmapping_type == "slice"
-    assert dt3.internal.view_colnumbers == (0, 3)
 
 
 def test_cols_expression(dt0, tbl0):
@@ -219,7 +217,6 @@ def test_cols_expression(dt0, tbl0):
     assert dt3.names == ("foo", "a", "b", "c")
     assert dt3.types == ("real", "int", "int", "real")
     assert dt3.internal.isview and dt3.internal.rowmapping_type == "slice"
-    assert dt3.internal.view_colnumbers == (None, 0, 1, 2)
     assert as_list(dt3)[0] == [tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                for i in range(6)]
 

@@ -5,6 +5,7 @@
 #include "datatable.h"
 #include "rowmapping.h"
 #include "types.h"
+#include "utils.h"
 
 
 //==============================================================================
@@ -72,6 +73,10 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     return buf;
 }
 
+/**
+ * Check whether the memory buffer contains a valid UTF-8 string. The buffer
+ * is given by two pointers, for the beginning and the end (exlusively).
+ */
 static _Bool
 is_valid_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     const unsigned char *ptr = ptr0;
@@ -144,7 +149,6 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     *errors = (char*) calloc(1, 1);
 
     RowMapping *rm = dt->rowmapping;
-    DataTable *src = dt->source;
     Column **cols = dt->columns;
 
     #define ERR(...) do {                                                      \
@@ -199,9 +203,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     }
 
 
-    // Check that each Column is not NULL, and compute the number of "view"
-    // columns.
-    int64_t n_view_columns = 0;
+    // Check that each Column is not NULL
     {
         int64_t i = 0, j = 0;
         for (; i < ncols; i++) {
@@ -210,8 +212,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 if (fix) fixed_errors++;  // fixed later in `if (fix && i > j)`
             } else {
                 int mtype = cols[i]->mtype;
-                n_view_columns += (mtype == MT_VIEW);
-                if (mtype < 1 || mtype > 3) {
+                if (mtype != MT_DATA && mtype != MT_MMAP) {
                     ERR("Column %lld has unknown memory type %d\n", i, mtype);
                     if (fix) {
                         cols[i]->mtype = MT_DATA;
@@ -233,44 +234,13 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     }
 
 
-    // Check that "view" datatable is in a consistent state. There are three
-    // properties that determine whether a table is a view: (1) `rowmapping` is
-    // not NULL, (2) `source` is not NULL, and (3) number of "view" columns is
-    // non-zero.
-    int p1 = (rm == NULL);
-    int p2 = (src == NULL);
-    int p3 = (n_view_columns == 0);
-    if (p1 != p2 || p1 != p3) {
-        ERR("Invalid \"view\" datatable: %s, %s and %s\n",
-            p1? "rowmapping is NULL" : "rowmapping is not NULL",
-            p2? "source is NULL" : "source is not NULL",
-            p3? "there are no view columns" :
-                n_view_columns == 1? "there is 1 view column" :
-                                     "there are %d view columns",
-            n_view_columns);
-        // If there are no view columns, then `rowmapping` and `source` can be
-        // simply thrown away; otherwise there is no easy fix...
-        if (fix && p3) {
-            dt->rowmapping = NULL;
-            dt->source = NULL;
-            fixed_errors++;
-        } else return DTCK_ERRORS_FOUND;
-    }
-    if (src != NULL && src->source != NULL) {
-        ERR("View datatable references another datatable which is also a view");
-        // This should be possible to fix; just hard...
-        return DTCK_ERRORS_FOUND;
-    }
-
-
     // Check validity of the RowMapping
     if (rm != NULL) {
         RowMappingType rmtype = rm->type;
-        if (rmtype < 1 || rmtype > 3) {
+        if (rmtype != RM_SLICE && rmtype != RM_ARR32 && rmtype != RM_ARR64) {
             ERR("Invalid RowMappingType: %d\n", rmtype);
             return DTCK_ERRORS_FOUND;
         }
-        int64_t src_nrows = src->nrows;
         if (rm->length != nrows) {
             ERR("The number of rows in the datatable's rowmapping does not "
                 "match the number of rows in the datatable itself: %lld vs "
@@ -281,14 +251,12 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             int64_t start = rm->slice.start;
             int64_t step = rm->slice.step;
             int64_t end = start + step * (nrows - 1);
-            if (start < 0 || start >= src_nrows) {
-                ERR("Datatable's rowmapping references invalid row %lld in the "
-                    "source datatable (with %lld rows)", start, src_nrows);
+            if (start < 0) {
+                ERR("Rowmapping's start row is negative: %lld", start);
                 return DTCK_ERRORS_FOUND;
             }
-            if (end < 0 || end >= src_nrows) {
-                ERR("Datatable's rowmapping references invalid row %lld in the "
-                    "source datatable (with %lld rows)", end, src_nrows);
+            if (end < 0) {
+                ERR("Rowmapping's end row is negative: %lld", end);
                 return DTCK_ERRORS_FOUND;
             }
             if (nrows > 1 && (step < -start/(nrows - 1) ||
@@ -311,10 +279,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                     "while %lld elements were expected\n", n_allocd, nrows);
                 return DTCK_ERRORS_FOUND;
             }
-            int32_t max = src_nrows < INT32_MAX? (int32_t) src_nrows - 1
-                                               : INT32_MAX;
             for (int32_t i = 0; i < nrows; i++) {
-                if (rmdata[i] < 0 || rmdata[i] > max) {
+                if (rmdata[i] < 0 || rmdata[i] > INT32_MAX) {
                     ERR("Rowmapping[%d] = %d is invalid\n", i, rmdata[i]);
                 }
             }
@@ -328,7 +294,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 return DTCK_ERRORS_FOUND;
             }
             for (int64_t i = 0; i < nrows; i++) {
-                if (rmdata[i] < 0 || rmdata[i] >= src_nrows) {
+                if (rmdata[i] < 0) {
                     ERR("Rowmapping[%lld] = %lld is invalid\n", i, rmdata[i]);
                 }
             }
@@ -338,158 +304,145 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
 
 
     // Check each individual column
-    _Bool cleanup_required = 0;
     for (int64_t i = 0; i < ncols; i++) {
         Column *col = cols[i];
         SType stype = col->stype;
 
-        if (col->mtype == MT_VIEW) {
-            int64_t srcindex = ((ViewColumn*)col)->srcindex;
-            if (srcindex >= src->ncols || srcindex < 0) {
-                ERR("Column %lld references non-existing column %zd in the "
-                    "source datatable\n", i, srcindex);
-                if (fix) {
-                    cols[i] = NULL;
-                    cleanup_required = 1;
-                    fixed_errors++;
-                }
+        if (stype <= ST_VOID || stype >= DT_STYPES_COUNT) {
+            ERR("Invalid storage type %d in column %lld\n", stype, i);
+            continue;
+        }
+        if (col->refcount <= 0) {
+            ERR("Column's refcount is nonpositive: %d\n", col->refcount);
+            if (fix) {
+                col->refcount = 1;
+                fixed_errors++;
+            } else continue;
+        }
+        size_t metasize = stype_info[stype].metasize;
+        if (metasize > 0) {
+            if (col->meta == NULL) {
+                ERR("Meta information missing for column %lld\n", i);
                 continue;
             }
-            SType src_stype = src->columns[srcindex]->stype;
-            if (stype != src_stype) {
-                ERR("Inconsistent stype in view column %lld: stype = %d, "
-                    "src.stype = %d\n", i, stype, src_stype);
-                if (fix) {
-                    col->stype = src_stype;
-                    fixed_errors++;
-                }
+            size_t meta_alloc = array_size(col->meta, 1);
+            if (meta_alloc > 0 && meta_alloc < metasize) {
+                ERR("Incorrect meta info structure: %zd bytes expected, "
+                    "but only %zd allocated\n", metasize, meta_alloc);
+                continue;
             }
         }
-        else {
-            if (stype <= ST_VOID || stype >= DT_STYPES_COUNT) {
-                ERR("Invalid storage type %d in column %lld\n", stype, i);
+        int64_t offoff = -1;
+        if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+            offoff = ((VarcharMeta*) col->meta)->offoff;
+            int elemsize = stype == ST_STRING_I4_VCHAR? 4 : 8;
+            if (offoff <= 0) {
+                ERR("String data section in column %lld has negative length"
+                    ": %lld\n", i, offoff);
                 continue;
             }
-            size_t metasize = stype_info[stype].metasize;
-            if (metasize > 0) {
-                if (col->meta == NULL) {
-                    ERR("Meta information missing for column %lld\n", i);
-                    continue;
-                }
-                size_t meta_alloc = array_size(col->meta, 1);
-                if (meta_alloc > 0 && meta_alloc < metasize) {
-                    ERR("Incorrect meta info structure: %zd bytes expected, "
-                        "but only %zd allocated\n", metasize, meta_alloc);
-                    continue;
-                }
-            }
-            int64_t offoff = -1;
-            if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-                offoff = ((VarcharMeta*) col->meta)->offoff;
-                if (offoff < 0) {
-                    ERR("String data section in column %lld has negative length"
-                        ": %lld\n", i, offoff);
-                    continue;
-                }
-                if ((offoff & 7) != 0) {
-                    ERR("String data section in column %lld has a length which "
-                        "is not a multiple of 8: %lld", i, offoff);
-                    // This might be fixable... unclear
-                    continue;
-                }
-                if (stype == ST_STRING_I4_VCHAR && offoff > INT32_MAX) {
-                    ERR("String data section in column %lld has length %lld "
-                        "which exceeds 32-bit storage limit\n", i, offoff);
-                    // Might also be fixable
-                    continue;
-                }
-            }
-
-            size_t act_allocsize = array_size(col->data, 1);
-            size_t elemsize = stype_info[stype].elemsize;
-            if (stype == ST_STRING_FCHAR)
-                elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
-            size_t exp_allocsize = elemsize * (size_t)nrows;
-            if (offoff > 0)
-                exp_allocsize += (size_t)offoff;
-            if (col->alloc_size != exp_allocsize) {
-                ERR("Column %lld reports incorrect allocation size: %zd vs "
-                    "expected %zd bytes (actually allocated: %zd bytes)\n",
-                    i, col->alloc_size, exp_allocsize, act_allocsize);
-                if (fix) {
-                    col->alloc_size = exp_allocsize;
-                    fixed_errors++;
-                } else continue;
-            }
-            if (act_allocsize > 0 && act_allocsize < exp_allocsize) {
-                ERR("Column %lld has only %zd bytes of data, while %zd bytes "
-                    "expected\n", i, act_allocsize, exp_allocsize);
+            if ((offoff & (elemsize - 1)) != 0) {
+                ERR("String data section in column %lld has a length which "
+                    "is not a multiple of %d: %lld\n", i, elemsize, offoff);
+                // This might be fixable... unclear
                 continue;
             }
+            if (stype == ST_STRING_I4_VCHAR && offoff > INT32_MAX) {
+                ERR("String data section in column %lld has length %lld "
+                    "which exceeds 32-bit storage limit\n", i, offoff);
+                // Might also be fixable
+                continue;
+            }
+        }
 
-            // Verify that a boolean column has only values 0, 1 and NA_I1
-            if (stype == ST_BOOLEAN_I1) {
-                int8_t *data = (int8_t*) col->data;
-                for (int64_t j = 0; j < nrows; j++) {
-                    int8_t x = data[j];
-                    if (!(x == NA_I1 || x == 0 || x == 1)) {
-                        ERR("Boolean column %lld has value %d in row %lld\n",
-                            i, x, j);
-                        if (fix) {
-                            data[j] = NA_I1;
-                            fixed_errors++;
-                        }
+        size_t act_allocsize = array_size(col->data, 1);
+        size_t elemsize = stype_info[stype].elemsize;
+        if (stype == ST_STRING_FCHAR)
+            elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
+        size_t exp_allocsize = elemsize * (size_t)nrows;
+        if (offoff > 0)
+            exp_allocsize += (size_t)offoff;
+        if (col->alloc_size != exp_allocsize) {
+            ERR("Column %lld reports incorrect allocation size: %zd vs "
+                "expected %zd bytes (actually allocated: %zd bytes)\n",
+                i, col->alloc_size, exp_allocsize, act_allocsize);
+            if (fix) {
+                col->alloc_size = exp_allocsize;
+                fixed_errors++;
+            } else continue;
+        }
+        if (act_allocsize > 0 && act_allocsize < exp_allocsize) {
+            ERR("Column %lld has only %zd bytes of data, while %zd bytes "
+                "expected\n", i, act_allocsize, exp_allocsize);
+            continue;
+        }
+
+        // Verify that a boolean column has only values 0, 1 and NA_I1
+        if (stype == ST_BOOLEAN_I1) {
+            int8_t *data = (int8_t*) col->data;
+            for (int64_t j = 0; j < nrows; j++) {
+                int8_t x = data[j];
+                if (!(x == NA_I1 || x == 0 || x == 1)) {
+                    ERR("Boolean column %lld has value %d in row %lld\n",
+                        i, x, j);
+                    if (fix) {
+                        data[j] = NA_I1;
+                        fixed_errors++;
                     }
                 }
             }
+        }
 
-            if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-                #define CASE(T) {                                              \
-                    T *offsets = (T*)(col->data + offoff);                     \
-                    T lastoff = 1;                                             \
-                    for (int64_t j = 0; j < nrows; j++) {                      \
-                        T oj = offsets[j];                                     \
-                        if (oj < 0 ? (oj != -lastoff) : (oj < lastoff)) {      \
-                            ERR("Invalid offset in column %lld row %lld: "     \
-                                "offset = %lld, previous offset = %lld\n",     \
-                                i, j, (int64_t)oj, (int64_t)lastoff);          \
-                        } else                                                 \
-                        if (oj - 1 > offoff) {                                 \
-                            ERR("Invalid offset %lld in column %lld row %lld " \
-                                "going beyond the end of string data region "  \
-                                "(of size %lld)\n", oj, i, j, offoff);         \
-                            lastoff = oj + 1;                                  \
-                            break;                                             \
-                        } else                                                 \
-                        if (oj > 0 &&                                          \
-                            !is_valid_utf8(cdata + lastoff-1, cdata + oj-1)) { \
-                            ERR("Invalid utf8 string in column %lld row %lld:" \
-                                " '%s'\n", i, j, repr_utf8(cdata + lastoff,    \
-                                                           cdata + oj));       \
-                        }                                                      \
-                        lastoff = oj < 0 ? -oj : oj;                           \
-                    }                                                          \
-                    strdata_size = (int64_t) lastoff - 1;                      \
-                }
-                int64_t strdata_size = 0;
-                const unsigned char *cdata = (const unsigned char*) col->data;
-                if (stype == ST_STRING_I4_VCHAR)
-                    CASE(int32_t)
-                else
-                    CASE(int64_t)
-                #undef CASE
+        if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+            #define CASE(T) {                                              \
+                T *offsets = (T*) add_ptr(col->data, offoff);              \
+                T lastoff = 1;                                             \
+                if (offoff && offsets[-1] != -1) {                         \
+                    ERR("Number -1 was not found in front of the offsets " \
+                        "section\n");                                      \
+                }                                                          \
+                for (int64_t j = 0; j < nrows; j++) {                      \
+                    T oj = offsets[j];                                     \
+                    if (oj < 0 ? (oj != -lastoff) : (oj < lastoff)) {      \
+                        ERR("Invalid offset in column %lld row %lld: "     \
+                            "offset = %lld, previous offset = %lld\n",     \
+                            i, j, (int64_t)oj, (int64_t)lastoff);          \
+                    } else                                                 \
+                    if (oj - 1 > offoff) {                                 \
+                        ERR("Invalid offset %lld in column %lld row %lld " \
+                            "going beyond the end of string data region "  \
+                            "(of size %lld)\n", oj, i, j, offoff);         \
+                        lastoff = oj + 1;                                  \
+                        break;                                             \
+                    } else                                                 \
+                    if (oj > 0 &&                                          \
+                        !is_valid_utf8(cdata + lastoff, cdata + oj))     { \
+                        ERR("Invalid utf8 string in column %lld row %lld:" \
+                            " '%s'\n", i, j, repr_utf8(cdata + lastoff,    \
+                                                       cdata + oj));       \
+                    }                                                      \
+                    lastoff = oj < 0 ? -oj : oj;                           \
+                }                                                          \
+                strdata_size = (int64_t) lastoff - 1;                      \
+            }
+            int64_t strdata_size = 0;
+            const uint8_t *cdata = ((const uint8_t*) col->data) - 1;
+            if (stype == ST_STRING_I4_VCHAR)
+                CASE(int32_t)
+            else
+                CASE(int64_t)
+            #undef CASE
 
-                for (int64_t j = strdata_size; j < offoff; j++) {
-                    if (((unsigned char*) col->data)[j] != 0xFF) {
-                        ERR("String data section in column %lld is not padded "
-                            "with '\\xFF's", i);
-                        if (fix) {
-                            ((unsigned char*) col->data)[j] = 0xFF;
-                            fixed_errors++;
-                        } else {
-                            // Do not report this error more than once
-                            break;
-                        }
+            for (int64_t j = strdata_size; j < offoff; j++) {
+                if (((uint8_t*) col->data)[j] != 0xFF) {
+                    ERR("String data section in column %lld is not padded "
+                        "with '\\xFF's", i);
+                    if (fix) {
+                        ((unsigned char*) col->data)[j] = 0xFF;
+                        fixed_errors++;
+                    } else {
+                        // Do not report this error more than once
+                        break;
                     }
                 }
             }

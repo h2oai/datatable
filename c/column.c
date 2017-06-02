@@ -3,29 +3,36 @@
 #include "rowmapping.h"
 #include "py_utils.h"
 
+// Forward declarations
+static void column_dealloc(Column *col);
 
 
+
+/**
+ * Extract data from column `col` into a new Column object according to the
+ * provided `rowmapping`. The new column will have mtype `MT_DATA`. This method
+ * can also be used to clone a column.
+ */
 Column* column_extract(Column *col, RowMapping *rowmapping)
 {
     SType stype = col->stype;
     size_t metasize = stype_info[stype].metasize;
     size_t nrows, elemsize;
-    // Cannot extract from an MT_VIEW column
-    if (col->mtype == MT_VIEW) return NULL;
 
     // Create the new Column object. Note that `meta` is cloned from the
     // source, which may need adjustment for some cases.
     Column *res = NULL;
-    res = (Column*) TRY(malloc(sizeof(Column)));
+    dtmalloc(res, Column, 1);
     res->data = NULL;
+    res->alloc_size = 0;
     res->mtype = MT_DATA;
     res->stype = stype;
     res->meta = metasize? TRY(clone(col->meta, metasize)) : NULL;
-    res->alloc_size = 0;
+    res->refcount = 1;
 
     // If `rowmapping` is not provided, then it's a plain clone.
     if (rowmapping == NULL) {
-        res->data = (char*) TRY(clone(col->data, col->alloc_size));
+        res->data = TRY(clone(col->data, col->alloc_size));
         res->alloc_size = col->alloc_size;
         return res;
     }
@@ -49,7 +56,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 size_t offssize = nrows * elemsize;                            \
                 offoff = datasize + padding;                                   \
                 res->alloc_size = datasize + padding + offssize;               \
-                res->data = (char*) TRY(malloc(res->alloc_size));              \
+                res->data = TRY(malloc(res->alloc_size));                      \
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;          \
                 memcpy(res->data, col->data + (size_t)off0, datasize);         \
                 memset(res->data + datasize, 0xFF, padding);                   \
@@ -73,7 +80,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 assert(!stype_info[stype].varwidth);
                 size_t alloc_size = nrows * elemsize;
                 size_t offset = start * elemsize;
-                res->data = (char*) TRY(clone(col->data + offset, alloc_size));
+                res->data = TRY(clone(col->data + offset, alloc_size));
                 res->alloc_size = alloc_size;
             } break;
         }
@@ -162,7 +169,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
         default: {
             assert(!stype_info[stype].varwidth);
             size_t alloc_size = nrows * elemsize;
-            res->data = (char*) TRY(malloc(alloc_size));
+            res->data = TRY(malloc(alloc_size));
             res->alloc_size = alloc_size;
             char *dest = res->data;
             if (rowmapping->type == RM_SLICE) {
@@ -204,23 +211,49 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
 
 
 /**
- * Free all memory owned by the column, and then the column itself.
+ * Increase reference count on column `col`. This function should be called
+ * when a new long-term copy to the column is created (for example if the column
+ * is referenced from several data tables).
+ * Here `col` can also be NULL, in which case this function does nothing.
  */
-void column_dealloc(Column *col)
+void column_incref(Column *col)
 {
     if (col == NULL) return;
-    switch (col->mtype) {
-        case MT_DATA:
-            free(col->data);
-            free(col->meta);
-            break;
-        case MT_MMAP:
-            munmap(col->data, col->alloc_size);
-            free(col->meta);
-            break;
-        case MT_VIEW:
-            // nothing to do
-            break;
+    col->refcount++;
+}
+
+
+
+/**
+ * Decrease reference count on column `col`. Call this function when disposing
+ * of a previously held pointer to a column. If the internal reference counter
+ * reaches 0, the column's data will be garbage-collected.
+ * Here `col` can also be NULL, in which case this function does nothing.
+ */
+void column_decref(Column *col)
+{
+    if (col == NULL) return;
+    col->refcount--;
+    if (col->refcount <= 0) {
+        column_dealloc(col);
     }
-    free(col);
+}
+
+
+
+/**
+ * Free all memory owned by the column, and then the column itself. This
+ * function should not be accessed by the external code: use
+ * :func:`column_decref` instead.
+ */
+static void column_dealloc(Column *col)
+{
+    if (col->mtype == MT_DATA) {
+        dtfree(col->data);
+    }
+    if (col->mtype == MT_MMAP) {
+        munmap(col->data, col->alloc_size);
+    }
+    dtfree(col->meta);
+    dtfree(col);
 }

@@ -103,6 +103,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     }
 
     RowMapping *rindex = dt->rowmapping;
+    int no_rindex = (rindex == NULL);
     int rindex_is_arr32 = rindex && rindex->type == RM_ARR32;
     int rindex_is_arr64 = rindex && rindex->type == RM_ARR64;
     int rindex_is_slice = rindex && rindex->type == RM_SLICE;
@@ -116,12 +117,6 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     if (view == NULL) goto fail;
     for (int64_t i = col0; i < col1; ++i) {
         Column *col = dt->columns[i];
-        void *coldata = col->data;
-        int isdata = (col->mtype != MT_VIEW);
-        if (!isdata) {
-            col = dt->source->columns[((ViewColumn*)col)->srcindex];
-            coldata = col->data;
-        }
 
         PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
         if (py_coldata == NULL) goto fail;
@@ -129,7 +124,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 
         int n_init_rows = 0;
         for (int64_t j = row0; j < row1; ++j) {
-            int64_t irow = isdata? j :
+            int64_t irow = no_rindex? j :
                            rindex_is_arr32? rindexarr32[j] :
                            rindex_is_arr64? (int64_t) rindexarr64[j] :
                                             rindexstart + rindexstep * j;
@@ -172,11 +167,6 @@ static int _init_hexview(
     }
     Column *column = dt->columns[colidx];
 
-    if (column->mtype == MT_VIEW) {
-        PyErr_Format(PyExc_ValueError,
-            "Column %ld is a 'view' -- hexview is not available", colidx);
-        return -1;
-    }
     int64_t maxrows = ((int64_t) column->alloc_size + 15) >> 4;
     if (col0 < 0 || col1 < col0 || col1 > 17 ||
         row0 < 0 || row1 < row0 || row1 > maxrows) {
@@ -278,25 +268,8 @@ static int _check_consistency(
         return 0;
     }
 
-    // verify that the datatable is internally consistent
-    RowMapping *rindex = dt->rowmapping;
-    if (rindex == NULL && dt->source != NULL) {
-        PyErr_SetString(PyExc_RuntimeError,
-            "Invalid datatable: .source is present, but .rowmapping is null");
-        return 0;
-    }
-    if (rindex != NULL && dt->source == NULL) {
-        PyErr_SetString(PyExc_RuntimeError,
-            "Invalid datatable: .source is null, while .rowmapping is present");
-        return 0;
-    }
-    if (dt->source != NULL && dt->source->source != NULL) {
-        PyErr_SetString(PyExc_RuntimeError,
-            "Invalid view: must not have another view as a parent");
-        return 0;
-    }
-
     // verify that the row index (if present) is valid
+    RowMapping *rindex = dt->rowmapping;
     if (rindex != NULL) {
         if (rindex->length != dt->nrows) {
             PyErr_Format(PyExc_RuntimeError,
@@ -309,11 +282,9 @@ static int _check_consistency(
             case RM_ARR32: {
                 for (int64_t j = row0; j < row1; ++j) {
                     int32_t jsrc = rindex->ind32[j];
-                    if (jsrc < 0 || jsrc >= dt->source->nrows) {
+                    if (jsrc < 0) {
                         PyErr_Format(PyExc_RuntimeError,
-                            "Invalid view: row %ld of the view references non-"
-                            "existing row %ld in the source datatable",
-                            j, jsrc);
+                            "Invalid row %ld in the rowmapping", j);
                         return 0;
                     }
                 }
@@ -322,11 +293,9 @@ static int _check_consistency(
             case RM_ARR64: {
                 for (int64_t j = row0; j < row1; ++j) {
                     int64_t jsrc = rindex->ind64[j];
-                    if (jsrc < 0 || jsrc >= dt->source->nrows) {
+                    if (jsrc < 0) {
                         PyErr_Format(PyExc_RuntimeError,
-                            "Invalid view: row %ld of the view references non-"
-                            "existing row %ld in the source datatable",
-                            j, jsrc);
+                            "Invalid row %ld in the rowmapping", j);
                         return 0;
                     }
                 }
@@ -336,16 +305,14 @@ static int _check_consistency(
                 int64_t start = rindex->slice.start;
                 int64_t count = rindex->length;
                 int64_t finish = start + (count - 1) * rindex->slice.step;
-                if (start < 0 || start >= dt->source->nrows) {
+                if (start < 0) {
                     PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: first row references an invalid row "
-                        "%ld in the parent datatable", start);
+                        "Invalid view: first row is %ld", start);
                     return 0;
                 }
-                if (finish < 0 || finish >= dt->source->nrows) {
+                if (finish < 0) {
                     PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: last row references an invalid row "
-                        "%ld in the parent datatable", finish);
+                        "Invalid view: last row is %ld", finish);
                     return 0;
                 }
             }   break;
@@ -360,35 +327,11 @@ static int _check_consistency(
     // check each column within the window for correctness
     for (int64_t i = col0; i < col1; ++i) {
         Column *col = dt->columns[i];
-        Column **srccols = dt->source == NULL? NULL : dt->source->columns;
         if (col->stype < 1 || col->stype >= DT_STYPES_COUNT) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has unknown type %d",
                 i, col->stype);
             return 0;
-        }
-        if (col->mtype == MT_VIEW) {
-            ViewColumn *vcol = (ViewColumn*) col;
-            int64_t srcindex = vcol->srcindex;
-            if (dt->source == NULL) {
-                PyErr_Format(PyExc_RuntimeError,
-                    "Invalid datatable: column %ld is a view, while the "
-                    "datatable has no parent", i);
-                return 0;
-            }
-            if (srcindex >= dt->source->ncols || srcindex < 0) {
-                PyErr_Format(PyExc_RuntimeError,
-                    "Invalid view: column %ld references non-existing column "
-                    "%ld in the parent datatable", i, srcindex);
-                return 0;
-            }
-            if (vcol->stype != srccols[srcindex]->stype) {
-                PyErr_Format(PyExc_RuntimeError,
-                    "Invalid view: column %ld of type %d references column "
-                    "%ld of type %d",
-                    i, vcol->stype, srcindex, srccols[srcindex]->stype);
-                return 0;
-            }
         }
         if (col->meta == NULL && stype_info[col->stype].metasize > 0) {
             PyErr_Format(PyExc_RuntimeError,

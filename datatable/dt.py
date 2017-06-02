@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import time
+from types import GeneratorType
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
+import datatable
 from .widget import DataFrameWidget
 
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import TypeError, ValueError, typed
-from datatable.graph import DatatableNode, RowFilterNode, make_columnset, NodeSoup
+from datatable.utils.typechecks import TypeError, ValueError, typed, U
+from datatable.graph import (DatatableNode, RowFilterNode, make_columnset,
+                             NodeSoup)
 
 __all__ = ("DataTable", )
 
@@ -121,15 +124,12 @@ class DataTable(object):
         print("Column %d, Name: %r" % (colidx, self._names[colidx]))
         print("Ltype: %s, Stype: %s, Mtype: %s"
               % (col.ltype, col.stype, col.mtype))
-        if col.isview:
-            print("Column index in the source datatable: %d" % col.srcindex)
-            return
-        else:
-            datasize = col.data_size
-            print("Data size: %d" % datasize)
-            print("Meta: %s" % col.meta)
-            widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
-            widget.render()
+        datasize = col.data_size
+        print("Bytes: %d" % datasize)
+        print("Meta: %s" % col.meta)
+        print("Refcnt: %d" % col.refcount)
+        widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
+        widget.render()
 
 
     #---------------------------------------------------------------------------
@@ -340,7 +340,16 @@ class DataTable(object):
 
 
     def __getitem__(self, item):
-        """Simpler version than __call__, but allows slice literals."""
+        """
+        Simpler version than __call__, but allows slice literals.
+
+        Example:
+            dt[5]        # 6-th column
+            dt[5, :]     # 6-th row
+            dt[:10, -1]  # first 10 rows of the last column
+            dt[::-1]     # all rows of the datatable in reverse order
+        etc.
+        """
         if isinstance(item, tuple):
             if len(item) == 1:
                 return self(rows=..., select=item[0])
@@ -353,15 +362,214 @@ class DataTable(object):
             return self(rows=..., select=item)
 
 
-    @typed(name=str)
+    def __delitem__(self, item):
+        """
+        Delete columns / rows from the datatable.
+
+        Example:
+            del dt["colA"]
+            del dt[:, ("A", "B")]
+            del dt[::2]
+            del dt["col5":"col9"]
+            del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
+        """
+        if isinstance(item, (str, int, slice)):
+            pcol = datatable.graph.cols_node.process_column(item, self)
+            if isinstance(pcol, int):
+                return self._delete_columns([pcol])
+            if isinstance(pcol, tuple):
+                start, count, step = pcol
+                r = range(start, start + count * step, step)
+                return self._delete_columns(list(r))
+
+        elif isinstance(item, (GeneratorType, list, set)):
+            cols = []
+            for it in item:
+                pcol = datatable.graph.cols_node.process_column(it, self)
+                if isinstance(pcol, int):
+                    cols.append(pcol)
+                else:
+                    raise TypeError("Invalid column specifier %r" % it)
+            return self._delete_columns(cols)
+
+        raise TypeError("Cannot delete %r from the datatable" % item)
+
+
+    def _delete_columns(self, cols):
+        cols = sorted(list(set(cols)))
+        self._dt.delete_columns(cols)
+        assert self._ncols - len(cols) == self._dt.ncols
+        newnames = self.names[:cols[0]]
+        for i in range(1, len(cols)):
+            newnames += self.names[(cols[i - 1] + 1):cols[i]]
+        newnames += self.names[cols[-1] + 1:]
+        self._fill_from_dt(self._dt, names=newnames)
+
+
+
+    @typed(name=U(str, int))
     def colindex(self, name):
         """
         Return index of the column ``name``.
 
-        :param str name: name of the column to find the index for.
-        :raises ValueError: if such column does not exist.
+        :param name: name of the column to find the index for. This can also
+            be an index of a column, in which case the index is checked that
+            it doesn't go out-of-bounds, and negative index is converted into
+            positive.
+        :raises ValueError: if the requested column does not exist.
         """
-        if name in self._inames:
-            return self._inames[name]
+        if isinstance(name, str):
+            if name in self._inames:
+                return self._inames[name]
+            else:
+                raise ValueError("Column `%s` does not exist in %r"
+                                 % (name, self))
         else:
-            raise ValueError("Column %r does not exist in %r" % (name, self))
+            n = self._ncols
+            if 0 <= name < n:
+                return name
+            elif -n <= name < 0:
+                return name + n
+            else:
+                raise ValueError("Column index `%d` is invalid for a "
+                                 "datatable with %s"
+                                 % (name, plural(n, "column")))
+
+
+
+    def append(self, *dts, force=False, ignore_names=False):
+        """
+        Append datatables `dts` to the bottom of the current datatable.
+
+        :param dts: one or more datatable to append. These datatables should
+            have the same columnar structure as the current datatable (unless
+            option `force` is turned on).
+        :param bool force: if True, then the datatables are allowed to have
+            mismatching set of columns. In this case the gaps in the data will
+            be filled with NAs.
+        :param ignore_names: by default, the columns in datatables are matched
+            by their names. For example, if one datatable has columns ["colA",
+            "colB", "colC"] and the other ["colB", "colA", "colC"] then we will
+            swap the first two columns of the appended datatable before doing
+            the append. However if `ignore_names` is True, then the columns
+            will be matched according to their order, i.e. i-th column in the
+            current datatable to the i-th column in each appended datatable.
+        """
+        n = self.ncols
+        # List of tuples (DataTable, [int]), where the second element of the
+        # tuple is the array of column indices within the datatable being
+        # appended.
+        spec = []
+        final_ncols = n
+        final_names = self.names
+        if ignore_names:
+            # Append by column numbers
+            for dt in dts:
+                if isinstance(dt, DataTable):
+                    if dt.ncols != n and not force:
+                        raise ValueError("Cannot append datatable with %s to "
+                                         "a datatable with %s. If you want to "
+                                         "ignore this error and fill missing "
+                                         "columns with NAs, specify force=True"
+                                         % (plural(dt.ncols, "column"),
+                                            plural(n, "column")))
+                    spec.append((dt.internal, list(range(dt.ncols))))
+                    final_ncols = max(n, dt.ncols)
+                else:
+                    raise TypeError("Argument %r to .append() should be a "
+                                    "DataTable" % dt)
+        elif force:
+            # Append by column names, filling with NAs as necessary
+            if len(self._inames) == n:
+                inames = self._inames
+            else:
+                inames = dict()
+                for i, col in enumerate(self.names):
+                    if col in inames:
+                        if isinstance(inames[col], list):
+                            inames[col].append(i)
+                        else:
+                            inames[col] = [inames[col], i]
+                    else:
+                        inames[col] = i
+            final_names = list(self.names)
+            for dt in dts:
+                if isinstance(dt, DataTable):
+                    res = [None] * n
+                    used_inames = dict()
+                    for i, col in enumerate(dt.names):
+                        icol = inames.get(col)
+                        if icol is None:
+                            final_names.append(col)
+                            inames[col] = len(final_names) - 1
+                            used_inames[col] = 1
+                            res.append(i)
+                        elif isinstance(icol, int):
+                            if used_inames[col]:
+                                final_names.append(col)
+                                used_inames[col] += 1
+                                inames[col] = [icol, len(final_names) - 1]
+                                res.append(i)
+                            else:
+                                used_inames[col] = 1
+                                res[icol] = i
+                        else:
+                            u = used_inames[col] or 0
+                            if u >= len(icol):
+                                final_names.append(col)
+                                used_inames[col] += 1
+                                inames[col].append(len(final_names) - 1)
+                                res.append(i)
+                            else:
+                                used_inames[col] = u + 1
+                                res[icol[u]] = i
+                    spec.append((dt.internal, res))
+                else:
+                    raise TypeError("Argument %r to .append() should be a "
+                                    "DataTable" % dt)
+            final_ncols = len(final_names)
+        else:
+            # Append by column names, raise error if names do not match
+            for dt in dts:
+                if isinstance(dt, DataTable):
+                    if dt.ncols != n:
+                        raise ValueError("Cannot append datatable with %s to "
+                                         "a datatable with %s. If you want to "
+                                         "ignore this error and fill missing "
+                                         "columns with NAs, specify force=True"
+                                         % (plural(dt.ncols, "column"),
+                                            plural(n, "column")))
+                    res = []
+                    for i, col in enumerate(dt.names):
+                        idx = self._inames.get(col)
+                        if idx is None:
+                            raise ValueError("Column '%s' is not found in the "
+                                             "current datatable. If you want "
+                                             "to ignore this error and fill "
+                                             "missing columns with NAs, specify"
+                                             " force=True" % col)
+                        else:
+                            res.append(idx)
+                    spec.append((dt.internal, res))
+                else:
+                    raise TypeError("Argument %r to .append() should be a "
+                                    "DataTable" % dt)
+        self._dt.rbind(final_ncols, spec)
+        self._fill_from_dt(self._dt, names=final_names)
+        return self
+
+
+
+    @typed(columns={U(str, int): str})
+    def rename(self, columns):
+        """
+        Rename columns of the datatable.
+
+        :param columns: dictionary of the {old_name: new_name} entries.
+        :returns: None
+        """
+        names = list(self._names)
+        for oldname, newname in columns.items():
+            idx = self.colindex(oldname)
+            names[idx] = newname
+        self._fill_from_dt(self._dt, names=names)

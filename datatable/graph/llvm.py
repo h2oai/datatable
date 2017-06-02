@@ -11,20 +11,9 @@ __all__ = ("inject_c_code", )
 
 
 def inject_c_code(cc, func_names):
-    global _fix_llvm
     try:
         llvmir = _c_to_llvm(cc)
-        try:
-            llvm = _fix_clang_llvm(llvmir)
-            _compile_llvmir(_engine, llvm)
-        except RuntimeError as e:
-            print(str(e))
-            if not _fix_llvm and "expected comma after load's type" in str(e):
-                _fix_llvm = True
-                llvm = _fix_clang_llvm(llvmir)
-                _compile_llvmir(_engine, llvm)
-            else:
-                raise e
+        _compile_llvmir(_engine, llvmir)
     except RuntimeError as e:
         mm = re.search(r"<stdin>:(\d+):(\d+):\s*(.*)", e.args[0])
         if mm:
@@ -84,13 +73,6 @@ def _c_to_llvm(code):
     return out.decode()
 
 
-def _fix_clang_llvm(llvm):
-    if _fix_llvm:
-        return re.sub(r"(load|getelementptr inbounds) (\%?[\w.]+\**)\*",
-                      r"\1 \2, \2*", llvm)
-    else:
-        return llvm
-
 
 def _compile_llvmir(engine, code):
     m = binding.parse_assembly(code)
@@ -101,4 +83,3 @@ def _compile_llvmir(engine, code):
 
 
 _engine = _create_execution_engine()
-_fix_llvm = False

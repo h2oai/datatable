@@ -30,7 +30,6 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
 
     // Create a new (empty) DataTable instance
     dtmalloc(dt, DataTable, 1);
-    dt->source = NULL;
     dt->rowmapping = NULL;
     dt->columns = NULL;
     dt->nrows = 0;
@@ -41,7 +40,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
     if (listsize == 0) {
         dtmalloc(dt->columns, Column*, 1);
         dt->columns[0] = NULL;
-        return pydt_from_dt(dt, NULL);
+        return pydt_from_dt(dt);
     }
 
     // Basic check validity of the provided data.
@@ -71,7 +70,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
         dt->columns[i] = TRY(column_from_list(src));
     }
 
-    return pydt_from_dt(dt, NULL);
+    return pydt_from_dt(dt);
 
   fail:
     datatable_dealloc(dt);
@@ -101,7 +100,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
     size_t nextptr = strbuffer_ptr + (size_t) (len);                           \
     if (nextptr > strbuffer_size) {                                            \
         strbuffer_size = nextptr + (nrows - i - 1) * (nextptr / (i + 1));      \
-        strbuffer = REALLOC(strbuffer, strbuffer_size);                        \
+        dtrealloc(strbuffer, char, strbuffer_size);                            \
     }                                                                          \
     if ((len) > 0) {                                                           \
         memcpy(strbuffer + strbuffer_ptr, buf, (size_t) (len));                \
@@ -133,6 +132,7 @@ Column* column_from_list(PyObject *list)
     column->data = NULL;
     column->mtype = MT_DATA;
     column->alloc_size = 0;
+    column->refcount = 1;
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
@@ -149,15 +149,14 @@ Column* column_from_list(PyObject *list)
     while (stype < DT_STYPES_COUNT) {
         start_over: {}
         size_t alloc_size = stype_info[stype].elemsize * (size_t)nrows;
-        data = REALLOC(data, alloc_size);
+        dtrealloc_v(data, alloc_size);
         column->alloc_size = alloc_size;
         if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);
             strbuffer_ptr = 0;
-            strbuffer = MALLOC(strbuffer_size);
+            dtmalloc(strbuffer, char, strbuffer_size);
         } else if (strbuffer) {
-            free(strbuffer);
-            strbuffer = NULL;
+            dtfree(strbuffer);
             strbuffer_size = 0;
         }
 
@@ -168,9 +167,9 @@ Column* column_from_list(PyObject *list)
             //---- store None value ----
             if (item == Py_None) {
                 switch (stype) {
-                    case ST_VOID:         /* do nothing */ break;
-                    case ST_BOOLEAN_I1:   SET_I1B(NA_I1);  break;
-                    case ST_INTEGER_I1:   SET_I1I(NA_I1);  break;
+                    case ST_VOID:        /* do nothing */ break;
+                    case ST_BOOLEAN_I1:  SET_I1B(NA_I1);  break;
+                    case ST_INTEGER_I1:  SET_I1I(NA_I1);  break;
                     case ST_INTEGER_I2:  SET_I2I(NA_I2); break;
                     case ST_INTEGER_I4:  SET_I4I(NA_I4); break;
                     case ST_INTEGER_I8:  SET_I8I(NA_I8); break;
@@ -186,8 +185,8 @@ Column* column_from_list(PyObject *list)
             if (item == Py_True || item == Py_False) {
                 int8_t val = (item == Py_True);
                 switch (stype) {
-                    case ST_BOOLEAN_I1:   SET_I1B(val);  break;
-                    case ST_INTEGER_I1:   SET_I1I(val);  break;
+                    case ST_BOOLEAN_I1:  SET_I1B(val);  break;
+                    case ST_INTEGER_I1:  SET_I1I(val);  break;
                     case ST_INTEGER_I2:  SET_I2I((int16_t)val);  break;
                     case ST_INTEGER_I4:  SET_I4I((int32_t)val);  break;
                     case ST_INTEGER_I8:  SET_I8I((int64_t)val);  break;
@@ -225,7 +224,7 @@ Column* column_from_list(PyObject *list)
                         else {
                             // stype is ST_VOID, or current stype is too small
                             // to hold the value `v`.
-                            TYPE_SWITCH(aval <= 1? ST_BOOLEAN_I1 :
+                            TYPE_SWITCH(v == 0 || v == 1? ST_BOOLEAN_I1 :
                                         aval <= 127? ST_INTEGER_I1 :
                                         aval <= 32767? ST_INTEGER_I2 :
                                         aval <= INT32_MAX? ST_INTEGER_I4 :
@@ -258,7 +257,7 @@ Column* column_from_list(PyObject *list)
                 // The following call retrieves the underlying primitive:
                 double val = PyFloat_AS_DOUBLE(item);
                 switch (stype) {
-                    case ST_REAL_F8:      SET_F8R(val);  break;
+                    case ST_REAL_F8:       SET_F8R(val);  break;
                     case ST_OBJECT_PYPTR:  SET_P8P(incref(item));  break;
 
                     case ST_VOID:
@@ -307,7 +306,7 @@ Column* column_from_list(PyObject *list)
             if (itemtype == &PyUnicode_Type) {
                 switch (stype) {
                     case ST_OBJECT_PYPTR:     SET_P8P(incref(item));  break;
-                    case ST_STRING_I4_VCHAR: WRITE_STR(item);  break;
+                    case ST_STRING_I4_VCHAR:  WRITE_STR(item);  break;
                     default:                  TYPE_SWITCH(ST_STRING_I4_VCHAR);
                 }
             } else
@@ -326,15 +325,17 @@ Column* column_from_list(PyObject *list)
             TYPE_SWITCH(ST_BOOLEAN_I1);
 
         if (stype == ST_STRING_I4_VCHAR) {
-            size_t offoff = (strbuffer_ptr + (1 << 3) - 1) >> 3 << 3;
-            size_t final_size = offoff + 4 * (size_t)nrows;
-            strbuffer = REALLOC(strbuffer, final_size);
-            memset(strbuffer + strbuffer_ptr, 0xFF, offoff - strbuffer_ptr);
-            memcpy(strbuffer + offoff, data, 4 * (size_t)nrows);
+            size_t esz = sizeof(int32_t);
+            size_t padding_size = ((8 - (strbuffer_ptr & 7)) & 7) + esz;
+            size_t offoff = strbuffer_ptr + padding_size;
+            size_t final_size = offoff + esz * (size_t)nrows;
+            dtrealloc(strbuffer, char, final_size);
+            memset(strbuffer + strbuffer_ptr, 0xFF, padding_size);
+            memcpy(strbuffer + offoff, data, esz * (size_t)nrows);
             data = strbuffer;
             column->alloc_size = final_size;
-            column->meta = MALLOC(sizeof(VarcharMeta));
-            ((VarcharMeta*)(column->meta))->offoff = (int64_t) offoff;
+            dtmalloc(column->meta, VarcharMeta, 1);
+            ((VarcharMeta*) column->meta)->offoff = (int64_t) offoff;
         }
 
         column->data = data;
@@ -343,6 +344,6 @@ Column* column_from_list(PyObject *list)
     }
 
   fail:
-    column_dealloc(column);
+    column_decref(column);
     return NULL;
 }

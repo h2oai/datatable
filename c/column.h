@@ -9,17 +9,6 @@ typedef struct DataTable DataTable;
 typedef struct RowMapping RowMapping;
 
 
-
-//==============================================================================
-
-typedef enum MType {
-    MT_DATA  = 1,
-    MT_MMAP  = 2,
-    MT_VIEW  = 3,
-} __attribute__ ((__packed__)) MType;
-
-
-
 //==============================================================================
 
 /**
@@ -56,66 +45,20 @@ typedef enum MType {
  */
 typedef struct Column {
     void   *data;        // 8
-    MType   mtype;       // 1
-    SType   stype;       // 1
     void   *meta;        // 8
     size_t  alloc_size;  // 8
-} Column;
-
-
-
-/**
- * A "view" column may only exist in a view datatable, and it replaces the
- * :struct:`Column` structure in the `columns` array. The `mtype` field
- * which is available on both :struct:`Column` and :struct:`ViewColumn` allows
- * us to distinguish between these 2 cases.
- *
- * The `srcindex` attribute gives the index of the column in the `source`
- * datatable to which the current column defers. The values from the "source"
- * column must be extracted according to the current datatable's `rowmapping`.
- *
- * srcindex
- *     The index of the column in the `source` datatable that the current
- *     column references.
- *
- * mtype
- *     Always MT_VIEW.
- *
- * stype
- *     Storage type of the referenced column.
- *
- */
-typedef struct ViewColumn {
-    int64_t srcindex;    // 8
+    int     refcount;    // 4
     MType   mtype;       // 1
     SType   stype;       // 1
-} ViewColumn;
+} Column;
 
 
 
 //==============================================================================
 
-static_assert(sizeof(MType) == 1, "MType should be 1 byte in size");
-static_assert(sizeof(SType) == 1, "SType should be 1 byte in size");
-static_assert(offsetof(Column, mtype) == offsetof(ViewColumn, mtype),
-              "mtype fields should be co-located to allow type punning");
-static_assert(offsetof(Column, stype) == offsetof(ViewColumn, stype),
-              "stype fields should be co-located to allow type punning");
-
-
-/**
- * Extract data from Column `col` into a new Column object according to the
- * provided `rowmapping`. The new column will have mtype `MT_DATA`. This method
- * can be used to clone a column, or to convert a ViewColumn into a regular
- * Column.
- */
 Column* column_extract(Column *col, RowMapping *rowmapping);
-
-/**
- * Free all memory owned by the column, and then the column itself.
- */
-void column_dealloc(Column *col);
-
+void column_incref(Column *col);
+void column_decref(Column *col);
 
 
 #endif

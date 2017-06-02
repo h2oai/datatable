@@ -26,6 +26,10 @@ def assert_valueerror(datatable, rows, error_message):
     assert str(e.type) == "<class 'dt.ValueError'>"
     assert error_message in str(e.value)
 
+def as_list(datatable):
+    nrows, ncols = datatable.shape
+    return datatable.internal.window(0, nrows, 0, ncols).data
+
 
 
 #-------------------------------------------------------------------------------
@@ -71,11 +75,20 @@ def test_dt_view(dt0, monkeypatch, capsys):
 
 
 def test_dt_colindex(dt0):
+    assert dt0.colindex(0) == 0
+    assert dt0.colindex(1) == 1
+    assert dt0.colindex(-1) == 6
     for i, ch in enumerate("ABCDEFG"):
         assert dt0.colindex(ch) == i
     with pytest.raises(ValueError) as e:
         dt0.colindex("a")
-    assert "Column 'a' does not exist" in str(e.value)
+    assert "Column `a` does not exist" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0.colindex(7)
+    assert "Column index `7` is invalid for a datatable with" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        dt0.colindex(-8)
+    assert "Column index `-8` is invalid for a datatable with" in str(e.value)
 
 
 def test_dt_getitem(dt0):
@@ -93,6 +106,63 @@ def test_dt_getitem(dt0):
     assert "Selector (0, 1, 2, 3) is not supported" in str(e.value)
 
 
+
+def test_dt_delitem():
+    """
+    Test deleting columns from a datatable.
+    Note: don't use dt0 here, because this test will modify it, potentially
+    invalidating other tests.
+    """
+    def smalldt():
+        return dt.DataTable([[i] for i in range(16)],
+                            colnames="ABCDEFGHIJKLMNOP")
+
+    d0 = smalldt()
+    del d0["A"]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 15)
+    assert d0.names == tuple("BCDEFGHIJKLMNOP")
+    d0 = smalldt()
+    del d0["B"]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 15)
+    assert d0.names == tuple("ACDEFGHIJKLMNOP")
+    d0 = smalldt()
+    del d0[-1]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 15)
+    assert d0.names == tuple("ABCDEFGHIJKLMNO")
+    del d0["E":"J"]
+    assert d0.internal.verify_integrity() is None
+    assert d0.shape == (1, 9)
+    assert d0.names == tuple("ABCDKLMNO")
+    assert as_list(d0) == [[0], [1], [2], [3], [10], [11], [12], [13], [14]]
+    del d0[::2]
+    assert d0.names == tuple("BDLN")
+    assert as_list(d0) == [[1], [3], [11], [13]]
+    del d0[0]
+    assert d0.names == tuple("DLN")
+    assert as_list(d0) == [[3], [11], [13]]
+    del d0[:]
+    assert d0.names == tuple()
+    assert d0.shape == (1, 0)
+    d0 = smalldt()
+    del d0[[0, 3, 0, 5, 0, 9]]
+    assert d0.internal.verify_integrity() is None
+    assert d0.names == tuple("BCEGHIKLMNOP")
+    assert d0.shape == (1, 12)
+    with pytest.raises(TypeError) as e:
+        del d0[0.5]
+    assert "Cannot delete 0.5 from the datatable" in str(e.value)
+    with pytest.raises(TypeError):
+        del d0[d0]
+    with pytest.raises(TypeError):
+        del d0[[1, 2, 1, 0.7]]
+    with pytest.raises(TypeError):
+        del d0[[slice(10), 2, 0]]
+
+
+
 def test__hex(dt0, monkeypatch, capsys):
     def send1(refresh_rate=1):
         yield None
@@ -104,12 +174,14 @@ def test__hex(dt0, monkeypatch, capsys):
     print(out)
     assert ("Column 6, Name: 'G'\n"
             "Ltype: str, Stype: i4s, Mtype: data\n"
-            "Data size: 32\n"
-            "Meta: offoff=16\n"
+            "Bytes: 36\n"
+            "Meta: offoff=20\n"
+            "Refcnt: 1\n"
             "    00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F                  \n"
             "--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ----------------\n"
             " 0  31  32  68  65  6C  6C  6F  77  6F  72  6C  64  FF  FF  FF  FF  12helloworldÿÿÿÿ\n"
-            " 1  02  00  00  00  03  00  00  00  08  00  00  00  0D  00  00  00  ................\n"
+            " 1  FF  FF  FF  FF  02  00  00  00  03  00  00  00  08  00  00  00  ÿÿÿÿ............\n"
+            " 2  0D  00  00  00                                                  ....            \n"
             in out)
 
     with pytest.raises(ValueError) as e:
@@ -118,42 +190,22 @@ def test__hex(dt0, monkeypatch, capsys):
 
     dt0[::2]._hex(1)
     out, err = capsys.readouterr()
+    print(out)
     assert ("Column 1, Name: 'C'\n"
-            "Ltype: bool, Stype: i1b, Mtype: view\n"
-            "Column index in the source datatable: 2\n"
+            "Ltype: bool, Stype: i1b, Mtype: data\n"
+            "Bytes: 4\n"
+            "Meta: None\n"
+            "Refcnt: 2\n"
             in out)
 
 
-def test_constructor():
-    d0 = dt.DataTable([1, 2, 3])
-    assert d0.shape == (3, 1)
-    assert d0.names == ("C1", )
-    assert d0.types == ("int", )
-    d1 = dt.DataTable([[1, 2], [True, False], [.3, -0]], colnames="ABC")
-    assert d1.shape == (2, 3)
-    assert d1.names == ("A", "B", "C")
-    assert d1.types == ("int", "bool", "real")
-    d2 = dt.DataTable((3, 5, 6, 0))
-    assert d2.shape == (4, 1)
-    assert d2.types == ("int", )
-    d3 = dt.DataTable({1, 13, 15, -16, -10, 7, 9, 1})
-    assert d3.shape == (7, 1)
-    assert d3.types == ("int", )
-    d4 = dt.DataTable()
-    assert d4.shape == (0, 0)
-    assert d4.names == tuple()
-    assert d4.types == tuple()
-    assert d4.stypes == tuple()
-    d5 = dt.DataTable([])
-    assert d5.shape == (0, 0)
-    assert d5.names == tuple()
-    assert d5.types == tuple()
-    assert d5.stypes == tuple()
-    d6 = dt.DataTable([[]])
-    assert d6.shape == (0, 1)
-    assert d6.names == ("C1", )
-    assert d6.types == ("bool", )
-
-    with pytest.raises(TypeError) as e:
-        dt.DataTable("scratch")
-    assert "Cannot create DataTable from 'scratch'" in str(e.value)
+def test_rename():
+    d0 = dt.DataTable([[1], [2], ["hello"]])
+    assert d0.names == ("C1", "C2", "C3")
+    d0.rename({0: "x", "C2": "y", -1: "z"})
+    assert d0.names == ("x", "y", "z")
+    with pytest.raises(TypeError):
+        d0.rename(["a", "b"])
+    with pytest.raises(ValueError) as e:
+        d0.rename({"xxx": "yyy"})
+    assert "Column `xxx` does not exist" in str(e.value)

@@ -39,20 +39,14 @@ def as_list(datatable):
     return datatable.internal.window(0, nrows, 0, ncols).data
 
 def is_slice(dt, cols=range(3)):
-    return (dt.internal.isview and
-            dt.internal.rowmapping_type == "slice" and
-            dt.internal.view_colnumbers == tuple(cols))
+    return dt.internal.isview and dt.internal.rowmapping_type == "slice"
 
 def is_arr(dt, cols=range(3)):
-    return (dt.internal.isview and
-            dt.internal.rowmapping_type == "arr32" and
-            dt.internal.view_colnumbers == tuple(cols))
+    return dt.internal.isview and dt.internal.rowmapping_type == "arr32"
 
 def is_slice_or_arr(dt, nrows, cols=range(3)):
     rtype = "slice" if nrows > 0 else "arr32"
-    return (dt.internal.isview and
-            dt.internal.rowmapping_type == rtype and
-            dt.internal.view_colnumbers == tuple(cols))
+    return dt.internal.isview and dt.internal.rowmapping_type == rtype
 
 
 #-------------------------------------------------------------------------------
@@ -71,7 +65,6 @@ def test_dt0_properties(dt0):
     assert str(dt0.internal.__class__) == "<class '_datatable.DataTable'>"
     assert dt0.internal.isview is False
     assert dt0.internal.rowmapping_type is None
-    assert dt0.internal.view_colnumbers is None
     assert dt0.internal.verify_integrity() is None
 
 
@@ -232,7 +225,6 @@ def test_rows_column(dt0):
     assert_valueerror(dt0, dt.DataTable(list(i % 2 for i in range(20))),
                       "`rows` datatable has 20 rows, but applied to a "
                       "datatable with 10 rows")
-
 
 
 def test_rows_function(dt0):
