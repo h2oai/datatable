@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include "column.h"
 #include "rowmapping.h"
+#include "sort.h"
 #include "py_utils.h"
 
 // Forward declarations
@@ -206,6 +207,18 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
     free(res->data);
     free(res);
     return NULL;
+}
+
+
+
+RowMapping* column_sort(Column *col, int64_t nrows)
+{
+    if (col->stype == ST_INTEGER_I4) {
+        int32_t *ordering = NULL;
+        sort_i4(col->data, (int32_t)nrows, &ordering);
+        return rowmapping_from_i32_array(ordering, (int32_t)nrows);
+    }
+    return rowmapping_from_slice(0, nrows, 1);
 }
 
 

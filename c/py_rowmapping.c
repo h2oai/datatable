@@ -15,13 +15,14 @@
  * object `src`. The returned object will assume ownership of `src`. If `src`
  * is NULL then this function also returns NULL.
  */
-static PyObject* py(RowMapping *src)
+PyObject* pyrowmapping(RowMapping *src)
 {
     if (src == NULL) return NULL;
     PyObject *res = PyObject_CallObject((PyObject*) &RowMapping_PyType, NULL);
     ((RowMapping_PyObject*) res)->ref = src;
     return res;
 }
+#define py pyrowmapping
 
 
 /**

@@ -177,8 +177,9 @@ class DataTable(object):
     # Main processor function
     #---------------------------------------------------------------------------
 
-    def __call__(self, rows=None, select=None, verbose=False, timeit=False
-                 #update=None, groupby=None, join=None, sort=None, limit=None
+    def __call__(self, rows=None, select=None, verbose=False, timeit=False,
+                 sort=None
+                 #update=None, groupby=None, join=None, limit=None
                  ):
         """
         Perform computation on a datatable, and return the result.
@@ -246,6 +247,18 @@ class DataTable(object):
                   datatable -- and returns any of the selectors above. Within
                   the function any operations on the frame will be lazy.
 
+        :param sort:
+            When specified, the datatable will be sorted. If used with
+            ``select``, it will sort the resulting datatable. If there is no
+            ``select`` or ``update``, it will sort the current datatable
+            in-place. Cannot be used together with ``update``.
+
+            Possible values are same as for the ``groupby`` parameter. The
+            ``sort`` argument may refer to the names of the columns being
+            produced by the select/update clauses. Additionally, every column
+            specified may be wrapped in a ``dt.reverse()`` call, reversing the
+            sorting direction for that column.
+
         :param verbose:
             Lots of output, for debug purposes mainly.
         """
@@ -309,18 +322,6 @@ class DataTable(object):
             current datatable, and the ``join`` datatable. The join condition
             should be expressed in the ``rows`` parameter.
 
-        :param sort:
-            When specified, the datatable will be sorted. If used with
-            ``select``, it will sort the resulting datatable. If there is no
-            ``select`` or ``update``, it will sort the current datatable
-            in-place. Cannot be used together with ``update``.
-
-            Possible values are same as for the ``groupby`` parameter. The
-            ``sort`` argument may refer to the names of the columns being
-            produced by the select/update clauses. Additionally, every column
-            specified may be wrapped in a ``dt.reverse()`` call, reversing the
-            sorting direction for that column.
-
         :param limit:
             If an integer, then no more than that many rows will be returned by
             the ``select`` clause. This can also be a slice, which effectively
@@ -328,6 +329,13 @@ class DataTable(object):
         """
         if timeit:
             time0 = time.time()
+        if sort is not None:
+            idx = self.colindex(sort)
+            rowmapping = self._dt.sort(idx)
+            columns = c.columns_from_slice(self._dt, 0, self.ncols, 1)
+            res_dt = c.datatable_assemble(rowmapping, columns)
+            return datatable.DataTable(res_dt, colnames=self.names)
+
         soup = NodeSoup(verbose=verbose)
         soup.add("rows", RowFilterNode(rows, dt=self))
         soup.add("select", make_columnset(select, dt=self))

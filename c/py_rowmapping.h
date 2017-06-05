@@ -22,6 +22,7 @@ extern PyTypeObject RowMapping_PyType;
 
 
 
+PyObject* pyrowmapping(RowMapping *src);
 int rowmapping_unwrap(PyObject *object, void *address);
 PyObject* pyrowmapping_from_slice(PyObject*, PyObject *args);
 PyObject* pyrowmapping_from_slicelist(PyObject*, PyObject *args);

@@ -74,6 +74,16 @@ float max_f4(float a, float b);
 
 
 /**
+ * Replacement for `calloc`.
+ */
+#define dtcalloc(ptr, T, n) do {                                               \
+    ptr = (T*) _dt_calloc((size_t)(n), sizeof(T));                             \
+    if (ptr == _NULL) return _NULL;                                            \
+} while(0)
+
+
+
+/**
  * Macro to free the memory previously allocated with `dtmalloc` / `dtrealloc`.
  * This frees the memory and sets the pointer to NULL, for safety.
  **/
@@ -94,6 +104,7 @@ float max_f4(float a, float b);
 
 //---- Private -------------------------
 // The _dt_xxx functions are external and should be defined in py_utils.c
+void* _dt_calloc(size_t n, size_t size);
 void* _dt_malloc(size_t n);
 void* _dt_realloc(void *ptr, size_t n);
 void  _dt_free(void *ptr);
@@ -102,6 +113,13 @@ void  _dt_free(void *ptr);
 #else
     #define _NULL NULL
 #endif
+
+
+//==============================================================================
+// Binary arithmetics
+//==============================================================================
+
+unsigned int nlz(uint32_t x);  // Number of leading zeros
 
 
 
@@ -113,6 +131,7 @@ void  _dt_free(void *ptr);
  * Mark a function parameter as deliberately unused.
  **/
 #define UNUSED(x)  __attribute__((unused)) x
+
 
 
 #endif
