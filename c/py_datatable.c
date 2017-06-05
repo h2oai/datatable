@@ -287,6 +287,23 @@ static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
 }
 
 
+static PyObject* sort(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    int idx;
+    if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
+
+    Column *col = dt->columns[idx];
+    if (col->stype != ST_INTEGER_I4) {
+        PyErr_SetString(PyExc_ValueError, "Can only sort i4i columns");
+        return NULL;
+    }
+
+    RowMapping *rm = column_sort(col, dt->nrows);
+    return pyrowmapping(rm);
+}
+
+
 
 /**
  * Deallocator function, called when the object is being garbage-collected.
@@ -316,6 +333,7 @@ PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
 PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
 PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
+PyDoc_STRVAR(dtdoc_sort, "Sort datatable according to a column");
 
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
@@ -325,6 +343,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(column),
     METHOD1(delete_columns),
     METHOD1(rbind),
+    METHOD1(sort),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

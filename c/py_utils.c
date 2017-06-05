@@ -71,6 +71,17 @@ void* _dt_realloc(void *ptr, size_t n)
 }
 
 
+void* _dt_calloc(size_t n, size_t size)
+{
+    void *res = calloc(n, size);
+    if (res == NULL) {
+        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes",
+                     n * size);
+    }
+    return res;
+}
+
+
 void _dt_free(void *ptr)
 {
     free(ptr);

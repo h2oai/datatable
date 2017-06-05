@@ -1,5 +1,6 @@
 #ifndef dt_ROWMAPPING_H
 #define dt_ROWMAPPING_H
+#include "column.h"
 #include "datatable.h"
 
 

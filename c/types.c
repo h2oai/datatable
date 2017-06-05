@@ -28,6 +28,11 @@ static_assert(sizeof(LType) == 1, "LType does not fit in a byte");
 static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
 static_assert(sizeof(MType) == 1, "MType should be 1 byte in size");
 
+static_assert((unsigned)(-1) - (unsigned)(-3) == 2,
+              "Unsigned arithmetics check");
+static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
+static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
+
 
 //==============================================================================
 // NA handling
