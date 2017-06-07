@@ -158,14 +158,14 @@ _Bool userOverride(
  * Allocate memory for the datatable being read
  */
 size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
-                  int64_t nrows) {
+                  size_t nrows) {
     types = types_;
     sizes = sizes_;
     ncols = (int64_t) ncols_;
 
     if (nrows > INTPTR_MAX) {
         PyErr_Format(PyExc_ValueError,
-            "Unable to create DataTable with %llu rows: current platform "
+            "Unable to create DataTable with %zu rows: current platform "
             "supports at most %zd rows", nrows, INTPTR_MAX);
         return 0;
     }
@@ -180,7 +180,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
         int8_t type = types[i];
         if (type == CT_DROP)
             continue;
-        size_t alloc_size = colTypeSizes[type] * (size_t)nrows;
+        size_t alloc_size = colTypeSizes[type] * nrows;
         columns[j] = malloc(sizeof(Column));
         columns[j]->data = malloc(alloc_size);
         columns[j]->mtype = MT_DATA;
@@ -190,11 +190,11 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
         if (type == CT_STRING) {
             strbufs[j] = malloc(sizeof(StrBuf));
             if (strbufs[j] == NULL) return 0;
-            strbufs[j]->buf = malloc((size_t)nrows * 10);
+            strbufs[j]->buf = malloc(nrows * 10);
             if (strbufs[j]->buf == NULL) return 0;
             strbufs[j]->ptr = 0;
-            strbufs[j]->size = (size_t)nrows * 10;
-            total_alloc_size += sizeof(StrBuf) + (size_t)nrows * 10;
+            strbufs[j]->size = nrows * 10;
+            total_alloc_size += sizeof(StrBuf) + nrows * 10;
         }
         j++;
         total_alloc_size += alloc_size + sizeof(Column);
@@ -210,7 +210,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
 }
 
 
-void setFinalNrow(int64_t nrows) {
+void setFinalNrow(size_t nrows) {
     for (int i = 0, j = 0; i < ncols; i++) {
         int type = types[i];
         if (type == CT_DROP)
@@ -224,7 +224,7 @@ void setFinalNrow(int64_t nrows) {
             size_t curr_size = strbufs[j]->ptr;
             size_t padding = (8 - (curr_size & 7)) & 7;
             size_t offoff = curr_size + padding;
-            size_t offs_size = 4 * (size_t)nrows;
+            size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;
             final_ptr = realloc(final_ptr, final_size);
             memset(final_ptr + curr_size, 0xFF, padding);
@@ -236,14 +236,14 @@ void setFinalNrow(int64_t nrows) {
             col->alloc_size = final_size;
             ((VarcharMeta*)(col->meta))->offoff = (int64_t) offoff;
         } else if (type > 0) {
-            size_t new_size = stype_info[colType_to_stype[type]].elemsize * (size_t)nrows;
+            size_t new_size = stype_info[colType_to_stype[type]].elemsize * nrows;
             col->data = realloc(col->data, new_size);
             col->stype = colType_to_stype[type];
             col->alloc_size = new_size;
         }
         j++;
     }
-    dt->nrows = nrows;
+    dt->nrows = (int64_t) nrows;
 }
 
 
@@ -262,13 +262,17 @@ void reallocColType(int colidx, colType newType) {
 }
 
 
-void pushBuffer(const void *buff, const char *anchor, int nrows,
-                int64_t row0, int rowSize,
+void pushBuffer(const void *buff8, const void *buff4, const void *buff1,
+                const char *anchor, int nrows, size_t row0,
+                int rowSize8, int rowSize4, int rowSize1,
                 UNUSED(int nStringCols), UNUSED(int nNonStringCols))
 {
     int i = 0;  // index within the `types` and `sizes`
     int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
-    int ptr = 0;  // offset within the buffer of the current column
+    int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
+    int rowCount8 = rowSize8 / 8;
+    int rowCount4 = rowSize4 / 4;
+    int rowCount1 = rowSize1 / 1;
     for (; i < ncols; i++) {
         if (types[i] == CT_DROP)
             continue;
@@ -276,27 +280,26 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
 
         if (types[i] == CT_STRING) {
             assert(strbufs[j] != NULL);
-            const void* srcptr = buff + ptr;
+            const lenOff *lenoffs = (const lenOff*)buff8 + off8;
             size_t slen = 0;  // total length of all strings to be written
             for (int n = 0; n < nrows; n++) {
-                // Warning: potentially misaligned pointer access here
-                int len = ((const lenOff*)srcptr)->len;
+                int len = lenoffs->len;
                 slen += (len < 0)? 0 : (size_t)len;
-                srcptr += rowSize;
+                lenoffs += rowCount8;
             }
             size_t off = strbufs[j]->ptr;
             size_t size = strbufs[j]->size;
             if (size < slen + off) {
-                float g = ((float)dt->nrows) / (row0 + nrows);
+                float g = ((float)dt->nrows) / (row0 + (size_t)nrows);
                 size_t newsize = (size_t)((slen + off) * max_f4(1.05f, g));
                 strbufs[j]->buf = realloc(strbufs[j]->buf, (size_t)newsize);
                 strbufs[j]->size = newsize;
             }
-            srcptr = buff + ptr;
-            int32_t *destptr = ((int32_t*)col->data) + row0;
+            lenoffs = (const lenOff*)buff8 + off8;
+            int32_t *destptr = ((int32_t*) col->data) + row0;
             for (int n = 0; n < nrows; n++) {
-                int32_t  len  = ((const lenOff*)srcptr)->len;
-                uint32_t aoff = ((const lenOff*)srcptr)->off;
+                int32_t  len  = lenoffs->len;
+                uint32_t aoff = lenoffs->off;
                 if (len < 0) {
                     assert(len == NA_LENOFF);
                     *destptr = (int32_t)(-off - 1);
@@ -308,22 +311,44 @@ void pushBuffer(const void *buff, const char *anchor, int nrows,
                     // TODO: handle the case when `off` is too large for int32
                     *destptr = (int32_t)(off + 1);
                 }
-                srcptr += rowSize;
+                lenoffs += rowCount8;
                 destptr++;
             }
             strbufs[j]->ptr = off;
 
         } else if (types[i] > 0) {
             size_t elemsize = (size_t) sizes[i];
-            void *destptr = col->data + (size_t)row0 * elemsize;
-            const void *srcptr = buff + ptr;
-            for (int r = 0; r < nrows; r++) {
-                memcpy(destptr, srcptr, elemsize);
-                srcptr += rowSize;
-                destptr += elemsize;
+            if (elemsize == 8) {
+                const uint64_t *src = ((const uint64_t*) buff8) + off8;
+                uint64_t *dest = ((uint64_t*) col->data) + row0;
+                for (int r = 0; r < nrows; r++) {
+                    *dest = *src;
+                    src += rowCount8;
+                    dest++;
+                }
+            } else
+            if (elemsize == 4) {
+                const uint32_t *src = ((const uint32_t*) buff4) + off4;
+                uint32_t *dest = ((uint32_t*) col->data) + row0;
+                for (int r = 0; r < nrows; r++) {
+                    *dest = *src;
+                    src += rowCount4;
+                    dest++;
+                }
+            } else
+            if (elemsize == 1) {
+                const uint8_t *src = ((const uint8_t*) buff1) + off1;
+                uint8_t *dest = ((uint8_t*) col->data) + row0;
+                for (int r = 0; r < nrows; r++) {
+                    *dest = *src;
+                    src += rowCount1;
+                    dest++;
+                }
             }
         }
-        ptr += sizes[i];
+        off8 += (sizes[i] == 8);
+        off4 += (sizes[i] == 4);
+        off1 += (sizes[i] == 1);
         j++;
     }
 }

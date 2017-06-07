@@ -159,7 +159,7 @@ _Bool userOverride(int8_t *type, lenOff *colNames, const char *anchor, int ncol)
  * return: total size of the Datatable created (for reporting purposes). If the
  *         return value is 0, then it indicates an error.
  */
-size_t allocateDT(int8_t *type, int8_t *size, int ncols, int ndrop, int64_t nrows);
+size_t allocateDT(int8_t *type, int8_t *size, int ncols, int ndrop, size_t nrows);
 
 
 /**
@@ -182,8 +182,9 @@ void reallocColType(int col, colType newType);
  * nRows: number of rows in the buffer
  * ansi: starting row where to put the data from the buffers into the final DT
  */
-void pushBuffer(const void *buff, const char *anchor, int nRows,
-                int64_t DTi, int rowsize,
+void pushBuffer(const void *buff8, const void *buff4, const void *buff1,
+                const char *anchor, int nRows, size_t DTi,
+                int rowsize8, int rowsize4, int rowsize1,
                 int nStringCols, int nNonStringCols);
 
 
@@ -192,7 +193,7 @@ void pushBuffer(const void *buff, const char *anchor, int nRows,
  * was. The function should adjust the datatable, reallocing the buffers if
  * necessary.
  */
-void setFinalNrow(int64_t nrows);
+void setFinalNrow(size_t nrows);
 
 
 /**
@@ -202,6 +203,7 @@ void progress(double percent/*[0,1]*/, double ETA/*secs*/);
 
 
 void freadCleanup(void);
+double wallclock(void);
 
 #endif
 
