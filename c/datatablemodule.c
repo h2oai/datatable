@@ -103,6 +103,7 @@ PyObject *dt_from_memmap(UU, PyObject *args)
         dt->columns[i]->mtype = MT_MMAP;
         dt->columns[i]->meta = NULL;
         dt->columns[i]->alloc_size = (size_t) filesize;
+        dt->columns[i]->refcount = 1;
     }
 
     dt->nrows = nrows;

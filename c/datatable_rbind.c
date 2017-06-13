@@ -56,6 +56,7 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
             col->alloc_size = 0;
             col->stype = 0;
             col->mtype = MT_DATA;
+            col->refcount = 1;
             for (int j = 0; j < ndts; j++) {
                 if (cols[i][j] >= 0) {
                     col->stype = dts[j]->columns[cols[i][j]]->stype;

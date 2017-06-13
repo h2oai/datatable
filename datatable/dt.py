@@ -581,3 +581,48 @@ class DataTable(object):
             idx = self.colindex(oldname)
             names[idx] = newname
         self._fill_from_dt(self._dt, names=names)
+
+
+    def topandas(self):
+        try:
+            import pandas
+        except ImportError:  # pragma no-cover
+            pandas = None
+        try:
+            import numpy
+        except ImportError:  # pragma no-cover
+            numpy = None
+        if pandas is None:  # pragma no-cover
+            raise ImportError("pandas module is not available")
+        if numpy is None:
+            raise ImportError("numpy module is not available")
+        dtypes = {"i1b": numpy.dtype("bool"),
+                  "i1i": numpy.dtype("int8"),
+                  "i2i": numpy.dtype("int16"),
+                  "i4i": numpy.dtype("int32"),
+                  "i8i": numpy.dtype("int64"),
+                  "f4r": numpy.dtype("float32"),
+                  "f8r": numpy.dtype("float64")}
+        nas = {"i1b": -128,
+               "i1i": -128,
+               "i2i": -32768,
+               "i4i": -2147483648,
+               "i8i": -9223372036854775808}
+        src = {}
+        missed = []
+        for i in range(self._ncols):
+            name = self._names[i]
+            column = self._dt.column(i)
+            dtype = dtypes.get(column.stype)
+            na = nas.get(column.stype)
+            if dtype is not None:
+                x = numpy.frombuffer(column, dtype=dtype)
+                if na is not None:
+                    x = numpy.ma.masked_equal(x, na, copy=False)
+                src[name] = x
+            else:
+                missed.append(name)
+        pd = pandas.DataFrame(src)
+        if missed:
+            print("Columns %r could not be converted" % missed)
+        return pd
