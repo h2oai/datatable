@@ -71,17 +71,67 @@ static PyObject* get_refcount(Column_PyObject *self) {
 }
 
 
-int init_py_column(PyObject *module) {
-    // Register Column_PyType on the module
-    Column_PyType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&Column_PyType) < 0) return 0;
-    Py_INCREF(&Column_PyType);
-    PyModule_AddObject(module, "Column", (PyObject*) &Column_PyType);
+/**
+ * Provide Python Buffers interface (PEP 3118). This format is understood for
+ * example by Numpy.
+ */
+static int getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
+{
+    Column *col = self->ref;
 
-    py_rowmappingtypes[0] = NULL;
-    py_rowmappingtypes[MT_DATA] = PyUnicode_FromString("data");
-    py_rowmappingtypes[MT_MMAP] = PyUnicode_FromString("mmap");
-    return 1;
+    if (flags & PyBUF_WRITABLE) {
+        PyErr_SetString(PyExc_BufferError, "Cannot create writable buffer");
+        goto fail;
+    }
+    if (flags & PyBUF_F_CONTIGUOUS) {
+        PyErr_SetString(PyExc_BufferError,
+                        "Cannot create Fortran-style buffer");
+        goto fail;
+    }
+    if (stype_info[col->stype].varwidth) {
+        PyErr_SetString(PyExc_BufferError, "Column's data has variable width");
+        goto fail;
+    }
+    size_t elemsize = stype_info[col->stype].elemsize;
+    Py_ssize_t *info = NULL;
+    dtmalloc_g(info, Py_ssize_t, 2);
+
+    view->buf = col->data;
+    view->obj = (PyObject*) self;
+    view->len = (Py_ssize_t) col->alloc_size;
+    view->itemsize = (Py_ssize_t) elemsize;
+    view->readonly = 0;
+    view->ndim = 1;
+    view->shape = info;
+    view->strides = info + 1;
+    view->internal = NULL;
+    info[0] = view->len / view->itemsize;
+    info[1] = view->itemsize;
+    if (flags & PyBUF_FORMAT) {
+        view->format = col->stype == ST_BOOLEAN_I1? "?" :
+                       col->stype == ST_INTEGER_I1? "b" :
+                       col->stype == ST_INTEGER_I2? "h" :
+                       col->stype == ST_INTEGER_I4? "i" :
+                       col->stype == ST_INTEGER_I8? "q" :
+                       col->stype == ST_REAL_F4? "f" :
+                       col->stype == ST_REAL_F8? "d" : "x";
+    } else {
+        view->format = NULL;
+    }
+    Py_INCREF(self);
+    column_incref(col);
+    return 0;
+
+  fail:
+    view->obj = NULL;
+    return -1;
+}
+
+
+static void releasebuffer(Column_PyObject *self, Py_buffer *view)
+{
+    dtfree(view->shape);
+    column_decref(self->ref);
 }
 
 
@@ -92,7 +142,7 @@ int init_py_column(PyObject *module) {
 
 PyDoc_STRVAR(dtdoc_ltype, "'Logical' type of the column");
 PyDoc_STRVAR(dtdoc_stype, "'Storage' type of the column");
-PyDoc_STRVAR(dtdoc_mtype, "'Memory' type of the column: data, memmap or view");
+PyDoc_STRVAR(dtdoc_mtype, "'Memory' type of the column: data, or memmap");
 PyDoc_STRVAR(dtdoc_data_size, "The amount of memory taken by column's data");
 PyDoc_STRVAR(dtdoc_meta, "String representation of the column's `meta` struct");
 PyDoc_STRVAR(dtdoc_refcount, "Reference count of the column");
@@ -108,6 +158,11 @@ static PyGetSetDef column_getseters[] = {
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
 #undef GETSET1
+
+static PyBufferProcs column_as_buffer = {
+    (getbufferproc) getbuffer,
+    (releasebufferproc) releasebuffer,
+};
 
 PyTypeObject Column_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -128,7 +183,7 @@ PyTypeObject Column_PyType = {
     0,                                  /* tp_str */
     0,                                  /* tp_getattro */
     0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
+    &column_as_buffer,                  /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,                 /* tp_flags */
     "Column object",                    /* tp_doc */
     0,                                  /* tp_traverse */
@@ -159,3 +214,17 @@ PyTypeObject Column_PyType = {
     0,                                  /* tp_version_tag */
     0,                                  /* tp_finalize */
 };
+
+
+int init_py_column(PyObject *module) {
+    // Register Column_PyType on the module
+    Column_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&Column_PyType) < 0) return 0;
+    Py_INCREF(&Column_PyType);
+    PyModule_AddObject(module, "Column", (PyObject*) &Column_PyType);
+
+    py_rowmappingtypes[0] = NULL;
+    py_rowmappingtypes[MT_DATA] = PyUnicode_FromString("data");
+    py_rowmappingtypes[MT_MMAP] = PyUnicode_FromString("mmap");
+    return 1;
+}
