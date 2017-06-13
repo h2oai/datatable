@@ -60,6 +60,23 @@ typedef struct freadMainArgs
   // with `filename`.
   const char *input;
 
+  // Maximum number of rows to read, or INT64_MAX to read the entire dataset.
+  // Note that even if `nrowLimit = 0`, fread() will scan a sample of rows in
+  // the file to detect column names and types (and other parsing settings).
+  int64_t nrowLimit;
+
+  // Number of input lines to skip when reading the file.
+  int64_t skipNrow;
+
+  // Skip to the line containing this string. This parameter cannot be used
+  // with `skipLines`.
+  const char *skipString;
+
+  // NULL-terminated list of strings that should be converted into NA values.
+  // The last entry in this array is NULL (sentinel), which lets us know where
+  // the array ends.
+  const char * const* NAstrings;
+
   // Character to use for a field separator. Multi-character separators are not
   // supported. If `sep` is '\0', then fread will autodetect it. A quotation
   // mark '"' is not allowed as field separator.
@@ -80,23 +97,6 @@ typedef struct freadMainArgs
   // Is there a header at the beginning of the file?
   // 0 = no, 1 = yes, -128 = autodetect
   int8_t header;
-
-  // Maximum number of rows to read, or INT64_MAX to read the entire dataset.
-  // Note that even if `nrowLimit = 0`, fread() will scan a sample of rows in
-  // the file to detect column names and types (and other parsing settings).
-  int64_t nrowLimit;
-
-  // Number of input lines to skip when reading the file.
-  int64_t skipNrow;
-
-  // Skip to the line containing this string. This parameter cannot be used
-  // with `skipLines`.
-  const char *skipString;
-
-  // NULL-terminated list of strings that should be converted into NA values.
-  // The last entry in this array is NULL (sentinel), which lets us know where
-  // the array ends.
-  const char * const* NAstrings;
 
   // Strip the whitespace from fields (usually True).
   _Bool stripWhite;
@@ -126,6 +126,7 @@ typedef struct freadMainArgs
   // leaks would occur.
   _Bool warningsAreErrors;
 
+  char _padding[2];
 
   // Any additional implementation-specific parameters.
   EXTRA_FIELDS

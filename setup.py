@@ -9,6 +9,7 @@ Build script for the `datatable` module.
 import os
 import re
 import subprocess
+import sysconfig
 from setuptools import setup, find_packages
 from distutils.core import Extension
 
@@ -72,7 +73,11 @@ else:
                        "http://releases.llvm.org/download.html#4.0.0")
 
 # Compiler
-os.environ["CC"] = clang + " -fopenmp"
+os.environ["CC"] = clang + " -fopenmp "
+if sysconfig.get_config_var("CONFINCLUDEPY"):
+    # Marking this directory as "isystem" prevents Clang from issuing warnings
+    # for those files
+    os.environ["CC"] += "-isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
 # Linker flags
 os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, libs)
 # Force to build for a 64-bit platform only
@@ -85,8 +90,6 @@ os.environ["LLVM_CONFIG"] = llvm_config
 # Settings for building the extension
 #-------------------------------------------------------------------------------
 # Ignored warnings:
-#   -Wreserved-id-macro : triggers for python internals
-#   -Wpadded: warning about gaps in a struct, which are normal
 #   -Wpointer-arith: this warns about treating (void*) as
 #       (char*), which is a GNU extension. However since we
 #       only ever want to compile in GCC / CLang, such use is
@@ -103,8 +106,6 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #       does not suffer from this drawback.
 extra_compile_args = [
     "-Weverything",
-    "-Wno-reserved-id-macro",
-    "-Wno-padded",
     "-Wno-pointer-arith",
     "-Wno-covered-switch-default",
     "-Wno-float-equal",
