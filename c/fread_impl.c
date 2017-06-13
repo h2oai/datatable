@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>  // memcpy
 #include "fread.h"
+#include "utils.h"
 #include "py_datatable.h"
 #include "py_utils.h"
 
@@ -108,31 +109,30 @@ PyObject* freadPy(UU, PyObject *args)
 }
 
 
+
 void cleanup_fread_session(freadMainArgs *frargs) {
-    free(filename); filename = NULL;
-    free(input); input = NULL;
+    dtfree(filename);
+    dtfree(input);
     if (frargs) {
         if (na_strings) {
             char **ptr = na_strings;
-            while (*ptr++) free(*ptr);
-            free(na_strings);
+            while (*ptr++) dtfree(*ptr);
+            dtfree(na_strings);
         }
-        Py_XDECREF(frargs->freader);
+        pyfree(frargs->freader);
     }
     if (strbufs) {
         for (int64_t i = 0; i < ncols; i++) {
             if (strbufs[i]) {
-                free(strbufs[i]->buf);
-                free(strbufs[i]);
+                dtfree(strbufs[i]->buf);
+                dtfree(strbufs[i]);
             }
         }
-        free(strbufs); strbufs = NULL;
+        dtfree(strbufs);
     }
-    Py_XDECREF(freader);
-    Py_XDECREF(colNamesList);
+    pyfree(freader);
+    pyfree(colNamesList);
     dt = NULL;
-    freader = NULL;
-    colNamesList = NULL;
 }
 
 
@@ -155,58 +155,59 @@ _Bool userOverride(
 
 
 /**
- * Allocate memory for the datatable being read
+ * Allocate memory for the datatable that will be read.
  */
 size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
-                  size_t nrows) {
+                  size_t nrows)
+{
+    Column **columns = NULL;
     types = types_;
     sizes = sizes_;
     ncols = (int64_t) ncols_;
 
-    if (nrows > INTPTR_MAX) {
-        PyErr_Format(PyExc_ValueError,
-            "Unable to create DataTable with %zu rows: current platform "
-            "supports at most %zd rows", nrows, INTPTR_MAX);
-        return 0;
-    }
-
-    Column **columns = calloc(sizeof(Column*), (size_t)(ncols - ndrop + 1));
-    strbufs = (StrBuf**) calloc(sizeof(StrBuf*), (size_t)(ncols));
-    if (columns == NULL || strbufs == NULL) return 0;
+    dtcalloc_g(columns, Column*, ncols - ndrop + 1);
+    dtcalloc_g(strbufs, StrBuf*, ncols);
+    columns[ncols - ndrop] = NULL;
 
     size_t total_alloc_size = sizeof(Column*) * (size_t)(ncols - ndrop) +
                               sizeof(StrBuf*) * (size_t)(ncols - ndrop);
-    for (int i = 0, j = 0; i < ncols; i++) {
+    for (int i = 0, j = 0; i < ncols_; i++) {
         int8_t type = types[i];
         if (type == CT_DROP)
             continue;
         size_t alloc_size = colTypeSizes[type] * nrows;
-        columns[j] = malloc(sizeof(Column));
-        columns[j]->data = malloc(alloc_size);
+        dtmalloc_g(columns[j], Column, 1);
+        dtmalloc_gv(columns[j]->data, alloc_size);
         columns[j]->mtype = MT_DATA;
         columns[j]->stype = ST_VOID; // stype will be 0 until the column is finalized
         columns[j]->meta = NULL;
         columns[j]->alloc_size = alloc_size;
+        columns[j]->refcount = 1;
         if (type == CT_STRING) {
-            strbufs[j] = malloc(sizeof(StrBuf));
-            if (strbufs[j] == NULL) return 0;
-            strbufs[j]->buf = malloc(nrows * 10);
-            if (strbufs[j]->buf == NULL) return 0;
+            dtmalloc_g(strbufs[j], StrBuf, 1);
+            dtmalloc_g(strbufs[j]->buf, char, nrows * 10);
             strbufs[j]->ptr = 0;
             strbufs[j]->size = nrows * 10;
             total_alloc_size += sizeof(StrBuf) + nrows * 10;
         }
-        j++;
         total_alloc_size += alloc_size + sizeof(Column);
+        j++;
     }
 
-    dt = malloc(sizeof(DataTable));
+    dtmalloc_g(dt, DataTable, 1);
     dt->nrows = (int64_t) nrows;
     dt->ncols = ncols - ndrop;
     dt->rowmapping = NULL;
     dt->columns = columns;
     total_alloc_size += sizeof(DataTable);
     return total_alloc_size;
+
+  fail:
+    if (columns) {
+        for (int i = 0; i < ncols - ndrop; i++) column_decref(columns[i]);
+    }
+    dtfree(columns);
+    return 0;
 }
 
 
@@ -234,7 +235,7 @@ void setFinalNrow(size_t nrows) {
             col->meta = malloc(sizeof(VarcharMeta));
             col->stype = colType_to_stype[type];
             col->alloc_size = final_size;
-            ((VarcharMeta*)(col->meta))->offoff = (int64_t) offoff;
+            ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
         } else if (type > 0) {
             size_t new_size = stype_info[colType_to_stype[type]].elemsize * nrows;
             col->data = realloc(col->data, new_size);

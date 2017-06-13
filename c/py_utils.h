@@ -27,6 +27,7 @@ PyObject* incref(PyObject *x);
 PyObject* decref(PyObject *x);
 void* clone(void *src, size_t n_bytes);
 
+#define pyfree(ptr)  do { Py_XDECREF(ptr); ptr = NULL; } while(0)
 
 
 /**

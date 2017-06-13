@@ -50,6 +50,17 @@ float max_f4(float a, float b);
     if (ptr == _NULL) return _NULL;                                            \
 } while(0)
 
+#define dtmalloc_g(ptr, T, n) do {                                             \
+    ptr = (T*) _dt_malloc((size_t)(n) * sizeof(T));                            \
+    if (ptr == _NULL) goto fail;                                               \
+} while(0)
+
+#define dtmalloc_gv(ptr, n) do {                                               \
+    ptr = _dt_malloc((size_t)(n));                                             \
+    if (ptr == _NULL) goto fail;                                               \
+} while(0)
+
+
 
 /**
  * This macro is a replacement for standard `realloc` in much the same way as
@@ -72,6 +83,12 @@ float max_f4(float a, float b);
     if (ptr == _NULL) return _NULL;                                            \
 } while(0)
 
+#define dtrealloc_g(ptr, T, n) do {                                            \
+    ptr = (T*) _dt_realloc(ptr, (size_t)(n) * sizeof(T));                      \
+    if (ptr == _NULL) goto fail;                                               \
+} while(0)
+
+
 
 /**
  * Replacement for `calloc`.
@@ -79,6 +96,11 @@ float max_f4(float a, float b);
 #define dtcalloc(ptr, T, n) do {                                               \
     ptr = (T*) _dt_calloc((size_t)(n), sizeof(T));                             \
     if (ptr == _NULL) return _NULL;                                            \
+} while(0)
+
+#define dtcalloc_g(ptr, T, n) do {                                             \
+    ptr = (T*) _dt_calloc((size_t)(n), sizeof(T));                             \
+    if (ptr == _NULL) goto fail;                                               \
 } while(0)
 
 
@@ -93,12 +115,13 @@ float max_f4(float a, float b);
 } while(0)
 
 
+
 /**
  * Macro for safe pointer arithmetic on `void*` pointers. Normally we'd want to
  * say simply `ptr + n`, but this is not in standard C, and produces a warning
  * on Clang compiler (and in C++ such operation is straight prohibited...).
  */
-#define add_ptr(ptr, n)  ((void*)((unsigned char*)(ptr) + (n)))
+#define add_ptr(ptr, n)  ((void*)((char*)(ptr) + (n)))
 
 
 

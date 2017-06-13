@@ -10,25 +10,25 @@
 // Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
 //     if (cond) STOP("Bad things happened: %s", smth_bad);
 //
-#define STOP(...) \
-    { \
-        PyErr_Format(PyExc_RuntimeError, __VA_ARGS__); \
-        freadCleanup(); \
-        return 0; \
-    }
+#define STOP(...)                                                              \
+    do {                                                                       \
+        PyErr_Format(PyExc_RuntimeError, __VA_ARGS__);                         \
+        freadCleanup();                                                        \
+        return 0;                                                              \
+    } while(0)
 
 
 // This macro raises a warning using Python's standard warning mechanism. Usage:
 //     if (cond) WARN("Attention: %s", smth_smelly);
 //
 #define DTWARN(...)                                                            \
-    {                                                                          \
+    do {                                                                       \
         PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__);                \
         if (warningsAreErrors) {                                               \
             freadCleanup();                                                    \
             return 0;                                                          \
         }                                                                      \
-    }
+    } while(0)
 
 
 // Print message to the output log. Usage:
