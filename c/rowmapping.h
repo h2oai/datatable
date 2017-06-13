@@ -47,13 +47,14 @@ typedef enum RowMappingType {
  *     do simple addition `start + step`.
  */
 typedef struct RowMapping {
-    RowMappingType type;
     int64_t length;
     union {
         int32_t *ind32;
         int64_t *ind64;
         struct { int64_t start, step; } slice;
     };
+    RowMappingType type;
+    int32_t _padding;
 } RowMapping;
 
 

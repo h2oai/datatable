@@ -78,7 +78,7 @@ void init_types(void)
     NA_F8 = ((_dbl){ .i = NA_F8_BITS }).f;
 
     #define STI(T, code, csize, msize, vw, ltype, na) \
-        stype_info[T] = (STypeInfo){code, csize, msize, vw, ltype, na}
+        stype_info[T] = (STypeInfo){csize, msize, na, code, ltype, vw, 0}
     STI(ST_VOID,              "---", 0, 0,                   0, 0,           NULL);
     STI(ST_BOOLEAN_I1,        "i1b", 1, 0,                   0, LT_BOOLEAN,  &NA_I1);
     STI(ST_INTEGER_I1,        "i1i", 1, 0,                   0, LT_INTEGER,  &NA_I1);

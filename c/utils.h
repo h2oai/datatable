@@ -74,12 +74,12 @@ float max_f4(float a, float b);
  **/
 #define dtmalloc(ptr, T, n) do {                                               \
     ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                            \
-    if (ptr == _NULL) return _NULL;                                            \
+    if (ptr == zNULL) return zNULL;                                            \
 } while(0)
 
 #define dtmalloc_g(ptr, T, n) do {                                             \
     ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                            \
-    if (ptr == _NULL) goto fail;                                               \
+    if (ptr == zNULL) goto fail;                                               \
 } while(0)
 
 
@@ -98,12 +98,12 @@ float max_f4(float a, float b);
  */
 #define dtrealloc(ptr, T, n) do {                                              \
     ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
-    if (ptr == _NULL) return _NULL;                                            \
+    if (ptr == zNULL) return zNULL;                                            \
 } while(0)
 
 #define dtrealloc_g(ptr, T, n) do {                                            \
     ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
-    if (ptr == _NULL) goto fail;                                               \
+    if (ptr == zNULL) goto fail;                                               \
 } while(0)
 
 
@@ -113,12 +113,12 @@ float max_f4(float a, float b);
  */
 #define dtcalloc(ptr, T, n) do {                                               \
     ptr = (T*) _dt_calloc((size_t)(n), SIZEOF(T));                             \
-    if (ptr == _NULL) return _NULL;                                            \
+    if (ptr == zNULL) return zNULL;                                            \
 } while(0)
 
 #define dtcalloc_g(ptr, T, n) do {                                             \
     ptr = (T*) _dt_calloc((size_t)(n), SIZEOF(T));                             \
-    if (ptr == _NULL) goto fail;                                               \
+    if (ptr == zNULL) goto fail;                                               \
 } while(0)
 
 
@@ -129,7 +129,7 @@ float max_f4(float a, float b);
  **/
 #define dtfree(ptr) do {                                                       \
     _dt_free(ptr);                                                             \
-    ptr = _NULL;                                                               \
+    ptr = zNULL;                                                               \
 } while(0)
 
 
@@ -150,9 +150,9 @@ void* _dt_malloc(size_t n);
 void* _dt_realloc(void *ptr, size_t n);
 void  _dt_free(void *ptr);
 #ifdef __cplusplus
-    #define _NULL nullptr
+    #define zNULL nullptr
 #else
-    #define _NULL NULL
+    #define zNULL NULL
 #endif
 
 

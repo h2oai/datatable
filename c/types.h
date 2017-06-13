@@ -356,12 +356,13 @@ typedef enum SType {
  *
  */
 typedef struct STypeInfo {
-    char        code[4];
     size_t      elemsize;
     size_t      metasize;
-    _Bool       varwidth;
-    LType       ltype;
     const void *na;
+    char        code[4];
+    LType       ltype;
+    _Bool       varwidth;
+    int16_t     _padding;
 } STypeInfo;
 
 extern STypeInfo stype_info[DT_STYPES_COUNT];
@@ -406,6 +407,7 @@ typedef struct EnumMeta {     // ST_STRING_UX_ENUM
     int64_t offoff;
     int64_t dataoff;
     int32_t nlevels;
+    char _padding[4];
 } EnumMeta;
 
 

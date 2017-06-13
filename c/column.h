@@ -50,6 +50,7 @@ typedef struct Column {
     int     refcount;    // 4
     MType   mtype;       // 1
     SType   stype;       // 1
+    int16_t _padding;    // 2
 } Column;
 
 
