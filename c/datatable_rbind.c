@@ -110,7 +110,7 @@ static Column* rbind_fixedwidth_column(
     // Determine the new allocation size
     size_t old_alloc_size = col->alloc_size;
     size_t new_alloc_size = elemsize * (size_t) nrows;
-    dtrealloc_v(col->data, new_alloc_size);
+    dtrealloc(col->data, void, new_alloc_size);
     col->alloc_size = new_alloc_size;
 
     // Copy the data

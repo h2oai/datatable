@@ -177,7 +177,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
             continue;
         size_t alloc_size = colTypeSizes[type] * nrows;
         dtmalloc_g(columns[j], Column, 1);
-        dtmalloc_gv(columns[j]->data, alloc_size);
+        dtmalloc_g(columns[j]->data, void, alloc_size);
         columns[j]->mtype = MT_DATA;
         columns[j]->stype = ST_VOID; // stype will be 0 until the column is finalized
         columns[j]->meta = NULL;

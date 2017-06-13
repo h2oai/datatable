@@ -74,7 +74,7 @@ Column** columns_from_mixed(
         } else {
             SType stype = (SType)(-spec[i]);
             size_t elemsize = stype_info[stype].elemsize;
-            dtmalloc_v(out[j], elemsize * nrows);
+            dtmalloc(out[j], void, elemsize * nrows);
             dtmalloc(columns[i], Column, 1);
             columns[i]->data = out[j];
             columns[i]->mtype = MT_DATA;

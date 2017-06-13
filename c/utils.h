@@ -26,37 +26,59 @@ float max_f4(float a, float b);
 // Pointer macros
 //==============================================================================
 
+// Some macro hackery based on
+// https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
+#define zPRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
+#define zCAT(a, ...) zPRIMITIVE_CAT(a, __VA_ARGS__)
+#define zCOMPL(b) zPRIMITIVE_CAT(zCOMPL_, b)
+#define zCOMPL_0 1
+#define zCOMPL_1 0
+#define zEAT(...)
+#define zBITAND(x) zPRIMITIVE_CAT(zBITAND_, x)
+#define zBITAND_0(y) 0
+#define zBITAND_1(y) y
+#define zIIF_0(t, ...) __VA_ARGS__
+#define zIIF_1(t, ...) t
+#define zCHECK_N(x, n, ...) n
+#define zCHECK(...) zCHECK_N(__VA_ARGS__, 0,)
+#define zPROBE(x) x, 1,
+#define zIS_PAREN(x) zCHECK(zIS_PAREN_PROBE x)
+#define zIS_PAREN_PROBE(...) zPROBE(~)
+#define zIS_COMPARABLE(x) zIS_PAREN(zCAT(zCOMPARE_, x) (()))
+#define zPRIMITIVE_COMPARE(x, y) zIS_PAREN (zCOMPARE_ ## x (zCOMPARE_ ## y)(()))
+#define zNOT_EQUAL(x, y) zIIF(zBITAND(zIS_COMPARABLE(x))(zIS_COMPARABLE(y))) \
+                         (zPRIMITIVE_COMPARE, 1 zEAT)(x, y)
+#define zIIF(c) zPRIMITIVE_CAT(zIIF_, c)
+#define zEQUAL(x, y) zCOMPL(zNOT_EQUAL(x, y))
+// All for the benefit of this tiny macro, which expands to `sizeof(T)` in all
+// cases except when `T` is `void`, in which case it expands into `1`.
+#define SIZEOF(T) zIIF(zEQUAL(T, void))(1, sizeof(T))
+
+
 /**
  * Use this macro to malloc a memory region and assign it to a variable. For
- * example, to malloc an array of 1000 integers / a void* memory region of 1024
- * bytes:
+ * example, to malloc an array of 1000 integers:
  *
  *     int32_t *arr;
  *     dtmalloc(arr, int32_t, 1000);
+ *
+ * This will also work correctly for allocating a `void*` pointer:
+ *
  *     void *buf;
- *     dtmalloc_v(buf, 1024);
+ *     dtmalloc(buf, void, 1024 * 1024);
  *
  * The macro checks that the allocation was successful, and if not it executes
  * `return NULL`. Thus, it can only be used within a function that returns a
- * pointer.
+ * pointer. The `_g` version of this macro instead executes `goto fail`, where
+ * any special cleanup may be performed.
  **/
 #define dtmalloc(ptr, T, n) do {                                               \
-    ptr = (T*) _dt_malloc((size_t)(n) * sizeof(T));                            \
-    if (ptr == _NULL) return _NULL;                                            \
-} while(0)
-
-#define dtmalloc_v(ptr, n) do {                                                \
-    ptr = _dt_malloc((size_t)(n));                                             \
+    ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                            \
     if (ptr == _NULL) return _NULL;                                            \
 } while(0)
 
 #define dtmalloc_g(ptr, T, n) do {                                             \
-    ptr = (T*) _dt_malloc((size_t)(n) * sizeof(T));                            \
-    if (ptr == _NULL) goto fail;                                               \
-} while(0)
-
-#define dtmalloc_gv(ptr, n) do {                                               \
-    ptr = _dt_malloc((size_t)(n));                                             \
+    ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                            \
     if (ptr == _NULL) goto fail;                                               \
 } while(0)
 
@@ -71,20 +93,16 @@ float max_f4(float a, float b);
  *
  * The macro checks that the allocation was successful, and if not it executes
  * `return NULL`. Thus, it can only be used within a function that returns a
- * pointer.
+ * pointer. The `_g` version of this macro instead executes `goto fail`, where
+ * any special cleanup may be performed.
  */
 #define dtrealloc(ptr, T, n) do {                                              \
-    ptr = (T*) _dt_realloc(ptr, (size_t)(n) * sizeof(T));                      \
-    if (ptr == _NULL) return _NULL;                                            \
-} while(0)
-
-#define dtrealloc_v(ptr, n) do {                                               \
-    ptr = _dt_realloc(ptr, (size_t)(n));                                       \
+    ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
     if (ptr == _NULL) return _NULL;                                            \
 } while(0)
 
 #define dtrealloc_g(ptr, T, n) do {                                            \
-    ptr = (T*) _dt_realloc(ptr, (size_t)(n) * sizeof(T));                      \
+    ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
     if (ptr == _NULL) goto fail;                                               \
 } while(0)
 
@@ -94,12 +112,12 @@ float max_f4(float a, float b);
  * Replacement for `calloc`.
  */
 #define dtcalloc(ptr, T, n) do {                                               \
-    ptr = (T*) _dt_calloc((size_t)(n), sizeof(T));                             \
+    ptr = (T*) _dt_calloc((size_t)(n), SIZEOF(T));                             \
     if (ptr == _NULL) return _NULL;                                            \
 } while(0)
 
 #define dtcalloc_g(ptr, T, n) do {                                             \
-    ptr = (T*) _dt_calloc((size_t)(n), sizeof(T));                             \
+    ptr = (T*) _dt_calloc((size_t)(n), SIZEOF(T));                             \
     if (ptr == _NULL) goto fail;                                               \
 } while(0)
 

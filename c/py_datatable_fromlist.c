@@ -149,7 +149,7 @@ Column* column_from_list(PyObject *list)
     while (stype < DT_STYPES_COUNT) {
         start_over: {}
         size_t alloc_size = stype_info[stype].elemsize * (size_t)nrows;
-        dtrealloc_v(data, alloc_size);
+        dtrealloc(data, void, alloc_size);
         column->alloc_size = alloc_size;
         if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);
