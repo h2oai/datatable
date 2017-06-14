@@ -451,7 +451,7 @@ class DataTable(object):
 
         :param dts: one or more datatable to append. These datatables should
             have the same columnar structure as the current datatable (unless
-            option `force` is turned on).
+            option `force` is used).
         :param bool force: if True, then the datatables are allowed to have
             mismatching set of columns. In this case the gaps in the data will
             be filled with NAs.
@@ -513,7 +513,7 @@ class DataTable(object):
                             used_inames[col] = 1
                             res.append(i)
                         elif isinstance(icol, int):
-                            if used_inames[col]:
+                            if col in used_inames:
                                 final_names.append(col)
                                 used_inames[col] += 1
                                 inames[col] = [icol, len(final_names) - 1]
@@ -522,7 +522,7 @@ class DataTable(object):
                                 used_inames[col] = 1
                                 res[icol] = i
                         else:
-                            u = used_inames[col] or 0
+                            u = used_inames.get(col, 0)
                             if u >= len(icol):
                                 final_names.append(col)
                                 used_inames[col] += 1
