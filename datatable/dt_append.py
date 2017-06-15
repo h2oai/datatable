@@ -6,7 +6,7 @@ from datatable.utils.typechecks import typed, DataTable_t
 
 
 
-@typed(dts=DataTable_t, force=bool, bynames=bool)
+# @typed(dts=DataTable_t, force=bool, bynames=bool)
 def append(self, *dts, force=False, bynames=True, inplace=True):
     """
     Append rows of datatables `dts` to the current datatable.
@@ -73,7 +73,7 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
     src = self
     if not inplace:
         src = datatable.DataTable()
-        spec.append((self, list(range(n))))
+        spec.append((self.internal, list(range(n))))
 
     # Append by column names, filling with NAs as necessary
     if bynames:
@@ -135,7 +135,7 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
                         inames[col].append(len(final_names) - 1)
                         res.append(i)
                     else:
-                        used_inames[col] += 1
+                        used_inames[col] = u + 1
                         res[icol[u]] = i
             spec.append((dt.internal, res))
 
