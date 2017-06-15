@@ -277,6 +277,9 @@ static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
             cols_to_append[j][i] = (itemj == Py_None)? -1
                                    : (int) PyLong_AsLong(itemj);
         }
+        for (; j < final_ncols; j++) {
+            cols_to_append[j][i] = -1;
+        }
         dts[i] = dti;
     }
     dt_rbind(dt, dts, cols_to_append, ndts, final_ncols);

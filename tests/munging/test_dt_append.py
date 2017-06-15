@@ -139,7 +139,6 @@ def test_repeating_names():
     assert_equals(dt0, dtr)
 
 
-@pytest.mark.skip(reason="Issue #66")
 def test_append_strings():
     dt0 = dt.DataTable({"A": ["Nothing's", "wrong", "with", "this", "world"]})
     dt1 = dt.DataTable({"A": ["something", "wrong", "with", "humans"]})
@@ -172,7 +171,8 @@ def test_append_strings():
     assert_equals(dt0, dtr)
 
 
-# TODO: unskip `test_append_strings()`
+
 # TODO: add tests for appending memory-mapped datatables (Issue #65)
 # TODO: add tests for appending datatables with different column types
 # TODO: add tests for appending categorical columns (requires merging levelsets)
+# TODO: add tests for appending slices of data

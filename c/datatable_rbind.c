@@ -180,7 +180,7 @@ static Column* rbind_string_column(
             map[0].off1 = -1;
         } else {
             int32_t *offsets = (int32_t*) add_ptr(col->data, meta->offoff);
-            map[0].off0 = map[0].row0? abs(offsets[map[0].row0 - 1]) - 1 : 0;
+            map[0].off0 = abs(offsets[map[0].row0 - 1]) - 1;
             map[0].off1 = abs(offsets[map[0].row1 - 1]) - 1;
         }
     }
@@ -196,12 +196,12 @@ static Column* rbind_string_column(
                 assert(dti->rowmapping->type == RM_SLICE);
                 assert(dti->rowmapping->slice.step == 1);
                 map[i].row0 = (int32_t) dti->rowmapping->slice.start;
-                map[i].row1 = (int32_t) dti->rowmapping->length;
+                map[i].row1 = map[i].row0 + (int32_t) dti->rowmapping->length;
             }
             Column *coli = dti->columns[cols[i - 1]];
             VarcharMeta *metai = (VarcharMeta*) coli->meta;
             int32_t *offsets = (int32_t*) add_ptr(coli->data, metai->offoff);
-            map[i].off0 = map[i].row0? abs(offsets[map[i].row0 - 1]) - 1 : 0;
+            map[i].off0 = abs(offsets[map[i].row0 - 1]) - 1;
             map[i].off1 = abs(offsets[map[i].row1 - 1]) - 1;
         }
     }
@@ -213,49 +213,67 @@ static Column* rbind_string_column(
         new_data_size += (size_t) (map[i].off1 - map[i].off0);
         new_offsets_size += (size_t) (map[i].row1 - map[i].row0) * elemsize;
     }
-    size_t padding_size = (8 - (new_data_size & 7)) & 7;
+    size_t padding_size = ((8 - (new_data_size & 7)) & 7) + 4;
     size_t new_offoff = new_data_size + padding_size;
     size_t new_alloc_size = new_offoff + new_offsets_size;
+    size_t old_offoff = (size_t) meta->offoff;
 
     // Reallocate the column
-    dtrealloc(col->data, char, new_alloc_size);
+    // TODO: handle memory-mapped columns
+    // TODO: handle columns with refcount > 1
+    // TODO: hanlde cases where new column size is less than old column size
+    dtrealloc(col->data, void, new_alloc_size);
     col->alloc_size = new_alloc_size;
-    if (!nocol) {
-        memmove(add_ptr(col->data, new_offoff),
-                add_ptr(col->data, meta->offoff),
-                (size_t) dt->nrows * elemsize);
-    }
+    int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
     meta->offoff = (int64_t) new_offoff;
 
     // Copy the data and remap the offsets
-    int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
     int32_t rows_to_fill = 0;  // how many rows need to be filled with NAs
-    int32_t curr_offset = 1;
-    if (map[0].off0 < 0) {
+    int32_t curr_offset = 0;   // Current offset within string data section
+    if (nocol) {
         rows_to_fill += map[0].row1 - map[0].row0;
+        offsets[-1] = -1;
+    } else if (map[0].row0 == 0) {
+        assert(map[0].off0 == 0);
+        memmove(offsets, add_ptr(col->data, old_offoff), map[0].row1 * 4);
+        offsets[-1] = -1;
+        curr_offset += map[0].off1;
+        offsets += map[0].row1;
     } else {
-        curr_offset += map[0].off1 - map[0].off0;
-        offsets += map[0].row1 - map[0].row0;
+        int32_t row0 = map[0].row0;
+        int32_t row1 = map[0].row1;
+        int32_t off0 = map[0].off0;
+        int32_t off1 = map[0].off1;
+        memmove(col->data, add_ptr(col->data, off0), off1 - off0);
+        // First move the data, then tweak it; otherwise we're risking
+        // overwriting it by accident.
+        memmove(offsets, add_ptr(col->data, old_offoff), (row1 - row0) * 4);
+        offsets[-1] = -1;
+        for (int32_t row = row0; row < row1; row++) {
+            int32_t off = *offsets;
+            *offsets++ = off > 0? off - off0 : off + off0;
+        }
+        curr_offset += off1 - off0;
     }
+
     for (int i = 1; i <= ndts; i++) {
         if (map[i].off0 < 0) {
             rows_to_fill += map[i].row1 - map[i].row0;
         } else {
             if (rows_to_fill) {
-                const int32_t na = -curr_offset;
+                const int32_t na = -curr_offset - 1;
                 set_value(offsets, &na, elemsize, (size_t)rows_to_fill);
                 offsets += rows_to_fill;
                 rows_to_fill = 0;
             }
             Column *coli = dts[i-1]->columns[cols[i-1]];
-            memcpy(add_ptr(col->data, curr_offset - 1),
+            memcpy(add_ptr(col->data, curr_offset),
                    add_ptr(coli->data, map[i].off0),
                    (size_t)(map[i].off1 - map[i].off0));
             int64_t offoffi = ((VarcharMeta*) coli->meta)->offoff;
             int32_t *dti_offsets = (int32_t*) add_ptr(coli->data, offoffi);
             int32_t row0 = map[i].row0;
             int32_t row1 = map[i].row1;
-            curr_offset--;
             for (int32_t j = row0; j < row1; j++) {
                 int32_t off = dti_offsets[j];
                 *offsets++ = off > 0? off + curr_offset : off - curr_offset;
@@ -264,7 +282,7 @@ static Column* rbind_string_column(
         }
     }
     if (rows_to_fill) {
-        const int32_t na = -curr_offset;
+        const int32_t na = -curr_offset - 1;
         set_value(offsets, &na, elemsize, (size_t)rows_to_fill);
     }
     if (padding_size) {
