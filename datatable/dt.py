@@ -10,7 +10,8 @@ from .widget import DataFrameWidget
 
 from datatable.dt_append import dt_append
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import TypeError, ValueError, typed, U
+from datatable.utils.misc import load_module
+from datatable.utils.typechecks import TTypeError, TValueError, typed, U
 from datatable.graph import (DatatableNode, RowFilterNode, make_columnset,
                              NodeSoup)
 
@@ -117,7 +118,7 @@ class DataTable(object):
     @typed(colidx=int)
     def _hex(self, colidx):
         if not (-self.ncols <= colidx < self.ncols):
-            raise ValueError("Invalid column index %d" % colidx)
+            raise TValueError("Invalid column index %d" % colidx)
         if colidx < 0:
             colidx += self.ncols
         col = self.internal.column(colidx)
@@ -162,7 +163,7 @@ class DataTable(object):
         elif src is None:
             self._fill_from_list([])
         else:
-            raise TypeError("Cannot create DataTable from %r" % src)
+            raise TTypeError("Cannot create DataTable from %r" % src)
 
 
     def _fill_from_list(self, src, names=None):
@@ -376,7 +377,7 @@ class DataTable(object):
                 return self(rows=item[0], select=item[1])
             # if len(item) == 3:
             #     return self(rows=item[0], select=item[1], groupby=item[2])
-            raise ValueError("Selector %r is not supported" % (item, ))
+            raise TValueError("Selector %r is not supported" % (item, ))
         else:
             return self(rows=..., select=item)
 
@@ -408,10 +409,10 @@ class DataTable(object):
                 if isinstance(pcol, int):
                     cols.append(pcol)
                 else:
-                    raise TypeError("Invalid column specifier %r" % it)
+                    raise TTypeError("Invalid column specifier %r" % it)
             return self._delete_columns(cols)
 
-        raise TypeError("Cannot delete %r from the datatable" % item)
+        raise TTypeError("Cannot delete %r from the datatable" % item)
 
 
     def _delete_columns(self, cols):
@@ -441,8 +442,8 @@ class DataTable(object):
             if name in self._inames:
                 return self._inames[name]
             else:
-                raise ValueError("Column `%s` does not exist in %r"
-                                 % (name, self))
+                raise TValueError("Column `%s` does not exist in %r"
+                                  % (name, self))
         else:
             n = self._ncols
             if 0 <= name < n:
@@ -450,9 +451,9 @@ class DataTable(object):
             elif -n <= name < 0:
                 return name + n
             else:
-                raise ValueError("Column index `%d` is invalid for a "
-                                 "datatable with %s"
-                                 % (name, plural(n, "column")))
+                raise TValueError("Column index `%d` is invalid for a "
+                                  "datatable with %s"
+                                  % (name, plural(n, "column")))
 
 
     # Methods defined externally
@@ -476,18 +477,8 @@ class DataTable(object):
 
 
     def topandas(self):
-        try:
-            import pandas
-        except ImportError:  # pragma no-cover
-            pandas = None
-        try:
-            import numpy
-        except ImportError:  # pragma no-cover
-            numpy = None
-        if pandas is None:  # pragma no-cover
-            raise ImportError("pandas module is not available")
-        if numpy is None:
-            raise ImportError("numpy module is not available")
+        pandas = load_module("pandas")
+        numpy = load_module("numpy")
         dtypes = {"i1b": numpy.dtype("bool"),
                   "i1i": numpy.dtype("int8"),
                   "i2i": numpy.dtype("int16"),
@@ -501,20 +492,24 @@ class DataTable(object):
                "i4i": -2147483648,
                "i8i": -9223372036854775808}
         src = {}
-        missed = []
         for i in range(self._ncols):
             name = self._names[i]
             column = self._dt.column(i)
             dtype = dtypes.get(column.stype)
-            na = nas.get(column.stype)
-            if dtype is not None:
+            if dtype is None:
+                # Variable-width types can only be represented in Numpy as
+                # dtype='object'. However Numpy cannot ingest a buffer of
+                # PyObject types -- getting error
+                #   ValueError: cannot create an OBJECT array from memory buffer
+                # Thus, the only alternative remaining is to convert such column
+                # into plain Python list and pass it to Pandas like that.
+                x = self._dt.window(0, self.nrows, i, i + 1).data[0]
+            else:
                 x = numpy.frombuffer(column, dtype=dtype)
+                na = nas.get(column.stype)
                 if na is not None:
                     x = numpy.ma.masked_equal(x, na, copy=False)
-                src[name] = x
-            else:
-                missed.append(name)
+            src[name] = x
+
         pd = pandas.DataFrame(src)
-        if missed:
-            print("Columns %r could not be converted" % missed)
         return pd

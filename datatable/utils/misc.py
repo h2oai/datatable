@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import functools
+import importlib
 import time
+from .typechecks import TImportError
 
 __all__ = ("clamp", "normalize_slice", "plural_form", "timeit")
 
@@ -154,3 +156,15 @@ def timeit(func):
         return result
 
     return timed
+
+
+def load_module(module):
+    """
+    Import and return the requested module.
+    """
+    try:
+        m = importlib.import_module(module)
+        return m
+    except ModuleNotFoundError:
+        raise TImportError("Module `%s` is not installed. It is required for "
+                           "running this function." % module)

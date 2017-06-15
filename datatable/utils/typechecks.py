@@ -10,10 +10,21 @@ from typesentry import U
 _tc = typesentry.Config()
 typed = _tc.typed
 is_type = _tc.is_type
-TypeError = _tc.TypeError
-ValueError = _tc.ValueError
-TypeError.__module__ = "dt"
-ValueError.__module__ = "dt"
+TTypeError = _tc.TypeError
+TValueError = _tc.ValueError
+
+class TImportError(ImportError):
+    """Custom (soft) import error."""
+    _handle_ = TTypeError._handle_
+
+
+TTypeError.__module__ = "dt"
+TValueError.__module__ = "dt"
+TImportError.__module__ = "dt"
+TTypeError.__qualname__ = "TypeError"
+TValueError.__qualname__ = "ValueError"
+TImportError.__qualname__ = "ImportError"
+TImportError.__name__ = "ImportError"
 
 
 class _LazyClass(typesentry.MagicType):
@@ -44,4 +55,5 @@ class _LazyClass(typesentry.MagicType):
 
 DataTable_t = _LazyClass("datatable", "DataTable")
 
-__all__ = ("typed", "is_type", "U", "TypeError", "ValueError", "DataTable_t")
+__all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
+           "DataTable_t")

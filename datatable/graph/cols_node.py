@@ -8,7 +8,7 @@ from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
-from datatable.utils.typechecks import ValueError, TypeError
+from datatable.utils.typechecks import TValueError, TTypeError
 
 
 
@@ -165,7 +165,7 @@ def make_columnset(cols, dt, _nested=False):
         res = cols(DatatableExpr(dt))
         return make_columnset(res, dt, _nested=True)
 
-    raise ValueError("Unknown `select` argument: %r" % cols)
+    raise TValueError("Unknown `select` argument: %r" % cols)
 
 
 
@@ -183,9 +183,9 @@ def process_column(col, dt):
         if -ncols <= col < ncols:
             return col % ncols
         else:
-            raise ValueError("Column index `{col}` is invalid for a datatable "
-                             "with {ncolumns}"
-                             .format(col=col, ncolumns=plural(ncols, "column")))
+            raise TValueError("Column index `{col}` is invalid for a datatable "
+                              "with {ncolumns}"
+                              .format(col=col, ncolumns=plural(ncols, "column")))
 
     if isinstance(col, str):
         # This raises an exception if `col` cannot be found in the datatable
@@ -207,16 +207,16 @@ def process_column(col, dt):
             elif isinstance(stop, str):
                 col1 = dt.colindex(stop)
             if col0 is None or col1 is None:
-                raise ValueError("Slice %r is invalid: cannot mix numeric and "
-                                 "string column names" % col)
+                raise TValueError("Slice %r is invalid: cannot mix numeric and "
+                                  "string column names" % col)
             if step is not None:
-                raise ValueError("Column name slices cannot use "
-                                 "strides: %r" % col)
+                raise TValueError("Column name slices cannot use "
+                                  "strides: %r" % col)
             return (col0, abs(col1 - col0) + 1, 1 if col1 >= col0 else -1)
         elif all(x is None or isinstance(x, int) for x in (start, stop, step)):
             return normalize_slice(col, dt.ncols)
         else:
-            raise ValueError("%r is not integer-valued" % col)
+            raise TValueError("%r is not integer-valued" % col)
 
     if isinstance(col, ColSelectorExpr):
         return col.col_index
@@ -224,4 +224,4 @@ def process_column(col, dt):
     if isinstance(col, BaseExpr):
         return col
 
-    raise TypeError("Unknown column format: %r" % col)
+    raise TTypeError("Unknown column format: %r" % col)

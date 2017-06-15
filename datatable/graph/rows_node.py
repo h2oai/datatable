@@ -9,7 +9,7 @@ from .node import Node
 from .iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import typed, ValueError, TypeError
+from datatable.utils.typechecks import typed, TValueError, TTypeError
 
 
 
@@ -173,19 +173,19 @@ def _make_rowfilter(rows, dt, _nested=False):
                     # `elem % nrows` forces the row number to become positive
                     bases.append(elem % nrows)
                 else:
-                    raise ValueError(
+                    raise TValueError(
                         "Row `%d` is invalid for datatable with %s"
                         % (elem, plural(nrows, "row")))
             elif isinstance(elem, (range, slice)):
                 if elem.step == 0:
-                    raise ValueError("In %r step must not be 0" % elem)
+                    raise TValueError("In %r step must not be 0" % elem)
                 if not all(x is None or isinstance(x, int)
                            for x in (elem.start, elem.stop, elem.step)):
-                    raise ValueError("%r is not integer-valued" % elem)
+                    raise TValueError("%r is not integer-valued" % elem)
                 if isinstance(elem, range):
                     res = normalize_range(elem, nrows)
                     if res is None:
-                        raise ValueError(
+                        raise TValueError(
                             "Invalid %r for a datatable with %s"
                             % (elem, plural(nrows, "row")))
                 else:
@@ -205,11 +205,11 @@ def _make_rowfilter(rows, dt, _nested=False):
                     steps.append(step)
             else:
                 if from_generator:
-                    raise ValueError(
+                    raise TValueError(
                         "Invalid row selector %r generated at position %d"
                         % (elem, i))
                 else:
-                    raise ValueError(
+                    raise TValueError(
                         "Invalid row selector %r at element %d of the "
                         "`rows` list" % (elem, i))
         if not counts:
@@ -224,17 +224,17 @@ def _make_rowfilter(rows, dt, _nested=False):
 
     if isinstance(rows, datatable.DataTable):
         if rows.ncols != 1:
-            raise ValueError("`rows` argument should be a single-column "
-                             "datatable, got %r" % rows)
+            raise TValueError("`rows` argument should be a single-column "
+                              "datatable, got %r" % rows)
         col0type = rows.types[0]
         if col0type != "bool":
-            raise TypeError("`rows` datatable should be a boolean column, "
-                            "however it has type %s" % col0type)
+            raise TTypeError("`rows` datatable should be a boolean column, "
+                             "however it has type %s" % col0type)
         if rows.nrows != dt.nrows:
             s1rows = plural(rows.nrows, "row")
             s2rows = plural(dt.nrows, "row")
-            raise ValueError("`rows` datatable has %s, but applied to a "
-                             "datatable with %s" % (s1rows, s2rows))
+            raise TValueError("`rows` datatable has %s, but applied to a "
+                              "datatable with %s" % (s1rows, s2rows))
         return DataColumn_RFNode(rows)
 
     if isinstance(rows, types.FunctionType):
@@ -245,7 +245,7 @@ def _make_rowfilter(rows, dt, _nested=False):
         return FilterExpr_RFNode(rows)
 
     if _nested:
-        raise TypeError("Unexpected result produced by the `rows` "
-                        "function: %r" % rows)
+        raise TTypeError("Unexpected result produced by the `rows` "
+                         "function: %r" % rows)
     else:
-        raise TypeError("Unexpected `rows` argument: %r" % rows)
+        raise TTypeError("Unexpected `rows` argument: %r" % rows)

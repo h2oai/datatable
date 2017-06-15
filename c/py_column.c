@@ -71,30 +71,28 @@ static PyObject* get_refcount(Column_PyObject *self) {
 }
 
 
+
 /**
- * Provide Python Buffers interface (PEP 3118). This format is understood for
- * example by Numpy.
+ * Provide Python Buffers interface (PEP 3118). This is mostly for the benefit
+ * of integrating with Numpy, however in theory other packages can make use of
+ * this as well.
  */
 static int getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 {
     Column *col = self->ref;
+    Py_ssize_t *info = NULL;
+    dtmalloc_g(info, Py_ssize_t, 2);
 
     if (flags & PyBUF_WRITABLE) {
         PyErr_SetString(PyExc_BufferError, "Cannot create writable buffer");
-        goto fail;
-    }
-    if (flags & PyBUF_F_CONTIGUOUS) {
-        PyErr_SetString(PyExc_BufferError,
-                        "Cannot create Fortran-style buffer");
         goto fail;
     }
     if (stype_info[col->stype].varwidth) {
         PyErr_SetString(PyExc_BufferError, "Column's data has variable width");
         goto fail;
     }
+
     size_t elemsize = stype_info[col->stype].elemsize;
-    Py_ssize_t *info = NULL;
-    dtmalloc_g(info, Py_ssize_t, 2);
 
     view->buf = col->data;
     view->obj = (PyObject*) self;
@@ -118,12 +116,14 @@ static int getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
     } else {
         view->format = NULL;
     }
+
     Py_INCREF(self);
     column_incref(col);
     return 0;
 
   fail:
     view->obj = NULL;
+    dtfree(info);
     return -1;
 }
 

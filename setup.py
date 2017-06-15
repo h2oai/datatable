@@ -161,7 +161,11 @@ setup(
     packages=packages,
 
     # Runtime dependencies
-    install_requires=["typesentry", "blessed", "llvmlite"],
+    install_requires=[
+        "typesentry>=0.1.4",
+        "blessed",
+        "llvmlite"
+    ],
     tests_require=[
         "pytest>=3.0",
         "pytest-cov",
