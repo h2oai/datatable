@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-import functools
 import importlib
-import time
 from .typechecks import TImportError
 
-__all__ = ("clamp", "normalize_slice", "plural_form", "timeit")
+__all__ = ("clamp", "normalize_slice", "plural_form", "load_module")
 
 
 def plural_form(n, singular, plural=None):
@@ -146,17 +144,6 @@ def normalize_range(e, n):
     return (start, count, e.step)
 
 
-def timeit(func):
-    @functools.wraps(func)
-    def timed(*args, **kwds):
-        t0 = time.time()
-        result = func(*args, **kwds)
-        t = time.time() - t0
-        print("Time taken: %d ms" % (t * 1000))
-        return result
-
-    return timed
-
 
 def load_module(module):
     """
@@ -165,6 +152,6 @@ def load_module(module):
     try:
         m = importlib.import_module(module)
         return m
-    except ModuleNotFoundError:
+    except ModuleNotFoundError:  # pragma: no cover
         raise TImportError("Module `%s` is not installed. It is required for "
                            "running this function." % module)

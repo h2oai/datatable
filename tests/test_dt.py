@@ -209,3 +209,13 @@ def test_rename():
     with pytest.raises(ValueError) as e:
         d0.rename({"xxx": "yyy"})
     assert "Column `xxx` does not exist" in str(e.value)
+
+
+def test_topandas():
+    d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
+    p0 = d0.topandas()
+    assert p0.shape == (2, 3)
+    assert p0.columns.tolist() == ["A", "B", "C"]
+    assert p0["A"].values.tolist() == [1, 5]
+    assert p0["B"].values.tolist() == ["hello", "you"]
+    assert p0["C"].values.tolist() == [True, False]
