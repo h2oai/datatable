@@ -17,6 +17,7 @@ def assert_equals(datatable1, datatable2):
     data1 = datatable1.internal.window(0, nrows, 0, ncols).data
     data2 = datatable2.internal.window(0, nrows, 0, ncols).data
     assert data1 == data2
+    assert datatable1.internal.verify_integrity() is None
 
 
 #-------------------------------------------------------------------------------
@@ -145,6 +146,29 @@ def test_append_strings():
     dt0.append(dt1)
     dtr = dt.DataTable({"A": ["Nothing's", "wrong", "with", "this", "world",
                               "something", "wrong", "with", "humans"]})
+    assert_equals(dt0, dtr)
+
+    dt0 = dt.DataTable(["a", "bc", None])
+    dt1 = dt.DataTable([None, "def", "g", None])
+    dt0.append(dt1)
+    dtr = dt.DataTable(["a", "bc", None, None, "def", "g", None])
+    assert_equals(dt0, dtr)
+
+    dt0 = dt.DataTable({"A": [1, 5], "B": ["ham", "eggs"]})
+    dt1 = dt.DataTable({"A": [25], "C": ["spam"]})
+    dt0.append(dt1, force=True)
+    dtr = dt.DataTable({"A": [1, 5, 25], "B": ["ham", "eggs", None],
+                        "C": [None, None, "spam"]})
+    assert_equals(dt0, dtr)
+
+    dt0 = dt.DataTable({"A": ["alpha", None], "C": ["eta", "theta"]})
+    dt1 = dt.DataTable({"A": [None, "beta"], "B": ["gamma", "delta"]})
+    dt2 = dt.DataTable({"D": ["psi", "omega"]})
+    dt0.append(dt1, dt2, force=True)
+    dtr = dt.DataTable({"A": ["alpha", None, None, "beta", None, None],
+                        "C": ["eta", "theta", None, None, None, None],
+                        "B": [None, None, "gamma", "delta", None, None],
+                        "D": [None, None, None, None, "psi", "omega"]})
     assert_equals(dt0, dtr)
 
 

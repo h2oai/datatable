@@ -230,7 +230,7 @@ static Column* rbind_string_column(
     // Copy the data and remap the offsets
     int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
     int32_t rows_to_fill = 0;  // how many rows need to be filled with NAs
-    int32_t curr_offset = 0;
+    int32_t curr_offset = 1;
     if (map[0].off0 < 0) {
         rows_to_fill += map[0].row1 - map[0].row0;
     } else {
@@ -248,17 +248,17 @@ static Column* rbind_string_column(
                 rows_to_fill = 0;
             }
             Column *coli = dts[i-1]->columns[cols[i-1]];
-            memcpy(add_ptr(col->data, curr_offset),
+            memcpy(add_ptr(col->data, curr_offset - 1),
                    add_ptr(coli->data, map[i].off0),
                    (size_t)(map[i].off1 - map[i].off0));
             int64_t offoffi = ((VarcharMeta*) coli->meta)->offoff;
             int32_t *dti_offsets = (int32_t*) add_ptr(coli->data, offoffi);
             int32_t row0 = map[i].row0;
             int32_t row1 = map[i].row1;
-            int32_t delta = curr_offset + 1 - abs(dti_offsets[row0]);
+            curr_offset--;
             for (int32_t j = row0; j < row1; j++) {
                 int32_t off = dti_offsets[j];
-                *offsets++ = off > 0? off + delta : off - delta;
+                *offsets++ = off > 0? off + curr_offset : off - curr_offset;
             }
             curr_offset += map[i].off1 - map[i].off0;
         }
