@@ -184,6 +184,19 @@ class DataTable(object):
         self._inames = {n: i for i, n in enumerate(names)}
 
 
+    def _fill_from_pandas(self, pdf):
+        columns = []
+        for colname in pdf.columns:
+            nparray = pdf[colname].values
+            if not nparray.dtype.isnative:
+                # Array has wrong endianness -- coerce into native byte-order
+                nparray = nparray.byteswap().newbyteorder()
+                assert nparray.dtype.isnative
+            columns.append(nparray)
+        dt = c.datatable_from_buffers(columns)
+        self._fill_from_dt(dt, names=pdf.columns)
+
+
 
     #---------------------------------------------------------------------------
     # Main processor function

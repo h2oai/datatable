@@ -138,6 +138,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(rowmapping_from_column),
     METHOD0(rowmapping_from_filterfn),
     METHOD0(datatable_from_list),
+    METHOD0(datatable_from_buffers),
     {"fread", (PyCFunction)freadPy, METH_VARARGS,
         "Read a text file and convert into a datatable"},
     {"dt_from_memmap", (PyCFunction)dt_from_memmap, METH_VARARGS,
