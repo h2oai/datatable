@@ -134,6 +134,44 @@ typedef struct freadMainArgs
 
 // *****************************************************************************
 
+typedef struct ThreadLocalFreadParsingContext
+{
+  // Pointer that serves as a starting point for all offsets within the `lenOff`
+  // structs.
+  const char *restrict anchor;
+
+  // Output buffers for values with different alignment requirements. For
+  // example all `lenOff` columns, `double` columns and `int64` columns will be
+  // written to buffer `buff8`; at the same time `_Bool` and `int8` columns will
+  // be stored in memory buffer `buff1`.
+  // Within each buffer the data is stored in row-major order, i.e. in the same
+  // order as in the original CSV file.
+  void *restrict buff8;
+  void *restrict buff4;
+  void *restrict buff1;
+
+  // Size (in bytes) for a single row of data within the buffers `buff8`,
+  // `buff4` and `buff1` correspondingly.
+  size_t rowSize8;
+  size_t rowSize4;
+  size_t rowSize1;
+
+  // Starting output row index for the current data chunk.
+  size_t DTi;
+
+  // Number of rows currently being stored within the buffers. The allocation
+  // size of each `buffX` is thus at least `nRows * rowSizeX`.
+  size_t nRows;
+
+  // Any additional implementation-specific parameters.
+  FREAD_PUSH_BUFFERS_EXTRA_FIELDS
+
+} ThreadLocalFreadParsingContext;
+
+
+
+// *****************************************************************************
+
 /**
  * Fast parallel reading of CSV files with intelligent guessing of parse
  * parameters.
@@ -248,10 +286,7 @@ void reallocColType(int col, colType newType);
  * to transpose the data: convert from row-major order within each buffer
  * into the column-major order for the resulting DataTable.
  */
-void pushBuffer(const void *buff8, const void *buff4, const void *buff1,
-                const char *anchor, int nRows, size_t DTi,
-                int rowSize8, int rowSize4, int rowSize1,
-                int nStringCols, int nNonStringCols);
+void pushBuffer(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
