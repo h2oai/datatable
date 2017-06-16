@@ -223,13 +223,14 @@ void setFinalNrow(size_t nrows) {
             void *final_ptr = (void*) strbufs[j]->buf;
             strbufs[j]->buf = NULL;  // take ownership of the pointer
             size_t curr_size = strbufs[j]->ptr;
-            size_t padding = (8 - (curr_size & 7)) & 7;
+            size_t padding = ((8 - (curr_size & 7)) & 7) + 4;
             size_t offoff = curr_size + padding;
             size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;
             final_ptr = realloc(final_ptr, final_size);
             memset(final_ptr + curr_size, 0xFF, padding);
             memcpy(final_ptr + offoff, col->data, offs_size);
+            ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
             free(col->data);
             col->data = final_ptr;
             col->meta = malloc(sizeof(VarcharMeta));
