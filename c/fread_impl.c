@@ -86,7 +86,7 @@ PyObject* freadPy(UU, PyObject *args)
     frargs.skipEmptyLines = 1;
     frargs.fill = TOBOOL(ATTR(freader, "fill"), 0);
     frargs.showProgress = 0;
-    frargs.nth = 1;
+    frargs.nth = -1;
     frargs.warningsAreErrors = 0;
     if (frargs.nrowLimit < 0)
         frargs.nrowLimit = LONG_MAX;
