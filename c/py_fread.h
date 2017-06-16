@@ -3,7 +3,7 @@
 #include <Python.h>
 
 
-#define EXTRA_FIELDS  PyObject *freader;
+#define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
 
 
 

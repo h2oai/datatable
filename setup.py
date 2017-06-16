@@ -105,6 +105,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #       cases even if `default` clause is present. -Wswitch
 #       does not suffer from this drawback.
 extra_compile_args = [
+    "-DDTPY",
     "-Weverything",
     "-Wno-pointer-arith",
     "-Wno-covered-switch-default",

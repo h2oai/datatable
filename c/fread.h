@@ -1,15 +1,12 @@
-// *****************************************************************************
-//
-//  This file is shared across `R data.table` and `Py datatable`.
-//  R:  https://github.com/Rdatatable/data.table
-//  Py: https://github.com/h2oai/datatable
-//
-// *****************************************************************************
 #ifndef dt_FREAD_H
 #define dt_FREAD_H
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
-#include "fread_impl.h"
+#ifdef DTPY
+  #include "py_fread.h"
+#else
+  #include "freadR.h"
+#endif
 
 
 // Ordered hierarchy of types
@@ -77,6 +74,9 @@ typedef struct freadMainArgs
   // the array ends.
   const char * const* NAstrings;
 
+  // Maximum number of threads (should be >= 1).
+  int32_t nth;
+
   // Character to use for a field separator. Multi-character separators are not
   // supported. If `sep` is '\0', then fread will autodetect it. A quotation
   // mark '"' is not allowed as field separator.
@@ -112,9 +112,6 @@ typedef struct freadMainArgs
   // If True, then emit progress messages during the parsing.
   _Bool showProgress;
 
-  // Maximum number of threads (should be >= 1).
-  int32_t nth;
-
   // Emit extra debug-level information.
   _Bool verbose;
 
@@ -129,7 +126,7 @@ typedef struct freadMainArgs
   char _padding[2];
 
   // Any additional implementation-specific parameters.
-  EXTRA_FIELDS
+  FREAD_MAIN_ARGS_EXTRA_FIELDS
 
 } freadMainArgs;
 
@@ -137,55 +134,123 @@ typedef struct freadMainArgs
 
 // *****************************************************************************
 
-int freadMain(freadMainArgs __args);
-
 /**
- * Opportunity to bump up types of columns, if the user so wishes (currently
- * bumping types down is not supported). The user may also mark some columns as
- * skipped.
+ * Fast parallel reading of CSV files with intelligent guessing of parse
+ * parameters.
  *
- * type: detected column types
- * ncol: total number of columns
- * colNames: may be null if there are no col names
- * return: false = stop reading file
+ * It should have been called just "fread", but that name is already defined in
+ * the system libraries...
  */
-_Bool userOverride(int8_t *type, lenOff *colNames, const char *anchor, int ncol);
+int freadMain(freadMainArgs args);
 
 
 /**
- * type: array of column types (i.e. colType), as signed chars.
- * ncols: number of elements in the array
- * ndrop: count of columns that have type[i] == CT_DROP (and should not be allocated)
- * nrows: number of rows in the datatable
- * return: total size of the Datatable created (for reporting purposes). If the
- *         return value is 0, then it indicates an error.
+ * This callback is invoked by `freadMain` after the initial pre-scan of the
+ * file, when all parsing parameters have been determined; most importantly the
+ * column names and their types.
+ *
+ * This function serves two purposes: first, it tells the upstream code what the
+ * detected column names are; and secondly what is the expected type of each
+ * column. The upstream code then has an opportunity to upcast the column types
+ * if requested by the user, or mark some columns as skipped.
+ *
+ * @param types
+ *    type codes of each column in the CSV file. Possible type codes are
+ *    described by the `colType` enum. The function may modify this array
+ *    setting some types to 0 (CT_DROP), or upcasting the types. Downcasting is
+ *    not allowed and will trigger an error from `freadMain` later on.
+ *
+ * @param colNames
+ *    array of `lenOff` structures (offsets are relative to the `anchor`)
+ *    describing the column names. If the CSV file had no header row, then this
+ *    array will be filled with 0s.
+ *
+ * @param anchor
+ *    pointer to a string buffer (usually somewhere inside the memory-mapped
+ *    file) within which the column names are located, as described by the
+ *    `colNames` array.
+ *
+ * @param ncol
+ *    total number of columns. This is the length of arrays `types` and
+ *    `colNames`.
+ *
+ * @return
+ *    this function may return `false` to request that fread abort reading
+ *    the CSV file. Normally, this function should return `true`.
  */
-size_t allocateDT(int8_t *type, int8_t *size, int ncols, int ndrop, size_t nrows);
+_Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
+                   int ncol);
 
 
 /**
- * (code does not expect the values to remain)
- * col: col index (indexing into the final result)
- * colType: new type for the column
+ * This function is invoked by `freadMain` right before the main scan of the
+ * input file. This function should allocate the resulting `DataTable` structure
+ * and prepare to receive the data in chunks.
+ *
+ * @param types
+ *     array of type codes for each column. Same as in the `userOverride`
+ *     function.
+ *
+ * @param sizes
+ *    the size (in bytes) of each column within the buffer(s) that will be
+ *    passed to `pushBuffer()` during the scan. This array should be saved for
+ *    later use. It exists mostly for convenience, since the size of each
+ *    non-skipped column may be determined from that column's type.
+ *
+ * @param ncols
+ *    number of columns in the CSV file. This is the size of arrays `types` and
+ *    `sizes`.
+ *
+ * @param ndrop
+ *    count of columns with type CT_DROP. This parameter is provided for
+ *    convenience, since it can always be computed from `types`. The resulting
+ *    datatable will have `ncols - ndrop` columns.
+ *
+ * @param nrows
+ *    the number of rows to allocate for the datatable. This number of rows is
+ *    estimated during the initial pre-scan, and then adjusted upwards to
+ *    account for possible variation. It is very unlikely that this number
+ *    underestimates the final row count.
+ *
+ * @return
+ *    this function should return the total size of the Datatable created (for
+ *    reporting purposes). If the return value is 0, then it indicates an error
+ *    and `fread` will abort.
+ */
+size_t allocateDT(int8_t *types, int8_t *sizes, int ncols, int ndrop,
+                  size_t nrows);
+
+
+/**
+ * Request to replace column `col` with a new column of type `newType`. This
+ * function is called after the entire input file has been scanned, and after
+ * we discovered during the scan that some columns did not have the expected
+ * types.
+ * This function will be called once for each column that needs to have its
+ * type upcasted. The caller does not expect that the column retains the values
+ * that were already written there.
+ *
+ * @param col
+ *    the index of the column that will be replaced. This index is within the
+ *    final DataTable, not within the arrays `types` or `sizes` (i.e. `col`
+ *    ranges from 0 to `ncols - ndrop - 1`).
+ *
+ * @param newType
+ *    new type for the column.
  */
 void reallocColType(int col, colType newType);
 
 
 /**
- * Called in-parallel from each thread
- * type: column types array
- * ncol: number of elemns in array `type`
- * buff: array of pointers to columns data-buffers (`ncol - ndrop` long)
- * anchor: buffer for string columns
- * nStringCols: number of columns of string types
- * nNonStringCols: number of columns of any other types
- *    (nStringCols + nNonStringCols == ncol - ndrop)
- * nRows: number of rows in the buffer
- * ansi: starting row where to put the data from the buffers into the final DT
+ * This function transfers the scanned input data into the final DataTable
+ * structure. It will be called many times, and from parallel threads (thus
+ * it should not attempt to modify any global variables). Its primary job is
+ * to transpose the data: convert from row-major order within each buffer
+ * into the column-major order for the resulting DataTable.
  */
 void pushBuffer(const void *buff8, const void *buff4, const void *buff1,
                 const char *anchor, int nRows, size_t DTi,
-                int rowsize8, int rowsize4, int rowsize1,
+                int rowSize8, int rowSize4, int rowSize1,
                 int nStringCols, int nNonStringCols);
 
 
@@ -193,12 +258,16 @@ void pushBuffer(const void *buff8, const void *buff4, const void *buff1,
  * Called at the end to specify what the actual number of rows in the datatable
  * was. The function should adjust the datatable, reallocing the buffers if
  * necessary.
+ * If the input file needs to be rescanned due to some columns having wrong
+ * column types, then this function will be called once after the file is
+ * finished scanning but before any calls to `reallocColType()`, and then the
+ * second time after the entire input file was scanned again.
  */
 void setFinalNrow(size_t nrows);
 
 
 /**
- * Progress-report function.
+ * Progress-reporting function.
  */
 void progress(double percent/*[0,1]*/, double ETA/*secs*/);
 
@@ -207,13 +276,3 @@ void freadCleanup(void);
 double wallclock(void);
 
 #endif
-
-// If this function is not NULL, it will be called by fread() after it has
-// determined the basic structure of the file (i.e. names and types of all
-// columns). This function will be called as:
-//     filter_colums(&types, column_names, ncols, self)
-// and it has the opportunity to modify the types (or names) however it
-// wants. For example, the caller may:
-//     + set the type of certain column(s) to SXP_IGNORE
-//     + override the type with a user-provided option
-//     + modify column names
