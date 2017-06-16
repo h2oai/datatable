@@ -167,6 +167,7 @@ setup(
         "llvmlite"
     ],
     tests_require=[
+        "pandas",
         "pytest>=3.0",
         "pytest-cov",
     ],
