@@ -446,8 +446,9 @@ int ISNA_U4(uint32_t x);
 //==============================================================================
 
 typedef enum MType {
-    MT_DATA  = 1,
-    MT_MMAP  = 2,
+    MT_DATA = 1,
+    MT_MMAP = 2,
+    MT_BUFF = 3,
 } __attribute__ ((__packed__)) MType;
 
 
