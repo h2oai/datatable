@@ -7,10 +7,17 @@ below 3.5.
 
 ## Run instructions
 
-Make sure that you have
-[Clang + Llvm-4.0](http://releases.llvm.org/download.html#4.0.0) package
-installed. Then set up environment variable `LLVM4` so that it points to the
-location of this package.
+Make sure that you have the
+[Clang + Llvm-4.0](http://releases.llvm.org/download.html#4.0.0) combined package
+installed even if you already both clang and llvm installed at version 4.0 already.
+Python seems to need them together in one path. Then set up environment variable
+`LLVM4` so that it points to the location of this package.
+
+On Ubuntu that means:
+  1. Click the link above and using your browser download the pre-built binary; e.g. clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz
+  2. Move that .tar.xz file to /opt
+  3. In /opt, sudo tar xvf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz
+  4. export LLVM4=/opt/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10
 
 You will also need to have Python 3.6 as your default python. The easiest way
 is to set up a virtual environment:
