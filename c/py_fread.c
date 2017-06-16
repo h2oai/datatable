@@ -265,17 +265,22 @@ void reallocColType(int colidx, colType newType) {
 }
 
 
-void pushBuffer(const void *buff8, const void *buff4, const void *buff1,
-                const char *anchor, int nrows, size_t row0,
-                int rowSize8, int rowSize4, int rowSize1,
-                UNUSED(int nStringCols), UNUSED(int nNonStringCols))
+void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
+    const void *restrict buff8 = ctx->buff8;
+    const void *restrict buff4 = ctx->buff4;
+    const void *restrict buff1 = ctx->buff1;
+    const char *restrict anchor = ctx->anchor;
+    int nrows = (int) ctx->nRows;
+    size_t row0 = ctx->DTi;
+
     int i = 0;  // index within the `types` and `sizes`
     int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
     int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
-    int rowCount8 = rowSize8 / 8;
-    int rowCount4 = rowSize4 / 4;
-    int rowCount1 = rowSize1 / 1;
+    int rowCount8 = (int) ctx->rowSize8 / 8;
+    int rowCount4 = (int) ctx->rowSize4 / 4;
+    int rowCount1 = (int) ctx->rowSize1;
+
     for (; i < ncols; i++) {
         if (types[i] == CT_DROP)
             continue;

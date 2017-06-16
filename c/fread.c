@@ -1788,6 +1788,7 @@ int freadMain(freadMainArgs _args)
     if (initialBuffRows > INT32_MAX) STOP("Buffer size %lld is too large\n", initialBuffRows);
     nth = imin(nJumps, nth);
 
+    //-- Start parallel ----------------
     read:  // we'll return here to reread any columns with out-of-sample type exceptions
     prevJumpEnd = sof;
     #pragma omp parallel num_threads(nth)
@@ -1811,6 +1812,16 @@ int freadMain(freadMainArgs _args)
           (rowSize4 && !myBuff4) ||
           (rowSize1 && !myBuff1) || !myBuff0) stopTeam = true;
 
+      ThreadLocalFreadParsingContext ctx = {
+        .anchor = NULL,
+        .buff8 = myBuff8, .buff4 = myBuff4, .buff1 = myBuff1,
+        .rowSize8 = rowSize8, .rowSize4 = rowSize4, .rowSize1 = rowSize1,
+        .DTi = 0, .nRows = allocnrow,
+        #ifndef DTPY
+        .nStringCols = nStringCols, .nNonStringCols = nNonStringCols
+        #endif
+      };
+
       #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
       for (int jump=0; jump<nJumps+nth; jump++) {
         double tt0 = 0, tt1 = 0;
@@ -1828,9 +1839,10 @@ int freadMain(freadMainArgs _args)
           // iii) myBuff is hot, so this is the best time to transpose it to result, and first time possible as soon
           //      as we know the previous jump's number of rows.
           //  iv) so that myBuff can be small
-          pushBuffer(myBuff8, myBuff4, myBuff1, /*anchor=*/thisJumpStart,
-                     (int)myNrow, myDTi, (int)rowSize8, (int)rowSize4, (int)rowSize1,
-                     nStringCols, nNonStringCols);
+          ctx.anchor = thisJumpStart;
+          ctx.nRows = myNrow;
+          ctx.DTi = myDTi;
+          pushBuffer(&ctx);
           if (verbose) { tt1 = wallclock(); thPush += tt1 - tt0; tt0 = tt1; }
 
           if (me==0 && (hasPrinted || (args.showProgress && jump/nth==4 &&
@@ -1879,9 +1891,9 @@ int freadMain(freadMainArgs _args)
             long diff8 = (char*)myBuff8Pos - (char*)myBuff8;
             long diff4 = (char*)myBuff4Pos - (char*)myBuff4;
             long diff1 = (char*)myBuff1Pos - (char*)myBuff1;
-            myBuff8 = realloc(myBuff8, rowSize8 * myBuffRows);
-            myBuff4 = realloc(myBuff4, rowSize4 * myBuffRows);
-            myBuff1 = realloc(myBuff1, rowSize1 * myBuffRows);
+            ctx.buff8 = myBuff8 = realloc(myBuff8, rowSize8 * myBuffRows);
+            ctx.buff4 = myBuff4 = realloc(myBuff4, rowSize4 * myBuffRows);
+            ctx.buff1 = myBuff1 = realloc(myBuff1, rowSize1 * myBuffRows);
             if ((rowSize8 && !myBuff8) ||
                 (rowSize4 && !myBuff4) ||
                 (rowSize1 && !myBuff1)) {
@@ -2070,8 +2082,14 @@ int freadMain(freadMainArgs _args)
       free(myBuff4); myBuff4 = NULL;
       free(myBuff1); myBuff1 = NULL;
       free(myBuff0); myBuff0 = NULL;
+      // `ctx` is automatically reclaimed here
     }
-    // end parallel
+    //-- end parallel ------------------
+
+
+    //*********************************************************************************************
+    // [13] Finalize data.table
+    //*********************************************************************************************
     if (firstTime) {
       tReread = tRead = wallclock();
       tTot = tRead-t0;
@@ -2144,6 +2162,11 @@ int freadMain(freadMainArgs _args)
       firstTime = false;
       goto read;
     }
+
+
+    //*********************************************************************************************
+    // [14] Epilogue
+    //*********************************************************************************************
     if (verbose) {
       DTPRINT("=============================\n");
       if (tTot<0.000001) tTot=0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s

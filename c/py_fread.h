@@ -6,6 +6,8 @@
 #define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
 
 
+#define FREAD_PUSH_BUFFERS_EXTRA_FIELDS
+
 
 // Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
 //     if (cond) STOP("Bad things happened: %s", smth_bad);
