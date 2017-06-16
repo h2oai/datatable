@@ -20,14 +20,14 @@ def fread(filename="", **params):
 
 class FReader(object):
 
-    @typed(filename=str, text=str, separator=str, max_nrows=int, header=bool,
+    @typed(filename=str, text=str, sep=str, max_nrows=int, header=bool,
            na_strings=[str], fill=bool)
-    def __init__(self, filename=None, text=None, separator=None, max_nrows=None,
+    def __init__(self, filename=None, text=None, sep=None, max_nrows=None,
                  header=None, na_strings=None, verbose=False, fill=False,
                  **args):
         self._filename = None   # type: str
         self._text = None       # type: str
-        self._separator = None  # type: str
+        self._sep = None        # type: str
         self._maxnrows = None   # type: int
         self._header = None     # type: bool
         self._nastrings = []    # type: List[str]
@@ -39,12 +39,15 @@ class FReader(object):
 
         self.filename = filename
         self.text = text
-        self.separator = separator
+        self.sep = sep
         self.max_nrows = max_nrows
         self.header = header
         self.na_strings = na_strings
         self.verbose = verbose
         self.fill = fill
+
+        if "separator" in args:
+            self.sep = args.pop("separator")
 
 
     @property
@@ -82,22 +85,22 @@ class FReader(object):
 
 
     @property
-    def separator(self):
-        return self._separator
+    def sep(self):
+        return self._sep
 
-    @separator.setter
-    @typed(separator=U(str, None))
-    def separator(self, separator):
-        if not separator:
-            self._separator = None
+    @sep.setter
+    @typed(sep=U(str, None))
+    def sep(self, sep):
+        if not sep:
+            self._sep = None
         else:
-            if len(separator) > 1:
+            if len(sep) > 1:
                 raise ValueError("Multi-character separator %r not supported"
-                                 % separator)
-            if ord(separator) > 127:
+                                 % sep)
+            if ord(sep) > 127:
                 raise ValueError("The separator should be an ASCII character, "
-                                 "got %r" % separator)
-            self._separator = separator
+                                 "got %r" % sep)
+            self._sep = sep
 
 
     @property

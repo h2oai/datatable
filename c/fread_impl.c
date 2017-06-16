@@ -36,6 +36,7 @@ static PyObject *freader = NULL;
 // DataTable being constructed.
 static DataTable *dt = NULL;
 
+// List of column names for the final DataTable
 static PyObject *colNamesList = NULL;
 
 static char *filename = NULL;
@@ -73,7 +74,7 @@ PyObject* freadPy(UU, PyObject *args)
     na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
     frargs.filename = filename;
     frargs.input = input;
-    frargs.sep = TOCHAR(ATTR(freader, "separator"), 0);
+    frargs.sep = TOCHAR(ATTR(freader, "sep"), 0);
     frargs.dec = '.';
     frargs.quote = '"';
     frargs.nrowLimit = TOINT64(ATTR(freader, "max_nrows"), 0);
