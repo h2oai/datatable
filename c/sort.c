@@ -19,10 +19,10 @@ static void* countp_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, 
 static void* count_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
 static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o);
 
-inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
-inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
-inline void* minp(void *a, void *b) { return a < b? a : b; }
-inline int mini4(int a, int b) { return a < b? a : b; }
+static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
+static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
+static inline void* minp(void *a, void *b) { return a < b? a : b; }
+static inline int mini4(int a, int b) { return a < b? a : b; }
 
 #define INSERT_SORT_THRESHOLD 64
 

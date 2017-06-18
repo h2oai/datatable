@@ -139,8 +139,8 @@ float max_f4(float a, float b);
  * say simply `ptr + n`, but this is not in standard C, and produces a warning
  * on Clang compiler (and in C++ such operation is straight prohibited...).
  */
-#define add_ptr(ptr, n)  ((void*)((char*)(ptr) + (n)))
-
+#define add_ptr(ptr, n)       ((void*)((char*)(ptr) + (n)))
+#define add_constptr(ptr, n)  ((const void*)((const char*)(ptr) + (n)))
 
 
 //---- Private -------------------------
