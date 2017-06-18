@@ -31,7 +31,7 @@ extern const long double pow10lookup[701];
 // string length; fread_impl.c then manages strings appropriately
 typedef struct {
   int32_t len;  // signed to distinguish NA vs empty ""
-  uint32_t off;
+  int32_t off;
 } lenOff;
 
 
@@ -163,6 +163,13 @@ typedef struct ThreadLocalFreadParsingContext
   // size of each `buffX` is thus at least `nRows * rowSizeX`.
   size_t nRows;
 
+  size_t threadn;
+
+  // Reference to the flag that controls the parser's execution. Setting this
+  // flag to true will force parsing of the CSV file to terminate in the near
+  // future.
+  _Bool *stopTeam;
+
   // Any additional implementation-specific parameters.
   FREAD_PUSH_BUFFERS_EXTRA_FIELDS
 
@@ -225,6 +232,11 @@ _Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
  * input file. This function should allocate the resulting `DataTable` structure
  * and prepare to receive the data in chunks.
  *
+ * If the input file needs to be re-read due to out-of-sample type exceptions,
+ * then this function will be called second time with updated `types` array.
+ * Then this function's responsibility is to update the allocation of those
+ * columns properly.
+ *
  * @param types
  *     array of type codes for each column. Same as in the `userOverride`
  *     function.
@@ -260,23 +272,27 @@ size_t allocateDT(int8_t *types, int8_t *sizes, int ncols, int ndrop,
 
 
 /**
- * Request to replace column `col` with a new column of type `newType`. This
- * function is called after the entire input file has been scanned, and after
- * we discovered during the scan that some columns did not have the expected
- * types.
- * This function will be called once for each column that needs to have its
- * type upcasted. The caller does not expect that the column retains the values
- * that were already written there.
- *
- * @param col
- *    the index of the column that will be replaced. This index is within the
- *    final DataTable, not within the arrays `types` or `sizes` (i.e. `col`
- *    ranges from 0 to `ncols - ndrop - 1`).
- *
- * @param newType
- *    new type for the column.
+ * Called once at the beginning of each thread before it starts scanning the
+ * input file. If the file needs to be rescanned because of out-of-type
+ * exceptions, this will be called again before the second scan.
  */
-void reallocColType(int col, colType newType);
+void prepareThreadContext(ThreadLocalFreadParsingContext *ctx);
+
+
+/**
+ * Give upstream the chance to modify the scanned buffers after the thread
+ * finished reading its chunk but before it enters the "ordered" section.
+ * Variable `ctx.DTi` is not available at this moment.
+ */
+void postprocessBuffer(ThreadLocalFreadParsingContext *ctx);
+
+
+/**
+ * Callback invoked within the "ordered" section for each thread. Only
+ * lightweight processing should be performed here, since this section stalls
+ * execution of any other thread!
+ */
+void orderBuffer(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
@@ -299,6 +315,12 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx);
  * second time after the entire input file was scanned again.
  */
 void setFinalNrow(size_t nrows);
+
+
+/**
+ * Free any srtuctures associated with the thread-local parsing context.
+ */
+void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 
 
 /**

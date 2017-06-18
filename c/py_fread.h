@@ -6,7 +6,28 @@
 #define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
 
 
-#define FREAD_PUSH_BUFFERS_EXTRA_FIELDS
+typedef struct StrBuf {
+    char *buf;
+    size_t size;
+    size_t ptr;
+    size_t idx8;
+} StrBuf;
+
+
+// Per-column per-thread temporary string buffers used to assemble processed
+// string data. Length = `nstrcols`. Each element in this array has the
+// following fields:
+//     .buf -- memory region where all string data is stored.
+//     .size -- allocation size of this memory buffer.
+//     .ptr -- the `postprocessBuffer` stores here the total amount of string
+//         data currently held in the buffer; while the `orderBuffer` function
+//         puts here the offset within the global string buffer where the
+//         current buffer should be copied to.
+//     .idx8 -- same as the global `.idx8`.
+//
+#define FREAD_PUSH_BUFFERS_EXTRA_FIELDS                                        \
+    StrBuf *strbufs;                                                           \
+
 
 
 // Exception-raising macro for `fread()`, which renames it into "STOP". Usage:

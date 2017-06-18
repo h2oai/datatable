@@ -6,7 +6,6 @@
 #include "py_utils.h"
 
 
-static const size_t colTypeSizes[NUMTYPE] = {0, 1, 4, 4, 8, 8, 8};
 static const SType colType_to_stype[NUMTYPE] = {
     ST_VOID,
     ST_BOOLEAN_I1,
@@ -17,11 +16,6 @@ static const SType colType_to_stype[NUMTYPE] = {
     ST_STRING_I4_VCHAR,
 };
 
-typedef struct StrBuf {
-    char *buf;
-    size_t ptr;
-    size_t size;
-} StrBuf;
 
 // Forward declarations
 void cleanup_fread_session(freadMainArgs *frargs);
@@ -43,10 +37,30 @@ static char *filename = NULL;
 static char *input = NULL;
 static char **na_strings = NULL;
 
-static int64_t ncols = 0;
+// ncols -- number of fields in the CSV file.
+// ndtcols -- number of columns in the output DataTable (which is `ncols` minus
+//     the number of dropped columns).
+// nstrcols -- number of string columns in the output DataTable.
+static size_t ncols = 0;
+static size_t ndtcols = 0;
+static size_t nstrcols = 0;
+
+// types -- array of types for each field in the input file. Length = `ncols`
+// sizes -- array of byte sizes for each field. Length = `ncols`.
+// Both of these arrays are borrowed references and are valid only for the
+// duration of the parse. Should not be freed.
 static int8_t *types = NULL;
 static int8_t *sizes = NULL;
-static StrBuf **strbufs = NULL;
+
+// strbufs -- array of auxiliary values for all string columns in the output
+//     DataTable (length = `nstrcols`). Each `StrBuf` contains the following
+//     values:
+//     .buf -- memory region where all strings data is stored, back-to-back.
+//     .size -- allocation size of `.buf`.
+//     .ptr -- the amount of buffer that was filled so far, i.e. offset within
+//         the buffer of the first unwritten byte.
+//     .idx8 -- index of this column within the `buff8` memory buffer.
+static StrBuf *strbufs = NULL;
 
 
 /**
@@ -62,9 +76,9 @@ PyObject* freadPy(UU, PyObject *args)
             "Cannot run multiple instances of fread() in-parallel.");
         return NULL;
     }
-
     if (!PyArg_ParseTuple(args, "O:fread", &freader))
-        goto fail;
+        return NULL;
+
     Py_INCREF(freader);
 
     freadMainArgs frargs;
@@ -112,6 +126,11 @@ PyObject* freadPy(UU, PyObject *args)
 
 
 void cleanup_fread_session(freadMainArgs *frargs) {
+    ncols = 0;
+    ndtcols = 0;
+    nstrcols = 0;
+    types = NULL;
+    sizes = NULL;
     dtfree(filename);
     dtfree(input);
     if (frargs) {
@@ -123,11 +142,8 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         pyfree(frargs->freader);
     }
     if (strbufs) {
-        for (int64_t i = 0; i < ncols; i++) {
-            if (strbufs[i]) {
-                dtfree(strbufs[i]->buf);
-                dtfree(strbufs[i]);
-            }
+        for (size_t i = 0; i < nstrcols; i++) {
+            dtfree(strbufs[i].buf);
         }
         dtfree(strbufs);
     }
@@ -138,9 +154,10 @@ void cleanup_fread_session(freadMainArgs *frargs) {
 
 
 
-_Bool userOverride(
-    UNUSED(int8_t *types_), lenOff *colNames, const char *anchor, int ncols_
-) {
+_Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
+                   int ncols_)
+{
+    types = types_;
     colNamesList = PyTuple_New(ncols_);
     for (int i = 0; i < ncols_; i++) {
         lenOff ocol = colNames[i];
@@ -156,176 +173,270 @@ _Bool userOverride(
 
 
 /**
- * Allocate memory for the datatable that will be read.
+ * Allocate memory for the DataTable that is being constructed.
  */
-size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop,
+size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
                   size_t nrows)
 {
     Column **columns = NULL;
     types = types_;
     sizes = sizes_;
-    ncols = (int64_t) ncols_;
+    size_t total_alloc_size = 0;
 
-    dtcalloc_g(columns, Column*, ncols - ndrop + 1);
-    dtcalloc_g(strbufs, StrBuf*, ncols);
-    columns[ncols - ndrop] = NULL;
-
-    size_t total_alloc_size = sizeof(Column*) * (size_t)(ncols - ndrop) +
-                              sizeof(StrBuf*) * (size_t)(ncols - ndrop);
-    for (int i = 0, j = 0; i < ncols_; i++) {
-        int8_t type = types[i];
-        if (type == CT_DROP)
-            continue;
-        size_t alloc_size = colTypeSizes[type] * nrows;
-        dtmalloc_g(columns[j], Column, 1);
-        dtmalloc_g(columns[j]->data, void, alloc_size);
-        columns[j]->mtype = MT_DATA;
-        columns[j]->stype = ST_VOID; // stype will be 0 until the column is finalized
-        columns[j]->meta = NULL;
-        columns[j]->alloc_size = alloc_size;
-        columns[j]->refcount = 1;
-        if (type == CT_STRING) {
-            dtmalloc_g(strbufs[j], StrBuf, 1);
-            dtmalloc_g(strbufs[j]->buf, char, nrows * 10);
-            strbufs[j]->ptr = 0;
-            strbufs[j]->size = nrows * 10;
-            total_alloc_size += sizeof(StrBuf) + nrows * 10;
-        }
-        total_alloc_size += alloc_size + sizeof(Column);
-        j++;
+    int reallocate = (ncols > 0);
+    if (reallocate) {
+        assert(dt != NULL && strbufs == NULL);
+        assert(ncols == ncols_ && nstrcols == 0);
+        columns = dt->columns;
+    } else {
+        assert(dt == NULL && strbufs == NULL);
+        assert(ncols == 0 && ndtcols == 0 && nstrcols == 0);
+        ncols = (size_t) ncols_;
+        ndtcols = (size_t)(ncols_ - ndrop_);
+        dtcalloc_g(columns, Column*, ndtcols + 1);
+        columns[ndtcols] = NULL;
+        total_alloc_size += sizeof(Column*) * ndtcols;
     }
 
-    dtmalloc_g(dt, DataTable, 1);
-    dt->nrows = (int64_t) nrows;
-    dt->ncols = ncols - ndrop;
-    dt->rowmapping = NULL;
-    dt->columns = columns;
-    total_alloc_size += sizeof(DataTable);
+    nstrcols = 0;
+    for (int i = 0; i < ncols_; i++)
+        nstrcols += (types[i] == CT_STRING);
+    dtcalloc_g(strbufs, StrBuf, nstrcols);
+
+    size_t j = 0;
+    size_t k = 0;
+    size_t off8 = 0;
+    for (int i = 0; i < ncols_; i++) {
+        int8_t type = types[i];
+        if (type == CT_DROP) continue;
+        if (type < 0) { j++; continue; }
+        assert(j < ndtcols);
+
+        if (reallocate) column_decref(columns[j]);
+        columns[j] = make_column(colType_to_stype[type], nrows);
+        if (columns[j] == NULL) goto fail;
+        // column's stype will be 0 until the column is finalized
+        columns[j]->stype = 0;
+
+        if (type == CT_STRING) {
+            assert(k < nstrcols);
+            size_t alloc_size = nrows * 10;
+            dtmalloc_g(strbufs[k].buf, char, alloc_size);
+            strbufs[k].ptr = 0;
+            strbufs[k].size = alloc_size;
+            strbufs[k].idx8 = off8;
+            total_alloc_size += alloc_size;
+            k++;
+        }
+        total_alloc_size += columns[j]->alloc_size + sizeof(Column);
+        off8 += (sizes[i] == 8);
+        j++;
+    }
+    assert(i == ncols && j == ndtcols && k == nstrcols);
+
+    if (!reallocate) {
+        dt = make_datatable((int64_t)nrows, columns);
+        if (dt == NULL) goto fail;
+        total_alloc_size += sizeof(DataTable);
+    }
     return total_alloc_size;
 
   fail:
     if (columns) {
-        for (int i = 0; i < ncols - ndrop; i++) column_decref(columns[i]);
+        for (j = 0; j < ndtcols; j++) column_decref(columns[j]);
+        dtfree(columns);
     }
-    dtfree(columns);
+    if (strbufs) {
+        for (k = 0; k < nstrcols; k++) dtfree(strbufs[k].buf);
+        dtfree(strbufs);
+    }
     return 0;
 }
 
 
+
 void setFinalNrow(size_t nrows) {
-    for (int i = 0, j = 0; i < ncols; i++) {
+    size_t i, j, k;
+    for (i = j = k = 0; i < ncols; i++) {
         int type = types[i];
-        if (type == CT_DROP)
-            continue;
+        if (type == CT_DROP) continue;
         Column *col = dt->columns[j];
         if (col->stype) {} // if a column was already finalized, skip it
         if (type == CT_STRING) {
-            assert(strbufs[j] != NULL);
-            void *final_ptr = (void*) strbufs[j]->buf;
-            strbufs[j]->buf = NULL;  // take ownership of the pointer
-            size_t curr_size = strbufs[j]->ptr;
+            assert(strbufs[k] != NULL);
+            void *final_ptr = (void*) strbufs[k].buf;
+            strbufs[k].buf = NULL;  // take ownership of the pointer
+            size_t curr_size = strbufs[k].ptr;
             size_t padding = ((8 - (curr_size & 7)) & 7) + 4;
             size_t offoff = curr_size + padding;
             size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;
-            final_ptr = realloc(final_ptr, final_size);
-            memset(final_ptr + curr_size, 0xFF, padding);
-            memcpy(final_ptr + offoff, col->data, offs_size);
+            dtrealloc_g(final_ptr, void, final_size);
+            memset(add_ptr(final_ptr, curr_size), 0xFF, padding);
+            memcpy(add_ptr(final_ptr, offoff), col->data, offs_size);
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
-            free(col->data);
+            dtfree(col->data);
             col->data = final_ptr;
-            col->meta = malloc(sizeof(VarcharMeta));
             col->stype = colType_to_stype[type];
             col->alloc_size = final_size;
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
+            k++;
         } else if (type > 0) {
             size_t new_size = stype_info[colType_to_stype[type]].elemsize * nrows;
-            col->data = realloc(col->data, new_size);
+            dtrealloc_g(col->data, void, new_size);
             col->stype = colType_to_stype[type];
             col->alloc_size = new_size;
         }
         j++;
     }
     dt->nrows = (int64_t) nrows;
+    dtfree(strbufs);
+    return;
+  fail:
+    {}
 }
 
 
-void reallocColType(int colidx, colType newType) {
-    Column *col = dt->columns[colidx];
-    size_t new_alloc_size = colTypeSizes[newType] * (size_t)dt->nrows;
-    col->data = realloc(col->data, new_alloc_size);
-    col->stype = ST_VOID; // Mark the column as not finalized
-    col->alloc_size = new_alloc_size;
-    if (newType == CT_STRING) {
-        strbufs[colidx] = malloc(sizeof(StrBuf));
-        strbufs[colidx]->buf = malloc(new_alloc_size * 4);
-        strbufs[colidx]->ptr = 0;
-        strbufs[colidx]->size = new_alloc_size * 4;
+void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
+{
+    ctx->strbufs = NULL;
+    dtcalloc_g(ctx->strbufs, StrBuf, nstrcols);
+    for (size_t k = 0; k < nstrcols; k++) {
+        dtmalloc_g(ctx->strbufs[k].buf, char, 4096);
+        ctx->strbufs[k].size = 4096;
+        ctx->strbufs[k].ptr = 0;
+        ctx->strbufs[k].idx8 = strbufs[k].idx8;
     }
+    return;
+
+  fail:
+    for (size_t k = 0; k < nstrcols; k++) dtfree(ctx->strbufs[k].buf);
+    dtfree(ctx->strbufs);
+    *(ctx->stopTeam) = 1;
+}
+
+
+void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
+{
+    StrBuf *ctx_strbufs = ctx->strbufs;
+    const char *anchor = ctx->anchor;
+    size_t nrows = ctx->nRows;
+    lenOff *restrict const lenoffs = (lenOff *restrict) ctx->buff8;
+    int rowCount8 = (int) ctx->rowSize8 / 8;
+
+    for (size_t k = 0; k < nstrcols; k++) {
+        assert(ctx_strbufs != NULL);
+
+        // Compute total length of all strings to be written
+        size_t slen = 0;
+        lenOff *restrict lo = lenoffs + ctx_strbufs[k].idx8;
+        for (size_t n = 0; n < nrows; n++) {
+            int32_t len = lo->len;
+            slen += (len < 0)? 0 : (size_t)len;
+            lo += rowCount8;
+        }
+
+        // If the buffer has inadequate length, expand it
+        size_t size = ctx_strbufs[k].size;
+        if (size < slen) {
+            size_t newsize = (size_t)(slen * 1.5);
+            dtfree(ctx_strbufs[k].buf);
+            dtmalloc_g(ctx_strbufs[k].buf, char, newsize);
+            ctx_strbufs[k].size = newsize;
+        }
+
+        // Transfer all string chunks into the intermediate buffer
+        // The offsets will be overwritten on top of the lenOff structs
+        char *strdest = ctx_strbufs[k].buf;
+        lo = lenoffs + ctx_strbufs[k].idx8;
+        int32_t off = 1;
+        for (size_t n = 0; n < nrows; n++) {
+            int32_t len  = lo->len;
+            int32_t aoff = lo->off;
+            if (len < 0) {
+                assert(len == NA_LENOFF);
+                lo->off = -off;
+            } else {
+                if (len > 0) {
+                    memcpy(strdest + off - 1, anchor + aoff, (size_t)len);
+                    off += (size_t)len;
+                }
+                // TODO: handle the case when `off` is too large for int32
+                lo->off = off;
+            }
+            lo += rowCount8;
+        }
+        assert(slen == off - 1);
+        ctx_strbufs[k].ptr = slen;
+    }
+    return;
+  fail:
+    *(ctx->stopTeam) = 1;
+}
+
+
+void orderBuffer(ThreadLocalFreadParsingContext *ctx)
+{
+    StrBuf *ctx_strbufs = ctx->strbufs;
+    StrBuf *glb_strbufs = strbufs;
+    for (size_t k = 0; k < nstrcols; k++) {
+        size_t sz = ctx_strbufs[k].ptr;
+        size_t ptr = glb_strbufs[k].ptr;
+        if (ptr + sz > glb_strbufs[k].size) {
+            // This is potentially slow, but hopefully should be rare
+            size_t newsize = (size_t)((ptr + sz) * 2);
+            dtrealloc_g(glb_strbufs[k].buf, char, newsize);
+            glb_strbufs[k].size = newsize;
+        }
+        ctx_strbufs[k].ptr = ptr;
+        glb_strbufs[k].ptr = ptr + sz;
+    }
+    return;
+  fail:
+    *(ctx->stopTeam) = 1;
 }
 
 
 void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
+    StrBuf *restrict ctx_strbufs = ctx->strbufs;
+    StrBuf *restrict glb_strbufs = strbufs;
     const void *restrict buff8 = ctx->buff8;
     const void *restrict buff4 = ctx->buff4;
     const void *restrict buff1 = ctx->buff1;
-    const char *restrict anchor = ctx->anchor;
     int nrows = (int) ctx->nRows;
     size_t row0 = ctx->DTi;
 
-    int i = 0;  // index within the `types` and `sizes`
-    int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
+    size_t i = 0;  // index within the `types` and `sizes`
+    size_t j = 0;  // index within `dt->columns`, `buff` and `strbufs`
     int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
     int rowCount8 = (int) ctx->rowSize8 / 8;
     int rowCount4 = (int) ctx->rowSize4 / 4;
     int rowCount1 = (int) ctx->rowSize1;
 
+    size_t k = 0;
     for (; i < ncols; i++) {
-        if (types[i] == CT_DROP)
-            continue;
+        if (types[i] == CT_DROP) continue;
         Column *col = dt->columns[j];
 
         if (types[i] == CT_STRING) {
-            assert(strbufs[j] != NULL);
-            const lenOff *lenoffs = (const lenOff*)buff8 + off8;
-            size_t slen = 0;  // total length of all strings to be written
+            size_t idx8 = ctx_strbufs[k].idx8;
+            size_t ptr = ctx_strbufs[k].ptr;
+            const lenOff *restrict lo = add_constptr(buff8, idx8 * 8);
+            size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
+            memcpy(glb_strbufs[k].buf + ptr, ctx_strbufs[k].buf, sz);
+
+            int32_t* dest = ((int32_t*) col->data) + row0;
+            int32_t iptr = (int32_t) ptr;
             for (int n = 0; n < nrows; n++) {
-                int len = lenoffs->len;
-                slen += (len < 0)? 0 : (size_t)len;
-                lenoffs += rowCount8;
+                int32_t off = lo->off;
+                *dest++ = (off < 0)? off - iptr : off + iptr;
+                lo += rowCount8;
             }
-            size_t off = strbufs[j]->ptr;
-            size_t size = strbufs[j]->size;
-            if (size < slen + off) {
-                float g = ((float)dt->nrows) / (row0 + (size_t)nrows);
-                size_t newsize = (size_t)((slen + off) * max_f4(1.05f, g));
-                strbufs[j]->buf = realloc(strbufs[j]->buf, (size_t)newsize);
-                strbufs[j]->size = newsize;
-            }
-            lenoffs = (const lenOff*)buff8 + off8;
-            int32_t *destptr = ((int32_t*) col->data) + row0;
-            for (int n = 0; n < nrows; n++) {
-                int32_t  len  = lenoffs->len;
-                uint32_t aoff = lenoffs->off;
-                if (len < 0) {
-                    assert(len == NA_LENOFF);
-                    *destptr = (int32_t)(-off - 1);
-                } else {
-                    if (len > 0) {
-                        memcpy(strbufs[j]->buf + off, anchor + aoff, (size_t)len);
-                        off += (size_t)len;
-                    }
-                    // TODO: handle the case when `off` is too large for int32
-                    *destptr = (int32_t)(off + 1);
-                }
-                lenoffs += rowCount8;
-                destptr++;
-            }
-            strbufs[j]->ptr = off;
+            k++;
 
         } else if (types[i] > 0) {
-            size_t elemsize = (size_t) sizes[i];
+            int8_t elemsize = sizes[i];
             if (elemsize == 8) {
                 const uint64_t *src = ((const uint64_t*) buff8) + off8;
                 uint64_t *dest = ((uint64_t*) col->data) + row0;
@@ -367,6 +478,18 @@ void progress(double percent/*[0,1]*/, double ETA/*secs*/)
     (void)percent;
     (void)ETA;
 }
+
+
+void freeThreadContext(ThreadLocalFreadParsingContext *ctx)
+{
+    if (ctx->strbufs) {
+        for (size_t k = 0; k < nstrcols; k++) {
+            dtfree(ctx->strbufs[k].buf);
+        }
+        dtfree(ctx->strbufs);
+    }
+}
+
 
 
 __attribute__((format(printf, 1, 2)))
