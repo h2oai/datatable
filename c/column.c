@@ -8,6 +8,27 @@
 static void column_dealloc(Column *col);
 
 
+/**
+ * Simple Column constructor: create a Column with a given SType, preallocated
+ * for `nrows` rows. The returned colum will have refcount = 1.
+ * If the column cannot be created (probably due to Out-of-Memory exception),
+ * the function will return NULL.
+ */
+Column* make_column(SType stype, size_t nrows)
+{
+    Column *col = NULL;
+    dtmalloc(col, Column, 1);
+    col->data = NULL;
+    col->meta = NULL;
+    col->alloc_size = stype_info[stype].elemsize * nrows;
+    col->refcount = 1;
+    col->mtype = MT_DATA;
+    col->stype = stype;
+    dtmalloc(col->meta, void, stype_info[stype].metasize);
+    dtmalloc(col->data, void, col->alloc_size);
+    return col;
+}
+
 
 /**
  * Extract data from column `col` into a new Column object according to the

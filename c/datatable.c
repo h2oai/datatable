@@ -11,6 +11,26 @@ static int _compare_ints(const void *a, const void *b);
  * Create new DataTable given its number of rows, and the array of `Column`
  * objects.
  */
+DataTable* make_datatable(int64_t nrows, Column **cols)
+{
+    if (cols == NULL) return NULL;
+    int64_t ncols = 0;
+    while(cols[ncols] != NULL) ncols++;
+    DataTable *res = NULL;
+    dtmalloc(res, DataTable, 1);
+    res->nrows = nrows;
+    res->ncols = ncols;
+    res->rowmapping = NULL;
+    res->columns = cols;
+    return res;
+}
+
+
+
+/**
+ * Create new DataTable given its number of rows, and the array of `Column`
+ * objects.
+ */
 DataTable* datatable_assemble(RowMapping *rowmapping, Column **cols)
 {
     if (cols == NULL || rowmapping == NULL) return NULL;
