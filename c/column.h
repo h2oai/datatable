@@ -57,6 +57,7 @@ typedef struct Column {
 
 //==============================================================================
 
+Column* make_column(SType stype, size_t nrows);
 Column* column_extract(Column *col, RowMapping *rowmapping);
 RowMapping* column_sort(Column *col, int64_t nrows);
 void column_incref(Column *col);
