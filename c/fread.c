@@ -423,7 +423,7 @@ static int Field(const char **this, void *target)
     if (is_NAstring(fieldStart)) fieldLen=INT32_MIN;
   }
   ((lenOff *)target)->len = fieldLen;
-  ((lenOff *)target)->off = (uint32_t)(fieldStart-*this);  // agnostic & thread-safe
+  ((lenOff *)target)->off = (int32_t)(fieldStart-*this);  // agnostic & thread-safe
   *this = ch; // Update caller's ch. This may be after fieldStart+fieldLen due to quotes and/or whitespace
   return 0;
 }
@@ -455,7 +455,7 @@ static int parse_string(const char **ptr, lenOff *target)
         }
         if (*ch == eol) {
           target->len = (int32_t)(ch - start) + eolLen;
-          target->off = (uint32_t)(start - *ptr);
+          target->off = (int32_t)(start - *ptr);
           *ptr = ch + eolLen;
           return 2;
         }
@@ -477,7 +477,7 @@ static int parse_string(const char **ptr, lenOff *target)
         }
         if (*ch == eol) {
           target->len = (int32_t)(ch - start) + eolLen;
-          target->off = (uint32_t)(start - *ptr);
+          target->off = (int32_t)(start - *ptr);
           *ptr = ch + eolLen;
           return 2;
         }
@@ -560,7 +560,7 @@ static int parse_string(const char **ptr, lenOff *target)
     if (is_NAstring(start)) fieldLength = INT32_MIN;
   }
   target->len = fieldLength;
-  target->off = (uint32_t)(start - *ptr);
+  target->off = (int32_t)(start - *ptr);
   *ptr = ch;
   return 0;
 }
@@ -1813,14 +1813,15 @@ int freadMain(freadMainArgs _args)
           (rowSize1 && !myBuff1) || !myBuff0) stopTeam = true;
 
       ThreadLocalFreadParsingContext ctx = {
-        .anchor = NULL,
+        .anchor = NULL, .threadn = (size_t)me,
         .buff8 = myBuff8, .buff4 = myBuff4, .buff1 = myBuff1,
         .rowSize8 = rowSize8, .rowSize4 = rowSize4, .rowSize1 = rowSize1,
-        .DTi = 0, .nRows = allocnrow,
+        .DTi = 0, .nRows = allocnrow, .stopTeam = &stopTeam,
         #ifndef DTPY
         .nStringCols = nStringCols, .nNonStringCols = nNonStringCols
         #endif
       };
+      prepareThreadContext(&ctx);
 
       #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
       for (int jump=0; jump<nJumps+nth; jump++) {
@@ -1839,9 +1840,6 @@ int freadMain(freadMainArgs _args)
           // iii) myBuff is hot, so this is the best time to transpose it to result, and first time possible as soon
           //      as we know the previous jump's number of rows.
           //  iv) so that myBuff can be small
-          ctx.anchor = thisJumpStart;
-          ctx.nRows = myNrow;
-          ctx.DTi = myDTi;
           pushBuffer(&ctx);
           if (verbose) { tt1 = wallclock(); thPush += tt1 - tt0; tt0 = tt1; }
 
@@ -1959,7 +1957,7 @@ int freadMain(freadMainArgs _args)
             }
 
             if (joldType == CT_STRING) {
-              ((lenOff*) myBuff8Pos)->off += (size_t)(fieldStart - fake_anchor);
+              ((lenOff*) myBuff8Pos)->off += (int32_t)(fieldStart - fake_anchor);
             } else if (thisType != joldType) {  // rare out-of-sample type exception
               #pragma omp critical
               {
@@ -2049,6 +2047,9 @@ int freadMain(freadMainArgs _args)
           myNrow++;
         }
         if (verbose) { tt1 = wallclock(); thRead += tt1 - tt0; tt0 = tt1; }
+        ctx.anchor = thisJumpStart;
+        ctx.nRows = myNrow;
+        postprocessBuffer(&ctx);
 
         #pragma omp ordered
         {
@@ -2062,6 +2063,7 @@ int freadMain(freadMainArgs _args)
             stopTeam=true;
           }
           myDTi = DTi;  // fetch shared DTi (where to write my results to the answer). The previous thread just told me.
+          ctx.DTi = myDTi;
           if (myDTi >= nrowLimit) {
             // nrowLimit was supplied and a previous thread reached that limit while I was counting my rows
             stopTeam=true;
@@ -2072,24 +2074,27 @@ int freadMain(freadMainArgs _args)
           // tell next thread 2 things :
           prevJumpEnd = tch; // i) the \n I finished on so it can check (above) it started exactly on that \n good line start
           DTi += myNrow;     // ii) which row in the final result it should start writing to. As soon as I know myNrow.
+          orderBuffer(&ctx);
         }
         // END ORDERED.
         // Next thread can now start its ordered section and write its results to the final DT at the same time as me.
         // Ordered has to be last in some OpenMP implementations currently. Logically though, pushBuffer happens now.
       }
-      // Each thread to free its own buffer.
+
+      // Done reading the file: each thread should now clean up its own buffers.
       free(myBuff8); myBuff8 = NULL;
       free(myBuff4); myBuff4 = NULL;
       free(myBuff1); myBuff1 = NULL;
       free(myBuff0); myBuff0 = NULL;
-      // `ctx` is automatically reclaimed here
+      freeThreadContext(&ctx);
     }
     //-- end parallel ------------------
 
 
     //*********************************************************************************************
-    // [13] Finalize data.table
+    // [13] Finalize the datatable
     //*********************************************************************************************
+    if (verbose) DTPRINT("[13] Finalizing the datatable\n");
     if (firstTime) {
       tReread = tRead = wallclock();
       tTot = tRead-t0;
@@ -2134,19 +2139,21 @@ int freadMain(freadMainArgs _args)
       allocnrow = DTi;
     }
     setFinalNrow(DTi);
+
+    // However if some of the columns could not be read due to out-of-sample
+    // type exceptions, we'll need to re-read the input file.
     if (firstTime && nTypeBump) {
       rowSize1 = rowSize4 = rowSize8 = 0;
       nStringCols = 0;
       nNonStringCols = 0;
       for (int j=0, resj=-1; j<ncol; j++) {
-        size[j] = 0;
         if (type[j] == CT_DROP) continue;
         resj++;
         if (type[j]<0) {
           // column was bumped due to out-of-sample type exception
-          int newType = type[j] *= -1;   // final type for this column
-          reallocColType(resj, newType);
-          size[j] = typeSize[newType];
+          // reallocColType(resj, newType);
+          type[j] = -type[j];
+          size[j] = typeSize[type[j]];
           rowSize1 += (size[j] & 1);
           rowSize4 += (size[j] & 4);
           rowSize8 += (size[j] & 8);
@@ -2155,8 +2162,10 @@ int freadMain(freadMainArgs _args)
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
           // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
           type[j] = -CT_STRING;
+          size[j] = 0;
         }
       }
+      allocateDT(type, size, ncol, ncol - nStringCols - nNonStringCols, DTi);
       // reread from the beginning
       DTi = 0;
       firstTime = false;
