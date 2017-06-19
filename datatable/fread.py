@@ -21,10 +21,10 @@ def fread(filename="", **params):
 class FReader(object):
 
     @typed(filename=str, text=str, sep=str, max_nrows=int, header=bool,
-           na_strings=[str], fill=bool)
+           na_strings=[str], fill=bool, show_progress=bool)
     def __init__(self, filename=None, text=None, sep=None, max_nrows=None,
                  header=None, na_strings=None, verbose=False, fill=False,
-                 **args):
+                 show_progress=term.is_a_tty, **args):
         self._filename = None   # type: str
         self._text = None       # type: str
         self._sep = None        # type: str
@@ -33,9 +33,12 @@ class FReader(object):
         self._nastrings = []    # type: List[str]
         self._verbose = False   # type: bool
         self._fill = False      # type: bool
+        self._show_progress = True  # type: bool
 
         self._log_newline = True
         self._colnames = None
+        self._bar_ends = None
+        self._bar_symbols = None
 
         self.filename = filename
         self.text = text
@@ -45,6 +48,7 @@ class FReader(object):
         self.na_strings = na_strings
         self.verbose = verbose
         self.fill = fill
+        self.show_progress = show_progress
 
         if "separator" in args:
             self.sep = args.pop("separator")
@@ -158,12 +162,63 @@ class FReader(object):
         self._fill = fill
 
 
+    @property
+    def show_progress(self):
+        return self._show_progress
+
+    @show_progress.setter
+    @typed(show_progress=bool)
+    def show_progress(self, show_progress):
+        self._show_progress = show_progress
+        if show_progress:
+            self._prepare_progress_bar()
+
+
+
     def read(self):
         dt = c.fread(self)
         return DataTable(dt, colnames=self._colnames)
+
 
     def _vlog(self, message):
         if self._log_newline:
             print("  ", end="")
         self._log_newline = message.endswith("\n")
         print(_log_color(message), end="", flush=True)
+
+    def _progress(self, percent):
+        bs = self._bar_symbols
+        s0 = "Reading file: "
+        s1 = " %3d%%" % int(percent)
+        line_width = min(100, term.width)
+        bar_width = line_width - len(s0) - len(s1) - 2
+        progress = percent / 100
+        n_chars = int(progress * bar_width + 0.001)
+        frac_chars = int((progress * bar_width - n_chars) * len(bs))
+        out = bs[-1] * n_chars
+        out += bs[frac_chars - 1] if frac_chars > 0 else ""
+        out += " " * (bar_width - len(out))
+        endf, endl = self._bar_ends
+        out = "\r" + s0 + endf + out + endl + s1
+        print(_log_color(out), end="", flush=True)
+
+
+    def _prepare_progress_bar(self):
+        tty_encoding = term._encoding
+        self._bar_ends = "[]"
+        self._bar_symbols = "#"
+        if not tty_encoding:
+            return
+        s1 = "\u258F\u258E\u258D\u258C\u258B\u258A\u2589\u2588"
+        s2 = "\u258C\u2588"
+        s3 = "\u2588"
+        for s in (s1, s2, s3):
+            try:
+                s.encode(tty_encoding)
+                self._bar_ends = "||"
+                self._bar_symbols = s
+                return
+            except UnicodeEncodeError:
+                pass
+            except LookupError:
+                print("Warning: unknown encoding %s" % tty_encoding)

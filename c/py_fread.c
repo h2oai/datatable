@@ -100,7 +100,7 @@ PyObject* freadPy(UU, PyObject *args)
     frargs.stripWhite = 1;
     frargs.skipEmptyLines = 1;
     frargs.fill = TOBOOL(ATTR(freader, "fill"), 0);
-    frargs.showProgress = 0;
+    frargs.showProgress = TOBOOL(ATTR(freader, "show_progress"), 0);
     frargs.nth = -1;
     frargs.warningsAreErrors = 0;
     if (frargs.nrowLimit < 0)
@@ -475,8 +475,8 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 
 void progress(double percent/*[0,1]*/, double ETA/*secs*/)
 {
-    (void)percent;
     (void)ETA;
+    PyObject_CallMethod(freader, "_progress", "d", percent);
 }
 
 

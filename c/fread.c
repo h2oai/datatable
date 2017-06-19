@@ -910,6 +910,7 @@ int freadMain(freadMainArgs _args)
                 any_number_like_NAstrings ? "One or more" : "None");
       }
     }
+    if (verbose) DTPRINT("  showProgress = %d\n", args.showProgress);
 
     stripWhite = args.stripWhite;
     skipEmptyLines = args.skipEmptyLines;
@@ -1843,8 +1844,8 @@ int freadMain(freadMainArgs _args)
           pushBuffer(&ctx);
           if (verbose) { tt1 = wallclock(); thPush += tt1 - tt0; tt0 = tt1; }
 
-          if (me==0 && (hasPrinted || (args.showProgress && jump/nth==4 &&
-                                      ((double)nJumps/(nth*3)-1.0)*(wallclock()-tAlloc)>3.0))) {
+          if (me==0 && (hasPrinted || (args.showProgress && jump/nth==4  &&
+                                      ((double)nJumps/(nth*3)-1.0)*(wallclock()-tAlloc)>1.0 ))) {
             // Important for thread safety inside progess() that this is called not just from critical but that
             // it's the master thread too, hence me==0.
             // Jump 0 might not be assigned to thread 0; jump/nth==4 to wait for 4 waves to complete then decide once.
@@ -2094,6 +2095,7 @@ int freadMain(freadMainArgs _args)
     //*********************************************************************************************
     // [13] Finalize the datatable
     //*********************************************************************************************
+    if (hasPrinted && verbose) DTPRINT("\n");
     if (verbose) DTPRINT("[13] Finalizing the datatable\n");
     if (firstTime) {
       tReread = tRead = wallclock();
