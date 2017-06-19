@@ -11,6 +11,8 @@ typedef struct StrBuf {
     size_t size;
     size_t ptr;
     size_t idx8;
+    volatile int numuses;
+    int _padding;
 } StrBuf;
 
 
@@ -23,7 +25,17 @@ typedef struct StrBuf {
 //         data currently held in the buffer; while the `orderBuffer` function
 //         puts here the offset within the global string buffer where the
 //         current buffer should be copied to.
-//     .idx8 -- same as the global `.idx8`.
+//     .idx8 -- index of the current column within the `buff8` array.
+//     .numuses -- synchronization lock. The purpose of this variable is to
+//         prevent race conditions between threads that do memcpy, and another
+//         thread that needs to realloc the underlying buffer. Without the lock,
+//         if one thread is performing a mem-copy and the other thread wants to
+//         reallocs the buffer, then the first thread will segfault in the
+//         middle of its operation. In order to prevent this, we use this
+//         `.numuses` variable: when positive it shows the number of threads
+//         that are currently writing to the same buffer. However when this
+//         variable is negative, it means the buffer is being realloced, and no
+//         other threads is allowed to initiate a memcopy.
 //
 #define FREAD_PUSH_BUFFERS_EXTRA_FIELDS                                        \
     StrBuf *strbufs;                                                           \

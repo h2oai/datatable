@@ -101,7 +101,7 @@ PyObject* freadPy(UU, PyObject *args)
     frargs.skipEmptyLines = 1;
     frargs.fill = TOBOOL(ATTR(freader, "fill"), 0);
     frargs.showProgress = TOBOOL(ATTR(freader, "show_progress"), 0);
-    frargs.nth = -1;
+    frargs.nth = 0;
     frargs.warningsAreErrors = 0;
     if (frargs.nrowLimit < 0)
         frargs.nrowLimit = LONG_MAX;
@@ -225,6 +225,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
             strbufs[k].ptr = 0;
             strbufs[k].size = alloc_size;
             strbufs[k].idx8 = off8;
+            strbufs[k].numuses = 0;
             total_alloc_size += alloc_size;
             k++;
         }
@@ -382,11 +383,31 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
     for (size_t k = 0; k < nstrcols; k++) {
         size_t sz = ctx_strbufs[k].ptr;
         size_t ptr = glb_strbufs[k].ptr;
-        if (ptr + sz > glb_strbufs[k].size) {
-            // This is potentially slow, but hopefully should be rare
+        // If we need to write more than the size of the available buffer, the
+        // buffer has to grow. Check documentation for `StrBuf.numuses` in
+        // `py_fread.h`.
+        while (ptr + sz > glb_strbufs[k].size) {
             size_t newsize = (size_t)((ptr + sz) * 2);
-            dtrealloc_g(glb_strbufs[k].buf, char, newsize);
-            glb_strbufs[k].size = newsize;
+            int old = 0;
+            // (1) wait until no other process is writing into the buffer
+            while (glb_strbufs[k].numuses > 0)
+                ;
+            // (2) make `numuses` negative, indicating that no other thread may
+            // initiate a memcopy operation for now.
+            #pragma omp atomic capture
+            { old = glb_strbufs[k].numuses; glb_strbufs[k].numuses -= 1000000; }
+            // (3) The only case when `old != 0` is if another thread started
+            // memcopy operation in-between statements (1) and (2) above. In
+            // that case we restore the previous value of `numuses` and repeat
+            // the loop.
+            // Otherwise (and it is the most common case) we reallocate the
+            // buffer and only then restore the `numuses` variable.
+            if (old == 0) {
+                dtrealloc_g(glb_strbufs[k].buf, char, newsize);
+                glb_strbufs[k].size = newsize;
+            }
+            #pragma omp atomic update
+            glb_strbufs[k].numuses += 1000000;
         }
         ctx_strbufs[k].ptr = ptr;
         glb_strbufs[k].ptr = ptr + sz;
@@ -424,7 +445,19 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             size_t ptr = ctx_strbufs[k].ptr;
             const lenOff *restrict lo = add_constptr(buff8, idx8 * 8);
             size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
-            memcpy(glb_strbufs[k].buf + ptr, ctx_strbufs[k].buf, sz);
+
+            int done = 0;
+            while (!done) {
+                int old;
+                #pragma omp atomic capture
+                old = glb_strbufs[k].numuses++;
+                if (old >= 0) {
+                    memcpy(glb_strbufs[k].buf + ptr, ctx_strbufs[k].buf, sz);
+                    done = 1;
+                }
+                #pragma omp atomic update
+                glb_strbufs[k].numuses--;
+            }
 
             int32_t* dest = ((int32_t*) col->data) + row0;
             int32_t iptr = (int32_t) ptr;
