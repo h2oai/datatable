@@ -5,6 +5,7 @@
 #include "datatable.h"
 #include "rowmapping.h"
 #include "types.h"
+#include "encodings.h"
 #include "utils.h"
 
 
@@ -71,46 +72,6 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     }
     buf[i] = '\0';
     return buf;
-}
-
-/**
- * Check whether the memory buffer contains a valid UTF-8 string. The buffer
- * is given by two pointers, for the beginning and the end (exlusively).
- */
-static _Bool
-is_valid_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
-    const unsigned char *ptr = ptr0;
-    while (ptr < ptr1) {
-        if (*ptr < 0x80) {
-            // 0xxxxxxx
-            ptr++;
-        } else if ((*ptr & 0xE0) == 0xC0) {
-            // 110xxxxx 10xxxxxx
-            if ((ptr[1] & 0xC0) != 0x80 || (ptr[0] & 0xFE) == 0xC0)
-                return 0;
-            ptr += 2;
-        } else if ((*ptr & 0xF0) == 0xE0) {
-            // 1110xxxx 10xxxxxx 10xxxxxx
-            if ((ptr[1] & 0xC0) != 0x80 || (ptr[2] & 0xC0) != 0x80 ||
-                (ptr[0] == 0xE0 && (ptr[1] & 0xE0) == 0x80) ||  // overlong
-                (ptr[0] == 0xED && (ptr[1] & 0xE0) == 0xA0) ||  // surrogate
-                (ptr[0] == 0xEF && ptr[1] == 0xBF && (ptr[2] & 0xFE) == 0xBE))
-                return 0;
-            ptr += 3;
-        } else if ((*ptr & 0xF8) == 0xF0) {
-            // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-            if ((ptr[1] & 0xC0) != 0x80 ||
-                (ptr[2] & 0xC0) != 0x80 ||
-                (ptr[3] & 0xC0) != 0x80 ||
-                (ptr[0] == 0xF0 && (ptr[1] & 0xF0) == 0x80) ||  // overlong
-                (ptr[0] == 0xF4 && ptr[1] > 0x8F) ||  // unmapped
-                ptr[0] > 0xF4)
-                return 0;
-            ptr += 4;
-        } else
-            return 0;
-    }
-    return (ptr == ptr1);
 }
 
 
@@ -416,7 +377,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                         break;                                             \
                     } else                                                 \
                     if (oj > 0 &&                                          \
-                        !is_valid_utf8(cdata + lastoff, cdata + oj))     { \
+                        !is_valid_utf8(cdata + lastoff,                    \
+                                       (size_t)(oj - lastoff)))          { \
                         ERR("Invalid utf8 string in column %lld row %lld:" \
                             " '%s'\n", i, j, repr_utf8(cdata + lastoff,    \
                                                        cdata + oj));       \

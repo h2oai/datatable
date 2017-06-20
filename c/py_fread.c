@@ -3,6 +3,7 @@
 #include "fread.h"
 #include "utils.h"
 #include "py_datatable.h"
+#include "py_encodings.h"
 #include "py_utils.h"
 
 
@@ -62,6 +63,9 @@ static int8_t *sizes = NULL;
 //     .idx8 -- index of this column within the `buff8` memory buffer.
 static StrBuf *strbufs = NULL;
 
+
+
+//------------------------------------------------------------------------------
 
 /**
  * Python wrapper around `freadMain()`. This function extracts the arguments
@@ -320,7 +324,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
 {
     StrBuf *ctx_strbufs = ctx->strbufs;
-    const char *anchor = ctx->anchor;
+    const unsigned char *anchor = (const unsigned char*) ctx->anchor;
     size_t nrows = ctx->nRows;
     lenOff *restrict const lenoffs = (lenOff *restrict) ctx->buff8;
     int rowCount8 = (int) ctx->rowSize8 / 8;
@@ -328,47 +332,41 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
     for (size_t k = 0; k < nstrcols; k++) {
         assert(ctx_strbufs != NULL);
 
-        // Compute total length of all strings to be written
-        size_t slen = 0;
         lenOff *restrict lo = lenoffs + ctx_strbufs[k].idx8;
-        for (size_t n = 0; n < nrows; n++) {
-            int32_t len = lo->len;
-            slen += (len < 0)? 0 : (size_t)len;
-            lo += rowCount8;
-        }
-
-        // If the buffer has inadequate length, expand it
-        size_t size = ctx_strbufs[k].size;
-        if (size < slen) {
-            size_t newsize = (size_t)(slen * 1.5);
-            dtfree(ctx_strbufs[k].buf);
-            dtmalloc_g(ctx_strbufs[k].buf, char, newsize);
-            ctx_strbufs[k].size = newsize;
-        }
-
-        // Transfer all string chunks into the intermediate buffer
-        // The offsets will be overwritten on top of the lenOff structs
-        char *strdest = ctx_strbufs[k].buf;
-        lo = lenoffs + ctx_strbufs[k].idx8;
+        unsigned char *strdest = (unsigned char*) ctx_strbufs[k].buf;
         int32_t off = 1;
+        size_t bufsize = ctx_strbufs[k].size;
         for (size_t n = 0; n < nrows; n++) {
             int32_t len  = lo->len;
-            int32_t aoff = lo->off;
-            if (len < 0) {
+            if (len > 0) {
+                size_t zlen = (size_t) len;
+                if (bufsize < zlen * 3 + (size_t)off) {
+                    bufsize = bufsize * 2 + zlen * 3;
+                    dtrealloc_g(strdest, unsigned char, bufsize);
+                    ctx_strbufs[k].buf = (char*) strdest;
+                    ctx_strbufs[k].size = bufsize;
+                }
+                const unsigned char *src = anchor + lo->off;
+                unsigned char *dest = strdest + off - 1;
+                if (is_valid_utf8(src, zlen)) {
+                    memcpy(dest, src, zlen);
+                    off += zlen;
+                    lo->off = off;
+                } else {
+                    int newlen = decode_windows1252(src, len, dest);
+                    assert(newlen > 0);
+                    off += (size_t) newlen;
+                    lo->off = off;
+                }
+            } else if (len == 0) {
+                lo->off = off;
+            } else {
                 assert(len == NA_LENOFF);
                 lo->off = -off;
-            } else {
-                if (len > 0) {
-                    memcpy(strdest + off - 1, anchor + aoff, (size_t)len);
-                    off += (size_t)len;
-                }
-                // TODO: handle the case when `off` is too large for int32
-                lo->off = off;
             }
             lo += rowCount8;
         }
-        assert(slen == off - 1);
-        ctx_strbufs[k].ptr = slen;
+        ctx_strbufs[k].ptr = (size_t)(off - 1);
     }
     return;
   fail:
@@ -391,7 +389,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
             int old = 0;
             // (1) wait until no other process is writing into the buffer
             while (glb_strbufs[k].numuses > 0)
-                ;
+                /* wait until .numuses == 0 (all threads finished writing) */;
             // (2) make `numuses` negative, indicating that no other thread may
             // initiate a memcopy operation for now.
             #pragma omp atomic capture

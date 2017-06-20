@@ -3,6 +3,7 @@
 #include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
+#include "py_encodings.h"
 #include "py_fread.h"
 #include "py_rowmapping.h"
 #include "py_types.h"
@@ -188,6 +189,7 @@ PyInit__datatable(void) {
     if (!init_py_types(m)) return NULL;
     if (!init_py_column(m)) return NULL;
     if (!init_py_columnset(m)) return NULL;
+    if (!init_py_encodings(m)) return NULL;
 
     return m;
 }

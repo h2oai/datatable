@@ -1814,12 +1814,21 @@ int freadMain(freadMainArgs _args)
           (rowSize1 && !myBuff1) || !myBuff0) stopTeam = true;
 
       ThreadLocalFreadParsingContext ctx = {
-        .anchor = NULL, .threadn = (size_t)me,
-        .buff8 = myBuff8, .buff4 = myBuff4, .buff1 = myBuff1,
-        .rowSize8 = rowSize8, .rowSize4 = rowSize4, .rowSize1 = rowSize1,
-        .DTi = 0, .nRows = allocnrow, .stopTeam = &stopTeam,
+        .anchor = NULL,
+        .buff8 = myBuff8,
+        .buff4 = myBuff4,
+        .buff1 = myBuff1,
+        .rowSize8 = rowSize8,
+        .rowSize4 = rowSize4,
+        .rowSize1 = rowSize1,
+        .DTi = 0,
+        .nRows = allocnrow,
+        .threadn = me,
+        .quoteRule = quoteRule,
+        .stopTeam = &stopTeam,
         #ifndef DTPY
-        .nStringCols = nStringCols, .nNonStringCols = nNonStringCols
+        .nStringCols = nStringCols,
+        .nNonStringCols = nNonStringCols
         #endif
       };
       prepareThreadContext(&ctx);
