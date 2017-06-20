@@ -53,6 +53,14 @@ class FReader(object):
 
         if "separator" in args:
             self.sep = args.pop("separator")
+        if "progress_fn" in args:
+            progress = args.pop("progress_fn")
+            if not callable(progress):
+                raise TypeError("`progress_fn` argument should be a function")
+            self._progress = progress
+        if args:
+            raise TypeError("Unknown argument(s) %r in FReader(...)"
+                            % list(args.keys()))
 
 
     @property
