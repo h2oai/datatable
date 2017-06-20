@@ -1862,7 +1862,7 @@ int freadMain(freadMainArgs _args)
             if (p>=hasPrinted) {
               // ETA TODO. Ok to call wallclock() now.
               progress(p, /*eta*/0);
-              hasPrinted = p+2;  // update every 2%
+              hasPrinted = p+1;  // update every 1%
             }
           }
           myNrow = 0;
