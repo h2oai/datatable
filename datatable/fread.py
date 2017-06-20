@@ -21,10 +21,10 @@ def fread(filename="", **params):
 class FReader(object):
 
     @typed(filename=str, text=str, sep=str, max_nrows=int, header=bool,
-           na_strings=[str], fill=bool, show_progress=bool)
+           na_strings=[str], fill=bool, show_progress=bool, encoding=str)
     def __init__(self, filename=None, text=None, sep=None, max_nrows=None,
                  header=None, na_strings=None, verbose=False, fill=False,
-                 show_progress=term.is_a_tty, **args):
+                 show_progress=term.is_a_tty, encoding=None, **args):
         self._filename = None   # type: str
         self._text = None       # type: str
         self._sep = None        # type: str
@@ -34,6 +34,7 @@ class FReader(object):
         self._verbose = False   # type: bool
         self._fill = False      # type: bool
         self._show_progress = True  # type: bool
+        self._encoding = encoding
 
         self._log_newline = True
         self._colnames = None

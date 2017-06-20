@@ -163,12 +163,14 @@ typedef struct ThreadLocalFreadParsingContext
   // size of each `buffX` is thus at least `nRows * rowSizeX`.
   size_t nRows;
 
-  size_t threadn;
-
   // Reference to the flag that controls the parser's execution. Setting this
   // flag to true will force parsing of the CSV file to terminate in the near
   // future.
   _Bool *stopTeam;
+
+  int threadn;
+
+  int quoteRule;
 
   // Any additional implementation-specific parameters.
   FREAD_PUSH_BUFFERS_EXTRA_FIELDS
