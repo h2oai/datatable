@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
+import tempfile
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
@@ -26,6 +27,8 @@ class FReader(object):
                  header=None, na_strings=None, verbose=False, fill=False,
                  show_progress=term.is_a_tty, encoding=None, **args):
         self._filename = None   # type: str
+        self._tempfile = None   # type: str
+        self._tempdir = None    # type: str
         self._text = None       # type: str
         self._sep = None        # type: str
         self._maxnrows = None   # type: int
@@ -41,13 +44,13 @@ class FReader(object):
         self._bar_ends = None
         self._bar_symbols = None
 
-        self.filename = filename
+        self.verbose = verbose
         self.text = text
+        self.filename = filename
         self.sep = sep
         self.max_nrows = max_nrows
         self.header = header
         self.na_strings = na_strings
-        self.verbose = verbose
         self.fill = fill
         self.show_progress = show_progress
 
@@ -65,7 +68,9 @@ class FReader(object):
 
     @property
     def filename(self):
-        return self._filename
+        if self._text:
+            return None
+        return self._tempfile or self._filename
 
     @filename.setter
     @typed(filename=U(str, None))
@@ -75,10 +80,8 @@ class FReader(object):
         else:
             if filename.startswith("~"):
                 filename = os.path.expanduser(filename)
-            if "\x00" in filename:
-                raise ValueError("Path %s contains NULs" % filename)
+            self._check_file(filename)
             self._filename = filename
-            self._text = None
 
 
     @property
@@ -94,7 +97,6 @@ class FReader(object):
             if "\x00" in text:
                 raise ValueError("Text contains NUL characters")
             self._text = text
-            self._filename = None
 
 
     @property
@@ -185,15 +187,24 @@ class FReader(object):
 
 
     def read(self):
-        dt = c.fread(self)
-        return DataTable(dt, colnames=self._colnames)
+        _dt = c.fread(self)
+        dt = DataTable(_dt, colnames=self._colnames)
+        if self._tempfile:
+            if self._verbose:
+                self._vlog("Removing temporary file %s\n" % self._tempfile)
+            os.remove(self._tempfile)
+            os.rmdir(self._tempdir)
+        return dt
 
+
+    #---------------------------------------------------------------------------
 
     def _vlog(self, message):
         if self._log_newline:
             print("  ", end="")
         self._log_newline = message.endswith("\n")
         print(_log_color(message), end="", flush=True)
+
 
     def _progress(self, percent):
         bs = self._bar_symbols
@@ -231,3 +242,40 @@ class FReader(object):
                 pass
             except LookupError:
                 print("Warning: unknown encoding %s" % tty_encoding)
+
+
+    def _check_file(self, filename):
+        if "\x00" in filename:
+            raise ValueError("Path %s contains NUL characters" % filename)
+        if not os.path.exists(filename):
+            xpath = os.path.abspath(filename)
+            ypath = xpath
+            while not os.path.exists(xpath):
+                xpath = os.path.abspath(os.path.join(xpath, ".."))
+            ypath = ypath[len(xpath):]
+            raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
+        if not os.path.isfile(filename):
+            raise ValueError("Path `%s` is not a file" % filename)
+
+        ext = os.path.splitext(filename)[1]
+        if ext == ".zip":
+            import zipfile
+            zf = zipfile.ZipFile(filename)
+            zff = zf.namelist()
+            if len(zff) > 1:
+                raise ValueError("Zip file %s contains multiple compressed "
+                                 "files: %r" % (filename, zff))
+            if len(zff) == 0:
+                raise ValueError("Zip file %s is empty" % filename)
+            self._tempdir = tempfile.mkdtemp()
+            if self._verbose:
+                self._vlog("Extracting %s to temporary directory %s\n"
+                           % (filename, self._tempdir))
+            self._tempfile = zf.extract(zff[0], path=self._tempdir)
+
+        elif ext == ".gz":
+            import gzip
+            zf = gzip.GzipFile(filename)
+            if self._verbose:
+                self._vlog("Extracting %s into memory\n" % filename)
+            self._text = zf.read()

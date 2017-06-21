@@ -43,22 +43,12 @@ void* clone(void *src, size_t n_bytes);
  * The returned result is a newly allocated memory buffer, and it is the
  * responsibility of the caller to free it.
  */
-#define TOSTRING(pyobj, dflt) ({                                               \
-    char *res = dflt;                                                          \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        PyObject *y = PyUnicode_AsEncodedString(x, "utf-8", "strict");         \
-        if (y == NULL) goto fail;                                              \
-        char *buf = PyBytes_AsString(y);                                       \
-        Py_DECREF(y);                                                          \
-        size_t len = (size_t) PyBytes_Size(y);                                 \
-        dtmalloc(res, char, len + 1);                                          \
-        memcpy(res, buf, len + 1);                                             \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
+#define TOSTRING(pyobj) ({                                                     \
+    char *res = _to_string(pyobj, 0);                                          \
+    if ((int64_t)res == -1) goto fail;                                         \
     res;                                                                       \
 })
+
 
 
 #define TOCHAR(pyobj, dflt) ({                                                 \
@@ -120,5 +110,7 @@ void* clone(void *src, size_t n_bytes);
     res;                                                                       \
 })
 
+
+char* _to_string(PyObject *x, _Bool copy);
 
 #endif

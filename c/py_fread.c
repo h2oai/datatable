@@ -87,9 +87,11 @@ PyObject* freadPy(UU, PyObject *args)
 
     freadMainArgs frargs;
 
-    filename = TOSTRING(ATTR(freader, "filename"), NULL);
-    input = TOSTRING(ATTR(freader, "text"), NULL);
+    // filename & input are borrowed references
+    filename = TOSTRING(ATTR(freader, "filename"));
+    input = TOSTRING(ATTR(freader, "text"));
     na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
+
     frargs.filename = filename;
     frargs.input = input;
     frargs.sep = TOCHAR(ATTR(freader, "sep"), 0);
@@ -135,8 +137,6 @@ void cleanup_fread_session(freadMainArgs *frargs) {
     nstrcols = 0;
     types = NULL;
     sizes = NULL;
-    dtfree(filename);
-    dtfree(input);
     if (frargs) {
         if (na_strings) {
             char **ptr = na_strings;
