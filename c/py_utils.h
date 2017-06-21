@@ -43,8 +43,8 @@ void* clone(void *src, size_t n_bytes);
  * The returned result is a newly allocated memory buffer, and it is the
  * responsibility of the caller to free it.
  */
-#define TOSTRING(pyobj) ({                                                     \
-    char *res = _to_string(pyobj, 0);                                          \
+#define TOSTRING(pyobj, tmp) ({                                                \
+    char *res = _to_string(pyobj, tmp);                                        \
     if ((int64_t)res == -1) goto fail;                                         \
     res;                                                                       \
 })
@@ -111,6 +111,6 @@ void* clone(void *src, size_t n_bytes);
 })
 
 
-char* _to_string(PyObject *x, _Bool copy);
+char* _to_string(PyObject *x, PyObject **tmp);
 
 #endif

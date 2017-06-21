@@ -88,34 +88,22 @@ void _dt_free(void *ptr)
 }
 
 
-char* _to_string(PyObject *x, _Bool copy)
+char* _to_string(PyObject *x, PyObject **tmp)
 {
     if (x == NULL) return (char*)-1;
-    char *res = NULL;
     if (x != Py_None) {
-        char *buf = NULL;
-        size_t len = 0;
         if (PyUnicode_Check(x)) {
             PyObject *y = PyUnicode_AsEncodedString(x, "utf-8", "strict");
             if (y == NULL) return (char*)-1;
-            buf = PyBytes_AsString(y);
-            len = (size_t) PyBytes_Size(y);
-            dtmalloc(res, char, len + 1);
-            memcpy(res, buf, len + 1);
-            copy = 0;
-            Py_DECREF(y);
+            Py_DECREF(x);
+            *tmp = y;
+            return PyBytes_AsString(y);
         }
         if (PyBytes_Check(x)) {
-            buf = PyBytes_AsString(x);
-            len = (size_t) PyBytes_Size(x);
-        }
-        if (copy) {
-            dtmalloc(res, char, len + 1);
-            memcpy(res, buf, len + 1);
-        } else {
-            res = buf;
+            *tmp = x;
+            return PyBytes_AsString(x);
         }
     }
     Py_DECREF(x);
-    return res;
+    return NULL;
 }
