@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import collections
 import time
 from types import GeneratorType
 
@@ -504,7 +505,7 @@ class DataTable(object):
                "i2i": -32768,
                "i4i": -2147483648,
                "i8i": -9223372036854775808}
-        src = {}
+        src = collections.OrderedDict()
         for i in range(self._ncols):
             name = self._names[i]
             column = self._dt.column(i)
