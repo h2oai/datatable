@@ -1,6 +1,6 @@
-#include <assert.h>
 #include <string.h>  // memcpy
 #include "fread.h"
+#include "myassert.h"
 #include "utils.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
@@ -193,7 +193,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     int reallocate = (ncols > 0);
     if (reallocate) {
         assert(dt != NULL && strbufs == NULL);
-        assert(ncols == ncols_ && nstrcols == 0);
+        assert(ncols == (size_t)ncols_ && nstrcols == 0);
         columns = dt->columns;
     } else {
         assert(dt == NULL && strbufs == NULL);
@@ -210,10 +210,11 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         nstrcols += (types[i] == CT_STRING);
     dtcalloc_g(strbufs, StrBuf, nstrcols);
 
+    int i = 0;
     size_t j = 0;
     size_t k = 0;
     size_t off8 = 0;
-    for (int i = 0; i < ncols_; i++) {
+    for (i = 0; i < ncols_; i++) {
         int8_t type = types[i];
         if (type == CT_DROP) continue;
         if (type < 0) { j++; continue; }
@@ -240,7 +241,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         off8 += (sizes[i] == 8);
         j++;
     }
-    assert(i == ncols && j == ndtcols && k == nstrcols);
+    assert((size_t)i == ncols && j == ndtcols && k == nstrcols);
 
     if (!reallocate) {
         dt = make_datatable((int64_t)nrows, columns);
@@ -271,7 +272,7 @@ void setFinalNrow(size_t nrows) {
         Column *col = dt->columns[j];
         if (col->stype) {} // if a column was already finalized, skip it
         if (type == CT_STRING) {
-            assert(strbufs[k] != NULL);
+            assert(strbufs[k].numuses == 0);
             void *final_ptr = (void*) strbufs[k].buf;
             strbufs[k].buf = NULL;  // take ownership of the pointer
             size_t curr_size = strbufs[k].ptr;
@@ -301,7 +302,7 @@ void setFinalNrow(size_t nrows) {
     dtfree(strbufs);
     return;
   fail:
-    {}
+    printf("setFinalNrow() failed!\n");
 }
 
 
@@ -318,6 +319,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
     return;
 
   fail:
+    printf("prepareThreadContext() failed\n");
     for (size_t k = 0; k < nstrcols; k++) dtfree(ctx->strbufs[k].buf);
     dtfree(ctx->strbufs);
     *(ctx->stopTeam) = 1;
@@ -373,6 +375,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
     }
     return;
   fail:
+    printf("postprocessBuffer() failed\n");
     *(ctx->stopTeam) = 1;
 }
 
@@ -415,6 +418,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
     }
     return;
   fail:
+    printf("orderBuffer() failed");
     *(ctx->stopTeam) = 1;
 }
 

@@ -6,7 +6,7 @@ import tempfile
 # noinspection PyUnresolvedReferences
 import _datatable as c
 from datatable.dt import DataTable
-from datatable.utils.typechecks import typed, U
+from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term
 
 
@@ -59,11 +59,11 @@ class FReader(object):
         if "progress_fn" in args:
             progress = args.pop("progress_fn")
             if not callable(progress):
-                raise TypeError("`progress_fn` argument should be a function")
+                raise TTypeError("`progress_fn` argument should be a function")
             self._progress = progress
         if args:
-            raise TypeError("Unknown argument(s) %r in FReader(...)"
-                            % list(args.keys()))
+            raise TTypeError("Unknown argument(s) %r in FReader(...)"
+                             % list(args.keys()))
 
 
     @property
@@ -95,7 +95,7 @@ class FReader(object):
             self._text = None
         else:
             if "\x00" in text:
-                raise ValueError("Text contains NUL characters")
+                raise TValueError("Text contains NUL characters")
             self._text = text
 
 
@@ -110,10 +110,10 @@ class FReader(object):
             self._sep = None
         else:
             if len(sep) > 1:
-                raise ValueError("Multi-character separator %r not supported"
+                raise TValueError("Multi-character separator %r not supported"
                                  % sep)
             if ord(sep) > 127:
-                raise ValueError("The separator should be an ASCII character, "
+                raise TValueError("The separator should be an ASCII character, "
                                  "got %r" % sep)
             self._sep = sep
 
@@ -246,16 +246,16 @@ class FReader(object):
 
     def _check_file(self, filename):
         if "\x00" in filename:
-            raise ValueError("Path %s contains NUL characters" % filename)
+            raise TValueError("Path %s contains NUL characters" % filename)
         if not os.path.exists(filename):
             xpath = os.path.abspath(filename)
             ypath = xpath
             while not os.path.exists(xpath):
                 xpath = os.path.abspath(os.path.join(xpath, ".."))
             ypath = ypath[len(xpath):]
-            raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
+            raise TValueError("File %s`%s` does not exist" % (xpath, ypath))
         if not os.path.isfile(filename):
-            raise ValueError("Path `%s` is not a file" % filename)
+            raise TValueError("Path `%s` is not a file" % filename)
 
         ext = os.path.splitext(filename)[1]
         if ext == ".zip":
@@ -263,10 +263,10 @@ class FReader(object):
             zf = zipfile.ZipFile(filename)
             zff = zf.namelist()
             if len(zff) > 1:
-                raise ValueError("Zip file %s contains multiple compressed "
-                                 "files: %r" % (filename, zff))
+                raise TValueError("Zip file %s contains multiple compressed "
+                                  "files: %r" % (filename, zff))
             if len(zff) == 0:
-                raise ValueError("Zip file %s is empty" % filename)
+                raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
             if self._verbose:
                 self._vlog("Extracting %s to temporary directory %s\n"

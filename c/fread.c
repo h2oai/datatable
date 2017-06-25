@@ -1834,7 +1834,7 @@ int freadMain(freadMainArgs _args)
       prepareThreadContext(&ctx);
 
       #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
-      for (int jump=0; jump<nJumps+nth; jump++) {
+      for (int jump = 0; jump < nJumps; jump++) {
         double tt0 = 0, tt1 = 0;
         if (verbose) { tt1 = tt0 = wallclock(); }
 
@@ -2090,7 +2090,10 @@ int freadMain(freadMainArgs _args)
         // Next thread can now start its ordered section and write its results to the final DT at the same time as me.
         // Ordered has to be last in some OpenMP implementations currently. Logically though, pushBuffer happens now.
       }
-
+      // Push out all buffers one last time.
+      if (myNrow) {
+        pushBuffer(&ctx);
+      }
       // Done reading the file: each thread should now clean up its own buffers.
       free(myBuff8); myBuff8 = NULL;
       free(myBuff4); myBuff4 = NULL;
