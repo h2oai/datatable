@@ -36,6 +36,7 @@ static PyObject *colNamesList = NULL;
 
 static char *filename = NULL;
 static char *input = NULL;
+static char *skipstring = NULL;
 static char **na_strings = NULL;
 
 // ncols -- number of fields in the CSV file.
@@ -75,7 +76,7 @@ static StrBuf *strbufs = NULL;
  */
 PyObject* freadPy(UU, PyObject *args)
 {
-    PyObject *tmp1 = NULL, *tmp2 = NULL;
+    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL;
     if (freader != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
@@ -86,49 +87,53 @@ PyObject* freadPy(UU, PyObject *args)
 
     Py_INCREF(freader);
 
-    freadMainArgs frargs;
+    freadMainArgs *frargs = NULL;
+    dtmalloc_g(frargs, freadMainArgs, 1);
 
     // filename & input are borrowed references
     filename = TOSTRING(ATTR(freader, "filename"), &tmp1);
     input = TOSTRING(ATTR(freader, "text"), &tmp2);
+    skipstring = TOSTRING(ATTR(freader, "skip_to_string"), &tmp3);
     na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
 
-    frargs.filename = filename;
-    frargs.input = input;
-    frargs.sep = TOCHAR(ATTR(freader, "sep"), 0);
-    frargs.dec = '.';
-    frargs.quote = '"';
-    frargs.nrowLimit = TOINT64(ATTR(freader, "max_nrows"), 0);
-    frargs.skipNrow = 0;
-    frargs.skipString = NULL;
-    frargs.header = TOBOOL(ATTR(freader, "header"), NA_BOOL8);
-    frargs.verbose = TOBOOL(ATTR(freader, "verbose"), 0);
-    frargs.NAstrings = (const char* const*) na_strings;
-    frargs.stripWhite = 1;
-    frargs.skipEmptyLines = 1;
-    frargs.fill = TOBOOL(ATTR(freader, "fill"), 0);
-    frargs.showProgress = TOBOOL(ATTR(freader, "show_progress"), 0);
-    frargs.nth = 0;
-    frargs.warningsAreErrors = 0;
-    if (frargs.nrowLimit < 0)
-        frargs.nrowLimit = LONG_MAX;
+    frargs->filename = filename;
+    frargs->input = input;
+    frargs->sep = TOCHAR(ATTR(freader, "sep"), 0);
+    frargs->dec = '.';
+    frargs->quote = '"';
+    frargs->nrowLimit = TOINT64(ATTR(freader, "max_nrows"), 0);
+    frargs->skipNrow = TOINT64(ATTR(freader, "skip_lines"), 0);
+    frargs->skipString = skipstring;
+    frargs->header = TOBOOL(ATTR(freader, "header"), NA_BOOL8);
+    frargs->verbose = TOBOOL(ATTR(freader, "verbose"), 0);
+    frargs->NAstrings = (const char* const*) na_strings;
+    frargs->stripWhite = 1;
+    frargs->skipEmptyLines = 1;
+    frargs->fill = TOBOOL(ATTR(freader, "fill"), 0);
+    frargs->showProgress = TOBOOL(ATTR(freader, "show_progress"), 0);
+    frargs->nth = 0;
+    frargs->warningsAreErrors = 0;
+    if (frargs->nrowLimit < 0)
+        frargs->nrowLimit = LONG_MAX;
 
-    frargs.freader = freader;
+    frargs->freader = freader;
     Py_INCREF(freader);
 
-    int res = freadMain(frargs);
+    int res = freadMain(*frargs);
     if (!res) goto fail;
 
     PyObject *pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
     Py_XDECREF(tmp1);
     Py_XDECREF(tmp2);
-    cleanup_fread_session(&frargs);
+    Py_XDECREF(tmp3);
+    cleanup_fread_session(frargs);
     return pydt;
 
   fail:
     datatable_dealloc(dt);
-    cleanup_fread_session(&frargs);
+    cleanup_fread_session(frargs);
+    dtfree(frargs);
     return NULL;
 }
 

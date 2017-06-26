@@ -910,7 +910,11 @@ int freadMain(freadMainArgs _args)
                 any_number_like_NAstrings ? "One or more" : "None");
       }
     }
-    if (verbose) DTPRINT("  showProgress = %d\n", args.showProgress);
+    if (verbose) {
+      if (args.skipNrow) DTPRINT("  skip lines = %lld\n", args.skipNrow);
+      if (args.skipString) DTPRINT("  skip to string = <<%s>>\n", args.skipString);
+      DTPRINT("  showProgress = %d\n", args.showProgress);
+    }
 
     stripWhite = args.stripWhite;
     skipEmptyLines = args.skipEmptyLines;
