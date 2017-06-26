@@ -1,6 +1,6 @@
 #!/usr/bin/groovy
 // TOOD: rename to @Library('h2o-jenkins-pipeline-lib') _
-@Library('h2o-jenkins-pipeline-lib') _
+@Library('test-shared-library') _
 
 pipeline {
    // Setup job options
