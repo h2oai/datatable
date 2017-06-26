@@ -22,10 +22,12 @@ def fread(filename="", **params):
 class FReader(object):
 
     @typed(filename=str, text=str, sep=str, max_nrows=int, header=bool,
-           na_strings=[str], fill=bool, show_progress=bool, encoding=str)
+           na_strings=[str], fill=bool, show_progress=bool, encoding=str,
+           skip_lines=int, skip_to_string=str)
     def __init__(self, filename=None, text=None, sep=None, max_nrows=None,
                  header=None, na_strings=None, verbose=False, fill=False,
-                 show_progress=term.is_a_tty, encoding=None, **args):
+                 show_progress=term.is_a_tty, encoding=None,
+                 skip_to_string=None, skip_lines=None, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -38,6 +40,8 @@ class FReader(object):
         self._fill = False      # type: bool
         self._show_progress = True  # type: bool
         self._encoding = encoding
+        self._skip_lines = None
+        self._skip_to_string = None
 
         self._log_newline = True
         self._colnames = None
@@ -53,6 +57,8 @@ class FReader(object):
         self.na_strings = na_strings
         self.fill = fill
         self.show_progress = show_progress
+        self.skip_to_string = skip_to_string
+        self.skip_lines = skip_lines
 
         if "separator" in args:
             self.sep = args.pop("separator")
@@ -91,12 +97,7 @@ class FReader(object):
     @text.setter
     @typed(text=U(str, None))
     def text(self, text):
-        if not text:
-            self._text = None
-        else:
-            if "\x00" in text:
-                raise TValueError("Text contains NUL characters")
-            self._text = text
+        self._text = text or None
 
 
     @property
@@ -183,6 +184,27 @@ class FReader(object):
         self._show_progress = show_progress
         if show_progress:
             self._prepare_progress_bar()
+
+
+    @property
+    def skip_to_string(self):
+        return self._skip_to_string
+
+    @skip_to_string.setter
+    @typed(s=U(str, None))
+    def skip_to_string(self, s):
+        self._skip_to_string = s or None
+
+
+    @property
+    def skip_lines(self):
+        return self._skip_lines
+
+    @skip_lines.setter
+    @typed(n=U(int, None))
+    def skip_lines(self, n):
+        self._skip_lines = n
+
 
 
 
