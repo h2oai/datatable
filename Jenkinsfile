@@ -71,6 +71,19 @@ pipeline {
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
             }
         }
+        stage('Test on OSX') {
+            agent {
+                label "mr-0xb11"
+            }
+            steps {
+                unstash 'osx_whl'
+                sh """
+                        source ../h2oai_venv/bin/activate
+                        pip install dist/*linux*.whl
+                        python -m pytest
+                """
+            }
+        }
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
@@ -81,7 +94,7 @@ pipeline {
                 unstash 'linux_whl'
                 unstash 'osx_whl'
                 sh "ls -l dist"
-                /*script {
+                script {
                     def _majorVersion = "0.1" // TODO: read from file
                     def _buildVersion = "${env.BUILD_ID}"
                     s3up {
@@ -91,7 +104,7 @@ pipeline {
                         buildVersion = _buildVersion
                         keepPrivate = true
                     }
-                }*/
+                }
             }
         }
 
