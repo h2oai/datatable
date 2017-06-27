@@ -15,20 +15,6 @@ pipeline {
 
     stages {
 
-        /*stage('Git Pull') {
-            agent {
-                dockerfile {
-                    label "mr-0xc5"
-                    filename "Dockerfile"
-                    reuseNode true
-                }
-            }
-            steps {
-                // Checkout git repo - it is defined as part of multi-branch Jenkins job
-                checkout scm
-            }
-        }*/
-
         stage('Build on Linux') {
             agent {
                 dockerfile {
@@ -39,15 +25,32 @@ pipeline {
             }
             steps {
                 sh """
-                        sed -i "s/python/python3.6/" Makefile
-                        sed -i "s/pip/pip3.6/" Makefile 
+                        . datatable_env/bin/activate
                         env
                         make clean
                         make build
                         touch LICENSE
-                        python3.6 setup.py bdist_wheel
-                        """
+                        python setup.py bdist_wheel
+                """
                 stash includes: '**/dist/*.whl', name: 'linux_whl'
+
+            }
+        }
+        stage('Test on Linux') {
+            agent {
+                dockerfile {
+                    label "mr-0xc5"
+                    filename "Dockerfile"
+                    reuseNode true
+                }
+            }
+            steps {
+                unstash 'linux_whl'
+                sh """
+                        . datatable_env/bin/activate
+                        pip install dist/*linux*.whl
+                        python -m pytest
+                """
             }
         }
         stage('Build on OSX') {
