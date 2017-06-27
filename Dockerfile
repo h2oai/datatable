@@ -35,9 +35,14 @@ RUN \
   python3.6 \
   python3.6-dev \
   python3-pip \
-  python3-dev
+  python3-dev \
+  python3-virtualenv \
+  python-virtualenv
 
 RUN \
+  mkdir datatable_env
+  virtualenv --python=/usr/bin/python3.6  ~/datatable_env
+  source datatable_env/bin/activate
   /usr/bin/python3.6 -m pip install --upgrade pip && \
   /usr/bin/python3.6 -m pip install --upgrade setuptools && \
   /usr/bin/python3.6 -m pip install --upgrade python-dateutil && \
