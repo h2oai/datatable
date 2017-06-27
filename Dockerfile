@@ -41,6 +41,11 @@ RUN \
   /usr/bin/python3.6 -m pip install --upgrade setuptools && \
   /usr/bin/python3.6 -m pip install --upgrade python-dateutil && \
   /usr/bin/python3.6 -m pip install --upgrade numpy && \
+  /usr/bin/python3.6 -m pip install --upgrade colorama && \
+  /usr/bin/python3.6 -m pip install --upgrade typesentry && \
+  /usr/bin/python3.6 -m pip install --upgrade wcwidth && \
+  /usr/bin/python3.6 -m pip install --upgrade blessed && \
+  /usr/bin/python3.6 -m pip install --upgrade llvmlite && \
   /usr/bin/python3.6 -m pip install --upgrade psutil
 
 # Remove apt-cache
