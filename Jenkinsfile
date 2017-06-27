@@ -55,7 +55,7 @@ pipeline {
                 label "mr-0xb11"
             }
             steps {
-                checkout scm
+                /*checkout scm*/
                 sh """
                         export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
                         export PATH=/usr/local/bin:$PATH
