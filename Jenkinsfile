@@ -62,9 +62,7 @@ pipeline {
         }
     }
 }
-    def arch(list) {
-        archiveArtifacts artifacts: list, allowEmptyArchive: true
-    }
+
 /*stage('Test on Linux') {
     steps {
         sh """
@@ -95,3 +93,7 @@ stage('Test on OSX') {
     }
 }
 */
+
+def arch(list) {
+    archiveArtifacts artifacts: list, allowEmptyArchive: true
+}
