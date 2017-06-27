@@ -46,6 +46,9 @@ RUN \
   apt-get clean && \
   rm -rf /var/cache/apt/*
 
+RUN \
+    apt-get -y install wget
+
 # Install LLVM for pydatatable
 RUN \
   wget http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
@@ -57,3 +60,4 @@ ENV \
   LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
   CC=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang \
   CLANG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+
