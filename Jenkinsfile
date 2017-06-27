@@ -91,7 +91,9 @@ pipeline {
             when {
                 branch 'master'
             }
-            agent any
+            agent {
+                label "mr-0xc5"
+            }
             steps {
                 unstash 'linux_whl'
                 unstash 'osx_whl'
