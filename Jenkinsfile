@@ -1,9 +1,8 @@
 #!/usr/bin/groovy
 // TOOD: rename to @Library('h2o-jenkins-pipeline-lib') _
-@Library('test-shared-library') _
+// @Library('test-shared-library') _
 
 pipeline {
-
     agent {
         dockerfile {
             label "mr-0xc8"
@@ -11,6 +10,7 @@ pipeline {
             reuseNode true
         }
     }
+
     // Setup job options
     options {
         ansiColor('xterm')
@@ -18,8 +18,8 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
-    stages {
 
+    stages {
         stage('Git Pull') {
             steps {
                 // Checkout git repo - it is defined as part of multi-branch Jenkins job
@@ -28,33 +28,45 @@ pipeline {
         }
 
         stage('Build on Linux') {
-            sh """
+            steps {
+                sh """
                         env
                         make clean
                         make
                         python setup.py bdist_wheel
                         """
-        }
-        stage('Test on Linux') {
-            sh """
-                        python -m pytest
-                        python -m pytest --cov=datatable --cov-report=html
-                        """
+            }
         }
 
+        stage('Test on Linux') {
+            steps {
+                sh """
+                        python -m pytest
+                        python -m pytest --cov=datatable --cov-report=html
+                        """
+            }
+        }
+
+        /*
         stage('Build on OSX') {
-            sh """
+            steps {
+                sh """
                         env
                         make clean
                         make
                         python setup.py bdist_wheel
                         """
+            }
         }
         stage('Test on OSX') {
-            sh """
+            steps {
+                sh """
                         python -m pytest
                         python -m pytest --cov=datatable --cov-report=html
                         """
+            }
         }
+        */
+
     }
 }
