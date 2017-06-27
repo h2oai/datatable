@@ -47,7 +47,8 @@ RUN \
   /usr/bin/python3.6 -m pip install --upgrade wcwidth && \
   /usr/bin/python3.6 -m pip install --upgrade blessed && \
   /usr/bin/python3.6 -m pip install --upgrade llvmlite && \
-  /usr/bin/python3.6 -m pip install --upgrade psutil
+  /usr/bin/python3.6 -m pip install --upgrade psutil && \
+  /usr/bin/python3.6 -m pip install --upgrade pytest
 
 # Remove apt-cache
 RUN \

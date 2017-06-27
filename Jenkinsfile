@@ -41,10 +41,12 @@ pipeline {
             }
         }
 
-        /*stage('Test on Linux') {
+        stage('Test on Linux') {
             steps {
                 sh """
-                        make test
+                        python3.6 setup.py install
+                        python3.6 -m pytest
+                        python3.6 -m pytest --cov=datatable --cov-report=html
                         """
             }
         }
