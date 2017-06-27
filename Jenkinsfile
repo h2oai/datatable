@@ -34,8 +34,9 @@ pipeline {
                         sed -i "s/pip/pip3.6/" Makefile 
                         env
                         make clean
-                        make
-                        python setup.py bdist_wheel
+                        make build
+                        touch LICENSE
+                        python3.6 setup.py bdist_wheel
                         """
             }
         }
