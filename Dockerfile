@@ -29,7 +29,8 @@ RUN \
 # Install datatable dependencies
 RUN \
   apt-get install -y \
-  python3.6
+  python3.6 \
+  python3-pip
 
 RUN \
   /usr/bin/python3.6 -m pip install --upgrade pip && \
