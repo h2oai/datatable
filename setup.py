@@ -106,6 +106,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #       does not suffer from this drawback.
 extra_compile_args = [
     "-DDTPY",
+    "-DNONDEBUG",
     "-Weverything",
     "-Wno-pointer-arith",
     "-Wno-covered-switch-default",
