@@ -19,6 +19,7 @@ RUN \
   software-properties-common \
   vim \
   git \
+  s3cmd \
   dirmngr
 
 # Setup Repos
