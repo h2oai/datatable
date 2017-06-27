@@ -87,7 +87,7 @@ pipeline {
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
-                branch 'dev'
+                branch 'master'
             }
             agent any
             steps {
