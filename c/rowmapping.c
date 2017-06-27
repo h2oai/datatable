@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>  // assert, static_assert
+#include "myassert.h"
 #include "rowmapping.h"
 #include "omp.h"
 #include "types.h"

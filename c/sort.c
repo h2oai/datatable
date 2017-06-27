@@ -5,10 +5,10 @@
 //     https://github.com/Rdatatable/data.table/src/fsort.c and
 //     https://github.com/Rdatatable/data.table/src/forder.c
 //------------------------------------------------------------------------------
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>  // memcpy
 #include <omp.h>
+#include "myassert.h"
 #include "sort.h"
 #include "types.h"
 #include "utils.h"
@@ -205,7 +205,7 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
             xx[k] = (int32_t)((*myx - umin) & mask);
         }
     }
-    assert(counts[counts_size - 1] == n);
+    assert(counts[counts_size - 1] == (size_t)n);
 
 
     if (shift == 0) {

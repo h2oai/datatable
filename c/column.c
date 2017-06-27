@@ -1,5 +1,6 @@
 #include <sys/mman.h>
 #include "column.h"
+#include "myassert.h"
 #include "rowmapping.h"
 #include "sort.h"
 #include "py_utils.h"

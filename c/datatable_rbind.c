@@ -1,9 +1,9 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "column.h"
 #include "datatable.h"
+#include "myassert.h"
 #include "rowmapping.h"
 #include "utils.h"
 

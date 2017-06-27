@@ -1,6 +1,5 @@
 #ifndef dt_COLUMN_H
 #define dt_COLUMN_H
-#include <assert.h>    // static_assert
 #include <inttypes.h>  // int*_t
 #include <stddef.h>    // offsetof
 #include "types.h"

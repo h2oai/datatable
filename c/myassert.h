@@ -9,7 +9,9 @@
 #include <assert.h>  // assert, static_assert
 
 #ifndef static_assert
-    // Some system libraries fail to define this macro :(
+    // Some system libraries fail to define this macro :( At least 3 people have
+    // reported having this problem on the first day of testing, so it's not
+    // that uncommon.
     // In this case we just disable these checks.
     #define static_assert(cond)
 #endif
