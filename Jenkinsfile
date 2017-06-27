@@ -15,7 +15,7 @@ pipeline {
 
     stages {
 
-        stage('Git Pull') {
+        /*stage('Git Pull') {
             agent {
                 dockerfile {
                     label "mr-0xc5"
@@ -27,7 +27,7 @@ pipeline {
                 // Checkout git repo - it is defined as part of multi-branch Jenkins job
                 checkout scm
             }
-        }
+        }*/
 
         stage('Build on Linux') {
             agent {
@@ -55,7 +55,6 @@ pipeline {
                 label "mr-0xb11"
             }
             steps {
-                /*checkout scm*/
                 sh """
                         export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
                         export PATH=/usr/local/bin:$PATH
