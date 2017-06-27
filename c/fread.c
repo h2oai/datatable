@@ -1878,7 +1878,6 @@ int freadMain(freadMainArgs _args)
 
         const char *tch = sof + (size_t)jump * chunkBytes;
         const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+eolLen : eof;
-        printf("[%d] jump=%d: tch=%zd, end=%zd\n", me, jump, tch - sof, nextJump - sof);
         // +eolLen is for when nextJump happens to fall exactly on a line start (or on eol2 on Windows). The
         // next thread will start one line later because nextGoodLine() starts by finding next eol
         // Easier to imagine eolLen==1 and tch<=nextJump in the while() below
@@ -1888,7 +1887,6 @@ int freadMain(freadMainArgs _args)
           continue;
         }
         thisJumpStart=tch;
-        printf("[%d] tch->%zd\n", me, tch - sof);
         if (verbose) { tt1 = wallclock(); thNextGoodLine += tt1 - tt0; tt0 = tt1; }
 
         void *myBuff1Pos = myBuff1, *myBuff4Pos = myBuff4, *myBuff8Pos = myBuff8;
