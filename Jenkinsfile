@@ -18,7 +18,7 @@ pipeline {
         stage('Git Pull') {
             agent {
                 dockerfile {
-                    label "mr-0xc8"
+                    label "mr-0xc5"
                     filename "Dockerfile"
                     reuseNode true
                 }
@@ -32,7 +32,7 @@ pipeline {
         stage('Build on Linux') {
             agent {
                 dockerfile {
-                    label "mr-0xc8"
+                    label "mr-0xc5"
                     filename "Dockerfile"
                     reuseNode true
                 }
@@ -57,7 +57,7 @@ pipeline {
             }
             agent {
                 dockerfile {
-                    label "mr-0xc8"
+                    label "mr-0xc5"
                     filename "Dockerfile"
                     reuseNode true
                 }
