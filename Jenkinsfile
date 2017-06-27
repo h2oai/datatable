@@ -52,7 +52,6 @@ pipeline {
         stage('Build on OSX') {
             agent {
                 label "mr-0xb11"
-                reuseNode true
             }
             steps {
                 checkout scm
