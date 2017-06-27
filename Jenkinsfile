@@ -33,7 +33,6 @@ pipeline {
                         sed -i "s/python/python3.6/" Makefile
                         sed -i "s/pip/pip3.6/" Makefile 
                         env
-                        echo "abal is here"
                         whoami
                         make clean
                         make
@@ -42,11 +41,10 @@ pipeline {
             }
         }
 
-        stage('Test on Linux') {
+        /*stage('Test on Linux') {
             steps {
                 sh """
-                        python -m pytest
-                        python -m pytest --cov=datatable --cov-report=html
+                        make test
                         """
             }
         }
