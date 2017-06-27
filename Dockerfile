@@ -41,8 +41,8 @@ RUN \
 
 
 RUN \
-  virtualenv --python=/usr/bin/python3.6  .
-  source /bin/activate
+  virtualenv --python=/usr/bin/python3.6  . && \
+  source /bin/activate && \
   /usr/bin/python3.6 -m pip install --upgrade pip && \
   /usr/bin/python3.6 -m pip install --upgrade setuptools && \
   /usr/bin/python3.6 -m pip install --upgrade python-dateutil && \
