@@ -78,6 +78,8 @@ pipeline {
             steps {
                 unstash 'osx_whl'
                 sh """
+                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
+                        export PATH=/usr/local/bin:$PATH
                         source ../h2oai_venv/bin/activate
                         pip install dist/*macosx*.whl
                         python -m pytest
