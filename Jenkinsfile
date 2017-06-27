@@ -49,33 +49,26 @@ pipeline {
                         """
             }
         }
-
-        // Publish into S3 all snapshots versions
-        stage('Publish snapshot to S3') {
-            when {
-                branch 'master'
-            }
+        stage('Build on OSX') {
             agent {
-                dockerfile {
-                    label "mr-0xc5"
-                    filename "Dockerfile"
-                    reuseNode true
-                }
+                label "mr-0xb11"
+                reuseNode true
             }
             steps {
-                script {
-                    def _majorVersion = "0.1" // TODO: read from file
-                    def _buildVersion = "${env.BUILD_ID}"
-                    s3up {
-                        localArtifact = 'dist/*.whl'
-                        artifactId = "pydatatable"
-                        majorVersion = _majorVersion
-                        buildVersion = _buildVersion
-                        keepPrivate = true
-                    }
-                }
+                checkout scm
+                sh """
+                        sed -i "s/python/python3.6/" Makefile
+                        sed -i "s/pip/pip3.6/" Makefile 
+                        env
+                        make clean
+                        make build
+                        touch LICENSE
+                        python3.6 setup.py bdist_wheel
+                    """
             }
         }
+
+
     }
 }
 
@@ -110,6 +103,29 @@ stage('Test on OSX') {
 }
 */
 
-def arch(list) {
-    archiveArtifacts artifacts: list, allowEmptyArchive: true
-}
+// Publish into S3 all snapshots versions
+/*stage('Publish snapshot to S3') {
+    when {
+        branch 'master'
+    }
+    agent {
+        dockerfile {
+            label "mr-0xc5"
+            filename "Dockerfile"
+            reuseNode true
+        }
+    }
+    steps {
+        script {
+            def _majorVersion = "0.1" // TODO: read from file
+            def _buildVersion = "${env.BUILD_ID}"
+            s3up {
+                localArtifact = 'dist/*.whl'
+                artifactId = "pydatatable"
+                majorVersion = _majorVersion
+                buildVersion = _buildVersion
+                keepPrivate = true
+            }
+        }
+    }
+}*/
