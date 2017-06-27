@@ -25,7 +25,7 @@ pipeline {
             }
             steps {
                 sh """
-                        . datatable_env/bin/activate
+                        source /datatable_env/bin/activate
                         env
                         make clean
                         make build
@@ -47,7 +47,7 @@ pipeline {
             steps {
                 unstash 'linux_whl'
                 sh """
-                        . datatable_env/bin/activate
+                        source /datatable_env/bin/activate
                         pip install dist/*linux*.whl
                         python -m pytest
                 """
