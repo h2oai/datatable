@@ -3,13 +3,7 @@
 @Library('test-shared-library') _
 
 pipeline {
-    agent {
-        dockerfile {
-            label "mr-0xc8"
-            filename "Dockerfile"
-            reuseNode true
-        }
-    }
+    agent none
 
     // Setup job options
     options {
@@ -20,7 +14,15 @@ pipeline {
     }
 
     stages {
+
         stage('Git Pull') {
+            agent {
+                dockerfile {
+                    label "mr-0xc8"
+                    filename "Dockerfile"
+                    reuseNode true
+                }
+            }
             steps {
                 // Checkout git repo - it is defined as part of multi-branch Jenkins job
                 checkout scm
@@ -28,6 +30,13 @@ pipeline {
         }
 
         stage('Build on Linux') {
+            agent {
+                dockerfile {
+                    label "mr-0xc8"
+                    filename "Dockerfile"
+                    reuseNode true
+                }
+            }
             steps {
                 sh """
                         sed -i "s/python/python3.6/" Makefile
@@ -45,6 +54,13 @@ pipeline {
         stage('Publish snapshot to S3') {
             when {
                 branch 'master'
+            }
+            agent {
+                dockerfile {
+                    label "mr-0xc8"
+                    filename "Dockerfile"
+                    reuseNode true
+                }
             }
             steps {
                 script {
