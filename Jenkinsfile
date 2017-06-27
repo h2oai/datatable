@@ -56,6 +56,9 @@ pipeline {
             steps {
                 checkout scm
                 sh """
+                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
+                        export PATH=/usr/local/bin:$PATH
+                        source ../h2oai_venv/bin/activate
                         sed -i "s/python/python3.6/" Makefile
                         sed -i "s/pip/pip3.6/" Makefile 
                         env
