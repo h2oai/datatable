@@ -52,7 +52,7 @@ pipeline {
                     def _buildVersion = "${env.BUILD_ID}"
                     s3up {
                         localArtifact = 'dist/*.whl'
-                        artifactId = "mli"
+                        artifactId = "pydatatable"
                         majorVersion = _majorVersion
                         buildVersion = _buildVersion
                         keepPrivate = true
