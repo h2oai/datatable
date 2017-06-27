@@ -1661,6 +1661,7 @@ int freadMain(freadMainArgs _args)
 
     size_t estnrow=1, allocnrow=1;
     size_t bytesRead = (size_t)(eof - sof) + (size_t)(eoh? eoh - soh : 0);
+    size_t bytesToRead = bytesRead;
     double meanLineLen=0;
     if (sampleLines == 0) {
       if (verbose) DTPRINT("  sampleLines=0: only column names are present\n");
@@ -1689,6 +1690,7 @@ int freadMain(freadMainArgs _args)
       }
       if (nrowLimit < allocnrow) {
         if (verbose) DTPRINT("  Alloc limited to lower nrows=%zd passed in.\n", nrowLimit);
+        bytesToRead = (size_t) (bytesRead * (1.0 * nrowLimit / allocnrow));
         estnrow = allocnrow = nrowLimit;
       }
       if (verbose) DTPRINT("  =====\n");
@@ -1779,10 +1781,10 @@ int freadMain(freadMainArgs _args)
     if (nJumps/*from sampling*/>1) {
       // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
       // when nth==1 we still split by chunk for consistency (testing) and code sanity
-      nJumps = (int)(bytesRead/chunkBytes);  // (int) rounds down
+      nJumps = (int)(bytesToRead/chunkBytes);  // (int) rounds down
       if (nJumps==0) nJumps=1;
       else if (nJumps>nth) nJumps = nth*(1+(nJumps-1)/nth);
-      chunkBytes = bytesRead / (size_t)nJumps;
+      chunkBytes = bytesToRead / (size_t)nJumps;
     } else {
       nJumps = 1;
     }
@@ -1790,6 +1792,7 @@ int freadMain(freadMainArgs _args)
       DTPRINT("  njumps=%d and chunkBytes=%zd\n", nJumps, chunkBytes);
     }
     size_t initialBuffRows = allocnrow / (size_t)nJumps;
+    if (initialBuffRows < allocnrow) initialBuffRows = allocnrow;
     if (initialBuffRows > INT32_MAX) STOP("Buffer size %lld is too large\n", initialBuffRows);
     nth = imin(nJumps, nth);
 
@@ -1875,6 +1878,7 @@ int freadMain(freadMainArgs _args)
 
         const char *tch = sof + (size_t)jump * chunkBytes;
         const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+eolLen : eof;
+        printf("[%d] jump=%d: tch=%zd, end=%zd\n", me, jump, tch - sof, nextJump - sof);
         // +eolLen is for when nextJump happens to fall exactly on a line start (or on eol2 on Windows). The
         // next thread will start one line later because nextGoodLine() starts by finding next eol
         // Easier to imagine eolLen==1 and tch<=nextJump in the while() below
@@ -1884,6 +1888,7 @@ int freadMain(freadMainArgs _args)
           continue;
         }
         thisJumpStart=tch;
+        printf("[%d] tch->%zd\n", me, tch - sof);
         if (verbose) { tt1 = wallclock(); thNextGoodLine += tt1 - tt0; tt0 = tt1; }
 
         void *myBuff1Pos = myBuff1, *myBuff4Pos = myBuff4, *myBuff8Pos = myBuff8;
@@ -1894,7 +1899,7 @@ int freadMain(freadMainArgs _args)
         allBuffPos[8] = &myBuff8Pos;
 
         const char *fake_anchor = thisJumpStart;
-        while (tch<nextJump) {
+        while (tch<nextJump && myNrow < nrowLimit - myDTi) {
           if (myNrow == myBuffRows) {
             // buffer full due to unusually short lines in this chunk vs the sample; e.g. #2070
             myBuffRows *= 1.5;
@@ -2088,6 +2093,7 @@ int freadMain(freadMainArgs _args)
           // tell next thread 2 things :
           prevJumpEnd = tch; // i) the \n I finished on so it can check (above) it started exactly on that \n good line start
           DTi += myNrow;     // ii) which row in the final result it should start writing to. As soon as I know myNrow.
+          ctx.nRows = myNrow;
           orderBuffer(&ctx);
         }
         // END ORDERED.
