@@ -47,6 +47,7 @@ pipeline {
                         touch LICENSE
                         python3.6 setup.py bdist_wheel
                         """
+                stash includes: '**/dist/*.whl', name: 'linux_whl'
             }
         }
         stage('Build on OSX') {
@@ -65,67 +66,33 @@ pipeline {
                         touch LICENSE
                         python setup.py bdist_wheel
                     """
+                stash includes: '**/dist/*.whl', name: 'osx_whl'
+            }
+        }
+        // Publish into S3 all snapshots versions
+        stage('Publish snapshot to S3') {
+            when {
+                branch 'dev'
+            }
+            agent any
+            steps {
+                unstash 'linux_whl'
+                unstash 'osx_whl'
+                sh "ls -l dist"
+                /*script {
+                    def _majorVersion = "0.1" // TODO: read from file
+                    def _buildVersion = "${env.BUILD_ID}"
+                    s3up {
+                        localArtifact = 'dist/*.whl'
+                        artifactId = "pydatatable"
+                        majorVersion = _majorVersion
+                        buildVersion = _buildVersion
+                        keepPrivate = true
+                    }
+                }*/
             }
         }
 
-
     }
 }
 
-/*stage('Test on Linux') {
-    steps {
-        sh """
-                python3.6 setup.py install
-                python3.6 -m pytest
-                python3.6 -m pytest --cov=datatable --cov-report=html
-                """
-    }
-}
-
-/*
-stage('Build on OSX') {
-    steps {
-        sh """
-                env
-                make clean
-                make
-                python setup.py bdist_wheel
-                """
-    }
-}
-stage('Test on OSX') {
-    steps {
-        sh """
-                python -m pytest
-                python -m pytest --cov=datatable --cov-report=html
-                """
-    }
-}
-*/
-
-// Publish into S3 all snapshots versions
-/*stage('Publish snapshot to S3') {
-    when {
-        branch 'master'
-    }
-    agent {
-        dockerfile {
-            label "mr-0xc5"
-            filename "Dockerfile"
-            reuseNode true
-        }
-    }
-    steps {
-        script {
-            def _majorVersion = "0.1" // TODO: read from file
-            def _buildVersion = "${env.BUILD_ID}"
-            s3up {
-                localArtifact = 'dist/*.whl'
-                artifactId = "pydatatable"
-                majorVersion = _majorVersion
-                buildVersion = _buildVersion
-                keepPrivate = true
-            }
-        }
-    }
-}*/
