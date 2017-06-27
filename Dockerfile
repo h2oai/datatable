@@ -53,11 +53,14 @@ RUN \
 RUN \
   wget http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
   tar xf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
-  rm clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+  rm clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz \
+  cp /clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
 
 ENV \
   LLVM4=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 \
   LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
   CC=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang \
   CLANG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+
+
 

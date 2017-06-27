@@ -30,6 +30,8 @@ pipeline {
         stage('Build on Linux') {
             steps {
                 sh """
+                        sed -i "s/python/python3.6/" Makefile
+                        sed -i "s/pip/pip3.6/" Makefile 
                         env
                         make clean
                         make
