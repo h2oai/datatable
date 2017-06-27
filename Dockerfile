@@ -13,6 +13,8 @@ RUN \
   apt-get -y install \
   curl \
   apt-utils \
+  wget \
+  cpio \
   python-software-properties \
   software-properties-common \
   vim \
@@ -45,9 +47,6 @@ RUN \
 RUN \
   apt-get clean && \
   rm -rf /var/cache/apt/*
-
-RUN \
-    apt-get -y install wget
 
 # Install LLVM for pydatatable
 RUN \
