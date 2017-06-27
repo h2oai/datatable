@@ -32,7 +32,7 @@ def stypes():
 
     # Load info from types.h file
     file1 = os.path.join(os.path.dirname(__file__), "..", "c", "types.h")
-    with open(file1, "r") as f:
+    with open(file1, "r", encoding="utf-8") as f:
         txt1 = f.read()
     mm = re.search(r"typedef enum SType {\s*(.*?),?\s*}", txt1, re.DOTALL)
     assert mm
