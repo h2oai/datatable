@@ -36,8 +36,9 @@ RUN \
   python3.6-dev \
   python3-pip \
   python3-dev \
-  python3-virtualenv \
-  python-virtualenv
+  python-virtualenv \
+  python3-virtualenv
+
 
 RUN \
   virtualenv --python=/usr/bin/python3.6  .
