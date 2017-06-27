@@ -18,7 +18,8 @@ RUN \
   python-software-properties \
   software-properties-common \
   vim \
-  git
+  git \
+  dirmngr
 
 # Setup Repos
 RUN \
