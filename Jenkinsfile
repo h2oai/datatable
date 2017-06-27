@@ -33,8 +33,6 @@ pipeline {
                         sed -i "s/python/python3.6/" Makefile
                         sed -i "s/pip/pip3.6/" Makefile 
                         env
-                        whoami
-                        cat /etc/passwd
                         make clean
                         make
                         python setup.py bdist_wheel
