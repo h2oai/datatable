@@ -30,7 +30,8 @@ RUN \
 RUN \
   apt-get install -y \
   python3.6 \
-  python3-pip
+  python3-pip \
+  python3-dev
 
 RUN \
   /usr/bin/python3.6 -m pip install --upgrade pip && \
