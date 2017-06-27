@@ -3,11 +3,15 @@
 all:
 	$(MAKE) clean
 	$(MAKE) build
+	$(MAKE) install
 	$(MAKE) test
 
 .PHONY: build
 build:
 	python setup.py build
+
+.PHONY: install
+install:
 	pip install . --upgrade
 
 .PHONY: clean
