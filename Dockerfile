@@ -19,7 +19,6 @@ RUN \
   software-properties-common \
   vim \
   git \
-  s3cmd \
   dirmngr
 
 # Setup Repos
@@ -42,20 +41,21 @@ RUN \
 
 
 RUN \
-#  mkdir datatable_env && \
-#  virtualenv --python=/usr/bin/python3.6 datatable_env && \
-#  . datatable_env/bin/activate && \
-  /usr/bin/python3.6 -m pip install --upgrade pip && \
-  /usr/bin/python3.6 -m pip install --upgrade setuptools && \
-  /usr/bin/python3.6 -m pip install --upgrade python-dateutil && \
-  /usr/bin/python3.6 -m pip install --upgrade numpy && \
-  /usr/bin/python3.6 -m pip install --upgrade colorama && \
-  /usr/bin/python3.6 -m pip install --upgrade typesentry && \
-  /usr/bin/python3.6 -m pip install --upgrade wcwidth && \
-  /usr/bin/python3.6 -m pip install --upgrade blessed && \
-  /usr/bin/python3.6 -m pip install --upgrade llvmlite && \
-  /usr/bin/python3.6 -m pip install --upgrade psutil && \
-  /usr/bin/python3.6 -m pip install --upgrade pytest
+  mkdir datatable_env && \
+  virtualenv --python=/usr/bin/python3.6 datatable_env && \
+  . datatable_env/bin/activate && \
+  pip install --upgrade pip && \
+  pip install --upgrade setuptools && \
+  pip install --upgrade python-dateutil && \
+  pip install --upgrade numpy && \
+  pip install --upgrade colorama && \
+  pip install --upgrade typesentry && \
+  pip install --upgrade wcwidth && \
+  pip install --upgrade blessed && \
+  pip install --upgrade llvmlite && \
+  pip install --upgrade psutil && \
+  pip install --upgrade pandas && \
+  pip install --upgrade pytest
 
 # Remove apt-cache
 RUN \

@@ -3,13 +3,7 @@
 @Library('test-shared-library') _
 
 pipeline {
-    agent {
-        dockerfile {
-            label "mr-0xc8"
-            filename "Dockerfile"
-            reuseNode true
-        }
-    }
+    agent none
 
     // Setup job options
     options {
@@ -20,33 +14,88 @@ pipeline {
     }
 
     stages {
-        stage('Git Pull') {
-            steps {
-                // Checkout git repo - it is defined as part of multi-branch Jenkins job
-                checkout scm
-            }
-        }
 
         stage('Build on Linux') {
+            agent {
+                dockerfile {
+                    label "mr-0xc5"
+                    filename "Dockerfile"
+                    reuseNode true
+                }
+            }
             steps {
                 sh """
-                        sed -i "s/python/python3.6/" Makefile
-                        sed -i "s/pip/pip3.6/" Makefile 
+                        . /datatable_env/bin/activate
                         env
                         make clean
                         make build
                         touch LICENSE
-                        python3.6 setup.py bdist_wheel
-                        """
+                        python setup.py bdist_wheel
+                """
+                stash includes: '**/dist/*.whl', name: 'linux_whl'
+
             }
         }
-
+        stage('Test on Linux') {
+            agent {
+                dockerfile {
+                    label "mr-0xc5"
+                    filename "Dockerfile"
+                    reuseNode true
+                }
+            }
+            steps {
+                unstash 'linux_whl'
+                sh """
+                        . /datatable_env/bin/activate
+                        pip install dist/*linux*.whl
+                        python -m pytest
+                """
+            }
+        }
+        stage('Build on OSX') {
+            agent {
+                label "mr-0xb11"
+            }
+            steps {
+                sh """
+                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
+                        export PATH=/usr/local/bin:$PATH
+                        source ../h2oai_venv/bin/activate
+                        env
+                        make clean
+                        make build
+                        touch LICENSE
+                        python setup.py bdist_wheel
+                    """
+                stash includes: '**/dist/*.whl', name: 'osx_whl'
+            }
+        }
+        stage('Test on OSX') {
+            agent {
+                label "mr-0xb11"
+            }
+            steps {
+                unstash 'osx_whl'
+                sh """
+                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
+                        export PATH=/usr/local/bin:$PATH
+                        source ../h2oai_venv/bin/activate
+                        pip install dist/*macosx*.whl
+                        python -m pytest
+                """
+            }
+        }
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
                 branch 'master'
             }
+            agent any
             steps {
+                unstash 'linux_whl'
+                unstash 'osx_whl'
+                sh "ls -l dist"
                 script {
                     def _majorVersion = "0.1" // TODO: read from file
                     def _buildVersion = "${env.BUILD_ID}"
@@ -60,40 +109,7 @@ pipeline {
                 }
             }
         }
+
     }
 }
 
-/*stage('Test on Linux') {
-    steps {
-        sh """
-                python3.6 setup.py install
-                python3.6 -m pytest
-                python3.6 -m pytest --cov=datatable --cov-report=html
-                """
-    }
-}
-
-/*
-stage('Build on OSX') {
-    steps {
-        sh """
-                env
-                make clean
-                make
-                python setup.py bdist_wheel
-                """
-    }
-}
-stage('Test on OSX') {
-    steps {
-        sh """
-                python -m pytest
-                python -m pytest --cov=datatable --cov-report=html
-                """
-    }
-}
-*/
-
-def arch(list) {
-    archiveArtifacts artifacts: list, allowEmptyArchive: true
-}
