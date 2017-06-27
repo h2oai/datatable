@@ -79,7 +79,7 @@ pipeline {
                 unstash 'osx_whl'
                 sh """
                         source ../h2oai_venv/bin/activate
-                        pip install dist/*linux*.whl
+                        pip install dist/*macosx*.whl
                         python -m pytest
                 """
             }
