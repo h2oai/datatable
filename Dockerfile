@@ -54,6 +54,7 @@ RUN \
   pip install --upgrade blessed && \
   pip install --upgrade llvmlite && \
   pip install --upgrade psutil && \
+  pip install --upgrade pandas && \
   pip install --upgrade pytest
 
 # Remove apt-cache
