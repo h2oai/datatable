@@ -6,28 +6,35 @@
 // Static asserts
 //==============================================================================
 
-static_assert(INTPTR_MAX == INT64_MAX,
-              "Only 64 bit platforms are supported.");
+dt_static_assert(INTPTR_MAX == INT64_MAX,
+                 "Only 64 bit platforms are supported.");
 
-static_assert(sizeof(void*) == 8, "Expected size(void*) to be 8 bytes");
-static_assert(sizeof(void*) == sizeof(size_t), "size(size_t) != size(void*)");
-static_assert(sizeof(void*) == sizeof(int64_t), "size(int64_t) != size(void*)");
+dt_static_assert(sizeof(void*) == 8, "Expected size(void*) to be 8 bytes");
+dt_static_assert(sizeof(void*) == sizeof(size_t),
+                 "size(size_t) != size(void*)");
+dt_static_assert(sizeof(void*) == sizeof(int64_t),
+                 "size(int64_t) != size(void*)");
 
-static_assert(sizeof(int8_t) == 1, "int8_t should be 1-byte");
-static_assert(sizeof(int16_t) == 2, "int16_t should be 2-byte");
-static_assert(sizeof(int32_t) == 4, "int32_t should be 4-byte");
-static_assert(sizeof(int64_t) == 8, "int64_t should be 8-byte");
-static_assert(sizeof(float) == 4, "float should be 4-byte");
-static_assert(sizeof(double) == 8, "double should be 8-byte");
+dt_static_assert(sizeof(int8_t) == 1, "int8_t should be 1-byte");
+dt_static_assert(sizeof(int16_t) == 2, "int16_t should be 2-byte");
+dt_static_assert(sizeof(int32_t) == 4, "int32_t should be 4-byte");
+dt_static_assert(sizeof(int64_t) == 8, "int64_t should be 8-byte");
+dt_static_assert(sizeof(float) == 4, "float should be 4-byte");
+dt_static_assert(sizeof(double) == 8, "double should be 8-byte");
+dt_static_assert(sizeof(char) == sizeof(unsigned char), "char != uchar");
+dt_static_assert(sizeof(void) == 1, "sizeof(void) != 1");
+// Used in llvm.py
+dt_static_assert(sizeof(long long int) == 8, "llint should be 8-byte");
 
-static_assert(sizeof(LType) == 1, "LType does not fit in a byte");
-static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
-static_assert(sizeof(MType) == 1, "MType should be 1 byte in size");
+dt_static_assert(sizeof(LType) == 1, "LType does not fit in a byte");
+dt_static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
+dt_static_assert(sizeof(MType) == 1, "MType should be 1 byte in size");
 
-static_assert((unsigned)(-1) - (unsigned)(-3) == 2,
-              "Unsigned arithmetics check");
-static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
-static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
+dt_static_assert((unsigned)(-1) - (unsigned)(-3) == 2,
+                 "Unsigned arithmetics check");
+dt_static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
+dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
+
 
 
 //==============================================================================

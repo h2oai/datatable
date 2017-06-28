@@ -7,9 +7,9 @@
 #include "types.h"
 #include "utils.h"
 
-static_assert(offsetof(RowMapping, ind32) == offsetof(RowMapping, ind64),
-              "Addresses of RowMapping->ind32 and RowMapping->ind64 must "
-              "coincide");
+dt_static_assert(offsetof(RowMapping, ind32) == offsetof(RowMapping, ind64),
+                 "Addresses of RowMapping->ind32 and RowMapping->ind64 must "
+                 "coincide");
 
 
 
