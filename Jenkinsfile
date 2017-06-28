@@ -33,12 +33,9 @@ pipeline {
                         python setup.py bdist_wheel
                 """
                 stash includes: '**/dist/*.whl', name: 'linux_whl'
+                // Archive artifacts
+                arch 'dist/*.whl'
 
-            }
-            post {
-                success {
-                    arch 'dist/*.whl'
-                }
             }
         }
 
@@ -63,7 +60,6 @@ pipeline {
                     junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
                 }
             }
-
         }
 
         stage('Build on OSX') {
