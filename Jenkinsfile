@@ -79,11 +79,7 @@ pipeline {
                         python setup.py bdist_wheel
                     """
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
-            }
-            post {
-                success {
-                    arch 'dist/*.whl'
-                }
+                arch 'dist/*.whl'
             }
         }
 
@@ -93,17 +89,18 @@ pipeline {
             }
             steps {
                 unstash 'osx_whl'
-                sh """
-                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
-                        export PATH=/usr/local/bin:$PATH
-                        source ../h2oai_venv/bin/activate
-                        pip install dist/*macosx*.whl
-                        python -m pytest --junit-xml=build/tests/TEST-datatable.xml
-                """
-            }
-            post {
-                always {
-                    junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                script {
+                    try {
+                        sh """
+                                export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
+                                export PATH=/usr/local/bin:$PATH
+                                source ../h2oai_venv/bin/activate
+                                pip install dist/*macosx*.whl
+                                python -m pytest --junit-xml=build/tests/TEST-datatable.xml
+                        """
+                    } finally {
+                        junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                    }
                 }
             }
         }
