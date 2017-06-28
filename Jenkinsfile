@@ -49,15 +49,16 @@ pipeline {
             }
             steps {
                 unstash 'linux_whl'
-                sh """
-                        . /datatable_env/bin/activate
-                        pip install dist/*linux*.whl
-                        python -m pytest
-                """
-            }
-            post {
-                always {
-                    junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                script {
+                    try {
+                        sh """
+                                . /datatable_env/bin/activate
+                                pip install dist/*linux*.whl
+                                python -m pytest
+                        """
+                    } finally {
+                        junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                    }
                 }
             }
         }
