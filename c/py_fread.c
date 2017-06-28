@@ -198,7 +198,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     int reallocate = (ncols > 0);
     if (reallocate) {
         assert(dt != NULL && strbufs == NULL);
-        assert(ncols == (size_t)ncols_ && nstrcols == 0);
+        assert(ncols == (size_t)ncols_);
         columns = dt->columns;
     } else {
         assert(dt == NULL && strbufs == NULL);
