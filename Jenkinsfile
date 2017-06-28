@@ -35,7 +35,13 @@ pipeline {
                 stash includes: '**/dist/*.whl', name: 'linux_whl'
 
             }
+            post {
+                success {
+                    arch 'dist/*.whl'
+                }
+            }
         }
+
         stage('Test on Linux') {
             agent {
                 dockerfile {
@@ -52,7 +58,14 @@ pipeline {
                         python -m pytest
                 """
             }
+            post {
+                always {
+                    junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                }
+            }
+
         }
+
         stage('Build on OSX') {
             agent {
                 label "mr-0xb11"
@@ -70,7 +83,13 @@ pipeline {
                     """
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
             }
+            post {
+                success {
+                    arch 'dist/*.whl'
+                }
+            }
         }
+
         stage('Test on OSX') {
             agent {
                 label "mr-0xb11"
@@ -82,10 +101,16 @@ pipeline {
                         export PATH=/usr/local/bin:$PATH
                         source ../h2oai_venv/bin/activate
                         pip install dist/*macosx*.whl
-                        python -m pytest
+                        python -m pytest --junit-xml=build/tests/TEST-datatable.xml
                 """
             }
+            post {
+                always {
+                    junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                }
+            }
         }
+
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
@@ -113,5 +138,9 @@ pipeline {
         }
 
     }
+}
+
+def arch(list) {
+    archiveArtifacts artifacts: list, allowEmptyArchive: true
 }
 
