@@ -53,6 +53,8 @@ class FReader(object):
                  skip_to_string=None, skip_lines=None, **args):
         if show_progress is None:
             show_progress = term.is_a_tty
+        if na_strings is None:
+            na_strings = ["NA"]
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -137,10 +139,10 @@ class FReader(object):
         else:
             if len(sep) > 1:
                 raise TValueError("Multi-character separator %r not supported"
-                                 % sep)
+                                  % sep)
             if ord(sep) > 127:
                 raise TValueError("The separator should be an ASCII character, "
-                                 "got %r" % sep)
+                                  "got %r" % sep)
             self._sep = sep
 
 
@@ -171,12 +173,9 @@ class FReader(object):
         return self._nastrings
 
     @na_strings.setter
-    @typed(na_strings=U([str], None))
-    def na_strings(self, na_strings):
-        if na_strings is None:
-            self._nastrings = []
-        else:
-            self._nastrings = na_strings
+    @typed()
+    def na_strings(self, na_strings: List[str]):
+        self._nastrings = na_strings
 
 
     @property
