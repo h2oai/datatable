@@ -1,5 +1,6 @@
 #ifndef dt_PY_TYPES_H
 #define dt_PY_TYPES_H
+#include "myassert.h"
 #include <Python.h>
 #include "types.h"
 #include "datatable.h"
@@ -19,6 +20,9 @@
 #else
     #error "Bad architecture: int64_t not available..."
 #endif
+
+dt_static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
+                 "int64_t and Py_ssize_t should refer to the same type");
 
 
 typedef PyObject* (stype_formatter)(Column *col, int64_t row);

@@ -161,22 +161,10 @@ static PyModuleDef datatablemodule = {
     0,0,0,0,
 };
 
-static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
-              "int64_t and Py_ssize_t should refer to the same type");
 
 /* Called when Python program imports the module */
 PyMODINIT_FUNC
 PyInit__datatable(void) {
-    // Sanity checks
-    assert(sizeof(char) == sizeof(unsigned char));
-    assert(sizeof(void) == 1);
-    assert('\0' == (char)0);
-    // Used in llvm.py
-    assert(sizeof(long long int) == sizeof(int64_t));
-    assert(sizeof(SType) == sizeof(int));
-    // If this is not true, then we won't be able to memory-map files, create
-    // arrays with more than 2**31 elements, etc.
-    assert(sizeof(size_t) >= sizeof(int64_t));
 
     // Instantiate module object
     PyObject *m = PyModule_Create(&datatablemodule);
