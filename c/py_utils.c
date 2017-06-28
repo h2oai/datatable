@@ -107,3 +107,42 @@ char* _to_string(PyObject *x, PyObject **tmp)
     Py_DECREF(x);
     return NULL;
 }
+
+char** _to_string_list(PyObject *x) {
+    if (x == NULL) goto fail;
+    char **res = NULL;
+    if (x == Py_None) {}
+    else if (PyList_Check(x)) {
+        Py_ssize_t count = PyList_Size(x);
+        dtcalloc(res, char*, count + 1);
+        for (Py_ssize_t i = 0; i < count; i++) {
+            PyObject *item = PyList_GetItem(x, i);
+            if (PyUnicode_Check(item)) {
+                PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
+                if (y == NULL) goto fail;
+                size_t len = (size_t) PyBytes_Size(y);
+                dtmalloc_g(res[i], char, len + 1);
+                memcpy(res[i], PyBytes_AsString(y), len + 1);
+                Py_DECREF(y);
+            } else
+            if (PyBytes_Check(item)) {
+                size_t len = (size_t) PyBytes_Size(x);
+                dtmalloc_g(res[i], char, len + 1);
+                memcpy(res[i], PyBytes_AsString(x), len + 1);
+            } else {
+                PyErr_Format(PyExc_TypeError,
+                    "Argument %d in the list is not a string: %R (%R)",
+                    i, item, PyObject_Type(item));
+                goto fail;
+            }
+        }
+    } else {
+        PyErr_Format(PyExc_TypeError,
+            "A list of strings is expected, got %R", x);
+        goto fail;
+    }
+    Py_DECREF(x);
+    return res;
+  fail:
+    return (char**) -1;
+}

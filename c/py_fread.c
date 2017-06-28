@@ -77,7 +77,7 @@ static StrBuf *strbufs = NULL;
 PyObject* freadPy(UU, PyObject *args)
 {
     PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL;
-    if (freader != NULL) {
+    if (freader != NULL || dt != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
         return NULL;
@@ -94,7 +94,7 @@ PyObject* freadPy(UU, PyObject *args)
     filename = TOSTRING(ATTR(freader, "filename"), &tmp1);
     input = TOSTRING(ATTR(freader, "text"), &tmp2);
     skipstring = TOSTRING(ATTR(freader, "skip_to_string"), &tmp3);
-    na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"), NULL);
+    na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"));
 
     frargs->filename = filename;
     frargs->input = input;
