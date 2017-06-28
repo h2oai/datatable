@@ -87,30 +87,14 @@ void* clone(void *src, size_t n_bytes);
 })
 
 
-#define TOSTRINGLIST(pyobj, dflt) ({                                           \
-    char **res = dflt;                                                         \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        Py_ssize_t count = PyList_Size(x);                                     \
-        res = calloc(sizeof(char*), (size_t)(count + 1));                      \
-        for (Py_ssize_t i = 0; i < count; i++) {                               \
-            PyObject *item = PyList_GetItem(x, i);                             \
-            PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");  \
-            if (y == NULL) {                                                   \
-                for (int j = 0; j < i; j++) free(res[j]);                      \
-                free(res);                                                     \
-                goto fail;                                                     \
-            }                                                                  \
-            res[i] = PyBytes_AsString(y);                                      \
-            Py_DECREF(y);                                                      \
-        }                                                                      \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
+#define TOSTRINGLIST(pyobj) ({                                                 \
+    char **res = _to_string_list(pyobj);                                       \
+    if ((int64_t)res == -1) goto fail;                                         \
     res;                                                                       \
 })
 
 
 char* _to_string(PyObject *x, PyObject **tmp);
+char** _to_string_list(PyObject *x);
 
 #endif
