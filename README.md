@@ -36,12 +36,18 @@ This will compile that `datatable` package and pip-install it into your system.
 
 ## Troubleshooting
 
-If you see errors such as `"unknown type name 'PyModuleDef'"` or `"void
-function 'PyInit__datatable' should not return a value`" -- it means you are
-running under an old version of Python. Please switch to Python3.6 as described
-above.
+* If you see errors such as `"implicit declaration of function
+'PyUnicode_AsUTF8' is invalid in C99"` or `"unknown type name 'PyModuleDef'"` or
+`"void function 'PyInit__datatable' should not return a value`" -- it means you
+are running under an old version of Python. Please switch to Python3.5+ as
+described above (verify this by typing `python --version` in the console).
 
-If you run into installation errors with `llvmlite` dependency, you
+* If you are seeing an error that `'Python.h' file not found`, then it means
+you have an incomplete version of Python installed. This is known to sometimes
+happen on Ubuntu systems. The solution is to run `apt-get install python-dev`
+or `apt-get install python3.6-dev`.
+
+* If you run into installation errors with `llvmlite` dependency, you
 might need to build it manually. This involves the following:
 
   1. If you're getting error `"invalid deployment target for
