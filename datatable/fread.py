@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
 import tempfile
+from typing import List
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
@@ -13,21 +14,45 @@ from datatable.utils.terminal import term
 _log_color = term.bright_black
 
 
-def fread(filename="", **params):
-    freader = FReader(filename=filename, **params)
+@typed()
+def fread(filename: str = None,
+          text: str = None,
+          sep: str = None,
+          max_nrows: int = None,
+          header: bool = None,
+          na_strings: List[str] = None,
+          verbose: bool = False,
+          fill: bool = False,
+          show_progress: bool = None,
+          encoding: str = None,
+          skip_to_string: str = None,
+          skip_lines: int = None,
+          **extra) -> DataTable:
+    freader = FReader(filename=filename,
+                      text=text,
+                      sep=sep,
+                      max_nrows=max_nrows,
+                      header=header,
+                      na_strings=na_strings,
+                      fill=fill,
+                      show_progress=show_progress,
+                      encoding=encoding,
+                      skip_to_string=skip_to_string,
+                      skip_lines=skip_lines,
+                      verbose=verbose,
+                      **extra)
     return freader.read()
 
 
 
 class FReader(object):
 
-    @typed(filename=str, text=str, sep=str, max_nrows=int, header=bool,
-           na_strings=[str], fill=bool, show_progress=bool, encoding=str,
-           skip_lines=int, skip_to_string=str)
     def __init__(self, filename=None, text=None, sep=None, max_nrows=None,
                  header=None, na_strings=None, verbose=False, fill=False,
-                 show_progress=term.is_a_tty, encoding=None,
+                 show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, **args):
+        if show_progress is None:
+            show_progress = term.is_a_tty
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
