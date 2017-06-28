@@ -54,7 +54,7 @@ pipeline {
                         sh """
                                 . /datatable_env/bin/activate
                                 pip install dist/*linux*.whl
-                                python -m pytest
+                                python -m pytest --junit-xml=build/test-reports/TEST-datatable_linux.xml
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -96,7 +96,7 @@ pipeline {
                                 export PATH=/usr/local/bin:$PATH
                                 source ../h2oai_venv/bin/activate
                                 pip install dist/*macosx*.whl
-                                python -m pytest --junit-xml=build/tests/TEST-datatable.xml
+                                python -m pytest --junit-xml=build/test-reports/TEST-datatable_osx.xml
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
