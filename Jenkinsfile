@@ -76,7 +76,7 @@ pipeline {
                         make clean
                         make build
                         touch LICENSE
-                        python setup.py bdist_wheel --universal 
+                        python setup.py bdist_wheel
                     """
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
                 arch 'dist/*.whl'
