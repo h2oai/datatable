@@ -19,6 +19,7 @@ clean:
 	rm -rf .cache
 	rm -rf .eggs
 	rm -rf build
+	rm -rf dist
 	rm -rf datatable.egg-info
 	rm -f *.so
 	find . -type d -name "__pycache__" -exec rm -rf {} +
