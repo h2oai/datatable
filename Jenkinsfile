@@ -127,7 +127,7 @@ pipeline {
                 sh "ls -l dist"
                 script {
                     def _majorVersion = "0.1" // TODO: read from file
-                    def _buildVersion = "${env.${BUILD_ID}}"
+                    def _buildVersion = "${env.BUILD_NUMBER}"
                     s3up {
                         localArtifact = 'dist/*.whl'
                         artifactId = "pydatatable"
