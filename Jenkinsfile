@@ -69,10 +69,8 @@ pipeline {
             }
             steps {
                 sh """
-                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
-                        export PATH=/usr/local/bin:$PATH
-                        source ../h2oai_venv/bin/activate
-                        env
+                        source activate h2oai
+                        export LLVM4=/usr/local/opt/llvm
                         make clean
                         make build
                         touch LICENSE
@@ -92,9 +90,19 @@ pipeline {
                 script {
                     try {
                         sh """
-                                export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
-                                export PATH=/usr/local/bin:$PATH
-                                source ../h2oai_venv/bin/activate
+                                source activate h2oai
+                                export LLVM4=/usr/local/opt/llvm
+                                set +e
+                                pip uninstall -y datatable 1> pip_uninstall.out 2> pip_uninstall.err
+                                RC=$?
+                                set -e
+                                if [ $RC -eq 1 ]; then
+                                    message=`cat pip_uninstall.err`
+                                    if [ "$message" != "Cannot uninstall requirement datatable, not installed" ]; then
+                                        echo "pip uninstall failure: $message"
+                                        exit 1
+                                    fi
+                                fi
                                 pip install dist/*macosx*.whl
                                 python -m pytest --junit-xml=build/test-reports/TEST-datatable_osx.xml
                         """
