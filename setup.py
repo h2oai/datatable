@@ -13,6 +13,7 @@ import sysconfig
 from setuptools import setup, find_packages
 from distutils.core import Extension
 from sys import stderr
+import platform
 
 # Determine the version
 version = None
@@ -82,6 +83,9 @@ if sysconfig.get_config_var("CONFINCLUDEPY"):
     os.environ["CC"] += "-isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
 # Linker flags
 os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, libs)
+if platform.platform().startswith("Darwin"):
+    os.environ["LDFLAGS"] = "%s -Wl,-rpath,%s" % (os.environ["LDFLAGS"], "@loader_path")
+
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
