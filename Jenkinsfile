@@ -33,9 +33,12 @@ pipeline {
                         python setup.py bdist_wheel
                 """
                 stash includes: '**/dist/*.whl', name: 'linux_whl'
+                // Archive artifacts
+                arch 'dist/*.whl'
 
             }
         }
+
         stage('Test on Linux') {
             agent {
                 dockerfile {
@@ -46,13 +49,20 @@ pipeline {
             }
             steps {
                 unstash 'linux_whl'
-                sh """
-                        . /datatable_env/bin/activate
-                        pip install dist/*linux*.whl
-                        python -m pytest
-                """
+                script {
+                    try {
+                        sh """
+                                . /datatable_env/bin/activate
+                                pip install dist/*linux*.whl
+                                python -m pytest --junit-xml=build/test-reports/TEST-datatable_linux.xml
+                        """
+                    } finally {
+                        junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                    }
+                }
             }
         }
+
         stage('Build on OSX') {
             agent {
                 label "mr-0xb11"
@@ -69,23 +79,32 @@ pipeline {
                         python setup.py bdist_wheel
                     """
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
+                arch 'dist/*.whl'
             }
         }
+
         stage('Test on OSX') {
             agent {
                 label "mr-0xb11"
             }
             steps {
                 unstash 'osx_whl'
-                sh """
-                        export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
-                        export PATH=/usr/local/bin:$PATH
-                        source ../h2oai_venv/bin/activate
-                        pip install dist/*macosx*.whl
-                        python -m pytest
-                """
+                script {
+                    try {
+                        sh """
+                                export LLVM4=/usr/local/clang+llvm-4.0.1-x86_64-apple-macosx10.9.0
+                                export PATH=/usr/local/bin:$PATH
+                                source ../h2oai_venv/bin/activate
+                                pip install dist/*macosx*.whl
+                                python -m pytest --junit-xml=build/test-reports/TEST-datatable_osx.xml
+                        """
+                    } finally {
+                        junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                    }
+                }
             }
         }
+
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
@@ -113,5 +132,9 @@ pipeline {
         }
 
     }
+}
+
+def arch(list) {
+    archiveArtifacts artifacts: list, allowEmptyArchive: true
 }
 

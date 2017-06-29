@@ -25,7 +25,9 @@ clean:
 
 .PHONY: test
 test:
-	pytest
+	rm -rf build/tests 2>/dev/null
+	mkdir -p build/tests/
+	pytest --junitxml=build/tests/TEST-datatable.xml
 
 .PHONY: valgrind
 valgrind:
