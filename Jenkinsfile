@@ -69,7 +69,7 @@ pipeline {
             }
             steps {
                 sh """
-                        source activate h2oai
+                        source /Users/jenkins/anaconda/bin/activate h2oai
                         export LLVM4=/usr/local/opt/llvm
                         make clean
                         make build
@@ -90,7 +90,7 @@ pipeline {
                 script {
                     try {
                         sh '''
-                                source activate h2oai
+                                source /Users/jenkins/anaconda/bin/activate h2oai
                                 export LLVM4=/usr/local/opt/llvm
                                 set +e
                                 pip uninstall -y datatable 1> pip_uninstall.out 2> pip_uninstall.err
