@@ -2,6 +2,9 @@
 // TOOD: rename to @Library('h2o-jenkins-pipeline-lib') _
 @Library('test-shared-library') _
 
+import ai.h2o.ci.Utils
+def utilsLib = new Utils()
+
 pipeline {
     agent none
 
@@ -24,18 +27,21 @@ pipeline {
                 }
             }
             steps {
+                dumpInfo 'Build Info'
                 sh """
                         . /datatable_env/bin/activate
-                        env
                         make clean
                         make build
                         touch LICENSE
+                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         python setup.py bdist_wheel
+                        python setup.py --version > dist/VERSION.txt
                 """
                 stash includes: '**/dist/*.whl', name: 'linux_whl'
+                stash includes: '**/dist/VERSION.txt', name: 'VERSION'
                 // Archive artifacts
                 arch 'dist/*.whl'
-
+                arch 'dist/VERSION.txt'
             }
         }
 
@@ -68,12 +74,14 @@ pipeline {
                 label "mr-0xb11"
             }
             steps {
+                dumpInfo 'Build Info'
                 sh """
                         source /Users/jenkins/anaconda/bin/activate h2oai
                         export LLVM4=/usr/local/opt/llvm
                         make clean
                         make build
                         touch LICENSE
+                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         python setup.py bdist_wheel
                     """
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
@@ -124,10 +132,14 @@ pipeline {
             steps {
                 unstash 'linux_whl'
                 unstash 'osx_whl'
-                sh "ls -l dist"
+                unstash 'VERSION'
+                sh 'echo "Stashed files:" && ls -l dist'
                 script {
-                    def _majorVersion = "0.1" // TODO: read from file
-                    def _buildVersion = "${BUILD_ID}"
+                    def versionText = utilsLib.getCommandOutput("cat dist/VERSION.txt")
+                    def version = utilsLib.fragmentVersion(versionText)
+                    def _majorVersion = version[0]
+                    def _buildVersion = version[1]
+                    version = null // This is necessary, else version:Tuple will be serialized
                     s3up {
                         localArtifact = 'dist/*.whl'
                         artifactId = "pydatatable"
@@ -140,9 +152,5 @@ pipeline {
         }
 
     }
-}
-
-def arch(list) {
-    archiveArtifacts artifacts: list, allowEmptyArchive: true
 }
 

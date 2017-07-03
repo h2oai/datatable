@@ -12,7 +12,7 @@ import subprocess
 import sysconfig
 from setuptools import setup, find_packages
 from distutils.core import Extension
-
+from sys import stderr
 
 # Determine the version
 version = None
@@ -25,7 +25,9 @@ with open("datatable/__version__.py") as f:
             break
 if version is None:
     raise RuntimeError("Could not detect version from the __version__.py file")
-
+## Append build suffix if necessary
+if os.environ.get("CI_VERSION_SUFFIX"):
+    version = "%s+%s" % (version, os.environ["CI_VERSION_SUFFIX"])
 
 # Find all C source files in the "c/" directory
 c_sources = []
@@ -36,7 +38,7 @@ for root, dirs, files in os.walk("c"):
 
 # Find python source directories
 packages = find_packages(exclude=["tests", "temp", "c"])
-print("\nFound packages: %r\n" % packages)
+print("\nFound packages: %r\n" % packages, file=stderr)
 
 
 #-------------------------------------------------------------------------------
