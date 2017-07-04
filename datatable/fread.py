@@ -51,10 +51,6 @@ class FReader(object):
                  header=None, na_strings=None, verbose=False, fill=False,
                  show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, **args):
-        if show_progress is None:
-            show_progress = term.is_a_tty
-        if na_strings is None:
-            na_strings = ["NA"]
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -75,6 +71,10 @@ class FReader(object):
         self._bar_ends = None
         self._bar_symbols = None
 
+        if show_progress is None:
+            show_progress = term.is_a_tty
+        if na_strings is None:
+            na_strings = ["NA"]
         self.verbose = verbose
         self.text = text
         self.filename = filename
