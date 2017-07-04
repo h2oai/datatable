@@ -1691,7 +1691,7 @@ int freadMain(freadMainArgs _args)
       DTPRINT("  njumps=%d and chunkBytes=%zd\n", nJumps, chunkBytes);
     }
     size_t initialBuffRows = allocnrow / (size_t)nJumps;
-    if (initialBuffRows < allocnrow) initialBuffRows = allocnrow;
+    if (initialBuffRows < 10) initialBuffRows = 10;
     if (initialBuffRows > INT32_MAX) STOP("Buffer size %lld is too large\n", initialBuffRows);
     nth = imin(nJumps, nth);
 
