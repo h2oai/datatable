@@ -367,6 +367,10 @@ class FReader(object):
         colspec = self._columns
         self._colnames = []
 
+        if colspec is None:
+            self._colnames = colnames
+            return
+
         if isinstance(colspec, (slice, range)):
             if isinstance(colspec, slice):
                 start, count, step = normalize_slice(colspec, n)
@@ -482,7 +486,8 @@ class FReader(object):
 
             if nargs == 3:
                 for i in range(n):
-                    ret = colspec(i, colnames[i], coltypes[i])
+                    typ = _coltypes_strs[coltypes[i]]
+                    ret = colspec(i, colnames[i], typ)
                     if ret is None or ret is False:
                         coltypes[i] = 0
                     elif ret is True:
@@ -501,6 +506,9 @@ class FReader(object):
                                           "instead returned value %r" % ret)
                 return
 
+            raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
+                               % colspec)
+
 
 
 _coltypes = {
@@ -514,4 +522,19 @@ _coltypes = {
     "int64": 4,
     "float": 5,
     "str": 6,
+    "drop": 0,
+    "bool8": 1,
+    "int32a": 2,
+    "int32b": 3,
+    "float64": 5,
 }
+
+_coltypes_strs = [
+    "drop",
+    "bool8",
+    "int32a",
+    "int32b",
+    "int64",
+    "float64",
+    "str",
+]
