@@ -35,6 +35,13 @@ $ source ~/py36/bin/activate
 ```
 If you get an error like `ImportError: This package should not be accessible on Python 3. Either you are trying to run from the python-future src folder or your installation of python-future is corrupted` see: <https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3>.
 
+Make sure that you have pytest and friend:
+```bash
+$ pip install pytest
+$ pip install pytest-cov
+```
+
+
 After that, go into the `datatable` folder and run:
 ```bash
 $ make
