@@ -31,9 +31,6 @@ static PyObject *freader = NULL;
 // DataTable being constructed.
 static DataTable *dt = NULL;
 
-// List of column names for the final DataTable
-static PyObject *colNamesList = NULL;
-
 static char *filename = NULL;
 static char *input = NULL;
 static char *skipstring = NULL;
@@ -160,7 +157,6 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         dtfree(strbufs);
     }
     pyfree(freader);
-    pyfree(colNamesList);
     dt = NULL;
 }
 
@@ -170,16 +166,26 @@ _Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
                    int ncols_)
 {
     types = types_;
-    colNamesList = PyTuple_New(ncols_);
+    PyObject *colNamesList = PyList_New(ncols_);
+    PyObject *colTypesList = PyList_New(ncols_);
     for (int i = 0; i < ncols_; i++) {
         lenOff ocol = colNames[i];
         PyObject *col =
             ocol.len > 0? PyUnicode_FromStringAndSize(anchor + ocol.off, ocol.len)
                         : PyUnicode_FromFormat("V%d", i);
-        PyTuple_SET_ITEM(colNamesList, i, col);
+        PyObject *typ = PyLong_FromLong(types[i]);
+        PyList_SET_ITEM(colNamesList, i, col);
+        PyList_SET_ITEM(colTypesList, i, typ);
     }
-    PyObject_SetAttrString(freader, "_colnames", colNamesList);
+    PyObject_CallMethod(freader, "_override_columns", "OO", colNamesList, colTypesList);
 
+    for (int i = 0; i < ncols_; i++) {
+        PyObject *t = PyList_GET_ITEM(colTypesList, i);
+        types[i] = (int8_t) PyLong_AsUnsignedLongMask(t);
+    }
+
+    pyfree(colTypesList);
+    pyfree(colNamesList);
     return 1;  // continue reading the file
 }
 
