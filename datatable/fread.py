@@ -2,21 +2,39 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
 import tempfile
-from typing import List
+import warnings
+from typing import List, Union, Callable, Tuple, Dict, Set
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
 from datatable.dt import DataTable
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term
+from datatable.utils.misc import normalize_slice, normalize_range
+from datatable.utils.misc import plural_form as plural
 
 
 _log_color = term.bright_black
+
+TColName = Union[str, type(...)]
+TColType = Union[str, type]
+TColumnsSpec = Union[
+    None,
+    slice,
+    range,
+    Set[str],
+    List[Union[None, str, Tuple[str, TColType]]],
+    Dict[TColName, Union[None, TColName, Tuple[TColName, TColType]]],
+    Callable[[str], Union[None, bool, str]],
+    Callable[[int, str], Union[None, bool, str]],
+    Callable[[int, str, str], Union[None, bool, str, Tuple[str, TColType]]]
+]
 
 
 @typed()
 def fread(filename: str = None,
           text: str = None,
+          columns: TColumnsSpec = None,
           sep: str = None,
           max_nrows: int = None,
           header: bool = None,
@@ -30,6 +48,7 @@ def fread(filename: str = None,
           **extra) -> DataTable:
     freader = FReader(filename=filename,
                       text=text,
+                      columns=columns,
                       sep=sep,
                       max_nrows=max_nrows,
                       header=header,
@@ -46,10 +65,13 @@ def fread(filename: str = None,
 
 
 class FReader(object):
+    """
+    Parser object for reading CSV files.
+    """
 
-    def __init__(self, filename=None, text=None, sep=None, max_nrows=None,
-                 header=None, na_strings=None, verbose=False, fill=False,
-                 show_progress=None, encoding=None,
+    def __init__(self, filename=None, text=None, columns=None, sep=None,
+                 max_nrows=None, header=None, na_strings=None, verbose=False,
+                 fill=False, show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
@@ -65,6 +87,7 @@ class FReader(object):
         self._encoding = encoding
         self._skip_lines = None
         self._skip_to_string = None
+        self._columns = None
 
         self._log_newline = True
         self._colnames = None
@@ -78,6 +101,7 @@ class FReader(object):
         self.verbose = verbose
         self.text = text
         self.filename = filename
+        self.columns = columns
         self.sep = sep
         self.max_nrows = max_nrows
         self.header = header
@@ -125,6 +149,16 @@ class FReader(object):
     @typed(text=U(str, None))
     def text(self, text):
         self._text = text or None
+
+
+    @property
+    def columns(self):
+        return self._columns
+
+    @columns.setter
+    @typed(columns=TColumnsSpec)
+    def columns(self, columns):
+        self._columns = columns or None
 
 
     @property
@@ -325,3 +359,159 @@ class FReader(object):
             if self._verbose:
                 self._vlog("Extracting %s into memory\n" % filename)
             self._text = zf.read()
+
+
+    def _override_columns(self, colnames, coltypes):
+        assert len(colnames) == len(coltypes)
+        n = len(colnames)
+        colspec = self._columns
+        self._colnames = []
+
+        if isinstance(colspec, (slice, range)):
+            if isinstance(colspec, slice):
+                start, count, step = normalize_slice(colspec, n)
+            else:
+                t = normalize_range(colspec, n)
+                if t is None:
+                    raise TValueError("Invalid range iterator for a file with "
+                                      "%d columns: %r" % (n, colspec))
+                start, count, step = t
+            if step <= 0:
+                raise TValueError("Cannot use slice/range with negative step "
+                                  "for column filter: %r" % colspec)
+            for i in range(n):
+                if (i - start) % step == 0 and i < start + count * step:
+                    self._colnames.append(colnames[i])
+                else:
+                    coltypes[i] = 0
+            return
+
+        if isinstance(colspec, set):
+            cols = set(colspec)  # Make a copy, so that we can modify it freely
+            for i in range(n):
+                if colnames[i] in cols:
+                    cols.remove(colnames[i])
+                    self._colnames.append(colnames[i])
+                else:
+                    coltypes[i] = 0
+            if cols:
+                warnings.warn("Column(s) %r not found in the input file" %
+                              list(cols))
+            return
+
+        if isinstance(colspec, list):
+            nn = len(colspec)
+            if n != nn:
+                raise TValueError("Input file contains %s, however `columns` "
+                                  "parameter specifies only %s"
+                                  % (plural(n, "column"), plural(nn, "column")))
+            for i in range(n):
+                entry = colspec[i]
+                if entry is None:
+                    coltypes[i] = 0
+                elif isinstance(entry, str):
+                    self._colnames.append(entry)
+                else:
+                    assert isinstance(entry, tuple)
+                    newname, newtype = entry
+                    self._colnames.append(newname)
+                    coltypes[i] = _coltypes.get(newtype)
+                    if not coltypes[i]:
+                        raise TValueError("Unknown type %r used as an override "
+                                          "for column %r" % (newtype, newname))
+            return
+
+        if isinstance(colspec, dict):
+            for i in range(n):
+                name = colnames[i]
+                if name in colspec:
+                    entry = colspec[name]
+                else:
+                    entry = colspec.get(..., ...)
+                if entry is None:
+                    coltypes[i] = 0
+                elif entry is Ellipsis:
+                    self._colnames.append(name)
+                elif isinstance(entry, str):
+                    self._colnames.append(entry)
+                else:
+                    assert isinstance(entry, tuple)
+                    newname, newtype = entry
+                    if newname is Ellipsis:
+                        newname = name
+                    self._colnames.append(newname)
+                    coltypes[i] = _coltypes.get(newtype)
+                    if not coltypes[i]:
+                        raise TValueError("Unknown type %r used as an override "
+                                          "for column %r" % (newtype, newname))
+
+        if callable(colspec):
+            nargs = colspec.__code__.co_argcount
+
+            if nargs == 1:
+                for i in range(n):
+                    ret = colspec(colnames[i])
+                    if ret is None or ret is False:
+                        coltypes[i] = 0
+                    elif ret is True:
+                        self._colnames.append(colnames[i])
+                    elif isinstance(ret, str):
+                        self._colnames.append(ret)
+                    else:
+                        raise TValueError("Function passed as the `columns` "
+                                          "argument was expected to return a "
+                                          "`Union[None, bool, str]` but "
+                                          "instead returned value %r" % ret)
+                return
+
+            if nargs == 2:
+                for i in range(n):
+                    ret = colspec(i, colnames[i])
+                    if ret is None or ret is False:
+                        coltypes[i] = 0
+                    elif ret is True:
+                        self._colnames.append(colnames[i])
+                    elif isinstance(ret, str):
+                        self._colnames.append(ret)
+                    else:
+                        raise TValueError("Function passed as the `columns` "
+                                          "argument was expected to return a "
+                                          "`Union[None, bool, str]` but "
+                                          "instead returned value %r" % ret)
+                return
+
+            if nargs == 3:
+                for i in range(n):
+                    ret = colspec(i, colnames[i], coltypes[i])
+                    if ret is None or ret is False:
+                        coltypes[i] = 0
+                    elif ret is True:
+                        self._colnames.append(colnames[i])
+                    elif isinstance(ret, str):
+                        self._colnames.append(ret)
+                    elif isinstance(ret, tuple) and len(ret) == 2:
+                        newname, newtype = ret
+                        self._colnames.append(newname)
+                        coltypes[i] = _coltypes.get(newtype)
+                    else:
+                        raise TValueError("Function passed as the `columns` "
+                                          "argument was expected to return a "
+                                          "`Union[None, bool, str, Tuple[str, "
+                                          "Union[str, type]]]` but "
+                                          "instead returned value %r" % ret)
+                return
+
+
+
+_coltypes = {
+    bool: 1,
+    int: 3,
+    float: 5,
+    str: 6,
+    "bool": 1,
+    "int": 3,
+    "int32": 3,
+    "int64": 4,
+    "float": 5,
+    "str": 6,
+}

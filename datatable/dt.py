@@ -3,6 +3,7 @@
 import collections
 import time
 from types import GeneratorType
+from typing import Tuple, Dict
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
@@ -340,8 +341,7 @@ class DataTable(object):
             the ``select`` clause. This can also be a slice, which effectively
             applies that slice to the resulting datatable.
         """
-        if timeit:
-            time0 = time.time()
+        time0 = time.time() if timeit else 0
         if sort is not None:
             idx = self.colindex(sort)
             rowmapping = self._dt.sort(idx)
