@@ -25,7 +25,7 @@ On OS-X that means:
   2. `sudo mv *.tar.xz /opt`
   3. `cd /opt`
   4. `sudo tar xvf clang+llvm-4.0.0-x86_64-apple-darwin.tar.xz`
-  5. `export LLVM4=/opt/clang+llvm-4.0.0-x86_64-apple-darwin.tar.xz`
+  5. `export LLVM4=/opt/clang+llvm-4.0.0-x86_64-apple-darwin`
 
 You will also need to have Python 3.6 as your default python. The easiest way
 is to set up a virtual environment:
