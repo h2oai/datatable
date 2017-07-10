@@ -55,16 +55,6 @@ static size_t nstrcols = 0;
 static int8_t *types = NULL;
 static int8_t *sizes = NULL;
 
-// strbufs -- array of auxiliary values for all string columns in the output
-//     DataTable (length = `nstrcols`). Each `StrBuf` contains the following
-//     values:
-//     .buf -- memory region where all string data is stored, back-to-back.
-//     .size -- allocation size of `.buf`.
-//     .ptr -- the amount of buffer that was filled so far, i.e. offset within
-//         the buffer of the first unwritten byte.
-//     .idx8 -- index of this column within the `buff8` memory buffer.
-static StrBuf *strbufs = NULL;
-
 
 
 //------------------------------------------------------------------------------
@@ -155,12 +145,6 @@ void cleanup_fread_session(freadMainArgs *frargs) {
         }
         pyfree(frargs->freader);
     }
-    if (strbufs) {
-        for (size_t i = 0; i < nstrcols; i++) {
-            dtfree(strbufs[i].buf);
-        }
-        dtfree(strbufs);
-    }
     pyfree(freader);
     dt = NULL;
 }
@@ -210,13 +194,11 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
     // Allocate the array of columns.
     if (reallocate) {
-        assert(dt != NULL && strbufs == NULL);
-        assert(ncols == (size_t)ncols_);
+        assert(dt != NULL && ncols == (size_t)ncols_);
         columns = dt->columns;
         ndtcols = (int) dt->ncols;
     } else {
-        assert(dt == NULL && strbufs == NULL);
-        assert(ncols == 0 && nstrcols == 0);
+        assert(dt == NULL && ncols == 0 && nstrcols == 0);
         ncols = (size_t) ncols_;
         ndtcols = ncols_ - ndrop_;
         dtcalloc_g(columns, Column*, ndtcols + 1);
@@ -227,12 +209,11 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     nstrcols = 0;
     for (int i = 0; i < ncols_; i++)
         nstrcols += (types[i] == CT_STRING);
-    dtcalloc_g(strbufs, StrBuf, nstrcols);
 
     int i = 0;
     int j = 0;
+    int off8 = 0;
     size_t k = 0;
-    size_t off8 = 0;
     for (i = 0; i < ncols_; i++) {
         int8_t type = types[i];
         if (type == CT_DROP) continue;
@@ -253,12 +234,15 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
         if (type == CT_STRING) {
             assert(k < nstrcols);
+            dtrealloc_g(columns[j]->meta, StrBuf, 1);
+            StrBuf *sb = (StrBuf*) columns[j]->meta;
             size_t alloc_size = nrows * 10;
-            dtmalloc_g(strbufs[k].buf, char, alloc_size);
-            strbufs[k].ptr = 0;
-            strbufs[k].size = alloc_size;
-            strbufs[k].idx8 = off8;
-            strbufs[k].numuses = 0;
+            dtmalloc_g(sb->buf, char, alloc_size);
+            sb->ptr = 0;
+            sb->size = alloc_size;
+            sb->idx8 = off8;
+            sb->idxdt = j;
+            sb->numuses = 0;
             total_alloc_size += alloc_size;
             k++;
         }
@@ -281,10 +265,6 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         for (j = 0; j < ndtcols; j++) column_decref(columns[j]);
         dtfree(columns);
     }
-    if (strbufs) {
-        for (k = 0; k < nstrcols; k++) dtfree(strbufs[k].buf);
-        dtfree(strbufs);
-    }
     return 0;
 }
 
@@ -297,10 +277,10 @@ void setFinalNrow(size_t nrows) {
         if (type == CT_DROP) continue;
         Column *col = dt->columns[j];
         if (type == CT_STRING) {
-            assert(strbufs[k].numuses == 0);
-            void *final_ptr = (void*) strbufs[k].buf;
-            strbufs[k].buf = NULL;  // take ownership of the pointer
-            size_t curr_size = strbufs[k].ptr;
+            StrBuf *sb = (StrBuf*) col->meta;
+            assert(sb->numuses == 0);
+            void *final_ptr = (void*) sb->buf;
+            size_t curr_size = sb->ptr;
             size_t padding = ((8 - (curr_size & 7)) & 7) + 4;
             size_t offoff = curr_size + padding;
             size_t offs_size = 4 * nrows;
@@ -312,6 +292,7 @@ void setFinalNrow(size_t nrows) {
             dtfree(col->data);
             col->data = final_ptr;
             col->alloc_size = final_size;
+            dtrealloc_g(col->meta, VarcharMeta, 1);
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
             k++;
         } else if (type > 0) {
@@ -324,7 +305,6 @@ void setFinalNrow(size_t nrows) {
         j++;
     }
     dt->nrows = (int64_t) nrows;
-    dtfree(strbufs);
     return;
   fail:
     printf("setFinalNrow() failed!\n");
@@ -335,11 +315,17 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
     ctx->strbufs = NULL;
     dtcalloc_g(ctx->strbufs, StrBuf, nstrcols);
-    for (size_t k = 0; k < nstrcols; k++) {
-        dtmalloc_g(ctx->strbufs[k].buf, char, 4096);
-        ctx->strbufs[k].size = 4096;
-        ctx->strbufs[k].ptr = 0;
-        ctx->strbufs[k].idx8 = strbufs[k].idx8;
+    for (int i = 0, j = 0, k = 0; i < ncols; i++) {
+        if (types[i] == CT_DROP) continue;
+        if (types[i] == CT_STRING) {
+            dtmalloc_g(ctx->strbufs[k].buf, char, 4096);
+            ctx->strbufs[k].size = 4096;
+            ctx->strbufs[k].ptr = 0;
+            ctx->strbufs[k].idx8 = ((StrBuf*) dt->columns[j]->meta)->idx8;
+            ctx->strbufs[k].idxdt = j;
+            k++;
+        }
+        j++;
     }
     return;
 
@@ -408,23 +394,24 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
 void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 {
     StrBuf *ctx_strbufs = ctx->strbufs;
-    StrBuf *glb_strbufs = strbufs;
     for (size_t k = 0; k < nstrcols; k++) {
+        int j = ctx_strbufs[k].idxdt;
+        StrBuf *sb = (StrBuf*) dt->columns[j]->meta;
         size_t sz = ctx_strbufs[k].ptr;
-        size_t ptr = glb_strbufs[k].ptr;
+        size_t ptr = sb->ptr;
         // If we need to write more than the size of the available buffer, the
         // buffer has to grow. Check documentation for `StrBuf.numuses` in
         // `py_fread.h`.
-        while (ptr + sz > glb_strbufs[k].size) {
-            size_t newsize = (size_t)((ptr + sz) * 2);
+        while (ptr + sz > sb->size) {
+            size_t newsize = (ptr + sz) * 2;
             int old = 0;
             // (1) wait until no other process is writing into the buffer
-            while (glb_strbufs[k].numuses > 0)
+            while (sb->numuses > 0)
                 /* wait until .numuses == 0 (all threads finished writing) */;
             // (2) make `numuses` negative, indicating that no other thread may
             // initiate a memcopy operation for now.
             #pragma omp atomic capture
-            { old = glb_strbufs[k].numuses; glb_strbufs[k].numuses -= 1000000; }
+            { old = sb->numuses; sb->numuses -= 1000000; }
             // (3) The only case when `old != 0` is if another thread started
             // memcopy operation in-between statements (1) and (2) above. In
             // that case we restore the previous value of `numuses` and repeat
@@ -432,14 +419,14 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
             // Otherwise (and it is the most common case) we reallocate the
             // buffer and only then restore the `numuses` variable.
             if (old == 0) {
-                dtrealloc_g(glb_strbufs[k].buf, char, newsize);
-                glb_strbufs[k].size = newsize;
+                dtrealloc_g(sb->buf, char, newsize);
+                sb->size = newsize;
             }
             #pragma omp atomic update
-            glb_strbufs[k].numuses += 1000000;
+            sb->numuses += 1000000;
         }
         ctx_strbufs[k].ptr = ptr;
-        glb_strbufs[k].ptr = ptr + sz;
+        sb->ptr = ptr + sz;
     }
     return;
   fail:
@@ -451,7 +438,6 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
     StrBuf *restrict ctx_strbufs = ctx->strbufs;
-    StrBuf *restrict glb_strbufs = strbufs;
     const void *restrict buff8 = ctx->buff8;
     const void *restrict buff4 = ctx->buff4;
     const void *restrict buff1 = ctx->buff1;
@@ -471,7 +457,8 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
         Column *col = dt->columns[j];
 
         if (types[i] == CT_STRING) {
-            size_t idx8 = ctx_strbufs[k].idx8;
+            StrBuf *sb = (StrBuf*) col->meta;
+            int idx8 = ctx_strbufs[k].idx8;
             size_t ptr = ctx_strbufs[k].ptr;
             const lenOff *restrict lo = add_constptr(buff8, idx8 * 8);
             size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
@@ -480,13 +467,13 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             while (!done) {
                 int old;
                 #pragma omp atomic capture
-                old = glb_strbufs[k].numuses++;
+                old = sb->numuses++;
                 if (old >= 0) {
-                    memcpy(glb_strbufs[k].buf + ptr, ctx_strbufs[k].buf, sz);
+                    memcpy(sb->buf + ptr, ctx_strbufs[k].buf, sz);
                     done = 1;
                 }
                 #pragma omp atomic update
-                glb_strbufs[k].numuses--;
+                sb->numuses--;
             }
 
             int32_t* dest = ((int32_t*) col->data) + row0;
