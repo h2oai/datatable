@@ -206,8 +206,9 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     sizes = sizes_;
     size_t total_alloc_size = 0;
     int ndtcols = 0;
-
     int reallocate = (ncols > 0);
+
+    // Allocate the array of columns.
     if (reallocate) {
         assert(dt != NULL && strbufs == NULL);
         assert(ncols == (size_t)ncols_);
@@ -238,8 +239,10 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         if (type < 0) { j++; continue; }
         assert(j < ndtcols);
 
+        SType stype = colType_to_stype[type];
+
         if (reallocate) column_decref(columns[j]);
-        columns[j] = make_data_column(colType_to_stype[type], nrows);
+        columns[j] = make_data_column(stype, nrows);
         // {
         //     char *f = NULL;
         //     dtmalloc_g(f, char, 1000);
@@ -247,8 +250,6 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         //     columns[j] = make_mmap_column(colType_to_stype[type], nrows, f);
         // }
         if (columns[j] == NULL) goto fail;
-        // column's stype will be 0 until the column is finalized
-        columns[j]->stype = 0;
 
         if (type == CT_STRING) {
             assert(k < nstrcols);
@@ -295,7 +296,6 @@ void setFinalNrow(size_t nrows) {
         int type = types[i];
         if (type == CT_DROP) continue;
         Column *col = dt->columns[j];
-        if (col->stype) {} // if a column was already finalized, skip it
         if (type == CT_STRING) {
             assert(strbufs[k].numuses == 0);
             void *final_ptr = (void*) strbufs[k].buf;
@@ -311,7 +311,6 @@ void setFinalNrow(size_t nrows) {
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
             dtfree(col->data);
             col->data = final_ptr;
-            col->stype = colType_to_stype[type];
             col->alloc_size = final_size;
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
             k++;
@@ -321,7 +320,6 @@ void setFinalNrow(size_t nrows) {
                 dtrealloc_g(col->data, void, new_size);
                 col->alloc_size = new_size;
             }
-            col->stype = colType_to_stype[type];
         }
         j++;
     }
