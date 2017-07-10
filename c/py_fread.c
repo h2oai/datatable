@@ -189,18 +189,16 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     types = types_;
     sizes = sizes_;
     size_t total_alloc_size = 0;
-    int ndtcols = 0;
     int reallocate = (ncols > 0);
 
     // Allocate the array of columns.
     if (reallocate) {
         assert(dt != NULL && ncols == (size_t)ncols_);
         columns = dt->columns;
-        ndtcols = (int) dt->ncols;
     } else {
         assert(dt == NULL && ncols == 0 && nstrcols == 0);
         ncols = (size_t) ncols_;
-        ndtcols = ncols_ - ndrop_;
+        int ndtcols = ncols_ - ndrop_;
         dtcalloc_g(columns, Column*, ndtcols + 1);
         columns[ndtcols] = NULL;
         total_alloc_size += sizeof(Column*) * (size_t) ndtcols;
@@ -218,7 +216,6 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         int8_t type = types[i];
         if (type == CT_DROP) continue;
         if (type < 0) { j++; continue; }
-        assert(j < ndtcols);
 
         SType stype = colType_to_stype[type];
 
@@ -250,7 +247,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         off8 += (sizes[i] == 8);
         j++;
     }
-    assert((size_t)i == ncols && j == ndtcols && k == nstrcols);
+    assert((size_t)i == ncols && k == nstrcols);
 
     if (!reallocate) {
         dt = make_datatable((int64_t)nrows, columns);
@@ -262,7 +259,8 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
   fail:
     printf("AllocateDT failed!\n");
     if (columns) {
-        for (j = 0; j < ndtcols; j++) column_decref(columns[j]);
+        Column **col = columns;
+        while (*col++) column_decref(*col);
         dtfree(columns);
     }
     return 0;
