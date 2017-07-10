@@ -31,30 +31,34 @@ static PyObject *freader = NULL;
 // DataTable being constructed.
 static DataTable *dt = NULL;
 
+// These variables are handed down to `freadMain`, and are stored globally only
+// because we want to free these memory buffers in the end.
 static char *filename = NULL;
 static char *input = NULL;
+static char *targetdir = NULL;
 static char *skipstring = NULL;
 static char **na_strings = NULL;
 
-// ncols -- number of fields in the CSV file.
-// ndtcols -- number of columns in the output DataTable (which is `ncols` minus
-//     the number of dropped columns).
-// nstrcols -- number of string columns in the output DataTable.
+// ncols -- number of fields in the CSV file. This field first becomes available
+//     in the `userOverride()` callback, and doesn't change after that.
+// nstrcols -- number of string columns in the output DataTable. This will be
+//     computed within `allocateDT()` callback, and used for allocation of
+//     string buffers. If the file is re-read (due to type bumps), this variable
+//     will only count those string columns that need to be re-read.
 static size_t ncols = 0;
-static size_t ndtcols = 0;
 static size_t nstrcols = 0;
 
-// types -- array of types for each field in the input file. Length = `ncols`
+// types -- array of types for each field in the input file. Length = `ncols`.
 // sizes -- array of byte sizes for each field. Length = `ncols`.
 // Both of these arrays are borrowed references and are valid only for the
-// duration of the parse. Should not be freed.
+// duration of the parse. Must not be freed.
 static int8_t *types = NULL;
 static int8_t *sizes = NULL;
 
 // strbufs -- array of auxiliary values for all string columns in the output
 //     DataTable (length = `nstrcols`). Each `StrBuf` contains the following
 //     values:
-//     .buf -- memory region where all strings data is stored, back-to-back.
+//     .buf -- memory region where all string data is stored, back-to-back.
 //     .size -- allocation size of `.buf`.
 //     .ptr -- the amount of buffer that was filled so far, i.e. offset within
 //         the buffer of the first unwritten byte.
@@ -73,7 +77,7 @@ static StrBuf *strbufs = NULL;
  */
 PyObject* freadPy(UU, PyObject *args)
 {
-    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL;
+    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *tmp4 = NULL;
     if (freader != NULL || dt != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
@@ -91,6 +95,7 @@ PyObject* freadPy(UU, PyObject *args)
     filename = TOSTRING(ATTR(freader, "filename"), &tmp1);
     input = TOSTRING(ATTR(freader, "text"), &tmp2);
     skipstring = TOSTRING(ATTR(freader, "skip_to_string"), &tmp3);
+    targetdir = TOSTRING(ATTR(freader, "target_dir"), &tmp4);
     na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"));
 
     frargs->filename = filename;
@@ -124,6 +129,7 @@ PyObject* freadPy(UU, PyObject *args)
     Py_XDECREF(tmp1);
     Py_XDECREF(tmp2);
     Py_XDECREF(tmp3);
+    Py_XDECREF(tmp4);
     cleanup_fread_session(frargs);
     return pydt;
 
@@ -138,7 +144,6 @@ PyObject* freadPy(UU, PyObject *args)
 
 void cleanup_fread_session(freadMainArgs *frargs) {
     ncols = 0;
-    ndtcols = 0;
     nstrcols = 0;
     types = NULL;
     sizes = NULL;
@@ -200,20 +205,22 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     types = types_;
     sizes = sizes_;
     size_t total_alloc_size = 0;
+    int ndtcols = 0;
 
     int reallocate = (ncols > 0);
     if (reallocate) {
         assert(dt != NULL && strbufs == NULL);
         assert(ncols == (size_t)ncols_);
         columns = dt->columns;
+        ndtcols = (int) dt->ncols;
     } else {
         assert(dt == NULL && strbufs == NULL);
-        assert(ncols == 0 && ndtcols == 0 && nstrcols == 0);
+        assert(ncols == 0 && nstrcols == 0);
         ncols = (size_t) ncols_;
-        ndtcols = (size_t)(ncols_ - ndrop_);
+        ndtcols = ncols_ - ndrop_;
         dtcalloc_g(columns, Column*, ndtcols + 1);
         columns[ndtcols] = NULL;
-        total_alloc_size += sizeof(Column*) * ndtcols;
+        total_alloc_size += sizeof(Column*) * (size_t) ndtcols;
     }
 
     nstrcols = 0;
@@ -222,7 +229,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     dtcalloc_g(strbufs, StrBuf, nstrcols);
 
     int i = 0;
-    size_t j = 0;
+    int j = 0;
     size_t k = 0;
     size_t off8 = 0;
     for (i = 0; i < ncols_; i++) {
@@ -232,7 +239,13 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         assert(j < ndtcols);
 
         if (reallocate) column_decref(columns[j]);
-        columns[j] = make_column(colType_to_stype[type], nrows);
+        columns[j] = make_data_column(colType_to_stype[type], nrows);
+        // {
+        //     char *f = NULL;
+        //     dtmalloc_g(f, char, 1000);
+        //     snprintf(f, 1000, "%s/col%d", targetdir, i);
+        //     columns[j] = make_mmap_column(colType_to_stype[type], nrows, f);
+        // }
         if (columns[j] == NULL) goto fail;
         // column's stype will be 0 until the column is finalized
         columns[j]->stype = 0;
@@ -262,6 +275,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     return total_alloc_size;
 
   fail:
+    printf("AllocateDT failed!\n");
     if (columns) {
         for (j = 0; j < ndtcols; j++) column_decref(columns[j]);
         dtfree(columns);
@@ -303,9 +317,11 @@ void setFinalNrow(size_t nrows) {
             k++;
         } else if (type > 0) {
             size_t new_size = stype_info[colType_to_stype[type]].elemsize * nrows;
-            dtrealloc_g(col->data, void, new_size);
+            if (col->alloc_size != new_size) {
+                dtrealloc_g(col->data, void, new_size);
+                col->alloc_size = new_size;
+            }
             col->stype = colType_to_stype[type];
-            col->alloc_size = new_size;
         }
         j++;
     }

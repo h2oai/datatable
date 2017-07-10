@@ -264,6 +264,10 @@ class FReader(object):
         self._skip_lines = n
 
 
+    @property
+    def target_dir(self):
+        return tempfile.mkdtemp()
+
 
 
     def read(self):

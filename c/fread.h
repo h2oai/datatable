@@ -156,7 +156,7 @@ typedef struct ThreadLocalFreadParsingContext
   size_t rowSize4;
   size_t rowSize1;
 
-  // Starting output row index for the current data chunk.
+  // Starting row index within the output DataTable for the current data chunk.
   size_t DTi;
 
   // Number of rows currently being stored within the buffers. The allocation
