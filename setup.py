@@ -25,7 +25,7 @@ with open("datatable/__version__.py") as f:
             break
 if version is None:
     raise RuntimeError("Could not detect version from the __version__.py file")
-## Append build suffix if necessary
+# Append build suffix if necessary
 if os.environ.get("CI_VERSION_SUFFIX"):
     version = "%s+%s" % (version, os.environ["CI_VERSION_SUFFIX"])
 
@@ -87,6 +87,8 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 
+ci_extra_compile_args = ([os.environ["CI_EXTRA_COMPILE_ARGS"]]
+                         if os.environ.get("CI_EXTRA_COMPILE_ARGS") else [])
 
 #-------------------------------------------------------------------------------
 # Settings for building the extension
@@ -183,7 +185,7 @@ setup(
             "_datatable",
             include_dirs=["c"],
             sources=c_sources,
-            extra_compile_args=extra_compile_args,
+            extra_compile_args=extra_compile_args + ci_extra_compile_args,
             extra_link_args=extra_link_args,
         ),
     ],

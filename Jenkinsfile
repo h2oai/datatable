@@ -30,10 +30,10 @@ pipeline {
                 dumpInfo 'Build Info'
                 sh """
                         . /datatable_env/bin/activate
+                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         make clean
                         make build
                         touch LICENSE
-                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         python setup.py bdist_wheel
                         python setup.py --version > dist/VERSION.txt
                 """
@@ -78,10 +78,11 @@ pipeline {
                 sh """
                         source /Users/jenkins/anaconda/bin/activate h2oai
                         export LLVM4=/usr/local/opt/llvm
+                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
+                        export CI_EXTRA_COMPILE_ARGS="-DDISABLE_CLOCK_REALTIME"
                         make clean
                         make build
                         touch LICENSE
-                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         python setup.py bdist_wheel
                     """
                 stash includes: '**/dist/*.whl', name: 'osx_whl'
