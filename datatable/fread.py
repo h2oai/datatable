@@ -3,6 +3,7 @@
 import os
 import tempfile
 import warnings
+import psutil
 from typing import List, Union, Callable, Tuple, Dict, Set
 
 # noinspection PyUnresolvedReferences
@@ -10,7 +11,8 @@ import _datatable as c
 from datatable.dt import DataTable
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term
-from datatable.utils.misc import normalize_slice, normalize_range
+from datatable.utils.misc import (normalize_slice, normalize_range,
+                                  humanize_bytes)
 from datatable.utils.misc import plural_form as plural
 
 
@@ -45,6 +47,7 @@ def fread(filename: str = None,
           encoding: str = None,
           skip_to_string: str = None,
           skip_lines: int = None,
+          save_to: str = None,
           **extra) -> DataTable:
     freader = FReader(filename=filename,
                       text=text,
@@ -59,6 +62,7 @@ def fread(filename: str = None,
                       skip_to_string=skip_to_string,
                       skip_lines=skip_lines,
                       verbose=verbose,
+                      save_to=save_to,
                       **extra)
     return freader.read()
 
@@ -72,7 +76,7 @@ class FReader(object):
     def __init__(self, filename=None, text=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None,
-                 skip_to_string=None, skip_lines=None, **args):
+                 skip_to_string=None, skip_lines=None, save_to=None, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -88,6 +92,7 @@ class FReader(object):
         self._skip_lines = None
         self._skip_to_string = None
         self._columns = None
+        self._save_to = save_to
 
         self._log_newline = True
         self._colnames = None
@@ -264,11 +269,6 @@ class FReader(object):
         self._skip_lines = n
 
 
-    @property
-    def target_dir(self):
-        return tempfile.mkdtemp()
-
-
 
     def read(self):
         _dt = c.fread(self)
@@ -291,6 +291,10 @@ class FReader(object):
 
 
     def _progress(self, percent):
+        """
+        Invoked from the C level to inform that the file reading progress has
+        reached the specified level (expressed as a number from 0 to 100.0).
+        """
         bs = self._bar_symbols
         s0 = "Reading file: "
         s1 = " %3d%%" % int(percent)
@@ -305,6 +309,48 @@ class FReader(object):
         endf, endl = self._bar_ends
         out = "\r" + s0 + endf + out + endl + s1
         print(_log_color(out), end="", flush=True)
+
+
+    def _get_destination(self, estimated_size):
+        """
+        Invoked from the C level, this function will return either the name of
+        the folder where the datatable is to be saved; or None, indicating that
+        the datatable should be read into RAM. This function may also raise an
+        exception if it determines that it cannot find a good strategy to
+        handle a dataset of the requested size.
+        """
+        if self.verbose:
+            self._vlog("  The DataTable is estimated to require %s\n"
+                       % humanize_bytes(estimated_size))
+        vm = psutil.virtual_memory()
+        if self.verbose:
+            self._vlog("  Memory available = %s, total = %s\n"
+                       % (humanize_bytes(vm.available),
+                          humanize_bytes(vm.total)))
+        if (estimated_size < vm.available and self._save_to is None or
+                self._save_to == "memory"):
+            if self.verbose:
+                self._vlog("  DataTable will be loaded into memory\n")
+            return None
+        else:
+            if self._save_to:
+                tmpdir = self._save_to
+                os.makedirs(tmpdir)
+            else:
+                tmpdir = tempfile.mkdtemp()
+            du = psutil.disk_usage(tmpdir)
+            if self.verbose:
+                self._vlog("  Free disk space on drive %s = %s\n"
+                           % (os.path.splitdrive(tmpdir)[0] or "/",
+                              humanize_bytes(du.free)))
+            if du.free < estimated_size or self._save_to:
+                if self.verbose:
+                    self._vlog("  DataTable will be stored in %s\n" % tmpdir)
+                return tmpdir
+        raise RuntimeError("The DataTable is estimated to require at lest %s "
+                           "of memory, and you don't have that much available "
+                           "either in RAM or on a hard drive."
+                           % humanize_bytes(estimated_size))
 
 
     def _prepare_progress_bar(self):

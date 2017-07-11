@@ -3,7 +3,8 @@
 import importlib
 from .typechecks import TImportError
 
-__all__ = ("clamp", "normalize_slice", "plural_form", "load_module")
+__all__ = ("clamp", "normalize_slice", "plural_form", "load_module",
+           "humanize_bytes")
 
 
 def plural_form(n, singular, plural=None):
@@ -155,3 +156,32 @@ def load_module(module):
     except ModuleNotFoundError:  # pragma: no cover
         raise TImportError("Module `%s` is not installed. It is required for "
                            "running this function." % module)
+
+
+def humanize_bytes(size):
+    """
+    Convert given number of bytes into a human readable representation, i.e. add
+    prefix such as KB, MB, GB, etc. The `size` argument must be a non-negative
+    integer.
+
+    :param size: integer representing byte size of something
+    :return: string representation of the size, in human-readable form
+    """
+    if size == 0: return "0"
+    if size is None: return ""
+    assert size >= 0, "`size` cannot be negative, got %d" % size
+    suffixes = "TGMK"
+    maxl = len(suffixes)
+    for i in range(maxl + 1):
+        shift = (maxl - i) * 10
+        if size >> shift == 0: continue
+        ndigits = 0
+        for nd in [3, 2, 1]:
+            if size >> (shift + 12 - nd * 3) == 0:
+                ndigits = nd
+                break
+        if ndigits == 0 or size == (size >> shift) << shift:
+            rounded_val = str(size >> shift)
+        else:
+            rounded_val = "%.*f" % (ndigits, size / (1 << shift))
+        return "%s%sB" % (rounded_val, suffixes[i] if i < maxl else "")

@@ -90,22 +90,31 @@ void _dt_free(void *ptr)
 
 char* _to_string(PyObject *x, PyObject **tmp)
 {
-    if (x == NULL) return (char*)-1;
-    if (x != Py_None) {
+    if (x == NULL) goto fail;
+    if (x == Py_None) {
+        Py_DECREF(x);
+        return NULL;
+    } else {
+        PyObject *z = NULL;
         if (PyUnicode_Check(x)) {
-            PyObject *y = PyUnicode_AsEncodedString(x, "utf-8", "strict");
-            if (y == NULL) return (char*)-1;
+            z = PyUnicode_AsEncodedString(x, "utf-8", "strict");
             Py_DECREF(x);
-            *tmp = y;
-            return PyBytes_AsString(y);
+        } else if (PyBytes_Check(x)) {
+            z = x;
         }
-        if (PyBytes_Check(x)) {
-            *tmp = x;
-            return PyBytes_AsString(x);
+        if (z == NULL) goto fail;
+        char *out = NULL;
+        if (tmp == NULL) {
+            dtmalloc_g(out, char, PyBytes_Size(z) + 1);
+            memcpy(out, PyBytes_AsString(z), PyBytes_Size(z) + 1);
+        } else {
+            *tmp = z;
+            out = PyBytes_AsString(z);
         }
+        return out;
     }
-    Py_DECREF(x);
-    return NULL;
+  fail:
+    return (char*) -1;
 }
 
 char** _to_string_list(PyObject *x) {

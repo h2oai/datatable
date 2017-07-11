@@ -46,16 +46,19 @@ static char **na_strings = NULL;
 static char fname[1000];
 static char fname2[1000];
 
-
 // ncols -- number of fields in the CSV file. This field first becomes available
 //     in the `userOverride()` callback, and doesn't change after that.
 // nstrcols -- number of string columns in the output DataTable. This will be
 //     computed within `allocateDT()` callback, and used for allocation of
 //     string buffers. If the file is re-read (due to type bumps), this variable
 //     will only count those string columns that need to be re-read.
-static size_t ncols = 0;
-static size_t nstrcols = 0;
+// ndigits = len(str(ncols))
+// verbose -- if True, then emit verbose messages during parsing.
+//
+static int ncols = 0;
+static int nstrcols = 0;
 static int ndigits = 0;
+static int verbose = 0;
 
 // types -- array of types for each field in the input file. Length = `ncols`.
 // sizes -- array of byte sizes for each field. Length = `ncols`.
@@ -94,8 +97,8 @@ PyObject* freadPy(UU, PyObject *args)
     filename = TOSTRING(ATTR(freader, "filename"), &tmp1);
     input = TOSTRING(ATTR(freader, "text"), &tmp2);
     skipstring = TOSTRING(ATTR(freader, "skip_to_string"), &tmp3);
-    targetdir = TOSTRING(ATTR(freader, "target_dir"), &tmp4);
     na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"));
+    verbose = TOBOOL(ATTR(freader, "verbose"), 0);
 
     frargs->filename = filename;
     frargs->input = input;
@@ -106,7 +109,7 @@ PyObject* freadPy(UU, PyObject *args)
     frargs->skipNrow = TOINT64(ATTR(freader, "skip_lines"), 0);
     frargs->skipString = skipstring;
     frargs->header = TOBOOL(ATTR(freader, "header"), NA_BOOL8);
-    frargs->verbose = TOBOOL(ATTR(freader, "verbose"), 0);
+    frargs->verbose = verbose;
     frargs->NAstrings = (const char* const*) na_strings;
     frargs->stripWhite = 1;
     frargs->skipEmptyLines = 1;
@@ -226,6 +229,7 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
     nstrcols = 0;
     types = NULL;
     sizes = NULL;
+    dtfree(targetdir);
     if (frargs) {
         if (na_strings) {
             char **ptr = na_strings;
@@ -277,35 +281,46 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     Column **columns = NULL;
     types = types_;
     sizes = sizes_;
-    size_t total_alloc_size = 0;
-    if (targetdir) {
-        DTPRINT("Writing the DataTable into %s\n", targetdir);
-    }
-
-    // Allocate the array of columns.
-    if (ncols > 0) {
-        assert(dt != NULL && ncols == (size_t)ncols_);
-        columns = dt->columns;
-    } else {
-        assert(dt == NULL && ncols == 0 && nstrcols == 0);
-        ncols = (size_t) ncols_;
-        int ndtcols = ncols_ - ndrop_;
-        dtcalloc_g(columns, Column*, ndtcols + 1);
-        columns[ndtcols] = NULL;
-        total_alloc_size += sizeof(Column*) * (size_t) ndtcols;
-    }
-
-    // Compute the number of string columns, which will be used later in
-    // `prepareThreadContext` and `postprocessBuffer`.
     nstrcols = 0;
-    for (size_t i = 0; i < ncols; i++) {
-        nstrcols += (types[i] == CT_STRING);
+
+    // First we need to estimate the size of the dataset that needs to be
+    // created. However this needs to be done on first run only.
+    // Also in this block we compute: `nstrcols` (will be used later in
+    // `prepareThreadContext` and `postprocessBuffer`), as well as allocating
+    // the `Column**` array.
+    if (ncols == 0) {
+        // DTPRINT("Writing the DataTable into %s\n", targetdir);
+        assert(dt == NULL);
+        ncols = ncols_;
+
+        size_t alloc_size = 0;
+        int i, j;
+        for (i = j = 0; i < ncols; i++) {
+            if (types[i] == CT_DROP) continue;
+            nstrcols += (types[i] == CT_STRING);
+            SType stype = colType_to_stype[types[i]];
+            alloc_size += stype_info[stype].elemsize * nrows;
+            if (types[i] == CT_STRING) alloc_size += 5 * nrows;
+            j++;
+        }
+        assert(j == ncols_ - ndrop_);
+        dtcalloc_g(columns, Column*, j + 1);
+        columns[j] = NULL;
+
+        // Call the Python upstream to determine the strategy where the
+        // DataTable should be created.
+        PyObject *r = PyObject_CallMethod(freader, "_get_destination", "n", alloc_size);
+        targetdir = TOSTRING(r, NULL);  // This will also dec-ref `res`
+        if (targetdir == (char*)-1) goto fail;
+    } else {
+        assert(dt != NULL && ncols == ncols_);
+        columns = dt->columns;
     }
 
     // Compute number of digits in `ncols` (needed for creating file names).
     if (targetdir) {
         ndigits = 0;
-        for (size_t nc = ncols; nc; nc /= 10) ndigits++;
+        for (int nc = ncols; nc; nc /= 10) ndigits++;
     }
 
     // Create individual columns
@@ -316,7 +331,6 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
             SType stype = colType_to_stype[type];
             columns[j] = realloc_column(columns[j], stype, nrows, j);
             if (columns[j] == NULL) goto fail;
-            total_alloc_size += columns[j]->alloc_size + sizeof(Column);
         }
         j++;
     }
@@ -324,9 +338,8 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     if (dt == NULL) {
         dt = make_datatable((int64_t)nrows, columns);
         if (dt == NULL) goto fail;
-        total_alloc_size += sizeof(DataTable);
     }
-    return total_alloc_size;
+    return 1;
 
   fail:
     printf("AllocateDT failed!\n");
@@ -341,7 +354,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
 
 void setFinalNrow(size_t nrows) {
-    size_t i, j, k;
+    int i, j, k;
     for (i = j = k = 0; i < ncols; i++) {
         int type = types[i];
         if (type == CT_DROP) continue;
@@ -415,7 +428,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 
   fail:
     printf("prepareThreadContext() failed\n");
-    for (size_t k = 0; k < nstrcols; k++) dtfree(ctx->strbufs[k].buf);
+    for (int k = 0; k < nstrcols; k++) dtfree(ctx->strbufs[k].buf);
     dtfree(ctx->strbufs);
     *(ctx->stopTeam) = 1;
 }
@@ -429,7 +442,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
     lenOff *restrict const lenoffs = (lenOff *restrict) ctx->buff8;
     int rowCount8 = (int) ctx->rowSize8 / 8;
 
-    for (size_t k = 0; k < nstrcols; k++) {
+    for (int k = 0; k < nstrcols; k++) {
         assert(ctx_strbufs != NULL);
 
         lenOff *restrict lo = lenoffs + ctx_strbufs[k].idx8;
@@ -478,7 +491,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
 void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 {
     StrBuf *ctx_strbufs = ctx->strbufs;
-    for (size_t k = 0; k < nstrcols; k++) {
+    for (int k = 0; k < nstrcols; k++) {
         int j = ctx_strbufs[k].idxdt;
         StrBuf *sb = (StrBuf*) dt->columns[j]->meta;
         size_t sz = ctx_strbufs[k].ptr;
@@ -537,14 +550,14 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
     int nrows = (int) ctx->nRows;
     size_t row0 = ctx->DTi;
 
-    size_t i = 0;  // index within the `types` and `sizes`
-    size_t j = 0;  // index within `dt->columns`, `buff` and `strbufs`
+    int i = 0;  // index within the `types` and `sizes`
+    int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
     int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
     int rowCount8 = (int) ctx->rowSize8 / 8;
     int rowCount4 = (int) ctx->rowSize4 / 4;
     int rowCount1 = (int) ctx->rowSize1;
 
-    size_t k = 0;
+    int k = 0;
     for (; i < ncols; i++) {
         if (types[i] == CT_DROP) continue;
         Column *col = dt->columns[j];
@@ -626,7 +639,7 @@ void progress(double percent/*[0,1]*/, double ETA/*secs*/)
 void freeThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
     if (ctx->strbufs) {
-        for (size_t k = 0; k < nstrcols; k++) {
+        for (int k = 0; k < nstrcols; k++) {
             dtfree(ctx->strbufs[k].buf);
         }
         dtfree(ctx->strbufs);
