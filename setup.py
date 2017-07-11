@@ -25,7 +25,7 @@ with open("datatable/__version__.py") as f:
             break
 if version is None:
     raise RuntimeError("Could not detect version from the __version__.py file")
-## Append build suffix if necessary
+# Append build suffix if necessary
 if os.environ.get("CI_VERSION_SUFFIX"):
     version = "%s+%s" % (version, os.environ["CI_VERSION_SUFFIX"])
 
@@ -134,6 +134,8 @@ if "WITH_COVERAGE" in os.environ:
 if "VALGRIND" in os.environ:
     extra_compile_args += ["-ggdb", "-O0"]
 
+if "CI_EXTRA_COMPILE_ARGS" in os.environ:
+    extra_compile_args += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
 
 
 #-------------------------------------------------------------------------------
