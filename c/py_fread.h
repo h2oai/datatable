@@ -6,15 +6,6 @@
 #define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
 
 
-typedef struct StrBuf {
-    char *buf;
-    size_t size;
-    size_t ptr;
-    size_t idx8;
-    volatile int numuses;
-    int _padding;
-} StrBuf;
-
 
 // Per-column per-thread temporary string buffers used to assemble processed
 // string data. Length = `nstrcols`. Each element in this array has the
@@ -26,6 +17,7 @@ typedef struct StrBuf {
 //         puts here the offset within the global string buffer where the
 //         current buffer should be copied to.
 //     .idx8 -- index of the current column within the `buff8` array.
+//     .idxdt -- index of the current column within the output DataTable.
 //     .numuses -- synchronization lock. The purpose of this variable is to
 //         prevent race conditions between threads that do memcpy, and another
 //         thread that needs to realloc the underlying buffer. Without the lock,
@@ -37,6 +29,16 @@ typedef struct StrBuf {
 //         variable is negative, it means the buffer is being realloced, and no
 //         other threads is allowed to initiate a memcopy.
 //
+typedef struct StrBuf {
+    char *buf;
+    size_t size;
+    size_t ptr;
+    int idx8;
+    int idxdt;
+    volatile int numuses;
+    int _padding;
+} StrBuf;
+
 #define FREAD_PUSH_BUFFERS_EXTRA_FIELDS                                        \
     StrBuf *strbufs;                                                           \
 

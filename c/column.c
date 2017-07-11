@@ -1,4 +1,9 @@
 #include <sys/mman.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>     // open
+#include <unistd.h>    // close
 #include "column.h"
 #include "myassert.h"
 #include "rowmapping.h"
@@ -10,12 +15,15 @@ static void column_dealloc(Column *col);
 
 
 /**
- * Simple Column constructor: create a Column with a given SType, preallocated
- * for `nrows` rows. The returned colum will have refcount = 1.
+ * Simple Column constructor: create a Column with memory type `MT_DATA` and
+ * having the provided SType. The column will be preallocated for `nrows` rows,
+ * and will have `refcount` = 1. For a variable-width column only the "fixed-
+ * -width" part will be allocated.
+ *
  * If the column cannot be created (probably due to Out-of-Memory exception),
  * the function will return NULL.
  */
-Column* make_column(SType stype, size_t nrows)
+Column* make_data_column(SType stype, size_t nrows)
 {
     Column *col = NULL;
     dtmalloc(col, Column, 1);
@@ -27,6 +35,40 @@ Column* make_column(SType stype, size_t nrows)
     col->stype = stype;
     dtmalloc(col->meta, void, stype_info[stype].metasize);
     dtmalloc(col->data, void, col->alloc_size);
+    return col;
+}
+
+
+Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
+{
+    size_t alloc_size = stype_info[stype].elemsize * nrows;
+
+    // Create new file of size `alloc_size`.
+    FILE *fp = fopen(filename, "w");
+    fseek(fp, (off_t)alloc_size - 1, SEEK_SET);
+    fputc('\0', fp);
+    fclose(fp);
+
+    // Memory-map the file. For some reason I was not able to create memory map
+    // without resorting to closing / reopening the file (even with fflush()),
+    // it was producing Permission Denied error for some reason.
+    int fd = open(filename, O_RDWR);
+    void *mmp = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+    if (mmp == MAP_FAILED) {
+        printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
+        return NULL;
+    }
+    close(fd);
+
+    Column *col = NULL;
+    dtmalloc(col, Column, 1);
+    col->data = mmp;
+    col->meta = NULL;
+    col->stype = stype;
+    col->mtype = MT_MMAP;
+    col->refcount = 1;
+    col->alloc_size = alloc_size;
+    dtmalloc(col->meta, void, stype_info[stype].metasize);
     return col;
 }
 
