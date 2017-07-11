@@ -44,7 +44,6 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
     size_t alloc_size = stype_info[stype].elemsize * nrows;
 
     // Create new file of size `alloc_size`.
-    printf("Creating file %s\n", filename);
     FILE *fp = fopen(filename, "w");
     fseek(fp, alloc_size - 1, SEEK_SET);
     fputc('\0', fp);

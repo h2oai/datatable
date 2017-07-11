@@ -1,4 +1,7 @@
 #include <string.h>  // memcpy
+#include <fcntl.h>     // open
+#include <unistd.h>    // close, truncate
+#include <sys/mman.h>
 #include "fread.h"
 #include "myassert.h"
 #include "utils.h"
@@ -19,7 +22,7 @@ static const SType colType_to_stype[NUMTYPE] = {
 
 
 // Forward declarations
-void cleanup_fread_session(freadMainArgs *frargs);
+static void cleanup_fread_session(freadMainArgs *frargs);
 
 
 
@@ -39,6 +42,11 @@ static char *targetdir = NULL;
 static char *skipstring = NULL;
 static char **na_strings = NULL;
 
+// For temporary printing file names.
+static char fname[1000];
+static char fname2[1000];
+
+
 // ncols -- number of fields in the CSV file. This field first becomes available
 //     in the `userOverride()` callback, and doesn't change after that.
 // nstrcols -- number of string columns in the output DataTable. This will be
@@ -47,6 +55,7 @@ static char **na_strings = NULL;
 //     will only count those string columns that need to be re-read.
 static size_t ncols = 0;
 static size_t nstrcols = 0;
+static int ndigits = 0;
 
 // types -- array of types for each field in the input file. Length = `ncols`.
 // sizes -- array of byte sizes for each field. Length = `ncols`.
@@ -131,8 +140,88 @@ PyObject* freadPy(UU, PyObject *args)
 }
 
 
+static Column* alloc_column(SType stype, size_t nrows, int j)
+{
+    Column *col = NULL;
+    if (targetdir) {
+        snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
+        col = make_mmap_column(stype, nrows, fname);
+    } else{
+        col = make_data_column(stype, nrows);
+    }
+    if (col == NULL) return NULL;
 
-void cleanup_fread_session(freadMainArgs *frargs) {
+    // For string columns we temporarily replace the `meta` structure with a
+    // `StrBuf` which will hold auxiliary values needed for construction of
+    // the column.
+    if (stype_info[stype].ltype == LT_STRING) {
+        dtrealloc(col->meta, StrBuf, 1);
+        StrBuf *sb = (StrBuf*) col->meta;
+        // Pre-allocate enough memory to hold 5-char strings in the buffer. If
+        // this is not enough, we will always be able to re-allocate during the
+        // run time.
+        size_t alloc_size = nrows * 5;
+        if (targetdir) {
+            snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
+            // Create new file of size `alloc_size`.
+            FILE *fp = fopen(fname, "w");
+            fseek(fp, (long)(alloc_size - 1), SEEK_SET);
+            fputc('\0', fp);
+            fclose(fp);
+            // Memory-map the file.
+            int fd = open(fname, O_RDWR);
+            sb->buf = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+            if (sb->buf == MAP_FAILED) {
+                printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
+                return NULL;
+            }
+            close(fd);
+        } else {
+            dtmalloc(sb->buf, char, alloc_size);
+        }
+        sb->size = alloc_size;
+        sb->ptr = 0;
+        sb->idx8 = -1;  // not needed for this structure
+        sb->idxdt = j;
+        sb->numuses = 0;
+    }
+    return col;
+}
+
+
+static Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
+{
+    if (col != NULL && stype_info[stype].ltype == LT_STRING) {
+        column_decref(col);
+        return alloc_column(stype, nrows, j);
+    }
+    if (col == NULL) {
+        return alloc_column(stype, nrows, j);
+    }
+
+    size_t new_alloc_size = stype_info[stype].elemsize * nrows;
+    if (targetdir) {
+        snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
+        truncate(fname, (off_t)new_alloc_size);
+        munmap(col->data, col->alloc_size);
+        int fd = open(fname, O_RDWR);
+        col->data = mmap(NULL, new_alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+        if (col->data == MAP_FAILED) {
+            printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
+            return NULL;
+        }
+        close(fd);
+    } else {
+        dtrealloc(col->data, void, new_alloc_size);
+    }
+    col->stype = stype;
+    col->alloc_size = new_alloc_size;
+    return col;
+}
+
+
+
+static void cleanup_fread_session(freadMainArgs *frargs) {
     ncols = 0;
     nstrcols = 0;
     types = NULL;
@@ -189,10 +278,12 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     types = types_;
     sizes = sizes_;
     size_t total_alloc_size = 0;
-    int reallocate = (ncols > 0);
+    if (targetdir) {
+        DTPRINT("Writing the DataTable into %s\n", targetdir);
+    }
 
     // Allocate the array of columns.
-    if (reallocate) {
+    if (ncols > 0) {
         assert(dt != NULL && ncols == (size_t)ncols_);
         columns = dt->columns;
     } else {
@@ -204,52 +295,33 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         total_alloc_size += sizeof(Column*) * (size_t) ndtcols;
     }
 
+    // Compute the number of string columns, which will be used later in
+    // `prepareThreadContext` and `postprocessBuffer`.
     nstrcols = 0;
-    for (int i = 0; i < ncols_; i++)
+    for (size_t i = 0; i < ncols; i++) {
         nstrcols += (types[i] == CT_STRING);
+    }
 
-    int i = 0;
-    int j = 0;
-    int off8 = 0;
-    size_t k = 0;
-    for (i = 0; i < ncols_; i++) {
+    // Compute number of digits in `ncols` (needed for creating file names).
+    if (targetdir) {
+        ndigits = 0;
+        for (size_t nc = ncols; nc; nc /= 10) ndigits++;
+    }
+
+    // Create individual columns
+    for (int i = 0, j = 0; i < ncols_; i++) {
         int8_t type = types[i];
         if (type == CT_DROP) continue;
-        if (type < 0) { j++; continue; }
-
-        SType stype = colType_to_stype[type];
-
-        if (reallocate) column_decref(columns[j]);
-        columns[j] = make_data_column(stype, nrows);
-        // {
-        //     char *f = NULL;
-        //     dtmalloc_g(f, char, 1000);
-        //     snprintf(f, 1000, "%s/col%d", targetdir, i);
-        //     columns[j] = make_mmap_column(colType_to_stype[type], nrows, f);
-        // }
-        if (columns[j] == NULL) goto fail;
-
-        if (type == CT_STRING) {
-            assert(k < nstrcols);
-            dtrealloc_g(columns[j]->meta, StrBuf, 1);
-            StrBuf *sb = (StrBuf*) columns[j]->meta;
-            size_t alloc_size = nrows * 10;
-            dtmalloc_g(sb->buf, char, alloc_size);
-            sb->ptr = 0;
-            sb->size = alloc_size;
-            sb->idx8 = off8;
-            sb->idxdt = j;
-            sb->numuses = 0;
-            total_alloc_size += alloc_size;
-            k++;
+        if (type > 0) {
+            SType stype = colType_to_stype[type];
+            columns[j] = realloc_column(columns[j], stype, nrows, j);
+            if (columns[j] == NULL) goto fail;
+            total_alloc_size += columns[j]->alloc_size + sizeof(Column);
         }
-        total_alloc_size += columns[j]->alloc_size + sizeof(Column);
-        off8 += (sizes[i] == 8);
         j++;
     }
-    assert((size_t)i == ncols && k == nstrcols);
 
-    if (!reallocate) {
+    if (dt == NULL) {
         dt = make_datatable((int64_t)nrows, columns);
         if (dt == NULL) goto fail;
         total_alloc_size += sizeof(DataTable);
@@ -283,22 +355,35 @@ void setFinalNrow(size_t nrows) {
             size_t offoff = curr_size + padding;
             size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;
-            dtrealloc_g(final_ptr, void, final_size);
+            if (targetdir) {
+                snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, (int)j);
+                truncate(fname, (off_t)final_size);
+                munmap(final_ptr, sb->size);
+                int fd = open(fname, O_RDWR);
+                final_ptr = mmap(NULL, final_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+                close(fd);
+            } else {
+                dtrealloc_g(final_ptr, void, final_size);
+            }
             memset(add_ptr(final_ptr, curr_size), 0xFF, padding);
             memcpy(add_ptr(final_ptr, offoff), col->data, offs_size);
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
-            dtfree(col->data);
+            if (targetdir) {
+                snprintf(fname2, 1000, "%s/col%0*d", targetdir, ndigits, (int)j);
+                remove(fname2);
+                int ret = rename(fname, fname2);
+                if (ret == -1) printf("Unable to rename: %d\n", errno);
+            } else {
+                dtfree(col->data);
+            }
             col->data = final_ptr;
             col->alloc_size = final_size;
             dtrealloc_g(col->meta, VarcharMeta, 1);
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
             k++;
         } else if (type > 0) {
-            size_t new_size = stype_info[colType_to_stype[type]].elemsize * nrows;
-            if (col->alloc_size != new_size) {
-                dtrealloc_g(col->data, void, new_size);
-                col->alloc_size = new_size;
-            }
+            Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
+            if (c == NULL) goto fail;
         }
         j++;
     }
@@ -313,16 +398,17 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
     ctx->strbufs = NULL;
     dtcalloc_g(ctx->strbufs, StrBuf, nstrcols);
-    for (int i = 0, j = 0, k = 0; i < ncols; i++) {
+    for (int i = 0, j = 0, k = 0, off8 = 0; i < (int)ncols; i++) {
         if (types[i] == CT_DROP) continue;
         if (types[i] == CT_STRING) {
             dtmalloc_g(ctx->strbufs[k].buf, char, 4096);
             ctx->strbufs[k].size = 4096;
             ctx->strbufs[k].ptr = 0;
-            ctx->strbufs[k].idx8 = ((StrBuf*) dt->columns[j]->meta)->idx8;
+            ctx->strbufs[k].idx8 = off8;
             ctx->strbufs[k].idxdt = j;
             k++;
         }
+        off8 += (sizes[i] == 8);
         j++;
     }
     return;
@@ -417,7 +503,16 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
             // Otherwise (and it is the most common case) we reallocate the
             // buffer and only then restore the `numuses` variable.
             if (old == 0) {
-                dtrealloc_g(sb->buf, char, newsize);
+                if (targetdir) {
+                    snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
+                    truncate(fname, (off_t)newsize);
+                    int fd = open(fname, O_RDWR);
+                    munmap(sb->buf, sb->size);
+                    sb->buf = mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+                    close(fd);
+                } else {
+                    dtrealloc_g(sb->buf, char, newsize);
+                }
                 sb->size = newsize;
             }
             #pragma omp atomic update
@@ -537,7 +632,6 @@ void freeThreadContext(ThreadLocalFreadParsingContext *ctx)
         dtfree(ctx->strbufs);
     }
 }
-
 
 
 __attribute__((format(printf, 1, 2)))

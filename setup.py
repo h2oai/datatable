@@ -168,7 +168,8 @@ setup(
     install_requires=[
         "typesentry==0.2.2",
         "blessed",
-        "llvmlite"
+        "llvmlite",
+        "psutil"
     ],
     tests_require=[
         "pandas",
