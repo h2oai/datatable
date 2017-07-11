@@ -87,8 +87,6 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 
-ci_extra_compile_args = ([os.environ["CI_EXTRA_COMPILE_ARGS"]]
-                         if os.environ.get("CI_EXTRA_COMPILE_ARGS") else [])
 
 #-------------------------------------------------------------------------------
 # Settings for building the extension
@@ -136,6 +134,8 @@ if "WITH_COVERAGE" in os.environ:
 if "VALGRIND" in os.environ:
     extra_compile_args += ["-ggdb", "-O0"]
 
+if "CI_EXTRA_COMPILE_ARGS" in os.environ:
+    extra_compile_args += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
 
 
 #-------------------------------------------------------------------------------
@@ -185,7 +185,7 @@ setup(
             "_datatable",
             include_dirs=["c"],
             sources=c_sources,
-            extra_compile_args=extra_compile_args + ci_extra_compile_args,
+            extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,
         ),
     ],
