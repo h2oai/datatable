@@ -324,7 +324,7 @@ class FReader(object):
                        % humanize_bytes(estimated_size))
         vm = psutil.virtual_memory()
         if self.verbose:
-            self._vlog("  Memory available = %s, total = %s\n"
+            self._vlog("  Memory available = %s (out of %s)\n"
                        % (humanize_bytes(vm.available),
                           humanize_bytes(vm.total)))
         if (estimated_size < vm.available and self._save_to is None or
@@ -343,7 +343,7 @@ class FReader(object):
                 self._vlog("  Free disk space on drive %s = %s\n"
                            % (os.path.splitdrive(tmpdir)[0] or "/",
                               humanize_bytes(du.free)))
-            if du.free < estimated_size or self._save_to:
+            if du.free > estimated_size or self._save_to:
                 if self.verbose:
                     self._vlog("  DataTable will be stored in %s\n" % tmpdir)
                 return tmpdir
