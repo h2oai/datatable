@@ -127,6 +127,7 @@ typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
 typedef struct RowMapping {
     RowMappingType type;
     int64_t length;
+    int64_t min, max;
     union {
         int32_t *ind32;
         int64_t *ind64;
