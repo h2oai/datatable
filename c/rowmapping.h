@@ -16,16 +16,18 @@ typedef enum RowMappingType {
 /**
  * type
  *     The type of the RowMapping: either array or a slice. Two kinds of arrays
- *     are supported: one with 32-bit indices and having no more than 2**32-1
- *     elements, and the other with 64-bit indices and having up to 2**64-1
- *     items. The 64-bit array type is only available on a 64-bit platform.
- *     However it is possible (and indeed common) to create 32-bit arrays even
- *     if the platform is 64-bit.
+ *     are supported: one with 32-bit indices and having no more than 2**31-1
+ *     elements, and the other with 64-bit indices and having up to 2**63-1
+ *     items.
  *
  * length
  *     Total number of elements in the RowMapping (corresponds to `nrows` in
  *     the datatable). This length must be nonnegative and cannot exceed
- *     INTPTR_MAX.
+ *     2**63-1.
+ *
+ * min, max
+ *     The smallest / largest elements in the current RowMapping. If the length
+ *     of the rowmapping is 0, then both min and max will be 0.
  *
  * ind32
  *     The array of (32-bit) indices comprising the RowMapping. The number of
@@ -48,6 +50,8 @@ typedef enum RowMappingType {
  */
 typedef struct RowMapping {
     int64_t length;
+    int64_t min;
+    int64_t max;
     union {
         int32_t *ind32;
         int64_t *ind64;
@@ -70,7 +74,7 @@ typedef int (rowmapping_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
  * Reduce storage method of rowmapping `rwm` from RM_ARR64 to RM_ARR32, if
  * possible.
  */
-_Bool rowmapping_compactify(RowMapping *rwm);
+RowMapping* rowmapping_compactify(RowMapping *rwm);
 
 /**
  * Construct a "slice" RowMapping object from triple `(start, count, step)`.
