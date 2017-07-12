@@ -48,6 +48,14 @@ typedef struct RowMapping RowMapping;
  *     Size (in bytes) of memory buffer `data`. For columns of type MT_MMAP this
  *     size is equal to the file size.
  *
+ * refcount
+ *     Number of references to this Column object. It is a common for a single
+ *     Column to be reused across multiple DataTables (for example when a new
+ *     DataTable is created as a view onto an existing one). In such case the
+ *     refcount of the Column should be increased. Any modification to a Column
+ *     with refcount > 1 is not allowed -- a copy should be made first. When a
+ *     DataTable is deleted, it decreases refcounts of all its constituent
+ *     Columns, and once a Column's refcount becomes 0 it can be safely deleted.
  */
 typedef struct Column {
     void   *data;        // 8
