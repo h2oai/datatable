@@ -126,17 +126,10 @@ Column* column_from_list(PyObject *list)
 {
     if (list == NULL || !PyList_Check(list)) return NULL;
 
-    Column *column = NULL;
-    dtmalloc(column, Column, 1);
-    column->meta = NULL;
-    column->data = NULL;
-    column->mtype = MT_DATA;
-    column->alloc_size = 0;
-    column->refcount = 1;
+    Column *column = make_data_column(ST_BOOLEAN_I1, 0);
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
-        column->stype = ST_BOOLEAN_I1;
         return column;
     }
 
@@ -150,6 +143,7 @@ Column* column_from_list(PyObject *list)
         start_over: {}
         size_t alloc_size = stype_info[stype].elemsize * (size_t)nrows;
         dtrealloc(data, void, alloc_size);
+        column->nrows = (int64_t) nrows;
         column->alloc_size = alloc_size;
         if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);

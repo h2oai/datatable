@@ -19,6 +19,8 @@ typedef struct RowMapping RowMapping;
  * can be accessed as `((ctype*)(column->data))[j]`. More complicated types
  * (such as strings) require a more elaborate access scheme.
  *
+ * Parameters
+ * ----------
  * data
  *     Raw data buffer in NFF format, depending on the column's `stype` (see
  *     specification in "types.h").
@@ -33,18 +35,24 @@ typedef struct RowMapping RowMapping;
  *     the "storage" type, i.e. how the data is actually stored in memory. The
  *     logical type can be derived from `stype` via `stype_info[stype].ltype`.
  *
+ * nrows
+ *     Number of elements in this column. For fixed-size stypes, this should be
+ *     equal to `alloc_size / stype_info[stype].elemsize`.
+ *
  * meta
  *     Metadata associated with the column, if any, otherwise NULL. This is one
  *     of the *Meta structs defined in "types.h". The actual struct used
  *     depends on the `stype`.
  *
  * alloc_size
- *     Size (in bytes) of memory buffer `data`.
+ *     Size (in bytes) of memory buffer `data`. For columns of type MT_MMAP this
+ *     size is equal to the file size.
  *
  */
 typedef struct Column {
     void   *data;        // 8
     void   *meta;        // 8
+    int64_t nrows;       // 8
     size_t  alloc_size;  // 8
     int     refcount;    // 4
     MType   mtype;       // 1
