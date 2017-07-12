@@ -74,10 +74,10 @@ typedef struct Column {
 
 Column* make_data_column(SType stype, size_t nrows);
 Column* make_mmap_column(SType stype, size_t nrows, const char *filename);
-Column* column_extract(Column *col, RowMapping *rowmapping);
-RowMapping* column_sort(Column *col, int64_t nrows);
-void column_incref(Column *col);
-void column_decref(Column *col);
+Column* column_extract(Column *self, RowMapping *rowmapping);
+RowMapping* column_sort(Column *self, int64_t nrows);
+void column_incref(Column *self);
+void column_decref(Column *self);
 
 
 #endif

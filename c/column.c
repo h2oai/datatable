@@ -11,7 +11,7 @@
 #include "py_utils.h"
 
 // Forward declarations
-static void column_dealloc(Column *col);
+static void column_dealloc(Column *self);
 
 
 /**
@@ -78,17 +78,18 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
 
 
 /**
- * Extract data from column `col` into a new Column object according to the
- * provided `rowmapping`. The new column will have mtype `MT_DATA`. This method
- * can also be used to clone a column.
+ * Extract data from this column at rows specified in the provided `rowmapping`.
+ * A new Column with type `MT_DATA` will be created and returned. The
+ * `rowmapping` parameter can also be NULL, in which case a simple clone
+ * (deep copy) is returned.
  */
-Column* column_extract(Column *col, RowMapping *rowmapping)
+Column* column_extract(Column *self, RowMapping *rowmapping)
 {
-    SType stype = col->stype;
+    SType stype = self->stype;
     size_t metasize = stype_info[stype].metasize;
     size_t nrows = (size_t) rowmapping->length;
     size_t elemsize = (stype == ST_STRING_FCHAR)
-                        ? (size_t) ((FixcharMeta*) col->meta)->n
+                        ? (size_t) ((FixcharMeta*) self->meta)->n
                         : stype_info[stype].elemsize;
     assert(nrows <= INT64_MAX);
 
@@ -101,13 +102,13 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
     res->alloc_size = 0;
     res->mtype = MT_DATA;
     res->stype = stype;
-    res->meta = metasize? TRY(clone(col->meta, metasize)) : NULL;
+    res->meta = metasize? TRY(clone(self->meta, metasize)) : NULL;
     res->refcount = 1;
 
     // If `rowmapping` is not provided, then it's a plain clone.
     if (rowmapping == NULL) {
-        res->data = TRY(clone(col->data, col->alloc_size));
-        res->alloc_size = col->alloc_size;
+        res->data = TRY(clone(self->data, self->alloc_size));
+        res->alloc_size = self->alloc_size;
         return res;
     }
 
@@ -117,8 +118,8 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
         size_t start = (size_t) rowmapping->slice.start;
         switch (stype) {
             #define CASE_IX_VCHAR(etype, abs) {                                \
-                size_t offoff = (size_t)((VarcharMeta*) col->meta)->offoff;    \
-                etype *offs = (etype*)(col->data + offoff) + start;            \
+                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;   \
+                etype *offs = (etype*)(self->data + offoff) + start;           \
                 etype off0 = start? abs(*(offs - 1)) - 1 : 0;                  \
                 etype off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;  \
                 size_t datasize = (size_t)(off1 - off0);                       \
@@ -128,7 +129,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 res->alloc_size = datasize + padding + offssize;               \
                 res->data = TRY(malloc(res->alloc_size));                      \
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;          \
-                memcpy(res->data, col->data + (size_t)off0, datasize);         \
+                memcpy(res->data, self->data + (size_t)off0, datasize);        \
                 memset(res->data + datasize, 0xFF, padding);                   \
                 etype *resoffs = (etype*)(res->data + offoff);                 \
                 for (size_t i = 0; i < nrows; i++) {                           \
@@ -150,7 +151,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 assert(!stype_info[stype].varwidth);
                 size_t alloc_size = nrows * elemsize;
                 size_t offset = start * elemsize;
-                res->data = TRY(clone(col->data + offset, alloc_size));
+                res->data = TRY(clone(self->data + offset, alloc_size));
                 res->alloc_size = alloc_size;
             } break;
         }
@@ -172,8 +173,8 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
             intXX(bits) j = rowindices[i];
 
         #define CASE_IX_VCHAR_SUB(ctype, abs, JINIT, JITER) {                  \
-            size_t offoff = (size_t)((VarcharMeta*) col->meta)->offoff;        \
-            ctype *offs = (ctype*)(col->data + offoff);                        \
+            size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;       \
+            ctype *offs = (ctype*)(self->data + offoff);                       \
             size_t datasize = 0;                                               \
             {   JINIT                                                          \
                 for (size_t i = 0; i < nrows; i++) {                           \
@@ -200,7 +201,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                         ctype prevoff = j? abs(offs[j - 1]) : 1;               \
                         size_t len = (size_t)(offs[j] - prevoff);              \
                         if (len) {                                             \
-                            memcpy(dest, col->data + prevoff - 1, len);        \
+                            memcpy(dest, self->data + prevoff - 1, len);       \
                             dest += len;                                       \
                             lastoff += len;                                    \
                         }                                                      \
@@ -244,7 +245,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
             char *dest = res->data;
             if (rowmapping->type == RM_SLICE) {
                 size_t stepsize = (size_t) rowmapping->slice.step * elemsize;
-                char *src = col->data + (size_t) rowmapping->slice.start * elemsize;
+                char *src = self->data + (size_t) rowmapping->slice.start * elemsize;
                 for (size_t i = 0; i < nrows; i++) {
                     memcpy(dest, src, elemsize);
                     dest += elemsize;
@@ -255,7 +256,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 int32_t *rowindices = rowmapping->ind32;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
-                    memcpy(dest, col->data + j*elemsize, elemsize);
+                    memcpy(dest, self->data + j*elemsize, elemsize);
                     dest += elemsize;
                 }
             } else
@@ -263,7 +264,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
                 int64_t *rowindices = rowmapping->ind64;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
-                    memcpy(dest, col->data + j*elemsize, elemsize);
+                    memcpy(dest, self->data + j*elemsize, elemsize);
                     dest += elemsize;
                 }
             }
@@ -294,31 +295,31 @@ RowMapping* column_sort(Column *col, int64_t nrows)
 
 
 /**
- * Increase reference count on column `col`. This function should be called
+ * Increase reference count on column `self`. This function should be called
  * when a new long-term copy to the column is created (for example if the column
  * is referenced from several data tables).
- * Here `col` can also be NULL, in which case this function does nothing.
+ * Here `self` can also be NULL, in which case this function does nothing.
  */
-void column_incref(Column *col)
+void column_incref(Column *self)
 {
-    if (col == NULL) return;
-    col->refcount++;
+    if (self == NULL) return;
+    self->refcount++;
 }
 
 
 
 /**
- * Decrease reference count on column `col`. Call this function when disposing
+ * Decrease reference count on column `self`. Call this function when disposing
  * of a previously held pointer to a column. If the internal reference counter
  * reaches 0, the column's data will be garbage-collected.
- * Here `col` can also be NULL, in which case this function does nothing.
+ * Here `self` can also be NULL, in which case this function does nothing.
  */
-void column_decref(Column *col)
+void column_decref(Column *self)
 {
-    if (col == NULL) return;
-    col->refcount--;
-    if (col->refcount <= 0) {
-        column_dealloc(col);
+    if (self == NULL) return;
+    self->refcount--;
+    if (self->refcount <= 0) {
+        column_dealloc(self);
     }
 }
 
@@ -329,14 +330,14 @@ void column_decref(Column *col)
  * function should not be accessed by the external code: use
  * :func:`column_decref` instead.
  */
-static void column_dealloc(Column *col)
+static void column_dealloc(Column *self)
 {
-    if (col->mtype == MT_DATA) {
-        dtfree(col->data);
+    if (self->mtype == MT_DATA) {
+        dtfree(self->data);
     }
-    if (col->mtype == MT_MMAP) {
-        munmap(col->data, col->alloc_size);
+    if (self->mtype == MT_MMAP) {
+        munmap(self->data, self->alloc_size);
     }
-    dtfree(col->meta);
-    dtfree(col);
+    dtfree(self->meta);
+    dtfree(self);
 }
