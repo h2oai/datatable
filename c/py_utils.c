@@ -53,6 +53,7 @@ PyObject* decref(PyObject *x) {
 
 void* _dt_malloc(size_t n)
 {
+    if (!n) return NULL;
     void *res = malloc(n);
     if (res == NULL) {
         PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);
@@ -63,6 +64,7 @@ void* _dt_malloc(size_t n)
 
 void* _dt_realloc(void *ptr, size_t n)
 {
+    if (!n) return NULL;
     void *res = realloc(ptr, n);
     if (res == NULL) {
         PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);
@@ -73,6 +75,7 @@ void* _dt_realloc(void *ptr, size_t n)
 
 void* _dt_calloc(size_t n, size_t size)
 {
+    if (!n) return NULL;
     void *res = calloc(n, size);
     if (res == NULL) {
         PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes",

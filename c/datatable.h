@@ -17,25 +17,27 @@ typedef struct DataTable DataTable;
 /**
  * The DataTable
  *
+ * Parameters
+ * ----------
  * nrows
  * ncols
  *     Data dimensions: number of rows and columns in the datatable. We do not
- *     support more than 2 dimensions as Numpy or TensorFlow.
- *     On 32-bit platforms maximum number of rows/columns is 2**31-1. On 64-bit
- *     platforms the maximum is 2**63-1.
+ *     support more than 2 dimensions (as Numpy or TensorFlow do).
+ *     The maximum number of rows is 2**63 - 1. The maximum number of columns
+ *     is 2**31 - 1 (even though `ncols` is declared as `int64_t`).
  *
  * rowmapping
  *     If this field is not NULL, then the current datatable is a "view", that
- *     is all columns should be accessed not directly but via this rowmapping.
- *     This pointer is owned by the current datatable (in particular you should
- *     not construct a RowMapping_PyObject from it).
+ *     is, all columns should be accessed not directly but via this rowmapping.
+ *     When this field is set, it must be that `nrows == rowmapping->length`.
  *
  * columns
- *     The array of columns within the datatable. This array contains `ncols`
- *     elements, and each column has the same number of rows: `nrows`. Even
- *     though each column is declared to have type `Column*`, in reality it
- *     may also be of type `ViewColumn*`. Both structures have field `mtype`
- *     which determines the actual struct type.
+ *     The array of columns within the datatable. This array contains `ncols+1`
+ *     elements, and each column has the same number of rows: `nrows`. The
+ *     "extra" column is always NULL: a sentinel.
+ *     When `rowmapping` is specified, then each column is a copy-by-reference
+ *     of a column in some other datatable, and only indices given in the
+ *     `rowmapping` should be used to access values in each column.
  */
 typedef struct DataTable {
     int64_t     nrows;

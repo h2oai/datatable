@@ -25,10 +25,12 @@ static void column_dealloc(Column *col);
  */
 Column* make_data_column(SType stype, size_t nrows)
 {
+    assert(nrows <= INT64_MAX);
     Column *col = NULL;
     dtmalloc(col, Column, 1);
     col->data = NULL;
     col->meta = NULL;
+    col->nrows = (int64_t) nrows;
     col->alloc_size = stype_info[stype].elemsize * nrows;
     col->refcount = 1;
     col->mtype = MT_DATA;
@@ -41,6 +43,7 @@ Column* make_data_column(SType stype, size_t nrows)
 
 Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
 {
+    assert(nrows <= INT64_MAX);
     size_t alloc_size = stype_info[stype].elemsize * nrows;
 
     // Create new file of size `alloc_size`.
@@ -64,6 +67,7 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
     dtmalloc(col, Column, 1);
     col->data = mmp;
     col->meta = NULL;
+    col->nrows = (int64_t) nrows;
     col->stype = stype;
     col->mtype = MT_MMAP;
     col->refcount = 1;
@@ -82,13 +86,18 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
 {
     SType stype = col->stype;
     size_t metasize = stype_info[stype].metasize;
-    size_t nrows, elemsize;
+    size_t nrows = (size_t) rowmapping->length;
+    size_t elemsize = (stype == ST_STRING_FCHAR)
+                        ? (size_t) ((FixcharMeta*) col->meta)->n
+                        : stype_info[stype].elemsize;
+    assert(nrows <= INT64_MAX);
 
     // Create the new Column object. Note that `meta` is cloned from the
     // source, which may need adjustment for some cases.
     Column *res = NULL;
     dtmalloc(res, Column, 1);
     res->data = NULL;
+    res->nrows = (int64_t) nrows;
     res->alloc_size = 0;
     res->mtype = MT_DATA;
     res->stype = stype;
@@ -102,10 +111,6 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
         return res;
     }
 
-    nrows = (size_t) rowmapping->length;
-    elemsize = stype_info[stype].elemsize;
-    if (stype == ST_STRING_FCHAR)
-        elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
 
     // "Slice" rowmapping with step = 1 is a simple subsection of the column
     if (rowmapping->type == RM_SLICE && rowmapping->slice.step == 1) {
@@ -277,6 +282,7 @@ Column* column_extract(Column *col, RowMapping *rowmapping)
 
 RowMapping* column_sort(Column *col, int64_t nrows)
 {
+    assert(col->nrows == nrows);
     if (col->stype == ST_INTEGER_I4) {
         int32_t *ordering = NULL;
         sort_i4(col->data, (int32_t)nrows, &ordering);

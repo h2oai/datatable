@@ -73,15 +73,8 @@ Column** columns_from_mixed(
             column_incref(columns[i]);
         } else {
             SType stype = (SType)(-spec[i]);
-            size_t elemsize = stype_info[stype].elemsize;
-            dtmalloc(out[j], void, elemsize * nrows);
-            dtmalloc(columns[i], Column, 1);
-            columns[i]->data = out[j];
-            columns[i]->mtype = MT_DATA;
-            columns[i]->stype = stype;
-            columns[i]->meta = NULL;
-            columns[i]->alloc_size = elemsize * nrows;
-            columns[i]->refcount = 1;
+            columns[i] = make_data_column(stype, nrows);
+            out[j] = columns[i]->data;
             j++;
         }
     }

@@ -130,7 +130,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     // Check the number of columns; the number of allocated columns should be
     // equal to `ncols + 1` (with extra column being NULL). Sometimes the
     // allocation size can be greater than the required number of columns,
-    // because `malloc()` sometimes allocates more than requested.
+    // because `malloc()` may allocate more than requested.
     size_t n_cols_allocd = array_size(cols, sizeof(Column*));
     int64_t ncols = dt->ncols;
     if (ncols < 0) {
@@ -196,6 +196,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
 
 
     // Check validity of the RowMapping
+    int64_t maxrow = -1;
     if (rm != NULL) {
         RowMappingType rmtype = rm->type;
         if (rmtype != RM_SLICE && rmtype != RM_ARR32 && rmtype != RM_ARR64) {
@@ -226,6 +227,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                     start, nrows, step);
                 return DTCK_ERRORS_FOUND;
             }
+            maxrow = step > 0? end : start;
         }
         if (rmtype == RM_ARR32) {
             if (nrows > INT32_MAX) {
@@ -244,6 +246,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 if (rmdata[i] < 0 || rmdata[i] > INT32_MAX) {
                     ERR("Rowmapping[%d] = %d is invalid\n", i, rmdata[i]);
                 }
+                if (rmdata[i] > maxrow) maxrow = rmdata[i];
             }
         }
         if (rmtype == RM_ARR64) {
@@ -258,6 +261,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 if (rmdata[i] < 0) {
                     ERR("Rowmapping[%lld] = %lld is invalid\n", i, rmdata[i]);
                 }
+                if (rmdata[i] > maxrow) maxrow = rmdata[i];
             }
         }
     }
@@ -271,6 +275,16 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
 
         if (stype <= ST_VOID || stype >= DT_STYPES_COUNT) {
             ERR("Invalid storage type %d in column %lld\n", stype, i);
+            continue;
+        }
+        if (rm == NULL && col->nrows != nrows) {
+            ERR("Column %lld has nrows=%lld, while the datatable has %lld rows\n",
+                i, col->nrows, nrows);
+            continue;
+        }
+        if (rm != NULL && col->nrows <= maxrow) {
+            ERR("Column %lld has nrows=%lld, but rowmapping references row %lld\n",
+                i, col->nrows, maxrow);
             continue;
         }
         if (col->refcount <= 0) {

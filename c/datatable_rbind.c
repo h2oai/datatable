@@ -50,19 +50,14 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
     for (int i = 0; i < ncols; i++) {
         Column *col = NULL;
         if (i >= dt->ncols) {
-            dtmalloc(col, Column, 1);
-            col->data = NULL;
-            col->meta = NULL;
-            col->alloc_size = 0;
-            col->stype = 0;
-            col->mtype = MT_DATA;
-            col->refcount = 1;
+            SType stype = 1;
             for (int j = 0; j < ndts; j++) {
                 if (cols[i][j] >= 0) {
-                    col->stype = dts[j]->columns[cols[i][j]]->stype;
+                    stype = dts[j]->columns[cols[i][j]]->stype;
                     break;
                 }
             }
+            col = make_data_column(stype, 0);
             dt->columns[i] = col;
         } else {
             col = dt->columns[i];
@@ -113,6 +108,7 @@ static Column* rbind_fixedwidth_column(
     size_t new_alloc_size = elemsize * (size_t) nrows;
     dtrealloc(col->data, void, new_alloc_size);
     col->alloc_size = new_alloc_size;
+    col->nrows = nrows;
 
     // Copy the data
     void *colptr = nocol? col->data : col->data + old_alloc_size;
@@ -157,15 +153,16 @@ static Column* rbind_string_column(
 ) {
     size_t elemsize = stype_info[col->stype].elemsize;
     assert(col->stype == ST_STRING_I4_VCHAR);
+    assert(col->meta != NULL);
     assert(elemsize == 4);
 
     // Create the `col->meta` structure if necessary (which happens when the
     // column did not exist in the original datatable).
-    int nocol = (col->meta == NULL);
-    if (nocol) {
-        dtmalloc(col->meta, VarcharMeta, 1);
-        ((VarcharMeta*) col->meta)->offoff = 0;
-    }
+    int nocol = (col->nrows == 0);
+    // if (nocol) {
+    //     dtmalloc(col->meta, VarcharMeta, 1);
+    //     ((VarcharMeta*) col->meta)->offoff = 0;
+    // }
     VarcharMeta *meta = (VarcharMeta*) col->meta;
 
     // Determine the "map" of which chunks of data have to be copied
@@ -224,6 +221,7 @@ static Column* rbind_string_column(
     // TODO: hanlde cases where new column size is less than old column size
     dtrealloc(col->data, void, new_alloc_size);
     col->alloc_size = new_alloc_size;
+    col->nrows = (int64_t) (new_offsets_size / elemsize);
     int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
     meta->offoff = (int64_t) new_offoff;
 

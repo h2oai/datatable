@@ -38,15 +38,18 @@ def as_list(datatable):
     nrows, ncols = datatable.shape
     return datatable.internal.window(0, nrows, 0, ncols).data
 
+
 def is_slice(dt, cols=range(3)):
     return dt.internal.isview and dt.internal.rowmapping_type == "slice"
+
 
 def is_arr(dt, cols=range(3)):
     return dt.internal.isview and dt.internal.rowmapping_type == "arr32"
 
-def is_slice_or_arr(dt, nrows, cols=range(3)):
-    rtype = "slice" if nrows > 0 else "arr32"
-    return dt.internal.isview and dt.internal.rowmapping_type == rtype
+
+def is_slice_or_arr(dt, nrows):
+    return (nrows == 0 or
+            dt.internal.isview and dt.internal.rowmapping_type == "slice")
 
 
 #-------------------------------------------------------------------------------

@@ -14,6 +14,7 @@ class CModuleNode(Node):
     """
 
     def __init__(self):
+        super().__init__()
         self._result = None
         self._var_counter = 0
         self._functions = {}
@@ -136,6 +137,7 @@ typedef struct RowMapping {
 typedef struct Column {
     void   *data;
     void   *meta;
+    int64_t nrows;
     size_t  alloc_size;
     int     refcount;
     MType   mtype;
