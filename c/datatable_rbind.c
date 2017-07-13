@@ -11,10 +11,6 @@
 // Forward declarations
 static Column* rbind_string_column(Column *col, DataTable *dt, DataTable **dts,
                                    int *cols, int ndts);
-static Column* rbind_fixedwidth_column(
-    Column *col, DataTable *dt, DataTable **dts, int *cols, int ndts,
-    int64_t nrows
-);
 static void set_value(void * restrict ptr, const void * restrict value,
                       size_t sz, size_t count);
 
@@ -46,6 +42,9 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
 
     // TODO: instantiate all view datatables (unless they are slice views with
     // step 1). If `dt` is a view, it must also be instantiated.
+    Column **cols0 = NULL;
+    dtmalloc(cols0, Column*, ndts + 1);
+    cols0[ndts] = NULL;
 
     for (int i = 0; i < ncols; i++) {
         Column *col = NULL;
@@ -63,13 +62,18 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
             col = dt->columns[i];
         }
 
-        // TODO: determine the column's final stype, taking into account stypes
-        // of all columns being appended. Convert all datatables into the common
-        // stype.
-
         Column *ret = NULL;
         if (!stype_info[col->stype].varwidth) {
-            ret = rbind_fixedwidth_column(col, dt, dts, cols[i], ndts, nrows);
+            Column *col0 = (i < dt->ncols)
+                ? dt->columns[i]
+                : make_data_column(0, (size_t) dt->nrows);
+            for (int j = 0; j < ndts; j++) {
+                cols0[j] = (cols[i][j] < 0)
+                        ? make_data_column(0, (size_t) dts[j]->nrows)
+                        : column_incref(dts[j]->columns[cols[i][j]]);
+            }
+            ret = column_rbind(col0, cols0);
+            dt->columns[i] = ret;
         } else if (col->stype == ST_STRING_I4_VCHAR) {
             ret = rbind_string_column(col, dt, dts, cols[i], ndts);
         } else {
@@ -84,58 +88,6 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
     return dt;
 }
 
-
-
-static Column* rbind_fixedwidth_column(
-    Column *col, DataTable *dt, DataTable **dts, int *cols, int ndts,
-    int64_t nrows
-) {
-    int nocol = col->alloc_size == 0;
-
-    // Determine the NA value for this column, if applicable
-    const void *na = stype_info[col->stype].na;
-    unsigned char *tmp_na_val = NULL;
-    size_t elemsize = stype_info[col->stype].elemsize;
-    if (col->stype == ST_STRING_FCHAR) {
-        elemsize = (size_t) ((FixcharMeta*)(col->meta))->n;
-        dtmalloc(tmp_na_val, unsigned char, 1);
-        memset(tmp_na_val, 0xFF, elemsize);
-        na = (const void*) tmp_na_val;
-    }
-
-    // Determine the new allocation size
-    size_t old_alloc_size = col->alloc_size;
-    size_t new_alloc_size = elemsize * (size_t) nrows;
-    dtrealloc(col->data, void, new_alloc_size);
-    col->alloc_size = new_alloc_size;
-    col->nrows = nrows;
-
-    // Copy the data
-    void *colptr = nocol? col->data : col->data + old_alloc_size;
-    size_t rows_to_fill = nocol? (size_t) dt->nrows : 0;
-    for (int i = 0; i < ndts; i++) {
-        if (cols[i] < 0) {
-            rows_to_fill += (size_t) dts[i]->nrows;
-        } else {
-            if (rows_to_fill) {
-                set_value(colptr, na, elemsize, rows_to_fill);
-                colptr += rows_to_fill * elemsize;
-                rows_to_fill = 0;
-            }
-            // TODO: take into account views
-            Column *coli = dts[i]->columns[cols[i]];
-            memcpy(colptr, coli->data, coli->alloc_size);
-            colptr += coli->alloc_size;
-        }
-    }
-    if (rows_to_fill) {
-        set_value(colptr, na, elemsize, rows_to_fill);
-    }
-
-    // Done.
-    dtfree(tmp_na_val);
-    return col;
-}
 
 
 
