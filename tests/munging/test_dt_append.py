@@ -171,6 +171,12 @@ def test_append_strings():
     assert_equals(dt0, dtr)
 
 
+def test_append_self():
+    dt0 = dt.DataTable({"A": [1, 5, 7], "B": ["one", "two", None]})
+    dt0.append(dt0, dt0, dt0)
+    dtr = dt.DataTable({"A": [1, 5, 7] * 4, "B": ["one", "two", None] * 4})
+    assert_equals(dt0, dtr)
+
 
 # TODO: add tests for appending memory-mapped datatables (Issue #65)
 # TODO: add tests for appending datatables with different column types

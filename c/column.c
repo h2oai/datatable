@@ -10,8 +10,6 @@
 #include "sort.h"
 #include "py_utils.h"
 
-// Forward declarations
-static void column_dealloc(Column *self);
 
 
 /**
@@ -77,41 +75,61 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
 }
 
 
+
+/**
+ * Make a "deep" copy of the column. The column created with this method will
+ * have memory-type MT_DATA and refcount of 1.
+ * If a shallow copy is needed, then simply copy the column's reference and
+ * call `column_incref()`.
+ */
+Column* column_copy(Column *self)
+{
+    size_t alloc_size = self->alloc_size;
+    size_t meta_size = stype_info[self->stype].metasize;
+    Column *col = NULL;
+    dtmalloc(col, Column, 1);
+    col->data = NULL;
+    col->meta = NULL;
+    col->nrows = self->nrows;
+    col->stype = self->stype;
+    col->mtype = MT_DATA;
+    col->refcount = 1;
+    col->alloc_size = alloc_size;
+    if (alloc_size) {
+        dtmalloc(col->data, void, alloc_size);
+        memcpy(col->data, self->data, alloc_size);
+    }
+    if (meta_size) {
+        dtmalloc(col->meta, void, meta_size);
+        memcpy(col->meta, self->meta, meta_size);
+    }
+    return col;
+}
+
+
+
 /**
  * Extract data from this column at rows specified in the provided `rowmapping`.
  * A new Column with type `MT_DATA` will be created and returned. The
- * `rowmapping` parameter can also be NULL, in which case a simple clone
- * (deep copy) is returned.
+ * `rowmapping` parameter can also be NULL, in which case a shallow copy
+ * is returned (if a "deep" copy is needed, then use `column_copy()`).
  */
 Column* column_extract(Column *self, RowMapping *rowmapping)
 {
+    // If `rowmapping` is not provided, then return a shallow "copy".
+    if (rowmapping == NULL) {
+        self->refcount++;
+        return self;
+    }
+
     SType stype = self->stype;
-    size_t metasize = stype_info[stype].metasize;
     size_t nrows = (size_t) rowmapping->length;
     size_t elemsize = (stype == ST_STRING_FCHAR)
                         ? (size_t) ((FixcharMeta*) self->meta)->n
                         : stype_info[stype].elemsize;
-    assert(nrows <= INT64_MAX);
 
-    // Create the new Column object. Note that `meta` is cloned from the
-    // source, which may need adjustment for some cases.
-    Column *res = NULL;
-    dtmalloc(res, Column, 1);
-    res->data = NULL;
-    res->nrows = (int64_t) nrows;
-    res->alloc_size = 0;
-    res->mtype = MT_DATA;
-    res->stype = stype;
-    res->meta = metasize? TRY(clone(self->meta, metasize)) : NULL;
-    res->refcount = 1;
-
-    // If `rowmapping` is not provided, then it's a plain clone.
-    if (rowmapping == NULL) {
-        res->data = TRY(clone(self->data, self->alloc_size));
-        res->alloc_size = self->alloc_size;
-        return res;
-    }
-
+    // Create the new Column object.
+    Column *res = make_data_column(stype, 0);
 
     // "Slice" rowmapping with step = 1 is a simple subsection of the column
     if (rowmapping->type == RM_SLICE && rowmapping->slice.step == 1) {
@@ -281,6 +299,16 @@ Column* column_extract(Column *self, RowMapping *rowmapping)
 
 
 
+Column* column_cast(Column *self, SType stype)
+{
+    // Not implemented :(
+    (void)self;
+    (void)stype;
+    return NULL;
+}
+
+
+
 RowMapping* column_sort(Column *col, int64_t nrows)
 {
     assert(col->nrows == nrows);
@@ -294,16 +322,19 @@ RowMapping* column_sort(Column *col, int64_t nrows)
 
 
 
+
 /**
  * Increase reference count on column `self`. This function should be called
  * when a new long-term copy to the column is created (for example if the column
- * is referenced from several data tables).
+ * is referenced from several data tables). For convenience, this function
+ * returns the column object passed.
  * Here `self` can also be NULL, in which case this function does nothing.
  */
-void column_incref(Column *self)
+Column* column_incref(Column *self)
 {
-    if (self == NULL) return;
+    if (self == NULL) return NULL;
     self->refcount++;
+    return self;
 }
 
 
@@ -319,25 +350,24 @@ void column_decref(Column *self)
     if (self == NULL) return;
     self->refcount--;
     if (self->refcount <= 0) {
-        column_dealloc(self);
+        if (self->mtype == MT_DATA) {
+            dtfree(self->data);
+        }
+        if (self->mtype == MT_MMAP) {
+            munmap(self->data, self->alloc_size);
+        }
+        dtfree(self->meta);
+        dtfree(self);
     }
 }
 
 
 
 /**
- * Free all memory owned by the column, and then the column itself. This
- * function should not be accessed by the external code: use
- * :func:`column_decref` instead.
+ * Compute the amount of padding between the data and offset section for an
+ * ST_STRING_I4_VCHAR column. The formula ensures that datasize + padding are
+ * always 8-byte aligned, and that the amount of padding is at least 4 bytes.
  */
-static void column_dealloc(Column *self)
-{
-    if (self->mtype == MT_DATA) {
-        dtfree(self->data);
-    }
-    if (self->mtype == MT_MMAP) {
-        munmap(self->data, self->alloc_size);
-    }
-    dtfree(self->meta);
-    dtfree(self);
+size_t column_i4s_padding(size_t datasize) {
+    return ((8 - ((datasize + 4) & 7)) & 7) + 4;
 }
