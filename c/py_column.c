@@ -71,6 +71,17 @@ static PyObject* get_refcount(Column_PyObject *self) {
 }
 
 
+static PyObject* pycolumn_save_to_disk(Column_PyObject *self, PyObject *args)
+{
+    Column *col = self->ref;
+    const char *filename = NULL;
+    if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
+    Column *ret = column_save_to_disk(col, filename);
+    if (!ret) return NULL;
+    Py_RETURN_NONE;
+}
+
+
 
 /**
  * Provide Python Buffers interface (PEP 3118). This is mostly for the benefit
@@ -159,6 +170,13 @@ static PyGetSetDef column_getseters[] = {
 };
 #undef GETSET1
 
+#define METHOD1(name) {#name, (PyCFunction)pycolumn_##name, METH_VARARGS, NULL}
+static PyMethodDef column_methods[] = {
+    METHOD1(save_to_disk),
+    {NULL, NULL, 0, NULL}           /* sentinel */
+};
+#undef METHOD1
+
 static PyBufferProcs column_as_buffer = {
     (getbufferproc) getbuffer,
     (releasebufferproc) releasebuffer,
@@ -192,7 +210,7 @@ PyTypeObject Column_PyType = {
     0,                                  /* tp_weaklistoffset */
     0,                                  /* tp_iter */
     0,                                  /* tp_iternext */
-    0,                                  /* tp_methods */
+    column_methods,                     /* tp_methods */
     0,                                  /* tp_members */
     column_getseters,                   /* tp_getset */
     0,                                  /* tp_base */

@@ -144,8 +144,6 @@ static PyMethodDef DatatableModuleMethods[] = {
         "Read a text file and convert into a datatable"},
     {"dt_from_memmap", (PyCFunction)dt_from_memmap, METH_VARARGS,
         "Load DataTable from the pdt files"},
-    {"write_column_to_file", (PyCFunction)write_column_to_file, METH_VARARGS,
-        "Write a single Column to a file on disk"},
     {"exec_function", (PyCFunction)exec_function, METH_VARARGS,
         "Execute a PyCFunction passed as a pointer"},
 

@@ -76,6 +76,27 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
 
 
 
+Column* column_save_to_disk(Column *self, const char *filename)
+{
+    size_t size = self->alloc_size;
+
+    // Open and memory-map the file
+    int fd = open(filename, O_RDWR|O_CREAT, 0666);
+    if (fd == -1) { printf("Cannot open file %s: %s\n", filename, strerror(errno)); return NULL; }
+    int ret = ftruncate(fd, (off_t)size);
+    if (ret == -1) { printf("Cannot truncate: %s\n", strerror(errno)); return NULL; }
+    void *mmp = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mmp == MAP_FAILED) { printf("Cannot memory-map file %s: %s", filename, strerror(errno)); return NULL; }
+    close(fd);
+
+    // Copy the data buffer into the file
+    memcpy(mmp, self->data, size);
+    munmap(mmp, size);
+    return self;
+}
+
+
+
 /**
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.

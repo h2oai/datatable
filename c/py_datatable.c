@@ -129,65 +129,6 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
 
 
 
-PyObject* write_column_to_file(UU, PyObject *args)
-{
-    const char *filename = NULL;
-    DataTable *dt = NULL;
-    int64_t colidx = -1;
-
-    if (!PyArg_ParseTuple(args, "sO&l:write_column_to_file",
-        &filename, &dt_unwrap, &dt, &colidx))
-        return NULL;
-
-    if (colidx < 0 || colidx >= dt->ncols) {
-        PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
-        return NULL;
-    }
-
-    Column *col = dt->columns[colidx];
-    int fd = creat(filename, 0666);
-    if (fd == -1) {
-        PyErr_Format(PyExc_RuntimeError,
-                     "Error %d when opening file %s", errno, filename);
-        return NULL;
-    }
-
-    if (col->data) {
-        // NOTE: write() is unable to write more than 2^32 bytes at once
-        const int buff_size = 1 << 20;
-        int stype = col->stype;
-        int64_t total_size = (int64_t)stype_info[stype].elemsize * dt->nrows;
-        if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-            total_size += ((VarcharMeta*)col->meta)->offoff;
-        }
-        int64_t bytes_written = 0;
-        const void *ptr = col->data;
-        while (bytes_written < total_size) {
-            int64_t nbytes = min(total_size - bytes_written, buff_size);
-            int64_t written = write(fd, ptr, (size_t)nbytes);
-            if (written <= 0) {
-                PyErr_Format(PyExc_RuntimeError,
-                             "Error %d when writing to file", errno);
-                return NULL;
-            }
-            ptr += written;
-            bytes_written += written;
-        }
-    } else {
-        PyErr_Format(PyExc_RuntimeError,
-                     "Unable to store a view column %lld", colidx);
-        return NULL;
-    }
-
-    // Done writing
-    fsync(fd);
-    close(fd);
-
-    return none();
-}
-
-
-
 static PyObject*
 verify_integrity(DataTable_PyObject *self, PyObject *args)
 {
