@@ -10,8 +10,6 @@
 #include "sort.h"
 #include "py_utils.h"
 
-// Forward declarations
-static void column_dealloc(Column *self);
 
 
 /**
@@ -352,25 +350,24 @@ void column_decref(Column *self)
     if (self == NULL) return;
     self->refcount--;
     if (self->refcount <= 0) {
-        column_dealloc(self);
+        if (self->mtype == MT_DATA) {
+            dtfree(self->data);
+        }
+        if (self->mtype == MT_MMAP) {
+            munmap(self->data, self->alloc_size);
+        }
+        dtfree(self->meta);
+        dtfree(self);
     }
 }
 
 
 
 /**
- * Free all memory owned by the column, and then the column itself. This
- * function should not be accessed by the external code: use
- * :func:`column_decref` instead.
+ * Compute the amount of padding between the data and offset section for an
+ * ST_STRING_I4_VCHAR column. The formula ensures that datasize + padding are
+ * always 8-byte aligned, and that the amount of padding is at least 4 bytes.
  */
-static void column_dealloc(Column *self)
-{
-    if (self->mtype == MT_DATA) {
-        dtfree(self->data);
-    }
-    if (self->mtype == MT_MMAP) {
-        munmap(self->data, self->alloc_size);
-    }
-    dtfree(self->meta);
-    dtfree(self);
+size_t column_i4s_padding(size_t datasize) {
+    return ((8 - ((datasize + 4) & 7)) & 7) + 4;
 }

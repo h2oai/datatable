@@ -79,6 +79,7 @@ Column* column_cast(Column *self, SType stype);
 Column* column_rbind(Column *self, Column **cols);
 Column* column_extract(Column *self, RowMapping *rowmapping);
 RowMapping* column_sort(Column *self, int64_t nrows);
+size_t column_i4s_padding(size_t datasize);
 Column* column_incref(Column *self);
 void column_decref(Column *self);
 
