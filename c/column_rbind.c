@@ -7,6 +7,7 @@
 
 // Forward declarations
 static void set_value(void * restrict ptr, const void * restrict value, size_t sz, size_t count);
+static Column* column_rbind_fw(Column *self, Column **cols, int64_t nrows);
 
 
 
@@ -37,16 +38,15 @@ Column* column_rbind(Column *self, Column **cols)
         if (stype < col->stype) stype = col->stype;
     }
     if (stype == 0) stype = ST_BOOLEAN_I1;
-    size_t elemsize = stype_info[stype].elemsize;
-    const void *na = stype_info[stype].na;
 
     // Create the resulting Column object. It can be either: an empty column
     // filled with NAs; the current column (`self`); a clone of the current
-    // column; or a type-cast of the current column.
+    // column (if it has refcount > 1); or a type-cast of the current column.
     Column *res = NULL;
     if (self->stype == 0) {
         res = make_data_column(stype, (size_t) self->nrows);
-        set_value(res->data, na, elemsize, (size_t) self->nrows);
+        set_value(res->data, stype_info[stype].na,
+                  stype_info[stype].elemsize, (size_t) nrows0);
     } else if (self->refcount == 1 && self->mtype == MT_DATA &&
                self->stype == stype) {
         // Happy place: current column can be modified in-place.
@@ -55,19 +55,42 @@ Column* column_rbind(Column *self, Column **cols)
         res = (self->stype == stype) ? column_copy(self)
                                      : column_cast(self, stype);
     }
+    if (res == NULL) return NULL;
     column_decref(self);
-    assert(res && res->stype == stype && res->refcount == 1 &&
+    assert(res->stype == stype && res->refcount == 1 &&
            res->mtype == MT_DATA && res->nrows == nrows0);
 
+    // Use the appropriate strategy to continue appending the columns.
+    if (!stype_info[stype].varwidth) {
+        return column_rbind_fw(res, cols, nrows);
+    }
+    return NULL;
+}
+
+
+
+/**
+ * Helper method designed specifically to append columns of fixed-width stypes.
+ * The current column (`self`) will be modified in-place, and must already be
+ * "clean", i.e. have refcount 1 and memory type MT_DATA. The `cols` array has
+ * the same meaning as in `column_rbind()`. Lastly, `nrows` is the final row
+ * count for the column being constructed.
+ */
+static Column*
+column_rbind_fw(Column *self, Column **cols, int64_t nrows)
+{
+    size_t elemsize = stype_info[self->stype].elemsize;
+    const void *na = stype_info[self->stype].na;
+
     // Reallocate the column's data buffer
-    size_t old_alloc_size = res->alloc_size;
+    size_t old_alloc_size = self->alloc_size;
     size_t new_alloc_size = elemsize * (size_t) nrows;
-    dtrealloc(res->data, void, new_alloc_size);
-    res->alloc_size = new_alloc_size;
-    res->nrows = nrows;
+    dtrealloc(self->data, void, new_alloc_size);
+    self->alloc_size = new_alloc_size;
+    self->nrows = nrows;
 
     // Copy the data
-    void *resptr = add_ptr(res->data, old_alloc_size);
+    void *resptr = add_ptr(self->data, old_alloc_size);
     size_t rows_to_fill = 0;
     for (Column **pcol = cols; *pcol; pcol++) {
         Column *col = *pcol;
@@ -88,10 +111,10 @@ Column* column_rbind(Column *self, Column **cols)
         set_value(resptr, na, elemsize, rows_to_fill);
         resptr = add_ptr(resptr, rows_to_fill * elemsize);
     }
-    assert(resptr == add_ptr(res->data, new_alloc_size));
+    assert(resptr == add_ptr(self->data, new_alloc_size));
 
     // Done
-    return res;
+    return self;
 }
 
 
