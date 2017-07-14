@@ -6,7 +6,7 @@ from datatable.utils.typechecks import typed, DataTable_t
 
 
 
-# @typed(dts=DataTable_t, force=bool, bynames=bool)
+@typed(dts=DataTable_t, force=bool, bynames=bool, inplace=bool)
 def append(self, *dts, force=False, bynames=True, inplace=True):
     """
     Append rows of datatables `dts` to the current datatable.

@@ -168,7 +168,7 @@ setup(
 
     # Runtime dependencies
     install_requires=[
-        "typesentry==0.2.2",
+        "typesentry==0.2.3",
         "blessed",
         "llvmlite",
         "psutil"
