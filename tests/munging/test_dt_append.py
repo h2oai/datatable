@@ -193,6 +193,39 @@ def test_append_mmapped():
     shutil.rmtree(dir0)
 
 
+def test_append_views0():
+    # view + data
+    dt0 = dt.DataTable({"d": list(range(10)), "s": list("abcdefghij")})
+    dt0 = dt0[3:7, :]
+    dt1 = dt.DataTable({"d": [-1, -2], "s": ["the", "end"]})
+    dt0.append(dt1)
+    dtr = dt.DataTable({"d": [3, 4, 5, 6, -1, -2],
+                        "s": ["d", "e", "f", "g", "the", "end"]})
+    assert_equals(dt0, dtr)
+
+
+def test_append_views1():
+    # data + view
+    dt0 = dt.DataTable({"A": [1, 1, 2, 3, 5],
+                        "B": ["a", "b", "c", "d", "e"]})
+    dt1 = dt.DataTable({"A": [8, 13, 21], "B": ["x", "y", "z"]})
+    dt0.append(dt1[[0, -1], :])
+    dtr = dt.DataTable({"A": [1, 1, 2, 3, 5, 8, 21],
+                        "B": ["a", "b", "c", "d", "e", "x", "z"]})
+    assert_equals(dt0, dtr)
+
+
+def test_append_views2():
+    # view + view
+    dt0 = dt.DataTable({"A": [1, 5, 7, 12, 0, 3],
+                        "B": ["one", "two", None, "x", "z", "omega"]})
+    dt1 = dt0[:3, :]
+    dt2 = dt0[-1, :]
+    dt1.append(dt2)
+    dtr = dt.DataTable({"A": [1, 5, 7, 3], "B": ["one", "two", None, "omega"]})
+    assert_equals(dt1, dtr)
+
+
+
 # TODO: add tests for appending datatables with different column types
 # TODO: add tests for appending categorical columns (requires merging levelsets)
-# TODO: add tests for appending slices of data

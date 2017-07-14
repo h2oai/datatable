@@ -33,8 +33,17 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
         nrows += dts[i]->nrows;
     }
 
-    // TODO: instantiate all view datatables (unless they are slice views with
-    // step 1). If `dt` is a view, it must also be instantiated.
+    // If dt is a view datatable, then it must be coverted to MT_DATA
+    if (dt->rowmapping) {
+        for (int i = 0; i < dt->ncols; i++) {
+            Column *newcol = column_extract(dt->columns[i], dt->rowmapping);
+            column_decref(dt->columns[i]);
+            dt->columns[i] = newcol;
+        }
+        rowmapping_dealloc(dt->rowmapping);
+        dt->rowmapping = NULL;
+    }
+
     Column **cols0 = NULL;
     dtmalloc(cols0, Column*, ndts + 1);
     cols0[ndts] = NULL;
@@ -45,9 +54,14 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
             ? dt->columns[i]
             : make_data_column(0, (size_t) dt->nrows);
         for (int j = 0; j < ndts; j++) {
-            cols0[j] = (cols[i][j] < 0)
-                    ? make_data_column(0, (size_t) dts[j]->nrows)
-                    : column_incref(dts[j]->columns[cols[i][j]]);
+            if (cols[i][j] < 0) {
+                cols0[j] = make_data_column(0, (size_t) dts[j]->nrows);
+            } else if (dts[j]->rowmapping) {
+                cols0[j] = column_extract(dts[j]->columns[cols[i][j]],
+                                          dts[j]->rowmapping);
+            } else {
+                cols0[j] = column_incref(dts[j]->columns[cols[i][j]]);
+            }
         }
         ret = column_rbind(col0, cols0);
         if (!ret) return NULL;
