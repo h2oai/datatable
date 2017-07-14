@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import tempfile
+import shutil
 import pytest
 import types
 from tests import datatable as dt
@@ -178,7 +180,19 @@ def test_append_self():
     assert_equals(dt0, dtr)
 
 
-# TODO: add tests for appending memory-mapped datatables (Issue #65)
+def test_append_mmapped():
+    dir0 = tempfile.mkdtemp()
+    dt0 = dt.DataTable({"A": [1, 5, 7], "B": ["one", "two", None]})
+    dt.save(dt0, dir0)
+    del dt0
+    dt1 = dt.open(dir0)
+    dt2 = dt.DataTable({"A": [-1], "B": ["zero"]})
+    dt1.append(dt2)
+    dtr = dt.DataTable({"A": [1, 5, 7, -1], "B": ["one", "two", None, "zero"]})
+    assert_equals(dt1, dtr)
+    shutil.rmtree(dir0)
+
+
 # TODO: add tests for appending datatables with different column types
 # TODO: add tests for appending categorical columns (requires merging levelsets)
 # TODO: add tests for appending slices of data
