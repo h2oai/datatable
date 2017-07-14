@@ -84,10 +84,10 @@ static PyObject* get_rowindex_type(DataTable_PyObject *self)
 {
     if (self->ref->rowindex == NULL)
         return none();
-    RowIndexType rmt = self->ref->rowindex->type;
-    return rmt == RI_SLICE? incref(strRowIndexTypeSlice) :
-           rmt == RI_ARR32? incref(strRowIndexTypeArr32) :
-           rmt == RI_ARR64? incref(strRowIndexTypeArr64) : none();
+    RowIndexType rit = self->ref->rowindex->type;
+    return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
+           rit == RI_ARR32? incref(strRowIndexTypeArr32) :
+           rit == RI_ARR64? incref(strRowIndexTypeArr64) : none();
 }
 
 
@@ -255,8 +255,8 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
         return NULL;
     }
 
-    RowIndex *rm = column_sort(col, dt->nrows);
-    return pyrowindex(rm);
+    RowIndex *ri = column_sort(col, dt->nrows);
+    return pyrowindex(ri);
 }
 
 

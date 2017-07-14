@@ -255,8 +255,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
     // the required elements manually.
     switch (stype) {
         #define JINIT_SLICE                                                    \
-            int64_t start = rowindex->slice.start;                           \
-            int64_t step = rowindex->slice.step;                             \
+            int64_t start = rowindex->slice.start;                             \
+            int64_t step = rowindex->slice.step;                               \
             int64_t j = start - step;
         #define JITER_SLICE                                                    \
             j += step;
@@ -306,11 +306,11 @@ Column* column_extract(Column *self, RowIndex *rowindex)
             }                                                                  \
         }
         #define CASE_IX_VCHAR(ctype, abs)                                      \
-            if (rowindex->type == RI_SLICE)                                  \
+            if (rowindex->type == RI_SLICE)                                    \
                 CASE_IX_VCHAR_SUB(ctype, abs, JINIT_SLICE, JITER_SLICE)        \
-            else if (rowindex->type == RI_ARR32)                             \
+            else if (rowindex->type == RI_ARR32)                               \
                 CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(32), JITER_ARR(32))    \
-            else if (rowindex->type == RI_ARR64)                             \
+            else if (rowindex->type == RI_ARR64)                               \
                 CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(64), JITER_ARR(64))    \
             break;
 

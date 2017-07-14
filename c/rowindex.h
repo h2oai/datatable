@@ -105,8 +105,7 @@ RowIndex* rowindex_from_datacolumn(Column *col, int64_t nrows);
  * Construct a `RowIndex` object using a boolean data column `col` with
  * another RowIndex applied to it.
  */
-RowIndex* rowindex_from_column_with_rowindex(
-    Column *col, RowIndex *rmp);
+RowIndex* rowindex_from_column_with_rowindex(Column *col, RowIndex *ri);
 
 /**
  * Construct a `RowIndex` object using an external filter function. This

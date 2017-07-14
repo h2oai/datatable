@@ -86,10 +86,10 @@ class DatatableNode(Node):
 
     def _gen_cbody_dt_not_view(self, frowindex, fcolumns):
         self.soup.add_extern("pydatatable_assemble_view")
-        return ("    RowIndex *rm = {make_rowindex}();\n"
+        return ("    RowIndex *ri = {make_rowindex}();\n"
                 "    Column **columns = {make_columns}();\n"
                 "    return (PyObject*) pydatatable_assemble_view"
-                "((DataTable_PyObject*){dtptr}, rm, columns);\n"
+                "((DataTable_PyObject*){dtptr}, ri, columns);\n"
                 .format(dtptr=id(self._dt.internal),
                         make_rowindex=frowindex,
                         make_columns=fcolumns))
