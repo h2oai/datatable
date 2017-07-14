@@ -33,7 +33,7 @@ int dt_unwrap(PyObject *object, void *address);
 PyObject* pydt_from_dt(DataTable *dt);
 PyObject* pydatatable_from_list(PyObject *self, PyObject *args);
 PyObject* pydatatable_assemble(PyObject *self, PyObject *args);
-PyObject* write_column_to_file(PyObject *self, PyObject *args);
+PyObject* pydatatable_load(PyObject *self, PyObject *args);
 int init_py_datatable(PyObject *module);
 
 #endif

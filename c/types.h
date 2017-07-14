@@ -457,7 +457,7 @@ typedef enum MType {
 
 // Initializer function
 void init_types(void);
-
+SType stype_from_string(const char *s);
 
 
 #endif

@@ -514,3 +514,7 @@ class DataTable(object):
 
         pd = pandas.DataFrame(src)
         return pd
+
+
+    def topython(self):
+        return self._dt.window(0, self.nrows, 0, self.ncols).data
