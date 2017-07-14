@@ -22,8 +22,10 @@ def save(dt, dest):
     """
     dest = os.path.expanduser(dest)
     if os.path.exists(dest):
-        raise ValueError("Path %s already exists" % dest)
-    os.makedirs(dest)
+        # raise ValueError("Path %s already exists" % dest)
+        pass
+    else:
+        os.makedirs(dest)
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w") as out:
         out.write("# NFF1\n")
