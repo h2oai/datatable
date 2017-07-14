@@ -17,25 +17,25 @@ from datatable.utils.typechecks import typed, TValueError, TTypeError
 
 class RowFilterNode(Node):
     """
-    Base class for nodes that filter datatable's rows creating a RowMapping.
+    Base class for nodes that filter datatable's rows creating a RowIndex.
 
     A RowFilter encapsulates the `rows` argument in the main datatable
     evaluation function. This node is designed in such a way that it always
-    produces a `RowMapping*` object in the C layer. In particular, this node
+    produces a `RowIndex*` object in the C layer. In particular, this node
     does not fuse with any other nodes (for example with the `ColumnSetNode`).
     This is because it is not generally possible to know in advance the size
-    of the rowmapping produced, which means that the output array has to be
+    of the rowindex produced, which means that the output array has to be
     over-allocated and then its chunks moved around in order to assemble the
-    final rowmapping (when executing in parallel). If we were to fuse the
-    creation of rowmapping with the creation of output columns, then complexity
+    final rowindex (when executing in parallel). If we were to fuse the
+    creation of rowindex with the creation of output columns, then complexity
     of the code and the memory footprint and the number of memmoves would have
     all significantly increased probably resulting in poor performance.
 
-    Also note that the rowmapping produced by this node always applies to the
+    Also note that the rowindex produced by this node always applies to the
     original datatable to which the main evaluation function was applied. If
-    the original datatable is in fact a view, then the resulting rowmapping
+    the original datatable is in fact a view, then the resulting rowindex
     cannot be used as-is (view on a view is not allowed). The conversion of
-    the produced rowmapping into the rowmapping applied to the source datatable
+    the produced rowindex into the rowindex applied to the source datatable
     is done in a separate step, and that step is already fusable with the
     ColumnSet production.
     """
@@ -64,7 +64,7 @@ class SliceRowsNode(Node):
         self._step = step
 
     def get_result(self):
-        return _datatable.rowmapping_from_slice(
+        return _datatable.rowindex_from_slice(
             self._start, self._count, self._step
         )
 
@@ -79,7 +79,7 @@ class Array_RFNode(Node):
         self._array = array
 
     def get_result(self):
-        return _datatable.rowmapping_from_array(self._array)
+        return _datatable.rowindex_from_array(self._array)
 
 
 
@@ -94,7 +94,7 @@ class MultiSlice_RFNode(Node):
         self._steps = steps
 
     def get_result(self):
-        return _datatable.rowmapping_from_slicelist(
+        return _datatable.rowindex_from_slicelist(
             self._bases, self._counts, self._steps
         )
 
@@ -109,7 +109,7 @@ class DataColumn_RFNode(Node):
         self._column_dt = dt
 
     def get_result(self):
-        return _datatable.rowmapping_from_column(self._column_dt.internal)
+        return _datatable.rowindex_from_column(self._column_dt.internal)
 
 
 
@@ -130,7 +130,7 @@ class FilterExpr_RFNode(Node):
     def get_result(self):
         fnptr = self._fnode.get_result()
         nrows = self._fnode.nrows
-        return _datatable.rowmapping_from_filterfn(fnptr, nrows)
+        return _datatable.rowindex_from_filterfn(fnptr, nrows)
 
 
 

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "datatable.h"
 #include "py_utils.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 
 // Forward declarations
 static int _compare_ints(const void *a, const void *b);
@@ -20,7 +20,7 @@ DataTable* make_datatable(int64_t nrows, Column **cols)
     dtmalloc(res, DataTable, 1);
     res->nrows = nrows;
     res->ncols = ncols;
-    res->rowmapping = NULL;
+    res->rowindex = NULL;
     res->columns = cols;
     return res;
 }
@@ -31,17 +31,17 @@ DataTable* make_datatable(int64_t nrows, Column **cols)
  * Create new DataTable given its number of rows, and the array of `Column`
  * objects.
  */
-DataTable* datatable_assemble(RowMapping *rowmapping, Column **cols)
+DataTable* datatable_assemble(RowIndex *rowindex, Column **cols)
 {
-    if (cols == NULL || rowmapping == NULL) return NULL;
+    if (cols == NULL || rowindex == NULL) return NULL;
     int64_t ncols = 0;
     while(cols[ncols] != NULL) ncols++;
 
     DataTable *res = NULL;
     dtmalloc(res, DataTable, 1);
-    res->nrows = rowmapping->length;
+    res->nrows = rowindex->length;
     res->ncols = ncols;
-    res->rowmapping = rowmapping;
+    res->rowindex = rowindex;
     res->columns = cols;
     return res;
 }
@@ -88,7 +88,7 @@ void datatable_dealloc(DataTable *self)
 {
     if (self == NULL) return;
 
-    rowmapping_dealloc(self->rowmapping);
+    rowindex_dealloc(self->rowindex);
     for (int64_t i = 0; i < self->ncols; i++) {
         column_decref(self->columns[i]);
     }

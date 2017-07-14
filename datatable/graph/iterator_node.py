@@ -155,10 +155,10 @@ class FilterNode(IteratorNode):
 
 class MapNode(IteratorNode):
 
-    def __init__(self, exprs, rowmapping):
+    def __init__(self, exprs, rowindex):
         super().__init__()
         self._exprs = exprs
-        self._rowmapping = rowmapping
+        self._rowindex = rowindex
 
     def add_expression(self, expr):
         self._exprs.append(expr)

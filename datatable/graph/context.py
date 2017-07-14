@@ -120,12 +120,12 @@ _header = """
 #include <stdint.h>  // intNN_t, etc.
 #include <stdlib.h>  // NULL, size_t, malloc, etc.
 
-typedef int RowMappingType;
+typedef int RowIndexType;
 typedef int8_t SType;
 typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
 
-typedef struct RowMapping {
-    RowMappingType type;
+typedef struct RowIndex {
+    RowIndexType type;
     int64_t length;
     int64_t min, max;
     union {
@@ -133,7 +133,7 @@ typedef struct RowMapping {
         int64_t *ind64;
         struct { int64_t start, step; } slice;
     };
-} RowMapping;
+} RowIndex;
 
 typedef struct Column {
     void   *data;
@@ -147,7 +147,7 @@ typedef struct Column {
 
 typedef struct DataTable {
   int64_t nrows, ncols;
-  struct RowMapping *rowmapping;
+  struct RowIndex *rowindex;
   struct Column **columns;
 } DataTable;
 

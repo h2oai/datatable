@@ -5,7 +5,7 @@
 #include "types.h"
 
 typedef struct DataTable DataTable;
-typedef struct RowMapping RowMapping;
+typedef struct RowIndex RowIndex;
 
 
 //==============================================================================
@@ -77,11 +77,11 @@ Column* make_mmap_column(SType stype, size_t nrows, const char *filename);
 Column* column_copy(Column *self);
 Column* column_cast(Column *self, SType stype);
 Column* column_rbind(Column *self, Column **cols);
-Column* column_extract(Column *self, RowMapping *rowmapping);
+Column* column_extract(Column *self, RowIndex *rowindex);
 Column* column_save_to_disk(Column *self, const char *filename);
 Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
                               const char *metastr);
-RowMapping* column_sort(Column *self, int64_t nrows);
+RowIndex* column_sort(Column *self, int64_t nrows);
 size_t column_i4s_padding(size_t datasize);
 Column* column_incref(Column *self);
 void column_decref(Column *self);

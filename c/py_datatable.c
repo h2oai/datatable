@@ -5,14 +5,14 @@
 #include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
-#include "py_rowmapping.h"
+#include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
 
 // Forward declarations
-static PyObject *strRowMappingTypeArr32;
-static PyObject *strRowMappingTypeArr64;
-static PyObject *strRowMappingTypeSlice;
+static PyObject *strRowIndexTypeArr32;
+static PyObject *strRowIndexTypeArr64;
+static PyObject *strRowIndexTypeSlice;
 
 
 /**
@@ -48,7 +48,7 @@ static PyObject* get_ncols(DataTable_PyObject *self) {
 }
 
 static PyObject* get_isview(DataTable_PyObject *self) {
-    return incref(self->ref->rowmapping == NULL? Py_False : Py_True);
+    return incref(self->ref->rowindex == NULL? Py_False : Py_True);
 }
 
 
@@ -80,14 +80,14 @@ static PyObject* get_stypes(DataTable_PyObject *self)
 }
 
 
-static PyObject* get_rowmapping_type(DataTable_PyObject *self)
+static PyObject* get_rowindex_type(DataTable_PyObject *self)
 {
-    if (self->ref->rowmapping == NULL)
+    if (self->ref->rowindex == NULL)
         return none();
-    RowMappingType rmt = self->ref->rowmapping->type;
-    return rmt == RM_SLICE? incref(strRowMappingTypeSlice) :
-           rmt == RM_ARR32? incref(strRowMappingTypeArr32) :
-           rmt == RM_ARR64? incref(strRowMappingTypeArr64) : none();
+    RowIndexType rmt = self->ref->rowindex->type;
+    return rmt == RI_SLICE? incref(strRowIndexTypeSlice) :
+           rmt == RI_ARR32? incref(strRowIndexTypeArr32) :
+           rmt == RI_ARR64? incref(strRowIndexTypeArr64) : none();
 }
 
 
@@ -114,17 +114,17 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 
 PyObject* pydatatable_assemble(UU, PyObject *args)
 {
-    RowMapping_PyObject *pyrwm;
+    RowIndex_PyObject *pyrwm;
     ColumnSet_PyObject *pycols;
     if (!PyArg_ParseTuple(args, "O!O!:datatable_assemble_view",
-                          &RowMapping_PyType, &pyrwm,
+                          &RowIndex_PyType, &pyrwm,
                           &ColumnSet_PyType, &pycols))
         return NULL;
-    RowMapping *rowmapping = pyrwm->ref;
+    RowIndex *rowindex = pyrwm->ref;
     pyrwm->ref = NULL;
     Column **columns = pycols->columns;
     pycols->columns = NULL;
-    return py(datatable_assemble(rowmapping, columns));
+    return py(datatable_assemble(rowindex, columns));
 }
 
 
@@ -255,8 +255,8 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
         return NULL;
     }
 
-    RowMapping *rm = column_sort(col, dt->nrows);
-    return pyrowmapping(rm);
+    RowIndex *rm = column_sort(col, dt->nrows);
+    return pyrowindex(rm);
 }
 
 
@@ -284,7 +284,7 @@ PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
-PyDoc_STRVAR(dtdoc_rowmapping_type, "Type of the row mapping: 'slice' or 'array'");
+PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row mapping: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
 PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
@@ -311,7 +311,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(types),
     GETSET1(stypes),
     GETSET1(isview),
-    GETSET1(rowmapping_type),
+    GETSET1(rowindex_type),
     GETSET1(datatable_ptr),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
@@ -375,8 +375,8 @@ int init_py_datatable(PyObject *module) {
     Py_INCREF(&DataTable_PyType);
     PyModule_AddObject(module, "DataTable", (PyObject*) &DataTable_PyType);
 
-    strRowMappingTypeArr32 = PyUnicode_FromString("arr32");
-    strRowMappingTypeArr64 = PyUnicode_FromString("arr64");
-    strRowMappingTypeSlice = PyUnicode_FromString("slice");
+    strRowIndexTypeArr32 = PyUnicode_FromString("arr32");
+    strRowIndexTypeArr64 = PyUnicode_FromString("arr64");
+    strRowIndexTypeSlice = PyUnicode_FromString("slice");
     return 1;
 }

@@ -344,9 +344,9 @@ class DataTable(object):
         time0 = time.time() if timeit else 0
         if sort is not None:
             idx = self.colindex(sort)
-            rowmapping = self._dt.sort(idx)
+            rowindex = self._dt.sort(idx)
             columns = c.columns_from_slice(self._dt, 0, self.ncols, 1)
-            res_dt = c.datatable_assemble(rowmapping, columns)
+            res_dt = c.datatable_assemble(rowindex, columns)
             return datatable.DataTable(res_dt, colnames=self.names)
 
         soup = NodeSoup(verbose=verbose)

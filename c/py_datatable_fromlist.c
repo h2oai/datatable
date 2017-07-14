@@ -30,7 +30,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
 
     // Create a new (empty) DataTable instance
     dtmalloc(dt, DataTable, 1);
-    dt->rowmapping = NULL;
+    dt->rowindex = NULL;
     dt->columns = NULL;
     dt->nrows = 0;
     dt->ncols = 0;
