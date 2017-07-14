@@ -91,6 +91,26 @@ void _dt_free(void *ptr)
 }
 
 
+__attribute__ ((format(printf, 1, 2)))
+void _dt_err_r(const char *format, ...)
+{
+    va_list vargs;
+    va_start(vargs, format);
+    PyErr_FormatV(PyExc_RuntimeError, format, vargs);
+    va_end(vargs);
+}
+
+
+__attribute__ ((format(printf, 1, 2)))
+void _dt_err_v(const char *format, ...)
+{
+    va_list vargs;
+    va_start(vargs, format);
+    PyErr_FormatV(PyExc_ValueError, format, vargs);
+    va_end(vargs);
+}
+
+
 char* _to_string(PyObject *x, PyObject **tmp)
 {
     if (x == NULL) goto fail;
