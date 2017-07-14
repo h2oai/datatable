@@ -4,6 +4,8 @@
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
 #include <stddef.h>
+#include <errno.h>   // errno
+#include <string.h>  // strerr
 
 int64_t min(int64_t a, int64_t b);
 int64_t max(int64_t a, int64_t b);
@@ -46,7 +48,7 @@ float max_f4(float a, float b);
 #define zIS_PAREN_PROBE(...) zPROBE(~)
 #define zIS_COMPARABLE(x) zIS_PAREN(zCAT(zCOMPARE_, x) (()))
 #define zPRIMITIVE_COMPARE(x, y) zIS_PAREN (zCOMPARE_ ## x (zCOMPARE_ ## y)(()))
-#define zNOT_EQUAL(x, y) zIIF(zBITAND(zIS_COMPARABLE(x))(zIS_COMPARABLE(y))) \
+#define zNOT_EQUAL(x, y) zIIF(zBITAND(zIS_COMPARABLE(x))(zIS_COMPARABLE(y)))   \
                          (zPRIMITIVE_COMPARE, 1 zEAT)(x, y)
 #define zIIF(c) zPRIMITIVE_CAT(zIIF_, c)
 #define zEQUAL(x, y) zCOMPL(zNOT_EQUAL(x, y))
@@ -74,12 +76,12 @@ float max_f4(float a, float b);
  **/
 #define dtmalloc(ptr, T, n) do {                                               \
     ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                            \
-    if (ptr == zNULL && n) return zNULL;                                       \
+    if (ptr == null && n) return null;                                         \
 } while(0)
 
 #define dtmalloc_g(ptr, T, n) do {                                             \
     ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                            \
-    if (ptr == zNULL && n) goto fail;                                          \
+    if (ptr == null && n) goto fail;                                           \
 } while(0)
 
 
@@ -98,12 +100,12 @@ float max_f4(float a, float b);
  */
 #define dtrealloc(ptr, T, n) do {                                              \
     ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
-    if (ptr == zNULL && n) return zNULL;                                       \
+    if (ptr == null && n) return null;                                         \
 } while(0)
 
 #define dtrealloc_g(ptr, T, n) do {                                            \
     ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
-    if (ptr == zNULL && n) goto fail;                                          \
+    if (ptr == null && n) goto fail;                                           \
 } while(0)
 
 
@@ -113,12 +115,12 @@ float max_f4(float a, float b);
  */
 #define dtcalloc(ptr, T, n) do {                                               \
     ptr = (T*) _dt_calloc((size_t)(n), SIZEOF(T));                             \
-    if (ptr == zNULL && n) return zNULL;                                       \
+    if (ptr == null && n) return null;                                         \
 } while(0)
 
 #define dtcalloc_g(ptr, T, n) do {                                             \
     ptr = (T*) _dt_calloc((size_t)(n), SIZEOF(T));                             \
-    if (ptr == zNULL && n) goto fail;                                          \
+    if (ptr == null && n) goto fail;                                           \
 } while(0)
 
 
@@ -129,7 +131,7 @@ float max_f4(float a, float b);
  **/
 #define dtfree(ptr) do {                                                       \
     _dt_free(ptr);                                                             \
-    ptr = zNULL;                                                               \
+    ptr = null;                                                                \
 } while(0)
 
 
@@ -150,10 +152,53 @@ void* _dt_malloc(size_t n);
 void* _dt_realloc(void *ptr, size_t n);
 void  _dt_free(void *ptr);
 #ifdef __cplusplus
-    #define zNULL nullptr
+    #define null nullptr
 #else
-    #define zNULL NULL
+    #define null NULL
 #endif
+
+
+//==============================================================================
+// Error handling
+//==============================================================================
+
+/**
+ * Raise a RuntimeError with the provided message
+ */
+#define dterrr(format, ...) do {                                               \
+    _dt_err_r(format "\nFile %s, line %d", __VA_ARGS__, __FILE__, __LINE__);   \
+    return NULL;                                                               \
+} while (0)
+
+/**
+ * Raise a ValueError with the provided message
+ */
+#define dterrv(format, ...) do {                                               \
+    _dt_err_v(format "\nFile %s, line %d", __VA_ARGS__, __FILE__, __LINE__);   \
+    return NULL;                                                               \
+} while (0)
+
+/**
+ * Raise a RuntimeError, but also include in the message current `errno`.
+ */
+#define dterre(format, ...) do {                                               \
+    _dt_err_r(format ": Error %d %s\nFile %s, line %d",                        \
+              __VA_ARGS__, errno, strerror(errno), __FILE__, __LINE__);        \
+    return NULL;                                                               \
+} while (0)
+
+#define dterre0(message) do {                                                  \
+    _dt_err_r(message ": Error %d %s\nFile %s, line %d",                       \
+              errno, strerror(errno), __FILE__, __LINE__);                     \
+    return NULL;                                                               \
+} while (0)
+
+
+// External functions -- should be defined in py_utils.c
+// These functions merely set the error message, and nothing else.
+void _dt_err_r(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
+void _dt_err_v(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
+
 
 
 //==============================================================================

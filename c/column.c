@@ -56,10 +56,7 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
     // it was producing Permission Denied error for some reason.
     int fd = open(filename, O_RDWR);
     void *mmp = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-    if (mmp == MAP_FAILED) {
-        printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
-        return NULL;
-    }
+    if (mmp == MAP_FAILED) dterre0("Memory-map failed.");
     close(fd);
 
     Column *col = NULL;
@@ -89,11 +86,11 @@ Column* column_save_to_disk(Column *self, const char *filename)
 
     // Open and memory-map the file
     int fd = open(filename, O_RDWR|O_CREAT, 0666);
-    if (fd == -1) { printf("Cannot open file %s: %s\n", filename, strerror(errno)); return NULL; }
+    if (fd == -1) dterre("Cannot open file %s", filename);
     int ret = ftruncate(fd, (off_t)size);
-    if (ret == -1) { printf("Cannot truncate: %s\n", strerror(errno)); return NULL; }
+    if (ret == -1) dterre("Cannot truncate file %s", filename);
     void *mmp = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mmp == MAP_FAILED) { printf("Cannot memory-map file %s: %s", filename, strerror(errno)); return NULL; }
+    if (mmp == MAP_FAILED) dterre0("Memory-map failed.");
     close(fd);
 
     // Copy the data buffer into the file
@@ -126,13 +123,13 @@ Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
 
     // Open and memory-map the file
     int fd = open(filename, O_RDONLY);
-    if (fd == -1) { printf("Cannot open file %s: %s\n", filename, strerror(errno)); return NULL; }
+    if (fd == -1) dterre("Cannot open file %s", filename);
     struct stat stat_buf;
     int ret = fstat(fd, &stat_buf);
-    if (ret == -1) { printf("Cannot obtain file's size: %s\n", strerror(errno)); return NULL; }
+    if (ret == -1) dterre0("Cannot obtain file's size");
     size_t filesize = (size_t) stat_buf.st_size;
     void *mmp = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (mmp == MAP_FAILED) { printf("Cannot memory-map file %s: %s", filename, strerror(errno)); return NULL; }
+    if (mmp == MAP_FAILED) dterre0("Memory-map failed");
     close(fd);
 
     // Create the column object
