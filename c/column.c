@@ -7,7 +7,7 @@
 #include <unistd.h>    // close
 #include "column.h"
 #include "myassert.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 #include "sort.h"
 #include "py_utils.h"
 
@@ -183,21 +183,21 @@ Column* column_copy(Column *self)
 
 
 /**
- * Extract data from this column at rows specified in the provided `rowmapping`.
+ * Extract data from this column at rows specified in the provided `rowindex`.
  * A new Column with type `MT_DATA` will be created and returned. The
- * `rowmapping` parameter can also be NULL, in which case a shallow copy
+ * `rowindex` parameter can also be NULL, in which case a shallow copy
  * is returned (if a "deep" copy is needed, then use `column_copy()`).
  */
-Column* column_extract(Column *self, RowMapping *rowmapping)
+Column* column_extract(Column *self, RowIndex *rowindex)
 {
-    // If `rowmapping` is not provided, then return a shallow "copy".
-    if (rowmapping == NULL) {
+    // If `rowindex` is not provided, then return a shallow "copy".
+    if (rowindex == NULL) {
         self->refcount++;
         return self;
     }
 
     SType stype = self->stype;
-    size_t nrows = (size_t) rowmapping->length;
+    size_t nrows = (size_t) rowindex->length;
     size_t elemsize = (stype == ST_STRING_FCHAR)
                         ? (size_t) ((FixcharMeta*) self->meta)->n
                         : stype_info[stype].elemsize;
@@ -206,9 +206,9 @@ Column* column_extract(Column *self, RowMapping *rowmapping)
     Column *res = make_data_column(stype, 0);
     res->nrows = (int64_t) nrows;
 
-    // "Slice" rowmapping with step = 1 is a simple subsection of the column
-    if (rowmapping->type == RM_SLICE && rowmapping->slice.step == 1) {
-        size_t start = (size_t) rowmapping->slice.start;
+    // "Slice" rowindex with step = 1 is a simple subsection of the column
+    if (rowindex->type == RI_SLICE && rowindex->slice.step == 1) {
+        size_t start = (size_t) rowindex->slice.start;
         switch (stype) {
             #define CASE_IX_VCHAR(etype, abs) {                                \
                 size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;   \
@@ -251,17 +251,17 @@ Column* column_extract(Column *self, RowMapping *rowmapping)
         return res;
     }
 
-    // In all other cases we need to iterate through the rowmapping and fetch
+    // In all other cases we need to iterate through the rowindex and fetch
     // the required elements manually.
     switch (stype) {
         #define JINIT_SLICE                                                    \
-            int64_t start = rowmapping->slice.start;                           \
-            int64_t step = rowmapping->slice.step;                             \
+            int64_t start = rowindex->slice.start;                             \
+            int64_t step = rowindex->slice.step;                               \
             int64_t j = start - step;
         #define JITER_SLICE                                                    \
             j += step;
         #define JINIT_ARR(bits)                                                \
-            intXX(bits) *rowindices = rowmapping->ind ## bits;
+            intXX(bits) *rowindices = rowindex->ind ## bits;
         #define JITER_ARR(bits)                                                \
             intXX(bits) j = rowindices[i];
 
@@ -306,11 +306,11 @@ Column* column_extract(Column *self, RowMapping *rowmapping)
             }                                                                  \
         }
         #define CASE_IX_VCHAR(ctype, abs)                                      \
-            if (rowmapping->type == RM_SLICE)                                  \
+            if (rowindex->type == RI_SLICE)                                    \
                 CASE_IX_VCHAR_SUB(ctype, abs, JINIT_SLICE, JITER_SLICE)        \
-            else if (rowmapping->type == RM_ARR32)                             \
+            else if (rowindex->type == RI_ARR32)                               \
                 CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(32), JITER_ARR(32))    \
-            else if (rowmapping->type == RM_ARR64)                             \
+            else if (rowindex->type == RI_ARR64)                               \
                 CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(64), JITER_ARR(64))    \
             break;
 
@@ -336,25 +336,25 @@ Column* column_extract(Column *self, RowMapping *rowmapping)
             res->data = TRY(malloc(alloc_size));
             res->alloc_size = alloc_size;
             char *dest = res->data;
-            if (rowmapping->type == RM_SLICE) {
-                size_t stepsize = (size_t) rowmapping->slice.step * elemsize;
-                char *src = self->data + (size_t) rowmapping->slice.start * elemsize;
+            if (rowindex->type == RI_SLICE) {
+                size_t stepsize = (size_t) rowindex->slice.step * elemsize;
+                char *src = self->data + (size_t) rowindex->slice.start * elemsize;
                 for (size_t i = 0; i < nrows; i++) {
                     memcpy(dest, src, elemsize);
                     dest += elemsize;
                     src += stepsize;
                 }
             } else
-            if (rowmapping->type == RM_ARR32) {
-                int32_t *rowindices = rowmapping->ind32;
+            if (rowindex->type == RI_ARR32) {
+                int32_t *rowindices = rowindex->ind32;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
                     memcpy(dest, self->data + j*elemsize, elemsize);
                     dest += elemsize;
                 }
             } else
-            if (rowmapping->type == RM_ARR32) {
-                int64_t *rowindices = rowmapping->ind64;
+            if (rowindex->type == RI_ARR32) {
+                int64_t *rowindices = rowindex->ind64;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
                     memcpy(dest, self->data + j*elemsize, elemsize);
@@ -384,15 +384,15 @@ Column* column_cast(Column *self, SType stype)
 
 
 
-RowMapping* column_sort(Column *col, int64_t nrows)
+RowIndex* column_sort(Column *col, int64_t nrows)
 {
     assert(col->nrows == nrows);
     if (col->stype == ST_INTEGER_I4) {
         int32_t *ordering = NULL;
         sort_i4(col->data, (int32_t)nrows, &ordering);
-        return rowmapping_from_i32_array(ordering, (int32_t)nrows);
+        return rowindex_from_i32_array(ordering, (int32_t)nrows);
     }
-    return rowmapping_from_slice(0, nrows, 1);
+    return rowindex_from_slice(0, nrows, 1);
 }
 
 

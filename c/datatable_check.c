@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "datatable.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 #include "types.h"
 #include "encodings.h"
 #include "utils.h"
@@ -109,7 +109,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     size_t errlen = 0;
     *errors = (char*) calloc(1, 1);
 
-    RowMapping *rm = dt->rowmapping;
+    RowIndex *ri = dt->rowindex;
     Column **cols = dt->columns;
 
     #define ERR(...) do {                                                      \
@@ -195,30 +195,30 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     }
 
 
-    // Check validity of the RowMapping
+    // Check validity of the RowIndex
     int64_t maxrow = -1;
-    if (rm != NULL) {
-        RowMappingType rmtype = rm->type;
-        if (rmtype != RM_SLICE && rmtype != RM_ARR32 && rmtype != RM_ARR64) {
-            ERR("Invalid RowMappingType: %d\n", rmtype);
+    if (ri != NULL) {
+        RowIndexType ritype = ri->type;
+        if (ritype != RI_SLICE && ritype != RI_ARR32 && ritype != RI_ARR64) {
+            ERR("Invalid RowIndexType: %d\n", ritype);
             return DTCK_ERRORS_FOUND;
         }
-        if (rm->length != nrows) {
-            ERR("The number of rows in the datatable's rowmapping does not "
+        if (ri->length != nrows) {
+            ERR("The number of rows in the datatable's rowindex does not "
                 "match the number of rows in the datatable itself: %lld vs "
-                "%lld\n", rm->length, nrows);
+                "%lld\n", ri->length, nrows);
             return DTCK_ERRORS_FOUND;
         }
-        if (rmtype == RM_SLICE) {
-            int64_t start = rm->slice.start;
-            int64_t step = rm->slice.step;
+        if (ritype == RI_SLICE) {
+            int64_t start = ri->slice.start;
+            int64_t step = ri->slice.step;
             int64_t end = start + step * (nrows - 1);
             if (start < 0) {
-                ERR("Rowmapping's start row is negative: %lld", start);
+                ERR("Rowindex's start row is negative: %lld", start);
                 return DTCK_ERRORS_FOUND;
             }
             if (end < 0) {
-                ERR("Rowmapping's end row is negative: %lld", end);
+                ERR("Rowindex's end row is negative: %lld", end);
                 return DTCK_ERRORS_FOUND;
             }
             if (nrows > 1 && (step < -start/(nrows - 1) ||
@@ -229,39 +229,39 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             }
             maxrow = step > 0? end : start;
         }
-        if (rmtype == RM_ARR32) {
+        if (ritype == RI_ARR32) {
             if (nrows > INT32_MAX) {
-                ERR("RM_ARR32 rowmapping is not allowed for a datatable with "
+                ERR("RI_ARR32 rowindex is not allowed for a datatable with "
                     "%lld rows", nrows);
                 return DTCK_ERRORS_FOUND;
             }
-            int32_t *rmdata = rm->ind32;
-            size_t n_allocd = array_size(rmdata, sizeof(int32_t));
+            int32_t *ridata = ri->ind32;
+            size_t n_allocd = array_size(ridata, sizeof(int32_t));
             if (n_allocd > 0 && n_allocd < (size_t)nrows) {
-                ERR("Rowmapping array is allocated for %zd elements only, "
+                ERR("Rowindex array is allocated for %zd elements only, "
                     "while %lld elements were expected\n", n_allocd, nrows);
                 return DTCK_ERRORS_FOUND;
             }
             for (int32_t i = 0; i < nrows; i++) {
-                if (rmdata[i] < 0 || rmdata[i] > INT32_MAX) {
-                    ERR("Rowmapping[%d] = %d is invalid\n", i, rmdata[i]);
+                if (ridata[i] < 0 || ridata[i] > INT32_MAX) {
+                    ERR("Rowindex[%d] = %d is invalid\n", i, ridata[i]);
                 }
-                if (rmdata[i] > maxrow) maxrow = rmdata[i];
+                if (ridata[i] > maxrow) maxrow = ridata[i];
             }
         }
-        if (rmtype == RM_ARR64) {
-            int64_t *rmdata = rm->ind64;
-            size_t n_allocd = array_size(rmdata, sizeof(int64_t));
+        if (ritype == RI_ARR64) {
+            int64_t *ridata = ri->ind64;
+            size_t n_allocd = array_size(ridata, sizeof(int64_t));
             if (n_allocd > 0 && n_allocd < (size_t)nrows) {
-                ERR("Rowmapping array is allocated for %zd elements only, "
+                ERR("Rowindex array is allocated for %zd elements only, "
                     "while %lld elements were expected\n", n_allocd, nrows);
                 return DTCK_ERRORS_FOUND;
             }
             for (int64_t i = 0; i < nrows; i++) {
-                if (rmdata[i] < 0) {
-                    ERR("Rowmapping[%lld] = %lld is invalid\n", i, rmdata[i]);
+                if (ridata[i] < 0) {
+                    ERR("Rowindex[%lld] = %lld is invalid\n", i, ridata[i]);
                 }
-                if (rmdata[i] > maxrow) maxrow = rmdata[i];
+                if (ridata[i] > maxrow) maxrow = ridata[i];
             }
         }
     }
@@ -277,13 +277,13 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             ERR("Invalid storage type %d in column %lld\n", stype, i);
             continue;
         }
-        if (rm == NULL && col->nrows != nrows) {
+        if (ri == NULL && col->nrows != nrows) {
             ERR("Column %lld has nrows=%lld, while the datatable has %lld rows\n",
                 i, col->nrows, nrows);
             continue;
         }
-        if (rm != NULL && col->nrows <= maxrow) {
-            ERR("Column %lld has nrows=%lld, but rowmapping references row %lld\n",
+        if (ri != NULL && col->nrows <= maxrow) {
+            ERR("Column %lld has nrows=%lld, but rowindex references row %lld\n",
                 i, col->nrows, maxrow);
             continue;
         }

@@ -5,7 +5,7 @@
 #include "column.h"
 
 // avoid circular dependency between .h files
-typedef struct RowMapping RowMapping;
+typedef struct RowIndex RowIndex;
 typedef struct ColMapping ColMapping;
 typedef struct Column Column;
 typedef struct DataTable DataTable;
@@ -26,23 +26,23 @@ typedef struct DataTable DataTable;
  *     The maximum number of rows is 2**63 - 1. The maximum number of columns
  *     is 2**31 - 1 (even though `ncols` is declared as `int64_t`).
  *
- * rowmapping
+ * rowindex
  *     If this field is not NULL, then the current datatable is a "view", that
- *     is, all columns should be accessed not directly but via this rowmapping.
- *     When this field is set, it must be that `nrows == rowmapping->length`.
+ *     is, all columns should be accessed not directly but via this rowindex.
+ *     When this field is set, it must be that `nrows == rowindex->length`.
  *
  * columns
  *     The array of columns within the datatable. This array contains `ncols+1`
  *     elements, and each column has the same number of rows: `nrows`. The
  *     "extra" column is always NULL: a sentinel.
- *     When `rowmapping` is specified, then each column is a copy-by-reference
+ *     When `rowindex` is specified, then each column is a copy-by-reference
  *     of a column in some other datatable, and only indices given in the
- *     `rowmapping` should be used to access values in each column.
+ *     `rowindex` should be used to access values in each column.
  */
 typedef struct DataTable {
     int64_t     nrows;
     int64_t     ncols;
-    RowMapping *rowmapping;
+    RowIndex   *rowindex;
     Column    **columns;
 
 } DataTable;
@@ -64,7 +64,7 @@ typedef struct DataTable {
 
 int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix);
 DataTable* make_datatable(int64_t nrows, Column **cols);
-DataTable* datatable_assemble(RowMapping *rowmapping, Column **cols);
+DataTable* datatable_assemble(RowIndex *rowindex, Column **cols);
 DataTable* datatable_load(DataTable *colspec, int64_t nrows);
 DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
 DataTable* dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols);

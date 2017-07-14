@@ -34,10 +34,9 @@ class DatatableNode(Node):
     def get_result(self):
         rowsnode = self.soup.get("rows")
         selectnode = self.soup.get("select")
-        rowmapping = rowsnode.get_result()
+        rowindex = rowsnode.get_result()
         columns = selectnode.get_result()
-        _dt = selectnode.dt.internal
-        res_dt = _datatable.datatable_assemble(rowmapping, columns)
+        res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, colnames=selectnode.column_names)
 
 
@@ -53,18 +52,18 @@ class DatatableNode(Node):
 
 
     def cget_datatable(self):
-        rowmapping = self._rows.cget_rowmapping()
-        self._select.use_rowmapping(self._rows, self._dt)
+        rowindex = self._rows.cget_rowindex()
+        self._select.use_rowindex(self._rows, self._dt)
         columns = self._select.cget_columns()
         fnname = self.soup.make_variable_name("get_datatable")
         fn = "PyObject* %s(void) {\n" % fnname
         fn += "    init();\n"
 
         if self._select.n_view_columns == 0:
-            fn += self._gen_cbody_only_data_cols(rowmapping, columns)
+            fn += self._gen_cbody_only_data_cols(rowindex, columns)
         else:
             assert not self._select.dt.internal.isview
-            fn += self._gen_cbody_dt_not_view(rowmapping, columns)
+            fn += self._gen_cbody_dt_not_view(rowindex, columns)
 
         fn += "}\n"
         self._context.add_function(fnname, fn)
@@ -76,21 +75,21 @@ class DatatableNode(Node):
         self._select.use_context(self.soup)
 
 
-    def _gen_cbody_only_data_cols(self, frowmapping, fcolumns):
+    def _gen_cbody_only_data_cols(self, frowindex, fcolumns):
         self.soup.add_extern("pydatatable_assemble")
         fn = ""
-        fn += "    int64_t nrows = %s()->length;\n" % frowmapping
+        fn += "    int64_t nrows = %s()->length;\n" % frowindex
         fn += "    Column** columns = %s();\n" % fcolumns
         fn += "    return (PyObject*) pydatatable_assemble(nrows, columns);\n"
         return fn
 
 
-    def _gen_cbody_dt_not_view(self, frowmapping, fcolumns):
+    def _gen_cbody_dt_not_view(self, frowindex, fcolumns):
         self.soup.add_extern("pydatatable_assemble_view")
-        return ("    RowMapping *rm = {make_rowmapping}();\n"
+        return ("    RowIndex *ri = {make_rowindex}();\n"
                 "    Column **columns = {make_columns}();\n"
                 "    return (PyObject*) pydatatable_assemble_view"
-                "((DataTable_PyObject*){dtptr}, rm, columns);\n"
+                "((DataTable_PyObject*){dtptr}, ri, columns);\n"
                 .format(dtptr=id(self._dt.internal),
-                        make_rowmapping=frowmapping,
+                        make_rowindex=frowindex,
                         make_columns=fcolumns))

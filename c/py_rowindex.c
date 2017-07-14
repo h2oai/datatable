@@ -1,5 +1,5 @@
 #include "py_datatable.h"
-#include "py_rowmapping.h"
+#include "py_rowindex.h"
 #include "py_utils.h"
 
 
@@ -11,36 +11,36 @@
 
 
 /**
- * Create a new RowMapping_PyObject by wrapping the provided RowMapping
+ * Create a new RowIndex_PyObject by wrapping the provided RowIndex
  * object `src`. The returned object will assume ownership of `src`. If `src`
  * is NULL then this function also returns NULL.
  */
-PyObject* pyrowmapping(RowMapping *src)
+PyObject* pyrowindex(RowIndex *src)
 {
     if (src == NULL) return NULL;
-    PyObject *res = PyObject_CallObject((PyObject*) &RowMapping_PyType, NULL);
-    ((RowMapping_PyObject*) res)->ref = src;
+    PyObject *res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
+    ((RowIndex_PyObject*) res)->ref = src;
     return res;
 }
-#define py pyrowmapping
+#define py pyrowindex
 
 
 /**
  * Helper function to be used with `PyArg_ParseTuple()` in order to extract
- * a `RowMapping` object out of the arguments tuple. Usage:
+ * a `RowIndex` object out of the arguments tuple. Usage:
  *
- *     RowMapping *rwm;
- *     if (!PyArg_ParseTuple(args, "O&", &rowmapping_unwrap, &rwm))
+ *     RowIndex *ri;
+ *     if (!PyArg_ParseTuple(args, "O&", &rowindex_unwrap, &ri))
  *         return NULL;
  */
-int rowmapping_unwrap(PyObject *object, void *address) {
-    RowMapping **ans = address;
-    if (!PyObject_TypeCheck(object, &RowMapping_PyType)) {
+int rowindex_unwrap(PyObject *object, void *address) {
+    RowIndex **ans = address;
+    if (!PyObject_TypeCheck(object, &RowIndex_PyType)) {
         PyErr_SetString(PyExc_TypeError,
-                        "Expected argument of type RowMapping");
+                        "Expected argument of type RowIndex");
         return 0;
     }
-    *ans = ((RowMapping_PyObject*)object)->ref;
+    *ans = ((RowIndex_PyObject*)object)->ref;
     return 1;
 }
 
@@ -50,29 +50,29 @@ int rowmapping_unwrap(PyObject *object, void *address) {
 //==============================================================================
 
 /**
- * Construct a (py)RowMapping "slice" object given a tuple (start, count, step).
- * This is a Python wrapper for :func:`rowmapping_from_slice`.
+ * Construct a (py)RowIndex "slice" object given a tuple (start, count, step).
+ * This is a Python wrapper for :func:`rowindex_from_slice`.
  */
-PyObject* pyrowmapping_from_slice(UU, PyObject *args)
+PyObject* pyrowindex_from_slice(UU, PyObject *args)
 {
     int64_t start, count, step;
-    if (!PyArg_ParseTuple(args, "LLL:RowMapping.from_slice",
+    if (!PyArg_ParseTuple(args, "LLL:RowIndex.from_slice",
                           &start, &count, &step))
         return NULL;
-    return py(rowmapping_from_slice(start, count, step));
+    return py(rowindex_from_slice(start, count, step));
 }
 
 
 
 /**
- * Construct a RowMapping object from a list of tuples (start, count, step)
+ * Construct a RowIndex object from a list of tuples (start, count, step)
  * that are given in the form of 3 arrays start[], count[], step[].
- * This is a Python wrapper for :func:`rowmapping_from_slicelist`.
+ * This is a Python wrapper for :func:`rowindex_from_slicelist`.
  */
-PyObject* pyrowmapping_from_slicelist(UU, PyObject *args)
+PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
 {
     PyObject *pystarts, *pycounts, *pysteps;
-    if (!PyArg_ParseTuple(args, "O!O!O!:RowMapping.from_slicelist",
+    if (!PyArg_ParseTuple(args, "O!O!O!:RowIndex.from_slicelist",
                           &PyList_Type, &pystarts,
                           &PyList_Type, &pycounts,
                           &PyList_Type, &pysteps))
@@ -101,7 +101,7 @@ PyObject* pyrowmapping_from_slicelist(UU, PyObject *args)
         steps[i] = step;
     }
 
-    return py(rowmapping_from_slicelist(starts, counts, steps, n1));
+    return py(rowindex_from_slicelist(starts, counts, steps, n1));
 
   fail:
     free(starts);
@@ -113,13 +113,13 @@ PyObject* pyrowmapping_from_slicelist(UU, PyObject *args)
 
 
 /**
- * Construct RowMapping object from an array of indices. This is a wrapper
- * for :func:`rowmapping_from_i32_array` / :func:`rowmapping_from_i64_array`.
+ * Construct RowIndex object from an array of indices. This is a wrapper
+ * for :func:`rowindex_from_i32_array` / :func:`rowindex_from_i64_array`.
  */
-PyObject* pyrowmapping_from_array(UU, PyObject *args)
+PyObject* pyrowindex_from_array(UU, PyObject *args)
 {
     PyObject *list;
-    if (!PyArg_ParseTuple(args, "O!:RowMapping.from_array",
+    if (!PyArg_ParseTuple(args, "O!:RowIndex.from_array",
                           &PyList_Type, &list))
         return NULL;
 
@@ -147,9 +147,9 @@ PyObject* pyrowmapping_from_array(UU, PyObject *args)
         }
     }
 
-    // Construct and return the RowMapping object
-    return data32? py(rowmapping_from_i32_array(data32, len))
-                 : py(rowmapping_from_i64_array(data64, len));
+    // Construct and return the RowIndex object
+    return data32? py(rowindex_from_i32_array(data32, len))
+                 : py(rowindex_from_i64_array(data64, len));
 
   fail:
     dtfree(data32);
@@ -160,16 +160,16 @@ PyObject* pyrowmapping_from_array(UU, PyObject *args)
 
 
 /**
- * Construct a RowMapping object given a DataTable with a single boolean column.
- * This column is then treated as a filter, and the RowMapping is constructed
+ * Construct a RowIndex object given a DataTable with a single boolean column.
+ * This column is then treated as a filter, and the RowIndex is constructed
  * with the indices that corresponds to the rows where the boolean column has
  * true values (all false / NA columns are skipped).
  */
-PyObject* pyrowmapping_from_column(UU, PyObject *args)
+PyObject* pyrowindex_from_column(UU, PyObject *args)
 {
     DataTable *dt = NULL;
-    RowMapping *rowmapping = NULL;
-    if (!PyArg_ParseTuple(args, "O&:RowMapping.from_column",
+    RowIndex *rowindex = NULL;
+    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_column",
                           &dt_unwrap, &dt))
         return NULL;
 
@@ -183,74 +183,74 @@ PyObject* pyrowmapping_from_column(UU, PyObject *args)
         return NULL;
     }
 
-    rowmapping = dt->rowmapping
-        ? rowmapping_from_column_with_rowmapping(col, dt->rowmapping)
-        : rowmapping_from_datacolumn(col, dt->nrows);
+    rowindex = dt->rowindex
+        ? rowindex_from_column_with_rowindex(col, dt->rowindex)
+        : rowindex_from_datacolumn(col, dt->nrows);
 
-    return py(rowmapping);
+    return py(rowindex);
 }
 
 
 
 /**
- * Construct a rowmapping object given a pointer to a filtering function and
+ * Construct a rowindex object given a pointer to a filtering function and
  * the number of rows that has to be filtered. This is a wrapper around
- * `rowmapping_from_filterfn[32|64]`.
+ * `rowindex_from_filterfn[32|64]`.
  */
-PyObject* pyrowmapping_from_filterfn(UU, PyObject *args)
+PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
 {
     long long _fnptr, _nrows;
-    if (!PyArg_ParseTuple(args, "LL:RowMapping.from_filterfn",
+    if (!PyArg_ParseTuple(args, "LL:RowIndex.from_filterfn",
                           &_fnptr, &_nrows))
         return NULL;
 
     int64_t nrows = (int64_t) _nrows;
     if (nrows <= INT32_MAX) {
-        rowmapping_filterfn32 *fnptr = (rowmapping_filterfn32*)_fnptr;
-        return py(rowmapping_from_filterfn32(fnptr, nrows));
+        rowindex_filterfn32 *fnptr = (rowindex_filterfn32*)_fnptr;
+        return py(rowindex_from_filterfn32(fnptr, nrows));
     } else {
-        rowmapping_filterfn64 *fnptr = (rowmapping_filterfn64*)_fnptr;
-        return py(rowmapping_from_filterfn64(fnptr, nrows));
+        rowindex_filterfn64 *fnptr = (rowindex_filterfn64*)_fnptr;
+        return py(rowindex_from_filterfn64(fnptr, nrows));
     }
 }
 
 
 
 //==============================================================================
-//  RowMapping PyObject
+//  RowIndex PyObject
 //==============================================================================
 
-static void dealloc(RowMapping_PyObject *self)
+static void dealloc(RowIndex_PyObject *self)
 {
-    rowmapping_dealloc(self->ref);
+    rowindex_dealloc(self->ref);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
-static PyObject* repr(RowMapping_PyObject *self)
+static PyObject* repr(RowIndex_PyObject *self)
 {
-    RowMapping *rwm = self->ref;
-    if (rwm == NULL)
-        return PyUnicode_FromString("_RowMapping(NULL)");
-    if (rwm->type == RM_ARR32) {
-        return PyUnicode_FromFormat("_RowMapping(int32[%ld])", rwm->length);
+    RowIndex *ri = self->ref;
+    if (ri == NULL)
+        return PyUnicode_FromString("_RowIndex(NULL)");
+    if (ri->type == RI_ARR32) {
+        return PyUnicode_FromFormat("_RowIndex(int32[%ld])", ri->length);
     }
-    if (rwm->type == RM_ARR64) {
-        return PyUnicode_FromFormat("_RowMapping(int64[%ld])", rwm->length);
+    if (ri->type == RI_ARR64) {
+        return PyUnicode_FromFormat("_RowIndex(int64[%ld])", ri->length);
     }
-    if (rwm->type == RM_SLICE) {
-        return PyUnicode_FromFormat("_RowMapping(%ld:%ld:%ld)",
-            rwm->slice.start, rwm->length, rwm->slice.step);
+    if (ri->type == RI_SLICE) {
+        return PyUnicode_FromFormat("_RowIndex(%ld:%ld:%ld)",
+            ri->slice.start, ri->length, ri->slice.step);
     }
     return NULL;
 }
 
 
 
-PyTypeObject RowMapping_PyType = {
+PyTypeObject RowIndex_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_datatable.RowMapping",            /* tp_name */
-    sizeof(RowMapping_PyObject),        /* tp_basicsize */
+    "_datatable.RowIndex",              /* tp_name */
+    sizeof(RowIndex_PyObject),          /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)dealloc,                /* tp_dealloc */
     0,                                  /* tp_print */
@@ -288,12 +288,12 @@ PyTypeObject RowMapping_PyType = {
 };
 
 
-// Add PyRowMapping object to the Python module
-int init_py_rowmapping(PyObject *module)
+// Add PyRowIndex object to the Python module
+int init_py_rowindex(PyObject *module)
 {
-    RowMapping_PyType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&RowMapping_PyType) < 0) return 0;
-    Py_INCREF(&RowMapping_PyType);
-    PyModule_AddObject(module, "RowMapping", (PyObject*) &RowMapping_PyType);
+    RowIndex_PyType.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&RowIndex_PyType) < 0) return 0;
+    Py_INCREF(&RowIndex_PyType);
+    PyModule_AddObject(module, "RowIndex", (PyObject*) &RowIndex_PyType);
     return 1;
 }

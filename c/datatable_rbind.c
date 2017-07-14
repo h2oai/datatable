@@ -4,7 +4,7 @@
 #include "column.h"
 #include "datatable.h"
 #include "myassert.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 #include "utils.h"
 
 
@@ -34,14 +34,14 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
     }
 
     // If dt is a view datatable, then it must be coverted to MT_DATA
-    if (dt->rowmapping) {
+    if (dt->rowindex) {
         for (int i = 0; i < dt->ncols; i++) {
-            Column *newcol = column_extract(dt->columns[i], dt->rowmapping);
+            Column *newcol = column_extract(dt->columns[i], dt->rowindex);
             column_decref(dt->columns[i]);
             dt->columns[i] = newcol;
         }
-        rowmapping_dealloc(dt->rowmapping);
-        dt->rowmapping = NULL;
+        rowindex_dealloc(dt->rowindex);
+        dt->rowindex = NULL;
     }
 
     Column **cols0 = NULL;
@@ -56,9 +56,9 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
         for (int j = 0; j < ndts; j++) {
             if (cols[i][j] < 0) {
                 cols0[j] = make_data_column(0, (size_t) dts[j]->nrows);
-            } else if (dts[j]->rowmapping) {
+            } else if (dts[j]->rowindex) {
                 cols0[j] = column_extract(dts[j]->columns[cols[i][j]],
-                                          dts[j]->rowmapping);
+                                          dts[j]->rowindex);
             } else {
                 cols0[j] = column_incref(dts[j]->columns[cols[i][j]]);
             }

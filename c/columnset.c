@@ -70,9 +70,9 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
  *     Source datatable for columns that should be copied by reference. If all
  *     columns are computed, then this parameter may be NULL.
  *
- * rowmapping
- *     The rowmapping that determines how the columns from the datatable `dt`
- *     should be extracted. Note that this rowmapping will already be "factored
+ * rowindex
+ *     The rowindex that determines how the columns from the datatable `dt`
+ *     should be extracted. Note that this rowindex will already be "factored
  *     in" in the returned columns, so there shall be no need to attach it to
  *     the DataTable constructed.
  *
@@ -86,7 +86,7 @@ Column** columns_from_mixed(
     int64_t *spec,
     int64_t ncols,
     DataTable *dt,
-    RowMapping *rowmapping,
+    RowIndex *rowindex,
     int (*mapfn)(int64_t row0, int64_t row1, void** out)
 ) {
     int64_t ncomputedcols = 0;
@@ -97,7 +97,7 @@ Column** columns_from_mixed(
 
     void **out = NULL;
     Column **columns = NULL;
-    size_t nrows = (size_t) rowmapping->length;
+    size_t nrows = (size_t) rowindex->length;
     dtmalloc(out, void*, ncomputedcols);
     dtmalloc(columns, Column*, ncols + 1);
     columns[ncols] = NULL;

@@ -2,7 +2,7 @@
 #define dt_PY_COLUMNSET_H
 #include <Python.h>
 #include "datatable.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 
 typedef struct ColumnSet_PyObject {
     PyObject_HEAD
@@ -22,7 +22,7 @@ PyObject* pycolumns_from_pymixed(PyObject *self, PyObject *args);
 Column** columns_from_pymixed(
     PyObject *elems,
     DataTable *dt,
-    RowMapping *rowmapping,
+    RowIndex *rowindex,
     int (*mapfn)(int64_t row0, int64_t row1, void** out)
 );
 

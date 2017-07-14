@@ -50,7 +50,7 @@ def test_dt_properties(dt0):
 def test_dt_call(dt0, capsys):
     dt1 = dt0(timeit=True)
     assert dt1.shape == dt0.shape
-    assert dt1.internal.isview and dt1.internal.rowmapping_type == "slice"
+    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
     out, err = capsys.readouterr()
     assert err == ""
     assert "Time taken:" in out

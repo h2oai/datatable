@@ -1,7 +1,7 @@
 #include "columnset.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
-#include "py_rowmapping.h"
+#include "py_rowindex.h"
 #include "py_utils.h"
 #include "utils.h"
 
@@ -55,17 +55,17 @@ PyObject* pycolumns_from_pymixed(UU, PyObject *args)
 {
     PyObject *elems;
     DataTable *dt;
-    RowMapping *rwm;
+    RowIndex *ri;
     long long rawptr;
     if (!PyArg_ParseTuple(args, "O!O&O&L:columns_from_pymixed",
                           &PyList_Type, &elems,
                           &dt_unwrap, &dt,
-                          &rowmapping_unwrap, &rwm,
+                          &rowindex_unwrap, &ri,
                           &rawptr))
         return NULL;
 
     columnset_mapfn *fnptr = (columnset_mapfn*) rawptr;
-    return py(columns_from_pymixed(elems, dt, rwm, fnptr));
+    return py(columns_from_pymixed(elems, dt, ri, fnptr));
 }
 
 
@@ -73,7 +73,7 @@ PyObject* pycolumns_from_pymixed(UU, PyObject *args)
 Column** columns_from_pymixed(
     PyObject *elems,
     DataTable *dt,
-    RowMapping *rowmapping,
+    RowIndex *rowindex,
     columnset_mapfn *mapfn
 ) {
     int64_t ncols = PyList_Size(elems);
@@ -88,7 +88,7 @@ Column** columns_from_pymixed(
             spec[i] = -TOINT64(ATTR(elem, "itype"), 0);
         }
     }
-    return columns_from_mixed(spec, ncols, dt, rowmapping, mapfn);
+    return columns_from_mixed(spec, ncols, dt, rowindex, mapfn);
 
   fail:
     return NULL;

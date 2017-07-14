@@ -3,7 +3,7 @@
 #include "types.h"
 #include "column.h"
 #include "datatable.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 
 
 typedef int (columnset_mapfn)(int64_t row0, int64_t row1, void** out);
@@ -21,7 +21,7 @@ Column** columns_from_mixed(
     int64_t *spec,
     int64_t ncols,
     DataTable *dt,
-    RowMapping *rowmapping,
+    RowIndex *rowindex,
     columnset_mapfn *fn
 );
 

@@ -2,7 +2,7 @@
 #include "datatable.h"
 #include "py_utils.h"
 #include "structmember.h"
-#include "rowmapping.h"
+#include "rowindex.h"
 #include "py_datawindow.h"
 #include "py_datatable.h"
 #include "py_types.h"
@@ -102,11 +102,11 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
     }
 
-    RowMapping *rindex = dt->rowmapping;
+    RowIndex *rindex = dt->rowindex;
     int no_rindex = (rindex == NULL);
-    int rindex_is_arr32 = rindex && rindex->type == RM_ARR32;
-    int rindex_is_arr64 = rindex && rindex->type == RM_ARR64;
-    int rindex_is_slice = rindex && rindex->type == RM_SLICE;
+    int rindex_is_arr32 = rindex && rindex->type == RI_ARR32;
+    int rindex_is_arr64 = rindex && rindex->type == RI_ARR64;
+    int rindex_is_slice = rindex && rindex->type == RI_SLICE;
     int32_t *rindexarr32 = rindex_is_arr32? rindex->ind32 : NULL;
     int64_t *rindexarr64 = rindex_is_arr64? rindex->ind64 : NULL;
     int64_t rindexstart = rindex_is_slice? rindex->slice.start : 0;
@@ -269,7 +269,7 @@ static int _check_consistency(
     }
 
     // verify that the row index (if present) is valid
-    RowMapping *rindex = dt->rowmapping;
+    RowIndex *rindex = dt->rowindex;
     if (rindex != NULL) {
         if (rindex->length != dt->nrows) {
             PyErr_Format(PyExc_RuntimeError,
@@ -279,29 +279,29 @@ static int _check_consistency(
             return 0;
         }
         switch (rindex->type) {
-            case RM_ARR32: {
+            case RI_ARR32: {
                 for (int64_t j = row0; j < row1; ++j) {
                     int32_t jsrc = rindex->ind32[j];
                     if (jsrc < 0) {
                         PyErr_Format(PyExc_RuntimeError,
-                            "Invalid row %ld in the rowmapping", j);
+                            "Invalid row %ld in the rowindex", j);
                         return 0;
                     }
                 }
             }   break;
 
-            case RM_ARR64: {
+            case RI_ARR64: {
                 for (int64_t j = row0; j < row1; ++j) {
                     int64_t jsrc = rindex->ind64[j];
                     if (jsrc < 0) {
                         PyErr_Format(PyExc_RuntimeError,
-                            "Invalid row %ld in the rowmapping", j);
+                            "Invalid row %ld in the rowindex", j);
                         return 0;
                     }
                 }
             }   break;
 
-            case RM_SLICE: {
+            case RI_SLICE: {
                 int64_t start = rindex->slice.start;
                 int64_t count = rindex->length;
                 int64_t finish = start + (count - 1) * rindex->slice.step;

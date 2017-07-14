@@ -2,7 +2,7 @@
 #include "py_types.h"
 #include "py_utils.h"
 
-static PyObject* py_rowmappingtypes[4];
+static PyObject* py_rowindextypes[4];
 
 
 Column_PyObject* pyColumn_from_Column(Column *col)
@@ -15,7 +15,7 @@ Column_PyObject* pyColumn_from_Column(Column *col)
 
 
 static PyObject* get_mtype(Column_PyObject *self) {
-    return incref(py_rowmappingtypes[self->ref->mtype]);
+    return incref(py_rowindextypes[self->ref->mtype]);
 }
 
 
@@ -241,8 +241,8 @@ int init_py_column(PyObject *module) {
     Py_INCREF(&Column_PyType);
     PyModule_AddObject(module, "Column", (PyObject*) &Column_PyType);
 
-    py_rowmappingtypes[0] = NULL;
-    py_rowmappingtypes[MT_DATA] = PyUnicode_FromString("data");
-    py_rowmappingtypes[MT_MMAP] = PyUnicode_FromString("mmap");
+    py_rowindextypes[0] = NULL;
+    py_rowindextypes[MT_DATA] = PyUnicode_FromString("data");
+    py_rowindextypes[MT_MMAP] = PyUnicode_FromString("mmap");
     return 1;
 }

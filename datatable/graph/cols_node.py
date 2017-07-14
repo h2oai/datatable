@@ -26,8 +26,8 @@ class ColumnSetNode(Node):
     def __init__(self, dt):
         super().__init__()
         self._dt = dt
-        self._rowmapping = None
-        self._rowmappingdt = None
+        self._rowindex = None
+        self._rowindexdt = None
         self._cname = None
         self._n_columns = 0
         self._n_view_columns = 0
@@ -35,7 +35,7 @@ class ColumnSetNode(Node):
 
     @property
     def dt(self):
-        # TODO: merge self._dt with self._rowmappingdt
+        # TODO: merge self._dt with self._rowindexdt
         return self._dt
 
     @property
@@ -91,17 +91,17 @@ class Mixed_CSNode(ColumnSetNode):
         self._mapnode = None
 
     def _added_into_soup(self):
-        self._rowmapping = self.soup.get("rows")
+        self._rowindex = self.soup.get("rows")
         self._mapnode = MapNode([elem for elem in self._elems
                                  if isinstance(elem, BaseExpr)],
-                                rowmapping=self._rowmapping)
+                                rowindex=self._rowindex)
         self.soup.add("columns_mapfn", self._mapnode)
 
     def get_result(self):
         fnptr = self._mapnode.get_result()
-        rowmapping = self._rowmapping.get_result()
+        rowindex = self._rowindex.get_result()
         return _datatable.columns_from_pymixed(self._elems, self._dt.internal,
-                                               rowmapping, fnptr)
+                                               rowindex, fnptr)
 
 
 

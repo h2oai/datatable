@@ -40,16 +40,16 @@ def as_list(datatable):
 
 
 def is_slice(dt, cols=range(3)):
-    return dt.internal.isview and dt.internal.rowmapping_type == "slice"
+    return dt.internal.isview and dt.internal.rowindex_type == "slice"
 
 
 def is_arr(dt, cols=range(3)):
-    return dt.internal.isview and dt.internal.rowmapping_type == "arr32"
+    return dt.internal.isview and dt.internal.rowindex_type == "arr32"
 
 
 def is_slice_or_arr(dt, nrows):
     return (nrows == 0 or
-            dt.internal.isview and dt.internal.rowmapping_type == "slice")
+            dt.internal.isview and dt.internal.rowindex_type == "slice")
 
 
 #-------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ def test_dt0_properties(dt0):
     assert dt0.stypes == ("i1b", "i2i", "f8r")
     assert str(dt0.internal.__class__) == "<class '_datatable.DataTable'>"
     assert dt0.internal.isview is False
-    assert dt0.internal.rowmapping_type is None
+    assert dt0.internal.rowindex_type is None
     assert dt0.internal.verify_integrity() is None
 
 
@@ -261,18 +261,18 @@ def test_rows_function(dt0):
 def test_chained_slice(dt0):
     dt1 = dt0[::2, :]
     assert dt1.shape == (5, 3)
-    assert dt1.internal.rowmapping_type == "slice"
+    assert dt1.internal.rowindex_type == "slice"
     dt2 = dt1[::-1, :]
     assert dt2.shape == (5, 3)
-    assert dt2.internal.rowmapping_type == "slice"
+    assert dt2.internal.rowindex_type == "slice"
     assert as_list(dt2)[1] == [1, 0, None, 9, 7]
     dt3 = dt1[2:4, :]
     assert dt3.shape == (2, 3)
-    assert dt3.internal.rowmapping_type == "slice"
+    assert dt3.internal.rowindex_type == "slice"
     assert as_list(dt3) == [[0, 1], [None, 0], [100000, -2.6]]
     dt4 = dt1[(1, 0, 3, 2), :]
     assert dt4.shape == (4, 3)
-    assert dt4.internal.rowmapping_type == "arr32"
+    assert dt4.internal.rowindex_type == "arr32"
     assert as_list(dt4) == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
 
 
@@ -280,14 +280,14 @@ def test_chained_slice(dt0):
 def test_chained_array(dt0):
     dt1 = dt0[(2, 5, 1, 1, 1, 0), :]
     assert dt1.shape == (6, 3)
-    assert dt1.internal.rowmapping_type == "arr32"
+    assert dt1.internal.rowindex_type == "arr32"
     dt2 = dt1[::2, :]
     assert dt2.shape == (3, 3)
-    assert dt2.internal.rowmapping_type == "arr32"
+    assert dt2.internal.rowindex_type == "arr32"
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
     dt3 = dt1[::-1, :]
     assert dt3.shape == (6, 3)
-    assert dt3.internal.rowmapping_type == "arr32"
+    assert dt3.internal.rowindex_type == "arr32"
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
     dt4 = dt1[(2, 3, 0), :]
     assert dt4.shape == (3, 3)

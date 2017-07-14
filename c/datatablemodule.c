@@ -5,7 +5,7 @@
 #include "py_datawindow.h"
 #include "py_encodings.h"
 #include "py_fread.h"
-#include "py_rowmapping.h"
+#include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
 
@@ -40,11 +40,11 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(columns_from_pymixed),
     METHOD0(columns_from_slice),
     METHOD0(datatable_assemble),
-    METHOD0(rowmapping_from_slice),
-    METHOD0(rowmapping_from_slicelist),
-    METHOD0(rowmapping_from_array),
-    METHOD0(rowmapping_from_column),
-    METHOD0(rowmapping_from_filterfn),
+    METHOD0(rowindex_from_slice),
+    METHOD0(rowindex_from_slicelist),
+    METHOD0(rowindex_from_array),
+    METHOD0(rowindex_from_column),
+    METHOD0(rowindex_from_filterfn),
     METHOD0(datatable_from_list),
     METHOD0(datatable_load),
     {"fread", (PyCFunction)freadPy, METH_VARARGS,
@@ -77,7 +77,7 @@ PyInit__datatable(void) {
     // Initialize submodules
     if (!init_py_datatable(m)) return NULL;
     if (!init_py_datawindow(m)) return NULL;
-    if (!init_py_rowmapping(m)) return NULL;
+    if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!init_py_column(m)) return NULL;
     if (!init_py_columnset(m)) return NULL;
