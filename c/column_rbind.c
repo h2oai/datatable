@@ -51,7 +51,7 @@ Column* column_rbind(Column *self, Column **cols)
     } else if (self->refcount == 1 && self->mtype == MT_DATA &&
                self->stype == stype) {
         // Happy place: current column can be modified in-place.
-        res = column_incref(self);
+        res = self;
     } else {
         res = (self->stype == stype) ? column_copy(self)
                                      : column_cast(self, stype);
@@ -61,13 +61,13 @@ Column* column_rbind(Column *self, Column **cols)
            res->nrows == nrows0);
 
     // Use the appropriate strategy to continue appending the columns.
-    if (!stype_info[stype].varwidth) {
-        res = column_rbind_fw(res, cols, nrows, col_empty);
-    } else if (stype == ST_STRING_I4_VCHAR) {
-        res = column_rbind_str32(res, cols, nrows, col_empty);
-    } else res = NULL;
+    res = (stype == ST_STRING_I4_VCHAR) ? column_rbind_str32(res, cols, nrows, col_empty) :
+          (!stype_info[stype].varwidth) ? column_rbind_fw(res, cols, nrows, col_empty) : NULL;
 
-    if (res) column_decref(self);
+    // If everything is fine, then the current column can be safely discarded
+    // -- the upstream caller will replace this column with the `res`. However
+    // if any error occurred (res == NULL), then `self` will be left intact.
+    if (res && res != self) column_decref(self);
     return res;
 }
 
