@@ -249,8 +249,8 @@ static PyObject* repr(RowIndex_PyObject *self)
 
 PyTypeObject RowIndex_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_datatable.RowIndex",            /* tp_name */
-    sizeof(RowIndex_PyObject),        /* tp_basicsize */
+    "_datatable.RowIndex",              /* tp_name */
+    sizeof(RowIndex_PyObject),          /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)dealloc,                /* tp_dealloc */
     0,                                  /* tp_print */

@@ -17,7 +17,7 @@ dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
  * Internal macro to help iterate over a rowindex. Assumes that macro `CODE`
  * is defined in scope, and substitutes it into the body of each loop. Within
  * the macro, variable `int64_t j` can be used to refer to the source row that
- * was rowmapped, and `int64_t i` is the "destination" index.
+ * was mapped, and `int64_t i` is the "destination" index.
  */
 #define ITER_ALL {                                                             \
     RowIndexType ritype = rowindex->type;                                      \
