@@ -235,6 +235,8 @@ PyTypeObject Column_PyType = {
 
 
 int init_py_column(PyObject *module) {
+    init_column_cast_functions();
+
     // Register Column_PyType on the module
     Column_PyType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&Column_PyType) < 0) return 0;
