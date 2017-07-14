@@ -51,13 +51,11 @@
  *
  * LT_REAL
  *     real values, equivalent of ℝ in mathematics. We store these in either
- *     fixed- or floating-point format.
+ *     fixed- or floating-point formats.
  *
  * LT_STRING
- *     all strings are encoded in MUTF-8 (modified UTF-8), whose only
- *     distinction from the regular UTF-8 is that the null character is encoded
- *     as 0xC080 and not 0x00. In MUTF-8 null byte cannot appear, and is only
- *     used as an end-of-string marker.
+ *     all strings are encoded in UTF-8. We allow either variable-width strings
+ *     or fixed-width.
  *
  * LT_DATETIME
  * LT_DURATION
@@ -92,34 +90,35 @@ typedef enum LType {
  * other way around.
  *
  * ST_VOID
- *     "Fake" type, column with this stype is in an invalid state.
+ *     "Fake" type, column with this stype is in an invalid state. This type may
+ *     be used internally to indicate that a column is being constructed.
  *
  * -----------------------------------------------------------------------------
  *
  * ST_BOOLEAN_I1
- *     elem: signed char (1 byte)
+ *     elem: int8_t (1 byte)
  *     NA:   -128
  *     A boolean with True = 1, False = 0. All other values are invalid.
  *
  * -----------------------------------------------------------------------------
  *
  * ST_INTEGER_I1
- *     elem: signed char (1 byte)
+ *     elem: int8_t (1 byte)
  *     NA:   -2**7 = -128
  *     An integer in the range -127 .. 127.
  *
  * ST_INTEGER_I2
- *     elem: short int (2 bytes)
+ *     elem: int16_t (2 bytes)
  *     NA:   -2**15 = -32768
  *     An integer in the range -32767 .. 32767.
  *
  * ST_INTEGER_I4
- *     elem: int (4 bytes)
+ *     elem: int32_t (4 bytes)
  *     NA:   -2**31 = -2147483648
  *     An integer in the range -2147483647 .. 2147483647.
  *
  * ST_INTEGER_I8
- *     elem: long int (8 bytes)
+ *     elem: int64_t (8 bytes)
  *     NA:   -2**63 = -9223372036854775808
  *     An integer in the range -9223372036854775807 .. 9223372036854775807.
  *
@@ -139,7 +138,7 @@ typedef enum LType {
  *     Floating-point real number, corresponding to C's `double` (IEEE 754).
  *
  * ST_REAL_I2
- *     elem: short int (2 bytes)
+ *     elem: int16_t (2 bytes)
  *     NA:   -2**15 = -32768
  *     meta: `scale` (int)
  *     The fixed-point real number (aka decimal); the scale variable in the meta
@@ -151,13 +150,13 @@ typedef enum LType {
  *     simplifies their use.
  *
  * ST_REAL_I4
- *     elem: int (4 bytes)
+ *     elem: int32_t (4 bytes)
  *     NA:   -2**31
  *     meta: `scale` (int)
  *     Fixed-point real number stored as a 32-bit integer.
  *
  * ST_REAL_I8
- *     elem: long int (8 bytes)
+ *     elem: int64_t (8 bytes)
  *     NA:   -2**63
  *     meta: `scale` (int)
  *     Fixed-point real number stored as a 64-bit integer.
@@ -165,7 +164,7 @@ typedef enum LType {
  * -----------------------------------------------------------------------------
  *
  * ST_STRING_I4_VCHAR
- *     elem: int (4 bytes) + char[]
+ *     elem: int32_t (4 bytes) + unsigned char[]
  *     NA:   negative numbers
  *     meta: `offoff` (long int)
  *     Variable-width strings. The data buffer has the following structure:
@@ -190,14 +189,14 @@ typedef enum LType {
  *     Note: 0xFF is used for padding because it's not a valid UTF-8 byte.
  *
  * ST_STRING_I8_VCHAR
- *     elem: long int (8 bytes) + char[]
+ *     elem: int64_t (8 bytes) + unsigned char[]
  *     NA:   negative numbers
  *     meta: `offoff` (long int)
  *     Variable-width strings: same as ST_STRING_I4_VCHAR but use 64-bit
  *     offsets.
  *
  * ST_STRING_FCHAR
- *     elem: char[] (n bytes)
+ *     elem: unsigned char[] (n bytes)
  *     NA:   0xFF 0xFF ... 0xFF
  *     meta: `n` (int)
  *     Fixed-width strings, similar to "CHAR(n)" in SQL. These strings have
@@ -208,7 +207,7 @@ typedef enum LType {
  *     bytes, which is not a valid UTF-8 string.
  *
  * ST_STRING_U1_ENUM
- *     elem: unsigned char (1 byte)
+ *     elem: uint8_t (1 byte)
  *     NA:   255
  *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     String column stored as a categorical variable (aka "factor" or "enum").
@@ -224,7 +223,7 @@ typedef enum LType {
  *     that of the ST_STRING_I4_VCHAR type.
  *
  * ST_STRING_U2_ENUM
- *     elem: unsigned short int (2 bytes)
+ *     elem: uint16_t (2 bytes)
  *     NA:   65535
  *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 65535 distinct
@@ -232,7 +231,7 @@ typedef enum LType {
  *     the last section uses 2 bytes per element instead of just 1 byte.
  *
  * ST_STRING_U4_ENUM
- *     elem: unsigned int (4 bytes)
+ *     elem: uint32_t (4 bytes)
  *     NA:   2**32-1
  *     meta: `offoff` (long int), `dataoff` (long int), `nlevels` (int)
  *     Strings stored as a categorical variable with no more than 2**32-1
@@ -244,14 +243,14 @@ typedef enum LType {
  * -----------------------------------------------------------------------------
  *
  * ST_DATETIME_I8_EPOCH
- *     elem: long int (8 bytes)
+ *     elem: int64_t (8 bytes)
  *     NA:   -2**63
  *     Timestamp, stored as the number of microseconds since 0000-03-01. The
  *     allowed time range is ≈290,000 years around the epoch. The time is
  *     assumed to be in UTC, and does not allow specifying a time zone.
  *
  * ST_DATETIME_I8_PRTMN
- *     elem: long int (8 bytes)
+ *     elem: int64_t (8 bytes)
  *     NA:   -2**63
  *     Timestamp, stored as YYYYMMDDhhmmssmmmuuu, i.e. concatenated date parts.
  *     The widths of each subfield are:
@@ -267,19 +266,19 @@ typedef enum LType {
  *     in UTC, and does not allow specifying a time zone.
  *
  * ST_DATETIME_I4_TIME
- *     elem: int (4 bytes)
+ *     elem: int32_t (4 bytes)
  *     NA:   -2**31
  *     Time only: the number of milliseconds since midnight. The allowed time
  *     range is ≈24 days.
  *
  * ST_DATETIME_I4_DATE
- *     elem: int (4 bytes)
+ *     elem: int32_t (4 bytes)
  *     NA:   -2**31
  *     Date only: the number of days since 0000-03-01. The allowed time range
  *     is ≈245,000 years.
  *
  * ST_DATETIME_I2_MONTH
- *     elem: short int (2 bytes)
+ *     elem: int16_t (2 bytes)
  *     NA:   -2**15
  *     Year+month only: the number of months since 0000-03-01. The allowed time
  *     range is up to year 2730.
