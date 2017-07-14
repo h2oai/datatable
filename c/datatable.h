@@ -42,7 +42,7 @@ typedef struct DataTable DataTable;
 typedef struct DataTable {
     int64_t     nrows;
     int64_t     ncols;
-    RowIndex *rowindex;
+    RowIndex   *rowindex;
     Column    **columns;
 
 } DataTable;

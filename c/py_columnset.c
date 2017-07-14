@@ -55,17 +55,17 @@ PyObject* pycolumns_from_pymixed(UU, PyObject *args)
 {
     PyObject *elems;
     DataTable *dt;
-    RowIndex *rwm;
+    RowIndex *ri;
     long long rawptr;
     if (!PyArg_ParseTuple(args, "O!O&O&L:columns_from_pymixed",
                           &PyList_Type, &elems,
                           &dt_unwrap, &dt,
-                          &rowindex_unwrap, &rwm,
+                          &rowindex_unwrap, &ri,
                           &rawptr))
         return NULL;
 
     columnset_mapfn *fnptr = (columnset_mapfn*) rawptr;
-    return py(columns_from_pymixed(elems, dt, rwm, fnptr));
+    return py(columns_from_pymixed(elems, dt, ri, fnptr));
 }
 
 

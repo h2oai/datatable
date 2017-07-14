@@ -29,8 +29,8 @@ PyObject* pyrowindex(RowIndex *src)
  * Helper function to be used with `PyArg_ParseTuple()` in order to extract
  * a `RowIndex` object out of the arguments tuple. Usage:
  *
- *     RowIndex *rwm;
- *     if (!PyArg_ParseTuple(args, "O&", &rowindex_unwrap, &rwm))
+ *     RowIndex *ri;
+ *     if (!PyArg_ParseTuple(args, "O&", &rowindex_unwrap, &ri))
  *         return NULL;
  */
 int rowindex_unwrap(PyObject *object, void *address) {
@@ -229,18 +229,18 @@ static void dealloc(RowIndex_PyObject *self)
 
 static PyObject* repr(RowIndex_PyObject *self)
 {
-    RowIndex *rwm = self->ref;
-    if (rwm == NULL)
+    RowIndex *ri = self->ref;
+    if (ri == NULL)
         return PyUnicode_FromString("_RowIndex(NULL)");
-    if (rwm->type == RI_ARR32) {
-        return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rwm->length);
+    if (ri->type == RI_ARR32) {
+        return PyUnicode_FromFormat("_RowIndex(int32[%ld])", ri->length);
     }
-    if (rwm->type == RI_ARR64) {
-        return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rwm->length);
+    if (ri->type == RI_ARR64) {
+        return PyUnicode_FromFormat("_RowIndex(int64[%ld])", ri->length);
     }
-    if (rwm->type == RI_SLICE) {
+    if (ri->type == RI_SLICE) {
         return PyUnicode_FromFormat("_RowIndex(%ld:%ld:%ld)",
-            rwm->slice.start, rwm->length, rwm->slice.step);
+            ri->slice.start, ri->length, ri->slice.step);
     }
     return NULL;
 }

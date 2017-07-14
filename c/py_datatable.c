@@ -114,14 +114,14 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 
 PyObject* pydatatable_assemble(UU, PyObject *args)
 {
-    RowIndex_PyObject *pyrwm;
+    RowIndex_PyObject *pyri;
     ColumnSet_PyObject *pycols;
     if (!PyArg_ParseTuple(args, "O!O!:datatable_assemble_view",
-                          &RowIndex_PyType, &pyrwm,
+                          &RowIndex_PyType, &pyri,
                           &ColumnSet_PyType, &pycols))
         return NULL;
-    RowIndex *rowindex = pyrwm->ref;
-    pyrwm->ref = NULL;
+    RowIndex *rowindex = pyri->ref;
+    pyri->ref = NULL;
     Column **columns = pycols->columns;
     pycols->columns = NULL;
     return py(datatable_assemble(rowindex, columns));
@@ -284,7 +284,7 @@ PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
-PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row mapping: 'slice' or 'array'");
+PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row index: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
 PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");

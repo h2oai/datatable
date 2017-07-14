@@ -49,7 +49,7 @@ dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
 
 
 /**
- * Given an ARR64 RowIndex `rwm` attempt to compactify it (i.e. convert into
+ * Given an ARR64 RowIndex `self` attempt to compactify it (i.e. convert into
  * an ARR32 rowindex), and return self if successful (the RowIndex object
  * is modified in-place).
  */
@@ -243,7 +243,7 @@ rowindex_from_i64_array(int64_t *array, int64_t n)
 
 /**
  * Construct a `RowIndex` object using a boolean "data" column `col`. The
- * mapping will contain only those rows where the `filter` contains true
+ * index will contain only those rows where the `filter` contains true
  * values.
  * This function will create an RI_ARR32/64 RowIndex, depending on what is
  * minimally required.
@@ -364,9 +364,9 @@ rowindex_from_column_with_rowindex(Column *col, RowIndex *rowindex)
 
 
 /**
- * Merge two `RowIndex`s, and return the combined `RowIndex`. Specifically,
+ * Merge two `RowIndex`es, and return the combined `RowIndex`. Specifically,
  * suppose there are objects A, B, C such that the map from A rows onto B is
- * described by the mapping `ri_ab`, and the map from rows of B onto C is given
+ * described by the index `ri_ab`, and the map from rows of B onto C is given
  * by `ri_bc`. Then the "merged" RowIndex will describe how rows of A are
  * mapped onto rows of C.
  * Rowindex `ri_ab` may also be NULL, in which case a clone of `ri_bc` is

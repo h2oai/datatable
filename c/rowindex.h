@@ -71,10 +71,10 @@ typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
 
 
 /**
- * Reduce storage method of rowindex `rwm` from RI_ARR64 to RI_ARR32, if
+ * Reduce storage method of rowindex `self` from RI_ARR64 to RI_ARR32, if
  * possible.
  */
-RowIndex* rowindex_compactify(RowIndex *rwm);
+RowIndex* rowindex_compactify(RowIndex *self);
 
 /**
  * Construct a "slice" RowIndex object from triple `(start, count, step)`.
@@ -132,14 +132,14 @@ RowIndex* rowindex_from_filterfn32(rowindex_filterfn32 *f, int64_t nrows);
 RowIndex* rowindex_from_filterfn64(rowindex_filterfn64 *f, int64_t nrows);
 
 /**
- * Combine two RowIndexs: `rwm_ab` + `rwm_bc` => `rwm_ac`.
+ * Combine two RowIndexs: `ri_ab` + `ri_bc` => `ri_ac`.
  */
-RowIndex* rowindex_merge(RowIndex *rwm_ab, RowIndex *rwm_bc);
+RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc);
 
 /**
  * RowIndex's destructor.
  */
-void rowindex_dealloc(RowIndex *rowindex);
+void rowindex_dealloc(RowIndex *self);
 
 
 #endif
