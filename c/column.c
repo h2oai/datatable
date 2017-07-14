@@ -204,6 +204,7 @@ Column* column_extract(Column *self, RowMapping *rowmapping)
 
     // Create the new Column object.
     Column *res = make_data_column(stype, 0);
+    res->nrows = (int64_t) nrows;
 
     // "Slice" rowmapping with step = 1 is a simple subsection of the column
     if (rowmapping->type == RM_SLICE && rowmapping->slice.step == 1) {
