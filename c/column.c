@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <stdio.h>
-#include <string.h>
+#include <string.h>    // memcpy, strcmp
+#include <stdlib.h>    // atoll
 #include <errno.h>
 #include <fcntl.h>     // open
 #include <unistd.h>    // close
@@ -76,6 +77,12 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
 
 
 
+/**
+ * Save this column's data buffer into file `filename`. Other information
+ * about the column should be stored elsewhere (for example in the _meta.nff
+ * file).
+ * If a file with the given name already exists, it will be overwritten.
+ */
 Column* column_save_to_disk(Column *self, const char *filename)
 {
     size_t size = self->alloc_size;
@@ -95,6 +102,52 @@ Column* column_save_to_disk(Column *self, const char *filename)
     return self;
 }
 
+
+
+/**
+ * Restore a Column previously saved via `column_save_to_disk()`. The column's
+ * data buffer is taken from the file `filename`; and the column is assumed to
+ * have type `stype`, number of rows `nrows`, and its meta information stored
+ * as a string `metastr`.
+ * This function will not check data validity (i.e. that the buffer contains
+ * valid values, and that the extra parameters match the buffer's contents).
+ */
+Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
+                              const char *metastr)
+{
+    // Deserialize the meta information, if needed
+    void *meta = NULL;
+    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+        if (strncmp(metastr, "offoff=", 7) != 0) return NULL;
+        int64_t offoff = (int64_t) atoll(metastr + 7);
+        dtmalloc(meta, VarcharMeta, 1);
+        ((VarcharMeta*) meta)->offoff = offoff;
+    }
+
+    // Open and memory-map the file
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) { printf("Cannot open file %s: %s\n", filename, strerror(errno)); return NULL; }
+    struct stat stat_buf;
+    int ret = fstat(fd, &stat_buf);
+    if (ret == -1) { printf("Cannot obtain file's size: %s\n", strerror(errno)); return NULL; }
+    size_t filesize = (size_t) stat_buf.st_size;
+    void *mmp = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (mmp == MAP_FAILED) { printf("Cannot memory-map file %s: %s", filename, strerror(errno)); return NULL; }
+    close(fd);
+
+    // Create the column object
+    Column *col = NULL;
+    dtmalloc(col, Column, 1);
+    col->data = mmp;
+    col->meta = meta;
+    col->nrows = nrows;
+    col->alloc_size = filesize;
+    col->refcount = 1;
+    col->mtype = MT_MMAP;
+    col->stype = stype;
+
+    return col;
+}
 
 
 /**

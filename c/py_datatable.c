@@ -129,6 +129,18 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
 
 
 
+PyObject* pydatatable_load(UU, PyObject *args)
+{
+    DataTable *colspec;
+    int64_t nrows;
+    if (!PyArg_ParseTuple(args, "O&n:datatable_load",
+                          &dt_unwrap, &colspec, &nrows))
+        return NULL;
+    return py(datatable_load(colspec, nrows));
+}
+
+
+
 static PyObject*
 verify_integrity(DataTable_PyObject *self, PyObject *args)
 {
