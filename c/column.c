@@ -376,6 +376,7 @@ Column* column_cast(Column *self, SType stype)
     // Not implemented :(
     (void)self;
     (void)stype;
+    dterrv("Unable to cast from stype=%d into stype=%d", self->stype, stype);
     return NULL;
 }
 

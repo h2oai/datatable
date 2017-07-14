@@ -6,6 +6,7 @@
 //     https://github.com/Rdatatable/data.table/src/forder.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
+#include <stdio.h>   // printf
 #include <string.h>  // memcpy
 #include <omp.h>
 #include "myassert.h"

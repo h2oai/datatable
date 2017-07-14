@@ -26,7 +26,8 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
 {
     assert(ncols >= dt->ncols);
     dtrealloc(dt->columns, Column*, ncols + 1);
-    dt->columns[ncols] = NULL;
+    for (int64_t i = dt->ncols; i <= ncols; i++)
+        dt->columns[i] = NULL;
 
     int64_t nrows = dt->nrows;
     for (int i = 0; i < ndts; i++) {
@@ -37,6 +38,7 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
     if (dt->rowindex) {
         for (int i = 0; i < dt->ncols; i++) {
             Column *newcol = column_extract(dt->columns[i], dt->rowindex);
+            if (newcol == NULL) return NULL;
             column_decref(dt->columns[i]);
             dt->columns[i] = newcol;
         }
@@ -62,9 +64,10 @@ dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
             } else {
                 cols0[j] = column_incref(dts[j]->columns[cols[i][j]]);
             }
+            if (cols0[j] == NULL) return NULL;
         }
         ret = column_rbind(col0, cols0);
-        if (!ret) return NULL;
+        if (ret == NULL) return NULL;
         dt->columns[i] = ret;
     }
     dt->ncols = ncols;
