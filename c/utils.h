@@ -129,10 +129,11 @@ float max_f4(float a, float b);
  * Macro to free the memory previously allocated with `dtmalloc` / `dtrealloc`.
  * This frees the memory and sets the pointer to NULL, for safety.
  **/
-#define dtfree(ptr) do {                                                       \
+#define dtfree(ptr) while (ptr) {                                              \
+    /* printf("  free(%p) at %s line %d\n", (void*)ptr, __FILE__, __LINE__); */\
     _dt_free(ptr);                                                             \
     ptr = null;                                                                \
-} while(0)
+}
 
 
 
@@ -166,7 +167,7 @@ void  _dt_free(void *ptr);
  * Raise a RuntimeError with the provided message
  */
 #define dterrr(format, ...) do {                                               \
-    _dt_err_r(format "\nFile %s, line %d", __VA_ARGS__, __FILE__, __LINE__);   \
+    _dt_err_r(format "\nat %s#L%d", __VA_ARGS__, __FILE__, __LINE__);          \
     return NULL;                                                               \
 } while (0)
 
@@ -174,7 +175,7 @@ void  _dt_free(void *ptr);
  * Raise a ValueError with the provided message
  */
 #define dterrv(format, ...) do {                                               \
-    _dt_err_v(format "\nFile %s, line %d", __VA_ARGS__, __FILE__, __LINE__);   \
+    _dt_err_v(format "\nat %s#L%d", __VA_ARGS__, __FILE__, __LINE__);          \
     return NULL;                                                               \
 } while (0)
 
@@ -182,13 +183,13 @@ void  _dt_free(void *ptr);
  * Raise a RuntimeError, but also include in the message current `errno`.
  */
 #define dterre(format, ...) do {                                               \
-    _dt_err_r(format ": Error %d %s\nFile %s, line %d",                        \
+    _dt_err_r(format ": Error %d %s\nat %s#L%d",                               \
               __VA_ARGS__, errno, strerror(errno), __FILE__, __LINE__);        \
     return NULL;                                                               \
 } while (0)
 
 #define dterre0(message) do {                                                  \
-    _dt_err_r(message ": Error %d %s\nFile %s, line %d",                       \
+    _dt_err_r(message ": Error %d %s\nat %s#L%d",                              \
               errno, strerror(errno), __FILE__, __LINE__);                     \
     return NULL;                                                               \
 } while (0)

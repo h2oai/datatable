@@ -235,7 +235,8 @@ static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
         }
         dts[i] = dti;
     }
-    dt_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+    DataTable *ret = dt_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+    if (ret == NULL) return NULL;
 
     dtfree(cols_to_append);
     dtfree(dts);

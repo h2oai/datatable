@@ -8,8 +8,8 @@
 
 // Forward declarations
 static void set_value(void * restrict ptr, const void * restrict value, size_t sz, size_t count);
-static Column* column_rbind_fw(Column *self, Column **cols, int64_t nrows);
-static Column* column_rbind_str32(Column *col, Column **cols, int64_t nrows);
+static Column* column_rbind_fw(Column *self, Column **cols, int64_t nrows, int col_empty);
+static Column* column_rbind_str32(Column *col, Column **cols, int64_t nrows, int col_empty);
 
 
 
@@ -45,29 +45,30 @@ Column* column_rbind(Column *self, Column **cols)
     // filled with NAs; the current column (`self`); a clone of the current
     // column (if it has refcount > 1); or a type-cast of the current column.
     Column *res = NULL;
-    if (self->stype == 0) {
+    int col_empty = (self->stype == 0);
+    if (col_empty) {
         res = make_data_column(stype, (size_t) self->nrows);
-        res->refcount = 0;
     } else if (self->refcount == 1 && self->mtype == MT_DATA &&
                self->stype == stype) {
         // Happy place: current column can be modified in-place.
-        res = column_incref(self);
+        res = self;
     } else {
         res = (self->stype == stype) ? column_copy(self)
                                      : column_cast(self, stype);
     }
     if (res == NULL) return NULL;
-    column_decref(self);
-    assert(res->stype == stype && res->refcount <= 1 &&
-           res->mtype == MT_DATA && res->nrows == nrows0);
+    assert(res->stype == stype && res->mtype == MT_DATA &&
+           res->nrows == nrows0);
 
     // Use the appropriate strategy to continue appending the columns.
-    if (!stype_info[stype].varwidth) {
-        return column_rbind_fw(res, cols, nrows);
-    } else if (stype == ST_STRING_I4_VCHAR) {
-        return column_rbind_str32(res, cols, nrows);
-    }
-    return NULL;
+    res = (stype == ST_STRING_I4_VCHAR) ? column_rbind_str32(res, cols, nrows, col_empty) :
+          (!stype_info[stype].varwidth) ? column_rbind_fw(res, cols, nrows, col_empty) : NULL;
+
+    // If everything is fine, then the current column can be safely discarded
+    // -- the upstream caller will replace this column with the `res`. However
+    // if any error occurred (res == NULL), then `self` will be left intact.
+    if (res && res != self) column_decref(self);
+    return res;
 }
 
 
@@ -75,19 +76,18 @@ Column* column_rbind(Column *self, Column **cols)
 /**
  * Helper method designed specifically to append columns of fixed-width stypes.
  * The current column (`self`) will be modified in-place, and must already be
- * "clean", i.e. have refcount 1 and memory type MT_DATA. As a special case, if
- * the current column is empty and haven't been filled with NAs yet, then its
- * refcount will be set to 0.
+ * "clean", i.e. have refcount 1 and memory type MT_DATA.
  *
- * The `cols` array has the same meaning as in `column_rbind()`. Lastly, `nrows`
- * is the final row count for the column being constructed.
+ * The `cols` array has the same meaning as in `column_rbind()`. Then, `nrows`
+ * is the final row count for the column being constructed. Lastly, flag
+ * `col_empty` indicates that the current column is empty and haven't been
+ * filled with NAs yet.
  */
 static Column*
-column_rbind_fw(Column *self, Column **cols, int64_t nrows)
+column_rbind_fw(Column *self, Column **cols, int64_t nrows, int col_empty)
 {
     size_t elemsize = stype_info[self->stype].elemsize;
     const void *na = stype_info[self->stype].na;
-    int col_empty = (self->refcount == 0);
 
     // Reallocate the column's data buffer
     size_t old_nrows = (size_t) self->nrows;
@@ -96,7 +96,6 @@ column_rbind_fw(Column *self, Column **cols, int64_t nrows)
     dtrealloc(self->data, void, new_alloc_size);
     self->alloc_size = new_alloc_size;
     self->nrows = nrows;
-    self->refcount = 1;
 
     // Copy the data
     void *resptr = col_empty? self->data : add_ptr(self->data, old_alloc_size);
@@ -143,12 +142,11 @@ column_rbind_fw(Column *self, Column **cols, int64_t nrows)
  * The meta information structure for this column contains the offset of the
  * "offsets" region.
  */
-static Column* column_rbind_str32(Column *self, Column **cols, int64_t nrows)
+static Column*
+column_rbind_str32(Column *self, Column **cols, int64_t nrows, int col_empty)
 {
     assert(self->stype == ST_STRING_I4_VCHAR);
     size_t elemsize = 4;
-    int col_empty = (self->refcount == 0);
-    self->refcount = 1;
 
     // Determine the size of the memory to allocate
     size_t old_nrows = (size_t) self->nrows;

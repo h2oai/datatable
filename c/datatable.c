@@ -92,8 +92,8 @@ void datatable_dealloc(DataTable *self)
     for (int64_t i = 0; i < self->ncols; i++) {
         column_decref(self->columns[i]);
     }
-    free(self->columns);
-    free(self);
+    dtfree(self->columns);
+    dtfree(self);
 }
 
 
