@@ -48,8 +48,10 @@ static Column* easy_i1i_to_i2i(Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data;
     int16_t *res_data = (int16_t*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int8_t x = src_data[i];
+        res_data[i] = x == NA_I1? NA_I2 : x;
+    }
     return res;
 }
 
@@ -57,8 +59,10 @@ static Column* easy_i1i_to_i4i(Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data;
     int32_t *res_data = (int32_t*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int8_t x = src_data[i];
+        res_data[i] = x == NA_I1? NA_I4 : x;
+    }
     return res;
 }
 
@@ -66,8 +70,10 @@ static Column* easy_i1i_to_i8i(Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data;
     int64_t *res_data = (int64_t*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int8_t x = src_data[i];
+        res_data[i] = x == NA_I1? NA_I8 : x;
+    }
     return res;
 }
 
@@ -75,8 +81,10 @@ static Column* easy_i1i_to_f4r(Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data;
     float *res_data = (float*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int8_t x = src_data[i];
+        res_data[i] = x == NA_I1? NA_F4 : x;
+    }
     return res;
 }
 
@@ -84,8 +92,10 @@ static Column* easy_i1i_to_f8r(Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data;
     double *res_data = (double*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int8_t x = src_data[i];
+        res_data[i] = x == NA_I1? NA_F8 : x;
+    }
     return res;
 }
 
@@ -96,8 +106,10 @@ static Column* easy_i2i_to_i4i(Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data;
     int32_t *res_data = (int32_t*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int16_t x = src_data[i];
+        res_data[i] = x == NA_I2 ? NA_I4 : x;
+    }
     return res;
 }
 
@@ -105,8 +117,10 @@ static Column* easy_i2i_to_i8i(Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data;
     int64_t *res_data = (int64_t*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int16_t x = src_data[i];
+        res_data[i] = x == NA_I2 ? NA_I8 : x;
+    }
     return res;
 }
 
@@ -114,8 +128,10 @@ static Column* easy_i2i_to_f4r(Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data;
     float *res_data = (float*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int16_t x = src_data[i];
+        res_data[i] = x == NA_I2 ? NA_F4 : x;
+    }
     return res;
 }
 
@@ -123,8 +139,10 @@ static Column* easy_i2i_to_f8r(Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data;
     double *res_data = (double*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int16_t x = src_data[i];
+        res_data[i] = x == NA_I2 ? NA_F8 : x;
+    }
     return res;
 }
 
@@ -135,8 +153,10 @@ static Column* easy_i4i_to_i8i(Column *self, Column *res)
 {
     int32_t *src_data = (int32_t*) self->data;
     int64_t *res_data = (int64_t*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int32_t x = src_data[i];
+        res_data[i] = x == NA_I4 ? NA_I8 : x;
+    }
     return res;
 }
 
@@ -144,8 +164,10 @@ static Column* easy_i4i_to_f4r(Column *self, Column *res)
 {
     int32_t *src_data = (int32_t*) self->data;
     float *res_data = (float*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int32_t x = src_data[i];
+        res_data[i] = x == NA_I4 ? NA_F4 : x;
+    }
     return res;
 }
 
@@ -153,8 +175,10 @@ static Column* easy_i4i_to_f8r(Column *self, Column *res)
 {
     int32_t *src_data = (int32_t*) self->data;
     double *res_data = (double*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int32_t x = src_data[i];
+        res_data[i] = x == NA_I4 ? NA_F8 : x;
+    }
     return res;
 }
 
@@ -165,8 +189,10 @@ static Column* easy_i8i_to_f4r(Column *self, Column *res)
 {
     int64_t *src_data = (int64_t*) self->data;
     float *res_data = (float*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int64_t x = src_data[i];
+        res_data[i] = x == NA_I8 ? NA_F4 : x;
+    }
     return res;
 }
 
@@ -174,8 +200,10 @@ static Column* easy_i8i_to_f8r(Column *self, Column *res)
 {
     int64_t *src_data = (int64_t*) self->data;
     double *res_data = (double*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        int64_t x = src_data[i];
+        res_data[i] = x == NA_I8 ? NA_F8 : x;
+    }
     return res;
 }
 
@@ -186,8 +214,10 @@ static Column* easy_f4r_to_f8r(Column *self, Column *res)
 {
     float *src_data = (float*) self->data;
     double *res_data = (double*) res->data;
-    for (int64_t i = 0; i < self->nrows; i++)
-        res_data[i] = (double) src_data[i];
+    for (int64_t i = 0; i < self->nrows; i++) {
+        float x = src_data[i];
+        res_data[i] = ISNA_F4(x) ? NA_F8 : (double) x;
+    }
     return res;
 }
 
