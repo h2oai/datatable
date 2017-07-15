@@ -86,5 +86,6 @@ size_t column_i4s_padding(size_t datasize);
 Column* column_incref(Column *self);
 void column_decref(Column *self);
 
+void init_column_cast_functions(void);
 
 #endif
