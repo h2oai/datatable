@@ -49,14 +49,13 @@ dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
 
 
 /**
- * Given an ARR64 RowIndex `self` attempt to compactify it (i.e. convert into
- * an ARR32 rowindex), and return self if successful (the RowIndex object
- * is modified in-place).
+ * Attempt to convert an ARR64 RowIndex object into the ARR32 format. If such
+ * conversion is possible, the object will be modified in-place.
  */
-RowIndex* rowindex_compactify(RowIndex *self)
+void rowindex_compactify(RowIndex *self)
 {
     if (self->type != RI_ARR64 || self->max > INT32_MAX ||
-        self->length > INT32_MAX) return 0;
+        self->length > INT32_MAX) return;
 
     int64_t *src = self->ind64;
     int32_t *res = (int32_t*) src;  // Note: res writes on top of src!
@@ -64,10 +63,10 @@ RowIndex* rowindex_compactify(RowIndex *self)
     for (int32_t i = 0; i < len; i++) {
         res[i] = (int32_t) src[i];
     }
-    dtrealloc(res, int32_t, len);
+    dtrealloc_g(res, int32_t, len);
     self->type = RI_ARR32;
     self->ind32 = res;
-    return self;
+    fail: {}
 }
 
 
@@ -189,8 +188,7 @@ RowIndex* rowindex_from_slicelist(
  * passed, in particular we do not attempt to compactify an int64_t[] array into
  * int32_t[] even if it were possible.
  */
-RowIndex*
-rowindex_from_i32_array(int32_t *array, int64_t n)
+RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n)
 {
     if (n < 0 || n > INT32_MAX) return NULL;
     RowIndex *res = NULL;
@@ -214,8 +212,7 @@ rowindex_from_i32_array(int32_t *array, int64_t n)
     return res;
 }
 
-RowIndex*
-rowindex_from_i64_array(int64_t *array, int64_t n)
+RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n)
 {
     if (n < 0) return NULL;
     RowIndex *res = NULL;
@@ -302,6 +299,7 @@ RowIndex* rowindex_from_datacolumn(Column *col, int64_t nrows)
 /**
  * Construct a `RowIndex` object using a boolean data column `col` with
  * another RowIndex applied to it.
+ *
  * This function is complimentary to `rowindex_from_datacolumn()`: if you
  * need to construct a RowIndex from a "view" column, then this column can
  * be mapped to a pair of source data column and a rowindex object.
@@ -364,21 +362,43 @@ rowindex_from_column_with_rowindex(Column *col, RowIndex *rowindex)
 
 
 /**
- * Merge two `RowIndex`es, and return the combined `RowIndex`. Specifically,
- * suppose there are objects A, B, C such that the map from A rows onto B is
- * described by the index `ri_ab`, and the map from rows of B onto C is given
- * by `ri_bc`. Then the "merged" RowIndex will describe how rows of A are
- * mapped onto rows of C.
+ * Return a (deep) copy of the provided rowindex.
+ */
+RowIndex* rowindex_copy(RowIndex *self)
+{
+    RowIndex *res = NULL;
+    dtmalloc(res, RowIndex, 1);
+    memcpy(res, self, sizeof(RowIndex));
+    if (self->type == RI_ARR32 || self->type == RI_ARR64) {
+        size_t length = (size_t) self->length;
+        size_t elemsize = (self->type == RI_ARR32) ? 4 : 8;
+        dtmalloc(res->ind32, void, elemsize * length);
+        memcpy(res->ind32, self->ind32, elemsize * length);
+    }
+    return res;
+}
+
+
+
+/**
+ * Merge two `RowIndex`es, and return the combined rowindex.
+ *
+ * Specifically, suppose there are data tables A, B, C such that rows of B are
+ * a subset of rows of A, and rows of C are a subset of B's. Let `ri_ab`
+ * describe the mapping of A's rows onto B's, and `ri_bc` the mapping from
+ * B's rows onto C's. Then the "merged" RowIndex shall describe how the rows of
+ * A are mapped onto the rows of C.
  * Rowindex `ri_ab` may also be NULL, in which case a clone of `ri_bc` is
  * returned.
  */
 RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc)
 {
-    if (ri_bc == NULL) return NULL;
+    if (ri_ab == NULL) return rowindex_copy(ri_bc);
+    if (ri_bc == NULL) return rowindex_copy(ri_ab);
 
     int64_t n = ri_bc->length;
     RowIndexType type_bc = ri_bc->type;
-    RowIndexType type_ab = ri_ab == NULL? 0 : ri_ab->type;
+    RowIndexType type_ab = ri_ab->type;
 
     RowIndex *res = NULL;
     dtmalloc(res, RowIndex, 1);
@@ -396,14 +416,7 @@ RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc)
         case RI_SLICE: {
             int64_t start_bc = ri_bc->slice.start;
             int64_t step_bc = ri_bc->slice.step;
-            if (ri_ab == NULL) {
-                res->type = RI_SLICE;
-                res->min = ri_bc->min;
-                res->max = ri_bc->max;
-                res->slice.start = start_bc;
-                res->slice.step = step_bc;
-            }
-            else if (type_ab == RI_SLICE) {
+            if (type_ab == RI_SLICE) {
                 // Product of 2 slices is again a slice.
                 int64_t start_ab = ri_ab->slice.start;
                 int64_t step_ab = ri_ab->slice.step;
@@ -468,14 +481,7 @@ RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc)
 
         case RI_ARR32:
         case RI_ARR64: {
-            size_t elemsize = (type_bc == RI_ARR32)? 4 : 8;
-            if (ri_ab == NULL) {
-                res->type = type_bc;
-                res->min = ri_bc->min;
-                res->max = ri_bc->max;
-                memcpy(res->ind32, ri_bc->ind32, elemsize * (size_t)n);
-            }
-            else if (type_ab == RI_SLICE) {
+            if (type_ab == RI_SLICE) {
                 int64_t start_ab = ri_ab->slice.start;
                 int64_t step_ab = ri_ab->slice.step;
                 int64_t *rowsres; dtmalloc(rowsres, int64_t, n);

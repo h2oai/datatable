@@ -159,6 +159,6 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
     return src
 
 
-
+#
 # This is how the function will be exported (do we need this?)
 dt_append = append

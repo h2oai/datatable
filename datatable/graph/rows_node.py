@@ -54,19 +54,15 @@ class RowFilterNode(Node):
 
 #===============================================================================
 
-class SliceRowsNode(Node):
+class Slice_RFNode(Node):
 
     def __init__(self, start, count, step):
         super().__init__()
         assert start >= 0 and count >= 0
-        self._start = start
-        self._count = count
-        self._step = step
+        self._triple = (start, count, step)
 
     def get_result(self):
-        return _datatable.rowindex_from_slice(
-            self._start, self._count, self._step
-        )
+        return _datatable.rowindex_from_slice(*self._triple)
 
 
 
@@ -149,7 +145,7 @@ def _make_rowfilter(rows, dt, _nested=False):
     """
     nrows = dt.nrows
     if rows is Ellipsis or rows is None:
-        return SliceRowsNode(0, nrows, 1)
+        return Slice_RFNode(0, nrows, 1)
 
     # from_scalar = False
     if isinstance(rows, (int, slice, range)):
@@ -159,7 +155,7 @@ def _make_rowfilter(rows, dt, _nested=False):
     from_generator = False
     if isinstance(rows, types.GeneratorType):
         # If an iterator is given, materialize it first. Otherwise there
-        # is no way of telling whether the produced indices are valid.
+        # is no way to ensure that the produced indices are valid.
         rows = list(rows)
         from_generator = True
 
@@ -214,11 +210,11 @@ def _make_rowfilter(rows, dt, _nested=False):
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
-                return SliceRowsNode(bases[0], 1, 1)
+                return Slice_RFNode(bases[0], 1, 1)
             else:
                 return Array_RFNode(bases)
         elif len(bases) == 1:
-            return SliceRowsNode(bases[0], counts[0], steps[0])
+            return Slice_RFNode(bases[0], counts[0], steps[0])
         else:
             return MultiSlice_RFNode(bases, counts, steps)
 
