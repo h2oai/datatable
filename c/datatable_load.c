@@ -72,5 +72,5 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         if (columns[i] == NULL) return NULL;
     }
 
-    return make_datatable(nrows, columns);
+    return make_datatable(columns, NULL);
 }

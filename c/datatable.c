@@ -8,41 +8,28 @@ static int _compare_ints(const void *a, const void *b);
 
 
 /**
- * Create new DataTable given its number of rows, and the array of `Column`
- * objects.
+ * Create new DataTable given the set of columns and a rowindex. The `rowindex`
+ * object may also be NULL, in which case a DataTable without a rowindex will
+ * be constructed.
  */
-DataTable* make_datatable(int64_t nrows, Column **cols)
+DataTable* make_datatable(Column **cols, RowIndex *rowindex)
 {
     if (cols == NULL) return NULL;
     int64_t ncols = 0;
     while(cols[ncols] != NULL) ncols++;
+
     DataTable *res = NULL;
     dtmalloc(res, DataTable, 1);
-    res->nrows = nrows;
+    res->nrows = 0;
     res->ncols = ncols;
     res->rowindex = NULL;
     res->columns = cols;
-    return res;
-}
-
-
-
-/**
- * Create new DataTable given its number of rows, and the array of `Column`
- * objects.
- */
-DataTable* datatable_assemble(RowIndex *rowindex, Column **cols)
-{
-    if (cols == NULL || rowindex == NULL) return NULL;
-    int64_t ncols = 0;
-    while(cols[ncols] != NULL) ncols++;
-
-    DataTable *res = NULL;
-    dtmalloc(res, DataTable, 1);
-    res->nrows = rowindex->length;
-    res->ncols = ncols;
-    res->rowindex = rowindex;
-    res->columns = cols;
+    if (rowindex) {
+        res->rowindex = rowindex;
+        res->nrows = rowindex->length;
+    } else if (ncols) {
+        res->nrows = cols[0]->nrows;
+    }
     return res;
 }
 

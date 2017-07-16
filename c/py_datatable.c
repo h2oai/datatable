@@ -124,7 +124,7 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
     pyri->ref = NULL;
     Column **columns = pycols->columns;
     pycols->columns = NULL;
-    return py(datatable_assemble(rowindex, columns));
+    return py(make_datatable(columns, rowindex));
 }
 
 

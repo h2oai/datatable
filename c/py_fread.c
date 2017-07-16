@@ -335,7 +335,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     }
 
     if (dt == NULL) {
-        dt = make_datatable((int64_t)nrows, columns);
+        dt = make_datatable(columns, NULL);
         if (dt == NULL) goto fail;
     }
     return 1;
