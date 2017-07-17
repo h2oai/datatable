@@ -257,7 +257,6 @@ def test_rows_function(dt0):
 
 
 
-@pytest.mark.skip(reason="Need to implement columnsets over view datatables")
 def test_chained_slice(dt0):
     dt1 = dt0[::2, :]
     assert dt1.shape == (5, 3)
@@ -276,7 +275,6 @@ def test_chained_slice(dt0):
     assert as_list(dt4) == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
 
 
-@pytest.mark.skip(reason="Need to implement columnsets over view datatables")
 def test_chained_array(dt0):
     dt1 = dt0[(2, 5, 1, 1, 1, 0), :]
     assert dt1.shape == (6, 3)

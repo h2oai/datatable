@@ -45,6 +45,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(rowindex_from_array),
     METHOD0(rowindex_from_column),
     METHOD0(rowindex_from_filterfn),
+    METHOD0(rowindex_merge),
     METHOD0(datatable_assemble),
     METHOD0(datatable_from_list),
     METHOD0(datatable_load),

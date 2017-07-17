@@ -63,7 +63,7 @@ class RFNode(Node):
         dt = self._dt.internal
         ri = self.make_target_rowindex()
         if dt.isview:
-            return _datatable.rowindex_merge(ri, dt.rowindex)
+            return _datatable.rowindex_merge(dt, ri)
         else:
             return ri
 

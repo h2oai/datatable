@@ -29,6 +29,7 @@ PyObject* pyrowindex_from_slicelist(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_array(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_column(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args);
+PyObject* pyrowindex_merge(PyObject*, PyObject *args);
 
 int init_py_rowindex(PyObject *module);
 

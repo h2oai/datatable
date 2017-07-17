@@ -96,10 +96,6 @@ class DatatableNode(Node):
 def make_datatable(dt, rows, select):
     rows_node = make_rowfilter(rows, dt)
     cols_node = make_columnset(select, dt)
-    # print()
-    # print(rows_node)
-    # print(cols_node)
-    # rowsall = isinstance(rows_node, All_RFNode)
 
     # Select some (or all) rows + some (or all) columns. In this case there is
     # no need to create a view (unless `dt` was a view): columns can be simply
@@ -110,5 +106,4 @@ def make_datatable(dt, rows, select):
         res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, colnames=cols_node.column_names)
 
-    # print("not handled")
     return None
