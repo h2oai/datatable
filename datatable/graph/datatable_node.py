@@ -61,4 +61,5 @@ def make_datatable(dt, rows, select):
         res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, colnames=cols_node.column_names)
 
+    # raise RuntimeError("Not handled: %r, %r" % (rows_node, cols_node))
     return None
