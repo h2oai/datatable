@@ -41,9 +41,6 @@ class IteratorNode(object):
         self._cnode = None
         self._fnidx = None
 
-    def stir(self):
-        self._fnidx = self.generate_c()
-
     def get_result(self):
         self._fnidx = self.generate_c()
         return self._cnode.get_result(self._fnidx)
