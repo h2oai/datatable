@@ -39,6 +39,7 @@ PyObject* exec_function(PyObject *self, PyObject *args)
 static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(columns_from_pymixed),
     METHOD0(columns_from_slice),
+    METHOD0(columns_from_array),
     METHOD0(datatable_assemble),
     METHOD0(rowindex_from_slice),
     METHOD0(rowindex_from_slicelist),

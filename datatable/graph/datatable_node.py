@@ -4,8 +4,8 @@
 import _datatable
 import datatable
 from .node import Node
-from .soup import NodeSoup
-
+from .rows_node import _make_rowfilter, All_RFNode
+from .cols_node import make_columnset, Slice_CSNode, Array_CSNode
 
 
 #===============================================================================
@@ -91,3 +91,21 @@ class DatatableNode(Node):
     #             .format(dtptr=id(self._dt.internal),
     #                     make_rowindex=frowindex,
     #                     make_columns=fcolumns))
+
+
+def make_datatable(dt, rows, select):
+    rows_node = _make_rowfilter(rows, dt)
+    cols_node = make_columnset(select, dt)
+    # print()
+    # print(rows_node)
+    # print(cols_node)
+    rowsall = isinstance(rows_node, All_RFNode)
+    colslice = isinstance(cols_node, (Slice_CSNode, Array_CSNode))
+    if rowsall and colslice:
+        rowindex = rows_node.make_final_rowindex()
+        columns = cols_node.get_result()
+        res_dt = _datatable.datatable_assemble(rowindex, columns)
+        return datatable.DataTable(res_dt, colnames=cols_node.column_names)
+
+    # print("not handled")
+    return None

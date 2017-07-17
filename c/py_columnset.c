@@ -50,6 +50,26 @@ PyObject* pycolumns_from_slice(UU, PyObject *args)
 }
 
 
+PyObject* pycolumns_from_array(UU, PyObject *args)
+{
+    DataTable *dt;
+    PyObject *elems;
+    if (!PyArg_ParseTuple(args, "O&O!:columns_from_slice",
+                          &dt_unwrap, &dt, &PyList_Type, &elems))
+        return NULL;
+
+    int64_t ncols = PyList_Size(elems);
+    int64_t *indices = NULL;
+    dtmalloc(indices, int64_t, ncols);
+    for (int64_t i = 0; i < ncols; i++) {
+        PyObject *elem = PyList_GET_ITEM(elems, i);
+        indices[i] = (int64_t) PyLong_AsSize_t(elem);
+    }
+
+    PyObject* res = py(columns_from_array(dt, indices, ncols));
+    return res;
+}
+
 
 PyObject* pycolumns_from_pymixed(UU, PyObject *args)
 {

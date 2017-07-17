@@ -16,6 +16,7 @@ extern PyTypeObject ColumnSet_PyType;
 int columnset_unwrap(PyObject *object, void *address);
 
 PyObject* pycolumns_from_slice(PyObject *self, PyObject *args);
+PyObject* pycolumns_from_array(PyObject *self, PyObject *args);
 PyObject* pycolumns_from_pymixed(PyObject *self, PyObject *args);
 
 

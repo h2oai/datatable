@@ -75,10 +75,10 @@ def test_rows_ellipsis(dt0):
     """Both dt(...) and dt() should select all rows and all columns."""
     dt1 = dt0()
     assert dt1.shape == (10, 3)
-    assert is_slice(dt1)
+    assert not dt1.internal.isview
     dt1 = dt0(...)
     assert dt1.shape == (10, 3)
-    assert is_slice(dt1)
+    assert not dt1.internal.isview
 
 
 def test_rows_integer(dt0):
@@ -164,6 +164,7 @@ def test_rows_range(dt0):
                       "Invalid range(-5, 5) for a datatable with 10 rows")
 
 
+@pytest.mark.skip(reason="transitioning to new datatable evaluation scheme")
 def test_rows_generator(dt0):
     """
     Test the use of a generator object as a row selector:

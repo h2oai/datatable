@@ -53,12 +53,15 @@ def test_cols_ellipsis(dt0):
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
     assert dt1.types == dt0.types
-    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+    assert not dt1.internal.isview
+
+
+def test_cols_none(dt0):
     dt1 = dt0(select=None)
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
     assert dt1.types == dt0.types
-    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+    assert not dt1.internal.isview
 
 
 def test_cols_integer(dt0, tbl0):
@@ -71,7 +74,7 @@ def test_cols_integer(dt0, tbl0):
         dt1 = dt0[i]
         assert dt1.shape == (6, 1)
         assert dt1.names == ("ABCD"[i], )
-        assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+        assert not dt1.internal.isview
         assert as_list(dt1)[0] == tbl0[i]
     assert_valueerror(dt0, 4, "Column index `4` is invalid for a datatable "
                               "with 4 columns")
@@ -83,7 +86,7 @@ def test_cols_string(dt0, tbl0):
         dt1 = dt0[s]
         assert dt1.shape == (6, 1)
         assert dt1.names == (s, )
-        assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+        assert not dt1.internal.isview
         assert as_list(dt1)[0] == tbl0["ABCD".index(s)]
     assert_valueerror(dt0, "Z", "Column `Z` does not exist in <DataTable")
 
@@ -112,7 +115,7 @@ def test_cols_intslice(dt0, tbl0):
         assert as_list(dt1) == tbl0[s]
         assert dt1.names == dt0.names[s]
         assert dt1.types == dt0.types[s]
-        assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+        assert not dt1.internal.isview
 
 
 def test_cols_strslice(dt0, tbl0):
@@ -143,17 +146,17 @@ def test_cols_list(dt0, tbl0):
     dt1 = dt0[[3, 1, 0]]
     assert dt1.shape == (6, 3)
     assert dt1.names == ("D", "B", "A")
-    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+    assert not dt1.internal.isview
     assert as_list(dt1) == [tbl0[3], tbl0[1], tbl0[0]]
     dt2 = dt0(select=("D", "C", "B", "A"))
     assert dt2.shape == (6, 4)
     assert dt2.names == tuple("DCBA")
-    assert dt2.internal.isview and dt2.internal.rowindex_type == "slice"
+    assert not dt2.internal.isview
     assert as_list(dt2) == tbl0[::-1]
     dt3 = dt0(select=[slice(None, None, 2), slice(1, None, 2)])
     assert dt3.shape == (6, 4)
     assert dt3.names == tuple("ACBD")
-    assert dt3.internal.isview and dt3.internal.rowindex_type == "slice"
+    assert not dt3.internal.isview
     assert as_list(dt3) == [tbl0[0], tbl0[2], tbl0[1], tbl0[3]]
 
 
@@ -165,12 +168,12 @@ def test_cols_dict(dt0, tbl0):
     dt1 = dt0(select={"x": 0, "y": "D"})
     assert dt1.shape == (6, 2)
     assert dt1.names == ("x", "y")
-    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+    assert not dt1.internal.isview
     assert as_list(dt1) == [tbl0[0], tbl0[3]]
     dt2 = dt0[{"_": slice(None)}]
     assert dt2.shape == (6, 4)
     assert dt2.names == ("_", "_1", "_2", "_3")
-    assert dt2.internal.isview and dt2.internal.rowindex_type == "slice"
+    assert not dt2.internal.isview
     assert as_list(dt2) == tbl0
 
 
@@ -183,17 +186,17 @@ def test_cols_colselector(dt0, tbl0):
     dt1 = dt0(select=lambda f: f.B)
     assert dt1.shape == (6, 1)
     assert dt1.names == ("B", )
-    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+    assert not dt1.internal.isview
     assert as_list(dt1) == [tbl0[1]]
     dt1 = dt0(select=lambda f: [f.A, f.C])
     assert dt1.shape == (6, 2)
     assert dt1.names == ("A", "C")
-    assert dt1.internal.isview and dt1.internal.rowindex_type == "slice"
+    assert not dt1.internal.isview
     assert as_list(dt1) == [tbl0[0], tbl0[2]]
     dt3 = dt0[lambda f: {"x": f.A, "y": f.D}]
     assert dt3.shape == (6, 2)
     assert dt3.names == ("x", "y")
-    assert dt3.internal.isview and dt3.internal.rowindex_type == "slice"
+    assert not dt3.internal.isview
 
 
 def test_cols_expression(dt0, tbl0):

@@ -52,18 +52,60 @@ class RowFilterNode(Node):
 
 
 
+class RFNode(Node):
+    """Base class for all RowFilter nodes."""
+
+    def __init__(self, dt):
+        super().__init__()
+        self._dt = dt
+
+    def make_final_rowindex(self):
+        dt = self._dt.internal
+        ri = self.make_target_rowindex()
+        if dt.isview:
+            return _datatable.rowindex_merge(ri, dt.rowindex)
+        else:
+            return ri
+
+    def make_target_rowindex(self):
+        raise NotImplementedError
+
+
+
 #===============================================================================
 
-class Slice_RFNode(Node):
+class All_RFNode(RFNode):
+    """
+    Class representing selection of all rows from the datatable.
 
-    def __init__(self, start, count, step):
-        super().__init__()
+    Although "all rows" selector can easily be implemented as a slice, we want
+    to have a separate class because (1) this is a very common selector type,
+    and (2) in some cases useful optimizations can be achieved if we know that
+    all rows are selected from a datatable.
+    """
+
+    def make_target_rowindex(self):
+        return None
+
+    def get_result(self):  # temporary
+        t = Slice_RFNode(self._dt, 0, self._dt.nrows, 1)
+        return t.get_result()
+
+
+#===============================================================================
+
+class Slice_RFNode(RFNode):
+
+    def __init__(self, dt, start, count, step):
+        super().__init__(dt)
         assert start >= 0 and count >= 0
         self._triple = (start, count, step)
 
     def get_result(self):
         return _datatable.rowindex_from_slice(*self._triple)
 
+    def make_target_rowindex(self):
+        return _datatable.rowindex_from_slice(*self._triple)
 
 
 #===============================================================================
@@ -145,7 +187,7 @@ def _make_rowfilter(rows, dt, _nested=False):
     """
     nrows = dt.nrows
     if rows is Ellipsis or rows is None:
-        return Slice_RFNode(0, nrows, 1)
+        return All_RFNode(dt)
 
     # from_scalar = False
     if isinstance(rows, (int, slice, range)):
@@ -210,11 +252,14 @@ def _make_rowfilter(rows, dt, _nested=False):
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
-                return Slice_RFNode(bases[0], 1, 1)
+                return Slice_RFNode(dt, bases[0], 1, 1)
             else:
                 return Array_RFNode(bases)
         elif len(bases) == 1:
-            return Slice_RFNode(bases[0], counts[0], steps[0])
+            if bases[0] == 0 and counts[0] == nrows and steps[0] == 1:
+                return All_RFNode(dt)
+            else:
+                return Slice_RFNode(dt, bases[0], counts[0], steps[0])
         else:
             return MultiSlice_RFNode(bases, counts, steps)
 

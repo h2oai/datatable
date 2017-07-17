@@ -114,16 +114,25 @@ static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 
 PyObject* pydatatable_assemble(UU, PyObject *args)
 {
-    RowIndex_PyObject *pyri;
+    PyObject *arg1;
     ColumnSet_PyObject *pycols;
-    if (!PyArg_ParseTuple(args, "O!O!:datatable_assemble_view",
-                          &RowIndex_PyType, &pyri,
-                          &ColumnSet_PyType, &pycols))
+    if (!PyArg_ParseTuple(args, "OO!:datatable_assemble_view",
+                          &arg1, &ColumnSet_PyType, &pycols))
         return NULL;
-    RowIndex *rowindex = pyri->ref;
-    pyri->ref = NULL;
     Column **columns = pycols->columns;
     pycols->columns = NULL;
+    RowIndex *rowindex = NULL;
+    if (arg1 == Py_None) {
+        /* Don't do anything: rowindex should be NULL */
+    } else {
+        if (!PyObject_TypeCheck(arg1, &RowIndex_PyType)) {
+            PyErr_Format(PyExc_TypeError, "Expected object of type RowIndex");
+            return NULL;
+        }
+        RowIndex_PyObject *pyri = (RowIndex_PyObject*) arg1;
+        rowindex = pyri->ref;
+        pyri->ref = NULL;
+    }
     return py(make_datatable(columns, rowindex));
 }
 

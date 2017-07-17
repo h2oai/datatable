@@ -17,10 +17,8 @@ columns_from_slice(DataTable *dt, int64_t start, int64_t count, int64_t step)
     columns[count] = NULL;
 
     for (int64_t i = 0, j = start; i < count; i++, j += step) {
-        columns[i] = srccols[j];
-        column_incref(columns[i]);
+        columns[i] = column_incref(srccols[j]);
     }
-
     return columns;
 }
 
@@ -40,11 +38,8 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
     columns[ncols] = NULL;
 
     for (int64_t i = 0; i < ncols; i++) {
-        int64_t j = indices[i];
-        columns[i] = (j >= 0)? srccols[j] : NULL;
-        column_incref(columns[i]);
+        columns[i] = column_incref(srccols[indices[i]]);
     }
-
     return columns;
 }
 
