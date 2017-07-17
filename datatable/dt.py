@@ -15,7 +15,7 @@ from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import TTypeError, TValueError, typed, U
 from datatable.graph import (DatatableNode, RowFilterNode, make_columnset,
-                             NodeSoup)
+                             NodeSoup, make_datatable)
 
 __all__ = ("DataTable", )
 
@@ -342,6 +342,12 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         time0 = time.time() if timeit else 0
+        z = make_datatable(self, rows, select)
+        if z:
+            if timeit:
+                print("Time taken: %d ms" % (1000 * (time.time() - time0)))
+            return z
+
         if sort is not None:
             idx = self.colindex(sort)
             rowindex = self._dt.sort(idx)

@@ -5,7 +5,7 @@
 # classes herein are meant for internal use only.
 #
 from .soup import NodeSoup
-from .datatable_node import DatatableNode
+from .datatable_node import DatatableNode, make_datatable
 from .node import Node
 from .rows_node import RowFilterNode
 from .cols_node import make_columnset

@@ -16,15 +16,9 @@ extern PyTypeObject ColumnSet_PyType;
 int columnset_unwrap(PyObject *object, void *address);
 
 PyObject* pycolumns_from_slice(PyObject *self, PyObject *args);
-PyObject* pycolumns_from_pymixed(PyObject *self, PyObject *args);
+PyObject* pycolumns_from_array(PyObject *self, PyObject *args);
+PyObject* pycolumns_from_mixed(PyObject *self, PyObject *args);
 
-
-Column** columns_from_pymixed(
-    PyObject *elems,
-    DataTable *dt,
-    RowIndex *rowindex,
-    int (*mapfn)(int64_t row0, int64_t row1, void** out)
-);
 
 int init_py_columnset(PyObject *module);
 

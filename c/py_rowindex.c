@@ -215,6 +215,17 @@ PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
 }
 
 
+PyObject* pyrowindex_merge(UU, PyObject *args)
+{
+    RowIndex *ri;
+    DataTable *dt;
+    if (!PyArg_ParseTuple(args, "O&O&:RowIndex.merge",
+                          &dt_unwrap, &dt, &rowindex_unwrap, &ri))
+        return NULL;
+    return py(rowindex_merge(dt->rowindex, ri));
+}
+
+
 
 //==============================================================================
 //  RowIndex PyObject

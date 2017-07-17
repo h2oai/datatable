@@ -63,8 +63,7 @@ typedef struct DataTable {
 //==============================================================================
 
 int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix);
-DataTable* make_datatable(int64_t nrows, Column **cols);
-DataTable* datatable_assemble(RowIndex *rowindex, Column **cols);
+DataTable* make_datatable(Column **cols, RowIndex *rowindex);
 DataTable* datatable_load(DataTable *colspec, int64_t nrows);
 DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
 DataTable* dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols);

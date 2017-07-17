@@ -4,8 +4,8 @@
 import _datatable
 import datatable
 from .node import Node
-from .soup import NodeSoup
-
+from .rows_node import make_rowfilter, All_RFNode, FilterExpr_RFNode
+from .cols_node import make_columnset, Slice_CSNode, Array_CSNode
 
 
 #===============================================================================
@@ -91,3 +91,19 @@ class DatatableNode(Node):
     #             .format(dtptr=id(self._dt.internal),
     #                     make_rowindex=frowindex,
     #                     make_columns=fcolumns))
+
+
+def make_datatable(dt, rows, select):
+    rows_node = make_rowfilter(rows, dt)
+    cols_node = make_columnset(select, dt)
+
+    # Select some (or all) rows + some (or all) columns. In this case there is
+    # no need to create a view (unless `dt` was a view): columns can be simply
+    # shallow-copied.
+    if isinstance(cols_node, (Slice_CSNode, Array_CSNode)) and not isinstance(rows_node, FilterExpr_RFNode):
+        rowindex = rows_node.make_final_rowindex()
+        columns = cols_node.get_result()
+        res_dt = _datatable.datatable_assemble(rowindex, columns)
+        return datatable.DataTable(res_dt, colnames=cols_node.column_names)
+
+    return None

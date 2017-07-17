@@ -44,10 +44,9 @@ class ColumnSetNode(Node):
 
 
 
-
 #===============================================================================
 
-class SliceView_CSNode(ColumnSetNode):
+class Slice_CSNode(ColumnSetNode):
 
     def __init__(self, dt, start, count, step):
         super().__init__(dt)
@@ -82,6 +81,20 @@ class SliceView_CSNode(ColumnSetNode):
 
 #===============================================================================
 
+class Array_CSNode(ColumnSetNode):
+
+    def __init__(self, dt, elems, colnames):
+        super().__init__(dt)
+        self._elems = elems
+        self._column_names = colnames
+
+    def get_result(self):
+        return _datatable.columns_from_array(self._dt.internal, self._elems)
+
+
+
+#===============================================================================
+
 class Mixed_CSNode(ColumnSetNode):
 
     def __init__(self, dt, elems, names):
@@ -100,9 +113,12 @@ class Mixed_CSNode(ColumnSetNode):
     def get_result(self):
         fnptr = self._mapnode.get_result()
         rowindex = self._rowindex.get_result()
-        return _datatable.columns_from_pymixed(self._elems, self._dt.internal,
-                                               rowindex, fnptr)
-
+        if rowindex:
+            nrows = rowindex.length
+        else:
+            nrows = self._dt.nrows
+        return _datatable.columns_from_mixed(self._elems, self._dt.internal,
+                                             nrows, fnptr)
 
 
 
@@ -110,20 +126,21 @@ class Mixed_CSNode(ColumnSetNode):
 
 def make_columnset(cols, dt, _nested=False):
     if cols is Ellipsis or cols is None:
-        return SliceView_CSNode(dt, 0, dt.ncols, 1)
+        return Slice_CSNode(dt, 0, dt.ncols, 1)
 
     if isinstance(cols, (int, str, slice, BaseExpr)):
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
         pcol = process_column(cols, dt)
         if isinstance(pcol, int):
-            return SliceView_CSNode(dt, pcol, 1, 1)
+            return Slice_CSNode(dt, pcol, 1, 1)
         elif isinstance(pcol, tuple):
-            return SliceView_CSNode(dt, *pcol)
+            return Slice_CSNode(dt, *pcol)
         else:
             assert isinstance(pcol, BaseExpr)
             return Mixed_CSNode(dt, [pcol], names=["V0"])
 
     if isinstance(cols, (list, tuple)):
+        isarray = True
         outcols = []
         colnames = []
         for col in cols:
@@ -138,11 +155,16 @@ def make_columnset(cols, dt, _nested=False):
                     outcols.append(j)
                     colnames.append(dt.names[j])
             else:
+                isarray = False
                 outcols.append(pcol)
                 colnames.append(str(col))
-        return Mixed_CSNode(dt, outcols, colnames)
+        if isarray:
+            return Array_CSNode(dt, outcols, colnames)
+        else:
+            return Mixed_CSNode(dt, outcols, colnames)
 
     if isinstance(cols, dict):
+        isarray = True
         outcols = []
         colnames = []
         for name, col in cols.items():
@@ -158,8 +180,12 @@ def make_columnset(cols, dt, _nested=False):
                     if i > 0:
                         colnames.append(name + str(i))
             else:
+                isarray = False
                 outcols.append(pcol)
-        return Mixed_CSNode(dt, outcols, colnames)
+        if isarray:
+            return Array_CSNode(dt, outcols, colnames)
+        else:
+            return Mixed_CSNode(dt, outcols, colnames)
 
     if isinstance(cols, types.FunctionType) and not _nested:
         res = cols(DatatableExpr(dt))

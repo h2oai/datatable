@@ -5,7 +5,7 @@
 
 
 /**
- * Create a list of columns as a slice of columns from the DataTable `dt`.
+ * Create an array of columns by taking a slice from columns of DataTable `dt`.
  */
 Column**
 columns_from_slice(DataTable *dt, int64_t start, int64_t count, int64_t step)
@@ -17,17 +17,15 @@ columns_from_slice(DataTable *dt, int64_t start, int64_t count, int64_t step)
     columns[count] = NULL;
 
     for (int64_t i = 0, j = start; i < count; i++, j += step) {
-        columns[i] = srccols[j];
-        column_incref(columns[i]);
+        columns[i] = column_incref(srccols[j]);
     }
-
     return columns;
 }
 
 
 
 /**
- * Create a list of columns by extracting columns `indices` from the
+ * Create a list of columns by extracting columns at the given indices from
  * datatable `dt`.
  */
 Column**
@@ -40,11 +38,8 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
     columns[ncols] = NULL;
 
     for (int64_t i = 0; i < ncols; i++) {
-        int64_t j = indices[i];
-        columns[i] = (j >= 0)? srccols[j] : NULL;
-        column_incref(columns[i]);
+        columns[i] = column_incref(srccols[indices[i]]);
     }
-
     return columns;
 }
 
@@ -52,7 +47,7 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
 
 /**
  * Create a list of columns from "mixed" sources: some columns are taken from
- * the datatable `dt` directly, others are computed by function `mapfn`.
+ * the datatable `dt` directly, others are computed with function `mapfn`.
  *
  * Parameters
  * ----------
@@ -61,7 +56,7 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
  *     be constructed. If a particular element of this array is non-negative,
  *     then it means that a column with such index should be extracted from
  *     the datatable `dt`. If the element is negative, then a new column with
- *     type `-spec[i]` should be constructed.
+ *     stype `-spec[i]` should be constructed.
  *
  * ncols
  *     The count of columns that should be returned; also the length of `spec`.
@@ -69,12 +64,6 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
  * dt
  *     Source datatable for columns that should be copied by reference. If all
  *     columns are computed, then this parameter may be NULL.
- *
- * rowindex
- *     The rowindex that determines how the columns from the datatable `dt`
- *     should be extracted. Note that this rowindex will already be "factored
- *     in" in the returned columns, so there shall be no need to attach it to
- *     the DataTable constructed.
  *
  * mapfn
  *     Function that can be used to fill-in the "computed" data columns. This
@@ -85,19 +74,18 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
 Column** columns_from_mixed(
     int64_t *spec,
     int64_t ncols,
+    int64_t nrows,
     DataTable *dt,
-    RowIndex *rowindex,
     int (*mapfn)(int64_t row0, int64_t row1, void** out)
 ) {
     int64_t ncomputedcols = 0;
     for (int64_t i = 0; i < ncols; i++) {
         ncomputedcols += (spec[i] < 0);
     }
-    if (ncols != ncomputedcols && dt == NULL) return NULL;
+    if (dt == NULL && ncomputedcols < ncols) return NULL;
 
     void **out = NULL;
     Column **columns = NULL;
-    size_t nrows = (size_t) rowindex->length;
     dtmalloc(out, void*, ncomputedcols);
     dtmalloc(columns, Column*, ncols + 1);
     columns[ncols] = NULL;
@@ -105,18 +93,17 @@ Column** columns_from_mixed(
     int64_t j = 0;
     for (int64_t i = 0; i < ncols; i++) {
         if (spec[i] >= 0) {
-            columns[i] = dt->columns[spec[i]];
-            column_incref(columns[i]);
+            columns[i] = column_incref(dt->columns[spec[i]]);
         } else {
             SType stype = (SType)(-spec[i]);
-            columns[i] = make_data_column(stype, nrows);
+            columns[i] = make_data_column(stype, (size_t) nrows);
             out[j] = columns[i]->data;
             j++;
         }
     }
 
     if (ncomputedcols) {
-        (*mapfn)(0, (int64_t)nrows, out);
+        (*mapfn)(0, nrows, out);
     }
 
     return columns;
