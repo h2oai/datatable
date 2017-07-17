@@ -137,6 +137,10 @@ def make_columnset(cols, dt, _nested=False):
     if cols is Ellipsis or cols is None:
         return SliceCSNode(dt, 0, dt.ncols, 1)
 
+    if cols is True or cols is False:
+        # Note: True/False are integer objects in Python
+        raise TTypeError("A boolean cannot be used as a column selector")
+
     if isinstance(cols, (int, str, slice, BaseExpr)):
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
         pcol = process_column(cols, dt)

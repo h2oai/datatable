@@ -145,6 +145,10 @@ def make_rowfilter(rows, dt, _nested=False):
     if rows is Ellipsis or rows is None:
         return AllRFNode(dt)
 
+    if rows is True or rows is False:
+        # Note: True/False are integer objects in Python
+        raise TTypeError("Boolean value cannot be used as a `rows` selector")
+
     # from_scalar = False
     if isinstance(rows, (int, slice, range)):
         # from_scalar = True
