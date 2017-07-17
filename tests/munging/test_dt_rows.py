@@ -298,3 +298,7 @@ def test_rows_bad_arguments(dt0):
     """
     assert_typeerror(dt0, 0.5, "Unexpected `rows` argument: 0.5")
     assert_typeerror(dt0, "5", "Unexpected `rows` argument: '5'")
+    assert_typeerror(dt0, True,
+                     "Boolean value cannot be used as a `rows` selector")
+    assert_typeerror(dt0, False,
+                     "Boolean value cannot be used as a `rows` selector")

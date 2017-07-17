@@ -232,3 +232,6 @@ def test_cols_bad_arguments(dt0):
     assert_valueerror(dt0, slice(1, 2, "A"),
                       "slice(1, 2, 'A') is not integer-valued")
     assert_typeerror(dt0, [0, 0.5, 1], "Unknown column format: 0.5")
+    assert_typeerror(dt0, True, "A boolean cannot be used as a column selector")
+    assert_typeerror(dt0, False,
+                     "A boolean cannot be used as a column selector")
