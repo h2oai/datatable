@@ -37,15 +37,15 @@ PyObject* exec_function(PyObject *self, PyObject *args)
 #define METHOD0(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
-    METHOD0(columns_from_pymixed),
+    METHOD0(columns_from_mixed),
     METHOD0(columns_from_slice),
     METHOD0(columns_from_array),
-    METHOD0(datatable_assemble),
     METHOD0(rowindex_from_slice),
     METHOD0(rowindex_from_slicelist),
     METHOD0(rowindex_from_array),
     METHOD0(rowindex_from_column),
     METHOD0(rowindex_from_filterfn),
+    METHOD0(datatable_assemble),
     METHOD0(datatable_from_list),
     METHOD0(datatable_load),
     {"fread", (PyCFunction)freadPy, METH_VARARGS,

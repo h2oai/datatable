@@ -71,45 +71,31 @@ PyObject* pycolumns_from_array(UU, PyObject *args)
 }
 
 
-PyObject* pycolumns_from_pymixed(UU, PyObject *args)
+PyObject* pycolumns_from_mixed(UU, PyObject *args)
 {
-    PyObject *elems;
+    PyObject *pyspec;
     DataTable *dt;
-    RowIndex *ri;
+    long int nrows;
     long long rawptr;
-    if (!PyArg_ParseTuple(args, "O!O&O&L:columns_from_pymixed",
-                          &PyList_Type, &elems,
-                          &dt_unwrap, &dt,
-                          &rowindex_unwrap, &ri,
-                          &rawptr))
+    if (!PyArg_ParseTuple(args, "O!O&lL:columns_from_mixed",
+                          &PyList_Type, &pyspec, &dt_unwrap, &dt,
+                          &nrows, &rawptr))
         return NULL;
 
     columnset_mapfn *fnptr = (columnset_mapfn*) rawptr;
-    return py(columns_from_pymixed(elems, dt, ri, fnptr));
-}
-
-
-
-Column** columns_from_pymixed(
-    PyObject *elems,
-    DataTable *dt,
-    RowIndex *rowindex,
-    columnset_mapfn *mapfn
-) {
-    int64_t ncols = PyList_Size(elems);
+    int64_t ncols = PyList_Size(pyspec);
     int64_t *spec = NULL;
 
     dtmalloc(spec, int64_t, ncols);
     for (int64_t i = 0; i < ncols; i++) {
-        PyObject *elem = PyList_GET_ITEM(elems, i);
+        PyObject *elem = PyList_GET_ITEM(pyspec, i);
         if (PyLong_CheckExact(elem)) {
             spec[i] = (int64_t) PyLong_AsSize_t(elem);
         } else {
             spec[i] = -TOINT64(ATTR(elem, "itype"), 0);
         }
     }
-    return columns_from_mixed(spec, ncols, dt, rowindex, mapfn);
-
+    return py(columns_from_mixed(spec, ncols, nrows, dt, fnptr));
   fail:
     return NULL;
 }

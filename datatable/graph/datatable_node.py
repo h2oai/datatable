@@ -4,7 +4,7 @@
 import _datatable
 import datatable
 from .node import Node
-from .rows_node import _make_rowfilter, All_RFNode
+from .rows_node import make_rowfilter, All_RFNode, FilterExpr_RFNode
 from .cols_node import make_columnset, Slice_CSNode, Array_CSNode
 
 
@@ -94,14 +94,17 @@ class DatatableNode(Node):
 
 
 def make_datatable(dt, rows, select):
-    rows_node = _make_rowfilter(rows, dt)
+    rows_node = make_rowfilter(rows, dt)
     cols_node = make_columnset(select, dt)
     # print()
     # print(rows_node)
     # print(cols_node)
-    rowsall = isinstance(rows_node, All_RFNode)
-    colslice = isinstance(cols_node, (Slice_CSNode, Array_CSNode))
-    if rowsall and colslice:
+    # rowsall = isinstance(rows_node, All_RFNode)
+
+    # Select some (or all) rows + some (or all) columns. In this case there is
+    # no need to create a view (unless `dt` was a view): columns can be simply
+    # shallow-copied.
+    if isinstance(cols_node, (Slice_CSNode, Array_CSNode)) and not isinstance(rows_node, FilterExpr_RFNode):
         rowindex = rows_node.make_final_rowindex()
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(rowindex, columns)

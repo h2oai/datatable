@@ -113,8 +113,12 @@ class Mixed_CSNode(ColumnSetNode):
     def get_result(self):
         fnptr = self._mapnode.get_result()
         rowindex = self._rowindex.get_result()
-        return _datatable.columns_from_pymixed(self._elems, self._dt.internal,
-                                               rowindex, fnptr)
+        if rowindex:
+            nrows = rowindex.length
+        else:
+            nrows = self._dt.nrows
+        return _datatable.columns_from_mixed(self._elems, self._dt.internal,
+                                             nrows, fnptr)
 
 
 

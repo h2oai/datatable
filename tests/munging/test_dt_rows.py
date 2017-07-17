@@ -164,7 +164,6 @@ def test_rows_range(dt0):
                       "Invalid range(-5, 5) for a datatable with 10 rows")
 
 
-@pytest.mark.skip(reason="transitioning to new datatable evaluation scheme")
 def test_rows_generator(dt0):
     """
     Test the use of a generator object as a row selector:

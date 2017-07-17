@@ -219,7 +219,7 @@ def test_cols_expression(dt0, tbl0):
     assert dt3.shape == (6, 4)
     assert dt3.names == ("foo", "a", "b", "c")
     assert dt3.types == ("real", "int", "int", "real")
-    assert dt3.internal.isview and dt3.internal.rowindex_type == "slice"
+    assert not dt3.internal.isview
     assert as_list(dt3)[0] == [tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                for i in range(6)]
 
