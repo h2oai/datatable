@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Collection of classes to construct a graph for datatable evaluation. All
-# classes herein are meant for internal use only.
-#
 import _datatable
 import datatable
 from .rows_node import make_rowfilter, AllRFNode
@@ -15,6 +12,13 @@ __all__ = ("make_datatable", )
 
 
 def make_datatable(dt, rows, select):
+    """
+    Implementation of the `DataTable.__call__()` method.
+
+    This is the "main" function in the module; it is responsible for
+    evaluating various transformations when they are applied to a target
+    DataTable.
+    """
     cmodule = CModuleNode()
     rows_node = make_rowfilter(rows, dt)
     cols_node = make_columnset(select, dt)
@@ -34,6 +38,10 @@ def make_datatable(dt, rows, select):
         res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, colnames=cols_node.column_names)
 
+    # Select computed columns + all rows from datatable which is not a view --
+    # in this case the rowindex is None, and the selected columns can be copied
+    # by reference, while computed columns can be created without the need to
+    # apply a RowIndex object. The DataTable created will be a "data" table.
     if isinstance(rows_node, AllRFNode) and not dt.internal.isview:
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(None, columns)
