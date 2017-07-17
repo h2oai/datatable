@@ -4,8 +4,8 @@
 import _datatable
 import datatable
 from .node import Node
-from .rows_node import make_rowfilter, FilterExpr_RFNode
-from .cols_node import make_columnset, Slice_CSNode, Array_CSNode
+from .rows_node import make_rowfilter, FilterExprRFNode
+from .cols_node import make_columnset, SliceCSNode, ArrayCSNode
 from .context import CModuleNode
 
 
@@ -42,71 +42,20 @@ class DatatableNode(Node):
 
 
 
-    #---------------------------------------------------------------------------
-
-    # def execute(self, verbose=False):
-    #     self.use_context(NodeSoup())
-    #     mainfn = self.cget_datatable()
-    #     _dt = self.soup.execute(mainfn, verbose=verbose)
-    #     return datatable.DataTable(_dt, colnames=self._select.column_names)
-
-    # def cget_datatable(self):
-    #     rowindex = self._rows.cget_rowindex()
-    #     self._select.use_rowindex(self._rows, self._dt)
-    #     columns = self._select.cget_columns()
-    #     fnname = self.soup.make_variable_name("get_datatable")
-    #     fn = "PyObject* %s(void) {\n" % fnname
-    #     fn += "    init();\n"
-
-    #     if self._select.n_view_columns == 0:
-    #         fn += self._gen_cbody_only_data_cols(rowindex, columns)
-    #     else:
-    #         assert not self._select.dt.internal.isview
-    #         fn += self._gen_cbody_dt_not_view(rowindex, columns)
-
-    #     fn += "}\n"
-    #     self._context.add_function(fnname, fn)
-    #     return fnname
-
-
-    # def on_context_set(self):
-    #     self._rows.use_context(self.soup)
-    #     self._select.use_context(self.soup)
-
-
-    # def _gen_cbody_only_data_cols(self, frowindex, fcolumns):
-    #     self.soup.add_extern("pydatatable_assemble")
-    #     fn = ""
-    #     fn += "    int64_t nrows = %s()->length;\n" % frowindex
-    #     fn += "    Column** columns = %s();\n" % fcolumns
-    #     fn += "    return (PyObject*) pydatatable_assemble(nrows, columns);\n"
-    #     return fn
-
-
-    # def _gen_cbody_dt_not_view(self, frowindex, fcolumns):
-    #     self.soup.add_extern("pydatatable_assemble_view")
-    #     return ("    RowIndex *ri = {make_rowindex}();\n"
-    #             "    Column **columns = {make_columns}();\n"
-    #             "    return (PyObject*) pydatatable_assemble_view"
-    #             "((DataTable_PyObject*){dtptr}, ri, columns);\n"
-    #             .format(dtptr=id(self._dt.internal),
-    #                     make_rowindex=frowindex,
-    #                     make_columns=fcolumns))
-
 
 def make_datatable(dt, rows, select):
     cmodule = CModuleNode()
     rows_node = make_rowfilter(rows, dt)
     cols_node = make_columnset(select, dt)
 
-    if isinstance(rows_node, FilterExpr_RFNode):
+    if isinstance(rows_node, FilterExprRFNode):
         rows_node.use_cmodule(cmodule)
 
     # Select some (or all) rows + some (or all) columns. In this case columns
     # can be simply copied by reference, and then the resulting datatable will
     # be either a plain "data" table if rowindex selects all rows and the target
     # datatable is not a view, or a "view" datatable otherwise.
-    if isinstance(cols_node, (Slice_CSNode, Array_CSNode)):
+    if isinstance(cols_node, (SliceCSNode, ArrayCSNode)):
         rowindex = rows_node.make_final_rowindex()
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(rowindex, columns)

@@ -46,7 +46,7 @@ class ColumnSetNode(Node):
 
 #===============================================================================
 
-class Slice_CSNode(ColumnSetNode):
+class SliceCSNode(ColumnSetNode):
 
     def __init__(self, dt, start, count, step):
         super().__init__(dt)
@@ -81,7 +81,7 @@ class Slice_CSNode(ColumnSetNode):
 
 #===============================================================================
 
-class Array_CSNode(ColumnSetNode):
+class ArrayCSNode(ColumnSetNode):
 
     def __init__(self, dt, elems, colnames):
         super().__init__(dt)
@@ -95,7 +95,7 @@ class Array_CSNode(ColumnSetNode):
 
 #===============================================================================
 
-class Mixed_CSNode(ColumnSetNode):
+class MixedCSNode(ColumnSetNode):
 
     def __init__(self, dt, elems, names):
         super().__init__(dt)
@@ -126,18 +126,18 @@ class Mixed_CSNode(ColumnSetNode):
 
 def make_columnset(cols, dt, _nested=False):
     if cols is Ellipsis or cols is None:
-        return Slice_CSNode(dt, 0, dt.ncols, 1)
+        return SliceCSNode(dt, 0, dt.ncols, 1)
 
     if isinstance(cols, (int, str, slice, BaseExpr)):
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
         pcol = process_column(cols, dt)
         if isinstance(pcol, int):
-            return Slice_CSNode(dt, pcol, 1, 1)
+            return SliceCSNode(dt, pcol, 1, 1)
         elif isinstance(pcol, tuple):
-            return Slice_CSNode(dt, *pcol)
+            return SliceCSNode(dt, *pcol)
         else:
             assert isinstance(pcol, BaseExpr)
-            return Mixed_CSNode(dt, [pcol], names=["V0"])
+            return MixedCSNode(dt, [pcol], names=["V0"])
 
     if isinstance(cols, (list, tuple)):
         isarray = True
@@ -159,9 +159,9 @@ def make_columnset(cols, dt, _nested=False):
                 outcols.append(pcol)
                 colnames.append(str(col))
         if isarray:
-            return Array_CSNode(dt, outcols, colnames)
+            return ArrayCSNode(dt, outcols, colnames)
         else:
-            return Mixed_CSNode(dt, outcols, colnames)
+            return MixedCSNode(dt, outcols, colnames)
 
     if isinstance(cols, dict):
         isarray = True
@@ -183,9 +183,9 @@ def make_columnset(cols, dt, _nested=False):
                 isarray = False
                 outcols.append(pcol)
         if isarray:
-            return Array_CSNode(dt, outcols, colnames)
+            return ArrayCSNode(dt, outcols, colnames)
         else:
-            return Mixed_CSNode(dt, outcols, colnames)
+            return MixedCSNode(dt, outcols, colnames)
 
     if isinstance(cols, types.FunctionType) and not _nested:
         res = cols(DatatableExpr(dt))
