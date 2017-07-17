@@ -4,8 +4,9 @@
 import _datatable
 import datatable
 from .node import Node
-from .rows_node import make_rowfilter, All_RFNode, FilterExpr_RFNode
+from .rows_node import make_rowfilter, FilterExpr_RFNode
 from .cols_node import make_columnset, Slice_CSNode, Array_CSNode
+from .context import CModuleNode
 
 
 #===============================================================================
@@ -94,13 +95,18 @@ class DatatableNode(Node):
 
 
 def make_datatable(dt, rows, select):
+    cmodule = CModuleNode()
     rows_node = make_rowfilter(rows, dt)
     cols_node = make_columnset(select, dt)
 
-    # Select some (or all) rows + some (or all) columns. In this case there is
-    # no need to create a view (unless `dt` was a view): columns can be simply
-    # shallow-copied.
-    if isinstance(cols_node, (Slice_CSNode, Array_CSNode)) and not isinstance(rows_node, FilterExpr_RFNode):
+    if isinstance(rows_node, FilterExpr_RFNode):
+        rows_node.use_cmodule(cmodule)
+
+    # Select some (or all) rows + some (or all) columns. In this case columns
+    # can be simply copied by reference, and then the resulting datatable will
+    # be either a plain "data" table if rowindex selects all rows and the target
+    # datatable is not a view, or a "view" datatable otherwise.
+    if isinstance(cols_node, (Slice_CSNode, Array_CSNode)):
         rowindex = rows_node.make_final_rowindex()
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(rowindex, columns)

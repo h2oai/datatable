@@ -52,6 +52,10 @@ class IteratorNode(Node):
     def get_result(self):
         return self._cnode.get_result(self._fnidx)
 
+    def use_cmodule(self, cmod):
+        self._cnode = cmod
+        self._fnidx = self.generate_c()
+
 
     #---- User interface -------------------------------------------------------
 

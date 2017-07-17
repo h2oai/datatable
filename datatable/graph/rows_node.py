@@ -186,6 +186,9 @@ class FilterExpr_RFNode(RFNode):
         nrows = self._fnode.nrows
         return _datatable.rowindex_from_filterfn(fnptr, nrows)
 
+    def use_cmodule(self, cmod):
+        self._fnode = FilterNode(self._expr)
+        self._fnode.use_cmodule(cmod)
 
 
 #===============================================================================
