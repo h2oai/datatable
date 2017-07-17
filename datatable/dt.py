@@ -14,8 +14,7 @@ from datatable.dt_append import dt_append
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import TTypeError, TValueError, typed, U
-from datatable.graph import (DatatableNode, RowFilterNode, make_columnset,
-                             NodeSoup, make_datatable)
+from datatable.graph import make_datatable
 
 __all__ = ("DataTable", )
 
@@ -342,28 +341,16 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         time0 = time.time() if timeit else 0
-        z = make_datatable(self, rows, select)
-        if z:
-            if timeit:
-                print("Time taken: %d ms" % (1000 * (time.time() - time0)))
-            return z
-
-        if sort is not None:
-            idx = self.colindex(sort)
-            rowindex = self._dt.sort(idx)
-            columns = c.columns_from_slice(self._dt, 0, self.ncols, 1)
-            res_dt = c.datatable_assemble(rowindex, columns)
-            return datatable.DataTable(res_dt, colnames=self.names)
-
-        soup = NodeSoup(verbose=verbose)
-        soup.add("rows", RowFilterNode(rows, dt=self))
-        soup.add("select", make_columnset(select, dt=self))
-        soup.add("result", DatatableNode(self))
-        soup.stir()
-        res = soup.stew()
+        res = make_datatable(self, rows, select)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
+        # if sort is not None:
+        #     idx = self.colindex(sort)
+        #     rowindex = self._dt.sort(idx)
+        #     columns = c.columns_from_slice(self._dt, 0, self.ncols, 1)
+        #     res_dt = c.datatable_assemble(rowindex, columns)
+        #     return datatable.DataTable(res_dt, colnames=self.names)
 
 
     def __getitem__(self, item):
@@ -379,14 +366,14 @@ class DataTable(object):
         """
         if isinstance(item, tuple):
             if len(item) == 1:
-                return self(rows=..., select=item[0])
+                return self(select=item[0])
             if len(item) == 2:
                 return self(rows=item[0], select=item[1])
             # if len(item) == 3:
             #     return self(rows=item[0], select=item[1], groupby=item[2])
             raise TValueError("Selector %r is not supported" % (item, ))
         else:
-            return self(rows=..., select=item)
+            return self(select=item)
 
 
     def __delitem__(self, item):

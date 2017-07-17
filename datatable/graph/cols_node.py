@@ -3,7 +3,7 @@
 import types
 
 import _datatable
-from .node import Node
+from .context import RequiresCModule
 from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
 from datatable.utils.misc import plural_form as plural
@@ -14,7 +14,7 @@ from datatable.utils.typechecks import TValueError, TTypeError
 
 #===============================================================================
 
-class ColumnSetNode(Node):
+class ColumnSetNode(object):
     """
     Base class for nodes that create columns of a datatable.
 
@@ -46,7 +46,7 @@ class ColumnSetNode(Node):
 
 #===============================================================================
 
-class Slice_CSNode(ColumnSetNode):
+class SliceCSNode(ColumnSetNode):
 
     def __init__(self, dt, start, count, step):
         super().__init__(dt)
@@ -81,7 +81,7 @@ class Slice_CSNode(ColumnSetNode):
 
 #===============================================================================
 
-class Array_CSNode(ColumnSetNode):
+class ArrayCSNode(ColumnSetNode):
 
     def __init__(self, dt, elems, colnames):
         super().__init__(dt)
@@ -95,30 +95,39 @@ class Array_CSNode(ColumnSetNode):
 
 #===============================================================================
 
-class Mixed_CSNode(ColumnSetNode):
+class MixedCSNode(ColumnSetNode, RequiresCModule):
 
     def __init__(self, dt, elems, names):
         super().__init__(dt)
         self._elems = elems
         self._column_names = names
-        self._mapnode = None
+        self._rowindex = None
+        self._mapnode = MapNode([elem for elem in self._elems
+                                 if isinstance(elem, BaseExpr)])
 
     def _added_into_soup(self):
         self._rowindex = self.soup.get("rows")
         self._mapnode = MapNode([elem for elem in self._elems
-                                 if isinstance(elem, BaseExpr)],
-                                rowindex=self._rowindex)
+                                 if isinstance(elem, BaseExpr)])
+        self._mapnode.use_rowindex(self._rowindex)
         self.soup.add("columns_mapfn", self._mapnode)
 
     def get_result(self):
         fnptr = self._mapnode.get_result()
-        rowindex = self._rowindex.get_result()
-        if rowindex:
+        if self._rowindex:
+            rowindex = self._rowindex.get_result()
             nrows = rowindex.length
         else:
             nrows = self._dt.nrows
         return _datatable.columns_from_mixed(self._elems, self._dt.internal,
                                              nrows, fnptr)
+
+    def use_cmodule(self, cmod):
+        self._mapnode.use_cmodule(cmod)
+
+    def use_rowindex(self, ri):
+        self._rowindex = ri
+        self._mapnode.use_rowindex(ri)
 
 
 
@@ -126,18 +135,18 @@ class Mixed_CSNode(ColumnSetNode):
 
 def make_columnset(cols, dt, _nested=False):
     if cols is Ellipsis or cols is None:
-        return Slice_CSNode(dt, 0, dt.ncols, 1)
+        return SliceCSNode(dt, 0, dt.ncols, 1)
 
     if isinstance(cols, (int, str, slice, BaseExpr)):
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
         pcol = process_column(cols, dt)
         if isinstance(pcol, int):
-            return Slice_CSNode(dt, pcol, 1, 1)
+            return SliceCSNode(dt, pcol, 1, 1)
         elif isinstance(pcol, tuple):
-            return Slice_CSNode(dt, *pcol)
+            return SliceCSNode(dt, *pcol)
         else:
             assert isinstance(pcol, BaseExpr)
-            return Mixed_CSNode(dt, [pcol], names=["V0"])
+            return MixedCSNode(dt, [pcol], names=["V0"])
 
     if isinstance(cols, (list, tuple)):
         isarray = True
@@ -159,9 +168,9 @@ def make_columnset(cols, dt, _nested=False):
                 outcols.append(pcol)
                 colnames.append(str(col))
         if isarray:
-            return Array_CSNode(dt, outcols, colnames)
+            return ArrayCSNode(dt, outcols, colnames)
         else:
-            return Mixed_CSNode(dt, outcols, colnames)
+            return MixedCSNode(dt, outcols, colnames)
 
     if isinstance(cols, dict):
         isarray = True
@@ -183,9 +192,9 @@ def make_columnset(cols, dt, _nested=False):
                 isarray = False
                 outcols.append(pcol)
         if isarray:
-            return Array_CSNode(dt, outcols, colnames)
+            return ArrayCSNode(dt, outcols, colnames)
         else:
-            return Mixed_CSNode(dt, outcols, colnames)
+            return MixedCSNode(dt, outcols, colnames)
 
     if isinstance(cols, types.FunctionType) and not _nested:
         res = cols(DatatableExpr(dt))

@@ -171,6 +171,11 @@ void  _dt_free(void *ptr);
     return NULL;                                                               \
 } while (0)
 
+#define dterrr0(message) do {                                                  \
+    _dt_err_r(message "\nat %s#L%d", __FILE__, __LINE__);                      \
+    return NULL;                                                               \
+} while (0)
+
 /**
  * Raise a ValueError with the provided message
  */

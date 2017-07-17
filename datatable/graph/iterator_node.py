@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from .node import Node
 
 
-
-class IteratorNode(Node):
+class IteratorNode(object):
     """
     Base class for nodes generating C functions that loop through rows of a dt.
 
@@ -43,14 +41,12 @@ class IteratorNode(Node):
         self._cnode = None
         self._fnidx = None
 
-    def _added_into_soup(self):
-        self._cnode = self.soup.get("c")
-
-    def stir(self):
-        self._fnidx = self.generate_c()
-
     def get_result(self):
+        self._fnidx = self.generate_c()
         return self._cnode.get_result(self._fnidx)
+
+    def use_cmodule(self, cmod):
+        self._cnode = cmod
 
 
     #---- User interface -------------------------------------------------------
@@ -155,10 +151,13 @@ class FilterNode(IteratorNode):
 
 class MapNode(IteratorNode):
 
-    def __init__(self, exprs, rowindex):
+    def __init__(self, exprs):
         super().__init__()
         self._exprs = exprs
-        self._rowindex = rowindex
+        self._rowindex = None
+
+    def use_rowindex(self, ri):
+        self._rowindex = ri
 
     def add_expression(self, expr):
         self._exprs.append(expr)

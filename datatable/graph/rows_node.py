@@ -5,7 +5,7 @@ import types
 import _datatable
 import datatable
 from datatable.expr import DatatableExpr, BaseExpr
-from .node import Node
+from .context import RequiresCModule
 from .iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
@@ -13,46 +13,7 @@ from datatable.utils.typechecks import typed, TValueError, TTypeError
 
 
 
-#===============================================================================
-
-class RowFilterNode(Node):
-    """
-    Base class for nodes that filter datatable's rows creating a RowIndex.
-
-    A RowFilter encapsulates the `rows` argument in the main datatable
-    evaluation function. This node is designed in such a way that it always
-    produces a `RowIndex*` object in the C layer. In particular, this node
-    does not fuse with any other nodes (for example with the `ColumnSetNode`).
-    This is because it is not generally possible to know in advance the size
-    of the rowindex produced, which means that the output array has to be
-    over-allocated and then its chunks moved around in order to assemble the
-    final rowindex (when executing in parallel). If we were to fuse the
-    creation of rowindex with the creation of output columns, then complexity
-    of the code and the memory footprint and the number of memmoves would have
-    all significantly increased probably resulting in poor performance.
-
-    Also note that the rowindex produced by this node always applies to the
-    original datatable to which the main evaluation function was applied. If
-    the original datatable is in fact a view, then the resulting rowindex
-    cannot be used as-is (view on a view is not allowed). The conversion of
-    the produced rowindex into the rowindex applied to the source datatable
-    is done in a separate step, and that step is already fusable with the
-    ColumnSet production.
-    """
-
-    def __init__(self, rows, dt):
-        super().__init__()
-        self._target = make_rowfilter(rows, dt)
-
-    def _added_into_soup(self):
-        self.soup.add("rows:target", self._target)
-
-    def get_result(self):
-        return self._target.make_final_rowindex()
-
-
-
-class RFNode(Node):
+class RFNode(object):
     """Base class for all RowFilter nodes."""
 
     def __init__(self, dt):
@@ -63,9 +24,8 @@ class RFNode(Node):
         dt = self._dt.internal
         ri = self.make_target_rowindex()
         if dt.isview:
-            return _datatable.rowindex_merge(dt, ri)
-        else:
-            return ri
+            ri = _datatable.rowindex_uplift(ri, dt)
+        return ri
 
     def make_target_rowindex(self):
         raise NotImplementedError
@@ -74,7 +34,7 @@ class RFNode(Node):
 
 #===============================================================================
 
-class All_RFNode(RFNode):
+class AllRFNode(RFNode):
     """
     Class representing selection of all rows from the datatable.
 
@@ -87,38 +47,30 @@ class All_RFNode(RFNode):
     def make_target_rowindex(self):
         return None
 
-    def get_result(self):  # temporary
-        t = Slice_RFNode(self._dt, 0, self._dt.nrows, 1)
-        return t.get_result()
 
 
 #===============================================================================
 
-class Slice_RFNode(RFNode):
+class SliceRFNode(RFNode):
 
     def __init__(self, dt, start, count, step):
         super().__init__(dt)
         assert start >= 0 and count >= 0
         self._triple = (start, count, step)
 
-    def get_result(self):
-        return _datatable.rowindex_from_slice(*self._triple)
-
     def make_target_rowindex(self):
         return _datatable.rowindex_from_slice(*self._triple)
 
 
+
 #===============================================================================
 
-class Array_RFNode(RFNode):
+class ArrayRFNode(RFNode):
 
     def __init__(self, dt, array):
         super().__init__(dt)
         self._array = array
 
-    def get_result(self):
-        return _datatable.rowindex_from_array(self._array)
-
     def make_target_rowindex(self):
         return _datatable.rowindex_from_array(self._array)
 
@@ -126,7 +78,7 @@ class Array_RFNode(RFNode):
 
 #===============================================================================
 
-class MultiSlice_RFNode(RFNode):
+class MultiSliceRFNode(RFNode):
 
     def __init__(self, dt, bases, counts, steps):
         super().__init__(dt)
@@ -134,11 +86,6 @@ class MultiSlice_RFNode(RFNode):
         self._counts = counts
         self._steps = steps
 
-    def get_result(self):
-        return _datatable.rowindex_from_slicelist(
-            self._bases, self._counts, self._steps
-        )
-
     def make_target_rowindex(self):
         return _datatable.rowindex_from_slicelist(
             self._bases, self._counts, self._steps
@@ -148,15 +95,12 @@ class MultiSlice_RFNode(RFNode):
 
 #===============================================================================
 
-class DataColumn_RFNode(RFNode):
+class DataColumnRFNode(RFNode):
 
     def __init__(self, dt):
         super().__init__(dt)
         self._column_dt = dt
 
-    def get_result(self):
-        return _datatable.rowindex_from_column(self._column_dt.internal)
-
     def make_target_rowindex(self):
         return _datatable.rowindex_from_column(self._column_dt.internal)
 
@@ -164,28 +108,24 @@ class DataColumn_RFNode(RFNode):
 
 #===============================================================================
 
-class FilterExpr_RFNode(RFNode):
+class FilterExprRFNode(RFNode, RequiresCModule):
 
     @typed(expr=BaseExpr)
     def __init__(self, dt, expr):
         super().__init__(dt)
         self._expr = expr
-        self._fnode = None
+        self._fnode = FilterNode(expr)
 
     def _added_into_soup(self):
-        self._fnode = FilterNode(self._expr)
         self.soup.add("rows_filter", self._fnode)
-
-    def get_result(self):
-        fnptr = self._fnode.get_result()
-        nrows = self._fnode.nrows
-        return _datatable.rowindex_from_filterfn(fnptr, nrows)
 
     def make_target_rowindex(self):
         fnptr = self._fnode.get_result()
         nrows = self._fnode.nrows
         return _datatable.rowindex_from_filterfn(fnptr, nrows)
 
+    def use_cmodule(self, cmod):
+        self._fnode.use_cmodule(cmod)
 
 
 #===============================================================================
@@ -203,7 +143,7 @@ def make_rowfilter(rows, dt, _nested=False):
     """
     nrows = dt.nrows
     if rows is Ellipsis or rows is None:
-        return All_RFNode(dt)
+        return AllRFNode(dt)
 
     # from_scalar = False
     if isinstance(rows, (int, slice, range)):
@@ -268,16 +208,16 @@ def make_rowfilter(rows, dt, _nested=False):
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
-                return Slice_RFNode(dt, bases[0], 1, 1)
+                return SliceRFNode(dt, bases[0], 1, 1)
             else:
-                return Array_RFNode(dt, bases)
+                return ArrayRFNode(dt, bases)
         elif len(bases) == 1:
             if bases[0] == 0 and counts[0] == nrows and steps[0] == 1:
-                return All_RFNode(dt)
+                return AllRFNode(dt)
             else:
-                return Slice_RFNode(dt, bases[0], counts[0], steps[0])
+                return SliceRFNode(dt, bases[0], counts[0], steps[0])
         else:
-            return MultiSlice_RFNode(dt, bases, counts, steps)
+            return MultiSliceRFNode(dt, bases, counts, steps)
 
     if isinstance(rows, datatable.DataTable):
         if rows.ncols != 1:
@@ -292,14 +232,14 @@ def make_rowfilter(rows, dt, _nested=False):
             s2rows = plural(dt.nrows, "row")
             raise TValueError("`rows` datatable has %s, but applied to a "
                               "datatable with %s" % (s1rows, s2rows))
-        return DataColumn_RFNode(rows)
+        return DataColumnRFNode(rows)
 
     if isinstance(rows, types.FunctionType):
         lazydt = DatatableExpr(dt)
         return make_rowfilter(rows(lazydt), dt, _nested=True)
 
     if isinstance(rows, BaseExpr):
-        return FilterExpr_RFNode(dt, rows)
+        return FilterExprRFNode(dt, rows)
 
     if _nested:
         raise TTypeError("Unexpected result produced by the `rows` "
