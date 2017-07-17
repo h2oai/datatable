@@ -5,7 +5,6 @@ import types
 import _datatable
 import datatable
 from datatable.expr import DatatableExpr, BaseExpr
-from .node import Node
 from .context import RequiresCModule
 from .iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
@@ -14,46 +13,7 @@ from datatable.utils.typechecks import typed, TValueError, TTypeError
 
 
 
-#===============================================================================
-
-class RowFilterNode(Node):
-    """
-    Base class for nodes that filter datatable's rows creating a RowIndex.
-
-    A RowFilter encapsulates the `rows` argument in the main datatable
-    evaluation function. This node is designed in such a way that it always
-    produces a `RowIndex*` object in the C layer. In particular, this node
-    does not fuse with any other nodes (for example with the `ColumnSetNode`).
-    This is because it is not generally possible to know in advance the size
-    of the rowindex produced, which means that the output array has to be
-    over-allocated and then its chunks moved around in order to assemble the
-    final rowindex (when executing in parallel). If we were to fuse the
-    creation of rowindex with the creation of output columns, then complexity
-    of the code and the memory footprint and the number of memmoves would have
-    all significantly increased probably resulting in poor performance.
-
-    Also note that the rowindex produced by this node always applies to the
-    original datatable to which the main evaluation function was applied. If
-    the original datatable is in fact a view, then the resulting rowindex
-    cannot be used as-is (view on a view is not allowed). The conversion of
-    the produced rowindex into the rowindex applied to the source datatable
-    is done in a separate step, and that step is already fusable with the
-    ColumnSet production.
-    """
-
-    def __init__(self, rows, dt):
-        super().__init__()
-        self._target = make_rowfilter(rows, dt)
-
-    def _added_into_soup(self):
-        self.soup.add("rows:target", self._target)
-
-    def get_result(self):
-        return self._target.make_final_rowindex()
-
-
-
-class RFNode(Node):
+class RFNode(object):
     """Base class for all RowFilter nodes."""
 
     def __init__(self, dt):
@@ -69,9 +29,6 @@ class RFNode(Node):
 
     def make_target_rowindex(self):
         raise NotImplementedError
-
-    def get_result(self):
-        raise RuntimeError
 
 
 

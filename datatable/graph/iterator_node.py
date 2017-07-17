@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-from .node import Node
 
 
-
-class IteratorNode(Node):
+class IteratorNode(object):
     """
     Base class for nodes generating C functions that loop through rows of a dt.
 
@@ -42,9 +40,6 @@ class IteratorNode(Node):
         self._loopvar = "i"
         self._cnode = None
         self._fnidx = None
-
-    def _added_into_soup(self):
-        self._cnode = self.soup.get("c")
 
     def stir(self):
         self._fnidx = self.generate_c()

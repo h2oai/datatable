@@ -4,7 +4,6 @@ import types
 
 import _datatable
 from .context import RequiresCModule
-from .node import Node
 from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
 from datatable.utils.misc import plural_form as plural
@@ -15,7 +14,7 @@ from datatable.utils.typechecks import TValueError, TTypeError
 
 #===============================================================================
 
-class ColumnSetNode(Node):
+class ColumnSetNode(object):
     """
     Base class for nodes that create columns of a datatable.
 

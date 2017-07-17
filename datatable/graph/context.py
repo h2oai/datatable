@@ -2,7 +2,6 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 import _datatable
-from .node import Node
 from .llvm import inject_c_code
 
 
@@ -15,7 +14,7 @@ class RequiresCModule:
 
 
 # Perhaps this should be moved into the 'exec' folder
-class CModuleNode(Node):
+class CModuleNode(object):
     """
     Replacement for :class:`EvaluationModule`.
     """
