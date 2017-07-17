@@ -82,7 +82,8 @@ Column** columns_from_mixed(
     for (int64_t i = 0; i < ncols; i++) {
         ncomputedcols += (spec[i] < 0);
     }
-    if (dt == NULL && ncomputedcols < ncols) return NULL;
+    if (dt == NULL && ncomputedcols < ncols) dterrr0("Missing DataTable");
+    if (ncomputedcols == 0) dterrr0("Num computed columns = 0");
 
     void **out = NULL;
     Column **columns = NULL;

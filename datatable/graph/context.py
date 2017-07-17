@@ -6,6 +6,13 @@ from .node import Node
 from .llvm import inject_c_code
 
 
+class RequiresCModule:
+    """
+    Marker class to indicate a Node that needs a CModule for evaluation.
+    """
+    def use_cmodule(self, cmod):
+        pass
+
 
 # Perhaps this should be moved into the 'exec' folder
 class CModuleNode(Node):

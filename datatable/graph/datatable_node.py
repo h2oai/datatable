@@ -4,9 +4,9 @@
 import _datatable
 import datatable
 from .node import Node
-from .rows_node import make_rowfilter, FilterExprRFNode
+from .rows_node import make_rowfilter, AllRFNode
 from .cols_node import make_columnset, SliceCSNode, ArrayCSNode
-from .context import CModuleNode
+from .context import CModuleNode, RequiresCModule
 
 
 #===============================================================================
@@ -48,8 +48,10 @@ def make_datatable(dt, rows, select):
     rows_node = make_rowfilter(rows, dt)
     cols_node = make_columnset(select, dt)
 
-    if isinstance(rows_node, FilterExprRFNode):
+    if isinstance(rows_node, RequiresCModule):
         rows_node.use_cmodule(cmodule)
+    if isinstance(cols_node, RequiresCModule):
+        cols_node.use_cmodule(cmodule)
 
     # Select some (or all) rows + some (or all) columns. In this case columns
     # can be simply copied by reference, and then the resulting datatable will
@@ -61,5 +63,11 @@ def make_datatable(dt, rows, select):
         res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, colnames=cols_node.column_names)
 
-    # raise RuntimeError("Not handled: %r, %r" % (rows_node, cols_node))
-    return None
+    if isinstance(rows_node, AllRFNode) and not dt.internal.isview:
+        columns = cols_node.get_result()
+        res_dt = _datatable.datatable_assemble(None, columns)
+        return datatable.DataTable(res_dt, colnames=cols_node.column_names)
+
+    raise RuntimeError(  # pragma: no cover
+        "Unable to handle input (rows=%r, select=%r)"
+        % (rows, select))

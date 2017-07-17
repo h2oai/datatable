@@ -379,14 +379,14 @@ class DataTable(object):
         """
         if isinstance(item, tuple):
             if len(item) == 1:
-                return self(rows=..., select=item[0])
+                return self(select=item[0])
             if len(item) == 2:
                 return self(rows=item[0], select=item[1])
             # if len(item) == 3:
             #     return self(rows=item[0], select=item[1], groupby=item[2])
             raise TValueError("Selector %r is not supported" % (item, ))
         else:
-            return self(rows=..., select=item)
+            return self(select=item)
 
 
     def __delitem__(self, item):

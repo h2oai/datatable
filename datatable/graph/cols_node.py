@@ -3,6 +3,7 @@
 import types
 
 import _datatable
+from .context import RequiresCModule
 from .node import Node
 from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
@@ -95,30 +96,39 @@ class ArrayCSNode(ColumnSetNode):
 
 #===============================================================================
 
-class MixedCSNode(ColumnSetNode):
+class MixedCSNode(ColumnSetNode, RequiresCModule):
 
     def __init__(self, dt, elems, names):
         super().__init__(dt)
         self._elems = elems
         self._column_names = names
-        self._mapnode = None
+        self._rowindex = None
+        self._mapnode = MapNode([elem for elem in self._elems
+                                 if isinstance(elem, BaseExpr)])
 
     def _added_into_soup(self):
         self._rowindex = self.soup.get("rows")
         self._mapnode = MapNode([elem for elem in self._elems
-                                 if isinstance(elem, BaseExpr)],
-                                rowindex=self._rowindex)
+                                 if isinstance(elem, BaseExpr)])
+        self._mapnode.use_rowindex(self._rowindex)
         self.soup.add("columns_mapfn", self._mapnode)
 
     def get_result(self):
         fnptr = self._mapnode.get_result()
-        rowindex = self._rowindex.get_result()
-        if rowindex:
+        if self._rowindex:
+            rowindex = self._rowindex.get_result()
             nrows = rowindex.length
         else:
             nrows = self._dt.nrows
         return _datatable.columns_from_mixed(self._elems, self._dt.internal,
                                              nrows, fnptr)
+
+    def use_cmodule(self, cmod):
+        self._mapnode.use_cmodule(cmod)
+
+    def use_rowindex(self, ri):
+        self._rowindex = ri
+        self._mapnode.use_rowindex(ri)
 
 
 

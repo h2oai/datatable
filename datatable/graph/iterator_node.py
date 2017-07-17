@@ -50,11 +50,11 @@ class IteratorNode(Node):
         self._fnidx = self.generate_c()
 
     def get_result(self):
+        self._fnidx = self.generate_c()
         return self._cnode.get_result(self._fnidx)
 
     def use_cmodule(self, cmod):
         self._cnode = cmod
-        self._fnidx = self.generate_c()
 
 
     #---- User interface -------------------------------------------------------
@@ -159,10 +159,13 @@ class FilterNode(IteratorNode):
 
 class MapNode(IteratorNode):
 
-    def __init__(self, exprs, rowindex):
+    def __init__(self, exprs):
         super().__init__()
         self._exprs = exprs
-        self._rowindex = rowindex
+        self._rowindex = None
+
+    def use_rowindex(self, ri):
+        self._rowindex = ri
 
     def add_expression(self, expr):
         self._exprs.append(expr)

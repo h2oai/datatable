@@ -6,6 +6,7 @@ import _datatable
 import datatable
 from datatable.expr import DatatableExpr, BaseExpr
 from .node import Node
+from .context import RequiresCModule
 from .iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
@@ -63,9 +64,8 @@ class RFNode(Node):
         dt = self._dt.internal
         ri = self.make_target_rowindex()
         if dt.isview:
-            return _datatable.rowindex_uplift(ri, dt)
-        else:
-            return ri
+            ri = _datatable.rowindex_uplift(ri, dt)
+        return ri
 
     def make_target_rowindex(self):
         raise NotImplementedError
@@ -151,16 +151,15 @@ class DataColumnRFNode(RFNode):
 
 #===============================================================================
 
-class FilterExprRFNode(RFNode):
+class FilterExprRFNode(RFNode, RequiresCModule):
 
     @typed(expr=BaseExpr)
     def __init__(self, dt, expr):
         super().__init__(dt)
         self._expr = expr
-        self._fnode = None
+        self._fnode = FilterNode(expr)
 
     def _added_into_soup(self):
-        self._fnode = FilterNode(self._expr)
         self.soup.add("rows_filter", self._fnode)
 
     def make_target_rowindex(self):
@@ -169,7 +168,6 @@ class FilterExprRFNode(RFNode):
         return _datatable.rowindex_from_filterfn(fnptr, nrows)
 
     def use_cmodule(self, cmod):
-        self._fnode = FilterNode(self._expr)
         self._fnode.use_cmodule(cmod)
 
 
