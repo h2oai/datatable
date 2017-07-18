@@ -442,7 +442,6 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
         if (nrows > INT32_MAX)
             dterrr("Nrows is too big for an i4s column: %lld", nrows);
 
-        // TODO: case when single-row column has NA in it
         size_t old_data_size = column_i4s_datasize(self);
         size_t old_offoff = (size_t) ((VarcharMeta*) self->meta)->offoff;
         size_t new_data_size = old_data_size;
@@ -477,16 +476,15 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
         col->nrows = nrows;
 
         // Replicate the value, or fill with NAs
-        if (old_nrows == 1) {
+        int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
+        if (old_nrows == 1 && offsets[0] > 0) {
             set_value(add_ptr(col->data, old_data_size), col->data,
                       old_data_size, diff_rows);
-            int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
             for (int32_t j = 0; j < (int32_t)nrows; j++) {
-                offsets[j] = 1 + j * (int32_t)old_data_size;
+                offsets[j] = 1 + (j + 1) * (int32_t)old_data_size;
             }
         } else {
-            // printf("oldnrows=%lld, oldoff=%lld, newoff=%lld, old_data_size=%zd, new_data_size=%zd, newpadding=%zd\n",
-            //        old_nrows, old_offoff, new_offoff, old_data_size, new_data_size, new_padding_size);
+            if (old_nrows == 1) assert(old_data_size == 0);
             assert(old_offoff == new_offoff && old_data_size == new_data_size);
             int32_t na = -(int32_t)new_data_size - 1;
             set_value(add_ptr(col->data, old_alloc_size),
