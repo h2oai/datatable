@@ -21,7 +21,7 @@ pipeline {
         stage('Build on Linux') {
             agent {
                 dockerfile {
-                    label "mr-0xc5"
+                    label "docker"
                     filename "Dockerfile"
                     reuseNode true
                 }
@@ -48,7 +48,7 @@ pipeline {
         stage('Test on Linux') {
             agent {
                 dockerfile {
-                    label "mr-0xc5"
+                    label "docker"
                     filename "Dockerfile"
                     reuseNode true
                 }
@@ -128,7 +128,7 @@ pipeline {
                 branch 'master'
             }
             agent {
-                label "mr-0xc5"
+                label "linux"
             }
             steps {
                 unstash 'linux_whl'
