@@ -207,29 +207,47 @@ Column* column_extract(Column *self, RowIndex *rowindex)
     if (rowindex->type == RI_SLICE && rowindex->slice.step == 1) {
         size_t start = (size_t) rowindex->slice.start;
         switch (stype) {
-            #define CASE_IX_VCHAR(etype, abs) {                                \
-                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;   \
-                etype *offs = (etype*)(self->data + offoff) + start;           \
-                etype off0 = start? abs(*(offs - 1)) - 1 : 0;                  \
-                etype off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;  \
-                size_t datasize = (size_t)(off1 - off0);                       \
-                size_t padding = (8 - (datasize & 7)) & 7;                     \
-                size_t offssize = nrows * elemsize;                            \
-                offoff = datasize + padding;                                   \
-                res->alloc_size = datasize + padding + offssize;               \
-                res->data = TRY(malloc(res->alloc_size));                      \
-                ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;          \
-                memcpy(res->data, self->data + (size_t)off0, datasize);        \
-                memset(res->data + datasize, 0xFF, padding);                   \
-                etype *resoffs = (etype*)(res->data + offoff);                 \
-                for (size_t i = 0; i < nrows; i++) {                           \
-                    resoffs[i] = offs[i] > 0? offs[i] - off0                   \
-                                            : offs[i] + off0;                  \
-                }                                                              \
+            case ST_STRING_I4_VCHAR: {
+                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
+                int32_t *offs = (int32_t*)(self->data + offoff) + start;
+                int32_t off0 = start? abs(*(offs - 1)) - 1 : 0;
+                int32_t off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;
+                size_t datasize = (size_t)(off1 - off0);
+                size_t padding = column_i4s_padding(datasize);
+                size_t offssize = nrows * elemsize;
+                offoff = datasize + padding;
+                res->alloc_size = datasize + padding + offssize;
+                dtmalloc(res->data, void, res->alloc_size);
+                ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
+                memcpy(res->data, self->data + (size_t)off0, datasize);
+                memset(res->data + datasize, 0xFF, padding);
+                int32_t *resoffs = (int32_t*) add_ptr(res->data, offoff);
+                for (size_t i = 0; i < nrows; i++) {
+                    resoffs[i] = offs[i] > 0? offs[i] - off0
+                                            : offs[i] + off0;
+                }
             } break;
-            case ST_STRING_I4_VCHAR: CASE_IX_VCHAR(int32_t, abs)
-            case ST_STRING_I8_VCHAR: CASE_IX_VCHAR(int64_t, llabs)
-            #undef CASE_IX_VCHAR
+
+            case ST_STRING_I8_VCHAR: {
+                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
+                int64_t *offs = (int64_t*)(self->data + offoff) + start;
+                int64_t off0 = start? llabs(*(offs - 1)) - 1 : 0;
+                int64_t off1 = start + nrows? llabs(*(offs + nrows - 1)) - 1 : 0;
+                size_t datasize = (size_t)(off1 - off0);
+                size_t padding = column_i8s_padding(datasize);
+                size_t offssize = nrows * elemsize;
+                offoff = datasize + padding;
+                res->alloc_size = datasize + padding + offssize;
+                res->data = TRY(malloc(res->alloc_size));
+                ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
+                memcpy(res->data, self->data + (size_t)off0, datasize);
+                memset(res->data + datasize, 0xFF, padding);
+                int64_t *resoffs = (int64_t*)(res->data + offoff);
+                for (size_t i = 0; i < nrows; i++) {
+                    resoffs[i] = offs[i] > 0? offs[i] - off0
+                                            : offs[i] + off0;
+                }
+            } break;
 
             case ST_STRING_U1_ENUM:
             case ST_STRING_U2_ENUM:
@@ -275,7 +293,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                     }                                                          \
                 }                                                              \
             }                                                                  \
-            size_t padding = (8 - (datasize & 7)) & 7;                         \
+            size_t padding = elemsize == 4 ? column_i4s_padding(datasize)      \
+                                           : column_i8s_padding(datasize);     \
             size_t offssize = nrows * elemsize;                                \
             offoff = datasize + padding;                                       \
             res->alloc_size = offoff + offssize;                               \
@@ -558,5 +577,5 @@ size_t column_i4s_datasize(Column *self) {
 size_t column_i8s_datasize(Column *self) {
     assert(self->stype == ST_STRING_I8_VCHAR);
     void *end = add_ptr(self->data, self->alloc_size);
-    return (size_t) abs(((int64_t*) end)[-1]) - 1;
+    return (size_t) llabs(((int64_t*) end)[-1]) - 1;
 }

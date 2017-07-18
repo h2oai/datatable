@@ -363,7 +363,7 @@ void setFinalNrow(size_t nrows) {
             assert(sb->numuses == 0);
             void *final_ptr = (void*) sb->buf;
             size_t curr_size = sb->ptr;
-            size_t padding = ((8 - (curr_size & 7)) & 7) + 4;
+            size_t padding = column_i4s_padding(curr_size);
             size_t offoff = curr_size + padding;
             size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;
