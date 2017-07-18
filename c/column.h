@@ -84,7 +84,9 @@ Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
                               const char *metastr);
 RowIndex* column_sort(Column *self, int64_t nrows);
 size_t column_i4s_padding(size_t datasize);
+size_t column_i8s_padding(size_t datasize);
 size_t column_i4s_datasize(Column *self);
+size_t column_i8s_datasize(Column *self);
 Column* column_incref(Column *self);
 void column_decref(Column *self);
 

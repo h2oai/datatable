@@ -466,6 +466,8 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
                 offsets[j] = 1 + j * (int32_t)old_data_size;
             }
         } else {
+            // printf("oldnrows=%lld, oldoff=%lld, newoff=%lld, old_data_size=%zd, new_data_size=%zd, newpadding=%zd\n",
+            //        old_nrows, old_offoff, new_offoff, old_data_size, new_data_size, new_padding_size);
             assert(old_offoff == new_offoff && old_data_size == new_data_size);
             int32_t na = -(int32_t)new_data_size - 1;
             set_value(add_ptr(col->data, old_alloc_size),
@@ -540,13 +542,21 @@ void column_decref(Column *self)
 size_t column_i4s_padding(size_t datasize) {
     return ((8 - ((datasize + 4) & 7)) & 7) + 4;
 }
+size_t column_i8s_padding(size_t datasize) {
+    return ((8 - (datasize & 7)) & 7) + 8;
+}
 
 
 /**
- * Return the size of the data part in a ST_STRING_I4_VCHAR column.
+ * Return the size of the data part in a ST_STRING_I(4|8)_VCHAR column.
  */
 size_t column_i4s_datasize(Column *self) {
     assert(self->stype == ST_STRING_I4_VCHAR);
     void *end = add_ptr(self->data, self->alloc_size);
     return (size_t) abs(((int32_t*) end)[-1]) - 1;
+}
+size_t column_i8s_datasize(Column *self) {
+    assert(self->stype == ST_STRING_I8_VCHAR);
+    void *end = add_ptr(self->data, self->alloc_size);
+    return (size_t) abs(((int64_t*) end)[-1]) - 1;
 }
