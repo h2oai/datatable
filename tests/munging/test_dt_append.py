@@ -46,19 +46,19 @@ def test_append_fails():
 
     with pytest.raises(ValueError) as e:
         dt0.append(dt1)
-    assert "Cannot append datatable with 2 columns to a datatable " \
+    assert "Cannot rbind datatable with 2 columns to a datatable " \
            "with 1 column" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.append(dt1, bynames=False)
-    assert "Cannot append datatable with 2 columns to a datatable " \
+    assert "Cannot rbind datatable with 2 columns to a datatable " \
            "with 1 column" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt1.append(dt0)
-    assert "Cannot append datatable with 1 column to a datatable " \
+    assert "Cannot rbind datatable with 1 column to a datatable " \
            "with 2 columns" in str(e.value)
     assert "`force=True`" in str(e.value)
 
