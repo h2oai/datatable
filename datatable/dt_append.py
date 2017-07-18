@@ -223,7 +223,7 @@ def cbind(self, *dts, force=False, inplace=True):
 
     # Check that all datatables have compatible number of rows, and compose the
     # list of _DataTables to be passed down into the C level.
-    nrows = -1
+    nrows = src.nrows or -1
     for dt in dts:
         nn = dt.nrows
         if nrows == -1:
