@@ -10,7 +10,7 @@ import _datatable as c
 import datatable
 from .widget import DataFrameWidget
 
-from datatable.dt_append import dt_append
+from datatable.dt_append import dt_append, dt_merge
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import TTypeError, TValueError, typed, U
@@ -452,6 +452,7 @@ class DataTable(object):
 
     # Methods defined externally
     append = dt_append
+    merge = dt_merge
 
 
 

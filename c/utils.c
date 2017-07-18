@@ -23,3 +23,28 @@ unsigned int nlz(uint32_t x)
     y = x >> 1;  if (y != 0) return n - 2;
     return n - x;
 }
+
+
+/**
+ * Fill the array `ptr` with `count` values `value` (the value is given as a
+ * pointer of size `sz`). As a special case, if `value` pointer is NULL, then
+ * fill with 0xFF bytes instead.
+ * This is used for filling the columns with NAs.
+ */
+void set_value(void * restrict ptr, const void * restrict value,
+               size_t sz, size_t count)
+{
+    if (count == 0) return;
+    if (value == NULL) {
+        *(unsigned char *)ptr = 0xFF;
+        count *= sz;
+        sz = 1;
+    } else {
+        memcpy(ptr, value, sz);
+    }
+    size_t final_sz = sz * count;
+    for (size_t i = sz; i < final_sz; i <<= 1) {
+        size_t writesz = i < final_sz - i ? i : final_sz - i;
+        memcpy(ptr + i, ptr, writesz);
+    }
+}

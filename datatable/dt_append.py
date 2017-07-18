@@ -4,6 +4,8 @@ import datatable
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import typed, DataTable_t
 
+__all__ = ("dt_append", "dt_merge")
+
 
 
 @typed(dts=DataTable_t, force=bool, bynames=bool, inplace=bool)
@@ -159,6 +161,47 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
     return src
 
 
+
+@typed(dts=DataTable_t, force=bool, inplace=bool)
+def merge(self, *dts, force=False, inplace=True):
+    """
+    Append columns of datatables `dts` to the current datatable.
+    """
+    datatables = []
+    column_names = list(self.names)
+
+    # Which DataTable to operate upon. If not `inplace` then we will create
+    # a blank DataTable and merge everything to it.
+    src = self
+    if not inplace:
+        src = datatable.DataTable()
+        datatables.append(self.internal)
+
+    # Check that all datatables have compatible number of rows, and compose the
+    # list of _DataTables to be passed down into the C level.
+    nrows = -1
+    for dt in dts:
+        nn = dt.nrows
+        if nrows == -1:
+            nrows = nn
+        if not(nn == nrows or nn == 1 or force):
+            if nrows <= 1:
+                nrows = nn
+            else:
+                raise ValueError(
+                    "Cannot merge datatable with %s to a datatable with %s. If "
+                    "you want to disregard this warning and merge datatables "
+                    "anyways, then please provide option `inplace=True`"
+                    % (plural(nn, "row"), plural(nrows, "row")))
+        datatables.append(dt.internal)
+        column_names.extend(list(dt.names))
+
+    src.internal.cbind(datatables)
+    src._fill_from_dt(src.internal, names=column_names)
+    return src
+
+
 #
 # This is how the function will be exported (do we need this?)
 dt_append = append
+dt_merge = merge

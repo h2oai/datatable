@@ -225,5 +225,7 @@ unsigned int nlz(uint32_t x);  // Number of leading zeros
 #define UNUSED(x)  __attribute__((unused)) x
 
 
+void set_value(void * restrict ptr, const void * restrict value,
+               size_t sz, size_t count);
 
 #endif
