@@ -22,7 +22,7 @@
  * NAs).
  */
 DataTable*
-dt_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
+datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
 {
     assert(ncols >= dt->ncols);
     dtrealloc(dt->columns, Column*, ncols + 1);

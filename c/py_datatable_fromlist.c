@@ -320,7 +320,7 @@ Column* column_from_list(PyObject *list)
 
         if (stype == ST_STRING_I4_VCHAR) {
             size_t esz = sizeof(int32_t);
-            size_t padding_size = ((8 - (strbuffer_ptr & 7)) & 7) + esz;
+            size_t padding_size = column_i4s_padding(strbuffer_ptr);
             size_t offoff = strbuffer_ptr + padding_size;
             size_t final_size = offoff + esz * (size_t)nrows;
             dtrealloc(strbuffer, char, final_size);

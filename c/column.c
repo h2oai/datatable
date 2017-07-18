@@ -207,29 +207,47 @@ Column* column_extract(Column *self, RowIndex *rowindex)
     if (rowindex->type == RI_SLICE && rowindex->slice.step == 1) {
         size_t start = (size_t) rowindex->slice.start;
         switch (stype) {
-            #define CASE_IX_VCHAR(etype, abs) {                                \
-                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;   \
-                etype *offs = (etype*)(self->data + offoff) + start;           \
-                etype off0 = start? abs(*(offs - 1)) - 1 : 0;                  \
-                etype off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;  \
-                size_t datasize = (size_t)(off1 - off0);                       \
-                size_t padding = (8 - (datasize & 7)) & 7;                     \
-                size_t offssize = nrows * elemsize;                            \
-                offoff = datasize + padding;                                   \
-                res->alloc_size = datasize + padding + offssize;               \
-                res->data = TRY(malloc(res->alloc_size));                      \
-                ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;          \
-                memcpy(res->data, self->data + (size_t)off0, datasize);        \
-                memset(res->data + datasize, 0xFF, padding);                   \
-                etype *resoffs = (etype*)(res->data + offoff);                 \
-                for (size_t i = 0; i < nrows; i++) {                           \
-                    resoffs[i] = offs[i] > 0? offs[i] - off0                   \
-                                            : offs[i] + off0;                  \
-                }                                                              \
+            case ST_STRING_I4_VCHAR: {
+                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
+                int32_t *offs = (int32_t*)(self->data + offoff) + start;
+                int32_t off0 = start? abs(*(offs - 1)) - 1 : 0;
+                int32_t off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;
+                size_t datasize = (size_t)(off1 - off0);
+                size_t padding = column_i4s_padding(datasize);
+                size_t offssize = nrows * elemsize;
+                offoff = datasize + padding;
+                res->alloc_size = datasize + padding + offssize;
+                dtmalloc(res->data, void, res->alloc_size);
+                ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
+                memcpy(res->data, self->data + (size_t)off0, datasize);
+                memset(res->data + datasize, 0xFF, padding);
+                int32_t *resoffs = (int32_t*) add_ptr(res->data, offoff);
+                for (size_t i = 0; i < nrows; i++) {
+                    resoffs[i] = offs[i] > 0? offs[i] - off0
+                                            : offs[i] + off0;
+                }
             } break;
-            case ST_STRING_I4_VCHAR: CASE_IX_VCHAR(int32_t, abs)
-            case ST_STRING_I8_VCHAR: CASE_IX_VCHAR(int64_t, llabs)
-            #undef CASE_IX_VCHAR
+
+            case ST_STRING_I8_VCHAR: {
+                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
+                int64_t *offs = (int64_t*)(self->data + offoff) + start;
+                int64_t off0 = start? llabs(*(offs - 1)) - 1 : 0;
+                int64_t off1 = start + nrows? llabs(*(offs + nrows - 1)) - 1 : 0;
+                size_t datasize = (size_t)(off1 - off0);
+                size_t padding = column_i8s_padding(datasize);
+                size_t offssize = nrows * elemsize;
+                offoff = datasize + padding;
+                res->alloc_size = datasize + padding + offssize;
+                res->data = TRY(malloc(res->alloc_size));
+                ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
+                memcpy(res->data, self->data + (size_t)off0, datasize);
+                memset(res->data + datasize, 0xFF, padding);
+                int64_t *resoffs = (int64_t*)(res->data + offoff);
+                for (size_t i = 0; i < nrows; i++) {
+                    resoffs[i] = offs[i] > 0? offs[i] - off0
+                                            : offs[i] + off0;
+                }
+            } break;
 
             case ST_STRING_U1_ENUM:
             case ST_STRING_U2_ENUM:
@@ -275,7 +293,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                     }                                                          \
                 }                                                              \
             }                                                                  \
-            size_t padding = (8 - (datasize & 7)) & 7;                         \
+            size_t padding = elemsize == 4 ? column_i4s_padding(datasize)      \
+                                           : column_i8s_padding(datasize);     \
             size_t offssize = nrows * elemsize;                                \
             offoff = datasize + padding;                                       \
             res->alloc_size = offoff + offssize;                               \
@@ -371,6 +390,114 @@ Column* column_extract(Column *self, RowIndex *rowindex)
 
 
 
+/**
+ * Expand the column up to `nrows` elements and return it. The pointer returned
+ * will be `self` if the column can be modified in-place, or a new Column object
+ * otherwise. In the latter case the original object `self` will be decrefed.
+ *
+ * The column itself will be expanded in the following way: if it had just a
+ * single row, then this value will be repeated `nrows` times. If the column had
+ * `nrows != 1`, then all extra rows will be filled with NAs.
+ */
+Column* column_realloc_and_fill(Column *self, int64_t nrows)
+{
+    int64_t old_nrows = self->nrows;
+    size_t diff_rows = (size_t)(nrows - old_nrows);
+    size_t old_alloc_size = self->alloc_size;
+    assert(diff_rows > 0);
+
+    if (!stype_info[self->stype].varwidth) {
+        size_t elemsize = stype_info[self->stype].elemsize;
+        Column *col;
+        // DATA column with refcount 1 can be expanded in-place
+        if (self->mtype == MT_DATA && self->refcount == 1) {
+            col = self;
+            col->nrows = nrows;
+            col->alloc_size = elemsize * (size_t)nrows;
+            dtrealloc(col->data, void, col->alloc_size);
+        }
+        // In all other cases we create a new Column object and copy the data
+        // over. The current Column can be decrefed.
+        else {
+            col = make_data_column(self->stype, (size_t)nrows);
+            if (col == NULL) return NULL;
+            memcpy(col->data, self->data, self->alloc_size);
+            column_decref(self);
+        }
+        // Replicate the value or fill with NAs
+        size_t fill_size = elemsize * diff_rows;
+        assert(col->alloc_size - old_alloc_size == fill_size);
+        if (old_nrows == 1) {
+            set_value(add_ptr(col->data, old_alloc_size), col->data,
+                      elemsize, diff_rows);
+        } else {
+            const void *na = stype_info[col->stype].na;
+            set_value(add_ptr(col->data, old_alloc_size), na,
+                      elemsize, diff_rows);
+        }
+        return col;
+    }
+
+    else if (self->stype == ST_STRING_I4_VCHAR) {
+        if (nrows > INT32_MAX)
+            dterrr("Nrows is too big for an i4s column: %lld", nrows);
+
+        size_t old_data_size = column_i4s_datasize(self);
+        size_t old_offoff = (size_t) ((VarcharMeta*) self->meta)->offoff;
+        size_t new_data_size = old_data_size;
+        if (old_nrows == 1) new_data_size = old_data_size * (size_t)nrows;
+        size_t new_padding_size = column_i4s_padding(new_data_size);
+        size_t new_offoff = new_data_size + new_padding_size;
+        size_t new_alloc_size = new_offoff + 4 * (size_t)nrows;
+        assert(new_alloc_size > old_alloc_size);
+        Column *col;
+
+        // DATA column with refcount 1: expand in-place
+        if (self->mtype == MT_DATA && self->refcount == 1) {
+            col = self;
+            dtrealloc(col->data, void, new_alloc_size);
+            if (old_offoff != new_offoff) {
+                memmove(add_ptr(col->data, new_offoff),
+                        add_ptr(col->data, old_offoff), 4 * old_nrows);
+            }
+        }
+        // Otherwise create a new column and copy over the data
+        else {
+            col = make_data_column(self->stype, 0);
+            dtrealloc(col->data, void, new_alloc_size);
+            memcpy(col->data, self->data, old_data_size);
+            memcpy(add_ptr(col->data, new_offoff),
+                   add_ptr(self->data, old_offoff), 4 * old_nrows);
+            column_decref(self);
+        }
+        set_value(add_ptr(col->data, new_data_size), NULL, 1, new_padding_size);
+        ((VarcharMeta*) col->meta)->offoff = (int64_t) new_offoff;
+        col->alloc_size = new_alloc_size;
+        col->nrows = nrows;
+
+        // Replicate the value, or fill with NAs
+        int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
+        if (old_nrows == 1 && offsets[0] > 0) {
+            set_value(add_ptr(col->data, old_data_size), col->data,
+                      old_data_size, diff_rows);
+            for (int32_t j = 0; j < (int32_t)nrows; j++) {
+                offsets[j] = 1 + (j + 1) * (int32_t)old_data_size;
+            }
+        } else {
+            if (old_nrows == 1) assert(old_data_size == 0);
+            assert(old_offoff == new_offoff && old_data_size == new_data_size);
+            int32_t na = -(int32_t)new_data_size - 1;
+            set_value(add_ptr(col->data, old_alloc_size),
+                      &na, 4, diff_rows);
+        }
+        return col;
+    }
+    // Exception
+    dterre("Cannot realloc column of stype %d", self->stype);
+}
+
+
+
 RowIndex* column_sort(Column *col, int64_t nrows)
 {
     assert(col->nrows == nrows);
@@ -381,7 +508,6 @@ RowIndex* column_sort(Column *col, int64_t nrows)
     }
     return rowindex_from_slice(0, nrows, 1);
 }
-
 
 
 
@@ -432,4 +558,22 @@ void column_decref(Column *self)
  */
 size_t column_i4s_padding(size_t datasize) {
     return ((8 - ((datasize + 4) & 7)) & 7) + 4;
+}
+size_t column_i8s_padding(size_t datasize) {
+    return ((8 - (datasize & 7)) & 7) + 8;
+}
+
+
+/**
+ * Return the size of the data part in a ST_STRING_I(4|8)_VCHAR column.
+ */
+size_t column_i4s_datasize(Column *self) {
+    assert(self->stype == ST_STRING_I4_VCHAR);
+    void *end = add_ptr(self->data, self->alloc_size);
+    return (size_t) abs(((int32_t*) end)[-1]) - 1;
+}
+size_t column_i8s_datasize(Column *self) {
+    assert(self->stype == ST_STRING_I8_VCHAR);
+    void *end = add_ptr(self->data, self->alloc_size);
+    return (size_t) llabs(((int64_t*) end)[-1]) - 1;
 }

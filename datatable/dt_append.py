@@ -7,13 +7,13 @@ from datatable.utils.typechecks import typed, DataTable_t
 
 
 @typed(dts=DataTable_t, force=bool, bynames=bool, inplace=bool)
-def append(self, *dts, force=False, bynames=True, inplace=True):
+def rbind(self, *dts, force=False, bynames=True, inplace=True):
     """
     Append rows of datatables `dts` to the current datatable.
 
-    This is equivalent to `rbind()` in R: the datatables are combined by rows,
-    i.e. appending a datatable of shape [n x k] to a datatable of shape [m x k]
-    produces a datatable of shape [(m + n) x k].
+    This is equivalent to `list.extend()` in Python: the datatables are combined
+    by rows, i.e. rbinding a datatable of shape [n x k] to a datatable of shape
+    [m x k] produces a datatable of shape [(m + n) x k].
 
     By default, the source datatable is modified in-place. If you do not want
     the original datatable modified, use option `inplace=False`.
@@ -23,7 +23,7 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
     types: bool -> int -> decimal -> float -> string -> categorical.
 
     If you need to append multiple datatables, then it is more efficient to
-    collect them into an array first and then do a single `append()`, than it is
+    collect them into an array first and then do a single `rbind()`, than it is
     to append them one-by-one.
 
     Appending data to a datatable opened from disk will force loading the
@@ -92,8 +92,8 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
         for dt in dts:
             if not(dt.ncols == n or force):
                 raise ValueError(
-                    "Cannot append datatable with %s to a datatable with %s. If"
-                    " you wish append the datatables anyways filling missing "
+                    "Cannot rbind datatable with %s to a datatable with %s. If"
+                    " you wish rbind the datatables anyways filling missing "
                     "values with NAs, then use option `force=True`"
                     % (plural(dt.ncols, "column"), plural(n, "column")))
             # Column mapping that specifies which column of `dt` should be
@@ -109,7 +109,7 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
                     if not force:
                         raise ValueError(
                             "Column '%s' is not found in the source datatable. "
-                            "If you want to append the datatables anyways "
+                            "If you want to rbind the datatables anyways "
                             "filling missing values with NAs, then specify "
                             "option `force=True`" % col)
                     final_names.append(col)
@@ -145,8 +145,8 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
             nn = dt.ncols
             if nn != n and not force:
                 raise ValueError(
-                    "Cannot append datatable with %s to a datatable with %s. If"
-                    " you wish append the datatables anyways filling missing "
+                    "Cannot rbind datatable with %s to a datatable with %s. If"
+                    " you wish rbind the datatables anyways filling missing "
                     "values with NAs, then use option `force=True`"
                     % (plural(nn, "column"), plural(n, "column")))
             if nn > len(final_names):
@@ -159,6 +159,87 @@ def append(self, *dts, force=False, bynames=True, inplace=True):
     return src
 
 
-#
-# This is how the function will be exported (do we need this?)
-dt_append = append
+
+@typed(dts=DataTable_t, force=bool, inplace=bool)
+def cbind(self, *dts, force=False, inplace=True):
+    """
+    Append columns of datatables `dts` to the current datatable.
+
+    This is equivalent to `pandas.concat(axis=1)`: the datatables are combined
+    by columns, i.e. cbinding a datatable of shape [n x m] to a datatable of
+    shape [n x k] produces a datatable of shape [n x (m + k)].
+
+    As a special case, if you cbind a single-row datatable, then that row will
+    be replicated as many times as there are rows in the current datatable. This
+    makes it easy to create constant columns, or to append reduction results
+    (such as min/max/mean/etc) to the current datatable.
+
+    If datatable(s) being appended have different number of rows (with the
+    exception of datatables having 1 row), then the operation will fail by
+    default. You can force cbinding these datatables anyways by providing option
+    `force=True`: this will fill all "short" datatables with NAs. Thus there is
+    a difference in how datatables with 1 row are treated compared to datatables
+    with any other number of rows.
+
+    When appending several datatables with the similar column names, the
+    resulting datatable will have those names unmodified. Thus, it is entirely
+    possible to create a datatable which has more than one column with the same
+    name.
+
+    Parameters
+    ----------
+    dts: sequence or list of DataTables
+        One or more datatable to append. They should have the same number of
+        rows (unless option `force` is also provided).
+
+    force: boolean, default False
+        If True, allows datatables to be appended even if they have unequal
+        number of rows. The resulting datatable will have number of rows equal
+        to the largest among all datatables. Those datatables which have less
+        than the largest number of rows, will be padded with NAs (with the
+        exception of datatables having just 1 row, which will be replicated
+        instead of filling with NAs).
+
+    inplace: boolean, default True
+        If True, then the data is appended to the current datatable in-place,
+        causing it to be modified. If False, then a new datatable will be
+        constructed and returned instead (and no existing datatables will be
+        modified).
+
+    Returns
+    -------
+    The current datatable, modified, if `inplace` is True; or a new datatable
+    containing all datatables concatenated, if `inplace` is False.
+    """
+    datatables = []
+    column_names = list(self.names)
+
+    # Which DataTable to operate upon. If not `inplace` then we will create
+    # a blank DataTable and merge everything to it.
+    src = self
+    if not inplace:
+        src = datatable.DataTable()
+        datatables.append(self.internal)
+
+    # Check that all datatables have compatible number of rows, and compose the
+    # list of _DataTables to be passed down into the C level.
+    nrows = src.nrows or -1
+    for dt in dts:
+        nn = dt.nrows
+        if nrows == -1:
+            nrows = nn
+        if not(nn == nrows or nn == 1 or force):
+            if nrows <= 1:
+                nrows = nn
+            else:
+                raise ValueError(
+                    "Cannot merge datatable with %s to a datatable with %s. If "
+                    "you want to disregard this warning and merge datatables "
+                    "anyways, then please provide option `inplace=True`"
+                    % (plural(nn, "row"), plural(nrows, "row")))
+        datatables.append(dt.internal)
+        column_names.extend(list(dt.names))
+
+    src.internal.cbind(datatables)
+    src._fill_from_dt(src.internal, names=column_names)
+    return src

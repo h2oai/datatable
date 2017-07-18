@@ -309,24 +309,45 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         }
         int64_t offoff = -1;
         if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+            int is_i4 = (stype == ST_STRING_I4_VCHAR);
             offoff = ((VarcharMeta*) col->meta)->offoff;
-            int elemsize = stype == ST_STRING_I4_VCHAR? 4 : 8;
+            int elemsize = is_i4 ? 4 : 8;
             if (offoff <= 0) {
                 ERR("String data section in column %lld has negative length"
                     ": %lld\n", i, offoff);
                 continue;
             }
-            if ((offoff & (elemsize - 1)) != 0) {
+            if (offoff < elemsize) {
+                ERR("String data section in column %lld has offset less than "
+                    "the element size: %lld\n", i, offoff);
+                continue;
+            }
+            if ((offoff & 7) != 0) {
                 ERR("String data section in column %lld has a length which "
-                    "is not a multiple of %d: %lld\n", i, elemsize, offoff);
-                // This might be fixable... unclear
+                    "is not a multiple of 8: %lld\n", i, offoff);
                 continue;
             }
             if (stype == ST_STRING_I4_VCHAR && offoff > INT32_MAX) {
                 ERR("String data section in column %lld has length %lld "
                     "which exceeds 32-bit storage limit\n", i, offoff);
-                // Might also be fixable
                 continue;
+            }
+            size_t datasize = is_i4 ? column_i4s_datasize(col)
+                                    : column_i8s_datasize(col);
+            size_t exp_padding = is_i4 ? column_i4s_padding(datasize)
+                                       : column_i8s_padding(datasize);
+            if ((size_t)offoff != datasize + exp_padding) {
+                ERR("String column %lld has unexpected offoff=%lld (expected to"
+                    "be offoff=%lld)\n", i, offoff, datasize + exp_padding);
+                continue;
+            }
+            for (size_t j = 0; j < exp_padding; j++) {
+                unsigned char c = *((unsigned char*)col->data + datasize + j);
+                if (c != 0xFF) {
+                    ERR("String column %lld is not padded with 0xFF bytes "
+                        "correctly: byte %X is %X\n", i, datasize + j, c);
+                    break;
+                }
             }
         }
 
@@ -334,7 +355,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         size_t elemsize = stype_info[stype].elemsize;
         if (stype == ST_STRING_FCHAR)
             elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
-        size_t exp_allocsize = elemsize * (size_t)nrows;
+        size_t exp_allocsize = elemsize * (size_t)col->nrows;
         if (offoff > 0)
             exp_allocsize += (size_t)offoff;
         if (col->alloc_size != exp_allocsize) {
@@ -376,7 +397,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                     ERR("Number -1 was not found in front of the offsets " \
                         "section\n");                                      \
                 }                                                          \
-                for (int64_t j = 0; j < nrows; j++) {                      \
+                for (int64_t j = 0; j < col->nrows; j++) {                 \
                     T oj = offsets[j];                                     \
                     if (oj < 0 ? (oj != -lastoff) : (oj < lastoff)) {      \
                         ERR("Invalid offset in column %lld row %lld: "     \
@@ -412,7 +433,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             for (int64_t j = strdata_size; j < offoff; j++) {
                 if (((uint8_t*) col->data)[j] != 0xFF) {
                     ERR("String data section in column %lld is not padded "
-                        "with '\\xFF's", i);
+                        "with '\\xFF's, at offset %X\n", i, j);
                     if (fix) {
                         ((unsigned char*) col->data)[j] = 0xFF;
                         fixed_errors++;

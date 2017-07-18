@@ -244,13 +244,42 @@ static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
         }
         dts[i] = dti;
     }
-    DataTable *ret = dt_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+    DataTable *ret = datatable_rbind(dt, dts, cols_to_append, ndts, final_ncols);
     if (ret == NULL) return NULL;
 
     dtfree(cols_to_append);
     dtfree(dts);
     return none();
 }
+
+
+
+static PyObject* cbind(DataTable_PyObject *self, PyObject *args)
+{
+    PyObject *pydts;
+    if (!PyArg_ParseTuple(args, "O!:cbind",
+                          &PyList_Type, &pydts)) return NULL;
+
+    DataTable *dt = self->ref;
+    int ndts = (int) PyList_Size(pydts);
+    DataTable **dts = NULL;
+    dtmalloc(dts, DataTable*, ndts);
+    for (int i = 0; i < ndts; i++) {
+        PyObject *elem = PyList_GET_ITEM(pydts, i);
+        if (!PyObject_TypeCheck(elem, &DataTable_PyType)) {
+            PyErr_Format(PyExc_ValueError,
+                "Element %d of the array is not a DataTable object", i);
+            return NULL;
+        }
+        dts[i] = ((DataTable_PyObject*) elem)->ref;
+    }
+    DataTable *ret = datatable_cbind(dt, dts, ndts);
+    if (ret == NULL) return NULL;
+
+    dtfree(dts);
+    return none();
+}
+
 
 
 static PyObject* sort(DataTable_PyObject *self, PyObject *args)
@@ -301,6 +330,7 @@ PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from th
 PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
 PyDoc_STRVAR(dtdoc_sort, "Sort datatable according to a column");
 
+#define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
 
 static PyMethodDef datatable_methods[] = {
@@ -309,6 +339,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(column),
     METHOD1(delete_columns),
     METHOD1(rbind),
+    METHOD0(cbind),
     METHOD1(sort),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
