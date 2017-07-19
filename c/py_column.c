@@ -146,6 +146,12 @@ static void releasebuffer(Column_PyObject *self, Py_buffer *view)
 }
 
 
+void free_xbuf_column(Column *col)
+{
+    if (col->mtype == MT_XBUF)
+        PyBuffer_Release(col->pybuf);
+}
+
 
 //==============================================================================
 // Column type definition

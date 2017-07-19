@@ -19,5 +19,6 @@ extern PyTypeObject Column_PyType;
 Column_PyObject* pyColumn_from_Column(Column *col);
 
 int init_py_column(PyObject *module);
+void free_xbuf_column(Column *col);
 
 #endif

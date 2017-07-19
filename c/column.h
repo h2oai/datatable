@@ -7,6 +7,40 @@
 typedef struct DataTable DataTable;
 typedef struct RowIndex RowIndex;
 
+//==============================================================================
+
+/**
+ * "Memory" type of the column -- i.e. where the data is actually stored.
+ * Columns with different `MType`s are generally interchangeable, except that
+ * they may require different strategies for allocating/ reallocating/ freeing
+ * their data buffers.
+ *
+ * MT_DATA
+ *     The data is stored in RAM. This is the most common mtype for a column.
+ *     When this column is deleted, its memory buffer will be freed.
+ *
+ * MT_MMAP
+ *     The data is stored on disk, but memory-mapped into RAM. Such column is
+ *     read-only. When the column is deleted its memory buffer is unmapped, but
+ *     the file remains on disk.
+ *
+ * MT_TEMP
+ *     Similar to MT_MMAP, but the data is stored in a temporary file. When the
+ *     column is removed, the underlying temporary file is deleted as well.
+ *     Uses field `filename`. Uses field `filename`.
+ *
+ * MT_XBUF
+ *     The data is stored in external buffer, obtained via PyBuffers protocol.
+ *     Such data is read-only, and when the column is deleted, the buffer has
+ *     to be released. Uses field `pybuf`.
+ */
+typedef enum MType {
+    MT_DATA = 1,
+    MT_MMAP = 2,
+    MT_TEMP = 3,
+    MT_XBUF = 4,
+} __attribute__ ((__packed__)) MType;
+
 
 //==============================================================================
 
@@ -27,8 +61,8 @@ typedef struct RowIndex RowIndex;
  *
  * mtype
  *     "Memory" type of the column -- i.e. where the data is actually stored.
- *     Possible values are MT_DATA (column is stored in RAM) and MT_MMAP
- *     (memory-mapped from disk).
+ *     Possible values are MT_DATA (column is stored in RAM), MT_MMAP (memory-
+ *     -mapped from disk), and MT_XBUF (acquired from an external buffer).
  *
  * stype
  *     Type of data within the column (the enum is defined in types.h). This is
@@ -62,6 +96,10 @@ typedef struct Column {
     void   *meta;        // 8
     int64_t nrows;       // 8
     size_t  alloc_size;  // 8
+    union {              // 8
+        char *filename;
+        void *pybuf;
+    };
     int     refcount;    // 4
     MType   mtype;       // 1
     SType   stype;       // 1
@@ -82,6 +120,8 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows);
 Column* column_save_to_disk(Column *self, const char *filename);
 Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
                               const char *metastr);
+Column* column_from_buffer(void* pybuffer, void* buf, size_t alloc_size,
+                           size_t itemsize, const char *format);
 RowIndex* column_sort(Column *self, int64_t nrows);
 size_t column_i4s_padding(size_t datasize);
 size_t column_i8s_padding(size_t datasize);

@@ -13,7 +13,8 @@ from .widget import DataFrameWidget
 from datatable.dt_append import rbind as dt_rbind, cbind as dt_cbind
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
-from datatable.utils.typechecks import TTypeError, TValueError, typed, U
+from datatable.utils.typechecks import (
+    TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t)
 from datatable.graph import make_datatable
 
 __all__ = ("DataTable", )
@@ -166,6 +167,8 @@ class DataTable(object):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
         elif isinstance(src, c.DataTable):
             self._fill_from_dt(src, names=colnames)
+        elif is_type(src, PandasDataFrame_t):
+            self._fill_from_pandas(src)
         elif src is None:
             self._fill_from_list([])
         else:
@@ -190,17 +193,17 @@ class DataTable(object):
         self._inames = {n: i for i, n in enumerate(names)}
 
 
-    def _fill_from_pandas(self, pdf):
+    def _fill_from_pandas(self, pddf):
         columns = []
-        for colname in pdf.columns:
-            nparray = pdf[colname].values
+        for colname in pddf.columns:
+            nparray = pddf[colname].values
             if not nparray.dtype.isnative:
                 # Array has wrong endianness -- coerce into native byte-order
                 nparray = nparray.byteswap().newbyteorder()
                 assert nparray.dtype.isnative
             columns.append(nparray)
         dt = c.datatable_from_buffers(columns)
-        self._fill_from_dt(dt, names=pdf.columns)
+        self._fill_from_dt(dt, names=list(pddf.columns))
 
 
 
