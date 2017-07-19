@@ -189,8 +189,8 @@ static int _init_hexview(
         PyList_SET_ITEM(stypes, i, incref(py_stype_names[ST_STRING_FCHAR]));
     }
 
-    uint8_t *coldata = (uint8_t*)(column->data + 16 * row0);
-    uint8_t *coldata_end = (uint8_t*)(column->data + column->alloc_size);
+    uint8_t *coldata = (uint8_t*) add_ptr(column->data, 16 * row0);
+    uint8_t *coldata_end = (uint8_t*) add_ptr(column->data, column->alloc_size);
     // printf("coldata = %p, end = %p\n", coldata, coldata_end);
     viewdata = TRY(PyList_New(ncols));
     for (int i = 0; i < ncols; i++) {

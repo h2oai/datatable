@@ -45,6 +45,6 @@ void set_value(void * restrict ptr, const void * restrict value,
     size_t final_sz = sz * count;
     for (size_t i = sz; i < final_sz; i <<= 1) {
         size_t writesz = i < final_sz - i ? i : final_sz - i;
-        memcpy(ptr + i, ptr, writesz);
+        memcpy(add_ptr(ptr, i), ptr, writesz);
     }
 }

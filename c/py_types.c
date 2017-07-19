@@ -83,12 +83,12 @@ static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
 static PyObject* stype_vchar_i32_tostring(Column *col, int64_t row)
 {
     int32_t offoff = (int32_t) ((VarcharMeta*) col->meta)->offoff;
-    int32_t *offsets = (int32_t*)(col->data + offoff);
+    int32_t *offsets = (int32_t*) add_ptr(col->data, offoff);
     if (offsets[row] < 0)
         return none();
     int32_t start = row == 0? 0 : abs(offsets[row - 1]) - 1;
     int32_t len = offsets[row] - 1 - start;
-    return PyUnicode_FromStringAndSize(col->data + start, len);
+    return PyUnicode_FromStringAndSize(add_ptr(col->data, start), len);
 }
 
 static PyObject* stype_object_pyptr_tostring(Column *col, int64_t row)

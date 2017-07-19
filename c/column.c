@@ -209,7 +209,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
         switch (stype) {
             case ST_STRING_I4_VCHAR: {
                 size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
-                int32_t *offs = (int32_t*)(self->data + offoff) + start;
+                int32_t *offs = (int32_t*) add_ptr(self->data, offoff) + start;
                 int32_t off0 = start? abs(*(offs - 1)) - 1 : 0;
                 int32_t off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;
                 size_t datasize = (size_t)(off1 - off0);
@@ -219,8 +219,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                 res->alloc_size = datasize + padding + offssize;
                 dtmalloc(res->data, void, res->alloc_size);
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-                memcpy(res->data, self->data + (size_t)off0, datasize);
-                memset(res->data + datasize, 0xFF, padding);
+                memcpy(res->data, add_ptr(self->data, off0), datasize);
+                memset(add_ptr(res->data, datasize), 0xFF, padding);
                 int32_t *resoffs = (int32_t*) add_ptr(res->data, offoff);
                 for (size_t i = 0; i < nrows; i++) {
                     resoffs[i] = offs[i] > 0? offs[i] - off0
@@ -230,7 +230,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
 
             case ST_STRING_I8_VCHAR: {
                 size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
-                int64_t *offs = (int64_t*)(self->data + offoff) + start;
+                int64_t *offs = (int64_t*) add_ptr(self->data, offoff) + start;
                 int64_t off0 = start? llabs(*(offs - 1)) - 1 : 0;
                 int64_t off1 = start + nrows? llabs(*(offs + nrows - 1)) - 1 : 0;
                 size_t datasize = (size_t)(off1 - off0);
@@ -238,11 +238,11 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                 size_t offssize = nrows * elemsize;
                 offoff = datasize + padding;
                 res->alloc_size = datasize + padding + offssize;
-                res->data = TRY(malloc(res->alloc_size));
+                dtmalloc(res->data, void, res->alloc_size);
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-                memcpy(res->data, self->data + (size_t)off0, datasize);
-                memset(res->data + datasize, 0xFF, padding);
-                int64_t *resoffs = (int64_t*)(res->data + offoff);
+                memcpy(res->data, add_ptr(self->data, off0), datasize);
+                memset(add_ptr(res->data, datasize), 0xFF, padding);
+                int64_t *resoffs = (int64_t*) add_ptr(res->data, offoff);
                 for (size_t i = 0; i < nrows; i++) {
                     resoffs[i] = offs[i] > 0? offs[i] - off0
                                             : offs[i] + off0;
@@ -259,7 +259,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                 assert(!stype_info[stype].varwidth);
                 size_t alloc_size = nrows * elemsize;
                 size_t offset = start * elemsize;
-                res->data = TRY(clone(self->data + offset, alloc_size));
+                res->data = TRY(clone(add_ptr(self->data, offset), alloc_size));
                 res->alloc_size = alloc_size;
             } break;
         }
@@ -282,7 +282,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
 
         #define CASE_IX_VCHAR_SUB(ctype, abs, JINIT, JITER) {                  \
             size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;       \
-            ctype *offs = (ctype*)(self->data + offoff);                       \
+            ctype *offs = (ctype*) add_ptr(self->data, offoff);                \
             size_t datasize = 0;                                               \
             {   JINIT                                                          \
                 for (size_t i = 0; i < nrows; i++) {                           \
@@ -303,14 +303,15 @@ Column* column_extract(Column *self, RowIndex *rowindex)
             {   JINIT                                                          \
                 ctype lastoff = 1;                                             \
                 char *dest = res->data;                                        \
-                ctype *resoffs = (ctype*)(res->data + offoff);                 \
+                ctype *resoffs = (ctype*) add_ptr(res->data, offoff);          \
                 for (size_t i = 0; i < nrows; i++) {                           \
                     JITER                                                      \
                     if (offs[j] > 0) {                                         \
                         ctype prevoff = j? abs(offs[j - 1]) : 1;               \
                         size_t len = (size_t)(offs[j] - prevoff);              \
                         if (len) {                                             \
-                            memcpy(dest, self->data + prevoff - 1, len);       \
+                            memcpy(dest, add_ptr(self->data, prevoff - 1),     \
+                                   len);                                       \
                             dest += len;                                       \
                             lastoff += len;                                    \
                         }                                                      \
@@ -349,12 +350,13 @@ Column* column_extract(Column *self, RowIndex *rowindex)
         default: {
             assert(!stype_info[stype].varwidth);
             size_t alloc_size = nrows * elemsize;
-            res->data = TRY(malloc(alloc_size));
+            dtmalloc(res->data, void, alloc_size);
             res->alloc_size = alloc_size;
             char *dest = res->data;
             if (rowindex->type == RI_SLICE) {
+                size_t startsize = (size_t)rowindex->slice.start * elemsize;
                 size_t stepsize = (size_t) rowindex->slice.step * elemsize;
-                char *src = self->data + (size_t) rowindex->slice.start * elemsize;
+                char *src = add_ptr(self->data, startsize);
                 for (size_t i = 0; i < nrows; i++) {
                     memcpy(dest, src, elemsize);
                     dest += elemsize;
@@ -365,7 +367,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                 int32_t *rowindices = rowindex->ind32;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
-                    memcpy(dest, self->data + j*elemsize, elemsize);
+                    memcpy(dest, add_ptr(self->data, j*elemsize), elemsize);
                     dest += elemsize;
                 }
             } else
@@ -373,7 +375,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                 int64_t *rowindices = rowindex->ind64;
                 for (size_t i = 0; i < nrows; i++) {
                     size_t j = (size_t) rowindices[i];
-                    memcpy(dest, self->data + j*elemsize, elemsize);
+                    memcpy(dest, add_ptr(self->data, j*elemsize), elemsize);
                     dest += elemsize;
                 }
             }
