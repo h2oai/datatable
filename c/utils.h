@@ -32,30 +32,24 @@ float max_f4(float a, float b);
 // https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define zPRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 #define zCAT(a, ...) zPRIMITIVE_CAT(a, __VA_ARGS__)
-#define zCOMPL(b) zPRIMITIVE_CAT(zCOMPL_, b)
-#define zCOMPL_0 1
-#define zCOMPL_1 0
-#define zEAT(...)
-#define zBITAND(x) zPRIMITIVE_CAT(zBITAND_, x)
-#define zBITAND_0(y) 0
-#define zBITAND_1(y) y
 #define zIIF_0(t, ...) __VA_ARGS__
 #define zIIF_1(t, ...) t
 #define zCHECK_N(x, n, ...) n
 #define zCHECK(...) zCHECK_N(__VA_ARGS__, 0,)
-#define zPROBE(x) x, 1,
-#define zIS_PAREN(x) zCHECK(zIS_PAREN_PROBE x)
-#define zIS_PAREN_PROBE(...) zPROBE(~)
-#define zIS_COMPARABLE(x) zIS_PAREN(zCAT(zCOMPARE_, x) (()))
-#define zPRIMITIVE_COMPARE(x, y) zIS_PAREN (zCOMPARE_ ## x (zCOMPARE_ ## y)(()))
-#define zNOT_EQUAL(x, y) zIIF(zBITAND(zIS_COMPARABLE(x))(zIS_COMPARABLE(y)))   \
-                         (zPRIMITIVE_COMPARE, 1 zEAT)(x, y)
 #define zIIF(c) zPRIMITIVE_CAT(zIIF_, c)
-#define zEQUAL(x, y) zCOMPL(zNOT_EQUAL(x, y))
-// All for the benefit of this tiny macro, which expands to `sizeof(T)` in all
-// cases except when `T` is `void`, in which case it expands into `1`.
-#define SIZEOF(T) zIIF(zEQUAL(T, void))(1, sizeof(T))
-
+#define zTEST1_void x,1,
+#define zTEST2_void char
+// This expands into `x,1,` if T is void, into `x,1,*` if T is void*, or into
+// `zTEST1_<T>` otherwise.
+#define zEXPANDT1(T) zCAT(zTEST1_, T)
+// Similarly, this expands into `char` if T is void, into `char*` if T is void*,
+// or into `zTEST2_<T>` otherwise
+#define zEXPANDT2(T) zCAT(zTEST2_, T)
+// Expands to `1` if T is void or void*, or to `0` otherwise
+#define zIS_T_VOID(T) zCHECK(zEXPANDT1(T))
+// Finally, this expands into `sizeof(char)` if T is void, into `sizeof(char*)`
+// if T is void*, and into `sizeof(<T>)` in all other cases.
+#define SIZEOF(T) zIIF(zIS_T_VOID(T))(sizeof(zEXPANDT2(T)), sizeof(T))
 
 /**
  * Use this macro to malloc a memory region and assign it to a variable. For
