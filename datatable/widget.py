@@ -113,10 +113,10 @@ class DataFrameWidget(object):
         coltypes = data["types"]
         stypes = data["stypes"]
         coldata = data["columns"]
+        indices = data["indices"]
 
         # Create column with row indices
-        indices = range(self._view_row0, self._view_row0 + self._view_nrows)
-        indexcolumn = _Column(name="", ctype="int", data=indices)
+        indexcolumn = _Column(name="", ctype="str", data=indices)
         indexcolumn.color = grey
         indexcolumn.margin = "  "
 

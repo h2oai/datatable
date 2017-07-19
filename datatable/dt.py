@@ -104,11 +104,13 @@ class DataTable(object):
 
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
+        l = max(2, len(str(row1)))
         return {
             "names": self._names[col0:col1],
             "types": view.types,
             "stypes": view.stypes,
             "columns": view.data,
+            "indices": ["%*d" % (l, x) for x in range(row0, row1)],
         }
 
     def view(self, interactive=True):
@@ -128,11 +130,13 @@ class DataTable(object):
 
         def data_viewer(row0, row1, col0, col1):
             view = c.DataWindow(self._dt, row0, row1, col0, col1, colidx)
+            l = len(hex(row1))
             return {
                 "names": names[col0:col1],
                 "types": view.types,
                 "stypes": view.stypes,
                 "columns": view.data,
+                "indices": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
             }
 
         print("Column %d, Name: %r" % (colidx, self._names[colidx]))
