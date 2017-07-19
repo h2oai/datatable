@@ -128,8 +128,8 @@ extra_link_args = [
 ]
 
 if "WITH_COVERAGE" in os.environ:
-    extra_compile_args += ["-coverage"]
-    extra_link_args += ["-coverage"]
+    extra_compile_args += ["-coverage", "-O0"]
+    extra_link_args += ["-coverage", "-O0"]
 
 if "VALGRIND" in os.environ:
     extra_compile_args += ["-ggdb", "-O0"]
