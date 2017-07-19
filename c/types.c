@@ -29,7 +29,7 @@ dt_static_assert(sizeof(int64_t) == 8, "int64_t should be 8-byte");
 dt_static_assert(sizeof(float) == 4, "float should be 4-byte");
 dt_static_assert(sizeof(double) == 8, "double should be 8-byte");
 dt_static_assert(sizeof(char) == sizeof(unsigned char), "char != uchar");
-dt_static_assert(sizeof(void) == 1, "sizeof(void) != 1");
+dt_static_assert(sizeof(char) == 1, "sizeof(char) != 1");
 // Used in llvm.py
 dt_static_assert(sizeof(long long int) == 8, "llint should be 8-byte");
 

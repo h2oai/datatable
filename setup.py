@@ -92,10 +92,6 @@ os.environ["LLVM_CONFIG"] = llvm_config
 # Settings for building the extension
 #-------------------------------------------------------------------------------
 # Ignored warnings:
-#   -Wpointer-arith: this warns about treating (void*) as
-#       (char*), which is a GNU extension. However since we
-#       only ever want to compile in GCC / CLang, such use is
-#       appropriate.
 #   -Wcovered-switch-default: we add `default` statement to
 #       an exhaustive switch to guard against memory
 #       corruption and careless enum definition expansion.
@@ -110,7 +106,6 @@ extra_compile_args = [
     "-DDTPY",
     "-DNONDEBUG",
     "-Weverything",
-    "-Wno-pointer-arith",
     "-Wno-covered-switch-default",
     "-Wno-float-equal",
     "-Wno-gnu-statement-expression",
