@@ -33,7 +33,7 @@ class DataFrameWidget(object):
     VIEW_NROWS_MAX = 30
     RIGHT_MARGIN = 2
 
-    def __init__(self, nrows, ncols, viewdata_callback):
+    def __init__(self, nrows, ncols, viewdata_callback, interactive=True):
         """
         Initialize a new frame widget.
 
@@ -67,7 +67,7 @@ class DataFrameWidget(object):
         # Display state
         self._n_displayed_lines = 0
         self._show_types = 0
-        self._interactive = True
+        self._interactive = interactive
         self._colwidths = {}
         self._term_width = term.width
         self._term_height = term.height

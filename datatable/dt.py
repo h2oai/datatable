@@ -111,8 +111,9 @@ class DataTable(object):
             "columns": view.data,
         }
 
-    def view(self):
-        widget = DataFrameWidget(self._nrows, self._ncols, self._data_viewer)
+    def view(self, interactive=True):
+        widget = DataFrameWidget(self._nrows, self._ncols, self._data_viewer,
+                                 interactive)
         widget.render()
 
 
