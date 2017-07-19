@@ -173,6 +173,9 @@ Column* column_from_buffer(void* pybuffer, void* buf, size_t alloc_size,
     else if (c == '?') {
         stype = itemsize == 1 ? ST_BOOLEAN_I1 : ST_VOID;
     }
+    else if (c == 'O') {
+        stype = ST_OBJECT_PYPTR;
+    }
     if (stype == ST_VOID)
         dterrr("Unknown format '%s' with itemsize %zd", format, itemsize);
 
