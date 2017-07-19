@@ -23,18 +23,16 @@ pipeline {
                 dockerfile {
                     label "docker"
                     filename "Dockerfile"
-                    reuseNode true
                 }
             }
             steps {
-                dumpInfo 'Build Info'
+                dumpInfo 'Linux Build Info'
                 sh """
-                        . /datatable_env/bin/activate
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         make clean
-                        make build
+                        make build > stage_build_on_linux_output.txt
                         touch LICENSE
-                        python setup.py bdist_wheel
+                        python setup.py bdist_wheel >> stage_build_on_linux_output.txt
                         python setup.py --version > dist/VERSION.txt
                 """
                 stash includes: '**/dist/*.whl', name: 'linux_whl'
@@ -42,6 +40,7 @@ pipeline {
                 // Archive artifacts
                 arch 'dist/*.whl'
                 arch 'dist/VERSION.txt'
+                arch 'stage_build_on_linux_output.txt'
             }
         }
 
@@ -50,17 +49,18 @@ pipeline {
                 dockerfile {
                     label "docker"
                     filename "Dockerfile"
-                    reuseNode true
                 }
             }
             steps {
                 unstash 'linux_whl'
+                dumpInfo 'Linux Test Info'
                 script {
                     try {
                         sh """
-                                . /datatable_env/bin/activate
-                                pip install dist/*linux*.whl
-                                python -m pytest --junit-xml=build/test-reports/TEST-datatable_linux.xml
+                            rm -rf .venv venv 2> /dev/null
+                            virtualenv --python=python3.6 .venv
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`[testing]
+                            .venv/bin/python -m pytest -v --junit-prefix=linux --junit-xml=build/test-reports/TEST-datatable_linux.xml
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -113,7 +113,7 @@ pipeline {
                                     fi
                                 fi
                                 pip install --upgrade dist/*macosx*.whl
-                                python -m pytest --junit-xml=build/test-reports/TEST-datatable_osx.xml
+                                python -m pytest --junit-prefix=osx --junit-xml=build/test-reports/TEST-datatable_osx.xml
                         '''
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
