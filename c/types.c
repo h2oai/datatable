@@ -35,7 +35,6 @@ dt_static_assert(sizeof(long long int) == 8, "llint should be 8-byte");
 
 dt_static_assert(sizeof(LType) == 1, "LType does not fit in a byte");
 dt_static_assert(sizeof(SType) == 1, "SType does not fit in a byte");
-dt_static_assert(sizeof(MType) == 1, "MType should be 1 byte in size");
 
 dt_static_assert((unsigned)(-1) - (unsigned)(-3) == 2,
                  "Unsigned arithmetics check");

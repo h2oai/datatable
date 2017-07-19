@@ -445,15 +445,6 @@ int ISNA_U4(uint32_t x);
 
 //==============================================================================
 
-typedef enum MType {
-    MT_DATA  = 1,
-    MT_MMAP  = 2,
-} __attribute__ ((__packed__)) MType;
-
-
-
-//==============================================================================
-
 // Initializer function
 void init_types(void);
 SType stype_from_string(const char *s);

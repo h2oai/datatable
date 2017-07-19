@@ -49,6 +49,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(datatable_assemble),
     METHOD0(datatable_from_list),
     METHOD0(datatable_load),
+    METHOD0(datatable_from_buffers),
     {"fread", (PyCFunction)freadPy, METH_VARARGS,
         "Read a text file and convert into a datatable"},
     {"exec_function", (PyCFunction)exec_function, METH_VARARGS,
