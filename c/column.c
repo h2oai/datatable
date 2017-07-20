@@ -305,7 +305,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                 assert(!stype_info[stype].varwidth);
                 size_t alloc_size = nrows * elemsize;
                 size_t offset = start * elemsize;
-                res->data = TRY(clone(add_ptr(self->data, offset), alloc_size));
+                dtmalloc(res->data, void, alloc_size);
+                memcpy(res->data, add_ptr(self->data, offset), alloc_size);
                 res->alloc_size = alloc_size;
             } break;
         }
