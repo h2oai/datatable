@@ -103,6 +103,10 @@ class DataTable(object):
         # This method is called from the display hook set from .utils.terminal
         self.view()
 
+    def _repr_pretty_(self, p, cycle):
+        # Called by IPython terminal when displaying the datatable
+        self.view()
+
     def _data_viewer(self, row0, row1, col0, col1):
         view = self._dt.window(row0, row1, col0, col1)
         l = max(2, len(str(row1)))

@@ -37,6 +37,7 @@ def _new_displayhook(value):
     else:
         _original_displayhook(value)
 
+
 _original_displayhook = sys.displayhook
 sys.displayhook = _new_displayhook
 
