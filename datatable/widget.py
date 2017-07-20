@@ -116,9 +116,12 @@ class DataFrameWidget(object):
         indices = data["indices"]
 
         # Create column with row indices
+        oldwidth = self._colwidths.get("index", 3)
         indexcolumn = _Column(name="", ctype="str", data=indices)
         indexcolumn.color = grey
         indexcolumn.margin = "  "
+        indexcolumn.width = max(oldwidth, indexcolumn.width)
+        self._colwidths["index"] = indexcolumn.width
 
         # Data columns
         columns = [indexcolumn]
@@ -129,7 +132,9 @@ class DataFrameWidget(object):
                 name = term.cyan(stypes[i])
             else:
                 name = colnames[i]
+            oldwidth = self._colwidths.get(i + self._view_col0, 0)
             col = _Column(name=name, ctype=coltypes[i], data=coldata[i])
+            col.width = max(col.width, oldwidth)
             if self._view_ncols < self._frame_ncols:
                 col.width = min(col.width, _Column.MAX_WIDTH)
             self._colwidths[i + self._view_col0] = col.width
