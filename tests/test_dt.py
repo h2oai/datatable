@@ -64,12 +64,12 @@ def test_dt_view(dt0, monkeypatch, capsys):
     monkeypatch.setattr("datatable.utils.terminal.wait_for_keypresses", send1)
     dt0.view()
     out, err = capsys.readouterr()
-    assert ("     A   B   C     D   E   F  G    \n"
-            "--  --  --  --  ----  --  --  -----\n"
-            " 0   2   1   1   0.1       0  1    \n"
-            " 1   7   0   1   2         0  2    \n"
-            " 2   0   0   1  -4         0  hello\n"
-            " 3   0   1   1   4.4       0  world\n"
+    assert ("      A   B   C     D   E   F  G    \n"
+            "---  --  --  --  ----  --  --  -----\n"
+            " 0    2   1   1   0.1       0  1    \n"
+            " 1    7   0   1   2         0  2    \n"
+            " 2    0   0   1  -4         0  hello\n"
+            " 3    0   1   1   4.4       0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
             "Press q to quit  ↑←↓→ to move  wasd to page  t to toggle types"
