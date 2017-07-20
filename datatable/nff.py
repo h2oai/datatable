@@ -76,7 +76,8 @@ def open(path):
             else:
                 raise ValueError("Unknown NFF format: %s" % info[0])
 
-        f0 = fread("_meta.nff", sep=",")
+        f0 = fread("_meta.nff", sep=",",
+                   columns=lambda i, name, type: (name, str))
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
         _dt = _datatable.datatable_load(f1.internal, nrows)
