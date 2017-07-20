@@ -110,7 +110,7 @@ static Column* try_to_resolve_object_column(Column* col)
         } else {
             PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
             int32_t sz = (int32_t) PyBytes_Size(z);
-            if (offset + sz > strbuf_size) {
+            if ((size_t)(offset + sz) > strbuf_size) {
                 strbuf_size = (size_t) (1.5 * strbuf_size);
                 dtrealloc(strbuf, char, strbuf_size);
             }
