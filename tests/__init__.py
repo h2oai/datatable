@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-
 import os
 import sys
+import pytest
 sys.path.insert(0, os.path.abspath(".."))
 
 if sys.version_info < (3, 5):
@@ -25,5 +25,12 @@ except ImportError as e:
 #
 # Add fixtures here
 #
+try:
+    import pandas
+except ImportError:
+    pandas = None
 
-__all__ = ("datatable", )
+ifpandas = pytest.mark.skipif(pandas is None,
+                              reason="Pandas module is required")
+
+__all__ = ("datatable", "ifpandas")

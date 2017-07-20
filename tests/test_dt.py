@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
+from tests import ifpandas
 
 
 #-------------------------------------------------------------------------------
@@ -212,6 +213,7 @@ def test_rename():
     assert "Column `xxx` does not exist" in str(e.value)
 
 
+@ifpandas
 def test_topandas():
     d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
     p0 = d0.topandas()

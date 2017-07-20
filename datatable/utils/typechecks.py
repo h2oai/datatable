@@ -50,7 +50,7 @@ class _LazyClass(typesentry.MagicType):
             cls = getattr(mod, self._symbol, False)
             self._checker = lambda x: isinstance(x, cls)
         except ImportError:
-            self._checker = lambda: False
+            self._checker = lambda x: False
 
 
 DataTable_t = _LazyClass("datatable", "DataTable")
