@@ -48,3 +48,19 @@ void set_value(void * restrict ptr, const void * restrict value,
         memcpy(add_ptr(ptr, i), ptr, writesz);
     }
 }
+
+
+
+/**
+ * Return clone of the memory buffer `src` of size `n_bytes`. This function
+ * will allocate and return new memory buffer for the copy, and it will be the
+ * responsibility of the caller to free the cloned buffer.
+ * If this function is unable to allocate the necessary memory range, it will
+ * set an error message, and return NULL.
+ */
+void* clone(void *src, size_t n_bytes) {
+    void *restrict copy = NULL;
+    dtmalloc(copy, void, n_bytes);
+    memcpy(copy, src, n_bytes);
+    return copy;
+}

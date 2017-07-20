@@ -130,6 +130,8 @@ float max_f4(float a, float b);
 }
 
 
+void* clone(void *src, size_t n_bytes);
+
 
 /**
  * Macro for safe pointer arithmetic on `void*` pointers. Normally we'd want to
