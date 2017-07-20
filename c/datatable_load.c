@@ -25,13 +25,19 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
     dtmalloc(columns, Column*, ncols + 1);
     columns[ncols] = NULL;
 
-    if (colspec->ncols != 3) return NULL;
+    if (colspec->ncols != 3) {
+        dterrr("colspec table should have had 3 columns, but %lld passed",
+               colspec->ncols);
+    }
     Column *colf = colspec->columns[0];
     Column *cols = colspec->columns[1];
     Column *colm = colspec->columns[2];
     if (colf->stype != ST_STRING_I4_VCHAR ||
         cols->stype != ST_STRING_I4_VCHAR ||
-        colm->stype != ST_STRING_I4_VCHAR) return NULL;
+        colm->stype != ST_STRING_I4_VCHAR) {
+        dterrr("String columns are expected in colspec table, instead got "
+               "%d, %d and %d", colf->stype, cols->stype, colm->stype);
+    }
 
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
     int64_t oos = ((VarcharMeta*) cols->meta)->offoff;
@@ -48,7 +54,7 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         int32_t fsta = abs(offf[i - 1]) - 1;
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
-        if (flen > 100) return NULL;
+        if (flen > 100) dterrr("Filename is too long: %d", flen);
         memcpy(filename, add_ptr(colf->data, fsta), (size_t) flen);
         filename[flen] = '\0';
 
@@ -56,14 +62,20 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         int32_t ssta = abs(offs[i - 1]) - 1;
         int32_t send = abs(offs[i]) - 1;
         int32_t slen = send - ssta;
-        if (slen != 3) return NULL;
+        if (slen != 3) dterrr("Incorrect stype's length: %d", slen);
         SType stype = stype_from_string(add_ptr(cols->data, ssta));
+        if (stype == ST_VOID) {
+            char stypestr[4];
+            memcpy(stypestr, add_ptr(cols->data, ssta), 3);
+            stypestr[3] = '\0';
+            dterrr("Unrecognized stype: %s", stypestr);
+        }
 
         // Extract meta info (as a string)
         int32_t msta = abs(offm[i - 1]) - 1;
         int32_t mend = abs(offm[i]) - 1;
         int32_t mlen = mend - msta;
-        if (mlen > 100) return NULL;
+        if (mlen > 100) dterrr("Meta string is too long: %d", mlen);
         memcpy(metastr, add_ptr(colm->data, msta), (size_t) mlen);
         metastr[mlen] = '\0';
 
