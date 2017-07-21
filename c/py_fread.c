@@ -218,6 +218,7 @@ static Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
     }
     col->stype = stype;
     col->alloc_size = new_alloc_size;
+    col->nrows = (int64_t) nrows;
     return col;
 }
 
@@ -390,6 +391,7 @@ void setFinalNrow(size_t nrows) {
             }
             col->data = final_ptr;
             col->alloc_size = final_size;
+            col->nrows = (int64_t) nrows;
             dtrealloc_g(col->meta, VarcharMeta, 1);
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
             k++;
