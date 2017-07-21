@@ -33,9 +33,11 @@ def get_file_list(rootdir):
 
 @iflarge
 @pytest.mark.skipif('not os.path.exists("../h2oai-benchmarks")')
-def test_h2oai_benchmarks():
+def test_h2oaibenchmarks():
     files = get_file_list("../h2oai-benchmarks/Data")
     for f in files:
         print("Reading file %s" % f)
         d = datatable.fread(f)
-        assert repr(d)
+        # Include `f` in the assert so that the filename is printed in case of
+        # a failure
+        assert f and d.internal.verify_integrity() is None
