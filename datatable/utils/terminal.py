@@ -19,6 +19,15 @@ class MyTerminal(blessed.Terminal):
     def width(self):
         return self.override_width or blessed.Terminal.width.fget(self)
 
+    def disable_styling(self):
+        # The `does_styling` attr is read-only, so in order to actually change
+        # it we do a small hack: create a new Terminal object which has styling
+        # disabled, and then replace the "guts" of the current object with those
+        # of the newly created object.
+        tt = blessed.Terminal(force_styling=None)
+        tt.override_width = self.override_width
+        self.__dict__, tt.__dict__ = tt.__dict__, self.__dict__
+
 
 term = MyTerminal()
 
