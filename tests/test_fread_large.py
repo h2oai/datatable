@@ -9,7 +9,8 @@ import datatable
 # Helper functions
 #-------------------------------------------------------------------------------
 
-def get_file_list(rootdir):
+def get_file_list(*path):
+    rootdir = os.path.join(*path)
     if not os.path.isdir(rootdir):
         pytest.skip("Directory %s does not exist" % rootdir)
     exts = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv", ".psv",
@@ -35,7 +36,7 @@ def get_file_list(rootdir):
 #-------------------------------------------------------------------------------
 
 def test_h2oai_benchmarks(dataroot):
-    for f in get_file_list(os.path.join(dataroot, "h2oai-benchmarks", "Data")):
+    for f in get_file_list(dataroot, "h2oai-benchmarks", "Data"):
         if ".json" in f:
             print("Skipping file %s" % f)
             continue
@@ -44,6 +45,7 @@ def test_h2oai_benchmarks(dataroot):
         # Include `f` in the assert so that the filename is printed in case of
         # a failure
         assert f and d.internal.verify_integrity() is None
+
 
 
 def test_h2o3_smalldata(dataroot):
@@ -63,7 +65,7 @@ def test_h2o3_smalldata(dataroot):
         os.path.join("merge", "tourism.csv"),
         os.path.join("parser", "column.csv"),
     }
-    for f in get_file_list(os.path.join(dataroot, "h2o-3", "smalldata")):
+    for f in get_file_list(dataroot, "h2o-3", "smalldata"):
         if ".svm" in f or any(ff in f for ff in ignored_files):
             print("Skipping file %s" % f)
             continue
@@ -98,8 +100,7 @@ def test_h2o3_bigdata(dataroot):
         os.path.join("lending-club", "LoanStats3c.csv"),
         os.path.join("lending-club", "LoanStats3d.csv"),
     }
-    files = get_file_list(os.path.join(dataroot, "h2o-3", "bigdata", "laptop"))
-    for f in files:
+    for f in get_file_list(dataroot, "h2o-3", "bigdata", "laptop"):
         if ".svm" in f or any(ff in f for ff in ignored_files):
             print("Skipping file %s" % f)
             continue
@@ -108,4 +109,12 @@ def test_h2o3_bigdata(dataroot):
         if any(ff in f for ff in filledna_files):
             params["fill"] = True
         d0 = datatable.fread(f, **params)
+        assert f and d0.internal.verify_integrity() is None
+
+
+
+def test_h2o3_fread(dataroot):
+    for f in get_file_list(dataroot, "h2o-3", "fread"):
+        print("Reading file %s" % f)
+        d0 = datatable.fread(f)
         assert f and d0.internal.verify_integrity() is None
