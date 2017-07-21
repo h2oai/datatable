@@ -1,4 +1,8 @@
 
+PYTHON ?= python
+PIP ?= pip
+OS := $(shell uname | tr A-Z a-z)
+
 .PHONY: all
 all:
 	$(MAKE) clean
@@ -18,17 +22,17 @@ clean:
 
 .PHONY: build
 build:
-	python setup.py build
+	$(PYTHON) setup.py build
 
 .PHONY: install
 install:
-	pip install . --upgrade
+	$(PIP) install . --upgrade
 
 .PHONY: test
 test:
 	rm -rf build/tests 2>/dev/null
 	mkdir -p build/tests/
-	pytest --junitxml=build/tests/TEST-datatable.xml
+	pytest --junit-prefix=$(OS) --junitxml=build/tests/TEST-datatable.xml
 
 .PHONY: valgrind
 valgrind:
@@ -43,8 +47,8 @@ coverage:
 	WITH_COVERAGE=1 \
 	$(MAKE) build
 	$(MAKE) install
-	python -m pytest --cov=datatable --cov-report=html:build/coverage-py
-	python -m pytest --cov=datatable --cov-report=xml:build/coverage.xml
+	$(PYTHON) -m pytest --cov=datatable --cov-report=html:build/coverage-py
+	$(PYTHON) -m pytest --cov=datatable --cov-report=xml:build/coverage.xml
 	lcov --capture --directory . --output-file build/coverage.info
 	genhtml build/coverage.info --output-directory build/coverage-c
 	mv .coverage build/

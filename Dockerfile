@@ -9,41 +9,28 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
 RUN \
-  apt-get -y update && \
-  apt-get -y install \
-  curl \
-  apt-utils \
-  wget \
-  cpio \
-  python-software-properties \
-  software-properties-common \
-  vim \
-  git \
-  dirmngr
-
-# Setup Repos
-RUN \
-  add-apt-repository ppa:fkrull/deadsnakes  && \
-  apt-get update -yqq && \
-  echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
-  echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections && \
-  curl -sL https://deb.nodesource.com/setup_7.x | bash -
-
-# Install datatable dependencies
-RUN \
-  apt-get install -y \
-  python3.6 \
-  python3.6-dev \
-  python3-pip \
-  python3-dev \
-  python-virtualenv \
-  python3-virtualenv
-
+  apt-get -q -y update && \
+  apt-get -y --no-install-recommends  install \
+    apt-utils \
+    curl \
+    wget \
+    cpio \
+    git \
+    python-software-properties \
+    software-properties-common && \
+  add-apt-repository ppa:jonathonf/python-3.6 && \
+  apt-get -q -y update && \
+  apt-get -y --no-install-recommends  install \
+    python3.6 \
+    python3.6-dev \
+    python3.6-venv \
+    python3-pip && \
+  update-alternatives --install /usr/bin/python python /usr/bin/python3.6 100 && \
+  python -m pip install --upgrade pip && \
+  apt-get clean && \
+  rm -rf /var/cache/apt/*
 
 RUN \
-  mkdir datatable_env && \
-  virtualenv --python=/usr/bin/python3.6 datatable_env && \
-  . datatable_env/bin/activate && \
   pip install --upgrade pip && \
   pip install --upgrade setuptools && \
   pip install --upgrade python-dateutil && \
@@ -55,12 +42,9 @@ RUN \
   pip install --upgrade llvmlite && \
   pip install --upgrade psutil && \
   pip install --upgrade pandas && \
-  pip install --upgrade pytest
-
-# Remove apt-cache
-RUN \
-  apt-get clean && \
-  rm -rf /var/cache/apt/*
+  pip install --upgrade pytest && \
+  pip install --upgrade virtualenv && \
+  pip install --upgrade wheel
 
 # Install LLVM for pydatatable
 RUN \
@@ -74,6 +58,4 @@ ENV \
   LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
   CC=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang \
   CLANG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
-
-
 

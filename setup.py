@@ -37,7 +37,7 @@ for root, dirs, files in os.walk("c"):
             c_sources.append(os.path.join(root, name))
 
 # Find python source directories
-packages = find_packages(exclude=["tests", "temp", "c"])
+packages = find_packages(exclude=["tests", "tests.munging", "temp", "c"])
 print("\nFound packages: %r\n" % packages, file=stderr)
 
 
@@ -133,6 +133,16 @@ if "CI_EXTRA_COMPILE_ARGS" in os.environ:
     extra_compile_args += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
 
 
+#
+# Test dependencies exposed as extra
+# based on: https://stackoverflow.com/questions/29870629/pip-install-test-dependencies-for-tox-from-setup-py
+#
+test_deps = [
+        "pandas",
+        "pytest>=3.0",
+        "pytest-cov",
+        ]
+
 #-------------------------------------------------------------------------------
 # Main setup
 #-------------------------------------------------------------------------------
@@ -168,11 +178,12 @@ setup(
         "llvmlite",
         "psutil"
     ],
-    tests_require=[
-        "pandas",
-        "pytest>=3.0",
-        "pytest-cov",
-    ],
+
+    tests_require=test_deps,
+
+    extras_require={
+        'testing' : test_deps
+    },
 
     zip_safe=True,
 
