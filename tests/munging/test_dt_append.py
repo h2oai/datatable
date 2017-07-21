@@ -4,7 +4,7 @@ import tempfile
 import shutil
 import pytest
 import types
-from tests import datatable as dt
+import datatable as dt
 
 
 #-------------------------------------------------------------------------------

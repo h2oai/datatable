@@ -32,7 +32,7 @@ install:
 test:
 	rm -rf build/tests 2>/dev/null
 	mkdir -p build/tests/
-	pytest --junit-prefix=$(OS) --junitxml=build/tests/TEST-datatable.xml
+	pytest --junit-prefix=$(OS) --junitxml=build/tests/TEST-datatable.xml -rxs
 
 .PHONY: valgrind
 valgrind:

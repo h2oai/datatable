@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import random
-
-from tests import datatable
+import datatable
 
 # `datatable` doesn't export its `utils`, hence the warning
 # noinspection PyUnresolvedReferences
