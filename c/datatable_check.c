@@ -173,7 +173,8 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 if (fix) fixed_errors++;  // fixed later in `if (fix && i > j)`
             } else {
                 int mtype = cols[i]->mtype;
-                if (mtype != MT_DATA && mtype != MT_MMAP) {
+                if (mtype != MT_DATA && mtype != MT_MMAP && mtype != MT_TEMP &&
+                    mtype != MT_XBUF) {
                     ERR("Column %lld has unknown memory type %d\n", i, mtype);
                     if (fix) {
                         cols[i]->mtype = MT_DATA;

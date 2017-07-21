@@ -252,5 +252,7 @@ int init_py_column(PyObject *module) {
     py_rowindextypes[0] = NULL;
     py_rowindextypes[MT_DATA] = PyUnicode_FromString("data");
     py_rowindextypes[MT_MMAP] = PyUnicode_FromString("mmap");
+    py_rowindextypes[MT_TEMP] = PyUnicode_FromString("temp");
+    py_rowindextypes[MT_XBUF] = PyUnicode_FromString("xbuf");
     return 1;
 }
