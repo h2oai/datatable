@@ -41,6 +41,8 @@ typedef enum MType {
     MT_XBUF = 4,
 } __attribute__ ((__packed__)) MType;
 
+#define MT_COUNT (MT_XBUF + 1)
+
 
 //==============================================================================
 
