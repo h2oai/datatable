@@ -5,6 +5,7 @@
 
 // Forward declarations
 static Column* try_to_resolve_object_column(Column* col);
+static SType stype_from_format(const char *format, int64_t itemsize);
 
 
 
@@ -42,8 +43,13 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
         // NULL).
         int ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_ND);
         if (ret != 0) {
-            PyErr_Format(PyExc_ValueError,
-                "Unable to retrieve buffer from item %d", i);
+            PyErr_Clear();  // otherwise system functions may fail later on
+            ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
+        }
+        if (ret != 0) {
+            if (!PyErr_Occurred())
+                PyErr_Format(PyExc_ValueError,
+                    "Unable to retrieve buffer for column %d", i);
             return NULL;
         }
         if (view->ndim != 1) {
@@ -52,8 +58,37 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
             return NULL;
         }
 
-        columns[i] = column_from_buffer(view, view->buf, (size_t) view->len,
-                                        (size_t) view->itemsize, view->format);
+        SType stype = stype_from_format(view->format, view->itemsize);
+        int64_t nrows = view->len / view->itemsize;
+        if (stype == ST_VOID) return NULL;
+        if (view->strides == NULL) {
+            columns[i] = column_from_buffer(stype, nrows, view, view->buf,
+                                            (size_t) view->len);
+        } else {
+            columns[i] = make_data_column(stype, (size_t) nrows);
+            int64_t stride = view->strides[0] / view->itemsize;
+            if (view->itemsize == 8) {
+                int64_t *out = (int64_t*) columns[i]->data;
+                int64_t *inp = (int64_t*) view->buf;
+                for (int64_t j = 0; j < nrows; j++)
+                    out[j] = inp[j * stride];
+            } else if (view->itemsize == 4) {
+                int32_t *out = (int32_t*) columns[i]->data;
+                int32_t *inp = (int32_t*) view->buf;
+                for (int64_t j = 0; j < nrows; j++)
+                    out[j] = inp[j * stride];
+            } else if (view->itemsize == 2) {
+                int16_t *out = (int16_t*) columns[i]->data;
+                int16_t *inp = (int16_t*) view->buf;
+                for (int64_t j = 0; j < nrows; j++)
+                    out[j] = inp[j * stride];
+            } else if (view->itemsize == 1) {
+                int8_t *out = (int8_t*) columns[i]->data;
+                int8_t *inp = (int8_t*) view->buf;
+                for (int64_t j = 0; j < nrows; j++)
+                    out[j] = inp[j * stride];
+            }
+        }
         if (columns[i] == NULL) return NULL;
         if (columns[i]->stype == ST_OBJECT_PYPTR) {
             columns[i] = try_to_resolve_object_column(columns[i]);
@@ -133,4 +168,35 @@ static Column* try_to_resolve_object_column(Column* col)
     ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
     column_decref(col);
     return res;
+}
+
+
+static SType stype_from_format(const char *format, int64_t itemsize)
+{
+    SType stype = ST_VOID;
+    char c = format[0];
+    if (c == '@' || c == '=') c = format[1];
+
+    if (c == 'b' || c == 'h' || c == 'i' || c == 'l' || c == 'q' || c == 'n') {
+        // These are all various integer types
+        stype = itemsize == 1 ? ST_INTEGER_I1 :
+                itemsize == 2 ? ST_INTEGER_I2 :
+                itemsize == 4 ? ST_INTEGER_I4 :
+                itemsize == 8 ? ST_INTEGER_I8 : ST_VOID;
+    }
+    else if (c == 'd' || c == 'f') {
+        stype = itemsize == 4 ? ST_REAL_F4 :
+                itemsize == 8 ? ST_REAL_F8 : ST_VOID;
+    }
+    else if (c == '?') {
+        stype = itemsize == 1 ? ST_BOOLEAN_I1 : ST_VOID;
+    }
+    else if (c == 'O') {
+        stype = ST_OBJECT_PYPTR;
+    }
+    if (stype == ST_VOID) {
+        PyErr_Format(PyExc_ValueError,
+                     "Unknown format '%s' with itemsize %zd", format, itemsize);
+    }
+    return stype;
 }

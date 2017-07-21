@@ -23,7 +23,9 @@ PyObject* pydt_from_dt(DataTable *dt)
 {
     if (dt == NULL) return NULL;
     PyObject *pydt = PyObject_CallObject((PyObject*) &DataTable_PyType, NULL);
-    ((DataTable_PyObject*) pydt)->ref = dt;
+    if (pydt) {
+        ((DataTable_PyObject*) pydt)->ref = dt;
+    }
     return pydt;
 }
 #define py pydt_from_dt
