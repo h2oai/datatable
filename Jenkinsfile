@@ -64,6 +64,7 @@ pipeline {
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                        deleteDir()
                     }
                 }
             }
@@ -117,6 +118,7 @@ pipeline {
                         '''
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
+                        deleteDir()
                     }
                 }
             }
