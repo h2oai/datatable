@@ -34,7 +34,7 @@ def get_file_list(rootdir):
 # Run the tests
 #-------------------------------------------------------------------------------
 
-def test_h2oaibenchmarks(dataroot):
+def test_h2oai_benchmarks(dataroot):
     for f in get_file_list(os.path.join(dataroot, "h2oai-benchmarks", "Data")):
         if ".json" in f:
             print("Skipping file %s" % f)
@@ -74,6 +74,48 @@ def test_h2o3_smalldata(dataroot):
         print("Reading file %s" % f)
         params = {}
         if "test_pubdev3589" in f:
+            params["fill"] = True
+        d0 = datatable.fread(f, **params)
+        assert f and d0.internal.verify_integrity() is None
+
+
+
+def test_h2o3_bigdata(dataroot):
+    ignored_files = {
+        # seg.faults
+        os.path.join("automl", "data_"),  # many files here
+        os.path.join("citibike-nyc", "31081_New_York_City__Hourly_2013.csv"),
+        os.path.join("citibike-nyc", "31081_New_York_City__Hourly_2014.csv"),
+        os.path.join("usecases", "H20_Rush_New_Dataset_100k_stripped.csv"),
+        os.path.join("lending-club", "LoanStats3a.csv"),
+        # empty files
+        os.path.join("mnist", "t10k-images-idx3-ubyte.gz"),
+        os.path.join("mnist", "t10k-labels-idx1-ubyte.gz"),
+        os.path.join("mnist", "train-images-idx3-ubyte.gz"),
+        os.path.join("mnist", "train-labels-idx1-ubyte.gz"),
+        # zip files having more than 1 file inside
+        os.path.join("flights-nyc", "delays14.csv.zip"),
+        os.path.join("flights-nyc", "flights14.csv.zip"),
+        os.path.join("flights-nyc", "weather_delays14.csv.zip"),
+        os.path.join("jira", "la1s.wc.arff.txt.zip"),
+        os.path.join("jira", "re0.wc.arff.txt.zip"),
+        os.path.join("jira", "rotterdam.csv.zip"),
+        os.path.join("parser", "hexdev_497", "milsongs_csv.zip"),
+    }
+    filledna_files = {
+        os.path.join("lending-club", "LoanStats3a.csv"),
+        os.path.join("lending-club", "LoanStats3b.csv"),
+        os.path.join("lending-club", "LoanStats3c.csv"),
+        os.path.join("lending-club", "LoanStats3d.csv"),
+    }
+    files = get_file_list(os.path.join(dataroot, "h2o-3", "bigdata", "laptop"))
+    for f in files:
+        if ".svm" in f or any(ff in f for ff in ignored_files):
+            print("Skipping file %s" % f)
+            continue
+        print("Reading file %s" % f)
+        params = {}
+        if any(ff in f for ff in filledna_files):
             params["fill"] = True
         d0 = datatable.fread(f, **params)
         assert f and d0.internal.verify_integrity() is None
