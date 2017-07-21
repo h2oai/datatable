@@ -2,7 +2,7 @@
 #include "py_types.h"
 #include "py_utils.h"
 
-static PyObject* py_rowindextypes[4];
+static PyObject* py_rowindextypes[MT_COUNT];
 
 
 Column_PyObject* pyColumn_from_Column(Column *col)

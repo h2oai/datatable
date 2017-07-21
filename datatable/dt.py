@@ -199,6 +199,7 @@ class DataTable(object):
 
     def _fill_from_pandas(self, pddf):
         columns = []
+        colnames = []
         for colname in pddf.columns:
             nparray = pddf[colname].values
             if not nparray.dtype.isnative:
@@ -206,8 +207,9 @@ class DataTable(object):
                 nparray = nparray.byteswap().newbyteorder()
                 assert nparray.dtype.isnative
             columns.append(nparray)
+            colnames.append(str(colname))
         dt = c.datatable_from_buffers(columns)
-        self._fill_from_dt(dt, names=list(pddf.columns))
+        self._fill_from_dt(dt, names=colnames)
 
 
 
