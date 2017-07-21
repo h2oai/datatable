@@ -47,4 +47,5 @@ def dataroot():
             pytest.fail("Directory %s (DT_LARGE_TESTS_ROOT) does not exist" % d)
         return d
     except KeyError:
-        pytest.skip("Environment variable DT_LARGE_TESTS_ROOT is not set up.")
+        pytest.skip("Skipped because environment variable DT_LARGE_TESTS_ROOT "
+                    "is absent.")
