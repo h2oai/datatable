@@ -6,8 +6,6 @@ import datatable
 from datatable.utils.misc import plural_form, clamp
 from datatable.utils.terminal import term, register_onresize
 
-grey = term.bright_black
-
 
 
 class DataFrameWidget(object):
@@ -118,7 +116,7 @@ class DataFrameWidget(object):
         # Create column with row indices
         oldwidth = self._colwidths.get("index", 3)
         indexcolumn = _Column(name="", ctype="str", data=indices)
-        indexcolumn.color = grey
+        indexcolumn.color = term.bright_black
         indexcolumn.margin = "  "
         indexcolumn.width = max(oldwidth, indexcolumn.width)
         self._colwidths["index"] = indexcolumn.width
@@ -169,6 +167,7 @@ class DataFrameWidget(object):
                     self._view_ncols = i + 1
 
         # Generate the elements of the display
+        grey = term.bright_black
         header = ["".join(col.header for col in columns),
                   grey("".join(col.divider for col in columns))]
         rows = ["".join(col.value(j) for col in columns)

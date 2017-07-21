@@ -21,6 +21,16 @@ def dt0():
         "G": [1, 2, "hello", "world"],
     })
 
+
+@pytest.fixture()
+def patched_terminal(monkeypatch):
+    def send1(refresh_rate=1):
+        yield None
+    monkeypatch.setattr("datatable.utils.terminal.wait_for_keypresses", send1)
+    dt.utils.terminal.term.override_width = 100
+    dt.utils.terminal.term.disable_styling()
+
+
 def assert_valueerror(datatable, rows, error_message):
     with pytest.raises(ValueError) as e:
         datatable(rows=rows)
@@ -59,10 +69,7 @@ def test_dt_call(dt0, capsys):
     assert "Time taken:" in out
 
 
-def test_dt_view(dt0, monkeypatch, capsys):
-    def send1(refresh_rate=1):
-        yield None
-    monkeypatch.setattr("datatable.utils.terminal.wait_for_keypresses", send1)
+def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view()
     out, err = capsys.readouterr()
     assert ("      A   B   C     D   E   F  G    \n"
@@ -166,12 +173,7 @@ def test_dt_delitem():
 
 
 
-def test__hex(dt0, monkeypatch, capsys):
-    def send1(refresh_rate=1):
-        yield None
-    monkeypatch.setattr("datatable.utils.terminal.wait_for_keypresses", send1)
-    dt.utils.terminal.term.override_width = 100
-
+def test__hex(dt0, patched_terminal, capsys):
     dt0._hex(-1)
     out, err = capsys.readouterr()
     print(out)
