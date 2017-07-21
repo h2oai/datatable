@@ -122,8 +122,8 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows);
 Column* column_save_to_disk(Column *self, const char *filename);
 Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
                               const char *metastr);
-Column* column_from_buffer(void* pybuffer, void* buf, size_t alloc_size,
-                           size_t itemsize, const char *format);
+Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
+                           void* buf, size_t alloc_size);
 RowIndex* column_sort(Column *self, int64_t nrows);
 size_t column_i4s_padding(size_t datasize);
 size_t column_i8s_padding(size_t datasize);

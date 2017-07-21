@@ -27,10 +27,12 @@ except ImportError as e:
 #
 try:
     import pandas
+    import numpy
 except ImportError:
     pandas = None
+    numpy = None
 
-ifpandas = pytest.mark.skipif(pandas is None,
-                              reason="Pandas module is required")
+ifpandas = pytest.mark.skipif(pandas is None or numpy is None,
+                              reason="Pandas & numpy modules are required")
 
 __all__ = ("datatable", "ifpandas")

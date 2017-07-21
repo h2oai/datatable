@@ -151,34 +151,9 @@ Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
 /**
  * Construct a column from the externally provided buffer.
  */
-Column* column_from_buffer(void* pybuffer, void* buf, size_t alloc_size,
-                           size_t itemsize, const char *format)
+Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
+                           void* buf, size_t alloc_size)
 {
-    int64_t nrows = (int64_t) (alloc_size / itemsize);
-    SType stype = ST_VOID;
-    char c = format[0];
-    if (c == '@' || c == '=') c = format[1];
-
-    if (c == 'b' || c == 'h' || c == 'i' || c == 'l' || c == 'q' || c == 'n') {
-        // These are all various integer types
-        stype = itemsize == 1 ? ST_INTEGER_I1 :
-                itemsize == 2 ? ST_INTEGER_I2 :
-                itemsize == 4 ? ST_INTEGER_I4 :
-                itemsize == 8 ? ST_INTEGER_I8 : ST_VOID;
-    }
-    else if (c == 'd' || c == 'f') {
-        stype = itemsize == 4 ? ST_REAL_F4 :
-                itemsize == 8 ? ST_REAL_F8 : ST_VOID;
-    }
-    else if (c == '?') {
-        stype = itemsize == 1 ? ST_BOOLEAN_I1 : ST_VOID;
-    }
-    else if (c == 'O') {
-        stype = ST_OBJECT_PYPTR;
-    }
-    if (stype == ST_VOID)
-        dterrr("Unknown format '%s' with itemsize %zd", format, itemsize);
-
     Column *col = NULL;
     dtmalloc(col, Column, 1);
     col->data = buf;
@@ -191,6 +166,7 @@ Column* column_from_buffer(void* pybuffer, void* buf, size_t alloc_size,
     col->stype = stype;
     return col;
 }
+
 
 
 /**
