@@ -48,10 +48,6 @@ def test_h2oai_benchmarks(dataroot):
 
 def test_h2o3_smalldata(dataroot):
     ignored_files = {
-        # seg.faults
-        "31081_New_York_City__Hourly_2014.csv",
-        "31081_New_York_City__Hourly_2013.csv",
-        os.path.join("prostate", "prostate.float.csv.zip"),
         # Zip files containing >1 files
         os.path.join("gbm_test", "bank-full.csv.zip"),
         os.path.join("jira", "pub-999.zip"),
@@ -82,12 +78,6 @@ def test_h2o3_smalldata(dataroot):
 
 def test_h2o3_bigdata(dataroot):
     ignored_files = {
-        # seg.faults
-        os.path.join("automl", "data_"),  # many files here
-        os.path.join("citibike-nyc", "31081_New_York_City__Hourly_2013.csv"),
-        os.path.join("citibike-nyc", "31081_New_York_City__Hourly_2014.csv"),
-        os.path.join("usecases", "H20_Rush_New_Dataset_100k_stripped.csv"),
-        os.path.join("lending-club", "LoanStats3a.csv"),
         # empty files
         os.path.join("mnist", "t10k-images-idx3-ubyte.gz"),
         os.path.join("mnist", "t10k-labels-idx1-ubyte.gz"),

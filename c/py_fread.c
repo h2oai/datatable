@@ -315,6 +315,8 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     } else {
         assert(dt != NULL && ncols == ncols_);
         columns = dt->columns;
+        for (int i = 0; i < ncols; i++)
+            nstrcols += (types[i] == CT_STRING);
     }
 
     // Compute number of digits in `ncols` (needed for creating file names).
@@ -415,6 +417,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
     for (int i = 0, j = 0, k = 0, off8 = 0; i < (int)ncols; i++) {
         if (types[i] == CT_DROP) continue;
         if (types[i] == CT_STRING) {
+            assert(k < nstrcols);
             dtmalloc_g(ctx->strbufs[k].buf, char, 4096);
             ctx->strbufs[k].size = 4096;
             ctx->strbufs[k].ptr = 0;
