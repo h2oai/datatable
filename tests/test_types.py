@@ -4,7 +4,7 @@ import os
 import re
 
 import pytest
-from tests import datatable
+import datatable
 
 expr_consts = datatable.expr.consts
 

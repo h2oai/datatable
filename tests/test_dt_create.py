@@ -7,7 +7,6 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import ifpandas
 
 
 def test_create_from_list():
@@ -68,20 +67,15 @@ def test_create_from_dict():
     assert d7.types == ("int", "bool", "str")
 
 
-@ifpandas
-def test_create_from_pandas():
-    import pandas as pd
-    p = pd.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
+def test_create_from_pandas(pandas):
+    p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.DataTable(p)
     assert d.shape == (3, 2)
-    assert d.names == ("A", "B")
+    assert set(d.names) == {"A", "B"}
 
 
-@ifpandas
-def test_create_from_pandas2():
-    import pandas as pd
-    import numpy as np
-    p = pd.DataFrame(np.ones((3, 5)))
+def test_create_from_pandas2(pandas, numpy):
+    p = pandas.DataFrame(numpy.ones((3, 5)))
     d = dt.DataTable(p)
     assert d.shape == (3, 5)
     assert d.names == ("0", "1", "2", "3", "4")

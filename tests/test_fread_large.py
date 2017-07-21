@@ -3,7 +3,7 @@
 import os
 import pytest
 import datatable
-from tests import iflarge
+
 
 #-------------------------------------------------------------------------------
 # Helper functions
@@ -31,10 +31,11 @@ def get_file_list(rootdir):
 # Run the tests
 #-------------------------------------------------------------------------------
 
-@iflarge
-@pytest.mark.skipif('not os.path.exists("../h2oai-benchmarks")')
-def test_h2oaibenchmarks():
-    files = get_file_list("../h2oai-benchmarks/Data")
+def test_h2oaibenchmarks(dataroot):
+    h2oaibenchmarks = os.path.join(dataroot, "h2oai-benchmarks", "Data")
+    if not os.path.isdir(h2oaibenchmarks):
+        pytest.skip("Directory %s does not exist" % h2oaibenchmarks)
+    files = get_file_list(h2oaibenchmarks)
     for f in files:
         print("Reading file %s" % f)
         d = datatable.fread(f)
