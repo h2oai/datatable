@@ -34,5 +34,9 @@ except ImportError:
 
 ifpandas = pytest.mark.skipif(pandas is None or numpy is None,
                               reason="Pandas & numpy modules are required")
+iflarge = pytest.mark.skipif("DT_LARGE_TESTS" not in os.environ,
+                             reason="In order to enable this test, set up "
+                                    "environment variable DT_LARGE_TESTS")
 
-__all__ = ("datatable", "ifpandas")
+
+__all__ = ("datatable", "ifpandas", "iflarge")
