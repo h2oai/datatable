@@ -5,11 +5,15 @@
 static PyObject* py_rowindextypes[MT_COUNT];
 
 
-Column_PyObject* pyColumn_from_Column(Column *col)
+Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
+                                      int64_t colidx)
 {
     Column_PyObject *pycol = Column_PyNew();
     if (pycol == NULL) return NULL;
-    pycol->ref = col;
+    pycol->ref = column_incref(col);
+    pycol->pydt = pydt;
+    pycol->colidx = colidx;
+    Py_XINCREF(pydt);
     return pycol;
 }
 
@@ -67,7 +71,9 @@ static PyObject* get_meta(Column_PyObject *self) {
 
 
 static PyObject* get_refcount(Column_PyObject *self) {
-    return PyLong_FromLong(self->ref->refcount);
+    // Subtract 1 from refcount, because this Column_PyObject holds one
+    // reference to the column.
+    return PyLong_FromLong(self->ref->refcount - 1);
 }
 
 
@@ -81,6 +87,19 @@ static PyObject* pycolumn_save_to_disk(Column_PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+
+static PyObject* pycolumn_hexview(Column_PyObject *self, UU)
+{
+    if (pyfn_column_hexview == NULL) {
+        PyErr_Format(PyExc_RuntimeError,
+                     "Function column_hexview() was not linked");
+        return NULL;
+    }
+    PyObject *v = Py_BuildValue("(OOi)", self, self->pydt, self->colidx);
+    PyObject *ret = PyObject_CallObject(pyfn_column_hexview, v);
+    Py_XDECREF(v);
+    return ret;
+}
 
 
 /**
@@ -153,6 +172,17 @@ void free_xbuf_column(Column *col)
 }
 
 
+static void pycolumn_dealloc(Column_PyObject *self)
+{
+    column_decref(self->ref);
+    Py_XDECREF(self->pydt);
+    self->ref = NULL;
+    self->pydt = NULL;
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+
+
 //==============================================================================
 // Column type definition
 //==============================================================================
@@ -179,6 +209,7 @@ static PyGetSetDef column_getseters[] = {
 #define METHOD1(name) {#name, (PyCFunction)pycolumn_##name, METH_VARARGS, NULL}
 static PyMethodDef column_methods[] = {
     METHOD1(save_to_disk),
+    METHOD1(hexview),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 #undef METHOD1
@@ -193,7 +224,7 @@ PyTypeObject Column_PyType = {
     "_datatable.Column",                /* tp_name */
     sizeof(Column_PyObject),            /* tp_basicsize */
     0,                                  /* tp_itemsize */
-    0,                                  /* tp_dealloc */
+    (destructor)pycolumn_dealloc,       /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */

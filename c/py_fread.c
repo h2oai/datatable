@@ -77,7 +77,7 @@ static int8_t *sizes = NULL;
  * `freadMainArgs` structure, and then passes that structure to the `freadMain`
  * function.
  */
-PyObject* freadPy(UU, PyObject *args)
+PyObject* pyfread(UU, PyObject *args)
 {
     PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL;
     if (freader != NULL || dt != NULL) {
