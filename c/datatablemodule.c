@@ -14,11 +14,10 @@
 #include <fcntl.h>   // for open()
 
 PyMODINIT_FUNC PyInit__datatable(void);
+PyObject* pyfn_column_hexview = NULL;  // Defined in py_column.h
 
-// where should this be moved?
-PyObject* exec_function(PyObject *self, PyObject *args);
 
-PyObject* exec_function(PyObject *self, PyObject *args)
+static PyObject* pyexec_function(PyObject *self, PyObject *args)
 {
     void *fnptr;
     PyObject *fnargs = NULL;
@@ -27,6 +26,27 @@ PyObject* exec_function(PyObject *self, PyObject *args)
         return NULL;
 
     return ((PyCFunction) fnptr)(self, fnargs);
+}
+
+
+static PyObject* pyregister_function(UU, PyObject *args)
+{
+    int n = -1;
+    PyObject *fnref = NULL;
+
+    if (!PyArg_ParseTuple(args, "iO:register_function", &n, &fnref))
+        return NULL;
+    if (!PyCallable_Check(fnref)) {
+        PyErr_SetString(PyExc_TypeError, "parameter `fn` must be callable");
+        return NULL;
+    }
+    Py_XINCREF(fnref);
+    if (n == 1) pyfn_column_hexview = fnref;
+    else {
+        PyErr_Format(PyExc_ValueError, "Incorrect function index: %d", n);
+        return NULL;
+    }
+    return none();
 }
 
 
@@ -50,10 +70,9 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(datatable_from_list),
     METHOD0(datatable_load),
     METHOD0(datatable_from_buffers),
-    {"fread", (PyCFunction)freadPy, METH_VARARGS,
-        "Read a text file and convert into a datatable"},
-    {"exec_function", (PyCFunction)exec_function, METH_VARARGS,
-        "Execute a PyCFunction passed as a pointer"},
+    METHOD0(fread),
+    METHOD0(exec_function),
+    METHOD0(register_function),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };

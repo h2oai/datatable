@@ -75,7 +75,7 @@ void DTPRINT(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 
 
-PyObject* freadPy(PyObject *self, PyObject *args);
+PyObject* pyfread(PyObject *self, PyObject *args);
 
 
 #endif

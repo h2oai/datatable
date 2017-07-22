@@ -124,37 +124,6 @@ class DataTable(object):
         widget.render()
 
 
-    @typed(colidx=int)
-    def _hex(self, colidx):
-        if not (-self.ncols <= colidx < self.ncols):
-            raise TValueError("Invalid column index %d" % colidx)
-        if colidx < 0:
-            colidx += self.ncols
-        col = self.internal.column(colidx)
-        names = ["%02X" % i for i in range(16)] + [""]
-
-        def data_viewer(row0, row1, col0, col1):
-            view = c.DataWindow(self._dt, row0, row1, col0, col1, colidx)
-            l = len(hex(row1))
-            return {
-                "names": names[col0:col1],
-                "types": view.types,
-                "stypes": view.stypes,
-                "columns": view.data,
-                "indices": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
-            }
-
-        print("Column %d, Name: %r" % (colidx, self._names[colidx]))
-        print("Ltype: %s, Stype: %s, Mtype: %s"
-              % (col.ltype, col.stype, col.mtype))
-        datasize = col.data_size
-        print("Bytes: %d" % datasize)
-        print("Meta: %s" % col.meta)
-        print("Refcnt: %d" % col.refcount)
-        widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
-        widget.render()
-
-
     #---------------------------------------------------------------------------
     # Initialization helpers
     #---------------------------------------------------------------------------
@@ -540,3 +509,32 @@ class DataTable(object):
 
     def topython(self):
         return self._dt.window(0, self.nrows, 0, self.ncols).data
+
+
+
+def column_hexview(col, dt, colidx):
+    hexdigits = ["%02X" % i for i in range(16)] + [""]
+
+    def data_viewer(row0, row1, col0, col1):
+        view = c.DataWindow(dt, row0, row1, col0, col1, colidx)
+        l = len(hex(row1))
+        return {
+            "names": hexdigits[col0:col1],
+            "types": view.types,
+            "stypes": view.stypes,
+            "columns": view.data,
+            "indices": ["%0*X" % (l, 16 * r) for r in range(row0, row1)],
+        }
+
+    print("Column %d" % colidx)
+    print("Ltype: %s, Stype: %s, Mtype: %s"
+          % (col.ltype, col.stype, col.mtype))
+    datasize = col.data_size
+    print("Bytes: %d" % datasize)
+    print("Meta: %s" % col.meta)
+    print("Refcnt: %d" % col.refcount)
+    widget = DataFrameWidget((datasize + 15) // 16, 17, data_viewer)
+    widget.render()
+
+
+c.register_function(1, column_hexview)

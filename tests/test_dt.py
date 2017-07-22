@@ -172,11 +172,11 @@ def test_dt_delitem():
 
 
 
-def test__hex(dt0, patched_terminal, capsys):
-    dt0._hex(-1)
+def test_column_hexview(dt0, patched_terminal, capsys):
+    dt0.internal.column(-1).hexview()
     out, err = capsys.readouterr()
     print(out)
-    assert ("Column 6, Name: 'G'\n"
+    assert ("Column 6\n"
             "Ltype: str, Stype: i4s, Mtype: data\n"
             "Bytes: 32\n"
             "Meta: offoff=16\n"
@@ -188,13 +188,13 @@ def test__hex(dt0, patched_terminal, capsys):
             in out)
 
     with pytest.raises(ValueError) as e:
-        dt0._hex(10)
+        dt0.internal.column(10).hexview()
     assert "Invalid column index" in str(e.value)
 
-    dt0[::2]._hex(1)
+    dt0[::2].internal.column(1).hexview()
     out, err = capsys.readouterr()
     print(out)
-    assert ("Column 1, Name: 'C'\n"
+    assert ("Column 1\n"
             "Ltype: bool, Stype: i1b, Mtype: data\n"
             "Bytes: 4\n"
             "Meta: None\n"

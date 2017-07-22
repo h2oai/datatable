@@ -178,11 +178,13 @@ column(DataTable_PyObject *self, PyObject *args)
     int64_t colidx;
     if (!PyArg_ParseTuple(args, "l:column", &colidx))
         return NULL;
-    if (colidx < 0 || colidx >= dt->ncols) {
+    if (colidx < -dt->ncols || colidx >= dt->ncols) {
         PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
         return NULL;
     }
-    Column_PyObject *pycol = pyColumn_from_Column(dt->columns[colidx]);
+    if (colidx < 0) colidx += dt->ncols;
+    Column_PyObject *pycol =
+        pycolumn_from_column(dt->columns[colidx], self, colidx);
     return (PyObject*) pycol;
 }
 
