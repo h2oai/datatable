@@ -14,7 +14,8 @@ from datatable.dt_append import rbind as dt_rbind, cbind as dt_cbind
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t)
+    TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t,
+    PandasSeries_t)
 from datatable.graph import make_datatable
 
 __all__ = ("DataTable", )
@@ -142,6 +143,8 @@ class DataTable(object):
             self._fill_from_dt(src, names=colnames)
         elif is_type(src, PandasDataFrame_t):
             self._fill_from_pandas(src)
+        elif is_type(src, PandasSeries_t):
+            self._fill_from_pandas(src)
         elif src is None:
             self._fill_from_list([])
         else:
@@ -167,17 +170,20 @@ class DataTable(object):
 
 
     def _fill_from_pandas(self, pddf):
-        columns = []
-        colnames = []
-        for colname in pddf.columns:
-            nparray = pddf[colname].values
-            if not nparray.dtype.isnative:
+        if is_type(pddf, PandasDataFrame_t):
+            colnames = [str(c) for c in pddf.columns]
+            colarrays = [pddf[c].values for c in pddf.columns]
+        elif is_type(pddf, PandasSeries_t):
+            colnames = None
+            colarrays = [pddf.values]
+        else:
+            raise TTypeError("Unexpected type of parameter %r" % pddf)
+        for i in range(len(colarrays)):
+            if not colarrays[i].dtype.isnative:
                 # Array has wrong endianness -- coerce into native byte-order
-                nparray = nparray.byteswap().newbyteorder()
-                assert nparray.dtype.isnative
-            columns.append(nparray)
-            colnames.append(str(colname))
-        dt = c.datatable_from_buffers(columns)
+                colarrays[i] = colarrays[i].byteswap().newbyteorder()
+                assert colarrays[i].dtype.isnative
+        dt = c.datatable_from_buffers(colarrays)
         self._fill_from_dt(dt, names=colnames)
 
 
