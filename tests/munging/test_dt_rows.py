@@ -68,7 +68,7 @@ def test_dt0_properties(dt0):
     assert str(dt0.internal.__class__) == "<class '_datatable.DataTable'>"
     assert dt0.internal.isview is False
     assert dt0.internal.rowindex_type is None
-    assert dt0.internal.verify_integrity() is None
+    assert dt0.internal.check()
 
 
 def test_rows_ellipsis(dt0):

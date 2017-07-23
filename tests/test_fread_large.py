@@ -44,7 +44,7 @@ def test_h2oai_benchmarks(dataroot):
         d = datatable.fread(f)
         # Include `f` in the assert so that the filename is printed in case of
         # a failure
-        assert f and d.internal.verify_integrity() is None
+        assert f and d.internal.check()
 
 
 
@@ -74,7 +74,7 @@ def test_h2o3_smalldata(dataroot):
         if "test_pubdev3589" in f:
             params["fill"] = True
         d0 = datatable.fread(f, **params)
-        assert f and d0.internal.verify_integrity() is None
+        assert f and d0.internal.check()
 
 
 
@@ -109,7 +109,7 @@ def test_h2o3_bigdata(dataroot):
         if any(ff in f for ff in filledna_files):
             params["fill"] = True
         d0 = datatable.fread(f, **params)
-        assert f and d0.internal.verify_integrity() is None
+        assert f and d0.internal.check()
 
 
 
@@ -117,4 +117,4 @@ def test_h2o3_fread(dataroot):
     for f in get_file_list(dataroot, "h2o-3", "fread"):
         print("Reading file %s" % f)
         d0 = datatable.fread(f)
-        assert f and d0.internal.verify_integrity() is None
+        assert f and d0.internal.check()

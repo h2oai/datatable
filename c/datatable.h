@@ -50,19 +50,8 @@ typedef struct DataTable {
 
 
 //==============================================================================
-// Auxiliary definitions
 
-// Status codes for the function verify_integrity()
-#define DTCK_NOERRORS       0
-#define DTCK_ERRORS_FOUND   1
-#define DTCK_ERRORS_FIXED   2
-#define DTCK_RUNTIME_ERROR  4
-#define DTCK_CANCELLED      8
-
-
-//==============================================================================
-
-int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix);
+int dt_verify_integrity(DataTable *dt, char **errors);
 DataTable* make_datatable(Column **cols, RowIndex *rowindex);
 DataTable* datatable_load(DataTable *colspec, int64_t nrows);
 DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);

@@ -17,7 +17,7 @@ def assert_equals(datatable1, datatable2):
     data1 = datatable1.internal.window(0, nrows, 0, ncols).data
     data2 = datatable2.internal.window(0, nrows, 0, ncols).data
     assert data1 == data2
-    assert datatable1.internal.verify_integrity() is None
+    assert datatable1.internal.check()
 
 
 #-------------------------------------------------------------------------------

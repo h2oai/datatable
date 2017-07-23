@@ -59,7 +59,7 @@ typedef enum MType {
  * ----------
  * data
  *     Raw data buffer in NFF format, depending on the column's `stype` (see
- *     specification in "types.h").
+ *     specification in "types.h"). This may be NULL if column has 0 rows.
  *
  * mtype
  *     "Memory" type of the column -- i.e. where the data is actually stored.

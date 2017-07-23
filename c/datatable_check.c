@@ -43,11 +43,11 @@ static void push_error(char **out, size_t* len, const char *format, ...) {
     static char buf[1001];
     va_list args;
     va_start(args, format);
-    int ret = vsnprintf(buf, 1000, format, args);
+    int ret = vsnprintf(buf, 1001, format, args);
     if (ret < 0) return;
-    size_t n = (size_t) ret;
     va_end(args);
-    *out = (char*) realloc(*out, *len + n);
+    size_t n = strlen(buf);
+    *out = (char*) realloc(*out, *len + n + 1);
     if (*out == NULL) return;
     memcpy(*out + *len, buf, n + 1);
     *len += n;
@@ -85,27 +85,19 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
  *     The target DataTable.
  *
  * @param errors
- *     Reference to a `char*` variable that will be filled with diagnostic
- *     messages containing information about any problems found. When this
- *     function exits, it becomes the responsibility of the caller to free the
- *     memory associated with this string buffer.
- *
- * @param fix
- *     If true, then the function will make an attempt to fix some of the
- *     errors that it discovers.
+ *     Reference to an unallocated `char*` variable that will be allocated and
+ *     filled with diagnostic messages containing information about any problems
+ *     found. This buffer is allocated up-front regardless of whether there are
+ *     any problems in the datatable. It is the responsibility of the caller to
+ *     free the memory associated with this string buffer.
  *
  * @return
- *     OR-ed constants DTCK_* defined in "datatable.h". In particular, the
- *     return value is 0 if there were no problems with the datatable. If
- *     errors were found and then fixed, then the return value is 3; whereas
- *     if errors were found but not all of them fixed, then the return value
- *     is 1.
+ *     0 if no problems were found, and the number of errors otherwise.
  */
-int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
+int dt_verify_integrity(DataTable *dt, char **errors)
 {
-    if (dt == NULL) return DTCK_RUNTIME_ERROR;
-    int found_errors = 0;
-    int fixed_errors = 0;
+    if (dt == NULL) return 1;
+    int nerrors = 0;
     size_t errlen = 0;
     *errors = (char*) calloc(1, 1);
 
@@ -113,18 +105,15 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     Column **cols = dt->columns;
 
     #define ERR(...) do {                                                      \
-        if (found_errors++ < MAX_ERRORS)                                       \
+        if (nerrors++ < MAX_ERRORS)                                            \
             push_error(errors, &errlen, __VA_ARGS__);                          \
     } while (0)
-
 
     // Check that the number of rows is nonnegative.
     int64_t nrows = dt->nrows;
     if (nrows < 0) {
-        ERR("Number of rows is negative: %lld\n", nrows);
-        if (!fix) return DTCK_ERRORS_FOUND;
-        dt->nrows = nrows = 0;
-        fixed_errors++;
+        ERR("Datatable has negative number of rows: %lld\n", nrows);
+        return 1;
     }
 
     // Check the number of columns; the number of allocated columns should be
@@ -134,120 +123,87 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
     size_t n_cols_allocd = array_size(cols, sizeof(Column*));
     int64_t ncols = dt->ncols;
     if (ncols < 0) {
-        ERR("Number of columns is negative: %lld\n", ncols);
-        if (!fix) return DTCK_ERRORS_FOUND;
-        dt->ncols = ncols = 0;
-        dt->columns = (Column**) realloc(cols, sizeof(Column*));
-        dt->columns[0] = NULL;
-        fixed_errors++;
+        ERR("Datatable has negative number of columns: %lld\n", ncols);
+        return 1;
     }
-    if (ncols + 1 > (int64_t)n_cols_allocd && n_cols_allocd >= 1) {
+    if (!cols || !n_cols_allocd) {
+        ERR("Columns array is not allocated\n");
+        return 1;
+    }
+    if (ncols + 1 > (int64_t)n_cols_allocd) {
         ERR("Number of columns %lld is larger than the size of the `columns` "
             "array\n", ncols);
-        if (!fix) return DTCK_ERRORS_FOUND;
-        dt->ncols = ncols = (int64_t) n_cols_allocd - 1;
-        dt->columns[ncols] = NULL;
-        fixed_errors++;
+        return 1;
     }
     if (cols[ncols] != NULL) {
         // Memory was allocated for `ncols+1` columns, but the last element
-        // was not set to NULL. Do not attempt to free that element, since it
-        // may just be a leftover memory value.
-        // Note that if `cols` was array was under-allocated and `malloc_size`
+        // was not set to NULL.
+        // Note that if `cols` array was under-allocated and `malloc_size`
         // not available on this platform, then this might segfault... This is
         // unavoidable since if we skip the check and do `cols[ncols]` later on
         // then we will segfault anyways.
         ERR("Last entry in the `columns` array is not NULL\n");
-        if (!fix) return DTCK_ERRORS_FOUND;
-        cols[ncols] = NULL;
-        fixed_errors++;
+        return 1;
     }
-
 
     // Check that each Column is not NULL
-    {
-        int64_t i = 0, j = 0;
-        for (; i < ncols; i++) {
-            if (cols[i] == NULL) {
-                ERR("Column %lld in the datatable is NULL\n", i);
-                if (fix) fixed_errors++;  // fixed later in `if (fix && i > j)`
-            } else {
-                int mtype = cols[i]->mtype;
-                if (mtype != MT_DATA && mtype != MT_MMAP && mtype != MT_TEMP &&
-                    mtype != MT_XBUF) {
-                    ERR("Column %lld has unknown memory type %d\n", i, mtype);
-                    if (fix) {
-                        cols[i]->mtype = MT_DATA;
-                        fixed_errors++;
-                    }
-                }
-                if (fix && i > j) {
-                    cols[j] = cols[i];
-                    cols[i] = NULL;
-                }
-                j++;
-            }
-        }
-        if (fixed_errors < found_errors) return DTCK_ERRORS_FOUND;
-        if (fix && i > j) {
-            dt->ncols = ncols = j;
-            dt->columns = (Column**) realloc(dt->columns, (size_t) ncols + 1);
+    for (int64_t i = 0; i < ncols; i++) {
+        if (cols[i] == NULL) {
+            ERR("Column %lld in the datatable is NULL\n", i);
         }
     }
-
+    if (nerrors) return nerrors;
 
     // Check validity of the RowIndex
-    int64_t maxrow = -1;
+    int64_t maxrow = -INT64_MAX;
+    int64_t minrow = INT64_MAX;
     if (ri != NULL) {
         RowIndexType ritype = ri->type;
         if (ritype != RI_SLICE && ritype != RI_ARR32 && ritype != RI_ARR64) {
             ERR("Invalid RowIndexType: %d\n", ritype);
-            return DTCK_ERRORS_FOUND;
+            return 1;
         }
         if (ri->length != nrows) {
             ERR("The number of rows in the datatable's rowindex does not "
                 "match the number of rows in the datatable itself: %lld vs "
                 "%lld\n", ri->length, nrows);
-            return DTCK_ERRORS_FOUND;
+            return 1;
         }
         if (ritype == RI_SLICE) {
             int64_t start = ri->slice.start;
             int64_t step = ri->slice.step;
             int64_t end = start + step * (nrows - 1);
             if (start < 0) {
-                ERR("Rowindex's start row is negative: %lld", start);
-                return DTCK_ERRORS_FOUND;
+                ERR("Rowindex's start row is negative: %lld\n", start);
             }
             if (end < 0) {
-                ERR("Rowindex's end row is negative: %lld", end);
-                return DTCK_ERRORS_FOUND;
+                ERR("Rowindex's end row is negative: %lld\n", end);
             }
             if (nrows > 1 && (step < -start/(nrows - 1) ||
                               step > (INT64_MAX - start)/(nrows - 1))) {
                 ERR("Integer overflow in slice (%lld..%lld..%lld)\n",
                     start, nrows, step);
-                return DTCK_ERRORS_FOUND;
             }
             maxrow = step > 0? end : start;
+            minrow = step > 0? start : end;
         }
         if (ritype == RI_ARR32) {
             if (nrows > INT32_MAX) {
                 ERR("RI_ARR32 rowindex is not allowed for a datatable with "
-                    "%lld rows", nrows);
-                return DTCK_ERRORS_FOUND;
+                    "%lld rows\n", nrows);
             }
             int32_t *ridata = ri->ind32;
             size_t n_allocd = array_size(ridata, sizeof(int32_t));
             if (n_allocd > 0 && n_allocd < (size_t)nrows) {
                 ERR("Rowindex array is allocated for %zd elements only, "
                     "while %lld elements were expected\n", n_allocd, nrows);
-                return DTCK_ERRORS_FOUND;
             }
             for (int32_t i = 0; i < nrows; i++) {
                 if (ridata[i] < 0 || ridata[i] > INT32_MAX) {
                     ERR("Rowindex[%d] = %d is invalid\n", i, ridata[i]);
                 }
                 if (ridata[i] > maxrow) maxrow = ridata[i];
+                if (ridata[i] < minrow) minrow = ridata[i];
             }
         }
         if (ritype == RI_ARR64) {
@@ -256,24 +212,47 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             if (n_allocd > 0 && n_allocd < (size_t)nrows) {
                 ERR("Rowindex array is allocated for %zd elements only, "
                     "while %lld elements were expected\n", n_allocd, nrows);
-                return DTCK_ERRORS_FOUND;
             }
             for (int64_t i = 0; i < nrows; i++) {
                 if (ridata[i] < 0) {
                     ERR("Rowindex[%lld] = %lld is invalid\n", i, ridata[i]);
                 }
                 if (ridata[i] > maxrow) maxrow = ridata[i];
+                if (ridata[i] < minrow) minrow = ridata[i];
             }
         }
+        if (ri->min != minrow) {
+            ERR("Invalid min.row=%lld in the rowindex, should be %lld\n",
+                ri->min, minrow);
+        }
+        if (ri->max != maxrow) {
+            ERR("Invalid max.row=%lld in the rowindex, should be %lld\n",
+                ri->max, maxrow);
+        }
     }
-    if (found_errors > fixed_errors) return DTCK_ERRORS_FOUND;
-
+    if (nerrors) return nerrors;
 
     // Check each individual column
     for (int64_t i = 0; i < ncols; i++) {
         Column *col = cols[i];
         SType stype = col->stype;
+        MType mtype = cols[i]->mtype;
 
+        if (mtype <= 0 || mtype >= MT_COUNT) {
+            ERR("Column %lld has invalid memory type %d\n", i, mtype);
+        }
+        if (nrows && col->data == NULL) {
+            ERR("In column %lld data buffer is not allocated\n", i);
+            continue;
+        }
+        if (mtype == MT_XBUF && !col->pybuf) {
+            ERR("Column %lld has mtype MT_XBUF but is missing pybuf ptr\n", i);
+            continue;
+        }
+        if (mtype == MT_TEMP && !col->filename) {
+            ERR("Column %lld has mtype MT_TEMP but has no filename\n", i);
+            continue;
+        }
         if (stype <= ST_VOID || stype >= DT_STYPES_COUNT) {
             ERR("Invalid storage type %d in column %lld\n", stype, i);
             continue;
@@ -290,10 +269,6 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
         }
         if (col->refcount <= 0) {
             ERR("Column's refcount is nonpositive: %d\n", col->refcount);
-            if (fix) {
-                col->refcount = 1;
-                fixed_errors++;
-            } else continue;
         }
         size_t metasize = stype_info[stype].metasize;
         if (metasize > 0) {
@@ -352,6 +327,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             }
         }
 
+        // Check the alloc_size property
         size_t act_allocsize = array_size(col->data, 1);
         size_t elemsize = stype_info[stype].elemsize;
         if (stype == ST_STRING_FCHAR)
@@ -363,10 +339,7 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
             ERR("Column %lld reports incorrect allocation size: %zd vs "
                 "expected %zd bytes (actually allocated: %zd bytes)\n",
                 i, col->alloc_size, exp_allocsize, act_allocsize);
-            if (fix) {
-                col->alloc_size = exp_allocsize;
-                fixed_errors++;
-            } else continue;
+            continue;
         }
         if (act_allocsize > 0 && act_allocsize < exp_allocsize) {
             ERR("Column %lld has only %zd bytes of data, while %zd bytes "
@@ -382,10 +355,6 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 if (!(x == NA_I1 || x == 0 || x == 1)) {
                     ERR("Boolean column %lld has value %d in row %lld\n",
                         i, x, j);
-                    if (fix) {
-                        data[j] = NA_I1;
-                        fixed_errors++;
-                    }
                 }
             }
         }
@@ -435,29 +404,17 @@ int dt_verify_integrity(DataTable *dt, char **errors, _Bool fix)
                 if (((uint8_t*) col->data)[j] != 0xFF) {
                     ERR("String data section in column %lld is not padded "
                         "with '\\xFF's, at offset %X\n", i, j);
-                    if (fix) {
-                        ((unsigned char*) col->data)[j] = 0xFF;
-                        fixed_errors++;
-                    } else {
-                        // Do not report this error more than once
-                        break;
-                    }
+                    // Do not report this error more than once
+                    break;
                 }
             }
         }
     }
 
-
-    // Check rollups...
-
-
     // The end
-    if (found_errors > 0) {
-        push_error(errors, &errlen, "%d error%s found, and %d fixed\n",
-                   found_errors, (found_errors == 1? " was" : "s were"),
-                   fixed_errors);
-        return DTCK_ERRORS_FOUND |
-               (found_errors == fixed_errors? DTCK_ERRORS_FIXED : 0);
-    } else
-        return 0;
+    if (nerrors == 1)
+        push_error(errors, &errlen, "1 error found.\n");
+    if (nerrors >= 2)
+        push_error(errors, &errlen, "%d errors found.\n", nerrors);
+    return nerrors;
 }
