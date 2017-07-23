@@ -54,7 +54,7 @@ def test_dt_properties(dt0):
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
     assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
-    assert dt0.internal.verify_integrity() is None
+    assert dt0.internal.check()
 
 
 def test_dt_call(dt0, capsys):
@@ -128,21 +128,21 @@ def test_dt_delitem():
 
     d0 = smalldt()
     del d0["A"]
-    assert d0.internal.verify_integrity() is None
+    assert d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.names == tuple("BCDEFGHIJKLMNOP")
     d0 = smalldt()
     del d0["B"]
-    assert d0.internal.verify_integrity() is None
+    assert d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.names == tuple("ACDEFGHIJKLMNOP")
     d0 = smalldt()
     del d0[-1]
-    assert d0.internal.verify_integrity() is None
+    assert d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.names == tuple("ABCDEFGHIJKLMNO")
     del d0["E":"J"]
-    assert d0.internal.verify_integrity() is None
+    assert d0.internal.check()
     assert d0.shape == (1, 9)
     assert d0.names == tuple("ABCDKLMNO")
     assert as_list(d0) == [[0], [1], [2], [3], [10], [11], [12], [13], [14]]
@@ -157,7 +157,7 @@ def test_dt_delitem():
     assert d0.shape == (1, 0)
     d0 = smalldt()
     del d0[[0, 3, 0, 5, 0, 9]]
-    assert d0.internal.verify_integrity() is None
+    assert d0.internal.check()
     assert d0.names == tuple("BCEGHIKLMNOP")
     assert d0.shape == (1, 12)
     with pytest.raises(TypeError) as e:

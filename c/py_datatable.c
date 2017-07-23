@@ -152,21 +152,35 @@ PyObject* pydatatable_load(UU, PyObject *args)
 
 
 
-static PyObject*
-verify_integrity(DataTable_PyObject *self, PyObject *args)
+/**
+ * Check the DataTable for internal consistency. Returns True if the datatable
+ * is faultless, or False if any problem is found. This function also accepts
+ * a single optional argument -- `stream`. If this argument is given and any
+ * errors were encountered, then the text of the errors will be written to this
+ * stream object using `.write()` method. If this argument is not given, then
+ * error messages will be printed to stdout. This argument has no effect if no
+ * errors in the file were found.
+ */
+static PyObject* check(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
-    _Bool fix = 0;
+    PyObject *stream = NULL;
 
-    if (!PyArg_ParseTuple(args, "|b", &fix))
-        return NULL;
+    if (!PyArg_ParseTuple(args, "|O:check", &stream)) return NULL;
 
-    char *errors;
-    int res = dt_verify_integrity(dt, &errors, fix);
-    if (res) {
-        return PyUnicode_FromString(errors);
-    } else
-        return none();
+    char *errors = NULL;
+    int nerrors = dt_verify_integrity(dt, &errors);
+    if (nerrors) {
+        if (stream) {
+            PyObject *ret = PyObject_CallMethod(stream, "write", "s", errors);
+            if (ret == NULL) return NULL;
+            Py_XDECREF(ret);
+        }
+        else
+            printf("%s\n", errors);
+    }
+    dtfree(errors);
+    return incref(nerrors? Py_False : Py_True);
 }
 
 
@@ -321,7 +335,7 @@ static void _dealloc_(DataTable_PyObject *self)
 //======================================================================================================================
 
 PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
-PyDoc_STRVAR(dtdoc_verify_integrity, "Check and repair the datatable");
+PyDoc_STRVAR(dtdoc_check, "Check and repair the datatable");
 PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
 PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
@@ -339,7 +353,7 @@ PyDoc_STRVAR(dtdoc_sort, "Sort datatable according to a column");
 
 static PyMethodDef datatable_methods[] = {
     METHOD1(window),
-    METHOD1(verify_integrity),
+    METHOD1(check),
     METHOD1(column),
     METHOD1(delete_columns),
     METHOD1(rbind),
