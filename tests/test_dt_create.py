@@ -14,6 +14,7 @@ def test_create_from_list():
     assert d0.shape == (3, 1)
     assert d0.names == ("C1", )
     assert d0.types == ("int", )
+    assert d0.internal.check()
 
 
 def test_create_from_list_of_lists():
@@ -21,18 +22,21 @@ def test_create_from_list_of_lists():
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
     assert d1.types == ("int", "bool", "real")
+    assert d1.internal.check()
 
 
 def test_create_from_tuple():
     d2 = dt.DataTable((3, 5, 6, 0))
     assert d2.shape == (4, 1)
     assert d2.types == ("int", )
+    assert d2.internal.check()
 
 
 def test_create_from_set():
     d3 = dt.DataTable({1, 13, 15, -16, -10, 7, 9, 1})
     assert d3.shape == (7, 1)
     assert d3.types == ("int", )
+    assert d3.internal.check()
 
 
 def test_create_from_nothing():
@@ -41,6 +45,7 @@ def test_create_from_nothing():
     assert d4.names == tuple()
     assert d4.types == tuple()
     assert d4.stypes == tuple()
+    assert d4.internal.check()
 
 
 def test_create_from_empty_list():
@@ -49,6 +54,7 @@ def test_create_from_empty_list():
     assert d5.names == tuple()
     assert d5.types == tuple()
     assert d5.stypes == tuple()
+    assert d5.internal.check()
 
 
 def test_create_from_empty_list_of_lists():
@@ -56,6 +62,7 @@ def test_create_from_empty_list_of_lists():
     assert d6.shape == (0, 1)
     assert d6.names == ("C1", )
     assert d6.types == ("bool", )
+    assert d6.internal.check()
 
 
 def test_create_from_dict():
@@ -65,6 +72,7 @@ def test_create_from_dict():
     assert d7.shape == (3, 3)
     assert d7.names == ("A", "B", "C")
     assert d7.types == ("int", "bool", "str")
+    assert d7.internal.check()
 
 
 def test_create_from_pandas(pandas):
@@ -72,6 +80,7 @@ def test_create_from_pandas(pandas):
     d = dt.DataTable(p)
     assert d.shape == (3, 2)
     assert set(d.names) == {"A", "B"}
+    assert d.internal.check()
 
 
 def test_create_from_pandas2(pandas, numpy):
@@ -79,6 +88,15 @@ def test_create_from_pandas2(pandas, numpy):
     d = dt.DataTable(p)
     assert d.shape == (3, 5)
     assert d.names == ("0", "1", "2", "3", "4")
+    assert d.internal.check()
+
+
+def test_create_from_pandas_series(pandas):
+    p = pandas.Series([1, 5, 9, -12])
+    d = dt.DataTable(p)
+    assert d.shape == (4, 1)
+    assert d.internal.check()
+    assert d.topython() == [[1, 5, 9, -12]]
 
 
 def test_bad():
@@ -91,6 +109,8 @@ def test_issue_42():
     d = dt.DataTable([-1])
     assert d.shape == (1, 1)
     assert d.types == ("int", )
+    assert d.internal.check()
     d = dt.DataTable([-1, 2, 5, "hooray"])
     assert d.shape == (4, 1)
     assert d.types == ("str", )
+    assert d.internal.check()
