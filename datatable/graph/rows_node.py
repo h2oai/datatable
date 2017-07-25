@@ -95,14 +95,19 @@ class MultiSliceRFNode(RFNode):
 
 #===============================================================================
 
-class DataColumnRFNode(RFNode):
-
-    def __init__(self, dt):
-        super().__init__(dt)
-        self._column_dt = dt
+class BooleanColumnRFNode(RFNode):
 
     def make_target_rowindex(self):
-        return _datatable.rowindex_from_column(self._column_dt.internal)
+        return _datatable.rowindex_from_boolcolumn(self._dt.internal)
+
+
+
+#===============================================================================
+
+class IntegerColumnRFNode(RFNode):
+
+    def make_target_rowindex(self):
+        return _datatable.rowindex_from_intcolumn(self._dt.internal)
 
 
 
@@ -228,15 +233,19 @@ def make_rowfilter(rows, dt, _nested=False):
             raise TValueError("`rows` argument should be a single-column "
                               "datatable, got %r" % rows)
         col0type = rows.types[0]
-        if col0type != "bool":
-            raise TTypeError("`rows` datatable should be a boolean column, "
-                             "however it has type %s" % col0type)
-        if rows.nrows != dt.nrows:
-            s1rows = plural(rows.nrows, "row")
-            s2rows = plural(dt.nrows, "row")
-            raise TValueError("`rows` datatable has %s, but applied to a "
-                              "datatable with %s" % (s1rows, s2rows))
-        return DataColumnRFNode(rows)
+        if col0type == "bool":
+            if rows.nrows != dt.nrows:
+                s1rows = plural(rows.nrows, "row")
+                s2rows = plural(dt.nrows, "row")
+                raise TValueError("`rows` datatable has %s, but applied to a "
+                                  "datatable with %s" % (s1rows, s2rows))
+            return BooleanColumnRFNode(rows)
+        elif col0type == "int":
+            return IntegerColumnRFNode(rows)
+        else:
+            raise TTypeError("`rows` datatable should be either a boolean or "
+                             "an integer column, however it has type %s"
+                             % col0type)
 
     if isinstance(rows, types.FunctionType):
         lazydt = DatatableExpr(dt)

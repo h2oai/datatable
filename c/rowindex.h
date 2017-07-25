@@ -75,8 +75,10 @@ RowIndex* rowindex_from_slicelist(
     int64_t *starts, int64_t *counts, int64_t *steps, int64_t n);
 RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n);
 RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n);
-RowIndex* rowindex_from_datacolumn(Column *col, int64_t nrows);
-RowIndex* rowindex_from_column_with_rowindex(Column *col, RowIndex *ri);
+RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows);
+RowIndex* rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *ri);
+RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_col);
+RowIndex* rowindex_from_intcolumn_with_rowindex(Column *col, RowIndex *ri);
 RowIndex* rowindex_from_filterfn32(rowindex_filterfn32 *f, int64_t nrows);
 RowIndex* rowindex_from_filterfn64(rowindex_filterfn64 *f, int64_t nrows);
 RowIndex* rowindex_copy(RowIndex *self);

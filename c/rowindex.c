@@ -245,7 +245,7 @@ RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n)
  * This function will create an RI_ARR32/64 RowIndex, depending on what is
  * minimally required.
  */
-RowIndex* rowindex_from_datacolumn(Column *col, int64_t nrows)
+RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows)
 {
     if (col->stype != ST_BOOLEAN_I1) return NULL;
 
@@ -305,7 +305,7 @@ RowIndex* rowindex_from_datacolumn(Column *col, int64_t nrows)
  * be mapped to a pair of source data column and a rowindex object.
  */
 RowIndex*
-rowindex_from_column_with_rowindex(Column *col, RowIndex *rowindex)
+rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *rowindex)
 {
     if (col->stype != ST_BOOLEAN_I1) return NULL;
 
@@ -356,6 +356,67 @@ rowindex_from_column_with_rowindex(Column *col, RowIndex *rowindex)
         res->type = RI_ARR64;
     }
 
+    return res;
+}
+
+
+
+/**
+ * Create a RowIndex object from the provided integer column. The values in
+ * this column are interpreted as the indices of the rows to be selected.
+ * The `is_temp_column` flag indicates that the `col` object will be deleted
+ * at the end of the call, so it's ok for the `rowindex_from_intcolumn` to
+ * "steal" its data buffer instead of having to copy it.
+ */
+RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
+{
+    if (stype_info[col->stype].ltype != LT_INTEGER) return NULL;
+
+    if (col->stype == ST_INTEGER_I1 || col->stype == ST_INTEGER_I2) {
+        col = column_cast(col, ST_INTEGER_I4);
+        if (col == NULL) return NULL;
+        is_temp_column = 2;
+    }
+
+    RowIndex *ri = NULL;
+    int64_t nrows = col->nrows;
+    if (col->stype == ST_INTEGER_I8) {
+        int64_t *arr64 = NULL;
+        if (is_temp_column) {
+            arr64 = (int64_t*) col->data;
+            col->data = NULL;
+        } else {
+            dtmalloc(arr64, int64_t, nrows);
+            memcpy(arr64, col->data, (size_t)nrows * sizeof(int64_t));
+        }
+        ri = rowindex_from_i64_array(arr64, nrows);
+        rowindex_compactify(ri);
+    } else
+    if (col->stype == ST_INTEGER_I4) {
+        int32_t *arr32 = NULL;
+        if (is_temp_column) {
+            arr32 = (int32_t*) col->data;
+            col->data = NULL;
+        } else {
+            dtmalloc(arr32, int32_t, nrows);
+            memcpy(arr32, col->data, (size_t)nrows * sizeof(int32_t));
+        }
+        ri = rowindex_from_i32_array(arr32, nrows);
+    }
+
+    if (is_temp_column == 2) {
+        column_decref(col);
+    }
+    return ri;
+}
+
+
+RowIndex*
+rowindex_from_intcolumn_with_rowindex(Column *col, RowIndex *rowindex)
+{
+    Column *newcol = column_extract(col, rowindex);
+    RowIndex *res = rowindex_from_intcolumn(newcol, 1);
+    column_decref(newcol);
     return res;
 }
 
