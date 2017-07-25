@@ -76,7 +76,7 @@ else:
                        "http://releases.llvm.org/download.html#4.0.0")
 
 # Compiler
-os.environ["CC"] = "{} ".format(clang)
+os.environ["CC"] = clang + " "
 if sysconfig.get_config_var("CONFINCLUDEPY"):
     # Marking this directory as "isystem" prevents Clang from issuing warnings
     # for those files
