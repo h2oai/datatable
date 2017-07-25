@@ -11,12 +11,14 @@
     #define PyLong_AsInt64AndOverflow  PyLong_AsLongLongAndOverflow
     #define PyLong_AsUInt64            PyLong_AsUnsignedLongLong
     #define PyLong_AsUInt64Mask        PyLong_AsUnsignedLongLongMask
+    #define PyLong_FromInt64           PyLong_FromLongLong
 #elif LONG_MAX==9223372036854775807
     // int64_t == long int
     #define PyLong_AsInt64             PyLong_AsLong
     #define PyLong_AsInt64AndOverflow  PyLong_AsLongAndOverflow
     #define PyLong_AsUInt64            PyLong_AsUnsignedLong
     #define PyLong_AsUInt64Mask        PyLong_AsUnsignedLongMask
+    #define PyLong_FromInt64           PyLong_FromLong
 #else
     #error "Bad architecture: int64_t not available..."
 #endif

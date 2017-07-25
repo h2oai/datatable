@@ -118,11 +118,13 @@ void init_types(void)
         stype_upcast_map[stype1][stype2] = stypeR; \
         stype_upcast_map[stype2][stype1] = stypeR;
 
-    stype_upcast_map[ST_VOID][ST_VOID] = ST_VOID;
     for (SType i = 1; i < DT_STYPES_COUNT; i++) {
-        UPCAST(i, ST_VOID, i)
-        for (SType j = 1; j < DT_STYPES_COUNT; j++)
-            stype_upcast_map[i][j] = i == j? i : ST_OBJECT_PYPTR;
+        stype_upcast_map[i][0] = stype_info[i].varwidth? ST_OBJECT_PYPTR : i;
+        stype_upcast_map[0][i] = stype_info[i].varwidth? ST_OBJECT_PYPTR : i;
+        for (SType j = 1; j < DT_STYPES_COUNT; j++) {
+            stype_upcast_map[i][j] =
+                stype_info[i].varwidth || i != j ? ST_OBJECT_PYPTR : i;
+        }
     }
     UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I1,  ST_INTEGER_I1)
     UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I2,  ST_INTEGER_I2)
@@ -224,7 +226,8 @@ char* format_from_stype(SType stype)
            stype == ST_INTEGER_I4? "i" :
            stype == ST_INTEGER_I8? "q" :
            stype == ST_REAL_F4? "f" :
-           stype == ST_REAL_F8? "d" : "x";
+           stype == ST_REAL_F8? "d" :
+           stype == ST_OBJECT_PYPTR? "O" : "x";
 }
 
 

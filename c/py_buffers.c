@@ -311,7 +311,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
             memcpy(add_ptr(buf, i * colsize), col->data, colsize);
         } else {
             Column *newcol = column_cast(col, stype);
-            if (newcol == NULL) goto fail;
+            if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype, stype); goto fail; }
             assert(newcol->alloc_size == colsize);
             memcpy(add_ptr(buf, i * colsize), newcol->data, colsize);
             column_decref(newcol);

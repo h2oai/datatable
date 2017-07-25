@@ -230,7 +230,7 @@ def test_topandas():
     assert p0["C"].values.tolist() == [True, False]
 
 
-def test_numpy_constructor(numpy):
+def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.DataTable(tbl)
     assert d0.shape == (5, 3)
@@ -242,7 +242,7 @@ def test_numpy_constructor(numpy):
     assert n0.tolist() == tbl
 
 
-def test_numpy_constructor2(numpy):
+def test_numpy_constructor_multi_types(numpy):
     # Test that multi-types datatable will be promoted into a common type
     tbl = [[1, 5, 10],
            [True, False, False],
@@ -259,8 +259,7 @@ def test_numpy_constructor2(numpy):
                            [1.454, 4.9e-23, 1e7]]
 
 
-def test_numpy_constructor3(numpy):
-    # Check that a view datatable can also be converted
+def test_numpy_constructor_view(numpy):
     d0 = dt.DataTable([list(range(100)), list(range(0, 1000000, 10000))])
     d1 = d0[::-2, :]
     assert d1.internal.isview
@@ -268,3 +267,9 @@ def test_numpy_constructor3(numpy):
     assert n1.dtype == numpy.dtype("int32")
     assert n1.tolist() == [list(range(99, 0, -2)),
                            list(range(990000, 0, -20000))]
+
+
+# def test_numpy_constructor_single_col(numpy):
+#     d0 = dt.DataTable([1, 5, 10, 20])
+#     n0 = numpy.array(d0)
+    # assert
