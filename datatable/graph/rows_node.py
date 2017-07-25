@@ -2,14 +2,16 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import types
 
-import _datatable
 import datatable
+import _datatable
 from datatable.expr import DatatableExpr, BaseExpr
 from .context import RequiresCModule
 from .iterator_node import FilterNode
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import typed, TValueError, TTypeError
+from datatable.utils.typechecks import (
+    is_type, typed, TValueError, TTypeError, DataTable_t, NumpyArray_t
+)
 
 
 
@@ -97,8 +99,12 @@ class MultiSliceRFNode(RFNode):
 
 class BooleanColumnRFNode(RFNode):
 
+    def __init__(self, dt, col):
+        super().__init__(dt)
+        self._coldt = col
+
     def make_target_rowindex(self):
-        return _datatable.rowindex_from_boolcolumn(self._dt.internal)
+        return _datatable.rowindex_from_boolcolumn(self._coldt.internal)
 
 
 
@@ -106,8 +112,13 @@ class BooleanColumnRFNode(RFNode):
 
 class IntegerColumnRFNode(RFNode):
 
+    def __init__(self, dt, col):
+        super().__init__(dt)
+        self._coldt = col
+
     def make_target_rowindex(self):
-        return _datatable.rowindex_from_intcolumn(self._dt.internal)
+        return _datatable.rowindex_from_intcolumn(self._coldt.internal,
+                                                  self._dt.nrows)
 
 
 
@@ -228,7 +239,26 @@ def make_rowfilter(rows, dt, _nested=False):
         else:
             return MultiSliceRFNode(dt, bases, counts, steps)
 
-    if isinstance(rows, datatable.DataTable):
+    if is_type(rows, NumpyArray_t):
+        import pandas
+        arr = rows
+        if not (len(arr.shape) == 1 or
+                len(arr.shape) == 2 and arr.shape[0] == 1):
+            raise TValueError("Only a single-dimensional numpy.array is allowed"
+                              " as a `rows` argument, got %r" % arr)
+        if not (str(arr.dtype) == "bool" or str(arr.dtype).startswith("int")):
+            raise TValueError("Either a boolean or an integer numpy.array is "
+                              "expected for `rows` argument, got %r" % arr)
+        if str(arr.dtype) == "bool" and arr.shape[-1] != dt.nrows:
+            raise TValueError("Cannot apply a boolean numpy array of length "
+                              "%d to a datatable with %s"
+                              % (arr.shape[-1], plural(dt.nrows, "row")))
+        # TODO: convert from numpy array directly
+        rows = datatable.DataTable(pandas.DataFrame(arr.T))
+        assert rows.ncols == 1
+        assert rows.types[0] == "bool" or rows.types[0] == "int"
+
+    if is_type(rows, DataTable_t):
         if rows.ncols != 1:
             raise TValueError("`rows` argument should be a single-column "
                               "datatable, got %r" % rows)
@@ -239,9 +269,9 @@ def make_rowfilter(rows, dt, _nested=False):
                 s2rows = plural(dt.nrows, "row")
                 raise TValueError("`rows` datatable has %s, but applied to a "
                                   "datatable with %s" % (s1rows, s2rows))
-            return BooleanColumnRFNode(rows)
+            return BooleanColumnRFNode(dt, rows)
         elif col0type == "int":
-            return IntegerColumnRFNode(rows)
+            return IntegerColumnRFNode(dt, rows)
         else:
             raise TTypeError("`rows` datatable should be either a boolean or "
                              "an integer column, however it has type %s"

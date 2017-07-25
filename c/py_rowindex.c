@@ -199,7 +199,9 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
 {
     DataTable *dt = NULL;
     RowIndex *rowindex = NULL;
-    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_intcolumn", &dt_unwrap, &dt))
+    long target_nrows = 0;
+    if (!PyArg_ParseTuple(args, "O&l:RowIndex.from_intcolumn",
+                          &dt_unwrap, &dt, &target_nrows))
         return NULL;
 
     if (dt->ncols != 1) {
@@ -216,10 +218,10 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
         ? rowindex_from_intcolumn_with_rowindex(col, dt->rowindex)
         : rowindex_from_intcolumn(col, 0);
 
-    if (rowindex->min < 0 || rowindex->max >= dt->nrows) {
+    if (rowindex->min < 0 || rowindex->max >= target_nrows) {
         PyErr_Format(PyExc_ValueError,
             "The data column contains NAs or indices that are outside of the "
-            "allowed range [0 .. %lld)", dt->nrows);
+            "allowed range [0 .. %lld)", target_nrows);
         return NULL;
     }
     return py(rowindex);
