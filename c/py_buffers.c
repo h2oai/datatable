@@ -405,6 +405,41 @@ PyBufferProcs datatable_as_buffer = {
 
 
 //==============================================================================
+// Buffers protocol for Python-side DataTable object
+//==============================================================================
+
+static int pydatatable_getbuffer(PyObject *self, Py_buffer *view, int flags)
+{
+    PyObject *pydt = PyObject_GetAttrString(self, "internal");
+    if (pydt == NULL) {
+        PyErr_Format(PyExc_AttributeError,
+                     "Cannot retrieve attribute internal");
+        return -1;
+    }
+    return dt_getbuffer((DataTable_PyObject*)pydt, view, flags);
+}
+
+static void pydatatable_releasebuffer(PyObject *self, Py_buffer *view)
+{
+    dt_releasebuffer(NULL, view);
+}
+
+static PyBufferProcs pydatatable_as_buffer = {
+    (getbufferproc) pydatatable_getbuffer,
+    (releasebufferproc) pydatatable_releasebuffer,
+};
+
+PyObject* pyinstall_buffer_hooks(UU, PyObject *args)
+{
+    PyObject *obj = NULL;
+    if (!PyArg_ParseTuple(args, "O", &obj)) return NULL;
+    obj->ob_type->tp_as_buffer = &pydatatable_as_buffer;
+    return none();
+}
+
+// 24210152
+
+//==============================================================================
 // Buffers utility functions
 //==============================================================================
 

@@ -73,6 +73,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(fread),
     METHOD0(exec_function),
     METHOD0(register_function),
+    METHOD0(install_buffer_hooks),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
