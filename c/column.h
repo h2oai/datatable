@@ -111,6 +111,7 @@ typedef struct Column {
 
 
 //==============================================================================
+typedef Column* (*castfn_ptr)(Column*, Column*);
 
 Column* make_data_column(SType stype, size_t nrows);
 Column* make_mmap_column(SType stype, size_t nrows, const char *filename);
@@ -133,5 +134,7 @@ Column* column_incref(Column *self);
 void column_decref(Column *self);
 
 void init_column_cast_functions(void);
+// Implemented in py_column_cast.c
+void init_column_cast_functions2(castfn_ptr hardcasts[][DT_STYPES_COUNT]);
 
 #endif

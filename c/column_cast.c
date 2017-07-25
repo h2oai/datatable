@@ -3,7 +3,6 @@
 #include "myassert.h"
 #include "utils.h"
 
-typedef Column* (*castfn_ptr)(Column*, Column*);
 static castfn_ptr softcasts[DT_STYPES_COUNT][DT_STYPES_COUNT];
 static castfn_ptr hardcasts[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
@@ -262,4 +261,7 @@ void init_column_cast_functions(void)
     hardcasts[ST_INTEGER_I8][ST_REAL_F8] = easy_i8i_to_f8r;
 
     hardcasts[ST_REAL_F4][ST_REAL_F8] = easy_f4r_to_f8r;
+
+    // Initialize cast functions from/into py-objects
+    init_column_cast_functions2(hardcasts);
 }

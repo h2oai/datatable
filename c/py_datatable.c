@@ -329,7 +329,6 @@ static void _dealloc_(DataTable_PyObject *self)
 
 
 
-
 //======================================================================================================================
 // DataTable type definition
 //======================================================================================================================
@@ -394,7 +393,7 @@ PyTypeObject DataTable_PyType = {
     0,                                  /* tp_str */
     0,                                  /* tp_getattro */
     0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
+    &datatable_as_buffer,               /* tp_as_buffer;  see py_buffers.c */
     Py_TPFLAGS_DEFAULT,                 /* tp_flags */
     "DataTable object",                 /* tp_doc */
     0,                                  /* tp_traverse */

@@ -544,3 +544,4 @@ def column_hexview(col, dt, colidx):
 
 
 c.register_function(1, column_hexview)
+c.install_buffer_hooks(DataTable())

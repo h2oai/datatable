@@ -23,6 +23,7 @@ typedef struct DataTable_PyObject {
 } DataTable_PyObject;
 
 
+extern PyBufferProcs datatable_as_buffer;
 extern PyTypeObject DataTable_PyType;
 
 
@@ -35,6 +36,7 @@ PyObject* pydatatable_from_list(PyObject *self, PyObject *args);
 PyObject* pydatatable_from_buffers(PyObject *self, PyObject *args);
 PyObject* pydatatable_assemble(PyObject *self, PyObject *args);
 PyObject* pydatatable_load(PyObject *self, PyObject *args);
+PyObject* pyinstall_buffer_hooks(PyObject *self, PyObject *args);
 int init_py_datatable(PyObject *module);
 
 #endif

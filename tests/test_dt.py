@@ -214,6 +214,11 @@ def test_rename():
     assert "Column `xxx` does not exist" in str(e.value)
 
 
+
+#-------------------------------------------------------------------------------
+# Test conversions into Pandas / Numpy
+#-------------------------------------------------------------------------------
+
 @pytest.mark.usefixture("pandas")
 def test_topandas():
     d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
@@ -223,3 +228,56 @@ def test_topandas():
     assert p0["A"].values.tolist() == [1, 5]
     assert p0["B"].values.tolist() == ["hello", "you"]
     assert p0["C"].values.tolist() == [True, False]
+
+
+def test_numpy_constructor_simple(numpy):
+    tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
+    d0 = dt.DataTable(tbl)
+    assert d0.shape == (5, 3)
+    assert d0.stypes == ("i1i", "i1i", "i1i")
+    assert d0.topython() == tbl
+    n0 = numpy.array(d0)
+    assert n0.shape == (3, 5)
+    assert n0.dtype == numpy.dtype("int8")
+    assert n0.tolist() == tbl
+
+
+def test_numpy_constructor_empty(numpy):
+    d0 = dt.DataTable()
+    assert d0.shape == (0, 0)
+    n0 = numpy.array(d0)
+    assert n0.shape == (0, 0)
+    assert n0.tolist() == []
+
+
+def test_numpy_constructor_multi_types(numpy):
+    # Test that multi-types datatable will be promoted into a common type
+    tbl = [[1, 5, 10],
+           [True, False, False],
+           [30498, 1349810, -134308],
+           [1.454, 4.9e-23, 10000000]]
+    d0 = dt.DataTable(tbl)
+    assert d0.stypes == ("i1i", "i1b", "i4i", "f8r")
+    n0 = numpy.array(d0)
+    print(n0.tolist())
+    assert n0.dtype == numpy.dtype("float64")
+    assert n0.tolist() == [[1.0, 5.0, 10.0],
+                           [1.0, 0, 0],
+                           [30498, 1349810, -134308],
+                           [1.454, 4.9e-23, 1e7]]
+
+
+def test_numpy_constructor_view(numpy):
+    d0 = dt.DataTable([list(range(100)), list(range(0, 1000000, 10000))])
+    d1 = d0[::-2, :]
+    assert d1.internal.isview
+    n1 = numpy.array(d1)
+    assert n1.dtype == numpy.dtype("int32")
+    assert n1.tolist() == [list(range(99, 0, -2)),
+                           list(range(990000, 0, -20000))]
+
+
+# def test_numpy_constructor_single_col(numpy):
+#     d0 = dt.DataTable([1, 5, 10, 20])
+#     n0 = numpy.array(d0)
+    # assert
