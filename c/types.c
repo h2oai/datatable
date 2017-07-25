@@ -80,6 +80,7 @@ inline int ISNA_U4(uint32_t x) { return x == NA_U4; }
 //==============================================================================
 
 STypeInfo stype_info[DT_STYPES_COUNT];
+static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 void init_types(void)
 {
@@ -112,6 +113,41 @@ void init_types(void)
     STI(ST_DATETIME_I2_MONTH, "i2d", 2, 0,                   0, LT_DATETIME, &NA_I2);
     STI(ST_OBJECT_PYPTR,      "p8p", 8, 0,                   0, LT_OBJECT,   NULL);
     #undef STI
+
+    #define UPCAST(stype1, stype2, stypeR)         \
+        stype_upcast_map[stype1][stype2] = stypeR; \
+        stype_upcast_map[stype2][stype1] = stypeR;
+
+    stype_upcast_map[ST_VOID][ST_VOID] = ST_VOID;
+    for (SType i = 1; i < DT_STYPES_COUNT; i++) {
+        UPCAST(i, ST_VOID, i)
+        for (SType j = 1; j < DT_STYPES_COUNT; j++)
+            stype_upcast_map[i][j] = i == j? i : ST_OBJECT_PYPTR;
+    }
+    UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I1,  ST_INTEGER_I1)
+    UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I2,  ST_INTEGER_I2)
+    UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I4,  ST_INTEGER_I4)
+    UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I8,  ST_INTEGER_I8)
+    UPCAST(ST_BOOLEAN_I1, ST_REAL_F4,     ST_REAL_F4)
+    UPCAST(ST_BOOLEAN_I1, ST_REAL_F8,     ST_REAL_F8)
+    UPCAST(ST_INTEGER_I1, ST_INTEGER_I2,  ST_INTEGER_I2)
+    UPCAST(ST_INTEGER_I1, ST_INTEGER_I4,  ST_INTEGER_I4)
+    UPCAST(ST_INTEGER_I1, ST_INTEGER_I8,  ST_INTEGER_I8)
+    UPCAST(ST_INTEGER_I1, ST_REAL_F4,     ST_REAL_F4)
+    UPCAST(ST_INTEGER_I1, ST_REAL_F8,     ST_REAL_F8)
+    UPCAST(ST_INTEGER_I2, ST_INTEGER_I4,  ST_INTEGER_I4)
+    UPCAST(ST_INTEGER_I2, ST_INTEGER_I8,  ST_INTEGER_I8)
+    UPCAST(ST_INTEGER_I2, ST_REAL_F4,     ST_REAL_F4)
+    UPCAST(ST_INTEGER_I2, ST_REAL_F8,     ST_REAL_F8)
+    UPCAST(ST_INTEGER_I4, ST_INTEGER_I8,  ST_INTEGER_I8)
+    UPCAST(ST_INTEGER_I4, ST_REAL_F4,     ST_REAL_F4)
+    UPCAST(ST_INTEGER_I4, ST_REAL_F8,     ST_REAL_F8)
+    UPCAST(ST_INTEGER_I8, ST_REAL_F4,     ST_REAL_F4)
+    UPCAST(ST_INTEGER_I8, ST_REAL_F8,     ST_REAL_F8)
+    UPCAST(ST_REAL_F4,    ST_REAL_F8,     ST_REAL_F8)
+    #undef UPCAST
+    // In py_datatable.c we use 64-bit mask over stypes
+    assert(DT_STYPES_COUNT <= 64);
 
     //---- More static asserts -------------------------------------------------
     // This checks validity of a cast used in the fread.c
@@ -177,4 +213,22 @@ SType stype_from_string(const char *s)
         if (s1 == '8' && s2 == 'p') return ST_OBJECT_PYPTR;
     }
     return ST_VOID;
+}
+
+
+char* format_from_stype(SType stype)
+{
+    return stype == ST_BOOLEAN_I1? "?" :
+           stype == ST_INTEGER_I1? "b" :
+           stype == ST_INTEGER_I2? "h" :
+           stype == ST_INTEGER_I4? "i" :
+           stype == ST_INTEGER_I8? "q" :
+           stype == ST_REAL_F4? "f" :
+           stype == ST_REAL_F8? "d" : "x";
+}
+
+
+SType common_stype_for_buffer(SType stype1, SType stype2)
+{
+    return stype_upcast_map[stype1][stype2];
 }

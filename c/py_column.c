@@ -102,69 +102,6 @@ static PyObject* pycolumn_hexview(Column_PyObject *self, UU)
 }
 
 
-/**
- * Provide Python Buffers interface (PEP 3118). This is mostly for the benefit
- * of integrating with Numpy, however in theory other packages can make use of
- * this as well.
- */
-static int getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
-{
-    Column *col = self->ref;
-    Py_ssize_t *info = NULL;
-    dtmalloc_g(info, Py_ssize_t, 2);
-
-    if (flags & PyBUF_WRITABLE) {
-        PyErr_SetString(PyExc_BufferError, "Cannot create writable buffer");
-        goto fail;
-    }
-    if (stype_info[col->stype].varwidth) {
-        PyErr_SetString(PyExc_BufferError, "Column's data has variable width");
-        goto fail;
-    }
-
-    size_t elemsize = stype_info[col->stype].elemsize;
-
-    view->buf = col->data;
-    view->obj = (PyObject*) self;
-    view->len = (Py_ssize_t) col->alloc_size;
-    view->itemsize = (Py_ssize_t) elemsize;
-    view->readonly = 0;
-    view->ndim = 1;
-    view->shape = info;
-    view->strides = info + 1;
-    view->internal = NULL;
-    info[0] = view->len / view->itemsize;
-    info[1] = view->itemsize;
-    if (flags & PyBUF_FORMAT) {
-        view->format = col->stype == ST_BOOLEAN_I1? "?" :
-                       col->stype == ST_INTEGER_I1? "b" :
-                       col->stype == ST_INTEGER_I2? "h" :
-                       col->stype == ST_INTEGER_I4? "i" :
-                       col->stype == ST_INTEGER_I8? "q" :
-                       col->stype == ST_REAL_F4? "f" :
-                       col->stype == ST_REAL_F8? "d" : "x";
-    } else {
-        view->format = NULL;
-    }
-
-    Py_INCREF(self);
-    column_incref(col);
-    return 0;
-
-  fail:
-    view->obj = NULL;
-    dtfree(info);
-    return -1;
-}
-
-
-static void releasebuffer(Column_PyObject *self, Py_buffer *view)
-{
-    dtfree(view->shape);
-    column_decref(self->ref);
-}
-
-
 void free_xbuf_column(Column *col)
 {
     if (col->mtype == MT_XBUF)
@@ -214,11 +151,6 @@ static PyMethodDef column_methods[] = {
 };
 #undef METHOD1
 
-static PyBufferProcs column_as_buffer = {
-    (getbufferproc) getbuffer,
-    (releasebufferproc) releasebuffer,
-};
-
 PyTypeObject Column_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_datatable.Column",                /* tp_name */
@@ -238,7 +170,7 @@ PyTypeObject Column_PyType = {
     0,                                  /* tp_str */
     0,                                  /* tp_getattro */
     0,                                  /* tp_setattro */
-    &column_as_buffer,                  /* tp_as_buffer */
+    &column_as_buffer,                  /* tp_as_buffer; see py_buffers.c */
     Py_TPFLAGS_DEFAULT,                 /* tp_flags */
     "Column object",                    /* tp_doc */
     0,                                  /* tp_traverse */

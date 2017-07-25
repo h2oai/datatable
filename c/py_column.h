@@ -14,7 +14,7 @@ typedef struct Column_PyObject {
 
 
 extern PyTypeObject Column_PyType;
-
+extern PyBufferProcs column_as_buffer;
 extern PyObject* pyfn_column_hexview;
 
 

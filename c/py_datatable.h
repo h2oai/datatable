@@ -23,6 +23,7 @@ typedef struct DataTable_PyObject {
 } DataTable_PyObject;
 
 
+extern PyBufferProcs datatable_as_buffer;
 extern PyTypeObject DataTable_PyType;
 
 
