@@ -246,7 +246,7 @@ def test_numpy_constructor_empty(numpy):
     d0 = dt.DataTable()
     assert d0.shape == (0, 0)
     n0 = numpy.array(d0)
-    assert n0.shape == (0, )  # should this be (0, 0) as well?
+    assert n0.shape == (0, 0)
     assert n0.tolist() == []
 
 

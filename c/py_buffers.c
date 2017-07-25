@@ -270,7 +270,20 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     size_t nrows = (size_t) dt->nrows;
 
     if (ncols == 0) {
-        return PyBuffer_FillInfo(view, (PyObject*)self, NULL, 0, 0, flags);
+        Py_ssize_t *info = NULL;
+        dtcalloc_g(info, Py_ssize_t, 2);
+        view->buf = NULL;
+        view->obj = incref((PyObject*) self);
+        view->len = 0;
+        view->readonly = 0;
+        view->itemsize = 1;
+        view->format = REQ_FORMAT(flags) ? "B" : NULL;
+        view->ndim = 2;
+        view->shape = REQ_ND(flags) ? info : NULL;
+        view->strides = REQ_STRIDES(flags) ? info : NULL;
+        view->suboffsets = NULL;
+        view->internal = NULL;
+        return 0;
     }
 
     if (ncols == 1) {
