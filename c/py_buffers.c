@@ -271,7 +271,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 
     if (ncols == 0) {
         Py_ssize_t *info = NULL;
-        dtcalloc_g(info, Py_ssize_t, 2);
+        if (REQ_ND(flags)) dtcalloc_g(info, Py_ssize_t, 2);
         view->buf = NULL;
         view->obj = incref((PyObject*) self);
         view->len = 0;
@@ -282,14 +282,38 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
         view->shape = REQ_ND(flags) ? info : NULL;
         view->strides = REQ_STRIDES(flags) ? info : NULL;
         view->suboffsets = NULL;
-        view->internal = NULL;
+        view->internal = (void*) 1;
         return 0;
     }
 
-    // if (ncols == 1) {
-    //     Column_PyObject *pycol = pycolumn_from_column(dt->columns[0], self, 0);
-    //     return column_getbuffer(pycol, view, flags);
-    // }
+    // Check whether we have a single-column DataTable that doesn't need to be
+    // copied -- in which case it should be possible to return the buffer
+    // by-reference instead of copying the data into an intermediate buffer.
+    if (ncols == 1) {
+        Column *col = dt->columns[0];
+        SType stype = col->stype;
+        if (!stype_info[stype].varwidth && !REQ_WRITABLE(flags)) {
+            Py_ssize_t *info = NULL;
+            if (REQ_ND(flags)) dtcalloc_g(info, Py_ssize_t, 4);
+            view->buf = (void*) col->data;
+            view->obj = incref((PyObject*) self);
+            view->len = (Py_ssize_t) col->alloc_size;
+            view->readonly = 1;
+            view->itemsize = (Py_ssize_t) stype_info[stype].elemsize;
+            view->format = REQ_FORMAT(flags)? format_from_stype(stype) : NULL;
+            view->ndim = 2;
+            view->shape = REQ_ND(flags) ? info : NULL;
+            info[0] = 1;
+            info[1] = (Py_ssize_t) nrows;
+            view->strides = REQ_STRIDES(flags) ? info + 2 : NULL;
+            info[2] = view->len;
+            info[3] = view->itemsize;
+            view->suboffsets = NULL;
+            view->internal = (void*) 2;
+            column_incref(col);
+            return 0;
+        }
+    }
 
     // Multiple columns datatable => copy all data into a new buffer before
     // passing it to the requester. This is of course very unfortunate, but
@@ -336,7 +360,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 
     // Fill in the `view` struct
     Py_ssize_t *info = NULL;
-    dtmalloc_g(info, Py_ssize_t, 4);
+    if (REQ_ND(flags)) dtmalloc_g(info, Py_ssize_t, 4);
     view->buf = buf;
     view->obj = (PyObject*) self;
     view->len = (Py_ssize_t)(ncols * colsize);
@@ -351,7 +375,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     info[2] = (Py_ssize_t) colsize;
     info[3] = (Py_ssize_t) elemsize;
     view->suboffsets = NULL;
-    view->internal = NULL;
+    view->internal = (void*) 3;
     Py_INCREF(self);
     return 0;
 
@@ -403,14 +427,15 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 
 static void dt_releasebuffer(DataTable_PyObject *self, Py_buffer *view)
 {
-    if (view->len != 0) {
-        dtfree(view->shape);
-    }
-    if (view->ndim == 1) {
+    // 1 = 0-col DataTable, 2 = 1-col DataTable, 3 = 2+-col DataTable
+    int kind = (int) view->internal;
+    if (kind == 2) {
         column_decref(self->ref->columns[0]);
-    } else {
+    }
+    if (kind == 3) {
         dtfree(view->buf);
     }
+    dtfree(view->shape);
 }
 
 

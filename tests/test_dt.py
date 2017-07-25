@@ -277,6 +277,14 @@ def test_numpy_constructor_view(numpy):
                            list(range(990000, 0, -20000))]
 
 
+def test_numpy_constructor_single_col(numpy):
+    d0 = dt.DataTable([1, 1, 3, 5, 8, 13, 21, 34, 55])
+    assert d0.stypes == ("i1i", )
+    n0 = numpy.array(d0)
+    assert n0.shape == (1, 9)
+    assert n0.dtype == numpy.dtype("int8")
+
+
 def test_numpy_constructor_single_string_col(numpy):
     d = dt.DataTable(["adf", "dfkn", "qoperhi"])
     assert d.shape == (3, 1)
