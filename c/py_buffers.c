@@ -15,10 +15,10 @@ static SType stype_from_format(const char *format, int64_t itemsize);
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
 #define REQ_FORMAT(flags)   ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
 #define REQ_STRIDES(flags)  ((flags & PyBUF_STRIDES) == PyBUF_STRIDES)
-#define REQ_INDIRECT(flags) ((flags & PyBUF_INDIRECT) == PyBUF_INDIRECT)
 #define REQ_WRITABLE(flags) ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE)
-#define REQ_C_CONTIG(flags) ((flags & PyBUF_C_CONTIGUOUS) == PyBUF_C_CONTIGUOUS)
-#define REQ_F_CONTIG(flags) ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS)
+// #define REQ_INDIRECT(flags) ((flags & PyBUF_INDIRECT) == PyBUF_INDIRECT)
+// #define REQ_C_CONTIG(flags) ((flags & PyBUF_C_CONTIGUOUS) == PyBUF_C_CONTIGUOUS)
+// #define REQ_F_CONTIG(flags) ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS)
 
 
 
@@ -209,7 +209,7 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 
     size_t elemsize = stype_info[col->stype].elemsize;
     info[0] = (Py_ssize_t)(col->alloc_size / elemsize);
-    info[1] = elemsize;
+    info[1] = (Py_ssize_t) elemsize;
 
     view->buf = col->data;
     view->obj = (PyObject*) self;
@@ -326,17 +326,17 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     dtmalloc_g(info, Py_ssize_t, 4);
     view->buf = buf;
     view->obj = (PyObject*) self;
-    view->len = ncols * colsize;
+    view->len = (Py_ssize_t)(ncols * colsize);
     view->readonly = 0;
-    view->itemsize = elemsize;
+    view->itemsize = (Py_ssize_t) elemsize;
     view->format = REQ_FORMAT(flags)? format_from_stype(stype) : NULL;
     view->ndim = 2;
     view->shape = REQ_ND(flags)? info : NULL;
-    info[0] = nrows;
-    info[1] = ncols;
+    info[0] = (Py_ssize_t) ncols;
+    info[1] = (Py_ssize_t) nrows;
     view->strides = REQ_STRIDES(flags)? info + 2 : NULL;
-    info[2] = elemsize;
-    info[3] = colsize;
+    info[2] = (Py_ssize_t) colsize;
+    info[3] = (Py_ssize_t) elemsize;
     view->suboffsets = NULL;
     view->internal = NULL;
     Py_INCREF(self);
@@ -391,7 +391,9 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 static void dt_releasebuffer(DataTable_PyObject *self, Py_buffer *view)
 {
     dtfree(view->shape);
-    if (view->ndim > 1) {
+    if (view->ndim == 1) {
+        column_decref(self->ref->columns[0]);
+    } else {
         dtfree(view->buf);
     }
 }
@@ -419,7 +421,7 @@ static int pydatatable_getbuffer(PyObject *self, Py_buffer *view, int flags)
     return dt_getbuffer((DataTable_PyObject*)pydt, view, flags);
 }
 
-static void pydatatable_releasebuffer(PyObject *self, Py_buffer *view)
+static void pydatatable_releasebuffer(UU, Py_buffer *view)
 {
     dt_releasebuffer(NULL, view);
 }
@@ -437,7 +439,7 @@ PyObject* pyinstall_buffer_hooks(UU, PyObject *args)
     return none();
 }
 
-// 24210152
+
 
 //==============================================================================
 // Buffers utility functions
