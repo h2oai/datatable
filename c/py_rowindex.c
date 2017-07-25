@@ -165,12 +165,11 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
  * with the indices that corresponds to the rows where the boolean column has
  * true values (all false / NA columns are skipped).
  */
-PyObject* pyrowindex_from_column(UU, PyObject *args)
+PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
 {
     DataTable *dt = NULL;
     RowIndex *rowindex = NULL;
-    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_column",
-                          &dt_unwrap, &dt))
+    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_boolcolumn", &dt_unwrap, &dt))
         return NULL;
 
     if (dt->ncols != 1) {
@@ -184,9 +183,47 @@ PyObject* pyrowindex_from_column(UU, PyObject *args)
     }
 
     rowindex = dt->rowindex
-        ? rowindex_from_column_with_rowindex(col, dt->rowindex)
-        : rowindex_from_datacolumn(col, dt->nrows);
+        ? rowindex_from_boolcolumn_with_rowindex(col, dt->rowindex)
+        : rowindex_from_boolcolumn(col, dt->nrows);
 
+    return py(rowindex);
+}
+
+
+
+/**
+ * Construct a RowIndex object from a DataTable having a single integer column.
+ * This column will be converted into a RowIndex directly.
+ */
+PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
+{
+    DataTable *dt = NULL;
+    RowIndex *rowindex = NULL;
+    long target_nrows = 0;
+    if (!PyArg_ParseTuple(args, "O&l:RowIndex.from_intcolumn",
+                          &dt_unwrap, &dt, &target_nrows))
+        return NULL;
+
+    if (dt->ncols != 1) {
+        PyErr_SetString(PyExc_ValueError, "Expected a single-column datatable");
+        return NULL;
+    }
+    Column *col = dt->columns[0];
+    if (stype_info[col->stype].ltype != LT_INTEGER) {
+        PyErr_SetString(PyExc_ValueError, "An integer column is required");
+        return NULL;
+    }
+
+    rowindex = dt->rowindex
+        ? rowindex_from_intcolumn_with_rowindex(col, dt->rowindex)
+        : rowindex_from_intcolumn(col, 0);
+
+    if (rowindex->min < 0 || rowindex->max >= target_nrows) {
+        PyErr_Format(PyExc_ValueError,
+            "The data column contains NAs or indices that are outside of the "
+            "allowed range [0 .. %lld)", target_nrows);
+        return NULL;
+    }
     return py(rowindex);
 }
 

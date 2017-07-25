@@ -208,26 +208,97 @@ def test_rows_multislice(dt0):
     assert_valueerror(dt0, [1, -1, 5, -11], "Row `-11` is invalid")
 
 
-
-def test_rows_column(dt0):
+def test_rows_bool_column(dt0):
     """
     Test the use of a boolean column as a filter:
         dt(rows=dt2[0])
     """
     col = dt.DataTable([1, 0, 1, 1, None, 0, None, 1, 1, 0])
     dt1 = dt0(col)
+    assert dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.types == ("bool", "int", "real")
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [7, 9, 10000, -1, 1]
-    assert_valueerror(dt0, dt0,
-                      "`rows` argument should be a single-column datatable")
-    assert_typeerror(dt0, dt.DataTable(list(range(10))),
-                     "`rows` datatable should be a boolean column")
+
+
+def test_rows_bool_column_error(dt0):
     assert_valueerror(dt0, dt.DataTable(list(i % 2 for i in range(20))),
                       "`rows` datatable has 20 rows, but applied to a "
                       "datatable with 10 rows")
+
+
+def test_rows_bool_numpy_array(dt0, numpy):
+    arr = numpy.array([True, False, True, True, False,
+                       False, True, False, False, True])
+    dt1 = dt0(arr)
+    assert dt1.internal.check()
+    assert dt1.shape == (5, 3)
+    assert dt1.names == ("colA", "colB", "colC")
+    assert dt1.types == ("bool", "int", "real")
+    assert as_list(dt1)[1] == [7, 9, 10000, 0, None]
+
+
+def test_rows_bool_numpy_array_error(dt0, numpy):
+    assert_valueerror(dt0, numpy.array([True, False, False]),
+                      "Cannot apply a boolean numpy array of length 3 "
+                      "to a datatable with 10 rows")
+
+
+def test_rows_bad_column(dt0):
+    assert_valueerror(dt0, dt0,
+                      "`rows` argument should be a single-column datatable")
+    assert_typeerror(dt0, dt.DataTable([0.3, 1, 1.5]),
+                     "`rows` datatable should be either a boolean or an "
+                     "integer column")
+
+
+def tes_rows_int_column(dt0):
+    """
+    Test the use of an integer column as a filter:
+        dt(rows=dt.DataTable([0, 5, 10]))
+    which should produce the same result as
+        dt(rows=[0, 5, 10])
+    """
+    col = dt.DataTable([0, 3, 0, 1])
+    dt1 = dt0(rows=col)
+    assert dt1.internal.check()
+    assert dt1.shape == (4, 3)
+    assert dt1.names == dt0.names
+    assert dt1.types == dt0.types
+    assert dt1.topython() == [[0, None, 0, 1],
+                              [7, 10000, 7, -11],
+                              [5, 0.1, 5, 1]]
+
+
+def test_rows_int_numpy_array(dt0, numpy):
+    arr = numpy.array([7, 1, 0, 3])
+    dt1 = dt0(rows=arr)
+    assert dt1.internal.check()
+    assert dt1.shape == (4, 3)
+    assert dt1.types == dt0.types
+    assert dt1.topython() == [[None, 1, 0, None],
+                              [-1, -11, 7, 10000],
+                              [-14, 1, 5, 0.1]]
+    arr2 = numpy.array([[7, 1, 0, 3]])
+    dt2 = dt0(rows=arr2)
+    assert dt2.internal.check()
+    assert dt1.shape == dt2.shape
+    assert dt1.topython() == dt2.topython()
+
+
+def test_rows_int_numpy_array_errors(dt0, numpy):
+    assert_valueerror(dt0, numpy.array([[1], [2], [3]]),
+                      "Only a single-dimensional numpy.array is allowed as a "
+                      "`rows` argument")
+    assert_valueerror(dt0, numpy.array([[[4, 0, 1]]]),
+                      "Only a single-dimensional numpy.array is allowed as a "
+                      "`rows` argument")
+    with pytest.raises(ValueError) as e:
+        dt0(rows=numpy.array([5, 11, 3]))
+    assert ("The data column contains NAs or indices that are outside of "
+            "the allowed range [0 .. 10)" in str(e.value))
 
 
 def test_rows_function(dt0):
@@ -236,19 +307,23 @@ def test_rows_function(dt0):
         dt(lambda f: f.colA < f.colB)
     """
     dt1 = dt0(lambda f: f.colA)
+    assert dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [-11, 9, 0, 1, None]
 
     dt2 = dt0(lambda f: [5, 7, 9])
+    assert dt2.internal.check()
     assert dt2.shape == (3, 3)
     assert as_list(dt2)[1] == [0, -1, None]
 
     dt3 = dt0(lambda f: f.colA < f.colB)
+    assert dt3.internal.check()
     assert dt3.shape == (2, 3)
     assert as_list(dt3) == [[0, 1], [7, 9], [5, 1.3]]
 
     dt4 = dt0(lambda f: f.colB == 0)
+    assert dt4.internal.check()
     assert dt4.shape == (2, 3)
     assert as_list(dt4) == [[0, 1], [0, 0], [0, -2.6]]
 

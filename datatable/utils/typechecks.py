@@ -56,6 +56,7 @@ class _LazyClass(typesentry.MagicType):
 DataTable_t = _LazyClass("datatable", "DataTable")
 PandasDataFrame_t = _LazyClass("pandas", "DataFrame")
 PandasSeries_t = _LazyClass("pandas", "Series")
+NumpyArray_t = _LazyClass("numpy", "ndarray")
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
-           "DataTable_t")
+           "DataTable_t", "NumpyArray_t")

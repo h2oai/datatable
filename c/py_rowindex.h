@@ -27,7 +27,8 @@ int rowindex_unwrap(PyObject *object, void *address);
 PyObject* pyrowindex_from_slice(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_slicelist(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_array(PyObject*, PyObject *args);
-PyObject* pyrowindex_from_column(PyObject*, PyObject *args);
+PyObject* pyrowindex_from_boolcolumn(PyObject*, PyObject *args);
+PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args);
 PyObject* pyrowindex_uplift(PyObject*, PyObject *args);
 
