@@ -390,7 +390,9 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 
 static void dt_releasebuffer(DataTable_PyObject *self, Py_buffer *view)
 {
-    dtfree(view->shape);
+    if (view->len != 0) {
+        dtfree(view->shape);
+    }
     if (view->ndim == 1) {
         column_decref(self->ref->columns[0]);
     } else {

@@ -242,6 +242,14 @@ def test_numpy_constructor_simple(numpy):
     assert n0.tolist() == tbl
 
 
+def test_numpy_constructor_empty(numpy):
+    d0 = dt.DataTable()
+    assert d0.shape == (0, 0)
+    n0 = numpy.array(d0)
+    assert n0.shape == (0, )  # should this be (0, 0) as well?
+    assert n0.tolist() == []
+
+
 def test_numpy_constructor_multi_types(numpy):
     # Test that multi-types datatable will be promoted into a common type
     tbl = [[1, 5, 10],
