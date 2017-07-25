@@ -277,7 +277,11 @@ def test_numpy_constructor_view(numpy):
                            list(range(990000, 0, -20000))]
 
 
-# def test_numpy_constructor_single_col(numpy):
-#     d0 = dt.DataTable([1, 5, 10, 20])
-#     n0 = numpy.array(d0)
-    # assert
+def test_numpy_constructor_single_string_col(numpy):
+    d = dt.DataTable(["adf", "dfkn", "qoperhi"])
+    assert d.shape == (3, 1)
+    assert d.stypes == ("i4s", )
+    a = numpy.array(d)
+    assert a.shape == (1, 3)
+    assert a.dtype == numpy.dtype("object")
+    assert a.tolist() == d.topython()

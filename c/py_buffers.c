@@ -286,10 +286,10 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
         return 0;
     }
 
-    if (ncols == 1) {
-        Column_PyObject *pycol = pycolumn_from_column(dt->columns[0], self, 0);
-        return column_getbuffer(pycol, view, flags);
-    }
+    // if (ncols == 1) {
+    //     Column_PyObject *pycol = pycolumn_from_column(dt->columns[0], self, 0);
+    //     return column_getbuffer(pycol, view, flags);
+    // }
 
     // Multiple columns datatable => copy all data into a new buffer before
     // passing it to the requester. This is of course very unfortunate, but
