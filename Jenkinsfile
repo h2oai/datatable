@@ -29,18 +29,38 @@ pipeline {
                 dumpInfo 'Linux Build Info'
                 sh """
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
-                        make clean
+                        make mrproper
                         make build > stage_build_on_linux_output.txt
                         touch LICENSE
                         python setup.py bdist_wheel >> stage_build_on_linux_output.txt
                         python setup.py --version > dist/VERSION.txt
                 """
-                stash includes: '**/dist/*.whl', name: 'linux_whl'
-                stash includes: '**/dist/VERSION.txt', name: 'VERSION'
+                stash includes: 'dist/*.whl', name: 'linux_whl'
+                stash includes: 'dist/VERSION.txt', name: 'VERSION'
                 // Archive artifacts
                 arch 'dist/*.whl'
                 arch 'dist/VERSION.txt'
                 arch 'stage_build_on_linux_output.txt'
+            }
+        }
+
+        stage('Coverage on Linux') {
+            agent {
+                dockerfile {
+                    label "docker"
+                    filename "Dockerfile"
+                }
+            }
+            steps {
+                dumpInfo 'Coverage on Linux'
+                sh """
+                    rm -rf .venv venv 2> /dev/null
+                    virtualenv --python=python3.6 --no-download .venv
+                    .venv/bin/python -m pip install .[testing] --upgrade --no-cache-dir
+                    make coverage PYTHON=.venv/bin/python
+                """
+                testReport 'build/coverage-c', "Linux coverage report for C"
+                testReport 'build/coverage-py', "Linux coverage report for Python"
             }
         }
 
@@ -58,9 +78,10 @@ pipeline {
                     try {
                         sh """
                             rm -rf .venv venv 2> /dev/null
+                            rm -rf datatable
                             virtualenv --python=python3.6 .venv
                             .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`[testing]
-                            .venv/bin/python -m pytest -v --junit-prefix=linux --junit-xml=build/test-reports/TEST-datatable_linux.xml
+                            make test PYTHON=.venv/bin/python
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -72,7 +93,7 @@ pipeline {
 
         stage('Build on OSX') {
             agent {
-                label "mr-0xb11"
+                label 'osx'
             }
             steps {
                 dumpInfo 'Build Info'
@@ -81,19 +102,37 @@ pipeline {
                         export LLVM4=/usr/local/opt/llvm
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         export CI_EXTRA_COMPILE_ARGS="-DDISABLE_CLOCK_REALTIME"
-                        make clean
+                        make mrproper
                         make build
                         touch LICENSE
                         python setup.py bdist_wheel
                     """
-                stash includes: '**/dist/*.whl', name: 'osx_whl'
+                stash includes: 'dist/*.whl', name: 'osx_whl'
                 arch 'dist/*.whl'
+            }
+        }
+
+        stage('Coverage on OSX') {
+            agent {
+                label 'osx'
+            }
+            steps {
+                dumpInfo 'Coverage on OSX'
+                sh '''
+                    source /Users/jenkins/anaconda/bin/activate h2oai
+                    export LLVM4=/usr/local/opt/llvm
+                    export CI_EXTRA_COMPILE_ARGS="-DDISABLE_CLOCK_REALTIME"
+                    env
+                    PATH="$PATH:/usr/local/bin" make mrproper coverage 
+                '''
+                testReport 'build/coverage-c', "OSX coverage report for C"
+                testReport 'build/coverage-py', "OSX coverage report for Python"
             }
         }
 
         stage('Test on OSX') {
             agent {
-                label "mr-0xb11"
+                label 'osx'
             }
             steps {
                 unstash 'osx_whl'
@@ -114,7 +153,8 @@ pipeline {
                                     fi
                                 fi
                                 pip install --upgrade dist/*macosx*.whl
-                                python -m pytest --junit-prefix=osx --junit-xml=build/test-reports/TEST-datatable_osx.xml
+                                rm -rf datatable
+                                make test
                         '''
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false

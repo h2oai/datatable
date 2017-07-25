@@ -16,6 +16,7 @@ RUN \
     wget \
     cpio \
     git \
+    lcov \
     python-software-properties \
     software-properties-common && \
   add-apt-repository ppa:jonathonf/python-3.6 && \
@@ -56,6 +57,5 @@ RUN \
 ENV \
   LLVM4=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 \
   LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
-  CC=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang \
   CLANG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 

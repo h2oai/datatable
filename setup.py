@@ -7,6 +7,7 @@ Build script for the `datatable` module.
     $ twine upload dist/*
 """
 import os
+import sys
 import re
 import subprocess
 import sysconfig
@@ -75,7 +76,7 @@ else:
                        "http://releases.llvm.org/download.html#4.0.0")
 
 # Compiler
-os.environ["CC"] = clang + " -fopenmp "
+os.environ["CC"] = clang + " "
 if sysconfig.get_config_var("CONFINCLUDEPY"):
     # Marking this directory as "isystem" prevents Clang from issuing warnings
     # for those files
@@ -86,7 +87,6 @@ os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, libs)
 os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
-
 
 #-------------------------------------------------------------------------------
 # Settings for building the extension
@@ -123,8 +123,13 @@ extra_link_args = [
 ]
 
 if "WITH_COVERAGE" in os.environ:
-    extra_compile_args += ["-coverage", "-O0"]
-    extra_link_args += ["-coverage", "-O0"]
+    # On linux we need to pass proper flag to clang linker which
+    # is not used for some reason at linux
+    if sys.platform == 'linux':
+        os.environ["LDSHARED"] = clang
+        extra_link_args += ["-shared"]
+    extra_compile_args += ["-g", "--coverage", "-O0"]
+    extra_link_args += ["--coverage", "-O0"]
 
 if "VALGRIND" in os.environ:
     extra_compile_args += ["-ggdb", "-O0"]
