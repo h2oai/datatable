@@ -230,6 +230,14 @@ def test_topandas():
     assert p0["C"].values.tolist() == [True, False]
 
 
+def test_tonumpy(numpy):
+    d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
+    a0 = d0.tonumpy()
+    assert a0.shape == (3, 2)
+    assert a0.dtype == numpy.dtype("object")
+    assert a0.tolist() == [[1, 5], ["hello", "you"], [True, False]]
+
+
 def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.DataTable(tbl)

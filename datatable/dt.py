@@ -513,6 +513,11 @@ class DataTable(object):
         return pd
 
 
+    def tonumpy(self):
+        numpy = load_module("numpy")
+        return numpy.array(self.internal)
+
+
     def topython(self):
         return self._dt.window(0, self.nrows, 0, self.ncols).data
 
