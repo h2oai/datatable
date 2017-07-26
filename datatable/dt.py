@@ -15,7 +15,7 @@ from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
     TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t,
-    PandasSeries_t)
+    PandasSeries_t, NumpyArray_t)
 from datatable.graph import make_datatable
 
 __all__ = ("DataTable", )
@@ -145,6 +145,8 @@ class DataTable(object):
             self._fill_from_pandas(src)
         elif is_type(src, PandasSeries_t):
             self._fill_from_pandas(src)
+        elif is_type(src, NumpyArray_t):
+            self._fill_from_numpy(src)
         elif src is None:
             self._fill_from_list([])
         else:
@@ -185,6 +187,22 @@ class DataTable(object):
                 assert colarrays[i].dtype.isnative
         dt = c.datatable_from_buffers(colarrays)
         self._fill_from_dt(dt, names=colnames)
+
+
+    def _fill_from_numpy(self, arr):
+        dim = len(arr.shape)
+        if dim > 2:
+            raise TValueError("Cannot create DataTable from a %d-D numpy "
+                              "array %r" % (dim, arr))
+        if dim == 0:
+            arr = arr.reshape((1, 1))
+        if dim == 1:
+            arr = arr.reshape((1, arr.shape[0]))
+        if not arr.dtype.isnative:
+            arr = arr.byteswap().newbyteorder()
+        colarrays = [arr[i] for i in range(arr.shape[0])]
+        dt = c.datatable_from_buffers(colarrays)
+        self._fill_from_dt(dt, names=[str(i) for i in range(arr.shape[0])])
 
 
 
