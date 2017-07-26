@@ -75,6 +75,11 @@ def test_create_from_dict():
     assert d7.internal.check()
 
 
+
+#-------------------------------------------------------------------------------
+# Create from Pandas / Numpy
+#-------------------------------------------------------------------------------
+
 def test_create_from_pandas(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.DataTable(p)
@@ -99,10 +104,62 @@ def test_create_from_pandas_series(pandas):
     assert d.topython() == [[1, 5, 9, -12]]
 
 
+def test_create_from_0d_numpy_array(numpy):
+    a = numpy.array(100)
+    d = dt.DataTable(a)
+    assert d.shape == (1, 1)
+    assert d.names == ("0", )
+    assert d.internal.check()
+    assert d.topython() == [[100]]
+
+
+def test_create_from_1d_numpy_array(numpy):
+    a = numpy.array([1, 2, 3])
+    d = dt.DataTable(a)
+    assert d.shape == (3, 1)
+    assert d.names == ("0", )
+    assert d.internal.check()
+    assert d.topython() == [[1, 2, 3]]
+
+
+def test_create_from_2d_numpy_array(numpy):
+    a = numpy.array([[5, 4, 3, 10, 12], [-2, -1, 0, 1, 7]])
+    d = dt.DataTable(a)
+    assert d.shape == (5, 2)
+    assert d.names == ("0", "1")
+    assert d.internal.check()
+    assert d.topython() == a.tolist()
+
+
+def test_create_from_3d_numpy_array(numpy):
+    a = numpy.array([[[1, 2, 3]]])
+    with pytest.raises(ValueError) as e:
+        dt.DataTable(a)
+    assert "Cannot create DataTable from a 3-D numpy array" in str(e.value)
+
+
+@pytest.mark.skip(reason="Not implemented")
+def test_create_from_string_numpy_array(numpy):
+    a = numpy.array(["alef", "bet", "gimel", "dalet", "he", "vav"])
+    d = dt.DataTable(a)
+    assert d.shape == (6, 1)
+    assert d.names == ("0", )
+    assert d.internal.check()
+    assert d.topython() == [a.tolist()]
+
+
+
+#-------------------------------------------------------------------------------
+# Others
+#-------------------------------------------------------------------------------
+
 def test_bad():
     with pytest.raises(TypeError) as e:
         dt.DataTable("scratch")
     assert "Cannot create DataTable from 'scratch'" in str(e.value)
+    with pytest.raises(TypeError) as e:
+        dt.DataTable(dt)
+    assert "Cannot create DataTable from <module 'datatable'" in str(e.value)
 
 
 def test_issue_42():
