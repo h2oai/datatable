@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
 // Sorting/ordering functions.
 //
-// adapted from
-//     https://github.com/Rdatatable/data.table/src/fsort.c and
+// inspired by
+//     https://github.com/Rdatatable/data.table/src/fsort.c
 //     https://github.com/Rdatatable/data.table/src/forder.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
@@ -15,8 +15,8 @@
 #include "utils.h"
 
 // Forward declarations
-static void* insert_sort_i4(const int32_t *x, int32_t *y, size_t n,
-                            int32_t *restrict temp);
+static void* insert_sort_u4(const uint32_t *x, uint32_t *y, size_t n,
+                            uint32_t *restrict temp);
 static void* countp_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
                             int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
@@ -64,7 +64,7 @@ void* sort_i4(int32_t *x, int32_t n, int32_t **o)
         for (int32_t i = 0; i < n; i++) {
             oo[i] = i;
         }
-        ret = insert_sort_i4(x, oo, (size_t)n, tmp);
+        ret = insert_sort_u4(x, oo, (size_t)n, tmp);
         *o = oo;
         dtfree(tmp);
     } else {
@@ -314,7 +314,7 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
             if (size <= INSERT_SORT_THRESHOLD) {
-                insert_sort_i4(xx + off, oo + off, size, tmp);
+                insert_sort_u4(xx + off, oo + off, size, tmp);
             } else {
                 count_sort_i4(xx + off, oo + off, size, tmp, 1 << shift);
             }
@@ -330,47 +330,64 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
 
 
 
+//==============================================================================
+// Insertion sorts
+//
+// All functions here provide the same functionality and have a similar
+// signature. Each of these function sorts array `y` according to the values of
+// array `x`. Both arrays must have the same size `n`. The caller must also
+// provide a temporary buffer `tmp` of size at least `n`. The contents of this
+// array will be overwritten. Returns the pointer `y` (for compatibility with
+// other sorting routines).
+//
+// For example, if `x` is {5, 2, -1, 7, 2}, then this function will leave `x`
+// unmodified but reorder the elements of `y` into {y[2], y[1], y[4], y[0],
+// y[3]}.
+//
+// This procedure uses Insert Sort algorithm, which has O(n²) complexity.
+// Therefore, it should only be used for small arrays (in particular `n` is
+// assumed to fit into an integer.
+//
+// See also:
+//   - https://en.wikipedia.org/wiki/Insertion_sort
+//   - datatable/microbench/insertsort
+//==============================================================================
 
-/**
- * Sort array `y` according to the values of array `x`. Both arrays have same
- * size `n`. For example, if `x` is {5, 2, -1, 7, 2}, then this function will
- * leave `x` unmodified, and reorder the elements of `y` into {y[2], y[1], y[4],
- * y[0], y[3]}.
- * The caller should also provide temporary buffer `tmp` of the size at least
- * `n`. This temporary buffer must be distinct from `x` or `y`, and its contents
- * will be overwritten.
- *
- * This procedure uses Insert Sort algorithm, which has O(n²) complexity.
- * Therefore, this procedure should only be used for small arrays.
- *
- * See also:
- *   - https://en.wikipedia.org/wiki/Insertion_sort
- *   - datatable/microbench/insertsort
- */
-static void* insert_sort_i4(
-    const int32_t *restrict x,
-    int32_t *restrict y,
-    size_t n,
-    int32_t *restrict tmp
-) {
-    int ni = (int) n;
-    tmp[0] = 0;
-    for (int i = 1; i < ni; i++) {
-        int32_t xi = x[i];
-        int j = i;
-        while (j && xi < x[tmp[j - 1]]) {
-            tmp[j] = tmp[j - 1];
-            j--;
-        }
-        tmp[j] = i;
-    }
-    for (int i = 0; i < ni; i++) {
-        tmp[i] = y[tmp[i]];
-    }
-    memcpy(y, tmp, n * sizeof(int32_t));
-    return NULL;
-}
+#define DECLARE_INSERT_SORT_FN(SFX, T)                                         \
+    static void* insert_sort_ ## SFX(                                          \
+        const T *restrict x,                                                   \
+        T *restrict y,                                                         \
+        size_t n,                                                              \
+        T *restrict tmp                                                        \
+    ) {                                                                        \
+        int ni = (int) n;                                                      \
+        tmp[0] = 0;                                                            \
+        for (int i = 1; i < ni; i++) {                                         \
+            T xi = x[i];                                                       \
+            int j = i;                                                         \
+            while (j && xi < x[tmp[j - 1]]) {                                  \
+                tmp[j] = tmp[j - 1];                                           \
+                j--;                                                           \
+            }                                                                  \
+            tmp[j] = i;                                                        \
+        }                                                                      \
+        for (int i = 0; i < ni; i++) {                                         \
+            tmp[i] = y[tmp[i]];                                                \
+        }                                                                      \
+        memcpy(y, tmp, n * sizeof(T));                                         \
+        return y;                                                              \
+    }                                                                          \
 
+DECLARE_INSERT_SORT_FN(u8, uint64_t)
+DECLARE_INSERT_SORT_FN(u4, uint32_t)
+DECLARE_INSERT_SORT_FN(u2, uint16_t)
+DECLARE_INSERT_SORT_FN(u1, uint8_t)
+#undef DECLARE_INSERT_SORT_FN
+
+
+
+//==============================================================================
+//==============================================================================
 
 /**
  * Sort array `y` according to the values of array `x`. Both arrays have same
