@@ -144,6 +144,20 @@ class FilterExprRFNode(RFNode, RequiresCModule):
         self._fnode.use_cmodule(cmod)
 
 
+
+#===============================================================================
+
+class SortedRFNode(RFNode):
+
+    def __init__(self, sort_node):
+        super().__init__(sort_node._dt)
+        self._sortnode = sort_node
+
+    def make_target_rowindex(self):
+        return self._sortnode.make_rowindex()
+
+
+
 #===============================================================================
 
 def make_rowfilter(rows, dt, _nested=False):
