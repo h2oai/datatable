@@ -14,7 +14,9 @@
 #include "types.h"
 #include "utils.h"
 
+//==============================================================================
 // Forward declarations
+//==============================================================================
 static void* insert_sort_u4(const uint32_t *x, int32_t *restrict y, size_t n,
                             int32_t *restrict temp);
 static void* countp_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
@@ -40,6 +42,37 @@ static int _rrcmp(const void *a, const void *b) {
     return (x < y) - (y < x);
 }
 
+
+/**
+ * Compare two strings a and b, each given as a pair of offsets `off0` ..
+ * `off1` into the common character buffer `strdata`. If `off1` is negative,
+ * then that string is an NA string. If `off0 >= off1`, then the string is
+ * considered empty.
+ * Return 0 if strings are equal, 1 if a < b, or -1 if a > b. An NA string
+ * compares equal to another NA string, and less than any non-NA string. An
+ * empty string compares greater than NA, but less than any non-empty string.
+ */
+static int _compare_offstrings(
+    const char *strdata, int32_t off0a, int32_t off1a, int32_t off0b,
+    int32_t off1b
+) {
+    // Handle NAs and empty strings
+    if (off1b < 0) return off1a < 0? 0 : -1;
+    if (off1a < 0) return 1;
+    int32_t lena = off1a - off0a;
+    int32_t lenb = off1b - off0b;
+    if (lenb <= 0) return lena <= 0? 0 : -1;
+    if (lena <= 0) return 1;
+
+    for (int32_t t = 0; t < lena; t++) {
+        if (t == lenb) return -1;
+        char ci = strdata[off0a + t];
+        char ck = strdata[off0b + t];
+        if (ci == ck) continue;
+        return (ci < ck)? 1 : -1;
+    }
+    return lena == lenb? 0 : 1;
+}
 
 /**
  * Sort array `x` of integers, and return the ordering as an array `o` (passed
@@ -400,68 +433,24 @@ static void* insert_sort_s4(
     size_t n,
     int32_t *restrict tmp
 ) {
-    int32_t j, t, ni = (int32_t) n;
+    int32_t j, ni = (int32_t) n;
     tmp[0] = 0;
     for (int32_t i = 1; i < ni; i++) {
-        if (offs[i] < 0) {
-            // NA string -- move to the beginning
-            for (j = i; j && offs[tmp[j-1]] > 0; j--) {
-                tmp[j] = tmp[j-1];
-            }
-            tmp[j] = i;
-            continue;
-        }
-        int32_t offendi = offs[i];
-        int32_t offstarti = abs(offs[i-1]) + skip;
-        int32_t leni = offendi - offstarti;
-        for (j = i - 1; j >= 0; j--) {
-            int32_t k = tmp[j];
-            int32_t offendk = offs[k];
-            int32_t offstartk = abs(offs[k-1]) + skip;
-            int32_t lenk = offendk - offstartk;
-            // Stop iteration if str[k] is None or empty. Note that this cannot
-            // be moved into the loop below, because this condition should be
-            // checked before checking that `leni` > 0.
-            if (offendk <= offstartk) break;
-            // If `leni` is <= 0 then the loop will not execute, and
-            // `compare` will remain 1. Similarly, if the loop runs to
-            // completion without breaking early (meaning all characters up to
-            // `leni`-th compare equal) then `compare` will also be 1.
-            int compare = 1;  // 1|0|-1 when str[i] <|=|> str[k]
-            for (t = 0; t < leni; t++) {
-                if (offstartk + t == offendk) {
-                    // str[k] is shorter than str[i] -- hence it compares less
-                    compare = -1;
-                    break;
-                }
-                char ci = strdata[offstarti + t];
-                char ck = strdata[offstartk + t];
-                if (ci < ck) {
-                    // str[i] < str[k]
-                    break;
-                }
-                if (ci > ck) {
-                    // str[i] > str[k]
-                    compare = -1;
-                }
-                // ci == ck => continue comparing characters
-            }
-            if (t == leni && leni == lenk) {
-                // The loop ran to completion, meaning the first `leni`
-                // characters in strings str[i] and str[k] are all equal.
-                compare = 0;
-            }
-            // At this point we know how str[i] and str[k] compare -- decide
-            // whether they need to be swapped.
-            if (compare == 1) {
+        int32_t off0i = abs(offs[i-1]) + skip;
+        int32_t off1i = offs[i];
+        for (j = i; j > 0; j--) {
+            int32_t k = tmp[j-1];
+            int32_t off0k = abs(offs[k-1]) + skip;
+            int32_t off1k = offs[k];
+            int cmp = _compare_offstrings(strdata, off0i, off1i, off0k, off1k);
+            if (cmp == 1) {
                 tmp[j] = tmp[j-1];
             } else {
                 break;
             }
         }
-        tmp[j + 1] = i;
+        tmp[j] = i;
     }
-    // Shuffle `y`s using the `tmp` array
     for (int i = 0; i < ni; i++) {
         tmp[i] = y[tmp[i]];
     }
