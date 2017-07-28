@@ -14,6 +14,7 @@
 #include "types.h"
 #include "utils.h"
 
+
 //==============================================================================
 // Forward declarations
 //==============================================================================
@@ -73,6 +74,31 @@ static int _compare_offstrings(
     }
     return lena == lenb? 0 : 1;
 }
+
+
+/**
+ */
+static void _fill_column_from_offstrings(
+    uint16_t *restrict x, size_t n,
+    const unsigned char *strdata, const int32_t *offs, int skip,
+    size_t nth, size_t nchunks, size_t chunklen
+) {
+    #pragma omp parallel for schedule(dynamic) num_threads(nth)
+    for (size_t i = 0; i < nchunks; i++)
+    {
+        size_t j0 = i * chunklen,
+               j1 = minz(j0 + chunklen, n);
+        for (size_t j = j0; j < j1; j++) {
+            int32_t off0 = abs(offs[j-1]) + skip;
+            int32_t off1 = offs[j];
+            x[j] = off1 < 0? 0 : 1 + (off0 < off1? strdata[off0] : 0)*256
+                                   + (off0+1 < off1? strdata[off0+1] : 0);
+        }
+    }
+}
+
+
+
 
 /**
  * Sort array `x` of integers, and return the ordering as an array `o` (passed
@@ -422,6 +448,7 @@ DECLARE_INSERT_SORT_FN(u8, uint64_t)
 DECLARE_INSERT_SORT_FN(u4, uint32_t)
 DECLARE_INSERT_SORT_FN(u2, uint16_t)
 DECLARE_INSERT_SORT_FN(u1, uint8_t)
+DECLARE_INSERT_SORT_FN(i1, int8_t)
 #undef DECLARE_INSERT_SORT_FN
 
 
