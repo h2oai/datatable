@@ -361,16 +361,10 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         time0 = time.time() if timeit else 0
-        res = make_datatable(self, rows, select)
+        res = make_datatable(self, rows, select, sort)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res
-        # if sort is not None:
-        #     idx = self.colindex(sort)
-        #     rowindex = self._dt.sort(idx)
-        #     columns = c.columns_from_slice(self._dt, 0, self.ncols, 1)
-        #     res_dt = c.datatable_assemble(rowindex, columns)
-        #     return datatable.DataTable(res_dt, colnames=self.names)
 
 
     def __getitem__(self, item):
