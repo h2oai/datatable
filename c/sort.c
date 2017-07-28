@@ -15,8 +15,8 @@
 #include "utils.h"
 
 // Forward declarations
-static void* insert_sort_u4(const uint32_t *x, uint32_t *y, size_t n,
-                            uint32_t *restrict temp);
+static void* insert_sort_u4(const uint32_t *x, int32_t *restrict y, size_t n,
+                            int32_t *restrict temp);
 static void* countp_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
                             int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
@@ -335,7 +335,7 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
 //
 // All functions here provide the same functionality and have a similar
 // signature. Each of these function sorts array `y` according to the values of
-// array `x`. Both arrays must have the same size `n`. The caller must also
+// array `x`. Both arrays must have the same length `n`. The caller must also
 // provide a temporary buffer `tmp` of size at least `n`. The contents of this
 // array will be overwritten. Returns the pointer `y` (for compatibility with
 // other sorting routines).
@@ -348,6 +348,13 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
 // Therefore, it should only be used for small arrays (in particular `n` is
 // assumed to fit into an integer.
 //
+// For the string sorting procedure `insert_sort_s4` the argument `x` is
+// replaced with a triple `strdata`, `offs`, `skip`. The first is a pointer to
+// a memory buffer containing the string data. The `offs` is an array of offsets
+// within `strdata` (each `offs[i]` gives the end of string `i`; the beginning
+// of the first string is at offset `offs[-1]`). Finally, parameter `skip`
+// instructs to compare the strings starting from that byte.
+//
 // See also:
 //   - https://en.wikipedia.org/wiki/Insertion_sort
 //   - datatable/microbench/insertsort
@@ -355,10 +362,10 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
 
 #define DECLARE_INSERT_SORT_FN(SFX, T)                                         \
     static void* insert_sort_ ## SFX(                                          \
-        const T *restrict x,                                                   \
-        T *restrict y,                                                         \
+        const T *x,                                                            \
+        int32_t *restrict y,                                                   \
         size_t n,                                                              \
-        T *restrict tmp                                                        \
+        int32_t *restrict tmp                                                  \
     ) {                                                                        \
         int ni = (int) n;                                                      \
         tmp[0] = 0;                                                            \
@@ -374,15 +381,93 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
         for (int i = 0; i < ni; i++) {                                         \
             tmp[i] = y[tmp[i]];                                                \
         }                                                                      \
-        memcpy(y, tmp, n * sizeof(T));                                         \
+        memcpy(y, tmp, n * sizeof(int32_t));                                   \
         return y;                                                              \
-    }                                                                          \
+    }
 
 DECLARE_INSERT_SORT_FN(u8, uint64_t)
 DECLARE_INSERT_SORT_FN(u4, uint32_t)
 DECLARE_INSERT_SORT_FN(u2, uint16_t)
 DECLARE_INSERT_SORT_FN(u1, uint8_t)
 #undef DECLARE_INSERT_SORT_FN
+
+
+static void* insert_sort_s4(
+    const char *strdata,
+    const int32_t *offs,
+    int32_t skip,
+    int32_t *restrict y,
+    size_t n,
+    int32_t *restrict tmp
+) {
+    int32_t j, t, ni = (int32_t) n;
+    tmp[0] = 0;
+    for (int32_t i = 1; i < ni; i++) {
+        if (offs[i] < 0) {
+            // NA string -- move to the beginning
+            for (j = i; j && offs[tmp[j-1]] > 0; j--) {
+                tmp[j] = tmp[j-1];
+            }
+            tmp[j] = i;
+            continue;
+        }
+        int32_t offendi = offs[i];
+        int32_t offstarti = abs(offs[i-1]) + skip;
+        int32_t leni = offendi - offstarti;
+        for (j = i - 1; j >= 0; j--) {
+            int32_t k = tmp[j];
+            int32_t offendk = offs[k];
+            int32_t offstartk = abs(offs[k-1]) + skip;
+            int32_t lenk = offendk - offstartk;
+            // Stop iteration if str[k] is None or empty. Note that this cannot
+            // be moved into the loop below, because this condition should be
+            // checked before checking that `leni` > 0.
+            if (offendk <= offstartk) break;
+            // If `leni` is <= 0 then the loop will not execute, and
+            // `compare` will remain 1. Similarly, if the loop runs to
+            // completion without breaking early (meaning all characters up to
+            // `leni`-th compare equal) then `compare` will also be 1.
+            int compare = 1;  // 1|0|-1 when str[i] <|=|> str[k]
+            for (t = 0; t < leni; t++) {
+                if (offstartk + t == offendk) {
+                    // str[k] is shorter than str[i] -- hence it compares less
+                    compare = -1;
+                    break;
+                }
+                char ci = strdata[offstarti + t];
+                char ck = strdata[offstartk + t];
+                if (ci < ck) {
+                    // str[i] < str[k]
+                    break;
+                }
+                if (ci > ck) {
+                    // str[i] > str[k]
+                    compare = -1;
+                }
+                // ci == ck => continue comparing characters
+            }
+            if (t == leni && leni == lenk) {
+                // The loop ran to completion, meaning the first `leni`
+                // characters in strings str[i] and str[k] are all equal.
+                compare = 0;
+            }
+            // At this point we know how str[i] and str[k] compare -- decide
+            // whether they need to be swapped.
+            if (compare == 1) {
+                tmp[j] = tmp[j-1];
+            } else {
+                break;
+            }
+        }
+        tmp[j + 1] = i;
+    }
+    // Shuffle `y`s using the `tmp` array
+    for (int i = 0; i < ni; i++) {
+        tmp[i] = y[tmp[i]];
+    }
+    memcpy(y, tmp, n * sizeof(int32_t));
+    return y;
+}
 
 
 
