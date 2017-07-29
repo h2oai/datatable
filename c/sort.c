@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
 // Sorting/ordering functions.
 //
-// adapted from
-//     https://github.com/Rdatatable/data.table/src/fsort.c and
+// inspired by
+//     https://github.com/Rdatatable/data.table/src/fsort.c
 //     https://github.com/Rdatatable/data.table/src/forder.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
@@ -35,6 +35,19 @@ static int _rrcmp(const void *a, const void *b) {
 }
 
 
+/**
+ * Sort array `x` of integers, and return the ordering as an array `o` (passed
+ * by reference). This function will choose the most appropriate algorithm for
+ * sorting, and will allocate the array `*o`. Array `x` will not be modified.
+ *
+ * The ordering `o` is a sequence of integers such that array
+ *     [x[o[i]] for i in range(n)]
+ * is sorted in ascending order. The sorting is stable, and will gather all NA
+ * values in `x` (if any) at the beginning of the sorted list.
+ *
+ * The function returns NULL if there is a runtime error (for example an
+ * intermediate buffer cannot be allocated), or a pointer `o` otherwise.
+ */
 void* sort_i4(int32_t *x, int32_t n, int32_t **o)
 {
     void *ret = NULL;
@@ -53,6 +66,7 @@ void* sort_i4(int32_t *x, int32_t n, int32_t **o)
     }
     return ret;
 }
+
 
 
 /**
@@ -81,9 +95,9 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
     // threads, on the other hand too many chunks should be avoided because that
     // would increase the time needed to combine the results from different
     // threads.
-    int nth = omp_get_num_threads();
+    size_t nth = (size_t) omp_get_num_threads();
     size_t nz = (size_t) n;
-    size_t nchunks = (size_t) nth * 2;
+    size_t nchunks = nth * 2;
     size_t chunklen = maxz(1024, (nz + nchunks - 1) / nchunks);
     nchunks = (nz - 1)/chunklen + 1;
 
@@ -207,7 +221,7 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
             xx[k] = (int32_t)((*myx - umin) & mask);
         }
     }
-    assert(counts[counts_size - 1] == (size_t)n);
+    assert(counts[counts_size - 1] == nz);
 
 
     if (shift == 0) {
@@ -215,7 +229,7 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
     } else
     {
         // Prepare temporary buffer
-        size_t tmpsize = maxz((size_t)nth << shift, INSERT_SORT_THRESHOLD);
+        size_t tmpsize = maxz(nth << shift, INSERT_SORT_THRESHOLD);
         dtmalloc(tmp, int32_t, tmpsize);
 
         // At this point the input array is already partially sorted, and the
@@ -278,13 +292,14 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
         // then the lower bound for the size of the largest range is `n/k`. In
         // fact, if the largest range's size is exactly `n/k`, then all other
         // ranges are forced to have the same sizes (which is an ideal
-        // situation).
+        // situation). In practice we deem a range to be "large" if its size is
+        // more then `2n/k`.
         size_t rri = 0;
-        size_t rrlarge = 2 * (size_t)n / radixcount;
+        size_t rrlarge = 2 * nz / radixcount;
         while (rrmap[rri].size > rrlarge && rri < radixcount - 1) {
             size_t off = rrmap[rri].offset;
             countp_sort_i4(xx + off, oo + off, rrmap[rri].size,
-                            tmp, 1 << shift);
+                           tmp, 1 << shift);
             rri++;
         }
 
