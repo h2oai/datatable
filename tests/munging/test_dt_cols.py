@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
+from tests import same_iterables
 
 
 #-------------------------------------------------------------------------------
@@ -166,11 +167,13 @@ def test_cols_dict(dt0, tbl0):
         dt[{"x": "A", "y": "B"}]
     """
     dt1 = dt0(select={"x": 0, "y": "D"})
+    assert dt1.internal.check()
     assert dt1.shape == (6, 2)
-    assert dt1.names == ("x", "y")
+    assert same_iterables(dt1.names, ("x", "y"))
     assert not dt1.internal.isview
-    assert as_list(dt1) == [tbl0[0], tbl0[3]]
+    assert same_iterables(as_list(dt1), [tbl0[0], tbl0[3]])
     dt2 = dt0[{"_": slice(None)}]
+    assert dt2.internal.check()
     assert dt2.shape == (6, 4)
     assert dt2.names == ("_", "_1", "_2", "_3")
     assert not dt2.internal.isview
@@ -184,18 +187,21 @@ def test_cols_colselector(dt0, tbl0):
         dt[lambda f: f.A]
     """
     dt1 = dt0(select=lambda f: f.B)
+    assert dt1.internal.check()
     assert dt1.shape == (6, 1)
     assert dt1.names == ("B", )
     assert not dt1.internal.isview
     assert as_list(dt1) == [tbl0[1]]
-    dt1 = dt0(select=lambda f: [f.A, f.C])
-    assert dt1.shape == (6, 2)
-    assert dt1.names == ("A", "C")
-    assert not dt1.internal.isview
-    assert as_list(dt1) == [tbl0[0], tbl0[2]]
+    dt2 = dt0(select=lambda f: [f.A, f.C])
+    assert dt2.internal.check()
+    assert dt2.shape == (6, 2)
+    assert dt2.names == ("A", "C")
+    assert not dt2.internal.isview
+    assert as_list(dt2) == [tbl0[0], tbl0[2]]
     dt3 = dt0[lambda f: {"x": f.A, "y": f.D}]
+    assert dt3.internal.check()
     assert dt3.shape == (6, 2)
-    assert dt3.names == ("x", "y")
+    assert same_iterables(dt3.names, ("x", "y"))
     assert not dt3.internal.isview
 
 
@@ -205,10 +211,12 @@ def test_cols_expression(dt0, tbl0):
         dt[lambda f: [f.A + f.B]]
     """
     dt1 = dt0[lambda f: f.A + f.B]
+    assert dt1.internal.check()
     assert dt1.shape == (6, 1)
     assert dt1.types == ("int", )
     assert as_list(dt1) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)]]
     dt2 = dt0[lambda f: [f.A + f.B, f.C - f.D, f.A / f.C, f.B * f.D]]
+    assert dt2.internal.check()
     assert dt2.shape == (6, 4)
     assert dt2.types == ("int", "real", "real", "int")
     assert as_list(dt2) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)],
@@ -216,12 +224,13 @@ def test_cols_expression(dt0, tbl0):
                             [tbl0[0][i] / tbl0[2][i] for i in range(6)],
                             [tbl0[1][i] * tbl0[3][i] for i in range(6)]]
     dt3 = dt0[lambda f: {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": 1, "c": 2}]
+    assert dt3.internal.check()
     assert dt3.shape == (6, 4)
-    assert dt3.names == ("foo", "a", "b", "c")
-    assert dt3.types == ("real", "int", "int", "real")
+    assert same_iterables(dt3.names, ("foo", "a", "b", "c"))
+    assert same_iterables(dt3.types, ("real", "int", "int", "real"))
     assert not dt3.internal.isview
-    assert as_list(dt3)[0] == [tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
-                               for i in range(6)]
+    assert as_list(dt3["foo"]) == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
+                                    for i in range(6)]]
 
 
 def test_cols_bad_arguments(dt0):

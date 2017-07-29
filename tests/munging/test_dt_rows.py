@@ -12,12 +12,11 @@ from math import isnan
 @pytest.fixture()
 def dt0():
     nan = float("nan")
-    return dt.DataTable({
-        #        0    1    2      3     4   5     6     7    8     9
-        "colA": [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
-        "colB": [7, -11,   9, 10000, None,  0,    0,   -1,   1, None],  # int
-        "colC": [5,   1, 1.3,   0.1,  1e5,  0, -2.6,  -14, nan,    2],  # real
-    })
+    return dt.DataTable([
+        [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
+        [7, -11,   9, 10000, None,  0,    0,   -1,   1, None],  # int
+        [5,   1, 1.3,   0.1,  1e5,  0, -2.6,  -14, nan,    2],  # real
+    ], colnames=["colA", "colB", "colC"])
 
 
 def assert_valueerror(datatable, rows, error_message):

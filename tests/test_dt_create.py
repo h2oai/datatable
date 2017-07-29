@@ -7,6 +7,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+from tests import same_iterables
 
 
 def test_create_from_list():
@@ -70,8 +71,8 @@ def test_create_from_dict():
                        "B": [True, False, None],
                        "C": ["alpha", "beta", "gamma"]})
     assert d7.shape == (3, 3)
-    assert d7.names == ("A", "B", "C")
-    assert d7.types == ("int", "bool", "str")
+    assert same_iterables(d7.names, ("A", "B", "C"))
+    assert same_iterables(d7.types, ("int", "bool", "str"))
     assert d7.internal.check()
 
 
@@ -84,7 +85,7 @@ def test_create_from_pandas(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.DataTable(p)
     assert d.shape == (3, 2)
-    assert set(d.names) == {"A", "B"}
+    assert same_iterables(d.names, ("A", "B"))
     assert d.internal.check()
 
 
