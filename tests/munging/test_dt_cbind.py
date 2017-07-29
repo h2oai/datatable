@@ -3,23 +3,7 @@
 import pytest
 import types
 import datatable as dt
-
-
-#-------------------------------------------------------------------------------
-# Prepare fixtures & helper functions
-#-------------------------------------------------------------------------------
-
-def assert_equals(datatable1, datatable2):
-    nrows, ncols = datatable1.shape
-    assert datatable1.shape == datatable2.shape
-    assert datatable1.names == datatable2.names
-    assert datatable1.types == datatable2.types
-    data1 = datatable1.internal.window(0, nrows, 0, ncols).data
-    data2 = datatable2.internal.window(0, nrows, 0, ncols).data
-    assert data1 == data2
-    assert datatable1.internal.check()
-    assert datatable2.internal.check()
-
+from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------

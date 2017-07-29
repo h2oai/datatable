@@ -5,21 +5,7 @@ import shutil
 import pytest
 import types
 import datatable as dt
-
-
-#-------------------------------------------------------------------------------
-# Prepare fixtures & helper functions
-#-------------------------------------------------------------------------------
-
-def assert_equals(datatable1, datatable2):
-    nrows, ncols = datatable1.shape
-    assert datatable1.shape == datatable2.shape
-    assert datatable1.names == datatable2.names
-    assert datatable1.types == datatable2.types
-    data1 = datatable1.internal.window(0, nrows, 0, ncols).data
-    data2 = datatable2.internal.window(0, nrows, 0, ncols).data
-    assert data1 == data2
-    assert datatable1.internal.check()
+from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -69,9 +55,10 @@ def test_append_fails():
 
 
 def test_append_bynumbers():
-    dt0 = dt.DataTable({"A": [1, 2, 3], "V": [7, 7, 0]})
-    dt1 = dt.DataTable({"C": [10, -1], "Z": [3, -1]})
-    dtr = dt.DataTable({"A": [1, 2, 3, 10, -1], "V": [7, 7, 0, 3, -1]})
+    dt0 = dt.DataTable([[1, 2, 3], [7, 7, 0]], colnames=["A", "V"])
+    dt1 = dt.DataTable([[10, -1], [3, -1]], colnames=["C", "Z"])
+    dtr = dt.DataTable([[1, 2, 3, 10, -1], [7, 7, 0, 3, -1]],
+                       colnames=["A", "V"])
     dt0.append(dt1, bynames=False)
     assert_equals(dt0, dtr)
 

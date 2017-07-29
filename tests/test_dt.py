@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
+from tests import same_iterables
 
 
 #-------------------------------------------------------------------------------
@@ -10,15 +11,15 @@ import datatable as dt
 
 @pytest.fixture()
 def dt0():
-    return dt.DataTable({
-        "A": [2, 7, 0, 0],
-        "B": [True, False, False, True],
-        "C": [1, 1, 1, 1],
-        "D": [0.1, 2, -4, 4.4],
-        "E": [None, None, None, None],
-        "F": [0, 0, 0, 0],
-        "G": [1, 2, "hello", "world"],
-    })
+    return dt.DataTable([
+        [2, 7, 0, 0],
+        [True, False, False, True],
+        [1, 1, 1, 1],
+        [0.1, 2, -4, 4.4],
+        [None, None, None, None],
+        [0, 0, 0, 0],
+        [1, 2, "hello", "world"],
+    ], colnames=list("ABCDEFG"))
 
 
 @pytest.fixture()
@@ -48,13 +49,16 @@ def as_list(datatable):
 
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.DataTable)
+    assert dt0.internal.check()
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
-    assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
-    assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
-    assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
-    assert dt0.internal.check()
+    assert same_iterables(dt0.names, ("A", "B", "C", "D", "E", "F", "G"))
+    assert same_iterables(dt0.types,
+                          ("int", "bool", "bool", "real", "bool", "bool",
+                           "str"))
+    assert same_iterables(dt0.stypes,
+                          ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s"))
 
 
 def test_dt_call(dt0, capsys):
@@ -224,7 +228,7 @@ def test_topandas():
     d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
     p0 = d0.topandas()
     assert p0.shape == (2, 3)
-    assert p0.columns.tolist() == ["A", "B", "C"]
+    assert same_iterables(p0.columns.tolist(), ["A", "B", "C"])
     assert p0["A"].values.tolist() == [1, 5]
     assert p0["B"].values.tolist() == ["hello", "you"]
     assert p0["C"].values.tolist() == [True, False]
@@ -235,7 +239,8 @@ def test_tonumpy(numpy):
     a0 = d0.tonumpy()
     assert a0.shape == (3, 2)
     assert a0.dtype == numpy.dtype("object")
-    assert a0.tolist() == [[1, 5], ["hello", "you"], [True, False]]
+    assert same_iterables(a0.tolist(),
+                          [[1, 5], ["hello", "you"], [True, False]])
 
 
 def test_numpy_constructor_simple(numpy):
