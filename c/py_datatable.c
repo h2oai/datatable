@@ -307,7 +307,7 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
 
     Column *col = dt->columns[idx];
-    RowIndex *ri = column_sort(col, dt->nrows);
+    RowIndex *ri = column_sort(col);
     return pyrowindex(ri);
 }
 

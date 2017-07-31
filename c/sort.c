@@ -1,7 +1,15 @@
 //------------------------------------------------------------------------------
 // Sorting/ordering functions.
 //
-// inspired by
+// All functions defined here treat the input arrays as immutable -- i.e. no
+// in-place sorting. Instead, each function creates and returns an "ordering"
+// vector. The ordering `o` of an array `x` is such a sequence of integers that
+// array
+//     [x[o[i]] for i in range(n)]
+// is sorted in ascending order. The sortings are stable, and will gather all NA
+// values in `x` (if any) at the beginning of the sorted list.
+//
+// See also:
 //     https://github.com/Rdatatable/data.table/src/fsort.c
 //     https://github.com/Rdatatable/data.table/src/forder.c
 //------------------------------------------------------------------------------
@@ -9,7 +17,9 @@
 #include <stdio.h>   // printf
 #include <string.h>  // memcpy
 #include <omp.h>
+#include "column.h"
 #include "myassert.h"
+#include "rowindex.h"
 #include "sort.h"
 #include "types.h"
 #include "utils.h"
@@ -18,14 +28,17 @@
 //==============================================================================
 // Forward declarations
 //==============================================================================
-static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, size_t);
-static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, size_t);
-typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, size_t);
+static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, int32_t);
+
+typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
+typedef int32_t* (*radix_psort_fn)(const void*, int32_t);
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
+static radix_psort_fn radix_psort_fns[DT_STYPES_COUNT];
 
 static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
-static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o);
+static int32_t* radix_psort_i4(int32_t *x, int32_t n);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
@@ -42,47 +55,58 @@ static int _rrcmp(const void *a, const void *b) {
 }
 
 
+//==============================================================================
+// Main sorting routine
+//==============================================================================
+
 /**
- * Sort array `x` of integers, and return the ordering as an array `o` (passed
- * by reference). This function will choose the most appropriate algorithm for
- * sorting, and will allocate the array `*o`. Array `x` will not be modified.
- *
- * The ordering `o` is a sequence of integers such that array
- *     [x[o[i]] for i in range(n)]
- * is sorted in ascending order. The sorting is stable, and will gather all NA
- * values in `x` (if any) at the beginning of the sorted list.
+ * Sort the column, and return the ordering as a RowIndex object. This function
+ * will choose the most appropriate algorithm for sorting. The data in column
+ * `col` will not be modified.
  *
  * The function returns NULL if there is a runtime error (for example an
- * intermediate buffer cannot be allocated), or a pointer `o` otherwise.
+ * intermediate buffer cannot be allocated).
  */
-void* sort_i4(int32_t *x, int32_t n, int32_t **o)
+RowIndex* column_sort(Column *col)
 {
-    if (n <= INSERT_SORT_THRESHOLD) {
-        *o = insert_sort_i4(x, NULL, NULL, (size_t)n);
-        return *o;
-    } else {
-        return radix_psort_i4(x, n, o);
+    if (col->nrows > INT32_MAX) {
+        dterrr("Cannot sort a column with %lld rows", col->nrows);
     }
+    int32_t nrows = (int32_t) col->nrows;
+    int32_t *ordering = NULL;
+
+    if (nrows <= INSERT_SORT_THRESHOLD) {
+        insert_sort_fn sortfn = insert_sort_fns[col->stype];
+        if (sortfn) {
+            ordering = sortfn(col->data, NULL, NULL, nrows);
+        } else {
+            dterrr("Insert sort not implemented for column of stype %d",
+                   col->stype);
+        }
+    } else {
+        radix_psort_fn sortfn = radix_psort_fns[col->stype];
+        if (sortfn) {
+            ordering = sortfn(col->data, nrows);
+        } else {
+            dterrr("Radix sort not implemented for column of stype %d",
+                   col->stype);
+        }
+    }
+    if (!ordering) return NULL;
+    return rowindex_from_i32_array(ordering, nrows);
 }
 
-void* sort_i1(int8_t *x, int32_t n, int32_t **o)
-{
-    if (n <= INSERT_SORT_THRESHOLD) {
-        *o = insert_sort_i1(x, NULL, NULL, (size_t)n);
-        return *o;
-    } else {
-        dterrr("Cannot sort i1i array of size %d", n);
-        // return radix_sort_i1(x, n, o);
-    }
-}
 
 
+//==============================================================================
+// Radix sort functions
+//==============================================================================
 
 /**
  * Sort array `x` of length `n` using radix sort algorithm, and return the
  * resulting ordering in variable `o`.
  */
-static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
+static int32_t* radix_psort_i4(int32_t *x, int32_t n)
 {
     int32_t *xend = x + n;
     int32_t *mins = NULL, *maxs = NULL;
@@ -321,7 +345,7 @@ static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
             if (size <= INSERT_SORT_THRESHOLD) {
-                insert_sort_i4(xx + off, oo + off, tmp, size);
+                insert_sort_i4(xx + off, oo + off, tmp, (int32_t)size);
             } else {
                 count_sort_i4(xx + off, oo + off, size, tmp, 1 << shift);
             }
@@ -331,8 +355,7 @@ static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
     // Done. Array `oo` contains the ordering of the input vector `x`.
     dtfree(xx);
     dtfree(tmp);
-    *o = oo;
-    return (void*)o;
+    return oo;
 }
 
 
@@ -375,16 +398,15 @@ static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
         const T *restrict x,                                                   \
         int32_t *restrict y,                                                   \
         int32_t *restrict tmp,                                                 \
-        size_t n                                                               \
+        int32_t n                                                              \
     ) {                                                                        \
-        int ni = (int) n;                                                      \
         int own_tmp = 0;                                                       \
         if (tmp == NULL) {                                                     \
             dtmalloc(tmp, int32_t, n);                                         \
             own_tmp = 1;                                                       \
         }                                                                      \
         tmp[0] = 0;                                                            \
-        for (int i = 1; i < ni; i++) {                                         \
+        for (int i = 1; i < n; i++) {                                          \
             T xi = x[i];                                                       \
             int j = i;                                                         \
             while (j && xi < x[tmp[j - 1]]) {                                  \
@@ -394,10 +416,10 @@ static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
             tmp[j] = i;                                                        \
         }                                                                      \
         if (!y) return tmp;                                                    \
-        for (int i = 0; i < ni; i++) {                                         \
+        for (int i = 0; i < n; i++) {                                          \
             tmp[i] = y[tmp[i]];                                                \
         }                                                                      \
-        memcpy(y, tmp, n * sizeof(int32_t));                                   \
+        memcpy(y, tmp, (size_t)n * sizeof(int32_t));                           \
         if (own_tmp) dtfree(tmp);                                              \
         return y;                                                              \
     }
@@ -504,4 +526,5 @@ void init_sort_functions(void)
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
+    radix_psort_fns[ST_INTEGER_I4] = (radix_psort_fn) &radix_psort_i4;
 }
