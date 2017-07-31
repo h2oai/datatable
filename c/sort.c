@@ -14,11 +14,15 @@
 #include "types.h"
 #include "utils.h"
 
+
+//==============================================================================
 // Forward declarations
-static void* insert_sort_i4(const int32_t *x, int32_t *y, size_t n, int32_t *restrict temp);
-static void* countp_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
+//==============================================================================
+static int32_t* insert_sort_i4(const int32_t*, int32_t*, size_t, int32_t*);
+static int32_t* insert_sort_i1(const int8_t*, int32_t*, size_t, int32_t*);
+static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
-static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o);
+static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
@@ -50,21 +54,23 @@ static int _rrcmp(const void *a, const void *b) {
  */
 void* sort_i4(int32_t *x, int32_t n, int32_t **o)
 {
-    void *ret = NULL;
     if (n <= INSERT_SORT_THRESHOLD) {
-        int32_t *oo, *tmp;
-        dtmalloc(oo, int32_t, n);
-        dtmalloc(tmp, int32_t, n);
-        for (int32_t i = 0; i < n; i++) {
-            oo[i] = i;
-        }
-        ret = insert_sort_i4(x, oo, (size_t)n, tmp);
-        *o = oo;
-        dtfree(tmp);
+        *o = insert_sort_i4(x, NULL, (size_t)n, NULL);
+        return *o;
     } else {
-        ret = radix_sort_i4(x, n, o);
+        return radix_psort_i4(x, n, o);
     }
-    return ret;
+}
+
+void* sort_i1(int8_t *x, int32_t n, int32_t **o)
+{
+    if (n <= INSERT_SORT_THRESHOLD) {
+        *o = insert_sort_i1(x, NULL, (size_t)n, NULL);
+        return *o;
+    } else {
+        dterrr("Cannot sort i1i array of size %d", n);
+        // return radix_sort_i1(x, n, o);
+    }
 }
 
 
@@ -73,7 +79,7 @@ void* sort_i4(int32_t *x, int32_t n, int32_t **o)
  * Sort array `x` of length `n` using radix sort algorithm, and return the
  * resulting ordering in variable `o`.
  */
-static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
+static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
 {
     int32_t *xend = x + n;
     int32_t *mins = NULL, *maxs = NULL;
@@ -298,7 +304,7 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
         size_t rrlarge = 2 * nz / radixcount;
         while (rrmap[rri].size > rrlarge && rri < radixcount - 1) {
             size_t off = rrmap[rri].offset;
-            countp_sort_i4(xx + off, oo + off, rrmap[rri].size,
+            count_psort_i4(xx + off, oo + off, rrmap[rri].size,
                            tmp, 1 << shift);
             rri++;
         }
@@ -328,47 +334,80 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
 
 
 
+//==============================================================================
+// Insertion sort functions
+//
+// All functions here provide the same functionality and have a similar
+// signature. Each of these function sorts array `y` according to the values of
+// array `x`. Both arrays must have the same length `n`. The caller may also
+// provide a temporary buffer `tmp` of size at least `4*n` bytes. The contents
+// of this array will be overwritten. Returns the pointer `y`.
+//
+// For example, if `x` is {5, 2, -1, 7, 2}, then this function will leave `x`
+// unmodified but reorder the elements of `y` into {y[2], y[1], y[4], y[0],
+// y[3]}.
+//
+// Pointer `y` can be NULL, in which case it will be assumed that `y[i] == i`.
+// Similarly, `tmp` can be NULL too, in which case it will be allocated inside
+// the function.
+//
+// This procedure uses Insert Sort algorithm, which has O(n²) complexity.
+// Therefore, it should only be used for small arrays (in particular `n` is
+// assumed to fit into an integer.
+//
+// For the string sorting procedure `insert_sort_s4` the argument `x` is
+// replaced with a triple `strdata`, `offs`, `skip`. The first is a pointer to
+// a memory buffer containing the string data. The `offs` is an array of offsets
+// within `strdata` (each `offs[i]` gives the end of string `i`; the beginning
+// of the first string is at offset `offs[-1]`). Finally, parameter `skip`
+// instructs to compare the strings starting from that byte.
+//
+// See also:
+//   - https://en.wikipedia.org/wiki/Insertion_sort
+//   - datatable/microbench/insertsort
+//==============================================================================
 
-/**
- * Sort array `y` according to the values of array `x`. Both arrays have same
- * size `n`. For example, if `x` is {5, 2, -1, 7, 2}, then this function will
- * leave `x` unmodified, and reorder the elements of `y` into {y[2], y[1], y[4],
- * y[0], y[3]}.
- * The caller should also provide temporary buffer `tmp` of the size at least
- * `n`. This temporary buffer must be distinct from `x` or `y`, and its contents
- * will be overwritten.
- *
- * This procedure uses Insert Sort algorithm, which has O(n²) complexity.
- * Therefore, this procedure should only be used for small arrays.
- *
- * See also:
- *   - https://en.wikipedia.org/wiki/Insertion_sort
- *   - datatable/microbench/insertsort
- */
-static void* insert_sort_i4(
-    const int32_t *restrict x,
-    int32_t *restrict y,
-    size_t n,
-    int32_t *restrict tmp
-) {
-    int ni = (int) n;
-    tmp[0] = 0;
-    for (int i = 1; i < ni; i++) {
-        int32_t xi = x[i];
-        int j = i;
-        while (j && xi < x[tmp[j - 1]]) {
-            tmp[j] = tmp[j - 1];
-            j--;
-        }
-        tmp[j] = i;
+#define DECLARE_INSERT_SORT_FN(SFX, T)                                         \
+    static int32_t* insert_sort_ ## SFX(                                       \
+        const T *restrict x,                                                   \
+        int32_t *restrict y,                                                   \
+        size_t n,                                                              \
+        int32_t *restrict tmp                                                  \
+    ) {                                                                        \
+        int ni = (int) n;                                                      \
+        int own_tmp = 0;                                                       \
+        if (tmp == NULL) {                                                     \
+            dtmalloc(tmp, int32_t, n);                                         \
+            own_tmp = 1;                                                       \
+        }                                                                      \
+        tmp[0] = 0;                                                            \
+        for (int i = 1; i < ni; i++) {                                         \
+            T xi = x[i];                                                       \
+            int j = i;                                                         \
+            while (j && xi < x[tmp[j - 1]]) {                                  \
+                tmp[j] = tmp[j - 1];                                           \
+                j--;                                                           \
+            }                                                                  \
+            tmp[j] = i;                                                        \
+        }                                                                      \
+        if (!y) return tmp;                                                    \
+        for (int i = 0; i < ni; i++) {                                         \
+            tmp[i] = y[tmp[i]];                                                \
+        }                                                                      \
+        memcpy(y, tmp, n * sizeof(int32_t));                                   \
+        if (own_tmp) dtfree(tmp);                                              \
+        return y;                                                              \
     }
-    for (int i = 0; i < ni; i++) {
-        tmp[i] = y[tmp[i]];
-    }
-    memcpy(y, tmp, n * sizeof(int32_t));
-    return NULL;
-}
 
+DECLARE_INSERT_SORT_FN(i1, int8_t)
+DECLARE_INSERT_SORT_FN(i4, int32_t)
+#undef DECLARE_INSERT_SORT_FN
+
+
+
+//==============================================================================
+// Counting sorts
+//==============================================================================
 
 /**
  * Sort array `y` according to the values of array `x`. Both arrays have same
@@ -379,7 +418,7 @@ static void* insert_sort_i4(
  *
  * This procedure uses parallel Counting Sort algorithm.
  */
-static void* countp_sort_i4(
+static void* count_psort_i4(
     int32_t *restrict x,
     int32_t *restrict y,
     size_t n,

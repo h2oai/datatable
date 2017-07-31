@@ -307,11 +307,6 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
 
     Column *col = dt->columns[idx];
-    if (col->stype != ST_INTEGER_I4) {
-        PyErr_SetString(PyExc_ValueError, "Can only sort i4i columns");
-        return NULL;
-    }
-
     RowIndex *ri = column_sort(col, dt->nrows);
     return pyrowindex(ri);
 }

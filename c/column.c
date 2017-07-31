@@ -526,12 +526,17 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
 RowIndex* column_sort(Column *col, int64_t nrows)
 {
     assert(col->nrows == nrows);
+    int32_t *ordering = NULL;
     if (col->stype == ST_INTEGER_I4) {
-        int32_t *ordering = NULL;
         sort_i4(col->data, (int32_t)nrows, &ordering);
-        return rowindex_from_i32_array(ordering, (int32_t)nrows);
+    } else
+    if (col->stype == ST_INTEGER_I1 || col->stype == ST_BOOLEAN_I1) {
+        sort_i1(col->data, (int32_t)nrows, &ordering);
+    } else {
+        dterrr("Cannot sort column of stype %d", col->stype);
     }
-    return rowindex_from_slice(0, nrows, 1);
+    if (!ordering) return NULL;
+    return rowindex_from_i32_array(ordering, (int32_t)nrows);
 }
 
 
