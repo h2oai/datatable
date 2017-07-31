@@ -18,10 +18,13 @@
 //==============================================================================
 // Forward declarations
 //==============================================================================
-static int32_t* insert_sort_i4(const int32_t*, int32_t*, size_t, int32_t*);
-static int32_t* insert_sort_i1(const int8_t*, int32_t*, size_t, int32_t*);
+static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, size_t);
+static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, size_t);
+typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, size_t);
+static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
+
 static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
-static void* count_sort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
+static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
 static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
@@ -55,7 +58,7 @@ static int _rrcmp(const void *a, const void *b) {
 void* sort_i4(int32_t *x, int32_t n, int32_t **o)
 {
     if (n <= INSERT_SORT_THRESHOLD) {
-        *o = insert_sort_i4(x, NULL, (size_t)n, NULL);
+        *o = insert_sort_i4(x, NULL, NULL, (size_t)n);
         return *o;
     } else {
         return radix_psort_i4(x, n, o);
@@ -65,7 +68,7 @@ void* sort_i4(int32_t *x, int32_t n, int32_t **o)
 void* sort_i1(int8_t *x, int32_t n, int32_t **o)
 {
     if (n <= INSERT_SORT_THRESHOLD) {
-        *o = insert_sort_i1(x, NULL, (size_t)n, NULL);
+        *o = insert_sort_i1(x, NULL, NULL, (size_t)n);
         return *o;
     } else {
         dterrr("Cannot sort i1i array of size %d", n);
@@ -318,7 +321,7 @@ static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
             if (size <= INSERT_SORT_THRESHOLD) {
-                insert_sort_i4(xx + off, oo + off, size, tmp);
+                insert_sort_i4(xx + off, oo + off, tmp, size);
             } else {
                 count_sort_i4(xx + off, oo + off, size, tmp, 1 << shift);
             }
@@ -371,8 +374,8 @@ static void* radix_psort_i4(int32_t *x, int32_t n, int32_t **o)
     static int32_t* insert_sort_ ## SFX(                                       \
         const T *restrict x,                                                   \
         int32_t *restrict y,                                                   \
-        size_t n,                                                              \
-        int32_t *restrict tmp                                                  \
+        int32_t *restrict tmp,                                                 \
+        size_t n                                                               \
     ) {                                                                        \
         int ni = (int) n;                                                      \
         int own_tmp = 0;                                                       \
@@ -493,4 +496,12 @@ static void* count_sort_i4(
     }
     memcpy(y, x, n * sizeof(int32_t));
     return NULL;
+}
+
+
+void init_sort_functions(void)
+{
+    insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
+    insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
+    insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
 }
