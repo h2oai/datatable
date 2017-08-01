@@ -27,21 +27,33 @@
 //==============================================================================
 // Forward declarations
 //==============================================================================
+typedef struct SortContext {
+    void* x;
+    size_t n;
+    int8_t own_x;
+    SType stype;
+    int8_t elemsize;
+    int8_t elemsign;
+    int8_t nsigbits;
+    int8_t issorted;
+    char _padding[2];
+} SortContext;
+
 static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
 static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, int32_t);
 
+typedef void (*prepare_inp_fn)(const Column*, SortContext*);
 typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
-typedef int32_t* (*radix_psort_fn)(const Column*);
+typedef int32_t* (*radix_psort_fn)(SortContext*);
+static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
 static radix_psort_fn radix_psort_fns[DT_STYPES_COUNT];
 
 static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
-static int32_t* radix_psort_i4(const Column *col);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
-static inline int mini4(int a, int b) { return a < b? a : b; }
 
 #define INSERT_SORT_THRESHOLD 64
 
@@ -51,20 +63,6 @@ static int _rrcmp(const void *a, const void *b) {
     const size_t y = *(const size_t*)b;
     return (x < y) - (y < x);
 }
-
-typedef struct SortContext {
-    void* x;
-    size_t n;
-    size_t nth;
-    size_t nchunks;
-    size_t chunklen;
-    int8_t own_x;
-    SType stype;
-    int8_t elemsize;
-    int8_t nsigbits;
-    int8_t issorted;
-    char _padding[3];
-} SortContext;
 
 
 //==============================================================================
@@ -97,8 +95,12 @@ RowIndex* column_sort(Column *col)
         }
     } else {
         radix_psort_fn sortfn = radix_psort_fns[col->stype];
-        if (sortfn) {
-            ordering = sortfn(col);
+        prepare_inp_fn prepfn = prepare_inp_fns[col->stype];
+        if (sortfn && prepfn) {
+            SortContext sc;
+            memset(&sc, 0, sizeof(SortContext));
+            prepfn(col, &sc);
+            ordering = sortfn(&sc);
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
@@ -117,7 +119,7 @@ RowIndex* column_sort(Column *col)
 /**
  * Compute min/max of the data column, excluding NAs. The computation is done
  * in parallel. If the column contains NAs only, then `min` will hold value
- * INT32_MAX, and `max` will hold value -INT32_MAX. In all other cases it is
+ * INT_MAX, and `max` will hold value -INT_MAX. In all other cases it is
  * guaranteed that `min <= max`.
  *
  * TODO: replace this with the information from RollupStats eventually.
@@ -127,7 +129,7 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
     int32_t *x = (int32_t*) sc->x;
     int32_t tmin = INT32_MAX;
     int32_t tmax = -INT32_MAX;
-    #pragma omp parallel for schedule(static) num_threads(sc->nth) \
+    #pragma omp parallel for schedule(static) \
             reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < sc->n; j++) {
         int32_t t = x[j];
@@ -140,10 +142,20 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
 }
 
 
+static void prepare_input_generic(const Column *col, SortContext *sc)
+{
+    sc->x = col->data;
+    sc->n = (size_t) col->nrows;
+    sc->own_x = 0;
+    sc->elemsign = 1;
+    sc->elemsize = stype_info[col->stype].elemsize;
+}
+
+
 static void prepare_input_i4(const Column *col, SortContext *sc)
 {
+    sc->x = col->data;
     sc->n = (size_t) col->nrows;
-    sc->x = (void*) col->data;
 
     int32_t min, max;
     compute_min_max_i4(sc, &min, &max);
@@ -163,7 +175,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
     if (nsigbits <= -16) {
         uint16_t *xx = NULL;
         dtmalloc_g(xx, uint16_t, sc->n);
-        #pragma omp parallel for schedule(static) num_threads(sc->nth)
+        #pragma omp parallel for schedule(static)
         for (size_t j = 0; j < sc->n; j++) {
             uint32_t t = ux[j];
             xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
@@ -174,7 +186,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
     } else {
         uint32_t *xx = NULL;
         dtmalloc_g(xx, uint32_t, sc->n);
-        #pragma omp parallel for schedule(static) num_threads(sc->nth)
+        #pragma omp parallel for schedule(static)
         for (size_t j = 0; j < sc->n; j++) {
             uint32_t t = ux[j];
             xx[j] = t == una? 0 : t - umin + 1;
@@ -183,6 +195,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         sc->elemsize = 4;
         sc->own_x = 1;
     }
+    sc->elemsign = 0;
     return;
 
     fail:
@@ -199,17 +212,17 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
  * Sort array `x` of length `n` using radix sort algorithm, and return the
  * resulting ordering in variable `o`.
  */
-static int32_t* radix_psort_i4(const Column *col)
+static int32_t* radix_psort_i4(SortContext *sc)
 {
-    uint32_t *ux = (uint32_t*) col->data;
-    int32_t n = (int32_t) col->nrows;
-
-    // Allocate the temporary structures up-front
-    uint32_t *xx = NULL;
-    int32_t *oo = NULL;
-    dtmalloc(xx, uint32_t, n);
-    dtmalloc(oo, int32_t, n);
-
+    // Compute the desired radix size, as a function of `sc->nsigbits` (number
+    // of significant bits in the data column).
+    //   nradixbits: how many bits to use for the radix
+    //   shift: the right-shift needed to leave the radix only
+    //   nradixes: how many different radixes there will be.
+    int nsigbits = sc->nsigbits;
+    int nradixbits = nsigbits < 16 ? nsigbits : 16;
+    int shift = nsigbits - nradixbits;
+    size_t nradixes = 1 << nradixbits;
 
     // Determine how the input should be split into chunks: at least as many
     // chunks as the number of threads, unless the input array is too small
@@ -218,35 +231,15 @@ static int32_t* radix_psort_i4(const Column *col)
     // threads, on the other hand too many chunks should be avoided because that
     // would increase the time needed to combine the results from different
     // threads.
+    size_t nz = sc->n;
     size_t nth = (size_t) omp_get_num_threads();
-    size_t nz = (size_t) n;
     size_t nchunks = nth * 2;
     size_t chunklen = maxz(1024, (nz + nchunks - 1) / nchunks);
     nchunks = (nz - 1)/chunklen + 1;
 
-    SortContext *sc = NULL;
-    dtcalloc(sc, SortContext, 1);
-    sc->nth = nth;
-    sc->nchunks = nchunks;
-    sc->chunklen = chunklen;
-    prepare_input_i4(col, sc);
-    ux = (uint32_t*) sc->x;
-
-
-    // Compute the optimal radix size.
-    // nsigbits: number of significant bits in `x`s, after subtracting the min
-    // nradixbits: how many bits to use for the radix
-    // shift: the right-shift needed to leave the radix only
-    // radixcount: how many different radixes there may be (+1 for NAs). This
-    //     number does not exceed 65536.
-    int nsigbits = sc->nsigbits;
-    int nradixbits = mini4(nsigbits, 16);
-    int shift = nsigbits - nradixbits;
-    size_t radixcount = 1 << nradixbits;
-
 
     // Calculate initial histograms of values in `x`. Specifically, we're
-    // creating the `counts` table which has `nchunks` rows and `radixcount`
+    // creating the `counts` table which has `nchunks` rows and `nradixes`
     // columns. Cell `[i,j]` in this table will contain the count of values
     // `x` within the chunk `i` such that the topmost `nradixbits` of `x - min`
     // are equal to `j`.
@@ -258,13 +251,14 @@ static int32_t* radix_psort_i4(const Column *col)
     // the correct result.
     // Allocate `(nchunks + 2)` because we will need 2 more rows to hold the
     // `rrmap` array (see [*]).
+    uint32_t *ux = (uint32_t*) sc->x;
     size_t *counts = NULL;
-    dtcalloc(counts, size_t, (nchunks + 2) * radixcount);
+    dtcalloc(counts, size_t, (nchunks + 2) * nradixes);
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
     for (size_t i = 0; i < nchunks; i++)
     {
         size_t j0 = i * chunklen, j1 = minz(j0 + chunklen, nz);
-        size_t *restrict tcounts = counts + (radixcount * i);
+        size_t *restrict tcounts = counts + (nradixes * i);
         for (size_t j = j0; j < j1; j++) {
             tcounts[ux[j] >> shift]++;
         }
@@ -277,10 +271,10 @@ static int32_t* radix_psort_i4(const Column *col)
     // values `x` with radix `j` within the chunk `i` should be placed.
     // Since the `counts` table is relatively small, no need to go parallel
     // here.
-    size_t counts_size = nchunks * radixcount;
+    size_t counts_size = nchunks * nradixes;
     size_t cumsum = 0;
-    for (size_t j = 0; j < radixcount; j++) {
-        for (size_t offset = j; offset < counts_size; offset += radixcount) {
+    for (size_t j = 0; j < nradixes; j++) {
+        for (size_t offset = j; offset < counts_size; offset += nradixes) {
             size_t t = counts[offset];
             counts[offset] = cumsum;
             cumsum += t;
@@ -301,11 +295,15 @@ static int32_t* radix_psort_i4(const Column *col)
     // corresponding to each radix value.
     // This is the last step that accesses the input array in chunks.
     uint32_t mask = (1 << shift) - 1;
+    uint32_t *xx = NULL;
+    int32_t *oo = NULL;
+    dtmalloc(xx, uint32_t, sc->n);
+    dtmalloc(oo, int32_t, sc->n);
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
     for (size_t i = 0; i < nchunks; i++)
     {
         size_t j0 = i * chunklen, j1 = minz(j0 + chunklen, nz);
-        size_t *restrict tcounts = counts + (radixcount * i);
+        size_t *restrict tcounts = counts + (nradixes * i);
         for (size_t j = j0; j < j1; j++) {
             uint32_t radix = ux[j] >> shift;
             size_t k = tcounts[radix]++;
@@ -344,9 +342,9 @@ static int32_t* radix_psort_i4(const Column *col)
         // it to hold the "radix ranges map" records. Each such record contains
         // the size of a particular radix region, and its offset within the
         // output array.
-        size_t *rrendoffsets = counts + (nchunks - 1) * radixcount;
+        size_t *rrendoffsets = counts + (nchunks - 1) * nradixes;
         radix_range *rrmap = (radix_range*)(counts + counts_size);
-        for (size_t i = 0; i < radixcount; i++) {
+        for (size_t i = 0; i < nradixes; i++) {
             size_t start = i? rrendoffsets[i-1] : 0;
             size_t end = rrendoffsets[i];
             assert(start <= end);
@@ -364,8 +362,8 @@ static int32_t* radix_psort_i4(const Column *col)
         // is idle. Working in the opposite direction, one thread will start
         // with 10M chunk, and the other thread will finish all 1M chunks at
         // the same time, minimizing time wasted).
-        qsort(rrmap, radixcount, sizeof(radix_range), _rrcmp);
-        assert(rrmap[0].size >= rrmap[radixcount - 1].size);
+        qsort(rrmap, nradixes, sizeof(radix_range), _rrcmp);
+        assert(rrmap[0].size >= rrmap[nradixes - 1].size);
 
         // At this point the distribution of radix range sizes may or may not
         // be uniform. If the distribution is uniform (i.e. roughly same number
@@ -386,8 +384,8 @@ static int32_t* radix_psort_i4(const Column *col)
         // situation). In practice we deem a range to be "large" if its size is
         // more then `2n/k`.
         size_t rri = 0;
-        size_t rrlarge = 2 * nz / radixcount;
-        while (rrmap[rri].size > rrlarge && rri < radixcount) {
+        size_t rrlarge = 2 * nz / nradixes;
+        while (rrmap[rri].size > rrlarge && rri < nradixes) {
             size_t off = rrmap[rri].offset;
             count_psort_i4(xx + off, oo + off, rrmap[rri].size,
                            tmp, 1 << shift);
@@ -398,7 +396,7 @@ static int32_t* radix_psort_i4(const Column *col)
         // sort each of them independently using one of the simpler algorithms:
         // counting sort or insertion sort.
         #pragma omp parallel for num_threads(nth)
-        for (size_t i = rri; i < radixcount; i++)
+        for (size_t i = rri; i < nradixes; i++)
         {
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
@@ -584,6 +582,11 @@ static void* count_sort_i4(
 
 void init_sort_functions(void)
 {
+    for (int i = 0; i < DT_STYPES_COUNT; i++) {
+        prepare_inp_fns[i] = (prepare_inp_fn) &prepare_input_generic;
+    }
+    prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
+
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
