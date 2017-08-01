@@ -40,7 +40,7 @@ def test_i4i_large():
     assert d1.topython() == [list(range(p1))]
 
 
-@pytest.mark.parametrize("n", [30, 300, 3000, 30000, 120000])
+@pytest.mark.parametrize("n", [30, 300, 3000, 30000, 60000, 120000])
 def test_i4i_large_stable(n):
     src = [None, 100, 100000] * (n // 3)
     d0 = datatable.DataTable({"A": src, "B": list(range(n))})
