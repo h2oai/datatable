@@ -28,20 +28,22 @@
 // Forward declarations
 //==============================================================================
 typedef struct SortContext {
-    void* x;
+    void *x;
+    int32_t *o;
+    size_t *histogram;
     size_t n;
     size_t nth;
     size_t nchunks;
     size_t chunklen;
     size_t nradixes;
     int8_t own_x;
+    int8_t own_o;
     SType stype;
     int8_t elemsize;
     int8_t elemsign;
     int8_t nsigbits;
     int8_t shift;
     int8_t issorted;
-    char _padding;
 } SortContext;
 
 static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
@@ -155,6 +157,7 @@ static void prepare_input_generic(const Column *col, SortContext *sc)
     sc->own_x = 0;
     sc->elemsign = 1;
     sc->elemsize = (int8_t) stype_info[col->stype].elemsize;
+    sc->nsigbits = sc->elemsize * 8;
 }
 
 
@@ -267,10 +270,37 @@ TEMPLATE_BUILD_HISTOGRAM(u8, uint64_t)
 #undef TEMPLATE_BUILD_HISTOGRAM
 
 
+static void build_histogram(SortContext *sc)
+{
+    sc->histogram = sc->elemsize == 1? build_histogram_u1(sc) :
+                    sc->elemsize == 2? build_histogram_u2(sc) :
+                    sc->elemsize == 4? build_histogram_u4(sc) :
+                    sc->elemsize == 8? build_histogram_u8(sc) : NULL;
+}
+
+
 
 //==============================================================================
 // Radix sort functions
 //==============================================================================
+
+/**
+ * Determine how the input should be split into chunks: at least as many
+ * chunks as the number of threads, unless the input array is too small
+ * and chunks become too small in size. We want to have more than 1 chunk
+ * per thread so as to reduce delays caused by uneven execution time among
+ * threads, on the other hand too many chunks should be avoided because that
+ * would increase the time needed to combine the results from different
+ * threads.
+ */
+static void determine_chunk_sizes(SortContext *sc)
+{
+    sc->nth = (size_t) omp_get_num_threads();
+    sc->nchunks = sc->nth * 2;
+    sc->chunklen = maxz(1024, (sc->n + sc->nchunks - 1) / sc->nchunks);
+    sc->nchunks = (sc->n - 1)/sc->chunklen + 1;
+}
+
 
 /**
  * Sort array `x` of length `n` using radix sort algorithm, and return the
@@ -290,31 +320,8 @@ static int32_t* radix_psort_i4(SortContext *sc)
     sc->shift = shift;
     sc->nradixes = nradixes;
 
-
-    // Determine how the input should be split into chunks: at least as many
-    // chunks as the number of threads, unless the input array is too small
-    // and chunks become too small in size. We want to have more than 1 chunk
-    // per thread so as to reduce delays caused by uneven execution time among
-    // threads, on the other hand too many chunks should be avoided because that
-    // would increase the time needed to combine the results from different
-    // threads.
-    size_t nz = sc->n;
-    size_t nth = (size_t) omp_get_num_threads();
-    size_t nchunks = nth * 2;
-    size_t chunklen = maxz(1024, (nz + nchunks - 1) / nchunks);
-    nchunks = (nz - 1)/chunklen + 1;
-    sc->nth = nth;
-    sc->nchunks = nchunks;
-    sc->chunklen = chunklen;
-
-
-    // Build histograms
-    size_t *counts =
-        sc->elemsize == 1? build_histogram_u1(sc) :
-        sc->elemsize == 2? build_histogram_u2(sc) :
-        sc->elemsize == 4? build_histogram_u4(sc) :
-        sc->elemsize == 8? build_histogram_u8(sc) : NULL;
-
+    determine_chunk_sizes(sc);
+    build_histogram(sc);
 
     // Perform the main radix shuffle, filling in arrays `oo` and `xx`. The
     // array `oo` will contain the original row numbers of the values in `x`
@@ -334,11 +341,12 @@ static int32_t* radix_psort_i4(SortContext *sc)
     int32_t *oo = NULL;
     dtmalloc(xx, uint32_t, sc->n);
     dtmalloc(oo, int32_t, sc->n);
-    #pragma omp parallel for schedule(dynamic) num_threads(nth)
-    for (size_t i = 0; i < nchunks; i++)
+    #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
+    for (size_t i = 0; i < sc->nchunks; i++)
     {
-        size_t j0 = i * chunklen, j1 = minz(j0 + chunklen, nz);
-        size_t *restrict tcounts = counts + (nradixes * i);
+        size_t j0 = i * sc->chunklen,
+               j1 = minz(j0 + sc->chunklen, sc->n);
+        size_t *restrict tcounts = sc->histogram + (nradixes * i);
         for (size_t j = j0; j < j1; j++) {
             uint32_t radix = ux[j] >> shift;
             size_t k = tcounts[radix]++;
@@ -346,7 +354,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
             xx[k] = ux[j] & mask;
         }
     }
-    assert(counts[nchunks * nradixes - 1] == nz);
+    assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
 
 
     if (shift == 0) {
@@ -354,7 +362,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
     } else
     {
         // Prepare temporary buffer
-        size_t tmpsize = maxz(nth << shift, INSERT_SORT_THRESHOLD);
+        size_t tmpsize = maxz(sc->nth << shift, INSERT_SORT_THRESHOLD);
         int32_t *tmp = NULL;
         dtmalloc(tmp, int32_t, tmpsize);
 
@@ -377,7 +385,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
         // it to hold the "radix ranges map" records. Each such record contains
         // the size of a particular radix region, and its offset within the
         // output array.
-        size_t *rrendoffsets = counts + (nchunks - 1) * nradixes;
+        size_t *rrendoffsets = sc->histogram + (sc->nchunks - 1) * nradixes;
         radix_range *rrmap = NULL;
         dtmalloc(rrmap, radix_range, nradixes);
         for (size_t i = 0; i < nradixes; i++) {
@@ -420,7 +428,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
         // situation). In practice we deem a range to be "large" if its size is
         // more then `2n/k`.
         size_t rri = 0;
-        size_t rrlarge = 2 * nz / nradixes;
+        size_t rrlarge = 2 * sc->n / nradixes;
         while (rrmap[rri].size > rrlarge && rri < nradixes) {
             size_t off = rrmap[rri].offset;
             count_psort_i4(xx + off, oo + off, rrmap[rri].size,
@@ -431,7 +439,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
         // Finally iterate over all remaining radix ranges, in-parallel, and
         // sort each of them independently using one of the simpler algorithms:
         // counting sort or insertion sort.
-        #pragma omp parallel for num_threads(nth)
+        #pragma omp parallel for num_threads(sc->nth)
         for (size_t i = rri; i < nradixes; i++)
         {
             size_t off = rrmap[i].offset;
@@ -448,6 +456,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
     // Done. Array `oo` contains the ordering of the input vector `x`.
     if (sc->own_x) dtfree(sc->x);
     dtfree(xx);
+    sc->o = oo;
     return oo;
 }
 
