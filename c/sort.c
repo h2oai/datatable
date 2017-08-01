@@ -10,8 +10,7 @@
 // values in `x` (if any) at the beginning of the sorted list.
 //
 // See also:
-//     https://github.com/Rdatatable/data.table/src/fsort.c
-//     https://github.com/Rdatatable/data.table/src/forder.c
+//     https://github.com/Rdatatable/data.table/src/forder.c, fsort.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>   // printf
@@ -42,7 +41,6 @@ static int32_t* radix_psort_i4(const Column *col);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
-static inline void* minp(void *a, void *b) { return a < b? a : b; }
 static inline int mini4(int a, int b) { return a < b? a : b; }
 
 #define INSERT_SORT_THRESHOLD 64
@@ -64,7 +62,8 @@ typedef struct SortContext {
     SType stype;
     int8_t elemsize;
     int8_t nsigbits;
-    char _padding[4];
+    int8_t issorted;
+    char _padding[3];
 } SortContext;
 
 
@@ -115,80 +114,77 @@ RowIndex* column_sort(Column *col)
 // "Prepare input" functions
 //==============================================================================
 
+/**
+ * Compute min/max of the data column, excluding NAs. The computation is done
+ * in parallel. If the column contains NAs only, then `min` will hold value
+ * INT32_MAX, and `max` will hold value -INT32_MAX. In all other cases it is
+ * guaranteed that `min <= max`.
+ *
+ * TODO: replace this with the information from RollupStats eventually.
+ */
+static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
+{
+    int32_t *x = (int32_t*) sc->x;
+    int32_t tmin = INT32_MAX;
+    int32_t tmax = -INT32_MAX;
+    #pragma omp parallel for schedule(static) num_threads(sc->nth) \
+            reduction(min:tmin) reduction(max:tmax)
+    for (size_t j = 0; j < sc->n; j++) {
+        int32_t t = x[j];
+        if (t == NA_I4);
+        else if (t < tmin) tmin = t;
+        else if (t > tmax) tmax = t;
+    }
+    *min = tmin;
+    *max = tmax;
+}
+
+
 static void prepare_input_i4(const Column *col, SortContext *sc)
 {
-    int32_t *x = col->data;
-    size_t n = (size_t) col->nrows;
+    sc->n = (size_t) col->nrows;
+    sc->x = (void*) col->data;
 
-    // Compute the min/max of the data column (excluding NAs), in parallel.
-    // TODO: replace this with the information from RollupStats once those are
-    //       implemented.
-    int32_t *tmp = NULL;
-    dtmalloc_g(tmp, int32_t, sc->nchunks * 2);
-    int32_t *mins = tmp,
-            *maxs = tmp + sc->nchunks;
-    #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-    for (size_t i = 0; i < sc->nchunks; i++)
-    {
-        size_t j0 = sc->chunklen * i;
-        size_t j1 = minz(j0 + sc->chunklen, n);
-        int32_t mymin = INT32_MAX;
-        int32_t mymax = -INT32_MAX;
-        for (size_t j = j0; j < j1; j++) {
-            int32_t t = x[j];
-            if (t == NA_I4);
-            else if (t < mymin) mymin = t;
-            else if (t > mymax) mymax = t;
-        }
-        mins[i] = mymin;
-        maxs[i] = mymax;
+    int32_t min, max;
+    compute_min_max_i4(sc, &min, &max);
+    if (min >= max) {
+        // min > max if the column contains NAs only; min == max if the column
+        // is constant.
+        sc->issorted = 1;
+        return;
     }
-    int32_t min = mins[0];
-    int32_t max = maxs[0];
-    for (size_t i = 1; i < sc->nchunks; i++) {
-        if (mins[i] < min) min = mins[i];
-        if (maxs[i] > max) max = maxs[i];
-    }
-    dtfree(tmp);
 
-    int8_t nsigbits = 32 - (int) nlz((uint32_t)(max - min + 1));
+    int nsigbits = 32 - (int) nlz((uint32_t)(max - min + 1));
+    sc->nsigbits = (int8_t) nsigbits;
 
     uint32_t umin = (uint32_t) min;
     uint32_t una = (uint32_t) NA_I4;
+    uint32_t *ux = (uint32_t*) sc->x;
     if (nsigbits <= -16) {
         uint16_t *xx = NULL;
-        dtmalloc_g(xx, uint16_t, n);
-        #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-        for (size_t i = 0; i < sc->nchunks; i++)
-        {
-            size_t j0 = sc->chunklen * i;
-            size_t j1 = minz(j0 + sc->chunklen, n);
-            for (size_t j = j0; j < j1; j++)
-                xx[j] = x[j] == NA_I4? 0 : (uint16_t)((uint32_t)x[j] - umin + 1);
+        dtmalloc_g(xx, uint16_t, sc->n);
+        #pragma omp parallel for schedule(static) num_threads(sc->nth)
+        for (size_t j = 0; j < sc->n; j++) {
+            uint32_t t = ux[j];
+            xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
         }
         sc->x = (void*) xx;
         sc->elemsize = 2;
+        sc->own_x = 1;
     } else {
-        uint32_t *ux = (uint32_t*) x;
         uint32_t *xx = NULL;
-        dtmalloc_g(xx, uint32_t, n);
-        #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-        for (size_t i = 0; i < sc->nchunks; i++)
-        {
-            size_t j0 = sc->chunklen * i;
-            size_t j1 = minz(j0 + sc->chunklen, n);
-            for (size_t j = j0; j < j1; j++) {
-                uint32_t t = ux[j];
-                xx[j] = t == una? 0 : t - umin + 1;
-            }
+        dtmalloc_g(xx, uint32_t, sc->n);
+        #pragma omp parallel for schedule(static) num_threads(sc->nth)
+        for (size_t j = 0; j < sc->n; j++) {
+            uint32_t t = ux[j];
+            xx[j] = t == una? 0 : t - umin + 1;
         }
         sc->x = (void*) xx;
         sc->elemsize = 4;
+        sc->own_x = 1;
     }
-    sc->n = n;
-    sc->own_x = 1;
-    sc->nsigbits = nsigbits;
     return;
+
     fail:
     sc->x = NULL;
 }
