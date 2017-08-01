@@ -385,14 +385,12 @@ static int32_t* radix_psort_i4(const Column *col)
         // Since the `counts` array won't be needed afterwords, we'll just reuse
         // it to hold the "radix ranges map" records. Each such record contains
         // the size of a particular radix region, and its offset within the
-        // output array. The `rrmap` array holds `radixcount - 1` elements ("-1"
-        // because we skip the NAs bin, where all elements are already sorted),
-        // which fits into the dimensions of `counts` [*].
+        // output array.
         size_t *rrendoffsets = counts + (nchunks - 1) * radixcount;
         radix_range *rrmap = (radix_range*)(counts + counts_size);
-        for (size_t i = 0; i < radixcount - 1; i++) {
-            size_t start = rrendoffsets[i];
-            size_t end = rrendoffsets[i + 1];
+        for (size_t i = 0; i < radixcount; i++) {
+            size_t start = i? rrendoffsets[i-1] : 0;
+            size_t end = rrendoffsets[i];
             assert(start <= end);
             rrmap[i].size = end - start;
             rrmap[i].offset = start;
@@ -408,8 +406,8 @@ static int32_t* radix_psort_i4(const Column *col)
         // is idle. Working in the opposite direction, one thread will start
         // with 10M chunk, and the other thread will finish all 1M chunks at
         // the same time, minimizing time wasted).
-        qsort(rrmap, radixcount - 1, sizeof(radix_range), _rrcmp);
-        assert(rrmap[0].size >= rrmap[radixcount - 2].size);
+        qsort(rrmap, radixcount, sizeof(radix_range), _rrcmp);
+        assert(rrmap[0].size >= rrmap[radixcount - 1].size);
 
         // At this point the distribution of radix range sizes may or may not
         // be uniform. If the distribution is uniform (i.e. roughly same number
@@ -431,7 +429,7 @@ static int32_t* radix_psort_i4(const Column *col)
         // more then `2n/k`.
         size_t rri = 0;
         size_t rrlarge = 2 * nz / radixcount;
-        while (rrmap[rri].size > rrlarge && rri < radixcount - 1) {
+        while (rrmap[rri].size > rrlarge && rri < radixcount) {
             size_t off = rrmap[rri].offset;
             count_psort_i4(xx + off, oo + off, rrmap[rri].size,
                            tmp, 1 << shift);
@@ -442,7 +440,7 @@ static int32_t* radix_psort_i4(const Column *col)
         // sort each of them independently using one of the simpler algorithms:
         // counting sort or insertion sort.
         #pragma omp parallel for num_threads(nth)
-        for (size_t i = rri; i < radixcount - 1; i++)
+        for (size_t i = rri; i < radixcount; i++)
         {
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
