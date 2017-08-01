@@ -209,9 +209,9 @@ static int32_t* radix_psort_i4(const Column *col)
     int32_t n = (int32_t) col->nrows;
 
     // Allocate the temporary structures up-front
-    int32_t *xx = NULL;
+    uint32_t *xx = NULL;
     int32_t *oo = NULL;
-    dtmalloc(xx, int32_t, n);
+    dtmalloc(xx, uint32_t, n);
     dtmalloc(oo, int32_t, n);
 
 
@@ -234,42 +234,7 @@ static int32_t* radix_psort_i4(const Column *col)
     sc->nchunks = nchunks;
     sc->chunklen = chunklen;
     prepare_input_i4(col, sc);
-
-
-    // Compute the min/max of the data column, in parallel.
-    // TODO: replace this with the information from RollupStats once those are
-    //       implemented.
-    int32_t *x = (int32_t*) ux;
-    int32_t *mins = NULL, *maxs = NULL;
-    dtmalloc(mins, int32_t, nchunks);
-    dtmalloc(maxs, int32_t, nchunks);
-
-    #pragma omp parallel for schedule(dynamic) num_threads(nth)
-    for (size_t i = 0; i < nchunks; i++)
-    {
-        int32_t *myx = x + (chunklen * i);
-        int32_t *myxend = minp(myx + chunklen, x + n);
-        int32_t mymin = *myx;
-        int32_t mymax = *myx;
-        for (myx++; myx < myxend; myx++) {
-            int32_t t = *myx;
-            if (t < mymin)
-                mymin = t;
-            else if (t > mymax)
-                mymax = t;
-        }
-        mins[i] = mymin;
-        maxs[i] = mymax;
-    }
-
-    int32_t min = mins[0];
-    int32_t max = maxs[0];
-    for (size_t i = 1; i < nchunks; i++) {
-        if (mins[i] < min) min = mins[i];
-        if (maxs[i] > max) max = maxs[i];
-    }
-    dtfree(mins);
-    dtfree(maxs);
+    ux = (uint32_t*) sc->x;
 
 
     // Compute the optimal radix size.
@@ -277,11 +242,11 @@ static int32_t* radix_psort_i4(const Column *col)
     // nradixbits: how many bits to use for the radix
     // shift: the right-shift needed to leave the radix only
     // radixcount: how many different radixes there may be (+1 for NAs). This
-    //     number does not exceed 65537.
-    int nsigbits = 32 - (int) nlz((uint32_t)(max - min));
+    //     number does not exceed 65536.
+    int nsigbits = sc->nsigbits;
     int nradixbits = mini4(nsigbits, 16);
     int shift = nsigbits - nradixbits;
-    size_t radixcount = (1 << nradixbits) + 1;
+    size_t radixcount = 1 << nradixbits;
 
 
     // Calculate initial histograms of values in `x`. Specifically, we're
@@ -299,16 +264,13 @@ static int32_t* radix_psort_i4(const Column *col)
     // `rrmap` array (see [*]).
     size_t *counts = NULL;
     dtcalloc(counts, size_t, (nchunks + 2) * radixcount);
-    uint32_t umin = (uint32_t) min;
-    uint32_t una = (uint32_t) NA_I4;
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
     for (size_t i = 0; i < nchunks; i++)
     {
         size_t j0 = i * chunklen, j1 = minz(j0 + chunklen, nz);
         size_t *restrict tcounts = counts + (radixcount * i);
         for (size_t j = j0; j < j1; j++) {
-            uint32_t radix = (ux[j] == una) ? 0 : ((ux[j] - umin) >> shift) + 1;
-            tcounts[radix]++;
+            tcounts[ux[j] >> shift]++;
         }
     }
 
@@ -349,10 +311,10 @@ static int32_t* radix_psort_i4(const Column *col)
         size_t j0 = i * chunklen, j1 = minz(j0 + chunklen, nz);
         size_t *restrict tcounts = counts + (radixcount * i);
         for (size_t j = j0; j < j1; j++) {
-            uint32_t radix = (ux[j] == una) ? 0 : ((ux[j] - umin) >> shift) + 1;
+            uint32_t radix = ux[j] >> shift;
             size_t k = tcounts[radix]++;
             oo[k] = (int32_t) j;
-            xx[k] = (int32_t)((ux[j] - umin) & mask);
+            xx[k] = ux[j] & mask;
         }
     }
     assert(counts[counts_size - 1] == nz);
@@ -454,6 +416,7 @@ static int32_t* radix_psort_i4(const Column *col)
     }
 
     // Done. Array `oo` contains the ordering of the input vector `x`.
+    if (sc->own_x) dtfree(sc->x);
     dtfree(xx);
     return oo;
 }
@@ -580,21 +543,23 @@ static void* count_psort_i4(
         }
     }
 
+    int32_t *yy; dtmalloc(yy, int, n);
     // Reorder the data
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
     for (size_t i = 0; i < nchunks; i++)
     {
-        int32_t *restrict myx = x + i * chunklen;
-        int32_t *const myxend = x + minz((i + 1) * chunklen, n);
+        size_t j0 = i * chunklen,
+               j1 = minz(j0 + chunklen, n);
         int32_t *restrict mycounts = tmp + (i * range);
-        for (; myx < myxend; myx++) {
-            int32_t k = mycounts[*myx]++;
-            *myx = y[k];
+        for (size_t j = j0; j < j1; j++) {
+            int32_t k = mycounts[x[j]]++;
+            yy[k] = y[j];
         }
     }
 
     // Produce the output
-    memcpy(y, x, n * sizeof(int32_t));
+    memcpy(y, yy, n * sizeof(int32_t));
+    dtfree(yy);
     return NULL;
 }
 
