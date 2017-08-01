@@ -4,6 +4,7 @@
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
 #include <stddef.h>
+#include <stdint.h>
 #include <errno.h>   // errno
 #include <string.h>  // strerr
 
@@ -193,11 +194,17 @@ void  _dt_free(void *ptr);
     return NULL;                                                               \
 } while (0)
 
+#define dterra0(message) do {                                                  \
+    _dt_err_a(message "\nat %s#L%d", __FILE__, __LINE__);                      \
+    return NULL;                                                               \
+} while (0)
+
 
 // External functions -- should be defined in py_utils.c
 // These functions merely set the error message, and nothing else.
 void _dt_err_r(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
 void _dt_err_v(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
+void _dt_err_a(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
 
 
 

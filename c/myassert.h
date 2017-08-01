@@ -1,5 +1,6 @@
 #ifndef dt_MYASSERT_H
 #define dt_MYASSERT_H
+#include "utils.h"
 
 #ifdef NDEBUG
     // Macro NDEBUG, if present, disables all assert statements. Unfortunately,
@@ -20,5 +21,8 @@
     // In this case we just disable the checks.
     #define dt_static_assert(x, y)
 #endif
+
+#define dtassert(e) \
+    while(e) dterra0(#e)
 
 #endif
