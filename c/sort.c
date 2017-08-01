@@ -145,8 +145,9 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
     // range of int32_t, in which case the behavior is undefined. However
     // casting both of them to uint32_t first avoids this problem and produces
     // the correct result.
-    // Allocate `max(nchunks, 2)` because see remark [*].
-    dtcalloc(counts, size_t, maxz(nchunks, 2) * radixcount);
+    // Allocate `(nchunks + 2)` because we will need 2 more rows to hold the
+    // `rrmap` array (see [*]).
+    dtcalloc(counts, size_t, (nchunks + 2) * radixcount);
     uint32_t umin = (uint32_t) min;
     uint32_t una = (uint32_t) NA_I4;
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
@@ -239,10 +240,12 @@ static void* radix_sort_i4(int32_t *x, int32_t n, int32_t **o)
         // because we skip the NAs bin, where all elements are already sorted),
         // which fits into the dimensions of `counts` [*].
         size_t *rrendoffsets = counts + (nchunks - 1) * radixcount;
-        rrmap = (radix_range*) counts;
-        for (size_t i = 0; i < radixcount - 1; i++) {
+        rrmap = (radix_range*)(counts + counts_size);
+        for (int64_t i = radixcount - 2; i >= 0; i--) {
             size_t start = rrendoffsets[i];
-            rrmap[i].size = rrendoffsets[i + 1] - start;
+            size_t end = rrendoffsets[i + 1];
+            assert(start <= end);
+            rrmap[i].size = end - start;
             rrmap[i].offset = start;
         }
 
