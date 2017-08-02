@@ -4,6 +4,9 @@ import datatable
 import pytest
 
 
+
+#-------------------------------------------------------------------------------
+
 def test_i4i_small():
     d0 = datatable.DataTable([17, 2, 96, 245, 847569, 34, -45, None, 1])
     assert d0.stypes == ("i4i", )
@@ -52,6 +55,8 @@ def test_i4i_large_stable(n):
 
 
 
+#-------------------------------------------------------------------------------
+
 def test_i1i_small():
     d0 = datatable.DataTable([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1])
     assert d0.stypes == ("i1i", )
@@ -94,6 +99,8 @@ def test_i1i_large_stable(n):
                              list(range(1, n, 3))]
 
 
+
+#-------------------------------------------------------------------------------
 
 def test_i1b_small():
     d0 = datatable.DataTable([True, False, False, None, True, True, None])
@@ -142,3 +149,47 @@ def test_i1b_large_stable(n):
     assert d1.topython() == [list(range(2, 3 * n, 3)) +
                              list(range(1, 3 * n, 3)) +
                              list(range(0, 3 * n, 3))]
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_i2i_small():
+    d0 = datatable.DataTable([0, -10, 100, -1000, 10000, 2, 999, None])
+    assert d0.stypes[0] == "i2i"
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [[None, -1000, -10, 0, 2, 100, 999, 10000]]
+
+
+def test_i2i_small_stable():
+    d0 = datatable.DataTable([[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
+                              [1, 2, 3, 4, 5, 6, 7, 8, 9]])
+    assert d0.stypes[0] == "i2i"
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [[0, 0, 0, 0, 0, 0, 1000, 1000, 1000],
+                             [1, 3, 4, 6, 7, 9, 2, 5, 8]]
+
+
+def test_i2i_large():
+    d0 = datatable.DataTable([(i * 111119) % 10007 - 5003
+                              for i in range(10007)])
+    d1 = d0(sort=0)
+    assert d1.stypes == ("i2i", )
+    assert d1.internal.check()
+    assert d1.topython() == [list(range(-5003, 5004))]
+
+
+@pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])
+def test_i2i_large_stable(n):
+    d0 = datatable.DataTable([[-5, None, 5, -999, 1000] * n,
+                              list(range(n * 5))], colnames=["A", "B"])
+    assert d0.stypes[0] == "i2i"
+    d1 = d0(sort="A", select="B")
+    assert d1.internal.check()
+    assert d1.topython() == [list(range(1, 5 * n, 5)) +
+                             list(range(3, 5 * n, 5)) +
+                             list(range(0, 5 * n, 5)) +
+                             list(range(2, 5 * n, 5)) +
+                             list(range(4, 5 * n, 5))]
