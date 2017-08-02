@@ -35,6 +35,10 @@ PyObject* pyrowindex(RowIndex *src)
  */
 int rowindex_unwrap(PyObject *object, void *address) {
     RowIndex **ans = address;
+    if (object == Py_None) {
+        *ans = NULL;
+        return 1;
+    }
     if (!PyObject_TypeCheck(object, &RowIndex_PyType)) {
         PyErr_SetString(PyExc_TypeError,
                         "Expected argument of type RowIndex");
