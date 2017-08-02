@@ -24,9 +24,100 @@
 #include "utils.h"
 
 
-//==============================================================================
-// Forward declarations
-//==============================================================================
+/**
+ * Data structure that holds all the variables needed to perform radix sort.
+ * This object is passed around between the functions that represent different
+ * steps in the sorting process, each function reading/writing some of these
+ * parameters. The documentation for each function will describe which specific
+ * parameters it writes.
+ *
+ * x
+ *      The main data array, depending on `elemsize` has one of the following
+ *      types: `uint8_t*`, `uint16_t*`, `uint32_t*` or `uint64_t*` (). The
+ *      array has `n` elements. This array serves as a "sorting key" -- the
+ *      final goal is to produce the ordering of values in `x`.
+ *      The elements in `x` are always unsigned, and will be sorted accordingly.
+ *      In particular, the data must usually be transformed in order to ensure
+ *      that it sorts correctly (this is done in `prepare_input` step).
+ *      If `x` is NULL, it indicates that an error condition was raised, and
+ *      the sorting routine should exit as soon as possible. It is also possible
+ *      for `x` to be NULL when `issorted` flag is set.
+ *
+ * o
+ *      Current ordering (row indices) of elements in `x`. This is an array of
+ *      size `n` (same as `x`). If present, then this array will be sorted
+ *      according to the values `x`. If NULL, then it will be treated as if
+ *      `o[j] == j`.
+ *
+ * n
+ *      Number of elements in arrays `x` and `o`.
+ *
+ * elemsize
+ *      Size in bytes of each element in `x`, one of: 1, 2, 4, or 8.
+ *
+ * issorted
+ *      Flag indicating that the input array was found to be already sorted (for
+ *      example when it is a constant array). When this flag is set, the sorting
+ *      procedure should exit as soon as possible.
+ *
+ * nsigbits
+ *      Number of significant bits in the elements of `x`. This cannot exceed
+ *      `8 * elemsize`, but could be less. This value is an assertion that all
+ *      elements in `x` are in the range `[0; 2**nsigbits)`. The number of
+ *      significant bits cannot be 0.
+ *
+ * shift
+ *      The amount of right-shift to be applied to each item in `x` to get the
+ *      radix. That is, radix for element `i` is `(x[i] >> shift)`. The `shift`
+ *      can also be zero, indicating that the values themselves are the radixes
+ *      (as in counting sort).
+ *
+ * nradixes
+ *      Total number of possible radixes, equal to `1 << (nsigbits - shift)`.
+ *
+ * nth
+ *      The number of threads used by OMP.
+ *
+ * nchunks, chunklen
+ *      These variables describe how the total number of rows, `n`, will be
+ *      split into smaller chunks for the parallel computation. In particular,
+ *      the range `[0; n)` is divided into `nchunks` sub-ranges each except the
+ *      last one having length `chunklen`. The last chunk will have the length
+ *      `n - chunklen*(nchunks - 1)`. The number of chunks is >= 1, and
+ *      `chunklen` is also positive.
+ *
+ * histogram
+ *      Computed during the `build_histogram` step, this array will contain the
+ *      histogram of data values, by chunk and by radix. More specifically, this
+ *      is a `size_t*` array which is viewed as a 2D table. The `(i,k)`-th
+ *      element of this array (where `i` is the chunk index, and `k` is radix)
+ *      is located at index `(i * nradixes + k)` and represents the starting
+ *      position within the output array where the elements with radix `k` and
+ *      within the chunk `i` should be written. That is,
+ *          histogram[i,k] = #{elements in chunks 0..i-1 with radix = k} +
+ *                           #{elements in all chunks with radix < k}
+ *      After the "reorder_data" step, this histogram is modified to contain
+ *      values
+ *          histogram[i,k] = #{elements in chunks 0..i with radix = k} +
+ *                           #{elements in all chunks with radix < k}
+ *
+ * next_x
+ *      When `shift > 0`, a single pass of the `radix_psort()` function will
+ *      sort the data array only partially, and 1 or more extra passes will be
+ *      needed to finish sorting. In this case the array `next_x` (of length
+ *      `n`) will hold pre-sorted and potentially modified values of the
+ *      original data array `x`.
+ *      The array `next_x` is filled in the "reorder_data" step. If it was NULL,
+ *      the array will be allocated, otherwise its contents will be overwritten.
+ *
+ * next_o
+ *      The reordered array `o` to be carried over to the next step, or to be
+ *      returned as the final ordering in the end.
+ *
+ * next_elemsize
+ *      Size in bytes of each element in `next_x`. This cannot be greater than
+ *      `elemsize`, however `next_elemsize` can be NULL.
+ */
 typedef struct SortContext {
     void    *x;
     int32_t *o;
@@ -38,16 +129,19 @@ typedef struct SortContext {
     size_t nchunks;
     size_t chunklen;
     size_t nradixes;
-    int8_t own_x;
-    int8_t own_o;
     int8_t elemsize;
     int8_t next_elemsize;
     int8_t nsigbits;
     int8_t shift;
     int8_t issorted;
-    char _padding;
+    char _padding[3];
 } SortContext;
 
+
+
+//==============================================================================
+// Forward declarations
+//==============================================================================
 static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
 static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, int32_t);
 
@@ -56,7 +150,8 @@ typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
 static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
 
-static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
+static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
+                            int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
 static int32_t* radix_psort(SortContext*);
 
@@ -168,7 +263,6 @@ static void prepare_input_i1(const Column *col, SortContext *sc)
 
     sc->n = n;
     sc->x = (void*) xo;
-    sc->own_x = 1;
     sc->elemsize = 1;
     sc->nsigbits = 8;
     return;
@@ -192,7 +286,6 @@ static void prepare_input_i2(const Column *col, SortContext *sc)
 
     sc->n = n;
     sc->x = (void*) xo;
-    sc->own_x = 1;
     sc->elemsize = 2;
     sc->nsigbits = 16;
     return;
@@ -232,7 +325,6 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         sc->x = (void*) xx;
         sc->elemsize = 2;
         sc->next_elemsize = 0;
-        sc->own_x = 1;
     } else {
         uint32_t *xx = NULL;
         dtmalloc_g(xx, uint32_t, sc->n);
@@ -244,7 +336,6 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         sc->x = (void*) xx;
         sc->elemsize = 4;
         sc->next_elemsize = 4;
-        sc->own_x = 1;
     }
     return;
 
@@ -383,7 +474,7 @@ static void build_histogram(SortContext *sc)
 
 
 
-TEMPLATE_REORDER_DATA(u4u4, uint32_t, uint32_t)
+TEMPLATE_REORDER_DATA(u4u2, uint32_t, uint32_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 #undef TEMPLATE_REORDER_DATA
@@ -393,7 +484,7 @@ static void reorder_data(SortContext *sc)
     dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
     dtmalloc_g(sc->next_o, int32_t, sc->n);
     switch (sc->elemsize) {
-        case 4: reorder_data_u4u4(sc); break;
+        case 4: reorder_data_u4u2(sc); break;
         case 2: reorder_data_u2(sc); break;
         case 1: reorder_data_u1(sc); break;
         default: printf("elemsize = %d\n", sc->elemsize); assert(0);
@@ -546,7 +637,7 @@ static int32_t* radix_psort(SortContext *sc)
     }
 
     // Done. Array `oo` contains the ordering of the input vector `x`.
-    if (sc->own_x) dtfree(sc->x);
+    dtfree(sc->x);
     // dtfree(xx);
     sc->o = sc->next_o;
     return sc->next_o;
