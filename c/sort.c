@@ -51,17 +51,14 @@ typedef struct SortContext {
 static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
 static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, int32_t);
 
-typedef void (*prepare_inp_fn)(const Column*, SortContext*);
-typedef size_t* (*histogram_fn)(SortContext*);
+typedef void     (*prepare_inp_fn)(const Column*, SortContext*);
 typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
-typedef int32_t* (*radix_psort_fn)(SortContext*);
 static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
-static radix_psort_fn radix_psort_fns[DT_STYPES_COUNT];
 
 static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
-static int32_t* radix_psort_i4(SortContext*);
+static int32_t* radix_psort(SortContext*);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
@@ -105,16 +102,15 @@ RowIndex* column_sort(Column *col)
                    col->stype);
         }
     } else {
-        radix_psort_fn sortfn = radix_psort_fns[col->stype];
         prepare_inp_fn prepfn = prepare_inp_fns[col->stype];
-        if (sortfn && prepfn) {
+        if (prepfn) {
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
             prepfn(col, &sc);
             if (sc.issorted) {
                 return rowindex_from_slice(0, nrows, 1);
             }
-            ordering = radix_psort_i4(&sc);
+            ordering = radix_psort(&sc);
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
@@ -155,15 +151,6 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
     *max = tmax;
 }
 
-
-static void prepare_input_generic(const Column *col, SortContext *sc)
-{
-    sc->x = col->data;
-    sc->n = (size_t) col->nrows;
-    sc->own_x = 0;
-    sc->elemsize = (int8_t) stype_info[col->stype].elemsize;
-    sc->nsigbits = sc->elemsize * 8;
-}
 
 
 static void prepare_input_i1(const Column *col, SortContext *sc)
@@ -443,7 +430,7 @@ static void determine_chunk_sizes(SortContext *sc)
  * Sort array `x` of length `n` using radix sort algorithm, and return the
  * resulting ordering in variable `o`.
  */
-static int32_t* radix_psort_i4(SortContext *sc)
+static int32_t* radix_psort(SortContext *sc)
 {
     // Compute the desired radix size, as a function of `sc->nsigbits` (number
     // of significant bits in the data column).
@@ -733,9 +720,8 @@ static void* count_sort_i4(
 void init_sort_functions(void)
 {
     for (int i = 0; i < DT_STYPES_COUNT; i++) {
-        prepare_inp_fns[i] = (prepare_inp_fn) &prepare_input_generic;
+        prepare_inp_fns[i] = NULL;
         insert_sort_fns[i] = NULL;
-        radix_psort_fns[i] = NULL;
     }
     prepare_inp_fns[ST_BOOLEAN_I1] = (prepare_inp_fn) &prepare_input_i1;
     prepare_inp_fns[ST_INTEGER_I1] = (prepare_inp_fn) &prepare_input_i1;
@@ -746,9 +732,4 @@ void init_sort_functions(void)
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I2] = (insert_sort_fn) &insert_sort_i2;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
-
-    radix_psort_fns[ST_BOOLEAN_I1] = (radix_psort_fn) &radix_psort_i4;
-    radix_psort_fns[ST_INTEGER_I1] = (radix_psort_fn) &radix_psort_i4;
-    radix_psort_fns[ST_INTEGER_I2] = (radix_psort_fn) &radix_psort_i4;
-    radix_psort_fns[ST_INTEGER_I4] = (radix_psort_fn) &radix_psort_i4;
 }
