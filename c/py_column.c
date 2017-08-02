@@ -1,6 +1,8 @@
+#include "sort.h"
 #include "py_column.h"
 #include "py_types.h"
 #include "py_utils.h"
+
 
 static PyObject* py_rowindextypes[MT_COUNT];
 
@@ -205,6 +207,7 @@ PyTypeObject Column_PyType = {
 
 int init_py_column(PyObject *module) {
     init_column_cast_functions();
+    init_sort_functions();
 
     // Register Column_PyType on the module
     Column_PyType.tp_new = PyType_GenericNew;

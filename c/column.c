@@ -523,19 +523,6 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
 
 
 
-RowIndex* column_sort(Column *col, int64_t nrows)
-{
-    assert(col->nrows == nrows);
-    if (col->stype == ST_INTEGER_I4) {
-        int32_t *ordering = NULL;
-        sort_i4(col->data, (int32_t)nrows, &ordering);
-        return rowindex_from_i32_array(ordering, (int32_t)nrows);
-    }
-    return rowindex_from_slice(0, nrows, 1);
-}
-
-
-
 /**
  * Increase reference count on column `self`. This function should be called
  * when a new long-term copy to the column is created (for example if the column

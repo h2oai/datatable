@@ -40,7 +40,7 @@ def test_i4i_large():
     assert d1.topython() == [list(range(p1))]
 
 
-@pytest.mark.parametrize("n", [30, 300, 3000, 30000, 120000])
+@pytest.mark.parametrize("n", [30, 300, 3000, 30000, 60000, 120000])
 def test_i4i_large_stable(n):
     src = [None, 100, 100000] * (n // 3)
     d0 = datatable.DataTable({"A": src, "B": list(range(n))})
@@ -49,3 +49,96 @@ def test_i4i_large_stable(n):
     assert d1.topython() == [list(range(0, n, 3)) +
                              list(range(1, n, 3)) +
                              list(range(2, n, 3))]
+
+
+
+def test_i1i_small():
+    d0 = datatable.DataTable([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1])
+    assert d0.stypes == ("i1i", )
+    d1 = d0(sort=0)
+    assert d1.stypes == d0.stypes
+    assert d1.internal.isview
+    assert d1.internal.check()
+    assert d1.topython() == [[None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96]]
+
+
+def test_i1i_small_stable():
+    d0 = datatable.DataTable([
+        [5, 3, 5, None, 100, None, 3, None],
+        [1, 5, 10, 20, 50, 100, 200, 500]
+    ], colnames=["A", "B"])
+    d1 = d0(sort="A")
+    assert d1.internal.check()
+    assert d1.topython() == [
+        [None, None, None, 3, 3, 5, 5, 100],
+        [20, 100, 500, 5, 200, 1, 10, 50],
+    ]
+
+
+def test_i1i_large():
+    d0 = datatable.DataTable([(i * 1327) % 101 - 50 for i in range(1010)])
+    d1 = d0(sort=0)
+    assert d1.stypes == ("i1i", )
+    assert d1.internal.check()
+    assert d1.topython() == [sum(([i] * 10 for i in range(-50, 51)), [])]
+
+
+@pytest.mark.parametrize("n", [30, 303, 3333, 30000, 60009, 120000])
+def test_i1i_large_stable(n):
+    src = [None, 10, -10] * (n // 3)
+    d0 = datatable.DataTable({"A": src, "B": list(range(n))})
+    assert d0.stypes[0] == "i1i"
+    d1 = d0(sort="A", select="B")
+    assert d1.topython() == [list(range(0, n, 3)) +
+                             list(range(2, n, 3)) +
+                             list(range(1, n, 3))]
+
+
+
+def test_i1b_small():
+    d0 = datatable.DataTable([True, False, False, None, True, True, None])
+    assert d0.stypes == ("i1b", )
+    d1 = d0(sort="C1")
+    assert d1.stypes == d0.stypes
+    assert d1.internal.isview
+    assert d1.internal.check()
+    assert d1.topython() == [[None, None, False, False, True, True, True]]
+
+
+def test_i1b_small_stable():
+    d0 = datatable.DataTable([[True, False, False, None, True, True, None],
+                              [1, 2, 3, 4, 5, 6, 7]])
+    assert d0.stypes == ("i1b", "i1i")
+    d1 = d0(sort="C1")
+    assert d1.stypes == d0.stypes
+    assert d1.names == d0.names
+    assert d1.internal.isview
+    assert d1.internal.check()
+    assert d1.topython() == [[None, None, False, False, True, True, True],
+                             [4, 7, 2, 3, 1, 5, 6]]
+
+
+@pytest.mark.parametrize("n", [100, 512, 1000, 5000, 100000])
+def test_i1b_large(n):
+    d0 = datatable.DataTable([True, False, True, None, None, False] * n)
+    assert d0.stypes == ("i1b", )
+    d1 = d0(sort=0)
+    assert d1.stypes == d0.stypes
+    assert d1.names == d0.names
+    assert d1.internal.isview
+    assert d1.internal.check()
+    nn = 2 * n
+    assert d1.topython() == [[None] * nn + [False] * nn + [True] * nn]
+
+
+@pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 10000])
+def test_i1b_large_stable(n):
+    d0 = datatable.DataTable([[True, False, None] * n, list(range(3 * n))],
+                             colnames=["A", "B"])
+    assert d0.stypes[0] == "i1b"
+    d1 = d0(sort="A", select="B")
+    assert d1.internal.isview
+    assert d1.internal.check()
+    assert d1.topython() == [list(range(2, 3 * n, 3)) +
+                             list(range(1, 3 * n, 3)) +
+                             list(range(0, 3 * n, 3))]
