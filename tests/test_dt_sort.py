@@ -64,6 +64,17 @@ def test_i4i_constant(n):
     assert d1.topython() == tbl0
 
 
+def test_i4i_upper_range():
+    # This test looks at an i4 array with small range but large absolute values.
+    # After subtracting the mean it will be converted into uint16_t for sorting,
+    # and we test here that such conversion gives the correct results.
+    b = 1000000
+    d0 = datatable.DataTable([b, b - 1, b + 1] * 1000)
+    assert d0.stypes[0] == "i4i"
+    d1 = d0(sort=0)
+    assert d1.topython() == [[b - 1] * 1000 + [b] * 1000 + [b + 1] * 1000]
+
+
 
 #-------------------------------------------------------------------------------
 
