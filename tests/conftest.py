@@ -37,15 +37,3 @@ def numpy():
         return np
     except ImportError:
         pytest.skip("Numpy module is required for this test")
-
-
-@pytest.fixture()
-def dataroot():
-    try:
-        d = os.environ["DT_LARGE_TESTS_ROOT"]
-        if not os.path.isdir(d):
-            pytest.fail("Directory %s (DT_LARGE_TESTS_ROOT) does not exist" % d)
-        return d
-    except KeyError:
-        pytest.skip("Skipped because environment variable DT_LARGE_TESTS_ROOT "
-                    "is absent.")
