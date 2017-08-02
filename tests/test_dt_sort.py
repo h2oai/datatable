@@ -54,6 +54,16 @@ def test_i4i_large_stable(n):
                              list(range(2, n, 3))]
 
 
+@pytest.mark.parametrize("n", [5, 100, 500, 2500, 32767, 32768, 32769, 200000])
+def test_i4i_constant(n):
+    tbl0 = [[100000] * n, list(range(n))]
+    d0 = datatable.DataTable(tbl0)
+    assert d0.stypes[0] == "i4i"
+    d1 = d0(sort=0)
+    assert d1.stypes == d0.stypes
+    assert d1.topython() == tbl0
+
+
 
 #-------------------------------------------------------------------------------
 

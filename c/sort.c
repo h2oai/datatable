@@ -111,6 +111,9 @@ RowIndex* column_sort(Column *col)
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
             prepfn(col, &sc);
+            if (sc.issorted) {
+                return rowindex_from_slice(0, nrows, 1);
+            }
             ordering = radix_psort_i4(&sc);
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
@@ -405,12 +408,13 @@ static void reorder_data(SortContext *sc)
         case 4: reorder_data_u4u4(sc); break;
         case 2: reorder_data_u2(sc); break;
         case 1: reorder_data_u1(sc); break;
-        default: assert(0);
+        default: printf("elemsize = %d\n", sc->elemsize); assert(0);
     }
     return;
     fail:
     sc->next_x = NULL;
 }
+
 
 
 //==============================================================================
