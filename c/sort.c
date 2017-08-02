@@ -28,8 +28,10 @@
 // Forward declarations
 //==============================================================================
 typedef struct SortContext {
-    void *x;
+    void    *x;
     int32_t *o;
+    void    *next_x;
+    int32_t *next_o;
     size_t *histogram;
     size_t n;
     size_t nth;
@@ -38,8 +40,8 @@ typedef struct SortContext {
     size_t nradixes;
     int8_t own_x;
     int8_t own_o;
-    SType stype;
     int8_t elemsize;
+    int8_t next_elemsize;
     int8_t elemsign;
     int8_t nsigbits;
     int8_t shift;
@@ -202,6 +204,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         }
         sc->x = (void*) xx;
         sc->elemsize = 4;
+        sc->next_elemsize = 4;
         sc->own_x = 1;
     }
     sc->elemsign = 0;
@@ -234,8 +237,8 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
  *
  * Allocate `max(nchunks, 2)` because this array will be reused later.
  */
-#define TEMPLATE_BUILD_HISTOGRAM(N, T)                                         \
-    static size_t* build_histogram_ ## N(SortContext *sc)                      \
+#define TEMPLATE_BUILD_HISTOGRAM(SFX, T)                                       \
+    static size_t* build_histogram_ ## SFX(SortContext *sc)                    \
     {                                                                          \
         T *x = (T*) sc->x;                                                     \
         int8_t shift = sc->shift;                                              \
@@ -281,6 +284,91 @@ static void build_histogram(SortContext *sc)
 
 
 //==============================================================================
+// Data processing step
+//==============================================================================
+
+/**
+ * Perform the main radix shuffle, filling in arrays `oo` and `xx`. The
+ * array `oo` will contain the original row numbers of the values in `x`
+ * such that `x[oo]` is sorted with respect to the most significant bits.
+ * The `xx` array will contain the sorted elements of `x`, with MSB bits
+ * already removed -- we need it mostly for page-efficiency at later stages
+ * of the algorithm.
+ * During execution of this step we also modify the `counts` array, again,
+ * so that by the end of the step each cell in `counts` will contain the
+ * offset past the *last* item within that cell. In particular, the last row
+ * of the `counts` table will contain end-offsets of output regions
+ * corresponding to each radix value.
+ * This is the last step that accesses the input array in chunks.
+ */
+#define TEMPLATE_REORDER_DATA(SFX, TI, TO)                                     \
+    static void reorder_data_ ## SFX(SortContext *sc)                          \
+    {                                                                          \
+        int8_t shift = sc->shift;                                              \
+        TI mask = (1 << shift) - 1;                                            \
+        TI *xi = (TI*) sc->x;                                                  \
+        TO *xo = (TO*) sc->next_x;                                             \
+        int32_t *oi = sc->o;                                                   \
+        int32_t *oo = sc->next_o;                                              \
+        _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
+        for (size_t i = 0; i < sc->nchunks; i++) {                             \
+            size_t j0 = i * sc->chunklen,                                      \
+                   j1 = minz(j0 + sc->chunklen, sc->n);                        \
+            size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);     \
+            for (size_t j = j0; j < j1; j++) {                                 \
+                size_t k = tcounts[xi[j] >> shift]++;                          \
+                oo[k] = oi? oi[j] : (int32_t) j;                               \
+                if (xo) xo[k] = xi[j] & mask;                                  \
+            }                                                                  \
+        }                                                                      \
+        assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);        \
+    }
+
+#define TEMPLATE_REORDER_DATA_SIMPLE(SFX, TI)                                  \
+    static void reorder_data_ ## SFX(SortContext *sc)                          \
+    {                                                                          \
+        TI *xi = (TI*) sc->x;                                                  \
+        int32_t *oi = sc->o;                                                   \
+        int32_t *oo = sc->next_o;                                              \
+        _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
+        for (size_t i = 0; i < sc->nchunks; i++) {                             \
+            size_t j0 = i * sc->chunklen,                                      \
+                   j1 = minz(j0 + sc->chunklen, sc->n);                        \
+            size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);     \
+            for (size_t j = j0; j < j1; j++) {                                 \
+                size_t k = tcounts[xi[j]]++;                                   \
+                oo[k] = oi? oi[j] : (int32_t) j;                               \
+            }                                                                  \
+        }                                                                      \
+        assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);        \
+    }
+
+
+
+TEMPLATE_REORDER_DATA(u4u4, uint32_t, uint32_t)
+TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
+#undef TEMPLATE_REORDER_DATA
+
+static void reorder_data(SortContext *sc)
+{
+    dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
+    dtmalloc_g(sc->next_o, int32_t, sc->n);
+    if (sc->elemsize == 4) {
+        reorder_data_u4u4(sc);
+    } else
+    if (sc->elemsize == 1) {
+        reorder_data_u1(sc);
+    } else {
+        assert(0);
+    }
+
+    return;
+    fail:
+    sc->next_x = NULL;
+}
+
+
+//==============================================================================
 // Radix sort functions
 //==============================================================================
 
@@ -317,50 +405,14 @@ static int32_t* radix_psort_i4(SortContext *sc)
     int nradixbits = nsigbits < 16 ? nsigbits : 16;
     int shift = nsigbits - nradixbits;
     size_t nradixes = 1 << nradixbits;
-    sc->shift = shift;
+    sc->shift = (int8_t) shift;
     sc->nradixes = nradixes;
 
     determine_chunk_sizes(sc);
     build_histogram(sc);
+    reorder_data(sc);
 
-    // Perform the main radix shuffle, filling in arrays `oo` and `xx`. The
-    // array `oo` will contain the original row numbers of the values in `x`
-    // such that `x[oo]` is sorted with respect to the most significant bits.
-    // The `xx` array will contain the sorted elements of `x`, with MSB bits
-    // already removed -- we need it mostly for page-efficiency at later stages
-    // of the algorithm.
-    // During execution of this step we also modify the `counts` array, again,
-    // so that by the end of the step each cell in `counts` will contain the
-    // offset past the *last* item within that cell. In particular, the last row
-    // of the `counts` table will contain end-offsets of output regions
-    // corresponding to each radix value.
-    // This is the last step that accesses the input array in chunks.
-    uint32_t mask = (1 << shift) - 1;
-    uint32_t *ux = (uint32_t*) sc->x;
-    uint32_t *xx = NULL;
-    int32_t *oo = NULL;
-    dtmalloc(xx, uint32_t, sc->n);
-    dtmalloc(oo, int32_t, sc->n);
-    #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-    for (size_t i = 0; i < sc->nchunks; i++)
-    {
-        size_t j0 = i * sc->chunklen,
-               j1 = minz(j0 + sc->chunklen, sc->n);
-        size_t *restrict tcounts = sc->histogram + (nradixes * i);
-        for (size_t j = j0; j < j1; j++) {
-            uint32_t radix = ux[j] >> shift;
-            size_t k = tcounts[radix]++;
-            oo[k] = (int32_t) j;
-            xx[k] = ux[j] & mask;
-        }
-    }
-    assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
-
-
-    if (shift == 0) {
-        // Nothing left to do: the array got sorted in the first pass
-    } else
-    {
+    if (shift > 0) {
         // Prepare temporary buffer
         size_t tmpsize = maxz(sc->nth << shift, INSERT_SORT_THRESHOLD);
         int32_t *tmp = NULL;
@@ -431,7 +483,8 @@ static int32_t* radix_psort_i4(SortContext *sc)
         size_t rrlarge = 2 * sc->n / nradixes;
         while (rrmap[rri].size > rrlarge && rri < nradixes) {
             size_t off = rrmap[rri].offset;
-            count_psort_i4(xx + off, oo + off, rrmap[rri].size,
+            count_psort_i4(add_ptr(sc->next_x, off*4),
+                           sc->next_o + off, rrmap[rri].size,
                            tmp, 1 << shift);
             rri++;
         }
@@ -445,9 +498,11 @@ static int32_t* radix_psort_i4(SortContext *sc)
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
             if (size <= INSERT_SORT_THRESHOLD) {
-                insert_sort_i4(xx + off, oo + off, tmp, (int32_t)size);
+                insert_sort_i4(add_ptr(sc->next_x, off*4),
+                               sc->next_o + off, tmp, (int32_t)size);
             } else {
-                count_sort_i4(xx + off, oo + off, size, tmp, 1 << shift);
+                count_sort_i4(add_ptr(sc->next_x, off*4),
+                              sc->next_o + off, size, tmp, 1 << shift);
             }
         }
         dtfree(tmp);
@@ -455,9 +510,9 @@ static int32_t* radix_psort_i4(SortContext *sc)
 
     // Done. Array `oo` contains the ordering of the input vector `x`.
     if (sc->own_x) dtfree(sc->x);
-    dtfree(xx);
-    sc->o = oo;
-    return oo;
+    // dtfree(xx);
+    sc->o = sc->next_o;
+    return sc->next_o;
 }
 
 
