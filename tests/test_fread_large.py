@@ -10,7 +10,14 @@ import datatable
 #-------------------------------------------------------------------------------
 
 def get_file_list(*path):
-    rootdir = os.path.join(*path)
+    try:
+        d = os.environ["DT_LARGE_TESTS_ROOT"]
+        if not os.path.isdir(d):
+            pytest.fail("Directory %s (DT_LARGE_TESTS_ROOT) does not exist" % d)
+        rootdir = os.path.join(d, *path)
+    except KeyError:
+        return []
+
     if not os.path.isdir(rootdir):
         pytest.skip("Directory %s does not exist" % rootdir)
     exts = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv", ".psv",
@@ -20,6 +27,8 @@ def get_file_list(*path):
         for filename in files:
             f = os.path.join(dirname, filename)
             if ("readme" not in filename and
+                    ".svm" not in filename and
+                    ".json" not in filename and
                     any(filename.endswith(ext) for ext in exts)):
                 if filename.endswith(".zip") and f[:-4] in out:
                     continue
@@ -31,24 +40,20 @@ def get_file_list(*path):
     return out
 
 
+
 #-------------------------------------------------------------------------------
 # Run the tests
 #-------------------------------------------------------------------------------
 
-def test_h2oai_benchmarks(dataroot):
-    for f in get_file_list(dataroot, "h2oai-benchmarks", "Data"):
-        if ".json" in f:
-            print("Skipping file %s" % f)
-            continue
-        print("Reading file %s" % f)
-        d = datatable.fread(f)
-        # Include `f` in the assert so that the filename is printed in case of
-        # a failure
-        assert f and d.internal.check()
+@pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"))
+def test_h2oai_benchmarks(f):
+    d = datatable.fread(f)
+    assert d.internal.check()
 
 
 
-def test_h2o3_smalldata(dataroot):
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "smalldata"))
+def test_h2o3_smalldata(f):
     ignored_files = {
         # Zip files containing >1 files
         os.path.join("gbm_test", "bank-full.csv.zip"),
@@ -65,20 +70,18 @@ def test_h2o3_smalldata(dataroot):
         os.path.join("merge", "tourism.csv"),
         os.path.join("parser", "column.csv"),
     }
-    for f in get_file_list(dataroot, "h2o-3", "smalldata"):
-        if ".svm" in f or any(ff in f for ff in ignored_files):
-            print("Skipping file %s" % f)
-            continue
-        print("Reading file %s" % f)
+    if any(ff in f for ff in ignored_files):
+        pytest.skip("On the ignored files list")
+    else:
         params = {}
         if "test_pubdev3589" in f:
             params["fill"] = True
         d0 = datatable.fread(f, **params)
-        assert f and d0.internal.check()
+        assert d0.internal.check()
 
 
-
-def test_h2o3_bigdata(dataroot):
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"))
+def test_h2o3_bigdata(f):
     ignored_files = {
         # empty files
         os.path.join("mnist", "t10k-images-idx3-ubyte.gz"),
@@ -100,21 +103,18 @@ def test_h2o3_bigdata(dataroot):
         os.path.join("lending-club", "LoanStats3c.csv"),
         os.path.join("lending-club", "LoanStats3d.csv"),
     }
-    for f in get_file_list(dataroot, "h2o-3", "bigdata", "laptop"):
-        if ".svm" in f or any(ff in f for ff in ignored_files):
-            print("Skipping file %s" % f)
-            continue
-        print("Reading file %s" % f)
+    if any(ff in f for ff in ignored_files):
+        pytest.skip("On the ignored files list")
+    else:
         params = {}
         if any(ff in f for ff in filledna_files):
             params["fill"] = True
         d0 = datatable.fread(f, **params)
-        assert f and d0.internal.check()
+        assert d0.internal.check()
 
 
 
-def test_h2o3_fread(dataroot):
-    for f in get_file_list(dataroot, "h2o-3", "fread"):
-        print("Reading file %s" % f)
-        d0 = datatable.fread(f)
-        assert f and d0.internal.check()
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "fread"))
+def test_h2o3_fread(f):
+    d0 = datatable.fread(f)
+    assert d0.internal.check()
