@@ -244,3 +244,11 @@ def test_cols_bad_arguments(dt0):
     assert_typeerror(dt0, True, "A boolean cannot be used as a column selector")
     assert_typeerror(dt0, False,
                      "A boolean cannot be used as a column selector")
+
+
+def test_cols_from_view(dt0):
+    d1 = dt0[:3, :]
+    assert d1.internal.isview
+    d2 = d1["B"]
+    assert d2.internal.check()
+    assert d2.topython() == [[2, 3, 2]]
