@@ -508,13 +508,26 @@ static void reorder_data(SortContext *sc)
  * threads, on the other hand too many chunks should be avoided because that
  * would increase the time needed to combine the results from different
  * threads.
+ * Also compute the desired radix size, as a function of `nsigbits` (number of
+ * significant bits in the data column).
+ *
+ * SortContext inputs:
+ *      n, nsigbits
+ *
+ * SortContext outputs:
+ *      nth, nchunks, chunklen, shift, nradixes
  */
-static void determine_chunk_sizes(SortContext *sc)
+static void determine_sorting_parameters(SortContext *sc)
 {
-    sc->nth = (size_t) omp_get_num_threads();
-    sc->nchunks = sc->nth * 2;
-    sc->chunklen = maxz(1024, (sc->n + sc->nchunks - 1) / sc->nchunks);
+    size_t nth = (size_t) omp_get_num_threads();
+    size_t nch = nth * 2;
+    sc->nth = nth;
+    sc->chunklen = maxz(1024, (sc->n + nch - 1) / nch);
     sc->nchunks = (sc->n - 1)/sc->chunklen + 1;
+
+    int8_t nradixbits = sc->nsigbits < 16 ? sc->nsigbits : 16;
+    sc->shift = sc->nsigbits - nradixbits;
+    sc->nradixes = 1 << nradixbits;
 }
 
 
@@ -524,25 +537,16 @@ static void determine_chunk_sizes(SortContext *sc)
  */
 static int32_t* radix_psort(SortContext *sc)
 {
-    // Compute the desired radix size, as a function of `sc->nsigbits` (number
-    // of significant bits in the data column).
-    //   nradixbits: how many bits to use for the radix
-    //   shift: the right-shift needed to leave the radix only
-    //   nradixes: how many different radixes there will be.
-    int nsigbits = sc->nsigbits;
-    int nradixbits = nsigbits < 16 ? nsigbits : 16;
-    int shift = nsigbits - nradixbits;
-    size_t nradixes = 1 << nradixbits;
-    sc->shift = (int8_t) shift;
-    sc->nradixes = nradixes;
-
-    determine_chunk_sizes(sc);
+    determine_sorting_parameters(sc);
     build_histogram(sc);
     reorder_data(sc);
 
-    if (shift > 0) {
+    if (sc->shift > 0) {
+        size_t nradixes = sc->nradixes;
+        size_t next_radixes = 1 << sc->shift;
+
         // Prepare temporary buffer
-        size_t tmpsize = maxz(sc->nth << shift, INSERT_SORT_THRESHOLD);
+        size_t tmpsize = maxz(sc->nth * next_radixes, INSERT_SORT_THRESHOLD);
         int32_t *tmp = NULL;
         dtmalloc(tmp, int32_t, tmpsize);
 
@@ -613,7 +617,7 @@ static int32_t* radix_psort(SortContext *sc)
             size_t off = rrmap[rri].offset;
             count_psort_i4(add_ptr(sc->next_x, off*4),
                            sc->next_o + off, rrmap[rri].size,
-                           tmp, 1 << shift);
+                           tmp, next_radixes);
             rri++;
         }
 
@@ -630,7 +634,7 @@ static int32_t* radix_psort(SortContext *sc)
                                sc->next_o + off, tmp, (int32_t)size);
             } else {
                 count_sort_i4(add_ptr(sc->next_x, off*4),
-                              sc->next_o + off, size, tmp, 1 << shift);
+                              sc->next_o + off, size, tmp, next_radixes);
             }
         }
         dtfree(tmp);
