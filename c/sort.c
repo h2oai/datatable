@@ -187,6 +187,30 @@ static void prepare_input_i1(const Column *col, SortContext *sc)
 }
 
 
+static void prepare_input_i2(const Column *col, SortContext *sc)
+{
+    size_t n = (size_t) col->nrows;
+    uint16_t *xi = (uint16_t*) col->data;
+    uint16_t *xo = NULL;
+    dtmalloc_g(xo, uint16_t, n);
+    uint16_t una = (uint16_t) NA_I2;
+
+    #pragma omp parallel for schedule(static)
+    for (size_t j = 0; j < n; j++) {
+        xo[j] = xi[j] - una;
+    }
+
+    sc->n = n;
+    sc->x = (void*) xo;
+    sc->own_x = 1;
+    sc->elemsize = 2;
+    sc->nsigbits = 16;
+    return;
+    fail:
+    sc->x = NULL;
+}
+
+
 static void prepare_input_i4(const Column *col, SortContext *sc)
 {
     sc->x = col->data;
@@ -370,21 +394,19 @@ static void build_histogram(SortContext *sc)
 
 TEMPLATE_REORDER_DATA(u4u4, uint32_t, uint32_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
+TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 #undef TEMPLATE_REORDER_DATA
 
 static void reorder_data(SortContext *sc)
 {
     dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
     dtmalloc_g(sc->next_o, int32_t, sc->n);
-    if (sc->elemsize == 4) {
-        reorder_data_u4u4(sc);
-    } else
-    if (sc->elemsize == 1) {
-        reorder_data_u1(sc);
-    } else {
-        assert(0);
+    switch (sc->elemsize) {
+        case 4: reorder_data_u4u4(sc); break;
+        case 2: reorder_data_u2(sc); break;
+        case 1: reorder_data_u1(sc); break;
+        default: assert(0);
     }
-
     return;
     fail:
     sc->next_x = NULL;
@@ -605,6 +627,7 @@ static int32_t* radix_psort_i4(SortContext *sc)
     }
 
 DECLARE_INSERT_SORT_FN(i1, int8_t)
+DECLARE_INSERT_SORT_FN(i2, int16_t)
 DECLARE_INSERT_SORT_FN(i4, int32_t)
 #undef DECLARE_INSERT_SORT_FN
 
@@ -712,13 +735,16 @@ void init_sort_functions(void)
     }
     prepare_inp_fns[ST_BOOLEAN_I1] = (prepare_inp_fn) &prepare_input_i1;
     prepare_inp_fns[ST_INTEGER_I1] = (prepare_inp_fn) &prepare_input_i1;
+    prepare_inp_fns[ST_INTEGER_I2] = (prepare_inp_fn) &prepare_input_i2;
     prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
 
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
+    insert_sort_fns[ST_INTEGER_I2] = (insert_sort_fn) &insert_sort_i2;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
 
     radix_psort_fns[ST_BOOLEAN_I1] = (radix_psort_fn) &radix_psort_i4;
     radix_psort_fns[ST_INTEGER_I1] = (radix_psort_fn) &radix_psort_i4;
+    radix_psort_fns[ST_INTEGER_I2] = (radix_psort_fn) &radix_psort_i4;
     radix_psort_fns[ST_INTEGER_I4] = (radix_psort_fn) &radix_psort_i4;
 }
