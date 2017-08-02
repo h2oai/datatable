@@ -42,10 +42,10 @@ typedef struct SortContext {
     int8_t own_o;
     int8_t elemsize;
     int8_t next_elemsize;
-    int8_t elemsign;
     int8_t nsigbits;
     int8_t shift;
     int8_t issorted;
+    char _padding;
 } SortContext;
 
 static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
@@ -61,6 +61,7 @@ static radix_psort_fn radix_psort_fns[DT_STYPES_COUNT];
 
 static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n, int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
+static int32_t* radix_psort_i4(SortContext*);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
@@ -110,7 +111,7 @@ RowIndex* column_sort(Column *col)
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
             prepfn(col, &sc);
-            ordering = sortfn(&sc);
+            ordering = radix_psort_i4(&sc);
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
@@ -157,9 +158,32 @@ static void prepare_input_generic(const Column *col, SortContext *sc)
     sc->x = col->data;
     sc->n = (size_t) col->nrows;
     sc->own_x = 0;
-    sc->elemsign = 1;
     sc->elemsize = (int8_t) stype_info[col->stype].elemsize;
     sc->nsigbits = sc->elemsize * 8;
+}
+
+
+static void prepare_input_i1(const Column *col, SortContext *sc)
+{
+    size_t n = (size_t) col->nrows;
+    uint8_t *xi = (uint8_t*) col->data;
+    uint8_t *xo = NULL;
+    dtmalloc_g(xo, uint8_t, n);
+    uint8_t una = (uint8_t) NA_I1;
+
+    #pragma omp parallel for schedule(static)
+    for (size_t j = 0; j < n; j++) {
+        xo[j] = xi[j] - una;
+    }
+
+    sc->n = n;
+    sc->x = (void*) xo;
+    sc->own_x = 1;
+    sc->elemsize = 1;
+    sc->nsigbits = 8;
+    return;
+    fail:
+    sc->x = NULL;
 }
 
 
@@ -207,7 +231,6 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         sc->next_elemsize = 4;
         sc->own_x = 1;
     }
-    sc->elemsign = 0;
     return;
 
     fail:
@@ -687,10 +710,15 @@ void init_sort_functions(void)
         insert_sort_fns[i] = NULL;
         radix_psort_fns[i] = NULL;
     }
+    prepare_inp_fns[ST_BOOLEAN_I1] = (prepare_inp_fn) &prepare_input_i1;
+    prepare_inp_fns[ST_INTEGER_I1] = (prepare_inp_fn) &prepare_input_i1;
     prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
 
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
+
+    radix_psort_fns[ST_BOOLEAN_I1] = (radix_psort_fn) &radix_psort_i4;
+    radix_psort_fns[ST_INTEGER_I1] = (radix_psort_fn) &radix_psort_i4;
     radix_psort_fns[ST_INTEGER_I4] = (radix_psort_fn) &radix_psort_i4;
 }
