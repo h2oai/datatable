@@ -221,7 +221,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
     uint32_t umin = (uint32_t) min;
     uint32_t una = (uint32_t) NA_I4;
     uint32_t *ux = (uint32_t*) sc->x;
-    if (nsigbits <= -16) {
+    if (nsigbits <= 16) {
         uint16_t *xx = NULL;
         dtmalloc_g(xx, uint16_t, sc->n);
         #pragma omp parallel for schedule(static)
@@ -231,6 +231,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         }
         sc->x = (void*) xx;
         sc->elemsize = 2;
+        sc->next_elemsize = 0;
         sc->own_x = 1;
     } else {
         uint32_t *xx = NULL;
