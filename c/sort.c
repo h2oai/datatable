@@ -142,8 +142,11 @@ typedef struct SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-static int32_t* insert_sort_i4(const int32_t*, int32_t*, int32_t*, int32_t);
-static int32_t* insert_sort_i1(const int8_t*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_i4(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u1(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u2(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u4(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u8(const void*, int32_t*, int32_t*, int32_t);
 
 typedef void     (*prepare_inp_fn)(const Column*, SortContext*);
 typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
@@ -650,14 +653,18 @@ static int32_t* radix_psort(SortContext *sc)
         // Finally iterate over all remaining radix ranges, in-parallel, and
         // sort each of them independently using one of the simpler algorithms:
         // counting sort or insertion sort.
+        insert_sort_fn isort = sc->next_elemsize == 1? insert_sort_u1 :
+                               sc->next_elemsize == 2? insert_sort_u2 :
+                               sc->next_elemsize == 4? insert_sort_u4 :
+                               sc->next_elemsize == 8? insert_sort_u8 : NULL;
         #pragma omp parallel for num_threads(sc->nth)
         for (size_t i = rri; i < nradixes; i++)
         {
             size_t off = rrmap[i].offset;
             size_t size = rrmap[i].size;
             if (size <= INSERT_SORT_THRESHOLD) {
-                insert_sort_i4(add_ptr(sc->next_x, off*4),
-                               sc->next_o + off, tmp, (int32_t)size);
+                isort(add_ptr(sc->next_x, off*sc->next_elemsize),
+                      sc->next_o + off, tmp, (int32_t)size);
             } else {
                 count_sort_i4(add_ptr(sc->next_x, off*4),
                               sc->next_o + off, size, tmp, next_radixes);
@@ -713,11 +720,12 @@ static int32_t* radix_psort(SortContext *sc)
 
 #define DECLARE_INSERT_SORT_FN(SFX, T)                                         \
     static int32_t* insert_sort_ ## SFX(                                       \
-        const T *restrict x,                                                   \
+        const void *restrict v,                                                \
         int32_t *restrict y,                                                   \
         int32_t *restrict tmp,                                                 \
         int32_t n                                                              \
     ) {                                                                        \
+        const T *restrict x = (const T *) v;                                   \
         int own_tmp = 0;                                                       \
         if (tmp == NULL) {                                                     \
             dtmalloc(tmp, int32_t, n);                                         \
@@ -745,6 +753,10 @@ static int32_t* radix_psort(SortContext *sc)
 DECLARE_INSERT_SORT_FN(i1, int8_t)
 DECLARE_INSERT_SORT_FN(i2, int16_t)
 DECLARE_INSERT_SORT_FN(i4, int32_t)
+DECLARE_INSERT_SORT_FN(u1, uint8_t)
+DECLARE_INSERT_SORT_FN(u2, uint16_t)
+DECLARE_INSERT_SORT_FN(u4, uint32_t)
+DECLARE_INSERT_SORT_FN(u8, uint64_t)
 #undef DECLARE_INSERT_SORT_FN
 
 
