@@ -202,6 +202,10 @@ RowIndex* column_sort(Column *col)
             }
             radix_psort(&sc);
             ordering = sc.o;
+            dtfree(sc.x);
+            dtfree(sc.next_x);
+            dtfree(sc.next_o);
+            dtfree(sc.histogram);
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
@@ -654,6 +658,7 @@ static void radix_psort(SortContext *sc)
             next_sc.n = rrmap[i].size;
             insert_sort(&next_sc);
         }
+        dtfree(rrmap);
     }
 
     // Done. Array `oo` contains the ordering of the input vector `x`.
