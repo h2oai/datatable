@@ -328,9 +328,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
 
     int32_t min, max;
     compute_min_max_i4(sc, &min, &max);
-    if (min >= max) {
-        // min > max if the column contains NAs only; min == max if the column
-        // is constant.
+    if (min > max) {  // the column contains NAs only
         sc->issorted = 1;
         return;
     }
