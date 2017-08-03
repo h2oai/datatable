@@ -150,8 +150,6 @@ typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
 static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
 
-static void* count_psort_i4(int32_t *restrict x, int32_t *restrict y, size_t n,
-                            int32_t *restrict temp, size_t range);
 static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
 static int32_t* radix_psort(SortContext*);
 
@@ -367,12 +365,14 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
  * Allocate `max(nchunks, 2)` because this array will be reused later.
  */
 #define TEMPLATE_BUILD_HISTOGRAM(SFX, T)                                       \
-    static size_t* build_histogram_ ## SFX(SortContext *sc)                    \
+    static void build_histogram_ ## SFX(SortContext *sc)                       \
     {                                                                          \
         T *x = (T*) sc->x;                                                     \
         int8_t shift = sc->shift;                                              \
-        size_t *counts = NULL;                                                 \
-        dtcalloc(counts, size_t, sc->nchunks * sc->nradixes);                  \
+        if (!sc->histogram) {                                                  \
+            dtcalloc_g(sc->histogram, size_t, sc->nchunks * sc->nradixes);     \
+        }                                                                      \
+        size_t *counts = sc->histogram;                                        \
         _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
         for (size_t i = 0; i < sc->nchunks; i++)                               \
         {                                                                      \
@@ -392,7 +392,9 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
                 cumsum += t;                                                   \
             }                                                                  \
         }                                                                      \
-        return counts;                                                         \
+        return;                                                                \
+        fail:                                                                  \
+        sc->x = NULL;                                                          \
     }
 
 TEMPLATE_BUILD_HISTOGRAM(u1, uint8_t)
@@ -404,10 +406,10 @@ TEMPLATE_BUILD_HISTOGRAM(u8, uint64_t)
 
 static void build_histogram(SortContext *sc)
 {
-    sc->histogram = sc->elemsize == 1? build_histogram_u1(sc) :
-                    sc->elemsize == 2? build_histogram_u2(sc) :
-                    sc->elemsize == 4? build_histogram_u4(sc) :
-                    sc->elemsize == 8? build_histogram_u8(sc) : NULL;
+    if (sc->elemsize == 1) build_histogram_u1(sc);
+    else if (sc->elemsize == 2) build_histogram_u2(sc);
+    else if (sc->elemsize == 4) build_histogram_u4(sc);
+    else if (sc->elemsize == 8) build_histogram_u8(sc);
 }
 
 
@@ -541,7 +543,27 @@ static int32_t* radix_psort(SortContext *sc)
     build_histogram(sc);
     reorder_data(sc);
 
+    assert((sc->shift > 0) == (sc->next_elemsize > 0));
     if (sc->shift > 0) {
+        // Prepare the "next SortContext" variable
+        SortContext next_sc = {
+            .x = NULL,
+            .o = NULL,
+            .n = 0,
+            .elemsize = sc->next_elemsize,
+            .issorted = 0,
+            .nsigbits = sc->shift,
+            .shift = 0,
+            .nradixes = 0,
+            .nth = 0,
+            .nchunks = 0,
+            .chunklen = 0,
+            .histogram = NULL,  // sc->histogramreuse the `histogram` buffer
+            .next_x = sc->x,  // x is no longer needed: reuse
+            .next_o = NULL,
+            .next_elemsize = 0,
+        };
+
         size_t nradixes = sc->nradixes;
         size_t next_radixes = 1 << sc->shift;
 
@@ -552,14 +574,15 @@ static int32_t* radix_psort(SortContext *sc)
 
         // At this point the input array is already partially sorted, and the
         // elements that remain to be sorted are collected into contiguous
-        // chunks. For example if `shift` is 2, then `xx` may look like this:
+        // chunks. For example if `shift` is 2, then `next_x` may be:
         //     na na | 0 2 1 3 1 | 2 | 1 1 3 0 | 3 0 0 | 2 2 2 2 2 2
-        // For each distinct radix there is a "range" within `xx` that contains
-        // values corresponding to that radix. The values in `xx` have their
-        // most significant bits already removed, since they are constant within
-        // each radix range. The array `xx` is accompanied by array `oo` which
-        // carries the original row numbers of each value. Once we sort `oo` by
-        // the values of `xx` within each radix range, our job will be complete.
+        // For each distinct radix there is a "range" within `next_x` that
+        // contains values corresponding to that radix. The values in `next_x`
+        // have their most significant bits already removed, since they are
+        // constant within each radix range. The array `next_x` is accompanied
+        // by array `next_o` which carries the original row numbers of each
+        // value. Once we sort `next_o` by the values of `next_x` within each
+        // radix range, our job will be complete.
 
         // First, determine the sizes of ranges corresponding to each radix that
         // remain to be sorted. Recall that the previous step left us with the
@@ -569,10 +592,10 @@ static int32_t* radix_psort(SortContext *sc)
         // it to hold the "radix ranges map" records. Each such record contains
         // the size of a particular radix region, and its offset within the
         // output array.
-        size_t *rrendoffsets = sc->histogram + (sc->nchunks - 1) * nradixes;
+        size_t *rrendoffsets = sc->histogram + (sc->nchunks - 1) * sc->nradixes;
         radix_range *rrmap = NULL;
-        dtmalloc(rrmap, radix_range, nradixes);
-        for (size_t i = 0; i < nradixes; i++) {
+        dtmalloc(rrmap, radix_range, sc->nradixes);
+        for (size_t i = 0; i < sc->nradixes; i++) {
             size_t start = i? rrendoffsets[i-1] : 0;
             size_t end = rrendoffsets[i];
             assert(start <= end);
@@ -582,10 +605,10 @@ static int32_t* radix_psort(SortContext *sc)
 
         // Sort the radix ranges in the decreasing size order. This is
         // beneficial because processing large groups first and small groups
-        // later reduces the amount of times wasted by threads (for example,
-        // suppose there are 2 groups and radix ranges have sizes 1M, 1M, 1M,
-        // ..., 10M. Then if the groups are processed in this order, then the
-        // two threads will first do all 1M chunks finishing simultaneously,
+        // later reduces the amount of time wasted by threads (for example,
+        // suppose there are 2 threads and radix ranges have sizes 1M, 1M, 1M,
+        // ..., 10M. Then if the groups are processed in this order, the two
+        // threads will first do all 1M chunks finishing simultaneously,
         // then the last thread will be doing 10M chunk while the other thread
         // is idle. Working in the opposite direction, one thread will start
         // with 10M chunk, and the other thread will finish all 1M chunks at
@@ -615,9 +638,10 @@ static int32_t* radix_psort(SortContext *sc)
         size_t rrlarge = 2 * sc->n / nradixes;
         while (rrmap[rri].size > rrlarge && rri < nradixes) {
             size_t off = rrmap[rri].offset;
-            count_psort_i4(add_ptr(sc->next_x, off*4),
-                           sc->next_o + off, rrmap[rri].size,
-                           tmp, next_radixes);
+            next_sc.x = add_ptr(sc->next_x, off * sc->next_elemsize);
+            next_sc.o = sc->next_o + off;
+            next_sc.n = rrmap[rri].size;
+            radix_psort(&next_sc);
             rri++;
         }
 
@@ -641,9 +665,12 @@ static int32_t* radix_psort(SortContext *sc)
     }
 
     // Done. Array `oo` contains the ordering of the input vector `x`.
-    dtfree(sc->x);
+    // dtfree(sc->x);
     // dtfree(xx);
-    sc->o = sc->next_o;
+    dtfree(sc->histogram);
+    if (sc->o) {
+        memcpy(sc->o, sc->next_o, sc->n * sizeof(int32_t));
+    }
     return sc->next_o;
 }
 
@@ -723,73 +750,6 @@ DECLARE_INSERT_SORT_FN(i4, int32_t)
 //==============================================================================
 // Counting sorts
 //==============================================================================
-
-/**
- * Sort array `y` according to the values of array `x`. Both arrays have same
- * size `n`. Array `x` will be overwritten in the process.
- * It is assumed that array `x` contains values in the range `0 .. range - 1`,
- * and the temporary buffer `tmp` has the size sufficient for `nthreads * range`
- * integers.
- *
- * This procedure uses parallel Counting Sort algorithm.
- */
-static void* count_psort_i4(
-    int32_t *restrict x,
-    int32_t *restrict y,
-    size_t n,
-    int32_t *restrict tmp,
-    size_t range
-) {
-    int nth = omp_get_num_threads();
-    size_t nchunks = (size_t) nth;
-    size_t chunklen = (n + nchunks - 1) / nchunks;
-    size_t counts_size = nchunks * range;
-
-    // Clear the `tmp` buffer
-    memset(tmp, 0, counts_size * sizeof(int32_t));
-
-    // Construct parallel histogram, splitting the input into `nchunks` parts
-    #pragma omp parallel for schedule(dynamic) num_threads(nth)
-    for (size_t i = 0; i < nchunks; i++)
-    {
-        int32_t *restrict myx = x + i * chunklen;
-        int32_t *const myxend = x + minz((i + 1) * chunklen, n);
-        int32_t *restrict mycounts = tmp + (i * range);
-        for (; myx < myxend; myx++) {
-            mycounts[*myx]++;
-        }
-    }
-
-    // Compute cumulative sums of the histogram
-    int32_t cumsum = 0;
-    for (size_t j = 0; j < range; j++) {
-        for (size_t offset = j; offset < counts_size; offset += range) {
-            int32_t t = tmp[offset];
-            tmp[offset] = cumsum;
-            cumsum += t;
-        }
-    }
-
-    int32_t *yy; dtmalloc(yy, int, n);
-    // Reorder the data
-    #pragma omp parallel for schedule(dynamic) num_threads(nth)
-    for (size_t i = 0; i < nchunks; i++)
-    {
-        size_t j0 = i * chunklen,
-               j1 = minz(j0 + chunklen, n);
-        int32_t *restrict mycounts = tmp + (i * range);
-        for (size_t j = j0; j < j1; j++) {
-            int32_t k = mycounts[x[j]]++;
-            yy[k] = y[j];
-        }
-    }
-
-    // Produce the output
-    memcpy(y, yy, n * sizeof(int32_t));
-    dtfree(yy);
-    return NULL;
-}
-
 
 static void* count_sort_i4(
     int32_t *restrict x,
