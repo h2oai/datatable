@@ -142,19 +142,13 @@ typedef struct SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-static int32_t* insert_sort_i4(const void*, int32_t*, int32_t*, int32_t);
-static int32_t* insert_sort_u1(const void*, int32_t*, int32_t*, int32_t);
-static int32_t* insert_sort_u2(const void*, int32_t*, int32_t*, int32_t);
-static int32_t* insert_sort_u4(const void*, int32_t*, int32_t*, int32_t);
-static int32_t* insert_sort_u8(const void*, int32_t*, int32_t*, int32_t);
-
 typedef void     (*prepare_inp_fn)(const Column*, SortContext*);
 typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
 static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
 
-static void* count_sort_i4(int32_t*, int32_t*, size_t, int32_t*, size_t);
-static int32_t* radix_psort(SortContext*);
+static void insert_sort(SortContext *sc);
+static void radix_psort(SortContext*);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
@@ -206,7 +200,8 @@ RowIndex* column_sort(Column *col)
             if (sc.issorted) {
                 return rowindex_from_slice(0, nrows, 1);
             }
-            ordering = radix_psort(&sc);
+            radix_psort(&sc);
+            ordering = sc.o;
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
@@ -454,7 +449,7 @@ static void build_histogram(SortContext *sc)
             for (size_t j = j0; j < j1; j++) {                                 \
                 size_t k = tcounts[xi[j] >> shift]++;                          \
                 oo[k] = oi? oi[j] : (int32_t) j;                               \
-                if (xo) xo[k] = xi[j] & mask;                                  \
+                if (xo) xo[k] = (TO)(xi[j] & mask);                            \
             }                                                                  \
         }                                                                      \
         assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);        \
@@ -542,7 +537,7 @@ static void determine_sorting_parameters(SortContext *sc)
  * Sort array `x` of length `n` using radix sort algorithm, and return the
  * resulting ordering in variable `o`.
  */
-static int32_t* radix_psort(SortContext *sc)
+static void radix_psort(SortContext *sc)
 {
     determine_sorting_parameters(sc);
     build_histogram(sc);
@@ -570,7 +565,7 @@ static int32_t* radix_psort(SortContext *sc)
         };
 
         size_t nradixes = sc->nradixes;
-        size_t next_radixes = 1 << sc->shift;
+        size_t next_elemsize = (size_t) sc->next_elemsize;
 
         // At this point the input array is already partially sorted, and the
         // elements that remain to be sorted are collected into contiguous
@@ -594,7 +589,7 @@ static int32_t* radix_psort(SortContext *sc)
         // output array.
         size_t *rrendoffsets = sc->histogram + (sc->nchunks - 1) * sc->nradixes;
         radix_range *rrmap = NULL;
-        dtmalloc(rrmap, radix_range, sc->nradixes);
+        dtmalloc_g(rrmap, radix_range, sc->nradixes);
         for (size_t i = 0; i < sc->nradixes; i++) {
             size_t start = i? rrendoffsets[i-1] : 0;
             size_t end = rrendoffsets[i];
@@ -635,52 +630,43 @@ static int32_t* radix_psort(SortContext *sc)
         // situation). In practice we deem a range to be "large" if its size is
         // more then `2n/k`.
         size_t rri = 0;
-        size_t rrlarge = 2 * sc->n / nradixes;
+        // size_t rrlarge = 2 * sc->n / nradixes;
+        size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
         while (rrmap[rri].size > rrlarge && rri < nradixes) {
             size_t off = rrmap[rri].offset;
-            next_sc.x = add_ptr(sc->next_x, off * sc->next_elemsize);
+            next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
             next_sc.o = sc->next_o + off;
             next_sc.n = rrmap[rri].size;
             radix_psort(&next_sc);
             rri++;
         }
 
-        // Prepare temporary buffer
-        size_t tmpsize = maxz(sc->nth * next_radixes, INSERT_SORT_THRESHOLD);
-        int32_t *tmp = NULL;
-        dtmalloc(tmp, int32_t, tmpsize);
-
         // Finally iterate over all remaining radix ranges, in-parallel, and
         // sort each of them independently using one of the simpler algorithms:
         // counting sort or insertion sort.
-        insert_sort_fn isort = sc->next_elemsize == 1? insert_sort_u1 :
-                               sc->next_elemsize == 2? insert_sort_u2 :
-                               sc->next_elemsize == 4? insert_sort_u4 :
-                               sc->next_elemsize == 8? insert_sort_u8 : NULL;
         #pragma omp parallel for num_threads(sc->nth)
         for (size_t i = rri; i < nradixes; i++)
         {
             size_t off = rrmap[i].offset;
-            size_t size = rrmap[i].size;
-            if (size <= INSERT_SORT_THRESHOLD) {
-                isort(add_ptr(sc->next_x, off*sc->next_elemsize),
-                      sc->next_o + off, tmp, (int32_t)size);
-            } else {
-                count_sort_i4(add_ptr(sc->next_x, off*4),
-                              sc->next_o + off, size, tmp, next_radixes);
-            }
+            next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
+            next_sc.next_x = add_ptr(sc->x, off * next_elemsize);
+            next_sc.o = sc->next_o + off;
+            next_sc.n = rrmap[i].size;
+            insert_sort(&next_sc);
         }
-        dtfree(tmp);
     }
 
     // Done. Array `oo` contains the ordering of the input vector `x`.
-    // dtfree(sc->x);
-    // dtfree(xx);
-    // dtfree(sc->histogram);
     if (sc->o) {
         memcpy(sc->o, sc->next_o, sc->n * sizeof(int32_t));
+    } else {
+        sc->o = sc->next_o;
+        sc->next_o = NULL;
     }
-    return sc->next_o;
+    return;
+    fail:
+    sc->x = NULL;
+    sc->o = NULL;
 }
 
 
@@ -759,33 +745,22 @@ DECLARE_INSERT_SORT_FN(u4, uint32_t)
 DECLARE_INSERT_SORT_FN(u8, uint64_t)
 #undef DECLARE_INSERT_SORT_FN
 
-
-
-//==============================================================================
-// Counting sorts
-//==============================================================================
-
-static void* count_sort_i4(
-    int32_t *restrict x,
-    int32_t *restrict y,
-    size_t n,
-    int32_t *restrict tmp,
-    size_t range
-) {
-    memset(tmp, 0, (range + 1) * sizeof(int32_t));
-    int32_t *counts = tmp + 1;
-    for (size_t i = 0; i < n; i++) {
-        counts[x[i]]++;
+static void insert_sort(SortContext *sc)
+{
+    int32_t n = (int32_t) sc->n;
+    switch (sc->elemsize) {
+        case 1: insert_sort_u1(sc->x, sc->o, sc->next_x, n); break;
+        case 2: insert_sort_u2(sc->x, sc->o, sc->next_x, n); break;
+        case 4: insert_sort_u4(sc->x, sc->o, sc->next_x, n); break;
+        case 8: insert_sort_u8(sc->x, sc->o, sc->next_x, n); break;
     }
-    counts = tmp;
-    for (size_t i = 0; i < n; i++) {
-        int32_t k = counts[x[i]]++;
-        x[i] = y[k];
-    }
-    memcpy(y, x, n * sizeof(int32_t));
-    return NULL;
 }
 
+
+
+//==============================================================================
+// Initializing static arrays
+//==============================================================================
 
 void init_sort_functions(void)
 {
