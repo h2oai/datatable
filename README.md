@@ -5,8 +5,9 @@ Python 3.6 is required; later on we will add option to convert to 3.5
 format as well. We will not provide support for any Python version
 below 3.5.
 
-## Run instructions
+## build instructions
 
+### installing the Clang + Llvm-4.0 package
 Make sure that you have the
 [Clang + Llvm-4.0](http://releases.llvm.org/download.html#4.0.0) combined package
 installed even if you have both clang and llvm installed at version 4.0 already.
@@ -14,6 +15,7 @@ Python seems to need them together in one path. Then set up environment variable
 `LLVM4` so that it points to the location of this package.
 
 On Ubuntu that means:
+
   1. Click the link above and using your browser download the pre-built binary; e.g. `clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz`
   2. Move that `.tar.xz` file to `/opt`
   3. `cd /opt`
@@ -21,20 +23,26 @@ On Ubuntu that means:
   5. `export LLVM4=/opt/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10`
 
 On OS-X that means:
+
   1. Click the link above and using your browser download the pre-built binary; e.g. `clang+llvm-4.0.0-x86_64-apple-darwin.tar.xz`
   2. `sudo mv *.tar.xz /opt`
   3. `cd /opt`
   4. `sudo tar xvf clang+llvm-4.0.0-x86_64-apple-darwin.tar.xz`
   5. `export LLVM4=/opt/clang+llvm-4.0.0-x86_64-apple-darwin`
 
+You probably also want to put the `export` into your `.profile`.
+
+### enabling python 3.6 via `virtualenv`
 You will also need to have Python 3.6 as your default python. The easiest way
 is to set up a virtual environment:
 ```bash
 $ virtualenv --python=python3.6 ~/py36
 $ source ~/py36/bin/activate
 ```
-If you get an error like `ImportError: This package should not be accessible on Python 3. Either you are trying to run from the python-future src folder or your installation of python-future is corrupted` see: <https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3>.
 
+If you get an error like `ImportError: This package should not be accessible on Python 3` either you are trying to run from the python-future src folder or your installation of python-future is corrupted. See: <https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3>.
+
+### installing other required packages
 Make sure that you have pytest and friend as well as pandas:
 ```bash
 $ pip install pytest
@@ -42,7 +50,7 @@ $ pip install pytest-cov
 $ pip install pandas
 ```
 
-
+### building datatable
 After that, go into the `datatable` folder and run:
 ```bash
 $ make
