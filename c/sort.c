@@ -336,7 +336,7 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         }
         sc->x = (void*) xx;
         sc->elemsize = 4;
-        sc->next_elemsize = 4;
+        sc->next_elemsize = 2;
     }
     return;
 
@@ -481,7 +481,7 @@ static void build_histogram(SortContext *sc)
 
 
 
-TEMPLATE_REORDER_DATA(u4u2, uint32_t, uint32_t)
+TEMPLATE_REORDER_DATA(u4u2, uint32_t, uint16_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 #undef TEMPLATE_REORDER_DATA
