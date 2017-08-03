@@ -569,11 +569,6 @@ static int32_t* radix_psort(SortContext *sc)
         size_t nradixes = sc->nradixes;
         size_t next_radixes = 1 << sc->shift;
 
-        // Prepare temporary buffer
-        size_t tmpsize = maxz(sc->nth * next_radixes, INSERT_SORT_THRESHOLD);
-        int32_t *tmp = NULL;
-        dtmalloc(tmp, int32_t, tmpsize);
-
         // At this point the input array is already partially sorted, and the
         // elements that remain to be sorted are collected into contiguous
         // chunks. For example if `shift` is 2, then `next_x` may be:
@@ -646,6 +641,11 @@ static int32_t* radix_psort(SortContext *sc)
             radix_psort(&next_sc);
             rri++;
         }
+
+        // Prepare temporary buffer
+        size_t tmpsize = maxz(sc->nth * next_radixes, INSERT_SORT_THRESHOLD);
+        int32_t *tmp = NULL;
+        dtmalloc(tmp, int32_t, tmpsize);
 
         // Finally iterate over all remaining radix ranges, in-parallel, and
         // sort each of them independently using one of the simpler algorithms:
