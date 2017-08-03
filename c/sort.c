@@ -369,8 +369,11 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
     {                                                                          \
         T *x = (T*) sc->x;                                                     \
         int8_t shift = sc->shift;                                              \
-        if (!sc->histogram) {                                                  \
-            dtcalloc_g(sc->histogram, size_t, sc->nchunks * sc->nradixes);     \
+        size_t counts_size = sc->nchunks * sc->nradixes;                       \
+        if (sc->histogram) {                                                   \
+            memset(sc->histogram, 0, counts_size * sizeof(size_t));            \
+        } else {                                                               \
+            dtcalloc_g(sc->histogram, size_t, counts_size);                    \
         }                                                                      \
         size_t *counts = sc->histogram;                                        \
         _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
@@ -383,7 +386,6 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
                 cnts[x[j] >> shift]++;                                         \
             }                                                                  \
         }                                                                      \
-        size_t counts_size = sc->nchunks * sc->nradixes;                       \
         size_t cumsum = 0;                                                     \
         for (size_t j = 0; j < sc->nradixes; j++) {                            \
             for (size_t o = j; o < counts_size; o += sc->nradixes) {           \
@@ -558,7 +560,7 @@ static int32_t* radix_psort(SortContext *sc)
             .nth = 0,
             .nchunks = 0,
             .chunklen = 0,
-            .histogram = NULL,  // sc->histogramreuse the `histogram` buffer
+            .histogram = sc->histogram,  // reuse the `histogram` buffer
             .next_x = sc->x,  // x is no longer needed: reuse
             .next_o = NULL,
             .next_elemsize = 0,
@@ -667,7 +669,7 @@ static int32_t* radix_psort(SortContext *sc)
     // Done. Array `oo` contains the ordering of the input vector `x`.
     // dtfree(sc->x);
     // dtfree(xx);
-    dtfree(sc->histogram);
+    // dtfree(sc->histogram);
     if (sc->o) {
         memcpy(sc->o, sc->next_o, sc->n * sizeof(int32_t));
     }
