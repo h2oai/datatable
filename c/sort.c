@@ -1,6 +1,9 @@
 //------------------------------------------------------------------------------
 // Sorting/ordering functions.
 //
+// We use stable parallel MSD Radix sort algorithm, with fallback to Insertion
+// sort at small `n`s.
+//
 // All functions defined here treat the input arrays as immutable -- i.e. no
 // in-place sorting. Instead, each function creates and returns an "ordering"
 // vector. The ordering `o` of an array `x` is such a sequence of integers that
@@ -10,7 +13,9 @@
 // values in `x` (if any) at the beginning of the sorted list.
 //
 // See also:
-//     https://github.com/Rdatatable/data.table/src/forder.c, fsort.c
+//      https://en.wikipedia.org/wiki/Radix_sort
+//      https://en.wikipedia.org/wiki/Insertion_sort
+//      https://github.com/Rdatatable/data.table/src/forder.c, fsort.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>   // printf
@@ -147,7 +152,7 @@ typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
 static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
 
-static void insert_sort(SortContext *sc);
+static void insert_sort(SortContext*);
 static void radix_psort(SortContext*);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
@@ -168,7 +173,7 @@ static int _rrcmp(const void *a, const void *b) {
 //==============================================================================
 
 /**
- * Sort the column, and return the ordering as a RowIndex object. This function
+ * Sort the column, and return its ordering as a RowIndex object. This function
  * will choose the most appropriate algorithm for sorting. The data in column
  * `col` will not be modified.
  *
@@ -200,6 +205,7 @@ RowIndex* column_sort(Column *col)
             if (sc.issorted) {
                 return rowindex_from_slice(0, nrows, 1);
             }
+            if (!sc.x) return NULL;
             radix_psort(&sc);
             ordering = sc.o;
             dtfree(sc.x);
@@ -219,6 +225,18 @@ RowIndex* column_sort(Column *col)
 
 //==============================================================================
 // "Prepare input" functions
+//
+// Preparing input is the first step for the radix sort algorithm. The primary
+// goal of this step is to convert the input data from signed/float/string
+// representation into an array of unsigned integers.
+// If preparing data fails, then `sc->x` will be set to NULL.
+//
+// SortContext inputs:
+//      -
+//
+// SortContext outputs:
+//      x, n, elemsize, nsigbits, next_elemsize, (?)issorted
+//
 //==============================================================================
 
 /**
@@ -227,6 +245,7 @@ RowIndex* column_sort(Column *col)
  * INT_MAX, and `max` will hold value -INT_MAX. In all other cases it is
  * guaranteed that `min <= max`.
  *
+ * This is a helper function for `prepare_input_i4`.
  * TODO: replace this with the information from RollupStats eventually.
  */
 static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
@@ -247,7 +266,11 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
 }
 
 
-
+/**
+ * For i1/i2 columns we do not attempt to find the actual minimum, and instead
+ * simply translate them into unsigned by subtracting the lowest possible
+ * integer value. This maps NA to 0, -INT_MAX to 1, ... and INT_MAX to UINT_MAX.
+ */
 static void prepare_input_i1(const Column *col, SortContext *sc)
 {
     size_t n = (size_t) col->nrows;
@@ -294,6 +317,10 @@ static void prepare_input_i2(const Column *col, SortContext *sc)
 }
 
 
+/**
+ * For i4/i8 columns we transform them by mapping NAs to 0, the minimum of `x`s
+ * to 1, ... and the maximum of `x`s to `max - min + 1`.
+ */
 static void prepare_input_i4(const Column *col, SortContext *sc)
 {
     sc->x = col->data;
@@ -349,22 +376,21 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
 // Histogram building functions
 //==============================================================================
 
-
 /**
- * Calculate initial histograms of values in `x`. Specifically, we're
- * creating a `counts` table which has `nchunks` rows and `nradix`
- * columns. Cell `[i,j]` in this table will contain the count of values
- * `x` within the chunk `i` such that the topmost `nradixbits` of `x - min`
- * are equal to `j`.
+ * Calculate initial histograms of values in `x`. Specifically, we're creating
+ * a `counts` table which has `nchunks` rows and `nradix` columns. Cell `[i,j]`
+ * in this table will contain the count of values `x` within the chunk `i` such
+ * that the topmost `nradixbits` of `x` are equal to `j`.
  *
- * More precisely, we put all `x`s equal to NA into cell 0, while other
- * values into the cell `1 + ((x - min)>>shift)`. The expression `x - min`
- * cannot be computed as-is however: it is possible that it overflows the
- * range of int32_t, in which case the behavior is undefined. However
- * casting both of them to uint32_t first avoids this problem and produces
- * the correct result.
+ * If the `histogram` pointer in the SortContext is NULL, then the required
+ * memory buffer will be allocated; if the `histogram` is not empty, then this
+ * memory region will be cleared and then filled in.
  *
- * Allocate `max(nchunks, 2)` because this array will be reused later.
+ * SortContext inputs:
+ *      x, n, shift, nradixes, nth, nchunks, chunklen,
+ *
+ * SortContext outputs:
+ *      histogram
  */
 #define TEMPLATE_BUILD_HISTOGRAM(SFX, T)                                       \
     static void build_histogram_ ## SFX(SortContext *sc)                       \
@@ -423,18 +449,25 @@ static void build_histogram(SortContext *sc)
 //==============================================================================
 
 /**
- * Perform the main radix shuffle, filling in arrays `oo` and `xx`. The
- * array `oo` will contain the original row numbers of the values in `x`
- * such that `x[oo]` is sorted with respect to the most significant bits.
- * The `xx` array will contain the sorted elements of `x`, with MSB bits
+ * Perform the main radix shuffle, filling in arrays `next_o` and `next_x`. The
+ * array `next_o` will contain the original row numbers of the values in `x`
+ * such that `x[next_o]` is sorted with respect to the most significant bits.
+ * The `next_x` array will contain the sorted elements of `x`, with MSB bits
  * already removed -- we need it mostly for page-efficiency at later stages
  * of the algorithm.
- * During execution of this step we also modify the `counts` array, again,
- * so that by the end of the step each cell in `counts` will contain the
- * offset past the *last* item within that cell. In particular, the last row
- * of the `counts` table will contain end-offsets of output regions
- * corresponding to each radix value.
- * This is the last step that accesses the input array in chunks.
+ *
+ * During execution of this step we also modify the `histogram` array so that
+ * by the end of the step each cell in `histogram` will contain the offset past
+ * the *last* item within that cell. In particular, the last row of the
+ * `histogram` table will contain end-offsets of output regions corresponding
+ * to each radix value.
+ *
+ * SortContext inputs:
+ *      x, o, n, shift, nradixes, histogram, nth, nchunks, chunklen
+ *
+ * SortContext outputs:
+ *      next_x, next_o, histogram
+ *
  */
 #define TEMPLATE_REORDER_DATA(SFX, TI, TO)                                     \
     static void reorder_data_ ## SFX(SortContext *sc)                          \
@@ -487,8 +520,12 @@ TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 
 static void reorder_data(SortContext *sc)
 {
-    dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
-    dtmalloc_g(sc->next_o, int32_t, sc->n);
+    if (!sc->next_x) {
+        dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
+    }
+    if (!sc->next_o) {
+        dtmalloc_g(sc->next_o, int32_t, sc->n);
+    }
     switch (sc->elemsize) {
         case 4: reorder_data_u4u2(sc); break;
         case 2: reorder_data_u2(sc); break;
@@ -538,18 +575,40 @@ static void determine_sorting_parameters(SortContext *sc)
 
 
 /**
- * Sort array `x` of length `n` using radix sort algorithm, and return the
- * resulting ordering in variable `o`.
+ * Sort array `x` of length `n` using MSB Radix sort algorithm, and return the
+ * resulting ordering in array `o`.
+ * This function presumes that "prepare data" step has already been invoked.
+ *
+ * SortContext inputs:
+ *      x, o, n, elemsize, next_elemsize, nsigbits
+ *
+ * SortContext outputs:
+ *      o
  */
 static void radix_psort(SortContext *sc)
 {
     determine_sorting_parameters(sc);
     build_histogram(sc);
     reorder_data(sc);
+    if (!sc->x) return;
 
     assert((sc->shift > 0) == (sc->next_elemsize > 0));
     if (sc->shift > 0) {
+        // At this point the input array is already partially sorted, and the
+        // elements that remain to be sorted are collected into contiguous
+        // chunks. For example if `shift` is 2, then `next_x` may be:
+        //     na na | 0 2 1 3 1 | 2 | 1 1 3 0 | 3 0 0 | 2 2 2 2 2 2
+        // For each distinct radix there is a "range" within `next_x` that
+        // contains values corresponding to that radix. The values in `next_x`
+        // have their most significant bits already removed, since they are
+        // constant within each radix range. The array `next_x` is accompanied
+        // by array `next_o` which carries the original row numbers of each
+        // value. Once we sort `next_o` by the values of `next_x` within each
+        // radix range, our job will be complete.
+
         // Prepare the "next SortContext" variable
+        size_t nradixes = sc->nradixes;
+        size_t next_elemsize = (size_t) sc->next_elemsize;
         SortContext next_sc = {
             .x = NULL,
             .o = NULL,
@@ -568,29 +627,10 @@ static void radix_psort(SortContext *sc)
             .next_elemsize = 0,
         };
 
-        size_t nradixes = sc->nradixes;
-        size_t next_elemsize = (size_t) sc->next_elemsize;
-
-        // At this point the input array is already partially sorted, and the
-        // elements that remain to be sorted are collected into contiguous
-        // chunks. For example if `shift` is 2, then `next_x` may be:
-        //     na na | 0 2 1 3 1 | 2 | 1 1 3 0 | 3 0 0 | 2 2 2 2 2 2
-        // For each distinct radix there is a "range" within `next_x` that
-        // contains values corresponding to that radix. The values in `next_x`
-        // have their most significant bits already removed, since they are
-        // constant within each radix range. The array `next_x` is accompanied
-        // by array `next_o` which carries the original row numbers of each
-        // value. Once we sort `next_o` by the values of `next_x` within each
-        // radix range, our job will be complete.
-
         // First, determine the sizes of ranges corresponding to each radix that
         // remain to be sorted. Recall that the previous step left us with the
-        // `counts` array containing cumulative sizes of these ranges, so all
+        // `histogram` array containing cumulative sizes of these ranges, so all
         // we need is to diff that array.
-        // Since the `counts` array won't be needed afterwords, we'll just reuse
-        // it to hold the "radix ranges map" records. Each such record contains
-        // the size of a particular radix region, and its offset within the
-        // output array.
         size_t *rrendoffsets = sc->histogram + (sc->nchunks - 1) * sc->nradixes;
         radix_range *rrmap = NULL;
         dtmalloc_g(rrmap, radix_range, sc->nradixes);
@@ -646,8 +686,8 @@ static void radix_psort(SortContext *sc)
         }
 
         // Finally iterate over all remaining radix ranges, in-parallel, and
-        // sort each of them independently using one of the simpler algorithms:
-        // counting sort or insertion sort.
+        // sort each of them independently using a simpler insertion sort
+        // algorithms.
         #pragma omp parallel for num_threads(sc->nth)
         for (size_t i = rri; i < nradixes; i++)
         {
@@ -661,7 +701,7 @@ static void radix_psort(SortContext *sc)
         dtfree(rrmap);
     }
 
-    // Done. Array `oo` contains the ordering of the input vector `x`.
+    // Done. Save to array `o` the ordering of the input vector `x`.
     if (sc->o) {
         memcpy(sc->o, sc->next_o, sc->n * sizeof(int32_t));
     } else {
