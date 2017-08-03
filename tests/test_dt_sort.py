@@ -89,6 +89,21 @@ def test_i4i_u2range(dc):
     assert d1.topython() == [[a] * 1000 + [b] * 1000 + [c] * 1000]
 
 
+def test_i4i_unsigned():
+    # In this test the range of values is 32 bits, so that after removing the
+    # radix we would have full 16 bits remaining. At that point we should be
+    # careful not to conflate unsigned sorting with signed sorting.
+    tbl = sum(([t] * 100 for t in [0x00000000, 0x00000001, 0x00007FFF,
+                                   0x00008000, 0x00008001, 0x0000FFFF,
+                                   0x7FFF0000, 0x7FFF0001, 0x7FFF7FFF,
+                                   0x7FFF8000, 0x7FFF8001, 0x7FFFFFFF]), [])
+    d0 = datatable.DataTable(tbl)
+    assert d0.stypes == ("i4i", )
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [tbl]
+
+
 
 #-------------------------------------------------------------------------------
 
