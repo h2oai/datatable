@@ -104,6 +104,12 @@ def test_i4i_unsigned():
     assert d1.topython() == [tbl]
 
 
+def test_i4i_issue220():
+    d0 = datatable.DataTable([None] + [1000000] * 200 + [None])
+    d1 = d0(sort=0)
+    assert d1.topython() == [[None, None] + [1000000] * 200]
+
+
 
 #-------------------------------------------------------------------------------
 
