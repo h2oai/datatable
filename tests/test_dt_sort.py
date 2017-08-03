@@ -249,3 +249,23 @@ def test_i2i_large_stable(n):
                              list(range(0, 5 * n, 5)) +
                              list(range(2, 5 * n, 5)) +
                              list(range(4, 5 * n, 5))]
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_i8i_small():
+    d0 = datatable.DataTable([10**(i * 101 % 13) for i in range(13)] + [None])
+    assert d0.stypes == ("i8i", )
+    d1 = d0(sort=0)
+    assert d1.stypes == d0.stypes
+    assert d1.internal.check()
+    assert d1.topython() == [[None] + [10**i for i in range(13)]]
+
+
+def test_i8i_small_stable():
+    d0 = datatable.DataTable([[0, None, -1000, 11**11] * 3, list(range(12))])
+    assert d0.stypes == ("i8i", "i1i")
+    d1 = d0(sort=0, select=1)
+    assert d1.internal.check()
+    assert d1.topython() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]

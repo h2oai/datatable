@@ -782,6 +782,7 @@ static void radix_psort(SortContext *sc)
 DECLARE_INSERT_SORT_FN(i1, int8_t)
 DECLARE_INSERT_SORT_FN(i2, int16_t)
 DECLARE_INSERT_SORT_FN(i4, int32_t)
+DECLARE_INSERT_SORT_FN(i8, int64_t)
 DECLARE_INSERT_SORT_FN(u1, uint8_t)
 DECLARE_INSERT_SORT_FN(u2, uint16_t)
 DECLARE_INSERT_SORT_FN(u4, uint32_t)
@@ -820,4 +821,5 @@ void init_sort_functions(void)
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I2] = (insert_sort_fn) &insert_sort_i2;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
+    insert_sort_fns[ST_INTEGER_I8] = (insert_sort_fn) &insert_sort_i8;
 }
