@@ -131,7 +131,7 @@ class DataTable(object):
 
     def _fill_from_source(self, src, colnames):
         if isinstance(src, list):
-            if not src or isinstance(src[0], list):
+            if src and isinstance(src[0], list):
                 self._fill_from_list(src, names=colnames)
             else:
                 self._fill_from_list([src], names=colnames)
