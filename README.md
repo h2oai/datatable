@@ -91,6 +91,8 @@ might need to build it manually. This involves the following:
      pip install -i https://pypi.anaconda.org/sklam/simple llvmlite
      ```
 
+* On OS-X, errors similar to `fatal error: 'sys/mman.h' file not found` can be fixed by installing the Xcode Command Line Tools. This can be done by running `xcode-select --install`.
+
 
 ## Testing
 
