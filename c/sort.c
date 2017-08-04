@@ -259,9 +259,10 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
             reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < sc->n; j++) {
         int32_t t = x[j];
-        if (t == NA_I4);
-        else if (t < tmin) tmin = t;
-        else if (t > tmax) tmax = t;
+        if (t != NA_I4) {
+            if (t < tmin) tmin = t;
+            if (t > tmax) tmax = t;
+        }
     }
     *min = tmin;
     *max = tmax;
@@ -276,9 +277,10 @@ static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
             reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < sc->n; j++) {
         int64_t t = x[j];
-        if (t == NA_I8);
-        else if (t < tmin) tmin = t;
-        else if (t > tmax) tmax = t;
+        if (t != NA_I8) {
+            if (t < tmin) tmin = t;
+            if (t > tmax) tmax = t;
+        }
     }
     *min = tmin;
     *max = tmax;
