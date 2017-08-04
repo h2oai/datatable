@@ -65,6 +65,15 @@ def test_i4i_constant(n):
     assert d1.topython() == tbl0
 
 
+def test_i4i_reverse():
+    step = 10
+    d0 = datatable.DataTable(list(range(1000000, 0, -step)))
+    assert d0.stypes[0] == "i4i"
+    d1 = d0(sort=0)
+    assert d1.stypes == d0.stypes
+    assert d1.topython() == [list(range(step, 1000000 + step, step))]
+
+
 @pytest.mark.parametrize("b", [32767, 1000000])
 def test_i4i_upper_range(b):
     # This test looks at an i4 array with small range but large absolute values.
