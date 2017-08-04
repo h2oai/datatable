@@ -24,6 +24,17 @@ def test_sort_len1():
     assert d1.topython() == [[10**6]]
 
 
+def test_sort_len2():
+    d0 = datatable.DataTable([None, 10000000])
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [[None, 10000000]]
+    d0 = datatable.DataTable([10000000, None])
+    d2 = d0(sort=0)
+    assert d1.topython() == d2.topython()
+
+
+
 #-------------------------------------------------------------------------------
 
 def test_i4i_small():
