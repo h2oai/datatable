@@ -8,6 +8,24 @@ import random
 
 #-------------------------------------------------------------------------------
 
+def test_sort_len0():
+    d0 = datatable.DataTable([[]])
+    assert d0.shape == (0, 1)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.shape == (0, 1)
+
+
+def test_sort_len1():
+    d0 = datatable.DataTable([10**6])
+    assert d0.shape == (1, 1)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [[10**6]]
+
+
+#-------------------------------------------------------------------------------
+
 def test_i4i_small():
     d0 = datatable.DataTable([17, 2, 96, 245, 847569, 34, -45, None, 1])
     assert d0.stypes == ("i4i", )
