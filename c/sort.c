@@ -670,22 +670,9 @@ static void determine_sorting_parameters(SortContext *sc)
  */
 static void radix_psort(SortContext *sc)
 {
-    // printf("radix_psort(x=%p, n=%zu, elemsize=%d, next_elemsize=%d, nsigbits=%d)\n",
-    //        sc->x, sc->n, sc->elemsize, sc->next_elemsize, sc->nsigbits);
-    // if (sc->elemsize==8) {printf("  x8 = ["); for (size_t i=0; i<sc->n; i++) printf("%llu, ", ((uint64_t*)sc->x)[i]); printf("]\n");}
-    // if (sc->elemsize==4) {printf("  x4 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint32_t*)sc->x)[i]); printf("]\n");}
-    // if (sc->elemsize==2) {printf("  x2 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint16_t*)sc->x)[i]); printf("]\n");}
     determine_sorting_parameters(sc);
-    // printf("  shift = %d, nchunks = %zu, nradixes = %zu\n", sc->shift, sc->nchunks, sc->nradixes);
     build_histogram(sc);
-    // printf("  histogram = ["); for (size_t i = 0; i < sc->nradixes; i++) {
-    //     size_t d = sc->histogram[(sc->nchunks - 1) * sc->nradixes + i] - (i==0?0:sc->histogram[(sc->nchunks - 1) * sc->nradixes + i-1]);
-    //     if (d) printf("%zu: %zu, ", i, d);
-    // } printf("]\n");
     reorder_data(sc);
-    // if (sc->next_elemsize==8) {printf("  next_x8 = ["); for (size_t i=0; i<sc->n; i++) printf("%llu, ", ((uint64_t*)sc->next_x)[i]); printf("]\n");}
-    // if (sc->next_elemsize==4) {printf("  next_x4 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint32_t*)sc->next_x)[i]); printf("]\n");}
-    // if (sc->next_elemsize==2) {printf("  next_x2 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint16_t*)sc->next_x)[i]); printf("]\n");}
     if (!sc->x) return;
 
     assert((sc->shift > 0) == (sc->next_elemsize > 0));
