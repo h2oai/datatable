@@ -66,7 +66,7 @@ def test_i4i_constant(n):
 
 
 def test_i4i_reverse():
-    step = 10000
+    step = 10
     d0 = datatable.DataTable(list(range(1000000, 0, -step)))
     assert d0.stypes[0] == "i4i"
     d1 = d0(sort=0)
