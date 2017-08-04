@@ -212,6 +212,7 @@ RowIndex* column_sort(Column *col)
             dtfree(sc.next_x);
             dtfree(sc.next_o);
             dtfree(sc.histogram);
+            if (!sc.x) return NULL;
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
