@@ -207,11 +207,13 @@ RowIndex* column_sort(Column *col)
             }
             if (!sc.x) return NULL;
             radix_psort(&sc);
+            int error_occurred = (sc.x == NULL);
             ordering = sc.o;
             dtfree(sc.x);
             dtfree(sc.next_x);
             dtfree(sc.next_o);
             dtfree(sc.histogram);
+            if (error_occurred) return NULL;
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
@@ -257,9 +259,10 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
             reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < sc->n; j++) {
         int32_t t = x[j];
-        if (t == NA_I4);
-        else if (t < tmin) tmin = t;
-        else if (t > tmax) tmax = t;
+        if (t != NA_I4) {
+            if (t < tmin) tmin = t;
+            if (t > tmax) tmax = t;
+        }
     }
     *min = tmin;
     *max = tmax;
@@ -274,9 +277,10 @@ static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
             reduction(min:tmin) reduction(max:tmax)
     for (size_t j = 0; j < sc->n; j++) {
         int64_t t = x[j];
-        if (t == NA_I8);
-        else if (t < tmin) tmin = t;
-        else if (t > tmax) tmax = t;
+        if (t != NA_I8) {
+            if (t < tmin) tmin = t;
+            if (t > tmax) tmax = t;
+        }
     }
     *min = tmin;
     *max = tmax;
@@ -670,22 +674,9 @@ static void determine_sorting_parameters(SortContext *sc)
  */
 static void radix_psort(SortContext *sc)
 {
-    // printf("radix_psort(x=%p, n=%zu, elemsize=%d, next_elemsize=%d, nsigbits=%d)\n",
-    //        sc->x, sc->n, sc->elemsize, sc->next_elemsize, sc->nsigbits);
-    // if (sc->elemsize==8) {printf("  x8 = ["); for (size_t i=0; i<sc->n; i++) printf("%llu, ", ((uint64_t*)sc->x)[i]); printf("]\n");}
-    // if (sc->elemsize==4) {printf("  x4 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint32_t*)sc->x)[i]); printf("]\n");}
-    // if (sc->elemsize==2) {printf("  x2 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint16_t*)sc->x)[i]); printf("]\n");}
     determine_sorting_parameters(sc);
-    // printf("  shift = %d, nchunks = %zu, nradixes = %zu\n", sc->shift, sc->nchunks, sc->nradixes);
     build_histogram(sc);
-    // printf("  histogram = ["); for (size_t i = 0; i < sc->nradixes; i++) {
-    //     size_t d = sc->histogram[(sc->nchunks - 1) * sc->nradixes + i] - (i==0?0:sc->histogram[(sc->nchunks - 1) * sc->nradixes + i-1]);
-    //     if (d) printf("%zu: %zu, ", i, d);
-    // } printf("]\n");
     reorder_data(sc);
-    // if (sc->next_elemsize==8) {printf("  next_x8 = ["); for (size_t i=0; i<sc->n; i++) printf("%llu, ", ((uint64_t*)sc->next_x)[i]); printf("]\n");}
-    // if (sc->next_elemsize==4) {printf("  next_x4 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint32_t*)sc->next_x)[i]); printf("]\n");}
-    // if (sc->next_elemsize==2) {printf("  next_x2 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint16_t*)sc->next_x)[i]); printf("]\n");}
     if (!sc->x) return;
 
     assert((sc->shift > 0) == (sc->next_elemsize > 0));
@@ -789,10 +780,12 @@ static void radix_psort(SortContext *sc)
         for (size_t i = rri; i < nradixes; i++)
         {
             size_t off = rrmap[i].offset;
+            size_t size = rrmap[i].size;
+            if (size <= 1) continue;
             next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
             next_sc.next_x = add_ptr(sc->x, off * next_elemsize);
             next_sc.o = sc->next_o + off;
-            next_sc.n = rrmap[i].size;
+            next_sc.n = size;
             insert_sort(&next_sc);
         }
         dtfree(rrmap);
