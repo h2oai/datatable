@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable
 import pytest
+import random
 
 
 
@@ -249,3 +250,48 @@ def test_i2i_large_stable(n):
                              list(range(0, 5 * n, 5)) +
                              list(range(2, 5 * n, 5)) +
                              list(range(4, 5 * n, 5))]
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_i8i_small():
+    d0 = datatable.DataTable([10**(i * 101 % 13) for i in range(13)] + [None])
+    assert d0.stypes == ("i8i", )
+    d1 = d0(sort=0)
+    assert d1.stypes == d0.stypes
+    assert d1.internal.check()
+    assert d1.topython() == [[None] + [10**i for i in range(13)]]
+
+
+def test_i8i_small_stable():
+    d0 = datatable.DataTable([[0, None, -1000, 11**11] * 3, list(range(12))])
+    assert d0.stypes == ("i8i", "i1i")
+    d1 = d0(sort=0, select=1)
+    assert d1.internal.check()
+    assert d1.topython() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]
+
+
+@pytest.mark.parametrize("n", [50, 100, 500, 1000])
+def test_i8i_large0(n):
+    a = -6654966461866573261
+    b = -6655043958000990616
+    c = 5207085498673612884
+    d = 5206891724645893889
+    d0 = datatable.DataTable([c, d, a, b] * n)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.internal.isview
+    assert b < a < d < c
+    assert d1.topython() == [[b] * n + [a] * n + [d] * n + [c] * n]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(63) for i in range(1)])
+def test_i8i_large_random(seed):
+    random.seed(seed)
+    m = 2**63 - 1
+    tbl = [random.randint(-m, m) for i in range(1000)]
+    d0 = datatable.DataTable(tbl)
+    assert d0.stypes == ("i8i", )
+    d1 = d0(sort=0)
+    assert d1.topython() == [sorted(tbl)]
