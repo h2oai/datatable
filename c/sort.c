@@ -188,7 +188,9 @@ RowIndex* column_sort(Column *col)
     int32_t nrows = (int32_t) col->nrows;
     int32_t *ordering = NULL;
 
-    if (nrows <= INSERT_SORT_THRESHOLD) {
+    if (nrows <= 1) {  // no need to sort
+        return rowindex_from_slice(0, nrows, 1);
+    } if (nrows <= INSERT_SORT_THRESHOLD) {
         insert_sort_fn sortfn = insert_sort_fns[col->stype];
         if (sortfn) {
             ordering = sortfn(col->data, NULL, NULL, nrows);

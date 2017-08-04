@@ -176,7 +176,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             if (start < 0) {
                 ERR("Rowindex's start row is negative: %lld\n", start);
             }
-            if (end < 0) {
+            if (nrows > 1 && end < 0) {  // when nrows==0, end can be negative
                 ERR("Rowindex's end row is negative: %lld\n", end);
             }
             if (nrows > 1 && (step < -start/(nrows - 1) ||
@@ -221,6 +221,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                 if (ridata[i] < minrow) minrow = ridata[i];
             }
         }
+        if (nrows == 0) minrow = maxrow = 0;
         if (ri->min != minrow) {
             ERR("Invalid min.row=%lld in the rowindex, should be %lld\n",
                 ri->min, minrow);
@@ -262,7 +263,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                 i, col->nrows, nrows);
             continue;
         }
-        if (ri != NULL && col->nrows <= maxrow) {
+        if (ri != NULL && col->nrows > 0 && col->nrows <= maxrow) {
             ERR("Column %lld has nrows=%lld, but rowindex references row %lld\n",
                 i, col->nrows, maxrow);
             continue;
