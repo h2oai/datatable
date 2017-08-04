@@ -265,6 +265,24 @@ static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
     *max = tmax;
 }
 
+static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
+{
+    int64_t *x = (int64_t*) sc->x;
+    int64_t tmin = INT64_MAX;
+    int64_t tmax = -INT64_MAX;
+    #pragma omp parallel for schedule(static) \
+            reduction(min:tmin) reduction(max:tmax)
+    for (size_t j = 0; j < sc->n; j++) {
+        int64_t t = x[j];
+        if (t == NA_I8);
+        else if (t < tmin) tmin = t;
+        else if (t > tmax) tmax = t;
+    }
+    *min = tmin;
+    *max = tmax;
+}
+
+
 
 /**
  * For i1/i2 columns we do not attempt to find the actual minimum, and instead
@@ -361,6 +379,66 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
         sc->x = (void*) xx;
         sc->elemsize = 4;
         sc->next_elemsize = 2;
+    }
+    return;
+
+    fail:
+    sc->x = NULL;
+}
+
+
+static void prepare_input_i8(const Column *col, SortContext *sc)
+{
+    sc->x = col->data;
+    sc->n = (size_t) col->nrows;
+
+    int64_t min, max;
+    compute_min_max_i8(sc, &min, &max);
+    if (min > max) {  // the column contains NAs only
+        sc->issorted = 1;
+        return;
+    }
+
+    int nsigbits = 64 - (int) nlz8((uint64_t)(max - min + 1));
+    sc->nsigbits = (int8_t) nsigbits;
+
+    uint64_t umin = (uint64_t) min;
+    uint64_t una = (uint64_t) NA_I8;
+    uint64_t *ux = (uint64_t*) sc->x;
+    if (nsigbits > 32) {
+        uint64_t *xx = NULL;
+        dtmalloc_g(xx, uint64_t, sc->n);
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < sc->n; j++) {
+            uint64_t t = ux[j];
+            xx[j] = t == una? 0 : t - umin + 1;
+        }
+        sc->x = (void*) xx;
+        sc->elemsize = 8;
+        sc->next_elemsize = nsigbits > 48? 8 : 4;
+    }
+    else if (nsigbits > 16) {
+        uint32_t *xx = NULL;
+        dtmalloc_g(xx, uint32_t, sc->n);
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < sc->n; j++) {
+            uint64_t t = ux[j];
+            xx[j] = t == una? 0 : (uint32_t)(t - umin + 1);
+        }
+        sc->x = (void*) xx;
+        sc->elemsize = 4;
+        sc->next_elemsize = 2;
+    } else {
+        uint16_t *xx = NULL;
+        dtmalloc_g(xx, uint16_t, sc->n);
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < sc->n; j++) {
+            uint64_t t = ux[j];
+            xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+        }
+        sc->x = (void*) xx;
+        sc->elemsize = 2;
+        sc->next_elemsize = 0;
     }
     return;
 
@@ -471,7 +549,7 @@ static void build_histogram(SortContext *sc)
     static void reorder_data_ ## SFX(SortContext *sc)                          \
     {                                                                          \
         int8_t shift = sc->shift;                                              \
-        TI mask = (1 << shift) - 1;                                            \
+        TI mask = (TI)((1ULL << shift) - 1);                                   \
         TI *xi = (TI*) sc->x;                                                  \
         TO *xo = (TO*) sc->next_x;                                             \
         int32_t *oi = sc->o;                                                   \
@@ -512,6 +590,8 @@ static void build_histogram(SortContext *sc)
 
 
 TEMPLATE_REORDER_DATA(u4u2, uint32_t, uint16_t)
+TEMPLATE_REORDER_DATA(u8u4, uint64_t, uint32_t)
+TEMPLATE_REORDER_DATA(u8u8, uint64_t, uint64_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 #undef TEMPLATE_REORDER_DATA
@@ -525,6 +605,11 @@ static void reorder_data(SortContext *sc)
         dtmalloc_g(sc->next_o, int32_t, sc->n);
     }
     switch (sc->elemsize) {
+        case 8:
+            if (sc->next_elemsize == 8) reorder_data_u8u8(sc);
+            else if (sc->next_elemsize == 4) reorder_data_u8u4(sc);
+            else goto fail;
+            break;
         case 4: reorder_data_u4u2(sc); break;
         case 2: reorder_data_u2(sc); break;
         case 1: reorder_data_u1(sc); break;
@@ -585,9 +670,22 @@ static void determine_sorting_parameters(SortContext *sc)
  */
 static void radix_psort(SortContext *sc)
 {
+    // printf("radix_psort(x=%p, n=%zu, elemsize=%d, next_elemsize=%d, nsigbits=%d)\n",
+    //        sc->x, sc->n, sc->elemsize, sc->next_elemsize, sc->nsigbits);
+    // if (sc->elemsize==8) {printf("  x8 = ["); for (size_t i=0; i<sc->n; i++) printf("%llu, ", ((uint64_t*)sc->x)[i]); printf("]\n");}
+    // if (sc->elemsize==4) {printf("  x4 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint32_t*)sc->x)[i]); printf("]\n");}
+    // if (sc->elemsize==2) {printf("  x2 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint16_t*)sc->x)[i]); printf("]\n");}
     determine_sorting_parameters(sc);
+    // printf("  shift = %d, nchunks = %zu, nradixes = %zu\n", sc->shift, sc->nchunks, sc->nradixes);
     build_histogram(sc);
+    // printf("  histogram = ["); for (size_t i = 0; i < sc->nradixes; i++) {
+    //     size_t d = sc->histogram[(sc->nchunks - 1) * sc->nradixes + i] - (i==0?0:sc->histogram[(sc->nchunks - 1) * sc->nradixes + i-1]);
+    //     if (d) printf("%zu: %zu, ", i, d);
+    // } printf("]\n");
     reorder_data(sc);
+    // if (sc->next_elemsize==8) {printf("  next_x8 = ["); for (size_t i=0; i<sc->n; i++) printf("%llu, ", ((uint64_t*)sc->next_x)[i]); printf("]\n");}
+    // if (sc->next_elemsize==4) {printf("  next_x4 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint32_t*)sc->next_x)[i]); printf("]\n");}
+    // if (sc->next_elemsize==2) {printf("  next_x2 = ["); for (size_t i=0; i<sc->n; i++) printf("%u, ", ((uint16_t*)sc->next_x)[i]); printf("]\n");}
     if (!sc->x) return;
 
     assert((sc->shift > 0) == (sc->next_elemsize > 0));
@@ -622,7 +720,8 @@ static void radix_psort(SortContext *sc)
             .histogram = sc->histogram,  // reuse the `histogram` buffer
             .next_x = sc->x,  // x is no longer needed: reuse
             .next_o = NULL,
-            .next_elemsize = 0,
+            .next_elemsize = sc->shift > 32? 4 :
+                             sc->shift > 16? 2 : 0,
         };
 
         // First, determine the sizes of ranges corresponding to each radix that
@@ -816,6 +915,7 @@ void init_sort_functions(void)
     prepare_inp_fns[ST_INTEGER_I1] = (prepare_inp_fn) &prepare_input_i1;
     prepare_inp_fns[ST_INTEGER_I2] = (prepare_inp_fn) &prepare_input_i2;
     prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
+    prepare_inp_fns[ST_INTEGER_I8] = (prepare_inp_fn) &prepare_input_i8;
 
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;

@@ -212,7 +212,8 @@ void _dt_err_a(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
 // Binary arithmetics
 //==============================================================================
 
-unsigned int nlz(uint32_t x);  // Number of leading zeros
+int nlz(uint32_t x);  // Number of leading zeros
+int nlz8(uint64_t x);
 
 
 

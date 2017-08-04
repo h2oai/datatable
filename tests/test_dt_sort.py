@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable
 import pytest
+import random
 
 
 
@@ -269,3 +270,27 @@ def test_i8i_small_stable():
     d1 = d0(sort=0, select=1)
     assert d1.internal.check()
     assert d1.topython() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]
+
+
+@pytest.mark.parametrize("n", [20, 50, 100, 500, 1000])
+def test_i8i_large0(n):
+    a = -6654966461866573261
+    b = -6655043958000990616
+    c = 5207085498673612884
+    d = 5206891724645893889
+    d0 = datatable.DataTable([c, d, a, b] * n)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert b < a < d < c
+    assert d1.topython() == [[b] * n + [a] * n + [d] * n + [c] * n]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(63) for i in range(1)])
+def test_i8i_large_random(seed):
+    random.seed(seed)
+    m = 2**63 - 1
+    tbl = [random.randint(-m, m) for i in range(1000)]
+    d0 = datatable.DataTable(tbl)
+    assert d0.stypes == ("i8i", )
+    d1 = d0(sort=0)
+    assert d1.topython() == [sorted(tbl)]

@@ -12,17 +12,31 @@ float max_f4(float a, float b) { return a < b? b : a; }
  * expected to be large.
  * Algorithm 5-7 from Henry S. Warren "Hacker's Delight"
  */
-unsigned int nlz(uint32_t x)
+int nlz(uint32_t x)
 {
     uint32_t y;
-    uint32_t n = 32;
+    int n = 32;
     y = x >>16;  if (y != 0) { n = n -16;  x = y; }
     y = x >> 8;  if (y != 0) { n = n - 8;  x = y; }
     y = x >> 4;  if (y != 0) { n = n - 4;  x = y; }
     y = x >> 2;  if (y != 0) { n = n - 2;  x = y; }
     y = x >> 1;  if (y != 0) return n - 2;
-    return n - x;
+    return n - (int)x;
 }
+
+int nlz8(uint64_t x)
+{
+    uint64_t y;
+    int n = 64;
+    y = x >>32;  if (y != 0) { n = n -32;  x = y; }
+    y = x >>16;  if (y != 0) { n = n -16;  x = y; }
+    y = x >> 8;  if (y != 0) { n = n - 8;  x = y; }
+    y = x >> 4;  if (y != 0) { n = n - 4;  x = y; }
+    y = x >> 2;  if (y != 0) { n = n - 2;  x = y; }
+    y = x >> 1;  if (y != 0) return n - 2;
+    return n - (int)x;
+}
+
 
 
 /**
