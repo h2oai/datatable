@@ -207,12 +207,13 @@ RowIndex* column_sort(Column *col)
             }
             if (!sc.x) return NULL;
             radix_psort(&sc);
+            int error_occurred = (sc.x == NULL);
             ordering = sc.o;
             dtfree(sc.x);
             dtfree(sc.next_x);
             dtfree(sc.next_o);
             dtfree(sc.histogram);
-            if (!sc.x) return NULL;
+            if (error_occurred) return NULL;
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    col->stype);
