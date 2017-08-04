@@ -272,7 +272,7 @@ def test_i8i_small_stable():
     assert d1.topython() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]
 
 
-@pytest.mark.parametrize("n", [50, 100, 500, 1000])
+@pytest.mark.parametrize("n", [16, 20, 30, 40, 50, 100, 500, 1000])
 def test_i8i_large0(n):
     a = -6654966461866573261
     b = -6655043958000990616
@@ -280,13 +280,15 @@ def test_i8i_large0(n):
     d = 5206891724645893889
     d0 = datatable.DataTable([c, d, a, b] * n)
     d1 = d0(sort=0)
+    assert d0.internal.check()
     assert d1.internal.check()
     assert d1.internal.isview
     assert b < a < d < c
+    assert d0.topython() == [[c, d, a, b] * n]
     assert d1.topython() == [[b] * n + [a] * n + [d] * n + [c] * n]
 
 
-@pytest.mark.parametrize("seed", [random.getrandbits(63) for i in range(1)])
+@pytest.mark.parametrize("seed", [random.getrandbits(63) for i in range(10)])
 def test_i8i_large_random(seed):
     random.seed(seed)
     m = 2**63 - 1

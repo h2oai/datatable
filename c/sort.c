@@ -789,10 +789,12 @@ static void radix_psort(SortContext *sc)
         for (size_t i = rri; i < nradixes; i++)
         {
             size_t off = rrmap[i].offset;
+            size_t size = rrmap[i].size;
+            if (size <= 1) continue;
             next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
             next_sc.next_x = add_ptr(sc->x, off * next_elemsize);
             next_sc.o = sc->next_o + off;
-            next_sc.n = rrmap[i].size;
+            next_sc.n = size;
             insert_sort(&next_sc);
         }
         dtfree(rrmap);
