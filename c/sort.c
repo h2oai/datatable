@@ -194,7 +194,7 @@ RowIndex* column_sort(Column *col)
         return rowindex_from_slice(0, nrows, 1);
     } if (nrows <= INSERT_SORT_THRESHOLD) {
         insert_sort_fn sortfn = insert_sort_fns[col->stype];
-        if (col->stype == ST_REAL_F4) {
+        if (col->stype == ST_REAL_F4 || col->stype == ST_REAL_F8) {
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
             prepfn(col, &sc);
@@ -509,6 +509,37 @@ static void prepare_input_f4(const Column *col, SortContext *sc)
     sc->elemsize = 4;
     sc->nsigbits = 32;
     sc->next_elemsize = 2;
+    return;
+    fail:
+    sc->x = NULL;
+}
+
+
+#define F64SBT 0x8000000000000000ULL
+#define F64EXP 0x7FF0000000000000ULL
+#define F64SIG 0x000FFFFFFFFFFFFFULL
+
+static void prepare_input_f8(const Column *col, SortContext *sc)
+{
+    uint64_t *xi = (uint64_t*) col->data;
+    size_t n = (size_t) col->nrows;
+    uint64_t *xo = NULL;
+    dtmalloc_g(xo, uint64_t, n);
+    uint64_t una = (uint64_t) NA_F8_BITS;
+
+    #pragma omp parallel for schedule(static)
+    for (size_t j = 0; j < n; j++) {
+        uint64_t t = xi[j];
+        xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
+                    ? (t != una)
+                    : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
+    }
+
+    sc->n = n;
+    sc->x = (void*) xo;
+    sc->elemsize = 8;
+    sc->nsigbits = 64;
+    sc->next_elemsize = 8;
     return;
     fail:
     sc->x = NULL;
@@ -974,6 +1005,7 @@ void init_sort_functions(void)
     prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
     prepare_inp_fns[ST_INTEGER_I8] = (prepare_inp_fn) &prepare_input_i8;
     prepare_inp_fns[ST_REAL_F4]    = (prepare_inp_fn) &prepare_input_f4;
+    prepare_inp_fns[ST_REAL_F8]    = (prepare_inp_fn) &prepare_input_f8;
 
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
@@ -981,4 +1013,5 @@ void init_sort_functions(void)
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
     insert_sort_fns[ST_INTEGER_I8] = (insert_sort_fn) &insert_sort_i8;
     insert_sort_fns[ST_REAL_F4]    = (insert_sort_fn) &insert_sort_u4;
+    insert_sort_fns[ST_REAL_F8]    = (insert_sort_fn) &insert_sort_u8;
 }

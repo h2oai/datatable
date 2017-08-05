@@ -371,3 +371,47 @@ def test_f4r_random(numpy, n):
     assert d0.stypes == ("f4r", )
     d1 = d0(sort=0)
     assert list_equals(d1.topython()[0], sorted(a.tolist()))
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_f8r_small():
+    inf = float("inf")
+    d0 = datatable.DataTable([0.1, -0.5, 1.6, 0, None, -inf, inf, 3.3, 1e100])
+    assert d0.stypes == ("f8r", )
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    dr = datatable.DataTable([None, -inf, -0.5, 0, 0.1, 1.6, 3.3, 1e100, inf])
+    assert list_equals(d1.topython(), dr.topython())
+
+
+def test_f8r_zeros():
+    z = 0.0
+    d0 = datatable.DataTable([0.5] + [z, -z] * 100)
+    assert d0.stypes == ("f8r", )
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    dr = datatable.DataTable([-z] * 100 + [z] * 100 + [0.5])
+    assert str(d1.topython()) == str(dr.topython())
+
+
+@pytest.mark.parametrize("n", [20, 100, 500, 2500, 20000])
+def test_f8r_large(n):
+    inf = float("inf")
+    d0 = datatable.DataTable([12.6, .3, inf, -5.1, 0, -inf, None] * n)
+    assert d0.stypes == ("f8r", )
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    dr = datatable.DataTable([None] * n + [-inf] * n + [-5.1] * n +
+                             [0] * n + [.3] * n + [12.6] * n + [inf] * n)
+    assert list_equals(d1.topython(), dr.topython())
+
+
+@pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
+def test_f8r_random(numpy, n):
+    a = numpy.random.rand(n)
+    d0 = datatable.DataTable(a)
+    assert d0.stypes == ("f8r", )
+    d1 = d0(sort=0)
+    assert list_equals(d1.topython()[0], sorted(a.tolist()))
