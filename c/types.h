@@ -420,6 +420,8 @@ typedef struct EnumMeta {     // ST_STRING_UX_ENUM
  * floating-point NAs require special functions `ISNA_F4(x)` and `ISNA_F8(x)`.
  */
 
+#define NA_F4_BITS 0x7F8007A2u
+#define NA_F8_BITS 0x7FF00000000007A2ull
 extern const int8_t   NA_I1;
 extern const int16_t  NA_I2;
 extern const int32_t  NA_I4;
