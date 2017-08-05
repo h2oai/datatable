@@ -47,8 +47,6 @@ dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 // NA handling
 //==============================================================================
 
-#define NA_F4_BITS 0x7F8007A2u
-#define NA_F8_BITS 0x7FF00000000007A2ull
 typedef union { uint32_t i; float f; } _flt;
 typedef union { uint64_t i; double f; } _dbl;
 

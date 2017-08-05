@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable
 import pytest
+from tests import list_equals
 import random
 
 
@@ -335,3 +336,38 @@ def test_i8i_large_random(seed):
     assert d0.stypes == ("i8i", )
     d1 = d0(sort=0)
     assert d1.topython() == [sorted(tbl)]
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_f4r_small(numpy):
+    a = numpy.array([0, .4, .9, .2, .1, float("nan"), -float("inf"), -5, 3, 11,
+                     float("inf"), 5.2], dtype="float32")
+    d0 = datatable.DataTable(a)
+    assert d0.stypes == ("f4r", )
+    d1 = d0(sort=0)
+    dr = datatable.DataTable([None, -float("inf"), -5, 0, .1, .2,
+                              .4, .9, 3, 5.2, 11, float("inf")])
+    assert list_equals(d1.topython(), dr.topython())
+
+
+def test_f4r_large(numpy):
+    a = numpy.array([-1000, 0, 1.5e10, 7.2, float("inf")] * 100,
+                    dtype="float32")
+    d0 = datatable.DataTable(a)
+    assert d0.stypes == ("f4r", )
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    dr = datatable.DataTable([-1000] * 100 + [0] * 100 + [7.2] * 100 +
+                             [1.5e10] * 100 + [float("inf")] * 100)
+    assert list_equals(d1.topython(), dr.topython())
+
+
+@pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
+def test_f4r_random(numpy, n):
+    a = numpy.random.rand(n).astype("float32")
+    d0 = datatable.DataTable(a)
+    assert d0.stypes == ("f4r", )
+    d1 = d0(sort=0)
+    assert list_equals(d1.topython()[0], sorted(a.tolist()))
