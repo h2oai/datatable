@@ -14,16 +14,16 @@ class Isna(BaseExpr):
         self._stype = "i1b"
 
 
-    def _isna(self, block):
+    def _isna(self, key, block):
         # The function always returns either True or False but never NA
         return False
 
 
-    def _notna(self, block):
+    def _notna(self, key, block):
         return self._arg.isna(block)
 
 
-    def _value(self, block):
+    def _value(self, key, block):
         return self._arg.isna(block)
 
 
