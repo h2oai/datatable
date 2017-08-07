@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import sys
+from math import isnan
 
 
 def same_iterables(a, b):
@@ -28,22 +29,45 @@ def same_iterables(a, b):
     in older Python versions the test will be weaker, taking into account the
     non-deterministic nature of the dictionary that created the datatable.
     """
+    if type(a) != type(b) or len(a) != len(b):
+        return False
     if sys.version_info >= (3, 6):
-        return a == b
+        return list_equals(a, b)
     else:
-        if type(a) != type(b) or len(a) != len(b):
-            return False
         js = set(range(len(a)))
         for i in range(len(a)):
             found = False
             for j in js:
-                if a[i] == b[j]:
+                if list_equals(a[i], b[j]):
                     found = True
                     js.remove(j)
                     break
             if not found:
                 return False
         return True
+
+
+
+def list_equals(a, b):
+    """
+    Helper functions that tests whether two lists `a` and `b` are equal.
+
+    The primary difference from the built-in Python equality operator is that
+    this function compares floats up to a relative tolerance of 1e-6, and it
+    also compares floating NaN as equal to itself (in standard Python
+    `nan != nan`).
+    The purpose of this function is to compare datatables' python
+    representations.
+    """
+    if a == b: return True
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        if isnan(a) and isnan(b): return True
+        if abs(a - b) < 1e-6 * (abs(a) + abs(b) + 1): return True
+    if isinstance(a, list) and isinstance(b, list):
+        return (len(a) == len(b) and
+                all(list_equals(a[i], b[i]) for i in range(len(a))))
+    return False
+
 
 
 def assert_equals(datatable1, datatable2):

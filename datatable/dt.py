@@ -131,7 +131,7 @@ class DataTable(object):
 
     def _fill_from_source(self, src, colnames):
         if isinstance(src, list):
-            if not src or isinstance(src[0], list):
+            if src and isinstance(src[0], list):
                 self._fill_from_list(src, names=colnames)
             else:
                 self._fill_from_list([src], names=colnames)
@@ -501,10 +501,13 @@ class DataTable(object):
                "i2i": -32768,
                "i4i": -2147483648,
                "i8i": -9223372036854775808}
-        src = collections.OrderedDict()
+        srcdt = self._dt
+        if srcdt.isview:
+            srcdt = srcdt.materialize()
+        srccols = collections.OrderedDict()
         for i in range(self._ncols):
             name = self._names[i]
-            column = self._dt.column(i)
+            column = srcdt.column(i)
             dtype = dtypes.get(column.stype)
             if dtype is None:
                 # Variable-width types can only be represented in Numpy as
@@ -513,15 +516,15 @@ class DataTable(object):
                 #   ValueError: cannot create an OBJECT array from memory buffer
                 # Thus, the only alternative remaining is to convert such column
                 # into plain Python list and pass it to Pandas like that.
-                x = self._dt.window(0, self.nrows, i, i + 1).data[0]
+                x = srcdt.window(0, self.nrows, i, i + 1).data[0]
             else:
                 x = numpy.frombuffer(column, dtype=dtype)
                 na = nas.get(column.stype)
                 if na is not None:
                     x = numpy.ma.masked_equal(x, na, copy=False)
-            src[name] = x
+            srccols[name] = x
 
-        pd = pandas.DataFrame(src)
+        pd = pandas.DataFrame(srccols)
         return pd
 
 

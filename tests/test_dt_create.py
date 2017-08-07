@@ -51,10 +51,10 @@ def test_create_from_nothing():
 
 def test_create_from_empty_list():
     d5 = dt.DataTable([])
-    assert d5.shape == (0, 0)
-    assert d5.names == tuple()
-    assert d5.types == tuple()
-    assert d5.stypes == tuple()
+    assert d5.shape == (0, 1)
+    assert d5.names == ("C1", )
+    assert d5.types == ("bool", )
+    assert d5.stypes == ("i1b", )
     assert d5.internal.check()
 
 

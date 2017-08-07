@@ -313,6 +313,31 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
 
 
 
+static PyObject* materialize(DataTable_PyObject *self, PyObject *args)
+{
+    if (!PyArg_ParseTuple(args, "")) return NULL;
+
+    DataTable *dt = self->ref;
+    RowIndex *ri = dt->rowindex;
+    if (ri == NULL) {
+        PyErr_Format(PyExc_ValueError, "Only a view can be materialized");
+        return NULL;
+    }
+
+    Column **cols = NULL;
+    dtmalloc(cols, Column*, dt->ncols + 1);
+    for (int64_t i = 0; i < dt->ncols; i++) {
+        cols[i] = column_extract(dt->columns[i], ri);
+        if (cols[i] == NULL) return NULL;
+    }
+    cols[dt->ncols] = NULL;
+
+    DataTable *newdt = make_datatable(cols, NULL);
+    return py(newdt);
+}
+
+
+
 /**
  * Deallocator function, called when the object is being garbage-collected.
  */
@@ -353,6 +378,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(rbind),
     METHOD0(cbind),
     METHOD1(sort),
+    METHOD0(materialize),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

@@ -234,6 +234,19 @@ def test_topandas():
     assert p0["C"].values.tolist() == [True, False]
 
 
+@pytest.mark.usefixture("pandas")
+def test_topandas_view():
+    d0 = dt.DataTable([[1, 5, 2, 0, 199, -12],
+                       ["alpha", "beta", None, "delta", "epsilon", "zeta"],
+                       [.3, 1e2, -.5, 1.9, 2.2, 7.9]], colnames=["A", "b", "c"])
+    d1 = d0[::-2, :]
+    p1 = d1.topandas()
+    assert p1.shape == d1.shape
+    assert p1.columns.tolist() == ["A", "b", "c"]
+    assert p1.values.T.tolist() == d1.topython()
+
+
+
 def test_tonumpy(numpy):
     d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
     a0 = d0.tonumpy()

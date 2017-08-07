@@ -16,6 +16,7 @@
 //      https://en.wikipedia.org/wiki/Radix_sort
 //      https://en.wikipedia.org/wiki/Insertion_sort
 //      https://github.com/Rdatatable/data.table/src/forder.c, fsort.c
+//      http://stereopsis.com/radix.html
 //------------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>   // printf
@@ -38,7 +39,7 @@
  *
  * x
  *      The main data array, depending on `elemsize` has one of the following
- *      types: `uint8_t*`, `uint16_t*`, `uint32_t*` or `uint64_t*` (). The
+ *      types: `*`, `uint16_t*`, `uint32_t*` or `uint64_t*` (). The
  *      array has `n` elements. This array serves as a "sorting key" -- the
  *      final goal is to produce the ordering of values in `x`.
  *      The elements in `x` are always unsigned, and will be sorted accordingly.
@@ -187,17 +188,25 @@ RowIndex* column_sort(Column *col)
     }
     int32_t nrows = (int32_t) col->nrows;
     int32_t *ordering = NULL;
+    prepare_inp_fn prepfn = prepare_inp_fns[col->stype];
 
-    if (nrows <= INSERT_SORT_THRESHOLD) {
+    if (nrows <= 1) {  // no need to sort
+        return rowindex_from_slice(0, nrows, 1);
+    } if (nrows <= INSERT_SORT_THRESHOLD) {
         insert_sort_fn sortfn = insert_sort_fns[col->stype];
-        if (sortfn) {
+        if (col->stype == ST_REAL_F4 || col->stype == ST_REAL_F8) {
+            SortContext sc;
+            memset(&sc, 0, sizeof(SortContext));
+            prepfn(col, &sc);
+            ordering = sortfn(sc.x, NULL, NULL, nrows);
+            dtfree(sc.x);
+        } else if (sortfn) {
             ordering = sortfn(col->data, NULL, NULL, nrows);
         } else {
             dterrr("Insert sort not implemented for column of stype %d",
                    col->stype);
         }
     } else {
-        prepare_inp_fn prepfn = prepare_inp_fns[col->stype];
         if (prepfn) {
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
@@ -446,6 +455,92 @@ static void prepare_input_i8(const Column *col, SortContext *sc)
     }
     return;
 
+    fail:
+    sc->x = NULL;
+}
+
+
+/**
+ * For float32/64 we need to carefully manipulate the bits in order to present
+ * them in the correct order as uint32/64. At bit level, the structure of
+ * IEEE754-1985 float is the following (first 1 bit is the sign, next 8 bits
+ * are the exponent, last 23 bits represent the significand):
+ *      Bits (uint32 value)          Float value
+ *      0 00 000000                  +0
+ *      0 00 000001 - 0 00 7FFFFF    Denormal numbers (positive)
+ *      0 01 000000 - 0 FE 7FFFFF    +1*2^-126 .. +1.7FFFFF*2^+126
+ *      0 FF 000000                  +Inf
+ *      0 FF 000001 - 0 FF 7FFFFF    NaNs (positive)
+ *      1 00 000000                  -0
+ *      1 00 000001 - 1 00 7FFFFF    Denormal numbers (negative)
+ *      1 01 000000 - 1 FE 7FFFFF    -1*2^-126 .. -1.7FFFFF*2^+126
+ *      1 FF 000000                  -Inf
+ *      1 FF 000001 - 1 FF 7FFFFF    NaNs (negative)
+ * In order to put these values into correct order, we'll do the following
+ * transform:
+ *      (1) numbers with sign bit = 0 will turn the sign bit on.
+ *      (2) numbers with sign bit = 1 will be XORed with 0xFFFFFFFF
+ *      (3) all NAs will be converted to 0, and NaNs to 1
+ *
+ * See also:
+ *      https://en.wikipedia.org/wiki/Float32
+ */
+static void prepare_input_f4(const Column *col, SortContext *sc)
+{
+    // The data are actually floats; but casting `col->data` into `uint32_t*` is
+    // equivalent to using a union to convert from float into uint32_t
+    // representation.
+    uint32_t *xi = (uint32_t*) col->data;
+    size_t n = (size_t) col->nrows;
+    uint32_t *xo = NULL;
+    dtmalloc_g(xo, uint32_t, n);
+    uint32_t una = (uint32_t) NA_F4_BITS;
+
+    #pragma omp parallel for schedule(static)
+    for (size_t j = 0; j < n; j++) {
+        uint32_t t = xi[j];
+        xo[j] = ((t & 0x7F800000) == 0x7F800000 && (t & 0x7FFFFF) != 0)
+                    ? (t != una)
+                    : t ^ ((uint32_t)(-(int32_t)(t>>31)) | 0x80000000);
+    }
+
+    sc->n = n;
+    sc->x = (void*) xo;
+    sc->elemsize = 4;
+    sc->nsigbits = 32;
+    sc->next_elemsize = 2;
+    return;
+    fail:
+    sc->x = NULL;
+}
+
+
+#define F64SBT 0x8000000000000000ULL
+#define F64EXP 0x7FF0000000000000ULL
+#define F64SIG 0x000FFFFFFFFFFFFFULL
+
+static void prepare_input_f8(const Column *col, SortContext *sc)
+{
+    uint64_t *xi = (uint64_t*) col->data;
+    size_t n = (size_t) col->nrows;
+    uint64_t *xo = NULL;
+    dtmalloc_g(xo, uint64_t, n);
+    uint64_t una = (uint64_t) NA_F8_BITS;
+
+    #pragma omp parallel for schedule(static)
+    for (size_t j = 0; j < n; j++) {
+        uint64_t t = xi[j];
+        xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
+                    ? (t != una)
+                    : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
+    }
+
+    sc->n = n;
+    sc->x = (void*) xo;
+    sc->elemsize = 8;
+    sc->nsigbits = 64;
+    sc->next_elemsize = 8;
+    return;
     fail:
     sc->x = NULL;
 }
@@ -909,10 +1004,14 @@ void init_sort_functions(void)
     prepare_inp_fns[ST_INTEGER_I2] = (prepare_inp_fn) &prepare_input_i2;
     prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
     prepare_inp_fns[ST_INTEGER_I8] = (prepare_inp_fn) &prepare_input_i8;
+    prepare_inp_fns[ST_REAL_F4]    = (prepare_inp_fn) &prepare_input_f4;
+    prepare_inp_fns[ST_REAL_F8]    = (prepare_inp_fn) &prepare_input_f8;
 
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I2] = (insert_sort_fn) &insert_sort_i2;
     insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_i4;
     insert_sort_fns[ST_INTEGER_I8] = (insert_sort_fn) &insert_sort_i8;
+    insert_sort_fns[ST_REAL_F4]    = (insert_sort_fn) &insert_sort_u4;
+    insert_sort_fns[ST_REAL_F8]    = (insert_sort_fn) &insert_sort_u8;
 }
