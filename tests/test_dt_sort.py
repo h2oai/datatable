@@ -441,7 +441,6 @@ def test_sort_view2():
     assert d2.topython() == d1.topython()
 
 
-# @pytest.mark.skip()
 def test_sort_view3():
     d0 = datatable.DataTable(list(range(100)))
     d1 = d0[::-5, :]
@@ -449,3 +448,31 @@ def test_sort_view3():
     assert d2.internal.check()
     assert d2.shape == (20, 1)
     assert d2.topython() == [list(range(4, 100, 5))]
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_i4s_small1():
+    src = ["MOTHER OF EXILES. From her beacon-hand",
+           "Glows world-wide welcome; her mild eyes command",
+           "The air-bridged harbor that twin cities frame.",
+           "'Keep ancient lands, your storied pomp!' cries she",
+           "With silent lips. 'Give me your tired, your poor,",
+           "Your huddled masses yearning to breathe free,",
+           "The wretched refuse of your teeming shore.",
+           "Send these, the homeless, tempest-tost to me,",
+           "I lift my lamp beside the golden door!'"]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_small2():
+    src = ["Welcome", "Welc", "", None, "Welc", "Welcome!", "Welcame"]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    src.remove(None)
+    assert d1.topython() == [[None] + sorted(src)]
