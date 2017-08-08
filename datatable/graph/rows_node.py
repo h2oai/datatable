@@ -153,7 +153,7 @@ class SortedRFNode(RFNode):
         super().__init__(sort_node._dt)
         self._sortnode = sort_node
 
-    def make_target_rowindex(self):
+    def make_final_rowindex(self):
         return self._sortnode.make_rowindex()
 
 

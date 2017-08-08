@@ -69,7 +69,6 @@ typedef struct RowIndex {
 typedef int (rowindex_filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
 typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
 
-void rowindex_compactify(RowIndex *self);
 RowIndex* rowindex_from_slice(int64_t start, int64_t count, int64_t step);
 RowIndex* rowindex_from_slicelist(
     int64_t *starts, int64_t *counts, int64_t *steps, int64_t n);
@@ -83,6 +82,8 @@ RowIndex* rowindex_from_filterfn32(rowindex_filterfn32 *f, int64_t nrows);
 RowIndex* rowindex_from_filterfn64(rowindex_filterfn64 *f, int64_t nrows);
 RowIndex* rowindex_copy(RowIndex *self);
 RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc);
+RowIndex* rowindex_expand(RowIndex *self);
+void rowindex_compactify(RowIndex *self);
 void rowindex_dealloc(RowIndex *self);
 
 

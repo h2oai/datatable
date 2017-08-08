@@ -148,7 +148,7 @@ typedef struct SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-typedef void     (*prepare_inp_fn)(const Column*, SortContext*);
+typedef void (*prepare_inp_fn)(const Column*, int32_t*, size_t, SortContext*);
 typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
 static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
@@ -181,36 +181,61 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns NULL if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex* column_sort(Column *col)
+RowIndex* column_sort(Column *col, RowIndex *rowindex)
 {
-    if (col->nrows > INT32_MAX) {
-        dterrr("Cannot sort a column with %lld rows", col->nrows);
+    int64_t _nrows = rowindex? rowindex->length : col->nrows;
+    if (_nrows > INT32_MAX) {
+        dterrr("Cannot sort a datatable with %lld rows", col->nrows);
     }
-    int32_t nrows = (int32_t) col->nrows;
+    if (rowindex && (rowindex->type == RI_ARR64 ||
+                     rowindex->length > INT32_MAX ||
+                     rowindex->max > INT32_MAX)) {
+        dterrr0("Cannot sort a datatable which is based on a datatable "
+                "with >2**31 rows");
+    }
+    int32_t nrows = (int32_t) _nrows;
     int32_t *ordering = NULL;
-    prepare_inp_fn prepfn = prepare_inp_fns[col->stype];
+    if (rowindex) {
+        if (rowindex->type == RI_ARR32) {
+            dtmalloc(ordering, int32_t, nrows);
+            memcpy(ordering, rowindex->ind32, (size_t)nrows * sizeof(int32_t));
+        }
+        else if (rowindex->type == RI_SLICE) {
+            RowIndex *ri = rowindex_expand(rowindex);
+            if (ri == NULL || ri->type != RI_ARR32) return NULL;
+            ordering = ri->ind32;
+            ri->ind32 = NULL;
+            rowindex_dealloc(ri);
+        }
+    }
+    SType stype = col->stype;
+    prepare_inp_fn prepfn = prepare_inp_fns[stype];
 
     if (nrows <= 1) {  // no need to sort
         return rowindex_from_slice(0, nrows, 1);
+
     } if (nrows <= INSERT_SORT_THRESHOLD) {
-        insert_sort_fn sortfn = insert_sort_fns[col->stype];
-        if (col->stype == ST_REAL_F4 || col->stype == ST_REAL_F8) {
+        if (stype == ST_REAL_F4 || stype == ST_REAL_F8 || rowindex) {
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
-            prepfn(col, &sc);
-            ordering = sortfn(sc.x, NULL, NULL, nrows);
+            prepfn(col, ordering, (size_t)nrows, &sc);
+            insert_sort(&sc);
+            ordering = sc.o;
             dtfree(sc.x);
-        } else if (sortfn) {
-            ordering = sortfn(col->data, NULL, NULL, nrows);
         } else {
-            dterrr("Insert sort not implemented for column of stype %d",
-                   col->stype);
+            insert_sort_fn sortfn = insert_sort_fns[stype];
+            if (sortfn) {
+                ordering = sortfn(col->data, NULL, NULL, nrows);
+            }
+            else
+                dterrr("Insert sort not implemented for column of stype %d",
+                       stype);
         }
     } else {
         if (prepfn) {
             SortContext sc;
             memset(&sc, 0, sizeof(SortContext));
-            prepfn(col, &sc);
+            prepfn(col, ordering, (size_t)nrows, &sc);
             if (sc.issorted) {
                 return rowindex_from_slice(0, nrows, 1);
             }
@@ -225,7 +250,7 @@ RowIndex* column_sort(Column *col)
             if (error_occurred) return NULL;
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
-                   col->stype);
+                   stype);
         }
     }
     if (!ordering) return NULL;
@@ -302,21 +327,30 @@ static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
  * simply translate them into unsigned by subtracting the lowest possible
  * integer value. This maps NA to 0, -INT_MAX to 1, ... and INT_MAX to UINT_MAX.
  */
-static void prepare_input_i1(const Column *col, SortContext *sc)
+static void
+prepare_input_i1(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
 {
-    size_t n = (size_t) col->nrows;
     uint8_t *xi = (uint8_t*) col->data;
     uint8_t *xo = NULL;
     dtmalloc_g(xo, uint8_t, n);
     uint8_t una = (uint8_t) NA_I1;
 
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-        xo[j] = xi[j] - una;
+    if (ordering) {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            xo[j] = xi[ordering[j]] - una;
+        }
+    } else {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            xo[j] = xi[j] - una;
+        }
     }
 
     sc->n = n;
     sc->x = (void*) xo;
+    sc->o = ordering;
     sc->elemsize = 1;
     sc->nsigbits = 8;
     return;
@@ -325,21 +359,30 @@ static void prepare_input_i1(const Column *col, SortContext *sc)
 }
 
 
-static void prepare_input_i2(const Column *col, SortContext *sc)
+static void
+prepare_input_i2(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
 {
-    size_t n = (size_t) col->nrows;
     uint16_t *xi = (uint16_t*) col->data;
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);
     uint16_t una = (uint16_t) NA_I2;
 
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-        xo[j] = xi[j] - una;
+    if (ordering) {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            xo[j] = xi[ordering[j]] - una;
+        }
+    } else {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            xo[j] = xi[j] - una;
+        }
     }
 
     sc->n = n;
     sc->x = (void*) xo;
+    sc->o = ordering;
     sc->elemsize = 2;
     sc->nsigbits = 16;
     return;
@@ -352,10 +395,13 @@ static void prepare_input_i2(const Column *col, SortContext *sc)
  * For i4/i8 columns we transform them by mapping NAs to 0, the minimum of `x`s
  * to 1, ... and the maximum of `x`s to `max - min + 1`.
  */
-static void prepare_input_i4(const Column *col, SortContext *sc)
+static void
+prepare_input_i4(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
 {
     sc->x = col->data;
-    sc->n = (size_t) col->nrows;
+    sc->n = n;
+    sc->o = ordering;
 
     int32_t min, max;
     compute_min_max_i4(sc, &min, &max);
@@ -373,10 +419,18 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
     if (nsigbits <= 16) {
         uint16_t *xx = NULL;
         dtmalloc_g(xx, uint16_t, sc->n);
-        #pragma omp parallel for schedule(static)
-        for (size_t j = 0; j < sc->n; j++) {
-            uint32_t t = ux[j];
-            xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+        if (ordering) {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint32_t t = ux[ordering[j]];
+                xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+            }
+        } else {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint32_t t = ux[j];
+                xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+            }
         }
         sc->x = (void*) xx;
         sc->elemsize = 2;
@@ -384,10 +438,18 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
     } else {
         uint32_t *xx = NULL;
         dtmalloc_g(xx, uint32_t, sc->n);
-        #pragma omp parallel for schedule(static)
-        for (size_t j = 0; j < sc->n; j++) {
-            uint32_t t = ux[j];
-            xx[j] = t == una? 0 : t - umin + 1;
+        if (ordering) {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint32_t t = ux[ordering[j]];
+                xx[j] = t == una? 0 : t - umin + 1;
+            }
+        } else {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint32_t t = ux[j];
+                xx[j] = t == una? 0 : t - umin + 1;
+            }
         }
         sc->x = (void*) xx;
         sc->elemsize = 4;
@@ -400,10 +462,13 @@ static void prepare_input_i4(const Column *col, SortContext *sc)
 }
 
 
-static void prepare_input_i8(const Column *col, SortContext *sc)
+static void
+prepare_input_i8(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
 {
     sc->x = col->data;
-    sc->n = (size_t) col->nrows;
+    sc->n = n;
+    sc->o = ordering;
 
     int64_t min, max;
     compute_min_max_i8(sc, &min, &max);
@@ -421,10 +486,18 @@ static void prepare_input_i8(const Column *col, SortContext *sc)
     if (nsigbits > 32) {
         uint64_t *xx = NULL;
         dtmalloc_g(xx, uint64_t, sc->n);
-        #pragma omp parallel for schedule(static)
-        for (size_t j = 0; j < sc->n; j++) {
-            uint64_t t = ux[j];
-            xx[j] = t == una? 0 : t - umin + 1;
+        if (ordering) {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint64_t t = ux[ordering[j]];
+                xx[j] = t == una? 0 : t - umin + 1;
+            }
+        } else {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint64_t t = ux[j];
+                xx[j] = t == una? 0 : t - umin + 1;
+            }
         }
         sc->x = (void*) xx;
         sc->elemsize = 8;
@@ -433,10 +506,18 @@ static void prepare_input_i8(const Column *col, SortContext *sc)
     else if (nsigbits > 16) {
         uint32_t *xx = NULL;
         dtmalloc_g(xx, uint32_t, sc->n);
-        #pragma omp parallel for schedule(static)
-        for (size_t j = 0; j < sc->n; j++) {
-            uint64_t t = ux[j];
-            xx[j] = t == una? 0 : (uint32_t)(t - umin + 1);
+        if (ordering) {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint64_t t = ux[ordering[j]];
+                xx[j] = t == una? 0 : (uint32_t)(t - umin + 1);
+            }
+        } else {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint64_t t = ux[j];
+                xx[j] = t == una? 0 : (uint32_t)(t - umin + 1);
+            }
         }
         sc->x = (void*) xx;
         sc->elemsize = 4;
@@ -444,10 +525,18 @@ static void prepare_input_i8(const Column *col, SortContext *sc)
     } else {
         uint16_t *xx = NULL;
         dtmalloc_g(xx, uint16_t, sc->n);
-        #pragma omp parallel for schedule(static)
-        for (size_t j = 0; j < sc->n; j++) {
-            uint64_t t = ux[j];
-            xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+        if (ordering) {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint64_t t = ux[ordering[j]];
+                xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+            }
+        } else {
+            #pragma omp parallel for schedule(static)
+            for (size_t j = 0; j < sc->n; j++) {
+                uint64_t t = ux[j];
+                xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
+            }
         }
         sc->x = (void*) xx;
         sc->elemsize = 2;
@@ -485,27 +574,39 @@ static void prepare_input_i8(const Column *col, SortContext *sc)
  * See also:
  *      https://en.wikipedia.org/wiki/Float32
  */
-static void prepare_input_f4(const Column *col, SortContext *sc)
+static void
+prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
 {
     // The data are actually floats; but casting `col->data` into `uint32_t*` is
     // equivalent to using a union to convert from float into uint32_t
     // representation.
     uint32_t *xi = (uint32_t*) col->data;
-    size_t n = (size_t) col->nrows;
     uint32_t *xo = NULL;
     dtmalloc_g(xo, uint32_t, n);
     uint32_t una = (uint32_t) NA_F4_BITS;
 
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-        uint32_t t = xi[j];
-        xo[j] = ((t & 0x7F800000) == 0x7F800000 && (t & 0x7FFFFF) != 0)
-                    ? (t != una)
-                    : t ^ ((uint32_t)(-(int32_t)(t>>31)) | 0x80000000);
+    if (ordering) {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            uint32_t t = xi[ordering[j]];
+            xo[j] = ((t & 0x7F800000) == 0x7F800000 && (t & 0x7FFFFF) != 0)
+                        ? (t != una)
+                        : t ^ ((uint32_t)(-(int32_t)(t>>31)) | 0x80000000);
+        }
+    } else {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            uint32_t t = xi[j];
+            xo[j] = ((t & 0x7F800000) == 0x7F800000 && (t & 0x7FFFFF) != 0)
+                        ? (t != una)
+                        : t ^ ((uint32_t)(-(int32_t)(t>>31)) | 0x80000000);
+        }
     }
 
     sc->n = n;
     sc->x = (void*) xo;
+    sc->o = ordering;
     sc->elemsize = 4;
     sc->nsigbits = 32;
     sc->next_elemsize = 2;
@@ -519,24 +620,36 @@ static void prepare_input_f4(const Column *col, SortContext *sc)
 #define F64EXP 0x7FF0000000000000ULL
 #define F64SIG 0x000FFFFFFFFFFFFFULL
 
-static void prepare_input_f8(const Column *col, SortContext *sc)
+static void
+prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
 {
     uint64_t *xi = (uint64_t*) col->data;
-    size_t n = (size_t) col->nrows;
     uint64_t *xo = NULL;
     dtmalloc_g(xo, uint64_t, n);
     uint64_t una = (uint64_t) NA_F8_BITS;
 
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-        uint64_t t = xi[j];
-        xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
-                    ? (t != una)
-                    : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
+    if (ordering) {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            uint64_t t = xi[ordering[j]];
+            xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
+                        ? (t != una)
+                        : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
+        }
+    } else {
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            uint64_t t = xi[j];
+            xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
+                        ? (t != una)
+                        : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
+        }
     }
 
     sc->n = n;
     sc->x = (void*) xo;
+    sc->o = ordering;
     sc->elemsize = 8;
     sc->nsigbits = 64;
     sc->next_elemsize = 8;
@@ -980,10 +1093,10 @@ static void insert_sort(SortContext *sc)
 {
     int32_t n = (int32_t) sc->n;
     switch (sc->elemsize) {
-        case 1: insert_sort_u1(sc->x, sc->o, sc->next_x, n); break;
-        case 2: insert_sort_u2(sc->x, sc->o, sc->next_x, n); break;
-        case 4: insert_sort_u4(sc->x, sc->o, sc->next_x, n); break;
-        case 8: insert_sort_u8(sc->x, sc->o, sc->next_x, n); break;
+        case 1: sc->o = insert_sort_u1(sc->x, sc->o, sc->next_x, n); break;
+        case 2: sc->o = insert_sort_u2(sc->x, sc->o, sc->next_x, n); break;
+        case 4: sc->o = insert_sort_u4(sc->x, sc->o, sc->next_x, n); break;
+        case 8: sc->o = insert_sort_u8(sc->x, sc->o, sc->next_x, n); break;
     }
 }
 

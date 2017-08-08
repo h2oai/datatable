@@ -298,6 +298,51 @@ static PyObject* repr(RowIndex_PyObject *self)
 }
 
 
+static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
+{
+    if (!PyArg_ParseTuple(args, "")) return NULL;
+    RowIndex *ri = self->ref;
+
+    PyObject *list = PyList_New((Py_ssize_t) ri->length);
+    switch (ri->type) {
+        case RI_ARR32: {
+            int32_t n = (int32_t) ri->length;
+            int32_t *a = ri->ind32;
+            for (int32_t i = 0; i < n; i++) {
+                PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
+            }
+        } break;
+        case RI_ARR64: {
+            int64_t n = ri->length;
+            int64_t *a = ri->ind64;
+            for (int64_t i = 0; i < n; i++) {
+                PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
+            }
+        } break;
+        case RI_SLICE: {
+            int64_t n = ri->length;
+            int64_t start = ri->slice.start;
+            int64_t step = ri->slice.step;
+            for (int64_t i = 0; i < n; i++) {
+                PyList_SET_ITEM(list, i, PyLong_FromLong(start + i*step));
+            }
+        }
+    }
+    return list;
+}
+
+
+
+//==============================================================================
+// DataTable type definition
+//==============================================================================
+
+#define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
+static PyMethodDef rowindex_methods[] = {
+    METHOD0(tolist),
+    {NULL, NULL, 0, NULL}           /* sentinel */
+};
+
 
 PyTypeObject RowIndex_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -327,7 +372,7 @@ PyTypeObject RowIndex_PyType = {
     0,                                  /* tp_weaklistoffset */
     0,                                  /* tp_iter */
     0,                                  /* tp_iternext */
-    0,                                  /* tp_methods */
+    rowindex_methods,                   /* tp_methods */
     0,                                  /* tp_members */
     0,                                  /* tp_getset */
     0,                                  /* tp_base */

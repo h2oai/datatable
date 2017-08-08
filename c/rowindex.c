@@ -751,6 +751,48 @@ rowindex_from_filterfn64(rowindex_filterfn64 *filterfn, int64_t nrows)
 
 
 /**
+ * Convert a slice RowIndex into an RI_ARR32/RI_ARR64.
+ */
+RowIndex* rowindex_expand(RowIndex *self)
+{
+    if (self->type != RI_SLICE) return NULL;
+    RowIndex *res = NULL;
+    dtmalloc(res, RowIndex, 1);
+
+    if (self->length <= INT32_MAX && self->max <= INT32_MAX) {
+        int32_t n = (int32_t) self->length;
+        int32_t start = (int32_t) self->slice.start;
+        int32_t step = (int32_t) self->slice.step;
+        int32_t *out = NULL;
+        dtmalloc(out, int32_t, n);
+        #pragma omp parallel for schedule(static)
+        for (int32_t i = 0; i < n; i++) {
+            out[i] = start + i*step;
+        }
+        res->type = RI_ARR32;
+        res->ind32 = out;
+    } else {
+        int64_t n = self->length;
+        int64_t start = self->slice.start;
+        int64_t step = self->slice.step;
+        int64_t *out = NULL;
+        dtmalloc(out, int64_t, n);
+        #pragma omp parallel for schedule(static)
+        for (int64_t i = 0; i < n; i++) {
+            out[i] = start + i*step;
+        }
+        res->type = RI_ARR64;
+        res->ind64 = out;
+    }
+
+    res->length = self->length;
+    res->min = self->min;
+    res->max = self->max;
+    return res;
+}
+
+
+/**
  * RowIndex's destructor.
  */
 void rowindex_dealloc(RowIndex *rowindex) {
