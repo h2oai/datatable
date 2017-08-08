@@ -15,8 +15,11 @@
 // See also:
 //      https://en.wikipedia.org/wiki/Radix_sort
 //      https://en.wikipedia.org/wiki/Insertion_sort
-//      https://github.com/Rdatatable/data.table/src/forder.c, fsort.c
 //      http://stereopsis.com/radix.html
+//
+// Based on Radix sort implementation in (R)data.table:
+//      https://github.com/Rdatatable/data.table/src/forder.c
+//      https://github.com/Rdatatable/data.table/src/fsort.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>   // printf
@@ -184,6 +187,7 @@ static int _rrcmp(const void *a, const void *b) {
     const size_t y = *(const size_t*)b;
     return (x < y) - (y < x);
 }
+
 
 
 //==============================================================================
@@ -625,8 +629,12 @@ prepare_input_i8(const Column *col, int32_t *ordering, size_t n,
  *      (2) numbers with sign bit = 1 will be XORed with 0xFFFFFFFF
  *      (3) all NAs will be converted to 0, and NaNs to 1
  *
+ * Float64 is similar: 1 bit for the sign, 11 bits of exponent, and finally
+ * 52 bits of the significand.
+ *
  * See also:
  *      https://en.wikipedia.org/wiki/Float32
+ *      https://en.wikipedia.org/wiki/Float64
  */
 static void
 prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
@@ -742,9 +750,9 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
     sc->n = n;
     sc->x = (void*) xo;
     sc->o = ordering;
-    sc->elemsize = 16;
-    sc->nsigbits = 14;
-    sc->next_elemsize = 16;
+    sc->elemsize = 2;
+    sc->nsigbits = 16;
+    sc->next_elemsize = 2;
     return;
     fail:
     sc->x = NULL;
@@ -891,14 +899,50 @@ static void build_histogram(SortContext *sc)
         assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);        \
     }
 
-
-
 TEMPLATE_REORDER_DATA(u4u2, uint32_t, uint16_t)
 TEMPLATE_REORDER_DATA(u8u4, uint64_t, uint32_t)
 TEMPLATE_REORDER_DATA(u8u8, uint64_t, uint64_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 #undef TEMPLATE_REORDER_DATA
+
+
+static void reorder_data_str(SortContext *sc)
+{
+    uint16_t *xi = (uint16_t*) sc->x;
+    uint16_t *xo = (uint16_t*) sc->next_x;
+    int32_t *oi = sc->o;
+    int32_t *oo = sc->next_o;
+    assert(xo != NULL);
+    const unsigned char *strdata = sc->strdata - 1;
+    const int32_t *stroffs = sc->stroffs;
+    const int32_t strstart = (int32_t) sc->strstart;
+
+    int32_t maxlen = 0;
+    #pragma omp parallel for schedule(dynamic) num_threads(sc->nth) \
+            reduction(max:maxlen)
+    for (size_t i = 0; i < sc->nchunks; i++) {
+        size_t j0 = i * sc->chunklen,
+               j1 = minz(j0 + sc->chunklen, sc->n);
+        size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);
+        for (size_t j = j0; j < j1; j++) {
+            size_t k = tcounts[xi[j]]++;
+            int32_t w = oi? oi[j] : (int32_t) j;
+            int32_t offend = stroffs[w];
+            int32_t offstart = abs(stroffs[w-1]) + strstart;
+            int32_t len = offend - offstart;
+            unsigned char c1 = len > 0? strdata[offstart] + 1 : 0;
+            unsigned char c2 = len > 1? strdata[offstart+1] + 1 : 0;
+            if (len > maxlen) maxlen = len;
+            xo[k] = offend < 0? 0 : (c1 << 8) + c2 + 1;
+            oo[k] = w;
+        }
+    }
+    assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
+    sc->next_elemsize = maxlen <= 2? 0 : 2;
+}
+
+
 
 static void reorder_data(SortContext *sc)
 {
@@ -915,7 +959,11 @@ static void reorder_data(SortContext *sc)
             else goto fail;
             break;
         case 4: reorder_data_u4u2(sc); break;
-        case 2: reorder_data_u2(sc); break;
+        case 2:
+            if (sc->next_elemsize == 2) reorder_data_str(sc);
+            else if (sc->next_elemsize == 0) reorder_data_u2(sc);
+            else goto fail;
+            break;
         case 1: reorder_data_u1(sc); break;
         default: printf("elemsize = %d\n", sc->elemsize); assert(0);
     }
@@ -979,8 +1027,8 @@ static void radix_psort(SortContext *sc)
     reorder_data(sc);
     if (!sc->x) return;
 
-    assert((sc->shift > 0) == (sc->next_elemsize > 0));
-    if (sc->shift > 0) {
+    assert((sc->shift > 0) == (sc->next_elemsize > 0) || sc->strdata);
+    if (sc->next_elemsize > 0) {
         // At this point the input array is already partially sorted, and the
         // elements that remain to be sorted are collected into contiguous
         // chunks. For example if `shift` is 2, then `next_x` may be:
@@ -996,13 +1044,17 @@ static void radix_psort(SortContext *sc)
         // Prepare the "next SortContext" variable
         size_t nradixes = sc->nradixes;
         size_t next_elemsize = (size_t) sc->next_elemsize;
+        int8_t next_nsigbits = sc->strdata? 16 : sc->shift;
         SortContext next_sc = {
             .x = NULL,
             .o = NULL,
             .n = 0,
+            .strdata = sc->strdata,
+            .stroffs = sc->stroffs,
+            .strstart = sc->strstart + 2,
             .elemsize = sc->next_elemsize,
             .issorted = 0,
-            .nsigbits = sc->shift,
+            .nsigbits = next_nsigbits,
             .shift = 0,
             .nradixes = 0,
             .nth = 0,
