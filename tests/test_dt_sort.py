@@ -415,3 +415,37 @@ def test_f8r_random(numpy, n):
     assert d0.stypes == ("f8r", )
     d1 = d0(sort=0)
     assert list_equals(d1.topython()[0], sorted(a.tolist()))
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_sort_view1():
+    d0 = datatable.DataTable([5, 10])
+    d1 = d0(rows=[i % 2 for i in range(10)])
+    assert d1.shape == (10, 1)
+    assert d1.internal.check()
+    assert d1.internal.isview
+    d2 = d1(sort=0)
+    assert d2.shape == d1.shape
+    assert d2.internal.check()
+    assert d2.internal.isview
+    assert d2.topython() == [[5] * 5 + [10] * 5]
+
+
+def test_sort_view2():
+    d0 = datatable.DataTable([4, 1, 0, 5, -3, 12, 99, 7])
+    d1 = d0(sort=0)
+    d2 = d1(sort=0)
+    assert d2.internal.check()
+    assert d2.topython() == d1.topython()
+
+
+# @pytest.mark.skip()
+def test_sort_view3():
+    d0 = datatable.DataTable(list(range(100)))
+    d1 = d0[::-5, :]
+    d2 = d1(sort=0)
+    assert d2.internal.check()
+    assert d2.shape == (20, 1)
+    assert d2.topython() == [list(range(4, 100, 5))]

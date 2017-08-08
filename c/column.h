@@ -125,7 +125,7 @@ Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
                               const char *metastr);
 Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
                            void* buf, size_t alloc_size);
-RowIndex* column_sort(Column *self);
+RowIndex* column_sort(Column *self, RowIndex *rowindex);
 size_t column_i4s_padding(size_t datasize);
 size_t column_i8s_padding(size_t datasize);
 size_t column_i4s_datasize(Column *self);
