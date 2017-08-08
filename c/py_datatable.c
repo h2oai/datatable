@@ -93,6 +93,15 @@ static PyObject* get_rowindex_type(DataTable_PyObject *self)
 }
 
 
+/*
+static PyObject* get_rowindex(DataTable_PyObject *self)
+{
+    RowIndex *ri = self->ref->rowindex;
+    return ri? pyrowindex(self->ref->rowindex) : none();
+}
+*/
+
+
 static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 {
     return PyLong_FromLongLong((long long int)self->ref);
@@ -307,7 +316,7 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
 
     Column *col = dt->columns[idx];
-    RowIndex *ri = column_sort(col);
+    RowIndex *ri = column_sort(col, dt->rowindex);
     return pyrowindex(ri);
 }
 
@@ -360,6 +369,7 @@ PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
+// PyDoc_STRVAR(dtdoc_rowindex, "Row index of the view datatable, or None if this is not a view datatable");
 PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row index: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
@@ -390,6 +400,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(types),
     GETSET1(stypes),
     GETSET1(isview),
+    // GETSET1(rowindex),
     GETSET1(rowindex_type),
     GETSET1(datatable_ptr),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
