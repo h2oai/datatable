@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
+from ..utils.typechecks import TTypeError, DataTable_t, is_type
 
 __all__ = ("isna", )
 
@@ -36,4 +37,8 @@ def isna(x):
         return True
     if isinstance(x, BaseExpr):
         return Isna(x)
+    if is_type(x, DataTable_t):
+        if x.ncols != 1:
+            raise TTypeError("DataTable must have a single column")
+        return x(select=lambda f: isna(f[0]))
     return False
