@@ -4,6 +4,7 @@ import datatable
 import pytest
 from tests import list_equals
 import random
+import os
 
 
 
@@ -476,3 +477,36 @@ def test_i4s_small2():
     assert d1.internal.check()
     src.remove(None)
     assert d1.topython() == [[None] + sorted(src)]
+
+
+def test_i4s_large1():
+    src = list("dfbvoiqeubvqoiervblkdfbvqoiergqoiufbvladfvboqiervblq"
+               "134ty1-394 8n09er8gy209rg hwdoif13-40t 9u13- jdpfver")
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large2():
+    src = ["test-%d" % i for i in range(100)]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+@pytest.mark.skip()
+def test_i4s_large3():
+    rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
+    assert os.path.isdir(rootdir)
+    words = []
+    for dirname, subdirs, files in os.walk(rootdir):
+        for filename in files:
+            f = os.path.join(dirname, filename)
+            txt = open(f, "r").read()
+            words.extend(txt.split())
+    dt0 = datatable.DataTable(words)
+    dt1 = dt0(sort=0)
+    assert dt1.internal.check()
+    assert dt1.topython() == [sorted(words)]

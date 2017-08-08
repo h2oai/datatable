@@ -1064,7 +1064,7 @@ static void radix_psort(SortContext *sc)
             .next_x = sc->x,  // x is no longer needed: reuse
             .next_o = NULL,
             .next_elemsize = sc->shift > 32? 4 :
-                             sc->shift > 16? 2 : 0,
+                             sc->shift > 16 || sc->strdata? 2 : 0,
         };
 
         // First, determine the sizes of ranges corresponding to each radix that
