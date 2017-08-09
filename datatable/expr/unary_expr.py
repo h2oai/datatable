@@ -14,11 +14,11 @@ class UnaryOpExpr(BaseExpr):
         self._stype = arg.stype
 
 
-    def _isna(self, block):
+    def _isna(self, key, block):
         return self.arg.isna(block)
 
 
-    def _notna(self, block):
+    def _notna(self, key, block):
         return "(%s %s)" % (self.op, self.arg.notna(block))
 
 
