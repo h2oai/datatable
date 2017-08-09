@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-
 nas_map = {
     "i1b": "NA_I1",
     "i1i": "NA_I1",
@@ -79,8 +78,12 @@ itypes_map = {
     "p8p": 22,
 }
 
-
-decimal_stypes = {"i2r", "i4r", "i8r"}
+stype_bool = { "i1b" }
+stype_int = { "i1i", "i2i", "i4i", "i8i" }
+stype_float = { "f4r", "f8r" }
+stype_decimal = {"i2r", "i4r", "i8r"}
+stype_real = stype_float | stype_decimal
+stype_numerical = stype_int | stype_real
 
 
 stypes_ladder = ["i1b", "i1i", "i2i", "i4i", "i8i",
@@ -114,3 +117,14 @@ ops_rules[("%", "i1b", "i1b")] = None
 
 
 division_ops = {"//", "/", "%"}
+
+unary_ops_rules = {}
+
+for st in stype_bool | stype_int:
+    unary_ops_rules[("~", st)] = st
+
+for st in stype_int | stype_float:
+    unary_ops_rules[("-", st)] = st
+
+for st in stype_bool | stype_real:
+    unary_ops_rules["+", st] = st

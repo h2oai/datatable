@@ -3,7 +3,7 @@
 
 from .base_expr import BaseExpr
 from .literal_expr import LiteralExpr
-from .consts import ops_rules, decimal_stypes, division_ops
+from .consts import ops_rules, stype_decimal, division_ops
 
 
 
@@ -22,7 +22,7 @@ class BinaryOpExpr(BaseExpr):
         if self._stype is None:
             raise TypeError("Operation %s not allowed on operands of types "
                             "%s and %s" % (self.op, lhs.stype, rhs.stype))
-        if self._stype in decimal_stypes:
+        if self._stype in stype_decimal:
             self.scale = max(lhs.scale, rhs.scale)
 
 

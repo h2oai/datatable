@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .consts import ops_rules, decimal_stypes, ctypes_map, nas_map
+from .consts import ops_rules, stype_decimal, ctypes_map, nas_map
 
 
 def mean(expr, skipna=True):
@@ -20,7 +20,7 @@ class MeanReducer(BaseExpr):
             raise ValueError(
                 "Cannot compute mean of a variable of type %s" % expr.stype)
         self.scale = 0
-        if self._stype in decimal_stypes:
+        if self._stype in stype_decimal:
             self.scale = expr.scale
 
 
