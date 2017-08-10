@@ -23,7 +23,7 @@ static Column* easy_i1i_to_p8p(Column *self, Column *res)
     PyObject **res_data = (PyObject**) res->data;
     for (int64_t i = 0; i < self->nrows; i++) {
         int8_t x = src_data[i];
-        res_data[i] = x == NA_I1? none() : PyLong_FromLong(x);
+        res_data[i] = ISNA_I1(x) ? none() : PyLong_FromLong(x);
     }
     return res;
 }
@@ -35,7 +35,7 @@ static Column* easy_i2i_to_p8p(Column *self, Column *res)
     PyObject **res_data = (PyObject**) res->data;
     for (int64_t i = 0; i < self->nrows; i++) {
         int16_t x = src_data[i];
-        res_data[i] = x == NA_I2 ? none() : PyLong_FromLong(x);
+        res_data[i] = ISNA_I2(x) ? none() : PyLong_FromLong(x);
     }
     return res;
 }
@@ -47,7 +47,7 @@ static Column* easy_i4i_to_p8p(Column *self, Column *res)
     PyObject **res_data = (PyObject**) res->data;
     for (int64_t i = 0; i < self->nrows; i++) {
         int32_t x = src_data[i];
-        res_data[i] = x == NA_I4 ? none() : PyLong_FromLong(x);
+        res_data[i] = ISNA_I4(x) ? none() : PyLong_FromLong(x);
     }
     return res;
 }
@@ -59,7 +59,7 @@ static Column* easy_i8i_to_p8p(Column *self, Column *res)
     PyObject **res_data = (PyObject**) res->data;
     for (int64_t i = 0; i < self->nrows; i++) {
         int64_t x = src_data[i];
-        res_data[i] = x == NA_I8 ? none() : PyLong_FromLong(x);
+        res_data[i] = ISNA_I8(x) ? none() : PyLong_FromLong(x);
     }
     return res;
 }
@@ -71,7 +71,7 @@ static Column* easy_f4r_to_p8p(Column *self, Column *res)
     PyObject **res_data = (PyObject**) res->data;
     for (int64_t i = 0; i < self->nrows; i++) {
         float x = src_data[i];
-        res_data[i] = x == NA_F4 ? none() : PyFloat_FromDouble((double) x);
+        res_data[i] = ISNA_F4(x) ? none() : PyFloat_FromDouble((double) x);
     }
     return res;
 }
@@ -83,7 +83,7 @@ static Column* easy_f8r_to_p8p(Column *self, Column *res)
     PyObject **res_data = (PyObject**) res->data;
     for (int64_t i = 0; i < self->nrows; i++) {
         double x = src_data[i];
-        res_data[i] = x == NA_F8 ? none() : PyFloat_FromDouble(x);
+        res_data[i] = ISNA_F8(x) ? none() : PyFloat_FromDouble(x);
     }
     return res;
 }
