@@ -125,7 +125,7 @@ float max_f4(float a, float b);
  * This frees the memory and sets the pointer to NULL, for safety.
  **/
 #define dtfree(ptr) while (ptr) {                                              \
-    /* printf("  free(%p) at %s line %d\n", (void*)ptr, __FILE__, __LINE__); */\
+    /*printf("  dtfree(%p) at %s line %d\n", (void*)ptr, __FILE__, __LINE__);*/\
     _dt_free(ptr);                                                             \
     ptr = null;                                                                \
 }

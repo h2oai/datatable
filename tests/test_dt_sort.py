@@ -489,7 +489,25 @@ def test_i4s_large1():
 
 
 def test_i4s_large2():
-    src = ["test-%d" % i for i in range(100)]
+    src = ["test-%d" % (i * 1379 % 200) for i in range(200)]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large3():
+    src = ["aa"] * 100 + ["abc", "aba", "abb", "aba", "abc"]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large4():
+    src = ["aa"] * 100 + ["ab%d" % (i // 10) for i in range(100)] + \
+          ["bb", "cce", "dd"] * 25 + ["ff", "gg", "hhe"] * 10 + \
+          ["ff3", "www"] * 2
     d0 = datatable.DataTable(src)
     d1 = d0(sort=0)
     assert d1.internal.check()
@@ -497,7 +515,7 @@ def test_i4s_large2():
 
 
 @pytest.mark.skip()
-def test_i4s_large3():
+def test_i4s_large5():
     rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
     assert os.path.isdir(rootdir)
     words = []
@@ -508,5 +526,6 @@ def test_i4s_large3():
             words.extend(txt.split())
     dt0 = datatable.DataTable(words)
     dt1 = dt0(sort=0)
+    # dt1.view()
     assert dt1.internal.check()
-    assert dt1.topython() == [sorted(words)]
+    assert dt1.topython()[0] == sorted(words)
