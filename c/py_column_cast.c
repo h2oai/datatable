@@ -65,6 +65,30 @@ static Column* easy_i8i_to_p8p(Column *self, Column *res)
 }
 
 
+static Column* easy_f4r_to_p8p(Column *self, Column *res)
+{
+    float *src_data = (float*) self->data;
+    PyObject **res_data = (PyObject**) res->data;
+    for (int64_t i = 0; i < self->nrows; i++) {
+        float x = src_data[i];
+        res_data[i] = x == NA_F4 ? none() : PyFloat_FromDouble((double) x);
+    }
+    return res;
+}
+
+
+static Column* easy_f8r_to_p8p(Column *self, Column *res)
+{
+    double *src_data = (double*) self->data;
+    PyObject **res_data = (PyObject**) res->data;
+    for (int64_t i = 0; i < self->nrows; i++) {
+        double x = src_data[i];
+        res_data[i] = x == NA_F8 ? none() : PyFloat_FromDouble(x);
+    }
+    return res;
+}
+
+
 static Column* easy_i4s_to_p8p(Column *self, Column *res)
 {
     char *strdata = (char*) self->data;
@@ -94,5 +118,7 @@ void init_column_cast_functions2(castfn_ptr hardcasts[][DT_STYPES_COUNT])
     hardcasts[ST_INTEGER_I2][ST_OBJECT_PYPTR] = easy_i2i_to_p8p;
     hardcasts[ST_INTEGER_I4][ST_OBJECT_PYPTR] = easy_i4i_to_p8p;
     hardcasts[ST_INTEGER_I8][ST_OBJECT_PYPTR] = easy_i8i_to_p8p;
+    hardcasts[ST_REAL_F4][ST_OBJECT_PYPTR] = easy_f4r_to_p8p;
+    hardcasts[ST_REAL_F8][ST_OBJECT_PYPTR] = easy_f8r_to_p8p;
     hardcasts[ST_STRING_I4_VCHAR][ST_OBJECT_PYPTR] = easy_i4s_to_p8p;
 }
