@@ -248,12 +248,12 @@ def test_topandas_view():
 
 
 def test_tonumpy(numpy):
-    d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
+    d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False], "D": [3.4, None]})
     a0 = d0.tonumpy()
-    assert a0.shape == (3, 2)
+    assert a0.shape == (4, 2)
     assert a0.dtype == numpy.dtype("object")
     assert same_iterables(a0.tolist(),
-                          [[1, 5], ["hello", "you"], [True, False]])
+                          [[1, 5], ["hello", "you"], [True, False], [3.4, None]])
 
 
 def test_numpy_constructor_simple(numpy):
