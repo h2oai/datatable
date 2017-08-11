@@ -1,44 +1,83 @@
 import pytest
 import datatable as dt
-from tests import assert_equals
 
 
-def test_dt_isna_single_col():
-    dt0 = dt.DataTable([None, 4, None, 39, 2])
-    res = dt.isna(dt0)
-    assert res.internal.check()
-    assert res.types == ("bool", )
-    assert_equals(res, dt.DataTable({"V0": [True, False, True, False, False]}))
+# Sets of tuples containing test columns of each type
+dt_bool = {(False, True, False, False, True),
+           (True, None, None, True, False)}
 
-    
-def test_dt_isna_multi_col():
-    dt0 = dt.DataTable([[3, None, 2],
-                        [None, 3, 9]])
-    with pytest.raises(TypeError) as e:
-        dt.isna(dt0)
+dt_int = {(5, -3, 6, 3, 0),
+          (None, -1, 0, 26, -3)}
 
-        
-def test_dt_isna_expr():
-    dt0 = dt.DataTable([[6, 2, None, None, 6],
-                        [2, None, 5, 2, None],
-                        [None, 2, 7, None, 3.5]],
-                       colnames=list("ABC"))
-    res = dt0[lambda f: dt.isna(f.C), :]
-    assert res.internal.check()
-    assert_equals(res[:-1], dt.DataTable([[6, None],
-                                          [2, 2]],
-                                          colnames=list("AB")))
+dt_all = dt_bool | dt_int
 
-    
-@pytest.mark.skip(reason="str handling not fully implemented")
-def test_dt_isna_expr_str():
-    dt0 = dt.DataTable([[6, 2, None, None, 6],
-                        [2, None, 5, 2, None],
-                        [None, 2, 7, 6, "hello"]],
-                       colnames=list("ABC"))
-    res = dt0[lambda f: dt.isna(f.C), :]
-    assert res.internal.check()
-    assert_equals(res, dt.DataTable([[6],
-                                     [2],
-                                     [None]],
-                                    colnames=list("ABC")))
+# Designate which types are compatible with each operator
+dt_invert_pass = dt_bool | dt_int
+dt_neg_pass = dt_int
+dt_pos_pass = dt_all
+dt_isna_pass = dt_all
+
+# ---------------------------------------------------------------------------
+# Unary Operator Tests
+# ---------------------------------------------------------------------------
+
+# __invert__
+@pytest.mark.parametrize("source,valid", [(x, True) for x in dt_invert_pass] +
+                                         [(x, False) for x in dt_all - dt_invert_pass])
+def test_dt_invert(source, valid):
+    dt0 = dt.DataTable(source)
+    if valid:
+        dt_res = dt0(select=lambda f: ~f[0])
+        assert dt_res.internal.check()
+        assert dt_res.stypes == dt0.stypes
+        assert dt_res.topython()[0] == \
+            [None if x is None else not x if isinstance(x, bool) else ~x for x in source]
+    else:
+        with pytest.raises(TypeError):
+            dt0(select=lambda f: ~f[0])
+
+# __neg__
+@pytest.mark.parametrize("source,valid", [(x, True) for x in dt_neg_pass] +
+                                         [(x, False) for x in dt_all - dt_neg_pass])
+def test_dt_neg(source, valid):
+    dt0 = dt.DataTable(source)
+    if valid:
+        dt_res = dt0(select=lambda f: -f[0])
+        assert dt_res.internal.check()
+        assert dt_res.stypes == dt0.stypes
+        assert dt_res.topython()[0] == \
+            [None if x is None else -x for x in source]
+    else:
+        with pytest.raises(TypeError):
+            dt0(select=lambda f: -f[0])
+
+# __neg__
+@pytest.mark.parametrize("source,valid", [(x, True) for x in dt_pos_pass] +
+                                         [(x, False) for x in dt_all - dt_pos_pass])
+def test_dt_pos(source, valid):
+    dt0 = dt.DataTable(source)
+    if valid:
+        dt_res = dt0(select=lambda f: +f[0])
+        assert dt_res.internal.check()
+        assert dt_res.stypes == dt0.stypes
+        assert dt_res.topython()[0] == list(source)
+    else:
+        with pytest.raises(TypeError):
+            dt0(select=lambda f: +f[0])
+
+# isna()
+@pytest.mark.parametrize("source,valid", [(x, True) for x in dt_isna_pass] +
+                                         [(x, False) for x in dt_all - dt_isna_pass])
+def test_dt_isna(source, valid):
+    dt0 = dt.DataTable(source)
+    if valid:
+        dt_res = dt0(select=lambda f: dt.isna(f[0]))
+        assert dt_res.internal.check()
+        assert dt_res.stypes == ("i1b",)
+        assert dt_res.topython()[0] == \
+            [x is None for x in source]
+    else:
+        with pytest.raises(TypeError):
+            dt0(select=lambda f: dt.isna(f[0]))
+
+

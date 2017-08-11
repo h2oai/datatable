@@ -198,9 +198,13 @@ class BaseExpr(object):
             % self
         )
 
+    def __invert__(self):
+        """Unary inversion: ~expr."""
+        return datatable.expr.UnaryOpExpr("~", self)
+
     def __neg__(self):
         """Unary minus: -expr."""
-        return datatable.expr.UnaryOpExpr("neg", self)
+        return datatable.expr.UnaryOpExpr("-", self)
 
     def __pos__(self):
         """Unary plus (no-op)."""
