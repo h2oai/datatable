@@ -2,12 +2,14 @@
 PYTHON ?= python
 OS := $(shell uname | tr A-Z a-z)
 
+
 .PHONY: all
 all:
 	$(MAKE) clean
 	$(MAKE) build
 	$(MAKE) install
 	$(MAKE) test
+
 
 .PHONY: clean
 clean:
@@ -19,21 +21,26 @@ clean:
 	rm -f *.so
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
+
 .PHONY: mrproper
 mrproper: clean
 	git clean -f -d -x
+
 
 .PHONY: build
 build:
 	$(PYTHON) setup.py build
 
+
 .PHONY: install
 install:
 	$(PYTHON) -m pip install . --upgrade --no-cache-dir
 
+
 .PHONY: uninstall
 uninstall:
 	$(PYTHON) -m pip uninstall datatable -y
+
 
 .PHONY: test
 test:
@@ -45,6 +52,12 @@ test:
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
+
+.PHONY: benchmark
+benchmark:
+	$(PYTHON) -m pytest -rxs --benchmark-only
+
+
 .PHONY: debug
 debug:
 	$(MAKE) clean
@@ -52,10 +65,12 @@ debug:
 	$(MAKE) build
 	$(MAKE) install
 
+
 .PHONY: bi
 bi:
 	$(MAKE) build
 	$(MAKE) install
+
 
 .PHONY: coverage
 coverage:
