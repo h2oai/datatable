@@ -1,9 +1,6 @@
 #include "py_types.h"
 #include "py_utils.h"
 
-static PyObject *pyBoolFalse = NULL;
-static PyObject *pyBoolTrue = NULL;
-
 PyObject* py_ltype_names[DT_LTYPES_COUNT];
 PyObject* py_stype_names[DT_STYPES_COUNT];
 stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
@@ -13,8 +10,8 @@ stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
 static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)
 {
     int8_t x = ((int8_t*)col->data)[row];
-    return x == 0? incref(pyBoolFalse) :
-           x == 1? incref(pyBoolTrue) : none();
+    return x == 0? incref(Py_False) :
+           x == 1? incref(Py_True) : none();
 }
 
 static PyObject* stype_integer_i8_tostring(Column *col, int64_t row)
@@ -107,10 +104,6 @@ static PyObject* stype_notimpl(Column *col, UNUSED(int64_t row))
 int init_py_types(UU)
 {
     init_types();
-
-    pyBoolFalse = PyLong_FromLong(0);
-    pyBoolTrue  = PyLong_FromLong(1);
-    if (pyBoolFalse == NULL || pyBoolTrue == NULL) return 0;
 
     py_ltype_names[LT_MU]       = PyUnicode_FromString("mu");
     py_ltype_names[LT_BOOLEAN]  = PyUnicode_FromString("bool");
