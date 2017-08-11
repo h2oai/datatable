@@ -967,8 +967,6 @@ static void reorder_data_str(SortContext *sc)
         }
     }
     assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
-    // printf("  maxlen = %d\n", maxlen);
-    // printf("  reordered x = ["); for(int i=0;i<sc->n;i++) printf("%u,",xo[i]); printf("]\n");
     sc->next_elemsize = 2;
     sc->strmore = maxlen > 2;
 }
@@ -1063,20 +1061,11 @@ static void determine_sorting_parameters(SortContext *sc)
  */
 static void radix_psort(SortContext *sc)
 {
-    // printf("radix_psort(x=%p, o=%p, nextx=%p, nexto=%p, strdata=%p, n=%zu, strstart=%zu, elemsize=%d, "
-    //        "next_elemsize=%d, shift=%d, nsigbits=%d, histogram=%p)\n",
-    //        sc->x, sc->o, sc->next_x, sc->next_o, sc->strdata, sc->n, sc->strstart, sc->elemsize,
-    //        sc->next_elemsize, sc->shift, sc->nsigbits, sc->histogram);
-    // printf("  x = ["); for(int i=0;i<sc->n;i++) printf("%d,",((uint16_t*)sc->x)[i]); printf("]\n");
-    // if (sc->o){ printf("  o = ["); for(int i=0;i<sc->n;i++) printf("%d,",(sc->o)[i]); printf("]\n"); }
-
     determine_sorting_parameters(sc);
     build_histogram(sc);
     reorder_data(sc);
 
-    // printf("  next_elemsize = %d, strmore = %d\n", sc->next_elemsize, sc->strmore);
     if (!sc->x) return;
-
     if (sc->next_elemsize) {
         // At this point the input array is already partially sorted, and the
         // elements that remain to be sorted are collected into contiguous
@@ -1146,9 +1135,6 @@ static void radix_psort(SortContext *sc)
         // the same time, minimizing time wasted).
         qsort(rrmap, nradixes, sizeof(radix_range), _rrcmp);
         assert(rrmap[0].size >= rrmap[nradixes - 1].size);
-        // printf("  rrmap = {"); for(int i=0; i<sc->nradixes;i++) if(rrmap[i].size)
-        //     printf("%zd/+%zd, ", rrmap[i].offset, rrmap[i].size); printf("}\n");
-        // printf("  next_x = %p\n", sc->next_x);
 
         // At this point the distribution of radix range sizes may or may not
         // be uniform. If the distribution is uniform (i.e. roughly same number
@@ -1173,7 +1159,6 @@ static void radix_psort(SortContext *sc)
         size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
         while (rrmap[rri].size > rrlarge && rri < nradixes) {
             size_t off = rrmap[rri].offset;
-            // printf("  processing subrange .offset=%zu, .size=%zu\n\n", off, rrmap[rri].size);
             next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
             next_sc.o = sc->next_o + off;
             next_sc.n = rrmap[rri].size;
@@ -1206,7 +1191,6 @@ static void radix_psort(SortContext *sc)
             int32_t *o = sc->next_o + off;
             int32_t *oo = tmp + me * size0;
 
-            // printf("  calling insert_sort(off=%zu, n=%zu, x=%p, oo=%p, o=%p)\n", off, n, x, oo, o);
             if (sc->strdata) {
                 insert_sort_s4_o(sc->strdata, sc->stroffs, sc->strstart, o, oo, n);
             } else {
@@ -1229,10 +1213,8 @@ static void radix_psort(SortContext *sc)
         sc->o = sc->next_o;
         sc->next_o = NULL;
     }
-    // printf("radix_psort(n=%zu) finished\n\n", sc->n);
     return;
     fail:
-    // printf("radix_psort(n=%zu) failed\n\n", sc->n);
     sc->x = NULL;
     sc->o = NULL;
 }
