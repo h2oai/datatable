@@ -13,8 +13,8 @@ stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
 static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)
 {
     int8_t x = ((int8_t*)col->data)[row];
-    return x == 0? incref(pyBoolFalse) :
-           x == 1? incref(pyBoolTrue) : none();
+    return x == 0? incref(Py_False) :
+           x == 1? incref(Py_True) : none();
 }
 
 static PyObject* stype_integer_i8_tostring(Column *col, int64_t row)
