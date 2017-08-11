@@ -78,8 +78,14 @@ coverage:
 	DTCOVERAGE=1 \
 	$(MAKE) build
 	$(MAKE) install
-	$(PYTHON) -m pytest --cov=datatable --cov-report=html:build/coverage-py tests/
-	$(PYTHON) -m pytest --cov=datatable --cov-report=xml:build/coverage.xml tests/
+	$(PYTHON) -m pytest \
+		--benchmark-skip \
+		--cov=datatable --cov-report=html:build/coverage-py \
+		tests
+	$(PYTHON) -m pytest \
+		--benchmark-skip \
+		--cov=datatable --cov-report=xml:build/coverage.xml \
+		tests
 	lcov --gcov-tool ./llvm-gcov.sh --capture --directory . --output-file build/coverage.info
 	genhtml build/coverage.info --output-directory build/coverage-c
 	mv .coverage build/
