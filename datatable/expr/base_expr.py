@@ -208,7 +208,7 @@ class BaseExpr(object):
 
     def __pos__(self):
         """Unary plus (no-op)."""
-        return self
+        return datatable.expr.UnaryOpExpr("+", self)
 
 
 
