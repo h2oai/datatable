@@ -37,3 +37,21 @@ def numpy():
         return np
     except ImportError:
         pytest.skip("Numpy module is required for this test")
+
+
+@pytest.fixture()
+def h2o():
+    """
+    This fixture returns h2o module, or if unavailable marks test as skipped.
+    """
+    try:
+        import h2o
+        v = h2o.__version__
+        if (v == "SUBST_PROJECT_VERSION" or
+                tuple(int(x) for x in v.split(".")) >= (3, 14)):
+            h2o.init()
+            return h2o
+        else:
+            pytest.skip("h2o version 3.14+ is required, you have %s" % v)
+    except ImportError:
+        pytest.skip("h2o module is required for this test")
