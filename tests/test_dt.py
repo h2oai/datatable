@@ -245,16 +245,20 @@ def test_topandas_view():
     assert p1.columns.tolist() == ["A", "b", "c"]
     assert p1.values.T.tolist() == d1.topython()
 
+
 def test_topython():
-    d0 = dt.DataTable({"A": [-1, 0, 1, 3], "B": ["cat", "dog", "mouse", "elephant"], "C": [False, True, None, True]})
+    src = [[-1, 0, 1, 3], 
+           ["cat", "dog", "mouse", "elephant"], 
+           [False, True, None, True]]
+    d0 = dt.DataTable(src, colnames=["A", "B", "C"])
+    assert d0.types == ("int", "str", "bool")
     a0 = d0.topython()
     assert len(a0) == 3
     assert len(a0[0]) == 4
-    assert same_iterables(a0,
-                          [[-1, 0, 1, 3], ["cat", "dog", "mouse", "elephant"], [False, True, None, True]])
-    # Special case for booleans (because Booleans are considered to be equivalent to 1/0)
-    for b in a0[2]:
-        assert b is None or isinstance(b, bool)
+    assert a0 == src
+    # Special case for booleans (because Booleans compare equal to 1/0)
+    assert all(b is None or isinstance(b, bool) for b in a0[2])
+
 
 def test_tonumpy(numpy):
     d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False], "D": [3.4, None]})
