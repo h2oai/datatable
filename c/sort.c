@@ -772,7 +772,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
 
     sc->strdata = (unsigned char*) col->data;
     sc->stroffs = offs;
-    sc->strstart = 2;
+    sc->strstart = 0;
     sc->strmore = maxlen > 2;
     sc->n = n;
     sc->x = (void*) xo;

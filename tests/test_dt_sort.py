@@ -514,8 +514,17 @@ def test_i4s_large4():
     assert d1.topython() == [sorted(src)]
 
 
-@pytest.mark.skip()
 def test_i4s_large5():
+    src = ['acol', 'acols', 'acolu', 'acells', 'achar', 'bdatatable!'] * 20 + \
+          ['bd', 'bdat', 'bdata', 'bdatr', 'bdatx', 'bdatatable'] * 5 + \
+          ['bdt%d' % (i // 2) for i in range(30)]
+    random.shuffle(src)
+    dt0 = datatable.DataTable(src)(sort=0)
+    assert dt0.internal.check()
+    assert dt0.topython()[0] == sorted(src)
+
+
+def test_i4s_large6():
     rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
     assert os.path.isdir(rootdir)
     words = []
@@ -526,6 +535,5 @@ def test_i4s_large5():
             words.extend(txt.split())
     dt0 = datatable.DataTable(words)
     dt1 = dt0(sort=0)
-    # dt1.view()
     assert dt1.internal.check()
     assert dt1.topython()[0] == sorted(words)
