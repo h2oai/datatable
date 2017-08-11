@@ -41,10 +41,15 @@ test:
 	mkdir -p build/test-reports/
 	$(PYTHON) -m pytest --junit-prefix=$(OS) --junitxml=build/test-reports/TEST-datatable.xml -rxs tests
 
-.PHONY: valgrind
-valgrind:
+.PHONY: debug
+debug:
 	$(MAKE) clean
 	VALGRIND=1 \
+	$(MAKE) build
+	$(MAKE) install
+
+.PHONY: bi
+bi:
 	$(MAKE) build
 	$(MAKE) install
 

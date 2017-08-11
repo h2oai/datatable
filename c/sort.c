@@ -15,8 +15,11 @@
 // See also:
 //      https://en.wikipedia.org/wiki/Radix_sort
 //      https://en.wikipedia.org/wiki/Insertion_sort
-//      https://github.com/Rdatatable/data.table/src/forder.c, fsort.c
 //      http://stereopsis.com/radix.html
+//
+// Based on Radix sort implementation in (R)data.table:
+//      https://github.com/Rdatatable/data.table/src/forder.c
+//      https://github.com/Rdatatable/data.table/src/fsort.c
 //------------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>   // printf
@@ -60,6 +63,23 @@
  *
  * elemsize
  *      Size in bytes of each element in `x`, one of: 1, 2, 4, or 8.
+ *
+ * strdata
+ *      For string columns only, this is the common "character data" memory
+ *      buffer for all items in the column.
+ *
+ * stroffs
+ *      For string columns only, this is a pointer to the "offsets" structure
+ *      of the column.
+ *
+ * strstart
+ *      For string columns only, this is the position within the string that is
+ *      currently being tested.
+ *
+ * strmore
+ *      For string columns only, this is a flag that will be set after
+ *      `prepare_data` / `reorder_data` and will indicate whether there are any
+ *      more characters in the strings available.
  *
  * issorted
  *      Flag indicating that the input array was found to be already sorted (for
@@ -130,6 +150,9 @@ typedef struct SortContext {
     void    *next_x;
     int32_t *next_o;
     size_t *histogram;
+    const unsigned char *strdata;
+    const int32_t *stroffs;
+    size_t strstart;
     size_t n;
     size_t nth;
     size_t nchunks;
@@ -140,7 +163,8 @@ typedef struct SortContext {
     int8_t nsigbits;
     int8_t shift;
     int8_t issorted;
-    char _padding[3];
+    int8_t strmore;
+    char _padding[2];
 } SortContext;
 
 
@@ -155,6 +179,14 @@ static insert_sort_fn insert_sort_fns[DT_STYPES_COUNT];
 
 static void insert_sort(SortContext*);
 static void radix_psort(SortContext*);
+static int32_t* insert_sort_s4_noo(const unsigned char*, const int32_t*,
+                                   int32_t, int32_t*, int32_t);
+static int32_t* insert_sort_s4_o(const unsigned char*, const int32_t*,
+                                 int32_t, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u1(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u2(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u4(const void*, int32_t*, int32_t*, int32_t);
+static int32_t* insert_sort_u8(const void*, int32_t*, int32_t*, int32_t);
 
 static inline size_t maxz(size_t a, size_t b) { return a < b? b : a; }
 static inline size_t minz(size_t a, size_t b) { return a < b? a : b; }
@@ -167,6 +199,7 @@ static int _rrcmp(const void *a, const void *b) {
     const size_t y = *(const size_t*)b;
     return (x < y) - (y < x);
 }
+
 
 
 //==============================================================================
@@ -195,6 +228,9 @@ RowIndex* column_sort(Column *col, RowIndex *rowindex)
     }
     int32_t nrows = (int32_t) _nrows;
     int32_t *ordering = NULL;
+    if (nrows <= 1) {  // no need to sort
+        return rowindex_from_slice(0, nrows, 1);
+    }
     if (rowindex) {
         if (rowindex->type == RI_ARR32) {
             dtmalloc(ordering, int32_t, nrows);
@@ -210,18 +246,20 @@ RowIndex* column_sort(Column *col, RowIndex *rowindex)
     }
     SType stype = col->stype;
     prepare_inp_fn prepfn = prepare_inp_fns[stype];
+    SortContext *sc = NULL;
+    dtcalloc(sc, SortContext, 1);
 
-    if (nrows <= 1) {  // no need to sort
-        return rowindex_from_slice(0, nrows, 1);
-
-    } if (nrows <= INSERT_SORT_THRESHOLD) {
+    if (nrows <= INSERT_SORT_THRESHOLD) {
         if (stype == ST_REAL_F4 || stype == ST_REAL_F8 || rowindex) {
-            SortContext sc;
-            memset(&sc, 0, sizeof(SortContext));
-            prepfn(col, ordering, (size_t)nrows, &sc);
-            insert_sort(&sc);
-            ordering = sc.o;
-            dtfree(sc.x);
+            prepfn(col, ordering, (size_t)nrows, sc);
+            insert_sort(sc);
+            ordering = sc->o;
+            dtfree(sc->x);
+        } else if (stype == ST_STRING_I4_VCHAR) {
+            int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
+            const unsigned char *strdata = (const unsigned char*) col->data;
+            const int32_t *offs = (const int32_t*) add_ptr(col->data, offoff);
+            ordering = insert_sort_s4_noo(strdata, offs, 0, NULL, nrows);
         } else {
             insert_sort_fn sortfn = insert_sort_fns[stype];
             if (sortfn) {
@@ -233,26 +271,26 @@ RowIndex* column_sort(Column *col, RowIndex *rowindex)
         }
     } else {
         if (prepfn) {
-            SortContext sc;
-            memset(&sc, 0, sizeof(SortContext));
-            prepfn(col, ordering, (size_t)nrows, &sc);
-            if (sc.issorted) {
+            prepfn(col, ordering, (size_t)nrows, sc);
+            if (sc->issorted) {
                 return rowindex_from_slice(0, nrows, 1);
             }
-            if (!sc.x) return NULL;
-            radix_psort(&sc);
-            int error_occurred = (sc.x == NULL);
-            ordering = sc.o;
-            dtfree(sc.x);
-            dtfree(sc.next_x);
-            dtfree(sc.next_o);
-            dtfree(sc.histogram);
-            if (error_occurred) return NULL;
+            if (sc->x != NULL) {
+                radix_psort(sc);
+            }
+            int error_occurred = (sc->x == NULL);
+            ordering = sc->o;
+            dtfree(sc->x);
+            dtfree(sc->next_x);
+            dtfree(sc->next_o);
+            dtfree(sc->histogram);
+            if (error_occurred) ordering = NULL;
         } else {
             dterrr("Radix sort not implemented for column of stype %d",
                    stype);
         }
     }
+    dtfree(sc);
     if (!ordering) return NULL;
     return rowindex_from_i32_array(ordering, nrows);
 }
@@ -318,6 +356,38 @@ static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
     }
     *min = tmin;
     *max = tmax;
+}
+
+
+/**
+ * Compare two strings a and b, each given as a pair of offsets `off0` ..
+ * `off1` into the common character buffer `strdata`. If `off1` is negative,
+ * then that string is an NA string. If `off0 >= off1`, then the string is
+ * considered empty.
+ * Return 0 if strings are equal, 1 if a < b, or -1 if a > b. An NA string
+ * compares equal to another NA string, and less than any non-NA string. An
+ * empty string compares greater than NA, but less than any non-empty string.
+ */
+static int _compare_offstrings(
+    const unsigned char *strdata, int32_t off0a, int32_t off1a, int32_t off0b,
+    int32_t off1b
+) {
+    // Handle NAs and empty strings
+    if (off1b < 0) return off1a < 0? 0 : -1;
+    if (off1a < 0) return 1;
+    int32_t lena = off1a - off0a;
+    int32_t lenb = off1b - off0b;
+    if (lenb <= 0) return lena <= 0? 0 : -1;
+    if (lena <= 0) return 1;
+
+    for (int32_t t = 0; t < lena; t++) {
+        if (t == lenb) return -1;
+        unsigned char ca = strdata[off0a + t];
+        unsigned char cb = strdata[off0b + t];
+        if (ca == cb) continue;
+        return (ca < cb)? 1 : -1;
+    }
+    return lena == lenb? 0 : 1;
 }
 
 
@@ -571,8 +641,12 @@ prepare_input_i8(const Column *col, int32_t *ordering, size_t n,
  *      (2) numbers with sign bit = 1 will be XORed with 0xFFFFFFFF
  *      (3) all NAs will be converted to 0, and NaNs to 1
  *
+ * Float64 is similar: 1 bit for the sign, 11 bits of exponent, and finally
+ * 52 bits of the significand.
+ *
  * See also:
  *      https://en.wikipedia.org/wiki/Float32
+ *      https://en.wikipedia.org/wiki/Float64
  */
 static void
 prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
@@ -653,6 +727,59 @@ prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
     sc->elemsize = 8;
     sc->nsigbits = 64;
     sc->next_elemsize = 8;
+    return;
+    fail:
+    sc->x = NULL;
+}
+
+
+/**
+ * For strings, we fill array `x` with the values of the first 2 characters in
+ * each string. We also set up auxiliary variables `strdata`, `stroffs`,
+ * `strstart` and `strmore` in the SortContext.
+ *
+ * More specifically, for each string item, if it is NA then we map it to 0;
+ * if it is an empty string we map it to 1, otherwise we map it to
+ * `(ch[0] + 1) * 256 + (ch[1] + 1) + 1`, where `ch[i]` is the i-th character
+ * of the string, or -1 if the string's length is less than or equal to `i`.
+ * This doesn't overflow because in UTF-8 the largest legal byte is 0xF7.
+ */
+static void
+prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
+                 SortContext *sc)
+{
+    uint8_t *strbuf = (uint8_t*) add_ptr(col->data, -1);
+    int64_t offoff = ((VarcharMeta*)col->meta)->offoff;
+    int32_t *offs = (int32_t*) add_ptr(col->data, offoff);
+    uint16_t *xo = NULL;
+    dtmalloc_g(xo, uint16_t, n);
+
+    int maxlen = 0;
+    #pragma omp parallel for schedule(static) reduction(max:maxlen)
+    for (size_t j = 0; j < n; j++) {
+        int32_t offend = offs[j];
+        if (offend < 0) {  // NA
+            xo[j] = 0;
+        } else {
+            int32_t offstart = abs(offs[j-1]);
+            int32_t len = offend - offstart;
+            uint8_t c1 = len > 0? strbuf[offstart] + 1 : 0;
+            uint8_t c2 = len > 1? strbuf[offstart+1] + 1 : 0;
+            xo[j] = (uint16_t)(1 + (c1 << 8) + c2);
+            if (len > maxlen) maxlen = len;
+        }
+    }
+
+    sc->strdata = (unsigned char*) col->data;
+    sc->stroffs = offs;
+    sc->strstart = 0;
+    sc->strmore = maxlen > 2;
+    sc->n = n;
+    sc->x = (void*) xo;
+    sc->o = ordering;
+    sc->elemsize = 2;
+    sc->nsigbits = 16;
+    sc->next_elemsize = (maxlen > 2) * 2;
     return;
     fail:
     sc->x = NULL;
@@ -799,14 +926,51 @@ static void build_histogram(SortContext *sc)
         assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);        \
     }
 
-
-
 TEMPLATE_REORDER_DATA(u4u2, uint32_t, uint16_t)
 TEMPLATE_REORDER_DATA(u8u4, uint64_t, uint32_t)
 TEMPLATE_REORDER_DATA(u8u8, uint64_t, uint64_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u1, uint8_t)
 TEMPLATE_REORDER_DATA_SIMPLE(u2, uint16_t)
 #undef TEMPLATE_REORDER_DATA
+
+
+static void reorder_data_str(SortContext *sc)
+{
+    uint16_t *xi = (uint16_t*) sc->x;
+    uint16_t *xo = (uint16_t*) sc->next_x;
+    int32_t *oi = sc->o;
+    int32_t *oo = sc->next_o;
+    assert(xo != NULL);
+    const unsigned char *strdata = sc->strdata - 1;
+    const int32_t *stroffs = sc->stroffs;
+    const int32_t strstart = (int32_t) sc->strstart;
+
+    int32_t maxlen = 0;
+    #pragma omp parallel for schedule(dynamic) num_threads(sc->nth) \
+            reduction(max:maxlen)
+    for (size_t i = 0; i < sc->nchunks; i++) {
+        size_t j0 = i * sc->chunklen,
+               j1 = minz(j0 + sc->chunklen, sc->n);
+        size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);
+        for (size_t j = j0; j < j1; j++) {
+            size_t k = tcounts[xi[j]]++;
+            int32_t w = oi? oi[j] : (int32_t) j;
+            int32_t offend = stroffs[w];
+            int32_t offstart = abs(stroffs[w-1]) + strstart;
+            int32_t len = offend - offstart;
+            unsigned char c1 = len > 0? strdata[offstart] + 1 : 0;
+            unsigned char c2 = len > 1? strdata[offstart+1] + 1 : 0;
+            if (len > maxlen) maxlen = len;
+            xo[k] = offend < 0? 0 : (uint16_t)((c1 << 8) + c2 + 1);
+            oo[k] = w;
+        }
+    }
+    assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
+    sc->next_elemsize = 2;
+    sc->strmore = maxlen > 2;
+}
+
+
 
 static void reorder_data(SortContext *sc)
 {
@@ -823,7 +987,11 @@ static void reorder_data(SortContext *sc)
             else goto fail;
             break;
         case 4: reorder_data_u4u2(sc); break;
-        case 2: reorder_data_u2(sc); break;
+        case 2:
+            if (sc->next_elemsize == 2) reorder_data_str(sc);
+            else if (sc->next_elemsize == 0) reorder_data_u2(sc);
+            else goto fail;
+            break;
         case 1: reorder_data_u1(sc); break;
         default: printf("elemsize = %d\n", sc->elemsize); assert(0);
     }
@@ -869,26 +1037,35 @@ static void determine_sorting_parameters(SortContext *sc)
 }
 
 
+
 /**
- * Sort array `x` of length `n` using MSB Radix sort algorithm, and return the
- * resulting ordering in array `o`.
- * This function presumes that "prepare data" step has already been invoked.
+ * Sort array `o` of length `n` by values `x`, using MSB Radix sort algorithm.
+ * Array `o` will be modified in-place. If `o` is NULL, then it will be
+ * allocated and filled with values of `range(n)`.
  *
  * SortContext inputs:
- *      x, o, n, elemsize, next_elemsize, nsigbits
+ *      x:      buffer of size `elemsize * n`
+ *      next_x: NULL, or buffer of size `next_elemsize * n`
+ *      o:      NULL, or array of `int32_t`s of length `n`
+ *      next_o: NULL, or array of `int32_t`s of length `n`
+ *      elemsize
+ *      next_elemsize: (may be zero)
+ *      nsigbits
  *
  * SortContext outputs:
- *      o
+ *      o:  If NULL, this array will be allocated; otherwise its contents will
+ *          be modified in-place.
+ *      x, next_x, next_o, histogram: These arrays may be allocated, or their
+ *          contents may be altered arbitrarily.
  */
 static void radix_psort(SortContext *sc)
 {
     determine_sorting_parameters(sc);
     build_histogram(sc);
     reorder_data(sc);
-    if (!sc->x) return;
 
-    assert((sc->shift > 0) == (sc->next_elemsize > 0));
-    if (sc->shift > 0) {
+    if (!sc->x) return;
+    if (sc->next_elemsize) {
         // At this point the input array is already partially sorted, and the
         // elements that remain to be sorted are collected into contiguous
         // chunks. For example if `shift` is 2, then `next_x` may be:
@@ -904,13 +1081,19 @@ static void radix_psort(SortContext *sc)
         // Prepare the "next SortContext" variable
         size_t nradixes = sc->nradixes;
         size_t next_elemsize = (size_t) sc->next_elemsize;
+        int8_t next_nsigbits = sc->shift;
+        if (!next_nsigbits) next_nsigbits = (int8_t)(sc->next_elemsize * 8);
         SortContext next_sc = {
             .x = NULL,
             .o = NULL,
             .n = 0,
+            .strdata = sc->strdata,
+            .stroffs = sc->stroffs,
+            .strstart = sc->strstart + 2,
+            .strmore = sc->strmore,
             .elemsize = sc->next_elemsize,
             .issorted = 0,
-            .nsigbits = sc->shift,
+            .nsigbits = next_nsigbits,
             .shift = 0,
             .nradixes = 0,
             .nth = 0,
@@ -919,7 +1102,8 @@ static void radix_psort(SortContext *sc)
             .histogram = sc->histogram,  // reuse the `histogram` buffer
             .next_x = sc->x,  // x is no longer needed: reuse
             .next_o = NULL,
-            .next_elemsize = sc->shift > 32? 4 :
+            .next_elemsize = sc->strdata? sc->strmore * 2 :
+                             sc->shift > 32? 4 :
                              sc->shift > 16? 2 : 0,
         };
 
@@ -983,20 +1167,44 @@ static void radix_psort(SortContext *sc)
 
         // Finally iterate over all remaining radix ranges, in-parallel, and
         // sort each of them independently using a simpler insertion sort
-        // algorithms.
-        #pragma omp parallel for num_threads(sc->nth)
+        // method.
+        size_t size0 = rri < nradixes? rrmap[rri].size : 0;
+        int32_t *tmp = NULL;
+        int own_tmp = 0;
+        if (size0) {
+            size_t size_all = size0 * sc->nth * sizeof(int32_t);
+            if ((size_t)sc->elemsize * sc->n <= size_all) {
+                tmp = (int32_t*)sc->x;
+            } else {
+                own_tmp = 1;
+                dtmalloc_g(tmp, int32_t, size0 * sc->nth);
+            }
+        }
+        #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
         for (size_t i = rri; i < nradixes; i++)
         {
+            int me = omp_get_thread_num();
             size_t off = rrmap[i].offset;
-            size_t size = rrmap[i].size;
-            if (size <= 1) continue;
-            next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
-            next_sc.next_x = add_ptr(sc->x, off * next_elemsize);
-            next_sc.o = sc->next_o + off;
-            next_sc.n = size;
-            insert_sort(&next_sc);
+            int32_t n = (int32_t) rrmap[i].size;
+            if (n <= 1) continue;
+            void *x = add_ptr(sc->next_x, off * next_elemsize);
+            int32_t *o = sc->next_o + off;
+            int32_t *oo = tmp + me * (int32_t)size0;
+
+            if (sc->strdata) {
+                int32_t ss = (int32_t) sc->strstart;
+                insert_sort_s4_o(sc->strdata, sc->stroffs, ss, o, oo, n);
+            } else {
+                switch (next_elemsize) {
+                    case 1: insert_sort_u1(x, o, oo, n); break;
+                    case 2: insert_sort_u2(x, o, oo, n); break;
+                    case 4: insert_sort_u4(x, o, oo, n); break;
+                    case 8: insert_sort_u8(x, o, oo, n); break;
+                }
+            }
         }
         dtfree(rrmap);
+        if (own_tmp) dtfree(tmp);
     }
 
     // Done. Save to array `o` the ordering of the input vector `x`.
@@ -1018,17 +1226,17 @@ static void radix_psort(SortContext *sc)
 // Insertion sort functions
 //
 // All functions here provide the same functionality and have a similar
-// signature. Each of these function sorts array `y` according to the values of
+// signature. Each of these function sorts array `o` according to the values of
 // array `x`. Both arrays must have the same length `n`. The caller may also
-// provide a temporary buffer `tmp` of size at least `4*n` bytes. The contents
-// of this array will be overwritten. Returns the pointer `y`.
+// provide a temporary buffer `oo` of size at least `4*n` bytes. The contents
+// of this array will be overwritten. Returns the pointer `o`.
 //
 // For example, if `x` is {5, 2, -1, 7, 2}, then this function will leave `x`
-// unmodified but reorder the elements of `y` into {y[2], y[1], y[4], y[0],
-// y[3]}.
+// unmodified but reorder the elements of `o` into {o[2], o[1], o[4], o[0],
+// o[3]}.
 //
-// Pointer `y` can be NULL, in which case it will be assumed that `y[i] == i`.
-// Similarly, `tmp` can be NULL too, in which case it will be allocated inside
+// Pointer `o` can be NULL, in which case it will be assumed that `o[i] == i`.
+// Similarly, `oo` can be NULL too, in which case it will be allocated inside
 // the function.
 //
 // This procedure uses Insert Sort algorithm, which has O(n²) complexity.
@@ -1049,34 +1257,34 @@ static void radix_psort(SortContext *sc)
 
 #define DECLARE_INSERT_SORT_FN(SFX, T)                                         \
     static int32_t* insert_sort_ ## SFX(                                       \
-        const void *restrict v,                                                \
-        int32_t *restrict y,                                                   \
-        int32_t *restrict tmp,                                                 \
+        const void *restrict x,                                                \
+        int32_t *restrict o,                                                   \
+        int32_t *restrict oo,                                                  \
         int32_t n                                                              \
     ) {                                                                        \
-        const T *restrict x = (const T *) v;                                   \
-        int own_tmp = 0;                                                       \
-        if (tmp == NULL) {                                                     \
-            dtmalloc(tmp, int32_t, n);                                         \
-            own_tmp = 1;                                                       \
+        const T *restrict xi = (const T *) x;                                  \
+        int own_oo = 0;                                                        \
+        if (oo == NULL) {                                                      \
+            dtmalloc(oo, int32_t, n);                                          \
+            own_oo = 1;                                                        \
         }                                                                      \
-        tmp[0] = 0;                                                            \
+        oo[0] = 0;                                                             \
         for (int i = 1; i < n; i++) {                                          \
-            T xi = x[i];                                                       \
+            T xival = xi[i];                                                   \
             int j = i;                                                         \
-            while (j && xi < x[tmp[j - 1]]) {                                  \
-                tmp[j] = tmp[j - 1];                                           \
+            while (j && xival < xi[oo[j - 1]]) {                               \
+                oo[j] = oo[j - 1];                                             \
                 j--;                                                           \
             }                                                                  \
-            tmp[j] = i;                                                        \
+            oo[j] = i;                                                         \
         }                                                                      \
-        if (!y) return tmp;                                                    \
+        if (!o) return oo;                                                     \
         for (int i = 0; i < n; i++) {                                          \
-            tmp[i] = y[tmp[i]];                                                \
+            oo[i] = o[oo[i]];                                                  \
         }                                                                      \
-        memcpy(y, tmp, (size_t)n * sizeof(int32_t));                           \
-        if (own_tmp) dtfree(tmp);                                              \
-        return y;                                                              \
+        memcpy(o, oo, (size_t)n * sizeof(int32_t));                            \
+        if (own_oo) dtfree(oo);                                                \
+        return o;                                                              \
     }
 
 DECLARE_INSERT_SORT_FN(i1, int8_t)
@@ -1089,9 +1297,87 @@ DECLARE_INSERT_SORT_FN(u4, uint32_t)
 DECLARE_INSERT_SORT_FN(u8, uint64_t)
 #undef DECLARE_INSERT_SORT_FN
 
+
+static int32_t* insert_sort_s4_o(
+    const unsigned char *restrict strdata,
+    const int32_t *restrict stroffs,
+    int32_t strstart,
+    int32_t *restrict o,
+    int32_t *restrict tmp,
+    int32_t n
+) {
+    int32_t j;
+    int own_tmp = 0;
+    if (tmp == NULL) {
+        dtmalloc(tmp, int32_t, n);
+        own_tmp = 1;
+    }
+    tmp[0] = 0;
+    const unsigned char *strdata1 = strdata - 1;
+    for (int32_t i = 1; i < n; i++) {
+        int32_t off0i = abs(stroffs[o[i]-1]) + strstart;
+        int32_t off1i = stroffs[o[i]];
+        for (j = i; j > 0; j--) {
+            int32_t k = tmp[j-1];
+            int32_t off0k = abs(stroffs[o[k]-1]) + strstart;
+            int32_t off1k = stroffs[o[k]];
+            int cmp = _compare_offstrings(strdata1, off0i, off1i, off0k, off1k);
+            if (cmp != 1) break;
+            tmp[j] = tmp[j-1];
+        }
+        tmp[j] = i;
+    }
+    for (int i = 0; i < n; i++) {
+        tmp[i] = o[tmp[i]];
+    }
+    memcpy(o, tmp, (size_t)n * sizeof(int32_t));
+    if (own_tmp) dtfree(tmp);
+    return o;
+}
+
+static int32_t* insert_sort_s4_noo(
+    const unsigned char *restrict strdata,
+    const int32_t *restrict stroffs,
+    int32_t strstart,
+    int32_t *restrict tmp,
+    int32_t n
+) {
+    int32_t j;
+    if (tmp == NULL) {
+        dtmalloc(tmp, int32_t, n);
+    }
+    tmp[0] = 0;
+    const unsigned char *strdata1 = strdata - 1;
+    for (int32_t i = 1; i < n; i++) {
+        int32_t off0i = abs(stroffs[i-1]) + strstart;
+        int32_t off1i = stroffs[i];
+        for (j = i; j > 0; j--) {
+            int32_t k = tmp[j-1];
+            int32_t off0k = abs(stroffs[k-1]) + strstart;
+            int32_t off1k = stroffs[k];
+            int cmp = _compare_offstrings(strdata1, off0i, off1i, off0k, off1k);
+            if (cmp != 1) break;
+            tmp[j] = tmp[j-1];
+        }
+        tmp[j] = i;
+    }
+    return tmp;
+}
+
+
 static void insert_sort(SortContext *sc)
 {
     int32_t n = (int32_t) sc->n;
+    if (sc->strdata && sc->strmore) {
+        int32_t ss = (int32_t)sc->strstart - 2;
+        if (sc->o)
+            insert_sort_s4_o(sc->strdata, sc->stroffs,
+                             ss, sc->o, sc->next_x, n);
+        else
+            sc->o = insert_sort_s4_noo(sc->strdata, sc->stroffs,
+                                       ss, sc->next_x, n);
+        return;
+    }
     switch (sc->elemsize) {
         case 1: sc->o = insert_sort_u1(sc->x, sc->o, sc->next_x, n); break;
         case 2: sc->o = insert_sort_u2(sc->x, sc->o, sc->next_x, n); break;
@@ -1119,6 +1405,7 @@ void init_sort_functions(void)
     prepare_inp_fns[ST_INTEGER_I8] = (prepare_inp_fn) &prepare_input_i8;
     prepare_inp_fns[ST_REAL_F4]    = (prepare_inp_fn) &prepare_input_f4;
     prepare_inp_fns[ST_REAL_F8]    = (prepare_inp_fn) &prepare_input_f8;
+    prepare_inp_fns[ST_STRING_I4_VCHAR] = (prepare_inp_fn) &prepare_input_s4;
 
     insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_i1;
     insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_i1;

@@ -4,6 +4,7 @@ import datatable
 import pytest
 from tests import list_equals
 import random
+import os
 
 
 
@@ -441,7 +442,6 @@ def test_sort_view2():
     assert d2.topython() == d1.topython()
 
 
-# @pytest.mark.skip()
 def test_sort_view3():
     d0 = datatable.DataTable(list(range(100)))
     d1 = d0[::-5, :]
@@ -449,3 +449,91 @@ def test_sort_view3():
     assert d2.internal.check()
     assert d2.shape == (20, 1)
     assert d2.topython() == [list(range(4, 100, 5))]
+
+
+
+#-------------------------------------------------------------------------------
+
+def test_i4s_small1():
+    src = ["MOTHER OF EXILES. From her beacon-hand",
+           "Glows world-wide welcome; her mild eyes command",
+           "The air-bridged harbor that twin cities frame.",
+           "'Keep ancient lands, your storied pomp!' cries she",
+           "With silent lips. 'Give me your tired, your poor,",
+           "Your huddled masses yearning to breathe free,",
+           "The wretched refuse of your teeming shore.",
+           "Send these, the homeless, tempest-tost to me,",
+           "I lift my lamp beside the golden door!'"]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_small2():
+    src = ["Welcome", "Welc", "", None, "Welc", "Welcome!", "Welcame"]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    src.remove(None)
+    assert d1.topython() == [[None] + sorted(src)]
+
+
+def test_i4s_large1():
+    src = list("dfbvoiqeubvqoiervblkdfbvqoiergqoiufbvladfvboqiervblq"
+               "134ty1-394 8n09er8gy209rg hwdoif13-40t 9u13- jdpfver")
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large2():
+    src = ["test-%d" % (i * 1379 % 200) for i in range(200)]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large3():
+    src = ["aa"] * 100 + ["abc", "aba", "abb", "aba", "abc"]
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large4():
+    src = ["aa"] * 100 + ["ab%d" % (i // 10) for i in range(100)] + \
+          ["bb", "cce", "dd"] * 25 + ["ff", "gg", "hhe"] * 10 + \
+          ["ff3", "www"] * 2
+    d0 = datatable.DataTable(src)
+    d1 = d0(sort=0)
+    assert d1.internal.check()
+    assert d1.topython() == [sorted(src)]
+
+
+def test_i4s_large5():
+    src = ['acol', 'acols', 'acolu', 'acells', 'achar', 'bdatatable!'] * 20 + \
+          ['bd', 'bdat', 'bdata', 'bdatr', 'bdatx', 'bdatatable'] * 5 + \
+          ['bdt%d' % (i // 2) for i in range(30)]
+    random.shuffle(src)
+    dt0 = datatable.DataTable(src)(sort=0)
+    assert dt0.internal.check()
+    assert dt0.topython()[0] == sorted(src)
+
+
+def test_i4s_large6():
+    rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
+    assert os.path.isdir(rootdir)
+    words = []
+    for dirname, subdirs, files in os.walk(rootdir):
+        for filename in files:
+            f = os.path.join(dirname, filename)
+            txt = open(f, "r", encoding="utf-8").read()
+            words.extend(txt.split())
+    dt0 = datatable.DataTable(words)
+    dt1 = dt0(sort=0)
+    assert dt1.internal.check()
+    assert dt1.topython()[0] == sorted(words)
