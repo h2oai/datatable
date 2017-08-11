@@ -531,7 +531,7 @@ def test_i4s_large6():
     for dirname, subdirs, files in os.walk(rootdir):
         for filename in files:
             f = os.path.join(dirname, filename)
-            txt = open(f, "r").read()
+            txt = open(f, "r", encoding="utf-8").read()
             words.extend(txt.split())
     dt0 = datatable.DataTable(words)
     dt1 = dt0(sort=0)
