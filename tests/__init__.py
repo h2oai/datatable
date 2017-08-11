@@ -60,6 +60,7 @@ def list_equals(a, b):
     representations.
     """
     if a == b: return True
+    if (a is None and isnan(b)) or (b is None and isnan(a)): return True
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         if isnan(a) and isnan(b): return True
         if abs(a - b) < 1e-6 * (abs(a) + abs(b) + 1): return True
