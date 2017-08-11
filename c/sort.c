@@ -765,7 +765,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
             int32_t len = offend - offstart;
             uint8_t c1 = len > 0? strbuf[offstart] + 1 : 0;
             uint8_t c2 = len > 1? strbuf[offstart+1] + 1 : 0;
-            xo[j] = 1 + (c1 << 8) + c2;
+            xo[j] = (uint16_t)(1 + (c1 << 8) + c2);
             if (len > maxlen) maxlen = len;
         }
     }
@@ -938,7 +938,6 @@ static void reorder_data_str(SortContext *sc)
 {
     uint16_t *xi = (uint16_t*) sc->x;
     uint16_t *xo = (uint16_t*) sc->next_x;
-    for(int i =0; i < sc->n ; i++ )xo[i]=0;
     int32_t *oi = sc->o;
     int32_t *oo = sc->next_o;
     assert(xo != NULL);
@@ -962,7 +961,7 @@ static void reorder_data_str(SortContext *sc)
             unsigned char c1 = len > 0? strdata[offstart] + 1 : 0;
             unsigned char c2 = len > 1? strdata[offstart+1] + 1 : 0;
             if (len > maxlen) maxlen = len;
-            xo[k] = offend < 0? 0 : (c1 << 8) + c2 + 1;
+            xo[k] = offend < 0? 0 : (uint16_t)((c1 << 8) + c2 + 1);
             oo[k] = w;
         }
     }
@@ -1174,8 +1173,9 @@ static void radix_psort(SortContext *sc)
         int own_tmp = 0;
         if (size0) {
             size_t size_all = size0 * sc->nth * sizeof(int32_t);
-            if (sc->elemsize * sc->n <= size_all) tmp = (int32_t*)sc->x;
-            else {
+            if ((size_t)sc->elemsize * sc->n <= size_all) {
+                tmp = (int32_t*)sc->x;
+            } else {
                 own_tmp = 1;
                 dtmalloc_g(tmp, int32_t, size0 * sc->nth);
             }
@@ -1189,10 +1189,11 @@ static void radix_psort(SortContext *sc)
             if (n <= 1) continue;
             void *x = add_ptr(sc->next_x, off * next_elemsize);
             int32_t *o = sc->next_o + off;
-            int32_t *oo = tmp + me * size0;
+            int32_t *oo = tmp + me * (int32_t)size0;
 
             if (sc->strdata) {
-                insert_sort_s4_o(sc->strdata, sc->stroffs, sc->strstart, o, oo, n);
+                int32_t ss = (int32_t) sc->strstart;
+                insert_sort_s4_o(sc->strdata, sc->stroffs, ss, o, oo, n);
             } else {
                 switch (next_elemsize) {
                     case 1: insert_sort_u1(x, o, oo, n); break;
