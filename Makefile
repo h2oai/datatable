@@ -39,12 +39,16 @@ uninstall:
 test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest --junit-prefix=$(OS) --junitxml=build/test-reports/TEST-datatable.xml -rxs tests
+	$(PYTHON) -m pytest -rxs \
+		--benchmark-skip \
+		--junit-prefix=$(OS) \
+		--junitxml=build/test-reports/TEST-datatable.xml \
+		tests
 
 .PHONY: debug
 debug:
 	$(MAKE) clean
-	VALGRIND=1 \
+	DTDEBUG=1 \
 	$(MAKE) build
 	$(MAKE) install
 
@@ -56,7 +60,7 @@ bi:
 .PHONY: coverage
 coverage:
 	$(MAKE) clean
-	WITH_COVERAGE=1 \
+	DTCOVERAGE=1 \
 	$(MAKE) build
 	$(MAKE) install
 	$(PYTHON) -m pytest --cov=datatable --cov-report=html:build/coverage-py tests/

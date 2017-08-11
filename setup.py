@@ -88,9 +88,21 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 
+
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
+extra_compile_args = ["-fopenmp", "-std=gnu11"]
+
+# This flag becomes C-level macro DTPY, which indicates that we are compiling
+# (Py)datatable. This is used for example in fread.c to distinguish between
+# Python/R datatable.
+extra_compile_args += ["-DDTPY"]
+
+# This macro enables all `assert` statements at the C level. By default they
+# are disabled...
+extra_compile_args += ["-DNONDEBUG"]
+
 # Ignored warnings:
 #   -Wcovered-switch-default: we add `default` statement to
 #       an exhaustive switch to guard against memory
@@ -102,51 +114,45 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #   -Wswitch-enum: generates spurious warnings about missing
 #       cases even if `default` clause is present. -Wswitch
 #       does not suffer from this drawback.
-extra_compile_args = [
-    "-DDTPY",
-    "-DNONDEBUG",
+extra_compile_args += [
     "-Weverything",
     "-Wno-covered-switch-default",
     "-Wno-float-equal",
     "-Wno-gnu-statement-expression",
     "-Wno-switch-enum",
-    # "-Wno-c++98-compat-pedantic",
-    # "-Wno-old-style-cast",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
-    "-fopenmp",
-    "-std=gnu11",
 ]
 extra_link_args = [
     "-v",
     "-fopenmp",
 ]
 
-if "WITH_COVERAGE" in os.environ:
+if "DTCOVERAGE" in os.environ:
     # On linux we need to pass proper flag to clang linker which
     # is not used for some reason at linux
-    if sys.platform == 'linux':
+    if sys.platform == "linux":
         os.environ["LDSHARED"] = clang
         extra_link_args += ["-shared"]
     extra_compile_args += ["-g", "--coverage", "-O0"]
     extra_link_args += ["--coverage", "-O0"]
 
-if "VALGRIND" in os.environ:
+if "DTDEBUG" in os.environ:
     extra_compile_args += ["-ggdb", "-O0"]
 
 if "CI_EXTRA_COMPILE_ARGS" in os.environ:
     extra_compile_args += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
 
 
-#
-# Test dependencies exposed as extra
-# based on: https://stackoverflow.com/questions/29870629/pip-install-test-dependencies-for-tox-from-setup-py
-#
+# Test dependencies exposed as extras, based on:
+# https://stackoverflow.com/questions/29870629/pip-install-test-dependencies-for-tox-from-setup-py
 test_deps = [
-        "pandas",
-        "pytest>=3.0",
-        "pytest-cov",
-        ]
+    "pandas",
+    "pytest>=3.0",
+    "pytest-cov",
+    "pytest-benchmark>=3.1",
+]
+
 
 #-------------------------------------------------------------------------------
 # Main setup
@@ -170,9 +176,11 @@ setup(
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
     ],
-    keywords=["datatable", "data", "dataframe", "munging", "numpy", "pandas"],
+    keywords=["datatable", "data", "dataframe", "munging", "numpy", "pandas",
+              "data processing", "ETL"],
 
     packages=packages,
 
@@ -187,7 +195,7 @@ setup(
     tests_require=test_deps,
 
     extras_require={
-        'testing' : test_deps
+        "testing": test_deps
     },
 
     zip_safe=True,
