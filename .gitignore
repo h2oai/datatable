@@ -16,6 +16,7 @@ ccov/
 .coverage
 coverage.xml
 coverage.info
+.benchmarks
 
 
 # Sphinx documentation
