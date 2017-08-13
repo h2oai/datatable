@@ -230,6 +230,7 @@ def test_i1b_large(n):
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
     assert d1.internal.isview
+    assert d0.internal.check()
     assert d1.internal.check()
     nn = 2 * n
     assert d1.topython() == [[None] * nn + [False] * nn + [True] * nn]
