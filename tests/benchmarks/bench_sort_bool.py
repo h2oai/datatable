@@ -17,32 +17,32 @@ def src(numpy, benchmark, request):
     return a
 
 
-def test_sort_bool_datatable(benchmark, src):
+def test_datatable(benchmark, src):
     benchmark.name = "datatable"
     d = datatable.DataTable(src)
     assert d.types == ("bool",)
     benchmark(lambda: d(sort=0))
 
 
-def test_sort_bool_numpy(benchmark, src):
+def test_numpy(benchmark, src):
     benchmark.name = "numpy"
     a = src
     benchmark(lambda: a.sort())
 
 
-def test_sort_bool_pandas(benchmark, src, pandas):
+def test_pandas(benchmark, src, pandas):
     benchmark.name = "pandas"
     p = pandas.DataFrame(src)
     benchmark(lambda: p.sort_values(0))
 
 
-def test_sort_bool_python(benchmark, src):
+def test_python(benchmark, src):
     benchmark.name = "python"
     p = src.tolist()
     benchmark(lambda: sorted(p))
 
 
-# def test_sort_bool_h2o(benchmark, src, h2o):
+# def test_h2o(benchmark, src, h2o):
 #     benchmark.name = "h2o"
 #     h = h2o.H2OFrame(src)
 #     benchmark(lambda: h.sort(0).refresh())

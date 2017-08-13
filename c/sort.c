@@ -92,11 +92,12 @@
  *      elements in `x` are in the range `[0; 2**nsigbits)`. The number of
  *      significant bits cannot be 0.
  *
- * shift
- *      The amount of right-shift to be applied to each item in `x` to get the
- *      radix. That is, radix for element `i` is `(x[i] >> shift)`. The `shift`
- *      can also be zero, indicating that the values themselves are the radixes
- *      (as in counting sort).
+ * shift, dx
+ *      The parameters of linear transform to be applied to each item in `x` to
+ *      obtain the radix. That is, radix for element `i` is
+ *          ((x[i] + dx) >> shift)
+ *      The `shift` and `dx` can also be zero, indicating that the values
+ *      themselves are the radixes (as in counting sort).
  *
  * nradixes
  *      Total number of possible radixes, equal to `1 << (nsigbits - shift)`.
@@ -150,6 +151,7 @@ typedef struct SortContext {
     void    *next_x;
     int32_t *next_o;
     size_t *histogram;
+    uint64_t dx;
     const unsigned char *strdata;
     const int32_t *stroffs;
     size_t strstart;
@@ -280,7 +282,7 @@ RowIndex* column_sort(Column *col, RowIndex *rowindex)
             }
             int error_occurred = (sc->x == NULL);
             ordering = sc->o;
-            dtfree(sc->x);
+            if (sc->x != col->data) dtfree(sc->x);
             dtfree(sc->next_x);
             dtfree(sc->next_o);
             dtfree(sc->histogram);
@@ -390,6 +392,45 @@ static int _compare_offstrings(
     return lena == lenb? 0 : 1;
 }
 
+
+/**
+ * Boolean columns have only 3 distinct values, -(INT8_MAX+1), 0 and 1. The
+ * transform `((uint8_t)x + 0xBF) >> 6` converts these to 0, 2 and 3
+ * respectively, provided that the addition in parentheses is done as addition
+ * of unsigned bytes (i.e. modulo 256).
+ */
+static void prepare_input_b1(const Column *col, int32_t *ordering, size_t n,
+                             SortContext *sc)
+{
+    if (ordering) {
+        uint8_t *xi = (uint8_t*) col->data;
+        uint8_t *xo = NULL;
+        dtmalloc_g(xo, uint8_t, n);
+        uint8_t una = (uint8_t) NA_I1;
+
+        #pragma omp parallel for schedule(static)
+        for (size_t j = 0; j < n; j++) {
+            uint8_t t = xi[ordering[j]];
+            xo[j] = t == una? 0 : t + 1;
+        }
+        sc->nsigbits = 8;
+        sc->x = (void*) xo;
+        sc->o = ordering;
+    } else {
+        sc->shift = 6;
+        sc->nsigbits = 2;
+        sc->dx = 0xBF;
+        sc->x = col->data;
+        sc->o = NULL;
+    }
+
+    sc->n = n;
+    sc->elemsize = 1;
+    sc->next_elemsize = 0;
+    return;
+    fail:
+    sc->x = NULL;
+}
 
 
 /**
@@ -811,6 +852,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
     static void build_histogram_ ## SFX(SortContext *sc)                       \
     {                                                                          \
         T *x = (T*) sc->x;                                                     \
+        T dx = (T) sc->dx;                                                     \
         int8_t shift = sc->shift;                                              \
         size_t counts_size = sc->nchunks * sc->nradixes;                       \
         if (sc->histogram) {                                                   \
@@ -826,7 +868,8 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
             size_t j0 = i * sc->chunklen,                                      \
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
             for (size_t j = j0; j < j1; j++) {                                 \
-                cnts[x[j] >> shift]++;                                         \
+                T t = x[j] + dx;                                               \
+                cnts[t >> shift]++;                                            \
             }                                                                  \
         }                                                                      \
         size_t cumsum = 0;                                                     \
@@ -890,6 +933,7 @@ static void build_histogram(SortContext *sc)
         int8_t shift = sc->shift;                                              \
         TI mask = (TI)((1ULL << shift) - 1);                                   \
         TI *xi = (TI*) sc->x;                                                  \
+        TI dx = (TI) sc->dx;                                                   \
         TO *xo = (TO*) sc->next_x;                                             \
         int32_t *oi = sc->o;                                                   \
         int32_t *oo = sc->next_o;                                              \
@@ -899,9 +943,9 @@ static void build_histogram(SortContext *sc)
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
             size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);     \
             for (size_t j = j0; j < j1; j++) {                                 \
-                size_t k = tcounts[xi[j] >> shift]++;                          \
+                size_t k = tcounts[(xi[j] + dx) >> shift]++;                   \
                 oo[k] = oi? oi[j] : (int32_t) j;                               \
-                if (xo) xo[k] = (TO)(xi[j] & mask);                            \
+                if (xo) xo[k] = (TO)((TI)(xi[j] + dx) & mask);                 \
             }                                                                  \
         }                                                                      \
         assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);        \
@@ -910,7 +954,9 @@ static void build_histogram(SortContext *sc)
 #define TEMPLATE_REORDER_DATA_SIMPLE(SFX, TI)                                  \
     static void reorder_data_ ## SFX(SortContext *sc)                          \
     {                                                                          \
+        int8_t shift = sc->shift;                                              \
         TI *xi = (TI*) sc->x;                                                  \
+        TI dx = (TI) sc->dx;                                                   \
         int32_t *oi = sc->o;                                                   \
         int32_t *oo = sc->next_o;                                              \
         _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
@@ -919,7 +965,8 @@ static void build_histogram(SortContext *sc)
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
             size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);     \
             for (size_t j = j0; j < j1; j++) {                                 \
-                size_t k = tcounts[xi[j]]++;                                   \
+                TI t = xi[j] + dx;                                             \
+                size_t k = tcounts[t >> shift]++;                              \
                 oo[k] = oi? oi[j] : (int32_t) j;                               \
             }                                                                  \
         }                                                                      \
@@ -974,7 +1021,7 @@ static void reorder_data_str(SortContext *sc)
 
 static void reorder_data(SortContext *sc)
 {
-    if (!sc->next_x) {
+    if (!sc->next_x && sc->next_elemsize) {
         dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
     }
     if (!sc->next_o) {
@@ -986,13 +1033,17 @@ static void reorder_data(SortContext *sc)
             else if (sc->next_elemsize == 4) reorder_data_u8u4(sc);
             else goto fail;
             break;
-        case 4: reorder_data_u4u2(sc); break;
+        case 4:
+            reorder_data_u4u2(sc);
+            break;
         case 2:
             if (sc->next_elemsize == 2) reorder_data_str(sc);
             else if (sc->next_elemsize == 0) reorder_data_u2(sc);
             else goto fail;
             break;
-        case 1: reorder_data_u1(sc); break;
+        case 1:
+            reorder_data_u1(sc);
+            break;
         default: printf("elemsize = %d\n", sc->elemsize); assert(0);
     }
     return;
@@ -1032,7 +1083,7 @@ static void determine_sorting_parameters(SortContext *sc)
     sc->nchunks = (sc->n - 1)/sc->chunklen + 1;
 
     int8_t nradixbits = sc->nsigbits < 16 ? sc->nsigbits : 16;
-    sc->shift = sc->nsigbits - nradixbits;
+    if (!sc->shift) sc->shift = sc->nsigbits - nradixbits;
     sc->nradixes = 1 << nradixbits;
 }
 
@@ -1398,7 +1449,7 @@ void init_sort_functions(void)
         prepare_inp_fns[i] = NULL;
         insert_sort_fns[i] = NULL;
     }
-    prepare_inp_fns[ST_BOOLEAN_I1] = (prepare_inp_fn) &prepare_input_i1;
+    prepare_inp_fns[ST_BOOLEAN_I1] = (prepare_inp_fn) &prepare_input_b1;
     prepare_inp_fns[ST_INTEGER_I1] = (prepare_inp_fn) &prepare_input_i1;
     prepare_inp_fns[ST_INTEGER_I2] = (prepare_inp_fn) &prepare_input_i2;
     prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
