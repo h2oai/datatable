@@ -36,3 +36,8 @@ datatable.iml
 
 # Landfill area
 temp/*
+
+
+# Microbenchmarks
+microbench/insertsort/isort
+microbench/insertsort/isort.o

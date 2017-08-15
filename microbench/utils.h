@@ -70,6 +70,10 @@ void stop_timeri(int iters) {
     double delta = now() - timer;
     printf("Time per iteration = %g ns\n", delta * 1e9 / iters);
 }
+double get_timer_iter(int iters) {
+    double delta = now() - timer;
+    return delta * 1e9 / iters;
+}
 
 
 #endif
