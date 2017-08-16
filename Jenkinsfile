@@ -4,6 +4,9 @@
 
 import ai.h2o.ci.Utils
 def utilsLib = new Utils()
+freadLargePattern = "(py_)?fread\\..*"
+largeTestsRoot = "."
+largeTestsRoot_env = ""
 
 pipeline {
     agent none
@@ -17,6 +20,25 @@ pipeline {
     }
 
     stages {
+        stage('Determine Envrionment Variables') {
+            agent any
+            steps {
+                script {
+                    fileDiff = sh script: """
+                                              for f in \$(git diff-tree --no-commit-id --name-only -r HEAD); do
+                                              basename \$f
+                                              done
+                                          """, returnStdout: true
+                    fileDiff = fileDiff.split('\\R')
+                    for (f in fileDiff) {
+                        if (f ==~ freadLargePattern) {
+                            largeTestsRoot_env = largeTestsRoot
+                            break
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Build on Linux') {
             agent {
@@ -71,17 +93,19 @@ pipeline {
                     filename "Dockerfile"
                 }
             }
+
             steps {
                 unstash 'linux_whl'
                 dumpInfo 'Linux Test Info'
                 script {
                     try {
                         sh """
+                            export DT_LARGE_TESTS_ROOT="${largeTestsRoot_env}"
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
                             .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`[testing]
-                            make test PYTHON=.venv/bin/python
+                            make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -123,7 +147,7 @@ pipeline {
                     export LLVM4=/usr/local/opt/llvm
                     export CI_EXTRA_COMPILE_ARGS="-DDISABLE_CLOCK_REALTIME"
                     env
-                    PATH="$PATH:/usr/local/bin" make mrproper coverage 
+                    PATH="$PATH:/usr/local/bin" make mrproper coverage
                 '''
                 testReport 'build/coverage-c', "OSX coverage report for C"
                 testReport 'build/coverage-py', "OSX coverage report for Python"
@@ -134,11 +158,13 @@ pipeline {
             agent {
                 label 'osx'
             }
+
             steps {
                 unstash 'osx_whl'
                 script {
                     try {
                         sh '''
+                                export DT_LARGE_TESTS_ROOT="${largeTestsRoot_env}"
                                 source /Users/jenkins/anaconda/bin/activate h2oai
                                 export LLVM4=/usr/local/opt/llvm
                                 set +e
@@ -154,7 +180,7 @@ pipeline {
                                 fi
                                 pip install --upgrade dist/*macosx*.whl
                                 rm -rf datatable
-                                make test
+                                make test MODULE=datatable
                         '''
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -193,7 +219,6 @@ pipeline {
                 }
             }
         }
-
     }
 }
 
