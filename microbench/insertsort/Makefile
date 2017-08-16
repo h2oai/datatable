@@ -7,6 +7,19 @@ LIBRARIES :=
 CCFLAGS :=
 LDFLAGS :=
 
+ifdef iters
+	ITERS := iters=$(iters)
+endif
+
+ifdef size
+	SIZE := size=$(size)
+endif
+
+ifdef batches
+	BATCHES := batches=$(batches)
+endif
+
+
 #-------------------------------------------------------------------------------
 
 build: isort
@@ -21,4 +34,7 @@ clean:
 	rm -f isort.o isort
 
 run: build
-	./isort
+	./isort $(ITERS) $(SIZE) $(BATCHES)
+
+munch: build
+	python ../munch.py ./isort size={N} $(ITERS) $(BATCHES)

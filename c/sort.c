@@ -394,10 +394,10 @@ static int _compare_offstrings(
 
 
 /**
- * Boolean columns have only 3 distinct values, -(INT8_MAX+1), 0 and 1. The
- * transform `((uint8_t)x + 0xBF) >> 6` converts these to 0, 2 and 3
- * respectively, provided that the addition in parentheses is done as addition
- * of unsigned bytes (i.e. modulo 256).
+ * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
+ * `(x + 0xBF) >> 6` converts these to 0, 2 and 3 respectively, provided that
+ * the addition in parentheses is done as addition of unsigned bytes (i.e.
+ * modulo 256).
  */
 static void prepare_input_b1(const Column *col, int32_t *ordering, size_t n,
                              SortContext *sc)
