@@ -41,3 +41,5 @@ temp/*
 # Microbenchmarks
 microbench/insertsort/isort
 microbench/insertsort/isort.o
+microbench/mergesort/msort
+microbench/mergesort/msort.o
