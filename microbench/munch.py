@@ -7,9 +7,18 @@ import sys
 
 if __name__ == "__main__":
     headers_printed = False
-    for n in list(range(2, 17)) + [20, 24, 28, 32, 48, 64, 96, 128, 150, 200]:
+    ns = (list(range(2, 17)) +
+          [20, 24, 28, 32, 48, 64, 96, 128, 150, 200, 256])
+    ns = [48, 64, 96, 128, 150, 200, 256]
+    # ns = [500, 1000, 2500, 5000, 10000]
+    ns = list(range(100, 200))
+    for n in ns:
         cmd = [c.replace("{N}", str(n)) for c in sys.argv[1:]]
-        out = subprocess.check_output(cmd).decode()
+        try:
+            out = subprocess.check_output(cmd).decode()
+        except subprocess.CalledProcessError as e:
+            print(" %-7d | %s" % (n, e))
+            continue
         headers = []
         values = []
         for line in out.split("\n"):
