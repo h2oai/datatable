@@ -20,10 +20,14 @@ def get_file_list(*path):
                     None,
                     marks=pytest.mark.skip("Environment variable '%s' is empty or not defined" % root_env_name))]
     if not os.path.isdir(d):
-        return [lambda: pytest.fail("Directory '%s' (%s) does not exist" % (d, root_env_name), False)]
+        return [pytest.param(
+            lambda: pytest.fail("Directory '%s' (%s) does not exist" % (d, root_env_name), False),
+            id=d)]
     rootdir = os.path.join(d, *path)
     if not os.path.isdir(rootdir):
-        return [lambda: pytest.fail("Directory '%s' does not exist" % rootdir, False)]
+        return [pytest.param(
+            lambda: pytest.fail("Directory '%s' does not exist" % rootdir, False),
+            id=rootdir)]
     exts = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv", ".psv",
             ".scsv", ".hive"]
     out = set()
@@ -38,7 +42,7 @@ def get_file_list(*path):
                     continue
                 if f + ".zip" in out:
                     out.remove(f + ".zip")
-                out.add(lambda: f)
+                out.add(pytest.param(lambda: f, id=f))
             else:
                 print("Skipping file %s" % f)
     return out
