@@ -4,9 +4,7 @@
 
 import ai.h2o.ci.Utils
 def utilsLib = new Utils()
-freadLargePattern = "(py_)?fread\\..*"
-largeTestsRoot = "."
-largeTestsRoot_env = ""
+largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", "..")
 
 pipeline {
     agent none
@@ -19,27 +17,8 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    stages {
-        stage('Determine Envrionment Variables') {
-            agent any
-            steps {
-                script {
-                    fileDiff = sh script: """
-                                              for f in \$(git diff-tree --no-commit-id --name-only -r HEAD); do
-                                              basename \$f
-                                              done
-                                          """, returnStdout: true
-                    fileDiff = fileDiff.split('\\R')
-                    for (f in fileDiff) {
-                        if (f ==~ freadLargePattern) {
-                            largeTestsRoot_env = largeTestsRoot
-                            break
-                        }
-                    }
-                }
-            }
-        }
 
+    stages {
         stage('Build on Linux') {
             agent {
                 dockerfile {
@@ -76,9 +55,9 @@ pipeline {
             steps {
                 dumpInfo 'Coverage on Linux'
                 sh """
+                    export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     rm -rf .venv venv 2> /dev/null
                     virtualenv --python=python3.6 --no-download .venv
-                    .venv/bin/python -m pip install .[testing] --upgrade --no-cache-dir
                     make coverage PYTHON=.venv/bin/python
                 """
                 testReport 'build/coverage-c', "Linux coverage report for C"
@@ -100,7 +79,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            export DT_LARGE_TESTS_ROOT="${largeTestsRoot_env}"
+                            export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
@@ -143,6 +122,7 @@ pipeline {
             steps {
                 dumpInfo 'Coverage on OSX'
                 sh '''
+                    export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     source /Users/jenkins/anaconda/bin/activate h2oai
                     export LLVM4=/usr/local/opt/llvm
                     export CI_EXTRA_COMPILE_ARGS="-DDISABLE_CLOCK_REALTIME"
@@ -164,7 +144,7 @@ pipeline {
                 script {
                     try {
                         sh '''
-                                export DT_LARGE_TESTS_ROOT="${largeTestsRoot_env}"
+                                export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                                 source /Users/jenkins/anaconda/bin/activate h2oai
                                 export LLVM4=/usr/local/opt/llvm
                                 set +e
@@ -222,3 +202,18 @@ pipeline {
     }
 }
 
+def returnIfModified(pattern, value) {
+    node {
+        checkout scm
+        out = sh script: """
+                            if [ \$(\
+                                git diff-tree --no-commit-id --name-only -r HEAD | \
+                                xargs basename | \
+                                egrep -e '${pattern}' | \
+                                wc -l) \
+                              -gt 0 ]; then
+                            echo "${value}"; fi
+                         """, returnStdout: true
+    }
+    return out
+}
