@@ -12,7 +12,7 @@ import re
 
 
 
-@pytest.fixture(params=[10**4, 10**6, 10**8])
+@pytest.fixture(params=[10**3, 10**4, 10**6, 10**8])
 def src(numpy, benchmark, request):
     n = request.param
     benchmark.group = "sort(dtype=bool, n=%d)" % n
@@ -48,7 +48,7 @@ def test_datatable(benchmark, src):
     benchmark.name = "datatable"
     d = datatable.DataTable(src)
     assert d.types == ("bool",)
-    benchmark(lambda: d(sort=0))
+    benchmark(lambda: d.sort(0))
 
 
 def test_numpy(benchmark, src, numpy):
