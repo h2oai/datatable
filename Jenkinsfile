@@ -4,7 +4,7 @@
 
 import ai.h2o.ci.Utils
 def utilsLib = new Utils()
-largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", "..")
+largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", "/home/0xdiag")
 
 pipeline {
     agent none
