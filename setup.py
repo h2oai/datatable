@@ -148,7 +148,7 @@ if "CI_EXTRA_COMPILE_ARGS" in os.environ:
 # https://stackoverflow.com/questions/29870629/pip-install-test-dependencies-for-tox-from-setup-py
 test_deps = [
     "pandas",
-    "pytest>=3.0",
+    "pytest>=3.1",
     "pytest-cov",
     "pytest-benchmark>=3.1",
 ]

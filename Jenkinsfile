@@ -4,6 +4,7 @@
 
 import ai.h2o.ci.Utils
 def utilsLib = new Utils()
+largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", "/home/0xdiag")
 
 pipeline {
     agent none
@@ -16,8 +17,8 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    stages {
 
+    stages {
         stage('Build on Linux') {
             agent {
                 dockerfile {
@@ -54,9 +55,9 @@ pipeline {
             steps {
                 dumpInfo 'Coverage on Linux'
                 sh """
+                    export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     rm -rf .venv venv 2> /dev/null
                     virtualenv --python=python3.6 --no-download .venv
-                    .venv/bin/python -m pip install .[testing] --upgrade --no-cache-dir
                     make coverage PYTHON=.venv/bin/python
                 """
                 testReport 'build/coverage-c', "Linux coverage report for C"
@@ -71,17 +72,19 @@ pipeline {
                     filename "Dockerfile"
                 }
             }
+
             steps {
                 unstash 'linux_whl'
                 dumpInfo 'Linux Test Info'
                 script {
                     try {
                         sh """
+                            export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
                             .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`[testing]
-                            make test PYTHON=.venv/bin/python
+                            make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -119,11 +122,12 @@ pipeline {
             steps {
                 dumpInfo 'Coverage on OSX'
                 sh '''
+                    export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     source /Users/jenkins/anaconda/bin/activate h2oai
                     export LLVM4=/usr/local/opt/llvm
                     export CI_EXTRA_COMPILE_ARGS="-DDISABLE_CLOCK_REALTIME"
                     env
-                    PATH="$PATH:/usr/local/bin" make mrproper coverage 
+                    PATH="$PATH:/usr/local/bin" make mrproper coverage
                 '''
                 testReport 'build/coverage-c', "OSX coverage report for C"
                 testReport 'build/coverage-py', "OSX coverage report for Python"
@@ -134,11 +138,13 @@ pipeline {
             agent {
                 label 'osx'
             }
+
             steps {
                 unstash 'osx_whl'
                 script {
                     try {
                         sh '''
+                                export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                                 source /Users/jenkins/anaconda/bin/activate h2oai
                                 export LLVM4=/usr/local/opt/llvm
                                 set +e
@@ -154,7 +160,7 @@ pipeline {
                                 fi
                                 pip install --upgrade dist/*macosx*.whl
                                 rm -rf datatable
-                                make test
+                                make test MODULE=datatable
                         '''
                     } finally {
                         junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
@@ -193,7 +199,21 @@ pipeline {
                 }
             }
         }
-
     }
 }
 
+def returnIfModified(pattern, value) {
+    node {
+        checkout scm
+        out = sh script: """
+                            if [ \$(\
+                                git diff-tree --no-commit-id --name-only -r HEAD | \
+                                xargs basename | \
+                                egrep -e '${pattern}' | \
+                                wc -l) \
+                              -gt 0 ]; then
+                            echo "${value}"; fi
+                         """, returnStdout: true
+    }
+    return out
+}

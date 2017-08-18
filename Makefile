@@ -1,6 +1,7 @@
 
 PYTHON ?= python
 OS := $(shell uname | tr A-Z a-z)
+MODULE ?= .
 
 
 .PHONY: all
@@ -41,9 +42,13 @@ install:
 uninstall:
 	$(PYTHON) -m pip uninstall datatable -y
 
+.PHONY: test_install
+test_install:
+	$(PYTHON) -m pip install ${MODULE}[testing] --no-cache-dir
 
 .PHONY: test
 test:
+	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
 	$(PYTHON) -m pytest -rxs \
@@ -78,6 +83,7 @@ coverage:
 	DTCOVERAGE=1 \
 	$(MAKE) build
 	$(MAKE) install
+	$(MAKE) test_install
 	$(PYTHON) -m pytest \
 		--benchmark-skip \
 		--cov=datatable --cov-report=html:build/coverage-py \
