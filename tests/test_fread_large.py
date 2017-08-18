@@ -44,7 +44,7 @@ def get_file_list(*path):
                     out.remove(f + ".zip")
                 out.add(pytest.param(lambda: f, id=f))
             else:
-                print("Skipping file %s" % f)
+                out.add(pytest.param(lambda: pytest.skip("Invalid file: '%s'" % f), id=f))
     return out
 
 # Fixture hack. Pair with the return values of get_file_list()
