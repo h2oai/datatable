@@ -10,24 +10,30 @@ root_env_name = "DT_LARGE_TESTS_ROOT"
 # Helper functions
 #-------------------------------------------------------------------------------
 
+def param(id):
+    return pytest.param(lambda: id, id=id)
+
+def skipped(reason):
+    return pytest.param(lambda: pytest.skip(reason), id="")
+
+def failed(reason, id):
+    return pytest.param(lambda: pytest.fail(reason, False), id=id)
+
+
 # Function returns a collection of FUNCTIONS. Each function returns a
 # unique file path str (or calls pytest.fail).
 # This prevents pytest from completely aborting if a failure occurs here.
 def get_file_list(*path):
     d = os.environ.get(root_env_name, "")
     if d == "":
-        return [pytest.param(
-                    None,
-                    marks=pytest.mark.skip("Environment variable '%s' is empty or not defined" % root_env_name))]
+        return [skipped("Environment variable '%s' is empty or not defined"
+                        % root_env_name)]
     if not os.path.isdir(d):
-        return [pytest.param(
-            lambda: pytest.fail("Directory '%s' (%s) does not exist" % (d, root_env_name), False),
-            id=d)]
+        return [failed("Directory '%s' (%s) does not exist"
+                       % (d, root_env_name), id=d)]
     rootdir = os.path.join(d, *path)
     if not os.path.isdir(rootdir):
-        return [pytest.param(
-            lambda: pytest.fail("Directory '%s' does not exist" % rootdir, False),
-            id=rootdir)]
+        return [failed("Directory '%s' does not exist" % rootdir, rootdir)]
     exts = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv", ".psv",
             ".scsv", ".hive"]
     out = set()
@@ -42,9 +48,9 @@ def get_file_list(*path):
                     continue
                 if f + ".zip" in out:
                     out.remove(f + ".zip")
-                out.add(pytest.param(lambda: f, id=f))
+                out.add(param(f))
             else:
-                out.add(pytest.param(lambda: pytest.skip("Invalid file: '%s'" % f), id=f))
+                out.add(skipped("Invalid file: '%s'" % f, id=f))
     return out
 
 # Fixture hack. Pair with the return values of get_file_list()
@@ -57,7 +63,8 @@ def f(request):
 # Run the tests
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"), indirect=True)
+@pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
+                         indirect=True)
 def test_h2oai_benchmarks(f):
     print(f)
     d = datatable.fread(f)
@@ -65,7 +72,8 @@ def test_h2oai_benchmarks(f):
 
 
 
-@pytest.mark.parametrize("f", get_file_list("h2o-3", "smalldata"), indirect=True)
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "smalldata"),
+                         indirect=True)
 def test_h2o3_smalldata(f):
     ignored_files = {
         # Zip files containing >1 files
@@ -93,7 +101,8 @@ def test_h2o3_smalldata(f):
         assert d0.internal.check()
 
 
-@pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"), indirect=True)
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"),
+                         indirect=True)
 def test_h2o3_bigdata(f):
     ignored_files = {
         # empty files
@@ -127,7 +136,8 @@ def test_h2o3_bigdata(f):
 
 
 
-@pytest.mark.parametrize("f", get_file_list("h2o-3", "fread"), indirect=True)
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "fread"),
+                         indirect=True)
 def test_h2o3_fread(f):
     d0 = datatable.fread(f)
     assert d0.internal.check()
