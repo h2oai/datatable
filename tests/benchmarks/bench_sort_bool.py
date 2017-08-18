@@ -17,8 +17,10 @@ def src(numpy, benchmark, request):
     n = request.param
     benchmark.group = "sort(dtype=bool, n=%d)" % n
     a = numpy.random.randn(n) > 0
+    b = numpy.random.randn(n) > 1
     assert a.dtype == numpy.dtype("bool")
-    return a
+    assert b.dtype == numpy.dtype("bool")
+    return numpy.ma.array(a, mask=b)
 
 @pytest.fixture()
 def srctxt(numpy, src):
