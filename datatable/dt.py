@@ -470,6 +470,27 @@ class DataTable(object):
     cbind = dt_cbind
 
 
+    @typed(by=U(str, int))
+    def sort(self, by):
+        """
+        Sort datatable by the specified column.
+
+        Parameters
+        ----------
+        by: str or int
+            Name or index of the column to sort by.
+
+        Returns
+        -------
+        New datatable sorted by the provided column. The target datatable
+        remains unmodified.
+        """
+        idx = self.colindex(by)
+        ri = self._dt.sort(idx)
+        cs = c.columns_from_slice(self._dt, 0, self._ncols, 1)
+        dt = c.datatable_assemble(ri, cs)
+        return DataTable(dt, colnames=self.names)
+
 
     @typed(columns={U(str, int): str})
     def rename(self, columns):

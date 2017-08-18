@@ -42,7 +42,7 @@ def test_sort_len2():
 def test_i4i_small():
     d0 = datatable.DataTable([17, 2, 96, 245, 847569, 34, -45, None, 1])
     assert d0.stypes == ("i4i", )
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.internal.isview
     assert d1.internal.check()
@@ -54,7 +54,7 @@ def test_i4i_small_stable():
         [5, 3, 5, None, 1000000, None, 3, None],
         [1, 5, 10, 20, 50, 100, 200, 500]
     ], colnames=["A", "B"])
-    d1 = d0(sort="A")
+    d1 = d0.sort("A")
     assert d1.internal.check()
     assert d1.topython() == [
         [None, None, None, 3, 3, 5, 5, 1000000],
@@ -71,7 +71,7 @@ def test_i4i_large():
     src = [((n + 1) * p2) % p1 for n in range(p1)]
     d0 = datatable.DataTable(src)
     assert d0.stypes == ("i4i", )
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.topython() == [list(range(p1))]
 
 
@@ -91,7 +91,7 @@ def test_i4i_constant(n):
     tbl0 = [[100000] * n, list(range(n))]
     d0 = datatable.DataTable(tbl0)
     assert d0.stypes[0] == "i4i"
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.topython() == tbl0
 
@@ -100,7 +100,7 @@ def test_i4i_reverse():
     step = 10
     d0 = datatable.DataTable(list(range(1000000, 0, -step)))
     assert d0.stypes[0] == "i4i"
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.topython() == [list(range(step, 1000000 + step, step))]
 
@@ -112,7 +112,7 @@ def test_i4i_upper_range(b):
     # and we test here that such conversion gives the correct results.
     d0 = datatable.DataTable([b, b - 1, b + 1] * 1000)
     assert d0.stypes[0] == "i4i"
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.topython() == [[b - 1] * 1000 + [b] * 1000 + [b + 1] * 1000]
 
 
@@ -126,7 +126,7 @@ def test_i4i_u2range(dc):
     c = a + dc
     d0 = datatable.DataTable([c, b, a] * 1000)
     assert d0.stypes[0] == "i4i"
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.topython() == [[a] * 1000 + [b] * 1000 + [c] * 1000]
 
 
@@ -140,14 +140,14 @@ def test_i4i_unsigned():
                                    0x7FFF8000, 0x7FFF8001, 0x7FFFFFFF]), [])
     d0 = datatable.DataTable(tbl)
     assert d0.stypes == ("i4i", )
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [tbl]
 
 
 def test_i4i_issue220():
     d0 = datatable.DataTable([None] + [1000000] * 200 + [None])
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.topython() == [[None, None] + [1000000] * 200]
 
 
