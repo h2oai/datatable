@@ -66,7 +66,6 @@ def f(request):
 @pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
                          indirect=True)
 def test_h2oai_benchmarks(f):
-    print(f)
     d = datatable.fread(f)
     assert d.internal.check()
 
