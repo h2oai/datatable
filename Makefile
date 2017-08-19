@@ -51,7 +51,7 @@ test:
 	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -rxs \
+	$(PYTHON) -m pytest -ra \
 		--benchmark-skip \
 		--junit-prefix=$(OS) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
@@ -60,7 +60,7 @@ test:
 
 .PHONY: benchmark
 benchmark:
-	$(PYTHON) -m pytest -rxs --benchmark-only
+	$(PYTHON) -m pytest -ra --benchmark-only
 
 
 .PHONY: debug
