@@ -4,7 +4,6 @@
 # This file is used by `pytest` to define common fixtures shared across all
 # tests.
 #-------------------------------------------------------------------------------
-import os
 import sys
 import pytest
 
@@ -15,7 +14,7 @@ def setup():
     assert sys.version_info >= (3, 5), "Python version 3.5+ is required"
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def pandas():
     """
     This fixture returns pandas module, or if unavailable marks test as skipped.
@@ -27,7 +26,7 @@ def pandas():
         pytest.skip("Pandas module is required for this test")
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def numpy():
     """
     This fixture returns numpy module, or if unavailable marks test as skipped.
@@ -39,7 +38,7 @@ def numpy():
         pytest.skip("Numpy module is required for this test")
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def h2o():
     """
     This fixture returns h2o module, or if unavailable marks test as skipped.
