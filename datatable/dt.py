@@ -7,7 +7,7 @@ from typing import Tuple, Dict
 
 # noinspection PyUnresolvedReferences
 import _datatable as c
-# import datatable
+import datatable
 from .widget import DataFrameWidget
 
 from datatable.dt_append import rbind as dt_rbind, cbind as dt_cbind
