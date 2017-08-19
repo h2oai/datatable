@@ -7,11 +7,14 @@ __all__ = ("clamp", "normalize_slice", "plural_form", "load_module",
            "humanize_bytes")
 
 
-def plural_form(n, singular, plural=None):
+def plural_form(n, singular=None, plural=None):
     nabs = abs(n)
 
     if nabs == 1:
-        return "%d %s" % (n, singular)
+        if singular:
+            return "%d %s" % (n, singular)
+        else:
+            return str(n)
     else:
         if nabs < 100000:
             nstr = str(n)
@@ -26,6 +29,9 @@ def plural_form(n, singular, plural=None):
                     nabs = nabs // 1000
             if n < 0:
                 nstr = "-" + nstr
+
+        if not singular:
+            return nstr
 
         if not plural:
             last_letter = singular[-1]

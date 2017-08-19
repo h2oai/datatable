@@ -28,6 +28,7 @@ def test_plural_form():
     assert plural(4, "mesh") == "4 meshes"
     assert plural(5, "branch") == "5 branches"
     assert plural(1, "foot", "feet") == "1 foot"
+    assert plural(-1, "foot", "feet") == "-1 foot"
     assert plural(7, "foot", "feet") == "7 feet"
 
 
@@ -49,6 +50,8 @@ def test_plural_form2():
     assert plural(-100, "cow") == "-100 cows"
     assert plural(-99999, "cow") == "-99999 cows"
     assert plural(-1234567890, "cow") == "-1,234,567,890 cows"
+    assert plural(1000) == "1000"
+    assert plural(123345700) == "123,345,700"
 
 
 def test_clamp():
