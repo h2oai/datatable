@@ -26,8 +26,8 @@ def failed(reason, id):
 def get_file_list(*path):
     d = os.environ.get(root_env_name, "")
     if d == "":
-        return [skipped("Environment variable '%s' is empty or not defined"
-                        % root_env_name)]
+        return [pytest.param(lambda: pytest.skip("Environment variable '%s' is empty or not defined" % root_env_name),
+                             id="")]
     if not os.path.isdir(d):
         return [failed("Directory '%s' (%s) does not exist"
                        % (d, root_env_name), id=d)]
