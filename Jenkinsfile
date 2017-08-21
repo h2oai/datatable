@@ -4,7 +4,22 @@
 
 import ai.h2o.ci.Utils
 def utilsLib = new Utils()
-largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", "/home/0xdiag")
+
+// Paths should be absolute
+def sourceDir = "/home/0xdiag"
+def targetDir = "/tmp/pydatatable_large_data"
+
+def linkMap = [ "Data" : "h2oai-benchmarks/Data",
+		"smalldata" : "h2o-3/smalldata",
+		"bigdata" : "h2o-3/bigdata",
+		"fread" : "h2o-3/fread" ]
+		   
+def largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", targetDir)
+def dockerArgs = ""
+if (!largeTestsRootEnv.isEmpty()) {
+    linkFolders(sourceDir, targetDir)
+    dockerArgs = makeDockerArgs(linkMap, sourceDir, targetDir)
+}
 
 pipeline {
     agent none
@@ -50,6 +65,7 @@ pipeline {
                 dockerfile {
                     label "docker"
                     filename "Dockerfile"
+                    args dockerArgs
                 }
             }
             steps {
@@ -70,6 +86,7 @@ pipeline {
                 dockerfile {
                     label "docker"
                     filename "Dockerfile"
+                    args "-v /tmp/pydatatable_large_data:/tmp/pydatatable_large_data -v /home/0xdiag"
                 }
             }
 
@@ -83,7 +100,7 @@ pipeline {
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
-                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`[testing]
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`
                             make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
@@ -212,8 +229,33 @@ def returnIfModified(pattern, value) {
                                 egrep -e '${pattern}' | \
                                 wc -l) \
                               -gt 0 ]; then
-                            echo "${value}"; fi
+                            echo -n "${value}"; fi
                          """, returnStdout: true
+    }
+    return out
+}
+
+def linkFolders(sourceDir, targetDir) {
+    node {
+        sh """
+            mkdir ${targetDir} || true
+        
+            mkdir ${targetDir}/h2oai-benchmarks || true
+            ln -sf ${sourceDir}/Data ${targetDir}/h2oai-benchmarks
+        
+            mkdir ${targetDir}/h2o-3 || true
+            ln -sf ${sourceDir}/smalldata ${targetDir}/h2o-3
+            ln -sf ${sourceDir}/bigdata ${targetDir}/h2o-3
+            ln -sf ${sourceDir}/fread ${targetDir}/h2o-3
+        """
+    }
+}
+
+	       
+def makeDockerArgs(linkMap, sourceDir, targetDir) {
+    def out = ""
+    linkMap.each { key, value ->
+        out += "-v ${sourceDir}/${key}:${targetDir}/${value} "
     }
     return out
 }
