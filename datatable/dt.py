@@ -15,7 +15,7 @@ from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
     TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t,
-    PandasSeries_t, NumpyArray_t)
+    PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 
 __all__ = ("DataTable", )
@@ -197,12 +197,19 @@ class DataTable(object):
         if dim == 0:
             arr = arr.reshape((1, 1))
         if dim == 1:
-            arr = arr.reshape((1, arr.shape[0]))
+            arr = arr.reshape((1, len(arr)))
         if not arr.dtype.isnative:
             arr = arr.byteswap().newbyteorder()
-        colarrays = [arr[i] for i in range(arr.shape[0])]
-        dt = c.datatable_from_buffers(colarrays)
-        self._fill_from_dt(dt, names=[str(i) for i in range(arr.shape[0])])
+
+        ncols = len(arr)
+        if is_type(arr, NumpyMaskedArray_t):
+            dt = c.datatable_from_buffers([arr.data[i] for i in range(ncols)])
+            mask = c.datatable_from_buffers([arr.mask[i] for i in range(ncols)])
+            dt.apply_na_mask(mask)
+        else:
+            dt = c.datatable_from_buffers([arr[i] for i in range(ncols)])
+
+        self._fill_from_dt(dt, names=["C%d" % i for i in range(1, ncols + 1)])
 
 
 

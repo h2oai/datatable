@@ -346,6 +346,17 @@ static PyObject* materialize(DataTable_PyObject *self, PyObject *args)
 }
 
 
+static PyObject* apply_na_mask(DataTable_PyObject *self, PyObject *args)
+{
+    DataTable *dt = self->ref;
+    DataTable *mask = NULL;
+    if (!PyArg_ParseTuple(args, "O&", &dt_unwrap, &mask)) return NULL;
+
+    DataTable *res = datatable_apply_na_mask(dt, mask);
+    return (res == NULL) ? NULL : none();
+}
+
+
 
 /**
  * Deallocator function, called when the object is being garbage-collected.
@@ -389,6 +400,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD0(cbind),
     METHOD1(sort),
     METHOD0(materialize),
+    METHOD0(apply_na_mask),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
