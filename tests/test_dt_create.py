@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables
+from tests import same_iterables, list_equals
 
 
 def test_create_from_list():
@@ -109,7 +109,7 @@ def test_create_from_0d_numpy_array(numpy):
     a = numpy.array(100)
     d = dt.DataTable(a)
     assert d.shape == (1, 1)
-    assert d.names == ("0", )
+    assert d.names == ("C1", )
     assert d.internal.check()
     assert d.topython() == [[100]]
 
@@ -118,7 +118,7 @@ def test_create_from_1d_numpy_array(numpy):
     a = numpy.array([1, 2, 3])
     d = dt.DataTable(a)
     assert d.shape == (3, 1)
-    assert d.names == ("0", )
+    assert d.names == ("C1", )
     assert d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
@@ -127,7 +127,7 @@ def test_create_from_2d_numpy_array(numpy):
     a = numpy.array([[5, 4, 3, 10, 12], [-2, -1, 0, 1, 7]])
     d = dt.DataTable(a)
     assert d.shape == (5, 2)
-    assert d.names == ("0", "1")
+    assert d.names == ("C1", "C2")
     assert d.internal.check()
     assert d.topython() == a.tolist()
 
@@ -144,9 +144,56 @@ def test_create_from_string_numpy_array(numpy):
     a = numpy.array(["alef", "bet", "gimel", "dalet", "he", "vav"])
     d = dt.DataTable(a)
     assert d.shape == (6, 1)
-    assert d.names == ("0", )
+    assert d.names == ("C1", )
     assert d.internal.check()
     assert d.topython() == [a.tolist()]
+
+
+def test_create_from_masked_numpy_array1(numpy):
+    a = numpy.array([True, False, True, False, True])
+    m = numpy.array([False, True, False, False, True])
+    arr = numpy.ma.array(a, mask=m)
+    d = dt.DataTable(arr)
+    assert d.shape == (5, 1)
+    assert d.stypes == ("i1b", )
+    assert d.internal.check()
+    assert d.topython() == [[True, None, True, False, None]]
+
+
+def test_create_from_masked_numpy_array2(numpy):
+    n = 100
+    a = numpy.random.randn(n) * 1000
+    m = numpy.random.randn(n) > 1
+    arr = numpy.ma.array(a, mask=m, dtype="int16")
+    d = dt.DataTable(arr)
+    assert d.shape == (n, 1)
+    assert d.stypes == ("i2i", )
+    assert d.internal.check()
+    assert d.topython() == [arr.tolist()]
+
+
+def test_create_from_masked_numpy_array3(numpy):
+    n = 100
+    a = numpy.random.randn(n) * 1e6
+    m = numpy.random.randn(n) > 1
+    arr = numpy.ma.array(a, mask=m, dtype="int32")
+    d = dt.DataTable(arr)
+    assert d.shape == (n, 1)
+    assert d.stypes == ("i4i", )
+    assert d.internal.check()
+    assert d.topython() == [arr.tolist()]
+
+
+def test_create_from_masked_numpy_array4(numpy):
+    n = 10
+    a = numpy.random.randn(n) * 10
+    m = numpy.random.randn(n) > 1
+    arr = numpy.ma.array(a, mask=m, dtype="float64")
+    d = dt.DataTable(arr)
+    assert d.shape == (n, 1)
+    assert d.stypes == ("f8r", )
+    assert d.internal.check()
+    assert list_equals(d.topython(), [arr.tolist()])
 
 
 

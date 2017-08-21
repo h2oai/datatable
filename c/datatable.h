@@ -58,7 +58,7 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
 DataTable* datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts,
                            int ncols);
 DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts);
-
+DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask);
 void datatable_dealloc(DataTable *self);
 
 
