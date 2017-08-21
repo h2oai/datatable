@@ -252,7 +252,7 @@ def linkFolders(sourceDir, targetDir) {
 }
 
 	       
-static makeDockerArgs(linkMap, sourceDir, targetDir) {
+def makeDockerArgs(linkMap, sourceDir, targetDir) {
     def out = ""
     linkMap.each { key, value ->
         out += "-v ${sourceDir}/${key}:${targetDir}/${value} "
