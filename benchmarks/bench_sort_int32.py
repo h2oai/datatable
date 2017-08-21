@@ -21,7 +21,7 @@ def test_sort_int32_datatable(benchmark, src):
     benchmark.name = "datatable"
     d = datatable.DataTable(src)
     assert d.types == ("int",)
-    benchmark(lambda: d(sort=0))
+    benchmark(lambda: d.sort(0))
 
 
 def test_sort_int32_numpy(benchmark, src):
@@ -34,9 +34,3 @@ def test_sort_int32_pandas(benchmark, src, pandas):
     benchmark.name = "pandas"
     p = pandas.DataFrame(src)
     benchmark(lambda: p.sort_values(0))
-
-
-def test_sort_bool_python(benchmark, src):
-    benchmark.name = "python"
-    p = src.tolist()
-    benchmark(lambda: sorted(p))
