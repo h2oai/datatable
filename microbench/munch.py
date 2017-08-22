@@ -7,11 +7,12 @@ import sys
 
 if __name__ == "__main__":
     headers_printed = False
-    ns = (list(range(2, 17)) +
-          [20, 24, 28, 32, 48, 64, 96, 128, 150, 200, 256])
-    ns = [48, 64, 96, 128, 150, 200, 256]
+    ns = (list(range(2, 17)) + list(range(20, 100, 4)) +
+          [100, 128, 150, 200, 256])
+    if "rsort" in sys.argv[1] or "msort" in sys.argv[1]:
+        ns += [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144]
+    # ns = [48, 64, 96, 128, 150, 200, 256]
     # ns = [500, 1000, 2500, 5000, 10000]
-    ns = list(range(100, 200))
     for n in ns:
         cmd = [c.replace("{N}", str(n)) for c in sys.argv[1:]]
         try:
@@ -22,7 +23,7 @@ if __name__ == "__main__":
         headers = []
         values = []
         for line in out.split("\n"):
-            mm = re.search(r"^@\s*(\w+).*?\b(\d+(?:\.\d+)?)\b", line)
+            mm = re.search(r"^@\s*([\w\-]+).*?\s[=:]\s(\d+(?:\.\d+)?)\b", line)
             if mm:
                 name = mm.group(1)
                 value = mm.group(2)
