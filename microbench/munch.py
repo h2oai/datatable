@@ -23,7 +23,7 @@ if __name__ == "__main__":
         headers = []
         values = []
         for line in out.split("\n"):
-            mm = re.search(r"^@\s*([\w\-]+).*?\s[=:]\s(\d+(?:\.\d+)?)\b", line)
+            mm = re.search(r"^@\s*([\w\-]+)\s?[=:]\s*(\d+(?:\.\d+)?)\b", line)
             if mm:
                 name = mm.group(1)
                 value = mm.group(2)

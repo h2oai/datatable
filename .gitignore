@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *$py.class
+*.o
 
 
 # Distribution / packaging
@@ -38,12 +39,4 @@ temp/
 
 
 # Microbenchmarks
-microbench/insertsort/*
-microbench/radixsort/*
-microbench/mergesort/*
-!microbench/insertsort/Makefile
-!microbench/insertsort/isort.c
-!microbench/radixsort/Makefile
-!microbench/radixsort/rsort.c
-!microbench/mergesort/Makefile
-!microbench/mergesort/msort.c
+microbench/sort/sort

@@ -1,26 +1,15 @@
 //==============================================================================
-//
-// Micro benchmark for merge-sort function.
-// Example:
-//
-//     make run size=64 batches=100 iters=1000
-//
-// Will run the benchmark 100 times, each time doing 1000 iterations, working
-// on an array of 64 integers. This will be done for each available "kernel":
-//     mergesort0: top-down mergesort
-//
+// Micro benchmark for merge-sort functions
 //==============================================================================
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <time.h>
-#include <assert.h>
-#include "utils.h"
-
-static int *base = NULL;
+#include <string.h>
+#include "sort.h"
 
 
-static void iinsert0(int *x, int *o, int n, int i0)
+static void iinsert_mergesort(int *x, int *o, int n, int i0)
 {
     int i, j, xi, oi;
     for (i = i0; i < n; i++) {
@@ -54,7 +43,7 @@ static int compute_minrun(int n)
 
 
 // Top-down mergesort
-static void mergesort0(int *x, int *o, int n, int *restrict t, int *restrict u)
+static void mergesort0_impl(int *x, int *o, int n, int *restrict t, int *restrict u)
 {
     if (n <= 2) {
         if (n == 2 && x[0] > x[1]) {
@@ -70,8 +59,8 @@ static void mergesort0(int *x, int *o, int n, int *restrict t, int *restrict u)
     // Sort each part recursively
     int n1 = n / 2;
     int n2 = n - n1;
-    mergesort0(x, o, n1, t, u);
-    mergesort0(x + n1, o + n1, n2, t + n1, u + n1);
+    mergesort0_impl(x, o, n1, t, u);
+    mergesort0_impl(x + n1, o + n1, n2, t + n1, u + n1);
 
     // Merge the parts
     memcpy(t, x, n1 * sizeof(int));
@@ -103,11 +92,22 @@ static void mergesort0(int *x, int *o, int n, int *restrict t, int *restrict u)
     }
 }
 
-
-// Bottom-up merge sort
-// For now asume n is a power of 2
-static void mergesort1(int *x, int *o, int n, int *restrict t, int *restrict u)
+void mergesort0(int *x, int *o, int n, int K)
 {
+    mergesort0_impl(x, o, n, tmp1, tmp2);
+}
+
+
+
+//==============================================================================
+// Bottom-up merge sort
+//==============================================================================
+
+void mergesort1(int *x, int *o, int n, int K)
+{
+    int *restrict t = tmp1;
+    int *restrict u = tmp2;
+
     // printf("mergesort1(x=%p, o=%p, n=%d)\n", x, o, n);
     int minrun = compute_minrun(n);
     // printf("  minrun = %d\n", minrun);
@@ -117,7 +117,7 @@ static void mergesort1(int *x, int *o, int n, int *restrict t, int *restrict u)
     // printf("  sorting all minruns...\n");
     for (int i = 0, nleft = n; nleft > 0; i += minrun, nleft -= minrun) {
         int nn = nleft >= minrun? minrun : nleft;
-        iinsert0(x + i, o + i, nn, 1);
+        iinsert_mergesort(x + i, o + i, nn, 1);
     }
     // printf("  x = ["); for(int i = 0; i < n; i++) printf("%d, ", x[i]); printf("\b\b]\n");
 
@@ -306,7 +306,7 @@ static void final_merge_stack(int *stack, int *stacklen, int *x, int *o, int *tm
 }
 
 
-static void timsort(int *x, int *o, int n, int *tmp1, int *tmp2)
+void timsort(int *x, int *o, int n, int K)
 {
     // printf("timsort(x=%p, o=%p, n=%d, tmp1=%p, tmp2=%p)\n", x, o, n, tmp1, tmp2);
     // printf("  x = ["); for(int i = 0; i < n; i++) printf("%d, ", x[i]); printf("\b\b]\n");
@@ -327,7 +327,7 @@ static void timsort(int *x, int *o, int n, int *tmp1, int *tmp2)
         // printf("    runL = %d\n", rl);
         if (rl < minrun) {
             int newrun = minrun <= nleft? minrun : nleft;
-            iinsert0(x + i, o + i, newrun, rl);
+            iinsert_mergesort(x + i, o + i, newrun, rl);
             rl = newrun;
             // printf("    x = ["); for(int i = 0; i < n; i++) printf("%d, ", x[i]); printf("\b\b]\n");
             // printf("    runL = %d\n", rl);
@@ -348,104 +348,4 @@ static void timsort(int *x, int *o, int n, int *tmp1, int *tmp2)
     final_merge_stack(stack, &stacklen, x, o, tmp1, tmp2);
     assert(stacklen == 2);
     // printf("  end\n");
-}
-
-
-
-//==============================================================================
-// Program main
-//==============================================================================
-int main(int argc, char **argv)
-{
-    // Parse command-line arguments
-    int size = getCmdArgInt(argc, argv, "size", 64);
-    int iters = getCmdArgInt(argc, argv, "iters", 1000);
-    int nbatches = getCmdArgInt(argc, argv, "batches", 100);
-    printf("Array size = %d ints\n", size);
-    printf("Number of batches = %d\n", nbatches);
-    printf("Number of iterations per batch = %d\n", iters);
-
-    double total_time0 = 0, min_time0 = 0, max_time0 = 0;
-    double total_time1 = 0, min_time1 = 0, max_time1 = 0;
-    double total_time2 = 0, min_time2 = 0, max_time2 = 0;
-    double total_time3 = 0, min_time3 = 0, max_time3 = 0;
-
-    for (int b = 0; b < nbatches; b++)
-    {
-        // Prepare data array
-        srand(time(NULL));
-        size_t alloc_size = (size_t)size * sizeof(int);
-        int *x = malloc(alloc_size);
-        int *o = malloc(alloc_size);
-        for (int i = 0; i < size; i++) {
-            x[i] = rand() % 10000;
-            o[i] = i;
-        }
-        int *wx = malloc(alloc_size);
-        int *wo = malloc(alloc_size);
-        int *tmp = malloc(alloc_size * 2);
-
-        // Check correctness
-        memcpy(wx, x, alloc_size);
-        memcpy(wo, o, alloc_size);
-        base = wx;
-        mergesort1(wx, wo, size, tmp, tmp + size);
-        for (int i = 0; i < size; i++) {
-            if (i > 0 &&
-                    !(x[wo[i]] > x[wo[i-1]] || (x[wo[i]] == x[wo[i-1]] && wo[i] > wo[i-1]))
-            ) {
-                printf("Results are incorrect! (at i = %d)\n", i);
-                printf("  Input x: ["); for(int i = 0; i < size; i++) printf("%d, ", x[i]); printf("]\n");
-                printf("  Sorted x: ["); for(int i = 0; i < size; i++) printf("%d, ", x[wo[i]]); printf("]\n");
-                return 1;
-            }
-        }
-
-        // Kernel 0
-        start_timer();
-        for (int i = 0; i < iters; i++) {
-            memcpy(wx, x, alloc_size);
-            memcpy(wo, o, alloc_size);
-            mergesort0(wx, wo, size, tmp, tmp + size);
-        }
-        double t0 = get_timer_iter(iters);
-        total_time0 += t0;
-        if (b == 0 || t0 < min_time0) min_time0 = t0;
-        if (b == 0 || t0 > max_time0) max_time0 = t0;
-
-        // Kernel 1
-        start_timer();
-        for (int i = 0; i < iters; i++) {
-            memcpy(wx, x, alloc_size);
-            memcpy(wo, o, alloc_size);
-            mergesort1(wx, wo, size, tmp, tmp + size);
-        }
-        double t1 = get_timer_iter(iters);
-        total_time1 += t1;
-        if (b == 0 || t1 < min_time1) min_time1 = t1;
-        if (b == 0 || t1 > max_time1) max_time1 = t1;
-
-        // Kernel 2
-        start_timer();
-        for (int i = 0; i < iters; i++) {
-            memcpy(wx, x, alloc_size);
-            memcpy(wo, o, alloc_size);
-            timsort(wx, wo, size, tmp, tmp + size);
-        }
-        double t2 = get_timer_iter(iters);
-        total_time2 += t2;
-        if (b == 0 || t2 < min_time2) min_time2 = t2;
-        if (b == 0 || t2 > max_time2) max_time2 = t2;
-    }
-
-    printf("@ mergesort0:  mean = %.2f ns,  min = %.2f ns, max = %.2f ns\n",
-           total_time0 / nbatches, min_time0, max_time0);
-
-    printf("@ mergesort1:  mean = %.2f ns,  min = %.2f ns, max = %.2f ns\n",
-           total_time1 / nbatches, min_time1, max_time1);
-
-    printf("@ timsort:     mean = %.2f ns,  min = %.2f ns, max = %.2f ns\n",
-           total_time2 / nbatches, min_time2, max_time2);
-
-    return 0;
 }
