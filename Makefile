@@ -52,7 +52,6 @@ test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
 	$(PYTHON) -m pytest -ra \
-		--benchmark-skip \
 		--junit-prefix=$(OS) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
@@ -60,7 +59,7 @@ test:
 
 .PHONY: benchmark
 benchmark:
-	$(PYTHON) -m pytest -ra --benchmark-only
+	$(PYTHON) -m pytest -ra -v benchmarks
 
 
 .PHONY: debug
