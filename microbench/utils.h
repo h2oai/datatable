@@ -9,13 +9,13 @@
 #include <string.h>
 
 
-_Bool getCmdLineArg(int argc, char **argv, const char *name, char **ret)
+int getCmdLineArg(int argc, char **argv, const char *name, char **ret)
 {
     for (int i = 1; i < argc; i++) {
         char *ptr = argv[i];
         while (*ptr == '-') ptr++;
         int length = (int) strlen(name);
-        _Bool match = 1;
+        int match = 1;
         for (int j = 0; j < length; j++) {
             if (ptr[j] != name[j]) {
                 match = 0;
