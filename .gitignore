@@ -30,16 +30,20 @@ docs/_build/
 # Project managers
 .idea/*
 !.idea/inspectionProfiles
-datatable.iml
 *.sublime-*
 
 
 # Landfill area
-temp/*
+temp/
 
 
 # Microbenchmarks
-microbench/insertsort/isort
-microbench/insertsort/isort.o
-microbench/mergesort/msort
-microbench/mergesort/msort.o
+microbench/insertsort/*
+microbench/radixsort/*
+microbench/mergesort/*
+!microbench/insertsort/Makefile
+!microbench/insertsort/isort.c
+!microbench/radixsort/Makefile
+!microbench/radixsort/rsort.c
+!microbench/mergesort/Makefile
+!microbench/mergesort/msort.c
