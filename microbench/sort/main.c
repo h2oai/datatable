@@ -4,8 +4,10 @@
 #include "sort.h"
 #include "utils.h"
 
+int tmp0 = 0;
 int *tmp1 = NULL;
 int *tmp2 = NULL;
+int *tmp3 = NULL;
 
 
 int test(const char *algoname, sortfn_t sortfn, int N, int K, int B, int T)
@@ -101,7 +103,7 @@ int test(const char *algoname, sortfn_t sortfn, int N, int K, int B, int T)
         }
     }
     double tavg = (sumt - min1 - min2 - max1 - max2) / (B - 4);
-    printf("@%s:  %.2f ns\n", algoname, tavg * 1e9);
+    printf("@%s:  %.3f ns\n", algoname, tavg * 1e9);
     free(x);
     free(o);
     free(wx);
@@ -125,6 +127,7 @@ int main(int argc, char **argv)
     int N = getCmdArgInt(argc, argv, "n", 64);
     int K = getCmdArgInt(argc, argv, "k", 16);
     int T = getCmdArgInt(argc, argv, "time", 1000);
+    if (N <= 16) B *= 10;
     if (B < 5) B = 5;
     printf("Array size = %d\n", N);
     printf("N sig bits = %d\n", K);
@@ -132,36 +135,54 @@ int main(int argc, char **argv)
     printf("Exec. time = %d ms\n", T);
     printf("\n");
 
+    char name[100];
+    tmp1 = malloc((size_t)(2 * N) * sizeof(int));
+    tmp2 = malloc((size_t)(N) * sizeof(int));
+    tmp3 = malloc((size_t)(1 << K) * sizeof(int));
+
     switch (A) {
         case 1:
-            tmp1 = malloc(2 * (size_t)N * sizeof(int));
             test("insert0", iinsert0, N, K, B, T);
             test("insert2", iinsert2, N, K, B, T);
             test("insert3", iinsert3, N, K, B, T);
-            free(tmp1);
             break;
 
         case 2:
-            tmp1 = malloc((size_t)N * sizeof(int));
-            tmp2 = malloc((size_t)N * sizeof(int));
             test("mergeTD", mergesort0, N, K, B, T);
             test("mergeBU", mergesort1, N, K, B, T);
             test("timsort", timsort, N, K, B, T);
-            free(tmp1);
-            free(tmp2);
             break;
 
         case 3:
-            tmp1 = malloc((size_t)(1 << K) * sizeof(int));
-            tmp2 = malloc((size_t)N * sizeof(int));
             test("radixsort", radixsort0, N, K, B, T);
-            free(tmp1);
-            free(tmp2);
+            break;
+
+        case 4:
+            if (N <= 6) test("insert", iinsert0, N, K, B, T);
+            else if (N <= 10000) test("insert", iinsert3, N, K, B, T);
+            else printf("@insert: -\n");
+            if (N <= 1e6) test("mergeBU", mergesort1, N, K, B, T);
+            else printf("@mergeBU: -\n");
+            int kstep = K <= 4? 1 : 2;
+            for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
+                if (tmp0 > 20) break;
+                sprintf(name, "radix%d/m", tmp0);
+                test(name, radixsort1, N, K, B, T);
+                sprintf(name, "radix%d/r%d", tmp0, K - tmp0);
+                test(name, radixsort2, N, K, B, T);
+            }
+            if (K <= 20) {
+                sprintf(name, "radix%d", K);
+                test(name, radixsort0, N, K, B, T);
+            }
             break;
 
         default:
             printf("A = %d is not supported\n", A);
     }
 
+    free(tmp1);
+    free(tmp2);
+    free(tmp3);
     return 0;
 }

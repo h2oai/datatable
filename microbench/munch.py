@@ -3,16 +3,19 @@
 import re
 import subprocess
 import sys
+import colorama
 
 
 if __name__ == "__main__":
-    headers_printed = False
+    colorama.init()
+    headers_printed = []
     ns = (list(range(2, 17)) + list(range(20, 100, 4)) +
-          [100, 128, 150, 200, 256])
-    if "rsort" in sys.argv[1] or "msort" in sys.argv[1]:
-        ns += [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144]
-    # ns = [48, 64, 96, 128, 150, 200, 256]
-    # ns = [500, 1000, 2500, 5000, 10000]
+          [100, 128, 160, 196, 256])
+    if "algo=4" in sys.argv:
+        ns += [1 << i for i in range(9, 23)]
+        ns += [3 << i for i in range(7, 22)]
+        ns.sort()
+
     for n in ns:
         cmd = [c.replace("{N}", str(n)) for c in sys.argv[1:]]
         try:
@@ -23,23 +26,35 @@ if __name__ == "__main__":
         headers = []
         values = []
         for line in out.split("\n"):
-            mm = re.search(r"^@\s*([\w\-]+)\s?[=:]\s*(\d+(?:\.\d+)?)\b", line)
+            mm = re.search(r"^@\s*([\w\-/]+):\s*([\d\.\-]+)", line)
             if mm:
                 name = mm.group(1)
                 value = mm.group(2)
                 headers.append(name)
-                values.append(value)
-        if not headers_printed:
-            headers_printed = True
+                if value == "-":
+                    values.append(None)
+                else:
+                    v = float(value)
+                    values.append(int(v + 0.5))
+        if headers_printed:
+            assert headers_printed == headers
+        else:
+            headers_printed = list(headers)
+            divider = "+".join(["-" * 9] + ["-" * 14] * len(headers))
+            print(divider)
             print(" n" + " " * 7, end="")
             for h in headers:
                 print("| %12s " % h, end="")
             print()
-            print("-" * 9, end="")
-            for s in range(len(headers)):
-                print("+" + "-" * 14, end="")
-            print()
+            print(divider)
         print(" %-7d " % n, end="")
+        minval = min(v for v in values if v is not None)
         for v in values:
-            print("| %12s " % v, end="")
+            if v is None:
+                print("|" + " " * 14, end="")
+            elif v == minval:
+                print("|" + colorama.Fore.GREEN + (" %12s " % v) +
+                      colorama.Style.RESET_ALL, end="")
+            else:
+                print("| %12d " % v, end="")
         print()

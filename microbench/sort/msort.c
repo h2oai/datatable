@@ -123,7 +123,7 @@ void mergesort1(int *x, int *o, int n, int K)
 
     // When flip is 0, the data is in `x` / `o`; if 1 then data is in `t` / `u`
     int flip = 0;
-    int *ix, *ox, *io, *oo;
+    int *ix = NULL, *ox = NULL, *io = NULL, *oo = NULL;
     for (int wA = minrun; wA < n; wA *= 2) {
         if (flip) {
             ix = t; ox = x;
@@ -181,8 +181,8 @@ void mergesort1(int *x, int *o, int n, int K)
         }
     }
 
-    if (ox != x) {
-        // printf("  flipping...\n");
+    if (ox != x && ox && oo) {
+        // printf("  flipping... x=%p, o=%p, ox=%p, oo=%p\n", x, o, ox, oo);
         memcpy(o, oo, n * sizeof(int));
         memcpy(x, ox, n * sizeof(int));
     }
