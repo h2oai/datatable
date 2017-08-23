@@ -104,6 +104,7 @@ int test(const char *algoname, sortfn_t sortfn, int N, int K, int B, int T)
     }
     double tavg = (sumt - min1 - min2 - max1 - max2) / (B - 4);
     printf("@%s:  %.3f ns\n", algoname, tavg * 1e9);
+    // printf("Freeing x=%p, o=%p, wx=%p, wo=%p\n", x, o, wx, wo);
     free(x);
     free(o);
     free(wx);
@@ -139,6 +140,8 @@ int main(int argc, char **argv)
     tmp1 = malloc((size_t)(2 * N) * sizeof(int));
     tmp2 = malloc((size_t)(N) * sizeof(int));
     tmp3 = malloc((size_t)(1 << K) * sizeof(int));
+    if (!tmp1 || !tmp2 || !tmp3) return 2;
+    // printf("Allocated tmps: tmp1=%p, tmp2=%p, tmp3=%p\n", tmp1, tmp2, tmp3);
 
     switch (A) {
         case 1:
@@ -181,6 +184,7 @@ int main(int argc, char **argv)
             printf("A = %d is not supported\n", A);
     }
 
+    // printf("Freeing tmp1=%p, tmp2=%p, tmp3=%p\n", tmp1, tmp2, tmp3);
     free(tmp1);
     free(tmp2);
     free(tmp3);

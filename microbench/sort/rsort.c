@@ -14,8 +14,10 @@
 // tmp3 should be at least `1 << K` ints long,
 void radixsort0(int *x, int *o, int n, int K)
 {
-    int *histogram = tmp3;
+    // printf("radixsort0(x=%p, o=%p, n=%d, K=%d [tmp2=%p, tmp3=%p])\n",
+    //        x, o, n, K, tmp2, tmp3);
     int *oo = tmp2;
+    int *histogram = tmp3;
 
     int nradixes = 1 << K;
     memset(histogram, 0, nradixes * sizeof(int));
@@ -104,6 +106,8 @@ void radixsort1(int *x, int *o, int n, int K)
 // for the recursive calls.
 void radixsort2(int *x, int *o, int n, int K)
 {
+    // printf("radixsort2(x=%p, o=%p, n=%d, K=%d [tmp0=%d, tmp1=%p, tmp2=%p, tmp3=%p])\n",
+    //        x, o, n, K, tmp0, tmp1, tmp2, tmp3);
     int nradixbits = tmp0;
     int *xx = tmp1;
     int *oo = tmp2;
@@ -111,11 +115,12 @@ void radixsort2(int *x, int *o, int n, int K)
 
     int nradixes = 1 << nradixbits;
     int shift = K - nradixbits;
-    int mask = nradixes - 1;
+    int mask = (1 << shift) - 1;
     memset(histogram, 0, nradixes * sizeof(int));
 
     // Generate the histogram
     for (int i = 0; i < n; i++) {
+        // assert((x[i] >> shift) < nradixes && (x[i]>>shift) >= 0);
         histogram[x[i] >> shift]++;
     }
     int cumsum = 0;
@@ -127,13 +132,14 @@ void radixsort2(int *x, int *o, int n, int K)
 
     // Sort the variables using the histogram
     for (int i = 0; i < n; i++) {
+        // assert((x[i] >> shift) < nradixes && (x[i]>>shift) >= 0);
         int k = histogram[x[i] >> shift]++;
         xx[k] = x[i] & mask;
         oo[k] = o[i];
+        // assert(xx[k] >= 0 && xx[k] < (1 << shift));
     }
 
     // Continue sorting the remainder
-    tmp1 = x;
     tmp2 = o;
     tmp3 = histogram + nradixes;
     for (int i = 0; i < nradixes; i++) {
@@ -150,9 +156,9 @@ void radixsort2(int *x, int *o, int n, int K)
             radixsort0(nextx, nexto, nextn, shift);
         }
     }
-    tmp1 = xx;
     tmp2 = oo;
     tmp3 = histogram;
 
     memcpy(o, oo, n * sizeof(int));
+    // printf("  done.\n");
 }

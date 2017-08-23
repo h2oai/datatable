@@ -2,10 +2,10 @@
 #-------------------------------------------------------------------------------
 
 CC ?= clang
-INCLUDES := -I..
-LIBRARIES :=
-CCFLAGS :=
-LDFLAGS :=
+INCLUDES ?= -I..
+LIBRARIES ?=
+CCFLAGS ?=
+LDFLAGS ?=
 
 ifdef algo
 	ALGO := algo=$(algo)
@@ -49,6 +49,14 @@ sort: isort.o msort.o rsort.o main.o
 
 clean:
 	rm -f *.o sort
+
+.PHONY: debug
+debug:
+	$(MAKE) clean
+	CCFLAGS=-ggdb LDFLAGS=-ggdb \
+	$(MAKE) build
+	gdb ./sort
+
 
 run: build
 	./sort $(ALGO) $(SIZE) $(SIGBITS) $(BATCHES) $(TIME)
