@@ -289,7 +289,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     // Check whether we have a single-column DataTable that doesn't need to be
     // copied -- in which case it should be possible to return the buffer
     // by-reference instead of copying the data into an intermediate buffer.
-    if (ncols == 1) {
+    if (ncols == 1 && !dt->rowindex) {
         Column *col = dt->columns[0];
         SType stype = col->stype;
         if (!stype_info[stype].varwidth && !REQ_WRITABLE(flags)) {
