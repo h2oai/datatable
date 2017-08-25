@@ -247,8 +247,8 @@ def test_topandas_view():
 
 
 def test_topython():
-    src = [[-1, 0, 1, 3], 
-           ["cat", "dog", "mouse", "elephant"], 
+    src = [[-1, 0, 1, 3],
+           ["cat", "dog", "mouse", "elephant"],
            [False, True, None, True]]
     d0 = dt.DataTable(src, colnames=["A", "B", "C"])
     assert d0.types == ("int", "str", "bool")
@@ -261,12 +261,13 @@ def test_topython():
 
 
 def test_tonumpy(numpy):
-    d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False], "D": [3.4, None]})
+    d0 = dt.DataTable({"A": [1, 5], "B": ["helo", "you"],
+                       "C": [True, False], "D": [3.4, None]})
     a0 = d0.tonumpy()
     assert a0.shape == (4, 2)
     assert a0.dtype == numpy.dtype("object")
     assert same_iterables(a0.tolist(),
-                          [[1, 5], ["hello", "you"], [True, False], [3.4, None]])
+                          [[1, 5], ["helo", "you"], [True, False], [3.4, None]])
 
 
 def test_numpy_constructor_simple(numpy):
@@ -332,3 +333,10 @@ def test_numpy_constructor_single_string_col(numpy):
     assert a.shape == (1, 3)
     assert a.dtype == numpy.dtype("object")
     assert a.tolist() == d.topython()
+
+
+def test_numpy_constructor_view_1col(numpy):
+    d0 = dt.DataTable({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
+    d2 = d0[::2, "B"]
+    a = d2.tonumpy()
+    assert a.tolist() == [[True, True]]
