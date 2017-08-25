@@ -20,6 +20,34 @@
 // Based on Radix sort implementation in (R)data.table:
 //      https://github.com/Rdatatable/data.table/src/forder.c
 //      https://github.com/Rdatatable/data.table/src/fsort.c
+//
+//
+// Tuning of algorithms / constants in this file is based on `/microbench/sort`.
+// The summary of the results obtained from experimentation on a MacOS laptop
+// with 4CPUs and 16GB RAM is the following (here k is the number of significant
+// bits in unsigned representation of elements of an array, and n is the length
+// of that array):
+//
+// [uint8_t]
+//   k=1:  n<=8  insert0, o/w radix1
+//   k=2:  n<=8  insert0, o/w radix2
+//   k=3:  n<=8  insert0, o/w radix3
+//   k=4:  n<=8  insert0, o/w radix4
+//   k=5:  n<=12 insert0, o/w radix5
+//
+// [int]
+// k = 1, 2, 3, 4
+//     n <= 8 insert0, otherwise radix-K
+// k = 5
+//     n <= 12 insert0, otherwise radix-5
+// k = 6
+//     n <= 16 insert0, otherwise radix-6
+// k = 7
+//     n <= 16 insert0, n <= 40 radix-4/m, otherwise radix-7
+// k = 8
+//     n <= 16 insert0, n <= 72 radix-4/m, otherwise radix-8
+//
+//
 //------------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>   // printf
