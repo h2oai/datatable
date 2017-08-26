@@ -53,11 +53,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
         }
     }
 
-    dtmalloc(cols, Column*, listsize + 1);
-    for (int i = 0; i < listsize; ++i) {
-        cols[i] = NULL;
-    }
-    cols[listsize] = NULL;
+    dtcalloc(cols, Column*, listsize + 1);
 
     // Fill the data
     for (int64_t i = 0; i < listsize; i++) {
