@@ -22,25 +22,19 @@ static Column* column_from_list(PyObject *list);
  */
 PyObject* pydatatable_from_list(UU, PyObject *args)
 {
-    DataTable *dt = NULL;
+    Column **cols = NULL;
     PyObject *list;
 
     if (!PyArg_ParseTuple(args, "O!:from_list", &PyList_Type, &list))
         return NULL;
-
-    // Create a new (empty) DataTable instance
-    dtmalloc(dt, DataTable, 1);
-    dt->rowindex = NULL;
-    dt->columns = NULL;
-    dt->nrows = 0;
-    dt->ncols = 0;
+    
 
     // If the supplied list is empty, return the empty Datatable object
     int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
     if (listsize == 0) {
-        dtmalloc(dt->columns, Column*, 1);
-        dt->columns[0] = NULL;
-        return pydt_from_dt(dt);
+        dtmalloc(cols, Column*, 1);
+        cols[0] = NULL;
+        return pydt_from_dt(make_datatable(cols, NULL));
     }
 
     // Basic check validity of the provided data.
@@ -59,21 +53,23 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
         }
     }
 
-    dt->ncols = listsize;
-    dt->nrows = item0size;
-    dtmalloc(dt->columns, Column*, dt->ncols + 1);
-    dt->columns[dt->ncols] = NULL;
+    dtcalloc(cols, Column*, listsize + 1);
 
     // Fill the data
-    for (int64_t i = 0; i < dt->ncols; i++) {
+    for (int64_t i = 0; i < listsize; i++) {
         PyObject *src = PyList_GET_ITEM(list, i);
-        dt->columns[i] = TRY(column_from_list(src));
+        cols[i] = TRY(column_from_list(src));
     }
 
-    return pydt_from_dt(dt);
+    return pydt_from_dt(make_datatable(cols, NULL));
 
   fail:
-    datatable_dealloc(dt);
+    if (cols) {
+        for (int i = 0; cols[i] != NULL; ++i) {
+            column_decref(cols[i]);
+        }
+        dtfree(cols);
+    }
     return NULL;
 }
 
