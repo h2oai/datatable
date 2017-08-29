@@ -2,6 +2,8 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .llvm import inject_c_code
+import _datatable
+
 
 
 class RequiresCModule:
@@ -130,6 +132,16 @@ typedef struct DataTable {
   struct Column **columns;
 } DataTable;
 
+// External functions
+typedef void* (*ptr_0)(size_t);
+typedef void* (*ptr_1)(void*, size_t);
+typedef void (*ptr_2)(void*);
+typedef Column* (*ptr_3)(SType, size_t);
+static ptr_0 dt_malloc = (ptr_0) %d;
+static ptr_1 dt_realloc = (ptr_1) %d;
+static ptr_2 dt_free = (ptr_2) %d;
+static ptr_3 make_data_column = (ptr_3) %d;
+
 #define BIN_NAF4 0x7F8007A2u
 #define BIN_NAF8 0x7FF00000000007A2ull
 typedef union { uint64_t i; double d; } double_repr;
@@ -148,7 +160,7 @@ static inline double _nand_(void) { double_repr x = { BIN_NAF8 }; return x.d; }
 #define NA_F4  _nanf_()
 #define NA_F8  _nand_()
 
-"""
+""" % _datatable.get_internal_function_ptrs()
 
 
 _externs = {

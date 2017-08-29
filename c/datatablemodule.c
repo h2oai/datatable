@@ -50,11 +50,26 @@ static PyObject* pyregister_function(UU, PyObject *args)
 }
 
 
+static PyObject* pyget_internal_function_ptrs(UU, UU1)
+{
+    PyObject *res = PyTuple_New(4);
+    if (!res) return NULL;
+
+    PyTuple_SetItem(res, 0, PyLong_FromSize_t((size_t)_dt_malloc));
+    PyTuple_SetItem(res, 1, PyLong_FromSize_t((size_t)_dt_realloc));
+    PyTuple_SetItem(res, 2, PyLong_FromSize_t((size_t)_dt_free));
+    PyTuple_SetItem(res, 3, PyLong_FromSize_t((size_t)make_data_column));
+    return res;
+}
+
+
+
 //------------------------------------------------------------------------------
 // Module definition
 //------------------------------------------------------------------------------
 
 #define METHOD0(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
+#define METHOD1(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(columns_from_mixed),
@@ -75,6 +90,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(exec_function),
     METHOD0(register_function),
     METHOD0(install_buffer_hooks),
+    METHOD1(get_internal_function_ptrs),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
