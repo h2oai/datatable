@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
-import _datatable
 from .llvm import inject_c_code
 
 
@@ -26,7 +25,6 @@ class CModuleNode(object):
         self._functions = {}
         self._global_declarations = ""
         self._extern_declarations = ""
-        self._initializer_declarations = ""
         self._global_names = set()
         self._exported_functions = []
         self._function_pointers = None
@@ -36,31 +34,12 @@ class CModuleNode(object):
         assert n is not None
         if not self._function_pointers:
             cc = self._gen_module()
+            print(cc)
             self._function_pointers = \
                 inject_c_code(cc, self._exported_functions)
         assert n < len(self._function_pointers)
         return self._function_pointers[n]
 
-
-    def execute(self, mainfn, verbose=False):
-        cc = self._gen_module()
-        ptrs = inject_c_code(cc, [mainfn])
-        if verbose:
-            print("C code generated:")
-            print("-" * 80)
-            print(cc)
-            print("-" * 80)
-        assert len(ptrs) == 1
-        return _datatable.exec_function(ptrs[0])
-
-
-    @property
-    def result(self):
-        return self._result
-
-
-    def has_function(self, name):
-        return name in self._functions
 
     def add_function(self, name, body):
         assert name not in self._global_names
@@ -86,9 +65,6 @@ class CModuleNode(object):
             self._extern_declarations += _externs[name] + "\n"
 
 
-    def add_initializer(self, expr):
-        self._initializer_declarations += "    %s;\n" % expr
-
     def make_variable_name(self, prefix="v"):
         self._var_counter += 1
         return prefix + str(self._var_counter)
@@ -109,9 +85,6 @@ class CModuleNode(object):
         out += "// Global variables\n"
         out += self._global_declarations
         out += "\n"
-        out += "static void init(void) {\n"
-        out += self._initializer_declarations
-        out += "}\n"
         out += "\n\n\n"
         for fnbody in self._functions.values():
             out += fnbody
@@ -179,15 +152,15 @@ static inline double _nand_(void) { double_repr x = { BIN_NAF8 }; return x.d; }
 
 
 _externs = {
-    "ISNA_F4": "static int ISNA_F4(float x) "
+    "ISNA_F4": "static inline int ISNA_F4(float x) "
                "{ float_repr xx; xx.f = x; return xx.i == BIN_NAF4; }",
-    "ISNA_F8": "static int ISNA_F8(double x) "
+    "ISNA_F8": "static inline int ISNA_F8(double x) "
                "{ double_repr xx; xx.d = x; return xx.i == BIN_NAF8; }",
-    "ISNA_I1": "static int ISNA_I1(int8_t x) { return x == NA_I1; }",
-    "ISNA_I2": "static int ISNA_I2(int16_t x) { return x == NA_I2; }",
-    "ISNA_I4": "static int ISNA_I4(int32_t x) { return x == NA_I4; }",
-    "ISNA_I8": "static int ISNA_I8(int64_t x) { return x == NA_I8; }",
-    "ISNA_U1": "static int ISNA_U1(uint8_t x) { return x == NA_U1; }",
-    "ISNA_U2": "static int ISNA_U2(uint16_t x) { return x == NA_U2; }",
-    "ISNA_U4": "static int ISNA_U4(uint32_t x) { return x == NA_U4; }",
+    "ISNA_I1": "static inline int ISNA_I1(int8_t x) { return x == NA_I1; }",
+    "ISNA_I2": "static inline int ISNA_I2(int16_t x) { return x == NA_I2; }",
+    "ISNA_I4": "static inline int ISNA_I4(int32_t x) { return x == NA_I4; }",
+    "ISNA_I8": "static inline int ISNA_I8(int64_t x) { return x == NA_I8; }",
+    "ISNA_U1": "static inline int ISNA_U1(uint8_t x) { return x == NA_U1; }",
+    "ISNA_U2": "static inline int ISNA_U2(uint16_t x) { return x == NA_U2; }",
+    "ISNA_U4": "static inline int ISNA_U4(uint32_t x) { return x == NA_U4; }",
 }

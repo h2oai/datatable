@@ -105,13 +105,6 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
         self._mapnode = MapNode([elem for elem in self._elems
                                  if isinstance(elem, BaseExpr)])
 
-    def _added_into_soup(self):
-        self._rowindex = self.soup.get("rows")
-        self._mapnode = MapNode([elem for elem in self._elems
-                                 if isinstance(elem, BaseExpr)])
-        self._mapnode.use_rowindex(self._rowindex)
-        self.soup.add("columns_mapfn", self._mapnode)
-
     def get_result(self):
         fnptr = self._mapnode.get_result()
         if self._rowindex:
@@ -134,11 +127,12 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
 #===============================================================================
 
 def make_columnset(cols, dt, _nested=False):
-    if cols is Ellipsis or cols is None:
+    if cols is None or cols is Ellipsis:
         return SliceCSNode(dt, 0, dt.ncols, 1)
 
     if cols is True or cols is False:
-        # Note: True/False are integer objects in Python
+        # Note: True/False are integer objects in Python, hence this test has
+        # to be performed before `isinstance(cols, int)` below.
         raise TTypeError("A boolean cannot be used as a column selector")
 
     if isinstance(cols, (int, str, slice, BaseExpr)):

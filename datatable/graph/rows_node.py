@@ -132,9 +132,6 @@ class FilterExprRFNode(RFNode, RequiresCModule):
         self._expr = expr
         self._fnode = FilterNode(expr)
 
-    def _added_into_soup(self):
-        self.soup.add("rows_filter", self._fnode)
-
     def make_target_rowindex(self):
         fnptr = self._fnode.get_result()
         nrows = self._fnode.nrows
