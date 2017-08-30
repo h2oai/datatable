@@ -14,7 +14,7 @@ class RequiresCModule:
         pass
 
 
-# Perhaps this should be moved into the 'exec' folder
+
 class CModuleNode(object):
     """
     Replacement for :class:`EvaluationModule`.
