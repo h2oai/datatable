@@ -4,7 +4,7 @@
 PyObject* py_ltype_names[DT_LTYPES_COUNT];
 PyObject* py_stype_names[DT_STYPES_COUNT];
 stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
-
+size_t py_buffers_size;
 
 
 static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)
@@ -104,6 +104,7 @@ static PyObject* stype_notimpl(Column *col, UNUSED(int64_t row))
 int init_py_types(UU)
 {
     init_types();
+    py_buffers_size = sizeof(Py_buffer);
 
     py_ltype_names[LT_MU]       = PyUnicode_FromString("mu");
     py_ltype_names[LT_BOOLEAN]  = PyUnicode_FromString("bool");

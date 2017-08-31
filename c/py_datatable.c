@@ -108,6 +108,17 @@ static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 }
 
 
+/**
+ * Return size of the referenced DataTable, but without the
+ * `sizeof(DataTable_PyObject)`, which includes the size of the `self->ref`
+ * pointer.
+ */
+static PyObject* get_alloc_size(DataTable_PyObject *self)
+{
+    return PyLong_FromSize_t(datatable_get_allocsize(self->ref));
+}
+
+
 static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
 {
     int64_t row0, row1, col0, col1;
@@ -387,6 +398,7 @@ PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrap
 PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
 PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
 PyDoc_STRVAR(dtdoc_sort, "Sort datatable according to a column");
+PyDoc_STRVAR(dtdoc_alloc_size, "DataTable's internal size, in bytes");
 
 #define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
@@ -415,6 +427,7 @@ static PyGetSetDef datatable_getseters[] = {
     // GETSET1(rowindex),
     GETSET1(rowindex_type),
     GETSET1(datatable_ptr),
+    GETSET1(alloc_size),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
 

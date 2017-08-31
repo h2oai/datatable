@@ -792,6 +792,18 @@ RowIndex* rowindex_expand(RowIndex *self)
 }
 
 
+size_t rowindex_get_allocsize(RowIndex *self)
+{
+    size_t sz = sizeof(RowIndex);
+    switch (self->type) {
+        case RI_ARR32: sz += (size_t)self->length * sizeof(int32_t); break;
+        case RI_ARR64: sz += (size_t)self->length * sizeof(int64_t); break;
+        default: /* do nothing */ break;
+    }
+    return sz;
+}
+
+
 /**
  * RowIndex's destructor.
  */

@@ -12,7 +12,7 @@
 #include "py_utils.h"
 
 extern void free_xbuf_column(Column *col);
-
+extern size_t py_buffers_size;
 
 /**
  * Simple Column constructor: create a Column with memory type `MT_DATA` and
@@ -30,6 +30,7 @@ Column* make_data_column(SType stype, size_t nrows)
     dtmalloc(col, Column, 1);
     col->data = NULL;
     col->meta = NULL;
+    col->filename = NULL;
     col->nrows = (int64_t) nrows;
     col->alloc_size = stype_info[stype].elemsize * nrows;
     col->refcount = 1;
@@ -64,6 +65,7 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
     dtmalloc(col, Column, 1);
     col->data = mmp;
     col->meta = NULL;
+    col->filename = NULL;
     col->nrows = (int64_t) nrows;
     col->stype = stype;
     col->mtype = MT_MMAP;
@@ -138,6 +140,7 @@ Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
     dtmalloc(col, Column, 1);
     col->data = mmp;
     col->meta = meta;
+    col->filename = NULL;
     col->nrows = nrows;
     col->alloc_size = filesize;
     col->refcount = 1;
@@ -183,6 +186,7 @@ Column* column_copy(Column *self)
     dtmalloc(col, Column, 1);
     col->data = NULL;
     col->meta = NULL;
+    col->filename = NULL;
     col->nrows = self->nrows;
     col->stype = self->stype;
     col->mtype = MT_DATA;
@@ -591,4 +595,30 @@ size_t column_i8s_datasize(Column *self) {
     assert(self->stype == ST_STRING_I8_VCHAR);
     void *end = add_ptr(self->data, self->alloc_size);
     return (size_t) llabs(((int64_t*) end)[-1]) - 1;
+}
+
+
+/**
+ * Get the total size of the memory occupied by this Column. This is different
+ * from `column->alloc_size`, which in general reports byte size of the `data`
+ * portion of the column.
+ */
+size_t column_get_allocsize(Column *self)
+{
+    size_t sz = sizeof(Column);
+    switch (self->mtype) {
+        case MT_MMAP:
+        case MT_TEMP:
+            if (self->filename)
+                sz += strlen(self->filename) + 1;  // +1 for trailing '\0'
+            // fall-through
+        case MT_DATA:
+            sz += self->alloc_size;
+            break;
+        case MT_XBUF:
+            sz += py_buffers_size;
+            break;
+    }
+    sz += stype_info[self->stype].metasize;
+    return sz;
 }
