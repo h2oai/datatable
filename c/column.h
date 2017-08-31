@@ -130,6 +130,7 @@ size_t column_i4s_padding(size_t datasize);
 size_t column_i8s_padding(size_t datasize);
 size_t column_i4s_datasize(Column *self);
 size_t column_i8s_datasize(Column *self);
+size_t column_get_allocsize(Column*);
 Column* column_incref(Column *self);
 void column_decref(Column *self);
 
