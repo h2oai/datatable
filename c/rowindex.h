@@ -85,6 +85,6 @@ RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc);
 RowIndex* rowindex_expand(RowIndex *self);
 void rowindex_compactify(RowIndex *self);
 void rowindex_dealloc(RowIndex *self);
-
+size_t rowindex_get_allocsize(RowIndex*);
 
 #endif

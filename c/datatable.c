@@ -190,3 +190,21 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
 
     return dt;
 }
+
+
+size_t datatable_get_allocsize(DataTable *self)
+{
+    size_t sz = 0;
+    sz += sizeof(DataTable);
+    sz += (size_t)(self->ncols + 1) * sizeof(Column*);
+    if (self->rowindex) {
+        // If table is a view, then ignore sizes of each individual column.
+        sz += rowindex_get_allocsize(self->rowindex);
+    } else {
+        for (int i = 0; i < self->ncols; i++) {
+            sz += column_get_allocsize(self->columns[i]);
+        }
+    }
+    // TODO: add sizes of the stored Stats for each column
+    return sz;
+}

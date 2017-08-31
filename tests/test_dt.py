@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
+import sys
 import datatable as dt
 from tests import same_iterables
 
@@ -59,6 +60,9 @@ def test_dt_properties(dt0):
                            "str"))
     assert same_iterables(dt0.stypes,
                           ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s"))
+    # This is somewhat fragile, but the size should definitely not be 24 or
+    # 64 or anything in that ballpark...
+    assert sys.getsizeof(dt0) == 1658
 
 
 def test_dt_call(dt0, capsys):

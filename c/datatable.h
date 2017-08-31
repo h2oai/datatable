@@ -59,6 +59,7 @@ DataTable* datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts,
                            int ncols);
 DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts);
 DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask);
+size_t datatable_get_allocsize(DataTable *dt);
 void datatable_dealloc(DataTable *self);
 
 

@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import collections
 import time
+import sys
 from types import GeneratorType
 from typing import Tuple, Dict
 
@@ -33,6 +34,9 @@ class DataTable(object):
     This is a primary data structure for datatable module.
     """
     _id_counter_ = 0
+
+    __slots__ = ("_id", "_ncols", "_nrows", "_types", "_stypes", "_names",
+                 "_inames", "_dt")
 
     def __init__(self, src=None, colnames=None):
         DataTable._id_counter_ += 1
@@ -564,6 +568,35 @@ class DataTable(object):
     def topython(self):
         return self._dt.window(0, self.nrows, 0, self.ncols).data
 
+
+    def __sizeof__(self):
+        """Return size of this DataTable in bytes."""
+        # This is somewhat tricky to get right, so here are general
+        # considerations:
+        #   * We want to add sizes of all internal fields, recursively if they
+        #     are containers.
+        #   * Integer fields are ignored, because they are usually heavily
+        #     shared with other objects in the system. Of course we could have
+        #     used `sys.getrefcount()` to check whether any particular field
+        #     is shared, but that creates an undesirable effect that the size
+        #     of the DataTable apparently depends on external variables...
+        #   * The contents of `types` and `stypes` are not counted, because
+        #     these strings are shared globally within datatable module.
+        #   * Column names are added to the total sum.
+        #   * The keys in `self._inames` are skipped, since they are the same
+        #     objects as elements of `self._names`, the values are skipped
+        #     because they are integers.
+        #   * The sys.getsizeof() automatically adds 24 to the final answer,
+        #     which is the size of the DataTable object itself.
+        size = 0
+        for s in self.__class__.__slots__:
+            attr = getattr(self, s)
+            if not isinstance(attr, int):
+                size += sys.getsizeof(attr)
+        for n in self._names:
+            size += sys.getsizeof(n)
+        size += self._dt.alloc_size
+        return size
 
 
 def column_hexview(col, dt, colidx):
