@@ -334,11 +334,13 @@ class FilterExprRFNode(RFNode):
             self._fnname,
             "RowIndex* {fnname}(void) {{\n"
             "    if (!{riname})\n"
-            "        {riname} = rowindex_from_filterfn32({filter}, {nrows});\n"
+            "        {riname} = rowindex_from_filterfn32("
+            "                       {filter}, {nrows}, {sorted});\n"
             "    return {riname};\n"
             "}}".format(fnname=self._fnname,
                         riname=rowindex_name,
                         filter=inode.fnname,
+                        sorted=int(not self._dt.internal.isview),
                         nrows=self._dt.nrows))
 
 

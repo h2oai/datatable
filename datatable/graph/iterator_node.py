@@ -123,9 +123,9 @@ class IteratorNode(object):
                 iexpr = "i += step"
             else:
                 if ritype == "arr32":
-                    self.addto_preamble("int32_t *riarr = ri->arr32;")
+                    self.addto_preamble("int32_t *riarr = ri->ind32;")
                 else:
-                    self.addto_preamble("int64_t *riarr = ri->arr64;")
+                    self.addto_preamble("int64_t *riarr = ri->ind64;")
                 iexpr = "i = riarr[ii]"
         fn = ("int {func}({args}) {{\n"
               "    int64_t i;\n"

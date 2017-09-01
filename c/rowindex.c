@@ -188,7 +188,7 @@ RowIndex* rowindex_from_slicelist(
  * passed, in particular we do not attempt to compactify an int64_t[] array into
  * int32_t[] even if it were possible.
  */
-RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n)
+RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n, int issorted)
 {
     if (n < 0 || n > INT32_MAX) return NULL;
     RowIndex *res = NULL;
@@ -199,20 +199,26 @@ RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n)
     if (n == 0) {
         res->min = 0;
         res->max = 0;
+    } else if (issorted) {
+        res->min = (int64_t) array[0];
+        res->max = (int64_t) array[n - 1];
     } else {
-        int32_t min = array[0], max = array[0], nn = (int32_t) n;
-        for (int32_t i = 1; i < nn; i++) {
-            int32_t x = array[i];
-            if (x < min) min = x;
-            if (x > max) max = x;
+        int32_t tmin = INT32_MAX;
+        int32_t tmax = -INT32_MAX;
+        #pragma omp parallel for schedule(static) \
+                reduction(min:tmin) reduction(max:tmax)
+        for (int64_t j = 0; j < n; j++) {
+            int32_t t = array[j];
+            if (t < tmin) tmin = t;
+            if (t > tmax) tmax = t;
         }
-        res->min = (int64_t) min;
-        res->max = (int64_t) max;
+        res->min = (int64_t) tmin;
+        res->max = (int64_t) tmax;
     }
     return res;
 }
 
-RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n)
+RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n, int issorted)
 {
     if (n < 0) return NULL;
     RowIndex *res = NULL;
@@ -223,15 +229,21 @@ RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n)
     if (n == 0) {
         res->min = 0;
         res->max = 0;
+    } else if (issorted) {
+        res->min = array[0];
+        res->max = array[n - 1];
     } else {
-        int64_t min = array[0], max = array[0];
-        for (int64_t i = 1; i < n; i++) {
-            int64_t x = array[i];
-            if (x < min) min = x;
-            if (x > max) max = x;
+        int64_t tmin = INT64_MAX;
+        int64_t tmax = -INT64_MAX;
+        #pragma omp parallel for schedule(static) \
+                reduction(min:tmin) reduction(max:tmax)
+        for (int64_t j = 0; j < n; j++) {
+            int64_t t = array[j];
+            if (t < tmin) tmin = t;
+            if (t > tmax) tmax = t;
         }
-        res->min = min;
-        res->max = max;
+        res->min = tmin;
+        res->max = tmax;
     }
     return res;
 }
@@ -389,7 +401,7 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
             dtmalloc(arr64, int64_t, nrows);
             memcpy(arr64, col->data, (size_t)nrows * sizeof(int64_t));
         }
-        ri = rowindex_from_i64_array(arr64, nrows);
+        ri = rowindex_from_i64_array(arr64, nrows, 0);
         rowindex_compactify(ri);
     } else
     if (col->stype == ST_INTEGER_I4) {
@@ -401,7 +413,7 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
             dtmalloc(arr32, int32_t, nrows);
             memcpy(arr32, col->data, (size_t)nrows * sizeof(int32_t));
         }
-        ri = rowindex_from_i32_array(arr32, nrows);
+        ri = rowindex_from_i32_array(arr32, nrows, 0);
     }
 
     if (is_temp_column == 2) {
@@ -644,9 +656,14 @@ RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc)
  *
  * @param nrows
  *     Number of rows in the datatable that is being filtered.
+ *
+ * @param issorted
+ *     When True indicates that the filter function is guaranteed to produce
+ *     row index in sorted order.
  */
 RowIndex*
-rowindex_from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows)
+rowindex_from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows,
+                         int issorted)
 {
     if (nrows > INT32_MAX) return NULL;
 
@@ -728,23 +745,18 @@ rowindex_from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows)
 
     // Create and return the final rowindex object from the array of int32
     // indices `out`.
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
-    res->type = RI_ARR32;
-    res->length = (int64_t) out_length;
-    res->ind32 = out;
-    res->min = out_length? out[0] : 0;
-    res->max = out_length? out[out_length - 1] : 0;
-    return res;
+    return rowindex_from_i32_array(out, (int64_t) out_length, issorted);
 }
 
 
 
 RowIndex*
-rowindex_from_filterfn64(rowindex_filterfn64 *filterfn, int64_t nrows)
+rowindex_from_filterfn64(rowindex_filterfn64 *filterfn, int64_t nrows,
+                         int issorted)
 {
     (void)filterfn;
     (void)nrows;
+    (void)issorted;
     return NULL;
 }
 

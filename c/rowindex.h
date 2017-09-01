@@ -73,14 +73,16 @@ typedef RowIndex* (rowindex_getterfn)(void);
 RowIndex* rowindex_from_slice(int64_t start, int64_t count, int64_t step);
 RowIndex* rowindex_from_slicelist(
     int64_t *starts, int64_t *counts, int64_t *steps, int64_t n);
-RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n);
-RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n);
+RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n, int issorted);
+RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n, int issorted);
 RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows);
 RowIndex* rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *ri);
 RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_col);
 RowIndex* rowindex_from_intcolumn_with_rowindex(Column *col, RowIndex *ri);
-RowIndex* rowindex_from_filterfn32(rowindex_filterfn32 *f, int64_t nrows);
-RowIndex* rowindex_from_filterfn64(rowindex_filterfn64 *f, int64_t nrows);
+RowIndex* rowindex_from_filterfn32(rowindex_filterfn32 *f, int64_t nrows,
+                                   int issorted);
+RowIndex* rowindex_from_filterfn64(rowindex_filterfn64 *f, int64_t nrows,
+                                   int issorted);
 RowIndex* rowindex_copy(RowIndex *self);
 RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc);
 RowIndex* rowindex_expand(RowIndex *self);

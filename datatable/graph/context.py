@@ -144,7 +144,7 @@ typedef void* (*ptr_0)(size_t);
 typedef void* (*ptr_1)(void*, size_t);
 typedef void (*ptr_2)(void*);
 typedef Column* (*ptr_3)(SType, size_t);
-typedef RowIndex* (*ptr_4)(void*, int64_t);
+typedef RowIndex* (*ptr_4)(void*, int64_t, int);
 static ptr_0 dt_malloc = (ptr_0) %dL;
 static ptr_1 dt_realloc = (ptr_1) %dL;
 static ptr_2 dt_free = (ptr_2) %dL;

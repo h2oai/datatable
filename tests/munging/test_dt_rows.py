@@ -34,8 +34,7 @@ def assert_typeerror(datatable, rows, error_message):
 
 
 def as_list(datatable):
-    nrows, ncols = datatable.shape
-    return datatable.internal.window(0, nrows, 0, ncols).data
+    return datatable.topython()
 
 
 def is_slice(dt, cols=range(3)):
@@ -73,9 +72,11 @@ def test_dt0_properties(dt0):
 def test_rows_ellipsis(dt0):
     """Both dt(...) and dt() should select all rows and all columns."""
     dt1 = dt0()
+    assert dt1.internal.check()
     assert dt1.shape == (10, 3)
     assert not dt1.internal.isview
     dt1 = dt0(...)
+    assert dt1.internal.check()
     assert dt1.shape == (10, 3)
     assert not dt1.internal.isview
 
@@ -89,6 +90,7 @@ def test_rows_integer(dt0):
     """
     for i in range(-10, 10):
         dt1 = dt0(i)
+        assert dt1.internal.check()
         assert dt1.shape == (1, 3)
         assert dt1.names == ("colA", "colB", "colC")
         assert dt1.types == ("bool", "int", "real")
@@ -120,6 +122,7 @@ def test_rows_slice(dt0):
                             (slice(None, None, 100), 1),
                             (slice(None, None, -1), 10)]:
         dt1 = dt0(sliceobj)
+        assert dt1.internal.check()
         assert dt1.shape == (nrows, 3)
         assert dt1.names == ("colA", "colB", "colC")
         assert dt1.types == ("bool", "int", "real")
@@ -152,6 +155,7 @@ def test_rows_range(dt0):
                      range(9, -1, -1)]:
         dt1 = dt0(rangeobj)
         nrows = len(rangeobj)
+        assert dt1.internal.check()
         assert isinstance(rangeobj, range)
         assert dt1.shape == (nrows, 3)
         assert dt1.names == ("colA", "colB", "colC")
@@ -171,6 +175,7 @@ def test_rows_generator(dt0):
     g = (i * 2 for i in range(4))
     assert type(g).__name__ == "generator"
     dt1 = dt0(g)
+    assert dt1.internal.check()
     assert dt1.shape == (4, 3)
     assert is_arr(dt1)
     assert_valueerror(dt0, (i if i % 3 < 2 else str(-i) for i in range(10)),
@@ -191,6 +196,7 @@ def test_rows_multislice(dt0):
                             ([0, 2, range(4), -1], 7),
                             ([4, 9, 3, slice(7), range(10)], 20)]:
         dt1 = dt0(selector)
+        # assert dt1.internal.check()
         assert dt1.shape == (nrows, 3)
         assert dt1.names == ("colA", "colB", "colC")
         assert dt1.types == ("bool", "int", "real")
@@ -330,20 +336,42 @@ def test_rows_function(dt0):
                      "Unexpected result produced by the `rows` function")
 
 
+def test_filter_on_view1():
+    dt0 = dt.DataTable({"A": list(range(50))})
+    dt1 = dt0[::2, :]
+    assert dt1.shape == (25, 1)
+    dt2 = dt1(rows=lambda f: f.A < 10)
+    assert dt2.internal.check()
+    assert dt2.internal.isview
+    assert dt2.topython() == [[0, 2, 4, 6, 8]]
+
+
+def test_filter_on_view2():
+    dt0 = dt.DataTable({"A": list(range(50))})
+    dt1 = dt0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
+    dt2 = dt1(rows=lambda f: f.A < 10)
+    assert dt2.internal.check()
+    assert dt2.internal.isview
+    assert dt2.topython() == [[5, 7, 9, 3, 1, 4, 8]]
+
 
 def test_chained_slice(dt0):
     dt1 = dt0[::2, :]
+    assert dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.internal.rowindex_type == "slice"
     dt2 = dt1[::-1, :]
+    assert dt2.internal.check()
     assert dt2.shape == (5, 3)
     assert dt2.internal.rowindex_type == "slice"
     assert as_list(dt2)[1] == [1, 0, None, 9, 7]
     dt3 = dt1[2:4, :]
+    assert dt3.internal.check()
     assert dt3.shape == (2, 3)
     assert dt3.internal.rowindex_type == "slice"
     assert as_list(dt3) == [[0, 1], [None, 0], [100000, -2.6]]
     dt4 = dt1[(1, 0, 3, 2), :]
+    assert dt4.internal.check()
     assert dt4.shape == (4, 3)
     assert dt4.internal.rowindex_type == "arr32"
     assert as_list(dt4) == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
@@ -351,17 +379,21 @@ def test_chained_slice(dt0):
 
 def test_chained_array(dt0):
     dt1 = dt0[(2, 5, 1, 1, 1, 0), :]
+    assert dt1.internal.check()
     assert dt1.shape == (6, 3)
     assert dt1.internal.rowindex_type == "arr32"
     dt2 = dt1[::2, :]
+    assert dt2.internal.check()
     assert dt2.shape == (3, 3)
     assert dt2.internal.rowindex_type == "arr32"
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
     dt3 = dt1[::-1, :]
+    assert dt3.internal.check()
     assert dt3.shape == (6, 3)
     assert dt3.internal.rowindex_type == "arr32"
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
     dt4 = dt1[(2, 3, 0), :]
+    assert dt4.internal.check()
     assert dt4.shape == (3, 3)
     assert as_list(dt4) == [[1, 1, 1], [-11, -11, 9], [1, 1, 1.3]]
 
