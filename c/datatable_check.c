@@ -351,7 +351,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
         // Verify that a boolean column has only values 0, 1 and NA_I1
         if (stype == ST_BOOLEAN_I1) {
             int8_t *data = (int8_t*) col->data;
-            for (int64_t j = 0; j < nrows; j++) {
+            for (int64_t j = 0; j < col->nrows; j++) {
                 int8_t x = data[j];
                 if (!(x == NA_I1 || x == 0 || x == 1)) {
                     ERR("Boolean column %lld has value %d in row %lld\n",
