@@ -62,7 +62,8 @@ def test_dt_properties(dt0):
                           ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s"))
     # This is somewhat fragile, but the size should definitely not be 24 or
     # 64 or anything in that ballpark...
-    assert sys.getsizeof(dt0) == 1658
+    # Stats should not be defined, so Stats array should be all NULLs
+    assert sys.getsizeof(dt0) == 1722
 
 
 def test_dt_call(dt0, capsys):

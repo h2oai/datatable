@@ -56,6 +56,14 @@ uint64_t cstat_isdefined(const Stats *self, const CStat s) {
 }
 
 /**
+ * Get the total size of the memory occupied by the provided Stats structure
+ **/
+size_t stats_get_allocsize(const Stats* self) {
+    if (self == NULL) return 0;
+    return sizeof(Stats);
+}
+
+/**
  * Compute the value of a CStat for each Stats structure in a DataTable.
  * Do nothing for any Stats structure that has already marked the CStat as
  * defined. Initialize a new Stats structure for any NULL reference in the 

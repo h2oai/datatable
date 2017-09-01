@@ -1,6 +1,7 @@
 #include <fcntl.h>   // open
 #include <unistd.h>  // write, fsync, close
 #include "datatable.h"
+#include "stats.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -484,6 +485,7 @@ PyTypeObject DataTable_PyType = {
 
 
 int init_py_datatable(PyObject *module) {
+    init_stats();
     // Register DataTable_PyType on the module
     DataTable_PyType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&DataTable_PyType) < 0) return 0;
