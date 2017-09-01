@@ -68,6 +68,7 @@ typedef struct RowIndex {
 //==============================================================================
 typedef int (rowindex_filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
 typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
+typedef RowIndex* (rowindex_getterfn)(void);
 
 RowIndex* rowindex_from_slice(int64_t start, int64_t count, int64_t step);
 RowIndex* rowindex_from_slicelist(

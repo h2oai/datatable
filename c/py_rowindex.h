@@ -30,6 +30,7 @@ PyObject* pyrowindex_from_array(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_boolcolumn(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args);
 PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args);
+PyObject* pyrowindex_from_function(PyObject*, PyObject *args);
 PyObject* pyrowindex_uplift(PyObject*, PyObject *args);
 
 int init_py_rowindex(PyObject *module);

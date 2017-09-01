@@ -22,12 +22,10 @@ def make_datatable(dt, rows, select, sort):
     DataTable.
     """
     cmodule = CModuleNode()
-    rows_node = make_rowfilter(rows, dt)
+    rows_node = make_rowfilter(rows, dt, cmodule)
     cols_node = make_columnset(select, dt)
     sort_node = make_sort(sort, dt)
 
-    if isinstance(rows_node, RequiresCModule):
-        rows_node.use_cmodule(cmodule)
     if isinstance(cols_node, RequiresCModule):
         cols_node.use_cmodule(cmodule)
     if sort_node:
@@ -42,7 +40,7 @@ def make_datatable(dt, rows, select, sort):
     # be either a plain "data" table if rowindex selects all rows and the target
     # datatable is not a view, or a "view" datatable otherwise.
     if isinstance(cols_node, (SliceCSNode, ArrayCSNode)):
-        rowindex = rows_node.make_final_rowindex()
+        rowindex = rows_node.get_final_rowindex()
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, colnames=cols_node.column_names)
