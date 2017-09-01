@@ -197,8 +197,8 @@ static void get_stats_i2i(Stats* self, Column* col) {
             else if (max < val) max = val;
         }
     }
-    self->i.min = min == NA_I2 ? min : NA_I8;
-    self->i.max = max == NA_I2 ? max : NA_I8;
+    self->i.min = min != NA_I2 ? min : NA_I8;
+    self->i.max = max != NA_I2 ? max : NA_I8;
     self->isdefined |= M_MIN | M_MAX;
 }
 
