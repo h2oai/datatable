@@ -103,6 +103,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
 
     RowIndex *ri = dt->rowindex;
     Column **cols = dt->columns;
+    Stats **stats = dt->stats;
 
     #define ERR(...) do {                                                      \
         if (nerrors++ < MAX_ERRORS)                                            \
@@ -121,6 +122,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     // allocation size can be greater than the required number of columns,
     // because `malloc()` may allocate more than requested.
     size_t n_cols_allocd = array_size(cols, sizeof(Column*));
+    size_t n_stats_allocd = array_size(stats, sizeof(Stats*));
     int64_t ncols = dt->ncols;
     if (ncols < 0) {
         ERR("Datatable has negative number of columns: %lld\n", ncols);
@@ -145,7 +147,16 @@ int dt_verify_integrity(DataTable *dt, char **errors)
         ERR("Last entry in the `columns` array is not NULL\n");
         return 1;
     }
-
+    
+    if ((!stats || !n_stats_allocd) && ncols > 0) {
+        ERR("Stats array is not allocated\n");
+    }
+    
+    if (ncols > (int64_t) n_stats_allocd) {
+        ERR("Size of the `stats` array %lld is smaller than the number of "
+            "columns %lld\n", (int64_t) n_stats_allocd, ncols);
+    }
+    
     // Check that each Column is not NULL
     for (int64_t i = 0; i < ncols; i++) {
         if (cols[i] == NULL) {
@@ -236,6 +247,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     // Check each individual column
     for (int64_t i = 0; i < ncols; i++) {
         Column *col = cols[i];
+        Stats *stat = stats[i];
         SType stype = col->stype;
         MType mtype = cols[i]->mtype;
 
@@ -410,6 +422,20 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                 }
             }
         }
+        
+        // If the column's Stats is NULL, then skip Stats check
+        if (stat == NULL) continue;
+            
+        // Check that the column's stored stats are valid
+        if (stat->stype != col->stype) {
+            ERR("Stats SType (%d) does not match SType for column #%lld (%d)",
+                stat->stype, i, col->stype);
+        }
+        
+        /** 
+         * TODO: Check that all defined stats are appropriate for the column
+         *       Additional Stats functionalities are needed to do so
+         */
     }
 
     // The end
