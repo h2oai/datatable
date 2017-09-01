@@ -3,11 +3,13 @@
 #include <inttypes.h>
 #include "types.h"
 #include "column.h"
+#include "stats.h"
 
 // avoid circular dependency between .h files
 typedef struct RowIndex RowIndex;
 typedef struct ColMapping ColMapping;
 typedef struct Column Column;
+typedef struct Stats Stats;
 typedef struct DataTable DataTable;
 
 
@@ -44,7 +46,7 @@ typedef struct DataTable {
     int64_t     ncols;
     RowIndex   *rowindex;
     Column    **columns;
-
+    Stats     **stats;
 } DataTable;
 
 
