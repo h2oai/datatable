@@ -14,7 +14,7 @@ class RequiresCModule:
         pass
 
 
-# Perhaps this should be moved into the 'exec' folder
+
 class CModuleNode(object):
     """
     Replacement for :class:`EvaluationModule`.
@@ -30,15 +30,17 @@ class CModuleNode(object):
         self._global_names = set()
         self._exported_functions = []
         self._function_pointers = None
+        self._nodes = []
 
 
-    def get_result(self, n):
+    def get_result(self, n) -> int:
         assert n is not None
         if not self._function_pointers:
             cc = self._gen_module()
-            print(cc)
             self._function_pointers = \
                 inject_c_code(cc, self._exported_functions)
+        if isinstance(n, str):
+            n = self._exported_functions.index(n)
         assert n < len(self._function_pointers)
         return self._function_pointers[n]
 
@@ -66,6 +68,8 @@ class CModuleNode(object):
             self._global_names.add(name)
             self._extern_declarations += _externs[name] + "\n"
 
+    def add_node(self, node):
+        self._nodes.append(node)
 
     def make_variable_name(self, prefix="v"):
         self._var_counter += 1
@@ -80,6 +84,8 @@ class CModuleNode(object):
 
 
     def _gen_module(self):
+        for node in self._nodes:
+            node.generate_c()
         out = _header
         out += "// Extern declarations\n"
         out += self._extern_declarations
@@ -106,7 +112,6 @@ typedef int8_t SType;
 typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
 
 typedef struct RowIndex {
-    RowIndexType type;
     int64_t length;
     int64_t min, max;
     union {
@@ -114,6 +119,7 @@ typedef struct RowIndex {
         int64_t *ind64;
         struct { int64_t start, step; } slice;
     };
+    RowIndexType type;
 } RowIndex;
 
 typedef struct Column {
@@ -127,7 +133,8 @@ typedef struct Column {
 } Column;
 
 typedef struct DataTable {
-  int64_t nrows, ncols;
+  int64_t nrows;
+  int64_t ncols;
   struct RowIndex *rowindex;
   struct Column **columns;
 } DataTable;
@@ -137,10 +144,12 @@ typedef void* (*ptr_0)(size_t);
 typedef void* (*ptr_1)(void*, size_t);
 typedef void (*ptr_2)(void*);
 typedef Column* (*ptr_3)(SType, size_t);
-static ptr_0 dt_malloc = (ptr_0) %d;
-static ptr_1 dt_realloc = (ptr_1) %d;
-static ptr_2 dt_free = (ptr_2) %d;
-static ptr_3 make_data_column = (ptr_3) %d;
+typedef RowIndex* (*ptr_4)(void*, int64_t, int);
+static ptr_0 dt_malloc = (ptr_0) %dL;
+static ptr_1 dt_realloc = (ptr_1) %dL;
+static ptr_2 dt_free = (ptr_2) %dL;
+static ptr_3 make_data_column = (ptr_3) %dL;
+static ptr_4 rowindex_from_filterfn32 = (ptr_4) %dL;
 
 #define BIN_NAF4 0x7F8007A2u
 #define BIN_NAF8 0x7FF00000000007A2ull

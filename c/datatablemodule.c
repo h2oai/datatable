@@ -52,13 +52,18 @@ static PyObject* pyregister_function(UU, PyObject *args)
 
 static PyObject* pyget_internal_function_ptrs(UU, UU1)
 {
-    PyObject *res = PyTuple_New(4);
+    int i = 0;
+    PyObject *res = PyTuple_New(5);
     if (!res) return NULL;
 
-    PyTuple_SetItem(res, 0, PyLong_FromSize_t((size_t)_dt_malloc));
-    PyTuple_SetItem(res, 1, PyLong_FromSize_t((size_t)_dt_realloc));
-    PyTuple_SetItem(res, 2, PyLong_FromSize_t((size_t)_dt_free));
-    PyTuple_SetItem(res, 3, PyLong_FromSize_t((size_t)make_data_column));
+    #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t)f))
+    ADD(_dt_malloc);
+    ADD(_dt_realloc);
+    ADD(_dt_free);
+    ADD(make_data_column);
+    ADD(rowindex_from_filterfn32);
+    #undef ADD
+
     return res;
 }
 
@@ -81,6 +86,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(rowindex_from_boolcolumn),
     METHOD0(rowindex_from_intcolumn),
     METHOD0(rowindex_from_filterfn),
+    METHOD0(rowindex_from_function),
     METHOD0(rowindex_uplift),
     METHOD0(datatable_assemble),
     METHOD0(datatable_from_list),

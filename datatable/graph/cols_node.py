@@ -102,8 +102,8 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
         self._elems = elems
         self._column_names = names
         self._rowindex = None
-        self._mapnode = MapNode([elem for elem in self._elems
-                                 if isinstance(elem, BaseExpr)])
+        self._mapnode = MapNode(dt, [elem for elem in self._elems
+                                     if isinstance(elem, BaseExpr)])
 
     def get_result(self):
         fnptr = self._mapnode.get_result()

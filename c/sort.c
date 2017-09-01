@@ -322,7 +322,7 @@ RowIndex* column_sort(Column *col, RowIndex *rowindex)
     }
     dtfree(sc);
     if (!ordering) return NULL;
-    return rowindex_from_i32_array(ordering, nrows);
+    return rowindex_from_i32_array(ordering, nrows, 0);
 }
 
 

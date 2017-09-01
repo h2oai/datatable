@@ -152,8 +152,8 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
     }
 
     // Construct and return the RowIndex object
-    return data32? py(rowindex_from_i32_array(data32, len))
-                 : py(rowindex_from_i64_array(data64, len));
+    return data32? py(rowindex_from_i32_array(data32, len, 0))
+                 : py(rowindex_from_i64_array(data64, len, 0));
 
   fail:
     dtfree(data32);
@@ -248,12 +248,28 @@ PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
     int64_t nrows = (int64_t) _nrows;
     if (nrows <= INT32_MAX) {
         rowindex_filterfn32 *fnptr = (rowindex_filterfn32*)_fnptr;
-        return py(rowindex_from_filterfn32(fnptr, nrows));
+        return py(rowindex_from_filterfn32(fnptr, nrows, 0));
     } else {
         rowindex_filterfn64 *fnptr = (rowindex_filterfn64*)_fnptr;
-        return py(rowindex_from_filterfn64(fnptr, nrows));
+        return py(rowindex_from_filterfn64(fnptr, nrows, 0));
     }
 }
+
+
+
+/**
+ * Construct a rowindex object given a pointer to a function that returns a
+ * `RowIndex*` value.
+ */
+PyObject* pyrowindex_from_function(UU, PyObject *args)
+{
+    long long _fnptr;
+    if (!PyArg_ParseTuple(args, "L:RowIndex.from_function", &_fnptr))
+        return NULL;
+    rowindex_getterfn *fnptr = (rowindex_getterfn*) _fnptr;
+    return py(fnptr());
+}
+
 
 
 PyObject* pyrowindex_uplift(UU, PyObject *args)
@@ -332,14 +348,23 @@ static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
 }
 
 
+static PyObject *getptr(RowIndex_PyObject *self, UU)
+{
+    RowIndex *ri = self->ref;
+    return PyLong_FromSize_t((size_t) ri);
+}
+
+
 
 //==============================================================================
 // DataTable type definition
 //==============================================================================
 
 #define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
+#define METHOD1(name) {#name, (PyCFunction)name, METH_NOARGS, NULL}
 static PyMethodDef rowindex_methods[] = {
     METHOD0(tolist),
+    METHOD1(getptr),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
