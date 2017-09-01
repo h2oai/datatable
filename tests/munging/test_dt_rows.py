@@ -182,31 +182,38 @@ def test_rows_generator(dt0):
                       "Invalid row selector '-2' generated at position 2")
 
 
-def test_rows_multislice(dt0):
+@pytest.mark.parametrize("selector, nrows",
+                         [([2, 7, 0, 9], 4),
+                          ({1, -1, 0}, 3),
+                          ((-1, -1, -1, -1), 4),
+                          ([slice(5, None), slice(None, 5)], 10),
+                          ([0, 2, range(4), -1], 7),
+                          ([4, 9, 3, slice(7), range(10)], 20)])
+def test_rows_multislice(dt0, selector, nrows):
     """
     Test that it is possible to combine multiple row-selectors in an array:
         dt([0, 5, 2, 1])
         dt([slice(None, None, 2), slice(1, None, 2)])
         dt([0, 1] * 100)
     """
-    for selector, nrows in [([2, 7, 0, 9], 4),
-                            ({1, -1, 0}, 3),
-                            ((-1, -1, -1, -1), 4),
-                            ([slice(5, None), slice(None, 5)], 10),
-                            ([0, 2, range(4), -1], 7),
-                            ([4, 9, 3, slice(7), range(10)], 20)]:
-        dt1 = dt0(selector)
-        # assert dt1.internal.check()
-        assert dt1.shape == (nrows, 3)
-        assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.types == ("bool", "int", "real")
-        assert is_arr(dt1)
+    dt1 = dt0(selector)
+    assert dt1.internal.check()
+    assert dt1.shape == (nrows, 3)
+    assert dt1.names == ("colA", "colB", "colC")
+    assert dt1.types == ("bool", "int", "real")
+    assert is_arr(dt1)
+
+
+def test_rows_multislice2(dt0):
     assert as_list(dt0([3, 9, 1, 0]))[0] == [None, 1, 1, 0]
     assert as_list(dt0((2, 5, 5, -1)))[1] == [9, 0, 0, None]
     assert (as_list(dt0([slice(5, None), slice(None, 5)]))[1] ==
             [0, 0, -1, 1, None, 7, -11, 9, 10000, None])
     assert (as_list(dt0([3, 1, slice(-3), 9, 9, 9]))[2] ==
             [0.1, 1, 5, 1, 1.3, 0.1, 100000, 0, -2.6, 2, 2, 2])
+
+
+def test_rows_multislice3(dt0):
     assert_valueerror(
         dt0, [1, "hey"],
         "Invalid row selector 'hey' at element 1 of the `rows` list")
