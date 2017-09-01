@@ -78,6 +78,11 @@ itypes_map = {
     "p8p": 22,
 }
 
+cstats_map = {
+    "c_min":      0,
+    "c_max":      1,
+}
+
 stype_bool = {"i1b"}
 stype_int = {"i1i", "i2i", "i4i", "i8i"}
 stype_float = {"f4r", "f8r"}
