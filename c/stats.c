@@ -132,7 +132,7 @@ Column* make_cstat_column(const Stats *self, const CStat s) {
     } else {
         // May need to modify once more STypes are implemented
         LType ltype = stype_info[stype].ltype;
-        val = (const void*) (((const uint8_t*) self) + cstat_offset[ltype][s]);
+        val = add_constptr(self, cstat_offset[ltype][s]);
         val_size = stype_info[stype].elemsize;
     }
     Column *out = make_data_column(stype, 1);
