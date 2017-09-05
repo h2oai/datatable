@@ -1,6 +1,7 @@
 #include <fcntl.h>   // open
 #include <unistd.h>  // write, fsync, close
 #include "datatable.h"
+#include "stats.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -333,6 +334,15 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
 
 
 
+static PyObject* get_stat(DataTable_PyObject *self, PyObject *args)
+{
+    uint8_t stat;
+    if (!PyArg_ParseTuple(args, "b:get_stat", &stat)) return NULL;
+    return py(make_cstat_datatable(self->ref, stat));  
+}
+
+
+
 static PyObject* materialize(DataTable_PyObject *self, PyObject *args)
 {
     if (!PyArg_ParseTuple(args, "")) return NULL;
@@ -399,6 +409,7 @@ PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from th
 PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
 PyDoc_STRVAR(dtdoc_sort, "Sort datatable according to a column");
 PyDoc_STRVAR(dtdoc_alloc_size, "DataTable's internal size, in bytes");
+PyDoc_STRVAR(dtdoc_get_stat, "Get a statistical value for each column in the datatable");
 
 #define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
 #define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
@@ -411,6 +422,7 @@ static PyMethodDef datatable_methods[] = {
     METHOD1(rbind),
     METHOD0(cbind),
     METHOD1(sort),
+    METHOD1(get_stat),
     METHOD0(materialize),
     METHOD0(apply_na_mask),
     {NULL, NULL, 0, NULL}           /* sentinel */
@@ -484,6 +496,7 @@ PyTypeObject DataTable_PyType = {
 
 
 int init_py_datatable(PyObject *module) {
+    init_stats();
     // Register DataTable_PyType on the module
     DataTable_PyType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&DataTable_PyType) < 0) return 0;

@@ -19,6 +19,8 @@ from datatable.utils.typechecks import (
     PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 
+from datatable.expr.consts import cstats_map
+
 __all__ = ("DataTable", )
 
 
@@ -501,6 +503,29 @@ class DataTable(object):
         cs = c.columns_from_slice(self._dt, 0, self._ncols, 1)
         dt = c.datatable_assemble(ri, cs)
         return DataTable(dt, colnames=self.names)
+
+
+    def min(self):
+        """
+        Get the minimum value of each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the computed minimum
+        values for each column (or NA if not applicable).
+        """
+        return DataTable(self._dt.get_stat(cstats_map["c_min"]), colnames=self.names)
+
+    def max(self):
+        """
+        Get the maximum value of each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the computed maximum
+        values for each column (or NA if not applicable).
+        """
+        return DataTable(self._dt.get_stat(cstats_map["c_max"]), colnames=self.names)
 
 
     @typed(columns={U(str, int): str})

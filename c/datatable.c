@@ -9,7 +9,7 @@ static int _compare_ints(const void *a, const void *b);
 
 
 /**
- * Create new DataTable given the set of columns and a rowindex. The `rowindex`
+ * Create new DataTable given the set of columns, and a rowindex. The `rowindex`
  * object may also be NULL, in which case a DataTable without a rowindex will
  * be constructed.
  */
@@ -18,13 +18,14 @@ DataTable* make_datatable(Column **cols, RowIndex *rowindex)
     if (cols == NULL) return NULL;
     int64_t ncols = 0;
     while(cols[ncols] != NULL) ncols++;
-
     DataTable *res = NULL;
     dtmalloc(res, DataTable, 1);
     res->nrows = 0;
     res->ncols = ncols;
     res->rowindex = NULL;
     res->columns = cols;
+    res->stats = NULL;
+    dtcalloc(res->stats, Stats*, res->ncols);
     if (rowindex) {
         res->rowindex = rowindex;
         res->nrows = rowindex->length;
@@ -44,25 +45,30 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     if (n == 0) return dt;
     qsort(cols_to_remove, (size_t)n, sizeof(int), _compare_ints);
     Column **columns = dt->columns;
+    Stats **stats = dt->stats;
     int j = 0;
     int next_col_to_remove = cols_to_remove[0];
     int k = 0;
-    for (int i = 0; i <= dt->ncols; i++) {
+    for (int i = 0; i < dt->ncols; i++) {
         if (i == next_col_to_remove) {
             column_decref(columns[i]);
+            stats_dealloc(stats[i]);
             columns[i] = NULL;
             do {
                 k++;
                 next_col_to_remove = k < n? cols_to_remove[k] : -1;
             } while (next_col_to_remove == i);
         } else {
-            columns[j++] = columns[i];
+            stats[j] = stats[i];
+            columns[j] = columns[i];
+            j++;
         }
     }
+    columns[j] = NULL;
     // This may not be the same as `j` if there were repeating columns
-    dt->ncols = j - 1;
-    dtrealloc(dt->columns, Column*, j);
-
+    dt->ncols = j;
+    dtrealloc(dt->columns, Column*, j + 1);
+    dtrealloc(dt->stats, Stats*, j);
     return dt;
 }
 
@@ -79,8 +85,10 @@ void datatable_dealloc(DataTable *self)
     rowindex_dealloc(self->rowindex);
     for (int64_t i = 0; i < self->ncols; i++) {
         column_decref(self->columns[i]);
+        stats_dealloc(self->stats[i]);
     }
     dtfree(self->columns);
+    dtfree(self->stats);
     dtfree(self);
 }
 
@@ -186,6 +194,8 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
             default:
                 dterrr("Column type %d not supported in apply_mask", col->stype);
         }
+	stats_dealloc(dt->stats[i]);
+	dt->stats[i] = NULL;
     }
 
     return dt;
@@ -197,6 +207,7 @@ size_t datatable_get_allocsize(DataTable *self)
     size_t sz = 0;
     sz += sizeof(DataTable);
     sz += (size_t)(self->ncols + 1) * sizeof(Column*);
+    sz += (size_t)(self->ncols) * sizeof(Stats*);
     if (self->rowindex) {
         // If table is a view, then ignore sizes of each individual column.
         sz += rowindex_get_allocsize(self->rowindex);
@@ -205,6 +216,8 @@ size_t datatable_get_allocsize(DataTable *self)
             sz += column_get_allocsize(self->columns[i]);
         }
     }
-    // TODO: add sizes of the stored Stats for each column
+    for (int64_t i = 0; i < self->ncols; ++i) {
+        sz += stats_get_allocsize(self->stats[i]);
+    }
     return sz;
 }

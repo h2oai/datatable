@@ -26,15 +26,19 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
 {
     assert(ncols >= dt->ncols);
     dtrealloc(dt->columns, Column*, ncols + 1);
-    for (int64_t i = dt->ncols; i <= ncols; i++)
+    dtrealloc(dt->stats, Stats*, ncols);
+    for (int64_t i = dt->ncols; i < ncols; ++i) {
         dt->columns[i] = NULL;
+        dt->stats[i] = NULL;
+    }
+    dt->columns[ncols] = NULL;
 
     int64_t nrows = dt->nrows;
     for (int i = 0; i < ndts; i++) {
         nrows += dts[i]->nrows;
     }
 
-    // If dt is a view datatable, then it must be coverted to MT_DATA
+    // If dt is a view datatable, then it must be converted to MT_DATA
     if (dt->rowindex) {
         for (int i = 0; i < dt->ncols; i++) {
             Column *newcol = column_extract(dt->columns[i], dt->rowindex);
