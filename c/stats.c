@@ -38,6 +38,7 @@ void stats_dealloc(Stats *self) {
  * Create a deep copy of a Stats structure
  **/
 Stats* stats_copy(Stats *self) {
+    if (self == NULL) return NULL;
     Stats *out = NULL;
     dtmalloc(out, Stats, 1);
     memcpy(out, self, sizeof(Stats));
