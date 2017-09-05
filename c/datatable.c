@@ -60,14 +60,15 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
             } while (next_col_to_remove == i);
         } else {
             stats[j] = stats[i];
-            columns[j++] = columns[i];
+            columns[j] = columns[i];
+            j++;
         }
     }
     columns[j] = NULL;
     // This may not be the same as `j` if there were repeating columns
     dt->ncols = j;
-    dtrealloc(dt->columns, Column*, j + 1);
-    dtrealloc(dt->stats, Stats*, dt->ncols);
+    dt->columns = dtrealloc(dt->columns, Column*, j + 1);
+    dt->stats = dtrealloc(dt->stats, Stats*, j);
     return dt;
 }
 
@@ -191,7 +192,7 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
                 break;
             }
             default:
-                dterrr("Column type %d not supported in apply_mask", col->stype);	       
+                dterrr("Column type %d not supported in apply_mask", col->stype);
         }
 	stats_dealloc(dt->stats[i]);
 	dt->stats[i] = NULL;
