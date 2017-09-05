@@ -76,7 +76,7 @@ void compute_datatable_cstat(DataTable *self, const CStat s) {
     for (int64_t i = 0; i < self->ncols; ++i) {
         if (stats[i] == NULL)
             stats[i] = make_data_stats(cols[i]->stype);
-        if (cstat_isdefined(stats[i], s))
+        if (!cstat_isdefined(stats[i], s))
             compute_column_cstat(stats[i], cols[i], s);
     }
 }
