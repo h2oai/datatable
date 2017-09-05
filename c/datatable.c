@@ -67,8 +67,8 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     columns[j] = NULL;
     // This may not be the same as `j` if there were repeating columns
     dt->ncols = j;
-    dt->columns = dtrealloc(dt->columns, Column*, j + 1);
-    dt->stats = dtrealloc(dt->stats, Stats*, j);
+    dtrealloc(dt->columns, Column*, j + 1);
+    dtrealloc(dt->stats, Stats*, j);
     return dt;
 }
 
@@ -216,7 +216,6 @@ size_t datatable_get_allocsize(DataTable *self)
             sz += column_get_allocsize(self->columns[i]);
         }
     }
-    
     for (int64_t i = 0; i < self->ncols; ++i) {
         sz += stats_get_allocsize(self->stats[i]);
     }
