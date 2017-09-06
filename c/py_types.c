@@ -41,13 +41,13 @@ static PyObject* stype_integer_i64_tostring(Column *col, int64_t row)
 static PyObject* stype_real_f32_tostring(Column *col, int64_t row)
 {
     float x = ((float*)col->data)[row];
-    return x == NA_F4? none() : PyFloat_FromDouble((double)x);
+    return ISNA_F4(x)? none() : PyFloat_FromDouble((double)x);
 }
 
 static PyObject* stype_real_f64_tostring(Column *col, int64_t row)
 {
     double x = ((double*)col->data)[row];
-    return x == NA_F8? none() : PyFloat_FromDouble(x);
+    return ISNA_F8(x)? none() : PyFloat_FromDouble(x);
 }
 
 static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
