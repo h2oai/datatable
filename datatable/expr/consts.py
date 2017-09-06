@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+from enum import Enum
+
 
 nas_map = {
     "i1b": "NA_I1",
@@ -78,10 +80,12 @@ itypes_map = {
     "p8p": 22,
 }
 
-cstats_map = {
-    "c_min":      0,
-    "c_max":      1,
-}
+
+class CStats(Enum):
+    min = 0
+    max = 1
+
+
 
 stype_bool = {"i1b"}
 stype_int = {"i1i", "i2i", "i4i", "i8i"}

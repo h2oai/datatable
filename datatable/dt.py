@@ -18,10 +18,10 @@ from datatable.utils.typechecks import (
     TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t,
     PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
-
-from datatable.expr.consts import cstats_map
+from datatable.expr.consts import CStats
 
 __all__ = ("DataTable", )
+
 
 
 class DataTable(object):
@@ -514,7 +514,8 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed minimum
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(cstats_map["c_min"]), colnames=self.names)
+        return DataTable(self._dt.get_stat(CStats.min.value),
+                         colnames=self.names)
 
     def max(self):
         """
@@ -525,7 +526,8 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed maximum
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(cstats_map["c_max"]), colnames=self.names)
+        return DataTable(self._dt.get_stat(CStats.max.value),
+                         colnames=self.names)
 
 
     @typed(columns={U(str, int): str})

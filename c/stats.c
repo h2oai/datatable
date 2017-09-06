@@ -48,7 +48,7 @@ Stats* stats_copy(Stats *self) {
 /**
  * Determine if a CStat is defined.
  * A CStat is "defined" if...
- *     - The CStat has been computed  
+ *     - The CStat has been computed
  * CStat is incompatible with the Stats structure's LType.
  * Return 0 if false, any other number if true.
  **/
@@ -67,7 +67,7 @@ size_t stats_get_allocsize(const Stats* self) {
 /**
  * Compute the value of a CStat for each Stats structure in a DataTable.
  * Do nothing for any Stats structure that has already marked the CStat as
- * defined. Initialize a new Stats structure for any NULL reference in the 
+ * defined. Initialize a new Stats structure for any NULL reference in the
  * Stats array.
  **/
 void compute_datatable_cstat(DataTable *self, const CStat s) {
@@ -278,14 +278,16 @@ static void get_stats_f8r(Stats* self, Column* col) {
  * Temporary noop function.
  * Will be removed when all SType stat functions are defined.
  */
-static void get_stats_noop(Stats *self, Column *col) {}
+static void get_stats_noop(UNUSED(Stats *self), UNUSED(Column *col)) {}
+
+
 
 void init_stats(void) {
     // Remove when all STypes are implemented
     for (int i = 0; i < DT_STYPES_COUNT; ++i) {
         stats_fns[i] = (stats_fn) &get_stats_noop;
     }
-    
+
     stats_fns[ST_BOOLEAN_I1] = (stats_fn) &get_stats_i1b;
     stats_fns[ST_INTEGER_I1] = (stats_fn) &get_stats_i1i;
     stats_fns[ST_INTEGER_I2] = (stats_fn) &get_stats_i2i;
@@ -293,30 +295,30 @@ void init_stats(void) {
     stats_fns[ST_INTEGER_I8] = (stats_fn) &get_stats_i8i;
     stats_fns[ST_REAL_F4] = (stats_fn) &get_stats_f4r;
     stats_fns[ST_REAL_F8] = (stats_fn) &get_stats_f8r;
-    
+
     for (int i = 0; i < DT_LTYPES_COUNT; ++i) {
         for (int j = 0; j < DT_CSTATS_COUNT; ++j) {
             cstat_to_stype[i][j] = ST_VOID;
             cstat_offset[i][j] = 0;
         }
     }
-    
+
     cstat_to_stype[LT_BOOLEAN][C_MIN] = ST_BOOLEAN_I1;
     cstat_to_stype[LT_BOOLEAN][C_MAX] = ST_BOOLEAN_I1;
-    
+
     cstat_to_stype[LT_INTEGER][C_MIN] = ST_INTEGER_I8;
     cstat_to_stype[LT_INTEGER][C_MAX] = ST_INTEGER_I8;
-    
+
     cstat_to_stype[LT_REAL][C_MIN] = ST_REAL_F8;
     cstat_to_stype[LT_REAL][C_MAX] = ST_REAL_F8;
-    
-    
+
+
     cstat_offset[LT_BOOLEAN][C_MIN] = offsetof(Stats, b.min);
     cstat_offset[LT_BOOLEAN][C_MAX] = offsetof(Stats, b.max);
-    
+
     cstat_offset[LT_INTEGER][C_MIN] = offsetof(Stats, i.min);
     cstat_offset[LT_INTEGER][C_MAX] = offsetof(Stats, i.max);
-    
+
     cstat_offset[LT_REAL][C_MIN] = offsetof(Stats, r.min);
-    cstat_offset[LT_REAL][C_MAX] = offsetof(Stats, r.max);   
+    cstat_offset[LT_REAL][C_MAX] = offsetof(Stats, r.max);
 }
