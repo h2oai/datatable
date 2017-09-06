@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - `sys.getsizeof(dt)` can now be used to query the size of the datatable in memory.
 - This CHANGELOG file.
+- A statistics framework for computing and storing column statistics. All implememted statistics (min, max, mean, stdev, countna) are currently available for numeric/boolean columns only.
 
 #### Fixed
 - Filter function when applied to a view DataTable now produces correct result.
