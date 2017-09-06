@@ -529,6 +529,43 @@ class DataTable(object):
         return DataTable(self._dt.get_stat(CStats.max.value),
                          colnames=self.names)
 
+    def mean(self):
+        """
+        Get the mean of each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the computed mean
+        values for each column (or NA if not applicable).
+        """
+        return DataTable(self._dt.get_stat(CStats.mean.value),
+                         colnames=self.names)
+    
+    def sd(self):
+        """
+        Get the standard deviation of each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the computed standard
+        deviation values for each column (or NA if not applicable).
+        """
+        return DataTable(self._dt.get_stat(CStats.std_dev.value),
+                         colnames=self.names)
+
+    def countna(self):
+        """
+        Get the number of NA values in each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the counted number of NA
+        values in each column.
+        """
+        return DataTable(self._dt.get_stat(CStats.count_na.value),
+                         colnames=self.names)
+    
+
 
     @typed(columns={U(str, int): str})
     def rename(self, columns):
