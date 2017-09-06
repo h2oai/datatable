@@ -51,6 +51,10 @@ DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts)
                 Column *c = column_extract(dts[i]->columns[ii], ri);
                 if (nrowsi < nrows) c = column_realloc_and_fill(c, nrows);
                 dt->stats[j] = NULL;
+                if (dts[i]->stats[ii]) {
+                    dt->stats[j] = stats_copy(dts[i]->stats[ii]);
+                    dt->stats[j]->countna += nrows - nrowsi;
+                }
                 dt->columns[j++] = c;
             }
         } else {
@@ -58,6 +62,10 @@ DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts)
                 Column *c = column_incref(dts[i]->columns[ii]);
                 if (nrowsi < nrows) c = column_realloc_and_fill(c, nrows);
                 dt->stats[j] = NULL;
+                if (dts[i]->stats[ii]) {
+                    dt->stats[j] = stats_copy(dts[i]->stats[ii]);
+                    dt->stats[j]->countna += nrows - nrowsi;
+                }
                 dt->columns[j++] = c;
             }
         }
