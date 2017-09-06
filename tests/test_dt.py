@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import math
 import pytest
 import sys
 import datatable as dt
@@ -263,6 +264,17 @@ def test_topython():
     assert a0 == src
     # Special case for booleans (because Booleans compare equal to 1/0)
     assert all(b is None or isinstance(b, bool) for b in a0[2])
+
+
+def test_topython2():
+    src = [[1.0, None, float("nan"), 3.3]]
+    d0 = dt.DataTable(src)
+    assert d0.types == ("real", )
+    a0 = d0.topython()[0]
+    assert a0[0] == 1.0
+    assert a0[1] is None
+    assert math.isnan(a0[2])
+    assert a0[3] == 3.3
 
 
 def test_tonumpy(numpy):
