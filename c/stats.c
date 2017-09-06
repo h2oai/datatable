@@ -8,10 +8,10 @@
 #include "utils.h"
 #include <math.h>
 
-#define M_MIN (1 << C_MIN)
-#define M_MAX (1 << C_MAX)
-#define M_MEAN (1 << C_MEAN)
-#define M_STD_DEV (1 << C_STD_DEV)
+#define M_MIN      (1 << C_MIN)
+#define M_MAX      (1 << C_MAX)
+#define M_MEAN     (1 << C_MEAN)
+#define M_STD_DEV  (1 << C_STD_DEV)
 #define M_COUNT_NA (1 << C_COUNT_NA)
 
 typedef void (*stats_fn)(Stats*, const Column*);
@@ -22,9 +22,12 @@ static uint64_t cstat_offset[DT_LTYPES_COUNT][DT_CSTATS_COUNT];
 
 static void compute_column_cstat(Stats*, const Column*, const CStat);
 static Column* make_cstat_column(const Stats* self, const CStat);
+
+
+
 /**
  * Initialize a Stats structure
- **/
+ */
 Stats* make_data_stats(const SType stype) {
     Stats *out = NULL;
     dtcalloc(out, Stats, 1);
@@ -39,14 +42,14 @@ Stats* make_data_stats(const SType stype) {
 
 /**
  * Free a Stats structure
- **/
+ */
 void stats_dealloc(Stats *self) {
     dtfree(self);
 }
 
 /**
  * Create a deep copy of a Stats structure
- **/
+ */
 Stats* stats_copy(Stats *self) {
     if (self == NULL) return NULL;
     Stats *out = NULL;
@@ -61,14 +64,14 @@ Stats* stats_copy(Stats *self) {
  *     - The CStat has been computed
  * CStat is incompatible with the Stats structure's LType.
  * Return 0 if false, any other number if true.
- **/
+ */
 uint64_t cstat_isdefined(const Stats *self, const CStat s) {
     return self->isdefined & (1 << s);
 }
 
 /**
  * Get the total size of the memory occupied by the provided Stats structure
- **/
+ */
 size_t stats_get_allocsize(const Stats* self) {
     if (self == NULL) return 0;
     return sizeof(Stats);
@@ -79,7 +82,7 @@ size_t stats_get_allocsize(const Stats* self) {
  * Do nothing for any Stats structure that has already marked the CStat as
  * defined. Initialize a new Stats structure for any NULL reference in the
  * Stats array.
- **/
+ */
 void compute_datatable_cstat(DataTable *self, const CStat s) {
     Stats **stats = self->stats;
     Column **cols = self->columns;
@@ -95,7 +98,7 @@ void compute_datatable_cstat(DataTable *self, const CStat s) {
  * Compute the value of a CStat for a Stats structure given a Column.
  * Perform the computation regardless if the CStat is defined or not. Do nothing
  * if the Stats reference is NULL or the CStat/LType pairing is invalid.
- **/
+ */
 void compute_column_cstat(Stats *stats, const Column *column, const CStat s) {
     if (stats == NULL) return;
     if (cstat_to_stype[stype_info[stats->stype].ltype][s] == ST_VOID) return;
@@ -109,7 +112,7 @@ void compute_column_cstat(Stats *stats, const Column *column, const CStat s) {
  * CStat values from the provided DataTable's Stats array. Initialize a new
  * Stats structure for every NULL reference in the Stats array. Compute and
  * store a CStat value if it has not been defined.
- **/
+ */
 DataTable* make_cstat_datatable(const DataTable *self, const CStat s) {
     Stats **stats = self->stats;
     Column **out = NULL;
@@ -129,7 +132,7 @@ DataTable* make_cstat_datatable(const DataTable *self, const CStat s) {
  * Stats structure. Assume that the CStat is already defined. If the CStat
  * is incompatible with the Stats structure's LType, then create a NA Column
  * of the Stats structure's SType. Return NULL if the Stats reference is NULL.
- **/
+ */
 Column* make_cstat_column(const Stats *self, const CStat s) {
     if (self == NULL) return NULL;
     const void* val = NULL;
@@ -150,9 +153,11 @@ Column* make_cstat_column(const Stats *self, const CStat s) {
     return out;
 }
 
+
+
 /**
  * LT_BOOLEAN
- **/
+ */
 static void get_stats_i1b(Stats* self, Column* col) {
     int64_t count0 = 0,
             count1 = 0;
@@ -179,197 +184,102 @@ static void get_stats_i1b(Stats* self, Column* col) {
     self->isdefined |= M_MIN | M_MAX | M_COUNT_NA;
 }
 
+
+
 /**
  * LT_INTEGER
- **/
-static void get_stats_i1i(Stats* self, Column* col) {
-    int8_t min = NA_I1,
-           max = NA_I1;
-    double mean = NA_F8,
-           var = 0;
-    int64_t count_notna = 0;
-    int8_t *data = (int8_t*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
-        int8_t val = data[i];
-        if (!ISNA_I1(val)) {
-            ++count_notna;
-            if (min == NA_I1) {
-                min = max = val;
-                mean = (double) val;
-                continue;
-            }
-            if (min > val) min = val;
-            else if (max < val) max = val;
-            double delta = val - mean;
-            mean += delta / count_notna;
-            var += delta * (val - mean);
-        }
+ */
+#define TEMPLATE_COMPUTE_INTEGER_STATS(stype, T, NA)                           \
+    static void get_stats_ ## stype(Stats* self, Column* col) {                \
+        T min = NA;                                                            \
+        T max = NA;                                                            \
+        double mean = NA_F8;                                                   \
+        double var = 0;                                                        \
+        int64_t count_notna = 0;                                               \
+        int64_t nrows = col->nrows;                                            \
+        T *data = (T*) col->data;                                              \
+        for (int64_t i = 0; i < nrows; i++) {                                  \
+            T val = data[i];                                                   \
+            if (IS ## NA(val)) continue;                                       \
+            count_notna++;                                                     \
+            if (IS ## NA(min)) {                                               \
+                min = max = val;                                               \
+                mean = (double) val;                                           \
+                continue;                                                      \
+            }                                                                  \
+            if (min > val) min = val;                                          \
+            else if (max < val) max = val;                                     \
+            double delta = ((double) val) - mean;                              \
+            mean += delta / count_notna;                                       \
+            /* mean has been updated, so this is not delta**2 */               \
+            var += delta * (((double) val) - mean);                            \
+        }                                                                      \
+        self->i.min = min;                                                     \
+        self->i.max = max;                                                     \
+        self->i.mean = mean;                                                   \
+        self->i.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) :         \
+                     count_notna == 1 ? 0 : NA;                                \
+        self->countna = nrows - count_notna;                                   \
+        self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;    \
     }
-    self->i.min = min;
-    self->i.max = max;
-    self->i.mean = mean;
-    self->i.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) : NA_F8;
-    self->countna = col->nrows - count_notna;
-    self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;
-}
 
-static void get_stats_i2i(Stats* self, Column* col) {
-    int16_t min = NA_I2,
-            max = NA_I2;
-    double mean = NA_F8,
-           var = 0;
-    int64_t count_notna = 0;
-    int16_t *data = (int16_t*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
-        int16_t val = data[i];
-        if (!ISNA_I2(val)) {
-            ++count_notna;
-            if (min == NA_I2) {
-                min = max = val;
-                mean = (double) val;
-                continue;
-            }
-            if (min > val) min = val;
-            else if (max < val) max = val;
-            double delta = val - mean;
-            mean += delta / count_notna;
-            var += delta * (val - mean);
-        }
-    }
-    self->i.min = min;
-    self->i.max = max;
-    self->i.mean = mean;
-    self->i.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) : NA_F8;
-    self->countna = col->nrows - count_notna;
-    self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;
-}
+TEMPLATE_COMPUTE_INTEGER_STATS(i1i, int8_t,  NA_I1)
+TEMPLATE_COMPUTE_INTEGER_STATS(i2i, int16_t, NA_I2)
+TEMPLATE_COMPUTE_INTEGER_STATS(i4i, int32_t, NA_I4)
+TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
+#undef TEMPLATE_COMPUTE_INTEGER_STATS
 
-static void get_stats_i4i(Stats* self, Column* col) {
-    int64_t min = NA_I4,
-            max = NA_I4;
-    double mean = NA_F8,
-           var = 0;
-    int64_t count_notna = 0;
-    int32_t *data = (int32_t*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
-        int32_t val = data[i];
-        if (!ISNA_I4(val)) {
-            ++count_notna;
-            if (min == NA_I4) {
-                min = max = val;
-                mean = (double) val;
-                continue;
-            }
-            if (min > val) min = val;
-            else if (max < val) max = val;
-            double delta = val - mean;
-            mean += delta / count_notna;
-            var += delta * (val - mean);
-        }
-    }
-    self->i.min = min;
-    self->i.max = max;
-    self->i.mean = mean;
-    self->i.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) : NA_F8;
-    self->countna = col->nrows - count_notna;
-    self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;
-}
 
-static void get_stats_i8i(Stats* self, Column* col) {
-    int64_t min = NA_I8,
-            max = NA_I8;
-    double mean = NA_F8,
-           var = 0;
-    int64_t count_notna = 0;
-    int64_t *data = (int64_t*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
-        int64_t val = data[i];
-        if (!ISNA_I8(val)) {
-            ++count_notna;
-            if (min == NA_I8) {
-                min = max = val;
-                mean = (double) val;
-                continue;
-            }
-            if (min > val) min = val;
-            else if (max < val) max = val;
-            double delta = val - mean;
-            mean += delta / count_notna;
-            var += delta * (val - mean);
-        }
-    }
-    self->i.min = min;
-    self->i.max = max;
-    self->i.mean = mean;
-    self->i.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) : NA_F8;
-    self->countna = col->nrows - count_notna;
-    self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;
-}
 
 /**
  * LT_REAL
- **/
-static void get_stats_f4r(Stats* self, Column* col) {
-    float min = NA_F4,
-           max = NA_F4;
-    double mean = NA_F8,
-           var = 0;
-    int64_t count_notna = 0;
-    float *data = (float*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
-        float val = data[i];
-        if (!ISNA_F4(val)) {
-            ++count_notna;
-            if (min != min) {
-                min = max = val;
-                mean = (double) val;
-                continue;
-            }
-            if (min > val) min = val;
-            else if (max < val) max = val;
-            double delta = ((double) val) - mean;
-            mean += delta / count_notna;
-            var += delta * (((double) val) - mean);
-        }
+ */
+#define TEMPLATE_COMPUTE_REAL_STATS(stype, T, NA)                              \
+    static void get_stats_ ## stype(Stats* self, Column* col) {                \
+        T min = NA;                                                            \
+        T max = NA;                                                            \
+        double mean = NA_F8;                                                   \
+        double var = 0;                                                        \
+        int64_t count_notna = 0;                                               \
+        int64_t nrows = col->nrows;                                            \
+        T *data = (T*) col->data;                                              \
+        for (int64_t i = 0; i < nrows; i++) {                                  \
+            T val = data[i];                                                   \
+            if (IS ## NA(val)) continue;                                       \
+            count_notna++;                                                     \
+            if (IS ## NA(min)) {                                               \
+                min = max = val;                                               \
+                mean = (double) val;                                           \
+                continue;                                                      \
+            }                                                                  \
+            if (min > val) min = val;                                          \
+            else if (max < val) max = val;                                     \
+            if (isfinite(val)) {                                               \
+                double delta = ((double) val) - mean;                          \
+                mean += delta / count_notna;                                   \
+                /* mean has been updated, so this is not delta**2 */           \
+                var += delta * (((double) val) - mean);                        \
+            }                                                                  \
+        }                                                                      \
+        self->r.min = (double) min;                                            \
+        self->r.max = (double) max;                                            \
+        self->r.mean = mean;                                                   \
+        self->r.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) :         \
+                     count_notna == 1 ? 0 : NA;                                \
+        self->countna = nrows - count_notna;                                   \
+        if (isinf(min) || isinf(max)) {                                        \
+            self->r.sd = NAN;                                                  \
+            self->r.mean = isinf(min) && min < 0 && isinf(max) && max > 0      \
+                           ? NAN : (isinf(min) ? min : max);                   \
+        }                                                                      \
+        self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;    \
     }
-    self->r.min = (double) min;
-    self->r.max = (double) max;
-    self->r.mean = mean;
-    self->r.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) : NA_F8;
-    self->countna = col->nrows - count_notna;
-    self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;
-}
 
-static void get_stats_f8r(Stats* self, Column* col) {
-    double min = NA_F8,
-           max = NA_F8,
-           mean = NA_F8,
-           var = 0.0;
-    int64_t count_notna = 0;
-    double *data = (double*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
-        double val = data[i];
-        if (!ISNA_F8(val)) {
-            ++count_notna;
-            if (min != min) {
-                min = max = val;
-                mean = val;
-                continue;
-            }
-            if (min > val) min = val;
-            else if (max < val) max = val;
-            double delta = val - mean;
-            mean += delta / count_notna;
-            var += (val - mean) * delta;
-        }
-    }
-    self->r.min = min;
-    self->r.max = max;
-    self->r.mean = mean;
-    self->r.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) : NA_F8;
-    self->countna = col->nrows - count_notna;
-    self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;
-}
+TEMPLATE_COMPUTE_REAL_STATS(f4r, float, NA_F4)
+TEMPLATE_COMPUTE_REAL_STATS(f8r, double, NA_F8)
+#undef TEMPLATE_COMPUTE_REAL_STATS
+
+
 
 /**
  * Temporary noop function.
