@@ -4,6 +4,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/v0.2.0...HEAD)
 #### Added
+- A framework for computing and storing per-column summary statistics.
+- Implemented statistics `min`, `max`, `mean`, `stdev`, `countna` for numeric and boolean columns.
 - `sys.getsizeof(dt)` can now be used to query the size of the datatable in memory.
 - This CHANGELOG file.
 

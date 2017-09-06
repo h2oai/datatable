@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
+import statistics
 
 
 # Sets of tuples containing test columns of each type
@@ -31,9 +32,13 @@ def min_max_stype(stype):
         return "i8i"
     if stype in ["f4r", "f8r"]:
         return "f8r"
-    return "NULL"
+    return stype
 
-
+# Helper function that provides the resulting stype after `mean()` or `sd()` is called
+def mean_sd_stype(stype):
+    if stype in ["i1i", "i2i", "i4i", "i8i", "f4r", "f8r"]:
+        return "f8r"
+    return stype
 
 
 #-------------------------------------------------------------------------------
@@ -53,8 +58,7 @@ def test_dt_min(src):
     dt0 = dt.DataTable(src)
     dtr = dt0.min()
     assert dtr.internal.check()
-    for stype in dtr.stypes:
-        assert stype == min_max_stype(stype)
+    assert list(dtr.stypes) == [min_max_stype(s) for s in dt0.stypes]
     assert dtr.shape == (1, dt0.shape[1])
     for i in range(dt0.ncols):
         assert dt0.names[i] == dtr.names[i]
@@ -78,10 +82,53 @@ def test_dt_max(src):
     dt0 = dt.DataTable(src)
     dtr = dt0.max()
     assert dtr.internal.check()
-    for stype in dtr.stypes:
-        assert stype == min_max_stype(stype)
+    assert list(dtr.stypes) == [min_max_stype(s) for s in dt0.stypes]
     assert dtr.shape == (1, dt0.shape[1])
     for i in range(dt0.ncols):
         assert dt0.names[i] == dtr.names[i]
     assert dtr.topython() == [t_max(src)]
+    
+#-------------------------------------------------------------------------------
+# Mean function dt.mean()
+#-------------------------------------------------------------------------------
+
+def t_mean(t):
+    t = [i for i in t if i is not None and not isinstance(i, bool)]
+    if len(t) == 0:
+        return [None]
+    else:
+        return [statistics.mean(t)]
+
+@pytest.mark.skip
+@pytest.mark.parametrize("src", dt_all)
+def test_dt_mean(src):
+    dt0 = dt.DataTable(src)
+    dtr = dt0.mean()
+    assert dtr.internal.check()
+    assert list(dtr.stypes) == [mean_sd_stype(s) for s in dt0.stypes]
+    assert dtr.shape == (1, dt0.shape[1])
+    assert dt0.names == dtr.names
+    assert dtr.topython() == [t_mean(src)]
+
+#-------------------------------------------------------------------------------
+# Standard Deviation function dt.sd()
+#-------------------------------------------------------------------------------
+
+def t_sd(t):
+    t = [i for i in t if i is not None and not isinstance(i, bool)]
+    if len(t) < 2:
+        return [None]
+    else:
+        return [statistics.stdev(t)]
+
+@pytest.mark.skip
+@pytest.mark.parametrize("src", dt_all)
+def test_dt_sd(src):
+    dt0 = dt.DataTable(src)
+    dtr = dt0.sd()
+    assert dtr.internal.check()
+    assert list(dtr.stypes) == [mean_sd_stype(s) for s in dt0.stypes]
+    assert dtr.shape == (1, dt0.shape[1])
+    assert dt0.names == dtr.names
+    assert dtr.topython() == [t_sd(src)]
 

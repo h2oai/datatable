@@ -84,7 +84,9 @@ itypes_map = {
 class CStats(Enum):
     min = 0
     max = 1
-
+    mean = 2
+    std_dev = 3
+    count_na = 4
 
 
 stype_bool = {"i1b"}
