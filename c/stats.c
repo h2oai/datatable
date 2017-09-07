@@ -265,12 +265,13 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
         self->r.max = (double) max;                                            \
         self->r.mean = mean;                                                   \
         self->r.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) :         \
-                     count_notna == 1 ? 0 : NA;                                \
+                     count_notna == 1 ? 0 : NA_F8;                             \
         self->countna = nrows - count_notna;                                   \
         if (isinf(min) || isinf(max)) {                                        \
-            self->r.sd = NAN;                                                  \
+            /* if we ever distinguish NAs and NANs, this should be changed */  \
+            self->r.sd = NA_F8;                                                \
             self->r.mean = isinf(min) && min < 0 && isinf(max) && max > 0      \
-                           ? NAN : (isinf(min) ? min : max);                   \
+                           ? NA_F8 : (double)(isinf(min) ? min : max);         \
         }                                                                      \
         self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;    \
     }
@@ -326,17 +327,24 @@ void init_stats(void) {
     cstat_to_stype[LT_REAL][C_MEAN] = ST_REAL_F8;
     cstat_to_stype[LT_REAL][C_STD_DEV] = ST_REAL_F8;
 
+    // Ideally, we'd want to call `offsetof(Stats, b.min)` or similar, however
+    // apparently it's not in the C standard... As a workaround, we determine
+    // offsets by computing the addresses of the fields directly.
+    Stats s;
+    #define STATS_OFFSET(fld) ((char*)(&s.fld) - (char*)(&s))
 
-    cstat_offset[LT_BOOLEAN][C_MIN] = offsetof(Stats, b.min);
-    cstat_offset[LT_BOOLEAN][C_MAX] = offsetof(Stats, b.max);
+    cstat_offset[LT_BOOLEAN][C_MIN] = STATS_OFFSET(b.min);
+    cstat_offset[LT_BOOLEAN][C_MAX] = STATS_OFFSET(b.max);
 
-    cstat_offset[LT_INTEGER][C_MIN] = offsetof(Stats, i.min);
-    cstat_offset[LT_INTEGER][C_MAX] = offsetof(Stats, i.max);
-    cstat_offset[LT_INTEGER][C_MEAN] = offsetof(Stats, i.mean);
-    cstat_offset[LT_INTEGER][C_STD_DEV] = offsetof(Stats, i.sd);
+    cstat_offset[LT_INTEGER][C_MIN] = STATS_OFFSET(i.min);
+    cstat_offset[LT_INTEGER][C_MAX] = STATS_OFFSET(i.max);
+    cstat_offset[LT_INTEGER][C_MEAN] = STATS_OFFSET(i.mean);
+    cstat_offset[LT_INTEGER][C_STD_DEV] = STATS_OFFSET(i.sd);
 
-    cstat_offset[LT_REAL][C_MIN] = offsetof(Stats, r.min);
-    cstat_offset[LT_REAL][C_MAX] = offsetof(Stats, r.max);
-    cstat_offset[LT_REAL][C_MEAN] = offsetof(Stats, r.mean);
-    cstat_offset[LT_REAL][C_STD_DEV] = offsetof(Stats, r.sd);
+    cstat_offset[LT_REAL][C_MIN] = STATS_OFFSET(r.min);
+    cstat_offset[LT_REAL][C_MAX] = STATS_OFFSET(r.max);
+    cstat_offset[LT_REAL][C_MEAN] = STATS_OFFSET(r.mean);
+    cstat_offset[LT_REAL][C_STD_DEV] = STATS_OFFSET(r.sd);
+
+    #undef STATS_OFFSET
 }
