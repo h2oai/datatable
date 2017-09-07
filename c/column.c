@@ -32,12 +32,18 @@ Column* make_data_column(SType stype, size_t nrows)
     col->meta = NULL;
     col->filename = NULL;
     col->nrows = (int64_t) nrows;
-    col->alloc_size = stype_info[stype].elemsize * nrows;
+    col->alloc_size = stype_info[stype].elemsize * nrows +
+                      (stype == ST_STRING_I4_VCHAR ? column_i4s_padding(0) :
+                       stype == ST_STRING_I8_VCHAR ? column_i8s_padding(0) : 0);
     col->refcount = 1;
     col->mtype = MT_DATA;
     col->stype = stype;
-    dtmalloc(col->meta, void, stype_info[stype].metasize);
     dtmalloc(col->data, void, col->alloc_size);
+    dtcalloc(col->meta, void, stype_info[stype].metasize);
+    if (stype == ST_STRING_I4_VCHAR)
+        ((VarcharMeta*) col->meta)->offoff = (int64_t) column_i4s_padding(0);
+    if (stype == ST_STRING_I8_VCHAR)
+        ((VarcharMeta*) col->meta)->offoff = (int64_t) column_i8s_padding(0);
     return col;
 }
 

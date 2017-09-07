@@ -3,10 +3,10 @@
  * Source:
  *     https://www.johndcook.com/blog/standard_deviation/
  */
-
+#include <math.h>
+#include <stdio.h>
 #include "stats.h"
 #include "utils.h"
-#include <math.h>
 
 #define M_MIN      (1 << C_MIN)
 #define M_MAX      (1 << C_MAX)
@@ -149,7 +149,12 @@ Column* make_cstat_column(const Stats *self, const CStat s) {
         val_size = stype_info[stype].elemsize;
     }
     Column *out = make_data_column(stype, 1);
-    memcpy(out->data, val, val_size);
+    if (val) {
+        memcpy(out->data, val, val_size);
+    } else {
+        // For ST_STRING_I(4|8)_VCHAR stypes
+        memset(out->data, 0xFF, out->alloc_size);
+    }
     return out;
 }
 
