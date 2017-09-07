@@ -6,8 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - In addition to LLVM4 environmental variable, datatable will now also look for the `llvm4` folder
   within the package's directory.
-- A framework for computing and storing per-column summary statistics.
+- Getter `df.internal.rowindex` allows access to the RowIndex on the DataTable (for inspection / reuse).
 - Implemented statistics `min`, `max`, `mean`, `stdev`, `countna` for numeric and boolean columns.
+- A framework for computing and storin g per-column summary statistics.
 - `sys.getsizeof(dt)` can now be used to query the size of the datatable in memory.
 - This CHANGELOG file.
 

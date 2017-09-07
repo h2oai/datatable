@@ -6,6 +6,17 @@ import datatable as dt
 from tests import assert_equals
 
 
+def dt_compute_stats(*dts):
+    """
+    Force computing all Stats on the datatable.
+
+    Currently, computing a single stat causes all other stats to be computed
+    as well.
+    """
+    for d in dts:
+        d.min()
+
+
 #-------------------------------------------------------------------------------
 # Run the tests
 #-------------------------------------------------------------------------------
@@ -19,6 +30,7 @@ def test_cbind_exists():
 def test_cbind_simple():
     d0 = dt.DataTable([1, 2, 3])
     d1 = dt.DataTable([4, 5, 6])
+    dt_compute_stats(d0, d1)
     d0.cbind(d1)
     dr = dt.DataTable([[1, 2, 3], [4, 5, 6]], colnames=["C1", "C1"])
     assert_equals(d0, dr)
@@ -26,12 +38,14 @@ def test_cbind_simple():
 
 def test_cbind_empty():
     d0 = dt.DataTable([1, 2, 3])
+    dt_compute_stats(d0)
     d0.cbind()
     assert_equals(d0, dt.DataTable([1, 2, 3]))
 
 
 def test_cbind_self():
     d0 = dt.DataTable({"fun": [1, 2, 3]})
+    dt_compute_stats(d0)
     d0.cbind(d0).cbind(d0).cbind(d0)
     dr = dt.DataTable([[1, 2, 3]] * 8, colnames=["fun"] * 8)
     assert_equals(d0, dr)
@@ -40,6 +54,7 @@ def test_cbind_self():
 def test_cbind_notinplace():
     d0 = dt.DataTable({"A": [1, 2, 3]})
     d1 = dt.DataTable({"B": [4, 5, 6]})
+    dt_compute_stats(d0, d1)
     dd = d0.cbind(d1, inplace=False)
     dr = dt.DataTable({"A": [1, 2, 3], "B": [4, 5, 6]})
     assert_equals(dd, dr)
@@ -63,6 +78,7 @@ def test_cbind_notforced():
 def test_cbind_forced1():
     d0 = dt.DataTable([1, 2, 3])
     d1 = dt.DataTable([4, 5])
+    dt_compute_stats(d0, d1)
     d0.cbind(d1, force=True)
     dr = dt.DataTable([[1, 2, 3], [4, 5, None]], colnames=["C1", "C1"])
     assert_equals(d0, dr)
@@ -71,6 +87,7 @@ def test_cbind_forced1():
 def test_cbind_forced2():
     d0 = dt.DataTable({"A": [1, 2, 3], "B": [7, None, -1]})
     d1 = dt.DataTable({"C": list("abcdefghij")})
+    dt_compute_stats(d0, d1)
     d0.cbind(d1, force=True)
     dr = dt.DataTable({"A": [1, 2, 3] + [None] * 7,
                        "B": [7, None, -1] + [None] * 7,
@@ -81,6 +98,7 @@ def test_cbind_forced2():
 def test_cbind_forced3():
     d0 = dt.DataTable({"A": list(range(10))})
     d1 = dt.DataTable({"B": ["one", "two", "three"]})
+    dt_compute_stats(d0, d1)
     d0.cbind(d1, force=True)
     dr = dt.DataTable({"A": list(range(10)),
                        "B": ["one", "two", "three"] + [None] * 7})
@@ -90,6 +108,7 @@ def test_cbind_forced3():
 def test_cbind_onerow1():
     d0 = dt.DataTable({"A": [1, 2, 3, 4, 5]})
     d1 = dt.DataTable({"B": [100.0]})
+    dt_compute_stats(d0, d1)
     d0.cbind(d1)
     dr = dt.DataTable({"A": [1, 2, 3, 4, 5], "B": [100.0] * 5})
     assert_equals(d0, dr)
@@ -98,6 +117,7 @@ def test_cbind_onerow1():
 def test_cbind_onerow2():
     d0 = dt.DataTable({"A": ["mu"]})
     d1 = dt.DataTable({"B": [7, 9, 10, 15]})
+    dt_compute_stats(d0, d1)
     d0.cbind(d1)
     dr = dt.DataTable({"A": ["mu"] * 4, "B": [7, 9, 10, 15]})
     assert_equals(d0, dr)
@@ -144,6 +164,7 @@ def test_cbind_multiple():
     d2 = dt.DataTable({"C": [True, False]})
     d3 = dt.DataTable({"D": [10, 9, 8, 7]})
     d4 = dt.DataTable({"E": [1]})[:0, :]
+    dt_compute_stats(d0, d1, d2, d3, d4)
     d0.cbind(d1, d2, d3, d4, force=True)
     dr = dt.DataTable({"A": [1, 2, 3, None],
                        "B": ["doo", "doo", "doo", "doo"],
@@ -157,6 +178,7 @@ def test_cbind_1row_none():
     # Special case: append a single-row string column containing value NA
     d0 = dt.DataTable({"A": [1, 2, 3]})
     d1 = dt.DataTable({"B": [None, "doo"]})[0, :]
+    dt_compute_stats(d0, d1)
     assert d1.shape == (1, 1)
     assert d1.stypes == ("i4s", )
     d0.cbind(d1)

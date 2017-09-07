@@ -47,6 +47,10 @@ typedef enum RowIndexType {
  *     and being able to fit inside `int64_t`). The variable `start` is declared
  *     as `int64_t` because if it was `size_t` then it wouldn't be possible to
  *     do simple addition `start + step`.
+ *
+ * refcount
+ *     Number of references to this RowIndex object. When this count reaches 0
+ *     the object can be deallocated.
  */
 typedef struct RowIndex {
     int64_t length;
@@ -58,7 +62,7 @@ typedef struct RowIndex {
         struct { int64_t start, step; } slice;
     };
     RowIndexType type;
-    int32_t _padding;
+    int32_t refcount;
 } RowIndex;
 
 
@@ -87,7 +91,9 @@ RowIndex* rowindex_copy(RowIndex *self);
 RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc);
 RowIndex* rowindex_expand(RowIndex *self);
 void rowindex_compactify(RowIndex *self);
-void rowindex_dealloc(RowIndex *self);
 size_t rowindex_get_allocsize(RowIndex*);
+
+RowIndex* rowindex_incref(RowIndex*);
+void rowindex_decref(RowIndex*);
 
 #endif

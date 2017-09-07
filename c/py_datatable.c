@@ -94,13 +94,11 @@ static PyObject* get_rowindex_type(DataTable_PyObject *self)
 }
 
 
-/*
 static PyObject* get_rowindex(DataTable_PyObject *self)
 {
     RowIndex *ri = self->ref->rowindex;
     return ri? pyrowindex(self->ref->rowindex) : none();
 }
-*/
 
 
 static PyObject* get_datatable_ptr(DataTable_PyObject *self)
@@ -338,7 +336,7 @@ static PyObject* get_stat(DataTable_PyObject *self, PyObject *args)
 {
     uint8_t stat;
     if (!PyArg_ParseTuple(args, "b:get_stat", &stat)) return NULL;
-    return py(make_cstat_datatable(self->ref, stat));  
+    return py(make_cstat_datatable(self->ref, stat));
 }
 
 
@@ -401,7 +399,7 @@ PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
 PyDoc_STRVAR(dtdoc_types, "List of column types");
 PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
 PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
-// PyDoc_STRVAR(dtdoc_rowindex, "Row index of the view datatable, or None if this is not a view datatable");
+PyDoc_STRVAR(dtdoc_rowindex, "Row index of the view datatable, or None if this is not a view datatable");
 PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row index: 'slice' or 'array'");
 PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
 PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
@@ -436,7 +434,7 @@ static PyGetSetDef datatable_getseters[] = {
     GETSET1(types),
     GETSET1(stypes),
     GETSET1(isview),
-    // GETSET1(rowindex),
+    GETSET1(rowindex),
     GETSET1(rowindex_type),
     GETSET1(datatable_ptr),
     GETSET1(alloc_size),
