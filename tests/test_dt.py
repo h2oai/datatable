@@ -55,12 +55,9 @@ def test_dt_properties(dt0):
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
-    assert same_iterables(dt0.names, ("A", "B", "C", "D", "E", "F", "G"))
-    assert same_iterables(dt0.types,
-                          ("int", "bool", "bool", "real", "bool", "bool",
-                           "str"))
-    assert same_iterables(dt0.stypes,
-                          ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s"))
+    assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
+    assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
+    assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
     # This is somewhat fragile, but the size should definitely not be 24 or
     # 64 or anything in that ballpark...
     # Stats should not be defined, so Stats array should be all NULLs
@@ -222,6 +219,13 @@ def test_rename():
     with pytest.raises(ValueError) as e:
         d0.rename({"xxx": "yyy"})
     assert "Column `xxx` does not exist" in str(e.value)
+
+
+def test_internal_rowindex():
+    d0 = dt.DataTable(list(range(100)))
+    d1 = d0[:20, :]
+    assert d0.internal.rowindex is None
+    assert repr(d1.internal.rowindex) == "_RowIndex(0:20:1)"
 
 
 

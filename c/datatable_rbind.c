@@ -46,7 +46,7 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
             column_decref(dt->columns[i]);
             dt->columns[i] = newcol;
         }
-        rowindex_dealloc(dt->rowindex);
+        rowindex_decref(dt->rowindex);
         dt->rowindex = NULL;
     }
 

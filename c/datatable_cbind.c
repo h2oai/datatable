@@ -25,7 +25,7 @@ DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts)
             column_decref(dt->columns[i]);
             dt->columns[i] = newcol;
         }
-        rowindex_dealloc(dt->rowindex);
+        rowindex_decref(dt->rowindex);
         dt->rowindex = NULL;
     }
 

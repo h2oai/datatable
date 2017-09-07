@@ -11,15 +11,18 @@
 
 
 /**
- * Create a new RowIndex_PyObject by wrapping the provided RowIndex
- * object `src`. The returned object will assume ownership of `src`. If `src`
- * is NULL then this function also returns NULL.
+ * Create a new RowIndex_PyObject by wrapping the provided RowIndex `src`.
+ * The returned py-object will hold a durable reference to `src`; for example
+ * if `src` is a RowIndex within a DataTable, there is no danger of having the
+ * reference become invalid if the DataTable is garbage-collected.
+ *
+ * If `src` is NULL then this function also returns NULL.
  */
 PyObject* pyrowindex(RowIndex *src)
 {
     if (src == NULL) return NULL;
     PyObject *res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
-    ((RowIndex_PyObject*) res)->ref = src;
+    ((RowIndex_PyObject*) res)->ref = rowindex_incref(src);
     return res;
 }
 #define py pyrowindex
@@ -32,6 +35,9 @@ PyObject* pyrowindex(RowIndex *src)
  *     RowIndex *ri;
  *     if (!PyArg_ParseTuple(args, "O&", &rowindex_unwrap, &ri))
  *         return NULL;
+ *
+ * The returned reference is *borrowed*, i.e. the caller is not expected to
+ * decref it.
  */
 int rowindex_unwrap(PyObject *object, void *address) {
     RowIndex **ans = address;
@@ -172,7 +178,6 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
 PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
 {
     DataTable *dt = NULL;
-    RowIndex *rowindex = NULL;
     if (!PyArg_ParseTuple(args, "O&:RowIndex.from_boolcolumn", &dt_unwrap, &dt))
         return NULL;
 
@@ -186,7 +191,7 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
         return NULL;
     }
 
-    rowindex = dt->rowindex
+    RowIndex *rowindex = dt->rowindex
         ? rowindex_from_boolcolumn_with_rowindex(col, dt->rowindex)
         : rowindex_from_boolcolumn(col, dt->nrows);
 
@@ -202,7 +207,6 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
 PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
 {
     DataTable *dt = NULL;
-    RowIndex *rowindex = NULL;
     long target_nrows = 0;
     if (!PyArg_ParseTuple(args, "O&l:RowIndex.from_intcolumn",
                           &dt_unwrap, &dt, &target_nrows))
@@ -218,7 +222,7 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
         return NULL;
     }
 
-    rowindex = dt->rowindex
+    RowIndex *rowindex = dt->rowindex
         ? rowindex_from_intcolumn_with_rowindex(col, dt->rowindex)
         : rowindex_from_intcolumn(col, 0);
 
@@ -290,7 +294,7 @@ PyObject* pyrowindex_uplift(UU, PyObject *args)
 
 static void dealloc(RowIndex_PyObject *self)
 {
-    rowindex_dealloc(self->ref);
+    rowindex_decref(self->ref);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
