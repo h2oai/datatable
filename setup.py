@@ -15,6 +15,8 @@ from setuptools import setup, find_packages
 from distutils.core import Extension
 from sys import stderr
 
+curdir = os.path.dirname(os.path.abspath(__file__))
+
 # Determine the version
 version = None
 with open("datatable/__version__.py") as f:
@@ -46,7 +48,13 @@ print("\nFound packages: %r\n" % packages, file=stderr)
 # Prepare the environment
 #-------------------------------------------------------------------------------
 
-# 1. Verify the LLVM4 installation directory
+# Check whether there is 'llvm4' folder in the package folder
+if "LLVM4" not in os.environ:
+    d = os.path.join(curdir, "datatable/llvm4")
+    if os.path.isdir(d):
+        os.environ["LLVM4"] = d
+
+# Verify the LLVM4 installation directory
 if "LLVM4" in os.environ:
     llvm4 = os.path.expanduser(os.environ["LLVM4"])
     if llvm4.endswith("/"):
