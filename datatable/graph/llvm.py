@@ -53,6 +53,11 @@ def _create_execution_engine():
 
 
 def _c_to_llvm(code):
+    if "LLVM4" not in os.environ:
+        curdir = os.path.dirname(os.path.abspath(__file__))
+        d = os.path.abspath(os.path.join(curdir, "..", "llvm4"))
+        if os.path.isdir(d):
+            os.environ["LLVM4"] = d
     if "LLVM4" in os.environ:
         clang = "%s/bin/clang" % os.path.expanduser(os.environ["LLVM4"])
         if not os.path.isfile(clang):

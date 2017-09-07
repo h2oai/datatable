@@ -4,6 +4,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/v0.2.0...HEAD)
 #### Added
+- In addition to LLVM4 environmental variable, datatable will now also look for the `llvm4` folder
+  within the package's directory.
 - Getter `df.internal.rowindex` allows access to the RowIndex on the DataTable (for inspection / reuse).
 - Implemented statistics `min`, `max`, `mean`, `stdev`, `countna` for numeric and boolean columns.
 - A framework for computing and storin g per-column summary statistics.
