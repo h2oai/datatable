@@ -82,7 +82,7 @@ void datatable_dealloc(DataTable *self)
 {
     if (self == NULL) return;
 
-    rowindex_dealloc(self->rowindex);
+    rowindex_decref(self->rowindex);
     for (int64_t i = 0; i < self->ncols; i++) {
         column_decref(self->columns[i]);
         stats_dealloc(self->stats[i]);

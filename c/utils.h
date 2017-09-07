@@ -82,6 +82,16 @@ float max_f4(float a, float b);
 
 
 /**
+ * Similar to `dtmalloc(ptr, T, n)`, except that it declares the variable `ptr`
+ * in addition to malloc-ing it.
+ */
+#define dtdeclmalloc(ptr, T, n)                                                \
+    T* ptr = (T*) _dt_malloc((size_t)(n) * SIZEOF(T));                         \
+    if (ptr == null && n) return null;
+
+
+
+/**
  * This macro is a replacement for standard `realloc` in much the same way as
  * `dtmalloc` is a replacement for system `malloc`:
  *

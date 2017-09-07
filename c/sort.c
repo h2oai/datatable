@@ -271,7 +271,7 @@ RowIndex* column_sort(Column *col, RowIndex *rowindex)
             if (ri == NULL || ri->type != RI_ARR32) return NULL;
             ordering = ri->ind32;
             ri->ind32 = NULL;
-            rowindex_dealloc(ri);
+            rowindex_decref(ri);
         }
     }
     SType stype = col->stype;

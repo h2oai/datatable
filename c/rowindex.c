@@ -50,7 +50,8 @@ dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
 
 /**
  * Attempt to convert an ARR64 RowIndex object into the ARR32 format. If such
- * conversion is possible, the object will be modified in-place.
+ * conversion is possible, the object will be modified in-place (regardless of
+ * its refcount).
  */
 void rowindex_compactify(RowIndex *self)
 {
@@ -91,8 +92,8 @@ RowIndex* rowindex_from_slice(int64_t start, int64_t count, int64_t step)
         (count > 1 && step < -(start/(count - 1))) ||
         (count > 1 && step > (INT64_MAX - start)/(count - 1))) return NULL;
 
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->type = RI_SLICE;
     res->length = count;
     res->min = !count? 0 : step >= 0? start : start + step * (count - 1);
@@ -139,8 +140,8 @@ RowIndex* rowindex_from_slicelist(
     if (maxidx == 0) minidx = 0;
     assert(minidx >= 0 && minidx <= maxidx);
 
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->length = count;
     res->min = minidx;
     res->max = maxidx;
@@ -191,8 +192,8 @@ RowIndex* rowindex_from_slicelist(
 RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n, int issorted)
 {
     if (n < 0 || n > INT32_MAX) return NULL;
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->type = RI_ARR32;
     res->length = n;
     res->ind32 = array;
@@ -221,8 +222,8 @@ RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n, int issorted)
 RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n, int issorted)
 {
     if (n < 0) return NULL;
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->type = RI_ARR64;
     res->length = n;
     res->ind64 = array;
@@ -270,8 +271,8 @@ RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows)
             maxrow = i;
         }
 
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->length = nout;
     res->max = maxrow;
 
@@ -281,8 +282,7 @@ RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows)
         res->ind32 = NULL;
     } else
     if (nout <= INT32_MAX && maxrow <= INT32_MAX) {
-        int32_t *out = NULL;
-        dtmalloc(out, int32_t, nout);
+        dtdeclmalloc(out, int32_t, nout);
         int32_t nn = (int32_t) maxrow;
         for (int32_t i = 0, j = 0; i <= nn; i++) {
             if (data[i] == 1)
@@ -292,8 +292,7 @@ RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows)
         res->ind32 = out;
         res->type = RI_ARR32;
     } else {
-        int64_t *out = NULL;
-        dtmalloc(out, int64_t, nout);
+        dtdeclmalloc(out, int64_t, nout);
         for (int64_t i = 0, j = 0; i <= maxrow; i++) {
             if (data[i] == 1)
                 out[j++] = i;
@@ -332,8 +331,8 @@ rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *rowindex)
     ITER_ALL
     #undef CODE
 
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->length = nouts;
     res->max = maxrow;
 
@@ -343,7 +342,7 @@ rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *rowindex)
         res->ind32 = NULL;
     } else
     if (nouts <= INT32_MAX && maxrow <= INT32_MAX) {
-        int32_t *out; dtmalloc(out, int32_t, nouts);
+        dtdeclmalloc(out, int32_t, nouts);
         int32_t k = 0;
         #define CODE                                                           \
             if (data[j] == 1) {                                                \
@@ -355,7 +354,7 @@ rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *rowindex)
         res->ind32 = out;
         res->type = RI_ARR32;
     } else {
-        int64_t *out; dtmalloc(out, int64_t, nouts);
+        dtdeclmalloc(out, int64_t, nouts);
         int64_t k = 0;
         #define CODE                                                           \
             if (data[j] == 1) {                                                \
@@ -435,12 +434,14 @@ rowindex_from_intcolumn_with_rowindex(Column *col, RowIndex *rowindex)
 
 
 /**
- * Return a (deep) copy of the provided rowindex.
+ * Return a (deep) copy of the provided rowindex. This function is rarely
+ * useful, a shallow copy is more appropriate in most cases. See
+ * `rowindex_incref()`.
  */
 RowIndex* rowindex_copy(RowIndex *self)
 {
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     memcpy(res, self, sizeof(RowIndex));
     if (self->type == RI_ARR32 || self->type == RI_ARR64) {
         size_t length = (size_t) self->length;
@@ -473,8 +474,8 @@ RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc)
     RowIndexType type_bc = ri_bc->type;
     RowIndexType type_ab = ri_ab->type;
 
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
     res->length = n;
     if (n == 0) {
         res->type = RI_SLICE;
@@ -674,8 +675,7 @@ rowindex_from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows,
     // least some of the reallocs will have to memmove the data, and moreover
     // the realloc has to occur within a critical section, slowing down the
     // team of threads).
-    int32_t *out;
-    dtmalloc(out, int32_t, nrows);
+    dtdeclmalloc(out, int32_t, nrows);
     // Number of elements that were written (or tentatively written) so far
     // into the array `out`.
     size_t out_length = 0;
@@ -768,15 +768,14 @@ rowindex_from_filterfn64(rowindex_filterfn64 *filterfn, int64_t nrows,
 RowIndex* rowindex_expand(RowIndex *self)
 {
     if (self->type != RI_SLICE) return NULL;
-    RowIndex *res = NULL;
-    dtmalloc(res, RowIndex, 1);
+    dtdeclmalloc(res, RowIndex, 1);
+    res->refcount = 1;
 
     if (self->length <= INT32_MAX && self->max <= INT32_MAX) {
         int32_t n = (int32_t) self->length;
         int32_t start = (int32_t) self->slice.start;
         int32_t step = (int32_t) self->slice.step;
-        int32_t *out = NULL;
-        dtmalloc(out, int32_t, n);
+        dtdeclmalloc(out, int32_t, n);
         #pragma omp parallel for schedule(static)
         for (int32_t i = 0; i < n; i++) {
             out[i] = start + i*step;
@@ -787,8 +786,7 @@ RowIndex* rowindex_expand(RowIndex *self)
         int64_t n = self->length;
         int64_t start = self->slice.start;
         int64_t step = self->slice.step;
-        int64_t *out = NULL;
-        dtmalloc(out, int64_t, n);
+        dtdeclmalloc(out, int64_t, n);
         #pragma omp parallel for schedule(static)
         for (int64_t i = 0; i < n; i++) {
             out[i] = start + i*step;
@@ -816,15 +814,25 @@ size_t rowindex_get_allocsize(RowIndex *self)
 }
 
 
+RowIndex* rowindex_incref(RowIndex *self)
+{
+    self->refcount++;
+    return self;
+}
+
+
 /**
  * RowIndex's destructor.
  */
-void rowindex_dealloc(RowIndex *rowindex) {
-    if (rowindex == NULL) return;
-    switch (rowindex->type) {
-        case RI_ARR32: dtfree(rowindex->ind32); break;
-        case RI_ARR64: dtfree(rowindex->ind64); break;
+void rowindex_decref(RowIndex *self)
+{
+    if (self == NULL) return;
+    self->refcount--;
+    if (self->refcount > 0) return;
+    switch (self->type) {
+        case RI_ARR32: dtfree(self->ind32); break;
+        case RI_ARR64: dtfree(self->ind64); break;
         default: /* do nothing */ break;
     }
-    dtfree(rowindex);
+    dtfree(self);
 }
