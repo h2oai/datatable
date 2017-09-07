@@ -9,7 +9,8 @@ def same_iterables(a, b):
     Convenience function for testing datatables created from dictionaries.
 
     On Python3.6+ it simply checks whether `a == b`. However on Python3.5, it
-    checks whether `a` and `b` have same but potentially in a different order.
+    checks whether `a` and `b` have same elements but potentially in a different
+    order.
 
     The reason for this helper function is the difference between semantics of
     a dictionary in Python3.6 versus older versions: in Python3.6 dictionaries
