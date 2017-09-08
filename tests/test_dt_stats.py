@@ -3,7 +3,7 @@
 import pytest
 import datatable as dt
 import statistics
-from math import inf, nan
+from math import inf, nan, isnan
 from tests import list_equals
 
 
@@ -22,9 +22,19 @@ dt_int = {(5, -3, 6, 3, 0),
           }
 
 dt_float = {(9.5, 0.2, 5.4857301, -3.14159265358979),
-            (1.1, 2.3e12, -.5, None, inf, 0.0)}
+            (1.1, 2.3e12, -.5, None, inf, 0.0),
+            (3.5, 2.36, nan, 696.9, 4097)}
 
 dt_all = dt_bool | dt_int | dt_float
+
+@pytest.fixture(params = dt_all)
+def src_all(request):
+    src = request.param
+    # FIXME: DataTables created from pylists with NaNs does not register the
+    # NaN as a NA. See issue #323
+    if len([x for x in src if x is not None and isnan(x)]) > 0:
+        pytest.skip("DataTable cannot properly handle python lists with NaNs")
+    return src
 
 # Helper function that provides the resulting stype after `min()` or `max()` is
 # called
@@ -44,29 +54,35 @@ def mean_sd_stype(stype):
         return "f8r"
     return stype
 
+# Helper function that provides the result stype after `sum()` is called
+def sum_stype(stype):
+    if stype in ["i1b", "i1i", "i2i", "i4i", "i8i"]:
+        return "i8i"
+    if stype in ["f4r", "f8r"]:
+        return "f8r"
+    return stype
 
 #-------------------------------------------------------------------------------
 # Minimum function dt.min()
 #-------------------------------------------------------------------------------
 
 def t_min(t):
-    t = [i for i in t if i is not None]
+    t = [i for i in t if i is not None and not isnan(i)]
     if len(t) == 0:
         return [None]
     else:
         return [min(t)]
 
 
-@pytest.mark.parametrize("src", dt_all)
-def test_dt_min(src):
-    dt0 = dt.DataTable(src)
+def test_dt_min(src_all):
+    dt0 = dt.DataTable(src_all)
     dtr = dt0.min()
     assert dtr.internal.check()
     assert list(dtr.stypes) == [min_max_stype(s) for s in dt0.stypes]
     assert dtr.shape == (1, dt0.ncols)
     for i in range(dt0.ncols):
         assert dt0.names[i] == dtr.names[i]
-    assert dtr.topython() == [t_min(src)]
+    assert dtr.topython() == [t_min(src_all)]
 
 
 def test_dt_str():
@@ -82,46 +98,65 @@ def test_dt_str():
 #-------------------------------------------------------------------------------
 
 def t_max(t):
-    t = [i for i in t if i is not None]
+    t = [i for i in t if i is not None and not isnan(i)]
     if len(t) == 0:
         return [None]
     else:
         return [max(t)]
 
 
-@pytest.mark.parametrize("src", dt_all)
-def test_dt_max(src):
-    dt0 = dt.DataTable(src)
+def test_dt_max(src_all):
+    dt0 = dt.DataTable(src_all)
     dtr = dt0.max()
     assert dtr.internal.check()
     assert list(dtr.stypes) == [min_max_stype(s) for s in dt0.stypes]
     assert dtr.shape == (1, dt0.ncols)
     for i in range(dt0.ncols):
         assert dt0.names[i] == dtr.names[i]
-    assert dtr.topython() == [t_max(src)]
+    assert dtr.topython() == [t_max(src_all)]
 
+#-------------------------------------------------------------------------------
+# Sum function dt.sum()
+#-------------------------------------------------------------------------------
 
+def t_sum(t):
+    t = [i for i in t if i is not None and not isnan(i)]
+    if len(t) == 0:
+        return [0]
+    else:
+        return [sum(t)]
+
+def test_dt_sum(src_all):
+    dt0 = dt.DataTable(src_all)
+    dtr = dt0.sum()
+    assert dtr.internal.check()
+    assert list(dtr.stypes) == [sum_stype(s) for s in dt0.stypes]
+    assert dtr.shape == (1, dt0.ncols)
+    assert dt0.names == dtr.names
+    assert list_equals(dtr.topython(), [t_sum(src_all)])
 
 #-------------------------------------------------------------------------------
 # Mean function dt.mean()
 #-------------------------------------------------------------------------------
 
 def t_mean(t):
-    t = [i for i in t if i is not None and not isinstance(i, bool)]
+    t = [i for i in t if 
+         i is not None and
+         not isinstance(i, bool) and
+         not isnan(i)]
     if len(t) == 0:
         return [None]
     else:
         return [statistics.mean(t)]
 
-@pytest.mark.parametrize("src", dt_all)
-def test_dt_mean(src):
-    dt0 = dt.DataTable(src)
+def test_dt_mean(src_all):
+    dt0 = dt.DataTable(src_all)
     dtr = dt0.mean()
     assert dtr.internal.check()
     assert list(dtr.stypes) == [mean_sd_stype(s) for s in dt0.stypes]
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [t_mean(src)])
+    assert list_equals(dtr.topython(), [t_mean(src_all)])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 3),
@@ -150,7 +185,10 @@ def test_dt_mean_special_cases(src, res):
 #-------------------------------------------------------------------------------
 
 def t_sd(t):
-    t = [i for i in t if i is not None and not isinstance(i, bool)]
+    t = [i for i in t if 
+         i is not None and
+         not isinstance(i, bool) and
+         not isnan(i)]
     if len(t) == 0:
         return [None]
     elif len(t) == 1:
@@ -158,15 +196,14 @@ def t_sd(t):
     else:
         return [statistics.stdev(t)]
 
-@pytest.mark.parametrize("src", dt_all)
-def test_dt_sd(src):
-    dt0 = dt.DataTable(src)
+def test_dt_sd(src_all):
+    dt0 = dt.DataTable(src_all)
     dtr = dt0.sd()
     assert dtr.internal.check()
     assert list(dtr.stypes) == [mean_sd_stype(s) for s in dt0.stypes]
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [t_sd(src)])
+    assert list_equals(dtr.topython(), [t_sd(src_all)])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 2.0),
@@ -181,3 +218,19 @@ def test_dt_sd_special_cases(src, res):
     dtr = dt0.sd()
     assert dtr.internal.check()
     assert list_equals(dtr.topython(), [[res]])
+
+#-------------------------------------------------------------------------------
+# Count_na function dt.count_na()
+#-------------------------------------------------------------------------------
+
+def t_count_na(t):
+    return [len([i for i in t if i is None or isnan(i)])]
+
+def test_dt_count_na(src_all):
+    dt0 = dt.DataTable(src_all)
+    dtr = dt0.countna()
+    assert dtr.internal.check()
+    assert list(dtr.stypes) == ["i8i"] * dt0.ncols
+    assert dtr.shape == (1, dt0.ncols)
+    assert dt0.names == dtr.names
+    assert list_equals(dtr.topython(), [t_count_na(src_all)])
