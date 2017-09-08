@@ -40,7 +40,7 @@ def min_max_stype(stype):
 # Helper function that provides the resulting stype after `mean()` or `sd()` is
 # called
 def mean_sd_stype(stype):
-    if stype in ["i1i", "i2i", "i4i", "i8i", "f4r", "f8r"]:
+    if stype in ["i1b", "i1i", "i2i", "i4i", "i8i", "f4r", "f8r"]:
         return "f8r"
     return stype
 
@@ -107,7 +107,7 @@ def test_dt_max(src):
 #-------------------------------------------------------------------------------
 
 def t_mean(t):
-    t = [i for i in t if i is not None and not isinstance(i, bool)]
+    t = [i for i in t if i is not None]
     if len(t) == 0:
         return [None]
     else:
@@ -150,7 +150,7 @@ def test_dt_mean_special_cases(src, res):
 #-------------------------------------------------------------------------------
 
 def t_sd(t):
-    t = [i for i in t if i is not None and not isinstance(i, bool)]
+    t = [i for i in t if i is not None]
     if len(t) == 0:
         return [None]
     elif len(t) == 1:

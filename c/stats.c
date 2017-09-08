@@ -1,7 +1,13 @@
 /**
  * Standard deviation and mean computations are done using Welford's method.
- * Source:
- *     https://www.johndcook.com/blog/standard_deviation/
+ * (Source: https://www.johndcook.com/blog/standard_deviation)
+ *
+ * ...Except in the case of booleans, where a simple expansion of the
+ * standard variance formula is good enough:
+ *
+ *         (count0 + count1) * (mean**2) - 2 * count1 * mean + count1
+ *  var = ------------------------------------------------------------
+ *                            count0 + count1 - 1
  */
 #include <math.h>
 #include <stdio.h>
@@ -177,16 +183,21 @@ static void get_stats_i1b(Stats* self, Column* col) {
                 ++count1;
                 break;
             default :
-                ++countna;
                 break;
         };
     }
+    int64_t count = count0 + count1;
+    double mean = count > 0 ? ((double) count1) / count : NA_F8;
+    double sd = sqrt((count * mean * mean - 2 * count1 * mean + count1) /
+                    (count - 1));
     self->b.min = NA_I1;
     if (count0 > 0) self->b.min = 0;
     else if (count1 > 0) self->b.min = 1;
     self->b.max = self->b.min != NA_I1 ? count1 > 0 : NA_I1;
-    self->countna = countna;
-    self->isdefined |= M_MIN | M_MAX | M_COUNT_NA;
+    self->b.mean = mean;
+    self->b.sd = count > 1 ? sd : NA_F8;
+    self->countna = col->nrows - count;
+    self->isdefined |= M_MIN | M_MAX | M_COUNT_NA | M_MEAN | M_STD_DEV;
 }
 
 
@@ -321,6 +332,8 @@ void init_stats(void) {
 
     cstat_to_stype[LT_BOOLEAN][C_MIN] = ST_BOOLEAN_I1;
     cstat_to_stype[LT_BOOLEAN][C_MAX] = ST_BOOLEAN_I1;
+    cstat_to_stype[LT_BOOLEAN][C_MEAN] = ST_REAL_F8;
+    cstat_to_stype[LT_BOOLEAN][C_STD_DEV] = ST_REAL_F8;
 
     cstat_to_stype[LT_INTEGER][C_MIN] = ST_INTEGER_I8;
     cstat_to_stype[LT_INTEGER][C_MAX] = ST_INTEGER_I8;
@@ -340,6 +353,8 @@ void init_stats(void) {
 
     cstat_offset[LT_BOOLEAN][C_MIN] = STATS_OFFSET(b.min);
     cstat_offset[LT_BOOLEAN][C_MAX] = STATS_OFFSET(b.max);
+    cstat_offset[LT_BOOLEAN][C_MEAN] = STATS_OFFSET(b.mean);
+    cstat_offset[LT_BOOLEAN][C_STD_DEV] = STATS_OFFSET(b.sd);
 
     cstat_offset[LT_INTEGER][C_MIN] = STATS_OFFSET(i.min);
     cstat_offset[LT_INTEGER][C_MAX] = STATS_OFFSET(i.max);
