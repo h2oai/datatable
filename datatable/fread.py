@@ -456,7 +456,7 @@ class FReader(object):
         if isinstance(colspec, list):
             nn = len(colspec)
             if n != nn:
-                raise TValueError("Input file contains %s, however `columns` "
+                raise TValueError("Input file contains %s, whereas `columns` "
                                   "parameter specifies only %s"
                                   % (plural(n, "column"), plural(nn, "column")))
             for i in range(n):
