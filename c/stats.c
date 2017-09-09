@@ -10,12 +10,12 @@
  *                            count0 + count1 - 1
  */
 #include <math.h>
-#include <stdio.h>
 #include "stats.h"
 #include "utils.h"
 
 #define M_MIN      (1 << C_MIN)
 #define M_MAX      (1 << C_MAX)
+#define M_SUM      (1 << C_SUM)
 #define M_MEAN     (1 << C_MEAN)
 #define M_STD_DEV  (1 << C_STD_DEV)
 #define M_COUNT_NA (1 << C_COUNT_NA)
@@ -172,7 +172,6 @@ Column* make_cstat_column(const Stats *self, const CStat s) {
 static void get_stats_i1b(Stats* self, Column* col) {
     int64_t count0 = 0,
             count1 = 0;
-    int64_t countna = 0;
     int8_t *data = (int8_t*) col->data;
     for (int64_t i = 0; i < col->nrows; ++i) {
         switch (data[i]) {
@@ -194,10 +193,11 @@ static void get_stats_i1b(Stats* self, Column* col) {
     if (count0 > 0) self->b.min = 0;
     else if (count1 > 0) self->b.min = 1;
     self->b.max = self->b.min != NA_I1 ? count1 > 0 : NA_I1;
+    self->b.sum = count1;
     self->b.mean = mean;
     self->b.sd = count > 1 ? sd : NA_F8;
     self->countna = col->nrows - count;
-    self->isdefined |= M_MIN | M_MAX | M_COUNT_NA | M_MEAN | M_STD_DEV;
+    self->isdefined |= M_MIN | M_MAX | M_COUNT_NA | M_SUM | M_MEAN | M_STD_DEV;
 }
 
 
@@ -209,6 +209,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
     static void get_stats_ ## stype(Stats* self, Column* col) {                \
         T min = NA;                                                            \
         T max = NA;                                                            \
+        int64_t sum = 0;                                                       \
         double mean = NA_F8;                                                   \
         double var = 0;                                                        \
         int64_t count_notna = 0;                                               \
@@ -218,6 +219,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
             T val = data[i];                                                   \
             if (IS ## NA(val)) continue;                                       \
             count_notna++;                                                     \
+            sum += val;                                                        \
             if (IS ## NA(min)) {                                               \
                 min = max = val;                                               \
                 mean = (double) val;                                           \
@@ -232,11 +234,13 @@ static void get_stats_i1b(Stats* self, Column* col) {
         }                                                                      \
         self->i.min = min;                                                     \
         self->i.max = max;                                                     \
+        self->i.sum = sum;                                                     \
         self->i.mean = mean;                                                   \
         self->i.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) :         \
                      count_notna == 1 ? 0 : NA;                                \
         self->countna = nrows - count_notna;                                   \
-        self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;    \
+        self->isdefined |= M_MIN | M_MAX | M_SUM |                             \
+                           M_MEAN | M_STD_DEV | M_COUNT_NA;                    \
     }
 
 TEMPLATE_COMPUTE_INTEGER_STATS(i1i, int8_t,  NA_I1)
@@ -246,7 +250,6 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
 #undef TEMPLATE_COMPUTE_INTEGER_STATS
 
 
-
 /**
  * LT_REAL
  */
@@ -254,15 +257,17 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
     static void get_stats_ ## stype(Stats* self, Column* col) {                \
         T min = NA;                                                            \
         T max = NA;                                                            \
+        double sum = 0;                                                        \
         double mean = NA_F8;                                                   \
         double var = 0;                                                        \
         int64_t count_notna = 0;                                               \
-        int64_t nrows = col->nrows;                                            \
+        const int64_t nrows = col->nrows;                                      \
         T *data = (T*) col->data;                                              \
-        for (int64_t i = 0; i < nrows; i++) {                                  \
+        for (int64_t i = 0; i < nrows; ++i) {                                  \
             T val = data[i];                                                   \
             if (IS ## NA(val)) continue;                                       \
-            count_notna++;                                                     \
+            ++count_notna;                                                     \
+            sum += (double) val;                                               \
             if (IS ## NA(min)) {                                               \
                 min = max = val;                                               \
                 mean = (double) val;                                           \
@@ -279,6 +284,7 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
         }                                                                      \
         self->r.min = (double) min;                                            \
         self->r.max = (double) max;                                            \
+        self->r.sum = sum;                                                     \
         self->r.mean = mean;                                                   \
         self->r.sd = count_notna > 1 ? sqrt(var / (count_notna - 1)) :         \
                      count_notna == 1 ? 0 : NA_F8;                             \
@@ -289,7 +295,8 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
             self->r.mean = isinf(min) && min < 0 && isinf(max) && max > 0      \
                            ? NA_F8 : (double)(isinf(min) ? min : max);         \
         }                                                                      \
-        self->isdefined |= M_MIN | M_MAX | M_MEAN | M_STD_DEV | M_COUNT_NA;    \
+        self->isdefined |= M_MIN | M_MAX | M_SUM |                             \
+                           M_MEAN | M_STD_DEV | M_COUNT_NA;                    \
     }
 
 TEMPLATE_COMPUTE_REAL_STATS(f4r, float, NA_F4)
@@ -334,14 +341,17 @@ void init_stats(void) {
     cstat_to_stype[LT_BOOLEAN][C_MAX] = ST_BOOLEAN_I1;
     cstat_to_stype[LT_BOOLEAN][C_MEAN] = ST_REAL_F8;
     cstat_to_stype[LT_BOOLEAN][C_STD_DEV] = ST_REAL_F8;
+    cstat_to_stype[LT_BOOLEAN][C_SUM] = ST_INTEGER_I8;
 
     cstat_to_stype[LT_INTEGER][C_MIN] = ST_INTEGER_I8;
     cstat_to_stype[LT_INTEGER][C_MAX] = ST_INTEGER_I8;
+    cstat_to_stype[LT_INTEGER][C_SUM] = ST_INTEGER_I8;
     cstat_to_stype[LT_INTEGER][C_MEAN] = ST_REAL_F8;
     cstat_to_stype[LT_INTEGER][C_STD_DEV] = ST_REAL_F8;
 
     cstat_to_stype[LT_REAL][C_MIN] = ST_REAL_F8;
     cstat_to_stype[LT_REAL][C_MAX] = ST_REAL_F8;
+    cstat_to_stype[LT_REAL][C_SUM] = ST_REAL_F8;
     cstat_to_stype[LT_REAL][C_MEAN] = ST_REAL_F8;
     cstat_to_stype[LT_REAL][C_STD_DEV] = ST_REAL_F8;
 
@@ -355,14 +365,17 @@ void init_stats(void) {
     cstat_offset[LT_BOOLEAN][C_MAX] = STATS_OFFSET(b.max);
     cstat_offset[LT_BOOLEAN][C_MEAN] = STATS_OFFSET(b.mean);
     cstat_offset[LT_BOOLEAN][C_STD_DEV] = STATS_OFFSET(b.sd);
+    cstat_offset[LT_BOOLEAN][C_SUM] = STATS_OFFSET(b.sum);
 
     cstat_offset[LT_INTEGER][C_MIN] = STATS_OFFSET(i.min);
     cstat_offset[LT_INTEGER][C_MAX] = STATS_OFFSET(i.max);
+    cstat_offset[LT_INTEGER][C_SUM] = STATS_OFFSET(i.sum);
     cstat_offset[LT_INTEGER][C_MEAN] = STATS_OFFSET(i.mean);
     cstat_offset[LT_INTEGER][C_STD_DEV] = STATS_OFFSET(i.sd);
 
     cstat_offset[LT_REAL][C_MIN] = STATS_OFFSET(r.min);
     cstat_offset[LT_REAL][C_MAX] = STATS_OFFSET(r.max);
+    cstat_offset[LT_REAL][C_SUM] = STATS_OFFSET(r.sum);
     cstat_offset[LT_REAL][C_MEAN] = STATS_OFFSET(r.mean);
     cstat_offset[LT_REAL][C_STD_DEV] = STATS_OFFSET(r.sd);
 

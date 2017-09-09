@@ -528,6 +528,18 @@ class DataTable(object):
         """
         return DataTable(self._dt.get_stat(CStats.max.value),
                          colnames=self.names)
+    
+    def sum(self):
+        """
+        Get the sum of each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the computed sums
+        for each column (or NA if not applicable).
+        """
+        return DataTable(self._dt.get_stat(CStats.sum.value),
+                         colnames=self.names)
 
     def mean(self):
         """

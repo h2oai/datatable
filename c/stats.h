@@ -39,6 +39,7 @@ typedef struct Stats {
         struct {
             double mean;
             double sd;
+            int64_t sum;
             int8_t min;
             int8_t max;
             int8_t _padding[6];
@@ -46,15 +47,17 @@ typedef struct Stats {
         struct {
             int64_t min;
             int64_t max;
+            int64_t sum;
             double mean;
             double sd;
         } i; // LT_INTEGER
         struct {
             double min;
             double max;
+            double sum;
             double mean;
             double sd;
-        } r; //LT_REAL
+        } r; // LT_REAL
     };
     uint64_t isdefined; // Bit mask for determining if a CStat has been computed
     SType stype; // LType is not enough information for create NA values
@@ -69,9 +72,10 @@ typedef struct Stats {
 typedef enum CStat {
     C_MIN = 0,
     C_MAX = 1,
-    C_MEAN = 2,
-    C_STD_DEV = 3,
-    C_COUNT_NA = 4,
+    C_SUM = 2,
+    C_MEAN = 3,
+    C_STD_DEV = 4,
+    C_COUNT_NA = 5,
 } __attribute__ ((__packed__)) CStat;
 
 #define DT_CSTATS_COUNT (C_COUNT_NA + 1)
