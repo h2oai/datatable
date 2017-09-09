@@ -2,12 +2,11 @@
  * Standard deviation and mean computations are done using Welford's method.
  * (Source: https://www.johndcook.com/blog/standard_deviation)
  *
- * ...Except in the case of booleans, where a simple expansion of the
- * standard variance formula is good enough:
- *
- *         (count0 + count1) * (mean**2) - 2 * count1 * mean + count1
- *  var = ------------------------------------------------------------
- *                            count0 + count1 - 1
+ * ...Except in the case of booleans, where standard deviation can be 
+ *    derived from `count0` and `count1`:
+ *            /   count0 * count1   \ 1/2
+ *      sd = ( --------------------- )
+ *            \ count0 + count1 - 1 /
  */
 #include <math.h>
 #include "stats.h"
@@ -187,8 +186,8 @@ static void get_stats_i1b(Stats* self, Column* col) {
     }
     int64_t count = count0 + count1;
     double mean = count > 0 ? ((double) count1) / count : NA_F8;
-    double sd = sqrt((count * mean * mean - 2 * count1 * mean + count1) /
-                    (count - 1));
+    double sd = count > 1 ? sqrt((double)count0 * count1 / (count - 1)) :
+                count == 1 ? 0 : NA_F8;
     self->b.min = NA_I1;
     if (count0 > 0) self->b.min = 0;
     else if (count1 > 0) self->b.min = 1;
