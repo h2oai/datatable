@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   stats.h
  * Author: nkalonia1
  *
@@ -26,10 +26,10 @@
  * responsibility to maintain this association, and thus it must insure that
  * a Stats structure is properly modified/replaced in the event that its associated
  * column is modified.
- * 
+ *
  * The format and typing of this structure is subject to change. Use the
  * functions and the CStat enum (see below) when getting/setting values.
- * 
+ *
  * Note: The Stats structure does NOT contain a reference counter. Create a
  * copy of the structure instead of having more than one reference to it.
  **/
@@ -37,6 +37,7 @@ typedef struct Stats {
     int64_t countna;
     union {
         struct {
+            int64_t sum;
             int8_t min;
             int8_t max;
             int8_t _padding[6];
@@ -44,15 +45,17 @@ typedef struct Stats {
         struct {
             int64_t min;
             int64_t max;
+            int64_t sum;
             double mean;
             double sd;
         } i; // LT_INTEGER
         struct {
             double min;
             double max;
+            double sum;
             double mean;
             double sd;
-        } r; //LT_REAL
+        } r; // LT_REAL
     };
     uint64_t isdefined; // Bit mask for determining if a CStat has been computed
     SType stype; // LType is not enough information for create NA values
@@ -67,9 +70,10 @@ typedef struct Stats {
 typedef enum CStat {
     C_MIN = 0,
     C_MAX = 1,
-    C_MEAN = 2,
-    C_STD_DEV = 3,
-    C_COUNT_NA = 4,
+    C_SUM = 2,
+    C_MEAN = 3,
+    C_STD_DEV = 4,
+    C_COUNT_NA = 5,
 } __attribute__ ((__packed__)) CStat;
 
 #define DT_CSTATS_COUNT (C_COUNT_NA + 1)
