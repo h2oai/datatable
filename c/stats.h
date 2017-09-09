@@ -37,6 +37,8 @@ typedef struct Stats {
     int64_t countna;
     union {
         struct {
+            double mean;
+            double sd;
             int64_t sum;
             int8_t min;
             int8_t max;
