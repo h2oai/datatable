@@ -4,9 +4,9 @@
  *
  * ...Except in the case of booleans, where standard deviation can be 
  *    derived from `count0` and `count1`:
- *            /   count0 * count1   \ 1/2
- *      sd = ( --------------------- )
- *            \ count0 + count1 - 1 /
+ *            /              count0 * count1           \ 1/2
+ *      sd = ( ---------------------------------------- )
+ *            \ (count0 + count1 - 1)(count0 + count1) /
  */
 #include <math.h>
 #include "stats.h"
@@ -186,7 +186,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
     }
     int64_t count = count0 + count1;
     double mean = count > 0 ? ((double) count1) / count : NA_F8;
-    double sd = count > 1 ? sqrt((double)count0 * count1 / (count - 1)) :
+    double sd = count > 1 ? sqrt((double)count0/count * count1/(count - 1)) :
                 count == 1 ? 0 : NA_F8;
     self->b.min = NA_I1;
     if (count0 > 0) self->b.min = 0;
