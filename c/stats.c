@@ -2,7 +2,7 @@
  * Standard deviation and mean computations are done using Welford's method.
  * (Source: https://www.johndcook.com/blog/standard_deviation)
  *
- * ...Except in the case of booleans, where standard deviation can be 
+ * ...Except in the case of booleans, where standard deviation can be
  *    derived from `count0` and `count1`:
  *            /              count0 * count1           \ 1/2
  *      sd = ( ---------------------------------------- )
@@ -11,6 +11,7 @@
 #include <math.h>
 #include "stats.h"
 #include "utils.h"
+#include "rowindex.h"
 
 #define M_MIN      (1 << C_MIN)
 #define M_MAX      (1 << C_MAX)
@@ -19,13 +20,13 @@
 #define M_STD_DEV  (1 << C_STD_DEV)
 #define M_COUNT_NA (1 << C_COUNT_NA)
 
-typedef void (*stats_fn)(Stats*, const Column*);
+typedef void (*stats_fn)(Stats*, const Column*, const RowIndex*);
 
 static stats_fn stats_fns[DT_STYPES_COUNT];
 static SType cstat_to_stype[DT_LTYPES_COUNT][DT_CSTATS_COUNT];
 static uint64_t cstat_offset[DT_LTYPES_COUNT][DT_CSTATS_COUNT];
 
-static void compute_column_cstat(Stats*, const Column*, const CStat);
+static void compute_column_cstat(Stats*, const CStat, const Column*, const RowIndex*);
 static Column* make_cstat_column(const Stats* self, const CStat);
 
 
@@ -95,7 +96,7 @@ void compute_datatable_cstat(DataTable *self, const CStat s) {
         if (stats[i] == NULL)
             stats[i] = make_data_stats(cols[i]->stype);
         if (!cstat_isdefined(stats[i], s))
-            compute_column_cstat(stats[i], cols[i], s);
+            compute_column_cstat(stats[i], s, cols[i], self->rowindex);
     }
 }
 
@@ -104,11 +105,11 @@ void compute_datatable_cstat(DataTable *self, const CStat s) {
  * Perform the computation regardless if the CStat is defined or not. Do nothing
  * if the Stats reference is NULL or the CStat/LType pairing is invalid.
  */
-void compute_column_cstat(Stats *stats, const Column *column, const CStat s) {
+void compute_column_cstat(Stats *stats, const CStat s, const Column *col, const RowIndex *ri) {
     if (stats == NULL) return;
     if (cstat_to_stype[stype_info[stats->stype].ltype][s] == ST_VOID) return;
     // TODO: Add switch statement when multiple stats functions exist
-    stats_fns[stats->stype](stats, column);
+    stats_fns[stats->stype](stats, col, ri);
 }
 
 
@@ -126,7 +127,7 @@ DataTable* make_cstat_datatable(const DataTable *self, const CStat s) {
         if (stats[i] == NULL)
             stats[i] = make_data_stats(self->columns[i]->stype);
         if (!cstat_isdefined(stats[i], s))
-            compute_column_cstat(stats[i], self->columns[i], s);
+            compute_column_cstat(stats[i], s, self->columns[i], self->rowindex);
         out[i] = make_cstat_column(stats[i], s);
     }
     return make_datatable(out, NULL);
@@ -163,16 +164,61 @@ Column* make_cstat_column(const Stats *self, const CStat s) {
     return out;
 }
 
+/**
+ * Macro to get column indices based on a RowIndex `RI`.
+ * Creates a for loop with from the following parameters:
+ *
+ *     `RI`:    A RowIndex pointer.
+ *
+ *     `NROWS`: The length of the target column. This variable will be
+ *              modified to store the `RI`->length, if applicable.
+ *
+ *     `I`:     A variable name that will be initialized as an `int64_t` and
+ *              used to store the resulting index during each pass.
+ *
+ *     `CODE`:  The code to be placed in the body of the for loop.
+ *
+ * Two variables named `__TMP_0` and `__TMP_1` will also be created; Their
+ * resulting type and value is undefined.
+ */
+#define FOR_ROWIDX(RI, NROWS, I, CODE)                                         \
+    if (RI == NULL) {                                                           \
+        for (int64_t I = 0; I < NROWS; ++I) {                                   \
+            CODE                                                                \
+        }                                                                       \
+    } else {                                                                    \
+        NROWS = RI->length;                                                     \
+        if (RI->type == RI_SLICE) {                                             \
+            int64_t __TMP_0 = RI->slice.step;                                   \
+            for (int64_t I = RI->slice.start, __TMP_1 = 0;                      \
+                 __TMP_1 < NROWS; ++__TMP_1, I += __TMP_0) {                    \
+                CODE                                                            \
+            }                                                                   \
+        } else if (RI->type == RI_ARR32) {                                      \
+           int32_t *__TMP_0 = RI->ind32;                                        \
+           for(int64_t __TMP_1 = 0; __TMP_1 < NROWS; ++__TMP_1) {               \
+               int64_t I = (int64_t) __TMP_0[__TMP_1];                          \
+               CODE                                                             \
+           }                                                                    \
+        } else if (RI->type == RI_ARR64) {                                      \
+            int64_t *__TMP_0 = RI->ind64;                                       \
+            for(int64_t __TMP_1 = 0; __TMP_1 < NROWS; ++__TMP_1) {              \
+               int64_t I = __TMP_0[__TMP_1];                                    \
+               CODE                                                             \
+           }                                                                    \
+        }                                                                       \
+    }
 
 
 /**
  * LT_BOOLEAN
  */
-static void get_stats_i1b(Stats* self, Column* col) {
+static void get_stats_i1b(Stats* self, const Column* col, const RowIndex* ri) {
     int64_t count0 = 0,
             count1 = 0;
     int8_t *data = (int8_t*) col->data;
-    for (int64_t i = 0; i < col->nrows; ++i) {
+    int64_t nrows = col->nrows;
+    FOR_ROWIDX(ri, nrows, i,
         switch (data[i]) {
             case 0 :
                 ++count0;
@@ -183,7 +229,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
             default :
                 break;
         };
-    }
+    )
     int64_t count = count0 + count1;
     double mean = count > 0 ? ((double) count1) / count : NA_F8;
     double sd = count > 1 ? sqrt((double)count0/count * count1/(count - 1)) :
@@ -205,7 +251,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
  * LT_INTEGER
  */
 #define TEMPLATE_COMPUTE_INTEGER_STATS(stype, T, NA)                           \
-    static void get_stats_ ## stype(Stats* self, Column* col) {                \
+    static void get_stats_ ## stype(Stats* self, const Column* col, const RowIndex* ri) {                \
         T min = NA;                                                            \
         T max = NA;                                                            \
         int64_t sum = 0;                                                       \
@@ -214,7 +260,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
         int64_t count_notna = 0;                                               \
         int64_t nrows = col->nrows;                                            \
         T *data = (T*) col->data;                                              \
-        for (int64_t i = 0; i < nrows; i++) {                                  \
+        FOR_ROWIDX(ri, nrows, i,                                               \
             T val = data[i];                                                   \
             if (IS ## NA(val)) continue;                                       \
             count_notna++;                                                     \
@@ -230,7 +276,7 @@ static void get_stats_i1b(Stats* self, Column* col) {
             mean += delta / count_notna;                                       \
             /* mean has been updated, so this is not delta**2 */               \
             var += delta * (((double) val) - mean);                            \
-        }                                                                      \
+        )                                                                      \
         self->i.min = min;                                                     \
         self->i.max = max;                                                     \
         self->i.sum = sum;                                                     \
@@ -253,16 +299,16 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
  * LT_REAL
  */
 #define TEMPLATE_COMPUTE_REAL_STATS(stype, T, NA)                              \
-    static void get_stats_ ## stype(Stats* self, Column* col) {                \
+    static void get_stats_ ## stype(Stats* self, const Column* col, const RowIndex* ri) {                \
         T min = NA;                                                            \
         T max = NA;                                                            \
         double sum = 0;                                                        \
         double mean = NA_F8;                                                   \
         double var = 0;                                                        \
         int64_t count_notna = 0;                                               \
-        const int64_t nrows = col->nrows;                                      \
+        int64_t nrows = col->nrows;                                            \
         T *data = (T*) col->data;                                              \
-        for (int64_t i = 0; i < nrows; ++i) {                                  \
+        FOR_ROWIDX(ri, nrows, i,                                               \
             T val = data[i];                                                   \
             if (IS ## NA(val)) continue;                                       \
             ++count_notna;                                                     \
@@ -280,7 +326,7 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
                 /* mean has been updated, so this is not delta**2 */           \
                 var += delta * (((double) val) - mean);                        \
             }                                                                  \
-        }                                                                      \
+        )                                                                      \
         self->r.min = (double) min;                                            \
         self->r.max = (double) max;                                            \
         self->r.sum = sum;                                                     \
