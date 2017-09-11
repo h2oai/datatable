@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, list_equals
+from tests import same_iterables, list_equals, assert_equals
 
 
 def test_create_from_list():
@@ -75,6 +75,15 @@ def test_create_from_dict():
     assert same_iterables(d7.types, ("int", "bool", "str"))
     assert d7.internal.check()
 
+
+def test_create_from_datatable():
+    d8_0 = dt.DataTable({"A": [1, 4, 3],
+                         "B": [False, True, False],
+                         "C": ["str1", "str2", "str3"]})
+    d8_1 = dt.DataTable(d8_0)
+    d8_2 = dt.DataTable(d8_0.internal, d8_0.names)
+    assert_equals(d8_0, d8_1)
+    assert_equals(d8_0, d8_2)
 
 
 #-------------------------------------------------------------------------------

@@ -15,8 +15,8 @@ from datatable.dt_append import rbind as dt_rbind, cbind as dt_cbind
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, typed, U, is_type, PandasDataFrame_t,
-    PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
+    TTypeError, TValueError, typed, U, is_type, DataTable_t,
+    PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 from datatable.expr.consts import CStats
 
@@ -155,6 +155,10 @@ class DataTable(object):
             self._fill_from_numpy(src)
         elif src is None:
             self._fill_from_list([])
+        elif is_type(src, DataTable_t):
+            if colnames is None:
+                colnames = src.names
+            self._fill_from_dt(src.internal, names=colnames)
         else:
             raise TTypeError("Cannot create DataTable from %r" % src)
 
