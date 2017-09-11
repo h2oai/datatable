@@ -224,7 +224,7 @@ def returnIfModified(pattern, value) {
         checkout scm
         out = sh script: """
                             if [ \$(\
-                                git diff-tree --no-commit-id --name-only -r HEAD \$(git merge-base --fork-point master) | \
+                                git diff-tree --no-commit-id --name-only -r HEAD \$(git merge-base HEAD master) | \
                                 xargs basename | \
                                 egrep -e '${pattern}' | \
                                 wc -l) \
