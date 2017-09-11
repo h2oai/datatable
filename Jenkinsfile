@@ -222,9 +222,10 @@ pipeline {
 def returnIfModified(pattern, value) {
     node {
         checkout scm
+	sh "git fetch"
         out = sh script: """
                             if [ \$(\
-                                git diff-tree --no-commit-id --name-only -r HEAD \$(git merge-base HEAD master) | \
+                                git diff-tree --no-commit-id --name-only -r HEAD \$(git merge-base HEAD origin/master) | \
                                 xargs basename | \
                                 egrep -e '${pattern}' | \
                                 wc -l) \
