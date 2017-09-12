@@ -229,10 +229,10 @@ def returnIfModified(pattern, value) {
                                 egrep -e '${pattern}' | \
                                 wc -l) \
                               -gt 0 ]; then
-                            echo -n "${value}"; fi
-                         """, returnStdout: true
+                            echo "${value}"; fi
+			    """, returnStdout: true
     }
-    return out
+    return out.trim()
 }
 
 def linkFolders(sourceDir, targetDir) {
