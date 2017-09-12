@@ -50,14 +50,15 @@ pipeline {
                         touch LICENSE
                         python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                         python setup.py --version > dist/VERSION.txt
-                        DTNOOPENMP=1 python setup.py bdist_wheel -p linux_noomp_x86_64 >> stage_build_without_omp_on_linux_output.txt
+                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
+                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/table/table.noomp}
                 """
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
                 // Archive artifacts
                 arch 'dist/*.whl'
                 arch 'dist/VERSION.txt'
-                arch 'stage_build_on_linux_output.txt'
+                arch 'stage_build_*.txt'
             }
         }
 
