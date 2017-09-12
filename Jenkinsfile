@@ -43,7 +43,7 @@ pipeline {
             }
             steps {
                 dumpInfo 'Linux Build Info'
-                sh """#!/bin/bash -xe
+                sh """
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         make mrproper
                         make build > stage_build_on_linux_output.txt
