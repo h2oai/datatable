@@ -100,7 +100,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
-extra_compile_args = ["-fopenmp", "-std=gnu11"]
+extra_compile_args = ["-std=gnu11"]
 
 # This flag becomes C-level macro DTPY, which indicates that we are compiling
 # (Py)datatable. This is used for example in fread.c to distinguish between
@@ -133,8 +133,14 @@ extra_compile_args += [
 ]
 extra_link_args = [
     "-v",
-    "-fopenmp",
 ]
+
+
+if "DTNOOPENMP" in os.environ:
+    extra_compile_args.append("-DDTNOOMP")
+else:
+    extra_compile_args.insert(0, "-fopenmp")
+    extra_link_args.append("-fopenmp")
 
 if "DTCOVERAGE" in os.environ:
     # On linux we need to pass proper flag to clang linker which
