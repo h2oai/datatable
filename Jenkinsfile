@@ -197,6 +197,8 @@ pipeline {
                 label "linux"
             }
             steps {
+                // Clean properly before publishing into S3
+                sh "make mrproper"
                 unstash 'linux_whl'
                 unstash 'osx_whl'
                 unstash 'VERSION'
