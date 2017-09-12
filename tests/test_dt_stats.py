@@ -230,3 +230,21 @@ def test_dt_count_na(src_all):
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [t_count_na(src_all)])
+
+#-------------------------------------------------------------------------------
+# RowIndex compatability
+#-------------------------------------------------------------------------------
+ridx_param = [([-3, 6, 1, 0, 4], slice(2, 5), 0),
+              ([-3, 6, 1, 0, 4], [1, 4], 4),
+              ([3.5, -182, None, 2, 3], slice(2, None, 2), 3),
+              ([3.5, -182, None, 2, 3], [0, 2, 4], 3),
+              ([True, True, True, None, False], slice(4), True),
+              ([True, True, True, None, False], [0, 3], True)]
+@pytest.mark.parametrize("src,view,exp", ridx_param)
+def test_dt_ridx(src, view, exp):
+    dt0 = dt.DataTable(src)
+    dt_view = dt0(view)
+    res = dt_view.min()
+    assert res.topython()[0][0] == exp
+
+
