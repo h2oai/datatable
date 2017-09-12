@@ -4,6 +4,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/v0.2.0...HEAD)
 #### Added
+- Environmental variable `DTNOOPENMP` will cause the `datatable` to be built without OpenMP support.
 - If `d0` is a DataTable, then `d1 = DataTable(d0)` will create its shallow copy.
 - In addition to LLVM4 environmental variable, datatable will now also look for the `llvm4` folder
   within the package's directory.

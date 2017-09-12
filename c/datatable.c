@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <omp.h>
+#include "myomp.h"
 #include "datatable.h"
 #include "py_utils.h"
 #include "rowindex.h"

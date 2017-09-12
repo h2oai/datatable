@@ -32,7 +32,6 @@ mrproper: clean
 build:
 	$(PYTHON) setup.py build
 
-
 .PHONY: install
 install:
 	$(PYTHON) -m pip install . --upgrade --no-cache-dir
@@ -68,6 +67,11 @@ debug:
 	DTDEBUG=1 \
 	$(MAKE) build
 	$(MAKE) install
+
+.PHONY: build_noomp
+build_noomp:
+	DTNOOPENMP=1 \
+	$(MAKE) build
 
 
 .PHONY: bi

@@ -3,8 +3,10 @@
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
 #ifdef DTPY
+  #include "myomp.h"
   #include "py_fread.h"
 #else
+  #include <omp.h>
   #include "freadR.h"
 #endif
 
