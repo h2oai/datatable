@@ -48,8 +48,9 @@ pipeline {
                         make mrproper
                         make build > stage_build_on_linux_output.txt
                         touch LICENSE
-                        python setup.py bdist_wheel >> stage_build_on_linux_output.txt
+                        python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                         python setup.py --version > dist/VERSION.txt
+                        DTNOOPENMP=1 python setup.py bdist_wheel -p linux_noomp_x86_64 >> stage_build_without_omp_on_linux_output.txt
                 """
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
