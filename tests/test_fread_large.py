@@ -13,10 +13,10 @@ root_env_name = "DT_LARGE_TESTS_ROOT"
 def param(id):
     return pytest.param(lambda: id, id=id)
 
-def skipped(reason):
-    return pytest.param(lambda: pytest.skip(reason), id="")
+def skipped(reason, id=None):
+    return pytest.param(lambda: pytest.skip(reason), id=id)
 
-def failed(reason, id):
+def failed(reason, id=None):
     return pytest.param(lambda: pytest.fail(reason, False), id=id)
 
 

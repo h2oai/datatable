@@ -259,7 +259,13 @@ _Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
         PyList_SET_ITEM(colNamesList, i, col);
         PyList_SET_ITEM(colTypesList, i, typ);
     }
-    PyObject_CallMethod(freader, "_override_columns", "OO", colNamesList, colTypesList);
+    PyObject *ret = PyObject_CallMethod(freader, "_override_columns",
+                                        "OO", colNamesList, colTypesList);
+    if (!ret) {
+        pyfree(colTypesList);
+        pyfree(colNamesList);
+        return 0;
+    }
 
     for (int i = 0; i < ncols_; i++) {
         PyObject *t = PyList_GET_ITEM(colTypesList, i);
@@ -268,6 +274,7 @@ _Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
 
     pyfree(colTypesList);
     pyfree(colNamesList);
+    pyfree(ret);
     return 1;  // continue reading the file
 }
 

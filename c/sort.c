@@ -50,9 +50,10 @@
 //
 //------------------------------------------------------------------------------
 #include <stdint.h>
+#include <stdlib.h>  // abs
 #include <stdio.h>   // printf
 #include <string.h>  // memcpy
-#include <omp.h>
+#include "myomp.h"
 #include "column.h"
 #include "myassert.h"
 #include "rowindex.h"

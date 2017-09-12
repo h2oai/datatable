@@ -228,16 +228,16 @@ def returnIfModified(pattern, value) {
 	    fList += f + "\n"
 	}
         out = sh script: """
-	                  if [ \$(                      \
+                      if [ \$(                          \
                                 echo "${fList}" |       \
                                 xargs basename |        \
                                 egrep -e '${pattern}' | \
                                 wc -l)                  \
                               -gt 0 ]; then             \
-                            echo -n "${value}"; fi
+                            echo "${value}"; fi
 			    """, returnStdout: true
     }
-    return out
+    return out.trim()
 }
 
 def linkFolders(sourceDir, targetDir) {
