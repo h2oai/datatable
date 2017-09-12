@@ -221,16 +221,21 @@ pipeline {
 
 def returnIfModified(pattern, value) {
     node {
-        checkout scm
+	checkout scm
+	buildInfo(env.BRANCH_NAME, false)
+	fList = ""
+        for (f in buildInfo.get().getChangedFiles()) {
+	    fList += f + "\n"
+	}
         out = sh script: """
-                            if [ \$(\
-                                git diff-tree --no-commit-id --name-only -r HEAD \$(git merge-base HEAD origin/master) | \
-                                xargs basename | \
+	                  if [ \$(                      \
+                                echo "${fList}" |       \
+                                xargs basename |        \
                                 egrep -e '${pattern}' | \
-                                wc -l) \
-                              -gt 0 ]; then
+                                wc -l)                  \
+                              -gt 0 ]; then             \
                             echo -n "${value}"; fi
-                         """, returnStdout: true
+			    """, returnStdout: true
     }
     return out
 }
