@@ -101,7 +101,7 @@ pipeline {
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
-                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux*.whl"`
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux_x86_64.whl"`
                             make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
