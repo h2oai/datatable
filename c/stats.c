@@ -181,29 +181,28 @@ Column* make_cstat_column(const Stats *self, const CStat s) {
  * Two variables named `__TMP_0` and `__TMP_1` will also be created; Their
  * resulting type and value is undefined.
  */
-#define FOR_ROWIDX(RI, NROWS, I, CODE)                                         \
+#define LOOP_OVER_ROWINDEX(I, NROWS, RI, CODE)                                  \
     if (RI == NULL) {                                                           \
         for (int64_t I = 0; I < NROWS; ++I) {                                   \
             CODE                                                                \
         }                                                                       \
     } else {                                                                    \
-        NROWS = RI->length;                                                     \
+        int64_t L_n = RI->length;                                               \
         if (RI->type == RI_SLICE) {                                             \
-            int64_t __TMP_0 = RI->slice.step;                                   \
-            for (int64_t I = RI->slice.start, __TMP_1 = 0;                      \
-                 __TMP_1 < NROWS; ++__TMP_1, I += __TMP_0) {                    \
+            int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;         \
+            for (; L_j < L_n; L_j++, I += L_s) {                                \
                 CODE                                                            \
             }                                                                   \
         } else if (RI->type == RI_ARR32) {                                      \
-           int32_t *__TMP_0 = RI->ind32;                                        \
-           for(int64_t __TMP_1 = 0; __TMP_1 < NROWS; ++__TMP_1) {               \
-               int64_t I = (int64_t) __TMP_0[__TMP_1];                          \
+           int32_t *L_a = RI->ind32;                                            \
+           for (int64_t L_j = 0; L_j < L_n; L_j++) {                            \
+               int64_t I = (int64_t) L_a[L_j];                                  \
                CODE                                                             \
            }                                                                    \
         } else if (RI->type == RI_ARR64) {                                      \
-            int64_t *__TMP_0 = RI->ind64;                                       \
-            for(int64_t __TMP_1 = 0; __TMP_1 < NROWS; ++__TMP_1) {              \
-               int64_t I = __TMP_0[__TMP_1];                                    \
+            int64_t *L_a = RI->ind64;                                           \
+            for (int64_t L_j = 0; L_j < L_n; L_j++) {                           \
+               int64_t I = L_a[L_j];                                            \
                CODE                                                             \
            }                                                                    \
         }                                                                       \
@@ -218,7 +217,7 @@ static void get_stats_i1b(Stats* self, const Column* col, const RowIndex* ri) {
             count1 = 0;
     int8_t *data = (int8_t*) col->data;
     int64_t nrows = col->nrows;
-    FOR_ROWIDX(ri, nrows, i,
+    LOOP_OVER_ROWINDEX(i, nrows, ri,
         switch (data[i]) {
             case 0 :
                 ++count0;
@@ -251,7 +250,8 @@ static void get_stats_i1b(Stats* self, const Column* col, const RowIndex* ri) {
  * LT_INTEGER
  */
 #define TEMPLATE_COMPUTE_INTEGER_STATS(stype, T, NA)                           \
-    static void get_stats_ ## stype(Stats* self, const Column* col, const RowIndex* ri) {                \
+    static void get_stats_ ## stype(Stats* self, const Column* col,            \
+                                    const RowIndex* ri) {                      \
         T min = NA;                                                            \
         T max = NA;                                                            \
         int64_t sum = 0;                                                       \
@@ -260,7 +260,7 @@ static void get_stats_i1b(Stats* self, const Column* col, const RowIndex* ri) {
         int64_t count_notna = 0;                                               \
         int64_t nrows = col->nrows;                                            \
         T *data = (T*) col->data;                                              \
-        FOR_ROWIDX(ri, nrows, i,                                               \
+        LOOP_OVER_ROWINDEX(i, nrows, ri,                                       \
             T val = data[i];                                                   \
             if (IS ## NA(val)) continue;                                       \
             count_notna++;                                                     \
@@ -274,8 +274,8 @@ static void get_stats_i1b(Stats* self, const Column* col, const RowIndex* ri) {
             else if (max < val) max = val;                                     \
             double delta = ((double) val) - mean;                              \
             mean += delta / count_notna;                                       \
-            /* mean has been updated, so this is not delta**2 */               \
-            var += delta * (((double) val) - mean);                            \
+            double delta2 = ((double) val) - mean;                             \
+            var += delta * delta2;                                             \
         )                                                                      \
         self->i.min = min;                                                     \
         self->i.max = max;                                                     \
@@ -299,7 +299,8 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
  * LT_REAL
  */
 #define TEMPLATE_COMPUTE_REAL_STATS(stype, T, NA)                              \
-    static void get_stats_ ## stype(Stats* self, const Column* col, const RowIndex* ri) {                \
+    static void get_stats_ ## stype(Stats* self, const Column* col,            \
+                                    const RowIndex* ri) {                      \
         T min = NA;                                                            \
         T max = NA;                                                            \
         double sum = 0;                                                        \
@@ -308,7 +309,7 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
         int64_t count_notna = 0;                                               \
         int64_t nrows = col->nrows;                                            \
         T *data = (T*) col->data;                                              \
-        FOR_ROWIDX(ri, nrows, i,                                               \
+        LOOP_OVER_ROWINDEX(i, nrows, ri,                                       \
             T val = data[i];                                                   \
             if (IS ## NA(val)) continue;                                       \
             ++count_notna;                                                     \
@@ -323,8 +324,8 @@ TEMPLATE_COMPUTE_INTEGER_STATS(i8i, int64_t, NA_I8)
             if (isfinite(val)) {                                               \
                 double delta = ((double) val) - mean;                          \
                 mean += delta / count_notna;                                   \
-                /* mean has been updated, so this is not delta**2 */           \
-                var += delta * (((double) val) - mean);                        \
+                double delta2 = ((double) val) - mean;                         \
+                var += delta * delta2;                                         \
             }                                                                  \
         )                                                                      \
         self->r.min = (double) min;                                            \
