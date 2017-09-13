@@ -65,14 +65,14 @@ Stats* stats_copy(Stats *self) {
 }
 
 /**
- * Determine if a CStat is defined.
- * A CStat is "defined" if...
- *     - The CStat has been computed
- * CStat is incompatible with the Stats structure's LType.
- * Return 0 if false, any other number if true.
+ * Determine if a CStat is computed
+ * Note that a CStat is also considered to be 'computed' if the CStat is
+ * incompatible with the Stats structure's LType (because it is known that the
+ * result is NA).
+ * Return 0 if false or NULL, any other number if true.
  */
-uint64_t cstat_isdefined(const Stats *self, const CStat s) {
-    return self->isdefined & (1 << s);
+uint64_t cstat_iscomputed(const Stats *self, const CStat s) {
+    return self != NULL && (self->isdefined & (1 << s));
 }
 
 /**
@@ -95,7 +95,7 @@ void compute_datatable_cstat(DataTable *self, const CStat s) {
     for (int64_t i = 0; i < self->ncols; ++i) {
         if (stats[i] == NULL)
             stats[i] = make_data_stats(cols[i]->stype);
-        if (!cstat_isdefined(stats[i], s))
+        if (!cstat_iscomputed(stats[i], s))
             compute_column_cstat(stats[i], s, cols[i], self->rowindex);
     }
 }
@@ -126,7 +126,7 @@ DataTable* make_cstat_datatable(const DataTable *self, const CStat s) {
     for (int64_t i = 0; i < self->ncols; ++i) {
         if (stats[i] == NULL)
             stats[i] = make_data_stats(self->columns[i]->stype);
-        if (!cstat_isdefined(stats[i], s))
+        if (!cstat_iscomputed(stats[i], s))
             compute_column_cstat(stats[i], s, self->columns[i], self->rowindex);
         out[i] = make_cstat_column(stats[i], s);
     }

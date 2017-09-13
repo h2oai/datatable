@@ -83,7 +83,7 @@ typedef enum CStat {
 Stats* make_data_stats(const SType);
 void stats_dealloc(Stats *self);
 Stats* stats_copy(Stats *self);
-uint64_t cstat_isdefined(const Stats* self, const CStat);
+uint64_t cstat_iscomputed(const Stats* self, const CStat);
 size_t stats_get_allocsize(const Stats* self);
 void compute_datatable_cstat(DataTable*, const CStat);
 DataTable* make_cstat_datatable(const DataTable*, const CStat);
