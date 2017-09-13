@@ -50,14 +50,18 @@ pipeline {
                         touch LICENSE
                         python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                         python setup.py --version > dist/VERSION.txt
-                        DTNOOPENMP=1 python setup.py bdist_wheel -p linux_noomp_x86_64 >> stage_build_without_omp_on_linux_output.txt
                 """
+                // Create also no omp version
+                sh '''#!/bin/bash -xe
+                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
+                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/table/table_noomp}; done
+                '''
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
                 // Archive artifacts
                 arch 'dist/*.whl'
                 arch 'dist/VERSION.txt'
-                arch 'stage_build_on_linux_output.txt'
+                arch 'stage_build_*.txt'
             }
         }
 
@@ -101,7 +105,7 @@ pipeline {
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
-                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux_x86_64.whl"`
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable-*linux_x86_64.whl"`
                             make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
