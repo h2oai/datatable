@@ -43,21 +43,23 @@ pipeline {
             }
             steps {
                 dumpInfo 'Linux Build Info'
-                def ciVersionSuffix = utilsLib.getCiVersionSuffix()
-                sh """
-                        export CI_VERSION_SUFFIX=${ciVersionSuffix}
-                        make mrproper
-                        make build > stage_build_with_omp_on_linux_output 
-                        touch LICENSE
-                        python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
-                        python setup.py --version > dist/VERSION.txt
-                """
-                // Create also no omp version
-                withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"]) {
-                    sh '''#!/bin/bash -xe
-                            DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
-                            mv dist_noomp/*whl dist/
-                    '''
+                scrtip {
+                    def ciVersionSuffix = utilsLib.getCiVersionSuffix()
+                    sh """
+                            export CI_VERSION_SUFFIX=${ciVersionSuffix}
+                            make mrproper
+                            make build > stage_build_with_omp_on_linux_output 
+                            touch LICENSE
+                            python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
+                            python setup.py --version > dist/VERSION.txt
+                    """
+                    // Create also no omp version
+                    withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"]) {
+                        sh '''#!/bin/bash -xe
+                                DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
+                                mv dist_noomp/*whl dist/
+                        '''
+                    }
                 }
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
