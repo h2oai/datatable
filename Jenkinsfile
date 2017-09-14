@@ -46,16 +46,18 @@ pipeline {
                 sh """
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
                         make mrproper
-                        make build > stage_build_on_linux_output.txt
+                        make build > stage_build_with_omp_on_linux_output 
                         touch LICENSE
                         python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                         python setup.py --version > dist/VERSION.txt
                 """
                 // Create also no omp version
-                sh '''#!/bin/bash -xe
-                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
-                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/table/table_noomp}; done
-                '''
+                withEnv(["CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp"]) {
+                    sh '''#!/bin/bash -xe
+                            DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
+                            mv dist_noomp/*whl dist/
+                    '''
+                }
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
                 // Archive artifacts
@@ -105,7 +107,7 @@ pipeline {
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
-                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable-*linux_x86_64.whl"`
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable-*linux_x86_64.whl" | grep -v noomp`
                             make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
