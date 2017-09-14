@@ -43,7 +43,7 @@ pipeline {
             }
             steps {
                 dumpInfo 'Linux Build Info'
-                scrtip {
+                script {
                     def ciVersionSuffix = utilsLib.getCiVersionSuffix()
                     sh """
                             export CI_VERSION_SUFFIX=${ciVersionSuffix}
