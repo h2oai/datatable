@@ -54,7 +54,7 @@ pipeline {
                 // Create also no omp version
                 sh '''#!/bin/bash -xe
                         DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
-                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/-cp36-cp36m/\+noomp-cp36-cp36m}; done
+                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/-cp36-cp36m/\\+noomp-cp36-cp36m}; done
                 '''
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
