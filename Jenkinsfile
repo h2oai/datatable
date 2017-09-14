@@ -13,7 +13,7 @@ def linkMap = [ "Data" : "h2oai-benchmarks/Data",
 		"smalldata" : "h2o-3/smalldata",
 		"bigdata" : "h2o-3/bigdata",
 		"fread" : "h2o-3/fread" ]
-		   
+
 def largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", targetDir)
 def dockerArgs = ""
 if (!largeTestsRootEnv.isEmpty()) {
@@ -54,7 +54,7 @@ pipeline {
                 // Create also no omp version
                 sh '''#!/bin/bash -xe
                         DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
-                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/table/table_noomp}; done
+                        ls -1 dist_noomp | head -n1 | while read f; do mv dist_noomp/$f dist/${f/-cp36-cp36m/\+noomp-cp36-cp36m}; done
                 '''
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
@@ -251,10 +251,10 @@ def linkFolders(sourceDir, targetDir) {
     node {
         sh """
             mkdir ${targetDir} || true
-        
+
             mkdir ${targetDir}/h2oai-benchmarks || true
             ln -sf ${sourceDir}/Data ${targetDir}/h2oai-benchmarks
-        
+
             mkdir ${targetDir}/h2o-3 || true
             ln -sf ${sourceDir}/smalldata ${targetDir}/h2o-3
             ln -sf ${sourceDir}/bigdata ${targetDir}/h2o-3
@@ -263,7 +263,7 @@ def linkFolders(sourceDir, targetDir) {
     }
 }
 
-	       
+
 def makeDockerArgs(linkMap, sourceDir, targetDir) {
     def out = ""
     linkMap.each { key, value ->
