@@ -105,7 +105,7 @@ pipeline {
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
-                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable-*linux_x86_64.whl"`
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable*.whl" | grep -v "noomp"`
                             make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
