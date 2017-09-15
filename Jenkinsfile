@@ -192,7 +192,7 @@ pipeline {
                                         exit 1
                                     fi
                                 fi
-                                pip install --upgrade `find dist -name "datatable-*linux_x86_64.whl" | grep -v noomp`
+                                pip install --upgrade `find dist -name "datatable*osx*.whl" | grep -v noomp`
                                 rm -rf datatable
                                 make test MODULE=datatable
                         '''
