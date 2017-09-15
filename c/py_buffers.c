@@ -228,7 +228,8 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
     view->strides = REQ_STRIDES(flags)? info + 1 : NULL;
     view->suboffsets = NULL;
     view->internal = NULL;
-    view->format = REQ_FORMAT(flags)? format_from_stype(col->stype) : NULL;
+    view->format = REQ_FORMAT(flags) ?
+        const_cast<char*>(format_from_stype(col->stype)) : NULL;
 
     Py_INCREF(self);
     column_incref(col);
@@ -296,7 +297,8 @@ dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view, int flags)
     view->len = (Py_ssize_t) col->alloc_size;
     view->readonly = 1;
     view->itemsize = (Py_ssize_t) stype_info[col->stype].elemsize;
-    view->format = REQ_FORMAT(flags)? format_from_stype(col->stype) : NULL;
+    view->format = REQ_FORMAT(flags) ?
+        const_cast<char*>(format_from_stype(col->stype)) : NULL;
     view->ndim = 2;
     view->shape = REQ_ND(flags) ? info : NULL;
     info[0] = 1;
@@ -382,7 +384,8 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     view->len = (Py_ssize_t)(ncols * colsize);
     view->readonly = 0;
     view->itemsize = (Py_ssize_t) elemsize;
-    view->format = REQ_FORMAT(flags)? format_from_stype(stype) : NULL;
+    view->format = REQ_FORMAT(flags) ?
+        const_cast<char*>(format_from_stype(stype)) : NULL;
     view->ndim = 2;
     view->shape = REQ_ND(flags)? info : NULL;
     info[0] = (Py_ssize_t) ncols;
