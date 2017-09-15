@@ -80,6 +80,7 @@ static int8_t *sizes = NULL;
 PyObject* pyfread(UU, PyObject *args)
 {
     PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *pydt = NULL;
+    int retval = 0;
     if (freader != NULL || dt != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
@@ -123,8 +124,8 @@ PyObject* pyfread(UU, PyObject *args)
     frargs->freader = freader;
     Py_INCREF(freader);
 
-    int res = freadMain(*frargs);
-    if (!res) goto fail;
+    retval = freadMain(*frargs);
+    if (!retval) goto fail;
 
     pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
@@ -172,7 +173,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
             fclose(fp);
             // Memory-map the file.
             int fd = open(fname, O_RDWR);
-            sb->buf = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+            sb->buf = (char*) mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
             if (sb->buf == MAP_FAILED) {
                 printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
                 return NULL;
@@ -532,7 +533,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
                     truncate(fname, (off_t)newsize);
                     int fd = open(fname, O_RDWR);
                     munmap(sb->buf, sb->size);
-                    sb->buf = mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+                    sb->buf = (char*) mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
                     close(fd);
                 } else {
                     dtrealloc_g(sb->buf, char, newsize);
@@ -577,7 +578,8 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             StrBuf *sb = (StrBuf*) col->meta;
             int idx8 = ctx_strbufs[k].idx8;
             size_t ptr = ctx_strbufs[k].ptr;
-            const lenOff *__restrict__ lo = add_constptr(buff8, idx8 * 8);
+            const lenOff *__restrict__ lo =
+                (const lenOff*) add_constptr(buff8, idx8 * 8);
             size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
 
             int done = 0;
