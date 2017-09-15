@@ -130,6 +130,7 @@ extra_compile_args += [
     "-Wno-switch-enum",
     "-Wno-old-style-cast",
     "-Wno-c++98-compat-pedantic",
+    "-Wno-nested-anon-types",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
 ]

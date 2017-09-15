@@ -58,10 +58,10 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
         Column *ret = NULL;
         Column *col0 = (i < dt->ncols)
             ? dt->columns[i]
-            : make_data_column(0, (size_t) dt->nrows);
+            : make_data_column(ST_VOID, (size_t) dt->nrows);
         for (int j = 0; j < ndts; j++) {
             if (cols[i][j] < 0) {
-                cols0[j] = make_data_column(0, (size_t) dts[j]->nrows);
+                cols0[j] = make_data_column(ST_VOID, (size_t) dts[j]->nrows);
             } else if (dts[j]->rowindex) {
                 cols0[j] = column_extract(dts[j]->columns[cols[i][j]],
                                           dts[j]->rowindex);
