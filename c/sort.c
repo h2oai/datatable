@@ -471,10 +471,10 @@ static void
 prepare_input_i1(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
+    uint8_t una = (uint8_t) NA_I1;
     uint8_t *xi = (uint8_t*) col->data;
     uint8_t *xo = NULL;
     dtmalloc_g(xo, uint8_t, n);
-    uint8_t una = (uint8_t) NA_I1;
 
     if (ordering) {
         #pragma omp parallel for schedule(static)
@@ -495,7 +495,7 @@ prepare_input_i1(const Column *col, int32_t *ordering, size_t n,
     sc->nsigbits = 8;
     return;
     fail:
-    sc->x = NULL;
+        sc->x = NULL;
 }
 
 
@@ -503,10 +503,10 @@ static void
 prepare_input_i2(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
+    uint16_t una = (uint16_t) NA_I2;
     uint16_t *xi = (uint16_t*) col->data;
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);
-    uint16_t una = (uint16_t) NA_I2;
 
     if (ordering) {
         #pragma omp parallel for schedule(static)
@@ -527,7 +527,7 @@ prepare_input_i2(const Column *col, int32_t *ordering, size_t n,
     sc->nsigbits = 16;
     return;
     fail:
-    sc->x = NULL;
+        sc->x = NULL;
 }
 
 
@@ -725,10 +725,10 @@ prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
     // The data are actually floats; but casting `col->data` into `uint32_t*` is
     // equivalent to using a union to convert from float into uint32_t
     // representation.
+    uint32_t una = (uint32_t) NA_F4_BITS;
     uint32_t *xi = (uint32_t*) col->data;
     uint32_t *xo = NULL;
     dtmalloc_g(xo, uint32_t, n);
-    uint32_t una = (uint32_t) NA_F4_BITS;
 
     if (ordering) {
         #pragma omp parallel for schedule(static)
@@ -756,7 +756,7 @@ prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
     sc->next_elemsize = 2;
     return;
     fail:
-    sc->x = NULL;
+        sc->x = NULL;
 }
 
 
@@ -768,10 +768,10 @@ static void
 prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
+    uint64_t una = (uint64_t) NA_F8_BITS;
     uint64_t *xi = (uint64_t*) col->data;
     uint64_t *xo = NULL;
     dtmalloc_g(xo, uint64_t, n);
-    uint64_t una = (uint64_t) NA_F8_BITS;
 
     if (ordering) {
         #pragma omp parallel for schedule(static)
@@ -799,7 +799,7 @@ prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
     sc->next_elemsize = 8;
     return;
     fail:
-    sc->x = NULL;
+        sc->x = NULL;
 }
 
 
@@ -821,10 +821,10 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
     uint8_t *strbuf = (uint8_t*) add_ptr(col->data, -1);
     int64_t offoff = ((VarcharMeta*)col->meta)->offoff;
     int32_t *offs = (int32_t*) add_ptr(col->data, offoff);
+    int maxlen = 0;
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);
 
-    int maxlen = 0;
     #pragma omp parallel for schedule(static) reduction(max:maxlen)
     for (size_t j = 0; j < n; j++) {
         int32_t offend = offs[j];
@@ -852,7 +852,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
     sc->next_elemsize = (maxlen > 2) * 2;
     return;
     fail:
-    sc->x = NULL;
+        sc->x = NULL;
 }
 
 
@@ -883,17 +883,19 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
         T *x = (T*) sc->x;                                                     \
         T dx = (T) sc->dx;                                                     \
         int8_t shift = sc->shift;                                              \
+        size_t *counts = NULL;                                                 \
+        size_t cumsum = 0;                                                     \
         size_t counts_size = sc->nchunks * sc->nradixes;                       \
         if (sc->histogram) {                                                   \
             memset(sc->histogram, 0, counts_size * sizeof(size_t));            \
         } else {                                                               \
             dtcalloc_g(sc->histogram, size_t, counts_size);                    \
         }                                                                      \
-        size_t *counts = sc->histogram;                                        \
+        counts = sc->histogram;                                                \
         _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
         for (size_t i = 0; i < sc->nchunks; i++)                               \
         {                                                                      \
-            size_t *__restrict__ cnts = counts + (sc->nradixes * i);               \
+            size_t *__restrict__ cnts = counts + (sc->nradixes * i);           \
             size_t j0 = i * sc->chunklen,                                      \
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
             for (size_t j = j0; j < j1; j++) {                                 \
@@ -901,7 +903,6 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
                 cnts[t >> shift]++;                                            \
             }                                                                  \
         }                                                                      \
-        size_t cumsum = 0;                                                     \
         for (size_t j = 0; j < sc->nradixes; j++) {                            \
             for (size_t o = j; o < counts_size; o += sc->nradixes) {           \
                 size_t t = counts[o];                                          \
@@ -1182,9 +1183,9 @@ static void radix_psort(SortContext *sc)
             .histogram = sc->histogram,  // reuse the `histogram` buffer
             .next_x = sc->x,  // x is no longer needed: reuse
             .next_o = NULL,
-            .next_elemsize = sc->strdata? sc->strmore * 2 :
-                             sc->shift > 32? 4 :
-                             sc->shift > 16? 2 : 0,
+            .next_elemsize = (int8_t)(sc->strdata? sc->strmore * 2 :
+                                      sc->shift > 32? 4 :
+                                      sc->shift > 16? 2 : 0),
         };
 
         // First, determine the sizes of ranges corresponding to each radix that
@@ -1452,17 +1453,17 @@ static void insert_sort(SortContext *sc)
         int32_t ss = (int32_t)sc->strstart - 2;
         if (sc->o)
             insert_sort_s4_o(sc->strdata, sc->stroffs,
-                             ss, sc->o, sc->next_x, n);
+                             ss, sc->o, (int32_t*)sc->next_x, n);
         else
             sc->o = insert_sort_s4_noo(sc->strdata, sc->stroffs,
-                                       ss, sc->next_x, n);
+                                       ss, (int32_t*)sc->next_x, n);
         return;
     }
     switch (sc->elemsize) {
-        case 1: sc->o = insert_sort_u1(sc->x, sc->o, sc->next_x, n); break;
-        case 2: sc->o = insert_sort_u2(sc->x, sc->o, sc->next_x, n); break;
-        case 4: sc->o = insert_sort_u4(sc->x, sc->o, sc->next_x, n); break;
-        case 8: sc->o = insert_sort_u8(sc->x, sc->o, sc->next_x, n); break;
+        case 1: sc->o = insert_sort_u1(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
+        case 2: sc->o = insert_sort_u2(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
+        case 4: sc->o = insert_sort_u4(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
+        case 8: sc->o = insert_sort_u8(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
     }
 }
 
