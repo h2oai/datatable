@@ -161,6 +161,7 @@ void  _dt_free(void *ptr);
     #define null NULL
 #else
     #define null NULL
+    #define bool _Bool
 #endif
 
 

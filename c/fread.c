@@ -49,10 +49,10 @@ static char quote, dec;
 //
 static int quoteRule;
 static const char* const* NAstrings;
-static _Bool any_number_like_NAstrings=false;
-static _Bool blank_is_a_NAstring=false;
-static _Bool stripWhite=true;  // only applies to character columns; numeric fields always stripped
-static _Bool skipEmptyLines=false, fill=false;
+static bool any_number_like_NAstrings=false;
+static bool blank_is_a_NAstring=false;
+static bool stripWhite=true;  // only applies to character columns; numeric fields always stripped
+static bool skipEmptyLines=false, fill=false;
 
 static double NA_FLOAT64;  // takes fread.h:NA_FLOAT64_VALUE
 
@@ -172,7 +172,7 @@ static inline void skip_white(const char **this) {
 }
 
 
-static inline _Bool on_sep(const char **this) {
+static inline bool on_sep(const char **this) {
   const char *ch = *this;
   if (sep==' ' && *ch==' ') {
     while (*(ch+1)==' ') ch++;  // move to last of this sequence of spaces
@@ -189,7 +189,7 @@ static inline void next_sep(const char **this) {
   *this = ch;
 }
 
-static inline _Bool is_NAstring(const char *fieldStart) {
+static inline bool is_NAstring(const char *fieldStart) {
   skip_white(&fieldStart);  // updates local fieldStart
   const char* const* nastr = NAstrings;
   while (*nastr) {
@@ -256,7 +256,7 @@ static inline int countfields(const char **this, const char **end, const char *s
 
 
 
-static inline _Bool nextGoodLine(const char **this, int ncol, const char *eof)
+static inline bool nextGoodLine(const char **this, int ncol, const char *eof)
 {
   const char *ch = *this;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
@@ -352,7 +352,7 @@ static int Field(const char **this, lenOff *target)
   const char *ch = *this;
   if (stripWhite) skip_white(&ch);  // before and after quoted field's quotes too (e.g. test 1609) but never inside quoted fields
   const char *fieldStart=ch;
-  _Bool quoted = false;
+  bool quoted = false;
 
   if (*ch!=quote || quoteRule==3) {
     // unambiguously not quoted. simply search for sep|eol. If field contains sep|eol then it must be quoted instead.
@@ -506,10 +506,10 @@ static int StrtoI64(const char **this, int64_t *target)
     }
     const char *start=ch;
     int sign=1;
-    _Bool quoted = false;
+    bool quoted = false;
     if (*ch==quote) { quoted=true; ch++; }
     if (*ch=='-' || *ch=='+') sign -= 2*(*ch++=='-');
-    _Bool ok = '0'<=*ch && *ch<='9';  // a single - or + with no [0-9] is !ok and considered type character
+    bool ok = '0'<=*ch && *ch<='9';  // a single - or + with no [0-9] is !ok and considered type character
     int64_t acc = 0;
     while ('0'<=*ch && *ch<='9' && acc<(INT64_MAX-10)/10) { // compiler should optimize last constant expression
       // Conveniently, INT64_MIN == -9223372036854775808 and INT64_MAX == +9223372036854775807
@@ -526,7 +526,7 @@ static int StrtoI64(const char **this, int64_t *target)
     //DTPRINT("StrtoI64 field '%.*s' has len %d\n", lch-ch+1, ch, len);
     *this = ch;
     if (ok && !any_number_like_NAstrings) return 0;  // most common case, return
-    _Bool na = is_NAstring(start);
+    bool na = is_NAstring(start);
     if (ok && !na) return 0;
     *target = NA_INT64;
     next_sep(&ch);  // TODO: can we delete this? consume the remainder of field, if any
@@ -540,7 +540,7 @@ static int StrtoI32_bare(const char **this, int32_t *target)
     const char *ch = *this;
     if (*ch==sep || *ch==eol) { *target = NA_INT32; return 0; }
     if (sep==' ') return 1;  // bare doesn't do sep=' '. TODO - remove
-    _Bool neg = *ch=='-';
+    bool neg = *ch=='-';
     ch += (neg || *ch=='+');
     const char *start = ch;  // for overflow guard using field width
     uint_fast64_t acc = 0;   // using unsigned to be clear that acc will never be negative
@@ -574,10 +574,10 @@ static int StrtoI32_full(const char **this, int32_t *target)
     }
     const char *start=ch;
     int sign=1;
-    _Bool quoted = false;
+    bool quoted = false;
     if (*ch==quote) { quoted=true; ch++; }
     if (*ch=='-' || *ch=='+') sign -= 2*(*ch++=='-');
-    _Bool ok = '0'<=*ch && *ch<='9';
+    bool ok = '0'<=*ch && *ch<='9';
     int acc = 0;
     while ('0'<=*ch && *ch<='9' && acc<(INT32_MAX-10)/10) {  // NA==INT_MIN==-2147483648==-INT_MAX(+2147483647)-1
       acc *= 10;
@@ -591,7 +591,7 @@ static int StrtoI32_full(const char **this, int32_t *target)
     //DTPRINT("StrtoI32 field '%.*s' has len %d\n", lch-ch+1, ch, len);
     *this = ch;
     if (ok && !any_number_like_NAstrings) return 0;
-    _Bool na = is_NAstring(start);
+    bool na = is_NAstring(start);
     if (ok && !na) return 0;
     *target = NA_INT32;
     next_sep(&ch);
@@ -620,13 +620,13 @@ static int StrtoD(const char **this, double *target)
       *this = ch;
       return 0;
     }
-    _Bool quoted = false;
+    bool quoted = false;
     if (*ch==quote) { quoted=true; ch++; }
     int sign=1;
     double d = NAND;
     const char *start=ch;
     if (*ch=='-' || *ch=='+') sign -= 2*(*ch++=='-');
-    _Bool ok = ('0'<=*ch && *ch<='9') || *ch==dec;  // a single - or + with no [0-9] is !ok and considered type character
+    bool ok = ('0'<=*ch && *ch<='9') || *ch==dec;  // a single - or + with no [0-9] is !ok and considered type character
     if (!ok) {
       if      (*ch=='I' && *(ch+1)=='n' && *(ch+2)=='f') { ch+=3; d = sign*INFD; ok=true; }
       else if (*ch=='N' && *(ch+1)=='A' && *(ch+2)=='N') { ch+=3; d = NAND; ok=true; }
@@ -668,7 +668,7 @@ static int StrtoD(const char **this, double *target)
     ok = ok && on_sep(&ch);
     *this = ch;
     if (ok && !any_number_like_NAstrings) return 0;
-    _Bool na = is_NAstring(start);
+    bool na = is_NAstring(start);
     if (ok && !na) return 0;
     *target = NA_FLOAT64;
     next_sep(&ch);
@@ -685,10 +685,10 @@ static int StrtoB(const char **this, int8_t *target)
     *target = NA_BOOL8;
     if (on_sep(&ch)) { *this=ch; return 0; }  // empty field ',,'
     const char *start=ch;
-    _Bool quoted = false;
+    bool quoted = false;
     if (*ch==quote) { quoted=true; ch++; }
     if (quoted && *ch==quote) { ch++; if (on_sep(&ch)) {*this=ch; return 0;} else return 1; }  // empty quoted field ',"",'
-    _Bool logical01 = false;  // expose to user and should default be true?
+    bool logical01 = false;  // expose to user and should default be true?
     if ( ((*ch=='0' || *ch=='1') && logical01) || (*ch=='N' && *(ch+1)=='A' && ch++)) {
         *target = (*ch=='1' ? 1 : (*ch=='0' ? 0 : NA_BOOL8));
         ch++;
@@ -737,8 +737,8 @@ int freadMain(freadMainArgs _args)
     //*********************************************************************************************
     // [1] Extract the arguments and check their validity
     //*********************************************************************************************
-    _Bool verbose = args.verbose;
-    _Bool warningsAreErrors = args.warningsAreErrors;
+    bool verbose = args.verbose;
+    bool warningsAreErrors = args.warningsAreErrors;
     if (verbose) DTPRINT("[1] Check arguments\n");
 
     if (mmp || colNames || oldType || lineCopy || type || size) {
@@ -1046,7 +1046,7 @@ int freadMain(freadMainArgs _args)
     const char *soh = NULL;
     const char *eoh = NULL;
 
-    _Bool trailing_newline_added = false;
+    bool trailing_newline_added = false;
     if (!(eof[-eolLen] == eol && eof[-1] == eol2)) {
       const char *oldeof = eof;
       while (eof[-eolLen] != eol || eof[-1] != eol2) eof--;
@@ -1233,7 +1233,7 @@ int freadMain(freadMainArgs _args)
         }
         if (numFields[0]==-1) continue;
         if (firstJumpEnd==NULL) firstJumpEnd=ch;  // if this wins (doesn't get updated), it'll be single column input
-        _Bool updated=false;
+        bool updated=false;
         int nmax=0;
 
         i = -1;
@@ -1327,7 +1327,7 @@ int freadMain(freadMainArgs _args)
     const char *colNamesAnchor = sof;
     colNames = calloc((size_t)ncol, sizeof(lenOff));
     if (!colNames) STOP("Unable to allocate %d*%d bytes for column name pointers: %s", ncol, sizeof(lenOff), strerror(errno));
-    _Bool allchar=true;
+    bool allchar=true;
     ch = sof; // move back to start of line since countfields() moved to next
     end = eof;
     if (sep==' ') while (*ch==' ') ch++;
@@ -1453,7 +1453,7 @@ int freadMain(freadMainArgs _args)
         end = eof;
         if (j>0 && !nextGoodLine(&ch, ncol, end))
           STOP("Could not find first good line start after jump point %d when sampling.", j);
-        _Bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
+        bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
         int jline = 0;  // line from this jump point
         while((ch < end || (soh && (end != eoh) && (end=eoh) && (ch=soh))) &&
               (jline<JUMPLINES || j==nJumps-1)) {  // nJumps==1 implies sample all of input to eof; last jump to eof too
@@ -1664,7 +1664,7 @@ int freadMain(freadMainArgs _args)
     if (verbose) DTPRINT("[12] Read the data\n");
     ch = sof;   // back to start of first data row
     int hasPrinted=0;  // the percentage last printed so it prints every 2% without many calls to wallclock()
-    _Bool stopTeam=false, firstTime=true;  // _Bool for MT-safey (cannot ever read half written _Bool value)
+    bool stopTeam=false, firstTime=true;  // bool for MT-safey (cannot ever read half written bool value)
     int nTypeBump=0, nTypeBumpCols=0;
     double tRead=0, tReread=0, tTot=0;  // overall timings outside the parallel region
     double thNextGoodLine=0, thRead=0, thPush=0;  // reductions of timings within the parallel region
@@ -1842,7 +1842,7 @@ int freadMain(freadMainArgs _args)
           }
 
           int j = 0;
-          _Bool at_line_end = false; // set to true if the loop ends at a line end
+          bool at_line_end = false; // set to true if the loop ends at a line end
           while (j < ncol) {
             // DTPRINT("Field %d: '%.10s' as type %d  (tch=%p)\n", j+1, tch, type[j], tch);
             const char *fieldStart = tch;

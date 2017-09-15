@@ -12,6 +12,7 @@
 #include "py_utils.h"
 
 extern void free_xbuf_column(Column *col);
+extern void* PyBuffer_Release(void *view);
 extern size_t py_buffers_size;
 
 /**

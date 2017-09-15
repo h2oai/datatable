@@ -244,7 +244,7 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
 
 
 
-_Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
+bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
                    int ncols_)
 {
     types = types_;

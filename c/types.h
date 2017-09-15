@@ -360,7 +360,7 @@ typedef struct STypeInfo {
     const void *na;
     char        code[4];
     LType       ltype;
-    _Bool       varwidth;
+    bool        varwidth;
     int16_t     _padding;
 } STypeInfo;
 
