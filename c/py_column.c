@@ -20,27 +20,32 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
 }
 
 
+DT_DOCS(mtype, "'Memory' type of the column: data, or memmap")
 static PyObject* get_mtype(Column_PyObject *self) {
     return incref(py_rowindextypes[self->ref->mtype]);
 }
 
 
+DT_DOCS(stype, "'Storage' type of the column")
 static PyObject* get_stype(Column_PyObject *self) {
     return incref(py_stype_names[self->ref->stype]);
 }
 
 
+DT_DOCS(ltype, "'Logical' type of the column")
 static PyObject* get_ltype(Column_PyObject *self) {
     return incref(py_ltype_names[stype_info[self->ref->stype].ltype]);
 }
 
 
+DT_DOCS(data_size, "The amount of memory taken by column's data")
 static PyObject* get_data_size(Column_PyObject *self) {
     Column *col = self->ref;
     return PyLong_FromSize_t(col->alloc_size);
 }
 
 
+DT_DOCS(meta, "String representation of the column's `meta` struct")
 static PyObject* get_meta(Column_PyObject *self) {
     Column *col = self->ref;
     void *meta = col->meta;
@@ -72,6 +77,7 @@ static PyObject* get_meta(Column_PyObject *self) {
 }
 
 
+DT_DOCS(refcount, "Reference count of the column")
 static PyObject* get_refcount(Column_PyObject *self) {
     // Subtract 1 from refcount, because this Column_PyObject holds one
     // reference to the column.
@@ -79,7 +85,8 @@ static PyObject* get_refcount(Column_PyObject *self) {
 }
 
 
-static PyObject* pycolumn_save_to_disk(Column_PyObject *self, PyObject *args)
+DT_DOCS(save_to_disk, "")
+static PyObject* meth_save_to_disk(Column_PyObject *self, PyObject *args)
 {
     Column *col = self->ref;
     const char *filename = NULL;
@@ -90,7 +97,8 @@ static PyObject* pycolumn_save_to_disk(Column_PyObject *self, PyObject *args)
 }
 
 
-static PyObject* pycolumn_hexview(Column_PyObject *self, UU)
+DT_DOCS(hexview, "")
+static PyObject* meth_hexview(Column_PyObject *self, UU)
 {
     if (pyfn_column_hexview == NULL) {
         PyErr_Format(PyExc_RuntimeError,
@@ -125,36 +133,22 @@ static void pycolumn_dealloc(Column_PyObject *self)
 //==============================================================================
 // Column type definition
 //==============================================================================
-#define DECL_GETSET(name, doc) \
-    static char dtgs_##name[] = #name; \
-    static char dtdoc_##name[] = doc;
 
-DECL_GETSET(ltype, "'Logical' type of the column")
-DECL_GETSET(stype, "'Storage' type of the column")
-DECL_GETSET(mtype, "'Memory' type of the column: data, or memmap")
-DECL_GETSET(data_size, "The amount of memory taken by column's data")
-DECL_GETSET(meta, "String representation of the column's `meta` struct")
-DECL_GETSET(refcount, "Reference count of the column")
-
-#define GETSET1(name) {dtgs_##name, (getter)get_##name, NULL, dtdoc_##name, NULL}
 static PyGetSetDef column_getseters[] = {
-    GETSET1(mtype),
-    GETSET1(stype),
-    GETSET1(ltype),
-    GETSET1(data_size),
-    GETSET1(meta),
-    GETSET1(refcount),
+    DT_GETSETTER(mtype),
+    DT_GETSETTER(stype),
+    DT_GETSETTER(ltype),
+    DT_GETSETTER(data_size),
+    DT_GETSETTER(meta),
+    DT_GETSETTER(refcount),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
-#undef GETSET1
 
-#define METHOD1(name) {#name, (PyCFunction)pycolumn_##name, METH_VARARGS, NULL}
 static PyMethodDef column_methods[] = {
-    METHOD1(save_to_disk),
-    METHOD1(hexview),
+    DT_METHOD1(save_to_disk),
+    DT_METHOD1(hexview),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
-#undef METHOD1
 
 PyTypeObject Column_PyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
