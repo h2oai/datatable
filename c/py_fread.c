@@ -79,7 +79,7 @@ static int8_t *sizes = NULL;
  */
 PyObject* pyfread(UU, PyObject *args)
 {
-    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL;
+    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *pydt = NULL;
     if (freader != NULL || dt != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
@@ -126,7 +126,7 @@ PyObject* pyfread(UU, PyObject *args)
     int res = freadMain(*frargs);
     if (!res) goto fail;
 
-    PyObject *pydt = pydt_from_dt(dt);
+    pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
     Py_XDECREF(tmp1);
     Py_XDECREF(tmp2);
