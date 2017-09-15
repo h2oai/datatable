@@ -66,7 +66,7 @@ if "LLVM4" in os.environ:
     if not os.path.isdir(llvm4):
         raise ValueError("Variable LLVM4 = %r is not a directory" % llvm4)
     llvm_config = os.path.join(llvm4, "bin", "llvm-config")
-    clang = os.path.join(llvm4, "bin", "clang")
+    clang = os.path.join(llvm4, "bin", "clang++")
     libs = os.path.join(llvm4, "lib")
     includes = os.path.join(llvm4, "include")
     for f in [llvm_config, clang, libs, includes]:
@@ -100,7 +100,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
-extra_compile_args = ["-std=gnu11"]
+extra_compile_args = ["-std=gnu++11"]
 
 # This flag becomes C-level macro DTPY, which indicates that we are compiling
 # (Py)datatable. This is used for example in fread.c to distinguish between
@@ -128,6 +128,8 @@ extra_compile_args += [
     "-Wno-float-equal",
     "-Wno-gnu-statement-expression",
     "-Wno-switch-enum",
+    "-Wno-old-style-cast",
+    "-Wno-c++98-compat-pedantic",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
 ]

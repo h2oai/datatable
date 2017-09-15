@@ -158,7 +158,7 @@ void* _dt_malloc(size_t n);
 void* _dt_realloc(void *ptr, size_t n);
 void  _dt_free(void *ptr);
 #ifdef __cplusplus
-    #define null nullptr
+    #define null NULL
 #else
     #define null NULL
 #endif
