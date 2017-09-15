@@ -43,20 +43,23 @@ pipeline {
             }
             steps {
                 dumpInfo 'Linux Build Info'
-                sh """
-                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
-                        make mrproper
-                        make build > stage_build_with_omp_on_linux_output 
-                        touch LICENSE
-                        python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
-                        python setup.py --version > dist/VERSION.txt
-                """
-                // Create also no omp version
-                withEnv(["CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp"]) {
-                    sh '''#!/bin/bash -xe
-                            DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
-                            mv dist_noomp/*whl dist/
-                    '''
+                script {
+                    def ciVersionSuffix = utilsLib.getCiVersionSuffix()
+                    sh """
+                            export CI_VERSION_SUFFIX=${ciVersionSuffix}
+                            make mrproper
+                            make build > stage_build_with_omp_on_linux_output 
+                            touch LICENSE
+                            python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
+                            python setup.py --version > dist/VERSION.txt
+                    """
+                    // Create also no omp version
+                    withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"]) {
+                        sh '''#!/bin/bash -xe
+                                DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
+                                mv dist_noomp/*whl dist/
+                        '''
+                    }
                 }
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
@@ -78,6 +81,7 @@ pipeline {
             steps {
                 dumpInfo 'Coverage on Linux'
                 sh """
+                    make mrproper
                     export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     rm -rf .venv venv 2> /dev/null
                     virtualenv --python=python3.6 --no-download .venv
@@ -98,8 +102,10 @@ pipeline {
             }
 
             steps {
-                unstash 'linux_whl'
                 dumpInfo 'Linux Test Info'
+
+                sh "make mrproper"
+                unstash 'linux_whl'
                 script {
                     try {
                         sh """
