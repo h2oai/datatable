@@ -140,6 +140,14 @@ pipeline {
                         touch LICENSE
                         python setup.py bdist_wheel
                     """
+                // Build noomp version on OSX as well
+                withEnv(["CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp"]) {
+                    sh '''#!/bin/bash -xe
+                            DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp 
+                            mv dist_noomp/*whl dist/
+                    '''
+                }
+
                 stash includes: 'dist/*.whl', name: 'osx_whl'
                 arch 'dist/*.whl'
             }
