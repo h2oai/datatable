@@ -12,7 +12,7 @@
 #include "py_utils.h"
 
 extern void free_xbuf_column(Column *col);
-extern void* PyBuffer_Release(void *view);
+extern void PyBuffer_Release(Py_buffer *view);
 extern size_t py_buffers_size;
 
 /**
@@ -568,7 +568,7 @@ void column_decref(Column *self)
             munmap(self->data, self->alloc_size);
         }
         if (self->mtype == MT_XBUF) {
-            PyBuffer_Release(self->pybuf);
+            PyBuffer_Release((Py_buffer*) self->pybuf);
         }
         dtfree(self->meta);
         dtfree(self);

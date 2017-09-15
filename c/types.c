@@ -61,15 +61,8 @@ const uint64_t NA_U8 = UINT64_MAX;
 float NA_F4;
 double NA_F8;
 
-inline int ISNA_F4(float x)    { return ((_flt){ .f = x }).i == NA_F4_BITS; }
-inline int ISNA_F8(double x)   { return ((_dbl){ .f = x }).i == NA_F8_BITS; }
-inline int ISNA_I1(int8_t x)   { return x == NA_I1; }
-inline int ISNA_I2(int16_t x)  { return x == NA_I2; }
-inline int ISNA_I4(int32_t x)  { return x == NA_I4; }
-inline int ISNA_I8(int64_t x)  { return x == NA_I8; }
-inline int ISNA_U1(uint8_t x)  { return x == NA_U1; }
-inline int ISNA_U2(uint16_t x) { return x == NA_U2; }
-inline int ISNA_U4(uint32_t x) { return x == NA_U4; }
+int ISNA_F4(float x)    { return ((_flt){ .f = x }).i == NA_F4_BITS; }
+int ISNA_F8(double x)   { return ((_dbl){ .f = x }).i == NA_F8_BITS; }
 
 
 

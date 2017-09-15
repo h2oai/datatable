@@ -435,13 +435,14 @@ extern       double   NA_F8;
 
 int ISNA_F4(float x);
 int ISNA_F8(double x);
-int ISNA_I1(int8_t x);
-int ISNA_I2(int16_t x);
-int ISNA_I4(int32_t x);
-int ISNA_I8(int64_t x);
-int ISNA_U1(uint8_t x);
-int ISNA_U2(uint16_t x);
-int ISNA_U4(uint32_t x);
+
+#define ISNA_I1(x)  ((int8_t)(x)   == NA_I1)
+#define ISNA_I2(x)  ((int16_t)(x)  == NA_I2)
+#define ISNA_I4(x)  ((int32_t)(x)  == NA_I4)
+#define ISNA_I8(x)  ((int64_t)(x)  == NA_I8)
+#define ISNA_U1(x)  ((uint8_t)(x)  == NA_U1)
+#define ISNA_U2(x)  ((uint16_t)(x) == NA_U2)
+#define ISNA_U4(x)  ((uint32_t)(x) == NA_U4)
 
 
 
