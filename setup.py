@@ -131,6 +131,7 @@ extra_compile_args += [
     "-Wno-old-style-cast",
     "-Wno-c++98-compat-pedantic",
     "-Wno-nested-anon-types",
+    "-Wno-c99-extensions",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
 ]
