@@ -262,7 +262,7 @@ RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows)
 {
     if (col->stype != ST_BOOLEAN_I1) return NULL;
 
-    int8_t *data = col->data;
+    int8_t *data = (int8_t*) col->data;
     int64_t nout = 0;
     int64_t maxrow = 0;
     for (int64_t i = 0; i < nrows; i++)
@@ -320,7 +320,7 @@ rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *rowindex)
 {
     if (col->stype != ST_BOOLEAN_I1) return NULL;
 
-    int8_t *data = col->data;
+    int8_t *data = (int8_t*) col->data;
     int64_t nouts = 0;
     int64_t maxrow = 0;
     #define CODE                                                               \
@@ -443,11 +443,14 @@ RowIndex* rowindex_copy(RowIndex *self)
     dtdeclmalloc(res, RowIndex, 1);
     res->refcount = 1;
     memcpy(res, self, sizeof(RowIndex));
-    if (self->type == RI_ARR32 || self->type == RI_ARR64) {
-        size_t length = (size_t) self->length;
-        size_t elemsize = (self->type == RI_ARR32) ? 4 : 8;
-        dtmalloc(res->ind32, void, elemsize * length);
-        memcpy(res->ind32, self->ind32, elemsize * length);
+    size_t length = (size_t) self->length;
+    if (self->type == RI_ARR32) {
+        dtmalloc(res->ind32, int32_t, length);
+        memcpy(res->ind32, self->ind32, length * 4);
+    }
+    if (self->type == RI_ARR64) {
+        dtmalloc(res->ind64, int64_t, length);
+        memcpy(res->ind64, self->ind64, length * 8);
     }
     return res;
 }
@@ -691,7 +694,8 @@ rowindex_from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows,
     {
         // Intermediate buffer where each thread stores the row numbers it found
         // before they are consolidated into the final output buffer.
-        int32_t *buf = malloc((size_t)rows_per_chunk * sizeof(int32_t));
+        int32_t *buf = (int32_t*) malloc((size_t)rows_per_chunk * sizeof(int32_t));
+
         // Number of elements that are currently being held in `buf`.
         int32_t buf_length = 0;
         // Offset (within the output buffer) where this thread needs to save the
