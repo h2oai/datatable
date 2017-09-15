@@ -437,8 +437,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
  */
 Column* column_realloc_and_fill(Column *self, int64_t nrows)
 {
-    int64_t old_nrows = self->nrows;
-    size_t diff_rows = (size_t)(nrows - old_nrows);
+    size_t old_nrows = (size_t)self->nrows;
+    size_t diff_rows = (size_t)nrows - old_nrows;
     size_t old_alloc_size = self->alloc_size;
     assert(diff_rows > 0);
 

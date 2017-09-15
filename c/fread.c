@@ -1605,7 +1605,7 @@ int freadMain(freadMainArgs _args)
     ch = sof;
     oldType = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
     if (!oldType) STOP("Unable to allocate %d bytes to check user overrides of column types", ncol);
-    memcpy(oldType, type, ncol) ;
+    memcpy(oldType, type, (size_t)ncol) ;
     if (!userOverride(type, colNames, colNamesAnchor, ncol)) { // colNames must not be changed but type[] can be
       if (verbose) DTPRINT("  Cancelled by user: userOverride() returned false.");
       freadCleanup();

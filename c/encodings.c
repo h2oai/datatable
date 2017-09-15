@@ -42,7 +42,7 @@ int decode_sbcs(
             uint32_t m = map[ch];
             if (m == 0) return -(int)(1 + d - dest);
             int s = 2 + ((m & 0xFF0000) != 0);
-            memcpy(d, &m, s);
+            memcpy(d, &m, (size_t) s);
             d += s;
         }
     }
