@@ -334,7 +334,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     assert(!stype_info[stype].varwidth);
     size_t elemsize = stype_info[stype].elemsize;
     size_t colsize = nrows * elemsize;
-    void *restrict buf = NULL;
+    void *__restrict__ buf = NULL;
     dtmalloc_g(buf, void, ncols * colsize);
 
     // Construct the data buffer

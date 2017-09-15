@@ -47,7 +47,7 @@ void iinsert0_i1(uint8_t *x, int *o, int n, int K)
 // Uses temporary array `tmp1`, which must be at least `n` ints long.
 void iinsert2(int *x, int *o, int n, int K)
 {
-    int *restrict t = tmp1;
+    int *__restrict__ t = tmp1;
     t[0] = 0;
     for (int i = 1; i < n; i++) {
         int xi = x[i];
@@ -69,7 +69,7 @@ void iinsert2(int *x, int *o, int n, int K)
 // Uses temporary array `tmp1`, which must be at least `2 * n` ints long.
 void iinsert3(int *x, int *o, int n, int K)
 {
-    int *restrict t = tmp1;
+    int *__restrict__ t = tmp1;
     t[n] = 0;
     int r = n, l = n, j, xr, xl;
     xr = xl = x[0];
@@ -121,7 +121,7 @@ void iinsert3(int *x, int *o, int n, int K)
 
 void iinsert3_i1(uint8_t *x, int *o, int n, int K)
 {
-    int *restrict t = tmp1;
+    int *__restrict__ t = tmp1;
     t[n] = 0;
     int r = n, l = n, j;
     uint8_t xr = x[0], xl = x[0];

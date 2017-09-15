@@ -893,7 +893,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
         _Pragma("omp parallel for schedule(dynamic) num_threads(sc->nth)")     \
         for (size_t i = 0; i < sc->nchunks; i++)                               \
         {                                                                      \
-            size_t *restrict cnts = counts + (sc->nradixes * i);               \
+            size_t *__restrict__ cnts = counts + (sc->nradixes * i);               \
             size_t j0 = i * sc->chunklen,                                      \
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
             for (size_t j = j0; j < j1; j++) {                                 \
@@ -970,7 +970,7 @@ static void build_histogram(SortContext *sc)
         for (size_t i = 0; i < sc->nchunks; i++) {                             \
             size_t j0 = i * sc->chunklen,                                      \
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
-            size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);     \
+            size_t *__restrict__ tcounts = sc->histogram + (sc->nradixes * i); \
             for (size_t j = j0; j < j1; j++) {                                 \
                 size_t k = tcounts[(xi[j] + dx) >> shift]++;                   \
                 oo[k] = oi? oi[j] : (int32_t) j;                               \
@@ -992,7 +992,7 @@ static void build_histogram(SortContext *sc)
         for (size_t i = 0; i < sc->nchunks; i++) {                             \
             size_t j0 = i * sc->chunklen,                                      \
                    j1 = minz(j0 + sc->chunklen, sc->n);                        \
-            size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);     \
+            size_t *__restrict__ tcounts = sc->histogram + (sc->nradixes * i); \
             for (size_t j = j0; j < j1; j++) {                                 \
                 TI t = xi[j] + dx;                                             \
                 size_t k = tcounts[t >> shift]++;                              \
@@ -1027,7 +1027,7 @@ static void reorder_data_str(SortContext *sc)
     for (size_t i = 0; i < sc->nchunks; i++) {
         size_t j0 = i * sc->chunklen,
                j1 = minz(j0 + sc->chunklen, sc->n);
-        size_t *restrict tcounts = sc->histogram + (sc->nradixes * i);
+        size_t *__restrict__ tcounts = sc->histogram + (sc->nradixes * i);
         for (size_t j = j0; j < j1; j++) {
             size_t k = tcounts[xi[j]]++;
             int32_t w = oi? oi[j] : (int32_t) j;
@@ -1337,12 +1337,12 @@ static void radix_psort(SortContext *sc)
 
 #define DECLARE_INSERT_SORT_FN(SFX, T)                                         \
     static int32_t* insert_sort_ ## SFX(                                       \
-        const void *restrict x,                                                \
-        int32_t *restrict o,                                                   \
-        int32_t *restrict oo,                                                  \
+        const void *__restrict__ x,                                            \
+        int32_t *__restrict__ o,                                               \
+        int32_t *__restrict__ oo,                                              \
         int32_t n                                                              \
     ) {                                                                        \
-        const T *restrict xi = (const T *) x;                                  \
+        const T *__restrict__ xi = (const T *) x;                              \
         int own_oo = 0;                                                        \
         if (oo == NULL) {                                                      \
             dtmalloc(oo, int32_t, n);                                          \
@@ -1379,11 +1379,11 @@ DECLARE_INSERT_SORT_FN(u8, uint64_t)
 
 
 static int32_t* insert_sort_s4_o(
-    const unsigned char *restrict strdata,
-    const int32_t *restrict stroffs,
+    const unsigned char *__restrict__ strdata,
+    const int32_t *__restrict__ stroffs,
     int32_t strstart,
-    int32_t *restrict o,
-    int32_t *restrict tmp,
+    int32_t *__restrict__ o,
+    int32_t *__restrict__ tmp,
     int32_t n
 ) {
     int32_t j;
@@ -1416,10 +1416,10 @@ static int32_t* insert_sort_s4_o(
 }
 
 static int32_t* insert_sort_s4_noo(
-    const unsigned char *restrict strdata,
-    const int32_t *restrict stroffs,
+    const unsigned char *__restrict__ strdata,
+    const int32_t *__restrict__ stroffs,
     int32_t strstart,
-    int32_t *restrict tmp,
+    int32_t *__restrict__ tmp,
     int32_t n
 ) {
     int32_t j;

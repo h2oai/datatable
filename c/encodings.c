@@ -29,8 +29,8 @@
  *     sequences.
  */
 int decode_sbcs(
-    const unsigned char *restrict src, int len,
-    unsigned char *restrict dest, uint32_t *map
+    const unsigned char *__restrict__ src, int len,
+    unsigned char *__restrict__ dest, uint32_t *map
 ) {
     const unsigned char *end = src + len;
     unsigned char *d = dest;
@@ -53,7 +53,7 @@ int decode_sbcs(
 /**
  * Check whether the memory buffer contains a valid UTF-8 string.
  */
-int is_valid_utf8(const unsigned char *restrict src, size_t len)
+int is_valid_utf8(const unsigned char *__restrict__ src, size_t len)
 {
     const unsigned char *ch = src;
     const unsigned char *end = src + len;

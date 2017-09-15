@@ -450,13 +450,13 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
     StrBuf *ctx_strbufs = ctx->strbufs;
     const unsigned char *anchor = (const unsigned char*) ctx->anchor;
     size_t nrows = ctx->nRows;
-    lenOff *restrict const lenoffs = (lenOff *restrict) ctx->buff8;
+    lenOff *__restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff8;
     int rowCount8 = (int) ctx->rowSize8 / 8;
 
     for (int k = 0; k < nstrcols; k++) {
         assert(ctx_strbufs != NULL);
 
-        lenOff *restrict lo = lenoffs + ctx_strbufs[k].idx8;
+        lenOff *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
         unsigned char *strdest = (unsigned char*) ctx_strbufs[k].buf;
         int32_t off = 1;
         size_t bufsize = ctx_strbufs[k].size;
@@ -554,10 +554,10 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 
 void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
-    StrBuf *restrict ctx_strbufs = ctx->strbufs;
-    const void *restrict buff8 = ctx->buff8;
-    const void *restrict buff4 = ctx->buff4;
-    const void *restrict buff1 = ctx->buff1;
+    StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
+    const void *__restrict__ buff8 = ctx->buff8;
+    const void *__restrict__ buff4 = ctx->buff4;
+    const void *__restrict__ buff1 = ctx->buff1;
     int nrows = (int) ctx->nRows;
     size_t row0 = ctx->DTi;
 
@@ -577,7 +577,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             StrBuf *sb = (StrBuf*) col->meta;
             int idx8 = ctx_strbufs[k].idx8;
             size_t ptr = ctx_strbufs[k].ptr;
-            const lenOff *restrict lo = add_constptr(buff8, idx8 * 8);
+            const lenOff *__restrict__ lo = add_constptr(buff8, idx8 * 8);
             size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
 
             int done = 0;
