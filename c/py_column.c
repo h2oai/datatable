@@ -107,7 +107,7 @@ static PyObject* pycolumn_hexview(Column_PyObject *self, UU)
 void free_xbuf_column(Column *col)
 {
     if (col->mtype == MT_XBUF)
-        PyBuffer_Release(col->pybuf);
+        PyBuffer_Release((Py_buffer*) col->pybuf);
 }
 
 
@@ -125,15 +125,18 @@ static void pycolumn_dealloc(Column_PyObject *self)
 //==============================================================================
 // Column type definition
 //==============================================================================
+#define DECL_GETSET(name, doc) \
+    static char dtgs_##name[] = #name; \
+    static char dtdoc_##name[] = doc;
 
-PyDoc_STRVAR(dtdoc_ltype, "'Logical' type of the column");
-PyDoc_STRVAR(dtdoc_stype, "'Storage' type of the column");
-PyDoc_STRVAR(dtdoc_mtype, "'Memory' type of the column: data, or memmap");
-PyDoc_STRVAR(dtdoc_data_size, "The amount of memory taken by column's data");
-PyDoc_STRVAR(dtdoc_meta, "String representation of the column's `meta` struct");
-PyDoc_STRVAR(dtdoc_refcount, "Reference count of the column");
+DECL_GETSET(ltype, "'Logical' type of the column")
+DECL_GETSET(stype, "'Storage' type of the column")
+DECL_GETSET(mtype, "'Memory' type of the column: data, or memmap")
+DECL_GETSET(data_size, "The amount of memory taken by column's data")
+DECL_GETSET(meta, "String representation of the column's `meta` struct")
+DECL_GETSET(refcount, "Reference count of the column")
 
-#define GETSET1(name) {#name, (getter)get_##name, NULL, dtdoc_##name, NULL}
+#define GETSET1(name) {dtgs_##name, (getter)get_##name, NULL, dtdoc_##name, NULL}
 static PyGetSetDef column_getseters[] = {
     GETSET1(mtype),
     GETSET1(stype),

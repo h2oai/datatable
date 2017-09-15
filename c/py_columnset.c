@@ -24,7 +24,7 @@ static PyObject* py(Column **columns)
  *         return NULL;
  */
 int columnset_unwrap(PyObject *object, void *address) {
-    Column ***ans = address;
+    Column ***ans = (Column***)address;
     if (!PyObject_TypeCheck(object, &ColumnSet_PyType)) {
         PyErr_SetString(PyExc_TypeError,
                         "Expected argument of type ColumnSet");
