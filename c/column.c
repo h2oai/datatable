@@ -12,6 +12,7 @@
 #include "py_utils.h"
 
 extern void free_xbuf_column(Column *col);
+extern void PyBuffer_Release(Py_buffer *view);
 extern size_t py_buffers_size;
 
 /**
@@ -335,7 +336,7 @@ Column* column_extract(Column *self, RowIndex *rowindex)
             ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;             \
             {   JINIT                                                          \
                 ctype lastoff = 1;                                             \
-                char *dest = res->data;                                        \
+                char *dest = (char*) res->data;                                \
                 ctype *resoffs = (ctype*) add_ptr(res->data, offoff);          \
                 for (size_t i = 0; i < nrows; i++) {                           \
                     JITER                                                      \
@@ -385,11 +386,11 @@ Column* column_extract(Column *self, RowIndex *rowindex)
             size_t alloc_size = nrows * elemsize;
             dtmalloc(res->data, void, alloc_size);
             res->alloc_size = alloc_size;
-            char *dest = res->data;
+            char *dest = (char*) res->data;
             if (rowindex->type == RI_SLICE) {
                 size_t startsize = (size_t)rowindex->slice.start * elemsize;
                 size_t stepsize = (size_t) rowindex->slice.step * elemsize;
-                char *src = add_ptr(self->data, startsize);
+                char *src = (char*)(self->data) + startsize;
                 for (size_t i = 0; i < nrows; i++) {
                     memcpy(dest, src, elemsize);
                     dest += elemsize;
@@ -436,8 +437,8 @@ Column* column_extract(Column *self, RowIndex *rowindex)
  */
 Column* column_realloc_and_fill(Column *self, int64_t nrows)
 {
-    int64_t old_nrows = self->nrows;
-    size_t diff_rows = (size_t)(nrows - old_nrows);
+    size_t old_nrows = (size_t)self->nrows;
+    size_t diff_rows = (size_t)nrows - old_nrows;
     size_t old_alloc_size = self->alloc_size;
     assert(diff_rows > 0);
 
@@ -567,7 +568,7 @@ void column_decref(Column *self)
             munmap(self->data, self->alloc_size);
         }
         if (self->mtype == MT_XBUF) {
-            PyBuffer_Release(self->pybuf);
+            PyBuffer_Release((Py_buffer*) self->pybuf);
         }
         dtfree(self->meta);
         dtfree(self);
@@ -617,7 +618,7 @@ size_t column_get_allocsize(Column *self)
         case MT_TEMP:
             if (self->filename)
                 sz += strlen(self->filename) + 1;  // +1 for trailing '\0'
-            // fall-through
+            [[clang::fallthrough]];
         case MT_DATA:
             sz += self->alloc_size;
             break;

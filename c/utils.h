@@ -158,9 +158,10 @@ void* _dt_malloc(size_t n);
 void* _dt_realloc(void *ptr, size_t n);
 void  _dt_free(void *ptr);
 #ifdef __cplusplus
-    #define null nullptr
+    #define null NULL
 #else
     #define null NULL
+    #define bool _Bool
 #endif
 
 
@@ -237,7 +238,7 @@ int nlz8(uint64_t x);
 #define UNUSED(x)  __attribute__((unused)) x
 
 
-void set_value(void * restrict ptr, const void * restrict value,
+void set_value(void * __restrict__ ptr, const void * __restrict__ value,
                size_t sz, size_t count);
 
 #endif

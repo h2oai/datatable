@@ -101,21 +101,21 @@ typedef struct freadMainArgs
   int8_t header;
 
   // Strip the whitespace from fields (usually True).
-  _Bool stripWhite;
+  bool stripWhite;
 
   // If True, empty lines in the file will be skipped. Otherwise empty lines
   // will produce rows of NAs.
-  _Bool skipEmptyLines;
+  bool skipEmptyLines;
 
   // If True, then rows are allowed to have variable number of columns, and
   // all ragged rows will be filled with NAs on the right.
-  _Bool fill;
+  bool fill;
 
   // If True, then emit progress messages during the parsing.
-  _Bool showProgress;
+  bool showProgress;
 
   // Emit extra debug-level information.
-  _Bool verbose;
+  bool verbose;
 
   // If true, then this field instructs `fread` to treat warnings as errors. In
   // particular in R this setting is turned on whenever `option(warn=2)` is set,
@@ -123,7 +123,7 @@ typedef struct freadMainArgs
   // However `fread` still needs to know that the exception will be raised, so
   // that it can do proper cleanup / resource deallocation -- otherwise memory
   // leaks would occur.
-  _Bool warningsAreErrors;
+  bool warningsAreErrors;
 
   char _padding[2];
 
@@ -140,17 +140,17 @@ typedef struct ThreadLocalFreadParsingContext
 {
   // Pointer that serves as a starting point for all offsets within the `lenOff`
   // structs.
-  const char *restrict anchor;
+  const char *__restrict__ anchor;
 
   // Output buffers for values with different alignment requirements. For
   // example all `lenOff` columns, `double` columns and `int64` columns will be
-  // written to buffer `buff8`; at the same time `_Bool` and `int8` columns will
+  // written to buffer `buff8`; at the same time `bool` and `int8` columns will
   // be stored in memory buffer `buff1`.
   // Within each buffer the data is stored in row-major order, i.e. in the same
   // order as in the original CSV file.
-  void *restrict buff8;
-  void *restrict buff4;
-  void *restrict buff1;
+  void *__restrict__ buff8;
+  void *__restrict__ buff4;
+  void *__restrict__ buff1;
 
   // Size (in bytes) for a single row of data within the buffers `buff8`,
   // `buff4` and `buff1` correspondingly.
@@ -168,7 +168,7 @@ typedef struct ThreadLocalFreadParsingContext
   // Reference to the flag that controls the parser's execution. Setting this
   // flag to true will force parsing of the CSV file to terminate in the near
   // future.
-  _Bool *stopTeam;
+  bool *stopTeam;
 
   int threadn;
 
@@ -227,7 +227,7 @@ int freadMain(freadMainArgs args);
  *    this function may return `false` to request that fread abort reading
  *    the CSV file. Normally, this function should return `true`.
  */
-_Bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
+bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
                    int ncol);
 
 

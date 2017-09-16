@@ -79,7 +79,8 @@ static int8_t *sizes = NULL;
  */
 PyObject* pyfread(UU, PyObject *args)
 {
-    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL;
+    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *pydt = NULL;
+    int retval = 0;
     if (freader != NULL || dt != NULL) {
         PyErr_SetString(PyExc_RuntimeError,
             "Cannot run multiple instances of fread() in-parallel.");
@@ -123,10 +124,10 @@ PyObject* pyfread(UU, PyObject *args)
     frargs->freader = freader;
     Py_INCREF(freader);
 
-    int res = freadMain(*frargs);
-    if (!res) goto fail;
+    retval = freadMain(*frargs);
+    if (!retval) goto fail;
 
-    PyObject *pydt = pydt_from_dt(dt);
+    pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
     Py_XDECREF(tmp1);
     Py_XDECREF(tmp2);
@@ -172,7 +173,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
             fclose(fp);
             // Memory-map the file.
             int fd = open(fname, O_RDWR);
-            sb->buf = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+            sb->buf = (char*) mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
             if (sb->buf == MAP_FAILED) {
                 printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
                 return NULL;
@@ -244,7 +245,7 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
 
 
 
-_Bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
+bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
                    int ncols_)
 {
     types = types_;
@@ -450,13 +451,13 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
     StrBuf *ctx_strbufs = ctx->strbufs;
     const unsigned char *anchor = (const unsigned char*) ctx->anchor;
     size_t nrows = ctx->nRows;
-    lenOff *restrict const lenoffs = (lenOff *restrict) ctx->buff8;
+    lenOff *__restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff8;
     int rowCount8 = (int) ctx->rowSize8 / 8;
 
     for (int k = 0; k < nstrcols; k++) {
         assert(ctx_strbufs != NULL);
 
-        lenOff *restrict lo = lenoffs + ctx_strbufs[k].idx8;
+        lenOff *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
         unsigned char *strdest = (unsigned char*) ctx_strbufs[k].buf;
         int32_t off = 1;
         size_t bufsize = ctx_strbufs[k].size;
@@ -532,7 +533,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
                     truncate(fname, (off_t)newsize);
                     int fd = open(fname, O_RDWR);
                     munmap(sb->buf, sb->size);
-                    sb->buf = mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+                    sb->buf = (char*) mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
                     close(fd);
                 } else {
                     dtrealloc_g(sb->buf, char, newsize);
@@ -554,10 +555,10 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 
 void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
-    StrBuf *restrict ctx_strbufs = ctx->strbufs;
-    const void *restrict buff8 = ctx->buff8;
-    const void *restrict buff4 = ctx->buff4;
-    const void *restrict buff1 = ctx->buff1;
+    StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
+    const void *__restrict__ buff8 = ctx->buff8;
+    const void *__restrict__ buff4 = ctx->buff4;
+    const void *__restrict__ buff1 = ctx->buff1;
     int nrows = (int) ctx->nRows;
     size_t row0 = ctx->DTi;
 
@@ -577,7 +578,8 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             StrBuf *sb = (StrBuf*) col->meta;
             int idx8 = ctx_strbufs[k].idx8;
             size_t ptr = ctx_strbufs[k].ptr;
-            const lenOff *restrict lo = add_constptr(buff8, idx8 * 8);
+            const lenOff *__restrict__ lo =
+                (const lenOff*) add_constptr(buff8, idx8 * 8);
             size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
 
             int done = 0;

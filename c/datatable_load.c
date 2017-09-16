@@ -63,7 +63,7 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         int32_t send = abs(offs[i]) - 1;
         int32_t slen = send - ssta;
         if (slen != 3) dterrr("Incorrect stype's length: %d", slen);
-        SType stype = stype_from_string(add_ptr(cols->data, ssta));
+        SType stype = stype_from_string((char*)cols->data + (ssize_t)ssta);
         if (stype == ST_VOID) {
             char stypestr[4];
             memcpy(stypestr, add_ptr(cols->data, ssta), 3);

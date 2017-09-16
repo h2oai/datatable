@@ -183,7 +183,7 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
                         if (offi > 0) {
                             offdata[j] = offi - doffset;
                             memmove(strdata + offp, strdata + offp + doffset,
-                                    offi - offp - doffset);
+                                    (size_t)(offi - offp - doffset));
                         } else {
                             offdata[j] = -offp;
                         }

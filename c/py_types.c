@@ -52,27 +52,27 @@ static PyObject* stype_real_f64_tostring(Column *col, int64_t row)
 
 static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
 {
+    DecimalMeta *meta = (DecimalMeta*) col->meta;
     int16_t x = ((int16_t*)col->data)[row];
     if (x == NA_I2) return none();
-    DecimalMeta *meta = col->meta;
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
 }
 
 static PyObject* stype_real_i32_tostring(Column *col, int64_t row)
 {
+    DecimalMeta *meta = (DecimalMeta*) col->meta;
     int32_t x = ((int32_t*)col->data)[row];
     if (x == NA_I4) return none();
-    DecimalMeta *meta = col->meta;
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
 }
 
 static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
 {
+    DecimalMeta *meta = (DecimalMeta*) col->meta;
     int64_t x = ((int64_t*)col->data)[row];
     if (x == NA_I8) return none();
-    DecimalMeta *meta = col->meta;
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
 }
@@ -85,7 +85,7 @@ static PyObject* stype_vchar_i32_tostring(Column *col, int64_t row)
         return none();
     int32_t start = row == 0? 0 : abs(offsets[row - 1]) - 1;
     int32_t len = offsets[row] - 1 - start;
-    return PyUnicode_FromStringAndSize(add_ptr(col->data, start), len);
+    return PyUnicode_FromStringAndSize((char*)(col->data) + (size_t)start, len);
 }
 
 static PyObject* stype_object_pyptr_tostring(Column *col, int64_t row)

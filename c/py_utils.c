@@ -118,7 +118,7 @@ char* _to_string(PyObject *x, PyObject **tmp)
         char *out = NULL;
         if (tmp == NULL) {
             dtmalloc_g(out, char, PyBytes_Size(z) + 1);
-            memcpy(out, PyBytes_AsString(z), PyBytes_Size(z) + 1);
+            memcpy(out, PyBytes_AsString(z), (size_t)PyBytes_Size(z) + 1);
         } else {
             *tmp = z;
             out = PyBytes_AsString(z);
@@ -130,7 +130,7 @@ char* _to_string(PyObject *x, PyObject **tmp)
 }
 
 char** _to_string_list(PyObject *x) {
-    if (x == NULL) goto fail;
+    if (x == NULL) return (char**) -1;
     char **res = NULL;
     if (x == Py_None) {}
     else if (PyList_Check(x)) {

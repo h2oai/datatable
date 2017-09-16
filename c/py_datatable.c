@@ -32,7 +32,7 @@ PyObject* pydt_from_dt(DataTable *dt)
 #define py pydt_from_dt
 
 int dt_unwrap(PyObject *object, void *address) {
-    DataTable **ans = address;
+    DataTable **ans = (DataTable**) address;
     if (!PyObject_TypeCheck(object, &DataTable_PyType)) {
         PyErr_SetString(PyExc_TypeError, "Expected object of type DataTable");
         return 0;
@@ -41,20 +41,25 @@ int dt_unwrap(PyObject *object, void *address) {
     return 1;
 }
 
+//------------------------------------------------------------------------------
 
+DT_DOCS(nrows, "Number of rows in the datatable")
 static PyObject* get_nrows(DataTable_PyObject *self) {
     return PyLong_FromLongLong(self->ref->nrows);
 }
 
+DT_DOCS(ncols, "Number of columns in the datatable")
 static PyObject* get_ncols(DataTable_PyObject *self) {
     return PyLong_FromLongLong(self->ref->ncols);
 }
 
+DT_DOCS(isview, "Is the datatable view or now?");
 static PyObject* get_isview(DataTable_PyObject *self) {
     return incref(self->ref->rowindex == NULL? Py_False : Py_True);
 }
 
 
+DT_DOCS(types, "List of column types")
 static PyObject* get_types(DataTable_PyObject *self)
 {
     int64_t i = self->ref->ncols;
@@ -69,6 +74,7 @@ static PyObject* get_types(DataTable_PyObject *self)
 }
 
 
+DT_DOCS(stypes, "List of column storage types")
 static PyObject* get_stypes(DataTable_PyObject *self)
 {
     DataTable *dt = self->ref;
@@ -83,6 +89,7 @@ static PyObject* get_stypes(DataTable_PyObject *self)
 }
 
 
+DT_DOCS(rowindex_type, "Type of the row index: 'slice' or 'array'")
 static PyObject* get_rowindex_type(DataTable_PyObject *self)
 {
     if (self->ref->rowindex == NULL)
@@ -94,6 +101,7 @@ static PyObject* get_rowindex_type(DataTable_PyObject *self)
 }
 
 
+DT_DOCS(rowindex, "Row index of the view datatable, or None if this is not a view datatable")
 static PyObject* get_rowindex(DataTable_PyObject *self)
 {
     RowIndex *ri = self->ref->rowindex;
@@ -101,6 +109,7 @@ static PyObject* get_rowindex(DataTable_PyObject *self)
 }
 
 
+DT_DOCS(datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object")
 static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 {
     return PyLong_FromLongLong((long long int)self->ref);
@@ -112,13 +121,15 @@ static PyObject* get_datatable_ptr(DataTable_PyObject *self)
  * `sizeof(DataTable_PyObject)`, which includes the size of the `self->ref`
  * pointer.
  */
+DT_DOCS(alloc_size, "DataTable's internal size, in bytes")
 static PyObject* get_alloc_size(DataTable_PyObject *self)
 {
     return PyLong_FromSize_t(datatable_get_allocsize(self->ref));
 }
 
 
-static DataWindow_PyObject* window(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(window, "Retrieve datatable's data within a window");
+static DataWindow_PyObject* meth_window(DataTable_PyObject *self, PyObject *args)
 {
     int64_t row0, row1, col0, col1;
     if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
@@ -180,7 +191,8 @@ PyObject* pydatatable_load(UU, PyObject *args)
  * error messages will be printed to stdout. This argument has no effect if no
  * errors in the file were found.
  */
-static PyObject* check(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(check, "Check and repair the datatable");
+static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
     PyObject *stream = NULL;
@@ -204,8 +216,8 @@ static PyObject* check(DataTable_PyObject *self, PyObject *args)
 
 
 
-static PyObject*
-column(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(column, "Get the requested column in the datatable")
+static PyObject* meth_column(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
     int64_t colidx;
@@ -223,7 +235,8 @@ column(DataTable_PyObject *self, PyObject *args)
 
 
 
-static PyObject* delete_columns(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(delete_columns, "Remove the specified list of columns from the datatable")
+static PyObject* meth_delete_columns(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
     PyObject *list;
@@ -245,7 +258,8 @@ static PyObject* delete_columns(DataTable_PyObject *self, PyObject *args)
 
 
 
-static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(rbind, "Append rows of other datatables to the current")
+static PyObject* meth_rbind(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
     int final_ncols;
@@ -290,8 +304,8 @@ static PyObject* rbind(DataTable_PyObject *self, PyObject *args)
 }
 
 
-
-static PyObject* cbind(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(cbind, "Append columns of other datatables to the current")
+static PyObject* meth_cbind(DataTable_PyObject *self, PyObject *args)
 {
     PyObject *pydts;
     if (!PyArg_ParseTuple(args, "O!:cbind",
@@ -319,7 +333,8 @@ static PyObject* cbind(DataTable_PyObject *self, PyObject *args)
 
 
 
-static PyObject* sort(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(sort, "Sort datatable according to a column")
+static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
     int idx;
@@ -332,16 +347,18 @@ static PyObject* sort(DataTable_PyObject *self, PyObject *args)
 
 
 
-static PyObject* get_stat(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(get_stat, "Get a statistical value for each column in the datatable")
+static PyObject* meth_get_stat(DataTable_PyObject *self, PyObject *args)
 {
-    uint8_t stat;
+    CStat stat;
     if (!PyArg_ParseTuple(args, "b:get_stat", &stat)) return NULL;
     return py(make_cstat_datatable(self->ref, stat));
 }
 
 
 
-static PyObject* materialize(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(materialize, "")
+static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
 {
     if (!PyArg_ParseTuple(args, "")) return NULL;
 
@@ -365,7 +382,8 @@ static PyObject* materialize(DataTable_PyObject *self, PyObject *args)
 }
 
 
-static PyObject* apply_na_mask(DataTable_PyObject *self, PyObject *args)
+DT_DOCS(apply_na_mask, "")
+static PyObject* meth_apply_na_mask(DataTable_PyObject *self, PyObject *args)
 {
     DataTable *dt = self->ref;
     DataTable *mask = NULL;
@@ -392,52 +410,30 @@ static void _dealloc_(DataTable_PyObject *self)
 // DataTable type definition
 //======================================================================================================================
 
-PyDoc_STRVAR(dtdoc_window, "Retrieve datatable's data within a window");
-PyDoc_STRVAR(dtdoc_check, "Check and repair the datatable");
-PyDoc_STRVAR(dtdoc_nrows, "Number of rows in the datatable");
-PyDoc_STRVAR(dtdoc_ncols, "Number of columns in the datatable");
-PyDoc_STRVAR(dtdoc_types, "List of column types");
-PyDoc_STRVAR(dtdoc_stypes, "List of column storage types");
-PyDoc_STRVAR(dtdoc_isview, "Is the datatable view or now?");
-PyDoc_STRVAR(dtdoc_rowindex, "Row index of the view datatable, or None if this is not a view datatable");
-PyDoc_STRVAR(dtdoc_rowindex_type, "Type of the row index: 'slice' or 'array'");
-PyDoc_STRVAR(dtdoc_column, "Get the requested column in the datatable");
-PyDoc_STRVAR(dtdoc_datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object");
-PyDoc_STRVAR(dtdoc_delete_columns, "Remove the specified list of columns from the datatable");
-PyDoc_STRVAR(dtdoc_rbind, "Append rows of other datatables to the current");
-PyDoc_STRVAR(dtdoc_sort, "Sort datatable according to a column");
-PyDoc_STRVAR(dtdoc_alloc_size, "DataTable's internal size, in bytes");
-PyDoc_STRVAR(dtdoc_get_stat, "Get a statistical value for each column in the datatable");
-
-#define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
-#define METHOD1(name) {#name, (PyCFunction)name, METH_VARARGS, dtdoc_##name}
-
 static PyMethodDef datatable_methods[] = {
-    METHOD1(window),
-    METHOD1(check),
-    METHOD1(column),
-    METHOD1(delete_columns),
-    METHOD1(rbind),
-    METHOD0(cbind),
-    METHOD1(sort),
-    METHOD1(get_stat),
-    METHOD0(materialize),
-    METHOD0(apply_na_mask),
+    DT_METHOD1(window),
+    DT_METHOD1(check),
+    DT_METHOD1(column),
+    DT_METHOD1(delete_columns),
+    DT_METHOD1(rbind),
+    DT_METHOD1(cbind),
+    DT_METHOD1(sort),
+    DT_METHOD1(get_stat),
+    DT_METHOD1(materialize),
+    DT_METHOD1(apply_na_mask),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
-#define GETSET1(name) {#name, (getter)get_##name, NULL, dtdoc_##name, NULL}
-
 static PyGetSetDef datatable_getseters[] = {
-    GETSET1(nrows),
-    GETSET1(ncols),
-    GETSET1(types),
-    GETSET1(stypes),
-    GETSET1(isview),
-    GETSET1(rowindex),
-    GETSET1(rowindex_type),
-    GETSET1(datatable_ptr),
-    GETSET1(alloc_size),
+    DT_GETSETTER(nrows),
+    DT_GETSETTER(ncols),
+    DT_GETSETTER(types),
+    DT_GETSETTER(stypes),
+    DT_GETSETTER(isview),
+    DT_GETSETTER(rowindex),
+    DT_GETSETTER(rowindex_type),
+    DT_GETSETTER(datatable_ptr),
+    DT_GETSETTER(alloc_size),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
 };
 

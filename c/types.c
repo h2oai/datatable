@@ -61,15 +61,8 @@ const uint64_t NA_U8 = UINT64_MAX;
 float NA_F4;
 double NA_F8;
 
-inline int ISNA_F4(float x)    { return ((_flt){ .f = x }).i == NA_F4_BITS; }
-inline int ISNA_F8(double x)   { return ((_dbl){ .f = x }).i == NA_F8_BITS; }
-inline int ISNA_I1(int8_t x)   { return x == NA_I1; }
-inline int ISNA_I2(int16_t x)  { return x == NA_I2; }
-inline int ISNA_I4(int32_t x)  { return x == NA_I4; }
-inline int ISNA_I8(int64_t x)  { return x == NA_I8; }
-inline int ISNA_U1(uint8_t x)  { return x == NA_U1; }
-inline int ISNA_U2(uint16_t x) { return x == NA_U2; }
-inline int ISNA_U4(uint32_t x) { return x == NA_U4; }
+int ISNA_F4(float x)    { return ((_flt){ .f = x }).i == NA_F4_BITS; }
+int ISNA_F8(double x)   { return ((_dbl){ .f = x }).i == NA_F8_BITS; }
 
 
 
@@ -87,7 +80,7 @@ void init_types(void)
 
     #define STI(T, code, csize, msize, vw, ltype, na) \
         stype_info[T] = (STypeInfo){csize, msize, na, code, ltype, vw, 0}
-    STI(ST_VOID,              "---", 0, 0,                   0, 0,           NULL);
+    STI(ST_VOID,              "---", 0, 0,                   0, LT_MU,       NULL);
     STI(ST_BOOLEAN_I1,        "i1b", 1, 0,                   0, LT_BOOLEAN,  &NA_I1);
     STI(ST_INTEGER_I1,        "i1i", 1, 0,                   0, LT_INTEGER,  &NA_I1);
     STI(ST_INTEGER_I2,        "i2i", 2, 0,                   0, LT_INTEGER,  &NA_I2);
@@ -116,12 +109,12 @@ void init_types(void)
         stype_upcast_map[stype1][stype2] = stypeR; \
         stype_upcast_map[stype2][stype1] = stypeR;
 
-    for (SType i = 1; i < DT_STYPES_COUNT; i++) {
-        stype_upcast_map[i][0] = stype_info[i].varwidth? ST_OBJECT_PYPTR : i;
-        stype_upcast_map[0][i] = stype_info[i].varwidth? ST_OBJECT_PYPTR : i;
-        for (SType j = 1; j < DT_STYPES_COUNT; j++) {
+    for (int i = 1; i < DT_STYPES_COUNT; i++) {
+        stype_upcast_map[i][0] = stype_info[i].varwidth? ST_OBJECT_PYPTR : (SType)i;
+        stype_upcast_map[0][i] = stype_info[i].varwidth? ST_OBJECT_PYPTR : (SType)i;
+        for (int j = 1; j < DT_STYPES_COUNT; j++) {
             stype_upcast_map[i][j] =
-                stype_info[i].varwidth || i != j ? ST_OBJECT_PYPTR : i;
+                stype_info[i].varwidth || i != j ? ST_OBJECT_PYPTR : (SType)i;
         }
     }
     UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I1,  ST_INTEGER_I1)
@@ -158,8 +151,8 @@ void init_types(void)
         assert(test1 == test2);
     }
 
-    for (SType i = ST_VOID; i < DT_STYPES_COUNT; i++) {
-        assert(i == stype_from_string(stype_info[i].code));
+    for (int i = 0; i < DT_STYPES_COUNT; i++) {
+        assert((SType)i == stype_from_string(stype_info[i].code));
     }
 }
 
@@ -216,7 +209,7 @@ SType stype_from_string(const char *s)
 }
 
 
-char* format_from_stype(SType stype)
+const char* format_from_stype(SType stype)
 {
     return stype == ST_BOOLEAN_I1? "?" :
            stype == ST_INTEGER_I1? "b" :
