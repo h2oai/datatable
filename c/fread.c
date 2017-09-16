@@ -203,15 +203,15 @@ static void printTypes(int ncol) {
 }
 
 
-static inline void skip_white(const char **this) {
+static inline void skip_white(const char **ptr) {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
-  const char *ch = *this;
+  const char *ch = *ptr;
   if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
     while (*ch == ' ' || *ch == '\t') ch++;
   } else {
     while (*ch == whiteChar) ch++;  // sep is ' ' or '\t' so just skip the other one.
   }
-  *this = ch;
+  *ptr = ch;
 }
 
 
@@ -240,18 +240,18 @@ static inline bool end_of_field(const char ch) {
  * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
  * 6. \\r\\r\\r  Might as well, for completeness
  */
-static inline bool eol(const char **this) {
-  const char *ch = *this;
+static inline bool eol(const char **ptr) {
+  const char *ch = *ptr;
   while (*ch=='\r') ch++;  // commonly happens once on Windows for type 2
   if (*ch=='\n') {
     // 1,2,3 and 5 (one \n with any number of \r before and/or after)
     while (ch[1]=='\r') ch++;  // type 5. Could drop but we're only tepid here so keep for completeness and full generality.
-    *this = ch;
+    *ptr = ch;
     return true;
   }
-  else if (ch>*this) {  // did we move over some \r above?
+  else if (ch>*ptr) {  // did we move over some \r above?
     // 4 and 6 (\r only with no \n before or after)
-    *this = ch-1;  // move back onto the last \r
+    *ptr = ch-1;  // move back onto the last \r
     return true;
   }
   return false;
@@ -279,16 +279,16 @@ static inline const char *end_NA_string(const char *fieldStart) {
  * be parsed using current settings.
  * This does not need to be particularly efficient; it's just used for format detection.
  */
-static inline int countfields(const char **this)
+static inline int countfields(const char **ptr)
 {
   static lenOff trash;  // see comment on other trash declarations
   static void *targets[9];
   targets[8] = (void*) &trash;
-  const char *ch = *this;
+  const char *ch = *ptr;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_white(&ch);
   if (eol(&ch)) {
-    *this = ch+1;
+    *ptr = ch+1;
     return 0;
   }
   int ncol = 1;
@@ -312,19 +312,19 @@ static inline int countfields(const char **this)
       ncol++;
       continue;
     }
-    if (eol(&ch)) { *this=ch+1; return ncol; }
+    if (eol(&ch)) { *ptr=ch+1; return ncol; }
     if (*ch!='\0') return -1;  // -1 means this line not valid for this sep and quote rule
     break;
   }
   if (ch==eof && finalByte && finalByte==sep && sep!=' ') ncol++;
-  *this = ch;
+  *ptr = ch;
   return ncol;
 }
 
 
-static inline bool nextGoodLine(const char **this, int ncol)  //  TODO: remove using Pasha's chunk-roll-on idea
+static inline bool nextGoodLine(const char **ptr, int ncol)  //  TODO: remove using Pasha's chunk-roll-on idea
 {
-  const char *ch = *this;
+  const char *ch = *ptr;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
   // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
   // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
@@ -340,7 +340,7 @@ static inline bool nextGoodLine(const char **this, int ncol)  //  TODO: remove u
     while (i<5 && countfields(&ch2)==ncol) i++;
     if (i==5) break;
   }
-  if (*ch!='\0' && attempts<30) { *this = ch; return true; }
+  if (*ch!='\0' && attempts<30) { *ptr = ch; return true; }
   return false;
 }
 
@@ -375,12 +375,13 @@ double wallclock(void)
  * multiple threads at the same time, or hold on to the value returned for
  * extended periods of time.
  */
-static char* filesize_to_str(size_t fsize)
+static const char* filesize_to_str(size_t fsize)
 {
   #define NSUFFIXES 4
   #define BUFFSIZE 100
   static char suffixes[NSUFFIXES] = {'T', 'G', 'M', 'K'};
   static char output[BUFFSIZE];
+  static const char one_byte[] = "1 byte";
   llu lsize = (llu) fsize;
   for (int i = 0; i <= NSUFFIXES; i++) {
     int shift = (NSUFFIXES - i) * 10;
@@ -401,7 +402,7 @@ static char* filesize_to_str(size_t fsize)
       return output;
     }
   }
-  if (fsize == 1) return "1 byte";
+  if (fsize == 1) return one_byte;
   snprintf(output, BUFFSIZE, "%llu bytes", lsize);
   return output;
 }
@@ -1659,7 +1660,7 @@ int freadMain(freadMainArgs _args) {
 
   ch = pos;  // back to start of first row (likely column names)
 
-  colNames = calloc((size_t)ncol, sizeof(lenOff));
+  colNames = (lenOff*) calloc((size_t)ncol, sizeof(lenOff));
   if (!colNames) STOP("Unable to allocate %d*%d bytes for column name pointers: %s", ncol, sizeof(lenOff), strerror(errno));
 
   if (args.header==false) {
@@ -2028,7 +2029,7 @@ int freadMain(freadMainArgs _args) {
                   j+1, colNames[j].len, colNamesAnchor + colNames[j].off,
                   typeName[abs(joldType)], typeName[abs(thisType)],
                   (int)(tch-fieldStart), fieldStart, (llu)(ctx.DTi+myNrow));
-                typeBumpMsg = realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
+                typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
                 strcpy(typeBumpMsg+typeBumpMsgSize, temp);
                 typeBumpMsgSize += (size_t)len;
                 nTypeBump++;
