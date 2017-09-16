@@ -58,10 +58,10 @@ static char finalByte;
 //
 static int quoteRule;
 static const char* const* NAstrings;
-static _Bool any_number_like_NAstrings=false;
-static _Bool blank_is_a_NAstring=false;
-static _Bool stripWhite=true;  // only applies to character columns; numeric fields always stripped
-static _Bool skipEmptyLines=false, fill=false;
+static bool any_number_like_NAstrings=false;
+static bool blank_is_a_NAstring=false;
+static bool stripWhite=true;  // only applies to character columns; numeric fields always stripped
+static bool skipEmptyLines=false, fill=false;
 
 static double NA_FLOAT64;  // takes fread.h:NA_FLOAT64_VALUE
 
@@ -125,9 +125,9 @@ static char* _const_cast(const char *ptr) {
  * for some reason (e.g. unexpected error/bug) then it is called again on starting
  * with verbose message if it needed to clean anything up.
  */
-_Bool freadCleanup(void)
+bool freadCleanup(void)
 {
-  _Bool neededCleanup = (type || size || colNames || oldType || mmp);
+  bool neededCleanup = (type || size || colNames || oldType || mmp);
   free(type); type = NULL;
   free(size); size = NULL;
   free(colNames); colNames = NULL;
@@ -219,7 +219,7 @@ static inline void skip_white(const char **this) {
  * Return True iff `ch` is a valid field terminator character: either a field
  * separator or a newline.
  */
-static inline _Bool end_of_field(const char ch) {
+static inline bool end_of_field(const char ch) {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
   // single check `ch<=13` is almost equivalent to checking whether `ch` is one
@@ -240,7 +240,7 @@ static inline _Bool end_of_field(const char ch) {
  * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
  * 6. \\r\\r\\r  Might as well, for completeness
  */
-static inline _Bool eol(const char **this) {
+static inline bool eol(const char **this) {
   const char *ch = *this;
   while (*ch=='\r') ch++;  // commonly happens once on Windows for type 2
   if (*ch=='\n') {
@@ -322,7 +322,7 @@ static inline int countfields(const char **this)
 }
 
 
-static inline _Bool nextGoodLine(const char **this, int ncol)  //  TODO: remove using Pasha's chunk-roll-on idea
+static inline bool nextGoodLine(const char **this, int ncol)  //  TODO: remove using Pasha's chunk-roll-on idea
 {
   const char *ch = *this;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
@@ -545,7 +545,7 @@ static void StrtoI32(FieldParseContext *ctx)
   const char *ch = *(ctx->ch);
   int32_t *target = (int32_t*) ctx->targets[sizeof(int32_t)];
 
-  _Bool neg = *ch=='-';
+  bool neg = *ch=='-';
   ch += (neg || *ch=='+');
   const char *start = ch;  // to know if at least one digit is present
   // acc needs to be 64bit so that 5bn (still 10 digits but greater than 4bn) does not overflow. It could be
@@ -582,7 +582,7 @@ static void StrtoI64(FieldParseContext *ctx)
   const char *ch = *(ctx->ch);
   int64_t *target = (int64_t*) ctx->targets[sizeof(int64_t)];
 
-  _Bool neg = *ch=='-';
+  bool neg = *ch=='-';
   ch += (neg || *ch=='+');
   const char *start = ch;
   uint_fast64_t acc = 0;  // important unsigned not signed here; we now need the full unsigned range
@@ -639,7 +639,7 @@ static void parse_double_regular(FieldParseContext *ctx)
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
 
-  _Bool neg, Eneg;
+  bool neg, Eneg;
   ch += (neg = *ch=='-') + (*ch=='+');
 
   const char *start = ch;
@@ -710,7 +710,7 @@ static void parse_double_extended(FieldParseContext *ctx)
 {
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
-  _Bool neg, quoted;
+  bool neg, quoted;
   ch += (quoted = (*ch=='"'));
   ch += (neg = (*ch=='-')) + (*ch=='+');
 
@@ -794,7 +794,7 @@ static void parse_double_hexadecimal(FieldParseContext *ctx)
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
   uint64_t neg;
-  _Bool Eneg, subnormal = 0;
+  bool Eneg, subnormal = 0;
   ch += (neg = (*ch=='-')) + (*ch=='+');
 
   if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
@@ -936,8 +936,8 @@ int freadMain(freadMainArgs _args) {
   //*********************************************************************************************
   // [1] Extract the arguments and check their validity
   //*********************************************************************************************
-  _Bool verbose = args.verbose;
-  _Bool warningsAreErrors = args.warningsAreErrors;
+  bool verbose = args.verbose;
+  bool warningsAreErrors = args.warningsAreErrors;
 
   if (freadCleanup() && verbose)
     DTPRINT("Previous fread() session was not cleaned up properly. Cleaned up ok at the beginning of this fread() call.\n");
@@ -1318,7 +1318,7 @@ int freadMain(freadMainArgs _args) {
       }
       if (numFields[0]==-1) continue;
       if (firstJumpEnd==NULL) firstJumpEnd=ch;  // if this wins (doesn't get updated), it'll be single column input
-      _Bool updated=false;
+      bool updated=false;
       int nmax=0;
 
       i = -1;
@@ -1443,8 +1443,8 @@ int freadMain(freadMainArgs _args) {
   double sumLen=0.0, sumLenSq=0.0;
   int minLen=INT32_MAX, maxLen=-1;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
   lastRowEnd = pos;
-  _Bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
-  _Bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
+  bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
+  bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
   for (int j=0; j<nJumps; j++) {
     ch = (j == 0) ? pos :
          (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
@@ -1456,7 +1456,7 @@ int freadMain(freadMainArgs _args) {
       continue;
     }
     if (j==nJumps-1) lastSampleJumpOk = true;
-    _Bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
+    bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
     int jline = 0;     // line from this jump point
     while(ch<eof && (jline<JUMPLINES || j==nJumps-1)) {  // nJumps==1 implies sample all of input to eof; last jump to eof too
       const char *jlineStart = ch;
@@ -1479,7 +1479,7 @@ int freadMain(freadMainArgs _args) {
         ch++;
         skip_white(&ch);
         fieldStart=ch;
-        _Bool thisColumnNameWasString = false;
+        bool thisColumnNameWasString = false;
         if (firstDataRowAfterPotentialColumnNames) {
           // 2nd non-blank row is being read now.
           // 1st row's type is remembered and compared to second row to decide if 1st row is column names or not
@@ -1764,7 +1764,7 @@ int freadMain(freadMainArgs _args) {
   // [11] Read the data
   //*********************************************************************************************
   int hasPrinted=0;  // the percentage last printed so it prints every 2% without many calls to wallclock()
-  _Bool stopTeam=false, firstTime=true;  // _Bool for MT-safey (cannot ever read half written _Bool value)
+  bool stopTeam=false, firstTime=true;  // bool for MT-safey (cannot ever read half written bool value)
   int nTypeBump=0, nTypeBumpCols=0;
   double tRead=0, tReread=0, tTot=0;  // overall timings outside the parallel region
   double thNextGoodLine=0, thRead=0, thPush=0;  // reductions of timings within the parallel region
@@ -1986,7 +1986,7 @@ int freadMain(freadMainArgs _args) {
 
           while (absType < NUMTYPE) {
             tch = fieldStart;
-            _Bool quoted = false;
+            bool quoted = false;
             if (absType < CT_STRING) {
               skip_white(&tch);
               const char *afterSpace = tch;

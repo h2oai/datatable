@@ -15,11 +15,15 @@
 typedef enum {
   NEG = -1,       // dummy to force signed type; sign bit used for out-of-sample type bump management
   CT_DROP = 0,    // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
-  CT_BOOL8,       // int8_t; first type enum value must be 1 not 0 so that it can be negated to -1.
-  CT_INT32_BARE,  // int32_t bare bones fast
-  CT_INT32_FULL,  // int32_t if spaces or quotes can surround the value
+  CT_BOOL8_N,     // int8_t; first enum value must be 1 not 0(=CT_DROP) so that it can be negated to -1.
+  CT_BOOL8_U,
+  CT_BOOL8_T,
+  CT_BOOL8_L,
+  CT_INT32,       // int32_t
   CT_INT64,       // int64_t
   CT_FLOAT64,     // double (64-bit IEEE 754 float)
+  CT_FLOAT64_EXT, // double, with NAN/INF literals
+  CT_FLOAT64_HEX, // double, in hexadecimal format
   CT_STRING,      // lenOff struct below
   NUMTYPE         // placeholder for the number of types including drop; used for allocation and loop bounds
 } colType;
@@ -27,6 +31,7 @@ typedef enum {
 extern int8_t typeSize[NUMTYPE];
 extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
+extern const uint8_t hexdigits[256];
 
 
 // Strings are pushed by fread_main using an offset from an anchor address plus
@@ -76,7 +81,10 @@ typedef struct freadMainArgs
   // the array ends.
   const char * const* NAstrings;
 
-  // Maximum number of threads (should be >= 1).
+  // Maximum number of threads. If 0, then fread will use the maximum possible
+  // number of threads, as determined by omp_get_max_threads(). If negative,
+  // then fread will use that many threads less than allowed maximum (but
+  // always at least 1).
   int32_t nth;
 
   // Character to use for a field separator. Multi-character separators are not
@@ -125,7 +133,11 @@ typedef struct freadMainArgs
   // leaks would occur.
   bool warningsAreErrors;
 
-  char _padding[2];
+  // If true, then column of 0s and 1s will be read as logical, otherwise it
+  // will become integer.
+  bool logical01;
+
+  char _padding[1];
 
   // Any additional implementation-specific parameters.
   FREAD_MAIN_ARGS_EXTRA_FIELDS
@@ -140,7 +152,7 @@ typedef struct ThreadLocalFreadParsingContext
 {
   // Pointer that serves as a starting point for all offsets within the `lenOff`
   // structs.
-  const char *__restrict__ anchor;
+  const char *restrict anchor;
 
   // Output buffers for values with different alignment requirements. For
   // example all `lenOff` columns, `double` columns and `int64` columns will be
@@ -148,9 +160,9 @@ typedef struct ThreadLocalFreadParsingContext
   // be stored in memory buffer `buff1`.
   // Within each buffer the data is stored in row-major order, i.e. in the same
   // order as in the original CSV file.
-  void *__restrict__ buff8;
-  void *__restrict__ buff4;
-  void *__restrict__ buff1;
+  void *restrict buff8;
+  void *restrict buff4;
+  void *restrict buff1;
 
   // Size (in bytes) for a single row of data within the buffers `buff8`,
   // `buff4` and `buff1` correspondingly.
@@ -232,14 +244,16 @@ bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
 
 
 /**
- * This function is invoked by `freadMain` right before the main scan of the
- * input file. This function should allocate the resulting `DataTable` structure
- * and prepare to receive the data in chunks.
+ * This function is invoked by `freadMain` before the main scan of the input
+ * file. It should allocate the resulting `DataTable` structure and prepare
+ * to receive the data in chunks.
  *
- * If the input file needs to be re-read due to out-of-sample type exceptions,
- * then this function will be called second time with updated `types` array.
- * Then this function's responsibility is to update the allocation of those
- * columns properly.
+ * Additionally, this function will be invoked if the main scan was
+ * unsuccessful. This may happen either because there were out-of-sample type
+ * exceptions (i.e. a value was found in one of the columns that wasn't
+ * acceptable for that column's type), or if the initial estimate of the file's
+ * number of rows turned out to be too conservative, and more rows has to be
+ * appended to the DataTable.
  *
  * @param types
  *     array of type codes for each column. Same as in the `userOverride`
@@ -333,7 +347,7 @@ void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 void progress(double percent/*[0,1]*/, double ETA/*secs*/);
 
 
-void freadCleanup(void);
+bool freadCleanup(void);
 double wallclock(void);
 
 #endif
