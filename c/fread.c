@@ -654,7 +654,7 @@ static void parse_double_regular(FieldParseContext *ctx)
     acc = 10*acc + digit;
     ch++;
   }
-  sf = ch - ch0;
+  sf = (uint_fast8_t)(ch - ch0);
   if (*ch==dec) {
     ch++;
     // Numbers like 0.00000000000000000000000000000000004 can be read without
@@ -808,7 +808,7 @@ static void parse_double_hexadecimal(FieldParseContext *ctx)
       acc = (acc << 4) + digit;
       ch++;
     }
-    size_t ndigits = ch - ch0;
+    size_t ndigits = (uint_fast8_t)(ch - ch0);
     if (ndigits > 13 || !(*ch=='p' || *ch=='P')) goto fail;
     acc <<= (13 - ndigits) * 4;
     ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
@@ -1711,7 +1711,7 @@ int freadMain(freadMainArgs _args) {
   ch = pos;
   oldType = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
   if (!oldType) STOP("Unable to allocate %d bytes to check user overrides of column types", ncol);
-  memcpy(oldType, type, ncol) ;
+  memcpy(oldType, type, (size_t)ncol) ;
   if (!userOverride(type, colNames, colNamesAnchor, ncol)) { // colNames must not be changed but type[] can be
     if (verbose) DTPRINT("  Cancelled by user: userOverride() returned false.");
     freadCleanup();
@@ -2066,7 +2066,7 @@ int freadMain(freadMainArgs _args) {
             // We do not allocate a copy for the last field because that would need *eof to be moved to the copy's end, but eof is shared across threads.
             finalFieldLen = (int)(tch-fieldStart);
             finalSep = fieldStart[-1];  // remember the byte we're shifting back over; either sep or newline. fieldStart>mmp was checked above.
-            memmove(_const_cast(fieldStart-1), fieldStart, finalFieldLen);  // cow page.
+            memmove(_const_cast(fieldStart-1), fieldStart, (size_t)finalFieldLen);  // cow page.
             *_const_cast(eof-1) = finalByte;  // *eof=='\0' already
             tch = fieldStart-1;
             j--;
@@ -2077,7 +2077,7 @@ int freadMain(freadMainArgs _args) {
             // But there are out-of-sample type exceptions (nTypeBump>0) so there will be a reread next. So we have to shift the final field
             // forwards again and put back the finalSep before the final field.
             // If no reread is about to happen however (nTypeBump==0), careful to leave field shifted back since lenOff points there if it is string.
-            memmove(_const_cast(fieldStart+1), fieldStart, finalFieldLen); // shift final field forwards
+            memmove(_const_cast(fieldStart+1), fieldStart, (size_t)finalFieldLen); // shift final field forwards
             *_const_cast(fieldStart) = finalSep;  // put the finalField's preceeding sep or newline back again
             finalSep = '\0';  // important to reset ready for the whole file reread so that the final field gets shifted back again, a 2nd and final time
             finalFieldLen = 0;
@@ -2139,7 +2139,7 @@ int freadMain(freadMainArgs _args) {
             // remember the position where the previous thread has finished. We
             // will reallocate the DT and restart reading from the same point.
             jump0 = jump;
-            extraAllocRows = (double)(DTi+myNrow)*nJumps/(jump+1) * 1.2 - allocnrow;
+            extraAllocRows = (size_t)((double)(DTi+myNrow)*nJumps/(jump+1) * 1.2) - allocnrow;
             if (extraAllocRows < 1024) extraAllocRows = 1024;
             myNrow = 0;
             stopTeam = true;
