@@ -2,6 +2,7 @@
 #define dt_FREAD_H
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
+#include <stdbool.h> // bool
 #ifdef DTPY
   #include "myomp.h"
   #include "py_fread.h"
@@ -240,7 +241,7 @@ int freadMain(freadMainArgs args);
  *    the CSV file. Normally, this function should return `true`.
  */
 bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
-                   int ncol);
+                  int ncol);
 
 
 /**
