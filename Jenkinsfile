@@ -139,7 +139,11 @@ pipeline {
                         make build
                         touch LICENSE
                         python setup.py bdist_wheel
+                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp
+                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp 
+                        mv dist_noomp/*whl dist/
                     """
+
                 stash includes: 'dist/*.whl', name: 'osx_whl'
                 arch 'dist/*.whl'
             }
@@ -188,7 +192,7 @@ pipeline {
                                         exit 1
                                     fi
                                 fi
-                                pip install --upgrade dist/*macosx*.whl
+                                pip install --upgrade `find dist -name "datatable*osx*.whl" | grep -v noomp`
                                 rm -rf datatable
                                 make test MODULE=datatable
                         '''
