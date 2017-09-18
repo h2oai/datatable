@@ -3,9 +3,11 @@
 #include <inttypes.h>  // int*_t
 #include <stddef.h>    // offsetof
 #include "types.h"
+#include "stats.h"
 
 typedef struct DataTable DataTable;
 typedef struct RowIndex RowIndex;
+typedef struct Stats Stats;
 
 //==============================================================================
 
@@ -102,6 +104,7 @@ typedef struct Column {
         char *filename;
         void *pybuf;
     };
+    Stats*  stats;       // 8
     int     refcount;    // 4
     MType   mtype;       // 1
     SType   stype;       // 1

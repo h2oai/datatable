@@ -25,10 +25,10 @@ DataTable* make_datatable(Column **cols, RowIndex *rowindex)
     res->rowindex = NULL;
     res->columns = cols;
     res->stats = NULL;
-    dtcalloc(res->stats, Stats*, res->ncols);
     if (rowindex) {
         res->rowindex = rowindex;
         res->nrows = rowindex->length;
+        dtcalloc(res->stats, Stats*, res->ncols);
     } else if (ncols) {
         res->nrows = cols[0]->nrows;
     }
@@ -52,14 +52,14 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     for (int i = 0; i < dt->ncols; i++) {
         if (i == next_col_to_remove) {
             column_decref(columns[i]);
-            stats_dealloc(stats[i]);
+            if (stats) stats_dealloc(stats[i]);
             columns[i] = NULL;
             do {
                 k++;
                 next_col_to_remove = k < n? cols_to_remove[k] : -1;
             } while (next_col_to_remove == i);
         } else {
-            stats[j] = stats[i];
+            if (stats) stats[j] = stats[i];
             columns[j] = columns[i];
             j++;
         }
@@ -68,7 +68,7 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     // This may not be the same as `j` if there were repeating columns
     dt->ncols = j;
     dtrealloc(dt->columns, Column*, j + 1);
-    dtrealloc(dt->stats, Stats*, j);
+    if (stats) dtrealloc(dt->stats, Stats*, j);
     return dt;
 }
 
@@ -83,12 +83,16 @@ void datatable_dealloc(DataTable *self)
     if (self == NULL) return;
 
     rowindex_decref(self->rowindex);
-    for (int64_t i = 0; i < self->ncols; i++) {
+    for (int64_t i = 0; i < self->ncols; ++i) {
         column_decref(self->columns[i]);
-        stats_dealloc(self->stats[i]);
     }
     dtfree(self->columns);
-    dtfree(self->stats);
+    if (self->stats) {
+        for (int64_t i = 0; i < self->ncols; ++i) {
+            stats_dealloc(self->stats[i]);
+        }
+        dtfree(self->stats);
+    }
     dtfree(self);
 }
 
@@ -124,7 +128,10 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
 
     int64_t nrows = dt->nrows;
     for (int i = 0; i < ncols; i++) {
+        // TODO: Move this part into columns.c?
         Column *col = dt->columns[i];
+        stats_dealloc(col->stats);
+        col->stats = NULL;
         uint8_t *mdata = (uint8_t*) mask->columns[i]->data;
         switch (col->stype) {
             case ST_BOOLEAN_I1:
@@ -194,12 +201,49 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
             default:
                 dterrr("Column type %d not supported in apply_mask", col->stype);
         }
-	stats_dealloc(dt->stats[i]);
-	dt->stats[i] = NULL;
+
     }
 
     return dt;
 }
+
+/**
+ * Convert a DataTable view into an actual DataTable. This is done in-place.
+ * The resulting DataTable should have a NULL RowIndex and Stats array.
+ * Do nothing if the DataTable is not a view.
+ */
+void datatable_reify(DataTable *self) {
+    if (self->rowindex == NULL) return;
+    for (int64_t i = 0; i < self->ncols; ++i) {
+        Column *newcol = column_extract(self->columns[i], self->rowindex);
+        newcol->stats = self->stats[i];
+        column_decref(self->columns[i]);
+        self->columns[i] = newcol;
+    }
+    rowindex_decref(self->rowindex);
+    dtfree(self->stats);
+    self->rowindex = NULL;
+    self->stats = NULL;
+}
+
+/**
+ * Helper functions for set/getting Stats from a DataTable.
+ * Note that the returned value may be NULL, in which case a new Stats instance
+ * should be independently created.
+ */
+Stats* datatable_get_stats(const DataTable *self, const int64_t index) {
+    return self->stats != NULL ? self->stats[index] :
+                                 self->columns[index]->stats;
+}
+
+void datatable_set_stats(DataTable *self, const int64_t index, Stats *stats) {
+    if (self->stats != NULL) {
+        self->stats[index] = stats;
+    } else {
+        self->columns[index]->stats = stats;
+    }
+}
+
 
 
 size_t datatable_get_allocsize(DataTable *self)
@@ -207,7 +251,6 @@ size_t datatable_get_allocsize(DataTable *self)
     size_t sz = 0;
     sz += sizeof(DataTable);
     sz += (size_t)(self->ncols + 1) * sizeof(Column*);
-    sz += (size_t)(self->ncols) * sizeof(Stats*);
     if (self->rowindex) {
         // If table is a view, then ignore sizes of each individual column.
         sz += rowindex_get_allocsize(self->rowindex);
@@ -216,8 +259,11 @@ size_t datatable_get_allocsize(DataTable *self)
             sz += column_get_allocsize(self->columns[i]);
         }
     }
-    for (int64_t i = 0; i < self->ncols; ++i) {
-        sz += stats_get_allocsize(self->stats[i]);
+    if (self->stats != NULL) {
+        sz += (size_t)(self->ncols) * sizeof(Stats*);
+        for (int64_t i = 0; i < self->ncols; ++i) {
+            sz += stats_get_allocsize(self->stats[i]);
+        }
     }
     return sz;
 }
