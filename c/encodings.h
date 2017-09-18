@@ -3,9 +3,9 @@
 #include <stdint.h>
 
 
-int is_valid_utf8(const unsigned char *restrict src, size_t len);
+int is_valid_utf8(const unsigned char *__restrict__ src, size_t len);
 
-int decode_sbcs(const unsigned char *restrict src, int len,
-                unsigned char *restrict dest, uint32_t *map);
+int decode_sbcs(const unsigned char *__restrict__ src, int len,
+                unsigned char *__restrict__ dest, uint32_t *map);
 
 #endif

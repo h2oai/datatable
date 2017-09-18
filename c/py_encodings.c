@@ -18,14 +18,14 @@ static void initialize_map(uint32_t *map, int n, const char *encoding)
     }
 }
 
-int decode_windows1252(const unsigned char *restrict src, int len,
-                       unsigned char *restrict dest)
+int decode_windows1252(const unsigned char *__restrict__ src, int len,
+                       unsigned char *__restrict__ dest)
 {
     return decode_sbcs(src, len, dest, win1252_map);
 }
 
-int decode_windows1251(const unsigned char *restrict src, int len,
-                       unsigned char *restrict dest)
+int decode_windows1251(const unsigned char *__restrict__ src, int len,
+                       unsigned char *__restrict__ dest)
 {
     return decode_sbcs(src, len, dest, win1251_map);
 }

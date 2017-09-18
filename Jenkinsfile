@@ -43,21 +43,30 @@ pipeline {
             }
             steps {
                 dumpInfo 'Linux Build Info'
-                sh """
-                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}
-                        make mrproper
-                        make build > stage_build_on_linux_output.txt
-                        touch LICENSE
-                        python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
-                        python setup.py --version > dist/VERSION.txt
-                        DTNOOPENMP=1 python setup.py bdist_wheel -p linux_noomp_x86_64 >> stage_build_without_omp_on_linux_output.txt
-                """
+                script {
+                    def ciVersionSuffix = utilsLib.getCiVersionSuffix()
+                    sh """
+                            export CI_VERSION_SUFFIX=${ciVersionSuffix}
+                            make mrproper
+                            make build > stage_build_with_omp_on_linux_output 
+                            touch LICENSE
+                            python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
+                            python setup.py --version > dist/VERSION.txt
+                    """
+                    // Create also no omp version
+                    withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"]) {
+                        sh '''#!/bin/bash -xe
+                                DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
+                                mv dist_noomp/*whl dist/
+                        '''
+                    }
+                }
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
                 // Archive artifacts
                 arch 'dist/*.whl'
                 arch 'dist/VERSION.txt'
-                arch 'stage_build_on_linux_output.txt'
+                arch 'stage_build_*.txt'
             }
         }
 
@@ -72,6 +81,7 @@ pipeline {
             steps {
                 dumpInfo 'Coverage on Linux'
                 sh """
+                    make mrproper
                     export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     rm -rf .venv venv 2> /dev/null
                     virtualenv --python=python3.6 --no-download .venv
@@ -92,8 +102,10 @@ pipeline {
             }
 
             steps {
-                unstash 'linux_whl'
                 dumpInfo 'Linux Test Info'
+
+                sh "make mrproper"
+                unstash 'linux_whl'
                 script {
                     try {
                         sh """
@@ -101,7 +113,7 @@ pipeline {
                             rm -rf .venv venv 2> /dev/null
                             rm -rf datatable
                             virtualenv --python=python3.6 .venv
-                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "*linux_x86_64.whl"`
+                            .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable-*linux_x86_64.whl" | grep -v noomp`
                             make test PYTHON=.venv/bin/python MODULE=datatable
                         """
                     } finally {
@@ -127,7 +139,11 @@ pipeline {
                         make build
                         touch LICENSE
                         python setup.py bdist_wheel
+                        export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp
+                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp 
+                        mv dist_noomp/*whl dist/
                     """
+
                 stash includes: 'dist/*.whl', name: 'osx_whl'
                 arch 'dist/*.whl'
             }
@@ -176,7 +192,7 @@ pipeline {
                                         exit 1
                                     fi
                                 fi
-                                pip install --upgrade dist/*macosx*.whl
+                                pip install --upgrade `find dist -name "datatable*osx*.whl" | grep -v noomp`
                                 rm -rf datatable
                                 make test MODULE=datatable
                         '''
@@ -224,14 +240,19 @@ pipeline {
 
 def returnIfModified(pattern, value) {
     node {
-        checkout scm
+	checkout scm
+	buildInfo(env.BRANCH_NAME, false)
+	fList = ""
+        for (f in buildInfo.get().getChangedFiles()) {
+	    fList += f + "\n"
+	}
         out = sh script: """
-                            if [ \$(\
-                                git diff-tree --no-commit-id --name-only -r HEAD | \
-                                xargs basename | \
+                      if [ \$(                          \
+                                echo "${fList}" |       \
+                                xargs basename |        \
                                 egrep -e '${pattern}' | \
-                                wc -l) \
-                              -gt 0 ]; then
+                                wc -l)                  \
+                              -gt 0 ]; then             \
                             echo "${value}"; fi
 			    """, returnStdout: true
     }

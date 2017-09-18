@@ -40,7 +40,7 @@ PyObject* pyrowindex(RowIndex *src)
  * decref it.
  */
 int rowindex_unwrap(PyObject *object, void *address) {
-    RowIndex **ans = address;
+    RowIndex **ans = (RowIndex**) address;
     if (object == Py_None) {
         *ans = NULL;
         return 1;
@@ -94,9 +94,10 @@ PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
     int64_t n3 = PyList_Size(pysteps);
     VALASSERT(n1 >= n2, "counts array cannot be longer than the starts array")
     VALASSERT(n1 >= n3, "steps array cannot be longer than the starts array")
-    starts = TRY(malloc(sizeof(int64_t) * (size_t)n1));
-    counts = TRY(malloc(sizeof(int64_t) * (size_t)n1));
-    steps  = TRY(malloc(sizeof(int64_t) * (size_t)n1));
+    starts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
+    counts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
+    steps  = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
+    if (!starts || !counts || !steps) goto fail;
 
     // Convert Pythonic lists into regular C arrays of longs
     int64_t start, count, step;

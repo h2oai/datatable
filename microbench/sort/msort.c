@@ -43,7 +43,7 @@ static int compute_minrun(int n)
 
 
 // Top-down mergesort
-static void mergesort0_impl(int *x, int *o, int n, int *restrict t, int *restrict u)
+static void mergesort0_impl(int *x, int *o, int n, int *__restrict__ t, int *__restrict__ u)
 {
     if (n <= 2) {
         if (n == 2 && x[0] > x[1]) {
@@ -66,10 +66,10 @@ static void mergesort0_impl(int *x, int *o, int n, int *restrict t, int *restric
     memcpy(t, x, n1 * sizeof(int));
     memcpy(u, o, n1 * sizeof(int));
     int i = 0, j = 0, k = 0;
-    int *restrict x1 = t;
-    int *restrict x2 = x + n1;
-    int *restrict o1 = u;
-    int *restrict o2 = o + n1;
+    int *__restrict__ x1 = t;
+    int *__restrict__ x2 = x + n1;
+    int *__restrict__ o1 = u;
+    int *__restrict__ o2 = o + n1;
     while (1) {
         if (x1[i] <= x2[j]) {
             x[k] = x1[i];
@@ -105,8 +105,8 @@ void mergesort0(int *x, int *o, int n, int K)
 
 void mergesort1(int *x, int *o, int n, int K)
 {
-    int *restrict t = tmp1;
-    int *restrict u = tmp2;
+    int *__restrict__ t = tmp1;
+    int *__restrict__ u = tmp2;
 
     // printf("mergesort1(x=%p, o=%p, n=%d)\n", x, o, n);
     int minrun = compute_minrun(n);
@@ -137,12 +137,12 @@ void mergesort1(int *x, int *o, int n, int K)
         int wB = wA;
         // printf("  wA = %d\n", wA);
         for (int s = 0; s < n; s += 2*wA) {
-            int *restrict xA = ix + s;
-            int *restrict xB = ix + s + wA;
-            int *restrict oA = io + s;
-            int *restrict oB = io + s + wA;
-            int *restrict xR = ox + s;
-            int *restrict oR = oo + s;
+            int *__restrict__ xA = ix + s;
+            int *__restrict__ xB = ix + s + wA;
+            int *__restrict__ oA = io + s;
+            int *__restrict__ oB = io + s + wA;
+            int *__restrict__ xR = ox + s;
+            int *__restrict__ oR = oo + s;
             if (s + 2*wA > n) {
                 if (s + wA >= n) {
                     size_t sz = (n - s) * sizeof(int);
@@ -231,10 +231,10 @@ static void merge_chunks(int *x, int *o, int nA, int nB, int *t, int *u)
 {
     memcpy(t, x, nA * sizeof(int));
     memcpy(u, o, nA * sizeof(int));
-    int *restrict xA = t;
-    int *restrict xB = x + nA;
-    int *restrict oA = u;
-    int *restrict oB = o + nA;
+    int *__restrict__ xA = t;
+    int *__restrict__ xB = x + nA;
+    int *__restrict__ oA = u;
+    int *__restrict__ oB = o + nA;
 
     int iA = 0, iB = 0, k = 0;
     while (1) {

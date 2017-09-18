@@ -70,10 +70,10 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     int64_t column = -1;
 
     // Parse arguments and check their validity
-    static char *kwlist[] =
+    static const char *kwlist[] =
         {"dt", "row0", "row1", "col0", "col1", "column", NULL};
     int ret = PyArg_ParseTupleAndKeywords(
-        args, kwds, "O!nnnn|n:DataWindow.__init__", kwlist,
+        args, kwds, "O!nnnn|n:DataWindow.__init__", const_cast<char **>(kwlist),
         &DataTable_PyType, &pydt, &row0, &row1, &col0, &col1, &column
     );
     if (!ret) return -1;
@@ -89,18 +89,6 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     // Window dimensions
     int64_t ncols = col1 - col0;
     int64_t nrows = row1 - row0;
-
-    // Create and fill-in the `stypes` list
-    stypes = PyList_New((Py_ssize_t) ncols);
-    ltypes = PyList_New((Py_ssize_t) ncols);
-    if (stypes == NULL || ltypes == NULL) goto fail;
-    for (int64_t i = col0; i < col1; i++) {
-        Column *col = dt->columns[i];
-        SType stype = col->stype;
-        LType ltype = stype_info[stype].ltype;
-        PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
-        PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
-    }
 
     RowIndex *rindex = dt->rowindex;
     int no_rindex = (rindex == NULL);
@@ -132,6 +120,18 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
             if (value == NULL) goto fail;
             PyList_SET_ITEM(py_coldata, n_init_rows++, value);
         }
+    }
+
+    // Create and fill-in the `stypes` list
+    stypes = PyList_New((Py_ssize_t) ncols);
+    ltypes = PyList_New((Py_ssize_t) ncols);
+    if (stypes == NULL || ltypes == NULL) goto fail;
+    for (int64_t i = col0; i < col1; i++) {
+        Column *col = dt->columns[i];
+        SType stype = col->stype;
+        LType ltype = stype_info[stype].ltype;
+        PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
+        PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
     }
 
     self->row0 = row0;
@@ -181,20 +181,14 @@ static int _init_hexview(
     int64_t nrows = row1 - row0;
     // printf("ncols = %ld, nrows = %ld\n", ncols, nrows);
 
-    // Create and fill-in the `stypes`/`ltypes` lists
-    stypes = TRY(PyList_New(ncols));
-    ltypes = TRY(PyList_New(ncols));
-    for (int64_t i = 0; i < ncols; i++) {
-        PyList_SET_ITEM(ltypes, i, incref(py_ltype_names[LT_STRING]));
-        PyList_SET_ITEM(stypes, i, incref(py_stype_names[ST_STRING_FCHAR]));
-    }
-
     uint8_t *coldata = (uint8_t*) add_ptr(column->data, 16 * row0);
     uint8_t *coldata_end = (uint8_t*) add_ptr(column->data, column->alloc_size);
     // printf("coldata = %p, end = %p\n", coldata, coldata_end);
-    viewdata = TRY(PyList_New(ncols));
+    viewdata = PyList_New(ncols);
+    if (!viewdata) goto fail;
     for (int i = 0; i < ncols; i++) {
-        PyObject *py_coldata = TRY(PyList_New(nrows));
+        PyObject *py_coldata = PyList_New(nrows);
+        if (!py_coldata) goto fail;
         PyList_SET_ITEM(viewdata, i, py_coldata);
 
         if (i < 16) {
@@ -213,11 +207,20 @@ static int _init_hexview(
                              (*ch < 0x20 ||( *ch >= 0x7F && *ch < 0xA0))? '.' :
                              (char) *ch;
                 }
-                PyObject *str =
-                    TRY(PyUnicode_Decode(buf, 16, "Latin1", "strict"));
+                PyObject *str = PyUnicode_Decode(buf, 16, "Latin1", "strict");
+                if (!str) goto fail;
                 PyList_SET_ITEM(py_coldata, j, str);
             }
         }
+    }
+
+    // Create and fill-in the `stypes`/`ltypes` lists
+    stypes = PyList_New(ncols);
+    ltypes = PyList_New(ncols);
+    if (!stypes || !ltypes) goto fail;
+    for (int64_t i = 0; i < ncols; i++) {
+        PyList_SET_ITEM(ltypes, i, incref(py_ltype_names[LT_STRING]));
+        PyList_SET_ITEM(stypes, i, incref(py_stype_names[ST_STRING_FCHAR]));
     }
 
     self->row0 = row0;
@@ -359,18 +362,19 @@ static void __dealloc__(DataWindow_PyObject *self)
 
 //------ Declare the DataWindow object -----------------------------------------
 
-PyDoc_STRVAR(dtdoc_datawindow, "DataWindow object");
-PyDoc_STRVAR(dtdoc_row0, "Index of the first row");
-PyDoc_STRVAR(dtdoc_row1, "Index of the last row exclusive");
-PyDoc_STRVAR(dtdoc_col0, "Index of the first column");
-PyDoc_STRVAR(dtdoc_col1, "Index of the last column exclusive");
-PyDoc_STRVAR(dtdoc_types, "Types of the columns within the view");
-PyDoc_STRVAR(dtdoc_stypes, "Storage types of the columns within the view");
-PyDoc_STRVAR(dtdoc_data, "Datatable's data within the specified window");
+static char dtdoc_datawindow[] = "DataWindow object";
+DT_DOCS(row0, "Index of the first row");
+DT_DOCS(row1, "Index of the last row exclusive");
+DT_DOCS(col0, "Index of the first column");
+DT_DOCS(col1, "Index of the last column exclusive");
+DT_DOCS(types, "Types of the columns within the view");
+DT_DOCS(stypes, "Storage types of the columns within the view");
+DT_DOCS(data, "Datatable's data within the specified window");
 
 
-#define Member(name, type) {#name, type, offsetof(DataWindow_PyObject, name), \
-                            READONLY, dtdoc_ ## name}
+#define Member(name, type) \
+    {dtvar_##name, type, offsetof(DataWindow_PyObject, name), \
+     READONLY, dtdoc_ ## name}
 
 static PyMemberDef members[] = {
     Member(row0, T_LONG),

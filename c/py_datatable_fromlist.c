@@ -27,7 +27,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "O!:from_list", &PyList_Type, &list))
         return NULL;
-    
+
 
     // If the supplied list is empty, return the empty Datatable object
     int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
@@ -58,7 +58,8 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
     // Fill the data
     for (int64_t i = 0; i < listsize; i++) {
         PyObject *src = PyList_GET_ITEM(list, i);
-        cols[i] = TRY(column_from_list(src));
+        cols[i] = (Column*) column_from_list(src);
+        if (!cols[i]) goto fail;
     }
 
     return pydt_from_dt(make_datatable(cols, NULL));
@@ -106,7 +107,8 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
 }
 
 #define WRITE_STR(s) {                                                         \
-    PyObject *pybytes = TRY(PyUnicode_AsEncodedString(s, "utf-8", "strict"));  \
+    PyObject *pybytes = PyUnicode_AsEncodedString(s, "utf-8", "strict");       \
+    if (!pybytes) goto fail;                                                   \
     SET_I4S(PyBytes_AsString(pybytes), (size_t) PyBytes_GET_SIZE(pybytes));    \
     Py_DECREF(pybytes);                                                        \
 }
@@ -229,7 +231,8 @@ Column* column_from_list(PyObject *list)
                     } break;
 
                     case ST_STRING_I4_VCHAR: {
-                        PyObject *str = TRY(PyObject_Str(item));
+                        PyObject *str = PyObject_Str(item);
+                        if (!str) goto fail;
                         WRITE_STR(str);
                         Py_DECREF(str);
                     } break;
@@ -284,7 +287,8 @@ Column* column_from_list(PyObject *list)
                     } break;
 
                     case ST_STRING_I4_VCHAR: {
-                        PyObject *str = TRY(PyObject_Str(item));
+                        PyObject *str = PyObject_Str(item);
+                        if (!str) goto fail;
                         WRITE_STR(str);
                         Py_DECREF(str);
                     } break;

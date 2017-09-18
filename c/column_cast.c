@@ -228,8 +228,8 @@ static Column* easy_f4r_to_f8r(Column *self, Column *res)
  */
 void init_column_cast_functions(void)
 {
-    for (SType s = 0; s < DT_STYPES_COUNT; s++) {
-        for (SType t = 0; t < DT_STYPES_COUNT; t++) {
+    for (int s = 0; s < DT_STYPES_COUNT; s++) {
+        for (int t = 0; t < DT_STYPES_COUNT; t++) {
             softcasts[s][t] = NULL;
             hardcasts[s][t] = NULL;
         }

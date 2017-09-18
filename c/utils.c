@@ -45,7 +45,7 @@ int nlz8(uint64_t x)
  * fill with 0xFF bytes instead.
  * This is used for filling the columns with NAs.
  */
-void set_value(void * restrict ptr, const void * restrict value,
+void set_value(void * __restrict__ ptr, const void * __restrict__ value,
                size_t sz, size_t count)
 {
     if (count == 0) return;

@@ -66,7 +66,7 @@ if "LLVM4" in os.environ:
     if not os.path.isdir(llvm4):
         raise ValueError("Variable LLVM4 = %r is not a directory" % llvm4)
     llvm_config = os.path.join(llvm4, "bin", "llvm-config")
-    clang = os.path.join(llvm4, "bin", "clang")
+    clang = os.path.join(llvm4, "bin", "clang++")
     libs = os.path.join(llvm4, "lib")
     includes = os.path.join(llvm4, "include")
     for f in [llvm_config, clang, libs, includes]:
@@ -100,7 +100,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
-extra_compile_args = ["-std=gnu11"]
+extra_compile_args = ["-std=gnu++11"]
 
 # This flag becomes C-level macro DTPY, which indicates that we are compiling
 # (Py)datatable. This is used for example in fread.c to distinguish between
@@ -110,6 +110,11 @@ extra_compile_args += ["-DDTPY"]
 # This macro enables all `assert` statements at the C level. By default they
 # are disabled...
 extra_compile_args += ["-DNONDEBUG"]
+
+# Under C++ we do not use exceptions, thus disable them. This should prevent an
+# error about "missing __gxx_personality_v0". See
+#   https://stackoverflow.com/questions/329059/what-is-gxx-personality-v0-for
+extra_compile_args += ["-fno-exceptions"]
 
 # Ignored warnings:
 #   -Wcovered-switch-default: we add `default` statement to
@@ -122,12 +127,19 @@ extra_compile_args += ["-DNONDEBUG"]
 #   -Wswitch-enum: generates spurious warnings about missing
 #       cases even if `default` clause is present. -Wswitch
 #       does not suffer from this drawback.
+#   -Wdeprecated: warning about compiling .c files under C++
+#       mode... we should just rename those files at some point.
 extra_compile_args += [
     "-Weverything",
     "-Wno-covered-switch-default",
     "-Wno-float-equal",
     "-Wno-gnu-statement-expression",
     "-Wno-switch-enum",
+    "-Wno-old-style-cast",
+    "-Wno-c++98-compat-pedantic",
+    "-Wno-nested-anon-types",
+    "-Wno-c99-extensions",
+    "-Wno-deprecated",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
 ]
