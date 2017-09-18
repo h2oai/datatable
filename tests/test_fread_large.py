@@ -43,6 +43,7 @@ def get_file_list(*path):
             if ("readme" not in filename and
                     ".svm" not in filename and
                     ".json" not in filename and
+                    "arff" not in filename and
                     any(filename.endswith(ext) for ext in exts)):
                 if filename.endswith(".zip") and f[:-4] in out:
                     continue
@@ -85,6 +86,7 @@ def test_h2o3_smalldata(f):
         # Others
         os.path.join("arff", "folder1", "iris0.csv"),
         os.path.join("jira", "pubdev_2897.csv"),
+        os.path.join("jira", "runit_pubdev_3590_unexpected_column.csv"),
         os.path.join("junit", "test_parse_mix.csv"),
         os.path.join("merge", "livestock.nuts.csv"),
         os.path.join("merge", "tourism.csv"),
