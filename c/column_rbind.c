@@ -44,7 +44,7 @@ Column* column_rbind(Column *self, Column **cols)
     // filled with NAs; the current column (`self`); a clone of the current
     // column (if it has refcount > 1); or a type-cast of the current column.
     Column *res = NULL;
-    int col_empty = (self->stype == 0);
+    int col_empty = (self->stype == ST_VOID);
     if (col_empty) {
         res = make_data_column(stype, (size_t) self->nrows);
     } else if (self->refcount == 1 && self->mtype == MT_DATA &&
@@ -59,6 +59,8 @@ Column* column_rbind(Column *self, Column **cols)
     assert(res->stype == stype && res->mtype == MT_DATA &&
            res->nrows == nrows0);
 
+    // TODO: Temporary Fix. To be resolved in #301
+    stats_reset(res->stats);
     // Use the appropriate strategy to continue appending the columns.
     res = (stype == ST_STRING_I4_VCHAR) ? column_rbind_str32(res, cols, nrows, col_empty) :
           (!stype_info[stype].varwidth) ? column_rbind_fw(res, cols, nrows, col_empty) : NULL;

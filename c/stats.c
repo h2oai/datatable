@@ -26,7 +26,7 @@ static stats_fn stats_fns[DT_STYPES_COUNT];
 static SType cstat_to_stype[DT_LTYPES_COUNT][DT_CSTATS_COUNT];
 static uint64_t cstat_offset[DT_LTYPES_COUNT][DT_CSTATS_COUNT];
 
-static void compute_column_cstat(Stats*, const CStat, const Column*, const RowIndex*);
+static Stats* compute_column_cstat(Stats*, const CStat, const Column*, const RowIndex*);
 static Column* make_cstat_column(const Stats* self, const CStat);
 
 
@@ -54,6 +54,19 @@ void stats_dealloc(Stats *self) {
 }
 
 /**
+ * Reset a Stats structure so that all applicable fields are marked as
+ * not computed.
+ */
+void stats_reset(Stats *self) {
+    if (self == NULL) return;
+    LType ltype = stype_info[self->stype].ltype;
+    for (uint8_t i = 0; i < DT_CSTATS_COUNT; ++i) {
+        if (cstat_to_stype[ltype][i] == ST_VOID)
+            self->isdefined |= 1 << i;
+    }
+}
+
+/**
  * Create a deep copy of a Stats structure
  */
 Stats* stats_copy(Stats *self) {
@@ -65,14 +78,14 @@ Stats* stats_copy(Stats *self) {
 }
 
 /**
- * Determine if a CStat is defined.
- * A CStat is "defined" if...
- *     - The CStat has been computed
- * CStat is incompatible with the Stats structure's LType.
- * Return 0 if false, any other number if true.
+ * Determine if a CStat is computed
+ * Note that a CStat is also considered to be 'computed' if the CStat is
+ * incompatible with the Stats structure's LType (because it is known that the
+ * result is NA).
+ * Return 0 if false or NULL, any other number if true.
  */
-uint64_t cstat_isdefined(const Stats *self, const CStat s) {
-    return self->isdefined & (1 << s);
+uint64_t cstat_iscomputed(const Stats *self, const CStat s) {
+    return self != NULL && (self->isdefined & (1 << s));
 }
 
 /**
@@ -90,26 +103,29 @@ size_t stats_get_allocsize(const Stats* self) {
  * Stats array.
  */
 void compute_datatable_cstat(DataTable *self, const CStat s) {
-    Stats **stats = self->stats;
     Column **cols = self->columns;
     for (int64_t i = 0; i < self->ncols; ++i) {
-        if (stats[i] == NULL)
-            stats[i] = make_data_stats(cols[i]->stype);
-        if (!cstat_isdefined(stats[i], s))
-            compute_column_cstat(stats[i], s, cols[i], self->rowindex);
+        Stats *stats = datatable_get_stats(self, i);
+        if (!cstat_iscomputed(stats, s))
+            datatable_set_stats(self, i,
+                    compute_column_cstat(stats, s, cols[i], self->rowindex));
     }
 }
 
 /**
  * Compute the value of a CStat for a Stats structure given a Column.
- * Perform the computation regardless if the CStat is defined or not. Do nothing
- * if the Stats reference is NULL or the CStat/LType pairing is invalid.
+ * Return the same Stats instance for convenience. A new Stats instance will
+ * be returned if the Stats argument is NULL. Perform the computation
+ * regardless if the CStat is defined or not. Do nothing if the CStat/LType
+ * pairing is invalid.
  */
-void compute_column_cstat(Stats *stats, const CStat s, const Column *col, const RowIndex *ri) {
-    if (stats == NULL) return;
-    if (cstat_to_stype[stype_info[stats->stype].ltype][s] == ST_VOID) return;
-    // TODO: Add switch statement when multiple stats functions exist
-    stats_fns[stats->stype](stats, col, ri);
+Stats* compute_column_cstat(Stats *stats, const CStat s, const Column *col, const RowIndex *ri) {
+    if (stats == NULL) stats = make_data_stats(col->stype);
+    if (cstat_to_stype[stype_info[stats->stype].ltype][s] != ST_VOID) {
+        // TODO: Add switch statement when multiple stats functions exist
+        stats_fns[stats->stype](stats, col, ri);
+    }
+    return stats;
 }
 
 
@@ -119,16 +135,15 @@ void compute_column_cstat(Stats *stats, const CStat s, const Column *col, const 
  * Stats structure for every NULL reference in the Stats array. Compute and
  * store a CStat value if it has not been defined.
  */
-DataTable* make_cstat_datatable(const DataTable *self, const CStat s) {
-    Stats **stats = self->stats;
+DataTable* make_cstat_datatable(DataTable *self, const CStat s) {
     Column **out = NULL;
     dtcalloc(out, Column*, self->ncols + 1);
     for (int64_t i = 0; i < self->ncols; ++i) {
-        if (stats[i] == NULL)
-            stats[i] = make_data_stats(self->columns[i]->stype);
-        if (!cstat_isdefined(stats[i], s))
-            compute_column_cstat(stats[i], s, self->columns[i], self->rowindex);
-        out[i] = make_cstat_column(stats[i], s);
+        Stats *stats = datatable_get_stats(self, i);
+        if (!cstat_iscomputed(stats, s))
+            datatable_set_stats(self, i,
+                    compute_column_cstat(stats, s, self->columns[i], self->rowindex));
+        out[i] = make_cstat_column(datatable_get_stats(self, i), s);
     }
     return make_datatable(out, NULL);
 }

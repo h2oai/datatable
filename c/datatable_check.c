@@ -122,7 +122,6 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     // allocation size can be greater than the required number of columns,
     // because `malloc()` may allocate more than requested.
     size_t n_cols_allocd = array_size(cols, sizeof(Column*));
-    size_t n_stats_allocd = array_size(stats, sizeof(Stats*));
     int64_t ncols = dt->ncols;
     if (ncols < 0) {
         ERR("Datatable has negative number of columns: %lld\n", ncols);
@@ -148,13 +147,21 @@ int dt_verify_integrity(DataTable *dt, char **errors)
         return 1;
     }
 
-    if ((!stats || !n_stats_allocd) && ncols > 0) {
-        ERR("Stats array is not allocated\n");
-    }
+    if (ri == NULL && stats != NULL) {
+        ERR("`stats` array is not NULL when rowindex is NULL");
+    } else if (ri != NULL && stats == NULL) {
+        ERR("`stats` array is NULL when rowindex is not NULL");
+    } else if (ri != NULL && stats != NULL){
+        size_t n_stats_allocd = array_size(stats, sizeof(Stats*));
 
-    if (ncols > (int64_t) n_stats_allocd) {
-        ERR("Size of the `stats` array %lld is smaller than the number of "
-            "columns %lld\n", (int64_t) n_stats_allocd, ncols);
+        if ((!stats || !n_stats_allocd) && ncols > 0) {
+            ERR("Stats array is not allocated\n");
+        }
+
+        if (ncols > (int64_t) n_stats_allocd) {
+            ERR("Size of the `stats` array %lld is smaller than the number of "
+                "columns %lld (and rowindex is not NULL)\n", (int64_t) n_stats_allocd, ncols);
+        }
     }
 
     // Check that each Column is not NULL
@@ -251,7 +258,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     // Check each individual column
     for (int64_t i = 0; i < ncols; i++) {
         Column *col = cols[i];
-        Stats *stat = stats[i];
+        Stats *stat = ri != NULL ? stats[i] : col->stats;
         SType stype = col->stype;
         MType mtype = cols[i]->mtype;
 

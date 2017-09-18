@@ -25,11 +25,13 @@ DataTable*
 datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
 {
     assert(ncols >= dt->ncols);
+
+    // If dt is a view datatable, then it must be converted to MT_DATA
+    datatable_reify(dt);
+
     dtrealloc(dt->columns, Column*, ncols + 1);
-    dtrealloc(dt->stats, Stats*, ncols);
     for (int64_t i = dt->ncols; i < ncols; ++i) {
         dt->columns[i] = NULL;
-        dt->stats[i] = NULL;
     }
     dt->columns[ncols] = NULL;
 
@@ -38,28 +40,16 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
         nrows += dts[i]->nrows;
     }
 
-    // If dt is a view datatable, then it must be converted to MT_DATA
-    if (dt->rowindex) {
-        for (int i = 0; i < dt->ncols; i++) {
-            Column *newcol = column_extract(dt->columns[i], dt->rowindex);
-            if (newcol == NULL) return NULL;
-            column_decref(dt->columns[i]);
-            dt->columns[i] = newcol;
-        }
-        rowindex_decref(dt->rowindex);
-        dt->rowindex = NULL;
-    }
-
     Column **cols0 = NULL;
     dtmalloc(cols0, Column*, ndts + 1);
     cols0[ndts] = NULL;
 
-    for (int i = 0; i < ncols; i++) {
+    for (int i = 0; i < ncols; ++i) {
         Column *ret = NULL;
         Column *col0 = (i < dt->ncols)
             ? dt->columns[i]
             : make_data_column(ST_VOID, (size_t) dt->nrows);
-        for (int j = 0; j < ndts; j++) {
+        for (int j = 0; j < ndts; ++j) {
             if (cols[i][j] < 0) {
                 cols0[j] = make_data_column(ST_VOID, (size_t) dts[j]->nrows);
             } else if (dts[j]->rowindex) {
