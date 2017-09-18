@@ -203,15 +203,15 @@ static void printTypes(int ncol) {
 }
 
 
-static inline void skip_white(const char **ptr) {
+static inline void skip_white(const char **pch) {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
-  const char *ch = *ptr;
+  const char *ch = *pch;
   if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
     while (*ch == ' ' || *ch == '\t') ch++;
   } else {
     while (*ch == whiteChar) ch++;  // sep is ' ' or '\t' so just skip the other one.
   }
-  *ptr = ch;
+  *pch = ch;
 }
 
 
@@ -240,18 +240,18 @@ static inline bool end_of_field(const char ch) {
  * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
  * 6. \\r\\r\\r  Might as well, for completeness
  */
-static inline bool eol(const char **ptr) {
-  const char *ch = *ptr;
+static inline bool eol(const char **pch) {
+  const char *ch = *pch;
   while (*ch=='\r') ch++;  // commonly happens once on Windows for type 2
   if (*ch=='\n') {
     // 1,2,3 and 5 (one \n with any number of \r before and/or after)
     while (ch[1]=='\r') ch++;  // type 5. Could drop but we're only tepid here so keep for completeness and full generality.
-    *ptr = ch;
+    *pch = ch;
     return true;
   }
-  else if (ch>*ptr) {  // did we move over some \r above?
+  else if (ch>*pch) {  // did we move over some \r above?
     // 4 and 6 (\r only with no \n before or after)
-    *ptr = ch-1;  // move back onto the last \r
+    *pch = ch-1;  // move back onto the last \r
     return true;
   }
   return false;
@@ -279,16 +279,16 @@ static inline const char *end_NA_string(const char *fieldStart) {
  * be parsed using current settings.
  * This does not need to be particularly efficient; it's just used for format detection.
  */
-static inline int countfields(const char **ptr)
+static inline int countfields(const char **pch)
 {
   static lenOff trash;  // see comment on other trash declarations
   static void *targets[9];
   targets[8] = (void*) &trash;
-  const char *ch = *ptr;
+  const char *ch = *pch;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_white(&ch);
   if (eol(&ch)) {
-    *ptr = ch+1;
+    *pch = ch+1;
     return 0;
   }
   int ncol = 1;
@@ -312,19 +312,19 @@ static inline int countfields(const char **ptr)
       ncol++;
       continue;
     }
-    if (eol(&ch)) { *ptr=ch+1; return ncol; }
+    if (eol(&ch)) { *pch=ch+1; return ncol; }
     if (*ch!='\0') return -1;  // -1 means this line not valid for this sep and quote rule
     break;
   }
   if (ch==eof && finalByte && finalByte==sep && sep!=' ') ncol++;
-  *ptr = ch;
+  *pch = ch;
   return ncol;
 }
 
 
-static inline bool nextGoodLine(const char **ptr, int ncol)  //  TODO: remove using Pasha's chunk-roll-on idea
+static inline bool nextGoodLine(const char **pch, int ncol)  //  TODO: remove using Pasha's chunk-roll-on idea
 {
-  const char *ch = *ptr;
+  const char *ch = *pch;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
   // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
   // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
@@ -340,7 +340,7 @@ static inline bool nextGoodLine(const char **ptr, int ncol)  //  TODO: remove us
     while (i<5 && countfields(&ch2)==ncol) i++;
     if (i==5) break;
   }
-  if (*ch!='\0' && attempts<30) { *ptr = ch; return true; }
+  if (*ch!='\0' && attempts<30) { *pch = ch; return true; }
   return false;
 }
 
@@ -552,17 +552,19 @@ static void StrtoI32(FieldParseContext *ctx)
   // acc needs to be 64bit so that 5bn (still 10 digits but greater than 4bn) does not overflow. It could be
   //   signed but we use unsigned to be clear it will never be negative
   uint_fast64_t acc = 0;
-  uint_fast8_t digit, sf=0; // significant figures = digits from the first non-zero onwards including trailing zeros
+  uint_fast8_t digit;
   // sep, \r, \n and *eof=='\0' all serve as valid terminators here by dint of being !=[0-9]
   // see init.c for checks of unsigned uint_fast8_t cast
   // optimizer should implement 10* as ((x<<2 + x)<<1) or (x<<3 + x<<1)
 
   /*if (loseLeadingZeroOption)*/ while (*ch=='0') ch++;
-  while ( (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
+  // number significant figures = digits from the first non-zero onwards including trailing zeros
+  uint_fast32_t sf = 0;
+  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
     acc = 10*acc + digit;
-    ch++;
     sf++;
   }
+  ch += sf;
   // INT32 range is NA==-2147483648(INT32_MIN) then symmetric [-2147483647,+2147483647] so we can just test INT32_MAX
   // The max (2147483647) happens to be 10 digits long, hence <=10.
   // Leading 0 (such as 001 and 099 but not 0, +0 or -0) will cause type bump to _full which has the
@@ -586,14 +588,15 @@ static void StrtoI64(FieldParseContext *ctx)
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
   const char *start = ch;
-  uint_fast64_t acc = 0;  // important unsigned not signed here; we now need the full unsigned range
-  uint_fast8_t digit, sf=0;
   while (*ch=='0') ch++;
-  while ( (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
+  uint_fast64_t acc = 0;  // important unsigned not signed here; we now need the full unsigned range
+  uint_fast8_t digit;
+  uint_fast32_t sf = 0;
+  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
     acc = 10*acc + digit;
-    ch++;
     sf++;
   }
+  ch += sf;
   // INT64 range is NA==-9223372036854775808(INT64_MIN) then symmetric [-9223372036854775807,+9223372036854775807].
   // A 20+ digit number is caught as too large via the field width check <=19, since leading zeros trigger character type not numeric
   // TODO Check tests exist that +9223372036854775808 and +9999999999999999999 are caught as too large. They are stll 19 wide
@@ -646,31 +649,32 @@ static void parse_double_regular(FieldParseContext *ctx)
   const char *start = ch;
   uint_fast64_t acc = 0;  // holds NNN.MMM as NNNMMM
   int_fast32_t e = 0;     // width of MMM to adjust NNNMMM by dec location
-  uint_fast8_t digit, sf=0;
+  uint_fast8_t digit;
   while (*ch=='0') ch++;
 
-  const char *ch0 = ch;
-  while ( (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
+  uint_fast32_t sf = 0;
+  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
     acc = 10*acc + digit;
-    ch++;
+    sf++;
   }
-  sf = (uint_fast8_t)(ch - ch0);
+  ch += sf;
   if (*ch==dec) {
     ch++;
     // Numbers like 0.00000000000000000000000000000000004 can be read without
     // loss of precision as 4e-35  (test 1817)
     if (sf==0 && *ch=='0') {
-      ch0 = ch;
-      while (*ch=='0') ch++;
-      e -= (ch - ch0);
+      while (ch[e]=='0') e++;
+      ch += e;
+      e = -e;
     }
-    ch0 = ch;
-    while ( (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
+    uint_fast32_t k = 0;
+    while ( (digit=(uint_fast8_t)(ch[k]-'0'))<10 ) {
       acc = 10*acc + digit;
-      ch++;
+      k++;
     }
-    e -= (ch - ch0);
-    sf += (ch - ch0);
+    ch += k;
+    sf += k;
+    e -= k;
   }
   if (sf>18) goto fail;  // Too much precision for double. TODO: reduce to 15(?) and discard trailing 0's.
   if (*ch=='E' || *ch=='e') {
