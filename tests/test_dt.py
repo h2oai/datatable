@@ -109,9 +109,6 @@ def test_dt_properties(dt0):
     #                                                                                                                                                                                                         +---+
 
 
-
-
-
 def test_dt_call(dt0, capsys):
     assert dt0.internal.column(0).refcount == 1
     dt1 = dt0(timeit=True)
