@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "myassert.h"
 #include "rowindex.h"
-#include "omp.h"
+#include "myomp.h"
 #include "types.h"
 #include "utils.h"
 
