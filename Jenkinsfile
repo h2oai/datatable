@@ -52,7 +52,7 @@ pipeline {
                             touch LICENSE
                             python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                             python setup.py --version > dist/VERSION.txt
-                            mkdir -pf out/
+                            mkdir out/
                             mv dist/* out/
 
                     """
@@ -66,7 +66,7 @@ pipeline {
                     }
                     // Move everything back to dist
                     sh '''
-                        mkdir -pf dist/
+                        mkdir dist/
                         mv out/* dist/
                     '''
                 }
@@ -148,11 +148,11 @@ pipeline {
                         make build
                         touch LICENSE
                         python setup.py bdist_wheel
-                        mkdir -pf out; mv dist/* out/
+                        mkdir out; mv dist/* out/
                         make clean
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp
                         DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp 
-                        mkdir -pf dist; mv dist_noomp/*whl dist/
+                        mkdir dist; mv dist_noomp/*whl dist/
                         mv out/* dist/
                     """
 
