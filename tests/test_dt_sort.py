@@ -525,7 +525,6 @@ def test_i4s_large5():
     assert dt0.topython()[0] == sorted(src)
 
 
-@pytest.mark.xfail()
 def test_i4s_large6():
     rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
     assert os.path.isdir(rootdir)
