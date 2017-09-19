@@ -36,7 +36,7 @@ if os.environ.get("CI_VERSION_SUFFIX"):
 c_sources = []
 for root, dirs, files in os.walk("c"):
     for name in files:
-        if name.endswith(".c"):
+        if name.endswith(".c") or name.endswith(".cpp"):
             c_sources.append(os.path.join(root, name))
 
 # Find python source directories
@@ -100,7 +100,10 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
-extra_compile_args = ["-std=gnu++11"]
+extra_compile_args = ["-std=gnu++11", "-stdlib=libc++"]
+
+# Include path to C++ header files
+extra_compile_args += ["-I" + os.environ["LLVM4"] + "/include/c++/v1"]
 
 # This flag becomes C-level macro DTPY, which indicates that we are compiling
 # (Py)datatable. This is used for example in fread.c to distinguish between
