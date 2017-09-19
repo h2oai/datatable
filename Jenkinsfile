@@ -52,14 +52,23 @@ pipeline {
                             touch LICENSE
                             python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                             python setup.py --version > dist/VERSION.txt
+                            mkdir -pf out/
+                            mv dist/* out/
+
                     """
                     // Create also no omp version
                     withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"]) {
                         sh '''#!/bin/bash -xe
+                                make clean
                                 DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp >> stage_build_without_omp_on_linux_output.txt
-                                mv dist_noomp/*whl dist/
+                                mv dist_noomp/*whl out/
                         '''
                     }
+                    // Move everything back to dist
+                    sh '''
+                        mkdir -pf dist/
+                        mv out/* dist/
+                    '''
                 }
                 stash includes: 'dist/*.whl', name: 'linux_whl'
                 stash includes: 'dist/VERSION.txt', name: 'VERSION'
@@ -139,9 +148,12 @@ pipeline {
                         make build
                         touch LICENSE
                         python setup.py bdist_wheel
+                        mkdir -pf out; mv dist/* out/
+                        make clean
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp
                         DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp 
-                        mv dist_noomp/*whl dist/
+                        mkdir -pf dist; mv dist_noomp/*whl dist/
+                        mv out/* dist/
                     """
 
                 stash includes: 'dist/*.whl', name: 'osx_whl'
