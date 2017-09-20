@@ -40,3 +40,4 @@ temp/
 
 # Microbenchmarks
 microbench/sort/sort
+microbench/writecsv/writecsv
