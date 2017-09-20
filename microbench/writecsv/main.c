@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     switch (A) {
         case 1: main_boolean(B, N); break;
         case 2: main_int8(B, N); break;
-        // case 3: main_int16(B, N); break;
+        case 3: main_int16(B, N); break;
         case 4: main_int32(B, N); break;
     }
 }

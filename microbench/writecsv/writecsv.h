@@ -6,6 +6,7 @@ extern double now();
 
 #define NWRITERS 4
 #define NA_I1 -128
+#define NA_I2 -32768
 #define NA_I4 INT32_MIN
 
 typedef struct Column {

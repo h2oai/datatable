@@ -30,10 +30,13 @@ boolean.o: boolean.c
 int8.o: int8.c
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
+int16.o: int16.c
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
 int32.o: int32.c
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-writecsv: main.o boolean.o int8.o int32.o
+writecsv: main.o boolean.o int8.o int16.o int32.o
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:
