@@ -5,7 +5,7 @@
 #include "writecsv.h"
 
 
-static void kernel0(char **pch, Column *col, int64_t row) {
+static void kernel_simple(char **pch, Column *col, int64_t row) {
   int8_t d, value = ((int8_t*) col->data)[row];
   if (value != NA_I1) {
     char *ch = *pch;
@@ -27,7 +27,8 @@ static void kernel0(char **pch, Column *col, int64_t row) {
   }
 }
 
-static void kernel1(char **pch, Column *col, int64_t row) {
+
+static void kernel_range1(char **pch, Column *col, int64_t row) {
   int value = (int) ((int8_t*) col->data)[row];
   char *ch = *pch;
   if (value < 0) {
@@ -49,7 +50,8 @@ static void kernel1(char **pch, Column *col, int64_t row) {
   *pch = ch;
 }
 
-static void kernel2(char **pch, Column *col, int64_t row) {
+
+static void kernel_div(char **pch, Column *col, int64_t row) {
   int8_t d, value = ((int8_t*) col->data)[row];
   if (value != NA_I1) {
     char *ch = *pch;
@@ -69,7 +71,8 @@ static void kernel2(char **pch, Column *col, int64_t row) {
   }
 }
 
-static void kernel3(char **pch, Column *col, int64_t row) {
+
+static void kernel_divloop(char **pch, Column *col, int64_t row) {
   int8_t value = ((int8_t*) col->data)[row];
   if (value == 0) {
     *((*pch)++) = '0';
@@ -84,7 +87,7 @@ static void kernel3(char **pch, Column *col, int64_t row) {
   char *tch = ch + 4;
   tch[1] = '\0';
   while (value) {
-    int_fast8_t d = value % 10;
+    int d = value % 10;
     value /= 10;
     *tch-- = d + '0';
   }
@@ -93,8 +96,10 @@ static void kernel3(char **pch, Column *col, int64_t row) {
   *pch = ch;
 }
 
+
 // Used in fwrite.c
-static void kernel4(char **pch, Column *col, int64_t row)
+// Note: this function is GPLv3-licensed, so can only be used in GPL projects
+static void kernel_fwrite(char **pch, Column *col, int64_t row)
 {
   int8_t value = ((int8_t*) col->data)[row];
   char *ch = *pch;
@@ -122,65 +127,48 @@ static void kernel4(char **pch, Column *col, int64_t row)
   *pch = ch;
 }
 
-static void kernel5(char **pch, Column *col, int64_t row) {
+
+static void kernel_sprintf(char **pch, Column *col, int64_t row) {
   int8_t value = ((int8_t*) col->data)[row];
   if (value == NA_I1) return;
   *pch += sprintf(*pch, "%d", value);
 }
 
 
-#define NKERNELS 6
-typedef void (*write_kernel)(char**, Column*, int64_t);
-static write_kernel kernels[NKERNELS] = {
-    &kernel0,
-    &kernel1,
-    &kernel2,
-    &kernel3,
-    &kernel4,
-    &kernel5,
-};
-
 
 //=================================================================================================
 // Main
 //=================================================================================================
 
-void main_int8(int B, int64_t N)
+BenchmarkSuite prepare_bench_int8(int64_t N)
 {
-  srand((unsigned) time(NULL));
-
   // Prepare data array
-  int8_t *data = malloc(N);
+  srand((unsigned) time(NULL));
+  int8_t *data = (int8_t*) malloc(N);
   for (int64_t i = 0; i < N; i++) {
     int x = rand();
     data[i] = (x&7)==0? NA_I1 : (x&7)==1? 0 : (int8_t) (x>>3);
   }
-  Column column = { .data = (void*)data };
 
   // Prepare output buffer
   // At most 4 characters per entry (e.g. '-100') + 1 for a comma
-  char *out = malloc(N * 5 + 1);
+  char *out = (char*) malloc(N * 5 + 1);
+  Column *column = (Column*) malloc(sizeof(Column));
+  column->data = (void*)data;
 
-  // Run the experiment
-  for (int k = 0; k < NKERNELS; k++) {
-    write_kernel kernel = kernels[k];
+  static Kernel kernels[] = {
+    { &kernel_simple,    "simple" },   // 19.645
+    { &kernel_range1,    "range1" },   // 19.601
+    { &kernel_div,       "div" },      // 27.200
+    { &kernel_divloop,   "divloop" },  // 32.820
+    { &kernel_fwrite,    "fwrite" },   // 33.197
+    { &kernel_sprintf,   "sprintf" },  // 79.778
+    { NULL, NULL },
+  };
 
-    double t0 = now();
-    for (int b = 0; b < B; b++) {
-      char *pch = out;
-      for (int64_t i = 0; i < N; i++) {
-        kernel(&pch, &column, i);
-        *pch++ = ',';
-      }
-      *pch = 0;
-    }
-    double t1 = now();
-    out[80] = 0;
-    printf("Kernel %d: %.3f ms  [sample: %s]\n", k, (t1-t0)*1000/B, out);
-  }
-
-  // Clean up
-  printf("\nRaw data: ["); for (int i=0; i < 20; i++) printf("%d,", data[i]); printf("...]\n");
-  free(out);
-  free(data);
+  return {
+    .column = column,
+    .output = out,
+    .kernels = kernels,
+  };
 }

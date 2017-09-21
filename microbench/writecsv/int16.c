@@ -7,7 +7,7 @@
 
 
 // This form assumes that at least 6 extra bytes in the buffer are available
-static void kernel0(char **pch, Column *col, int64_t row) {
+static void kernel_tempwrite(char **pch, Column *col, int64_t row) {
   int16_t value = ((int16_t*) col->data)[row];
   if (value == 0) {
     *((*pch)++) = '0';
@@ -38,7 +38,7 @@ static void kernel0(char **pch, Column *col, int64_t row) {
 
 // Best approach, so far
 static const int32_t DIVS10[10] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
-static void kernel1(char **pch, Column *col, int64_t row) {
+static void kernel_div10(char **pch, Column *col, int64_t row) {
   int value = ((int16_t*) col->data)[row];
   if (value == 0) {
     *((*pch)++) = '0';
@@ -65,7 +65,7 @@ static void kernel1(char **pch, Column *col, int64_t row) {
 // Used in fwrite.c
 // This code is used here only for comparison, and is not used in the
 // production in any way.
-static void kernel2(char **pch, Column *col, int64_t row)
+static void kernel_fwrite(char **pch, Column *col, int64_t row)
 {
   int16_t value = ((int16_t*) col->data)[row];
   char *ch = *pch;
@@ -95,7 +95,7 @@ static void kernel2(char **pch, Column *col, int64_t row)
 
 
 // Good old 'sprintf'
-static void kernel3(char **pch, Column *col, int64_t row) {
+static void kernel_sprintf(char **pch, Column *col, int64_t row) {
   int16_t value = ((int16_t*) col->data)[row];
   if (value == NA_I2) return;
   *pch += sprintf(*pch, "%d", value);
@@ -103,28 +103,16 @@ static void kernel3(char **pch, Column *col, int64_t row) {
 
 
 
-#define NKERNELS 4
-typedef void (*write_kernel)(char**, Column*, int64_t);
-static write_kernel kernels[NKERNELS] = {
-  //            Time to write a single value and a comma, in ns
-  &kernel0,  // 53.845
-  &kernel1,  // 37.538
-  &kernel2,  // 58.723
-  &kernel3,  // 87.281
-};
-
-
 
 //=================================================================================================
 // Main
 //=================================================================================================
 
-void main_int16(int B, int64_t N)
+BenchmarkSuite prepare_bench_int16(int64_t N)
 {
-  srand((unsigned) time(NULL));
-
   // Prepare data array
-  int16_t *data = malloc(N * sizeof(int16_t));
+  srand((unsigned) time(NULL));
+  int16_t *data = (int16_t*) malloc(N * sizeof(int16_t));
   for (int64_t i = 0; i < N; i++) {
     int x = rand();
     data[i] = (x&15)<=1? NA_I2 :
@@ -135,32 +123,24 @@ void main_int16(int B, int64_t N)
               (x&15)==6? -(x % 1000) :
               (x&15)<=12? x : -x;
   }
-  Column column = { .data = (void*)data };
 
   // Prepare output buffer
   // At most 6 characters per entry (e.g. '-32000') + 1 for a comma
-  char *out = malloc((N + 1) * 7 + 100);
+  char *out = (char*) malloc((N + 1) * 7 + 100);
+  Column *column = (Column*) malloc(sizeof(Column));
+  column->data = (void*)data;
 
-  // Run the experiment
-  for (int k = 0; k < NKERNELS; k++) {
-    write_kernel kernel = kernels[k];
+  static Kernel kernels[] = {
+    { &kernel_tempwrite, "tempwrite" }, // 52.322
+    { &kernel_div10,     "div10" },     // 36.855
+    { &kernel_fwrite,    "fwrite" },    // 56.915
+    { &kernel_sprintf,   "sprintf" },   // 82.000
+    { NULL, NULL },
+  };
 
-    double t0 = now();
-    for (int b = 0; b < B; b++) {
-      char *pch = out;
-      for (int64_t i = 0; i < N; i++) {
-        kernel(&pch, &column, i);
-        *pch++ = ',';
-      }
-      *pch = 0;
-    }
-    double t1 = now();
-    out[120] = 0;
-    printf("Kernel %d: %3.3f ns  [sample: %s]\n", k, (t1-t0)*1e9/B/N, out);
-  }
-
-  // Clean up
-  printf("\nRaw data: ["); for (int i=0; i < 20; i++) printf("%d,", data[i]); printf("...]\n");
-  free(out);
-  free(data);
+  return {
+    .column = column,
+    .output = out,
+    .kernels = kernels,
+  };
 }

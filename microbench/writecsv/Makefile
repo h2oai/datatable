@@ -1,8 +1,9 @@
 
 #-------------------------------------------------------------------------------
 
-CC ?= clang
+CC = clang++
 INCLUDES ?= -I..
+CCFLAGS += -std=gnu++11
 
 ifdef writer
 	WRITER := writer=$(writer)
@@ -36,7 +37,10 @@ int16.o: int16.c
 int32.o: int32.c
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-writecsv: main.o boolean.o int8.o int16.o int32.o
+double.o: double.c dtoa_milo.h
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+writecsv: main.o boolean.o int8.o int16.o int32.o double.o
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:

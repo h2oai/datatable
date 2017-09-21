@@ -58,7 +58,7 @@ static void write_exponent(char **pch, int value) {
 
 
 // Quick-and-dirty approach + fallback to Grisu2 for small/large numbers
-static void kernel0(char **pch, Column *col, int64_t row)
+static void kernel_mixed(char **pch, Column *col, int64_t row)
 {
   double value = ((double*) col->data)[row];
   char *ch = *pch;
@@ -107,7 +107,7 @@ static void kernel0(char **pch, Column *col, int64_t row)
 }
 
 
-static void kernel1(char **pch, Column *col, int64_t row)
+static void kernel_altmixed(char **pch, Column *col, int64_t row)
 {
   double value = ((double*) col->data)[row];
   char *ch = *pch;
@@ -164,7 +164,7 @@ static void kernel1(char **pch, Column *col, int64_t row)
 // Used in fwrite.c
 // This code is used here only for comparison, and is not used in the
 // production in any way.
-static void kernel2(char **pch, Column *col, int64_t row)
+static void kernel_fwrite(char **pch, Column *col, int64_t row)
 {
   double value = ((double*) col->data)[row];
   char *ch = *pch;
@@ -257,14 +257,14 @@ static void kernel2(char **pch, Column *col, int64_t row)
 
 
 // Good old 'sprintf'
-static void kernel3(char **pch, Column *col, int64_t row) {
+static void kernel_sprintf(char **pch, Column *col, int64_t row) {
   double value = ((double*) col->data)[row];
   if (isnan(value)) return;
   *pch += sprintf(*pch, "%.17g", value);
 }
 
 
-static void kernel4(char **pch, Column *col, int64_t row) {
+static void kernel_miloyip(char **pch, Column *col, int64_t row) {
   double value = ((double*) col->data)[row];
   if (isnan(value)) return;
   char *ch = *pch;
@@ -287,28 +287,14 @@ static void kernel4(char **pch, Column *col, int64_t row) {
 
 
 
-
-#define NKERNELS 5
-typedef void (*write_kernel)(char**, Column*, int64_t);
-static write_kernel kernels[NKERNELS] = {
-  //            Time to write a single value and a comma, in ns
-  &kernel0,  // 211.736
-  &kernel1,  // 203.833
-  &kernel2,  // 373.679
-  &kernel3,  // 643.549
-  &kernel4,  // 257.721
-};
-
-
 //=================================================================================================
 // Main
 //=================================================================================================
 
-void main_double(int B, int64_t N)
+BenchmarkSuite prepare_bench_double(int64_t N)
 {
-  srand((unsigned) time(NULL));
-
   // Prepare data array
+  srand((unsigned) time(NULL));
   double *data = (double*) malloc(N * sizeof(double));
   for (int64_t i = 0; i < N; i++) {
     int t = rand();
@@ -324,31 +310,25 @@ void main_double(int B, int64_t N)
               (t&15)<=12? x * pow(10, 20 + t % 100) * (1 - 2*(t&1)) :
                           x * pow(0.1, 20 + t % 100) * (1 - 2*(t&1));
   }
-  Column column = { .data = (void*)data };
 
   // Prepare output buffer
-  // Assume at most 60 characters per entry
-  char *out = (char*) malloc((N + 1) * 60);
+  // At most 25 characters per entry (e.g. '-1.3456789011111343e+123') + 1 for a comma
+  char *out = (char*) malloc((N + 1) * 25);
+  Column *column = (Column*) malloc(sizeof(Column));
+  column->data = (void*)data;
 
-  // Run the experiment
-  for (int k = 0; k < NKERNELS; k++) {
-    write_kernel kernel = kernels[k];
+  static Kernel kernels[] = {
+    { &kernel_mixed,     "mixed" },    // 206.602
+    { &kernel_altmixed,  "altmixed" }, // 200.495
+    { &kernel_miloyip,   "miloyip" },  // 253.576
+    { &kernel_fwrite,    "fwrite" },   // 362.064
+    { &kernel_sprintf,   "sprintf" },  // 629.885
+    { NULL, NULL },
+  };
 
-    double t0 = now();
-    for (int b = 0; b < B; b++) {
-      char *pch = out;
-      for (int64_t i = 0; i < N; i++) {
-        kernel(&pch, &column, i);
-        *pch++ = ',';
-      }
-      *pch = 0;
-    }
-    double t1 = now();
-    out[120] = 0;
-    printf("Kernel %d: %3.3f ns  [sample: %s]\n", k, (t1-t0)*1e9/B/N, out);
-  }
-
-  // Clean up
-  free(out);
-  free(data);
+  return {
+    .column = column,
+    .output = out,
+    .kernels = kernels,
+  };
 }
