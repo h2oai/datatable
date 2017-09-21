@@ -5,15 +5,6 @@
 #include "writecsv.h"
 #include "utils.h"
 
-static const char *writer_names[NWRITERS+1] = {
-  "",
-  "boolean",
-  "int8",
-  "int16",
-  "int32",
-  "double",
-};
-
 
 // Run the benchmark
 void run_bench(int B, int64_t N, BenchmarkSuite bench)
@@ -44,31 +35,43 @@ void run_bench(int B, int64_t N, BenchmarkSuite bench)
   }
 
   // Clean up
-  free(bench.output);
-  free(column->data);
-  free(column);
+  // free(bench.output);
+  // free(column->data);
+  // free(column);
 }
 
 
 int main(int argc, char **argv)
 {
-    int A = getCmdArgInt(argc, argv, "writer", 1);
-    int B = getCmdArgInt(argc, argv, "batches", 100);
-    int N = getCmdArgInt(argc, argv, "n", 64);
-    if (A <= 0 || A > NWRITERS) {
-        printf("Invalid writer: %d  (max writers=%d)\n", A, NWRITERS);
-        return 1;
-    }
-    printf("Writer  = %s\n", writer_names[A]);
-    printf("Batches = %d\n", B);
-    printf("Numrows = %d\n", N);
-    printf("\n");
+  int A = getCmdArgInt(argc, argv, "writer", 1);
+  int B = getCmdArgInt(argc, argv, "batches", 100);
+  int N = getCmdArgInt(argc, argv, "n", 64);
+  if (A <= 0 || A > NWRITERS) {
+    printf("Invalid writer: %d  (max writers=%d)\n", A, NWRITERS);
+    return 1;
+  }
 
-    switch (A) {
-        case 1: run_bench(B, N, prepare_bench_boolean(N)); break;
-        case 2: run_bench(B, N, prepare_bench_int8(N)); break;
-        case 3: run_bench(B, N, prepare_bench_int16(N)); break;
-        case 4: run_bench(B, N, prepare_bench_int32(N)); break;
-        case 5: run_bench(B, N, prepare_bench_double(N)); break;
-    }
+  static const char *writer_names[NWRITERS+1] = {
+    "",
+    "boolean",
+    "int8",
+    "int16",
+    "int32",
+    "double",
+    "string",
+  };
+
+  printf("Writer  = %s\n", writer_names[A]);
+  printf("Batches = %d\n", B);
+  printf("Numrows = %d\n", N);
+  printf("\n");
+
+  switch (A) {
+    case 1: run_bench(B, N, prepare_bench_boolean(N)); break;
+    case 2: run_bench(B, N, prepare_bench_int8(N)); break;
+    case 3: run_bench(B, N, prepare_bench_int16(N)); break;
+    case 4: run_bench(B, N, prepare_bench_int32(N)); break;
+    case 5: run_bench(B, N, prepare_bench_double(N)); break;
+    case 6: run_bench(B, N, prepare_bench_string(N)); break;
+  }
 }

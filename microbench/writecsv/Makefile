@@ -40,7 +40,10 @@ int32.o: int32.cpp
 double.o: double.cpp dtoa_milo.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-writecsv: main.o boolean.o int8.o int16.o int32.o double.o
+string.o: string.cpp
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+writecsv: main.o boolean.o int8.o int16.o int32.o double.o string.o
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:

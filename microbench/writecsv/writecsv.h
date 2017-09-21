@@ -4,7 +4,7 @@
 
 extern double now();
 
-#define NWRITERS 5
+#define NWRITERS 6
 #define NA_I1 -128
 #define NA_I2 -32768
 #define NA_I4 INT32_MIN
@@ -13,6 +13,7 @@ extern double now();
 
 typedef struct Column {
   void *data;
+  char *strbuf;
 } Column;
 
 typedef void (*kernel_fn)(char **output, Column *col, int64_t row);
@@ -35,6 +36,7 @@ BenchmarkSuite prepare_bench_int8(int64_t N);
 BenchmarkSuite prepare_bench_int16(int64_t N);
 BenchmarkSuite prepare_bench_int32(int64_t N);
 BenchmarkSuite prepare_bench_double(int64_t N);
+BenchmarkSuite prepare_bench_string(int64_t N);
 
 
 #endif
