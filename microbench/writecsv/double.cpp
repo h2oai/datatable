@@ -285,6 +285,45 @@ static void kernel_miloyip(char **pch, Column *col, int64_t row) {
 }
 
 
+// Note: this prints doubles in hex format, so not directly comparable!
+static char hexdigits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+static void kernel_hex(char **pch, Column *col, int64_t row) {
+  // Read the value as if it was double
+  uint64_t value = ((uint64_t*) col->data)[row];
+  char *ch = *pch;
+
+  int exp = (int)(value >> 52);
+  uint64_t sig = (value & 0xFFFFFFFFFFFFF);
+  if (exp & 0x800) {
+    *ch++ = '-';
+    exp ^= 0x800;
+  }
+  if (exp == 0x7FF) {  // nan & inf
+    if (sig == 0) {  // - sign was already printed, if any
+      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
+    } else {
+      ch[0] = 'n'; ch[1] = 'a'; ch[2] = 'n';
+    }
+    *pch = ch + 3;
+    return;
+  }
+  ch[0] = '0';
+  ch[1] = 'x';
+  ch[2] = '0' + (exp != 0x000);
+  ch[3] = '.';
+  ch += 3 + (sig != 0);
+  while (sig) {
+    uint64_t r = sig & 0xF000000000000;
+    *ch++ = hexdigits[r >> 48];
+    sig = (sig ^ r) << 4;
+  }
+  if (exp) exp -= 0x3FF;
+  *ch++ = 'p';
+  *ch++ = '+' + (exp < 0)*('-' - '+');
+  write_int32(&ch, abs(exp));
+  *pch = ch;
+}
+
 
 
 //=================================================================================================
@@ -318,11 +357,12 @@ BenchmarkSuite prepare_bench_double(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_mixed,     "mixed" },    // 206.602
-    { &kernel_altmixed,  "altmixed" }, // 200.495
-    { &kernel_miloyip,   "miloyip" },  // 253.576
-    { &kernel_fwrite,    "fwrite" },   // 362.064
-    { &kernel_sprintf,   "sprintf" },  // 629.885
+    { &kernel_mixed,     "mixed" },    // 208.207
+    { &kernel_altmixed,  "altmixed" }, // 201.784
+    { &kernel_miloyip,   "miloyip" },  // 257.480
+    { &kernel_hex,       "hex" },      //  78.786
+    { &kernel_fwrite,    "fwrite" },   // 366.510
+    { &kernel_sprintf,   "sprintf" },  // 637.765
     { NULL, NULL },
   };
 
