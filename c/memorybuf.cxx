@@ -71,10 +71,11 @@ MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n, int flags_)
   }
 
   if (create) {
-    bool file_exists = (access(filename, F_OK) != -1);
-    if (file_exists) {
-      throw std::runtime_error("File with such name already exists");
-    }
+    // Should we care whether the file exists or not?
+    // bool file_exists = (access(filename, F_OK) != -1);
+    // if (file_exists) {
+    //   throw std::runtime_error("File with such name already exists");
+    // }
     // Create new file of size `n`.
     FILE *fp = fopen(filename, "w");
     if (n) {

@@ -320,22 +320,29 @@ void csv_write(CsvWriteParameters *args)
   // Write the column names
   char **colnames = args->column_names;
   if (colnames) {
+    // printf("writing column names...\n");
     char *ch, *ch0, *colname;
     ch = ch0 = static_cast<char*>(mb->get());
+    // printf("  buf = %p\n", ch);
     size_t maxsize = 0;
     while ((colname = *colnames++)) {
       // A string may expand up to twice in size (if all its characters need
       // to be escaped) + add 2 surrounding quotes + add a comma in the end.
       maxsize += strlen(colname)*2 + 2 + 1;
     }
+    // printf("  maxsize = %zu\n", maxsize);
     mb->ensuresize(maxsize);
+    // printf("  ensured\n");
+    colnames = args->column_names;
     while ((colname = *colnames++)) {
+      // printf("  writing %s\n", colname);
       write_string(&ch, colname);
       *ch++ = ',';
     }
     // Replace the last ',' with a newline
     ch[-1] = '\n';
     bytes_written += static_cast<size_t>(ch - ch0);
+    // printf("  bytes written = %zu\n", bytes_written);
   }
 
   // Prepare writing environment and calculate best parameters
@@ -416,9 +423,12 @@ void csv_write(CsvWriteParameters *args)
   // Done writing; if writing to stdout then print the output buffer using the
   // plain C `printf()`; otherwise simply deleting the MemoryBuffer object
   // guarantees that the data will be stored to disk.
-  if (!args->path) {
+  if (args->path) {
+    mb->resize(bytes_written);
+  } else {
     char *target = static_cast<char*>(mb->get());
     target[bytes_written] = '\0';
+    mb->resize(bytes_written + 1);
     printf("%s\n", target);
   }
   delete mb;
