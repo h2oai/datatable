@@ -12,11 +12,12 @@ typedef struct CsvWriteParameters {
 
   char **column_names;
 
-  // Character to use as a separator between fields. Default ','. Only single-
-  // character separators are supported
-  char sep;
+  int nthreads;
+
+  int _padding;
 
 } CsvWriteParameters;
 
 
-int csv_write(CsvWriteParameters *args);
+void csv_write(CsvWriteParameters *args);
+void init_csvwrite_constants();

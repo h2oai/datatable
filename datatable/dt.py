@@ -18,6 +18,7 @@ from datatable.utils.typechecks import (
     TTypeError, TValueError, typed, U, is_type, DataTable_t,
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
+from datatable.csv import write_csv
 from datatable.expr.consts import CStats
 
 __all__ = ("DataTable", )
@@ -485,6 +486,7 @@ class DataTable(object):
     append = dt_rbind
     rbind = dt_rbind
     cbind = dt_cbind
+    to_csv = write_csv
 
 
     @typed(by=U(str, int))
@@ -532,7 +534,7 @@ class DataTable(object):
         """
         return DataTable(self._dt.get_stat(CStats.max.value),
                          colnames=self.names)
-    
+
     def sum(self):
         """
         Get the sum of each column.
@@ -556,7 +558,7 @@ class DataTable(object):
         """
         return DataTable(self._dt.get_stat(CStats.mean.value),
                          colnames=self.names)
-    
+
     def sd(self):
         """
         Get the standard deviation of each column.
@@ -580,7 +582,7 @@ class DataTable(object):
         """
         return DataTable(self._dt.get_stat(CStats.count_na.value),
                          colnames=self.names)
-    
+
 
 
     @typed(columns={U(str, int): str})

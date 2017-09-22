@@ -16,6 +16,7 @@ MemoryBuffer::~MemoryBuffer() {}
 
 RamMemoryBuffer::RamMemoryBuffer(size_t n) {
   buf = malloc(n);
+  if (!buf) throw std::runtime_error("Unable to allocate memory buffer");
 }
 
 

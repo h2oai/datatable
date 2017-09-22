@@ -1,4 +1,5 @@
 #include <Python.h>
+#include "csv.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -9,9 +10,6 @@
 #include "py_types.h"
 #include "py_utils.h"
 
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>   // for open()
 
 PyMODINIT_FUNC PyInit__datatable(void);
 PyObject* pyfn_column_hexview = NULL;  // Defined in py_column.h
@@ -93,6 +91,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(datatable_load),
     METHOD0(datatable_from_buffers),
     METHOD0(fread),
+    METHOD0(write_csv),
     METHOD0(exec_function),
     METHOD0(register_function),
     METHOD0(install_buffer_hooks),
@@ -115,6 +114,7 @@ static PyModuleDef datatablemodule = {
 /* Called when Python program imports the module */
 PyMODINIT_FUNC
 PyInit__datatable(void) {
+    init_csvwrite_constants();
 
     // Instantiate module object
     PyObject *m = PyModule_Create(&datatablemodule);
