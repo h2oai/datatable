@@ -114,11 +114,6 @@ extra_compile_args += ["-DDTPY"]
 # are disabled...
 extra_compile_args += ["-DNONDEBUG"]
 
-# Under C++ we do not use exceptions, thus disable them. This should prevent an
-# error about "missing __gxx_personality_v0". See
-#   https://stackoverflow.com/questions/329059/what-is-gxx-personality-v0-for
-extra_compile_args += ["-fno-exceptions"]
-
 # Ignored warnings:
 #   -Wcovered-switch-default: we add `default` statement to
 #       an exhaustive switch to guard against memory
