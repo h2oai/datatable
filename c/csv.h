@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "datatable.h"
+#include "memorybuf.h"
 
 
 typedef struct CsvWriteParameters {
@@ -19,5 +20,5 @@ typedef struct CsvWriteParameters {
 } CsvWriteParameters;
 
 
-void csv_write(CsvWriteParameters *args);
+MemoryBuffer* csv_write(CsvWriteParameters *args);
 void init_csvwrite_constants();

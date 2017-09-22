@@ -39,8 +39,8 @@ public:
     strbuf = NULL;
     writer = writers_per_stype[col->stype];
     if (col->stype == ST_STRING_I4_VCHAR) {
-      strbuf = reinterpret_cast<char*>(data);
-      data = strbuf + ((VarcharMeta*)col->meta)->offoff;
+      strbuf = reinterpret_cast<char*>(data) - 1;
+      data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
     }
   }
 
@@ -276,7 +276,7 @@ inline static void write_int32(char **pch, int32_t value)
 // Main CSV-writing function
 //
 //=================================================================================================
-void csv_write(CsvWriteParameters *args)
+MemoryBuffer* csv_write(CsvWriteParameters *args)
 {
   // Fetch arguments
   DataTable *dt = args->dt;
@@ -320,29 +320,23 @@ void csv_write(CsvWriteParameters *args)
   // Write the column names
   char **colnames = args->column_names;
   if (colnames) {
-    // printf("writing column names...\n");
     char *ch, *ch0, *colname;
-    ch = ch0 = static_cast<char*>(mb->get());
-    // printf("  buf = %p\n", ch);
     size_t maxsize = 0;
     while ((colname = *colnames++)) {
       // A string may expand up to twice in size (if all its characters need
       // to be escaped) + add 2 surrounding quotes + add a comma in the end.
       maxsize += strlen(colname)*2 + 2 + 1;
     }
-    // printf("  maxsize = %zu\n", maxsize);
-    mb->ensuresize(maxsize);
-    // printf("  ensured\n");
+    mb->ensuresize(maxsize + bytes_total);
+    ch = ch0 = static_cast<char*>(mb->get());
     colnames = args->column_names;
     while ((colname = *colnames++)) {
-      // printf("  writing %s\n", colname);
       write_string(&ch, colname);
       *ch++ = ',';
     }
     // Replace the last ',' with a newline
     ch[-1] = '\n';
     bytes_written += static_cast<size_t>(ch - ch0);
-    // printf("  bytes written = %zu\n", bytes_written);
   }
 
   // Prepare writing environment and calculate best parameters
@@ -429,10 +423,9 @@ void csv_write(CsvWriteParameters *args)
     char *target = static_cast<char*>(mb->get());
     target[bytes_written] = '\0';
     mb->resize(bytes_written + 1);
-    printf("%s\n", target);
   }
-  delete mb;
   free(columns);
+  return mb;
 }
 
 

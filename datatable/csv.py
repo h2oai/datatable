@@ -11,7 +11,7 @@ def write_csv(dt, path=""):
     if path.startswith("~"):
         path = os.path.expanduser(path)
     writer = CsvWriter(dt, path)
-    writer.write()
+    return writer.write()
 
 
 
@@ -24,4 +24,4 @@ class CsvWriter(object):
         self.path = path
 
     def write(self):
-        _datatable.write_csv(self)
+        return _datatable.write_csv(self)
