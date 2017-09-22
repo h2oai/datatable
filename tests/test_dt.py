@@ -59,9 +59,11 @@ def test_dt_properties(dt0):
     assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
     assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
     assert dt0.internal.alloc_size == 588
-    assert sys.getsizeof(dt0) > dt0.internal.alloc_size + \
-           sys.getsizeof(dt0.names) + sum(sys.getsizeof(colname) for colname in dt0.names) + \
-           sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._types) + sys.getsizeof(dt0._stypes)
+    assert (sys.getsizeof(dt0) > dt0.internal.alloc_size +
+            sys.getsizeof(dt0.names) +
+            sum(sys.getsizeof(colname) for colname in dt0.names) +
+            sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._types) +
+            sys.getsizeof(dt0._stypes))
     # +--------------+------------+    +------+
     # | nrows:     8 | **stats: 8 |--->| NULL |
     # | ncols:     8 |------------+    +------+
@@ -225,6 +227,7 @@ def test_dt_delitem():
 
 
 def test_column_hexview(dt0, patched_terminal, capsys):
+    assert dt0.internal.column(0).data_pointer
     dt0.internal.column(-1).hexview()
     out, err = capsys.readouterr()
     print(out)

@@ -44,6 +44,12 @@ static PyObject* get_data_size(Column_PyObject *self) {
     return PyLong_FromSize_t(col->alloc_size);
 }
 
+DT_DOCS(data_pointer, "Pointer (cast to long int) to the column's internal memory buffer")
+static PyObject* get_data_pointer(Column_PyObject *self) {
+    Column *col = self->ref;
+    return PyLong_FromSize_t(reinterpret_cast<size_t>(col->data));
+}
+
 
 DT_DOCS(meta, "String representation of the column's `meta` struct")
 static PyObject* get_meta(Column_PyObject *self) {
@@ -139,6 +145,7 @@ static PyGetSetDef column_getseters[] = {
     DT_GETSETTER(stype),
     DT_GETSETTER(ltype),
     DT_GETSETTER(data_size),
+    DT_GETSETTER(data_pointer),
     DT_GETSETTER(meta),
     DT_GETSETTER(refcount),
     {NULL, NULL, NULL, NULL, NULL}  /* sentinel */
