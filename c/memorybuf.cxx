@@ -1,10 +1,13 @@
+#include <stdexcept>   // std::exceptions
 #include <fcntl.h>     // open
-#include <stdlib.h>
 #include <stdio.h>     // remove
+#include <string.h>    // strlen
 #include <sys/mman.h>  // mmap
 #include <sys/stat.h>  // fstat
 #include <unistd.h>    // access, close
 #include "memorybuf.h"
+
+MemoryBuffer::~MemoryBuffer() {}
 
 
 //==============================================================================
@@ -23,7 +26,7 @@ RamMemoryBuffer::~RamMemoryBuffer() {
 }
 
 
-RamMemoryBuffer::resize(size_t n) {
+void RamMemoryBuffer::resize(size_t n) {
   if (n == allocsize) return;
   buf = realloc(buf, n);
   allocsize = n;
@@ -36,9 +39,9 @@ RamMemoryBuffer::resize(size_t n) {
 //==============================================================================
 
 StringMemoryBuffer::StringMemoryBuffer(const char *str) {
-  buf = const_cast<void*>(str);
+  buf = static_cast<void*>(const_cast<char*>(str));
   allocsize = strlen(str);
-  flags = MB_IMMUTABLE | MB_EXTERNAL;
+  flags = MB_READONLY | MB_EXTERNAL;
 }
 
 void StringMemoryBuffer::resize(size_t) {}
@@ -51,17 +54,17 @@ StringMemoryBuffer::~StringMemoryBuffer() {}
 // Disk-based MemoryBuffer
 //==============================================================================
 
-MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n = 0, int flags_ = 0)
+MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n, int flags_)
 {
   flags = flags_;
   filename = path;
   bool temporary = owned();
-  bool readonly = readonly();
+  bool isreadonly = readonly();
   bool create = (flags & MB_CREATE) == MB_CREATE;
-  bool new_temp_file = create && temporary && !readonly;
-  bool new_perm_file = create && !temporary && !readonly;
-  bool read_file = !create && !temporary && readonly;
-  bool readwrite_file = !create && !temporary && !readonly;
+  bool new_temp_file = create && temporary && !isreadonly;
+  bool new_perm_file = create && !temporary && !isreadonly;
+  bool read_file = !create && !temporary && isreadonly;
+  bool readwrite_file = !create && !temporary && !isreadonly;
   if (!(new_temp_file || new_perm_file || read_file || readwrite_file)) {
     throw std::invalid_argument("invalid flags parameter");
   }
@@ -80,7 +83,7 @@ MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n = 0, int flags_ = 
     fclose(fp);
   } else {
     // Check that the file exists and is accessible
-    int mode = readonly? R_OK : (R_OK|W_OK);
+    int mode = isreadonly? R_OK : (R_OK|W_OK);
     bool file_accessible = (access(filename, mode) != -1);
     if (!file_accessible) {
       throw std::runtime_error("File cannot be opened");
@@ -88,7 +91,7 @@ MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n = 0, int flags_ = 
   }
 
   // Open the file and determine its size
-  int fd = open(filename, readonly? O_RDONLY : O_RDWR, 0666);
+  int fd = open(filename, isreadonly? O_RDONLY : O_RDWR, 0666);
   if (fd == -1) throw std::runtime_error("Cannot open file");
   struct stat statbuf;
   if (fstat(fd, &statbuf) == -1) throw std::runtime_error("Error in fstat()");
@@ -98,7 +101,7 @@ MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n = 0, int flags_ = 
   // Memory-map the file.
   allocsize = n;
   buf = mmap(NULL, n, PROT_WRITE|PROT_READ,
-             readonly? MAP_PRIVATE|MAP_NORESERVE : MAP_SHARED, fd, 0);
+             isreadonly? MAP_PRIVATE|MAP_NORESERVE : MAP_SHARED, fd, 0);
   close(fd);  // fd is no longer needed
   if (buf == MAP_FAILED) {
     throw std::runtime_error("Memory map failed");
@@ -114,7 +117,7 @@ MmapMemoryBuffer::~MmapMemoryBuffer() {
 }
 
 
-MmapMemoryBuffer::resize(size_t n) {
+void MmapMemoryBuffer::resize(size_t n) {
   if (readonly()) return;
   munmap(buf, allocsize);
   truncate(filename, (off_t)n);

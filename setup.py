@@ -36,7 +36,7 @@ if os.environ.get("CI_VERSION_SUFFIX"):
 c_sources = []
 for root, dirs, files in os.walk("c"):
     for name in files:
-        if name.endswith(".c") or name.endswith(".cpp"):
+        if name.endswith(".c") or name.endswith(".cxx"):
             c_sources.append(os.path.join(root, name))
 
 # Find python source directories
@@ -85,10 +85,14 @@ else:
 
 # Compiler
 os.environ["CC"] = clang + " "
+os.environ["CXX"] = clang + " "
 if sysconfig.get_config_var("CONFINCLUDEPY"):
     # Marking this directory as "isystem" prevents Clang from issuing warnings
     # for those files
     os.environ["CC"] += "-isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
+    os.environ["CXX"] += "-isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
+# Linker
+# os.environ["LDSHARED"] = clang
 # Linker flags
 os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, libs)
 # Force to build for a 64-bit platform only
@@ -96,11 +100,10 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 
-
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
-extra_compile_args = ["-std=gnu++11", "-stdlib=libc++"]
+extra_compile_args = ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
 
 # Include path to C++ header files
 extra_compile_args += ["-I" + os.environ["LLVM4"] + "/include/c++/v1"]

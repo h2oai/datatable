@@ -19,6 +19,7 @@ protected:
   void *buf;
   size_t allocsize;
   int flags;
+  int _padding;
 
   MemoryBuffer(): buf(NULL), allocsize(0), flags(0) {}
   bool owned() const {
