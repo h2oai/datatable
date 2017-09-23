@@ -69,8 +69,8 @@ static void write_i1(char **pch, CsvColumn *col, int64_t row)
 {
   int value = static_cast<int>(reinterpret_cast<int8_t*>(col->data)[row]);
   char *ch = *pch;
+  if (value == NA_I1) return;
   if (value < 0) {
-    if (value == NA_I1) return;
     *ch++ = '-';
     value = -value;
   }
@@ -155,7 +155,7 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
   const char *strstart = col->strbuf + offset0;
   const char *strend = col->strbuf + offset1;
   const char *sch = strstart;
-  while (sch < strend) {  // ',' is 44, '"' is 32
+  while (sch < strend) {  // ',' is 44, '"' is 34
     char c = *sch;
     if ((uint8_t)c <= (uint8_t)',' && (c == ',' || c == '"' || (uint8_t)c < 32)) break;
     *ch++ = c;
@@ -305,7 +305,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     }
   }
   bytes_total += ncols * nrows;  // Account for separators / newlines
-  double bytes_per_row = static_cast<double>(bytes_total / nrows);
+  double bytes_per_row = nrows? static_cast<double>(bytes_total / nrows) : 0;
 
   // Create the target memory region
   MemoryBuffer *mb = NULL;
@@ -353,7 +353,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   }
   if (bytes_per_chunk < min_chunk_size) {
     // The data is too small, and number of available threads too large --
-    // reduce the number of chunks so that we don't waster resources on
+    // reduce the number of chunks so that we don't waste resources on
     // needless thread manipulation.
     nchunks = bytes_total / min_chunk_size;
     if (nchunks < 1) nchunks = 1;
