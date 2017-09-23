@@ -30,7 +30,7 @@ extern PyTypeObject DataTable_PyType;
 
 
 // Exported methods
-int dt_unwrap(PyObject *object, void *address);
+int dt_unwrap(PyObject *object, DataTable **address);
 PyObject* pydt_from_dt(DataTable *dt);
 PyObject* pydatatable_from_list(PyObject *self, PyObject *args);
 PyObject* pydatatable_from_buffers(PyObject *self, PyObject *args);

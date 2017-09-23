@@ -36,6 +36,13 @@ public:
   }
 
   /**
+   * Return the allocation size of this memory buffer.
+   */
+  size_t size() const {
+    return allocsize;
+  }
+
+  /**
    * Return true if the memory buffer is marked as readonly. Trying to modify
    * the contents of such buffer may lead to undesired consequences.
    */

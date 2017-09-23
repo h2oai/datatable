@@ -133,11 +133,12 @@ char** _to_string_list(PyObject *x) {
     if (x == NULL) return (char**) -1;
     char **res = NULL;
     if (x == Py_None) {}
-    else if (PyList_Check(x)) {
-        Py_ssize_t count = PyList_Size(x);
+    else if (PyList_Check(x) || PyTuple_Check(x)) {
+        int islist = PyList_Check(x);
+        Py_ssize_t count = islist? PyList_Size(x) : PyTuple_Size(x);
         dtcalloc(res, char*, count + 1);
         for (Py_ssize_t i = 0; i < count; i++) {
-            PyObject *item = PyList_GetItem(x, i);
+            PyObject *item = islist? PyList_GetItem(x, i) : PyTuple_GetItem(x, i);
             if (PyUnicode_Check(item)) {
                 PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
                 if (y == NULL) goto fail;

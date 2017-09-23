@@ -31,13 +31,12 @@ PyObject* pydt_from_dt(DataTable *dt)
 }
 #define py pydt_from_dt
 
-int dt_unwrap(PyObject *object, void *address) {
-    DataTable **ans = (DataTable**) address;
+int dt_unwrap(PyObject *object, DataTable **address) {
     if (!PyObject_TypeCheck(object, &DataTable_PyType)) {
         PyErr_SetString(PyExc_TypeError, "Expected object of type DataTable");
         return 0;
     }
-    *ans = ((DataTable_PyObject*)object)->ref;
+    *address = ((DataTable_PyObject*)object)->ref;
     return 1;
 }
 
