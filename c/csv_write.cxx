@@ -25,6 +25,8 @@
 #include "memorybuf.h"
 #include "myomp.h"
 #include "types.h"
+#include "utils.h"
+
 
 class CsvColumn;
 inline static void write_int32(char **pch, int32_t value);
@@ -305,6 +307,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   // maximum amount of space that is theoretically required.
   // Overall, we will probably overestimate the final size of the CSV by a big
   // margin.
+  double t0 = wallclock();
   int64_t nrows = dt->nrows;
   int64_t ncols = dt->ncols;
   int64_t bytes_total = 0;
@@ -321,16 +324,19 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   }
   bytes_total += ncols * nrows;  // Account for separators / newlines
   double bytes_per_row = nrows? static_cast<double>(bytes_total / nrows) : 0;
+  double t1 = wallclock();
 
   // Create the target memory region
   MemoryBuffer *mb = NULL;
   size_t allocsize = static_cast<size_t>(bytes_total);
   if (args->path) {
+    printf("Creating destination file of size %.3fGB\n", 1e-9*allocsize);
     mb = new MmapMemoryBuffer(args->path, allocsize, MB_CREATE|MB_EXTERNAL);
   } else {
     mb = new RamMemoryBuffer(allocsize);
   }
   size_t bytes_written = 0;
+  double t2 = wallclock();
 
   // Write the column names
   char **colnames = args->column_names;
@@ -353,6 +359,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     ch[-1] = '\n';
     bytes_written += static_cast<size_t>(ch - ch0);
   }
+  double t3 = wallclock();
 
   // Calculate the best chunking strategy for this file
   double rows_per_chunk;
@@ -382,11 +389,16 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   for (int64_t i = 0; i < ncols; i++) {
     new (columns + i) CsvColumn(dt->columns[i]);
   }
+  double t4 = wallclock();
 
   // Start writing the CSV
   bool stopTeam = false;
   #pragma omp parallel num_threads(nthreads)
   {
+    #pragma omp single
+    {
+      printf("Using nthreads = %d\n", omp_get_num_threads());
+    }
     size_t bufsize = bytes_per_chunk;
     char *thbuf = new char[bufsize];
     char *tch = thbuf;
@@ -430,11 +442,13 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     }
     delete[] thbuf;
   }
+  double t5 = wallclock();
 
   // Done writing; if writing to stdout then print the output buffer using the
   // plain C `printf()`; otherwise simply deleting the MemoryBuffer object
   // guarantees that the data will be stored to disk.
   if (args->path) {
+    printf("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
     mb->resize(bytes_written);
   } else {
     char *target = static_cast<char*>(mb->get());
@@ -442,6 +456,14 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     mb->resize(bytes_written + 1);
   }
   free(columns);
+  double t6 = wallclock();
+
+  printf("Compute CSV size: %.3fs\n", t1 - t0);
+  printf("Allocate file:    %.3fs\n", t2 - t1);
+  printf("Write columns:    %.3fs\n", t3 - t2);
+  printf("Compute params:   %.3fs\n", t4 - t3);
+  printf("Write the data:   %.3fs\n", t5 - t4);
+  printf("Finalize:         %.3fs\n", t6 - t5);
   return mb;
 }
 

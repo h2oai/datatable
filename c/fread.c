@@ -1,12 +1,3 @@
-#if defined(CLOCK_REALTIME) && !defined(DISABLE_CLOCK_REALTIME)
-#define HAS_CLOCK_REALTIME
-#endif
-
-#ifdef HAS_CLOCK_REALTIME
-  #include <time.h>      // clock_gettime for wallclock()
-#else
-  #include <sys/time.h>  // gettimeofday for wallclock()
-#endif
 #ifdef WIN32             // means WIN64, too, oddly
   #include <windows.h>
 #else
@@ -286,22 +277,6 @@ static inline bool nextGoodLine(const char **pch, int ncol, const char *eof)
   }
   if (ch<eof && attempts<30) { *pch = ch; return true; }
   return false;
-}
-
-
-double wallclock(void)
-{
-    double ans = 0;
-#ifdef HAS_CLOCK_REALTIME
-    struct timespec tp;
-    if (0==clock_gettime(CLOCK_REALTIME, &tp))
-        ans = (double) tp.tv_sec + 1e-9 * (double) tp.tv_nsec;
-#else
-    struct timeval tv;
-    if (0==gettimeofday(&tv, NULL))
-        ans = (double) tv.tv_sec + 1e-6 * (double) tv.tv_usec;
-#endif
-    return ans;
 }
 
 
