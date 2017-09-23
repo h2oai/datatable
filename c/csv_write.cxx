@@ -354,26 +354,27 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     bytes_written += static_cast<size_t>(ch - ch0);
   }
 
-  // Prepare writing environment and calculate best parameters
-  bool stopTeam = false;
-  int64_t nchunks = std::max((int64_t)(nthreads == 1? 1 : nthreads*2),
-                             bytes_total/max_chunk_size);
-  int64_t rows_per_chunk = nrows / nchunks;
-  size_t bytes_per_chunk = (size_t)(bytes_per_row * rows_per_chunk);
-  if (rows_per_chunk == 0) {
-    // If each row's size is too large, then parse 1 row at a time.
-    nchunks = nrows;
-    rows_per_chunk = 1;
-    bytes_per_chunk = static_cast<size_t>(bytes_per_row);
-  }
-  if (bytes_per_chunk < min_chunk_size) {
-    // The data is too small, and number of available threads too large --
-    // reduce the number of chunks so that we don't waste resources on
-    // needless thread manipulation.
-    nchunks = bytes_total / min_chunk_size;
-    if (nchunks < 1) nchunks = 1;
-    rows_per_chunk = nrows / nchunks;
-    bytes_per_chunk = (size_t)(bytes_per_row * rows_per_chunk);
+  // Calculate the best chunking strategy for this file
+  double rows_per_chunk;
+  size_t bytes_per_chunk;
+  int min_nchunks = nthreads == 1 ? 1 : nthreads*2;
+  int64_t nchunks = bytes_total / max_chunk_size;
+  if (nchunks < min_nchunks) nchunks = min_nchunks;
+  while (1) {
+    rows_per_chunk = 1.0 * (nrows + 1) / nchunks;
+    bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
+    if (rows_per_chunk < 1.0) {
+      // If each row's size is too large, then parse 1 row at a time.
+      nchunks = nrows;
+    } else if (bytes_per_chunk < min_chunk_size) {
+      // The data is too small, and number of available threads too large --
+      // reduce the number of chunks so that we don't waste resources on
+      // needless thread manipulation.
+      nchunks = bytes_total / min_chunk_size;
+      if (nchunks < 1) nchunks = 1;
+    } else {
+      break;
+    }
   }
 
   // Prepare columns for writing
@@ -383,6 +384,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   }
 
   // Start writing the CSV
+  bool stopTeam = false;
   #pragma omp parallel num_threads(nthreads)
   {
     size_t bufsize = bytes_per_chunk;
@@ -394,9 +396,9 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     #pragma omp for ordered schedule(dynamic)
     for (int64_t i = 0; i < nchunks; i++) {
       if (stopTeam) continue;
-      int64_t row0 = i * rows_per_chunk;
-      int64_t row1 = row0 + rows_per_chunk;
-      if (row1 > nrows) row1 = nrows;
+      int64_t row0 = static_cast<int64_t>(i * rows_per_chunk);
+      int64_t row1 = static_cast<int64_t>((i + 1) * rows_per_chunk);
+      if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
 
       // write the thread-local buffer into the output
       if (th_write_size) {
