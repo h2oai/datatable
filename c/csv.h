@@ -28,12 +28,20 @@ typedef struct CsvWriteParameters {
 
   char **column_names;
 
+  // PyObject that knows how to handle log messages
+  void* logger;
+
   int nthreads;
 
-  int _padding;
+  bool verbose;
+
+  char _padding[3];
 
 } CsvWriteParameters;
 
 
 MemoryBuffer* csv_write(CsvWriteParameters *args);
 void init_csvwrite_constants();
+
+__attribute__((format(printf, 2, 3)))
+void log_message(void *logger, const char *format, ...);

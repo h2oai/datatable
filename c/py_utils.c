@@ -1,3 +1,4 @@
+#include <exception>
 #include <string.h>  // memcpy
 #include "py_utils.h"
 
@@ -167,4 +168,15 @@ char** _to_string_list(PyObject *x) {
     return res;
   fail:
     return (char**) -1;
+}
+
+
+
+bool get_attr_bool(PyObject *pyobj, const char *attr, bool dflt)
+{
+  PyObject *x = PyObject_GetAttrString(pyobj, attr);
+  if (!x) throw std::exception();
+  bool res = (x == Py_None)? dflt : (x == Py_True);
+  Py_DECREF(x);
+  return res;
 }

@@ -103,6 +103,8 @@ PyObject* decref(PyObject *x);
 })
 
 
+bool get_attr_bool(PyObject *pyobj, const char *attr, bool dflt=false);
+
 char* _to_string(PyObject *x, PyObject **tmp);
 char** _to_string_list(PyObject *x);
 

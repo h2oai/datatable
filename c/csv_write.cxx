@@ -66,6 +66,8 @@ public:
   }
 };
 
+#define VLOG(...)  do { if (args->verbose) log_message(args->logger, __VA_ARGS__); } while (0)
+
 
 //=================================================================================================
 // Field writers
@@ -324,13 +326,14 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   }
   bytes_total += ncols * nrows;  // Account for separators / newlines
   double bytes_per_row = nrows? static_cast<double>(bytes_total / nrows) : 0;
+  VLOG("Estimated file size to be no more than %lldB\n", bytes_total);
   double t1 = wallclock();
 
   // Create the target memory region
   MemoryBuffer *mb = NULL;
   size_t allocsize = static_cast<size_t>(bytes_total);
   if (args->path) {
-    printf("Creating destination file of size %.3fGB\n", 1e-9*allocsize);
+    VLOG("Creating destination file of size %.3fGB\n", 1e-9*allocsize);
     mb = new MmapMemoryBuffer(args->path, allocsize, MB_CREATE|MB_EXTERNAL);
   } else {
     mb = new RamMemoryBuffer(allocsize);
@@ -397,7 +400,10 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   {
     #pragma omp single
     {
-      printf("Using nthreads = %d\n", omp_get_num_threads());
+      VLOG("Writing file using %lld chunks, with %.1f rows per chunk\n",
+           nchunks, rows_per_chunk);
+      VLOG("Using nthreads = %d\n", omp_get_num_threads());
+      VLOG("Initial buffer size in each thread: %zuB\n", bytes_per_chunk);
     }
     size_t bufsize = bytes_per_chunk;
     char *thbuf = new char[bufsize];
@@ -448,7 +454,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   // plain C `printf()`; otherwise simply deleting the MemoryBuffer object
   // guarantees that the data will be stored to disk.
   if (args->path) {
-    printf("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
+    VLOG("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
     mb->resize(bytes_written);
   } else {
     char *target = static_cast<char*>(mb->get());
@@ -458,12 +464,14 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   free(columns);
   double t6 = wallclock();
 
-  printf("Compute CSV size: %.3fs\n", t1 - t0);
-  printf("Allocate file:    %.3fs\n", t2 - t1);
-  printf("Write columns:    %.3fs\n", t3 - t2);
-  printf("Compute params:   %.3fs\n", t4 - t3);
-  printf("Write the data:   %.3fs\n", t5 - t4);
-  printf("Finalize:         %.3fs\n", t6 - t5);
+  VLOG("Timing report:\n");
+  VLOG("   %6.3fs  Calculate expected file size\n", t1 - t0);
+  VLOG(" + %6.3fs  Allocate file\n",                t2 - t1);
+  VLOG(" + %6.3fs  Write column names\n",           t3 - t2);
+  VLOG(" + %6.3fs  Prepare for writing\n",          t4 - t3);
+  VLOG(" + %6.3fs  Write the data\n",               t5 - t4);
+  VLOG(" + %6.3fs  Finalize the file\n",            t6 - t5);
+  VLOG(" = %6.3fs  Overall time taken\n",           t6 - t0);
   return mb;
 }
 
