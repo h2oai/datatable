@@ -1,10 +1,10 @@
 #include <errno.h>    // errno
 #include <stdio.h>    // printf, sprintf
 #include <stdlib.h>   // srand, rand
-#include <string.h>   // strerror
+#include <string.h>   // strerror, strlen
 #include <fcntl.h>    // O_WRONLY, O_CREAT
 #include <time.h>     // time
-#include <unistd.h>   // write, close
+#include <unistd.h>   // write, close, lseek
 #include <omp.h>
 #include "writecsv.h"
 
@@ -51,7 +51,8 @@ static void write_int64(char **pch, int64_t value) {
 }
 
 
-void kernel_fwrite(const char *filename, int64_t *data, int64_t nrows)
+// Plain write into the file from within the #ordered section.
+void kernel_write(const char *filename, int64_t *data, int64_t nrows)
 {
   int fd = open(filename, O_WRONLY|O_CREAT, 0666);
   if (fd == -1) {
@@ -97,6 +98,73 @@ void kernel_fwrite(const char *filename, int64_t *data, int64_t nrows)
 }
 
 
+// Similar to kernel_write, but each thread has its own file descriptor.
+// It will seek to the proper position in the file and write there.
+void kernel_seek(const char *filename, int64_t *data, int64_t nrows)
+{
+  int fd = open(filename, O_WRONLY|O_CREAT, 0666);
+  if (fd == -1) {
+    printf("Unable to create file %s: %s", filename, strerror(errno));
+    return;
+  }
+  close(fd);
+  int64_t rows_per_chunk = 20000;
+  int64_t nchunks = nrows / rows_per_chunk;
+  int64_t bytes_per_chunk = rows_per_chunk * 5 * 20;
+  int64_t bytes_written = 0;
+  int nth = omp_get_num_threads();
+
+  bool stopTeam = false;
+  #pragma omp parallel num_threads(nth)
+  {
+    int fd = open(filename, O_WRONLY);
+    char *mybuff = new char[bytes_per_chunk];
+    int64_t write_size = 0;
+    int64_t write_at = 0;
+
+    #pragma omp for ordered schedule(dynamic)
+    for (int64_t start = 0; start < nrows; start += rows_per_chunk) {
+      if (stopTeam) continue;
+      if (write_size) {
+        lseek(fd, write_at, SEEK_SET);
+        int ret = write(fd, mybuff, write_size);
+        write_size = 0;
+      }
+
+      int64_t end = start + rows_per_chunk;
+      if (end > nrows) end = nrows;
+      char *mych = mybuff;
+      for (int64_t i = start; i < end; i++) {
+        for (int64_t j = 0; j < 5; j++) {
+          write_int64(&mych, data[i] + j);
+          *mych++ = ',';
+        }
+        mych[-1] = '\n';
+      }
+      #pragma omp ordered
+      {
+        write_size = mych - mybuff;
+        write_at = bytes_written;
+        bytes_written += write_size;
+      }
+    }
+    if (write_size) {
+      lseek(fd, write_at, SEEK_SET);
+      int ret = write(fd, mybuff, write_size);
+    }
+
+    close(fd);
+    delete[] mybuff;
+  }
+}
+
+
+static WKernel kernels[] = {
+  {&kernel_fwrite, "fwrite"},
+  {&kernel_seek,   "seek&write"},
+  {NULL, NULL}
+};
+
 
 //=================================================================================================
 // Main
@@ -117,17 +185,27 @@ void test_write_methods(int B, int64_t N)
     data[i] = (x << 32) + y;
   }
 
-  double total_time = 0;
-  for (int b = 0; b < B; b++) {
-    char filename[20];
-    sprintf(filename, "out-%d.csv", b);
-    double t0 = now();
-    kernel_fwrite(filename, data, N);
-    double t1 = now();
-    total_time += t1 - t0;
-    remove(filename);
+  int nkernels = 0, maxnamelen = 0;
+  while (kernels[nkernels].kernel) {
+    int len = strlen(kernels[nkernels].name);
+    if (len > maxnamelen) maxnamelen = len;
+    nkernels++;
   }
-  printf("fwrite:  %6.3fs\n", total_time/B);
+
+  for (int k = 0; k < nkernels; k++) {
+    double total_time = 0;
+    for (int b = 0; b < B; b++) {
+      char filename[20];
+      sprintf(filename, "out-%d-%d.csv", k, b);
+      double t0 = now();
+      kernels[k].kernel(filename, data, N);
+      double t1 = now();
+      total_time += t1 - t0;
+      // remove(filename);
+    }
+    printf("[%d] %-*s: %7.3f s\n",
+           k, maxnamelen, kernels[k].name, total_time/B);
+  }
 
   delete[] data;
 }

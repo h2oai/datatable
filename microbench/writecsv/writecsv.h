@@ -17,11 +17,18 @@ typedef struct Column {
 } Column;
 
 typedef void (*kernel_fn)(char **output, Column *col, int64_t row);
+typedef void (*wkernel_fn)(const char *filename, int64_t *data, int64_t nrows);
 
 typedef struct Kernel {
   kernel_fn kernel;
   const char *name;
 } Kernel;
+
+typedef struct WKernel {
+  wkernel_fn kernel;
+  const char *name;
+} WKernel;
+
 
 typedef struct BenchmarkSuite {
   Column *column;
