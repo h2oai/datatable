@@ -2,6 +2,7 @@
 #define dt_FREAD_H
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
+#include "utils.h"
 #ifdef DTPY
   #include "myomp.h"
   #include "py_fread.h"
@@ -334,6 +335,5 @@ void progress(double percent/*[0,1]*/, double ETA/*secs*/);
 
 
 void freadCleanup(void);
-double wallclock(void);
 
 #endif

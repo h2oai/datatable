@@ -11,7 +11,7 @@
 int64_t min(int64_t a, int64_t b);
 int64_t max(int64_t a, int64_t b);
 float max_f4(float a, float b);
-
+double wallclock(void);
 
 /**
  * Helper method that attempts to compute object `x`, but executes "goto fail"
