@@ -1,9 +1,12 @@
-#include <errno.h>   // errno
-#include <stdlib.h>  // srand, rand
-#include <string.h>  // strerror
-#include <time.h>    // time
+#include <errno.h>    // errno
+#include <stdio.h>    // printf, sprintf
+#include <stdlib.h>   // srand, rand
+#include <string.h>   // strerror
+#include <fcntl.h>    // O_WRONLY, O_CREAT
+#include <time.h>     // time
+#include <unistd.h>   // write, close
 #include <omp.h>
-#include "writers.cpp"
+#include "writecsv.h"
 
 static const int64_t DIVS[19] = {
   1L,
@@ -48,13 +51,49 @@ static void write_int64(char **pch, int64_t value) {
 }
 
 
-void kernel_fwrite(const char *filename, int64_t *data)
+void kernel_fwrite(const char *filename, int64_t *data, int64_t nrows)
 {
   int fd = open(filename, O_WRONLY|O_CREAT, 0666);
   if (fd == -1) {
     printf("Unable to create file %s: %s", filename, strerror(errno));
     return;
   }
+  int64_t rows_per_chunk = 20000;
+  int64_t nchunks = nrows / rows_per_chunk;
+  int64_t bytes_per_chunk = rows_per_chunk * 5 * 20;
+  int nth = omp_get_num_threads();
+
+  bool stopTeam = false;
+  #pragma omp parallel num_threads(nth)
+  {
+    char *mybuff = new char[bytes_per_chunk];
+    #pragma omp for ordered schedule(dynamic)
+    for (int64_t start = 0; start < nrows; start += rows_per_chunk) {
+      if (stopTeam) continue;
+      int64_t end = start + rows_per_chunk;
+      if (end > nrows) end = nrows;
+      char *mych = mybuff;
+      for (int64_t i = start; i < end; i++) {
+        for (int64_t j = 0; j < 5; j++) {
+          write_int64(&mych, data[i] + j);
+          *mych++ = ',';
+        }
+        mych[-1] = '\n';
+      }
+      #pragma omp ordered
+      {
+        int64_t size = mych - mybuff;
+        int ret = write(fd, mybuff, size);
+        if (ret == -1) {
+          stopTeam = true;
+          printf("Error writing a buffer to file\n");
+        }
+      }
+    }
+    delete[] mybuff;
+  }
+  // Finished
+  close(fd);
 }
 
 
@@ -77,6 +116,18 @@ void test_write_methods(int B, int64_t N)
     int64_t y = static_cast<int64_t>(rand());
     data[i] = (x << 32) + y;
   }
+
+  double total_time = 0;
+  for (int b = 0; b < B; b++) {
+    char filename[20];
+    sprintf(filename, "out-%d.csv", b);
+    double t0 = now();
+    kernel_fwrite(filename, data, N);
+    double t1 = now();
+    total_time += t1 - t0;
+    remove(filename);
+  }
+  printf("fwrite:  %6.3fs\n", total_time/B);
 
   delete[] data;
 }

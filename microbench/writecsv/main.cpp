@@ -46,7 +46,7 @@ int main(int argc, char **argv)
   int A = getCmdArgInt(argc, argv, "writer", 1);
   int B = getCmdArgInt(argc, argv, "batches", A?100:3);
   int N = getCmdArgInt(argc, argv, "n", 64);
-  if (A <= 0 || A > NWRITERS) {
+  if (A < 0 || A > NWRITERS) {
     printf("Invalid writer: %d  (max writers=%d)\n", A, NWRITERS);
     return 1;
   }
