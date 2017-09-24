@@ -13,7 +13,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include <algorithm>    // max
+#include <new>          // placement new
+#include <stdexcept>    // std::runtime_error
 #include <errno.h>      // errno
 #include <fcntl.h>      // open
 #include <stdint.h>     // int32_t, etc
@@ -41,8 +42,40 @@ static int64_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
 // Helper lookup table for writing integers
-static const int32_t DIVS10[10]
-  = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
+static const int32_t DIVS32[10] = {
+  1,
+  10,
+  100,
+  1000,
+  10000,
+  100000,
+  1000000,
+  10000000,
+  100000000,
+  1000000000,
+};
+
+static const int64_t DIVS64[19] = {
+  1L,
+  10L,
+  100L,
+  1000L,
+  10000L,
+  100000L,
+  1000000L,
+  10000000L,
+  100000000L,
+  1000000000L,
+  10000000000L,
+  100000000000L,
+  1000000000000L,
+  10000000000000L,
+  100000000000000L,
+  1000000000000000L,
+  10000000000000000L,
+  100000000000000000L,
+  1000000000000000000L,
+};
 
 // TODO: replace with classes that derive from CsvColumn and implement write()
 class CsvColumn {
@@ -55,6 +88,7 @@ public:
     data = col->data;
     strbuf = NULL;
     writer = writers_per_stype[col->stype];
+    if (!writer) throw std::runtime_error("Cannot write this type");
     if (col->stype == ST_STRING_I4_VCHAR) {
       strbuf = reinterpret_cast<char*>(data) - 1;
       data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
@@ -115,18 +149,18 @@ static void write_i2(char **pch, CsvColumn *col, int64_t row)
     *((*pch)++) = '0';
     return;
   }
+  if (value == NA_I2) return;
   char *ch = *pch;
   if (value < 0) {
-    if (value == NA_I2) return;
     *ch++ = '-';
     value = -value;
   }
   int r = (value < 1000)? 2 : 4;
-  for (; value < DIVS10[r]; r--);
+  for (; value < DIVS32[r]; r--);
   for (; r; r--) {
-    int d = value / DIVS10[r];
+    int d = value / DIVS32[r];
     *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS10[r];
+    value -= d * DIVS32[r];
   }
   *ch = static_cast<char>(value) + '0';
   *pch = ch + 1;
@@ -140,18 +174,43 @@ static void write_i4(char **pch, CsvColumn *col, int64_t row)
     *((*pch)++) = '0';
     return;
   }
+  if (value == NA_I4) return;
   char *ch = *pch;
   if (value < 0) {
-    if (value == NA_I4) return;
     *ch++ = '-';
     value = -value;
   }
   int r = (value < 100000)? 4 : 9;
-  for (; value < DIVS10[r]; r--);
+  for (; value < DIVS32[r]; r--);
   for (; r; r--) {
-    int d = value / DIVS10[r];
+    int d = value / DIVS32[r];
     *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS10[r];
+    value -= d * DIVS32[r];
+  }
+  *ch = static_cast<char>(value) + '0';
+  *pch = ch + 1;
+}
+
+
+static void write_i8(char **pch, CsvColumn *col, int64_t row)
+{
+  int64_t value = ((int64_t*) col->data)[row];
+  if (value == 0) {
+    *((*pch)++) = '0';
+    return;
+  }
+  if (value == NA_I8) return;
+  char *ch = *pch;
+  if (value < 0) {
+    *ch++ = '-';
+    value = -value;
+  }
+  int r = (value < 10000000)? 6 : 18;
+  for (; value < DIVS64[r]; r--);
+  for (; r; r--) {
+    int64_t d = value / DIVS64[r];
+    *ch++ = static_cast<char>(d) + '0';
+    value -= d * DIVS64[r];
   }
   *ch = static_cast<char>(value) + '0';
   *pch = ch + 1;
@@ -278,11 +337,11 @@ inline static void write_int32(char **pch, int32_t value)
     value = -value;
   }
   int r = (value < 100000)? 4 : 9;
-  for (; value < DIVS10[r]; r--);
+  for (; value < DIVS32[r]; r--);
   for (; r; r--) {
-    int d = value / DIVS10[r];
+    int d = value / DIVS32[r];
     *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS10[r];
+    value -= d * DIVS32[r];
   }
   *ch = static_cast<char>(value) + '0';
   *pch = ch + 1;
@@ -351,7 +410,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
       // to be escaped) + add 2 surrounding quotes + add a comma in the end.
       maxsize += strlen(colname)*2 + 2 + 1;
     }
-    mb->ensuresize(maxsize + bytes_total);
+    mb->ensuresize(maxsize + allocsize);
     ch = ch0 = static_cast<char*>(mb->get());
     colnames = args->column_names;
     while ((colname = *colnames++)) {
@@ -498,6 +557,7 @@ void init_csvwrite_constants() {
   writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;
   writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_i2;
   writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_i4;
+  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_i8;
   writers_per_stype[ST_REAL_F8] = (writer_fn) write_f8;
   writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_s4;
 }
