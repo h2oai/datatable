@@ -27,7 +27,6 @@ typedef struct BenchmarkSuite {
   Column *column;
   char *output;
   Kernel *kernels;
-
 } BenchmarkSuite;
 
 
@@ -38,5 +37,6 @@ BenchmarkSuite prepare_bench_int32(int64_t N);
 BenchmarkSuite prepare_bench_double(int64_t N);
 BenchmarkSuite prepare_bench_string(int64_t N);
 
+void test_write_methods(int B, int64_t N);
 
 #endif
