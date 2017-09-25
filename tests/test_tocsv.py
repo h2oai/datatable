@@ -16,3 +16,10 @@ def test_issue365():
     assert d1.names == d0.names
     assert d1.types == d0.types
     assert d1.topython() == d0.topython()
+
+
+def test_save_simple():
+    d = dt.DataTable([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
+                     colnames=["A", "B", "C"])
+    out = d.to_csv()
+    assert out == "A,B,C\n1,1,foo\n4,0,\n5,,bar\n"

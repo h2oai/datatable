@@ -255,9 +255,9 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
 
 
 static char hexdigits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-static void write_f8(char **pch, CsvColumn *col, int64_t row)
+static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
 {
-  // Read the value as if it was double
+  // Read the value as if it was uint64_t
   uint64_t value = ((uint64_t*) col->data)[row];
   char *ch = *pch;
 
@@ -292,6 +292,46 @@ static void write_f8(char **pch, CsvColumn *col, int64_t row)
   write_int32(&ch, abs(exp));
   *pch = ch;
 }
+
+
+static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
+{
+  // Read the value as if it was uint32_t
+  uint32_t value = static_cast<uint32_t*>(col->data)[row];
+  char *ch = *pch;
+
+  int exp = static_cast<int>(value >> 23);
+  uint32_t sig = (value & 0x7FFFFF);
+  if (exp & 0x100) {
+    *ch++ = '-';
+    exp ^= 0x100;
+  }
+  if (exp == 0xFF) {  // nan & inf
+    if (sig == 0) {  // - sign was already printed, if any
+      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
+    } else {
+      ch[0] = 'n'; ch[1] = 'a'; ch[2] = 'n';
+    }
+    *pch = ch + 3;
+    return;
+  }
+  ch[0] = '0';
+  ch[1] = 'x';
+  ch[2] = '0' + (exp != 0x00);
+  ch[3] = '.';
+  ch += 3 + (sig != 0);
+  while (sig) {
+    uint32_t r = sig & 0x780000;
+    *ch++ = hexdigits[r >> 19];
+    sig = (sig ^ r) << 4;
+  }
+  if (exp) exp -= 0x7F;
+  *ch++ = 'p';
+  *ch++ = '+' + (exp < 0)*('-' - '+');
+  write_int32(&ch, abs(exp));
+  *pch = ch;
+}
+
 
 
 /**
@@ -435,10 +475,12 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     if (rows_per_chunk < 1.0) {
       // If each row's size is too large, then parse 1 row at a time.
       nchunks = nrows;
-    } else if (bytes_per_chunk < min_chunk_size) {
+    } else if (bytes_per_chunk < min_chunk_size && nchunks > 1) {
       // The data is too small, and number of available threads too large --
       // reduce the number of chunks so that we don't waste resources on
       // needless thread manipulation.
+      // This formula guarantees that new bytes_per_chunk will be no less
+      // than min_chunk_size (or nchunks will be 1).
       nchunks = bytes_total / min_chunk_size;
       if (nchunks < 1) nchunks = 1;
     } else {
@@ -509,9 +551,8 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   }
   double t5 = wallclock();
 
-  // Done writing; if writing to stdout then print the output buffer using the
-  // plain C `printf()`; otherwise simply deleting the MemoryBuffer object
-  // guarantees that the data will be stored to disk.
+  // Done writing; if writing to stdout then append '\0' to make it a regular
+  // C string; otherwise truncate MemoryBuffer to the final size.
   if (args->path) {
     VLOG("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
     mb->resize(bytes_written);
@@ -551,13 +592,14 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_INTEGER_I2] = 6;  // -32000
   bytes_per_stype[ST_INTEGER_I4] = 11; // -2000000000
   bytes_per_stype[ST_INTEGER_I8] = 20; // -9223372036854775800
-  bytes_per_stype[ST_REAL_F8] = 24;    // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_REAL_F8]    = 24; // -0x1.23456789ABCDEp+1000
 
   writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
   writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;
   writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_i2;
   writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_i4;
   writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_i8;
-  writers_per_stype[ST_REAL_F8] = (writer_fn) write_f8;
+  writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_hex;
+  writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_hex;
   writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_s4;
 }
