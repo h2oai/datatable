@@ -152,6 +152,31 @@ static void kernel_fwrite(char **pch, Column *col, int64_t row)
 }
 
 
+static void kernel_fwrite2(char **pch, Column *col, int64_t row)
+{
+  int32_t value = ((int32_t*) col->data)[row];
+  char *ch = *pch;
+  if (value == NA_I4) {
+    return;
+  } else {
+    if (value<0) { *ch++ = '-'; value = -value; }
+    char *low = ch;
+    do { *ch++ = '0'+static_cast<char>(value%10); value/=10; } while (value>0);
+    // inlines "reverse" function
+    char *upp = ch;
+    upp--;
+    while (upp>low) {
+      char tmp = *upp;
+      *upp = *low;
+      *low = tmp;
+      upp--;
+      low++;
+    }
+  }
+  *pch = ch;
+}
+
+
 // Good old 'sprintf'
 static void kernel_sprintf(char **pch, Column *col, int64_t row) {
   int32_t value = ((int32_t*) col->data)[row];
@@ -191,12 +216,13 @@ BenchmarkSuite prepare_bench_int32(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_tempwrite,  "tempwrite" },  // 66.655
-    { &kernel_tempwrite2, "tempwrite2" }, // 62.604
-    { &kernel_div11,      "div11" },      // 55.796
-    { &kernel_div10,      "div10" },      // 49.280
-    { &kernel_fwrite,     "fwrite" },     // 66.070
-    { &kernel_sprintf,    "sprintf" },    // 83.203
+    { &kernel_tempwrite,  "tempwrite" },  // 62.228
+    { &kernel_tempwrite2, "tempwrite2" }, // 58.708
+    { &kernel_div11,      "div11" },      // 52.804
+    { &kernel_div10,      "div10" },      // 46.552
+    { &kernel_fwrite,     "fwrite" },     // 64.343
+    { &kernel_fwrite2,    "fwrite2" },    // 60.595
+    { &kernel_sprintf,    "sprintf" },    // 77.303
     { NULL, NULL },
   };
 

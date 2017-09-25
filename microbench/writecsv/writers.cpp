@@ -357,7 +357,7 @@ void test_write_methods(int B, int64_t N)
       int fd = open(filename, O_RDONLY);
       struct stat statbuf;
       fstat(fd, &statbuf);
-      printf("  %7.3fs   %zu B\n", t1-t0, statbuf.st_size);
+      printf("  %7.3fs   %lld B\n", t1-t0, statbuf.st_size);
       close(fd);
       remove(filename);
 
