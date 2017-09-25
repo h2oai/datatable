@@ -1,9 +1,12 @@
+#include <stdexcept>  // std::exceptions
 #include <errno.h>    // errno
+#include <fcntl.h>    // open
 #include <stdio.h>    // printf, sprintf
 #include <stdlib.h>   // srand, rand
 #include <string.h>   // strerror, strlen
 #include <fcntl.h>    // O_WRONLY, O_CREAT
 #include <sys/mman.h> // mmap
+#include <sys/stat.h> // fstat
 #include <time.h>     // time
 #include <unistd.h>   // write, close, lseek
 #include <omp.h>
@@ -224,13 +227,82 @@ void kernel_mmap(const char *filename, int64_t *data, int64_t nrows)
     delete[] mybuff;
   }
   munmap(buf, allocsize);
+  truncate(filename, bytes_written);
+}
+
+
+void kernel_mmap2(const char *filename, int64_t *data, int64_t nrows)
+{
+  int64_t bytes_total = nrows * 5 * 20;
+  int64_t rows_per_chunk = 20000;
+  int64_t nchunks = nrows / rows_per_chunk;
+  int64_t bytes_per_chunk = bytes_total / nchunks;
+  size_t allocsize = static_cast<size_t>(bytes_total * 1.25);
+
+  FILE *fp = fopen(filename, "w");
+  fseek(fp, (long)(allocsize - 1), SEEK_SET);
+  fputc('\0', fp);
+  fclose(fp);
+
+  int fd = open(filename, O_RDWR, 0666);
+  if (fd == -1) throw std::runtime_error("Cannot open file");
+  struct stat statbuf;
+  if (fstat(fd, &statbuf) == -1) throw std::runtime_error("Error in fstat()");
+  if (S_ISDIR(statbuf.st_mode)) throw std::runtime_error("File is a directory");
+  allocsize = (size_t) statbuf.st_size;
+
+  char *buf = static_cast<char*>(mmap(NULL, allocsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0));
+  close(fd);
+  if (buf == MAP_FAILED) throw std::runtime_error("Memory map failed!\n");
+  size_t bytes_written = 0;
+
+  int nth = omp_get_num_threads();
+  #pragma omp parallel num_threads(nth)
+  {
+    char *mybuff = new char[bytes_per_chunk];
+    int64_t write_size = 0;
+    int64_t write_at = 0;
+
+    #pragma omp for ordered schedule(dynamic)
+    for (int64_t start = 0; start < nrows; start += rows_per_chunk) {
+      if (write_size) {
+        memcpy(buf + write_at, mybuff, write_size);
+        write_size = 0;
+      }
+
+      int64_t end = start + rows_per_chunk;
+      if (end > nrows) end = nrows;
+      char *mych = mybuff;
+      for (int64_t i = start; i < end; i++) {
+        for (int64_t j = 0; j < 5; j++) {
+          write_int64(&mych, data[i] + j);
+          *mych++ = ',';
+        }
+        mych[-1] = '\n';
+      }
+      #pragma omp ordered
+      {
+        write_size = mych - mybuff;
+        write_at = bytes_written;
+        bytes_written += write_size;
+      }
+    }
+    if (write_size) {
+      memcpy(buf + write_at, mybuff, write_size);
+    }
+
+    delete[] mybuff;
+  }
+  munmap(buf, allocsize);
+  truncate(filename, bytes_written);
 }
 
 
 static WKernel kernels[] = {
   {&kernel_write,  "write"},
   {&kernel_seek,   "seek&write"},
-  {&kernel_mmap,   "memory-map"},
+  {&kernel_mmap,   "memorymap1"},
+  {&kernel_mmap2,  "memorymap2"},
   {NULL, NULL}
 };
 
