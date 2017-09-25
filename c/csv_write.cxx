@@ -666,8 +666,8 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_INTEGER_I2] = 6;  // -32000
   bytes_per_stype[ST_INTEGER_I4] = 11; // -2000000000
   bytes_per_stype[ST_INTEGER_I8] = 20; // -9223372036854775800
-  bytes_per_stype[ST_REAL_F4]    = 15; // -0x1.123456p+30
-  bytes_per_stype[ST_REAL_F8]    = 24; // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_REAL_F4]    = 25; // -0x1.123456p+30
+  bytes_per_stype[ST_REAL_F8]    = 25; // -0x1.23456789ABCDEp+1000
 
   writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
   writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;
