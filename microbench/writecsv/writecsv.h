@@ -17,17 +17,23 @@ typedef struct Column {
 } Column;
 
 typedef void (*kernel_fn)(char **output, Column *col, int64_t row);
+typedef void (*wkernel_fn)(const char *filename, int64_t *data, int64_t nrows);
 
 typedef struct Kernel {
   kernel_fn kernel;
   const char *name;
 } Kernel;
 
+typedef struct WKernel {
+  wkernel_fn kernel;
+  const char *name;
+} WKernel;
+
+
 typedef struct BenchmarkSuite {
   Column *column;
   char *output;
   Kernel *kernels;
-
 } BenchmarkSuite;
 
 
@@ -38,5 +44,6 @@ BenchmarkSuite prepare_bench_int32(int64_t N);
 BenchmarkSuite prepare_bench_double(int64_t N);
 BenchmarkSuite prepare_bench_string(int64_t N);
 
+void test_write_methods(int B, int64_t N);
 
 #endif

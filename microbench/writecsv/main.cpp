@@ -44,15 +44,15 @@ void run_bench(int B, int64_t N, BenchmarkSuite bench)
 int main(int argc, char **argv)
 {
   int A = getCmdArgInt(argc, argv, "writer", 1);
-  int B = getCmdArgInt(argc, argv, "batches", 100);
+  int B = getCmdArgInt(argc, argv, "batches", A?100:3);
   int N = getCmdArgInt(argc, argv, "n", 64);
-  if (A <= 0 || A > NWRITERS) {
+  if (A < 0 || A > NWRITERS) {
     printf("Invalid writer: %d  (max writers=%d)\n", A, NWRITERS);
     return 1;
   }
 
   static const char *writer_names[NWRITERS+1] = {
-    "",
+    "writer",
     "boolean",
     "int8",
     "int16",
@@ -67,6 +67,7 @@ int main(int argc, char **argv)
   printf("\n");
 
   switch (A) {
+    case 0: test_write_methods(B, N); break;
     case 1: run_bench(B, N, prepare_bench_boolean(N)); break;
     case 2: run_bench(B, N, prepare_bench_int8(N)); break;
     case 3: run_bench(B, N, prepare_bench_int16(N)); break;

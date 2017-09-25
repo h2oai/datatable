@@ -1,9 +1,10 @@
 
 #-------------------------------------------------------------------------------
 
-CC = clang++
+CC = ${LLVM4}/bin/clang++
 INCLUDES ?= -I..
-CCFLAGS += -std=gnu++11
+CCFLAGS += -std=gnu++11 -stdlib=libc++ -fopenmp
+LDFLAGS += -fopenmp -L${LLVM4}/lib -Wl,-rpath,${LLVM4}/lib
 
 ifdef writer
 	WRITER := writer=$(writer)
@@ -43,7 +44,10 @@ double.o: double.cpp dtoa_milo.h
 string.o: string.cpp
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-writecsv: main.o boolean.o int8.o int16.o int32.o double.o string.o
+writers.o: writers.cpp
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+writecsv: main.o boolean.o int8.o int16.o int32.o double.o string.o writers.o
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:
