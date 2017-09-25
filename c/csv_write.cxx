@@ -22,7 +22,9 @@
 #include <sys/mman.h>   // mmap
 #include "column.h"
 #include "csv.h"
+#include "csv_dtoa.h"
 #include "datatable.h"
+#include "math.h"
 #include "memorybuf.h"
 #include "myomp.h"
 #include "types.h"
@@ -166,15 +168,11 @@ static void write_i2(char **pch, CsvColumn *col, int64_t row)
   *pch = ch + 1;
 }
 
-
-static void write_i4(char **pch, CsvColumn *col, int64_t row)
-{
-  int32_t value = ((int32_t*) col->data)[row];
+static inline void write_int32(char **pch, int32_t value) {
   if (value == 0) {
     *((*pch)++) = '0';
     return;
   }
-  if (value == NA_I4) return;
   char *ch = *pch;
   if (value < 0) {
     *ch++ = '-';
@@ -189,6 +187,14 @@ static void write_i4(char **pch, CsvColumn *col, int64_t row)
   }
   *ch = static_cast<char>(value) + '0';
   *pch = ch + 1;
+}
+
+
+static void write_i4(char **pch, CsvColumn *col, int64_t row)
+{
+  int32_t value = ((int32_t*) col->data)[row];
+  if (value == NA_I4) return;
+  write_int32(pch, value);
 }
 
 
@@ -332,6 +338,95 @@ static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
   *pch = ch;
 }
 
+// Helper for write_f8_dec
+static inline void write_exponent(char **pch, int value) {
+  char *ch = *pch;
+  if (value < 0) {
+    *ch++ = '-';
+    value = -value;
+  } else {
+    *ch++ = '+';
+  }
+  if (value >= 100) {
+    int d = value/100;
+    *ch++ = static_cast<char>(d) + '0';
+    value -= d*100;
+    d = value/10;
+    *ch++ = static_cast<char>(d) + '0';
+    value -= d*10;
+  } else if (value >= 10) {
+    int d = value/10;
+    *ch++ = static_cast<char>(d) + '0';
+    value -= d*10;
+  }
+  *ch++ = static_cast<char>(value) + '0';
+  *pch = ch;
+}
+
+
+// TODO: simplify the algorithm (check for isnan / 0 / negative based on
+// DiyFp64 representation).
+static inline void write_double(char **pch, double value)
+{
+  char *ch = *pch;
+  if (value == 0.0) {
+    *ch = '0';
+    (*pch)++;
+    return;
+  }
+  if (value < 0) {
+    *ch++ = '-';
+    value = -value;
+  }
+  // For large / small numbers fallback to Grisu2
+  if (value > 1e15 || value < 1e-5) {
+    int length, K;
+    Grisu2(value, ch, &length, &K);
+    memmove(ch+2, ch+1, static_cast<size_t>(length - 1));
+    ch[1] = '.';
+    ch[length + 1] = 'e';
+    length += 2;
+    ch += length;
+    write_exponent(&ch, length + K - 3);
+    *pch = ch;
+    return;
+  }
+
+  double frac, intval;
+  frac = modf(value, &intval);
+  char *ch0 = ch;
+  write_int32(&ch, (int32_t)intval);
+
+  if (frac > 0) {
+    int digits_left = 14 - static_cast<int>(ch - ch0);
+    *ch++ = '.';
+    while (frac > 0 && digits_left) {
+      frac *= 10;
+      frac = modf(frac, &intval);
+      *ch++ = static_cast<char>(intval) + '0';
+      digits_left--;
+    }
+    if (!digits_left) {
+      intval = frac*10 + 0.5;
+      if (intval > 9) intval = 9;
+      *ch++ = static_cast<char>(intval) + '0';
+    }
+  }
+  *pch = ch;
+}
+
+
+static void write_f8_dec(char **pch, CsvColumn *col, int64_t row) {
+  double value = ((double*) col->data)[row];
+  if (isnan(value)) return;
+  write_double(pch, value);
+}
+
+static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
+  float value = ((float*) col->data)[row];
+  if (isnan(value)) return;
+  write_double(pch, static_cast<double>(value));
+}
 
 
 /**
@@ -362,29 +457,6 @@ static void write_string(char **pch, const char *value)
   }
   *ch++ = '"';
   *pch = ch;
-}
-
-inline static void write_int32(char **pch, int32_t value)
-{
-  if (value == 0) {
-    *((*pch)++) = '0';
-    return;
-  }
-  char *ch = *pch;
-  if (value < 0) {
-    if (value == NA_I4) return;
-    *ch++ = '-';
-    value = -value;
-  }
-  int r = (value < 100000)? 4 : 9;
-  for (; value < DIVS32[r]; r--);
-  for (; r; r--) {
-    int d = value / DIVS32[r];
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS32[r];
-  }
-  *ch = static_cast<char>(value) + '0';
-  *pch = ch + 1;
 }
 
 
@@ -490,6 +562,8 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
 
   // Prepare columns for writing
   CsvColumn *columns = reinterpret_cast<CsvColumn*>(malloc((size_t)ncols * sizeof(CsvColumn)));
+  writers_per_stype[ST_REAL_F4] = args->usehex? write_f4_hex : write_f4_dec;
+  writers_per_stype[ST_REAL_F8] = args->usehex? write_f8_hex : write_f8_dec;
   for (int64_t i = 0; i < ncols; i++) {
     new (columns + i) CsvColumn(dt->columns[i]);
   }
@@ -600,7 +674,7 @@ void init_csvwrite_constants() {
   writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_i2;
   writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_i4;
   writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_i8;
-  writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_hex;
-  writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_hex;
+  writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_dec;
+  writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_dec;
   writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_s4;
 }

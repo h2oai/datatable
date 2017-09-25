@@ -25,6 +25,7 @@ PyObject* pywrite_csv(UU, PyObject *args)
     dtmalloc(params, CsvWriteParameters, 1);
 
     bool verbose = get_attr_bool(csvwriter, "verbose");
+    bool usehex = get_attr_bool(csvwriter, "hex");
     int nthreads = (int) TOINT64(ATTR(csvwriter, "nthreads"), 0);
     {
       int maxth = omp_get_max_threads();
@@ -44,6 +45,7 @@ PyObject* pywrite_csv(UU, PyObject *args)
     params->path = filename;
     params->nthreads = nthreads;
     params->column_names = colnames;
+    params->usehex = usehex;
     params->verbose = verbose;
     params->logger = csvwriter;
 

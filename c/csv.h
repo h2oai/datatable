@@ -13,6 +13,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
+#ifndef dt_CSV_H
+#define dt_CSV_H
 #include <stdbool.h>
 #include <stdint.h>
 #include "datatable.h"
@@ -33,9 +35,11 @@ typedef struct CsvWriteParameters {
 
   int nthreads;
 
+  bool usehex;
+
   bool verbose;
 
-  char _padding[3];
+  char _padding[2];
 
 } CsvWriteParameters;
 
@@ -45,3 +49,6 @@ void init_csvwrite_constants();
 
 __attribute__((format(printf, 2, 3)))
 void log_message(void *logger, const char *format, ...);
+
+
+#endif
