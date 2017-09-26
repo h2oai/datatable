@@ -60,7 +60,7 @@ Column* column_rbind(Column *self, Column **cols)
            res->nrows == nrows0);
 
     // TODO: Temporary Fix. To be resolved in #301
-    stats_reset(res->stats);
+    if (res->stats) res->stats->reset();
     // Use the appropriate strategy to continue appending the columns.
     res = (stype == ST_STRING_I4_VCHAR) ? column_rbind_str32(res, cols, nrows, col_empty) :
           (!stype_info[stype].varwidth) ? column_rbind_fw(res, cols, nrows, col_empty) : NULL;

@@ -1,15 +1,15 @@
 #ifndef dt_DATATABLE_H
 #define dt_DATATABLE_H
 #include <inttypes.h>
+#include "stats.h"
 #include "types.h"
 #include "column.h"
-#include "stats.h"
 
 // avoid circular dependency between .h files
 typedef struct RowIndex RowIndex;
 typedef struct ColMapping ColMapping;
 typedef struct Column Column;
-typedef struct Stats Stats;
+class Stats;
 typedef struct DataTable DataTable;
 
 
@@ -46,7 +46,7 @@ typedef struct DataTable {
     int64_t     ncols;
     RowIndex   *rowindex;
     Column    **columns;
-    Stats     **stats;
+    Stats    **stats;
 } DataTable;
 
 

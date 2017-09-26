@@ -1,18 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/*
- * File:   stats.h
- * Author: nkalonia1
- *
- * Created on August 31, 2017, 2:57 PM
- */
-
-#ifndef STATS_H
-#define STATS_H
+#ifndef STATS2_H
+#define STATS2_H
 
 #include "types.h"
 #include "datatable.h"
@@ -20,6 +7,20 @@
 typedef struct DataTable DataTable;
 typedef struct Column Column;
 typedef struct RowIndex RowIndex;
+
+/**
+ * Column Statistic
+ * This enum is used to maintain an abstraction between the user and the Stats
+ * structure.
+ **/
+typedef enum CStat {
+    C_MIN = 0,
+    C_MAX = 1,
+    C_SUM = 2,
+    C_MEAN = 3,
+    C_STD_DEV = 4,
+    C_COUNT_NA = 5,
+} __attribute__ ((__packed__)) CStat;
 
 /**
  * Statistics container
@@ -36,62 +37,30 @@ typedef struct RowIndex RowIndex;
  * Note: The Stats structure does NOT contain a reference counter. Create a
  * copy of the structure instead of having more than one reference to it.
  **/
-typedef struct Stats {
+class Stats {
+public:
+    Stats(const SType);
+    virtual ~Stats(); // TODO: Copy constructor?
+    virtual void compute_cstat(const Column*, const RowIndex*, const CStat);
+    Column* make_column(const CStat) const;
+    virtual void reset();
+    bool is_computed(const CStat);
+    size_t alloc_size() const;
+    const SType stype;
+    char _padding[7];
+protected:
     int64_t countna;
-    union {
-        struct {
-            double mean;
-            double sd;
-            int64_t sum;
-            int8_t min;
-            int8_t max;
-            int8_t _padding[6];
-        } b; // LT_BOOLEAN
-        struct {
-            int64_t min;
-            int64_t max;
-            int64_t sum;
-            double mean;
-            double sd;
-        } i; // LT_INTEGER
-        struct {
-            double min;
-            double max;
-            double sum;
-            double mean;
-            double sd;
-        } r; // LT_REAL
-    };
-    uint64_t isdefined; // Bit mask for determining if a CStat has been computed
-    SType stype; // LType is not enough information for create NA values
-    int8_t _padding[7];
-} Stats;
-
-/**
- * Column Statistic
- * This enum is used to maintain an abstraction between the user and the Stats
- * structure.
- **/
-typedef enum CStat {
-    C_MIN = 0,
-    C_MAX = 1,
-    C_SUM = 2,
-    C_MEAN = 3,
-    C_STD_DEV = 4,
-    C_COUNT_NA = 5,
-} __attribute__ ((__packed__)) CStat;
+    uint64_t iscomputed;
+    void *cstat_to_val[DT_STYPES_COUNT];
+private:
+    static const uint64_t ALL_COMPUTED = 0xFFFFFFFFFFFFFFFF;
+};
 
 #define DT_CSTATS_COUNT (C_COUNT_NA + 1)
 
-Stats* make_data_stats(const SType);
-void stats_dealloc(Stats *self);
-void stats_reset(Stats *self);
-Stats* stats_copy(Stats *self);
-uint64_t cstat_iscomputed(const Stats* self, const CStat);
-size_t stats_get_allocsize(const Stats* self);
-void compute_datatable_cstat(DataTable*, const CStat);
-DataTable* make_cstat_datatable(DataTable*, const CStat);
+Stats* construct_stats(const SType);
+DataTable* make_cstat_datatable(const DataTable *self, const CStat s);
 void init_stats(void);
 
-#endif /* STATS_H */
+#endif /* STATS2_H */
 

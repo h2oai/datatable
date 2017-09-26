@@ -143,6 +143,7 @@ extra_compile_args += [
     "-Wno-deprecated",
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
+    "-Wno-weak-vtables", #TODO: Remove
 ]
 extra_link_args = [
     "-v",

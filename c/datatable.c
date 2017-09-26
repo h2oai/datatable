@@ -52,7 +52,7 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     for (int i = 0; i < dt->ncols; i++) {
         if (i == next_col_to_remove) {
             column_decref(columns[i]);
-            if (stats) stats_dealloc(stats[i]);
+            if (stats) delete stats[i];
             columns[i] = NULL;
             do {
                 k++;
@@ -89,7 +89,7 @@ void datatable_dealloc(DataTable *self)
     dtfree(self->columns);
     if (self->stats) {
         for (int64_t i = 0; i < self->ncols; ++i) {
-            stats_dealloc(self->stats[i]);
+            delete self->stats[i];
         }
         dtfree(self->stats);
     }
@@ -130,7 +130,7 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
     for (int i = 0; i < ncols; i++) {
         // TODO: Move this part into columns.c?
         Column *col = dt->columns[i];
-        stats_dealloc(col->stats);
+        delete col->stats;
         col->stats = NULL;
         uint8_t *mdata = (uint8_t*) mask->columns[i]->data;
         switch (col->stype) {
@@ -262,7 +262,8 @@ size_t datatable_get_allocsize(DataTable *self)
     if (self->stats != NULL) {
         sz += (size_t)(self->ncols) * sizeof(Stats*);
         for (int64_t i = 0; i < self->ncols; ++i) {
-            sz += stats_get_allocsize(self->stats[i]);
+            if (self->stats[i])
+            sz += self->stats[i]->alloc_size();
         }
     }
     return sz;
