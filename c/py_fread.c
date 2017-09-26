@@ -17,6 +17,7 @@ static const SType colType_to_stype[NUMTYPE] = {
     ST_INTEGER_I4,
     ST_INTEGER_I8,
     ST_REAL_F8,
+    ST_REAL_F8,
     ST_STRING_I4_VCHAR,
 };
 

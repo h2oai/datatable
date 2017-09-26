@@ -1,5 +1,6 @@
 #ifndef dt_FREAD_H
 #define dt_FREAD_H
+#include <stdbool.h>
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
 #include "utils.h"
@@ -14,15 +15,16 @@
 
 // Ordered hierarchy of types
 typedef enum {
-  NEG = -1,       // dummy to force signed type; sign bit used for out-of-sample type bump management
-  CT_DROP = 0,    // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
-  CT_BOOL8,       // int8_t; first type enum value must be 1 not 0 so that it can be negated to -1.
-  CT_INT32_BARE,  // int32_t bare bones fast
-  CT_INT32_FULL,  // int32_t if spaces or quotes can surround the value
-  CT_INT64,       // int64_t
-  CT_FLOAT64,     // double (64-bit IEEE 754 float)
-  CT_STRING,      // lenOff struct below
-  NUMTYPE         // placeholder for the number of types including drop; used for allocation and loop bounds
+  NEG            = -1, // dummy to force signed type; sign bit used for out-of-sample type bump management
+  CT_DROP        = 0,  // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
+  CT_BOOL8       = 1,  // int8_t; first type enum value must be 1 not 0 so that it can be negated to -1.
+  CT_INT32_BARE  = 2,  // int32_t bare bones fast
+  CT_INT32_FULL  = 3,  // int32_t if spaces or quotes can surround the value
+  CT_INT64       = 4,  // int64_t
+  CT_FLOAT64     = 5,  // double (64-bit IEEE 754 float)
+  CT_FLOAT64_EXT = 6,  // double, with various "NaN" literals
+  CT_STRING      = 7,  // lenOff struct below
+  NUMTYPE        = 8   // placeholder for the number of types including drop
 } colType;
 
 extern int8_t typeSize[NUMTYPE];
@@ -77,7 +79,10 @@ typedef struct freadMainArgs
   // the array ends.
   const char * const* NAstrings;
 
-  // Maximum number of threads (should be >= 1).
+  // Maximum number of threads. If 0, then fread will use the maximum possible
+  // number of threads, as determined by omp_get_max_threads(). If negative,
+  // then fread will use that many threads less than allowed maximum (but
+  // always at least 1).
   int32_t nth;
 
   // Character to use for a field separator. Multi-character separators are not
