@@ -664,10 +664,7 @@ static int StrtoD(const char **pch, double *target)
     const char *start=ch;
     if (*ch=='-' || *ch=='+') sign -= 2*(*ch++=='-');
     bool ok = ('0'<=*ch && *ch<='9') || *ch==dec;  // a single - or + with no [0-9] is !ok and considered type character
-    if (!ok) {
-      if      (*ch=='I' && *(ch+1)=='n' && *(ch+2)=='f') { ch+=3; d = sign*INFD; ok=true; }
-      else if (*ch=='N' && *(ch+1)=='A' && *(ch+2)=='N') { ch+=3; d = NAND; ok=true; }
-    } else {
+    if (ok) {
       uint64_t acc = 0;
       while ('0'<=*ch && *ch<='9' && acc<(UINT64_MAX-10)/10) { // compiler should optimize last constant expression
         // UNIT64_MAX == 18446744073709551615
