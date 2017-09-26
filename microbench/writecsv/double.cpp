@@ -324,6 +324,87 @@ static void kernel_hex(char **pch, Column *col, int64_t row) {
   *pch = ch;
 }
 
+//-------------------------------------------------------------------------------------------------
+#define F64_SIGN_MASK  0x8000000000000000u
+#define F64_1em5       0x3EE4F8B588E368F1u
+#define F64_1e00       0x3FF0000000000000u
+#define F64_1e15       0x430c6bf526340000u
+
+/**
+ * The problem of converting a floating-point number (float64) into a string
+ * can be formulated as follows (assume x is positive and normal):
+ *
+ *   1. First, the "input" value v is decomposed into the mantissa and the
+ *      exponent parts:
+ *
+ *          x = F * 2^(e - 52)
+ *
+ *      where F is uint64, and e is int. These parts can be computed using
+ *      simple bit operations on `v = reinterpret_cast<uint64>(x)`:
+ *
+ *          F = (v & (1<<52 - 1)) | (1<<52)
+ *          e = ((v >> 52) & 0x7FF) - 0x3FF
+ *
+ *   2. We'd like to find integer numbers D and E such that
+ *
+ *          x ≈ D * 10^(E - 17)
+ *
+ *      where 10^17 <= D < 10^18. If such numbers are found, then producing
+ *      the final string is simple, one of the following forms can be used:
+ *
+ *          D[0] '.' D[1:] 'e' E
+ *          D[0:E] '.' D[E:]
+ *          '0.' '0'{-E-1} D
+ *
+ *   3. Denote f = F*2^-52, and d = D*10^-17. Then 1 <= f < 2, and similarly
+ *      1 <= d < 10. Therefore,
+ *
+ *          E = log₁₀(f) + e * log₁₀2 - log₁₀(d)
+ *          E = Floor[log₁₀(f) + e * log₁₀2]
+ *          E ≤ Floor[1 + e * log₁₀2]
+ *
+ *      This may overestimate E by 1, but ultimately it doesn't matter...
+ *      Then, D can be computed as
+ *
+ *          D = Floor[F * 2^(e - 52) * 10^(17 - E)]
+ *
+ *      Ultimately, if we precompute quantities
+ *
+ *          Z[e] = Floor[2^64 * 2^(e - 52) * 10^(16 - Floor[e * log₁₀2])]
+ *
+ *      for every exponent e (there are 2046 of them), then computing D
+ *      will be done simply via
+ *
+ *          D = (F * Z[e]) >> 64
+ *
+ *      where F * Z is a product of two uint64 integers.
+ *
+ */
+static void kernel_dragonfly(char **pch, Column *col, int64_t row) {
+  char *ch = *pch;
+  uint64_t value = ((uint64_t*) col->data)[row];
+  if (value & F64_SIGN_MASK) {
+    *ch++ = '-';
+    value ^= F64_SIGN_MASK;
+  }
+
+  uint64_t significand = (value & 0xFFFFFFFFFFFFFL);
+  int biased_exp = static_cast<int>(value >> 52);
+  if (biased_exp == 0x7FF) {
+    if (significand) {
+      ch[0] = 'n'; ch[1] = 'a'; ch[2] = 'n';
+    } else {
+      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
+    }
+    *pch = ch + 3;
+    return;
+  }
+  int exp = biased_exp - 0x3FF;
+  if (value > F64_1em5) {
+
+  }
+}
+
 
 
 //=================================================================================================
@@ -332,6 +413,11 @@ static void kernel_hex(char **pch, Column *col, int64_t row) {
 
 BenchmarkSuite prepare_bench_double(int64_t N)
 {
+  double v;
+  v = 1e-5; printf("1e-5 = %016lx\n", *((uint64_t*)&v));
+  v = 1.0;  printf("1.0  = %016lx\n", *((uint64_t*)&v));
+  v = 1e15; printf("1e15 = %016lx\n", *((uint64_t*)&v));
+
   // Prepare data array
   srand((unsigned) time(NULL));
   double *data = (double*) malloc(N * sizeof(double));
