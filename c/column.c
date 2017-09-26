@@ -198,7 +198,7 @@ Column* column_copy(Column *self)
     col->meta = NULL;
     col->filename = NULL;
     col->nrows = self->nrows;
-    col->stats = stats_copy(self->stats);
+    col->stats = NULL;
     col->stype = self->stype;
     col->mtype = MT_DATA;
     col->refcount = 1;
@@ -477,7 +477,7 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
                       elemsize, diff_rows);
         }
         // TODO: Temporary fix. To be resolved in #301
-        stats_reset(col->stats);
+        if (col->stats) col->stats->reset();
         return col;
     }
 
@@ -534,7 +534,7 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
                       &na, 4, diff_rows);
         }
         // TODO: Temporary fix. To be resolved in #301
-        stats_reset(col->stats);
+        if (col->stats) col->stats->reset();
         return col;
     }
     // Exception
