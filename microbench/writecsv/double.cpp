@@ -423,6 +423,22 @@ static const int64_t DIVS64[19] = {
  *
  * This algorithm is roughly similar to Grisu2.
  */
+
+// The `Atable` list was generated using the following code (at first I tried
+// computing it in C with long doubles, but that turned out to not have enough
+// precision -- so instead use Python with its arbitrary-precision integer
+// arithmetics):
+//
+//    from fractions import Fraction
+//    for eb in range(2048):
+//        EE = 17 - ((eb*1233 + 201) >> 12) + 308
+//        p1 = 10**EE if EE >= 0 else Fraction(1, 10**(-EE))
+//        ee = eb - 1023 + 1
+//        p2 = 2**ee if ee >= 0 else Fraction(1, 2**(-ee))
+//        p = p1 * p2
+//        assert p > 2**53
+//        print("0x%016x, " % round(p), end=("\n" if eb % 4 == 3 else ""))
+//
 static uint64_t Atable[2048] = {
   0x03168149dd886f8a, 0x062d0293bb10df15, 0x0c5a05277621be29, 0x18b40a4eec437c52,
   0x04f0cedc95a718dd, 0x09e19db92b4e31bb, 0x13c33b72569c6375, 0x03f3d8b077b8e0b1,
