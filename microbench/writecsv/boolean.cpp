@@ -13,6 +13,13 @@ static void kernel_fwrite(char **pch, Column *col, int64_t row) {
   *pch = ch;
 }
 
+static void kernel_fwrite2(char **pch, Column *col, int64_t row) {
+  int8_t value = ((int8_t*) col->data)[row];
+  char *ch = *pch;
+  *ch++ = '0' + (value == 1);
+  *pch = ch - (value == NA_I1);
+}
+
 
 static void kernel_simple(char **pch, Column *col, int64_t row) {
   int8_t value = ((int8_t*) col->data)[row];
@@ -65,11 +72,12 @@ BenchmarkSuite prepare_bench_boolean(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_simple,    "simple" },    //  6.715
-    { &kernel_nonacheck, "nonacheck" }, //  5.937
-    { &kernel_ge0,       "val >= 0" },  //  6.018
-    { &kernel_fwrite,    "fwrite" },    //  8.073
-    { &kernel_sprintf,   "sprintf" },   // 67.364
+    { &kernel_simple,    "simple" },    //  6.615
+    { &kernel_nonacheck, "nonacheck" }, //  5.573
+    { &kernel_ge0,       "val >= 0" },  //  5.485
+    { &kernel_fwrite,    "fwrite" },    //  7.750
+    { &kernel_fwrite2,   "fwrite2" },   //  6.787
+    { &kernel_sprintf,   "sprintf" },   // 63.112
     { NULL, NULL },
   };
 
