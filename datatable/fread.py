@@ -561,31 +561,34 @@ class FReader(object):
 
 
 
-_coltypes = {
-    bool: 1,
-    int: 3,
-    float: 5,
-    str: 6,
-    "bool": 1,
-    "int": 3,
-    "int32": 3,
-    "int64": 4,
-    "float": 5,
-    "str": 6,
-    "drop": 0,
-    "bool8": 1,
-    "int32a": 2,
-    "int32b": 3,
-    "float64": 5,
-}
-
+# Directly corresponds to `colType` enum in "fread.h"
 _coltypes_strs = [
-    "drop",
-    "bool8",
-    "int32a",
-    "int32b",
-    "int64",
-    "float64",
-    "str",
+    "drop",      # 0
+    "bool8",     # 1
+    "int32",     # 2
+    "int32x",    # 3
+    "int64",     # 4
+    "float64",   # 5
+    "float64x",  # 6
+    "str",       # 7
 ]
- 
+
+# FIXME !
+_coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
+    (bool,       "bool8"),
+    (int,        "int32"),
+    (float,      "float64"),
+    (str,        "str"),
+    ("bool",     "bool8"),
+    ("bool8",    "bool8"),
+    ("int",      "int32"),
+    ("int32",    "int32"),
+    ("int32a",   "int32"),
+    ("int32b",   "int32x"),
+    ("int64",    "int64"),
+    ("float",    "float64"),
+    ("float64",  "float64"),
+    ("float64x", "float64x"),
+    ("str",      "str"),
+    ("drop",     "drop"),
+]}

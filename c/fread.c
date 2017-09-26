@@ -71,8 +71,8 @@ static lenOff *colNames = NULL;
 static int8_t *oldType = NULL;
 static freadMainArgs args;  // global for use by DTPRINT
 
-const char typeName[NUMTYPE][10] = {"drop", "bool8", "int32", "int32", "int64", "float64", "string"};
-int8_t     typeSize[NUMTYPE]     = { 0,      1,       4,       4,       8,       8,         8      };
+const char typeName[NUMTYPE][10] = {"drop", "bool8", "int32", "int32", "int64", "float64", "float64", "string"};
+int8_t     typeSize[NUMTYPE]     = { 0,      1,       4,       4,       8,       8,        8,         8       };
 // size_t to prevent potential overflow of n*typeSize[i] (standard practice)
 
 // NAN and INFINITY constants are float, so cast to double once up front.
@@ -714,6 +714,80 @@ static int StrtoD(const char **pch, double *target)
 }
 
 
+/**
+ * Parses double values, but also understands various forms of NAN literals
+ * (each can possibly be preceded with a `+` or `-` sign):
+ *
+ *   nan, inf, NaN, NAN, NaN%, NaNQ, NaNS, qNaN, sNaN, NaN12345, sNaN54321,
+ *   1.#SNAN, 1.#QNAN, 1.#IND, 1.#INF, INF, Inf, Infinity,
+ *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
+ *
+ */
+static int parse_double_extended(const char **pch, double *target)
+{
+  const char *ch = *pch;
+  skip_white(&ch);
+  if (on_sep(&ch)) {
+    *target = NA_FLOAT64;
+    *pch = ch;
+    return 0;
+  }
+  bool neg, quoted;
+  ch += (quoted = (*ch=='"'));
+  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch[0]=='n' && ch[1]=='a' && ch[2]=='n' && (ch += 3)) goto return_nan;
+  if (ch[0]=='i' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) goto return_inf;
+  if (ch[0]=='I' && ch[1]=='N' && ch[2]=='F' && (ch += 3)) goto return_inf;
+  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) {
+    if (ch[0]=='i' && ch[1]=='n' && ch[2]=='i' && ch[3]=='t' && ch[4]=='y') ch += 5;
+    goto return_inf;
+  }
+  if (ch[0]=='N' && (ch[1]=='A' || ch[1]=='a') && ch[2]=='N' && (ch += 3)) {
+    if (ch[-2]=='a' && (*ch=='%' || *ch=='Q' || *ch=='S')) ch++;
+    while (static_cast<uint_fast8_t>(*ch-'0') < 10) ch++;
+    goto return_nan;
+  }
+  if ((ch[0]=='q' || ch[0]=='s') && ch[1]=='N' && ch[2]=='a' && ch[3]=='N' && (ch += 4)) {
+    while (static_cast<uint_fast8_t>(*ch-'0') < 10) ch++;
+    goto return_nan;
+  }
+  if (ch[0]=='1' && ch[1]=='.' && ch[2]=='#') {
+    if ((ch[3]=='S' || ch[3]=='Q') && ch[4]=='N' && ch[5]=='A' && ch[6]=='N' && (ch += 7)) goto return_nan;
+    if (ch[3]=='I' && ch[4]=='N' && ch[5]=='D' && (ch += 6)) goto return_nan;
+    if (ch[3]=='I' && ch[4]=='N' && ch[5]=='F' && (ch += 6)) goto return_inf;
+  }
+  if (ch[0]=='#') {  // Excel-specific "numbers"
+    if (ch[1]=='D' && ch[2]=='I' && ch[3]=='V' && ch[4]=='/' && ch[5]=='0' && ch[6]=='!' && (ch += 7)) goto return_nan;
+    if (ch[1]=='V' && ch[2]=='A' && ch[3]=='L' && ch[4]=='U' && ch[5]=='E' && ch[6]=='!' && (ch += 7)) goto return_nan;
+    if (ch[1]=='N' && ch[2]=='U' && ch[3]=='L' && ch[4]=='L' && ch[5]=='!' && (ch += 6)) goto return_na;
+    if (ch[1]=='N' && ch[2]=='A' && ch[3]=='M' && ch[4]=='E' && ch[5]=='?' && (ch += 6)) goto return_na;
+    if (ch[1]=='N' && ch[2]=='U' && ch[3]=='M' && ch[4]=='!' && (ch += 5)) goto return_na;
+    if (ch[1]=='R' && ch[2]=='E' && ch[3]=='F' && ch[4]=='!' && (ch += 5)) goto return_na;
+    if (ch[1]=='N' && ch[2]=='/' && ch[3]=='A' && (ch += 4)) goto return_na;
+  }
+  return StrtoD(pch, target);
+
+  return_inf:
+    *target = neg? -INFD : INFD;
+    goto ok;
+  return_nan:
+    *target = NAND;
+    goto ok;
+  return_na:
+    *target = NA_FLOAT64;
+    goto ok;
+  ok:
+    if (quoted && *ch!='"') {
+      // *target = NA_FLOAT64;
+      return 1;
+    }
+    *pch = ch + quoted;
+    return 0;
+}
+
+
+
 static int StrtoB(const char **pch, int8_t *target)
 {
     // These usually come from R when it writes out.
@@ -746,6 +820,14 @@ static int StrtoB(const char **pch, int8_t *target)
     return !is_NAstring(start);
 }
 
+
+// In order to add a new type:
+//   - register new parser in this `fun` array
+//   - add entries in arrays `typeName` / `typeSize` at the top of this file
+//   - add entry in array `colType` in "fread.h" and increase NUMTYPE
+//   - add record in array `colType_to_stype` in "py_fread.c"
+//   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
+//
 typedef int (*reader_fun_t)(const char **ptr, void *target);
 static reader_fun_t fun[NUMTYPE] = {
   (reader_fun_t) &Field,   // CT_DROP
@@ -754,6 +836,7 @@ static reader_fun_t fun[NUMTYPE] = {
   (reader_fun_t) &StrtoI32_full,
   (reader_fun_t) &StrtoI64,
   (reader_fun_t) &StrtoD,
+  (reader_fun_t) &parse_double_extended,
   (reader_fun_t) &Field
 };
 
