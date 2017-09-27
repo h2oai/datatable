@@ -71,8 +71,8 @@ static lenOff *colNames = NULL;
 static int8_t *oldType = NULL;
 static freadMainArgs args;  // global for use by DTPRINT
 
-const char typeName[NUMTYPE][10] = {"drop", "bool8", "int32", "int32", "int64", "float64", "float64", "string"};
-int8_t     typeSize[NUMTYPE]     = { 0,      1,       4,       4,       8,       8,        8,         8       };
+const char typeName[NUMTYPE][10] = {"drop", "bool8", "int32", "int32", "int64", "float64", "float64", "float64", "string"};
+int8_t     typeSize[NUMTYPE]     = { 0,      1,       4,       4,       8,       8,        8,         8,         8       };
 // size_t to prevent potential overflow of n*typeSize[i] (standard practice)
 
 // NAN and INFINITY constants are float, so cast to double once up front.
@@ -785,6 +785,86 @@ static int parse_double_extended(const char **pch, double *target)
 
 
 
+/**
+ * Parser for hexadecimal doubles. This format is used in Java (via
+ * `Double.toHexString(x)`), in C (`printf("%a", x)`), and in Python
+ * (`x.hex()`).
+ *
+ * The numbers are in the following format:
+ *
+ *   [+|-] (0x|0X) (0.|1.) HexDigits (p|P) [+|-] DecExponent
+ *
+ * Thus the number has optional sign; followed by hex prefix `0x` or `0X`;
+ * followed by hex significand which may be in the form of either `0.HHHHH...`
+ * or `1.HHHHH...` where `H` are hex-digits (there can be no more than 13
+ * digits; first form is used for subnormal numbers, second for normal ones);
+ * followed by exponent indicator `p` or `P`; followed by optional exponent
+ * sign; and lastly followed by the exponent which is a decimal number.
+ *
+ * This can be directly converted into IEEE-754 double representation:
+ *
+ *   <1 bit: sign> <11 bits: exp+1022> <52 bits: significand>
+ *
+ * This parser also recognizes literals "NaN" and "Infinity" which can be
+ * produced by Java.
+ *
+ * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
+ * @see https://en.wikipedia.org/wiki/IEEE_754-1985
+ */
+static int parse_double_hexadecimal(const char **pch, double *target)
+{
+  const char *ch = *pch;
+  uint64_t neg;
+  uint8_t digit;
+  bool Eneg, subnormal = 0;
+  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') && (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
+    ch += 3;
+    uint64_t acc = 0;
+    if (*ch == '.') {
+      ch++;
+      int ndigits = 0;
+      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+        acc = (acc << 4) + digit;
+        ch++;
+        ndigits++;
+      }
+      if (ndigits > 13) goto fail;
+      acc <<= (13 - ndigits) * 4;
+    }
+    if (*ch!='p' && *ch!='P') goto fail;
+    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    uint64_t E = 0;
+    while ( (digit = (uint8_t)(*ch - '0')) < 10 ) {
+      E = 10*E + digit;
+      ch++;
+    }
+    E = 1023 + (Eneg? -E : E) - subnormal;
+    if (subnormal ? E : (E<1 || E>2046)) goto fail;
+
+    *(reinterpret_cast<uint64_t*>(target)) = (neg << 63) | (E << 52) | (acc);
+    *pch = ch;
+    return 0;
+  }
+  if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
+    *target = NA_FLOAT64;
+    *pch = ch + 3;
+    return 0;
+  }
+  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
+      ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
+    *target = neg ? -INFD : INFD;
+    *pch = ch + 8;
+    return 0;
+  }
+
+  fail:
+    *target = NA_FLOAT64;
+    return 1;
+}
+
+
 static int StrtoB(const char **pch, int8_t *target)
 {
     // These usually come from R when it writes out.
@@ -834,6 +914,7 @@ static reader_fun_t fun[NUMTYPE] = {
   (reader_fun_t) &StrtoI64,
   (reader_fun_t) &StrtoD,
   (reader_fun_t) &parse_double_extended,
+  (reader_fun_t) &parse_double_hexadecimal,
   (reader_fun_t) &Field
 };
 

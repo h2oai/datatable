@@ -569,8 +569,9 @@ _coltypes_strs = [
     "int32x",    # 3
     "int64",     # 4
     "float64",   # 5
-    "float64x",  # 6
-    "str",       # 7
+    "float64e",  # 6
+    "float64x",  # 7
+    "str",       # 8
 ]
 
 # FIXME !
@@ -588,6 +589,7 @@ _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
     ("int64",    "int64"),
     ("float",    "float64"),
     ("float64",  "float64"),
+    ("float64e", "float64e"),
     ("float64x", "float64x"),
     ("str",      "str"),
     ("drop",     "drop"),

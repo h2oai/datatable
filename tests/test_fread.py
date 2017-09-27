@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable
-
+import random
 
 def test_fread_columns_set():
     text = ("C1,C2,C3,C4\n"
@@ -29,3 +29,13 @@ def test_fread_columns_bad():
         datatable.fread(text="C1,C2\n1,2\n3,4\n", columns=["C2"])
     assert ("Input file contains 2 columns, whereas `columns` parameter "
             "specifies only 1 column" in str(e.value))
+
+
+def test_fread_hex():
+    rnd = random.random
+    arr = [rnd() * 10**(10**rnd()) for i in range(20)]
+    inp = "A\n%s\n" % "\n".join(x.hex() for x in arr)
+    d0 = datatable.fread(text=inp)
+    assert d0.internal.check()
+    assert d0.types == ("real", )
+    assert d0.topython() == [arr]
