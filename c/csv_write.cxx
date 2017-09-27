@@ -22,7 +22,7 @@
 #include <sys/mman.h>   // mmap
 #include "column.h"
 #include "csv.h"
-#include "csv_dtoa.h"
+#include "csv_lookups.h"
 #include "datatable.h"
 #include "math.h"
 #include "memorybuf.h"
@@ -78,6 +78,14 @@ static const int64_t DIVS64[19] = {
   100000000000000000L,
   1000000000000000000L,
 };
+
+#define F64_SIGN_MASK  0x8000000000000000u
+#define F64_MANT_MASK  0x000FFFFFFFFFFFFFu
+#define F64_EXTRA_BIT  0x0010000000000000u
+#define F64_1em5       0x3EE4F8B588E368F1u
+#define F64_1e15       0x430c6bf526340000u
+#define TENp18         1000000000000000000
+
 
 // TODO: replace with classes that derive from CsvColumn and implement write()
 class CsvColumn {
@@ -189,23 +197,11 @@ static inline void write_int32(char **pch, int32_t value) {
   *pch = ch + 1;
 }
 
-
-static void write_i4(char **pch, CsvColumn *col, int64_t row)
-{
-  int32_t value = ((int32_t*) col->data)[row];
-  if (value == NA_I4) return;
-  write_int32(pch, value);
-}
-
-
-static void write_i8(char **pch, CsvColumn *col, int64_t row)
-{
-  int64_t value = ((int64_t*) col->data)[row];
+static inline void write_int64(char **pch, int64_t value) {
   if (value == 0) {
     *((*pch)++) = '0';
     return;
   }
-  if (value == NA_I8) return;
   char *ch = *pch;
   if (value < 0) {
     *ch++ = '-';
@@ -220,6 +216,22 @@ static void write_i8(char **pch, CsvColumn *col, int64_t row)
   }
   *ch = static_cast<char>(value) + '0';
   *pch = ch + 1;
+}
+
+
+static void write_i4(char **pch, CsvColumn *col, int64_t row)
+{
+  int32_t value = ((int32_t*) col->data)[row];
+  if (value == NA_I4) return;
+  write_int32(pch, value);
+}
+
+
+static void write_i8(char **pch, CsvColumn *col, int64_t row)
+{
+  int64_t value = ((int64_t*) col->data)[row];
+  if (value == NA_I8) return;
+  write_int64(pch, value);
 }
 
 
@@ -364,54 +376,143 @@ static inline void write_exponent(char **pch, int value) {
 }
 
 
-// TODO: simplify the algorithm (check for isnan / 0 / negative based on
-// DiyFp64 representation).
+/**
+ * The problem of converting a floating-point number (float64) into a string
+ * can be formulated as follows (assume x is positive and normal):
+ *
+ *   1. First, the "input" value v is decomposed into the mantissa and the
+ *      exponent parts:
+ *
+ *          x = f * 2^e = F * 2^(e - 52)
+ *
+ *      where F is uint64, and e is int. These parts can be computed using
+ *      simple bit operations on `v = reinterpret_cast<uint64>(x)`:
+ *
+ *          F = (v & (1<<52 - 1)) | (1<<52)
+ *          e = ((v >> 52) & 0x7FF) - 0x3FF
+ *
+ *   2. We'd like to find integer numbers D and E such that
+ *
+ *          x ≈ d * 10^E = D * 10^(E - 17)
+ *
+ *      where 10^17 <= D < 10^18. If such numbers are found, then producing
+ *      the final string is simple, one of the following forms can be used:
+ *
+ *          D[0] '.' D[1:] 'e' E
+ *          D[0:E] '.' D[E:]
+ *          '0.' '0'{-E-1} D
+ *
+ *   3. Denote f = F*2^-52, and d = D*10^-17. Then 1 <= f < 2, and similarly
+ *      1 <= d < 10. Therefore,
+ *
+ *          E = log₁₀(f) + e * log₁₀2 - log₁₀(d)
+ *          E = Floor[log₁₀(f) + e * log₁₀2]
+ *          E ≤ Floor[1 + e * log₁₀2]
+ *
+ *      This may overestimate E by 1, but ultimately it doesn't matter... In
+ *      practice we can replace this formula with one that is close numerically
+ *      but easier to compute:
+ *
+ *          E = Floor[(e*1233 - 8)/4096] = ((201 + eb*1233)>>12) - 308
+ *
+ *      where eb = e + 0x3FF is the biased exponent.
+ *
+ *   4. Then, D can be computed as
+ *
+ *          D = Floor[F * 2^(e - 52) * 10^(17 - E(e))]
+ *
+ *      (with the choice of E(e) as above, this quantity will range from
+ *      1.001e17 to 2.015e18. The coefficients in E(e) were optimized in order
+ *      to minimize sup(D) subject to inf(D)>=1e17.)
+ *
+ *      In this expression, F is integer, whereas 2^(e-52) * 10^(17-E(e)) is
+ *      float. If we write the latter as (A+B)/2^53 (where B < 1), then
+ *      expression for D becomes
+ *
+ *          D = Floor[(F * A)/2^53 + (F * B)/2^53]
+ *
+ *      Here F<2^53 and B<1, and therefore the second term is negligible.
+ *      Thus,
+ *
+ *         D = (F * A(e)) >> 53
+ *         A(e) = Floor[2^(e+1) * 10^(17-E(e))]
+ *
+ *      The quantities A(e) are `uint64`s in the range approximately from
+ *      2.002e17 to 2.015e18. They can be precomputed and stored for every
+ *      exponent e (there are 2046 of them). Multiplying and shifting of
+ *      two uint64 numbers is fast and simple.
+ *
+ * This algorithm is roughly similar to Grisu2.
+ */
 static inline void write_double(char **pch, double value)
 {
   char *ch = *pch;
-  if (value == 0.0) {
-    *ch = '0';
-    (*pch)++;
-    return;
-  }
-  if (value < 0) {
+  union { double d; uint64_t u; } vvv = { value };
+  uint64_t value_u64 = vvv.u;
+
+  if (value_u64 & F64_SIGN_MASK) {
     *ch++ = '-';
-    value = -value;
+    value_u64 ^= F64_SIGN_MASK;
   }
-  // For large / small numbers fallback to Grisu2
-  if (value > 1e15 || value < 1e-5) {
-    int length, K;
-    Grisu2(value, ch, &length, &K);
-    memmove(ch+2, ch+1, static_cast<size_t>(length - 1));
-    ch[1] = '.';
-    ch[length + 1] = 'e';
-    length += 2;
-    ch += length;
-    write_exponent(&ch, length + K - 3);
+  if (value_u64 > F64_1em5 && value_u64 < F64_1e15) {
+    union { uint64_t u; double d; } vvv = { value_u64 };
+    double frac, intval;
+    frac = modf(vvv.d, &intval);
+    char *ch0 = ch;
+    write_int64(&ch, static_cast<int64_t>(intval));
+
+    if (frac > 0) {
+      int digits_left = 15 - static_cast<int>(ch - ch0);
+      *ch++ = '.';
+      while (frac > 0 && digits_left) {
+        frac *= 10;
+        frac = modf(frac, &intval);
+        *ch++ = static_cast<char>(intval) + '0';
+        digits_left--;
+      }
+      if (!digits_left) {
+        intval = frac*10 + 0.5;
+        if (intval > 9) intval = 9;
+        *ch++ = static_cast<char>(intval) + '0';
+      }
+    }
     *pch = ch;
     return;
   }
 
-  double frac, intval;
-  frac = modf(value, &intval);
-  char *ch0 = ch;
-  write_int32(&ch, (int32_t)intval);
-
-  if (frac > 0) {
-    int digits_left = 14 - static_cast<int>(ch - ch0);
-    *ch++ = '.';
-    while (frac > 0 && digits_left) {
-      frac *= 10;
-      frac = modf(frac, &intval);
-      *ch++ = static_cast<char>(intval) + '0';
-      digits_left--;
+  int eb = static_cast<int>(value_u64 >> 52);
+  if (eb == 0x7FF) {
+    if (!value_u64) {  // don't print nans at all
+      *ch++ = 'i'; *ch++ = 'n'; *ch++ = 'f';
+      *pch = ch;
     }
-    if (!digits_left) {
-      intval = frac*10 + 0.5;
-      if (intval > 9) intval = 9;
-      *ch++ = static_cast<char>(intval) + '0';
-    }
+    return;
+  } else if (eb == 0x000) {
+    *ch++ = '0';
+    *pch = ch;
+    return;
   }
+  int E = ((201 + eb*1233) >> 12) - 308;
+  uint64_t F = (value_u64 & F64_MANT_MASK) | F64_EXTRA_BIT;
+  uint64_t A = Atable[eb];
+  unsigned __int128 p = static_cast<unsigned __int128>(F) *
+                        static_cast<unsigned __int128>(A);
+  int64_t D = static_cast<int64_t>(p >> 53) + (static_cast<int64_t>(p) >> 53);
+  if (D >= TENp18) {
+    D /= 10;
+    E++;
+  }
+  ch += 18;
+  char *tch = ch;
+  for (int r = 18; r; r--) {
+    ldiv_t ddd = ldiv(D, 10);
+    D = ddd.quot;
+    *tch-- = static_cast<char>(ddd.rem) + '0';
+    if (r == 2) { *tch-- = '.'; }
+  }
+  while (ch[-1] == '0') ch--;  // remove any trailing 0s
+  *ch++ = 'e';
+  write_exponent(&ch, E);
   *pch = ch;
 }
 
