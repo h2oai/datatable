@@ -47,3 +47,11 @@ def test_fread_hex0():
     d0 = datatable.fread(text="A\n0x0.0p+0\n0x0p0\n-0x0p-0\n")
     assert d0.topython() == [[0.0] * 3]
     assert math.copysign(1.0, d0.topython()[0][2]) == -1.0
+
+
+def test_fread_float():
+    inp = "A\n0x0p0\n0x1.5p0\n0x1.5p-1\n0x1.2AAAAAp+22"
+    d0 = datatable.fread(text=inp)
+    assert d0.internal.check()
+    assert d0.stypes == ("f4r", )
+    assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
