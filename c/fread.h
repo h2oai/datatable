@@ -21,15 +21,18 @@ typedef enum {
   CT_INT32_BARE  = 2,  // int32_t bare bones fast
   CT_INT32_FULL  = 3,  // int32_t if spaces or quotes can surround the value
   CT_INT64       = 4,  // int64_t
-  CT_FLOAT64     = 5,  // double (64-bit IEEE 754 float)
-  CT_FLOAT64_EXT = 6,  // double, with various "NaN" literals
-  CT_STRING      = 7,  // lenOff struct below
-  NUMTYPE        = 8   // placeholder for the number of types including drop
+  CT_FLOAT32_HEX = 5,  // float, in hexadecimal format
+  CT_FLOAT64     = 6,  // double (64-bit IEEE 754 float)
+  CT_FLOAT64_EXT = 7,  // double, with various "NaN" literals
+  CT_FLOAT64_HEX = 8,  // double, in hexadecimal format
+  CT_STRING      = 9,  // lenOff struct below
+  NUMTYPE        = 10  // placeholder for the number of types including drop
 } colType;
 
 extern int8_t typeSize[NUMTYPE];
 extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
+extern const uint8_t hexdigits[256];
 
 
 // Strings are pushed by fread_main using an offset from an anchor address plus
@@ -44,6 +47,7 @@ typedef struct {
 #define NA_INT32         INT32_MIN
 #define NA_INT64         INT64_MIN
 #define NA_FLOAT64_I64   0x7FF00000000007A2
+#define NA_FLOAT32_I32   0x7F8007A2
 #define NA_LENOFF        INT32_MIN  // lenOff.len only; lenOff.off undefined for NA
 
 
