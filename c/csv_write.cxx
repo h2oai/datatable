@@ -248,16 +248,19 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
     *pch = ch + 2;
     return;
   }
-  const char *strstart = col->strbuf + offset0;
-  const char *strend = col->strbuf + offset1;
-  const char *sch = strstart;
+  const uint8_t *strstart = reinterpret_cast<uint8_t*>(col->strbuf) + offset0;
+  const uint8_t *strend = reinterpret_cast<uint8_t*>(col->strbuf) + offset1;
+  const uint8_t *sch = strstart;
+  if (*sch == 32) goto quote;
   while (sch < strend) {  // ',' is 44, '"' is 34
-    char c = *sch;
-    if ((uint8_t)c <= (uint8_t)',' && (c == ',' || c == '"' || (uint8_t)c < 32)) break;
-    *ch++ = c;
+    uint8_t c = *sch;
+    // First `c <= 44` is to give an opportunity to short-circuit early.
+    if (c <= 44 && (c == 44 || c == 34 || c < 32)) break;
+    *ch++ = static_cast<char>(c);
     sch++;
   }
-  if (sch < strend) {
+  if (sch < strend || sch[-1] == 32) {
+    quote:
     ch = *pch;
     memcpy(ch+1, strstart, static_cast<size_t>(sch - strstart));
     *ch = '"';
@@ -539,14 +542,20 @@ static void write_string(char **pch, const char *value)
 {
   char *ch = *pch;
   const char *sch = value;
+  if (*value == ' ') goto quote;
   for (;;) {
     char c = *sch++;
-    if (!c) { *pch = ch; return; }
+    if (!c) {
+      if (sch[-1] == ' ') break;
+      *pch = ch;
+      return;
+    }
     if (c == '"' || c == ',' || static_cast<uint8_t>(c) < 32) break;
     *ch++ = c;
   }
   // If we broke out of the loop above, it means we need to quote the field.
   // So, first rewind to the beginning
+  quote:
   ch = *pch;
   sch = value;
   *ch++ = '"';
