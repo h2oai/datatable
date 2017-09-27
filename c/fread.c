@@ -840,9 +840,14 @@ static int parse_double_hexadecimal(const char **pch, double *target)
       E = 10*E + digit;
       ch++;
     }
-    E = 1023 + (Eneg? -E : E) - subnormal;
-    if (subnormal ? E : (E<1 || E>2046)) goto fail;
-
+    if (subnormal) {
+      if (E == 0 && acc == 0) /* zero */;
+      else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
+      else goto fail;
+    } else {
+      E = 1023 + (Eneg? -E : E);
+      if (E<1 || E>2046) goto fail;
+    }
     *(reinterpret_cast<uint64_t*>(target)) = (neg << 63) | (E << 52) | (acc);
     *pch = ch;
     return 0;

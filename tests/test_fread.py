@@ -3,6 +3,8 @@
 import pytest
 import datatable
 import random
+import math
+
 
 def test_fread_columns_set():
     text = ("C1,C2,C3,C4\n"
@@ -39,3 +41,9 @@ def test_fread_hex():
     assert d0.internal.check()
     assert d0.types == ("real", )
     assert d0.topython() == [arr]
+
+
+def test_fread_hex0():
+    d0 = datatable.fread(text="A\n0x0.0p+0\n0x0p0\n-0x0p-0\n")
+    assert d0.topython() == [[0.0] * 3]
+    assert math.copysign(1.0, d0.topython()[0][2]) == -1.0
