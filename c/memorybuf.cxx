@@ -6,6 +6,7 @@
 #include <sys/stat.h>  // fstat
 #include <unistd.h>    // access, close
 #include "memorybuf.h"
+#include "utils.h"
 
 MemoryBuffer::~MemoryBuffer() {}
 
@@ -16,7 +17,8 @@ MemoryBuffer::~MemoryBuffer() {}
 
 RamMemoryBuffer::RamMemoryBuffer(size_t n) {
   buf = malloc(n);
-  if (!buf) throw std::runtime_error("Unable to allocate memory buffer");
+  allocsize = n;
+  if (!buf) throw Error("Unable to allocate memory of size %zu", n);
 }
 
 
@@ -30,6 +32,7 @@ RamMemoryBuffer::~RamMemoryBuffer() {
 void RamMemoryBuffer::resize(size_t n) {
   if (n == allocsize) return;
   buf = realloc(buf, n);
+  if (!buf) throw Error("Unable to allocate memory of size %zu", n);
   allocsize = n;
 }
 

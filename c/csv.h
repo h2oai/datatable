@@ -36,14 +36,15 @@ class CsvWriter {
   __attribute__((unused)) char _padding[2];
 
   // Intermediate values used while writing the file
+  MemoryBuffer* mb;
   double t_last;
   double t_size_estimation;
   double t_create_target;
 
+
 public:
-  CsvWriter(DataTable *dt_, const char *path_)
-    : dt(dt_), path(path_), logger(nullptr), nthreads(1),
-      usehex(false), verbose(false), t_last(0) {}
+  CsvWriter(DataTable *dt_, const char *path_);
+  ~CsvWriter();
 
   void set_logger(void *v) { logger = v; }
   void set_nthreads(int n) { nthreads = n; }
@@ -53,12 +54,14 @@ public:
     column_names = std::move(names);
   }
 
-  MemoryBuffer* write();
+  void write();
+  MemoryBuffer* get_output_buffer() const { return mb; }
 
 private:
   double checkpoint();
   int64_t estimate_output_size();
-  MemoryBuffer* create_target(int64_t size);
+  void create_target(int64_t size);
+  size_t write_column_names();
 
 };
 

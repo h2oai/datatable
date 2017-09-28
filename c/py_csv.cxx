@@ -51,18 +51,18 @@ PyObject* pywrite_csv(UU, PyObject *args)
     cwriter.set_nthreads(nthreads);
 
     // Write CSV
-    MemoryBuffer *mb = cwriter.write();
+    cwriter.write();
 
     // Post-process the result
     if (filename) {
       result = none();
     } else {
+      MemoryBuffer *mb = cwriter.get_output_buffer();
       // -1 because the buffer also stores trailing \0
       Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
       char *str = reinterpret_cast<char*>(mb->get());
       result = PyUnicode_FromStringAndSize(str, len);
     }
-    delete mb;
 
   } catch (const std::exception& e) {
     // If the error message was already set, then we don't want to overwrite it.
