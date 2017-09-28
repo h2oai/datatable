@@ -38,9 +38,6 @@ static void write_string(char **pch, const char *value);
 
 typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
 
-static const size_t max_chunk_size = 1024 * 1024;
-static const size_t min_chunk_size = 1024;
-
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
@@ -603,38 +600,10 @@ void CsvWriter::write()
 {
   int64_t nrows = dt->nrows;
   int64_t ncols = dt->ncols;
-  double t0 = checkpoint();
-
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   write_column_names();
-
-  // Calculate the best chunking strategy for this file
-  double t3 = wallclock();
-  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
-  double rows_per_chunk;
-  size_t bytes_per_chunk;
-  int min_nchunks = nthreads == 1 ? 1 : nthreads*2;
-  int64_t nchunks = 1 + (bytes_total - 1) / max_chunk_size;
-  if (nchunks < min_nchunks) nchunks = min_nchunks;
-  while (1) {
-    rows_per_chunk = 1.0 * (nrows + 1) / nchunks;
-    bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
-    if (rows_per_chunk < 1.0) {
-      // If each row's size is too large, then parse 1 row at a time.
-      nchunks = nrows;
-    } else if (bytes_per_chunk < min_chunk_size && nchunks > 1) {
-      // The data is too small, and number of available threads too large --
-      // reduce the number of chunks so that we don't waste resources on
-      // needless thread manipulation.
-      // This formula guarantees that new bytes_per_chunk will be no less
-      // than min_chunk_size (or nchunks will be 1).
-      nchunks = bytes_total / min_chunk_size;
-      if (nchunks < 1) nchunks = 1;
-    } else {
-      break;
-    }
-  }
+  determine_chunking_strategy(bytes_total, nrows);
 
   // Prepare columns for writing
   CsvColumn *columns = reinterpret_cast<CsvColumn*>(malloc((size_t)ncols * sizeof(CsvColumn)));
@@ -643,7 +612,7 @@ void CsvWriter::write()
   for (int64_t i = 0; i < ncols; i++) {
     new (columns + i) CsvColumn(dt->columns[i]);
   }
-  double t4 = wallclock();
+  double t4 = checkpoint();
 
   OmpExceptionManager oem;
   #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
@@ -707,7 +676,7 @@ void CsvWriter::write()
     )
   }
   oem.rethrow_exception_if_any();
-  double t5 = wallclock();
+  double t5 = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
   // C string; otherwise truncate MemoryBuffer to the final size.
@@ -718,15 +687,16 @@ void CsvWriter::write()
   }
   wb->finalize();
   free(columns);
-  double t6 = wallclock();
+  double t6 = checkpoint();
 
+  double ttotal = t4+t5+t6+t_size_estimation+t_create_target;
   VLOG("Timing report:\n");
   VLOG("   %6.3fs  Calculate expected file size\n", t_size_estimation);
   VLOG(" + %6.3fs  Allocate file\n",                t_create_target);
-  VLOG(" + %6.3fs  Prepare for writing\n",          t4 - t3);
-  VLOG(" + %6.3fs  Write the data\n",               t5 - t4);
-  VLOG(" + %6.3fs  Finalize the file\n",            t6 - t5);
-  VLOG(" = %6.3fs  Overall time taken\n",           t6 - t0);
+  VLOG(" + %6.3fs  Prepare for writing\n",          t4);
+  VLOG(" + %6.3fs  Write the data\n",               t5);
+  VLOG(" + %6.3fs  Finalize the file\n",            t6);
+  VLOG(" = %6.3fs  Overall time taken\n",           ttotal);
 }
 
 
@@ -817,6 +787,49 @@ void CsvWriter::write_column_names()
     wb->write(static_cast<size_t>(ch - ch0), ch0);
     delete[] ch0;
   }
+}
+
+
+/**
+ * Compute parameters for writing the file: how many chunks to use, how many
+ * rows per chunk, etc.
+ *
+ * This function depends only on parameters `bytes_total`, `nrows` and
+ * `nthreads`. Its effect is to fill in values `rows_per_chunk`, 'nchunks' and
+ * `bytes_per_chunk`.
+ */
+void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
+{
+  static const size_t max_chunk_size = 1024 * 1024;
+  static const size_t min_chunk_size = 1024;
+
+  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
+  int min_nchunks = nthreads == 1 ? 1 : nthreads*2;
+  nchunks = 1 + (bytes_total - 1) / max_chunk_size;
+  if (nchunks < min_nchunks) nchunks = min_nchunks;
+  int attempts = 5;
+  while (attempts--) {
+    rows_per_chunk = 1.0 * (nrows + 1) / nchunks;
+    bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
+    if (rows_per_chunk < 1.0) {
+      // If each row's size is too large, then parse 1 row at a time.
+      nchunks = nrows;
+    } else if (bytes_per_chunk < min_chunk_size && nchunks > 1) {
+      // The data is too small, and number of available threads too large --
+      // reduce the number of chunks so that we don't waste resources on
+      // needless thread manipulation.
+      // This formula guarantees that new bytes_per_chunk will be no less
+      // than min_chunk_size (or nchunks will be 1).
+      nchunks = bytes_total / min_chunk_size;
+      if (nchunks < 1) nchunks = 1;
+    } else {
+      return;
+    }
+  }
+  // This shouldn't really happen, but who knows...
+  throw Error("Unable to determine how to write the file: bytes_total=%zu, "
+              "nrows=%zd, nthreads=%d, min.chunk=%zu, max.chunk=%zu",
+              bytes_total, nrows, nthreads, min_chunk_size, max_chunk_size);
 }
 
 

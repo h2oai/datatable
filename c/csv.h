@@ -37,6 +37,9 @@ class CsvWriter {
 
   // Intermediate values used while writing the file
   WritableBuffer* wb;
+  double rows_per_chunk;
+  size_t bytes_per_chunk;
+  int64_t nchunks;
   double t_last;
   double t_size_estimation;
   double t_create_target;
@@ -62,6 +65,7 @@ private:
   size_t estimate_output_size();
   void create_target(size_t size);
   void write_column_names();
+  void determine_chunking_strategy(size_t size, int64_t nrows);
 
 };
 
