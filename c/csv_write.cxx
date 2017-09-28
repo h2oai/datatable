@@ -38,10 +38,10 @@ static void write_string(char **pch, const char *value);
 
 typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
 
-static const int64_t max_chunk_size = 1024 * 1024;
-static const int64_t min_chunk_size = 1024;
+static const size_t max_chunk_size = 1024 * 1024;
+static const size_t min_chunk_size = 1024;
 
-static int64_t bytes_per_stype[DT_STYPES_COUNT];
+static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
 // Helper lookup table for writing integers
@@ -604,7 +604,7 @@ void CsvWriter::write()
   int64_t ncols = dt->ncols;
   double t0 = checkpoint();
 
-  int64_t bytes_total = estimate_output_size();
+  size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   size_t bytes_written = write_column_names();
 
@@ -747,24 +747,24 @@ double CsvWriter::checkpoint() {
  * Overall, we will probably overestimate the final size of the CSV by a big
  * margin.
  */
-int64_t CsvWriter::estimate_output_size()
+size_t CsvWriter::estimate_output_size()
 {
-  int64_t nrows = dt->nrows;
-  int64_t ncols = dt->ncols;
-  int64_t bytes_total = 0;
-  for (int64_t i = 0; i < ncols; i++) {
+  size_t nrows = static_cast<size_t>(dt->nrows);
+  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t bytes_total = 0;
+  for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
     SType stype = col->stype;
-    if (stype == ST_STRING_I4_VCHAR) {
-      bytes_total += (int64_t)(1.2 * column_i4s_datasize(col)) + 2 * nrows;
-    } else if (stype == ST_STRING_I8_VCHAR) {
-      bytes_total += (int64_t)(1.2 * column_i8s_datasize(col)) + 2 * nrows;
+    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+      size_t datasize = stype == ST_STRING_I4_VCHAR? column_i4s_datasize(col)
+                                                   : column_i8s_datasize(col);
+      bytes_total += static_cast<size_t>(1.2 * datasize + 2 * nrows);
     } else {
       bytes_total += bytes_per_stype[stype] * nrows;
     }
   }
   bytes_total += ncols * nrows;  // Account for separators / newlines
-  VLOG("Estimated output size: %lldB\n", bytes_total);
+  VLOG("Estimated output size: %zu\n", bytes_total);
   t_size_estimation = checkpoint();
   return bytes_total;
 }
@@ -773,14 +773,13 @@ int64_t CsvWriter::estimate_output_size()
 /**
  * Create the target memory region (either in RAM, or on disk).
  */
-void CsvWriter::create_target(int64_t size)
+void CsvWriter::create_target(size_t size)
 {
-  size_t allocsize = static_cast<size_t>(size);
   if (path) {
-    VLOG("Creating destination file of size %s\n", filesize_to_str(allocsize));
-    mb = new MmapMemoryBuffer(path, allocsize, MB_CREATE|MB_EXTERNAL);
+    VLOG("Creating destination file of size %s\n", filesize_to_str(size));
+    mb = new MmapMemoryBuffer(path, size, MB_CREATE|MB_EXTERNAL);
   } else {
-    mb = new RamMemoryBuffer(allocsize);
+    mb = new RamMemoryBuffer(size);
   }
   t_create_target = checkpoint();
 }

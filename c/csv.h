@@ -59,8 +59,8 @@ public:
 
 private:
   double checkpoint();
-  int64_t estimate_output_size();
-  void create_target(int64_t size);
+  size_t estimate_output_size();
+  void create_target(size_t size);
   size_t write_column_names();
 
 };
