@@ -577,31 +577,22 @@ static void write_string(char **pch, const char *value)
 
 //=================================================================================================
 //
-// Main CSV-writing function
+// Main CSV-writing functions
 //
 //=================================================================================================
+
 MemoryBuffer* CsvWriter::write()
 {
-  double t0 = checkpoint();
-
   int64_t nrows = dt->nrows;
   int64_t ncols = dt->ncols;
-  int64_t bytes_total = estimate_output_size();
-  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
+  double t0 = checkpoint();
 
-  // Create the target memory region
-  MemoryBuffer *mb = NULL;
-  size_t allocsize = static_cast<size_t>(bytes_total);
-  if (path) {
-    VLOG("Creating destination file of size %.3fGB\n", 1e-9*allocsize);
-    mb = new MmapMemoryBuffer(path, allocsize, MB_CREATE|MB_EXTERNAL);
-  } else {
-    mb = new RamMemoryBuffer(allocsize);
-  }
-  size_t bytes_written = 0;
+  int64_t bytes_total = estimate_output_size();
+  MemoryBuffer *mb = create_target(bytes_total);
   double t2 = wallclock();
 
   // Write the column names
+  size_t bytes_written = 0;
   size_t ncolnames = column_names.size();
   if (ncolnames) {
     char *ch, *ch0;
@@ -611,7 +602,7 @@ MemoryBuffer* CsvWriter::write()
       // to be escaped) + add 2 surrounding quotes + add a comma in the end.
       maxsize += column_names[i].size()*2 + 2 + 1;
     }
-    mb->ensuresize(maxsize + allocsize);
+    mb->ensuresize(maxsize + static_cast<size_t>(bytes_total));
     ch = ch0 = static_cast<char*>(mb->get());
     for (size_t i = 0; i < ncolnames; i++) {
       write_string(&ch, column_names[i].data());
@@ -624,6 +615,7 @@ MemoryBuffer* CsvWriter::write()
   double t3 = wallclock();
 
   // Calculate the best chunking strategy for this file
+  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
   double rows_per_chunk;
   size_t bytes_per_chunk;
   int min_nchunks = nthreads == 1 ? 1 : nthreads*2;
@@ -728,7 +720,7 @@ MemoryBuffer* CsvWriter::write()
 
   VLOG("Timing report:\n");
   VLOG("   %6.3fs  Calculate expected file size\n", t_size_estimation);
-  VLOG(" + %6.3fs  Allocate file\n",                t2 - t0);
+  VLOG(" + %6.3fs  Allocate file\n",                t_create_target);
   VLOG(" + %6.3fs  Write column names\n",           t3 - t2);
   VLOG(" + %6.3fs  Prepare for writing\n",          t4 - t3);
   VLOG(" + %6.3fs  Write the data\n",               t5 - t4);
@@ -738,11 +730,16 @@ MemoryBuffer* CsvWriter::write()
 }
 
 
+/**
+ * Convenience function to measure duration of certain steps. When called
+ * returns the time elapsed from the previous call to this function.
+ */
 double CsvWriter::checkpoint() {
   double t_previous = t_last;
   t_last = wallclock();
   return t_last - t_previous;
 }
+
 
 /**
  * Estimate the size of the output CSV file.
@@ -776,6 +773,25 @@ int64_t CsvWriter::estimate_output_size()
   t_size_estimation = checkpoint();
   return bytes_total;
 }
+
+
+/**
+ * Create the target memory region (either in RAM, or on disk).
+ */
+MemoryBuffer* CsvWriter::create_target(int64_t size)
+{
+  MemoryBuffer *mb = NULL;
+  size_t allocsize = static_cast<size_t>(size);
+  if (path) {
+    VLOG("Creating destination file of size %s\n", filesize_to_str(allocsize));
+    mb = new MmapMemoryBuffer(path, allocsize, MB_CREATE|MB_EXTERNAL);
+  } else {
+    mb = new RamMemoryBuffer(allocsize);
+  }
+  t_create_target = checkpoint();
+  return mb;
+}
+
 
 
 //=================================================================================================

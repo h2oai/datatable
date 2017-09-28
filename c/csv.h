@@ -33,15 +33,17 @@ class CsvWriter {
   int nthreads;
   bool usehex;
   bool verbose;
+  __attribute__((unused)) char _padding[2];
 
   // Intermediate values used while writing the file
   double t_last;
   double t_size_estimation;
+  double t_create_target;
 
 public:
   CsvWriter(DataTable *dt_, const char *path_)
-    : dt(dt_), path(path_), logger(nullptr), nthreads(1), t_last(0),
-      usehex(false), verbose(false) {}
+    : dt(dt_), path(path_), logger(nullptr), nthreads(1),
+      usehex(false), verbose(false), t_last(0) {}
 
   void set_logger(void *v) { logger = v; }
   void set_nthreads(int n) { nthreads = n; }
@@ -56,6 +58,7 @@ public:
 private:
   double checkpoint();
   int64_t estimate_output_size();
+  MemoryBuffer* create_target(int64_t size);
 
 };
 

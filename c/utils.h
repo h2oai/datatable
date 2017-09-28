@@ -9,10 +9,18 @@
 #include <errno.h>   // errno
 #include <string.h>  // strerr
 
+// On Windows variables of type `size_t` cannot be printed with "%zu" in the
+// `snprintf()` function. For those variables we will cast them into
+// `unsigned long long int` before printing; and this #define makes it simpler.
+#define llu   unsigned long long int
+
+
 int64_t min(int64_t a, int64_t b);
 int64_t max(int64_t a, int64_t b);
 float max_f4(float a, float b);
 double wallclock(void);
+const char* filesize_to_str(size_t filesize);
+
 
 /**
  * Helper method that attempts to compute object `x`, but executes "goto fail"

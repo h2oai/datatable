@@ -16,11 +16,6 @@
 #include "fread.h"
 #include "freadLookups.h"
 
-// On Windows variables of type `size_t` cannot be printed with "%zu" in the
-// `snprintf()` function. For those variables we will cast them into
-// `unsigned long long int` before printing; and this #define makes it simpler.
-#define llu   unsigned long long int
-
 // Private globals to save passing all of them through to highly iterated field processors
 static char sep, eol, eol2;
 static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
@@ -283,53 +278,6 @@ static inline bool nextGoodLine(const char **pch, int ncol, const char *eof)
   }
   if (ch<eof && attempts<30) { *pch = ch; return true; }
   return false;
-}
-
-
-/**
- * Helper function to print file's size in human-readable format. This will
- * produce strings such as:
- *     44.74GB (48043231704 bytes)
- *     921MB (965757797 bytes)
- *     2.206MB (2313045 bytes)
- *     38.69KB (39615 bytes)
- *     214 bytes
- *     0 bytes
- * The function returns a pointer to a static string buffer, so the caller
- * should not attempt to deallocate the buffer, or call this function from
- * multiple threads at the same time, or hold on to the value returned for
- * extended periods of time.
- */
-static const char* filesize_to_str(size_t fsize)
-{
-  #define NSUFFIXES 4
-  #define BUFFSIZE 100
-  static char suffixes[NSUFFIXES] = {'T', 'G', 'M', 'K'};
-  static char output[BUFFSIZE];
-  static const char one_byte[] = "1 byte";
-  llu lsize = (llu) fsize;
-  for (int i = 0; i <= NSUFFIXES; i++) {
-    int shift = (NSUFFIXES - i) * 10;
-    if ((fsize >> shift) == 0) continue;
-    int ndigits = 3;
-    for (; ndigits >= 1; ndigits--) {
-      if ((fsize >> (shift + 12 - ndigits * 3)) == 0) break;
-    }
-    if (ndigits == 0 || (fsize == (fsize >> shift << shift))) {
-      if (i < NSUFFIXES) {
-        snprintf(output, BUFFSIZE, "%llu%cB (%llu bytes)",
-                 lsize >> shift, suffixes[i], lsize);
-        return output;
-      }
-    } else {
-      snprintf(output, BUFFSIZE, "%.*f%cB (%llu bytes)",
-               ndigits, (double)fsize / (1 << shift), suffixes[i], lsize);
-      return output;
-    }
-  }
-  if (fsize == 1) return one_byte;
-  snprintf(output, BUFFSIZE, "%llu bytes", lsize);
-  return output;
 }
 
 
