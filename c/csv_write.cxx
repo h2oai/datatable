@@ -645,8 +645,10 @@ void CsvWriter::write()
   }
   double t4 = wallclock();
 
+  OmpExceptionManager oem;
+  #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
+
   // Start writing the CSV
-  bool stopTeam = false;
   #pragma omp parallel num_threads(nthreads)
   {
     #pragma omp single
@@ -656,46 +658,55 @@ void CsvWriter::write()
       VLOG("Using nthreads = %d\n", omp_get_num_threads());
       VLOG("Initial buffer size in each thread: %zu\n", bytes_per_chunk*2);
     }
-    size_t bufsize = bytes_per_chunk * 2;
-    char *thbuf = new char[bufsize];
-    char *tch = thbuf;
-    // int thnum = omp_get_thread_num();
+    // Initialize thread-local variables
+    size_t thbufsize = bytes_per_chunk * 2;
+    char  *thbuf = nullptr;
     size_t th_write_at = 0;
     size_t th_write_size = 0;
+    OMPCODE(
+      thbuf = new char[thbufsize];
+    )
 
+    // Main data-writing loop
     #pragma omp for ordered schedule(dynamic)
     for (int64_t i = 0; i < nchunks; i++) {
-      if (stopTeam) continue;
+      if (oem.exception_caught()) continue;
       int64_t row0 = static_cast<int64_t>(i * rows_per_chunk);
       int64_t row1 = static_cast<int64_t>((i + 1) * rows_per_chunk);
       if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
 
-      // write the thread-local buffer into the output
-      if (th_write_size) {
-        wb->write_at(th_write_at, th_write_size, thbuf);
-        tch = thbuf;
-        th_write_size = 0;
-      }
-
-      for (int64_t row = row0; row < row1; row++) {
-        for (int64_t col = 0; col < ncols; col++) {
-          columns[col].write(&tch, row);
-          *tch++ = ',';
+      OMPCODE(
+        // write the thread-local buffer into the output
+        if (th_write_size) {
+          wb->write_at(th_write_at, th_write_size, thbuf);
         }
-        tch[-1] = '\n';
-      }
+
+        char *thch = thbuf;
+        for (int64_t row = row0; row < row1; row++) {
+          for (int64_t col = 0; col < ncols; col++) {
+            columns[col].write(&thch, row);
+            *thch++ = ',';
+          }
+          thch[-1] = '\n';
+        }
+        th_write_size = static_cast<size_t>(thch - thbuf);
+      )
 
       #pragma omp ordered
       {
-        th_write_size = static_cast<size_t>(tch - thbuf);
-        th_write_at = wb->prep_write(th_write_size, thbuf);
+        OMPCODE(
+          th_write_at = wb->prep_write(th_write_size, thbuf);
+        )
       }
     }
-    if (th_write_size) {
-      wb->write_at(th_write_at, th_write_size, thbuf);
-    }
-    delete[] thbuf;
+    OMPCODE(
+      if (th_write_size && !oem.exception_caught()) {
+        wb->write_at(th_write_at, th_write_size, thbuf);
+      }
+      delete[] thbuf;
+    )
   }
+  oem.rethrow_exception_if_any();
   double t5 = wallclock();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular

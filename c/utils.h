@@ -4,6 +4,8 @@
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
 #include <stdexcept>
+#include <exception>
+#include <mutex>
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>   // errno
@@ -47,6 +49,33 @@ public:
   }
   char const* what() const throw() { return msg; }
 };
+
+
+/**
+ * Helper class for dealing with exceptions inside OMP code: it allows one to
+ * capture exceptions that occur, and then re-throw them later after the OMP
+ * region.
+ * ----
+ * Adapted from StackOverflow question <stackoverflow.com/questions/11828539>
+ * by user Grizzly <stackoverflow.com/users/201270/grizzly>.
+ * Licensed under CC BY-SA 3.0 <http://creativecommons.org/licenses/by-sa/3.0/>
+ */
+class OmpExceptionManager {
+  std::exception_ptr ptr;
+  std::mutex lock;
+public:
+  OmpExceptionManager(): ptr(nullptr) {}
+  ~OmpExceptionManager() {}
+  bool exception_caught() { return bool(ptr); }
+  void capture_exception() {
+    std::unique_lock<std::mutex> guard(this->lock);
+    if (!ptr) ptr = std::current_exception();
+  }
+  void rethrow_exception_if_any() {
+    if (ptr) std::rethrow_exception(ptr);
+  }
+};
+
 
 
 //==============================================================================
