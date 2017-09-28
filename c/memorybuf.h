@@ -152,4 +152,102 @@ public:
 };
 
 
+
+//==============================================================================
+
+class WritableBuffer
+{
+protected:
+  size_t bytes_written;
+
+public:
+  WritableBuffer(): bytes_written(0) {}
+  virtual ~WritableBuffer() {}
+
+  size_t size() const { return bytes_written; }
+
+  /**
+   * Prepare to write buffer `src` of size `n`. This method is expected to be
+   * called by no more than one thread at a time (for example from the OMP
+   * "ordered" section). The value returned by this method should be passed to
+   * the subsequent `write_at()` call.
+   *
+   * Implementations are encouraged to perform as little work as possible within
+   * this method, and instead defer most writing to the `write_at()` method.
+   * However in case when this is not possible, an implementation may actually
+   * write out the provided buffer `src`.
+   */
+  virtual size_t prep_write(size_t n, const void *src) = 0;
+
+  /**
+   * Write buffer `src` of size `n` at the position `pos` (this position should
+   * have previously been returned from `pre_write()`, which also ensured that
+   * there is enough space to perform the writing).
+   *
+   * This call is safe to invoke from multiple threads simultaneously. It is
+   * also allowed to call this method when another thread is performing
+   * `prep_write()`.
+   */
+  virtual void write_at(size_t pos, size_t n, const void *src) = 0;
+
+  /**
+   * This method should be called when you're done writing to the buffer. It is
+   * distinct from the destructor in that it is not expected to free any
+   * resources, but rather make the object read-only.
+   */
+  virtual void finalize() = 0;
+};
+
+
+
+//==============================================================================
+
+class FileWritableBuffer : WritableBuffer
+{
+  int fd;
+
+public:
+  FileWritableBuffer(const char *path);
+  virtual ~FileWritableBuffer();
+
+  virtual size_t prep_write(size_t n, const void *src);
+  virtual void write_at(size_t pos, size_t n, const void *src);
+  virtual void finalize();
+
+  // Prevent copying / assignment for these objects
+  FileWritableBuffer(const FileWritableBuffer&) = delete;
+  FileWritableBuffer& operator=(const FileWritableBuffer&) = delete;
+};
+
+
+
+//==============================================================================
+
+class MemoryWritableBuffer : WritableBuffer
+{
+  void*  buffer;
+  size_t allocsize;
+  int    nlocks;
+
+public:
+  MemoryWritableBuffer(size_t size);
+  virtual ~MemoryWritableBuffer();
+
+  virtual size_t prep_write(size_t n, const void *src);
+  virtual void write_at(size_t pos, size_t n, const void *src);
+  virtual void finalize();
+
+  /**
+   * Return memory buffer that was written. This method may only be called
+   * after `finalize()`. This class surrenders ownership of the buffer, and
+   * it will be the responsibility of the caller to handle it.
+   */
+  void* get();
+
+  // Prevent copying / assignment for these objects
+  MemoryWritableBuffer(const MemoryWritableBuffer&) = delete;
+  MemoryWritableBuffer& operator=(const MemoryWritableBuffer&) = delete;
+};
+
+
 #endif
