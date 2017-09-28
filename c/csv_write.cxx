@@ -18,6 +18,7 @@
 #include <errno.h>      // errno
 #include <fcntl.h>      // open
 #include <stdint.h>     // int32_t, etc
+#include <stdio.h>      // printf
 #include <string.h>     // strerror
 #include <sys/mman.h>   // mmap
 #include "column.h"
@@ -609,7 +610,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     }
   }
   bytes_total += ncols * nrows;  // Account for separators / newlines
-  double bytes_per_row = nrows? static_cast<double>(bytes_total / nrows) : 0;
+  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
   VLOG("Estimated file size to be no more than %lldB\n", bytes_total);
   double t1 = wallclock();
 
