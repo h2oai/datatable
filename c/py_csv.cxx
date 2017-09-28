@@ -34,7 +34,7 @@ PyObject* pywrite_csv(UU, PyObject *args)
     if (filename && !*filename) filename = NULL;  // Empty string => NULL
 
     // Create the CsvWriter object
-    CsvWriter cwriter(dt, filename);
+    CsvWriter cwriter(dt, std::string(filename));
     cwriter.set_logger(pywriter);
     cwriter.set_verbose(get_attr_bool(pywriter, "verbose"));
     cwriter.set_usehex(get_attr_bool(pywriter, "hex"));
@@ -57,10 +57,14 @@ PyObject* pywrite_csv(UU, PyObject *args)
     if (filename) {
       result = none();
     } else {
-      MemoryBuffer *mb = cwriter.get_output_buffer();
+      WritableBuffer *wb = cwriter.get_output_buffer();
+      MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);
+      if (!mb) {
+        throw Error("Unable to case WritableBuffer into MemoryWritableBuffer");
+      }
       // -1 because the buffer also stores trailing \0
       Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
-      char *str = reinterpret_cast<char*>(mb->get());
+      char *str = static_cast<char*>(mb->get());
       result = PyUnicode_FromStringAndSize(str, len);
     }
 

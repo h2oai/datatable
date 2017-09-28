@@ -215,7 +215,7 @@ public:
 
 //==============================================================================
 
-class FileWritableBuffer : WritableBuffer
+class FileWritableBuffer : public WritableBuffer
 {
 protected:
   int fd;
@@ -234,7 +234,7 @@ public:
 
 //==============================================================================
 
-class ThreadsafeWritableBuffer : WritableBuffer
+class ThreadsafeWritableBuffer : public WritableBuffer
 {
 protected:
   void*  buffer;
@@ -257,7 +257,7 @@ public:
 
 //==============================================================================
 
-class MemoryWritableBuffer : ThreadsafeWritableBuffer
+class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 {
 protected:
   virtual void realloc(size_t newsize);
@@ -278,7 +278,7 @@ public:
 
 //==============================================================================
 
-class MmapWritableBuffer : ThreadsafeWritableBuffer
+class MmapWritableBuffer : public ThreadsafeWritableBuffer
 {
 protected:
   std::string filename;

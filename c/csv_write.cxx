@@ -581,20 +581,21 @@ static void write_string(char **pch, const char *value)
 //
 //=================================================================================================
 
-CsvWriter::CsvWriter(DataTable *dt_, const char *path_)
+CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
   : dt(dt_),
     path(path_),
     logger(nullptr),
     nthreads(1),
     usehex(false),
     verbose(false),
-    mb(nullptr),
+    wb(nullptr),
     t_last(0)
 {}
 
+
 CsvWriter::~CsvWriter()
 {
-  delete mb;
+  delete wb;
 }
 
 
@@ -606,7 +607,7 @@ void CsvWriter::write()
 
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
-  size_t bytes_written = write_column_names();
+  write_column_names();
 
   // Calculate the best chunking strategy for this file
   double t3 = wallclock();
@@ -654,7 +655,6 @@ void CsvWriter::write()
            nchunks, rows_per_chunk);
       VLOG("Using nthreads = %d\n", omp_get_num_threads());
       VLOG("Initial buffer size in each thread: %zu\n", bytes_per_chunk*2);
-      VLOG("Bytes already written: %zu\n", bytes_written);
     }
     size_t bufsize = bytes_per_chunk * 2;
     char *thbuf = new char[bufsize];
@@ -672,8 +672,7 @@ void CsvWriter::write()
 
       // write the thread-local buffer into the output
       if (th_write_size) {
-        char *target = static_cast<char*>(mb->get()) + th_write_at;
-        memcpy(target, thbuf, th_write_size);
+        wb->write_at(th_write_at, th_write_size, thbuf);
         tch = thbuf;
         th_write_size = 0;
       }
@@ -688,15 +687,12 @@ void CsvWriter::write()
 
       #pragma omp ordered
       {
-        th_write_at = bytes_written;
         th_write_size = static_cast<size_t>(tch - thbuf);
-        bytes_written += th_write_size;
-        // TODO: Add check that the output buffer has enough space
+        th_write_at = wb->prep_write(th_write_size, thbuf);
       }
     }
     if (th_write_size) {
-      char *target = static_cast<char*>(mb->get()) + th_write_at;
-      memcpy(target, thbuf, th_write_size);
+      wb->write_at(th_write_at, th_write_size, thbuf);
     }
     delete[] thbuf;
   }
@@ -704,14 +700,12 @@ void CsvWriter::write()
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
   // C string; otherwise truncate MemoryBuffer to the final size.
-  if (path) {
-    VLOG("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
-    mb->resize(bytes_written);
-  } else {
-    char *target = static_cast<char*>(mb->get());
-    target[bytes_written] = '\0';
-    mb->resize(bytes_written + 1);
+  VLOG("Finalizing output at size %s\n", filesize_to_str(wb->size()));
+  if (path.empty()) {
+    char c = '\0';
+    wb->write(1, &c);
   }
+  wb->finalize();
   free(columns);
   double t6 = wallclock();
 
@@ -737,7 +731,7 @@ double CsvWriter::checkpoint() {
 
 
 /**
- * Estimate the size of the output CSV file.
+ * Estimate and return the expected size of the output.
  *
  * The size of string columns is estimated liberally, assuming it may
  * get inflated by no more than 20% (+2 chars for the quotes). If the data
@@ -775,11 +769,12 @@ size_t CsvWriter::estimate_output_size()
  */
 void CsvWriter::create_target(size_t size)
 {
-  if (path) {
-    VLOG("Creating destination file of size %s\n", filesize_to_str(size));
-    mb = new MmapMemoryBuffer(path, size, MB_CREATE|MB_EXTERNAL);
+  if (path.empty()) {
+    wb = new MemoryWritableBuffer(size);
   } else {
-    mb = new RamMemoryBuffer(size);
+    // TODO: on MacOS, create FileWritableBuffer instead
+    VLOG("Creating destination file of size %s\n", filesize_to_str(size));
+    wb = new MmapWritableBuffer(path, size);
   }
   t_create_target = checkpoint();
 }
@@ -788,30 +783,29 @@ void CsvWriter::create_target(size_t size)
 /**
  * Write the first row of column names into the output.
  */
-size_t CsvWriter::write_column_names()
+void CsvWriter::write_column_names()
 {
-  size_t bytes_written = 0;
   size_t ncolnames = column_names.size();
   if (ncolnames) {
-    char *ch, *ch0;
     size_t maxsize = 0;
     for (size_t i = 0; i < ncolnames; i++) {
       // A string may expand up to twice its original size (if all characters
       // need to be escaped) + add 2 surrounding quotes + add a comma.
       maxsize += column_names[i].size()*2 + 2 + 1;
     }
-    mb->ensuresize(maxsize + mb->size());
-    ch = ch0 = static_cast<char*>(mb->get());
+    char *ch0 = new char[maxsize];
+    char *ch = ch0;
     for (size_t i = 0; i < ncolnames; i++) {
       write_string(&ch, column_names[i].data());
       *ch++ = ',';
     }
-    // Replace the last ',' with a newline. This is valid since
-    // `ncolnames > 0`.
+    // Replace the last ',' with a newline. This is valid since `ncolnames > 0`.
     ch[-1] = '\n';
-    bytes_written += static_cast<size_t>(ch - ch0);
+
+    // Write this string buffer into the target.
+    wb->write(static_cast<size_t>(ch - ch0), ch0);
+    delete[] ch0;
   }
-  return bytes_written;
 }
 
 
