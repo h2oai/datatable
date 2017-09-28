@@ -1,4 +1,5 @@
 #include <exception>
+#include <stdexcept>
 #include <string.h>  // memcpy
 #include "py_utils.h"
 
@@ -171,12 +172,95 @@ char** _to_string_list(PyObject *x) {
 }
 
 
-
-bool get_attr_bool(PyObject *pyobj, const char *attr, bool dflt)
+/**
+ * Retrieve the value of `pyobj.attr` as a boolean. If that value is None, then
+ * `res` is returned (which is normally false). If the value is not boolean,
+ * an exception will be raised.
+ */
+bool get_attr_bool(PyObject *pyobj, const char *attr, bool res)
 {
   PyObject *x = PyObject_GetAttrString(pyobj, attr);
   if (!x) throw std::exception();
-  bool res = (x == Py_None)? dflt : (x == Py_True);
+  if (x == Py_True) res = true;
+  else if (x == Py_False) res = false;
+  else if (x != Py_None) {
+    Py_DECREF(x);
+    throw Error("Attribute %s is not boolean", attr);
+  }
   Py_DECREF(x);
+  return res;
+}
+
+
+/**
+ * Retrieve the value of `pyobj.attr` as an int64. If the value is None in
+ * Python, then the default `res` is returned. This function will throw an
+ * exception if the object does not have the specified attribute, or if the
+ * retrieved value is not integer.
+ */
+int64_t get_attr_int64(PyObject *pyobj, const char *attr, int64_t res)
+{
+  PyObject *x = PyObject_GetAttrString(pyobj, attr);
+  if (!x) throw std::exception();
+  if (PyLong_Check(x)) {
+    res = static_cast<int64_t>(PyLong_AsLongLong(x));
+  } else if (x != Py_None) {
+    Py_DECREF(x);
+    throw Error("Attribute %s is not integer", attr);
+  }
+  Py_DECREF(x);
+  return res;
+}
+
+
+/**
+ * Retrieve the value of `pyobj.attr` as a list of strings. On Python side the
+ * value can be either None (in which case nullptr is returned), or a List /
+ * Tuple of strings / bytes objects. Anything else will cause an exception to
+ * be raised.
+ *
+ * The function returns an array of `char*` pointers. The last element of this
+ * array will be `nullptr`. The array itself, as well as each individual
+ * sub-array will be allocated using `new[]`. It is responsibility of the caller
+ * to free those pointers in the end.
+ */
+char** get_attr_stringlist(PyObject *pyobj, const char *attr)
+{
+  PyObject *x = PyObject_GetAttrString(pyobj, attr);
+  if (!x) throw std::exception();
+
+  char **res = NULL;
+  if (x == Py_None) {}
+  else if (PyList_Check(x) || PyTuple_Check(x)) {
+    int islist = PyList_Check(x);
+    Py_ssize_t count = islist? PyList_Size(x) : PyTuple_Size(x);
+    res = new char*[count + 1];
+    for (Py_ssize_t i = 0; i <= count; i++) res[i] = nullptr;
+    for (Py_ssize_t i = 0; i < count; i++) {
+      PyObject *item = islist? PyList_GetItem(x, i) : PyTuple_GetItem(x, i);
+      if (PyUnicode_Check(item)) {
+        PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
+        if (!y) throw std::exception();
+        size_t len = static_cast<size_t>(PyBytes_Size(y));
+        res[i] = new char[len + 1];
+        memcpy(res[i], PyBytes_AsString(y), len + 1);
+        Py_DECREF(y);
+      } else if (PyBytes_Check(item)) {
+        size_t len = static_cast<size_t>(PyBytes_Size(item));
+        res[i] = new char[len + 1];
+        memcpy(res[i], PyBytes_AsString(item), len + 1);
+      } else {
+        PyErr_Format(PyExc_TypeError,
+          "Argument %d in the list is not a string: %R (%R)",
+          i, item, PyObject_Type(item));
+        throw std::exception();
+      }
+    }
+  } else {
+    PyErr_Format(PyExc_TypeError, "A list of strings is expected, got %R", x);
+    throw std::exception();
+  }
+
+  Py_XDECREF(x);
   return res;
 }

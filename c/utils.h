@@ -3,6 +3,7 @@
 //==============================================================================
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
+#include <stdexcept>
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>   // errno
@@ -23,6 +24,21 @@ double wallclock(void);
     y;                                                                         \
 })
 
+
+/**
+ * Helper class to throw exceptions with nicely formatted messages.
+ */
+class Error: std::exception {
+  char msg[1000];
+public:
+  Error(char const* format, ...) __attribute__((format(printf, 2, 3))) {
+    va_list vargs;
+    va_start(vargs, format);
+    vsnprintf(msg, 1000, format, vargs);
+    va_end(vargs);
+  }
+  char const* what() const throw() { return msg; }
+};
 
 
 //==============================================================================

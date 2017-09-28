@@ -12,58 +12,57 @@
 
 PyObject* pywrite_csv(UU, PyObject *args)
 {
+  // Note: every call to PyObject_GetAttrString returns a new reference to the
+  // underlying PyObject*. Thus, we must be careful to DECREF those references
+  // at the end.
+  //
   DataTable *dt = NULL;
-  PyObject *tmp1 = NULL, *pydt = NULL;
-  PyObject *csvwriter = NULL;
+  PyObject *tmp1 = NULL;
+  PyObject *pydt = NULL;
+  PyObject *pywriter = NULL;
+  PyObject *result = NULL;
   char *filename = NULL;
   char **colnames = NULL;
-  if (!PyArg_ParseTuple(args, "O:write_csv", &csvwriter))
+  if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter))
     return NULL;
+  Py_INCREF(pywriter);
 
   try {
-    CsvWriteParameters *params = NULL;
-    dtmalloc(params, CsvWriteParameters, 1);
+    pydt = PyObject_GetAttrString(pywriter, "datatable");
+    dt = datatable_unwrapx(pydt);
 
-    bool verbose = get_attr_bool(csvwriter, "verbose");
-    bool usehex = get_attr_bool(csvwriter, "hex");
-    int nthreads = (int) TOINT64(ATTR(csvwriter, "nthreads"), 0);
-    {
-      int maxth = omp_get_max_threads();
-      if (nthreads > maxth) nthreads = maxth;
-      if (nthreads <= 0) nthreads += maxth;
-      if (nthreads <= 0) nthreads = 1;
-    }
-
-    pydt = PyObject_GetAttrString(csvwriter, "datatable");
-    if (!dt_unwrap(pydt, &dt)) return NULL;
-
-    filename = TOSTRING(ATTR(csvwriter, "path"), &tmp1);
+    filename = TOSTRING(ATTR(pywriter, "path"), &tmp1);
     if (filename && !*filename) filename = NULL;  // Empty string => NULL
-    colnames = TOSTRINGLIST(ATTR(csvwriter, "column_names"));
 
-    params->dt = dt;
-    params->path = filename;
-    params->nthreads = nthreads;
-    params->column_names = colnames;
-    params->usehex = usehex;
-    params->verbose = verbose;
-    params->logger = csvwriter;
+    // Create the CsvWriter object
+    CsvWriter cwriter(dt, filename);
+    cwriter.set_logger(pywriter);
+    cwriter.set_verbose(get_attr_bool(pywriter, "verbose"));
+    cwriter.set_usehex(get_attr_bool(pywriter, "hex"));
+
+    colnames = get_attr_stringlist(pywriter, "column_names");
+    cwriter.set_column_names(colnames);
+
+    int nthreads = static_cast<int>(get_attr_int64(pywriter, "nthreads"));
+    int maxth = omp_get_max_threads();
+    if (nthreads > maxth) nthreads = maxth;
+    if (nthreads <= 0) nthreads += maxth;
+    if (nthreads <= 0) nthreads = 1;
+    cwriter.set_nthreads(nthreads);
 
     // Write CSV
-    MemoryBuffer *mb = csv_write(params);
+    MemoryBuffer *mb = cwriter.write();
 
     // Post-process the result
-    PyObject *res = NULL;
     if (filename) {
-      res = none();
+      result = none();
     } else {
       // -1 because the buffer also stores trailing \0
       Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
       char *str = reinterpret_cast<char*>(mb->get());
-      res = PyUnicode_FromStringAndSize(str, len);
+      result = PyUnicode_FromStringAndSize(str, len);
     }
     delete mb;
-    return res;
 
   } catch (const std::exception& e) {
     // If the error message was already set, then we don't want to overwrite it.
@@ -71,6 +70,16 @@ PyObject* pywrite_csv(UU, PyObject *args)
     if (!PyErr_Occurred())
       PyErr_Format(PyExc_RuntimeError, e.what());
   }
+  Py_XDECREF(pydt);
+  Py_XDECREF(pywriter);
+  if (colnames) {
+    char **colnames_ptr = colnames;
+    while (*colnames_ptr) {
+      delete[] *colnames_ptr++;
+    }
+    delete[] colnames;
+  }
+  return result;
 
   fail:
   return NULL;

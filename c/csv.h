@@ -21,30 +21,30 @@
 #include "memorybuf.h"
 
 
-typedef struct CsvWriteParameters {
-
-  // Output path where the DataTable should be written.
-  const char *path;
-
+class CsvWriter {
   DataTable *dt;
-
+  const char *path;
   char **column_names;
-
-  // PyObject that knows how to handle log messages
-  void* logger;
-
+  void *logger;
   int nthreads;
-
   bool usehex;
-
   bool verbose;
 
-  char _padding[2];
+public:
+  CsvWriter(DataTable *dt_, const char *path_)
+    : dt(dt_), path(path_), column_names(nullptr), logger(nullptr),
+      nthreads(1), usehex(false), verbose(false) {}
 
-} CsvWriteParameters;
+  void set_column_names(char **names) { column_names = names; }
+  void set_logger(void *v) { logger = v; }
+  void set_nthreads(int n) { nthreads = n; }
+  void set_usehex(bool v) { usehex = v; }
+  void set_verbose(bool v) { verbose = v; }
+
+  MemoryBuffer* write();
+};
 
 
-MemoryBuffer* csv_write(CsvWriteParameters *args);
 void init_csvwrite_constants();
 
 __attribute__((format(printf, 2, 3)))

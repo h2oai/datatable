@@ -111,7 +111,7 @@ public:
   }
 };
 
-#define VLOG(...)  do { if (args->verbose) log_message(args->logger, __VA_ARGS__); } while (0)
+#define VLOG(...)  do { if (verbose) log_message(logger, __VA_ARGS__); } while (0)
 
 
 //=================================================================================================
@@ -580,12 +580,8 @@ static void write_string(char **pch, const char *value)
 // Main CSV-writing function
 //
 //=================================================================================================
-MemoryBuffer* csv_write(CsvWriteParameters *args)
+MemoryBuffer* CsvWriter::write()
 {
-  // Fetch arguments
-  DataTable *dt = args->dt;
-  int nthreads = args->nthreads;
-
   // First, estimate the size of the output CSV file
   // The size of string columns is estimated liberally, assuming it may
   // get inflated by no more than 20% (+2 chars for the quotes). If the data
@@ -617,9 +613,9 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   // Create the target memory region
   MemoryBuffer *mb = NULL;
   size_t allocsize = static_cast<size_t>(bytes_total);
-  if (args->path) {
+  if (path) {
     VLOG("Creating destination file of size %.3fGB\n", 1e-9*allocsize);
-    mb = new MmapMemoryBuffer(args->path, allocsize, MB_CREATE|MB_EXTERNAL);
+    mb = new MmapMemoryBuffer(path, allocsize, MB_CREATE|MB_EXTERNAL);
   } else {
     mb = new RamMemoryBuffer(allocsize);
   }
@@ -627,7 +623,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
   double t2 = wallclock();
 
   // Write the column names
-  char **colnames = args->column_names;
+  char **colnames = column_names;
   if (colnames) {
     char *ch, *ch0, *colname;
     size_t maxsize = 0;
@@ -638,7 +634,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
     }
     mb->ensuresize(maxsize + allocsize);
     ch = ch0 = static_cast<char*>(mb->get());
-    colnames = args->column_names;
+    colnames = column_names;
     while ((colname = *colnames++)) {
       write_string(&ch, colname);
       *ch++ = ',';
@@ -676,8 +672,8 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
 
   // Prepare columns for writing
   CsvColumn *columns = reinterpret_cast<CsvColumn*>(malloc((size_t)ncols * sizeof(CsvColumn)));
-  writers_per_stype[ST_REAL_F4] = args->usehex? write_f4_hex : write_f4_dec;
-  writers_per_stype[ST_REAL_F8] = args->usehex? write_f8_hex : write_f8_dec;
+  writers_per_stype[ST_REAL_F4] = usehex? write_f4_hex : write_f4_dec;
+  writers_per_stype[ST_REAL_F8] = usehex? write_f8_hex : write_f8_dec;
   for (int64_t i = 0; i < ncols; i++) {
     new (columns + i) CsvColumn(dt->columns[i]);
   }
@@ -741,7 +737,7 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
   // C string; otherwise truncate MemoryBuffer to the final size.
-  if (args->path) {
+  if (path) {
     VLOG("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
     mb->resize(bytes_written);
   } else {
