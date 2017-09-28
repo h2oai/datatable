@@ -17,11 +17,9 @@ PyObject* pywrite_csv(UU, PyObject *args)
   // at the end.
   //
   DataTable *dt = NULL;
-  PyObject *tmp1 = NULL;
   PyObject *pydt = NULL;
   PyObject *pywriter = NULL;
   PyObject *result = NULL;
-  char *filename = NULL;
   if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter))
     return NULL;
   Py_INCREF(pywriter);
@@ -29,12 +27,10 @@ PyObject* pywrite_csv(UU, PyObject *args)
   try {
     pydt = PyObject_GetAttrString(pywriter, "datatable");
     dt = datatable_unwrapx(pydt);
-
-    filename = TOSTRING(ATTR(pywriter, "path"), &tmp1);
-    if (filename && !*filename) filename = NULL;  // Empty string => NULL
+    std::string filename = get_attr_string(pywriter, "path");
 
     // Create the CsvWriter object
-    CsvWriter cwriter(dt, std::string(filename));
+    CsvWriter cwriter(dt, filename);
     cwriter.set_logger(pywriter);
     cwriter.set_verbose(get_attr_bool(pywriter, "verbose"));
     cwriter.set_usehex(get_attr_bool(pywriter, "hex"));
@@ -54,9 +50,7 @@ PyObject* pywrite_csv(UU, PyObject *args)
     cwriter.write();
 
     // Post-process the result
-    if (filename) {
-      result = none();
-    } else {
+    if (filename.empty()) {
       WritableBuffer *wb = cwriter.get_output_buffer();
       MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);
       if (!mb) {
@@ -66,6 +60,8 @@ PyObject* pywrite_csv(UU, PyObject *args)
       Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
       char *str = static_cast<char*>(mb->get());
       result = PyUnicode_FromStringAndSize(str, len);
+    } else {
+      result = none();
     }
 
   } catch (const std::exception& e) {
@@ -77,9 +73,6 @@ PyObject* pywrite_csv(UU, PyObject *args)
   Py_XDECREF(pydt);
   Py_XDECREF(pywriter);
   return result;
-
-  fail:
-  return NULL;
 }
 
 

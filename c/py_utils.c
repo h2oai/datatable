@@ -216,6 +216,47 @@ int64_t get_attr_int64(PyObject *pyobj, const char *attr, int64_t res)
 
 
 /**
+ * Retrieve the value of `pyobj.attr` as a string. If the value is None in
+ * Python, then an empty string is returned. Otherwise, the function converts
+ * Python string/bytes object into the C++ std::string and returns it.
+ *
+ * The string is returned by-value, which is supposed to be optimized by the
+ * compiler (http://en.cppreference.com/w/cpp/language/copy_elision):
+ *
+ *     If a function returns a class type by value, and the return statement's
+ *     expression is the name of a non-volatile object with automatic storage
+ *     duration, which isn't the function parameter, or a catch clause
+ *     parameter, and which has the same type (ignoring top-level
+ *     cv-qualification) as the return type of the function, then copy/move
+ *     (since C++11) is omitted. When that local object is constructed, it is
+ *     constructed directly in the storage where the function's return value
+ *     would otherwise be moved or copied to. This variant of copy elision is
+ *     known as NRVO, "named return value optimization".
+ */
+std::string get_attr_string(PyObject *pyobj, const char *attr)
+{
+  PyObject *x = PyObject_GetAttrString(pyobj, attr);
+  PyObject *z = NULL;
+  if (!x) {
+    throw std::exception();
+  } else if (PyUnicode_Check(x)) {
+    z = PyUnicode_AsEncodedString(x, "utf-8", "strict");
+  } else if (PyBytes_Check(x)) {
+    z = x;
+    Py_INCREF(x);
+  } else if (x == Py_None) {
+  } else {
+    throw Error("Attribute %s is not a string", attr);
+  }
+  // This will copy the contents of z
+  std::string res(z? PyBytes_AsString(z) : "");
+  Py_XDECREF(x);
+  Py_XDECREF(z);
+  return res;
+}
+
+
+/**
  * Retrieve the value of `pyobj.attr` as a vector of strings. On Python side the
  * value can be either None (in which case nullptr is returned), or a List /
  * Tuple of strings / bytes objects. Anything else will cause an exception to
