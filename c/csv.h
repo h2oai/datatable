@@ -23,6 +23,7 @@
 #include "memorybuf.h"
 #include "utils.h"
 
+class CsvColumn;
 
 class CsvWriter {
   // Input parameters
@@ -40,10 +41,14 @@ class CsvWriter {
   double rows_per_chunk;
   size_t bytes_per_chunk;
   int64_t nchunks;
+  std::vector<CsvColumn*> columns;
+  std::vector<CsvColumn*> strcolumns;
   double t_last;
   double t_size_estimation;
   double t_create_target;
-
+  double t_prepare_for_writing;
+  double t_write_data;
+  double t_finalize;
 
 public:
   CsvWriter(DataTable *dt_, const std::string& path_);
@@ -66,7 +71,7 @@ private:
   void create_target(size_t size);
   void write_column_names();
   void determine_chunking_strategy(size_t size, int64_t nrows);
-
+  void create_column_writers(size_t ncols);
 };
 
 

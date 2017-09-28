@@ -593,26 +593,20 @@ CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
 CsvWriter::~CsvWriter()
 {
   delete wb;
+  for (size_t i = 0; i < columns.size(); i++)
+    delete columns[i];
 }
 
 
 void CsvWriter::write()
 {
   int64_t nrows = dt->nrows;
-  int64_t ncols = dt->ncols;
+  size_t ncols = static_cast<size_t>(dt->ncols);
   size_t bytes_total = estimate_output_size();
   create_target(bytes_total);
   write_column_names();
   determine_chunking_strategy(bytes_total, nrows);
-
-  // Prepare columns for writing
-  CsvColumn *columns = reinterpret_cast<CsvColumn*>(malloc((size_t)ncols * sizeof(CsvColumn)));
-  writers_per_stype[ST_REAL_F4] = usehex? write_f4_hex : write_f4_dec;
-  writers_per_stype[ST_REAL_F8] = usehex? write_f8_hex : write_f8_dec;
-  for (int64_t i = 0; i < ncols; i++) {
-    new (columns + i) CsvColumn(dt->columns[i]);
-  }
-  double t4 = checkpoint();
+  create_column_writers(ncols);
 
   OmpExceptionManager oem;
   #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
@@ -652,8 +646,8 @@ void CsvWriter::write()
 
         char *thch = thbuf;
         for (int64_t row = row0; row < row1; row++) {
-          for (int64_t col = 0; col < ncols; col++) {
-            columns[col].write(&thch, row);
+          for (size_t col = 0; col < ncols; col++) {
+            columns[col]->write(&thch, row);
             *thch++ = ',';
           }
           thch[-1] = '\n';
@@ -676,7 +670,7 @@ void CsvWriter::write()
     )
   }
   oem.rethrow_exception_if_any();
-  double t5 = checkpoint();
+  t_write_data = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
   // C string; otherwise truncate MemoryBuffer to the final size.
@@ -686,17 +680,17 @@ void CsvWriter::write()
     wb->write(1, &c);
   }
   wb->finalize();
-  free(columns);
-  double t6 = checkpoint();
+  t_finalize = checkpoint();
 
-  double ttotal = t4+t5+t6+t_size_estimation+t_create_target;
+  double t_total = t_prepare_for_writing + t_size_estimation + t_create_target
+                   + t_write_data + t_finalize;
   VLOG("Timing report:\n");
   VLOG("   %6.3fs  Calculate expected file size\n", t_size_estimation);
   VLOG(" + %6.3fs  Allocate file\n",                t_create_target);
-  VLOG(" + %6.3fs  Prepare for writing\n",          t4);
-  VLOG(" + %6.3fs  Write the data\n",               t5);
-  VLOG(" + %6.3fs  Finalize the file\n",            t6);
-  VLOG(" = %6.3fs  Overall time taken\n",           ttotal);
+  VLOG(" + %6.3fs  Prepare for writing\n",          t_prepare_for_writing);
+  VLOG(" + %6.3fs  Write the data\n",               t_write_data);
+  VLOG(" + %6.3fs  Finalize the file\n",            t_finalize);
+  VLOG(" = %6.3fs  Overall time taken\n",           t_total);
 }
 
 
@@ -830,6 +824,26 @@ void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
   throw Error("Unable to determine how to write the file: bytes_total=%zu, "
               "nrows=%zd, nthreads=%d, min.chunk=%zu, max.chunk=%zu",
               bytes_total, nrows, nthreads, min_chunk_size, max_chunk_size);
+}
+
+
+/**
+ */
+void CsvWriter::create_column_writers(size_t ncols)
+{
+  columns.reserve(ncols);
+  writers_per_stype[ST_REAL_F4] = usehex? write_f4_hex : write_f4_dec;
+  writers_per_stype[ST_REAL_F8] = usehex? write_f8_hex : write_f8_dec;
+  for (int64_t i = 0; i < dt->ncols; i++) {
+    Column *dtcol = dt->columns[i];
+    SType stype = dtcol->stype;
+    CsvColumn *csvcol = new CsvColumn(dtcol);
+    columns.push_back(csvcol);
+    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+      strcolumns.push_back(csvcol);
+    }
+  }
+  t_prepare_for_writing = checkpoint();
 }
 
 
