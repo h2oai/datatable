@@ -27,7 +27,14 @@ def test_save_simple():
 
 def test_write_spacestrs():
     # Test that fields having spaces at the beginning/end are auto-quoted
-    d = dt.DataTable([" hello ", "world  ", " !", "!"])
-    assert d.to_csv() == 'C1\n" hello "\n"world  "\n" !"\n!\n'
+    d = dt.DataTable([" hello ", "world  ", " !", "!", ""])
+    assert d.to_csv() == 'C1\n" hello "\n"world  "\n" !"\n!\n""\n'
     dd = dt.fread(text=d.to_csv(), sep='\n')
+    assert d.topython() == dd.topython()
+
+
+def test_write_spacenames():
+    d = dt.DataTable({"  foo": [1, 2, 3], "bar ": [1, 2, 3], "": [0, 0, 0]})
+    assert d.to_csv() == '"  foo","bar ",""\n1,1,0\n2,2,0\n3,3,0\n'
+    dd = dt.fread(text=d.to_csv())
     assert d.topython() == dd.topython()

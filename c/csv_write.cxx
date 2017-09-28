@@ -542,11 +542,14 @@ static void write_string(char **pch, const char *value)
 {
   char *ch = *pch;
   const char *sch = value;
+  // If the field begins with a space, it has to be quoted.
   if (*value == ' ') goto quote;
   for (;;) {
     char c = *sch++;
     if (!c) {
-      if (sch[-1] == ' ') break;
+      // If the field is empty, or ends with whitespace, then it has to be
+      // quoted as well.
+      if (sch == value + 1 || sch[-2] == ' ') break;
       *pch = ch;
       return;
     }
