@@ -5,7 +5,7 @@
 #include <string.h>    // strlen
 #include <sys/mman.h>  // mmap
 #include <sys/stat.h>  // fstat
-#include <unistd.h>    // access, close, write
+#include <unistd.h>    // access, close, write, lseek
 #include "memorybuf.h"
 #include "myomp.h"
 #include "utils.h"
@@ -161,7 +161,7 @@ FileWritableBuffer::~FileWritableBuffer()
 size_t FileWritableBuffer::prep_write(size_t size, const void *src)
 {
   // See https://linux.die.net/man/2/write
-  ssize_t r = write(fd, static_cast<const void*>(src), size);
+  ssize_t r = ::write(fd, static_cast<const void*>(src), size);
 
   if (r == -1) {
     throw Error("Error %d writing to file: %s (bytes already written: %zu)",
@@ -180,7 +180,8 @@ size_t FileWritableBuffer::prep_write(size_t size, const void *src)
 }
 
 
-void FileWritableBuffer::write_at(size_t pos, size_t size, const void *src)
+void FileWritableBuffer::write_at(
+    UNUSED(size_t pos), UNUSED(size_t size), UNUSED(const void *src))
 {
   // Do nothing. FileWritableBuffer does all the writing at the "prep_write"
   // stage, because it is unable to write from multiple threads at the same
@@ -203,27 +204,19 @@ void FileWritableBuffer::finalize()
 
 
 //==============================================================================
-// MemoryWritableBuffer
+// ThreadsafeWritableBuffer
 //==============================================================================
 
-MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
-{
-  nlocks = 0;
-  allocsize = size;
-  buffer = malloc(size);
-  if (!buffer) {
-    throw Error("Unable to allocate memory buffer of size %zu", size);
-  }
-}
+ThreadsafeWritableBuffer::ThreadsafeWritableBuffer(size_t size)
+  : buffer(nullptr), allocsize(size), nlocks(0)
+{}
 
 
-MemoryWritableBuffer::~MemoryWritableBuffer()
-{
-  free(buffer);
-}
+ThreadsafeWritableBuffer::~ThreadsafeWritableBuffer()
+{}
 
 
-size_t MemoryWritableBuffer::prep_write(size_t n, const void *src)
+size_t ThreadsafeWritableBuffer::prep_write(size_t n, UNUSED(const void *src))
 {
   size_t pos = bytes_written;
   bytes_written += n;
@@ -248,10 +241,7 @@ size_t MemoryWritableBuffer::prep_write(size_t n, const void *src)
     //     Otherwise (and it is the most common case) we reallocate the buffer
     //     and only then restore the `numuses` variable.
     if (old == 0) {
-      buffer = realloc(buffer, newsize);
-      if (!buffer) throw Error("Unable to allocate memory buffer of size %zu",
-                               newsize);
-      allocsize = newsize;
+      this->realloc(newsize);
     }
     #pragma omp atomic update
     nlocks += 1000000;
@@ -261,7 +251,7 @@ size_t MemoryWritableBuffer::prep_write(size_t n, const void *src)
 }
 
 
-void MemoryWritableBuffer::write_at(size_t pos, size_t n, const void *src)
+void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void *src)
 {
   int done = 0;
   while (!done) {
@@ -279,7 +269,7 @@ void MemoryWritableBuffer::write_at(size_t pos, size_t n, const void *src)
 }
 
 
-void MemoryWritableBuffer::finalize()
+void ThreadsafeWritableBuffer::finalize()
 {
   while (nlocks > 0) {}
   while (allocsize > bytes_written) {
@@ -288,12 +278,41 @@ void MemoryWritableBuffer::finalize()
     #pragma omp atomic capture
     { old = nlocks; nlocks -= 1000000; }
     if (old == 0) {
-      buffer = realloc(buffer, bytes_written);
-      allocsize = bytes_written;
+      this->realloc(bytes_written);
     }
     #pragma omp atomic update
     nlocks += 1000000;
   }
+}
+
+
+
+//==============================================================================
+// MemoryWritableBuffer
+//==============================================================================
+
+MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
+  : ThreadsafeWritableBuffer(size)
+{
+  buffer = malloc(size);
+  if (!buffer) {
+    throw Error("Unable to allocate memory buffer of size %zu", size);
+  }
+}
+
+
+MemoryWritableBuffer::~MemoryWritableBuffer()
+{
+  free(buffer);
+}
+
+
+void MemoryWritableBuffer::realloc(size_t newsize)
+{
+  buffer = ::realloc(buffer, newsize);
+  if (!buffer) throw Error("Unable to allocate memory buffer of size %zu",
+                           newsize);
+  allocsize = newsize;
 }
 
 
@@ -303,4 +322,50 @@ void* MemoryWritableBuffer::get()
   buffer = nullptr;
   allocsize = 0;
   return buf;
+}
+
+
+
+//==============================================================================
+// MmapWritableBuffer
+//==============================================================================
+
+MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
+  : ThreadsafeWritableBuffer(size), filename(path)
+{
+  const char *c_name = filename.c_str();
+  int fd = open(c_name, O_RDWR|O_CREAT, 0666);
+  if (fd == -1) throw Error("Cannot open file %s: Error %d %s",
+                            c_name, errno, strerror(errno));
+
+  lseek(fd, static_cast<off_t>(size), SEEK_SET);
+  ::write(fd, static_cast<void*>(&fd), 1);  // write 1 byte, doesn't matter what
+
+  buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  close(fd);
+  if (buffer == MAP_FAILED) {
+    throw Error("Memory map failed, error %d: %s", errno, strerror(errno));
+  }
+}
+
+
+MmapWritableBuffer::~MmapWritableBuffer()
+{
+  munmap(buffer, allocsize);
+}
+
+
+void MmapWritableBuffer::realloc(size_t newsize)
+{
+  munmap(buffer, allocsize);
+
+  const char *c_fname = filename.c_str();
+  truncate(c_fname, static_cast<off_t>(newsize));
+
+  int fd = open(c_fname, O_RDWR);
+  buffer = mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  close(fd);
+  if (!buffer) throw Error("Unable to resize the file to %s",
+                           filesize_to_str(newsize));
+  allocsize = newsize;
 }

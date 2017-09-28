@@ -1,5 +1,6 @@
 #ifndef dt_MEMORYBUF_H
 #define dt_MEMORYBUF_H
+#include <string>
 #include <stdbool.h>
 
 #define MB_EXTERNAL  1
@@ -196,6 +197,18 @@ public:
    * resources, but rather make the object read-only.
    */
   virtual void finalize() = 0;
+
+  /**
+   * Simple helper method for writing into the buffer in single-threaded
+   * context.
+   */
+  void write(size_t n, const void *src) {
+    write_at(prep_write(n, src), n, src);
+  }
+
+  // Prevent copying / assignment for these objects
+  WritableBuffer(const WritableBuffer&) = delete;
+  WritableBuffer& operator=(const WritableBuffer&) = delete;
 };
 
 
@@ -204,7 +217,9 @@ public:
 
 class FileWritableBuffer : WritableBuffer
 {
+protected:
   int fd;
+  int _unused;
 
 public:
   FileWritableBuffer(const char *path);
@@ -213,29 +228,43 @@ public:
   virtual size_t prep_write(size_t n, const void *src);
   virtual void write_at(size_t pos, size_t n, const void *src);
   virtual void finalize();
-
-  // Prevent copying / assignment for these objects
-  FileWritableBuffer(const FileWritableBuffer&) = delete;
-  FileWritableBuffer& operator=(const FileWritableBuffer&) = delete;
 };
 
 
 
 //==============================================================================
 
-class MemoryWritableBuffer : WritableBuffer
+class ThreadsafeWritableBuffer : WritableBuffer
 {
+protected:
   void*  buffer;
   size_t allocsize;
   int    nlocks;
+  int    _unused;
+
+  virtual void realloc(size_t newsize) = 0;
 
 public:
-  MemoryWritableBuffer(size_t size);
-  virtual ~MemoryWritableBuffer();
+  ThreadsafeWritableBuffer(size_t size);
+  virtual ~ThreadsafeWritableBuffer();
 
   virtual size_t prep_write(size_t n, const void *src);
   virtual void write_at(size_t pos, size_t n, const void *src);
   virtual void finalize();
+};
+
+
+
+//==============================================================================
+
+class MemoryWritableBuffer : ThreadsafeWritableBuffer
+{
+protected:
+  virtual void realloc(size_t newsize);
+
+public:
+  MemoryWritableBuffer(size_t size);
+  virtual ~MemoryWritableBuffer();
 
   /**
    * Return memory buffer that was written. This method may only be called
@@ -243,10 +272,22 @@ public:
    * it will be the responsibility of the caller to handle it.
    */
   void* get();
+};
 
-  // Prevent copying / assignment for these objects
-  MemoryWritableBuffer(const MemoryWritableBuffer&) = delete;
-  MemoryWritableBuffer& operator=(const MemoryWritableBuffer&) = delete;
+
+
+//==============================================================================
+
+class MmapWritableBuffer : ThreadsafeWritableBuffer
+{
+protected:
+  std::string filename;
+
+  virtual void realloc(size_t newsize);
+
+public:
+  MmapWritableBuffer(const std::string& path, size_t size);
+  virtual ~MmapWritableBuffer();
 };
 
 
