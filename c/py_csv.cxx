@@ -22,7 +22,6 @@ PyObject* pywrite_csv(UU, PyObject *args)
   PyObject *pywriter = NULL;
   PyObject *result = NULL;
   char *filename = NULL;
-  char **colnames = NULL;
   if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter))
     return NULL;
   Py_INCREF(pywriter);
@@ -40,8 +39,9 @@ PyObject* pywrite_csv(UU, PyObject *args)
     cwriter.set_verbose(get_attr_bool(pywriter, "verbose"));
     cwriter.set_usehex(get_attr_bool(pywriter, "hex"));
 
-    colnames = get_attr_stringlist(pywriter, "column_names");
-    cwriter.set_column_names(colnames);
+    std::vector<std::string> colnames;
+    get_attr_stringlist(pywriter, "column_names", colnames);
+    cwriter.set_column_names(colnames);  // move-assignment
 
     int nthreads = static_cast<int>(get_attr_int64(pywriter, "nthreads"));
     int maxth = omp_get_max_threads();
@@ -72,13 +72,6 @@ PyObject* pywrite_csv(UU, PyObject *args)
   }
   Py_XDECREF(pydt);
   Py_XDECREF(pywriter);
-  if (colnames) {
-    char **colnames_ptr = colnames;
-    while (*colnames_ptr) {
-      delete[] *colnames_ptr++;
-    }
-    delete[] colnames;
-  }
   return result;
 
   fail:

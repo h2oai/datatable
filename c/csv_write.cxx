@@ -623,20 +623,19 @@ MemoryBuffer* CsvWriter::write()
   double t2 = wallclock();
 
   // Write the column names
-  char **colnames = column_names;
-  if (colnames) {
-    char *ch, *ch0, *colname;
+  size_t ncolnames = column_names.size();
+  if (ncolnames) {
+    char *ch, *ch0;
     size_t maxsize = 0;
-    while ((colname = *colnames++)) {
+    for (size_t i = 0; i < ncolnames; i++) {
       // A string may expand up to twice in size (if all its characters need
       // to be escaped) + add 2 surrounding quotes + add a comma in the end.
-      maxsize += strlen(colname)*2 + 2 + 1;
+      maxsize += column_names[i].size()*2 + 2 + 1;
     }
     mb->ensuresize(maxsize + allocsize);
     ch = ch0 = static_cast<char*>(mb->get());
-    colnames = column_names;
-    while ((colname = *colnames++)) {
-      write_string(&ch, colname);
+    for (size_t i = 0; i < ncolnames; i++) {
+      write_string(&ch, column_names[i].data());
       *ch++ = ',';
     }
     // Replace the last ',' with a newline

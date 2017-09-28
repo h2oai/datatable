@@ -15,6 +15,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_H
 #define dt_CSV_H
+#include <string>
+#include <vector>
 #include <stdbool.h>
 #include <stdint.h>
 #include "datatable.h"
@@ -24,7 +26,7 @@
 class CsvWriter {
   DataTable *dt;
   const char *path;
-  char **column_names;
+  std::vector<std::string> column_names;
   void *logger;
   int nthreads;
   bool usehex;
@@ -32,14 +34,16 @@ class CsvWriter {
 
 public:
   CsvWriter(DataTable *dt_, const char *path_)
-    : dt(dt_), path(path_), column_names(nullptr), logger(nullptr),
+    : dt(dt_), path(path_), logger(nullptr),
       nthreads(1), usehex(false), verbose(false) {}
 
-  void set_column_names(char **names) { column_names = names; }
   void set_logger(void *v) { logger = v; }
   void set_nthreads(int n) { nthreads = n; }
   void set_usehex(bool v) { usehex = v; }
   void set_verbose(bool v) { verbose = v; }
+  void set_column_names(std::vector<std::string>& names) {
+    column_names = std::move(names);
+  }
 
   MemoryBuffer* write();
 };
