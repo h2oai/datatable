@@ -21,9 +21,11 @@
 #include <stdint.h>
 #include "datatable.h"
 #include "memorybuf.h"
+#include "utils.h"
 
 
 class CsvWriter {
+  // Input parameters
   DataTable *dt;
   const char *path;
   std::vector<std::string> column_names;
@@ -32,10 +34,14 @@ class CsvWriter {
   bool usehex;
   bool verbose;
 
+  // Intermediate values used while writing the file
+  double t_last;
+  double t_size_estimation;
+
 public:
   CsvWriter(DataTable *dt_, const char *path_)
-    : dt(dt_), path(path_), logger(nullptr),
-      nthreads(1), usehex(false), verbose(false) {}
+    : dt(dt_), path(path_), logger(nullptr), nthreads(1), t_last(0),
+      usehex(false), verbose(false) {}
 
   void set_logger(void *v) { logger = v; }
   void set_nthreads(int n) { nthreads = n; }
@@ -46,6 +52,11 @@ public:
   }
 
   MemoryBuffer* write();
+
+private:
+  double checkpoint();
+  int64_t estimate_output_size();
+
 };
 
 

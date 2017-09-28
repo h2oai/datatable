@@ -582,33 +582,12 @@ static void write_string(char **pch, const char *value)
 //=================================================================================================
 MemoryBuffer* CsvWriter::write()
 {
-  // First, estimate the size of the output CSV file
-  // The size of string columns is estimated liberally, assuming it may
-  // get inflated by no more than 20% (+2 chars for the quotes). If the data
-  // contains many quotes, they may inflate more than this.
-  // The size of numeric columns is estimated conservatively: we compute the
-  // maximum amount of space that is theoretically required.
-  // Overall, we will probably overestimate the final size of the CSV by a big
-  // margin.
-  double t0 = wallclock();
+  double t0 = checkpoint();
+
   int64_t nrows = dt->nrows;
   int64_t ncols = dt->ncols;
-  int64_t bytes_total = 0;
-  for (int64_t i = 0; i < ncols; i++) {
-    Column *col = dt->columns[i];
-    SType stype = col->stype;
-    if (stype == ST_STRING_I4_VCHAR) {
-      bytes_total += (int64_t)(1.2 * column_i4s_datasize(col)) + 2 * nrows;
-    } else if (stype == ST_STRING_I8_VCHAR) {
-      bytes_total += (int64_t)(1.2 * column_i8s_datasize(col)) + 2 * nrows;
-    } else {
-      bytes_total += bytes_per_stype[stype] * nrows;
-    }
-  }
-  bytes_total += ncols * nrows;  // Account for separators / newlines
+  int64_t bytes_total = estimate_output_size();
   double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
-  VLOG("Estimated file size to be no more than %lldB\n", bytes_total);
-  double t1 = wallclock();
 
   // Create the target memory region
   MemoryBuffer *mb = NULL;
@@ -748,8 +727,8 @@ MemoryBuffer* CsvWriter::write()
   double t6 = wallclock();
 
   VLOG("Timing report:\n");
-  VLOG("   %6.3fs  Calculate expected file size\n", t1 - t0);
-  VLOG(" + %6.3fs  Allocate file\n",                t2 - t1);
+  VLOG("   %6.3fs  Calculate expected file size\n", t_size_estimation);
+  VLOG(" + %6.3fs  Allocate file\n",                t2 - t0);
   VLOG(" + %6.3fs  Write column names\n",           t3 - t2);
   VLOG(" + %6.3fs  Prepare for writing\n",          t4 - t3);
   VLOG(" + %6.3fs  Write the data\n",               t5 - t4);
@@ -758,6 +737,45 @@ MemoryBuffer* CsvWriter::write()
   return mb;
 }
 
+
+double CsvWriter::checkpoint() {
+  double t_previous = t_last;
+  t_last = wallclock();
+  return t_last - t_previous;
+}
+
+/**
+ * Estimate the size of the output CSV file.
+ *
+ * The size of string columns is estimated liberally, assuming it may
+ * get inflated by no more than 20% (+2 chars for the quotes). If the data
+ * contains many quotes, they may inflate more than this.
+ * The size of numeric columns is estimated conservatively: we compute the
+ * maximum amount of space that is theoretically required.
+ * Overall, we will probably overestimate the final size of the CSV by a big
+ * margin.
+ */
+int64_t CsvWriter::estimate_output_size()
+{
+  int64_t nrows = dt->nrows;
+  int64_t ncols = dt->ncols;
+  int64_t bytes_total = 0;
+  for (int64_t i = 0; i < ncols; i++) {
+    Column *col = dt->columns[i];
+    SType stype = col->stype;
+    if (stype == ST_STRING_I4_VCHAR) {
+      bytes_total += (int64_t)(1.2 * column_i4s_datasize(col)) + 2 * nrows;
+    } else if (stype == ST_STRING_I8_VCHAR) {
+      bytes_total += (int64_t)(1.2 * column_i8s_datasize(col)) + 2 * nrows;
+    } else {
+      bytes_total += bytes_per_stype[stype] * nrows;
+    }
+  }
+  bytes_total += ncols * nrows;  // Account for separators / newlines
+  VLOG("Estimated file size to be no more than %lldB\n", bytes_total);
+  t_size_estimation = checkpoint();
+  return bytes_total;
+}
 
 
 //=================================================================================================
