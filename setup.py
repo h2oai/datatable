@@ -103,7 +103,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 #-------------------------------------------------------------------------------
 # Settings for building the extension
 #-------------------------------------------------------------------------------
-extra_compile_args = ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
+extra_compile_args = ["-std=gnu++11", "-stdlib=libstdc++", "-x", "c++"]
 
 # Include path to C++ header files
 extra_compile_args += ["-I" + os.environ["LLVM4"] + "/include/c++/v1"]

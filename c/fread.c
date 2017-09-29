@@ -2145,7 +2145,7 @@ int freadMain(freadMainArgs _args)
                   int len = snprintf(temp, 1000,
                     "Column %d (\"%.*s\") bumped from '%s' to '%s' due to <<%.*s>> on row %zd\n",
                     j+1, colNames[j].len, colNamesAnchor + colNames[j].off,
-                    typeName[abs(joldType)], typeName[abs(thisType)],
+                    typeName[(int)abs(joldType)], typeName[(int)abs(thisType)],
                     (int)(tch-fieldStart), fieldStart, myDTi+myNrow);
                   typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
                   strcpy(typeBumpMsg+typeBumpMsgSize, temp);
@@ -2292,7 +2292,7 @@ int freadMain(freadMainArgs _args)
                  buffGrown, nth, nth);
         int typeCounts[NUMTYPE];
         for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
-        for (int i=0; i<ncol; i++) typeCounts[ abs(type[i]) ]++;
+        for (int i=0; i<ncol; i++) typeCounts[ (int)abs(type[i]) ]++;
         DTPRINT("Final type counts\n");
         for (int i=0; i<NUMTYPE; i++) DTPRINT("%10d : %-9s\n", typeCounts[i], typeName[i]);
       }

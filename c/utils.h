@@ -7,6 +7,7 @@
 #include <exception>
 #include <mutex>
 #include <stddef.h>
+#include <stdio.h>   // vsnprintf
 #include <stdint.h>
 #include <errno.h>   // errno
 #include <string.h>  // strerr
