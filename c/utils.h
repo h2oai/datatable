@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdio.h>   // vsnprintf
 #include <stdint.h>
+#include <stdio.h>   // vsnprintf
 #include <errno.h>   // errno
 #include <string.h>  // strerr
 
