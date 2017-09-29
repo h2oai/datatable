@@ -8,6 +8,7 @@
 #include <mutex>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>   // vsnprintf
 #include <errno.h>   // errno
 #include <string.h>  // strerr
 

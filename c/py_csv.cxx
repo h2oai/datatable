@@ -1,4 +1,5 @@
 #include <exception>
+#include <vector>
 #include <stdbool.h>
 #include <stdlib.h>
 #include "Python.h"
