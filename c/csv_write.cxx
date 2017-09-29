@@ -96,7 +96,7 @@ public:
     data = col->data;
     strbuf = NULL;
     writer = writers_per_stype[col->stype];
-    if (!writer) throw std::runtime_error("Cannot write this type");
+    if (!writer) throw Error("Cannot write type %d", col->stype);
     if (col->stype == ST_STRING_I4_VCHAR) {
       strbuf = reinterpret_cast<char*>(data) - 1;
       data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
@@ -105,6 +105,12 @@ public:
 
   void write(char **pch, int64_t row) {
     writer(pch, this, row);
+  }
+
+  // This should only be called on a CsvColumn of type i4s!
+  size_t strsize(int64_t row0, int64_t row1) {
+    int32_t *offsets = reinterpret_cast<int32_t*>(data) - 1;
+    return abs(offsets[row1]) - abs(offsets[row0]);
   }
 };
 
@@ -586,6 +592,7 @@ CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
     usehex(false),
     verbose(false),
     wb(nullptr),
+    fixed_size_per_row(0),
     t_last(0)
 {}
 
@@ -607,6 +614,7 @@ void CsvWriter::write()
   write_column_names();
   determine_chunking_strategy(bytes_total, nrows);
   create_column_writers(ncols);
+  size_t nstrcols = strcolumns.size();
 
   OmpExceptionManager oem;
   #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
@@ -627,7 +635,10 @@ void CsvWriter::write()
     size_t th_write_at = 0;
     size_t th_write_size = 0;
     OMPCODE(
-      thbuf = new char[thbufsize];
+      // Note: do not use new[] here, as it can't be safely realloced
+      thbuf = static_cast<char*>(malloc(thbufsize));
+      if (!thbuf) throw Error("Unable to allocate %zu bytes for thread-local "
+                              "buffer", thbufsize);
     )
 
     // Main data-writing loop
@@ -644,6 +655,24 @@ void CsvWriter::write()
           wb->write_at(th_write_at, th_write_size, thbuf);
         }
 
+        // Compute the required size of the thread-local buffer, and then
+        // expand the buffer if necessary. The size of each column is multiplied
+        // by 2 in order to account for the possibility that the buffer may
+        // expand twice in size (if every character needs to be escaped).
+        size_t reqsize = 0;
+        for (size_t col = 0; col < nstrcols; col++) {
+          reqsize += strcolumns[col]->strsize(row0, row1);
+        }
+        reqsize *= 2;
+        reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
+        if (thbufsize < reqsize) {
+          thbuf = static_cast<char*>(realloc(thbuf, reqsize));
+          thbufsize = reqsize;
+          if (!thbuf) throw Error("Unable to allocate %zu bytes for "
+                                  "thread-local buffer", thbufsize);
+        }
+
+        // Write the data in rows row0..row1 and in all columns
         char *thch = thbuf;
         for (int64_t row = row0; row < row1; row++) {
           for (size_t col = 0; col < ncols; col++) {
@@ -666,7 +695,7 @@ void CsvWriter::write()
       if (th_write_size && !oem.exception_caught()) {
         wb->write_at(th_write_at, th_write_size, thbuf);
       }
-      delete[] thbuf;
+      free(thbuf);
     )
   }
   oem.rethrow_exception_if_any();
@@ -720,19 +749,20 @@ size_t CsvWriter::estimate_output_size()
 {
   size_t nrows = static_cast<size_t>(dt->nrows);
   size_t ncols = static_cast<size_t>(dt->ncols);
-  size_t bytes_total = 0;
+  size_t total_string_size = 0;
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
     SType stype = col->stype;
-    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-      size_t datasize = stype == ST_STRING_I4_VCHAR? column_i4s_datasize(col)
-                                                   : column_i8s_datasize(col);
-      bytes_total += static_cast<size_t>(1.2 * datasize + 2 * nrows);
-    } else {
-      bytes_total += bytes_per_stype[stype] * nrows;
+    bool stype_i4s = (stype == ST_STRING_I4_VCHAR);
+    bool stype_i8s = (stype == ST_STRING_I8_VCHAR);
+    if (stype_i4s || stype_i8s) {
+      total_string_size += stype_i4s? column_i4s_datasize(col)
+                                    : column_i8s_datasize(col);
     }
+    fixed_size_per_row += bytes_per_stype[stype] + 1;
   }
-  bytes_total += ncols * nrows;  // Account for separators / newlines
+  size_t bytes_total = fixed_size_per_row * nrows
+                       + static_cast<size_t>(1.2 * total_string_size);
   VLOG("Estimated output size: %zu\n", bytes_total);
   t_size_estimation = checkpoint();
   return bytes_total;
@@ -828,6 +858,9 @@ void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
 
 
 /**
+ * Initialize writers for each column in the DataTable, i.e. fill in the vector
+ * `columns` of `CsvColumn` objects. The objects created depend on the type of
+ * each column, and on the options passed to the CsvWriter.
  */
 void CsvWriter::create_column_writers(size_t ncols)
 {
@@ -858,13 +891,15 @@ void init_csvwrite_constants() {
     bytes_per_stype[i] = 0;
     writers_per_stype[i] = NULL;
   }
-  bytes_per_stype[ST_BOOLEAN_I1] = 1;  // 1
-  bytes_per_stype[ST_INTEGER_I1] = 4;  // -100
-  bytes_per_stype[ST_INTEGER_I2] = 6;  // -32000
-  bytes_per_stype[ST_INTEGER_I4] = 11; // -2000000000
-  bytes_per_stype[ST_INTEGER_I8] = 20; // -9223372036854775800
-  bytes_per_stype[ST_REAL_F4]    = 25; // -0x1.123456p+30
-  bytes_per_stype[ST_REAL_F8]    = 25; // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_BOOLEAN_I1]      = 1;  // 1
+  bytes_per_stype[ST_INTEGER_I1]      = 4;  // -100
+  bytes_per_stype[ST_INTEGER_I2]      = 6;  // -32000
+  bytes_per_stype[ST_INTEGER_I4]      = 11; // -2000000000
+  bytes_per_stype[ST_INTEGER_I8]      = 20; // -9223372036854775800
+  bytes_per_stype[ST_REAL_F4]         = 25; // -0x1.123456p+30
+  bytes_per_stype[ST_REAL_F8]         = 25; // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
+  bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 
   writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
   writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;
