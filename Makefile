@@ -2,7 +2,7 @@
 PYTHON ?= python
 OS := $(shell uname | tr A-Z a-z)
 MODULE ?= .
-ifeq ($(OS),Linux)
+ifeq ($(OS),linux)
 	GCOVTOOL := --gcov-tool ./llvm-gcov.sh
 endif
 
