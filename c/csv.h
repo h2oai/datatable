@@ -15,36 +15,67 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_H
 #define dt_CSV_H
+#include <string>
+#include <vector>
 #include <stdbool.h>
 #include <stdint.h>
 #include "datatable.h"
 #include "memorybuf.h"
+#include "utils.h"
 
+class CsvColumn;
 
-typedef struct CsvWriteParameters {
-
-  // Output path where the DataTable should be written.
-  const char *path;
-
+class CsvWriter {
+  // Input parameters
   DataTable *dt;
-
-  char **column_names;
-
-  // PyObject that knows how to handle log messages
-  void* logger;
-
+  std::string path;
+  std::vector<std::string> column_names;
+  void *logger;
   int nthreads;
-
   bool usehex;
-
   bool verbose;
+  __attribute__((unused)) char _padding[2];
 
-  char _padding[2];
+  // Intermediate values used while writing the file
+  WritableBuffer* wb;
+  size_t fixed_size_per_row;
+  double rows_per_chunk;
+  size_t bytes_per_chunk;
+  int64_t nchunks;
+  std::vector<CsvColumn*> columns;
+  std::vector<CsvColumn*> strcolumns;
+  double t_last;
+  double t_size_estimation;
+  double t_create_target;
+  double t_prepare_for_writing;
+  double t_write_data;
+  double t_finalize;
 
-} CsvWriteParameters;
+public:
+  CsvWriter(DataTable *dt_, const std::string& path_);
+  ~CsvWriter();
+
+  void set_logger(void *v) { logger = v; }
+  void set_nthreads(int n) { nthreads = n; }
+  void set_usehex(bool v) { usehex = v; }
+  void set_verbose(bool v) { verbose = v; }
+  void set_column_names(std::vector<std::string>& names) {
+    column_names = std::move(names);
+  }
+
+  void write();
+  WritableBuffer* get_output_buffer() const { return wb; }
+
+private:
+  double checkpoint();
+  size_t estimate_output_size();
+  void create_target(size_t size);
+  void write_column_names();
+  void determine_chunking_strategy(size_t size, int64_t nrows);
+  void create_column_writers(size_t ncols);
+};
 
 
-MemoryBuffer* csv_write(CsvWriteParameters *args);
 void init_csvwrite_constants();
 
 __attribute__((format(printf, 2, 3)))

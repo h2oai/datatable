@@ -95,6 +95,7 @@ coverage:
 		--benchmark-skip \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
+	chmod +x ./llvm-gcov.sh
 	lcov --gcov-tool ./llvm-gcov.sh --capture --directory . --output-file build/coverage.info
 	genhtml build/coverage.info --output-directory build/coverage-c
 	mv .coverage build/

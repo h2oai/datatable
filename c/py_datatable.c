@@ -1,3 +1,4 @@
+#include <exception>
 #include <fcntl.h>   // open
 #include <unistd.h>  // write, fsync, close
 #include "datatable.h"
@@ -31,6 +32,14 @@ PyObject* pydt_from_dt(DataTable *dt)
 }
 #define py pydt_from_dt
 
+
+/**
+ * Attempt to extract a DataTable from the given PyObject, iff it is a
+ * DataTable_PyObject. On success, the reference to the DataTable is stored in
+ * the `address` and 1 is returned. On failure, returns 0.
+ *
+ * This function does not attempt to DECREF the source PyObject.
+ */
 int dt_unwrap(PyObject *object, DataTable **address) {
     if (!PyObject_TypeCheck(object, &DataTable_PyType)) {
         PyErr_SetString(PyExc_TypeError, "Expected object of type DataTable");
@@ -39,6 +48,19 @@ int dt_unwrap(PyObject *object, DataTable **address) {
     *address = ((DataTable_PyObject*)object)->ref;
     return 1;
 }
+
+
+/**
+ * Similar to `dt_unwrap`, however the DataTable object is returned on success,
+ * and an exception is thrown on error.
+ */
+DataTable* datatable_unwrapx(PyObject *object) {
+    DataTable *dt;
+    if (!dt_unwrap(object, &dt)) throw std::exception();
+    return dt;
+}
+
+
 
 //------------------------------------------------------------------------------
 

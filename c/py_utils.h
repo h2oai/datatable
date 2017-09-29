@@ -5,6 +5,8 @@
 #ifndef dt_PYUTILS_H
 #define dt_PYUTILS_H
 #include <Python.h>
+#include <string>
+#include <vector>
 #include "utils.h"
 
 
@@ -103,7 +105,11 @@ PyObject* decref(PyObject *x);
 })
 
 
-bool get_attr_bool(PyObject *pyobj, const char *attr, bool dflt=false);
+bool    get_attr_bool(PyObject *pyobj, const char *attr, bool dflt=false);
+int64_t get_attr_int64(PyObject *pyobj, const char *attr, int64_t dflt=0);
+std::string get_attr_string(PyObject *pyobj, const char *attr);
+void get_attr_stringlist(PyObject *pyobj, const char *attr,
+                         std::vector<std::string> &res);
 
 char* _to_string(PyObject *x, PyObject **tmp);
 char** _to_string_list(PyObject *x);

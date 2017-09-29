@@ -39,4 +39,6 @@ PyObject* pydatatable_load(PyObject *self, PyObject *args);
 PyObject* pyinstall_buffer_hooks(PyObject *self, PyObject *args);
 int init_py_datatable(PyObject *module);
 
+DataTable* datatable_unwrapx(PyObject *object);
+
 #endif

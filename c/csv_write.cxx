@@ -18,11 +18,12 @@
 #include <errno.h>      // errno
 #include <fcntl.h>      // open
 #include <stdint.h>     // int32_t, etc
+#include <stdio.h>      // printf
 #include <string.h>     // strerror
 #include <sys/mman.h>   // mmap
 #include "column.h"
 #include "csv.h"
-#include "csv_dtoa.h"
+#include "csv_lookups.h"
 #include "datatable.h"
 #include "math.h"
 #include "memorybuf.h"
@@ -37,10 +38,7 @@ static void write_string(char **pch, const char *value);
 
 typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
 
-static const int64_t max_chunk_size = 1024 * 1024;
-static const int64_t min_chunk_size = 1024;
-
-static int64_t bytes_per_stype[DT_STYPES_COUNT];
+static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
 // Helper lookup table for writing integers
@@ -79,6 +77,14 @@ static const int64_t DIVS64[19] = {
   1000000000000000000L,
 };
 
+#define F64_SIGN_MASK  0x8000000000000000u
+#define F64_MANT_MASK  0x000FFFFFFFFFFFFFu
+#define F64_EXTRA_BIT  0x0010000000000000u
+#define F64_1em5       0x3EE4F8B588E368F1u
+#define F64_1e15       0x430c6bf526340000u
+#define TENp18         1000000000000000000
+
+
 // TODO: replace with classes that derive from CsvColumn and implement write()
 class CsvColumn {
 public:
@@ -90,7 +96,7 @@ public:
     data = col->data;
     strbuf = NULL;
     writer = writers_per_stype[col->stype];
-    if (!writer) throw std::runtime_error("Cannot write this type");
+    if (!writer) throw Error("Cannot write type %d", col->stype);
     if (col->stype == ST_STRING_I4_VCHAR) {
       strbuf = reinterpret_cast<char*>(data) - 1;
       data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
@@ -100,9 +106,15 @@ public:
   void write(char **pch, int64_t row) {
     writer(pch, this, row);
   }
+
+  // This should only be called on a CsvColumn of type i4s!
+  size_t strsize(int64_t row0, int64_t row1) {
+    int32_t *offsets = reinterpret_cast<int32_t*>(data) - 1;
+    return abs(offsets[row1]) - abs(offsets[row0]);
+  }
 };
 
-#define VLOG(...)  do { if (args->verbose) log_message(args->logger, __VA_ARGS__); } while (0)
+#define VLOG(...)  do { if (verbose) log_message(logger, __VA_ARGS__); } while (0)
 
 
 //=================================================================================================
@@ -189,23 +201,11 @@ static inline void write_int32(char **pch, int32_t value) {
   *pch = ch + 1;
 }
 
-
-static void write_i4(char **pch, CsvColumn *col, int64_t row)
-{
-  int32_t value = ((int32_t*) col->data)[row];
-  if (value == NA_I4) return;
-  write_int32(pch, value);
-}
-
-
-static void write_i8(char **pch, CsvColumn *col, int64_t row)
-{
-  int64_t value = ((int64_t*) col->data)[row];
+static inline void write_int64(char **pch, int64_t value) {
   if (value == 0) {
     *((*pch)++) = '0';
     return;
   }
-  if (value == NA_I8) return;
   char *ch = *pch;
   if (value < 0) {
     *ch++ = '-';
@@ -223,6 +223,22 @@ static void write_i8(char **pch, CsvColumn *col, int64_t row)
 }
 
 
+static void write_i4(char **pch, CsvColumn *col, int64_t row)
+{
+  int32_t value = ((int32_t*) col->data)[row];
+  if (value == NA_I4) return;
+  write_int32(pch, value);
+}
+
+
+static void write_i8(char **pch, CsvColumn *col, int64_t row)
+{
+  int64_t value = ((int64_t*) col->data)[row];
+  if (value == NA_I8) return;
+  write_int64(pch, value);
+}
+
+
 static void write_s4(char **pch, CsvColumn *col, int64_t row)
 {
   int32_t offset1 = ((int32_t*) col->data)[row];
@@ -236,16 +252,19 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
     *pch = ch + 2;
     return;
   }
-  const char *strstart = col->strbuf + offset0;
-  const char *strend = col->strbuf + offset1;
-  const char *sch = strstart;
+  const uint8_t *strstart = reinterpret_cast<uint8_t*>(col->strbuf) + offset0;
+  const uint8_t *strend = reinterpret_cast<uint8_t*>(col->strbuf) + offset1;
+  const uint8_t *sch = strstart;
+  if (*sch == 32) goto quote;
   while (sch < strend) {  // ',' is 44, '"' is 34
-    char c = *sch;
-    if ((uint8_t)c <= (uint8_t)',' && (c == ',' || c == '"' || (uint8_t)c < 32)) break;
-    *ch++ = c;
+    uint8_t c = *sch;
+    // First `c <= 44` is to give an opportunity to short-circuit early.
+    if (c <= 44 && (c == 44 || c == 34 || c < 32)) break;
+    *ch++ = static_cast<char>(c);
     sch++;
   }
-  if (sch < strend) {
+  if (sch < strend || sch[-1] == 32) {
+    quote:
     ch = *pch;
     memcpy(ch+1, strstart, static_cast<size_t>(sch - strstart));
     *ch = '"';
@@ -364,54 +383,143 @@ static inline void write_exponent(char **pch, int value) {
 }
 
 
-// TODO: simplify the algorithm (check for isnan / 0 / negative based on
-// DiyFp64 representation).
+/**
+ * The problem of converting a floating-point number (float64) into a string
+ * can be formulated as follows (assume x is positive and normal):
+ *
+ *   1. First, the "input" value v is decomposed into the mantissa and the
+ *      exponent parts:
+ *
+ *          x = f * 2^e = F * 2^(e - 52)
+ *
+ *      where F is uint64, and e is int. These parts can be computed using
+ *      simple bit operations on `v = reinterpret_cast<uint64>(x)`:
+ *
+ *          F = (v & (1<<52 - 1)) | (1<<52)
+ *          e = ((v >> 52) & 0x7FF) - 0x3FF
+ *
+ *   2. We'd like to find integer numbers D and E such that
+ *
+ *          x ≈ d * 10^E = D * 10^(E - 17)
+ *
+ *      where 10^17 <= D < 10^18. If such numbers are found, then producing
+ *      the final string is simple, one of the following forms can be used:
+ *
+ *          D[0] '.' D[1:] 'e' E
+ *          D[0:E] '.' D[E:]
+ *          '0.' '0'{-E-1} D
+ *
+ *   3. Denote f = F*2^-52, and d = D*10^-17. Then 1 <= f < 2, and similarly
+ *      1 <= d < 10. Therefore,
+ *
+ *          E = log₁₀(f) + e * log₁₀2 - log₁₀(d)
+ *          E = Floor[log₁₀(f) + e * log₁₀2]
+ *          E ≤ Floor[1 + e * log₁₀2]
+ *
+ *      This may overestimate E by 1, but ultimately it doesn't matter... In
+ *      practice we can replace this formula with one that is close numerically
+ *      but easier to compute:
+ *
+ *          E = Floor[(e*1233 - 8)/4096] = ((201 + eb*1233)>>12) - 308
+ *
+ *      where eb = e + 0x3FF is the biased exponent.
+ *
+ *   4. Then, D can be computed as
+ *
+ *          D = Floor[F * 2^(e - 52) * 10^(17 - E(e))]
+ *
+ *      (with the choice of E(e) as above, this quantity will range from
+ *      1.001e17 to 2.015e18. The coefficients in E(e) were optimized in order
+ *      to minimize sup(D) subject to inf(D)>=1e17.)
+ *
+ *      In this expression, F is integer, whereas 2^(e-52) * 10^(17-E(e)) is
+ *      float. If we write the latter as (A+B)/2^53 (where B < 1), then
+ *      expression for D becomes
+ *
+ *          D = Floor[(F * A)/2^53 + (F * B)/2^53]
+ *
+ *      Here F<2^53 and B<1, and therefore the second term is negligible.
+ *      Thus,
+ *
+ *         D = (F * A(e)) >> 53
+ *         A(e) = Floor[2^(e+1) * 10^(17-E(e))]
+ *
+ *      The quantities A(e) are `uint64`s in the range approximately from
+ *      2.002e17 to 2.015e18. They can be precomputed and stored for every
+ *      exponent e (there are 2046 of them). Multiplying and shifting of
+ *      two uint64 numbers is fast and simple.
+ *
+ * This algorithm is roughly similar to Grisu2.
+ */
 static inline void write_double(char **pch, double value)
 {
   char *ch = *pch;
-  if (value == 0.0) {
-    *ch = '0';
-    (*pch)++;
-    return;
-  }
-  if (value < 0) {
+  union { double d; uint64_t u; } vvv = { value };
+  uint64_t value_u64 = vvv.u;
+
+  if (value_u64 & F64_SIGN_MASK) {
     *ch++ = '-';
-    value = -value;
+    value_u64 ^= F64_SIGN_MASK;
   }
-  // For large / small numbers fallback to Grisu2
-  if (value > 1e15 || value < 1e-5) {
-    int length, K;
-    Grisu2(value, ch, &length, &K);
-    memmove(ch+2, ch+1, static_cast<size_t>(length - 1));
-    ch[1] = '.';
-    ch[length + 1] = 'e';
-    length += 2;
-    ch += length;
-    write_exponent(&ch, length + K - 3);
+  if (value_u64 > F64_1em5 && value_u64 < F64_1e15) {
+    union { uint64_t u; double d; } vvv = { value_u64 };
+    double frac, intval;
+    frac = modf(vvv.d, &intval);
+    char *ch0 = ch;
+    write_int64(&ch, static_cast<int64_t>(intval));
+
+    if (frac > 0) {
+      int digits_left = 15 - static_cast<int>(ch - ch0);
+      *ch++ = '.';
+      while (frac > 0 && digits_left) {
+        frac *= 10;
+        frac = modf(frac, &intval);
+        *ch++ = static_cast<char>(intval) + '0';
+        digits_left--;
+      }
+      if (!digits_left) {
+        intval = frac*10 + 0.5;
+        if (intval > 9) intval = 9;
+        *ch++ = static_cast<char>(intval) + '0';
+      }
+    }
     *pch = ch;
     return;
   }
 
-  double frac, intval;
-  frac = modf(value, &intval);
-  char *ch0 = ch;
-  write_int32(&ch, (int32_t)intval);
-
-  if (frac > 0) {
-    int digits_left = 14 - static_cast<int>(ch - ch0);
-    *ch++ = '.';
-    while (frac > 0 && digits_left) {
-      frac *= 10;
-      frac = modf(frac, &intval);
-      *ch++ = static_cast<char>(intval) + '0';
-      digits_left--;
+  int eb = static_cast<int>(value_u64 >> 52);
+  if (eb == 0x7FF) {
+    if (!value_u64) {  // don't print nans at all
+      *ch++ = 'i'; *ch++ = 'n'; *ch++ = 'f';
+      *pch = ch;
     }
-    if (!digits_left) {
-      intval = frac*10 + 0.5;
-      if (intval > 9) intval = 9;
-      *ch++ = static_cast<char>(intval) + '0';
-    }
+    return;
+  } else if (eb == 0x000) {
+    *ch++ = '0';
+    *pch = ch;
+    return;
   }
+  int E = ((201 + eb*1233) >> 12) - 308;
+  uint64_t F = (value_u64 & F64_MANT_MASK) | F64_EXTRA_BIT;
+  uint64_t A = Atable[eb];
+  unsigned __int128 p = static_cast<unsigned __int128>(F) *
+                        static_cast<unsigned __int128>(A);
+  int64_t D = static_cast<int64_t>(p >> 53) + (static_cast<int64_t>(p) >> 53);
+  if (D >= TENp18) {
+    D /= 10;
+    E++;
+  }
+  ch += 18;
+  char *tch = ch;
+  for (int r = 18; r; r--) {
+    ldiv_t ddd = ldiv(D, 10);
+    D = ddd.quot;
+    *tch-- = static_cast<char>(ddd.rem) + '0';
+    if (r == 2) { *tch-- = '.'; }
+  }
+  while (ch[-1] == '0') ch--;  // remove any trailing 0s
+  *ch++ = 'e';
+  write_exponent(&ch, E);
   *pch = ch;
 }
 
@@ -438,14 +546,23 @@ static void write_string(char **pch, const char *value)
 {
   char *ch = *pch;
   const char *sch = value;
+  // If the field begins with a space, it has to be quoted.
+  if (*value == ' ') goto quote;
   for (;;) {
     char c = *sch++;
-    if (!c) { *pch = ch; return; }
+    if (!c) {
+      // If the field is empty, or ends with whitespace, then it has to be
+      // quoted as well.
+      if (sch == value + 1 || sch[-2] == ' ') break;
+      *pch = ch;
+      return;
+    }
     if (c == '"' || c == ',' || static_cast<uint8_t>(c) < 32) break;
     *ch++ = c;
   }
   // If we broke out of the loop above, it means we need to quote the field.
   // So, first rewind to the beginning
+  quote:
   ch = *pch;
   sch = value;
   *ch++ = '"';
@@ -463,85 +580,259 @@ static void write_string(char **pch, const char *value)
 
 //=================================================================================================
 //
-// Main CSV-writing function
+// Main CSV-writing functions
 //
 //=================================================================================================
-MemoryBuffer* csv_write(CsvWriteParameters *args)
-{
-  // Fetch arguments
-  DataTable *dt = args->dt;
-  int nthreads = args->nthreads;
 
-  // First, estimate the size of the output CSV file
-  // The size of string columns is estimated liberally, assuming it may
-  // get inflated by no more than 20% (+2 chars for the quotes). If the data
-  // contains many quotes, they may inflate more than this.
-  // The size of numeric columns is estimated conservatively: we compute the
-  // maximum amount of space that is theoretically required.
-  // Overall, we will probably overestimate the final size of the CSV by a big
-  // margin.
-  double t0 = wallclock();
+CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
+  : dt(dt_),
+    path(path_),
+    logger(nullptr),
+    nthreads(1),
+    usehex(false),
+    verbose(false),
+    wb(nullptr),
+    fixed_size_per_row(0),
+    t_last(0)
+{}
+
+
+CsvWriter::~CsvWriter()
+{
+  delete wb;
+  for (size_t i = 0; i < columns.size(); i++)
+    delete columns[i];
+}
+
+
+void CsvWriter::write()
+{
   int64_t nrows = dt->nrows;
-  int64_t ncols = dt->ncols;
-  int64_t bytes_total = 0;
-  for (int64_t i = 0; i < ncols; i++) {
+  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t bytes_total = estimate_output_size();
+  create_target(bytes_total);
+  write_column_names();
+  determine_chunking_strategy(bytes_total, nrows);
+  create_column_writers(ncols);
+  size_t nstrcols = strcolumns.size();
+
+  OmpExceptionManager oem;
+  #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
+
+  // Start writing the CSV
+  #pragma omp parallel num_threads(nthreads)
+  {
+    #pragma omp single
+    {
+      VLOG("Writing file using %lld chunks, with %.1f rows per chunk\n",
+           nchunks, rows_per_chunk);
+      VLOG("Using nthreads = %d\n", omp_get_num_threads());
+      VLOG("Initial buffer size in each thread: %zu\n", bytes_per_chunk*2);
+    }
+    // Initialize thread-local variables
+    size_t thbufsize = bytes_per_chunk * 2;
+    char  *thbuf = nullptr;
+    size_t th_write_at = 0;
+    size_t th_write_size = 0;
+    OMPCODE(
+      // Note: do not use new[] here, as it can't be safely realloced
+      thbuf = static_cast<char*>(malloc(thbufsize));
+      if (!thbuf) throw Error("Unable to allocate %zu bytes for thread-local "
+                              "buffer", thbufsize);
+    )
+
+    // Main data-writing loop
+    #pragma omp for ordered schedule(dynamic)
+    for (int64_t i = 0; i < nchunks; i++) {
+      if (oem.exception_caught()) continue;
+      int64_t row0 = static_cast<int64_t>(i * rows_per_chunk);
+      int64_t row1 = static_cast<int64_t>((i + 1) * rows_per_chunk);
+      if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
+
+      OMPCODE(
+        // write the thread-local buffer into the output
+        if (th_write_size) {
+          wb->write_at(th_write_at, th_write_size, thbuf);
+        }
+
+        // Compute the required size of the thread-local buffer, and then
+        // expand the buffer if necessary. The size of each column is multiplied
+        // by 2 in order to account for the possibility that the buffer may
+        // expand twice in size (if every character needs to be escaped).
+        size_t reqsize = 0;
+        for (size_t col = 0; col < nstrcols; col++) {
+          reqsize += strcolumns[col]->strsize(row0, row1);
+        }
+        reqsize *= 2;
+        reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
+        if (thbufsize < reqsize) {
+          thbuf = static_cast<char*>(realloc(thbuf, reqsize));
+          thbufsize = reqsize;
+          if (!thbuf) throw Error("Unable to allocate %zu bytes for "
+                                  "thread-local buffer", thbufsize);
+        }
+
+        // Write the data in rows row0..row1 and in all columns
+        char *thch = thbuf;
+        for (int64_t row = row0; row < row1; row++) {
+          for (size_t col = 0; col < ncols; col++) {
+            columns[col]->write(&thch, row);
+            *thch++ = ',';
+          }
+          thch[-1] = '\n';
+        }
+        th_write_size = static_cast<size_t>(thch - thbuf);
+      )
+
+      #pragma omp ordered
+      {
+        OMPCODE(
+          th_write_at = wb->prep_write(th_write_size, thbuf);
+        )
+      }
+    }
+    OMPCODE(
+      if (th_write_size && !oem.exception_caught()) {
+        wb->write_at(th_write_at, th_write_size, thbuf);
+      }
+      free(thbuf);
+    )
+  }
+  oem.rethrow_exception_if_any();
+  t_write_data = checkpoint();
+
+  // Done writing; if writing to stdout then append '\0' to make it a regular
+  // C string; otherwise truncate MemoryBuffer to the final size.
+  VLOG("Finalizing output at size %s\n", filesize_to_str(wb->size()));
+  if (path.empty()) {
+    char c = '\0';
+    wb->write(1, &c);
+  }
+  wb->finalize();
+  t_finalize = checkpoint();
+
+  double t_total = t_prepare_for_writing + t_size_estimation + t_create_target
+                   + t_write_data + t_finalize;
+  VLOG("Timing report:\n");
+  VLOG("   %6.3fs  Calculate expected file size\n", t_size_estimation);
+  VLOG(" + %6.3fs  Allocate file\n",                t_create_target);
+  VLOG(" + %6.3fs  Prepare for writing\n",          t_prepare_for_writing);
+  VLOG(" + %6.3fs  Write the data\n",               t_write_data);
+  VLOG(" + %6.3fs  Finalize the file\n",            t_finalize);
+  VLOG(" = %6.3fs  Overall time taken\n",           t_total);
+}
+
+
+/**
+ * Convenience function to measure duration of certain steps. When called
+ * returns the time elapsed from the previous call to this function.
+ */
+double CsvWriter::checkpoint() {
+  double t_previous = t_last;
+  t_last = wallclock();
+  return t_last - t_previous;
+}
+
+
+/**
+ * Estimate and return the expected size of the output.
+ *
+ * The size of string columns is estimated liberally, assuming it may
+ * get inflated by no more than 20% (+2 chars for the quotes). If the data
+ * contains many quotes, they may inflate more than this.
+ * The size of numeric columns is estimated conservatively: we compute the
+ * maximum amount of space that is theoretically required.
+ * Overall, we will probably overestimate the final size of the CSV by a big
+ * margin.
+ */
+size_t CsvWriter::estimate_output_size()
+{
+  size_t nrows = static_cast<size_t>(dt->nrows);
+  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t total_string_size = 0;
+  for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
     SType stype = col->stype;
-    if (stype == ST_STRING_I4_VCHAR) {
-      bytes_total += (int64_t)(1.2 * column_i4s_datasize(col)) + 2 * nrows;
-    } else if (stype == ST_STRING_I8_VCHAR) {
-      bytes_total += (int64_t)(1.2 * column_i8s_datasize(col)) + 2 * nrows;
-    } else {
-      bytes_total += bytes_per_stype[stype] * nrows;
+    bool stype_i4s = (stype == ST_STRING_I4_VCHAR);
+    bool stype_i8s = (stype == ST_STRING_I8_VCHAR);
+    if (stype_i4s || stype_i8s) {
+      total_string_size += stype_i4s? column_i4s_datasize(col)
+                                    : column_i8s_datasize(col);
     }
+    fixed_size_per_row += bytes_per_stype[stype] + 1;
   }
-  bytes_total += ncols * nrows;  // Account for separators / newlines
-  double bytes_per_row = nrows? static_cast<double>(bytes_total / nrows) : 0;
-  VLOG("Estimated file size to be no more than %lldB\n", bytes_total);
-  double t1 = wallclock();
+  size_t bytes_total = fixed_size_per_row * nrows
+                       + static_cast<size_t>(1.2 * total_string_size);
+  VLOG("Estimated output size: %zu\n", bytes_total);
+  t_size_estimation = checkpoint();
+  return bytes_total;
+}
 
-  // Create the target memory region
-  MemoryBuffer *mb = NULL;
-  size_t allocsize = static_cast<size_t>(bytes_total);
-  if (args->path) {
-    VLOG("Creating destination file of size %.3fGB\n", 1e-9*allocsize);
-    mb = new MmapMemoryBuffer(args->path, allocsize, MB_CREATE|MB_EXTERNAL);
+
+/**
+ * Create the target memory region (either in RAM, or on disk).
+ */
+void CsvWriter::create_target(size_t size)
+{
+  if (path.empty()) {
+    wb = new MemoryWritableBuffer(size);
   } else {
-    mb = new RamMemoryBuffer(allocsize);
+    // TODO: on MacOS, create FileWritableBuffer instead
+    VLOG("Creating destination file of size %s\n", filesize_to_str(size));
+    wb = new MmapWritableBuffer(path, size);
   }
-  size_t bytes_written = 0;
-  double t2 = wallclock();
+  t_create_target = checkpoint();
+}
 
-  // Write the column names
-  char **colnames = args->column_names;
-  if (colnames) {
-    char *ch, *ch0, *colname;
+
+/**
+ * Write the first row of column names into the output.
+ */
+void CsvWriter::write_column_names()
+{
+  size_t ncolnames = column_names.size();
+  if (ncolnames) {
     size_t maxsize = 0;
-    while ((colname = *colnames++)) {
-      // A string may expand up to twice in size (if all its characters need
-      // to be escaped) + add 2 surrounding quotes + add a comma in the end.
-      maxsize += strlen(colname)*2 + 2 + 1;
+    for (size_t i = 0; i < ncolnames; i++) {
+      // A string may expand up to twice its original size (if all characters
+      // need to be escaped) + add 2 surrounding quotes + add a comma.
+      maxsize += column_names[i].size()*2 + 2 + 1;
     }
-    mb->ensuresize(maxsize + allocsize);
-    ch = ch0 = static_cast<char*>(mb->get());
-    colnames = args->column_names;
-    while ((colname = *colnames++)) {
-      write_string(&ch, colname);
+    char *ch0 = new char[maxsize];
+    char *ch = ch0;
+    for (size_t i = 0; i < ncolnames; i++) {
+      write_string(&ch, column_names[i].data());
       *ch++ = ',';
     }
-    // Replace the last ',' with a newline
+    // Replace the last ',' with a newline. This is valid since `ncolnames > 0`.
     ch[-1] = '\n';
-    bytes_written += static_cast<size_t>(ch - ch0);
-  }
-  double t3 = wallclock();
 
-  // Calculate the best chunking strategy for this file
-  double rows_per_chunk;
-  size_t bytes_per_chunk;
+    // Write this string buffer into the target.
+    wb->write(static_cast<size_t>(ch - ch0), ch0);
+    delete[] ch0;
+  }
+}
+
+
+/**
+ * Compute parameters for writing the file: how many chunks to use, how many
+ * rows per chunk, etc.
+ *
+ * This function depends only on parameters `bytes_total`, `nrows` and
+ * `nthreads`. Its effect is to fill in values `rows_per_chunk`, 'nchunks' and
+ * `bytes_per_chunk`.
+ */
+void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
+{
+  static const size_t max_chunk_size = 1024 * 1024;
+  static const size_t min_chunk_size = 1024;
+
+  double bytes_per_row = nrows? 1.0 * bytes_total / nrows : 0;
   int min_nchunks = nthreads == 1 ? 1 : nthreads*2;
-  int64_t nchunks = bytes_total / max_chunk_size;
+  nchunks = 1 + (bytes_total - 1) / max_chunk_size;
   if (nchunks < min_nchunks) nchunks = min_nchunks;
-  while (1) {
+  int attempts = 5;
+  while (attempts--) {
     rows_per_chunk = 1.0 * (nrows + 1) / nchunks;
     bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
     if (rows_per_chunk < 1.0) {
@@ -556,97 +847,36 @@ MemoryBuffer* csv_write(CsvWriteParameters *args)
       nchunks = bytes_total / min_chunk_size;
       if (nchunks < 1) nchunks = 1;
     } else {
-      break;
+      return;
     }
   }
+  // This shouldn't really happen, but who knows...
+  throw Error("Unable to determine how to write the file: bytes_total=%zu, "
+              "nrows=%zd, nthreads=%d, min.chunk=%zu, max.chunk=%zu",
+              bytes_total, nrows, nthreads, min_chunk_size, max_chunk_size);
+}
 
-  // Prepare columns for writing
-  CsvColumn *columns = reinterpret_cast<CsvColumn*>(malloc((size_t)ncols * sizeof(CsvColumn)));
-  writers_per_stype[ST_REAL_F4] = args->usehex? write_f4_hex : write_f4_dec;
-  writers_per_stype[ST_REAL_F8] = args->usehex? write_f8_hex : write_f8_dec;
-  for (int64_t i = 0; i < ncols; i++) {
-    new (columns + i) CsvColumn(dt->columns[i]);
-  }
-  double t4 = wallclock();
 
-  // Start writing the CSV
-  bool stopTeam = false;
-  #pragma omp parallel num_threads(nthreads)
-  {
-    #pragma omp single
-    {
-      VLOG("Writing file using %lld chunks, with %.1f rows per chunk\n",
-           nchunks, rows_per_chunk);
-      VLOG("Using nthreads = %d\n", omp_get_num_threads());
-      VLOG("Initial buffer size in each thread: %zuB\n", bytes_per_chunk);
+/**
+ * Initialize writers for each column in the DataTable, i.e. fill in the vector
+ * `columns` of `CsvColumn` objects. The objects created depend on the type of
+ * each column, and on the options passed to the CsvWriter.
+ */
+void CsvWriter::create_column_writers(size_t ncols)
+{
+  columns.reserve(ncols);
+  writers_per_stype[ST_REAL_F4] = usehex? write_f4_hex : write_f4_dec;
+  writers_per_stype[ST_REAL_F8] = usehex? write_f8_hex : write_f8_dec;
+  for (int64_t i = 0; i < dt->ncols; i++) {
+    Column *dtcol = dt->columns[i];
+    SType stype = dtcol->stype;
+    CsvColumn *csvcol = new CsvColumn(dtcol);
+    columns.push_back(csvcol);
+    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+      strcolumns.push_back(csvcol);
     }
-    size_t bufsize = bytes_per_chunk;
-    char *thbuf = new char[bufsize];
-    char *tch = thbuf;
-    size_t th_write_at = 0;
-    size_t th_write_size = 0;
-
-    #pragma omp for ordered schedule(dynamic)
-    for (int64_t i = 0; i < nchunks; i++) {
-      if (stopTeam) continue;
-      int64_t row0 = static_cast<int64_t>(i * rows_per_chunk);
-      int64_t row1 = static_cast<int64_t>((i + 1) * rows_per_chunk);
-      if (i == nchunks-1) row1 = nrows;  // always go to the last row for last chunk
-
-      // write the thread-local buffer into the output
-      if (th_write_size) {
-        char *target = static_cast<char*>(mb->get()) + th_write_at;
-        memcpy(target, thbuf, th_write_size);
-        tch = thbuf;
-        th_write_size = 0;
-      }
-
-      for (int64_t row = row0; row < row1; row++) {
-        for (int64_t col = 0; col < ncols; col++) {
-          columns[col].write(&tch, row);
-          *tch++ = ',';
-        }
-        tch[-1] = '\n';
-      }
-
-      #pragma omp ordered
-      {
-        th_write_at = bytes_written;
-        th_write_size = static_cast<size_t>(tch - thbuf);
-        bytes_written += th_write_size;
-        // TODO: Add check that the output buffer has enough space
-      }
-    }
-    if (th_write_size) {
-      char *target = static_cast<char*>(mb->get()) + th_write_at;
-      memcpy(target, thbuf, th_write_size);
-    }
-    delete[] thbuf;
   }
-  double t5 = wallclock();
-
-  // Done writing; if writing to stdout then append '\0' to make it a regular
-  // C string; otherwise truncate MemoryBuffer to the final size.
-  if (args->path) {
-    VLOG("Reducing destination file to size %.3fGB\n", 1e-9*bytes_written);
-    mb->resize(bytes_written);
-  } else {
-    char *target = static_cast<char*>(mb->get());
-    target[bytes_written] = '\0';
-    mb->resize(bytes_written + 1);
-  }
-  free(columns);
-  double t6 = wallclock();
-
-  VLOG("Timing report:\n");
-  VLOG("   %6.3fs  Calculate expected file size\n", t1 - t0);
-  VLOG(" + %6.3fs  Allocate file\n",                t2 - t1);
-  VLOG(" + %6.3fs  Write column names\n",           t3 - t2);
-  VLOG(" + %6.3fs  Prepare for writing\n",          t4 - t3);
-  VLOG(" + %6.3fs  Write the data\n",               t5 - t4);
-  VLOG(" + %6.3fs  Finalize the file\n",            t6 - t5);
-  VLOG(" = %6.3fs  Overall time taken\n",           t6 - t0);
-  return mb;
+  t_prepare_for_writing = checkpoint();
 }
 
 
@@ -661,13 +891,15 @@ void init_csvwrite_constants() {
     bytes_per_stype[i] = 0;
     writers_per_stype[i] = NULL;
   }
-  bytes_per_stype[ST_BOOLEAN_I1] = 1;  // 1
-  bytes_per_stype[ST_INTEGER_I1] = 4;  // -100
-  bytes_per_stype[ST_INTEGER_I2] = 6;  // -32000
-  bytes_per_stype[ST_INTEGER_I4] = 11; // -2000000000
-  bytes_per_stype[ST_INTEGER_I8] = 20; // -9223372036854775800
-  bytes_per_stype[ST_REAL_F4]    = 25; // -0x1.123456p+30
-  bytes_per_stype[ST_REAL_F8]    = 25; // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_BOOLEAN_I1]      = 1;  // 1
+  bytes_per_stype[ST_INTEGER_I1]      = 4;  // -100
+  bytes_per_stype[ST_INTEGER_I2]      = 6;  // -32000
+  bytes_per_stype[ST_INTEGER_I4]      = 11; // -2000000000
+  bytes_per_stype[ST_INTEGER_I8]      = 20; // -9223372036854775800
+  bytes_per_stype[ST_REAL_F4]         = 25; // -0x1.123456p+30
+  bytes_per_stype[ST_REAL_F8]         = 25; // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
+  bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 
   writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
   writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;

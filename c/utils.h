@@ -3,15 +3,28 @@
 //==============================================================================
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
+#include <stdexcept>
+#include <exception>
+#include <mutex>
 #include <stddef.h>
+#include <stdio.h>   // vsnprintf
 #include <stdint.h>
+#include <stdio.h>   // vsnprintf
 #include <errno.h>   // errno
 #include <string.h>  // strerr
+
+// On Windows variables of type `size_t` cannot be printed with "%zu" in the
+// `snprintf()` function. For those variables we will cast them into
+// `unsigned long long int` before printing; and this #define makes it simpler.
+#define llu   unsigned long long int
+
 
 int64_t min(int64_t a, int64_t b);
 int64_t max(int64_t a, int64_t b);
 float max_f4(float a, float b);
 double wallclock(void);
+const char* filesize_to_str(size_t filesize);
+
 
 /**
  * Helper method that attempts to compute object `x`, but executes "goto fail"
@@ -22,6 +35,48 @@ double wallclock(void);
     if (y == NULL) goto fail;                                                  \
     y;                                                                         \
 })
+
+
+/**
+ * Helper class to throw exceptions with nicely formatted messages.
+ */
+class Error: std::exception {
+  char msg[1000];
+public:
+  Error(char const* format, ...) __attribute__((format(printf, 2, 3))) {
+    va_list vargs;
+    va_start(vargs, format);
+    vsnprintf(msg, 1000, format, vargs);
+    va_end(vargs);
+  }
+  char const* what() const throw() { return msg; }
+};
+
+
+/**
+ * Helper class for dealing with exceptions inside OMP code: it allows one to
+ * capture exceptions that occur, and then re-throw them later after the OMP
+ * region.
+ * ----
+ * Adapted from StackOverflow question <stackoverflow.com/questions/11828539>
+ * by user Grizzly <stackoverflow.com/users/201270/grizzly>.
+ * Licensed under CC BY-SA 3.0 <http://creativecommons.org/licenses/by-sa/3.0/>
+ */
+class OmpExceptionManager {
+  std::exception_ptr ptr;
+  std::mutex lock;
+public:
+  OmpExceptionManager(): ptr(nullptr) {}
+  ~OmpExceptionManager() {}
+  bool exception_caught() { return bool(ptr); }
+  void capture_exception() {
+    std::unique_lock<std::mutex> guard(this->lock);
+    if (!ptr) ptr = std::current_exception();
+  }
+  void rethrow_exception_if_any() {
+    if (ptr) std::rethrow_exception(ptr);
+  }
+};
 
 
 

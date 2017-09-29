@@ -560,7 +560,6 @@ class FReader(object):
                                % colspec)
 
 
-
 # Directly corresponds to `colType` enum in "fread.h"
 _coltypes_strs = [
     "drop",      # 0
@@ -568,9 +567,11 @@ _coltypes_strs = [
     "int32",     # 2
     "int32x",    # 3
     "int64",     # 4
-    "float64",   # 5
-    "float64x",  # 6
-    "str",       # 7
+    "float32x",  # 5
+    "float64",   # 6
+    "float64e",  # 7
+    "float64x",  # 8
+    "str",       # 9
 ]
 
 # FIXME !
@@ -586,8 +587,10 @@ _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
     ("int32a",   "int32"),
     ("int32b",   "int32x"),
     ("int64",    "int64"),
+    ("float32x", "float32x"),
     ("float",    "float64"),
     ("float64",  "float64"),
+    ("float64e", "float64e"),
     ("float64x", "float64x"),
     ("str",      "str"),
     ("drop",     "drop"),
