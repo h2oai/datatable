@@ -106,7 +106,8 @@ os.environ["LLVM_CONFIG"] = llvm_config
 extra_compile_args = ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
 
 # Include path to C++ header files
-extra_compile_args += ["-I" + os.environ["LLVM4"] + "/include/c++/v1"]
+extra_compile_args += ["-I" + os.environ["LLVM4"] + "/include/c++/v1",
+                       "-isystem " + os.environ["LLVM4"] + "/include/c++/v1"]
 
 # This flag becomes C-level macro DTPY, which indicates that we are compiling
 # (Py)datatable. This is used for example in fread.c to distinguish between

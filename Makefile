@@ -2,7 +2,9 @@
 PYTHON ?= python
 OS := $(shell uname | tr A-Z a-z)
 MODULE ?= .
-
+ifeq ($(OS),Linux)
+	GCOVTOOL := --gcov-tool ./llvm-gcov.sh
+endif
 
 .PHONY: all
 all:
@@ -95,7 +97,6 @@ coverage:
 		--benchmark-skip \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
-	lcov --capture --directory . --output-file build/coverage.info
-	# lcov --gcov-tool ./llvm-gcov.sh --capture --directory . --output-file build/coverage.info
+	lcov $(GCOVTOOL) --capture --directory . --output-file build/coverage.info
 	genhtml build/coverage.info --output-directory build/coverage-c
 	mv .coverage build/
