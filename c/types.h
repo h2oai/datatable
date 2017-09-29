@@ -444,7 +444,39 @@ int ISNA_F8(double x);
 #define ISNA_U2(x)  ((uint16_t)(x) == NA_U2)
 #define ISNA_U4(x)  ((uint32_t)(x) == NA_U4)
 
+/**
+ * GETNA function
+ * Template function that returns the appropriate NA_XX value based on the
+ * type of `T`. Returns NULL if `T` is incompatible.
+ */
+template <typename T>
+           inline T        GETNA() { return NULL;  }
+template<> inline int8_t   GETNA() { return NA_I1; }
+template<> inline int16_t  GETNA() { return NA_I2; }
+template<> inline int32_t  GETNA() { return NA_I4; }
+template<> inline int64_t  GETNA() { return NA_I8; }
+template<> inline uint8_t  GETNA() { return NA_U1; }
+template<> inline uint16_t GETNA() { return NA_U2; }
+template<> inline uint32_t GETNA() { return NA_U4; }
+template<> inline float    GETNA() { return NA_F4; }
+template<> inline double   GETNA() { return NA_F8; }
 
+/**
+ * ISNA function
+ * Template function that uses the appropriate ISNA_XX macro/function based
+ * on the argument type. Returns true if type is invalid.
+ */
+template <typename T>
+           inline bool ISNA(T)          { return true;       }
+template<> inline bool ISNA(int8_t x)   { return ISNA_I1(x); }
+template<> inline bool ISNA(int16_t x)  { return ISNA_I2(x); }
+template<> inline bool ISNA(int32_t x)  { return ISNA_I4(x); }
+template<> inline bool ISNA(int64_t x)  { return ISNA_I8(x); }
+template<> inline bool ISNA(uint8_t x)  { return ISNA_U1(x); }
+template<> inline bool ISNA(uint16_t x) { return ISNA_U2(x); }
+template<> inline bool ISNA(uint32_t x) { return ISNA_U4(x); }
+template<> inline bool ISNA(float x)    { return ISNA_F4(x); }
+template<> inline bool ISNA(double x)   { return ISNA_F8(x); }
 
 //==============================================================================
 
