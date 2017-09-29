@@ -147,9 +147,10 @@ extra_compile_args += [
 ]
 extra_link_args = [
     "-v",
-    "-lc++",
 ]
 
+if sys.platform == "linux":
+    extra_link_args += ["-lc++"]
 
 if "DTNOOPENMP" in os.environ:
     extra_compile_args.append("-DDTNOOMP")
