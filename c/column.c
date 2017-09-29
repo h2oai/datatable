@@ -36,7 +36,7 @@ Column* make_data_column(SType stype, size_t nrows)
     col->alloc_size = stype_info[stype].elemsize * nrows +
                       (stype == ST_STRING_I4_VCHAR ? column_i4s_padding(0) :
                        stype == ST_STRING_I8_VCHAR ? column_i8s_padding(0) : 0);
-    col->stats = NULL;
+    col->stats = Stats::void_ptr();
     col->refcount = 1;
     col->mtype = MT_DATA;
     col->stype = stype;
@@ -151,7 +151,7 @@ Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
     col->filename = NULL;
     col->nrows = nrows;
     col->alloc_size = filesize;
-    col->stats = NULL;
+    col->stats = Stats::void_ptr();
     col->refcount = 1;
     col->mtype = MT_MMAP;
     col->stype = stype;
@@ -172,7 +172,7 @@ Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
     col->meta = NULL;
     col->nrows = nrows;
     col->alloc_size = alloc_size;
-    col->stats = NULL;
+    col->stats = Stats::void_ptr();
     col->pybuf = pybuffer;
     col->refcount = 1;
     col->mtype = MT_XBUF;
@@ -198,7 +198,7 @@ Column* column_copy(Column *self)
     col->meta = NULL;
     col->filename = NULL;
     col->nrows = self->nrows;
-    col->stats = NULL;
+    col->stats = Stats::void_ptr();
     col->stype = self->stype;
     col->mtype = MT_DATA;
     col->refcount = 1;
@@ -477,7 +477,7 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
                       elemsize, diff_rows);
         }
         // TODO: Temporary fix. To be resolved in #301
-        if (col->stats) col->stats->reset();
+        col->stats->reset();
         return col;
     }
 
@@ -534,7 +534,7 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
                       &na, 4, diff_rows);
         }
         // TODO: Temporary fix. To be resolved in #301
-        if (col->stats) col->stats->reset();
+        col->stats->reset();
         return col;
     }
     // Exception

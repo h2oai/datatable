@@ -344,17 +344,22 @@ static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
     return pyrowindex(ri);
 }
 
+#define DT_METH_GET_STAT(STAT, DOCSTRING) \
+    DT_DOCS(get_ ## STAT , DOCSTRING) \
+    static PyObject* meth_get_## STAT (DataTable_PyObject *self, PyObject *args) \
+    { \
+        if (!PyArg_ParseTuple(args, "")) return NULL; \
+        return py(Stats:: STAT ## _datatable(self->ref)); \
+    }
 
+DT_METH_GET_STAT(min, "Get the minimum for each column in the datatable")
+DT_METH_GET_STAT(max, "Get the maximum for each column in the datatable")
+DT_METH_GET_STAT(sum, "Get the sum for each column in the datatable")
+DT_METH_GET_STAT(mean, "Get the mean for each column in the datatable")
+DT_METH_GET_STAT(sd, "Get the standard deviation for each column in the datatable")
+DT_METH_GET_STAT(countna, "Get the NA count for each column in the datatable")
 
-DT_DOCS(get_stat, "Get a statistical value for each column in the datatable")
-static PyObject* meth_get_stat(DataTable_PyObject *self, PyObject *args)
-{
-    CStat stat;
-    if (!PyArg_ParseTuple(args, "b:get_stat", &stat)) return NULL;
-    return py(make_cstat_datatable(self->ref, stat));
-}
-
-
+#undef DT_METH_GET_STAT
 
 DT_DOCS(materialize, "")
 static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
@@ -417,7 +422,12 @@ static PyMethodDef datatable_methods[] = {
     DT_METHOD1(rbind),
     DT_METHOD1(cbind),
     DT_METHOD1(sort),
-    DT_METHOD1(get_stat),
+    DT_METHOD1(get_min),
+    DT_METHOD1(get_max),
+    DT_METHOD1(get_sum),
+    DT_METHOD1(get_mean),
+    DT_METHOD1(get_sd),
+    DT_METHOD1(get_countna),
     DT_METHOD1(materialize),
     DT_METHOD1(apply_na_mask),
     {NULL, NULL, 0, NULL}           /* sentinel */

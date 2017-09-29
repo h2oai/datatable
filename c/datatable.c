@@ -29,6 +29,9 @@ DataTable* make_datatable(Column **cols, RowIndex *rowindex)
         res->rowindex = rowindex;
         res->nrows = rowindex->length;
         dtcalloc(res->stats, Stats*, res->ncols);
+        for (int64_t i = 0; i < res->ncols; ++i) {
+            res->stats[i] = Stats::void_ptr();
+        }
     } else if (ncols) {
         res->nrows = cols[0]->nrows;
     }
@@ -52,8 +55,8 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     for (int i = 0; i < dt->ncols; i++) {
         if (i == next_col_to_remove) {
             column_decref(columns[i]);
-            if (stats) delete stats[i];
             columns[i] = NULL;
+            if (stats) Stats::destruct(stats[i]);
             do {
                 k++;
                 next_col_to_remove = k < n? cols_to_remove[k] : -1;
@@ -89,7 +92,7 @@ void datatable_dealloc(DataTable *self)
     dtfree(self->columns);
     if (self->stats) {
         for (int64_t i = 0; i < self->ncols; ++i) {
-            delete self->stats[i];
+            Stats::destruct(self->stats[i]);
         }
         dtfree(self->stats);
     }
@@ -130,8 +133,8 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
     for (int i = 0; i < ncols; i++) {
         // TODO: Move this part into columns.c?
         Column *col = dt->columns[i];
-        delete col->stats;
-        col->stats = NULL;
+        Stats::destruct(col->stats);
+        col->stats = Stats::void_ptr();
         uint8_t *mdata = (uint8_t*) mask->columns[i]->data;
         switch (col->stype) {
             case ST_BOOLEAN_I1:
@@ -216,7 +219,11 @@ void datatable_reify(DataTable *self) {
     if (self->rowindex == NULL) return;
     for (int64_t i = 0; i < self->ncols; ++i) {
         Column *newcol = column_extract(self->columns[i], self->rowindex);
-        newcol->stats = self->stats[i];
+        if (!self->stats[i]->is_void()) {
+            newcol->stats = self->stats[i];
+            newcol->stats->_ref_col = newcol;
+            newcol->stats->_ref_ri = NULL;
+        }
         column_decref(self->columns[i]);
         self->columns[i] = newcol;
     }
@@ -224,24 +231,6 @@ void datatable_reify(DataTable *self) {
     dtfree(self->stats);
     self->rowindex = NULL;
     self->stats = NULL;
-}
-
-/**
- * Helper functions for set/getting Stats from a DataTable.
- * Note that the returned value may be NULL, in which case a new Stats instance
- * should be independently created.
- */
-Stats* datatable_get_stats(const DataTable *self, const int64_t index) {
-    return self->stats != NULL ? self->stats[index] :
-                                 self->columns[index]->stats;
-}
-
-void datatable_set_stats(DataTable *self, const int64_t index, Stats *stats) {
-    if (self->stats != NULL) {
-        self->stats[index] = stats;
-    } else {
-        self->columns[index]->stats = stats;
-    }
 }
 
 

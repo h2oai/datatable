@@ -46,7 +46,7 @@ typedef struct DataTable {
     int64_t     ncols;
     RowIndex   *rowindex;
     Column    **columns;
-    Stats    **stats;
+    Stats **stats;
 } DataTable;
 
 
@@ -62,8 +62,6 @@ DataTable* datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts,
 DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts);
 DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask);
 void datatable_reify(DataTable *self);
-Stats* datatable_get_stats(const DataTable *self, const int64_t index);
-void datatable_set_stats(DataTable *self, const int64_t index, Stats *stats);
 size_t datatable_get_allocsize(DataTable *dt);
 void datatable_dealloc(DataTable *self);
 

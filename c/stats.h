@@ -1,6 +1,8 @@
-#ifndef STATS2_H
-#define STATS2_H
+#ifndef STATS_H
+#define STATS_H
 
+#include <stddef.h>
+#include <stdint.h>
 #include "types.h"
 #include "datatable.h"
 
@@ -9,58 +11,80 @@ typedef struct Column Column;
 typedef struct RowIndex RowIndex;
 
 /**
- * Column Statistic
- * This enum is used to maintain an abstraction between the user and the Stats
- * structure.
- **/
-typedef enum CStat {
-    C_MIN = 0,
-    C_MAX = 1,
-    C_SUM = 2,
-    C_MEAN = 3,
-    C_STD_DEV = 4,
-    C_COUNT_NA = 5,
-} __attribute__ ((__packed__)) CStat;
-
-/**
- * Statistics container
- * This structure is intended to be used in a DataTable. A DataTable should
- * contain a Stats array of size ncols. Each Stats structure should be uniquely
- * associated with a column inside the DataTable. It is the DataTable's
- * responsibility to maintain this association, and thus it must insure that
- * a Stats structure is properly modified/replaced in the event that its associated
- * column is modified.
+ * Statistics Container
+ * Gone is the era of CStats. The Stats class contains a method for each
+ * retrievable statistic. To be more specific, every available stat must have
+ * the public methods `stat()` and `stat_datatable()`. In the case for a stat
+ * whose type may vary by column, it is the user's responsibility to determine
+ * what is the appropriate return type.
  *
- * The format and typing of this structure is subject to change. Use the
- * functions and the CStat enum (see below) when getting/setting values.
+ * A Stats class is associated with a Column and Rowindex (the latter may be
+ * NULL). This class does NOT contain a reference counter. Create a copy
+ * of the class instead of having more than one reference to it (Not currently
+ * available).
  *
- * Note: The Stats structure does NOT contain a reference counter. Create a
- * copy of the structure instead of having more than one reference to it.
- **/
+ * A reference to Stats should never be NULL; it should instead point to the
+ * Stats instance returned by `void_ptr()`. This is to prevent the need for NULL
+ * checks before calling a method. A "void" Stats will return a NA value for any
+ * statistic.
+ */
 class Stats {
 public:
-    Stats(const SType);
-    virtual ~Stats(); // TODO: Copy constructor?
-    virtual void compute_cstat(const Column*, const RowIndex*, const CStat);
-    Column* make_column(const CStat) const;
+    static Stats* construct(const Column*, const RowIndex*);
+    static void destruct(Stats*);
+
     virtual void reset();
-    bool is_computed(const CStat);
     size_t alloc_size() const;
-    const SType stype;
-    char _padding[7];
+    void merge_stats(const Stats*); // TODO: virtual when implemented
+    static Stats* void_ptr();
+    bool is_void() const;
+
+    //===================== Get Stat Value ======================
+    template <typename T> T min();
+    template <typename T> T max();
+    template <typename A> A sum();
+    virtual double          mean();
+    virtual double          sd();
+    virtual int64_t         countna();
+    //===========================================================
+
+    //================ Get Stats for a DataTable ================
+    static DataTable* mean_datatable   ( const DataTable*);
+    static DataTable* sd_datatable     ( const DataTable*);
+    static DataTable* countna_datatable( const DataTable*);
+    static DataTable* min_datatable    ( const DataTable*);
+    static DataTable* max_datatable    ( const DataTable*);
+    static DataTable* sum_datatable    ( const DataTable*);
+    //===========================================================
 protected:
-    int64_t countna;
-    uint64_t iscomputed;
-    void *cstat_to_val[DT_STYPES_COUNT];
-private:
-    static const uint64_t ALL_COMPUTED = 0xFFFFFFFFFFFFFFFF;
+    double _mean;
+    double _sd;
+    int64_t _countna;
+    const Column* _ref_col;
+    const RowIndex* _ref_ri;
+
+    Stats(const Column*, const RowIndex*);
+    virtual ~Stats();
+
+    //================== Get Stat as a Column ===================
+    Column*         mean_column();
+    Column*         sd_column();
+    Column*         countna_column();
+    virtual Column* min_column();
+    virtual Column* max_column();
+    virtual Column* sum_column();
+    //===========================================================
+
+    // Helper functions to deal with the template stats
+    virtual void* min_raw();
+    virtual void* max_raw();
+    virtual void* sum_raw();
+
+    friend void datatable_reify(DataTable*);
+    friend int dt_verify_integrity(DataTable*, char**);
 };
 
-#define DT_CSTATS_COUNT (C_COUNT_NA + 1)
-
-Stats* construct_stats(const SType);
-DataTable* make_cstat_datatable(const DataTable *self, const CStat s);
 void init_stats(void);
 
-#endif /* STATS2_H */
+#endif /* STATS_H */
 
