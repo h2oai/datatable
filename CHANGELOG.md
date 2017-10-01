@@ -2,23 +2,43 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.2.1)
+#### Added
+- Ability to write DataTable into a CSV file: the `.to_csv()` method. The CSV writer
+  is multi-threaded and extremely fast.
+- Added `.internal.column(i).data_pointer` getter, to allow native code from other
+  libraries to easily access the data in each column.
+- Fread can now read hexadecimal floating-point numbers: floats and doubles.
+- Csv writer will now auto-quote an empty string, and a string containing leading/
+  trailing whitespace, so that it can be read by `fread` reliably.
+- Fread now prints file sizes in "human-readable" form, i.e. KB/MB/GB instead of bytes.
+- Fread can now understand a variety of "NaN" / "Inf" literals produced by different
+  systems.
+- Add option `hex` to csv writer, which controls whether floats will be written in
+  decimal (default) or hexadecimal format.
+- Csv writer now uses the "dragonfly" algorithm for writing doubles, which is faster
+  than all known alternatives.
+
+#### Changed
+- `datatable` will no longer attempt to distinguish between NA and NAN floating-point values.
 
 
 ### [v0.2.1](https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0) — 2017-09-11
 #### Added
-- Environmental variable `DTNOOPENMP` will cause the `datatable` to be built without OpenMP support.
-- If `d0` is a DataTable, then `d1 = DataTable(d0)` will create its shallow copy.
+- This CHANGELOG file.
+- `sys.getsizeof(dt)` can now be used to query the size of the datatable in memory.
+- A framework for computing and storing per-column summary statistics.
+- Implemented statistics `min`, `max`, `mean`, `stdev`, `countna` for numeric and boolean columns.
+- Getter `df.internal.rowindex` allows access to the RowIndex on the DataTable (for inspection / reuse).
 - In addition to LLVM4 environmental variable, datatable will now also look for the `llvm4` folder
   within the package's directory.
-- Getter `df.internal.rowindex` allows access to the RowIndex on the DataTable (for inspection / reuse).
-- Implemented statistics `min`, `max`, `mean`, `stdev`, `countna` for numeric and boolean columns.
-- A framework for computing and storin g per-column summary statistics.
-- `sys.getsizeof(dt)` can now be used to query the size of the datatable in memory.
-- This CHANGELOG file.
+- If `d0` is a DataTable, then `d1 = DataTable(d0)` will create its shallow copy.
+- Environmental variable `DTNOOPENMP` will cause the `datatable` to be built without OpenMP support.
 
 #### Fixed
 - Filter function when applied to a view DataTable now produces correct result.
+
 
 ### [v0.2.0](https://github.com/h2oai/datatable/compare/v0.2.0...v0.1.0) — 2017-08-30
 
