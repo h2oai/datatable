@@ -754,7 +754,6 @@ inline void dtoa(char **pch, double dvalue)
   }
 
   // Round the value of D according to its precision
-  #define min(x,y) (x<y? x : y)
   if (eps >= 100) {
     int64_t m = static_cast<int64_t>(D % 1000);
     if (m <= eps || 1000-m <= eps) {

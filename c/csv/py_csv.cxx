@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "Python.h"
-#include "csv.h"
+#include "csv/writer.h"
 #include "myomp.h"
 #include "utils.h"
 #include "py_datatable.h"
