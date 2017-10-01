@@ -13,17 +13,182 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_LOOKUPS_H
-#define dt_CSV_LOOKUPS_H
-
-
-// `Atable` is used in the "dragonfly" algorithm for converting doubles into
-// strings. See explanation in csv_write.cxx
 //
-// The `Atable` list was generated using the following code (at first I tried
-// computing it in C with long doubles, but that turned out to not have enough
-// precision -- so instead use Python with its arbitrary-precision integer
-// arithmetics):
+// This file contains an implementation of the `dtoa` (`ftoa`) function, i.e. a
+// function for converting a double (float) value into a string. This is based
+// on the "Dragonfly" algorithm, which can be viewed as a simplified version of
+// Grisu2.
+//
+//
+// ==== Dragonfly ====
+//
+// Let `x` be an IEEE-754 64-bit floating-point number (double), and `v` is the
+// same number reinterpreted as an uint64_t. In order to convert `x` into a
+// string, we do the following:
+//
+// 1. The input value `v` is comprised of: 1 sign bit, 11 bits of exponent, and
+//    then 52 bits of mantissa. Thus, it can be split into its constituent parts
+//    as follows:
+//
+//        s = v >> 63               // sign: 0 (positive) or 1 (negative)
+//        eᵇ = (v >> 52) & 0x7FF    // biased exponent
+//        m = v & ((1 << 52) - 1)   // mantissa
+//
+//    First we have to take care of certain "special cases":
+//
+//      * If `s == 1`, then the input is a negative number. We print into the
+//        output buffer '-' and negate v (for example by XORing with `1 << 63`).
+//        If we compute `eᵇ` after this step, it will no longer be necessary to
+//        AND it with 0x7FF as written in the formula above.
+//      * If `eᵇ == 0x7FF` then the value `x` is either the infinity (if the
+//        mantissa is zero), or NaN (if mantissa is non-zero). Print "inf" or
+//        "nan" into the output, and return.
+//      * If `eᵇ == 0` then the vaue `x` is either zero (if the mantissa is 0),
+//        or a subnormal number. In both cases we simply print '0' into the
+//        output and return.
+//
+//    From this point on, we can assume that `x` is a positive normal number.
+//
+// 2. Mathematically, the real value `x` can be written as:
+//
+//        x = (1 + m/2^52) * 2^(eᵇ - 1023)
+//          = G * 2^(e + 1 - 64)
+//
+//    where G is uint64, and e is int:
+//
+//        G = 2^11 * (2^52 + m) = (v << 11) | (1<<63)
+//        e = eᵇ - 1023 = (v >> 52) - 1023
+//
+// 3. In order to convert `x` into a decimal string, we would like to find such
+//    numbers D and E that
+//
+//        x = D * 10^(E - 17)
+//
+//    where 10^17 <= D < 10^18 is real-valued, and E is integer (the "-17" comes
+//    from the fact that `x` has at most 17 significant decimal digits, and thus
+//    we will be able to round D to the nearest integer without loss of
+//    precision). Once such numbers are found, producing the final string
+//    becomes simple. One of the following forms can be used, depending on the
+//    magnitude of E:
+//
+//        D[0] '.' D[1:] 'e' E
+//        D[0:E] '.' D[E:]
+//        '0' '.' '0'*{-E-1} D[0:]
+//
+// 4. Denote g = G*2^-63, and d = D*10^-17. Then 1 <= g < 2, and 1 <= d < 10.
+//    Then x = g * 2^e = d * 10^E, and therefore
+//
+//        E = log₁₀(g) + e * log₁₀2 - log₁₀(d)
+//          = Floor[log₁₀(g) + e * log₁₀2]
+//          = Floor[(log₂(g) + e) * log₁₀2]
+//        Floor[e * log₁₀2] ≤ E < Floor[(1 + e) * log₁₀2]
+//
+//    For some values of `e`s the two bounds coincide, and then E can be
+//    computed as E(e) = Floor[e * log₁₀2]. But for other values of `e`s the
+//    value of E will also be affected by `g`, and the previous formula will
+//    produce E(e) that is smaller by 1 than the actual E. In practice, we will
+//    always use this formula for E, manually adjusting the value afterwards if
+//    we see that it results in D being ≥ 10^18.
+//
+//    In practice we will even replace this formula with a simpler one, which
+//    produces numerically equivalent result for the admissible range of `e`s:
+//
+//        E = Floor[(e*1233 - 8)/4096]
+//          = ((201 + eᵇ*1233) >> 12) - 308
+//
+//    where eᵇ = e + 0x3FF is the biased exponent.
+//
+// 5. Then, D can be computed as
+//
+//        D = G * 2^(e + 1) * 10^(17 - E) / 2^64
+//
+//    With the choice of E(e) as above, this quantity will range from 1.001e17
+//    to 2.015e18. The coefficients in E(e) were optimized in order to minimize
+//    sup(D) subject to inf(D)≥10^17. At this point if D turns out to be greater
+//    than 10^18, then we scale it back by the factor of 10 and increment E.
+//
+//    In this expression, G is integer, whereas A := 2^(e+1) * 10^(17-E(e)) is
+//    real-valued. We can convert it into an integer by rounding:
+//
+//        A = 2^(e + 1) * 10^(17 - E(e))
+//        A˜= Floor[A + 1/2]
+//        sup|A - A˜| ≤ ½
+//
+//    Then
+//
+//        D˜ = Round[(G * A˜)/2^64]
+//           = (G * A˜ + 2^63) >> 64
+//        sup|D - D˜| < 1
+//
+//    Here G and A˜ are two 64-bit integers, and computation of D˜ thus involves
+//    multiplying two `uint64_t`s into one `uint128_t` and taking the upper part
+//    of the product (shift by 64).
+//
+//    The quantities A˜(e) are in the range approximately from 2.0e17 to 2.0e18.
+//    They can be precomputed and stored for every exponent e (there are 2046
+//    of them).
+//
+// 6. Finally, we'd like to round the number D˜ so that it has the correct
+//    number of significant digits. Notice that the "adjacent" values to x
+//    are those with mantissas m ± 1, which translates to a difference in D˜ in
+//    ±(A˜ >> 53). Thus, we can say that any value in the range (D˜ ± (A˜>>54))
+//    represents x. We would want to choose among them the "nicest", that is the
+//    one having least number of digits. We can use the following approach:
+//
+//      - Let ε = A˜ >> 54
+//      - Let w be the last 3 digits of D. Is w within an ε-distance from 0 or
+//        1000? If so, then round D to the 1000s. Otherwise,
+//      - Let w be the last 2 digits of D. Is w within an ε-distance from 0 or
+//        100? If so, then round D to the 100s. Otherwise,
+//      - Let w be the last digit of D. Is w within an ε-distance from 0 or 10?
+//        If so, then round D to 10s. Otherwise,
+//      - Do not round. Use number D as the best available approximation.
+//
+//    In practice the range of ε is from 1.1 to 111.9, so we don't have to
+//    consider rounding to 10000 or more.
+//
+//------------------------------------------------------------------------------
+#ifndef dt_csv_DTOA_H
+#define dt_csv_DTOA_H
+#include <stdint.h>
+
+typedef union { double d; uint64_t u; }  _dbl_u64;
+typedef unsigned __int128  uint128_t;
+
+#define F64_SIGN_MASK  0x8000000000000000u
+#define F64_MANT_MASK  0x000FFFFFFFFFFFFFu
+#define F64_1em5       0x3EE4F8B588E368F1u
+#define F64_1e00       0x3FF0000000000000u
+#define F64_1e15       0x430c6bf526340000u
+#define TENp17         100000000000000000
+#define TENp18         1000000000000000000
+
+static const int64_t DIVS64[19] = {
+  1L,
+  10L,
+  100L,
+  1000L,
+  10000L,
+  100000L,
+  1000000L,
+  10000000L,
+  100000000L,
+  1000000000L,
+  10000000000L,
+  100000000000L,
+  1000000000000L,
+  10000000000000L,
+  100000000000000L,
+  1000000000000000L,
+  10000000000000000L,
+  100000000000000000L,
+  1000000000000000000L,
+};
+
+
+// `Atable64` is used in the "dragonfly" algorithm for converting doubles into
+// strings. It corresponds to A˜(e) in the description above. This table was
+// generated using the following Python code:
 //
 //    from fractions import Fraction
 //    for eb in range(2048):
@@ -32,10 +197,10 @@
 //        ee = eb - 1023 + 1
 //        p2 = 2**ee if ee >= 0 else Fraction(1, 2**(-ee))
 //        p = p1 * p2
-//        assert p > 2**53
+//        assert 2**54 < p < 2**64
 //        print("0x%016x, " % round(p), end=("\n" if eb % 4 == 3 else ""))
 //
-const uint64_t Atable[2048] = {
+static const uint64_t Atable64[2048] = {
   0x03168149dd886f8a, 0x062d0293bb10df15, 0x0c5a05277621be29, 0x18b40a4eec437c52,
   0x04f0cedc95a718dd, 0x09e19db92b4e31bb, 0x13c33b72569c6375, 0x03f3d8b077b8e0b1,
   0x07e7b160ef71c162, 0x0fcf62c1dee382c4, 0x03297a26c62d808e, 0x0652f44d8c5b011b,
@@ -549,5 +714,131 @@ const uint64_t Atable[2048] = {
   0x03e5eb8f434911bd, 0x07cbd71e86922379, 0x0f97ae3d0d2446f2, 0x031e560c35d40e30,
   0x063cac186ba81c61, 0x0c795830d75038c2, 0x18f2b061aea07184, 0x04fd5679efb9b04e,
 };
+
+
+inline void dtoa(char **pch, double dvalue)
+{
+  char *ch = *pch;
+  uint64_t value = ((_dbl_u64){ .d = dvalue }).u;
+
+  if (value & F64_SIGN_MASK) {
+    *ch++ = '-';
+    value ^= F64_SIGN_MASK;
+  }
+  int eb = static_cast<int>(value >> 52);  // biased exponent
+  if (eb == 0x7FF) {
+    if ((value & F64_MANT_MASK) == 0) {  // don't print nans at all
+      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
+      *pch = ch + 3;
+    }
+    return;
+  } else if (eb == 0x000) {
+    *ch++ = '0';
+    *pch = ch;
+    return;
+  }
+
+  // Main part of the algorithm: compute D and E
+  int E = ((201 + eb*1233) >> 12) - 308;
+  uint64_t G = (value << 11) | F64_SIGN_MASK;
+  uint64_t A = Atable64[eb];
+  uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
+  uint64_t ph = static_cast<uint64_t>(p >> 64);
+  uint64_t pl = static_cast<uint64_t>(p);
+  int64_t D = static_cast<int64_t>(ph + (pl >> 63));
+  int64_t eps = static_cast<int64_t>(A >> 54);
+  if (D >= TENp18) {
+    D /= 10;
+    eps /= 10;
+    E++;
+  }
+
+  // Round the value of D according to its precision
+  #define min(x,y) (x<y? x : y)
+  if (eps >= 100) {
+    int64_t m = static_cast<int64_t>(D % 1000);
+    if (m <= eps || 1000-m <= eps) {
+      D += 1000*(m >= 500) - m;
+    } else goto eps10;
+  } else if (eps >= 10) {
+    eps10:
+    int64_t m = static_cast<int64_t>(D % 100);
+    if (m <= eps || 100-m <= eps) {
+      D += 100*(m >= 50) - m;
+    } else goto eps1;
+  } else {
+    eps1:
+    int64_t m = static_cast<int64_t>(D % 10);
+    if (m <= eps || 10-m <= eps) {
+      D += 10*(m >= 5) - m;
+    }
+  }
+
+  // Write the decimal number into the buffer, in one of the three formats
+  // depending on the magnitude of E.
+  if (E < -5 || E >= 15) {
+    // Small/large numbers write in scientific notation: 1.2345e+67
+    int64_t d = D / TENp17;
+    D -= d * TENp17;
+    *ch = static_cast<char>(d) + '0';
+    ch[1] = '.';
+    ch += 1 + (D != 0);
+    int r = 16;
+    while (D) {
+      d = D / DIVS64[r];
+      D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      r--;
+    }
+    // Write exponent. This code will output the integer number `E` up to
+    // 999. Since in practice |E| ≤ 308 for doubles, this is sufficient.
+    *ch++ = 'e';
+    if (E < 0) {
+      *ch++ = '-';
+      E = -E;
+    } else {
+      *ch++ = '+';
+    }
+    if (E >= 100) {
+      int q = E / 100;
+      *ch++ = static_cast<char>(q) + '0';
+      E -= q*100;
+      goto E_ge_10;
+    } else if (E >= 10) {
+      E_ge_10:
+      int q = E/10;
+      *ch++ = static_cast<char>(q) + '0';
+      E -= q*10;
+    }
+    *ch++ = static_cast<char>(E) + '0';
+  } else if (E < 0) {
+    // Numbers less than one, use floating point format: 0.0012345
+    *ch++ = '0';
+    *ch++ = '.';
+    for (int r = -E-1; r; r--) {
+      *ch++ = '0';
+    }
+    int r = 17;
+    while (D) {
+      int64_t d = D / DIVS64[r];
+      D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      r--;
+    }
+  } else {
+    // Numbers greater than one, use floating point format: 12345.67
+    int r = 17;
+    int rr = r - E;
+    while (D) {
+      int64_t d = D / DIVS64[r];
+      D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      if (r == rr) { *ch++ = '.'; }
+      r--;
+    }
+  }
+  *pch = ch;
+}
+
 
 #endif

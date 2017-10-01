@@ -7,6 +7,7 @@
 #include "writecsv.h"
 #include "dtoa_milo.h"
 
+#define uint128_t unsigned __int128
 
 static const int32_t DIVS10[10] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
 static void write_int32(char **pch, int32_t value) {
@@ -355,90 +356,6 @@ static const int64_t DIVS64[19] = {
   1000000000000000000L,
 };
 
-/**
- * The problem of converting a floating-point number (float64) into a string
- * can be formulated as follows (assume x is positive and normal):
- *
- *   1. First, the "input" value v is decomposed into the mantissa and the
- *      exponent parts:
- *
- *          x = f * 2^e = F * 2^(e - 52)
- *
- *      where F is uint64, and e is int. These parts can be computed using
- *      simple bit operations on `v = reinterpret_cast<uint64>(x)`:
- *
- *          F = (v & (1<<52 - 1)) | (1<<52)
- *          e = ((v >> 52) & 0x7FF) - 0x3FF
- *
- *   2. We'd like to find integer numbers D and E such that
- *
- *          x ≈ d * 10^E = D * 10^(E - 17)
- *
- *      where 10^17 <= D < 10^18. If such numbers are found, then producing
- *      the final string is simple, one of the following forms can be used:
- *
- *          D[0] '.' D[1:] 'e' E
- *          D[0:E] '.' D[E:]
- *          '0.' '0'{-E-1} D
- *
- *   3. Denote f = F*2^-52, and d = D*10^-17. Then 1 <= f < 2, and similarly
- *      1 <= d < 10. Therefore,
- *
- *          E = log₁₀(f) + e * log₁₀2 - log₁₀(d)
- *          E = Floor[log₁₀(f) + e * log₁₀2]
- *          E ≤ Floor[1 + e * log₁₀2]
- *
- *      This may overestimate E by 1, but ultimately it doesn't matter... In
- *      practice we can replace this formula with one that is close numerically
- *      but easier to compute:
- *
- *          E = Floor[(e*1233 - 8)/4096] = ((201 + eb*1233)>>12) - 308
- *
- *      where eb = e + 0x3FF is the biased exponent.
- *
- *   4. Then, D can be computed as
- *
- *          D = Floor[F * 2^(e - 52) * 10^(17 - E(e))]
- *
- *      (with the choice of E(e) as above, this quantity will range from
- *      1.001e17 to 2.015e18. The coefficients in E(e) were optimized in order
- *      to minimize sup(D) subject to inf(D)>=1e17.)
- *
- *      In this expression, F is integer, whereas 2^(e-52) * 10^(17-E(e)) is
- *      float. If we write the latter as (A+B)/2^53 (where B < 1), then
- *      expression for D becomes
- *
- *          D = Floor[(F * A)/2^53 + (F * B)/2^53]
- *
- *      Here F<2^53 and B<1, and therefore the second term is negligible.
- *      Thus,
- *
- *         D = (F * A(e)) >> 53
- *         A(e) = Floor[2^(e+1) * 10^(17-E(e))]
- *
- *      The quantities A(e) are `uint64`s in the range approximately from
- *      2.002e17 to 2.015e18. They can be precomputed and stored for every
- *      exponent e (there are 2046 of them). Multiplying and shifting of
- *      two uint64 numbers is fast and simple.
- *
- * This algorithm is roughly similar to Grisu2.
- */
-
-// The `Atable` list was generated using the following code (at first I tried
-// computing it in C with long doubles, but that turned out to not have enough
-// precision -- so instead use Python with its arbitrary-precision integer
-// arithmetics):
-//
-//    from fractions import Fraction
-//    for eb in range(2048):
-//        EE = 17 - ((eb*1233 + 201) >> 12) + 308
-//        p1 = 10**EE if EE >= 0 else Fraction(1, 10**(-EE))
-//        ee = eb - 1023 + 1
-//        p2 = 2**ee if ee >= 0 else Fraction(1, 2**(-ee))
-//        p = p1 * p2
-//        assert p > 2**53
-//        print("0x%016x, " % round(p), end=("\n" if eb % 4 == 3 else ""))
-//
 static uint64_t Atable[2048] = {
   0x03168149dd886f8a, 0x062d0293bb10df15, 0x0c5a05277621be29, 0x18b40a4eec437c52,
   0x04f0cedc95a718dd, 0x09e19db92b4e31bb, 0x13c33b72569c6375, 0x03f3d8b077b8e0b1,
@@ -953,17 +870,21 @@ static uint64_t Atable[2048] = {
   0x03e5eb8f434911bd, 0x07cbd71e86922379, 0x0f97ae3d0d2446f2, 0x031e560c35d40e30,
   0x063cac186ba81c61, 0x0c795830d75038c2, 0x18f2b061aea07184, 0x04fd5679efb9b04e,
 };
+
+//
+// "Dragonfly" algorithm, see description in /c/csv/dtoa.h
+//
 static void kernel_dragonfly(char **pch, Column *col, int64_t row) {
   char *ch = *pch;
   uint64_t value = ((uint64_t*) col->data)[row];
+
   if (value & F64_SIGN_MASK) {
     *ch++ = '-';
     value ^= F64_SIGN_MASK;
   }
-
-  int eb = static_cast<int>(value >> 52);
+  int eb = static_cast<int>(value >> 52);  // biased exponent
   if (eb == 0x7FF) {
-    if (!value) {  // don't print nans at all
+    if ((value & F64_MANT_MASK) == 0) {  // don't print nans at all
       ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
       *pch = ch + 3;
     }
@@ -975,13 +896,35 @@ static void kernel_dragonfly(char **pch, Column *col, int64_t row) {
   }
 
   int E = ((201 + eb*1233) >> 12) - 308;
-  uint64_t F = (value & F64_MANT_MASK) | F64_EXTRA_BIT;
+  uint64_t G = (value << 11) | F64_SIGN_MASK;
   uint64_t A = Atable[eb];
-  unsigned __int128 p = static_cast<unsigned __int128>(F) * static_cast<unsigned __int128>(A);
-  int64_t D = static_cast<int64_t>(p >> 53) + (static_cast<int64_t>(p) >> 53);
+  uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
+  uint64_t D = static_cast<uint64_t>(p >> 64) + (static_cast<uint64_t>(p) >> 63);
+  uint64_t eps = A >> 54;
   if (D >= TENp18) {
     D /= 10;
+    eps /= 10;
     E++;
+  }
+  // Round the value of D according to its precision
+  #define min(x,y) (x<y? x : y)
+  if (eps >= 100) {
+    int64_t m = static_cast<int64_t>(D % 1000);
+    if (m <= eps || 1000-m <= eps) {
+      D += 1000*(m >= 500) - m;
+    } else goto eps10;
+  } else if (eps >= 10) {
+    eps10:
+    int64_t m = static_cast<int64_t>(D % 100);
+    if (m <= eps || 100-m <= eps) {
+      D += 100*(m >= 50) - m;
+    } else goto eps1;
+  } else {
+    eps1:
+    int64_t m = static_cast<int64_t>(D % 10);
+    if (m <= eps || 10-m <= eps) {
+      D += 10*(m >= 5) - m;
+    }
   }
   if (E >= -5 && E < 15) {
     if (E < 0) {
@@ -1022,50 +965,45 @@ static void kernel_dragonfly(char **pch, Column *col, int64_t row) {
       r--;
     }
     *ch++ = 'e';
-    write_exponent(&ch, E);
+    if (E < 0) {
+      *ch++ = '-';
+      E = -E;
+    } else {
+      *ch++ = '+';
+    }
+    if (E >= 100) {
+      int d = E / 100;
+      *ch++ = static_cast<char>(d) + '0';
+      E -= d*100;
+      goto E_ge_10;
+    } else if (E >= 10) {
+      E_ge_10:
+      int d = E/10;
+      *ch++ = static_cast<char>(d) + '0';
+      E -= d*10;
+    }
+    *ch++ = static_cast<char>(E) + '0';
   }
   *pch = ch;
 }
 
 
+// Similar to "dragonfly", but try various variations on how to write
+// individual components of the number.
+//
 static void kernel_dragonfly2(char **pch, Column *col, int64_t row) {
   char *ch = *pch;
   uint64_t value = ((uint64_t*) col->data)[row];
+
   if (value & F64_SIGN_MASK) {
     *ch++ = '-';
     value ^= F64_SIGN_MASK;
   }
-  if (value > F64_1em5 && value < F64_1e15) {
-    union {uint64_t u; double d;} uvalue = {value};
-    double frac, intval;
-    frac = modf(uvalue.d, &intval);
-    char *ch0 = ch;
-    write_int32(&ch, static_cast<int32_t>(intval));
-
-    if (frac) {
-      int digits_left = 15 - (ch - ch0);
-      *ch++ = '.';
-      while (frac > 0 && digits_left) {
-        frac *= 10;
-        frac = modf(frac, &intval);
-        *ch++ = static_cast<char>(intval) + '0';
-        digits_left--;
-      }
-      if (!digits_left) {
-        intval = frac*10 + 0.5;
-        if (intval > 9) intval = 9;
-        *ch++ = static_cast<char>(intval) + '0';
-      }
-    }
-    *pch = ch;
-    return;
-  }
-
-  int eb = static_cast<int>(value >> 52);
+  int eb = static_cast<int>(value >> 52);  // biased exponent
   if (eb == 0x7FF) {
-    if (!value) {  // don't print nans at all
-      *ch++ = 'i'; *ch++ = 'n'; *ch++ = 'f';
-      *pch = ch;
+    if ((value & F64_MANT_MASK) == 0) {  // don't print nans at all
+      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
+      *pch = ch + 3;
     }
     return;
   } else if (eb == 0x000) {
@@ -1073,28 +1011,148 @@ static void kernel_dragonfly2(char **pch, Column *col, int64_t row) {
     *pch = ch;
     return;
   }
+
   int E = ((201 + eb*1233) >> 12) - 308;
-  uint64_t F = (value & F64_MANT_MASK) | F64_EXTRA_BIT;
+  uint64_t G = (value << 11) | F64_SIGN_MASK;
   uint64_t A = Atable[eb];
-  unsigned __int128 p = static_cast<unsigned __int128>(F) * static_cast<unsigned __int128>(A);
-  int64_t D = static_cast<int64_t>(p >> 53) + (static_cast<int64_t>(p) >> 53);
+  uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
+  uint64_t D = static_cast<uint64_t>(p >> 64) + (static_cast<uint64_t>(p) >> 63);
+  uint64_t eps = A >> 54;
   if (D >= TENp18) {
     D /= 10;
+    eps /= 10;
     E++;
   }
-  ch += 18;
-  char *tch = ch;
-  for (int r = 18; r; r--) {
-    ldiv_t ddd = ldiv(D, 10);
-    D = ddd.quot;
-    *tch-- = static_cast<char>(ddd.rem) + '0';
-    if (r == 2) { *tch-- = '.'; }
+  // Round the value of D according to its precision
+  if (eps >= 100) {
+    int64_t m = static_cast<int64_t>(D % 1000);
+    if (m <= eps || 1000-m <= eps) {
+      D += 1000*(m >= 500) - m;
+    } else goto eps10;
+  } else if (eps >= 10) {
+    eps10:
+    int64_t m = static_cast<int64_t>(D % 100);
+    if (m <= eps || 100-m <= eps) {
+      D += 100*(m >= 50) - m;
+    } else goto eps1;
+  } else {
+    eps1:
+    int64_t m = static_cast<int64_t>(D % 10);
+    if (m <= eps || 10-m <= eps) {
+      D += 10*(m >= 5) - m;
+    }
   }
-  while (ch[-1] == '0') ch--;  // remove any trailing 0s, for the sake of compactness
-  *ch++ = 'e';
-  write_exponent(&ch, E);
+
+  if (E < -5) {
+    goto write_scientific;
+  } else if (E < 0) {
+    *ch++ = '0';
+    *ch++ = '.';
+    for (int r = -E-1; r; r--) {
+      *ch++ = '0';
+    }
+    /*
+    ch += 17;
+    char *tch = ch;
+    for (int r = 17; r; r--) {
+      ldiv_t ddd =  ldiv(D, 10);
+      D = ddd.quot;
+      *tch-- = static_cast<char>(ddd.rem) + '0';
+    }
+    while (ch[-1] == '0') ch--;
+    */ /*
+    int r = 17;
+    while (D) {
+      ldiv_t ddd = ldiv(D, DIVS64[r]);
+      D = ddd.rem;
+      *ch++ = static_cast<char>(ddd.quot) + '0';
+      r--;
+    }
+    */
+    int r = 17;
+    while (D) {
+      int64_t d = D / DIVS64[r];
+      D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      r--;
+    }
+  } else if (E < 15) {
+    /*
+    int rr = 1 + E;
+    ch += 18;
+    char *tch = ch;
+    for (int r = 17; r; r--) {
+      ldiv_t ddd =  ldiv(D, 10);
+      D = ddd.quot;
+      *tch-- = static_cast<char>(ddd.rem) + '0';
+      if (r == rr) *tch-- = '.';
+    }
+    while (ch[-1] == '0') ch--;
+    */
+    int r = 17;
+    int p = r - E;
+    while (D) {
+      int64_t d = D / DIVS64[r];
+      D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      if (r == p) { *ch++ = '.'; }
+      r--;
+    }
+  } else {
+    write_scientific:
+    int64_t d = D / TENp17;
+    D -= d * TENp17;
+    *ch = static_cast<char>(d) + '0';
+    ch[1] = '.';
+    ch += 1 + (D != 0);
+    int r = 16;
+    while (D) {
+      int64_t d = D / DIVS64[r];
+      D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      r--;
+    }
+    /*
+    while (D) {
+      ldiv_t ddd = ldiv(D, DIVS64[r]);
+      D = ddd.rem;
+      *ch++ = static_cast<char>(ddd.quot) + '0';
+      r--;
+    }
+    */ /*
+    ch += 18;
+    char *tch = ch;
+    for (int r = 18; r; r--) {
+      ldiv_t ddd = ldiv(D, 10);
+      D = ddd.quot;
+      *tch-- = static_cast<char>(ddd.rem) + '0';
+      if (r == 2) { *tch-- = '.'; }
+    }
+    while (ch[-1] == '0') ch--;  // remove any trailing 0s, for the sake of compactness
+    */
+    *ch++ = 'e';
+    if (E < 0) {
+      *ch++ = '-';
+      E = -E;
+    } else {
+      *ch++ = '+';
+    }
+    if (E >= 100) {
+      int d = E / 100;
+      *ch++ = static_cast<char>(d) + '0';
+      E -= d*100;
+      goto E_ge_10;
+    } else if (E >= 10) {
+      E_ge_10:
+      int d = E/10;
+      *ch++ = static_cast<char>(d) + '0';
+      E -= d*10;
+    }
+    *ch++ = static_cast<char>(E) + '0';
+  }
   *pch = ch;
 }
+
 
 
 //=================================================================================================
@@ -1105,22 +1163,19 @@ BenchmarkSuite prepare_bench_double(int64_t N)
 {
   Column *column = (Column*) malloc(sizeof(Column));
 
-  // const double LOG_2_10 = log2(10.0);
-  // const long double LOG_2_10L = log2l(10.0L);
-  // for (int eb = 0; eb < 0x7FF; eb++) {
-  //   int E = ((201 + eb*1233) >> 12) - 308;
-  //   long double Ald = powl(static_cast<long double>(2), eb - 0x3FF + 1 + LOG_2_10L*(17 - E));
-  //   uint64_t Au2 = static_cast<uint64_t>(floorl(Ald));
-  //   Atable[eb] = static_cast<uint64_t>(floorl(Ald));
-  // }
-  printf("Atable[0x45D] = %llu\n", Atable[0x45D]);
-  // Atable[0x45D] = 337350334183376743;
-  char *test = new char[1000]; test[25] = '\0';
-  uint64_t testval[] = { 0x45DFE640D407A3B5ull };
-  column->data = (void*)testval;
-  char *ch = test;
-  kernel_dragonfly2(&ch, column, 0);
-  printf("  0x45DFE640D407A3B5 => %s\n", test);
+  // printf("Atable[0x381] = %llu\n", Atable[0x381]);
+  // char *test = new char[1000]; test[25] = '\0';
+  // uint64_t testval[] = { 0x381fc783f4961102ull };
+  // column->data = (void*)testval;
+  // char *ch;
+  // ch = test; kernel_dragonfly2(&ch, column, 0); *ch = '\0';
+  // printf("  0x381fc783f4961102 => %s  (dragonfly2)\n", test);
+  // ch = test; kernel_dragonfly(&ch, column, 0); *ch = '\0';
+  // printf("  0x381fc783f4961102 => %s  (dragonfly)\n", test);
+  // ch = test; kernel_miloyip(&ch, column, 0); *ch = '\0';
+  // printf("  0x381fc783f4961102 => %s  (miloyip)\n", test);
+  // ch = test; kernel_hex(&ch, column, 0); *ch = '\0';
+  // printf("  0x381fc783f4961102 => %s  (hex)\n", test);
 
   // Prepare data array
   srand((unsigned) time(NULL));
@@ -1139,6 +1194,7 @@ BenchmarkSuite prepare_bench_double(int64_t N)
               (t&15)<=12? x * pow(10, 20 + t % 100) * (1 - 2*(t&1)) :
                           x * pow(0.1, 20 + t % 100) * (1 - 2*(t&1));
   }
+  *((uint64_t*)data) = 0x3F6C920EAB818807ull;
 
   // Prepare output buffer
   // At most 25 characters per entry (e.g. '-1.3456789011111343e+123') + 1 for a comma
@@ -1146,14 +1202,14 @@ BenchmarkSuite prepare_bench_double(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_mixed,     "mixed" },       // 220.984
-    { &kernel_altmixed,  "altmixed" },    // 207.389
-    { &kernel_miloyip,   "miloyip" },     // 255.513
-    { &kernel_dragonfly, "dragonfly" },   // 259.139
-    { &kernel_dragonfly2,"dragonfly2" },  // 209.373
-    { &kernel_hex,       "hex" },         //  76.346
-    { &kernel_fwrite,    "fwrite" },      // 363.001
-    { &kernel_sprintf,   "sprintf" },     // 620.818
+    { &kernel_mixed,     "mixed" },       // 227.361
+    { &kernel_altmixed,  "altmixed" },    // 220.346
+    { &kernel_miloyip,   "miloyip" },     // 279.442
+    { &kernel_dragonfly, "dragonfly" },   // 228.570
+    { &kernel_dragonfly2,"dragonfly2" },  // 228.086
+    { &kernel_hex,       "hex" },         //  82.745
+    { &kernel_fwrite,    "fwrite" },      // 389.806
+    { &kernel_sprintf,   "sprintf" },     // 649.821
     { NULL, NULL },
   };
 

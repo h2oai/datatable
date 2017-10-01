@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable as dt
+from tests import list_equals
 
 
 def test_issue365():
@@ -38,3 +39,13 @@ def test_write_spacenames():
     assert d.to_csv() == '"  foo","bar ",""\n1,1,0\n2,2,0\n3,3,0\n'
     dd = dt.fread(text=d.to_csv())
     assert d.topython() == dd.topython()
+
+
+def test_save_floats():
+    src = [0.0, -0.0, 1.5, 0.0034876143, 10.3074, 83476101.13487,
+           34981703410983.12, -3.232e-8, -4.241e+67]
+    d = dt.DataTable(src)
+    dd = dt.fread(text=d.to_csv())
+    assert list_equals(d.topython()[0], dd.topython()[0])
+    # .split() in order to produce better error messages
+    assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
