@@ -222,7 +222,7 @@ protected:
   int _unused;
 
 public:
-  FileWritableBuffer(const char *path);
+  FileWritableBuffer(const std::string &path);
   virtual ~FileWritableBuffer();
 
   virtual size_t prep_write(size_t n, const void *src);
