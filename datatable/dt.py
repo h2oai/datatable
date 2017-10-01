@@ -520,7 +520,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed minimum
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(CStats.min.value),
+        return DataTable(self._dt.get_min(),
                          colnames=self.names)
 
     def max(self):
@@ -532,7 +532,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed maximum
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(CStats.max.value),
+        return DataTable(self._dt.get_max(),
                          colnames=self.names)
 
     def sum(self):
@@ -544,7 +544,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed sums
         for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(CStats.sum.value),
+        return DataTable(self._dt.get_sum(),
                          colnames=self.names)
 
     def mean(self):
@@ -556,7 +556,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed mean
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(CStats.mean.value),
+        return DataTable(self._dt.get_mean(),
                          colnames=self.names)
 
     def sd(self):
@@ -568,7 +568,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed standard
         deviation values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_stat(CStats.std_dev.value),
+        return DataTable(self._dt.get_sd(),
                          colnames=self.names)
 
     def countna(self):
@@ -580,7 +580,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the counted number of NA
         values in each column.
         """
-        return DataTable(self._dt.get_stat(CStats.count_na.value),
+        return DataTable(self._dt.get_countna(),
                          colnames=self.names)
 
 

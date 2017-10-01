@@ -434,13 +434,17 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             }
         }
 
-        // If the column's Stats is NULL, then skip Stats check
-        if (stat == NULL) continue;
+
+        if (stat == NULL) {
+            ERR("Stats #%lld is NULL", i);
+            continue;
+        }
+        // If the column's Stats is void, then skip Stats check
+        if (stat->is_void()) continue;
 
         // Check that the column's stored stats are valid
-        if (stat->stype != col->stype) {
-            ERR("Stats SType (%d) does not match SType for column #%lld (%d)",
-                stat->stype, i, col->stype);
+        if (stat->_ref_col != col) {
+            ERR("Stats #lld does not refer to its parent column", i);
         }
 
         /**

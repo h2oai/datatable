@@ -39,20 +39,12 @@ def src_all(request):
 # Helper function that provides the resulting stype after `min()` or `max()` is
 # called
 def min_max_stype(stype):
-    if stype in ["i1b"]:
-        return "i1b"
-    if stype in ["i1i", "i2i", "i4i", "i8i"]:
-        return "i8i"
-    if stype in ["f4r", "f8r"]:
-        return "f8r"
     return stype
 
 # Helper function that provides the resulting stype after `mean()` or `sd()` is
 # called
 def mean_sd_stype(stype):
-    if stype in ["i1b", "i1i", "i2i", "i4i", "i8i", "f4r", "f8r"]:
-        return "f8r"
-    return stype
+    return "f8r"
 
 # Helper function that provides the result stype after `sum()` is called
 def sum_stype(stype):

@@ -42,7 +42,6 @@ dt_static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
 dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 
 
-
 //==============================================================================
 // NA handling
 //==============================================================================
