@@ -1,5 +1,5 @@
 #include <Python.h>
-#include "csv.h"
+#include "csv/writer.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"

@@ -22,8 +22,8 @@
 #include <string.h>     // strerror
 #include <sys/mman.h>   // mmap
 #include "column.h"
-#include "csv.h"
 #include "csv/dtoa.h"
+#include "csv/writer.h"
 #include "datatable.h"
 #include "math.h"
 #include "memorybuf.h"
@@ -82,7 +82,7 @@ public:
   // This should only be called on a CsvColumn of type i4s!
   size_t strsize(int64_t row0, int64_t row1) {
     int32_t *offsets = reinterpret_cast<int32_t*>(data) - 1;
-    return abs(offsets[row1]) - abs(offsets[row0]);
+    return static_cast<size_t>(abs(offsets[row1]) - abs(offsets[row0]));
   }
 };
 
@@ -243,7 +243,7 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
     ch += sch - strstart + 1;
     while (sch < strend) {
       if (*sch == '"') *ch++ = '"';  // double the quote
-      *ch++ = *sch++;
+      *ch++ = static_cast<char>(*sch++);
     }
     *ch++ = '"';
   }
