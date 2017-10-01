@@ -144,11 +144,12 @@ void MmapMemoryBuffer::resize(size_t n) {
 // FileWritableBuffer
 //==============================================================================
 
-FileWritableBuffer::FileWritableBuffer(const char *path)
+FileWritableBuffer::FileWritableBuffer(const std::string& path)
 {
-  fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+  const char *cpath = path.c_str();
+  fd = open(cpath, O_WRONLY|O_CREAT|O_TRUNC, 0666);
   if (fd == -1) throw Error("Cannot open file %s: Error %d %s",
-                            path, errno, strerror(errno));
+                            cpath, errno, strerror(errno));
 }
 
 
