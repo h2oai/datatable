@@ -135,10 +135,10 @@ def test_create_from_1d_numpy_array(numpy):
 def test_create_from_2d_numpy_array(numpy):
     a = numpy.array([[5, 4, 3, 10, 12], [-2, -1, 0, 1, 7]])
     d = dt.DataTable(a)
-    assert d.shape == (5, 2)
-    assert d.names == ("C1", "C2")
+    assert d.shape == a.shape
+    assert d.names == ("C1", "C2", "C3", "C4", "C5")
     assert d.internal.check()
-    assert d.topython() == a.tolist()
+    assert d.topython() == a.T.tolist()
 
 
 def test_create_from_3d_numpy_array(numpy):
