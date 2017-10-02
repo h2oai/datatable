@@ -1018,29 +1018,26 @@ static void kernel_dragonfly2(char **pch, Column *col, int64_t row) {
   uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
   uint64_t D = static_cast<uint64_t>(p >> 64) + (static_cast<uint64_t>(p) >> 63);
   uint64_t eps = A >> 54;
-  if (D >= TENp18) {
-    D /= 10;
-    eps /= 10;
-    E++;
-  }
+
   // Round the value of D according to its precision
   if (eps >= 100) {
     int64_t m = static_cast<int64_t>(D % 1000);
     if (m <= eps || 1000-m <= eps) {
       D += 1000*(m >= 500) - m;
     } else goto eps10;
-  } else if (eps >= 10) {
+  } else {
     eps10:
     int64_t m = static_cast<int64_t>(D % 100);
     if (m <= eps || 100-m <= eps) {
       D += 100*(m >= 50) - m;
-    } else goto eps1;
-  } else {
-    eps1:
-    int64_t m = static_cast<int64_t>(D % 10);
-    if (m <= eps || 10-m <= eps) {
+    } else {
+      m %= 10;
       D += 10*(m >= 5) - m;
     }
+  }
+  if (D >= TENp18) {
+    D /= 10;
+    E++;
   }
 
   if (E < -5) {

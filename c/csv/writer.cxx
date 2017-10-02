@@ -41,20 +41,6 @@ typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
-// Helper lookup table for writing integers
-static const int32_t DIVS32[10] = {
-  1,
-  10,
-  100,
-  1000,
-  10000,
-  100000,
-  1000000,
-  10000000,
-  100000000,
-  1000000000,
-};
-
 
 
 // TODO: replace with classes that derive from CsvColumn and implement write()

@@ -105,7 +105,8 @@
 //    With the choice of E(e) as above, this quantity will range from 1.001e17
 //    to 2.015e18. The coefficients in E(e) were optimized in order to minimize
 //    sup(D) subject to inf(D)≥10^17. At this point if D turns out to be greater
-//    than 10^18, then we scale it back by the factor of 10 and increment E.
+//    than 10^18, then we leave it as-is: it will be rounded to the nearest
+//    power of 10 in step 6 anyways.
 //
 //    In this expression, G is integer, whereas A := 2^(e+1) * 10^(17-E(e)) is
 //    real-valued. We can convert it into an integer by rounding:
@@ -140,11 +141,10 @@
 //        1000? If so, then round D to the 1000s. Otherwise,
 //      - Let w be the last 2 digits of D. Is w within an ε-distance from 0 or
 //        100? If so, then round D to the 100s. Otherwise,
-//      - Let w be the last digit of D. Is w within an ε-distance from 0 or 10?
-//        If so, then round D to 10s. Otherwise,
-//      - Do not round. Use number D as the best available approximation.
+//      - Round D to 10s (since ε ≥ 11, and thus last digit can always be
+//        rounded).
 //
-//    In practice the range of ε is from 1.1 to 111.9, so we don't have to
+//    In practice the range of ε is from 11.1 to 111.9, so we don't have to
 //    consider rounding to 10000 or more.
 //
 //
@@ -171,6 +171,9 @@
 //     A˜= Floor[2^(eᵇ - 127 + 1) * 10^(8 - E(eᵇ)) + 1/2]
 //
 // With this choice of E(e), the value of D ranges from 1.0e8 to 1.98e9 < 2^32.
+// Small distinction with the "float64" algorithm is that D may contain either
+// 8 or 9 digits, and we cannot round it down to 8 without loss of precision in
+// some cases.
 //
 //------------------------------------------------------------------------------
 #ifndef dt_csv_DTOA_H
@@ -178,6 +181,7 @@
 #include <stdint.h>
 
 typedef union { double d; uint64_t u; }  _dbl_u64;
+typedef union { float f;  uint32_t u; }  _flt_u32;
 typedef unsigned __int128  uint128_t;
 
 #define F64_SIGN_MASK  0x8000000000000000u
@@ -187,8 +191,7 @@ typedef unsigned __int128  uint128_t;
 
 #define F32_SIGN_MASK  0x80000000
 #define F32_INFINITY   0x7F800000
-#define TENp09         1000000000
-#define TENp10         10000000000
+#define TENp08         100000000
 
 
 static const int64_t DIVS64[19] = {
@@ -213,7 +216,7 @@ static const int64_t DIVS64[19] = {
   1000000000000000000L,
 };
 
-static const int32_t DIVS32[11] = {
+static const int32_t DIVS32[10] = {
   1,
   10,
   100,
@@ -227,9 +230,9 @@ static const int32_t DIVS32[11] = {
 };
 
 
-// `Atable64` is used in the "dragonfly" algorithm for converting doubles into
-// strings. It corresponds to A˜(e) in the description above. This table was
-// generated using the following Python code:
+// `Atable64` is used in the "dragonfly-64" algorithm for converting doubles
+// into strings. It corresponds to A˜(e) in the description above. This table
+// was generated using the following Python code:
 //
 //    from fractions import Fraction
 //    for eb in range(2048):
@@ -237,9 +240,9 @@ static const int32_t DIVS32[11] = {
 //        p1 = 10**EE if EE >= 0 else Fraction(1, 10**(-EE))
 //        ee = eb - 1023 + 1
 //        p2 = 2**ee if ee >= 0 else Fraction(1, 2**(-ee))
-//        p = p1 * p2
-//        assert 2**54 < p < 2**64
-//        print("0x%016x, " % round(p), end=("\n" if eb % 4 == 3 else ""))
+//        A = p1 * p2
+//        assert 2**54 < A < 2**64
+//        print("0x%016x, " % round(A), end=("\n" if eb % 4 == 3 else ""))
 //
 static const uint64_t Atable64[2048] = {
   0x03168149dd886f8a, 0x062d0293bb10df15, 0x0c5a05277621be29, 0x18b40a4eec437c52,
@@ -756,6 +759,9 @@ static const uint64_t Atable64[2048] = {
   0x063cac186ba81c61, 0x0c795830d75038c2, 0x18f2b061aea07184, 0x04fd5679efb9b04e,
 };
 
+// `Atable32` is used in the "dragonfly-32" algo for converting floats into
+// strings (see the description above). Generated using the following Python
+// code:
 //
 //    from fractions import Fraction
 //    for eb in range(256):
@@ -763,9 +769,9 @@ static const uint64_t Atable64[2048] = {
 //       p1 = 10**EE if EE >= 0 else Fraction(1, 10**(-EE))
 //       ee = eb - 127 + 1
 //       p2 = 2**ee if ee >= 0 else Fraction(1, 2**(-ee))
-//       p = p1 * p2
-//       assert 2**27 < p < 2**32, "p is out of range: %r" % p
-//       print("0x%08x, " % round(p), end=("\n" if eb % 4 == 3 else ""))
+//       A = p1 * p2
+//       assert 2**27 < A < 2**31
+//       print("0x%08x, " % round(A), end=("\n" if eb % 4 == 3 else ""))
 //
 static const uint32_t Atable32[256] = {
   0x46109ecf, 0x0e0352f6, 0x1c06a5ec, 0x380d4bd9,
@@ -835,6 +841,7 @@ static const uint32_t Atable32[256] = {
 };
 
 
+
 inline void dtoa(char **pch, double dvalue)
 {
   char *ch = *pch;
@@ -866,11 +873,6 @@ inline void dtoa(char **pch, double dvalue)
   uint64_t pl = static_cast<uint64_t>(p);
   int64_t D = static_cast<int64_t>(ph + (pl >> 63));
   int64_t eps = static_cast<int64_t>(A >> 54);
-  if (D >= TENp18) {
-    D /= 10;
-    eps /= 10;
-    E++;
-  }
 
   // Round the value of D according to its precision
   if (eps >= 100) {
@@ -878,23 +880,24 @@ inline void dtoa(char **pch, double dvalue)
     if (m <= eps || 1000-m <= eps) {
       D += 1000*(m >= 500) - m;
     } else goto eps10;
-  } else if (eps >= 10) {
+  } else {
     eps10:
     int64_t m = static_cast<int64_t>(D % 100);
     if (m <= eps || 100-m <= eps) {
       D += 100*(m >= 50) - m;
-    } else goto eps1;
-  } else {
-    eps1:
-    int64_t m = static_cast<int64_t>(D % 10);
-    if (m <= eps || 10-m <= eps) {
+    } else {
+      m %= 10;
       D += 10*(m >= 5) - m;
     }
+  }
+  if (D >= TENp18) {
+    D /= 10;
+    E++;
   }
 
   // Write the decimal number into the buffer, in one of the three formats
   // depending on the magnitude of E.
-  if (E < -5 || E >= 15) {
+  if (E < -4 || E >= 15) {
     // Small/large numbers write in scientific notation: 1.2345e+67
     int64_t d = D / TENp17;
     D -= d * TENp17;
@@ -950,6 +953,126 @@ inline void dtoa(char **pch, double dvalue)
     while (D) {
       int64_t d = D / DIVS64[r];
       D -= d * DIVS64[r];
+      *ch++ = static_cast<char>(d) + '0';
+      if (r == rr) { *ch++ = '.'; }
+      r--;
+    }
+  }
+  *pch = ch;
+}
+
+
+/**
+ * Write the provided float value into the character buffer `*pch`, advancing
+ * the pointer to the next character after the written string. This function
+ * will not print '\0' at the end. It is the caller's responsibility to provide
+ * buffer large enough to write the string representation of `value`. The
+ * longest string that can be generated by this function has 15 characters:
+ *   -0.000123456789  or
+ *   -1.23456789e+30
+ */
+inline void ftoa(char **pch, float fvalue)
+{
+  char *ch = *pch;
+  uint32_t value = ((_flt_u32){ .f = fvalue }).u;
+
+  if (value & F32_SIGN_MASK) {
+    *ch++ = '-';
+    value ^= F32_SIGN_MASK;
+  }
+  int eb = static_cast<int>(value >> 23);  // biased exponent
+  if (eb == 0xFF) {
+    if (value == F32_INFINITY) {  // don't print nans at all
+      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
+      *pch = ch + 3;
+    }
+    return;
+  } else if (eb == 0x00) {
+    *ch++ = '0';
+    *pch = ch;
+    return;
+  }
+
+  // Main part of the algorithm: compute D and E
+  int E = ((3153 + eb*1233) >> 12) - 39;
+  uint32_t G = (value << 8) | F32_SIGN_MASK;
+  uint32_t A = Atable32[eb];
+  uint64_t p = static_cast<uint64_t>(G) * static_cast<uint64_t>(A);
+  int32_t D = static_cast<int32_t>((p + F32_SIGN_MASK) >> 32);
+  int32_t eps = static_cast<int32_t>(A >> 25);
+
+  // Round the value of D according to its precision
+  if (eps >= 10) {
+    int32_t m = D % 100;
+    if (m <= eps || 100-m <= eps) {
+      D += 100*(m >= 50) - m;
+    } else goto eps1;
+  } else {
+    eps1:
+    int32_t m = D % 10;
+    if (m <= eps || 10-m <= eps) {
+      D += 10*(m >= 5) - m;
+    }
+  }
+
+  // Write the decimal number into the buffer, in one of the three formats
+  // depending on the magnitude of E.
+  if (E < -4 || E >= 15) {
+    // Small/large numbers write in scientific notation: 1.2345e+67
+    int32_t d = D / TENp08;
+    D -= d * TENp08;
+    if (d >= 10) {
+      int32_t dd = d / 10;
+      *ch++ = static_cast<char>(dd) + '0';
+      d -= dd * 10;
+    }
+    *ch++ = static_cast<char>(d) + '0';
+    *ch = '.';
+    ch += (D != 0);
+    int r = 7;
+    while (D) {
+      d = D / DIVS32[r];
+      D -= d * DIVS32[r];
+      *ch++ = static_cast<char>(d) + '0';
+      r--;
+    }
+    // Write exponent. This code will output the integer number `E` as two
+    // digits always: 12, 05, 38. In practice |E| ≤ 38, so two digits is
+    // enough.
+    *ch++ = 'e';
+    if (E < 0) {
+      *ch++ = '-';
+      E = -E;
+    } else {
+      *ch++ = '+';
+    }
+    int q = E / 10;
+    *ch++ = static_cast<char>(q) + '0';
+    *ch++ = static_cast<char>(E - q*10) + '0';
+  } else if (E < 0) {
+    // Numbers less than one, use floating point format: 0.000123456789
+    // Note: we use threshold 1e-4 to determine whether to write the
+    // number in this format. Any lower threshold would increase the maximum
+    // possible length of the produced string.
+    *ch++ = '0';
+    *ch++ = '.';
+    for (int r = -E-1; r; r--) {
+      *ch++ = '0';
+    }
+    int r = 8 + (D >= TENp08);
+    while (D) {
+      int32_t d = D / DIVS32[r];
+      D -= d * DIVS32[r];
+      *ch++ = static_cast<char>(d) + '0';
+      r--;
+    }
+  } else {
+    // Numbers greater than one, use floating point format: 12345.67
+    int r = 8 + (D >= TENp08);
+    int rr = r - E;
+    while (D) {
+      int32_t d = D / DIVS32[r];
+      D -= d * DIVS32[r];
       *ch++ = static_cast<char>(d) + '0';
       if (r == rr) { *ch++ = '.'; }
       r--;
