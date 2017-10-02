@@ -208,17 +208,19 @@ class DataTable(object):
         if dim == 0:
             arr = arr.reshape((1, 1))
         if dim == 1:
-            arr = arr.reshape((1, len(arr)))
+            arr = arr.reshape((len(arr), 1))
         if not arr.dtype.isnative:
             arr = arr.byteswap().newbyteorder()
 
-        ncols = len(arr)
+        ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
-            dt = c.datatable_from_buffers([arr.data[i] for i in range(ncols)])
-            mask = c.datatable_from_buffers([arr.mask[i] for i in range(ncols)])
+            dt = c.datatable_from_buffers([arr.data[:, i]
+                                           for i in range(ncols)])
+            mask = c.datatable_from_buffers([arr.mask[:, i]
+                                             for i in range(ncols)])
             dt.apply_na_mask(mask)
         else:
-            dt = c.datatable_from_buffers([arr[i] for i in range(ncols)])
+            dt = c.datatable_from_buffers([arr[:, i] for i in range(ncols)])
 
         self._fill_from_dt(dt, names=["C%d" % i for i in range(1, ncols + 1)])
 

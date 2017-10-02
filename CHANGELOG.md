@@ -19,9 +19,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   decimal (default) or hexadecimal format.
 - Csv writer now uses the "dragonfly" algorithm for writing doubles, which is faster
   than all known alternatives.
+- It is now allowed to pass a single-row numpy array as an argument to `dt(rows=...)`,
+  which will be treated the same as if it was a single-column array.
 
 #### Changed
 - `datatable` will no longer attempt to distinguish between NA and NAN floating-point values.
+- Constructing DataTable from a 2D numpy array now preserves shape of that array. At the same
+  time it is no longer true that `arr.tolist() == numpy.array(DataTable(arr)).tolist()`: the
+  list will be transposed.
 
 
 ### [v0.2.1](https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0) — 2017-09-11
