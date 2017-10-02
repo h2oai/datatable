@@ -329,14 +329,25 @@ def test_topython2():
     assert a0[3] == 3.3
 
 
-def test_tonumpy(numpy):
+def test_tonumpy0(numpy):
+    d0 = dt.DataTable([1, 3, 5, 7, 9])
+    a0 = d0.tonumpy()
+    assert a0.shape == d0.shape
+    assert a0.dtype == numpy.dtype("int8")
+    assert a0.tolist() == [[1], [3], [5], [7], [9]]
+    a1 = numpy.array(d0)
+    assert (a0 == a1).all()
+
+
+def test_tonumpy1(numpy):
     d0 = dt.DataTable({"A": [1, 5], "B": ["helo", "you"],
                        "C": [True, False], "D": [3.4, None]})
     a0 = d0.tonumpy()
-    assert a0.shape == (4, 2)
+    assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("object")
-    assert same_iterables(a0.tolist(),
-                          [[1, 5], ["helo", "you"], [True, False], [3.4, None]])
+    assert same_iterables(a0.T.tolist(), d0.topython())
+    a1 = numpy.array(d0)
+    assert (a0 == a1).all()
 
 
 def test_numpy_constructor_simple(numpy):
@@ -346,9 +357,9 @@ def test_numpy_constructor_simple(numpy):
     assert d0.stypes == ("i1i", "i1i", "i1i")
     assert d0.topython() == tbl
     n0 = numpy.array(d0)
-    assert n0.shape == (3, 5)
+    assert n0.shape == d0.shape
     assert n0.dtype == numpy.dtype("int8")
-    assert n0.tolist() == tbl
+    assert n0.T.tolist() == tbl
 
 
 def test_numpy_constructor_empty(numpy):
@@ -368,12 +379,12 @@ def test_numpy_constructor_multi_types(numpy):
     d0 = dt.DataTable(tbl)
     assert d0.stypes == ("i1i", "i1b", "i4i", "f8r")
     n0 = numpy.array(d0)
-    print(n0.tolist())
     assert n0.dtype == numpy.dtype("float64")
-    assert n0.tolist() == [[1.0, 5.0, 10.0],
-                           [1.0, 0, 0],
-                           [30498, 1349810, -134308],
-                           [1.454, 4.9e-23, 1e7]]
+    assert n0.T.tolist() == [[1.0, 5.0, 10.0],
+                             [1.0, 0, 0],
+                             [30498, 1349810, -134308],
+                             [1.454, 4.9e-23, 1e7]]
+    assert (d0.tonumpy() == n0).all()
 
 
 def test_numpy_constructor_view(numpy):
@@ -382,16 +393,18 @@ def test_numpy_constructor_view(numpy):
     assert d1.internal.isview
     n1 = numpy.array(d1)
     assert n1.dtype == numpy.dtype("int32")
-    assert n1.tolist() == [list(range(99, 0, -2)),
-                           list(range(990000, 0, -20000))]
+    assert n1.T.tolist() == [list(range(99, 0, -2)),
+                             list(range(990000, 0, -20000))]
+    assert (d1.tonumpy() == n1).all()
 
 
 def test_numpy_constructor_single_col(numpy):
     d0 = dt.DataTable([1, 1, 3, 5, 8, 13, 21, 34, 55])
     assert d0.stypes == ("i1i", )
     n0 = numpy.array(d0)
-    assert n0.shape == (1, 9)
+    assert n0.shape == d0.shape
     assert n0.dtype == numpy.dtype("int8")
+    assert (n0 == d0.tonumpy()).all()
 
 
 def test_numpy_constructor_single_string_col(numpy):
@@ -399,13 +412,15 @@ def test_numpy_constructor_single_string_col(numpy):
     assert d.shape == (3, 1)
     assert d.stypes == ("i4s", )
     a = numpy.array(d)
-    assert a.shape == (1, 3)
+    assert a.shape == d.shape
     assert a.dtype == numpy.dtype("object")
-    assert a.tolist() == d.topython()
+    assert a.T.tolist() == d.topython()
+    assert (a == d.tonumpy()).all()
 
 
 def test_numpy_constructor_view_1col(numpy):
     d0 = dt.DataTable({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
     d2 = d0[::2, "B"]
     a = d2.tonumpy()
-    assert a.tolist() == [[True, True]]
+    assert a.T.tolist() == [[True, True]]
+    assert (a == numpy.array(d2)).all()
