@@ -298,10 +298,14 @@ def test_rows_int_numpy_array(dt0, numpy):
     assert dt2.internal.check()
     assert dt1.shape == dt2.shape
     assert dt1.topython() == dt2.topython()
+    dt3 = dt0(rows=numpy.array([[7], [1], [0], [3]]))
+    assert dt3.internal.check()
+    assert dt3.shape == dt2.shape
+    assert dt3.topython() == dt2.topython()
 
 
 def test_rows_int_numpy_array_errors(dt0, numpy):
-    assert_valueerror(dt0, numpy.array([[1], [2], [3]]),
+    assert_valueerror(dt0, numpy.array([[1, 2], [2, 1], [3, 3]]),
                       "Only a single-dimensional numpy.array is allowed as a "
                       "`rows` argument")
     assert_valueerror(dt0, numpy.array([[[4, 0, 1]]]),
