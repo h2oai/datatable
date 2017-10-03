@@ -274,7 +274,11 @@ static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
     *ch++ = hexdigits[r >> 48];
     sig = (sig ^ r) << 4;
   }
-  exp = (exp - 1023 + subnormal) * (value != 0);
+  // Add the exponent bias. Special treatment for subnormals (exp==0, value>0)
+  // which should be encoded with exp=-1022, and zero (exp==0, value==0) which
+  // should be encoded with exp=0.
+  // `val & -flag` is equivalent to `flag? val : 0` if `flag` is 0 / 1.
+  exp = (exp - 1023 + subnormal) & -(value != 0);
   *ch++ = 'p';
   *ch++ = '+' + (exp < 0)*('-' - '+');
   write_int32(&ch, abs(exp));
@@ -315,7 +319,7 @@ static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
     *ch++ = hexdigits[r >> 19];
     sig = (sig ^ r) << 4;
   }
-  exp = (exp - 127 + subnormal) * (value != 0);
+  exp = (exp - 127 + subnormal) & -(value != 0);
   *ch++ = 'p';
   *ch++ = '+' + (exp < 0)*('-' - '+');
   write_int32(&ch, abs(exp));
