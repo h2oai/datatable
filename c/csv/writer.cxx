@@ -41,20 +41,6 @@ typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
 
-// Helper lookup table for writing integers
-static const int32_t DIVS32[10] = {
-  1,
-  10,
-  100,
-  1000,
-  10000,
-  100000,
-  1000000,
-  10000000,
-  100000000,
-  1000000000,
-};
-
 
 
 // TODO: replace with classes that derive from CsvColumn and implement write()
@@ -337,7 +323,7 @@ static void write_f8_dec(char **pch, CsvColumn *col, int64_t row) {
 
 static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
   float value = ((float*) col->data)[row];
-  dtoa(pch, static_cast<double>(value));
+  ftoa(pch, value);
 }
 
 
@@ -716,7 +702,7 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_INTEGER_I2]      = 6;  // -32000
   bytes_per_stype[ST_INTEGER_I4]      = 11; // -2000000000
   bytes_per_stype[ST_INTEGER_I8]      = 20; // -9223372036854775800
-  bytes_per_stype[ST_REAL_F4]         = 25; // -0x1.123456p+30
+  bytes_per_stype[ST_REAL_F4]         = 16; // -0x1.123456p+120 / -1.23456789e+37
   bytes_per_stype[ST_REAL_F8]         = 25; // -0x1.23456789ABCDEp+1000
   bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
   bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
