@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable as dt
+import re
 from tests import list_equals
 
 
@@ -95,3 +96,27 @@ def test_save_double():
     assert list_equals(d.topython()[0], dd.topython()[0])
     # .split() in order to produce better error messages
     assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
+
+
+def pyhex(v):
+    """
+    Normalize Python's "hex" representation by removing trailing zeros. For
+    example:
+
+        0x0.0p+0               ->  0x0p+0
+        0x1.dcd6500000000p+29  ->  0x1.dcd65p+29
+        0x1.0000000000000p+1   ->  0x1p+1
+        0x1.4000000000000p+1   ->  0x1.4p+1
+    """
+    s = v.hex()
+    return re.sub(r"\.?0+p", "p", s)
+
+def test_save_hexdouble_subnormal():
+    src = [1e-308, 1e-309, 1e-310, 1e-311, 1e-312, 1e-313, 1e-314, 1e-315,
+           1e-316, 1e-317, 1e-318, 1e-319, 1e-320, 1e-321, 1e-322, 1e-323,
+           0.0, 1e-324, -0.0,
+           -1e-323, -1e-300, -2.76e-312, -6.487202e-309]
+    d = dt.DataTable(src)
+    assert d.internal.check()
+    hexxed = d.to_csv(hex=True).split("\n")[1:-1]  # remove header & last \n
+    assert hexxed == [pyhex(v) for v in src]
