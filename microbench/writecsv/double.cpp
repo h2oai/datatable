@@ -874,7 +874,7 @@ static uint64_t Atable[2048] = {
 //
 // "Dragonfly" algorithm, see description in /c/csv/dtoa.h
 //
-static void kernel_dragonfly(char **pch, Column *col, int64_t row) {
+void kernel_dragonflyD(char **pch, Column *col, int64_t row) {
   char *ch = *pch;
   uint64_t value = ((uint64_t*) col->data)[row];
 
@@ -943,11 +943,11 @@ static void kernel_dragonfly(char **pch, Column *col, int64_t row) {
     } else {
       int r = 17;
       int p = r - E;
-      while (D) {
+      while (D || r >= p) {
         int64_t d = D / DIVS64[r];
         D -= d * DIVS64[r];
         *ch++ = static_cast<char>(d) + '0';
-        if (r == p) { *ch++ = '.'; }
+        if (r == p && D) { *ch++ = '.'; }
         r--;
       }
     }
@@ -1088,11 +1088,11 @@ static void kernel_dragonfly2(char **pch, Column *col, int64_t row) {
     */
     int r = 17;
     int p = r - E;
-    while (D) {
+    while (D || r >= p) {
       int64_t d = D / DIVS64[r];
       D -= d * DIVS64[r];
       *ch++ = static_cast<char>(d) + '0';
-      if (r == p) { *ch++ = '.'; }
+      if (r == p && D) { *ch++ = '.'; }
       r--;
     }
   } else {
@@ -1191,7 +1191,8 @@ BenchmarkSuite prepare_bench_double(int64_t N)
               (t&15)<=12? x * pow(10, 20 + t % 100) * (1 - 2*(t&1)) :
                           x * pow(0.1, 20 + t % 100) * (1 - 2*(t&1));
   }
-  *((uint64_t*)data) = 0x3F6C920EAB818807ull;
+  // *((uint64_t*)data) = 0x3F6C920EAB818807ull;
+  data[0] = 100000;
 
   // Prepare output buffer
   // At most 25 characters per entry (e.g. '-1.3456789011111343e+123') + 1 for a comma
@@ -1199,14 +1200,14 @@ BenchmarkSuite prepare_bench_double(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_mixed,     "mixed" },       // 227.361
-    { &kernel_altmixed,  "altmixed" },    // 220.346
-    { &kernel_miloyip,   "miloyip" },     // 279.442
-    { &kernel_dragonfly, "dragonfly" },   // 228.570
-    { &kernel_dragonfly2,"dragonfly2" },  // 228.086
-    { &kernel_hex,       "hex" },         //  82.745
-    { &kernel_fwrite,    "fwrite" },      // 389.806
-    { &kernel_sprintf,   "sprintf" },     // 649.821
+    { &kernel_mixed,       "mixed" },       // 227.361
+    { &kernel_altmixed,    "altmixed" },    // 220.346
+    { &kernel_miloyip,     "miloyip" },     // 279.442
+    { &kernel_dragonflyD,  "dragonfly" },   // 228.570
+    { &kernel_dragonfly2,  "dragonfly2" },  // 228.086
+    { &kernel_hex,         "hex" },         //  82.745
+    { &kernel_fwrite,      "fwrite" },      // 389.806
+    { &kernel_sprintf,     "sprintf" },     // 649.821
     { NULL, NULL },
   };
 

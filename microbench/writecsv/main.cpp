@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     "int8",
     "int16",
     "int32",
+    "float",
     "double",
     "string",
   };
@@ -72,7 +73,8 @@ int main(int argc, char **argv)
     case 2: run_bench(B, N, prepare_bench_int8(N)); break;
     case 3: run_bench(B, N, prepare_bench_int16(N)); break;
     case 4: run_bench(B, N, prepare_bench_int32(N)); break;
-    case 5: run_bench(B, N, prepare_bench_double(N)); break;
-    case 6: run_bench(B, N, prepare_bench_string(N)); break;
+    case 5: run_bench(B, N, prepare_bench_float(N)); break;
+    case 6: run_bench(B, N, prepare_bench_double(N)); break;
+    case 7: run_bench(B, N, prepare_bench_string(N)); break;
   }
 }

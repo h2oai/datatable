@@ -4,10 +4,11 @@
 
 extern double now();
 
-#define NWRITERS 6
+#define NWRITERS 7
 #define NA_I1 -128
 #define NA_I2 -32768
 #define NA_I4 INT32_MIN
+#define NA_F4 NAN
 #define NA_F8 ((double)NAN)
 
 
@@ -36,11 +37,13 @@ typedef struct BenchmarkSuite {
   Kernel *kernels;
 } BenchmarkSuite;
 
+void kernel_dragonflyD(char **pch, Column *col, int64_t row);
 
 BenchmarkSuite prepare_bench_boolean(int64_t N);
 BenchmarkSuite prepare_bench_int8(int64_t N);
 BenchmarkSuite prepare_bench_int16(int64_t N);
 BenchmarkSuite prepare_bench_int32(int64_t N);
+BenchmarkSuite prepare_bench_float(int64_t N);
 BenchmarkSuite prepare_bench_double(int64_t N);
 BenchmarkSuite prepare_bench_string(int64_t N);
 

@@ -192,6 +192,7 @@ typedef unsigned __int128  uint128_t;
 #define F32_SIGN_MASK  0x80000000
 #define F32_INFINITY   0x7F800000
 #define TENp08         100000000
+#define TENp09         1000000000
 
 
 static const int64_t DIVS64[19] = {
@@ -877,13 +878,13 @@ inline void dtoa(char **pch, double dvalue)
   // Round the value of D according to its precision
   if (eps >= 100) {
     int64_t m = static_cast<int64_t>(D % 1000);
-    if (m <= eps || 1000-m <= eps) {
+    if (m < eps || 1000-m < eps) {
       D += 1000*(m >= 500) - m;
     } else goto eps10;
   } else {
     eps10:
     int64_t m = static_cast<int64_t>(D % 100);
-    if (m <= eps || 100-m <= eps) {
+    if (m < eps || 100-m < eps) {
       D += 100*(m >= 50) - m;
     } else {
       m %= 10;
@@ -950,11 +951,11 @@ inline void dtoa(char **pch, double dvalue)
     // Numbers greater than one, use floating point format: 12345.67
     int r = 17;
     int rr = r - E;
-    while (D) {
+    while (D || r >= rr) {
       int64_t d = D / DIVS64[r];
       D -= d * DIVS64[r];
       *ch++ = static_cast<char>(d) + '0';
-      if (r == rr) { *ch++ = '.'; }
+      if (r == rr && D) { *ch++ = '.'; }
       r--;
     }
   }
@@ -999,36 +1000,42 @@ inline void ftoa(char **pch, float fvalue)
   uint32_t A = Atable32[eb];
   uint64_t p = static_cast<uint64_t>(G) * static_cast<uint64_t>(A);
   int32_t D = static_cast<int32_t>((p + F32_SIGN_MASK) >> 32);
-  int32_t eps = static_cast<int32_t>(A >> 25);
+  int32_t eps = static_cast<int32_t>(A >> 26);
 
   // Round the value of D according to its precision
   if (eps >= 10) {
     int32_t m = D % 100;
-    if (m <= eps || 100-m <= eps) {
+    if (m < eps || 100-m < eps) {
       D += 100*(m >= 50) - m;
     } else goto eps1;
   } else {
     eps1:
     int32_t m = D % 10;
-    if (m <= eps || 10-m <= eps) {
+    if (m < eps || 10-m < eps) {
       D += 10*(m >= 5) - m;
     }
   }
+  bool bigD = (D >= TENp09);
+  int EE = E + bigD;
 
   // Write the decimal number into the buffer, in one of the three formats
   // depending on the magnitude of E.
-  if (E < -4 || E >= 15) {
+  if (EE < -4 || EE > 7) {
     // Small/large numbers write in scientific notation: 1.2345e+67
     int32_t d = D / TENp08;
     D -= d * TENp08;
-    if (d >= 10) {
+    if (bigD) {
       int32_t dd = d / 10;
-      *ch++ = static_cast<char>(dd) + '0';
       d -= dd * 10;
+      *ch++ = static_cast<char>(dd) + '0';
+      *ch++ = '.';
+      *ch++ = static_cast<char>(d) + '0';
+      if (!d && !D) ch -= 2;
+    } else {
+      *ch++ = static_cast<char>(d) + '0';
+      *ch = '.';
+      ch += (D != 0);
     }
-    *ch++ = static_cast<char>(d) + '0';
-    *ch = '.';
-    ch += (D != 0);
     int r = 7;
     while (D) {
       d = D / DIVS32[r];
@@ -1040,26 +1047,26 @@ inline void ftoa(char **pch, float fvalue)
     // digits always: 12, 05, 38. In practice |E| ≤ 38, so two digits is
     // enough.
     *ch++ = 'e';
-    if (E < 0) {
+    if (EE < 0) {
       *ch++ = '-';
-      E = -E;
+      EE = -EE;
     } else {
       *ch++ = '+';
     }
-    int q = E / 10;
+    int q = EE / 10;
     *ch++ = static_cast<char>(q) + '0';
-    *ch++ = static_cast<char>(E - q*10) + '0';
-  } else if (E < 0) {
+    *ch++ = static_cast<char>(EE - q*10) + '0';
+  } else if (EE < 0) {
     // Numbers less than one, use floating point format: 0.000123456789
     // Note: we use threshold 1e-4 to determine whether to write the
     // number in this format. Any lower threshold would increase the maximum
     // possible length of the produced string.
     *ch++ = '0';
     *ch++ = '.';
-    for (int r = -E-1; r; r--) {
+    for (int r = -EE-1; r; r--) {
       *ch++ = '0';
     }
-    int r = 8 + (D >= TENp08);
+    int r = 8 + bigD;
     while (D) {
       int32_t d = D / DIVS32[r];
       D -= d * DIVS32[r];
@@ -1068,13 +1075,13 @@ inline void ftoa(char **pch, float fvalue)
     }
   } else {
     // Numbers greater than one, use floating point format: 12345.67
-    int r = 8 + (D >= TENp08);
-    int rr = r - E;
+    int r = 8 + bigD;
+    int rr = r - EE;
     while (D) {
       int32_t d = D / DIVS32[r];
       D -= d * DIVS32[r];
       *ch++ = static_cast<char>(d) + '0';
-      if (r == rr) { *ch++ = '.'; }
+      if (r == rr && D) { *ch++ = '.'; }
       r--;
     }
   }
