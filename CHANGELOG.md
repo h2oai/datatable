@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Converting a DataTable into a numpy array now also preserves shape. At the same time it is
   no longer true that `dt.topython() == dt.tonumpy().tolist()`: the list will be transposed.
 
+#### Fixed
+- `datatable` will now convert huge integers into double `inf` values instead of raising an exception.
+
 
 ### [v0.2.1](https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0) — 2017-09-11
 #### Added
