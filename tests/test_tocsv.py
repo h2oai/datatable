@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable as dt
+import random
 import re
+import pytest
 from tests import list_equals
 
 
@@ -119,4 +121,23 @@ def test_save_hexdouble_subnormal():
     d = dt.DataTable(src)
     assert d.internal.check()
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]  # remove header & last \n
+    assert hexxed == [pyhex(v) for v in src]
+
+
+def test_save_hexdouble_special():
+    from math import nan, inf
+    src = [nan, inf, -inf, 0]
+    d = dt.DataTable(src)
+    hexxed = d.to_csv(hex=True).split("\n")[1:-1]
+    # Note: we serialize nan as an empty string
+    assert hexxed == ["", "inf", "-inf", "0x0p+0"]
+
+
+@pytest.mark.parametrize("seed", [random.randint(0, 2**64 - 1)])
+def test_save_hexdouble_random(seed):
+    random.seed(seed)
+    src = [(1.5 * random.random() - 0.5) * 10**random.randint(-325, 308)
+           for _ in range(1000)]
+    d = dt.DataTable(src)
+    hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == [pyhex(v) for v in src]
