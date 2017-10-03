@@ -228,3 +228,13 @@ def test_issue_42():
     assert d.shape == (4, 1)
     assert d.types == ("str", )
     assert d.internal.check()
+
+
+def test_issue_409():
+    from math import inf, copysign
+    d = dt.DataTable([10**333, -10**333, 10**-333, -10**-333])
+    assert d.internal.check()
+    assert d.types == ("real", )
+    p = d.topython()
+    assert p == [[inf, -inf, 0.0, -0.0]]
+    assert copysign(1, p[0][-1]) == -1
