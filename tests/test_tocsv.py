@@ -89,7 +89,7 @@ def test_save_int64():
 def test_save_double():
     src = ([0.0, -0.0, 1.5, 0.0034876143, 10.3074, 83476101.13487,
             34981703410983.12, -3.232e-8, -4.241e+67] +
-           [10**p for p in range(309)])
+           [10**p for p in range(320)])
     d = dt.DataTable(src)
     dd = dt.fread(text=d.to_csv())
     assert list_equals(d.topython()[0], dd.topython()[0])
