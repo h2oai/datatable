@@ -8,6 +8,7 @@
 #include "py_utils.h"
 
 static Column* column_from_list(PyObject *list);
+static const double INFD = (double)INFINITY;
 
 
 /**
@@ -226,8 +227,16 @@ Column* column_from_list(PyObject *list)
                     } break;
 
                     case ST_REAL_F8: {
-                        // TODO: check for overflows
-                        SET_F8R(PyLong_AsDouble(item));
+                        double res = PyLong_AsDouble(item);
+                        if (res == -1 && PyErr_Occurred()) {
+                            if (!PyErr_ExceptionMatches(PyExc_OverflowError))
+                                goto fail;
+                            PyErr_Clear();
+                            int sign = _PyLong_Sign(item);
+                            SET_F8R(sign > 0? INFD : -INFD);
+                        } else {
+                            SET_F8R(res);
+                        }
                     } break;
 
                     case ST_STRING_I4_VCHAR: {
