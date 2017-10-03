@@ -323,7 +323,7 @@ static void write_f8_dec(char **pch, CsvColumn *col, int64_t row) {
 
 static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
   float value = ((float*) col->data)[row];
-  dtoa(pch, static_cast<double>(value));
+  ftoa(pch, value);
 }
 
 
