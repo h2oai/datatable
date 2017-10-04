@@ -48,19 +48,18 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
         Column *ret = NULL;
         Column *col0 = (i < dt->ncols)
             ? dt->columns[i]
-            : make_data_column(ST_VOID, (size_t) dt->nrows);
+            : new Column(ST_VOID, (size_t) dt->nrows);
         for (int j = 0; j < ndts; ++j) {
             if (cols[i][j] < 0) {
-                cols0[j] = make_data_column(ST_VOID, (size_t) dts[j]->nrows);
+                cols0[j] = new Column(ST_VOID, (size_t) dts[j]->nrows);
             } else if (dts[j]->rowindex) {
-                cols0[j] = column_extract(dts[j]->columns[cols[i][j]],
-                                          dts[j]->rowindex);
+                cols0[j] = dts[j]->columns[cols[i][j]]->extract(dts[j]->rowindex);
             } else {
-                cols0[j] = column_incref(dts[j]->columns[cols[i][j]]);
+                cols0[j] = dts[j]->columns[cols[i][j]]->incref();
             }
             if (cols0[j] == NULL) return NULL;
         }
-        ret = column_rbind(col0, cols0);
+        ret = col0->rbind(cols0);
         if (ret == NULL) return NULL;
         dt->columns[i] = ret;
     }

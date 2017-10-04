@@ -560,8 +560,8 @@ size_t CsvWriter::estimate_output_size()
     bool stype_i4s = (stype == ST_STRING_I4_VCHAR);
     bool stype_i8s = (stype == ST_STRING_I8_VCHAR);
     if (stype_i4s || stype_i8s) {
-      total_string_size += stype_i4s? column_i4s_datasize(col)
-                                    : column_i8s_datasize(col);
+      total_string_size += stype_i4s? col->i4s_datasize()
+                                    : col->i8s_datasize();
     }
     fixed_size_per_row += bytes_per_stype[stype] + 1;
   }

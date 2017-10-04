@@ -27,48 +27,48 @@ static Column* column_rbind_str32(Column *col, Column **cols, int64_t nrows, int
  * that it is a column containing only NAs. Also, the array `cols` should be
  * NULL-terminating.
  */
-Column* column_rbind(Column *self, Column **cols)
+Column* Column::rbind(Column **cols)
 {
     // Compute the final number of rows and stype
-    int64_t nrows = self->nrows;
-    int64_t nrows0 = nrows;
-    SType stype = self->stype;
-    for (Column **pcol = cols; *pcol; pcol++) {
+    int64_t res_nrows = this->nrows;
+    int64_t nrows0 = res_nrows;
+    SType res_stype = this->stype;
+    for (Column **pcol = cols; *pcol; ++pcol) {
         Column *col = *pcol;
-        nrows += col->nrows;
-        if (stype < col->stype) stype = col->stype;
+        res_nrows += col->nrows;
+        if (res_stype < col->stype) res_stype = col->stype;
     }
-    if (stype == 0) stype = ST_BOOLEAN_I1;
+    if (res_stype == ST_VOID) res_stype = ST_BOOLEAN_I1;
 
     // Create the resulting Column object. It can be either: an empty column
     // filled with NAs; the current column (`self`); a clone of the current
     // column (if it has refcount > 1); or a type-cast of the current column.
     Column *res = NULL;
-    int col_empty = (self->stype == ST_VOID);
+    int col_empty = (this->stype == ST_VOID);
     if (col_empty) {
-        res = make_data_column(stype, (size_t) self->nrows);
-    } else if (self->refcount == 1 && self->mtype == MT_DATA &&
-               self->stype == stype) {
+        res = new Column(res_stype, (size_t) this->nrows);
+    } else if (this->refcount == 1 && this->mtype == MT_DATA &&
+               this->stype == res_stype) {
         // Happy place: current column can be modified in-place.
-        res = self;
+        res = this;
     } else {
-        res = (self->stype == stype) ? column_copy(self)
-                                     : column_cast(self, stype);
+        res = (this->stype == res_stype) ? new Column(this)
+                                     : cast(res_stype);
     }
     if (res == NULL) return NULL;
-    assert(res->stype == stype && res->mtype == MT_DATA &&
+    assert(res->stype == res_stype && res->mtype == MT_DATA &&
            res->nrows == nrows0);
 
     // TODO: Temporary Fix. To be resolved in #301
     if (res->stats) res->stats->reset();
     // Use the appropriate strategy to continue appending the columns.
-    res = (stype == ST_STRING_I4_VCHAR) ? column_rbind_str32(res, cols, nrows, col_empty) :
-          (!stype_info[stype].varwidth) ? column_rbind_fw(res, cols, nrows, col_empty) : NULL;
+    res = (res_stype == ST_STRING_I4_VCHAR) ? column_rbind_str32(res, cols, res_nrows, col_empty) :
+          (!stype_info[res_stype].varwidth) ? column_rbind_fw(res, cols, res_nrows, col_empty) : NULL;
 
     // If everything is fine, then the current column can be safely discarded
     // -- the upstream caller will replace this column with the `res`. However
     // if any error occurred (res == NULL), then `self` will be left intact.
-    if (res && res != self) column_decref(self);
+    if (res && res != this) decref();
     return res;
 }
 
@@ -99,8 +99,8 @@ column_rbind_fw(Column *self, Column **cols, int64_t nrows, int col_empty)
     self->nrows = nrows;
 
     // Copy the data
-    void *resptr = col_empty? self->data : add_ptr(self->data, old_alloc_size);
-    size_t rows_to_fill = col_empty? old_nrows : 0;
+    void *resptr = col_empty ? self->data : add_ptr(self->data, old_alloc_size);
+    size_t rows_to_fill = col_empty ? old_nrows : 0;
     for (Column **pcol = cols; *pcol; pcol++) {
         Column *col = *pcol;
         if (col->stype == 0) {
@@ -112,15 +112,15 @@ column_rbind_fw(Column *self, Column **cols, int64_t nrows, int col_empty)
                 rows_to_fill = 0;
             }
             if (col->stype != self->stype) {
-                Column *newcol = column_cast(col, self->stype);
+                Column *newcol = col->cast(self->stype);
                 if (newcol == NULL) return NULL;
-                column_decref(col);
+                col->decref();
                 col = newcol;
             }
             memcpy(resptr, col->data, col->alloc_size);
             resptr = add_ptr(resptr, col->alloc_size);
         }
-        column_decref(col);
+        col->decref();
     }
     if (rows_to_fill) {
         set_value(resptr, na, elemsize, rows_to_fill);
@@ -166,7 +166,7 @@ column_rbind_str32(Column *self, Column **cols, int64_t nrows, int col_empty)
         new_data_size += (size_t) abs(offsets[col->nrows - 1]) - 1;
     }
     size_t new_offsets_size = elemsize * (size_t) nrows;
-    size_t padding_size = column_i4s_padding(new_data_size);
+    size_t padding_size = Column::i4s_padding(new_data_size);
     size_t new_offoff = new_data_size + padding_size;
     size_t new_alloc_size = new_offoff + new_offsets_size;
 
@@ -212,7 +212,7 @@ column_rbind_str32(Column *self, Column **cols, int64_t nrows, int col_empty)
             memcpy(add_ptr(self->data, curr_offset), col->data, data_size);
             curr_offset += data_size;
         }
-        column_decref(col);
+        col->decref();
     }
     if (rows_to_fill) {
         const int32_t na = -curr_offset - 1;

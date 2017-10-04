@@ -76,10 +76,10 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
         int64_t nrows = view->len / view->itemsize;
         if (stype == ST_VOID) return NULL;
         if (view->strides == NULL) {
-            columns[i] = column_from_buffer(stype, nrows, view, view->buf,
+            columns[i] = new Column(stype, nrows, view, view->buf,
                                             (size_t) view->len);
         } else {
-            columns[i] = make_data_column(stype, (size_t) nrows);
+            columns[i] = new Column(stype, (size_t) nrows);
             int64_t stride = view->strides[0] / view->itemsize;
             if (view->itemsize == 8) {
                 int64_t *out = (int64_t*) columns[i]->data;
@@ -149,7 +149,7 @@ static Column* try_to_resolve_object_column(Column* col)
     char *strbuf = NULL;
     dtmalloc(strbuf, char, total_length);
     size_t strbuf_size = (size_t) total_length;
-    Column *res = make_data_column(ST_STRING_I4_VCHAR, (size_t)nrows);
+    Column *res = new Column(ST_STRING_I4_VCHAR, (size_t)nrows);
     int32_t *offsets = (int32_t*) res->data;
 
     size_t offset = 0;
@@ -171,7 +171,7 @@ static Column* try_to_resolve_object_column(Column* col)
     }
 
     size_t datasize = offset;
-    size_t padding = column_i4s_padding(datasize);
+    size_t padding = Column::i4s_padding(datasize);
     size_t allocsize = datasize + padding + 4 * (size_t)nrows;
     dtrealloc(strbuf, char, allocsize);
     memset(strbuf + datasize, 0xFF, padding);
@@ -180,7 +180,7 @@ static Column* try_to_resolve_object_column(Column* col)
     res->data = strbuf;
     res->alloc_size = allocsize;
     ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
-    column_decref(col);
+    col->decref();
     return res;
 }
 
@@ -232,7 +232,7 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
         const_cast<char*>(format_from_stype(col->stype)) : NULL;
 
     Py_INCREF(self);
-    column_incref(col);
+    col->incref();
     return 0;
 
   fail:
@@ -247,7 +247,7 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 static void column_releasebuffer(Column_PyObject *self, Py_buffer *view)
 {
     dtfree(view->shape);
-    column_decref(self->ref);
+    self->ref->decref();
     // This function MUST NOT decrement view->obj, since that is done
     // automatically in PyBuffer_Release()
 }
@@ -308,7 +308,7 @@ dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view, int flags)
     info[3] = view->itemsize;
     view->suboffsets = NULL;
     view->internal = (void*) 2;
-    column_incref(col);
+    col->incref();
     return 0;
     fail:
         view->obj = NULL;
@@ -360,20 +360,20 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     for (size_t i = 0; i < ncols; i++) {
         Column *col = dt->columns[i];
         if (dt->rowindex) {
-            col = column_extract(col, dt->rowindex);
+            col = col->extract(dt->rowindex);
         }
         if (col->stype == stype) {
             assert(col->alloc_size == colsize);
             memcpy(add_ptr(buf, i * colsize), col->data, colsize);
         } else {
-            Column *newcol = column_cast(col, stype);
+            Column *newcol = col->cast(stype);
             if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype, stype); goto fail; }
             assert(newcol->alloc_size == colsize);
             memcpy(add_ptr(buf, i * colsize), newcol->data, colsize);
-            column_decref(newcol);
+            newcol->decref();
         }
         if (dt->rowindex) {
-            column_decref(col);
+            col->decref();
         }
     }
 
@@ -417,7 +417,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
         void **buf = NULL;
         dtmalloc_g(buf, void*, ncols);
         for (int i = 0; i < ncols; i++) {
-            column_incref(dt->columns[i]);
+            dt->columns[i]->incref();
             buf[i] = dt->columns[i]->data;
         }
 
@@ -449,7 +449,7 @@ static void dt_releasebuffer(DataTable_PyObject *self, Py_buffer *view)
     // 1 = 0-col DataTable, 2 = 1-col DataTable, 3 = 2+-col DataTable
     size_t kind = (size_t) view->internal;
     if (kind == 2) {
-        column_decref(self->ref->columns[0]);
+        self->ref->columns[0]->decref();
     }
     if (kind == 3) {
         dtfree(view->buf);

@@ -245,9 +245,9 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns NULL if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex* column_sort(Column *col, RowIndex *rowindex)
+RowIndex* Column::sort(Column *col, RowIndex *rowindex)
 {
-    int64_t _nrows = rowindex? rowindex->length : col->nrows;
+    int64_t _nrows = rowindex ? rowindex->length : col->nrows;
     if (_nrows > INT32_MAX) {
         dterrr("Cannot sort a datatable with %lld rows", col->nrows);
     }

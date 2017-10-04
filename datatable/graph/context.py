@@ -110,6 +110,7 @@ _header = """
 typedef int RowIndexType;
 typedef int8_t SType;
 typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
+class Stats;
 
 typedef struct RowIndex {
     int64_t length;
@@ -122,33 +123,62 @@ typedef struct RowIndex {
     RowIndexType type;
 } RowIndex;
 
-typedef struct Column {
-    void   *data;
-    void   *meta;
-    int64_t nrows;
-    size_t  alloc_size;
-    int     refcount;
-    MType   mtype;
-    SType   stype;
-} Column;
+class Column {
+public:
+    void   *data;        // 8
+    void   *meta;        // 8
+    int64_t nrows;       // 8
+    size_t  alloc_size;  // 8
+    union {              // 8
+        char *filename;
+        void *pybuf;
+    };
+    Stats*  stats;       // 8
+    int     refcount;    // 4
+    MType   mtype;       // 1
+    SType   stype;       // 1
+    int16_t _padding;    // 2
+
+    Column(SType, size_t); // Data Column
+    Column(SType, size_t, const char*); // MMap Column
+    Column(SType, int64_t, void*, void*, size_t); // XBuf Column
+    Column(const char*, SType, int64_t, const char*); // Load from disk
+    Column(const Column&);
+    Column(const Column*); // Copy
+    Column* cast(SType);
+    Column* rbind(Column**);
+    Column* extract(RowIndex* = NULL);
+    Column* realloc_and_fill(int64_t);
+    Column* save_to_disk(const char*);
+    size_t i4s_datasize();
+    size_t i8s_datasize();
+    size_t get_allocsize();
+    Column* incref();
+    void decref();
+
+    static RowIndex* sort(Column*, RowIndex*);
+    static size_t i4s_padding(size_t datasize);
+    static size_t i8s_padding(size_t datasize);
+private:
+    ~Column() {}
+};
 
 typedef struct DataTable {
   int64_t nrows;
   int64_t ncols;
-  struct RowIndex *rowindex;
-  struct Column **columns;
+  RowIndex *rowindex;
+  Column **columns;
+  Stats **stats;
 } DataTable;
 
 // External functions
 typedef void* (*ptr_0)(size_t);
 typedef void* (*ptr_1)(void*, size_t);
 typedef void (*ptr_2)(void*);
-typedef Column* (*ptr_3)(SType, size_t);
 typedef RowIndex* (*ptr_4)(void*, int64_t, int);
 static ptr_0 dt_malloc = (ptr_0) %dL;
 static ptr_1 dt_realloc = (ptr_1) %dL;
 static ptr_2 dt_free = (ptr_2) %dL;
-static ptr_3 make_data_column = (ptr_3) %dL;
 static ptr_4 rowindex_from_filterfn32 = (ptr_4) %dL;
 
 #define BIN_NAF4 0x7F8007A2u

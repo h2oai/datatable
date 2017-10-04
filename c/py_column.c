@@ -12,7 +12,7 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
 {
     Column_PyObject *pycol = Column_PyNew();
     if (pycol == NULL) return NULL;
-    pycol->ref = column_incref(col);
+    pycol->ref = col->incref();
     pycol->pydt = pydt;
     pycol->colidx = colidx;
     Py_XINCREF(pydt);
@@ -97,7 +97,7 @@ static PyObject* meth_save_to_disk(Column_PyObject *self, PyObject *args)
     Column *col = self->ref;
     const char *filename = NULL;
     if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
-    Column *ret = column_save_to_disk(col, filename);
+    Column *ret = col->save_to_disk(filename);
     if (!ret) return NULL;
     Py_RETURN_NONE;
 }
@@ -127,7 +127,7 @@ void free_xbuf_column(Column *col)
 
 static void pycolumn_dealloc(Column_PyObject *self)
 {
-    column_decref(self->ref);
+    self->ref->decref();
     Py_XDECREF(self->pydt);
     self->ref = NULL;
     self->pydt = NULL;

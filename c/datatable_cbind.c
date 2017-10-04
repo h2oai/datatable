@@ -24,7 +24,7 @@ DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts)
     // Fix up the main datatable if it has too few rows
     if (dt->nrows < nrows) {
         for (int64_t i = 0; i < dt->ncols; i++) {
-            dt->columns[i] = column_realloc_and_fill(dt->columns[i], nrows);
+            dt->columns[i] = dt->columns[i]->realloc_and_fill(nrows);
         }
         dt->nrows = nrows;
     }
@@ -39,14 +39,14 @@ DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts)
         if (dts[i]->rowindex) {
             RowIndex *ri = dts[i]->rowindex;
             for (int64_t ii = 0; ii < ncolsi; ii++) {
-                Column *c = column_extract(dts[i]->columns[ii], ri);
-                if (nrowsi < nrows) c = column_realloc_and_fill(c, nrows);
+                Column *c = dts[i]->columns[ii]->extract(ri);
+                if (nrowsi < nrows) c = c->realloc_and_fill(nrows);
                 dt->columns[j++] = c;
             }
         } else {
             for (int64_t ii = 0; ii < ncolsi; ii++) {
-                Column *c = column_incref(dts[i]->columns[ii]);
-                if (nrowsi < nrows) c = column_realloc_and_fill(c, nrows);
+                Column *c = dts[i]->columns[ii]->incref();
+                if (nrowsi < nrows) c = c->realloc_and_fill(nrows);
                 dt->columns[j++] = c;
             }
         }

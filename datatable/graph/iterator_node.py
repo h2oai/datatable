@@ -127,7 +127,7 @@ class IteratorNode(object):
                 else:
                     self.addto_preamble("int64_t *riarr = ri->ind64;")
                 iexpr = "i = riarr[ii]"
-        fn = ("int {func}({args}) {{\n"
+        fn = ("extern \"C\" int {func}({args}) {{\n"
               "    int64_t i;\n"
               "    {preamble}\n"
               "    for (int64_t ii = row0; ii < row1; ii++) {{\n"

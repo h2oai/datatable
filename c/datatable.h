@@ -8,7 +8,7 @@
 // avoid circular dependency between .h files
 typedef struct RowIndex RowIndex;
 typedef struct ColMapping ColMapping;
-typedef struct Column Column;
+class Column;;
 class Stats;
 typedef struct DataTable DataTable;
 
@@ -46,7 +46,7 @@ typedef struct DataTable {
     int64_t     ncols;
     RowIndex   *rowindex;
     Column    **columns;
-    Stats **stats;
+    Stats     **stats;
 } DataTable;
 
 

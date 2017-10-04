@@ -15,17 +15,17 @@ static castfn_ptr hardcasts[DT_STYPES_COUNT][DT_STYPES_COUNT];
  * If the requested conversion has not been implemented yet, an exception will
  * be raised and NULL pointer returned.
  */
-Column* column_cast(Column *self, SType stype)
+Column* Column::cast(SType new_stype)
 {
-    castfn_ptr converter = hardcasts[self->stype][stype];
+    castfn_ptr converter = hardcasts[this->stype][new_stype];
     if (converter) {
-        Column *res = make_data_column(stype, (size_t) self->nrows);
+        Column *res = new Column(new_stype, (size_t) this->nrows);
         if (res == NULL) return NULL;
-        return converter(self, res);
-    } else if (self->stype == stype) {
-        return column_copy(self);
+        return converter(this, res);
+    } else if (this->stype == new_stype) {
+        return new Column(this);
     } else {
-        dterrv("Unable to cast from stype=%d into stype=%d", self->stype, stype);
+        dterrv("Unable to cast from stype=%d into stype=%d", this->stype, new_stype);
     }
 }
 

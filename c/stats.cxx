@@ -196,19 +196,19 @@ void* Stats::sum_raw() { return NULL; }
 
 //----------- Get Stat Value as a Column ------------
 Column* Stats::mean_column() {
-    Column *out = make_data_column(ST_REAL_F8, 1);
+    Column *out = new Column(ST_REAL_F8, 1);
     *((double*)(out->data)) = mean();
     return out;
 }
 
 Column* Stats::sd_column() {
-    Column *out = make_data_column(ST_REAL_F8, 1);
+    Column *out = new Column(ST_REAL_F8, 1);
     *((double*)(out->data)) = sd();
     return out;
 }
 
 Column* Stats::countna_column() {
-    Column *out = make_data_column(ST_INTEGER_I8, 1);
+    Column *out = new Column(ST_INTEGER_I8, 1);
     *((int64_t*)(out->data)) = countna();
     return out;
 }
@@ -349,7 +349,7 @@ template <typename T, typename A>
 Column* NumericalStats<T, A>::min_column() {
     const SType stype = _ref_col->stype;
     if (stype == ST_VOID) return NULL;
-    Column* out = make_data_column(stype, 1);
+    Column* out = new Column(stype, 1);
     *((T*)(out->data)) = min<T>();
     return out;
 }
@@ -358,7 +358,7 @@ template <typename T, typename A>
 Column* NumericalStats<T, A>::max_column() {
     const SType stype = _ref_col->stype;
     if (stype == ST_VOID) return NULL;
-    Column* out = make_data_column(stype, 1);
+    Column* out = new Column(stype, 1);
     *((T*)(out->data)) = max<T>();
     return out;
 }
@@ -367,7 +367,7 @@ template <typename T, typename A>
 Column* NumericalStats<T, A>::sum_column() {
     SType stype = stype_A();
     if (stype == ST_VOID) return NULL;
-    Column* out = make_data_column(stype, 1);
+    Column* out = new Column(stype, 1);
     *((A*)(out->data)) = sum<A>();
     return out;
 }
@@ -562,7 +562,7 @@ void Stats::destruct(Stats* self) {
  * Create a column that contains a single NA value.
  */
 Column* make_na_stat_column(SType stype) {
-    Column *out = make_data_column(stype, 1);
+    Column *out = new Column(stype, 1);
     const void *val = stype_info[stype].na;
     if (!val)
         memset(out->data, 0xFF, out->alloc_size);

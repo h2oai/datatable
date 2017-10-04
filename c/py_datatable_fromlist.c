@@ -67,7 +67,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
   fail:
     if (cols) {
         for (int i = 0; cols[i] != NULL; ++i) {
-            column_decref(cols[i]);
+            cols[i]->decref();
         }
         dtfree(cols);
     }
@@ -124,7 +124,7 @@ Column* column_from_list(PyObject *list)
 {
     if (list == NULL || !PyList_Check(list)) return NULL;
 
-    Column *column = make_data_column(ST_BOOLEAN_I1, 0);
+    Column *column = new Column(ST_BOOLEAN_I1, 0);
 
     size_t nrows = (size_t) Py_SIZE(list);
     if (nrows == 0) {
@@ -320,7 +320,7 @@ Column* column_from_list(PyObject *list)
 
         if (stype == ST_STRING_I4_VCHAR) {
             size_t esz = sizeof(int32_t);
-            size_t padding_size = column_i4s_padding(strbuffer_ptr);
+            size_t padding_size = Column::i4s_padding(strbuffer_ptr);
             size_t offoff = strbuffer_ptr + padding_size;
             size_t final_size = offoff + esz * (size_t)nrows;
             dtrealloc(strbuffer, char, final_size);
@@ -338,6 +338,6 @@ Column* column_from_list(PyObject *list)
     }
 
   fail:
-    column_decref(column);
+    column->decref();
     return NULL;
 }

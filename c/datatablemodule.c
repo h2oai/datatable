@@ -51,14 +51,13 @@ static PyObject* pyregister_function(UU, PyObject *args)
 static PyObject* pyget_internal_function_ptrs(UU, UU1)
 {
     int i = 0;
-    PyObject *res = PyTuple_New(5);
+    PyObject *res = PyTuple_New(4);
     if (!res) return NULL;
 
-    #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t)f))
+    #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
     ADD(_dt_malloc);
     ADD(_dt_realloc);
     ADD(_dt_free);
-    ADD(make_data_column);
     ADD(rowindex_from_filterfn32);
     #undef ADD
 

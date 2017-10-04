@@ -362,7 +362,7 @@ static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
 
     Column *col = dt->columns[idx];
-    RowIndex *ri = column_sort(col, dt->rowindex);
+    RowIndex *ri = Column::sort(col, dt->rowindex);
     return pyrowindex(ri);
 }
 
@@ -398,7 +398,7 @@ static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
     Column **cols = NULL;
     dtmalloc(cols, Column*, dt->ncols + 1);
     for (int64_t i = 0; i < dt->ncols; i++) {
-        cols[i] = column_extract(dt->columns[i], ri);
+        cols[i] = dt->columns[i]->extract(ri);
         if (cols[i] == NULL) return NULL;
     }
     cols[dt->ncols] = NULL;

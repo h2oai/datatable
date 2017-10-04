@@ -5,9 +5,10 @@
 #include <stdint.h>
 #include "types.h"
 #include "datatable.h"
+#include "rowindex.h"
 
 typedef struct DataTable DataTable;
-typedef struct Column Column;
+class Column;
 typedef struct RowIndex RowIndex;
 
 /**
