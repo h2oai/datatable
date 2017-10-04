@@ -6,6 +6,20 @@ import re
 import pytest
 from tests import list_equals
 
+def pyhex(v):
+    """
+    Normalize Python's "hex" representation by removing trailing zeros. For
+    example:
+
+        0x0.0p+0               ->  0x0p+0
+        0x1.dcd6500000000p+29  ->  0x1.dcd65p+29
+        0x1.0000000000000p+1   ->  0x1p+1
+        0x1.4000000000000p+1   ->  0x1.4p+1
+    """
+    s = v.hex()
+    return re.sub(r"\.?0+p", "p", s)
+
+
 
 def test_save_simple():
     d = dt.DataTable([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
@@ -100,19 +114,6 @@ def test_save_double():
     assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
 
 
-def pyhex(v):
-    """
-    Normalize Python's "hex" representation by removing trailing zeros. For
-    example:
-
-        0x0.0p+0               ->  0x0p+0
-        0x1.dcd6500000000p+29  ->  0x1.dcd65p+29
-        0x1.0000000000000p+1   ->  0x1p+1
-        0x1.4000000000000p+1   ->  0x1.4p+1
-    """
-    s = v.hex()
-    return re.sub(r"\.?0+p", "p", s)
-
 def test_save_hexdouble_subnormal():
     src = [1e-308, 1e-309, 1e-310, 1e-311, 1e-312, 1e-313, 1e-314, 1e-315,
            1e-316, 1e-317, 1e-318, 1e-319, 1e-320, 1e-321, 1e-322, 1e-323,
@@ -141,3 +142,38 @@ def test_save_hexdouble_random(seed):
     d = dt.DataTable(src)
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == [pyhex(v) for v in src]
+
+
+# TODO: remove dependency on Pandas once #415 is implemented
+def test_save_hexfloat_sample(pandas):
+    # Manually check these values against Java's generated strings
+    src = {
+        0: "0x0p+0",
+        1: "0x1p+0",
+        3: "0x1.8p+1",
+        -1: "-0x1p+0",
+        -23: "-0x1.7p+4",
+        0.001: "0x1.0624dep-10",
+        1e-10: "0x1.b7cdfep-34",
+        1e+10: "0x1.2a05f2p+33",
+        -1000: "-0x1.f4p+9",
+        3.1415927: "0x1.921fb6p+1",
+        273.9134: "0x1.11e9d4p+8",
+        300.00002: "0x1.2c0002p+8",
+        99999999: "0x1.7d784p+26",
+        123456789: "0x1.d6f346p+26",
+        987654321: "0x1.d6f346p+29",  # ...
+        5.55e-40: "0x0.0c163ap-126",
+        -2.01e-42: "-0x0.000b34p-126",
+        1.0e-45: "0x0.000002p-126",
+        1.4e-45: "0x0.000002p-126",  # min subnormal
+        1.17549435e-38: "0x1p-126",  # min normal
+        8.700001e37: "0x1.05ce5ep+126",
+        3.4028235e38: "0x1.fffffep+127",  # max
+        3.4028236e38: "inf",
+        -3e328: "-inf",
+    }
+    d = dt.DataTable(pandas.DataFrame({"A": list(src.keys())}, dtype="float32"))
+    assert d.stypes == ("f4r", )
+    hexxed = d.to_csv(hex=True).split("\n")[1:-1]
+    assert hexxed == list(src.values())
