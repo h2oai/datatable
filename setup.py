@@ -97,11 +97,11 @@ if sysconfig.get_config_var("CONFINCLUDEPY"):
 # Linker flags
 ## Compute runtime libpath with respect to bundled LLVM libraries
 if platform.platform().startswith("Darwin"):
-    llvm_lib_path = '@loader_path/../../../lib'
+    llvm_lib_path = '@loader_path/../../../lib/datatable'
     lib_ext = 'dylib'
     extra_lib_names = ["libomp.%s"]
 else:
-    llvm_lib_path = '$ORIGIN/../../../lib'
+    llvm_lib_path = '$ORIGIN/../../../lib/datatable'
     lib_ext = 'so'
     extra_lib_names = ["libomp.%s", "libc++.%s.1", "libc++abi.%s.1"]
 os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, llvm_lib_path)
@@ -111,7 +111,7 @@ os.environ["ARCHFLAGS"] = "-m64"
 os.environ["LLVM_CONFIG"] = llvm_config
 # Bundle LLVM libraries as extra files in resulting wheel
 extra_libs = [name % lib_ext for name in extra_lib_names]
-extra_data_files = [ ('lib', ["%s/%s" % (libs, name) for name in extra_libs]) ]
+extra_data_files = [ ('lib/datatable', ["%s/%s" % (libs, name) for name in extra_libs]) ]
 print(extra_data_files)
 
 #-------------------------------------------------------------------------------
