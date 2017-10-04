@@ -108,7 +108,7 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 # Bundle LLVM libraries as extra files in resulting wheel
-extra_libs = [name % lib_ext for name in ["libomp.%s", "libc++.%s.1"]]
+extra_libs = [name % lib_ext for name in ["libomp.%s", "libc++.%s.1", "libc++abi.%s.1"]]
 extra_data_files = [ ('lib', ["%s/%s" % (libs, name) for name in extra_libs]) ]
 print(extra_data_files)
 
