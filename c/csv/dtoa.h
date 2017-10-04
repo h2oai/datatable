@@ -136,11 +136,12 @@
 //    represents x. We would want to choose among them the "nicest", that is the
 //    one having least number of digits. We can use the following approach:
 //
-//      - Let ε = A˜ >> 54
+//      - Let ε = (A˜ + (1<<53)) >> 54  ("rounded" value of A˜/2^54)
 //      - Let w be the last 3 digits of D. Is w within an ε-distance from 0 or
 //        1000? If so, then round D to the 1000s. Otherwise,
 //      - Let w be the last 2 digits of D. Is w within an ε-distance from 0 or
-//        100? If so, then round D to the 100s. Otherwise,
+//        200? If so, then round D to the 200s. Otherwise, is w within an
+//        ε-distance from 0 or 100? If so, then round D to the 100s. Otherwise,
 //      - Round D to 10s (since ε ≥ 11, and thus last digit can always be
 //        rounded).
 //
@@ -873,22 +874,27 @@ inline void dtoa(char **pch, double dvalue)
   uint64_t ph = static_cast<uint64_t>(p >> 64);
   uint64_t pl = static_cast<uint64_t>(p);
   int64_t D = static_cast<int64_t>(ph + (pl >> 63));
-  int64_t eps = static_cast<int64_t>(A >> 54);
+  int eps = static_cast<int>((A + (1ull << 53)) >> 54);
 
   // Round the value of D according to its precision
   if (eps >= 100) {
-    int64_t m = static_cast<int64_t>(D % 1000);
-    if (m < eps || 1000-m < eps) {
-      D += 1000*(m >= 500) - m;
+    int m = static_cast<int>(D % 1000);
+    if (m <= eps || 1000-m <= eps) {
+      D += 1000*(m > 500) - m;
     } else goto eps10;
   } else {
     eps10:
-    int64_t m = static_cast<int64_t>(D % 100);
-    if (m < eps || 100-m < eps) {
-      D += 100*(m >= 50) - m;
+    int m = static_cast<int>(D % 100);
+    if (m <= eps || 100-m <= eps) {
+      if (eps >= 50 && m <= eps && 100-m <= eps) {
+        m = static_cast<int>(D % 200);
+        D += 200*(m > 100) - m;
+      } else {
+        D += 100*(m > 50) - m;
+      }
     } else {
       m %= 10;
-      D += 10*(m >= 5) - m;
+      D += 10*(m > 5) - m;
     }
   }
   if (D >= TENp18) {

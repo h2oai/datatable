@@ -900,32 +900,35 @@ void kernel_dragonflyD(char **pch, Column *col, int64_t row) {
   uint64_t A = Atable[eb];
   uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
   uint64_t D = static_cast<uint64_t>(p >> 64) + (static_cast<uint64_t>(p) >> 63);
-  uint64_t eps = A >> 54;
-  if (D >= TENp18) {
-    D /= 10;
-    eps /= 10;
-    E++;
-  }
+  int eps = static_cast<int>((A + (1ull << 53)) >> 54);
+
   // Round the value of D according to its precision
   #define min(x,y) (x<y? x : y)
   if (eps >= 100) {
-    int64_t m = static_cast<int64_t>(D % 1000);
+    int m = static_cast<int>(D % 1000);
     if (m <= eps || 1000-m <= eps) {
-      D += 1000*(m >= 500) - m;
+      D += 1000*(m > 500) - m;
     } else goto eps10;
-  } else if (eps >= 10) {
-    eps10:
-    int64_t m = static_cast<int64_t>(D % 100);
-    if (m <= eps || 100-m <= eps) {
-      D += 100*(m >= 50) - m;
-    } else goto eps1;
   } else {
-    eps1:
-    int64_t m = static_cast<int64_t>(D % 10);
-    if (m <= eps || 10-m <= eps) {
-      D += 10*(m >= 5) - m;
+    eps10:
+    int m = static_cast<int>(D % 100);
+    if (m <= eps || 100-m <= eps) {
+      if (eps >= 50 && m <= eps && 100-m <= eps) {
+        m = static_cast<int>(D % 200);
+        D += 200*(m > 100) - m;
+      } else {
+        D += 100*(m > 50) - m;
+      }
+    } else {
+      m %= 10;
+      D += 10*(m > 5) - m;
     }
   }
+  if (D >= TENp18) {
+    D /= 10;
+    E++;
+  }
+
   if (E >= -5 && E < 15) {
     if (E < 0) {
       *ch++ = '0';
@@ -1192,7 +1195,7 @@ BenchmarkSuite prepare_bench_double(int64_t N)
                           x * pow(0.1, 20 + t % 100) * (1 - 2*(t&1));
   }
   // *((uint64_t*)data) = 0x3F6C920EAB818807ull;
-  data[0] = 100000;
+  data[0] = 1e23;
 
   // Prepare output buffer
   // At most 25 characters per entry (e.g. '-1.3456789011111343e+123') + 1 for a comma
