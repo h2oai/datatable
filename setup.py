@@ -99,16 +99,18 @@ if sysconfig.get_config_var("CONFINCLUDEPY"):
 if platform.platform().startswith("Darwin"):
     llvm_lib_path = '@loader_path/../../../lib'
     lib_ext = 'dylib'
+    extra_lib_names = ["libomp.%s"]
 else:
     llvm_lib_path = '$ORIGIN/../../../lib'
     lib_ext = 'so'
+    extra_lib_names = ["libomp.%s", "libc++.%s.1", "libc++abi.%s.1"]
 os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, llvm_lib_path)
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 # Bundle LLVM libraries as extra files in resulting wheel
-extra_libs = [name % lib_ext for name in ["libomp.%s", "libc++.%s.1", "libc++abi.%s.1"]]
+extra_libs = [name % lib_ext for name in extra_lib_names]
 extra_data_files = [ ('lib', ["%s/%s" % (libs, name) for name in extra_libs]) ]
 print(extra_data_files)
 
