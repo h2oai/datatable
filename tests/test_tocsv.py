@@ -20,6 +20,7 @@ def pyhex(v):
     return re.sub(r"\.?0+p", "p", s)
 
 
+#-------------------------------------------------------------------------------
 
 def test_save_simple():
     d = dt.DataTable([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
@@ -112,6 +113,17 @@ def test_save_double():
     assert list_equals(d.topython()[0], dd.topython()[0])
     # .split() in order to produce better error messages
     assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
+
+
+def test_save_double2():
+    src = [10**p for p in range(-320, 308)]
+    res = (["1e%02d" % i for i in range(-320, -4)] +
+           ["0.0001", "0.001", "0.01", "0.1"] +
+           [str(10**i) for i in range(15)] +
+           ["1e+%02d" % i for i in range(15, 308)])
+    d = dt.DataTable(src)
+    assert d.stypes == ("f8r", )
+    assert d.to_csv().split("\n")[1:-1] == res
 
 
 def test_save_hexdouble_subnormal():
