@@ -104,7 +104,7 @@ pipeline {
             agent {
                 dockerfile {
                     label "docker"
-                    filename "Dockerfile"
+                    filename "Dockerfile-runtime"
                     args "-v /tmp/pydatatable_large_data:/tmp/pydatatable_large_data -v /home/0xdiag"
                 }
             }
@@ -191,7 +191,6 @@ pipeline {
                         sh '''
                                 export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                                 source /Users/jenkins/anaconda/bin/activate h2oai
-                                export LLVM4=/usr/local/opt/llvm
                                 set +e
                                 pip uninstall -y datatable 1> pip_uninstall.out 2> pip_uninstall.err
                                 RC=$?
