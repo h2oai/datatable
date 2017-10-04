@@ -899,31 +899,68 @@ void kernel_dragonflyD(char **pch, Column *col, int64_t row) {
   uint64_t G = (value << 11) | F64_SIGN_MASK;
   uint64_t A = Atable[eb];
   uint128_t p = static_cast<uint128_t>(G) * static_cast<uint128_t>(A);
-  uint64_t D = static_cast<uint64_t>(p >> 64) + (static_cast<uint64_t>(p) >> 63);
+  uint64_t ph = static_cast<uint64_t>(p >> 64);
+  uint64_t pl = static_cast<uint64_t>(p);
+  int64_t D = static_cast<int64_t>(ph + (pl >> 63));
   int eps = static_cast<int>((A + (1ull << 53)) >> 54);
+  printf("D = %llu, G = %llu, A = %llu, eps = %d\n", D, G, A, eps);
 
   // Round the value of D according to its precision
-  #define min(x,y) (x<y? x : y)
-  if (eps >= 100) {
+  int mod = 1000;
+  int rem = static_cast<int>(D % 1000);
+  while (mod > 1) {
+    printf("  rem = %d, mod = %d, eps = %d\n", rem, mod, eps);
+    if (eps > rem) {
+      D = D - rem + (rem > mod/2) * mod;
+      break;
+    } else if (eps > mod - rem) {
+      D = D - rem + mod;
+      break;
+    } else if (eps < rem && eps < mod - rem) {
+    } else if (eps == rem) {
+      int64_t dp = static_cast<int64_t>((pl >> 63) - ((A >> 53) & 1));
+      if (dp > 0 || (dp == 0 && pl < (A << 10))) {
+        D -= rem;
+        break;
+      }
+    } else if (eps == mod - rem) {
+      int dp = static_cast<int>((pl >> 63) + ((A >> 53) & 1));
+      printf("  eps==mod-rem:  dp = %d\n", dp);
+      if (dp == 0 || (dp == 1 && (pl >> 10) + ((A & ((1ull<<55)-1)) > (1ull<<54)))) {
+        D = D - rem + mod;
+        break;
+      }
+    }
+    rem %= 10;
+    mod /= 10;
+  }
+  printf("  -> D = %llu\n", D);
+  /*
+  if (eps >= 50) {
     int m = static_cast<int>(D % 1000);
-    if (m <= eps || 1000-m <= eps) {
+    if (m < eps || 1000-m <= eps) {
       D += 1000*(m > 500) - m;
+    } else if (m == eps) {
+      int64_t dp = static_cast<int64_t>((pl >> 63) - ((A >> 53) & 1));
+      if (dp > 0 || dp == 0 && pl < (A << 10)) D -= m;
+      else goto eps10;
     } else goto eps10;
   } else {
     eps10:
     int m = static_cast<int>(D % 100);
-    if (m <= eps || 100-m <= eps) {
-      if (eps >= 50 && m <= eps && 100-m <= eps) {
-        m = static_cast<int>(D % 200);
-        D += 200*(m > 100) - m;
-      } else {
-        D += 100*(m > 50) - m;
-      }
+    if (m < eps || 100-m < eps) {
+      D += 100*(m >= 50) - m;
+    } else if (m == eps) {
+      int64_t dp = static_cast<int64_t>((pl >> 63) - ((A >> 53) & 1));
+      if (dp > 0 || dp == 0 && pl < (A << 10)) D -= m;
+      else goto eps1;
     } else {
+      eps1:
       m %= 10;
       D += 10*(m > 5) - m;
     }
   }
+  */
   if (D >= TENp18) {
     D /= 10;
     E++;
@@ -1194,8 +1231,11 @@ BenchmarkSuite prepare_bench_double(int64_t N)
               (t&15)<=12? x * pow(10, 20 + t % 100) * (1 - 2*(t&1)) :
                           x * pow(0.1, 20 + t % 100) * (1 - 2*(t&1));
   }
-  // *((uint64_t*)data) = 0x3F6C920EAB818807ull;
-  data[0] = 1e23;
+  ((uint64_t*)data)[0] = 0x5a17a2ecc414a03full;  // 1e126
+  ((uint64_t*)data)[1] = 0x5a17a2ecc414a040ull;  // 1e126 + ulp
+  // ((uint64_t*)data)[0] = 0x18123FF06EEA847Aull;  // 1e-129
+  // ((uint64_t*)data)[1] = 0x18123FF06EEA8479ull;  // 1e-129 - ulp
+  data[0] = 1e+23;
 
   // Prepare output buffer
   // At most 25 characters per entry (e.g. '-1.3456789011111343e+123') + 1 for a comma

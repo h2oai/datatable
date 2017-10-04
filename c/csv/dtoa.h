@@ -134,19 +134,16 @@
 //    are those with mantissas m ± 1, which translates to a difference in D˜ in
 //    ±(A˜ >> 53). Thus, we can say that any value in the range (D˜ ± (A˜>>54))
 //    represents x. We would want to choose among them the "nicest", that is the
-//    one having least number of digits. We can use the following approach:
-//
-//      - Let ε = (A˜ + (1<<53)) >> 54  ("rounded" value of A˜/2^54)
-//      - Let w be the last 3 digits of D. Is w within an ε-distance from 0 or
-//        1000? If so, then round D to the 1000s. Otherwise,
-//      - Let w be the last 2 digits of D. Is w within an ε-distance from 0 or
-//        200? If so, then round D to the 200s. Otherwise, is w within an
-//        ε-distance from 0 or 100? If so, then round D to the 100s. Otherwise,
-//      - Round D to 10s (since ε ≥ 11, and thus last digit can always be
-//        rounded).
+//    one having least number of digits. For example, rounding D to 1000s gives
+//    one of `D - (D%1000) + {0|1000}`. If one of these numbers is within ε-
+//    distance from D, then we should choose it (here ε = (A˜ + (1<<53)) >> 54,
+//    the rounded value of A/2^54). Otherwise we could try rounding to 100, or
+//    to 10. We try rounding to 1000s only if ε ≥ 50, because otherwise it is
+//    no different than rounding to 100s: the interval (D ± ε) can have no more
+//    than one number divisible by 100, and it will be unambiguously selected.
 //
 //    In practice the range of ε is from 11.1 to 111.9, so we don't have to
-//    consider rounding to 10000 or more.
+//    consider rounding to 10000.
 //
 //
 // ==== Dragonfly (float32) ====
@@ -856,8 +853,10 @@ inline void dtoa(char **pch, double dvalue)
   int eb = static_cast<int>(value >> 52);  // biased exponent
   if (eb == 0x7FF) {
     if (value == F64_INFINITY) {  // don't print nans at all
-      ch[0] = 'i'; ch[1] = 'n'; ch[2] = 'f';
-      *pch = ch + 3;
+      *ch++ = 'i';
+      *ch++ = 'n';
+      *ch++ = 'f';
+      *pch = ch;
     }
     return;
   } else if (eb == 0x000) {
@@ -877,25 +876,31 @@ inline void dtoa(char **pch, double dvalue)
   int eps = static_cast<int>((A + (1ull << 53)) >> 54);
 
   // Round the value of D according to its precision
-  if (eps >= 100) {
-    int m = static_cast<int>(D % 1000);
-    if (m <= eps || 1000-m <= eps) {
-      D += 1000*(m > 500) - m;
-    } else goto eps10;
-  } else {
-    eps10:
-    int m = static_cast<int>(D % 100);
-    if (m <= eps || 100-m <= eps) {
-      if (eps >= 50 && m <= eps && 100-m <= eps) {
-        m = static_cast<int>(D % 200);
-        D += 200*(m > 100) - m;
-      } else {
-        D += 100*(m > 50) - m;
+  int mod = 1000;
+  int rem = static_cast<int>(D % 1000);
+  while (mod > 1) {
+    if (eps >= rem) {
+      D = D - rem + (rem > mod/2) * mod;
+      break;
+    } else if (eps >= mod - rem) {
+      D = D - rem + mod;
+      break;
+    }/* else if (eps < rem && eps < mod - rem) {
+    } else if (eps == rem) {
+      int64_t dp = static_cast<int64_t>((pl >> 63) - ((A >> 53) & 1));
+      if (dp > 0 || (dp == 0 && pl < (A << 10))) {
+        D -= rem;
+        break;
       }
-    } else {
-      m %= 10;
-      D += 10*(m > 5) - m;
-    }
+    } else if (eps == mod - rem) {
+      int dp = static_cast<int>((pl >> 63) + ((A >> 53) & 1));
+      if (dp == 0 || (dp == 1 && (pl >> 10) + (A & ((1<<55)-1) > (1<<54)))) {
+        D = D - rem + mod;
+        break;
+      }
+    }*/
+    rem %= 10;
+    mod /= 10;
   }
   if (D >= TENp18) {
     D /= 10;
