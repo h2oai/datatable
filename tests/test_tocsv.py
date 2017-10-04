@@ -52,6 +52,17 @@ def test_save_floats():
     assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
 
 
+def test_save_double2():
+    src = [10**p for p in range(-307, 308)]
+    res = (["1e%02d" % i for i in range(-307, -4)] +
+           ["0.0001", "0.001", "0.01", "0.1"] +
+           [str(10**i) for i in range(15)] +
+           ["1e+%02d" % i for i in range(15, 308)])
+    d = dt.DataTable(src)
+    assert d.stypes == ("f8r", )
+    assert d.to_csv().split("\n")[1:-1] == res
+
+
 def pyhex(v):
     """
     Normalize Python's "hex" representation by removing trailing zeros. For
