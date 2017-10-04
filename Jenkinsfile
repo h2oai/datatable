@@ -1,5 +1,4 @@
 #!/usr/bin/groovy
-// TOOD: rename to @Library('h2o-jenkins-pipeline-lib') _
 @Library('test-shared-library') _
 
 import ai.h2o.ci.Utils
