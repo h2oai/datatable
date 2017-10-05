@@ -266,6 +266,7 @@ BenchmarkSuite prepare_bench_int32(int64_t N)
               (x&15)==8? -x :
                          x % 1000000;
   }
+  data[0] = 1000000000;
 
   // Prepare output buffer
   // At most 11 characters per entry (e.g. '-2147483647') + 1 for a comma

@@ -23,6 +23,7 @@
 #include <sys/mman.h>   // mmap
 #include "column.h"
 #include "csv/dtoa.h"
+#include "csv/itoa.h"
 #include "csv/writer.h"
 #include "datatable.h"
 #include "math.h"

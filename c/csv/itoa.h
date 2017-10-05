@@ -43,20 +43,20 @@ const char gDigitsLut[200] = {
 
 #define MIDDLE2(n) \
   do { \
-    int t = static_cast<int>(n) * 2; \
-    *ch++ = gDigitsLut[t]; \
-    *ch++ = gDigitsLut[t + 1]; \
+    int t2 = static_cast<int>(n) * 2; \
+    *ch++ = gDigitsLut[t2]; \
+    *ch++ = gDigitsLut[t2 + 1]; \
   } while(0)
 
 #define BEGIN2(n) \
   do { \
-    int t = static_cast<int>(n); \
-    if (t < 10) { \
-      *ch++ = '0' + t; \
+    int t2 = static_cast<int>(n); \
+    if (t2 < 10) { \
+      *ch++ = '0' + static_cast<char>(t2); \
     } else { \
-      t *= 2; \
-      *ch++ = gDigitsLut[t]; \
-      *ch++ = gDigitsLut[t + 1]; \
+      t2 *= 2; \
+      *ch++ = gDigitsLut[t2]; \
+      *ch++ = gDigitsLut[t2 + 1]; \
     } \
   } while(0)
 
@@ -112,12 +112,12 @@ inline void itoa(char **pch, int32_t value) {
     value = -value;
   }
 
-  uint32_t t = static_cast<uint32_t>(value);
-  if (t < 100000000) {
-    BEGIN8(t);
+  uint32_t uvalue = static_cast<uint32_t>(value);
+  if (uvalue < 100000000) {
+    BEGIN8(uvalue);
   } else {
-    BEGIN2(t / 100000000);
-    MIDDLE8(t % 100000000);
+    BEGIN2(uvalue / 100000000);
+    MIDDLE8(uvalue % 100000000);
   }
   *pch = ch;
 }
@@ -130,15 +130,15 @@ inline void ltoa(char **pch, int64_t value) {
     value = -value;
   }
 
-  uint64_t t = static_cast<uint64_t>(value);
-  if (t < 100000000) {
-    BEGIN8(t);
-  } else if (t < 10000000000000000) {
-    BEGIN8(t / 100000000);
-    MIDDLE8(t % 100000000);
+  uint64_t uvalue = static_cast<uint64_t>(value);
+  if (uvalue < 100000000) {
+    BEGIN8(uvalue);
+  } else if (uvalue < 10000000000000000) {
+    BEGIN8(uvalue / 100000000);
+    MIDDLE8(uvalue % 100000000);
   } else {
-    BEGIN4(t / 10000000000000000);
-    MIDDLE16(t % 10000000000000000);
+    BEGIN4(uvalue / 10000000000000000);
+    MIDDLE16(uvalue % 10000000000000000);
   }
   *pch = ch;
 }

@@ -51,7 +51,7 @@ const char gDigitsLut[200] = {
   do { \
     int t = static_cast<int>(n); \
     if (t < 10) { \
-      *ch++ = '0' + t; \
+      *ch++ = '0' + static_cast<char>(t); \
     } else { \
       t *= 2; \
       *ch++ = gDigitsLut[t]; \
@@ -111,12 +111,12 @@ inline void itoa(char **pch, int32_t value) {
     value = -value;
   }
 
-  uint32_t t = static_cast<uint32_t>(value);
-  if (t < 100000000) {
-    BEGIN8(t);
+  uint32_t uvalue = static_cast<uint32_t>(value);
+  if (uvalue < 100000000) {
+    BEGIN8(uvalue);
   } else {
-    BEGIN2(t / 100000000);
-    MIDDLE8(t % 100000000);
+    BEGIN2(uvalue / 100000000);
+    MIDDLE8(uvalue % 100000000);
   }
   *pch = ch;
 }
