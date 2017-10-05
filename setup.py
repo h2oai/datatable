@@ -91,14 +91,31 @@ if sysconfig.get_config_var("CONFINCLUDEPY"):
     # for those files
     os.environ["CC"] += "-isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
     os.environ["CXX"] += "-isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
+
 # Linker
 # os.environ["LDSHARED"] = clang
 # Linker flags
-os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, libs)
+# Compute runtime libpath with respect to bundled LLVM libraries
+if sys.platform == "darwin":
+    llvm_lib_path = '@loader_path/../../../lib/datatable'
+    extra_libs = ["libomp.dylib"]
+else:
+    llvm_lib_path = '$ORIGIN/../../../lib/datatable'
+    extra_libs = ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
+os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, llvm_lib_path)
+
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
+
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
+
+# Bundle LLVM libraries as extra files in resulting wheel
+extra_data_files = [
+    ('lib/datatable', ["%s/%s" % (libs, name) for name in extra_libs])
+]
+print(extra_data_files)
+
 
 #-------------------------------------------------------------------------------
 # Settings for building the extension
@@ -233,11 +250,12 @@ setup(
 
     ext_modules=[
         Extension(
-            "_datatable",
+            "datatable/lib/_datatable",
             include_dirs=["c"],
             sources=c_sources,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,
         ),
     ],
+    data_files=extra_data_files,
 )
