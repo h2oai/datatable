@@ -127,21 +127,25 @@ inline void ftoa(char **pch, float fvalue)
   uint32_t A = Atable32[eb];
   uint64_t p = static_cast<uint64_t>(G) * static_cast<uint64_t>(A);
   int32_t D = static_cast<int32_t>((p + F32_SIGN_MASK) >> 32);
-  int32_t eps = static_cast<int32_t>(A >> 26);
+  int32_t eps = static_cast<int32_t>(A >> 25);
+  printf("  D = %d, A = %u, G = %u, eps = %d\n", D, A, G, eps);
 
   // Round the value of D according to its precision
-  if (eps >= 10) {
-    int32_t m = D % 100;
-    if (m < eps || 100-m < eps) {
-      D += 100*(m >= 50) - m;
-    } else goto eps1;
-  } else {
-    eps1:
-    int32_t m = D % 10;
-    if (m < eps || 10-m < eps) {
-      D += 10*(m >= 5) - m;
+  int mod = 1000;
+  int rem = static_cast<int>(D % 1000);
+  while (mod > 1) {
+    printf("  -> mod = %d, rem = %d\n", mod, rem);
+    if (eps >= rem) {
+      D = D - rem + (rem > mod/2) * mod;
+      break;
+    } else if (eps >= mod - rem) {
+      D = D - rem + mod;
+      break;
     }
+    mod /= 10;
+    rem %= mod;
   }
+  printf("  -> D = %d\n", D);
   bool bigD = (D >= TENp09);
   int EE = E + bigD;
 
@@ -204,7 +208,7 @@ inline void ftoa(char **pch, float fvalue)
     // Numbers greater than one, use floating point format: 12345.67
     int r = 8 + bigD;
     int rr = r - EE;
-    while (D) {
+    while (D || r >= rr) {
       int32_t d = D / DIVS32[r];
       D -= d * DIVS32[r];
       *ch++ = static_cast<char>(d) + '0';
@@ -314,7 +318,7 @@ BenchmarkSuite prepare_bench_float(int64_t N)
               (t&15)<=12? x * pow(10, 5 + t % 32) * (1 - 2*(t&1)) :
                           x * pow(0.1, 5 + t % 32) * (1 - 2*(t&1));
   }
-  data[0] = 0.0109265661e-4;
+  data[0] = 1000000.2;
 
   // Prepare output buffer
   // At most 25 characters per entry (e.g. '-1.3456789011111343e+123') + 1 for a comma
@@ -323,7 +327,7 @@ BenchmarkSuite prepare_bench_float(int64_t N)
 
   static Kernel kernels[] = {
     { &kernel_hex,         "hex" },
-    { &kernel_dragonfly64, "dragonfly64" },
+    // { &kernel_dragonfly64, "dragonfly64" },
     { &kernel_dragonfly32, "dragonfly32" },
     { &kernel_sprintf,     "sprintf" },
     { NULL, NULL },
