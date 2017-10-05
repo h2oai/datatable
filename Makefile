@@ -20,6 +20,7 @@ clean:
 	rm -rf dist
 	rm -rf datatable.egg-info
 	rm -f *.so
+	rm -f datatable/lib/_datatable*.so
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 
