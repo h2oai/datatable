@@ -3,7 +3,7 @@
 import types
 
 import datatable
-import _datatable
+import datatable.lib._datatable as _datatable
 from .iterator_node import IteratorNode
 from datatable.expr import DatatableExpr, BaseExpr
 from datatable.utils.misc import normalize_slice, normalize_range

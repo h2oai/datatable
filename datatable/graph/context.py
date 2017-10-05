@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .llvm import inject_c_code
-import _datatable
+import datatable.lib._datatable as _datatable
 
 
 

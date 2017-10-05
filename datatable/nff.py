@@ -3,7 +3,7 @@
 import os
 import re
 
-import _datatable
+import datatable.lib._datatable as _datatable
 from datatable.dt import DataTable
 from datatable.fread import fread
 from datatable.utils.typechecks import typed

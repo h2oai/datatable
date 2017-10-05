@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-import _datatable
 import os
+import datatable.lib._datatable as _datatable
 from datatable.utils.terminal import term
 _log_color = term.bright_black
 

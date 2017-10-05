@@ -7,6 +7,7 @@ Build script for the `datatable` module.
     $ twine upload dist/*
 """
 import os
+import shutil
 import sys
 import re
 import subprocess
@@ -97,12 +98,19 @@ if sysconfig.get_config_var("CONFINCLUDEPY"):
 # Linker flags
 # Compute runtime libpath with respect to bundled LLVM libraries
 if sys.platform == "darwin":
-    llvm_lib_path = '@loader_path/../../../lib/datatable'
     extra_libs = ["libomp.dylib"]
 else:
-    llvm_lib_path = '$ORIGIN/../../../lib/datatable'
     extra_libs = ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
-os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libs, llvm_lib_path)
+if not os.path.exists("datatable/lib"):
+    os.mkdir("datatable/lib")
+for libname in extra_libs:
+    srcfile = os.path.join(libs, libname)
+    tgtfile = os.path.join("datatable", "lib", libname)
+    if not os.path.exists(tgtfile):
+        print("Copying %s to %s" % (srcfile, tgtfile))
+        shutil.copy(srcfile, tgtfile)
+
+os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,@loader_path/." % (libs)
 
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
@@ -110,11 +118,6 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 
-# Bundle LLVM libraries as extra files in resulting wheel
-extra_data_files = [
-    ('lib/datatable', ["%s/%s" % (libs, name) for name in extra_libs])
-]
-print(extra_data_files)
 
 
 #-------------------------------------------------------------------------------
@@ -257,5 +260,7 @@ setup(
             extra_link_args=extra_link_args,
         ),
     ],
-    data_files=extra_data_files,
+
+    package_dir={"datatable": "datatable"},
+    package_data={"datatable": ["lib/*.*"]},
 )
