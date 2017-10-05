@@ -899,8 +899,8 @@ inline void dtoa(char **pch, double dvalue)
         break;
       }
     }*/
-    rem %= 10;
     mod /= 10;
+    rem %= mod;
   }
   if (D >= TENp18) {
     D /= 10;
@@ -1011,21 +1011,23 @@ inline void ftoa(char **pch, float fvalue)
   uint32_t A = Atable32[eb];
   uint64_t p = static_cast<uint64_t>(G) * static_cast<uint64_t>(A);
   int32_t D = static_cast<int32_t>((p + F32_SIGN_MASK) >> 32);
-  int32_t eps = static_cast<int32_t>(A >> 26);
+  int32_t eps = static_cast<int32_t>(A >> 25);
 
   // Round the value of D according to its precision
-  if (eps >= 10) {
-    int32_t m = D % 100;
-    if (m < eps || 100-m < eps) {
-      D += 100*(m >= 50) - m;
-    } else goto eps1;
-  } else {
-    eps1:
-    int32_t m = D % 10;
-    if (m < eps || 10-m < eps) {
-      D += 10*(m >= 5) - m;
+  int mod = 1000;
+  int rem = static_cast<int>(D % 1000);
+  while (mod > 1) {
+    if (eps >= rem) {
+      D = D - rem + (rem > mod/2) * mod;
+      break;
+    } else if (eps >= mod - rem) {
+      D = D - rem + mod;
+      break;
     }
+    mod /= 10;
+    rem %= mod;
   }
+
   bool bigD = (D >= TENp09);
   int EE = E + bigD;
 
@@ -1088,7 +1090,7 @@ inline void ftoa(char **pch, float fvalue)
     // Numbers greater than one, use floating point format: 12345.67
     int r = 8 + bigD;
     int rr = r - EE;
-    while (D) {
+    while (D || r >= rr) {
       int32_t d = D / DIVS32[r];
       D -= d * DIVS32[r];
       *ch++ = static_cast<char>(d) + '0';

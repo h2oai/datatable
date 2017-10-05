@@ -166,6 +166,7 @@ def test_save_hexfloat_sample(pandas):
         -1: "-0x1p+0",
         -23: "-0x1.7p+4",
         0.001: "0x1.0624dep-10",
+        0.0001: "0x1.a36e2ep-14",
         1e-10: "0x1.b7cdfep-34",
         1e+10: "0x1.2a05f2p+33",
         -1000: "-0x1.f4p+9",
@@ -189,3 +190,35 @@ def test_save_hexfloat_sample(pandas):
     assert d.stypes == ("f4r", )
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == list(src.values())
+
+
+# TODO: remove dependency on Pandas once #415 is implemented
+def test_save_float_sample(pandas):
+    src = {
+        0: "0",
+        10: "10",
+        -100: "-100",
+        -1000: "-1000",
+        100000: "100000",
+        1000000: "1000000",
+        1000000.2: "1000000.2",
+        -10000000: "-10000000",
+        100000000: "1e+08",
+        0.1: "0.1",
+        0.01: "0.01",
+        0.001: "0.001",
+        0.0001: "0.0001",
+        0.00001: "1e-05",
+        99.0: "99",
+        12345678: "12345678",
+        1e-23: "1e-23",
+        1e+28: "1e+28",
+        1e+29: "1e+29",
+        3.1415927: "3.1415927",
+        1.13404e+28: "1.13404e+28",
+        1.134043e+28: "1.134043e+28",
+    }
+    d = dt.DataTable(pandas.DataFrame(list(src.keys()), dtype="float32"))
+    assert d.stypes == ("f4r", )
+    decs = d.to_csv().split("\n")[1:-1]
+    assert decs == list(src.values())
