@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   than all known alternatives.
 - It is now allowed to pass a single-row numpy array as an argument to `dt(rows=...)`,
   which will be treated the same as if it was a single-column array.
+- Now `datatable`'s wheel will include libraries `libomp` and `libc++` on the platforms
+  where they are not widely available.
 
 #### Changed
 - `datatable` will no longer attempt to distinguish between NA and NAN floating-point values.
@@ -29,9 +31,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   list will be transposed.
 - Converting a DataTable into a numpy array now also preserves shape. At the same time it is
   no longer true that `dt.topython() == dt.tonumpy().tolist()`: the list will be transposed.
+- The internal `_datatable` module was moved to `datatable.lib._datatable`.
 
 #### Fixed
 - `datatable` will now convert huge integers into double `inf` values instead of raising an exception.
+
 
 
 ### [v0.2.1](https://github.com/h2oai/datatable/compare/v0.2.1...v0.2.0) — 2017-09-11
@@ -48,6 +52,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Fixed
 - Filter function when applied to a view DataTable now produces correct result.
+
 
 
 ### [v0.2.0](https://github.com/h2oai/datatable/compare/v0.2.0...v0.1.0) — 2017-08-30
