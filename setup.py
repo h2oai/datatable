@@ -68,9 +68,9 @@ if "LLVM4" in os.environ:
         raise ValueError("Variable LLVM4 = %r is not a directory" % llvm4)
     llvm_config = os.path.join(llvm4, "bin", "llvm-config")
     clang = os.path.join(llvm4, "bin", "clang++")
-    libs = os.path.join(llvm4, "lib")
+    libsdir = os.path.join(llvm4, "lib")
     includes = os.path.join(llvm4, "include")
-    for f in [llvm_config, clang, libs, includes]:
+    for f in [llvm_config, clang, libsdir, includes]:
         if not os.path.exists(f):
             raise RuntimeError("Cannot find %r inside the LLVM4 folder. "
                                "Is this a valid installation?" % f)
@@ -95,22 +95,28 @@ if sysconfig.get_config_var("CONFINCLUDEPY"):
 
 # Linker
 # os.environ["LDSHARED"] = clang
-# Linker flags
+
 # Compute runtime libpath with respect to bundled LLVM libraries
 if sys.platform == "darwin":
     extra_libs = ["libomp.dylib"]
+    rpath = "@loader_path/."
 else:
     extra_libs = ["libomp.so", "libc++.so.1", "libc++abi.so.1"]
-if not os.path.exists("datatable/lib"):
-    os.mkdir("datatable/lib")
+    rpath = "$ORIGIN/."
+
+# Copy system libraries into the datatable/lib folder, so that they can be
+# packaged with the wheel
+if not os.path.exists(os.path.join("datatable", "lib")):
+    os.mkdir(os.path.join("datatable", "lib"))
 for libname in extra_libs:
-    srcfile = os.path.join(libs, libname)
+    srcfile = os.path.join(libsdir, libname)
     tgtfile = os.path.join("datatable", "lib", libname)
     if not os.path.exists(tgtfile):
         print("Copying %s to %s" % (srcfile, tgtfile))
         shutil.copy(srcfile, tgtfile)
 
-os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,@loader_path/." % (libs)
+# Add linker flags: path to system libraries, and the rpath
+os.environ["LDFLAGS"] = "-L%s -Wl,-rpath,%s" % (libsdir, rpath)
 
 # Force to build for a 64-bit platform only
 os.environ["ARCHFLAGS"] = "-m64"
@@ -212,14 +218,15 @@ setup(
     name="datatable",
     version=version,
 
-    description="Python implementation of R's data.table package",
+    description="Python library for fast multi-threaded data manipulation and "
+                "munging.",
 
     # The homepage
     url="https://github.com/h2oai/datatable.git",
 
     # Author details
-    author="Pasha Stetsenko & Matt Dowle",
-    author_email="pasha@h2o.ai, mattd@h2o.ai",
+    author="Pasha Stetsenko",
+    author_email="pasha@h2o.ai",
 
     license="Apache v2.0",
 
