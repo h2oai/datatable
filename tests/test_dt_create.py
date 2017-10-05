@@ -87,7 +87,7 @@ def test_create_from_datatable():
 
 
 #-------------------------------------------------------------------------------
-# Create from Pandas / Numpy
+# Create from Pandas
 #-------------------------------------------------------------------------------
 
 def test_create_from_pandas(pandas):
@@ -113,6 +113,19 @@ def test_create_from_pandas_series(pandas):
     assert d.internal.check()
     assert d.topython() == [[1, 5, 9, -12]]
 
+
+def test_create_from_pandas_with_names(pandas):
+    p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
+    d = dt.DataTable(p, colnames=["miniature", "miniscule"])
+    assert d.shape == (3, 2)
+    assert same_iterables(d.names, ("miniature", "miniscule"))
+    assert d.internal.check()
+
+
+
+#-------------------------------------------------------------------------------
+# Create from Numpy
+#-------------------------------------------------------------------------------
 
 def test_create_from_0d_numpy_array(numpy):
     a = numpy.array(100)
@@ -203,6 +216,15 @@ def test_create_from_masked_numpy_array4(numpy):
     assert d.stypes == ("f8r", )
     assert d.internal.check()
     assert list_equals(d.topython(), [arr.tolist()])
+
+
+def test_create_from_numpy_array_with_names(numpy):
+    a = numpy.array([1, 2, 3])
+    d = dt.DataTable(a, colnames=["gargantuan"])
+    assert d.shape == (3, 1)
+    assert d.names == ("gargantuan", )
+    assert d.internal.check()
+    assert d.topython() == [[1, 2, 3]]
 
 
 
