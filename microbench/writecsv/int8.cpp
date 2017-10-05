@@ -3,6 +3,7 @@
 #include <stdlib.h>  // srand, rand
 #include <time.h>    // time
 #include "writecsv.h"
+#include "itoa_branchlut2.h"
 
 
 static void kernel_simple(char **pch, Column *col, int64_t row) {
@@ -135,6 +136,13 @@ static void kernel_sprintf(char **pch, Column *col, int64_t row) {
 }
 
 
+static void kernel_branchlut2(char **pch, Column *col, int64_t row) {
+  int8_t value = ((int8_t*) col->data)[row];
+  if (value == NA_I1) return;
+  i1toa(pch, value);
+}
+
+
 
 //=================================================================================================
 // Main
@@ -157,12 +165,13 @@ BenchmarkSuite prepare_bench_int8(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_simple,    "simple" },   // 19.645
-    { &kernel_range1,    "range1" },   // 19.601
-    { &kernel_div,       "div" },      // 27.200
-    { &kernel_divloop,   "divloop" },  // 32.820
-    { &kernel_fwrite,    "fwrite" },   // 33.197
-    { &kernel_sprintf,   "sprintf" },  // 79.778
+    { &kernel_simple,     "simple" },     // 19.921
+    { &kernel_range1,     "range1" },     // 18.294
+    { &kernel_div,        "div" },        // 25.656
+    { &kernel_divloop,    "divloop" },    // 30.730
+    { &kernel_branchlut2, "branchlut2" }, // 21.784
+    { &kernel_fwrite,     "fwrite" },     // 32.075
+    { &kernel_sprintf,    "sprintf" },    // 74.886
     { NULL, NULL },
   };
 

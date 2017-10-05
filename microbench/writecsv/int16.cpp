@@ -3,7 +3,7 @@
 #include <stdlib.h>  // srand, rand
 #include <time.h>    // time
 #include "writecsv.h"
-
+#include "itoa_branchlut2.h"
 
 
 // This form assumes that at least 6 extra bytes in the buffer are available
@@ -103,6 +103,13 @@ static void kernel_sprintf(char **pch, Column *col, int64_t row) {
 
 
 
+static void kernel_branchlut2(char **pch, Column *col, int64_t row) {
+  int16_t value = ((int16_t*) col->data)[row];
+  if (value == NA_I2) return;
+  i2toa(pch, value);
+}
+
+
 
 //=================================================================================================
 // Main
@@ -131,10 +138,11 @@ BenchmarkSuite prepare_bench_int16(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_tempwrite, "tempwrite" }, // 52.322
-    { &kernel_div10,     "div10" },     // 36.855
-    { &kernel_fwrite,    "fwrite" },    // 56.915
-    { &kernel_sprintf,   "sprintf" },   // 82.000
+    { &kernel_tempwrite,  "tempwrite" },  // 50.129
+    { &kernel_div10,      "div10" },      // 34.122
+    { &kernel_branchlut2, "branchlut2" }, // 35.195
+    { &kernel_fwrite,     "fwrite" },     // 53.396
+    { &kernel_sprintf,    "sprintf" },    // 78.904
     { NULL, NULL },
   };
 

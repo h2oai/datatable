@@ -23,6 +23,7 @@
 #include <sys/mman.h>   // mmap
 #include "column.h"
 #include "csv/dtoa.h"
+#include "csv/itoa.h"
 #include "csv/writer.h"
 #include "datatable.h"
 #include "math.h"
@@ -33,7 +34,6 @@
 
 
 class CsvColumn;
-inline static void write_int32(char **pch, int32_t value);
 static void write_string(char **pch, const char *value);
 
 typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
@@ -138,54 +138,12 @@ static void write_i2(char **pch, CsvColumn *col, int64_t row)
   *pch = ch + 1;
 }
 
-static inline void write_int32(char **pch, int32_t value) {
-  if (value == 0) {
-    *((*pch)++) = '0';
-    return;
-  }
-  char *ch = *pch;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  int r = (value < 100000)? 4 : 9;
-  for (; value < DIVS32[r]; r--);
-  for (; r; r--) {
-    int d = value / DIVS32[r];
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS32[r];
-  }
-  *ch = static_cast<char>(value) + '0';
-  *pch = ch + 1;
-}
-
-static inline void write_int64(char **pch, int64_t value) {
-  if (value == 0) {
-    *((*pch)++) = '0';
-    return;
-  }
-  char *ch = *pch;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  int r = (value < 10000000)? 6 : 18;
-  for (; value < DIVS64[r]; r--);
-  for (; r; r--) {
-    int64_t d = value / DIVS64[r];
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS64[r];
-  }
-  *ch = static_cast<char>(value) + '0';
-  *pch = ch + 1;
-}
-
 
 static void write_i4(char **pch, CsvColumn *col, int64_t row)
 {
   int32_t value = ((int32_t*) col->data)[row];
   if (value == NA_I4) return;
-  write_int32(pch, value);
+  itoa(pch, value);
 }
 
 
@@ -193,7 +151,7 @@ static void write_i8(char **pch, CsvColumn *col, int64_t row)
 {
   int64_t value = ((int64_t*) col->data)[row];
   if (value == NA_I8) return;
-  write_int64(pch, value);
+  ltoa(pch, value);
 }
 
 
@@ -281,7 +239,7 @@ static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
   exp = (exp - 1023 + subnormal) & -(value != 0);
   *ch++ = 'p';
   *ch++ = '+' + (exp < 0)*('-' - '+');
-  write_int32(&ch, abs(exp));
+  itoa(&ch, abs(exp));
   *pch = ch;
 }
 
@@ -322,7 +280,7 @@ static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
   exp = (exp - 127 + subnormal) & -(value != 0);
   *ch++ = 'p';
   *ch++ = '+' + (exp < 0)*('-' - '+');
-  write_int32(&ch, abs(exp));
+  itoa(&ch, abs(exp));
   *pch = ch;
 }
 
