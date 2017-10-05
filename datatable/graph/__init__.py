@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 #-------------------------------------------------------------------------------
-import _datatable
+import datatable.lib._datatable as _datatable
 import datatable
 from .rows_node import make_rowfilter, AllRFNode, SortedRFNode
 from .cols_node import make_columnset, SliceCSNode, ArrayCSNode

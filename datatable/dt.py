@@ -7,7 +7,7 @@ from types import GeneratorType
 from typing import Tuple, Dict
 
 # noinspection PyUnresolvedReferences
-import _datatable as c
+import datatable.lib._datatable as c
 import datatable
 from .widget import DataFrameWidget
 

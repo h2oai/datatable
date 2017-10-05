@@ -8,6 +8,7 @@ __pycache__/
 .cache/
 build/
 dist/
+datatable/lib/
 *.egg-info/
 
 
