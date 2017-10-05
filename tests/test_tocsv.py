@@ -222,3 +222,31 @@ def test_save_float_sample(pandas):
     assert d.stypes == ("f4r", )
     decs = d.to_csv().split("\n")[1:-1]
     assert decs == list(src.values())
+
+
+def test_save_strings():
+    src1 = ["foo", "bar", 'bazz"', 'tri"cky', 'tri""ckier', "simple\nnewline",
+            r"A backslash!\n", r"Anoth\\er", "weird\rnewline", "\n\n\n",
+            "\x01\x02\x03\x04\x05\x06\x07", '"""""', None]
+    src2 = ["", "empty", "None", None, "   with whitespace ", "with,commas",
+            "\twith tabs\t", '"oh-no', "single'quote", "'squoted'",
+            "\0bwahaha!", "?", "here be dragons"]
+    d = dt.DataTable([src1, src2], colnames=["A", "B"])
+    assert d.types == ("str", "str")
+    assert d.internal.check()
+    assert d.to_csv().split("\n") == [
+        'A,B',
+        'foo,""',
+        'bar,empty',
+        '"bazz""",None',
+        '"tri""cky",',
+        '"tri""""ckier","   with whitespace "',
+        '"simple', 'newline","with,commas"',
+        'A backslash!\\n,"\twith tabs\t"',
+        'Anoth\\\\er,"""oh-no"',
+        '"weird\rnewline",single\'quote',
+        '"', '', '', '",\'squoted\'',
+        '"\x01\x02\x03\x04\x05\x06\x07","\x00bwahaha!"',
+        '"""""""""""",?',
+        ',here be dragons',
+        '']
