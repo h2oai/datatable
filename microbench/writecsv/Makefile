@@ -29,13 +29,13 @@ main.o: main.cpp
 boolean.o: boolean.cpp
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-int8.o: int8.cpp
+int8.o: int8.cpp itoa_branchlut2.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-int16.o: int16.cpp
+int16.o: int16.cpp itoa_branchlut2.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-int32.o: int32.cpp
+int32.o: int32.cpp itoa_branchlut2.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 float.o: float.cpp dtoa_milo.h

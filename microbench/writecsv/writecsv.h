@@ -8,6 +8,7 @@ extern double now();
 #define NA_I1 -128
 #define NA_I2 -32768
 #define NA_I4 INT32_MIN
+#define NA_I8 INT64_MIN
 #define NA_F4 NAN
 #define NA_F8 ((double)NAN)
 
