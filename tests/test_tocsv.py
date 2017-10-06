@@ -21,6 +21,8 @@ def pyhex(v):
 
 
 #-------------------------------------------------------------------------------
+# Test generic saving
+#-------------------------------------------------------------------------------
 
 def test_save_simple():
     d = dt.DataTable([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
@@ -58,6 +60,24 @@ def test_write_spacenames():
     dd = dt.fread(text=d.to_csv())
     assert d.topython() == dd.topython()
 
+
+def test_strategy(capsys, tempfile):
+    """Check that the _strategy parameter is respected."""
+    d = dt.DataTable({"A": [5, 6, 10, 12], "B": ["one", "two", "tree", "for"]})
+    d.to_csv(tempfile, _strategy="mmap", verbose=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert ("Creating and memory-mapping destination file " + tempfile) in out
+    d.to_csv(tempfile, _strategy="write", verbose=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert ("Creating an empty destination file " + tempfile) in out
+
+
+
+#-------------------------------------------------------------------------------
+# Test writing different data types
+#-------------------------------------------------------------------------------
 
 def test_save_bool():
     d = dt.DataTable([True, False, None, None, False, False, True, False])
