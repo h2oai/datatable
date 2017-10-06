@@ -248,8 +248,7 @@ Column* Column::extract(RowIndex *rowindex) {
                 size_t offssize = res_nrows * elemsize;
                 offoff = datasize + padding;
                 res->alloc_size = datasize + padding + offssize;
-                free(res->data);
-                res->data = malloc(res->alloc_size);
+                res->data = realloc(res->data, res->alloc_size);
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
                 memcpy(res->data, add_ptr(data, off0), datasize);
                 memset(add_ptr(res->data, datasize), 0xFF, padding);
