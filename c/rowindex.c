@@ -384,7 +384,7 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
     if (stype_info[col->stype].ltype != LT_INTEGER) return NULL;
 
     if (col->stype == ST_INTEGER_I1 || col->stype == ST_INTEGER_I2) {
-        col = column_cast(col, ST_INTEGER_I4);
+        col = col->cast(ST_INTEGER_I4);
         if (col == NULL) return NULL;
         is_temp_column = 2;
     }
@@ -416,7 +416,7 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
     }
 
     if (is_temp_column == 2) {
-        column_decref(col);
+        col->decref();
     }
     return ri;
 }
@@ -425,9 +425,9 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
 RowIndex*
 rowindex_from_intcolumn_with_rowindex(Column *col, RowIndex *rowindex)
 {
-    Column *newcol = column_extract(col, rowindex);
+    Column *newcol = col->extract(rowindex);
     RowIndex *res = rowindex_from_intcolumn(newcol, 1);
-    column_decref(newcol);
+    newcol->decref();
     return res;
 }
 

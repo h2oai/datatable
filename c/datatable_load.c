@@ -80,7 +80,7 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         metastr[mlen] = '\0';
 
         // Load the column
-        columns[i] = column_load_from_disk(filename, stype, nrows, metastr);
+        columns[i] = new Column(filename, stype, nrows, metastr);
         if (columns[i] == NULL) return NULL;
     }
 

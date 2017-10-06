@@ -332,10 +332,10 @@ class FilterExprRFNode(RFNode):
         cmod.add_global(rowindex_name, "RowIndex*", "NULL")
         cmod.add_function(
             self._fnname,
-            "RowIndex* {fnname}(void) {{\n"
+            "extern \"C\" RowIndex* {fnname}(void) {{\n"
             "    if (!{riname})\n"
             "        {riname} = rowindex_from_filterfn32("
-            "                       {filter}, {nrows}, {sorted});\n"
+            "                       (void*) {filter}, {nrows}, {sorted});\n"
             "    return {riname};\n"
             "}}".format(fnname=self._fnname,
                         riname=rowindex_name,

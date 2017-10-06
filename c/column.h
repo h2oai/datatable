@@ -95,7 +95,8 @@ typedef enum MType {
  *     DataTable is deleted, it decreases refcounts of all its constituent
  *     Columns, and once a Column's refcount becomes 0 it can be safely deleted.
  */
-typedef struct Column {
+class Column {
+public:
     void   *data;        // 8
     void   *meta;        // 8
     int64_t nrows;       // 8
@@ -104,38 +105,41 @@ typedef struct Column {
         char *filename;
         void *pybuf;
     };
-    Stats*  stats; // 8
+    Stats*  stats;       // 8
     int     refcount;    // 4
     MType   mtype;       // 1
     SType   stype;       // 1
     int16_t _padding;    // 2
-} Column;
+
+    Column(SType, size_t); // Data Column
+    Column(SType, size_t, const char*); // MMap Column
+    Column(SType, int64_t, void*, void*, size_t); // XBuf Column
+    Column(const char*, SType, int64_t, const char*); // Load from disk
+    Column(const Column&);
+    Column(const Column*); // Copy
+    Column* cast(SType);
+    Column* rbind(Column**);
+    Column* extract(RowIndex* = NULL);
+    Column* realloc_and_fill(int64_t);
+    Column* save_to_disk(const char*);
+    size_t i4s_datasize();
+    size_t i8s_datasize();
+    size_t get_allocsize();
+    Column* incref();
+    void decref();
+
+    static RowIndex* sort(Column*, RowIndex*);
+    static size_t i4s_padding(size_t datasize);
+    static size_t i8s_padding(size_t datasize);
+private:
+    ~Column() {}
+};
 
 
 
 //==============================================================================
 typedef Column* (*castfn_ptr)(Column*, Column*);
 
-Column* make_data_column(SType stype, size_t nrows);
-Column* make_mmap_column(SType stype, size_t nrows, const char *filename);
-Column* column_copy(Column *self);
-Column* column_cast(Column *self, SType stype);
-Column* column_rbind(Column *self, Column **cols);
-Column* column_extract(Column *self, RowIndex *rowindex);
-Column* column_realloc_and_fill(Column *self, int64_t nrows);
-Column* column_save_to_disk(Column *self, const char *filename);
-Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
-                              const char *metastr);
-Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
-                           void* buf, size_t alloc_size);
-RowIndex* column_sort(Column *self, RowIndex *rowindex);
-size_t column_i4s_padding(size_t datasize);
-size_t column_i8s_padding(size_t datasize);
-size_t column_i4s_datasize(Column *self);
-size_t column_i8s_datasize(Column *self);
-size_t column_get_allocsize(Column*);
-Column* column_incref(Column *self);
-void column_decref(Column *self);
 
 void init_column_cast_functions(void);
 // Implemented in py_column_cast.c

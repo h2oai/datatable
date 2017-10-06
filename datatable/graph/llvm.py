@@ -68,7 +68,7 @@ def _c_to_llvm(code):
         raise RuntimeError("Environment variable LLVM4 is not set. This "
                            "variable should point to the Clang+Llvm-4.0 "
                            "installation folder.")
-    proc = subprocess.Popen(args=[clang, "-x", "c", "-S", "-emit-llvm",
+    proc = subprocess.Popen(args=[clang, "-x", "c++", "-S", "-emit-llvm",
                                   "-o", "-", "-"],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)

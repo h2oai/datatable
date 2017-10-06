@@ -2,6 +2,7 @@
 #include <fcntl.h>     // open
 #include <unistd.h>    // close, truncate
 #include <sys/mman.h>
+#include "py_fread.h"
 #include "fread.h"
 #include "myassert.h"
 #include "utils.h"
@@ -151,9 +152,9 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
     Column *col = NULL;
     if (targetdir) {
         snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
-        col = make_mmap_column(stype, nrows, fname);
+        col = new Column(stype, nrows, fname);
     } else{
-        col = make_data_column(stype, nrows);
+        col = new Column(stype, nrows);
     }
     if (col == NULL) return NULL;
 
@@ -198,7 +199,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
 static Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 {
     if (col != NULL && stype_info[stype].ltype == LT_STRING) {
-        column_decref(col);
+        col->decref();
         return alloc_column(stype, nrows, j);
     }
     if (col == NULL) {
@@ -358,7 +359,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     printf("AllocateDT failed!\n");
     if (columns) {
         Column **col = columns;
-        while (*col++) column_decref(*col);
+        while (*col++) (*col)->decref();
         dtfree(columns);
     }
     return 0;
@@ -377,7 +378,7 @@ void setFinalNrow(size_t nrows) {
             assert(sb->numuses == 0);
             void *final_ptr = (void*) sb->buf;
             size_t curr_size = sb->ptr;
-            size_t padding = column_i4s_padding(curr_size);
+            size_t padding = Column::i4s_padding(curr_size);
             size_t offoff = curr_size + padding;
             size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;

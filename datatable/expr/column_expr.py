@@ -30,7 +30,7 @@ class ColSelectorExpr(BaseExpr):
             datavar = key + "_data"
             inode.make_keyvar(datavar, datavar, exact=True)
             dtcols = self._get_dt_columns(inode)
-            inode.addto_preamble("{type} *{data} = {columns}[{idx}]->data;"
+            inode.addto_preamble("{type} *{data} = ({type}*) {columns}[{idx}]->data;"
                                  .format(type=self.ctype, data=datavar,
                                          columns=dtcols, idx=self._colid))
             inode.addto_mainloop("{type} {var} = {data}[i];"
@@ -39,8 +39,8 @@ class ColSelectorExpr(BaseExpr):
             # needs fixing
             srccols, idxloop = inode.get_dt_srccolumns(self._dtexpr)
             data_array = "%s[%d]" % (srccols, self._view_colid)
-            inode.addto_preamble("%s *%s_data = %s->data;" %
-                                 (self.ctype, v, data_array))
+            inode.addto_preamble("%s *%s_data = %s* %s->data;" %
+                                 (self.ctype, v, self.ctype, data_array))
             inode.addto_mainloop("%s %s = %s_data[%s];  // %s" %
                                  (self.ctype, v, v, idxloop, self))
         return v

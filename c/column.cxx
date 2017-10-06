@@ -1,11 +1,12 @@
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>    // memcpy, strcmp
-#include <stdlib.h>    // atoll
+#include <cstdlib>     // atoll
 #include <errno.h>
 #include <fcntl.h>     // open
 #include <unistd.h>    // close
 #include "column.h"
+#include "utils.h"
 #include "myassert.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -24,63 +25,58 @@ extern size_t py_buffers_size;
  * If the column cannot be created (probably due to Out-of-Memory exception),
  * the function will return NULL.
  */
-Column* make_data_column(SType stype, size_t nrows)
-{
-    assert(nrows <= INT64_MAX);
-    Column *col = NULL;
-    dtmalloc(col, Column, 1);
-    col->data = NULL;
-    col->meta = NULL;
-    col->filename = NULL;
-    col->nrows = (int64_t) nrows;
-    col->alloc_size = stype_info[stype].elemsize * nrows +
-                      (stype == ST_STRING_I4_VCHAR ? column_i4s_padding(0) :
-                       stype == ST_STRING_I8_VCHAR ? column_i8s_padding(0) : 0);
-    col->stats = Stats::void_ptr();
-    col->refcount = 1;
-    col->mtype = MT_DATA;
-    col->stype = stype;
-    dtmalloc(col->data, void, col->alloc_size);
-    dtcalloc(col->meta, void, stype_info[stype].metasize);
-    if (stype == ST_STRING_I4_VCHAR)
-        ((VarcharMeta*) col->meta)->offoff = (int64_t) column_i4s_padding(0);
-    if (stype == ST_STRING_I8_VCHAR)
-        ((VarcharMeta*) col->meta)->offoff = (int64_t) column_i8s_padding(0);
-    return col;
+Column::Column(SType st, size_t nr) :
+    data(NULL),
+    meta(NULL),
+    nrows((int64_t) nr),
+    alloc_size(0),
+    filename(NULL),
+    stats(Stats::void_ptr()),
+    refcount(1),
+    mtype(MT_DATA),
+    stype(st),
+    _padding(0) {
+    alloc_size = stype_info[st].elemsize * nr +
+                 (st == ST_STRING_I4_VCHAR ? i4s_padding(0) :
+                  st == ST_STRING_I8_VCHAR ? i8s_padding(0) : 0);
+    data = malloc(alloc_size);
+    size_t meta_size = stype_info[st].metasize;
+    if (meta_size) meta = malloc(meta_size);
+    if (st == ST_STRING_I4_VCHAR)
+        ((VarcharMeta*) meta)->offoff = (int64_t) i4s_padding(0);
+    if (st == ST_STRING_I8_VCHAR)
+        ((VarcharMeta*) meta)->offoff = (int64_t) i8s_padding(0);
 }
 
 
-Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
-{
-    assert(nrows <= INT64_MAX);
-    size_t alloc_size = stype_info[stype].elemsize * nrows;
+Column::Column(SType st, size_t nr, const char* fn) :
+    data(NULL),
+    meta(NULL),
+    nrows((int64_t) nr),
+    alloc_size(0),
+    filename(NULL),
+    stats(Stats::void_ptr()),
+    refcount(1),
+    mtype(MT_MMAP),
+    stype(st),
+    _padding(0) {
+    alloc_size = stype_info [st].elemsize * nr;
 
     // Create new file of size `alloc_size`.
-    FILE *fp = fopen(filename, "w");
-    fseek(fp, (off_t)alloc_size - 1, SEEK_SET);
+    FILE *fp = fopen(fn, "w");
+    fseek(fp, (off_t) alloc_size - 1 , SEEK_SET);
     fputc('\0', fp);
     fclose(fp);
 
     // Memory-map the file. For some reason I was not able to create memory map
     // without resorting to closing / reopening the file (even with fflush()),
     // it was producing Permission Denied error for some reason.
-    int fd = open(filename, O_RDWR);
+    int fd = open(fn, O_RDWR);
     void *mmp = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-    if (mmp == MAP_FAILED) dterre0("Memory-map failed.");
     close(fd);
 
-    Column *col = NULL;
-    dtmalloc(col, Column, 1);
-    col->data = mmp;
-    col->meta = NULL;
-    col->filename = NULL;
-    col->nrows = (int64_t) nrows;
-    col->stype = stype;
-    col->mtype = MT_MMAP;
-    col->refcount = 1;
-    col->alloc_size = alloc_size;
-    dtmalloc(col->meta, void, stype_info[stype].metasize);
-    return col;
+    if (mmp == MAP_FAILED) throw new Error("Memory-map failed.");
+    meta = malloc(stype_info[st].metasize);
 }
 
 
@@ -91,23 +87,26 @@ Column *make_mmap_column(SType stype, size_t nrows, const char *filename)
  * file).
  * If a file with the given name already exists, it will be overwritten.
  */
-Column* column_save_to_disk(Column *self, const char *filename)
-{
-    size_t size = self->alloc_size;
-
+Column* Column::save_to_disk(const char *filename) {
     // Open and memory-map the file
     int fd = open(filename, O_RDWR|O_CREAT, 0666);
-    if (fd == -1) dterre("Cannot open file %s", filename);
-    int ret = ftruncate(fd, (off_t)size);
-    if (ret == -1) dterre("Cannot truncate file %s", filename);
-    void *mmp = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mmp == MAP_FAILED) dterre0("Memory-map failed.");
+    if (fd == -1) {
+        close(fd);
+        throw new Error("Cannot open file %s", filename);
+    }
+    int ret = ftruncate(fd, (off_t) alloc_size);
+    if (ret == -1) {
+        close(fd);
+        throw new Error("Cannot truncate file %s", filename);
+    }
+    void *mmp = mmap(NULL, alloc_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
+    if (mmp == MAP_FAILED) throw new Error("Memory-map failed.");
 
     // Copy the data buffer into the file
-    memcpy(mmp, self->data, size);
-    munmap(mmp, size);
-    return self;
+    memcpy(mmp, data, alloc_size);
+    munmap(mmp, alloc_size);
+    return this;
 }
 
 
@@ -120,65 +119,63 @@ Column* column_save_to_disk(Column *self, const char *filename)
  * This function will not check data validity (i.e. that the buffer contains
  * valid values, and that the extra parameters match the buffer's contents).
  */
-Column* column_load_from_disk(const char *filename, SType stype, int64_t nrows,
-                              const char *metastr)
-{
+Column::Column(const char* fn, SType st, int64_t nr,
+               const char* ms) :
+    data(NULL),
+    meta(NULL),
+    nrows(nr),
+    alloc_size(0),
+    filename(NULL),
+    stats(Stats::void_ptr()),
+    refcount(1),
+    mtype(MT_MMAP),
+    stype(st),
+    _padding(0) {
     // Deserialize the meta information, if needed
-    void *meta = NULL;
-    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-        if (strncmp(metastr, "offoff=", 7) != 0) return NULL;
-        int64_t offoff = (int64_t) atoll(metastr + 7);
-        dtmalloc(meta, VarcharMeta, 1);
+    if (st == ST_STRING_I4_VCHAR || st == ST_STRING_I8_VCHAR) {
+        if (strncmp(ms, "offoff=", 7) != 0)
+            throw new Error("Cannot retrieve required metadata in string \"%s\"", ms);
+        int64_t offoff = (int64_t) atoll(ms + 7);
+        meta = malloc(sizeof(VarcharMeta));
         ((VarcharMeta*) meta)->offoff = offoff;
     }
 
     // Open and memory-map the file
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1) dterre("Cannot open file %s", filename);
+    int fd = open(fn, O_RDONLY);
+    if (fd == -1) {
+        close(fd);
+        throw new Error("Cannot open file %s", fn);
+    }
     struct stat stat_buf;
     int ret = fstat(fd, &stat_buf);
-    if (ret == -1) dterre0("Cannot obtain file's size");
+    if (ret == -1) {
+        close(fd);
+        throw new Error("Cannot obtain file's size");
+    }
     size_t filesize = (size_t) stat_buf.st_size;
     void *mmp = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (mmp == MAP_FAILED) dterre0("Memory-map failed");
     close(fd);
-
-    // Create the column object
-    Column *col = NULL;
-    dtmalloc(col, Column, 1);
-    col->data = mmp;
-    col->meta = meta;
-    col->filename = NULL;
-    col->nrows = nrows;
-    col->alloc_size = filesize;
-    col->stats = Stats::void_ptr();
-    col->refcount = 1;
-    col->mtype = MT_MMAP;
-    col->stype = stype;
-
-    return col;
+    if (mmp == MAP_FAILED) throw new Error("Memory-map failed");
+    data = mmp;
+    alloc_size = filesize;
 }
 
 
 /**
  * Construct a column from the externally provided buffer.
  */
-Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
-                           void* buf, size_t alloc_size)
-{
-    Column *col = NULL;
-    dtmalloc(col, Column, 1);
-    col->data = buf;
-    col->meta = NULL;
-    col->nrows = nrows;
-    col->alloc_size = alloc_size;
-    col->stats = Stats::void_ptr();
-    col->pybuf = pybuffer;
-    col->refcount = 1;
-    col->mtype = MT_XBUF;
-    col->stype = stype;
-    return col;
-}
+Column::Column(SType st, int64_t nr, void* pybuffer,
+               void* b, size_t a_size) :
+    data(b),
+    meta(NULL),
+    nrows(nr),
+    alloc_size(a_size),
+    pybuf(pybuffer),
+    stats(Stats::void_ptr()),
+    refcount(1),
+    mtype(MT_XBUF),
+    stype(st),
+    _padding(0) {}
 
 
 
@@ -188,32 +185,30 @@ Column* column_from_buffer(SType stype, int64_t nrows, void* pybuffer,
  * If a shallow copy is needed, then simply copy the column's reference and
  * call `column_incref()`.
  */
-Column* column_copy(Column *self)
-{
-    size_t alloc_size = self->alloc_size;
-    size_t meta_size = stype_info[self->stype].metasize;
-    Column *col = NULL;
-    dtmalloc(col, Column, 1);
-    col->data = NULL;
-    col->meta = NULL;
-    col->filename = NULL;
-    col->nrows = self->nrows;
-    col->stats = Stats::void_ptr();
-    col->stype = self->stype;
-    col->mtype = MT_DATA;
-    col->refcount = 1;
-    col->alloc_size = alloc_size;
-    if (alloc_size) {
-        dtmalloc(col->data, void, alloc_size);
-        memcpy(col->data, self->data, alloc_size);
+Column::Column(const Column &other) :
+    data(NULL),
+    meta(NULL),
+    nrows(other.nrows),
+    alloc_size(other.alloc_size),
+    filename(NULL),
+    stats(Stats::void_ptr()), // TODO: deep copy stats when implemented
+    refcount(1),
+    mtype(MT_DATA),
+    stype(other.stype),
+    _padding(0) {
+    if(alloc_size) {
+        data = malloc(alloc_size);
+        memcpy(data, other.data, alloc_size);
     }
+    size_t meta_size = stype_info[stype].metasize;
     if (meta_size) {
-        dtmalloc(col->meta, void, meta_size);
-        memcpy(col->meta, self->meta, meta_size);
+        meta = malloc(meta_size);
+        memcpy(meta, other.meta, meta_size);
     }
-    return col;
 }
 
+Column::Column(const Column *other) :
+    Column(*other) {}
 
 
 /**
@@ -222,66 +217,65 @@ Column* column_copy(Column *self)
  * `rowindex` parameter can also be NULL, in which case a shallow copy
  * is returned (if a "deep" copy is needed, then use `column_copy()`).
  */
-Column* column_extract(Column *self, RowIndex *rowindex)
-{
+Column* Column::extract(RowIndex *rowindex) {
     // If `rowindex` is not provided, then return a shallow "copy".
     if (rowindex == NULL) {
-        self->refcount++;
-        return self;
+        return incref();
     }
 
-    SType stype = self->stype;
-    size_t nrows = (size_t) rowindex->length;
+    size_t res_nrows = (size_t) rowindex->length;
     size_t elemsize = (stype == ST_STRING_FCHAR)
-                        ? (size_t) ((FixcharMeta*) self->meta)->n
+                        ? (size_t) ((FixcharMeta*) meta)->n
                         : stype_info[stype].elemsize;
 
     // Create the new Column object.
     // TODO: Stats should be copied from DataTable
-    Column *res = make_data_column(stype, 0);
-    res->nrows = (int64_t) nrows;
+    Column *res = new Column(stype, 0);
+    res->nrows = (int64_t) res_nrows;
 
     // "Slice" rowindex with step = 1 is a simple subsection of the column
     if (rowindex->type == RI_SLICE && rowindex->slice.step == 1) {
         size_t start = (size_t) rowindex->slice.start;
         switch (stype) {
             case ST_STRING_I4_VCHAR: {
-                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
-                int32_t *offs = (int32_t*) add_ptr(self->data, offoff) + start;
-                int32_t off0 = start? abs(*(offs - 1)) - 1 : 0;
-                int32_t off1 = start + nrows? abs(*(offs + nrows - 1)) - 1 : 0;
+                size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
+                int32_t *offs = (int32_t*) add_ptr(data, offoff) + start;
+                int32_t off0 = start ? abs(*(offs - 1)) - 1 : 0;
+                int32_t off1 = start + res_nrows ?
+                               abs(*(offs + res_nrows - 1)) - 1 : 0;
                 size_t datasize = (size_t)(off1 - off0);
-                size_t padding = column_i4s_padding(datasize);
-                size_t offssize = nrows * elemsize;
+                size_t padding = i4s_padding(datasize);
+                size_t offssize = res_nrows * elemsize;
                 offoff = datasize + padding;
                 res->alloc_size = datasize + padding + offssize;
-                dtmalloc(res->data, void, res->alloc_size);
+                res->data = malloc(res->alloc_size);
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-                memcpy(res->data, add_ptr(self->data, off0), datasize);
+                memcpy(res->data, add_ptr(data, off0), datasize);
                 memset(add_ptr(res->data, datasize), 0xFF, padding);
                 int32_t *resoffs = (int32_t*) add_ptr(res->data, offoff);
-                for (size_t i = 0; i < nrows; i++) {
+                for (size_t i = 0; i < res_nrows; ++i) {
                     resoffs[i] = offs[i] > 0? offs[i] - off0
                                             : offs[i] + off0;
                 }
             } break;
 
             case ST_STRING_I8_VCHAR: {
-                size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;
-                int64_t *offs = (int64_t*) add_ptr(self->data, offoff) + start;
-                int64_t off0 = start? llabs(*(offs - 1)) - 1 : 0;
-                int64_t off1 = start + nrows? llabs(*(offs + nrows - 1)) - 1 : 0;
+                size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
+                int64_t *offs = (int64_t*) add_ptr(data, offoff) + start;
+                int64_t off0 = start ? llabs(*(offs - 1)) - 1 : 0;
+                int64_t off1 = start + res_nrows ?
+                               llabs(*(offs + res_nrows - 1)) - 1 : 0;
                 size_t datasize = (size_t)(off1 - off0);
-                size_t padding = column_i8s_padding(datasize);
-                size_t offssize = nrows * elemsize;
+                size_t padding = i8s_padding(datasize);
+                size_t offssize = res_nrows * elemsize;
                 offoff = datasize + padding;
                 res->alloc_size = datasize + padding + offssize;
-                dtmalloc(res->data, void, res->alloc_size);
+                res->data = malloc(res->alloc_size);
                 ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-                memcpy(res->data, add_ptr(self->data, off0), datasize);
+                memcpy(res->data, add_ptr(data, off0), datasize);
                 memset(add_ptr(res->data, datasize), 0xFF, padding);
                 int64_t *resoffs = (int64_t*) add_ptr(res->data, offoff);
-                for (size_t i = 0; i < nrows; i++) {
+                for (size_t i = 0; i < res_nrows; ++i) {
                     resoffs[i] = offs[i] > 0? offs[i] - off0
                                             : offs[i] + off0;
                 }
@@ -295,11 +289,11 @@ Column* column_extract(Column *self, RowIndex *rowindex)
 
             default: {
                 assert(!stype_info[stype].varwidth);
-                size_t alloc_size = nrows * elemsize;
+                size_t res_alloc_size = res_nrows * elemsize;
                 size_t offset = start * elemsize;
-                dtmalloc(res->data, void, alloc_size);
-                memcpy(res->data, add_ptr(self->data, offset), alloc_size);
-                res->alloc_size = alloc_size;
+                dtmalloc(res->data, void, res_alloc_size);
+                memcpy(res->data, add_ptr(data, offset), res_alloc_size);
+                res->alloc_size = res_alloc_size;
             } break;
         }
         return res;
@@ -320,11 +314,11 @@ Column* column_extract(Column *self, RowIndex *rowindex)
             intXX(bits) j = rowindices[i];
 
         #define CASE_IX_VCHAR_SUB(ctype, abs, JINIT, JITER) {                  \
-            size_t offoff = (size_t)((VarcharMeta*) self->meta)->offoff;       \
-            ctype *offs = (ctype*) add_ptr(self->data, offoff);                \
+            size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;             \
+            ctype *offs = (ctype*) add_ptr(data, offoff);                      \
             size_t datasize = 0;                                               \
             {   JINIT                                                          \
-                for (size_t i = 0; i < nrows; i++) {                           \
+                for (size_t i = 0; i < res_nrows; ++i) {                       \
                     JITER                                                      \
                     if (offs[j] > 0) {                                         \
                         ctype prevoff = j? abs(offs[j - 1]) : 1;               \
@@ -332,24 +326,24 @@ Column* column_extract(Column *self, RowIndex *rowindex)
                     }                                                          \
                 }                                                              \
             }                                                                  \
-            size_t padding = elemsize == 4 ? column_i4s_padding(datasize)      \
-                                           : column_i8s_padding(datasize);     \
-            size_t offssize = nrows * elemsize;                                \
+            size_t padding = elemsize == 4 ? i4s_padding(datasize)      \
+                                           : i8s_padding(datasize);     \
+            size_t offssize = res_nrows * elemsize;                            \
             offoff = datasize + padding;                                       \
             res->alloc_size = offoff + offssize;                               \
-            res->data = (char*) TRY(malloc(res->alloc_size));                  \
+            res->data = TRY(malloc(res->alloc_size));                          \
             ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;             \
             {   JINIT                                                          \
                 ctype lastoff = 1;                                             \
                 char *dest = (char*) res->data;                                \
                 ctype *resoffs = (ctype*) add_ptr(res->data, offoff);          \
-                for (size_t i = 0; i < nrows; i++) {                           \
+                for (size_t i = 0; i < res_nrows; ++i) {                       \
                     JITER                                                      \
                     if (offs[j] > 0) {                                         \
                         ctype prevoff = j? abs(offs[j - 1]) : 1;               \
                         size_t len = (size_t)(offs[j] - prevoff);              \
                         if (len) {                                             \
-                            memcpy(dest, add_ptr(self->data, prevoff - 1),     \
+                            memcpy(dest, add_ptr(data, prevoff - 1),           \
                                    len);                                       \
                             dest += len;                                       \
                             lastoff += len;                                    \
@@ -388,15 +382,15 @@ Column* column_extract(Column *self, RowIndex *rowindex)
 
         default: {
             assert(!stype_info[stype].varwidth);
-            size_t alloc_size = nrows * elemsize;
-            dtmalloc(res->data, void, alloc_size);
-            res->alloc_size = alloc_size;
+            size_t res_alloc_size = res_nrows * elemsize;
+            res->data = malloc(res_alloc_size);
+            res->alloc_size = res_alloc_size;
             char *dest = (char*) res->data;
             if (rowindex->type == RI_SLICE) {
-                size_t startsize = (size_t)rowindex->slice.start * elemsize;
+                size_t startsize = (size_t) rowindex->slice.start * elemsize;
                 size_t stepsize = (size_t) rowindex->slice.step * elemsize;
-                char *src = (char*)(self->data) + startsize;
-                for (size_t i = 0; i < nrows; i++) {
+                char *src = (char*)(data) + startsize;
+                for (size_t i = 0; i < res_nrows; ++i) {
                     memcpy(dest, src, elemsize);
                     dest += elemsize;
                     src += stepsize;
@@ -404,17 +398,17 @@ Column* column_extract(Column *self, RowIndex *rowindex)
             } else
             if (rowindex->type == RI_ARR32) {
                 int32_t *rowindices = rowindex->ind32;
-                for (size_t i = 0; i < nrows; i++) {
+                for (size_t i = 0; i < res_nrows; ++i) {
                     size_t j = (size_t) rowindices[i];
-                    memcpy(dest, add_ptr(self->data, j*elemsize), elemsize);
+                    memcpy(dest, add_ptr(data, j*elemsize), elemsize);
                     dest += elemsize;
                 }
             } else
             if (rowindex->type == RI_ARR32) {
                 int64_t *rowindices = rowindex->ind64;
-                for (size_t i = 0; i < nrows; i++) {
+                for (size_t i = 0; i < res_nrows; ++i) {
                     size_t j = (size_t) rowindices[i];
-                    memcpy(dest, add_ptr(self->data, j*elemsize), elemsize);
+                    memcpy(dest, add_ptr(data, j*elemsize), elemsize);
                     dest += elemsize;
                 }
             }
@@ -423,13 +417,9 @@ Column* column_extract(Column *self, RowIndex *rowindex)
     return res;
 
   fail:
-    free(res->meta);
-    free(res->data);
-    free(res);
+    res->decref();
     return NULL;
 }
-
-
 
 /**
  * Expand the column up to `nrows` elements and return it. The pointer returned
@@ -440,30 +430,29 @@ Column* column_extract(Column *self, RowIndex *rowindex)
  * single row, then this value will be repeated `nrows` times. If the column had
  * `nrows != 1`, then all extra rows will be filled with NAs.
  */
-Column* column_realloc_and_fill(Column *self, int64_t nrows)
+Column* Column::realloc_and_fill(int64_t nr)
 {
-    size_t old_nrows = (size_t)self->nrows;
-    size_t diff_rows = (size_t)nrows - old_nrows;
-    size_t old_alloc_size = self->alloc_size;
+    size_t old_nrows = (size_t) this->nrows;
+    size_t diff_rows = (size_t) nr - old_nrows;
+    size_t old_alloc_size = this->alloc_size;
     assert(diff_rows > 0);
 
-    if (!stype_info[self->stype].varwidth) {
-        size_t elemsize = stype_info[self->stype].elemsize;
+    if (!stype_info[stype].varwidth) {
+        size_t elemsize = stype_info[stype].elemsize;
         Column *col;
         // DATA column with refcount 1 can be expanded in-place
-        if (self->mtype == MT_DATA && self->refcount == 1) {
-            col = self;
-            col->nrows = nrows;
-            col->alloc_size = elemsize * (size_t)nrows;
+        if (mtype == MT_DATA && refcount == 1) {
+            col = this;
+            col->nrows = nr;
+            col->alloc_size = elemsize * (size_t) nr;
             dtrealloc(col->data, void, col->alloc_size);
         }
         // In all other cases we create a new Column object and copy the data
         // over. The current Column can be decrefed.
         else {
-            col = make_data_column(self->stype, (size_t)nrows);
-            if (col == NULL) return NULL;
-            memcpy(col->data, self->data, self->alloc_size);
-            column_decref(self);
+            col = new Column(stype, (size_t) nr);
+            memcpy(col->data, data, alloc_size);
+            decref();
         }
         // Replicate the value or fill with NAs
         size_t fill_size = elemsize * diff_rows;
@@ -481,23 +470,23 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
         return col;
     }
 
-    else if (self->stype == ST_STRING_I4_VCHAR) {
-        if (nrows > INT32_MAX)
-            dterrr("Nrows is too big for an i4s column: %lld", nrows);
+    else if (stype == ST_STRING_I4_VCHAR) {
+        if (nr > INT32_MAX)
+            dterrr("Nrows is too big for an i4s column: %lld", nr);
 
-        size_t old_data_size = column_i4s_datasize(self);
-        size_t old_offoff = (size_t) ((VarcharMeta*) self->meta)->offoff;
+        size_t old_data_size = i4s_datasize();
+        size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
         size_t new_data_size = old_data_size;
-        if (old_nrows == 1) new_data_size = old_data_size * (size_t)nrows;
-        size_t new_padding_size = column_i4s_padding(new_data_size);
+        if (old_nrows == 1) new_data_size = old_data_size * (size_t) nr;
+        size_t new_padding_size = Column::i4s_padding(new_data_size);
         size_t new_offoff = new_data_size + new_padding_size;
-        size_t new_alloc_size = new_offoff + 4 * (size_t)nrows;
+        size_t new_alloc_size = new_offoff + 4 * (size_t) nr;
         assert(new_alloc_size > old_alloc_size);
         Column *col;
 
         // DATA column with refcount 1: expand in-place
-        if (self->mtype == MT_DATA && self->refcount == 1) {
-            col = self;
+        if (mtype == MT_DATA && refcount == 1) {
+            col = this;
             dtrealloc(col->data, void, new_alloc_size);
             if (old_offoff != new_offoff) {
                 memmove(add_ptr(col->data, new_offoff),
@@ -506,30 +495,30 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
         }
         // Otherwise create a new column and copy over the data
         else {
-            col = make_data_column(self->stype, 0);
+            col = new Column(stype, 0);
             dtrealloc(col->data, void, new_alloc_size);
-            memcpy(col->data, self->data, old_data_size);
+            memcpy(col->data, data, old_data_size);
             memcpy(add_ptr(col->data, new_offoff),
-                   add_ptr(self->data, old_offoff), 4 * old_nrows);
-            column_decref(self);
+                   add_ptr(data, old_offoff), 4 * old_nrows);
+            decref();
         }
         set_value(add_ptr(col->data, new_data_size), NULL, 1, new_padding_size);
         ((VarcharMeta*) col->meta)->offoff = (int64_t) new_offoff;
         col->alloc_size = new_alloc_size;
-        col->nrows = nrows;
+        col->nrows = nr;
 
         // Replicate the value, or fill with NAs
         int32_t *offsets = (int32_t*) add_ptr(col->data, new_offoff);
         if (old_nrows == 1 && offsets[0] > 0) {
             set_value(add_ptr(col->data, old_data_size), col->data,
                       old_data_size, diff_rows);
-            for (int32_t j = 0; j < (int32_t)nrows; j++) {
-                offsets[j] = 1 + (j + 1) * (int32_t)old_data_size;
+            for (int32_t j = 0; j < (int32_t) nr; ++j) {
+                offsets[j] = 1 + (j + 1) * (int32_t) old_data_size;
             }
         } else {
             if (old_nrows == 1) assert(old_data_size == 0);
             assert(old_offoff == new_offoff && old_data_size == new_data_size);
-            int32_t na = -(int32_t)new_data_size - 1;
+            int32_t na = -(int32_t) new_data_size - 1;
             set_value(add_ptr(col->data, old_alloc_size),
                       &na, 4, diff_rows);
         }
@@ -538,8 +527,9 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
         return col;
     }
     // Exception
-    dterre("Cannot realloc column of stype %d", self->stype);
+    throw new Error("Cannot realloc column of stype %d", stype);
 }
+
 
 
 
@@ -550,11 +540,9 @@ Column* column_realloc_and_fill(Column *self, int64_t nrows)
  * returns the column object passed.
  * Here `self` can also be NULL, in which case this function does nothing.
  */
-Column* column_incref(Column *self)
-{
-    if (self == NULL) return NULL;
-    self->refcount++;
-    return self;
+Column* Column::incref() {
+    ++refcount;
+    return this;
 }
 
 
@@ -565,22 +553,25 @@ Column* column_incref(Column *self)
  * reaches 0, the column's data will be garbage-collected.
  * Here `self` can also be NULL, in which case this function does nothing.
  */
-void column_decref(Column *self)
-{
-    if (self == NULL) return;
-    self->refcount--;
-    if (self->refcount <= 0) {
-        if (self->mtype == MT_DATA) {
-            dtfree(self->data);
+void Column::decref() {
+    --refcount;
+    if (refcount <= 0) {
+        switch(mtype) {
+        case MT_DATA:
+            dtfree(data);
+            break;
+        case MT_MMAP:
+            munmap(data, alloc_size);
+            break;
+        case MT_XBUF:
+            PyBuffer_Release((Py_buffer*) pybuf);
+            break;
+        default:
+            break;
         }
-        if (self->mtype == MT_MMAP) {
-            munmap(self->data, self->alloc_size);
-        }
-        if (self->mtype == MT_XBUF) {
-            PyBuffer_Release((Py_buffer*) self->pybuf);
-        }
-        dtfree(self->meta);
-        dtfree(self);
+        dtfree(meta)
+        Stats::destruct(stats);
+        delete this;
     }
 }
 
@@ -591,10 +582,10 @@ void column_decref(Column *self)
  * ST_STRING_I4_VCHAR column. The formula ensures that datasize + padding are
  * always 8-byte aligned, and that the amount of padding is at least 4 bytes.
  */
-size_t column_i4s_padding(size_t datasize) {
+size_t Column::i4s_padding(size_t datasize) {
     return ((8 - ((datasize + 4) & 7)) & 7) + 4;
 }
-size_t column_i8s_padding(size_t datasize) {
+size_t Column::i8s_padding(size_t datasize) {
     return ((8 - (datasize & 7)) & 7) + 8;
 }
 
@@ -602,39 +593,39 @@ size_t column_i8s_padding(size_t datasize) {
 /**
  * Return the size of the data part in a ST_STRING_I(4|8)_VCHAR column.
  */
-size_t column_i4s_datasize(Column *self) {
-    assert(self->stype == ST_STRING_I4_VCHAR);
-    void *end = add_ptr(self->data, self->alloc_size);
+size_t Column::i4s_datasize() {
+    assert(stype == ST_STRING_I4_VCHAR);
+    void *end = add_ptr(data, alloc_size);
     return (size_t) abs(((int32_t*) end)[-1]) - 1;
 }
-size_t column_i8s_datasize(Column *self) {
-    assert(self->stype == ST_STRING_I8_VCHAR);
-    void *end = add_ptr(self->data, self->alloc_size);
+size_t Column::i8s_datasize() {
+    assert(stype == ST_STRING_I8_VCHAR);
+    void *end = add_ptr(data, alloc_size);
     return (size_t) llabs(((int64_t*) end)[-1]) - 1;
 }
-
 
 /**
  * Get the total size of the memory occupied by this Column. This is different
  * from `column->alloc_size`, which in general reports byte size of the `data`
  * portion of the column.
  */
-size_t column_get_allocsize(Column *self)
+size_t Column::get_allocsize()
 {
     size_t sz = sizeof(Column);
-    switch (self->mtype) {
+    switch (mtype) {
         case MT_MMAP:
         case MT_TEMP:
-            if (self->filename)
-                sz += strlen(self->filename) + 1;  // +1 for trailing '\0'
+            if (filename)
+                sz += strlen(filename) + 1;  // +1 for trailing '\0'
             [[clang::fallthrough]];
         case MT_DATA:
-            sz += self->alloc_size;
+            sz += alloc_size;
             break;
         case MT_XBUF:
             sz += py_buffers_size;
             break;
     }
-    sz += stype_info[self->stype].metasize;
+    sz += stype_info[stype].metasize;
     return sz;
 }
+

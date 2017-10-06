@@ -332,10 +332,10 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                     "which exceeds 32-bit storage limit\n", i, offoff);
                 continue;
             }
-            size_t datasize = is_i4 ? column_i4s_datasize(col)
-                                    : column_i8s_datasize(col);
-            size_t exp_padding = is_i4 ? column_i4s_padding(datasize)
-                                       : column_i8s_padding(datasize);
+            size_t datasize = is_i4 ? col->i4s_datasize()
+                                    : col->i8s_datasize();
+            size_t exp_padding = is_i4 ? Column::i4s_padding(datasize)
+                                       : Column::i8s_padding(datasize);
             if ((size_t)offoff != datasize + exp_padding) {
                 ERR("String column %lld has unexpected offoff=%lld (expected to"
                     "be offoff=%lld)\n", i, offoff, datasize + exp_padding);
