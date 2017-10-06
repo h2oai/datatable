@@ -29,12 +29,16 @@ PyObject* pywrite_csv(UU, PyObject *args)
     pydt = PyObject_GetAttrString(pywriter, "datatable");
     dt = datatable_unwrapx(pydt);
     std::string filename = get_attr_string(pywriter, "path");
+    std::string strategy = get_attr_string(pywriter, "_strategy");
 
     // Create the CsvWriter object
     CsvWriter cwriter(dt, filename);
     cwriter.set_logger(pywriter);
     cwriter.set_verbose(get_attr_bool(pywriter, "verbose"));
     cwriter.set_usehex(get_attr_bool(pywriter, "hex"));
+    cwriter.set_strategy((strategy == "mmap")  ? WRITE_STRATEGY_MMAP :
+                         (strategy == "write") ? WRITE_STRATEGY_WRITE :
+                                                 WRITE_STRATEGY_AUTO);
 
     std::vector<std::string> colnames;
     get_attr_stringlist(pywriter, "column_names", colnames);

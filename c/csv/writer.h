@@ -23,6 +23,11 @@
 #include "memorybuf.h"
 #include "utils.h"
 
+#define WRITE_STRATEGY_AUTO  0
+#define WRITE_STRATEGY_MMAP  1
+#define WRITE_STRATEGY_WRITE 2
+
+
 class CsvColumn;
 
 class CsvWriter {
@@ -32,9 +37,10 @@ class CsvWriter {
   std::vector<std::string> column_names;
   void *logger;
   int nthreads;
+  int8_t strategy;
   bool usehex;
   bool verbose;
-  __attribute__((unused)) char _padding[2];
+  __attribute__((unused)) char _padding[1];
 
   // Intermediate values used while writing the file
   WritableBuffer* wb;
@@ -59,6 +65,7 @@ public:
   void set_nthreads(int n) { nthreads = n; }
   void set_usehex(bool v) { usehex = v; }
   void set_verbose(bool v) { verbose = v; }
+  void set_strategy(int s) { strategy = static_cast<int8_t>(s); }
   void set_column_names(std::vector<std::string>& names) {
     column_names = std::move(names);
   }

@@ -9,7 +9,7 @@ __all__ = ("write_csv", "CsvWriter")
 
 
 
-def write_csv(dt, path="", nthreads=0, hex=False, verbose=False):
+def write_csv(dt, path="", nthreads=0, hex=False, verbose=False, **kwargs):
     """
     Write the DataTable into the provided file in CSV format.
 
@@ -37,20 +37,22 @@ def write_csv(dt, path="", nthreads=0, hex=False, verbose=False):
     """
     if path.startswith("~"):
         path = os.path.expanduser(path)
-    writer = CsvWriter(dt, path, nthreads, hex, verbose)
+    writer = CsvWriter(dt, path, nthreads, hex, verbose, **kwargs)
     return writer.write()
 
 
 
 class CsvWriter(object):
 
-    def __init__(self, datatable, path, nthreads=0, hex=False, verbose=False):
+    def __init__(self, datatable, path, nthreads=0, hex=False, verbose=False,
+                 _strategy="auto"):
         self.datatable = datatable.internal
         self.column_names = datatable.names
         self.nthreads = nthreads
         self.path = path
         self.hex = hex
         self.verbose = verbose
+        self._strategy = _strategy
         self._log_newline = False
 
     def write(self):
