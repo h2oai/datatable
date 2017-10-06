@@ -7,7 +7,7 @@ import psutil
 from typing import List, Union, Callable, Tuple, Dict, Set
 
 # noinspection PyUnresolvedReferences
-import _datatable as c
+import datatable.lib._datatable as c
 from datatable.dt import DataTable
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term

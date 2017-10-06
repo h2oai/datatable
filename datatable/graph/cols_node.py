@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import types
 
-import _datatable
+import datatable.lib._datatable as _datatable
 from .context import RequiresCModule
 from .iterator_node import MapNode
 from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr

@@ -9,6 +9,7 @@
 #include <stdlib.h>  // srand, rand
 #include <time.h>    // time
 #include "writecsv.h"
+#include "itoa_branchlut2.h"
 
 
 
@@ -185,6 +186,63 @@ static void kernel_sprintf(char **pch, Column *col, int64_t row) {
 }
 
 
+static void kernel_hex1(char **pch, Column *col, int64_t row) {
+  int32_t value = ((int32_t*) col->data)[row];
+  if (value == NA_I4) return;
+  char *ch = *pch;
+  if (value < 0) {
+    *ch++ = '-';
+    value = -value;
+  }
+  *ch++ = '0';
+  *ch++ = 'x';
+  if (value == 0) {
+    *ch++ = '0';
+  } else {
+    uint32_t uvalue = static_cast<uint32_t>(value);
+    while (!(uvalue & 0xF0000000)) uvalue <<= 4;
+    uint8_t byte;
+    while ((byte = static_cast<uint8_t>(uvalue >> 28))) {
+      *ch++ = '0' + byte + (('A' - '0' - 10) & -(byte > 9));
+      uvalue <<= 4;
+    }
+  }
+  *pch = ch;
+}
+
+
+static void kernel_hex2(char **pch, Column *col, int64_t row) {
+  int32_t value = ((int32_t*) col->data)[row];
+  if (value == NA_I4) return;
+  char *ch = *pch;
+  if (value < 0) {
+    *ch++ = '-';
+    value = -value;
+  }
+  *ch++ = '0';
+  *ch++ = 'x';
+  if (value == 0) {
+    *ch++ = '0';
+  } else {
+    uint32_t uvalue = static_cast<uint32_t>(value);
+    while (!(uvalue & 0xF0000000)) uvalue <<= 4;
+    uint8_t byte;
+    while ((byte = static_cast<uint8_t>(uvalue >> 28))) {
+      uint8_t msb = (118 + byte) & 0x80;
+      *ch++ = '0' + byte + (('A' - '0' - 10) & (msb - (msb >> 7)));
+      uvalue <<= 4;
+    }
+  }
+  *pch = ch;
+}
+
+
+static void kernel_branchlut2(char **pch, Column *col, int64_t row) {
+  int32_t value = ((int32_t*) col->data)[row];
+  if (value == NA_I4) return;
+  itoa(pch, value);
+}
+
 
 
 //=================================================================================================
@@ -208,6 +266,7 @@ BenchmarkSuite prepare_bench_int32(int64_t N)
               (x&15)==8? -x :
                          x % 1000000;
   }
+  data[0] = 1000000000;
 
   // Prepare output buffer
   // At most 11 characters per entry (e.g. '-2147483647') + 1 for a comma
@@ -216,13 +275,16 @@ BenchmarkSuite prepare_bench_int32(int64_t N)
   column->data = (void*)data;
 
   static Kernel kernels[] = {
-    { &kernel_tempwrite,  "tempwrite" },  // 62.228
-    { &kernel_tempwrite2, "tempwrite2" }, // 58.708
-    { &kernel_div11,      "div11" },      // 52.804
-    { &kernel_div10,      "div10" },      // 46.552
-    { &kernel_fwrite,     "fwrite" },     // 64.343
-    { &kernel_fwrite2,    "fwrite2" },    // 60.595
-    { &kernel_sprintf,    "sprintf" },    // 77.303
+    { &kernel_tempwrite,      "tempwrite" },  // 63.155
+    { &kernel_tempwrite2,     "tempwrite2" }, // 60.146
+    { &kernel_div11,          "div11" },      // 54.475
+    { &kernel_div10,          "div10" },      // 46.425
+    { &kernel_branchlut2,     "branchlut2"},  // 33.073
+    { &kernel_hex1,           "hex1" },       // 31.374
+    { &kernel_hex2,           "hex2" },       // 34.289
+    { &kernel_fwrite,         "fwrite" },     // 65.539
+    { &kernel_fwrite2,        "fwrite2" },    // 60.129
+    { &kernel_sprintf,        "sprintf" },    // 80.109
     { NULL, NULL },
   };
 

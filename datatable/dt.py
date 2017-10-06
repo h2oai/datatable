@@ -7,7 +7,7 @@ from types import GeneratorType
 from typing import Tuple, Dict
 
 # noinspection PyUnresolvedReferences
-import _datatable as c
+import datatable.lib._datatable as c
 import datatable
 from .widget import DataFrameWidget
 
@@ -149,11 +149,11 @@ class DataTable(object):
         elif isinstance(src, c.DataTable):
             self._fill_from_dt(src, names=colnames)
         elif is_type(src, PandasDataFrame_t):
-            self._fill_from_pandas(src)
+            self._fill_from_pandas(src, colnames)
         elif is_type(src, PandasSeries_t):
-            self._fill_from_pandas(src)
+            self._fill_from_pandas(src, colnames)
         elif is_type(src, NumpyArray_t):
-            self._fill_from_numpy(src)
+            self._fill_from_numpy(src, names=colnames)
         elif src is None:
             self._fill_from_list([])
         elif is_type(src, DataTable_t):
@@ -182,9 +182,10 @@ class DataTable(object):
         self._inames = {n: i for i, n in enumerate(names)}
 
 
-    def _fill_from_pandas(self, pddf):
+    def _fill_from_pandas(self, pddf, colnames=None):
         if is_type(pddf, PandasDataFrame_t):
-            colnames = [str(c) for c in pddf.columns]
+            if colnames is None:
+                colnames = [str(c) for c in pddf.columns]
             colarrays = [pddf[c].values for c in pddf.columns]
         elif is_type(pddf, PandasSeries_t):
             colnames = None
@@ -200,7 +201,7 @@ class DataTable(object):
         self._fill_from_dt(dt, names=colnames)
 
 
-    def _fill_from_numpy(self, arr):
+    def _fill_from_numpy(self, arr, names):
         dim = len(arr.shape)
         if dim > 2:
             raise TValueError("Cannot create DataTable from a %d-D numpy "
@@ -208,19 +209,23 @@ class DataTable(object):
         if dim == 0:
             arr = arr.reshape((1, 1))
         if dim == 1:
-            arr = arr.reshape((1, len(arr)))
+            arr = arr.reshape((len(arr), 1))
         if not arr.dtype.isnative:
             arr = arr.byteswap().newbyteorder()
 
-        ncols = len(arr)
+        ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
-            dt = c.datatable_from_buffers([arr.data[i] for i in range(ncols)])
-            mask = c.datatable_from_buffers([arr.mask[i] for i in range(ncols)])
+            dt = c.datatable_from_buffers([arr.data[:, i]
+                                           for i in range(ncols)])
+            mask = c.datatable_from_buffers([arr.mask[:, i]
+                                             for i in range(ncols)])
             dt.apply_na_mask(mask)
         else:
-            dt = c.datatable_from_buffers([arr[i] for i in range(ncols)])
+            dt = c.datatable_from_buffers([arr[:, i] for i in range(ncols)])
 
-        self._fill_from_dt(dt, names=["C%d" % i for i in range(1, ncols + 1)])
+        if names is None:
+            names = ["C%d" % i for i in range(1, ncols + 1)]
+        self._fill_from_dt(dt, names=names)
 
 
 

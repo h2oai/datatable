@@ -148,13 +148,26 @@ static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
 }
 
 
-// Helper for error and warning messages to extract next 10 chars or \n if occurs first
-// Used exclusively together with "%.*s"
-static int STRLIM(const char *ch, int limit, const char *eof) {
-  size_t maxwidth = umin((size_t)limit, (size_t)(eof-ch));
-  char *newline = (char*) memchr(ch, eol, maxwidth);
-  return (newline==NULL ? (int)maxwidth : (int)(newline - ch));
+/**
+ * Helper for error and warning messages to extract an input line starting at
+ * `*ch` and until an end of line, but no longer than `limit` characters.
+ * This function returns the string copied into an internal static buffer. Cannot
+ * be called more than twice per single printf() invocation.
+ * Parameter `limit` cannot exceed 500.
+ */
+static const char* strlim(const char *ch, size_t limit, const char *eof) {
+  static char buf[1002];
+  static int flip = 0;
+  char *ptr = buf + 501 * flip;
+  flip = 1 - flip;
+  char *ch2 = ptr;
+  size_t width = 0;
+  while ((*ch>'\r' || (*ch!='\0' && *ch!='\r' && *ch!='\n')) && width++<limit && ch<eof) *ch2++ = *ch++;
+  *ch2 = '\0';
+  return ptr;
 }
+
+
 
 static void printTypes(int ncol) {
   // e.g. files with 10,000 columns, don't print all of it to verbose output.
@@ -1057,9 +1070,9 @@ int freadMain(freadMainArgs _args)
         sof = args.input;
         fileSize = strlen(sof);
         if (verbose) {
-          eol = '\n';  // just a guess, so that STRLIM below work correctly
-          DTPRINT("  Input is passed as raw text, starting <<%.*s>>\n",
-                  STRLIM(sof, 20, sof+fileSize), sof);
+          eol = '\n';  // just a guess, so that strlim below work correctly
+          DTPRINT("  Input is passed as raw text, starting <<%s>>\n",
+                  strlim(sof, 20, sof+fileSize));
         }
     }
     else if (args.filename) {
@@ -1421,8 +1434,8 @@ int freadMain(freadMainArgs _args)
       if (lineStart != sof) {
         DTPRINT("  Moved forward to first non-blank line (%d)\n", line);
       }
-      DTPRINT("  Positioned on line %d starting: <<%.*s>>\n",
-              line, STRLIM(lineStart, 30, eof), lineStart);
+      DTPRINT("  Positioned on line %d starting: <<%s>>\n",
+              line, strlim(lineStart, 30, eof));
     }
     advance_sof_to(lineStart, &sof, &eof, &soh, &eoh);
 
@@ -1566,8 +1579,8 @@ int freadMain(freadMainArgs _args)
     int tt = countfields(&ch, &end, soh, eoh);
     if (verbose) {
       DTPRINT("  Detected %d columns on line %d. This line is either column "
-              "names or first data row. Line starts as: <<%.*s>>\n",
-              tt, line, STRLIM(sof, 30, eof), sof);
+              "names or first data row. Line starts as: <<%s>>\n",
+              tt, line, strlim(sof, 30, eof));
       DTPRINT("  Quote rule picked = %d\n", quoteRule);
       if (fill) DTPRINT("  fill=true and the most number of columns found is %d\n", ncol);
     }
@@ -1596,7 +1609,7 @@ int freadMain(freadMainArgs _args)
     ch--;  // so we can ++ at the beginning inside loop.
     for (int field=0; field<tt; field++) {
       const char *ch0 = ++ch;
-      // DTPRINT("Field %d <<%.*s>>\n", field, STRLIM(ch, 20, eof), ch);
+      // DTPRINT("Field %d <<%s>>\n", field, strlim(ch, 20, eof));
       skip_white(&ch);
       if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to eol here
       // considered looking for one isalpha present but we want 1E9 to be considered a value not a column name
@@ -1616,7 +1629,7 @@ int freadMain(freadMainArgs _args)
 
     }
     if (*ch!=eol)
-      STOP("Read %d expected fields in the header row (fill=%d) but finished on <<%.*s>>'",tt,fill,STRLIM(ch,30,eof),ch);
+      STOP("Read %d expected fields in the header row (fill=%d) but finished on <<%s>>'", tt, fill, strlim(ch,30,eof));
     // already checked above that tt==ncol unless fill=TRUE
     // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
     if (verbose && args.header!=NA_BOOL8) DTPRINT("  'header' changed by user from 'auto' to %s\n", args.header?"true":"false");
@@ -1634,7 +1647,7 @@ int freadMain(freadMainArgs _args)
           const char *prevStart = ch;
           int tmp = countfields(&ch, &end, soh, eoh);
           if (tmp==ncol) STOP("Internal error: row before first data row has the same number of fields but we're not using it.");
-          if (tmp>1) DTWARN("Starting data input on line %d <<%.*s>> with %d fields and discarding line %d <<%.*s>> before it because it has a different number of fields (%d).", line, STRLIM(sof, 30, eof), sof, ncol, line-1, STRLIM(prevStart, 30, eof), prevStart, tmp);
+          if (tmp>1) DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding line %d <<%s>> before it because it has a different number of fields (%d).", line, strlim(sof, 30, eof), ncol, line-1, strlim(prevStart, 30, eof), tmp);
         }
         if (ch!=sof) STOP("Internal error. ch!=sof after prevBlank check");
     } else {
@@ -1728,11 +1741,9 @@ int freadMain(freadMainArgs _args)
               jlineStart = ch;  // to avoid 'Line finished early' below and get to the sampleLines++ block at the end of this while
             }
             jline++;
-            // DTPRINT("  Line %d: <<%.*s>>  (ch=%p)\n", jline, STRLIM(ch,80,end), ch, (const void*)ch);
             int field=0;
             const char *fieldStart = ch;  // Needed outside loop for error messages below
             while (*ch!=eol && field<ncol) {
-                // DTPRINT("<<%.*s>>(%d)", STRLIM(ch,20,end), ch, quoteRule);
                 fieldStart=ch;
                 int res;
                 while (type[field]<=CT_STRING && (res = fun[type[field]](&ch, trash))) {
@@ -1754,8 +1765,8 @@ int freadMain(freadMainArgs _args)
                     // Trying the next rule will only be successful if the number of fields is consistent with it
                     ASSERT(quoteRule < 3);
                     if (verbose)
-                      DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting <<%.*s>>\n",
-                               quoteRule, quoteRule+1, field+1, jline, j, STRLIM(fieldStart, 200, end), fieldStart);
+                      DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting <<%s>>\n",
+                               quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart, 200, end));
                     quoteRule++;
                     bumped=true;
                     ch = jlineStart;  // Try whole line again, in case it's a hangover from previous field
@@ -1777,17 +1788,17 @@ int freadMain(freadMainArgs _args)
                 if (ch<end && *ch!=eol) {
                     STOP("Internal error: line has finished early but not on an eol or eof (fill=false). Please report as bug.");
                 } else if (ch>jlineStart) {
-                    STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. Expecting %d fields but found %d: <<%.*s>>", jline, ncol, field+1, STRLIM(jlineStart,200,end), jlineStart);
+                    STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. Expecting %d fields but found %d: <<%s>>", jline, ncol, field+1, strlim(jlineStart,200,end));
                 }
             }
             ASSERT(ch < end);
             if (*ch!=eol || field>=ncol) {   // the || >=ncol is for when a comma ends the line with eol straight after
               if (field!=ncol) STOP("Internal error: Line has too many fields but field(%d)!=ncol(%d)", field, ncol);
-              STOP("Line %d from sampling jump %d starting <<%.*s>> has more than the expected %d fields. "
-                   "Separator %d occurs at position %d which is character %d of the last field: <<%.*s>>. "
+              STOP("Line %d from sampling jump %d starting <<%s>> has more than the expected %d fields. "
+                   "Separator %d occurs at position %d which is character %d of the last field: <<%s>>. "
                    "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
-                  jline, j, STRLIM(jlineStart,10,end), jlineStart, ncol, ncol, (int)(ch-jlineStart), (int)(ch-fieldStart),
-                  STRLIM(fieldStart,200,end), fieldStart);
+                  jline, j, strlim(jlineStart,10,end), ncol, ncol, (int)(ch-jlineStart), (int)(ch-fieldStart),
+                  strlim(fieldStart,200,end));
             }
             // if very last field was quoted, check if it was completed with an ending quote ok.
             // not necessarily a problem (especially if we detected no quoting), but we test it and nice to have
@@ -1796,8 +1807,8 @@ int freadMain(freadMainArgs _args)
             // This warning is early at type skipping around stage before reading starts, so user can cancel early
             if (type[ncol-1]==CT_STRING && *fieldStart==quote && *(ch-1)!=quote && trailing_newline_added) {
               if (quoteRule<2) STOP("Internal error: Last field of last line should select quote rule 2");
-              DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: <<%.*s>>",
-                      STRLIM(fieldStart, 200, end), fieldStart);
+              DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: <<%s>>",
+                      strlim(fieldStart, 200, end));
             }
             ch += eolLen;
             // Two reasons:  1) to get the end of the very last good row before whitespace or footer before eof
@@ -1818,7 +1829,7 @@ int freadMain(freadMainArgs _args)
     }
     while ((ch < end || (soh && (end != eoh) && (end=eoh) && (ch=soh))) && isspace(*ch)) ch++;
     if (ch < end) {
-      DTWARN("Found the last consistent line but text exists afterwards (discarded): <<%.*s>>", STRLIM(ch,200,end), ch);
+      DTWARN("Found the last consistent line but text exists afterwards (discarded): <<%s>>", strlim(ch,200,end));
     }
     retreat_eof_to(lastRowEnd, &sof, &eof, &soh, &eoh);
 
@@ -2179,8 +2190,8 @@ int freadMain(freadMainArgs _args)
                 stopTeam = true;
                 snprintf(stopErr, stopErrSize,
                   "Expecting %d cols but row %zd contains only %d cols (sep='%c'). " \
-                  "Consider fill=true. <<%.*s>>",
-                  ncol, myDTi, j, sep, STRLIM(tlineStart, 500, nextJump), tlineStart);
+                  "Consider fill=true. <<%s>>",
+                  ncol, myDTi, j, sep, strlim(tlineStart, 500, nextJump));
               }
               break;
             }
@@ -2216,8 +2227,8 @@ int freadMain(freadMainArgs _args)
               // DTPRINT("tch=%p (=lineStart+%d), *tch=%02x\n", tch, tch-tlineStart, *tch);
               stopTeam = true;
               snprintf(stopErr, stopErrSize,
-                "Too many fields on out-of-sample row %zd. Read all %d expected columns but more are present. <<%.*s>>",
-                myDTi, ncol, STRLIM(tlineStart, 500, nextJump), tlineStart);
+                "Too many fields on out-of-sample row %zd. Read all %d expected columns but more are present. <<%s>>",
+                myDTi, ncol, strlim(tlineStart, 500, nextJump));
             }
             break;
           }
@@ -2234,9 +2245,9 @@ int freadMain(freadMainArgs _args)
           if (!stopTeam && prevJumpEnd != thisJumpStart) {
             snprintf(stopErr, stopErrSize,
               "Jump %d did not finish counting rows exactly where jump %d found its first good line start: "
-              "prevEnd(%p)<<%.*s>> != thisStart(prevEnd%+d)<<%.*s>>",
-              jump-1, jump, (const void*)prevJumpEnd, STRLIM(prevJumpEnd,50,nextJump), prevJumpEnd,
-              (int)(thisJumpStart-prevJumpEnd), STRLIM(thisJumpStart,50,nextJump), thisJumpStart);
+              "prevEnd(%p)<<%s>> != thisStart(prevEnd%+d)<<%s>>",
+              jump-1, jump, (const void*)prevJumpEnd, strlim(prevJumpEnd,50,nextJump),
+              (int)(thisJumpStart-prevJumpEnd), strlim(thisJumpStart,50,nextJump));
             stopTeam=true;
           }
           myDTi = DTi;  // fetch shared DTi (where to write my results to the answer). The previous thread just told me.

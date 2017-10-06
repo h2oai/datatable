@@ -3,7 +3,7 @@
 import types
 
 import datatable
-import _datatable
+import datatable.lib._datatable as _datatable
 from .iterator_node import IteratorNode
 from datatable.expr import DatatableExpr, BaseExpr
 from datatable.utils.misc import normalize_slice, normalize_range
@@ -474,9 +474,11 @@ def make_rowfilter(rows, dt, cmod, _nested=False):
     if is_type(rows, NumpyArray_t):
         arr = rows
         if not (len(arr.shape) == 1 or
-                len(arr.shape) == 2 and arr.shape[0] == 1):
+                len(arr.shape) == 2 and min(arr.shape) == 1):
             raise TValueError("Only a single-dimensional numpy.array is allowed"
                               " as a `rows` argument, got %r" % arr)
+        if len(arr.shape) == 2 and arr.shape[1] > 1:
+            arr = arr.T
         if not (str(arr.dtype) == "bool" or str(arr.dtype).startswith("int")):
             raise TValueError("Either a boolean or an integer numpy.array is "
                               "expected for `rows` argument, got %r" % arr)
