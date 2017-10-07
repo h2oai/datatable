@@ -58,7 +58,7 @@ def test_dt_properties(dt0):
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
     assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
-    assert dt0.internal.alloc_size == 588
+    assert dt0.internal.alloc_size > 500
     assert (sys.getsizeof(dt0) > dt0.internal.alloc_size +
             sys.getsizeof(dt0.names) +
             sum(sys.getsizeof(colname) for colname in dt0.names) +

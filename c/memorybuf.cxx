@@ -9,33 +9,117 @@
 #include "memorybuf.h"
 #include "myomp.h"
 #include "utils.h"
+#include "py_utils.h"
+
+
+
+//==============================================================================
+// Base MemoryBuffer
+//==============================================================================
+
+MemoryBuffer::MemoryBuffer() :
+    buf(nullptr), allocsize(0), flags(0)
+{}
 
 MemoryBuffer::~MemoryBuffer() {}
+
+MemoryBuffer::MemoryBuffer(MemoryBuffer&& other) {
+  buf = other.buf;
+  allocsize = other.allocsize;
+  flags = other.flags;
+  other.buf = nullptr;
+  other.allocsize = 0;
+}
+
+MemoryBuffer& MemoryBuffer::operator=(MemoryBuffer&& other) {
+  buf = other.buf;
+  allocsize = other.allocsize;
+  flags = other.flags;
+  other.buf = nullptr;
+  other.allocsize = 0;
+  return *this;
+}
+
+void* MemoryBuffer::get() const {
+  return buf;
+}
+
+void* MemoryBuffer::at(size_t n) const {
+  return static_cast<void*>(static_cast<char*>(buf) + n);
+}
+
+void* MemoryBuffer::at(int64_t n) const {
+  return static_cast<void*>(static_cast<char*>(buf) + n);
+}
+
+void* MemoryBuffer::at(int32_t n) const {
+  return static_cast<void*>(static_cast<char*>(buf) + n);
+}
+
+size_t MemoryBuffer::size() const {
+  return allocsize;
+}
+
+size_t MemoryBuffer::memory_footprint() const {
+  return allocsize + sizeof(MemoryBuffer);
+}
+
+void MemoryBuffer::resize(size_t n) {}
+
+void MemoryBuffer::ensuresize(size_t n, double factor) {
+  if (n <= allocsize) return;
+  resize(static_cast<size_t>(factor * n));
+}
+
+bool MemoryBuffer::readonly() const {
+  return (flags & MB_READONLY) != 0;
+}
+
+bool MemoryBuffer::owned() const {
+  return (flags & MB_EXTERNAL) == 0;
+}
+
+PyObject* MemoryBuffer::pyrepr() const {
+  return none();
+}
+
 
 
 //==============================================================================
 // RAM-based MemoryBuffer
 //==============================================================================
 
-RamMemoryBuffer::RamMemoryBuffer(size_t n) {
+MemoryMemBuf::MemoryMemBuf(size_t n) {
   buf = malloc(n);
   allocsize = n;
   if (!buf) throw Error("Unable to allocate memory of size %zu", n);
 }
 
 
-RamMemoryBuffer::~RamMemoryBuffer() {
+MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
+  buf = ptr;
+  allocsize = n;
+  if (!buf && n) throw Error("Unallocated memory region provided");
+}
+
+
+MemoryMemBuf::~MemoryMemBuf() {
   if (owned()) {
     free(buf);
   }
 }
 
 
-void RamMemoryBuffer::resize(size_t n) {
+void MemoryMemBuf::resize(size_t n) {
   if (n == allocsize) return;
   buf = realloc(buf, n);
   if (!buf) throw Error("Unable to allocate memory of size %zu", n);
   allocsize = n;
+}
+
+PyObject* MemoryMemBuf::pyrepr() const {
+  static PyObject* r = PyUnicode_FromString("data");
+  return incref(r);
 }
 
 
@@ -44,15 +128,54 @@ void RamMemoryBuffer::resize(size_t n) {
 // String MemoryBuffer
 //==============================================================================
 
-StringMemoryBuffer::StringMemoryBuffer(const char *str) {
+StringMemBuf::StringMemBuf(const char *str) {
   buf = static_cast<void*>(const_cast<char*>(str));
   allocsize = strlen(str);
   flags = MB_READONLY | MB_EXTERNAL;
 }
 
-void StringMemoryBuffer::resize(size_t) {}
+void StringMemBuf::resize(size_t) {}
 
-StringMemoryBuffer::~StringMemoryBuffer() {}
+StringMemBuf::~StringMemBuf() {}
+
+PyObject* StringMemBuf::pyrepr() const {
+  static PyObject* r = PyUnicode_FromString("string");
+  return incref(r);
+}
+
+
+//==============================================================================
+// External MemoryBuffer
+//==============================================================================
+// struct Py_buffer;
+// extern void PyBuffer_Release(struct Py_buffer *view);
+// extern size_t py_buffers_size;
+
+
+ExternalMemBuf::ExternalMemBuf(void *ptr, void *pybuf, size_t size) {
+  buf = ptr;
+  allocsize = size;
+  pybufinfo = pybuf;
+  flags = MB_READONLY | MB_EXTERNAL;
+}
+
+void ExternalMemBuf::resize(size_t) {
+  throw Error("Unable to resize an external buffer");
+}
+
+size_t ExternalMemBuf::memory_footprint() const {
+  return allocsize + sizeof(ExternalMemBuf) + sizeof(Py_buffer);
+}
+
+
+ExternalMemBuf::~ExternalMemBuf() {
+  PyBuffer_Release(static_cast<Py_buffer*>(pybufinfo));
+}
+
+PyObject* ExternalMemBuf::pyrepr() const {
+  static PyObject* r = PyUnicode_FromString("xbuf");
+  return incref(r);
+}
 
 
 
@@ -60,7 +183,7 @@ StringMemoryBuffer::~StringMemoryBuffer() {}
 // Disk-based MemoryBuffer
 //==============================================================================
 
-MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n, int flags_)
+MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, int flags_)
 {
   flags = flags_;
   filename = path;
@@ -116,7 +239,7 @@ MmapMemoryBuffer::MmapMemoryBuffer(const char *path, size_t n, int flags_)
 }
 
 
-MmapMemoryBuffer::~MmapMemoryBuffer() {
+MemmapMemBuf::~MemmapMemBuf() {
   munmap(buf, allocsize);
   if (owned()) {
     remove(filename);
@@ -124,7 +247,7 @@ MmapMemoryBuffer::~MmapMemoryBuffer() {
 }
 
 
-void MmapMemoryBuffer::resize(size_t n) {
+void MemmapMemBuf::resize(size_t n) {
   if (readonly()) return;
   munmap(buf, allocsize);
   truncate(filename, (off_t)n);
@@ -136,6 +259,18 @@ void MmapMemoryBuffer::resize(size_t n) {
     throw std::runtime_error("Memory map failed");
   }
   allocsize = n;
+}
+
+
+size_t MemmapMemBuf::memory_footprint() const {
+  // +1 for trailing '\0'
+  return allocsize + strlen(filename) + 1 + sizeof(MemmapMemBuf);
+}
+
+
+PyObject* MemmapMemBuf::pyrepr() const {
+  static PyObject* r = PyUnicode_FromString("mmap");
+  return incref(r);
 }
 
 

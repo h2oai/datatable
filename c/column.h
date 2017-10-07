@@ -2,6 +2,7 @@
 #define dt_COLUMN_H
 #include <inttypes.h>  // int*_t
 #include <stddef.h>    // offsetof
+#include "memorybuf.h"
 #include "types.h"
 #include "stats.h"
 
@@ -96,27 +97,32 @@ typedef enum MType {
  *     Columns, and once a Column's refcount becomes 0 it can be safely deleted.
  */
 class Column {
-public:
-    void   *data;        // 8
+    MemoryBuffer *mbuf;
+
+public:  // TODO: convert these into private
     void   *meta;        // 8
     int64_t nrows;       // 8
-    size_t  alloc_size;  // 8
-    union {              // 8
-        char *filename;
-        void *pybuf;
-    };
     Stats*  stats;       // 8
     int     refcount;    // 4
-    MType   mtype;       // 1
     SType   stype;       // 1
-    int16_t _padding;    // 2
 
+private:
+    __attribute__((unused)) char _padding[3];
+
+    Column(size_t nrows_, SType stype_); // helper for other constructors
+    static size_t allocsize0(SType, size_t n);
+
+public:
     Column(SType, size_t); // Data Column
     Column(SType, size_t, const char*); // MMap Column
-    Column(SType, int64_t, void*, void*, size_t); // XBuf Column
-    Column(const char*, SType, int64_t, const char*); // Load from disk
-    Column(const Column&);
-    Column(const Column*); // Copy
+    Column(SType, size_t, void*, void*, size_t); // XBuf Column
+    Column(const char*, SType, size_t, const char*); // Load from disk
+    explicit Column(const Column&);
+
+    void* data() const;
+    size_t alloc_size() const;
+    PyObject* mbuf_repr() const;
+
     Column* cast(SType);
     Column* rbind(Column**);
     Column* extract(RowIndex* = NULL);
@@ -131,8 +137,17 @@ public:
     static RowIndex* sort(Column*, RowIndex*);
     static size_t i4s_padding(size_t datasize);
     static size_t i8s_padding(size_t datasize);
+
 private:
+    Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
+    Column* rbind_str32(Column**, int64_t, int);
     ~Column() {}
+
+    // FIXME
+    friend Column* try_to_resolve_object_column(Column* col);
+    friend Column* column_from_list(PyObject *list);
+    friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
+    friend void setFinalNrow(size_t nrows);
 };
 
 
@@ -140,7 +155,7 @@ private:
 //==============================================================================
 typedef Column* (*castfn_ptr)(Column*, Column*);
 
-
+Column* column_from_list(PyObject*);
 void init_column_cast_functions(void);
 // Implemented in py_column_cast.c
 void init_column_cast_functions2(castfn_ptr hardcasts[][DT_STYPES_COUNT]);

@@ -9,51 +9,51 @@ size_t py_buffers_size;
 
 static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)
 {
-    int8_t x = ((int8_t*)col->data)[row];
+    int8_t x = ((int8_t*)col->data())[row];
     return x == 0? incref(Py_False) :
            x == 1? incref(Py_True) : none();
 }
 
 static PyObject* stype_integer_i8_tostring(Column *col, int64_t row)
 {
-    int8_t x = ((int8_t*)col->data)[row];
+    int8_t x = ((int8_t*)col->data())[row];
     return x == NA_I1? none() : PyLong_FromLong(x);
 }
 
 static PyObject* stype_integer_i16_tostring(Column *col, int64_t row)
 {
-    int16_t x = ((int16_t*)col->data)[row];
+    int16_t x = ((int16_t*)col->data())[row];
     return x == NA_I2? none() : PyLong_FromLong(x);
 }
 
 static PyObject* stype_integer_i32_tostring(Column *col, int64_t row)
 {
-    int32_t x = ((int32_t*)col->data)[row];
+    int32_t x = ((int32_t*)col->data())[row];
     return x == NA_I4? none() : PyLong_FromLong(x);
 }
 
 static PyObject* stype_integer_i64_tostring(Column *col, int64_t row)
 {
-    int64_t x = ((int64_t*)col->data)[row];
+    int64_t x = ((int64_t*)col->data())[row];
     return x == NA_I8? none() : PyLong_FromLongLong(x);
 }
 
 static PyObject* stype_real_f32_tostring(Column *col, int64_t row)
 {
-    float x = ((float*)col->data)[row];
+    float x = ((float*)col->data())[row];
     return ISNA_F4(x)? none() : PyFloat_FromDouble((double)x);
 }
 
 static PyObject* stype_real_f64_tostring(Column *col, int64_t row)
 {
-    double x = ((double*)col->data)[row];
+    double x = ((double*)col->data())[row];
     return ISNA_F8(x)? none() : PyFloat_FromDouble(x);
 }
 
 static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
 {
     DecimalMeta *meta = (DecimalMeta*) col->meta;
-    int16_t x = ((int16_t*)col->data)[row];
+    int16_t x = ((int16_t*)col->data())[row];
     if (x == NA_I2) return none();
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
@@ -62,7 +62,7 @@ static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
 static PyObject* stype_real_i32_tostring(Column *col, int64_t row)
 {
     DecimalMeta *meta = (DecimalMeta*) col->meta;
-    int32_t x = ((int32_t*)col->data)[row];
+    int32_t x = ((int32_t*)col->data())[row];
     if (x == NA_I4) return none();
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
@@ -71,7 +71,7 @@ static PyObject* stype_real_i32_tostring(Column *col, int64_t row)
 static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
 {
     DecimalMeta *meta = (DecimalMeta*) col->meta;
-    int64_t x = ((int64_t*)col->data)[row];
+    int64_t x = ((int64_t*)col->data())[row];
     if (x == NA_I8) return none();
     double s = pow(10, meta->scale);
     return PyFloat_FromDouble(x / s);
@@ -80,17 +80,17 @@ static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
 static PyObject* stype_vchar_i32_tostring(Column *col, int64_t row)
 {
     int32_t offoff = (int32_t) ((VarcharMeta*) col->meta)->offoff;
-    int32_t *offsets = (int32_t*) add_ptr(col->data, offoff);
+    int32_t *offsets = (int32_t*) add_ptr(col->data(), offoff);
     if (offsets[row] < 0)
         return none();
     int32_t start = row == 0? 0 : abs(offsets[row - 1]) - 1;
     int32_t len = offsets[row] - 1 - start;
-    return PyUnicode_FromStringAndSize((char*)(col->data) + (size_t)start, len);
+    return PyUnicode_FromStringAndSize((char*)(col->data()) + (size_t)start, len);
 }
 
 static PyObject* stype_object_pyptr_tostring(Column *col, int64_t row)
 {
-    return incref(((PyObject**)col->data)[row]);
+    return incref(((PyObject**)col->data())[row]);
 }
 
 static PyObject* stype_notimpl(Column *col, UNUSED(int64_t row))

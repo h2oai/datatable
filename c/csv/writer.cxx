@@ -51,7 +51,7 @@ public:
   writer_fn writer;
 
   CsvColumn(Column *col) {
-    data = col->data;
+    data = col->data();
     strbuf = NULL;
     writer = writers_per_stype[col->stype];
     if (!writer) throw Error("Cannot write type %d", col->stype);

@@ -135,11 +135,11 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
         Column *col = dt->columns[i];
         Stats::destruct(col->stats);
         col->stats = Stats::void_ptr();
-        uint8_t *mdata = (uint8_t*) mask->columns[i]->data;
+        uint8_t *mdata = (uint8_t*) mask->columns[i]->data();
         switch (col->stype) {
             case ST_BOOLEAN_I1:
             case ST_INTEGER_I1: {
-                uint8_t *cdata = (uint8_t*) col->data;
+                uint8_t *cdata = (uint8_t*) col->data();
                 #pragma omp parallel for schedule(dynamic,1024)
                 for (int64_t j = 0; j < nrows; j++) {
                     if (mdata[j]) cdata[j] = (uint8_t)NA_I1;
@@ -147,7 +147,7 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
                 break;
             }
             case ST_INTEGER_I2: {
-                uint16_t *cdata = (uint16_t*) col->data;
+                uint16_t *cdata = (uint16_t*) col->data();
                 #pragma omp parallel for schedule(dynamic,1024)
                 for (int64_t j = 0; j < nrows; j++) {
                     if (mdata[j]) cdata[j] = (uint16_t)NA_I2;
@@ -156,7 +156,7 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
             }
             case ST_REAL_F4:
             case ST_INTEGER_I4: {
-                uint32_t *cdata = (uint32_t*) col->data;
+                uint32_t *cdata = (uint32_t*) col->data();
                 uint32_t na = col->stype == ST_REAL_F4 ? NA_F4_BITS
                                                        : (uint32_t)NA_I4;
                 #pragma omp parallel for schedule(dynamic,1024)
@@ -167,7 +167,7 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
             }
             case ST_REAL_F8:
             case ST_INTEGER_I8: {
-                uint64_t *cdata = (uint64_t*) col->data;
+                uint64_t *cdata = (uint64_t*) col->data();
                 uint64_t na = col->stype == ST_REAL_F8 ? NA_F8_BITS
                                                        : (uint64_t)NA_I8;
                 #pragma omp parallel for schedule(dynamic,1024)
@@ -178,8 +178,8 @@ DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask)
             }
             case ST_STRING_I4_VCHAR: {
                 int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
-                char *strdata = (char*)(col->data) - 1;
-                int32_t *offdata = (int32_t*) add_ptr(col->data, offoff);
+                char *strdata = (char*)(col->data()) - 1;
+                int32_t *offdata = (int32_t*) add_ptr(col->data(), offoff);
                 // How much to reduce the offsets by due to some strings being
                 // converted into NAs
                 int32_t doffset = 0;

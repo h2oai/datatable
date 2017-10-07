@@ -262,7 +262,7 @@ RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows)
 {
     if (col->stype != ST_BOOLEAN_I1) return NULL;
 
-    int8_t *data = (int8_t*) col->data;
+    int8_t *data = (int8_t*) col->data();
     int64_t nout = 0;
     int64_t maxrow = 0;
     for (int64_t i = 0; i < nrows; i++)
@@ -320,7 +320,7 @@ rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *rowindex)
 {
     if (col->stype != ST_BOOLEAN_I1) return NULL;
 
-    int8_t *data = (int8_t*) col->data;
+    int8_t *data = (int8_t*) col->data();
     int64_t nouts = 0;
     int64_t maxrow = 0;
     #define CODE                                                               \
@@ -394,11 +394,11 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
     if (col->stype == ST_INTEGER_I8) {
         int64_t *arr64 = NULL;
         if (is_temp_column) {
-            arr64 = (int64_t*) col->data;
-            col->data = NULL;
+            arr64 = (int64_t*) col->data();
+            // col->data() = NULL;
         } else {
             dtmalloc(arr64, int64_t, nrows);
-            memcpy(arr64, col->data, (size_t)nrows * sizeof(int64_t));
+            memcpy(arr64, col->data(), (size_t)nrows * sizeof(int64_t));
         }
         ri = rowindex_from_i64_array(arr64, nrows, 0);
         rowindex_compactify(ri);
@@ -406,11 +406,11 @@ RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_column)
     if (col->stype == ST_INTEGER_I4) {
         int32_t *arr32 = NULL;
         if (is_temp_column) {
-            arr32 = (int32_t*) col->data;
-            col->data = NULL;
+            arr32 = (int32_t*) col->data();
+            // col->data() = NULL;
         } else {
             dtmalloc(arr32, int32_t, nrows);
-            memcpy(arr32, col->data, (size_t)nrows * sizeof(int32_t));
+            memcpy(arr32, col->data(), (size_t)nrows * sizeof(int32_t));
         }
         ri = rowindex_from_i32_array(arr32, nrows, 0);
     }

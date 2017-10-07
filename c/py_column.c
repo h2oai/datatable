@@ -4,8 +4,6 @@
 #include "py_utils.h"
 
 
-static PyObject* py_rowindextypes[MT_COUNT];
-
 
 Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
                                       int64_t colidx)
@@ -22,7 +20,7 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
 
 DT_DOCS(mtype, "'Memory' type of the column: data, or memmap")
 static PyObject* get_mtype(Column_PyObject *self) {
-    return incref(py_rowindextypes[self->ref->mtype]);
+    return self->ref->mbuf_repr();
 }
 
 
@@ -41,13 +39,13 @@ static PyObject* get_ltype(Column_PyObject *self) {
 DT_DOCS(data_size, "The amount of memory taken by column's data")
 static PyObject* get_data_size(Column_PyObject *self) {
     Column *col = self->ref;
-    return PyLong_FromSize_t(col->alloc_size);
+    return PyLong_FromSize_t(col->alloc_size());
 }
 
 DT_DOCS(data_pointer, "Pointer (cast to long int) to the column's internal memory buffer")
 static PyObject* get_data_pointer(Column_PyObject *self) {
     Column *col = self->ref;
-    return PyLong_FromSize_t(reinterpret_cast<size_t>(col->data));
+    return PyLong_FromSize_t(reinterpret_cast<size_t>(col->data()));
 }
 
 
@@ -115,13 +113,6 @@ static PyObject* meth_hexview(Column_PyObject *self, UU)
     PyObject *ret = PyObject_CallObject(pyfn_column_hexview, v);
     Py_XDECREF(v);
     return ret;
-}
-
-
-void free_xbuf_column(Column *col)
-{
-    if (col->mtype == MT_XBUF)
-        PyBuffer_Release((Py_buffer*) col->pybuf);
 }
 
 
@@ -219,10 +210,5 @@ int init_py_column(PyObject *module) {
     Py_INCREF(&Column_PyType);
     PyModule_AddObject(module, "Column", (PyObject*) &Column_PyType);
 
-    py_rowindextypes[0] = NULL;
-    py_rowindextypes[MT_DATA] = PyUnicode_FromString("data");
-    py_rowindextypes[MT_MMAP] = PyUnicode_FromString("mmap");
-    py_rowindextypes[MT_TEMP] = PyUnicode_FromString("temp");
-    py_rowindextypes[MT_XBUF] = PyUnicode_FromString("xbuf");
     return 1;
 }

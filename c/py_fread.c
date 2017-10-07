@@ -4,6 +4,7 @@
 #include <sys/mman.h>
 #include "py_fread.h"
 #include "fread.h"
+#include "memorybuf.h"
 #include "myassert.h"
 #include "utils.h"
 #include "py_datatable.h"
@@ -196,7 +197,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
 }
 
 
-static Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
+Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 {
     if (col != NULL && stype_info[stype].ltype == LT_STRING) {
         col->decref();
@@ -207,22 +208,8 @@ static Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
     }
 
     size_t new_alloc_size = stype_info[stype].elemsize * nrows;
-    if (targetdir) {
-        snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
-        truncate(fname, (off_t)new_alloc_size);
-        munmap(col->data, col->alloc_size);
-        int fd = open(fname, O_RDWR);
-        col->data = mmap(NULL, new_alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-        if (col->data == MAP_FAILED) {
-            printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
-            return NULL;
-        }
-        close(fd);
-    } else {
-        dtrealloc(col->data, void, new_alloc_size);
-    }
+    col->mbuf.resize(new_alloc_size);
     col->stype = stype;
-    col->alloc_size = new_alloc_size;
     col->nrows = (int64_t) nrows;
     return col;
 }
@@ -393,7 +380,7 @@ void setFinalNrow(size_t nrows) {
                 dtrealloc_g(final_ptr, void, final_size);
             }
             memset(add_ptr(final_ptr, curr_size), 0xFF, padding);
-            memcpy(add_ptr(final_ptr, offoff), col->data, offs_size);
+            memcpy(add_ptr(final_ptr, offoff), col->data(), offs_size);
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
             if (targetdir) {
                 snprintf(fname2, 1000, "%s/col%0*d", targetdir, ndigits, (int)j);
@@ -401,10 +388,9 @@ void setFinalNrow(size_t nrows) {
                 int ret = rename(fname, fname2);
                 if (ret == -1) printf("Unable to rename: %d\n", errno);
             } else {
-                dtfree(col->data);
+                // dtfree(col->data);
             }
-            col->data = final_ptr;
-            col->alloc_size = final_size;
+            col->mbuf = MemoryMemBuf(final_ptr, final_size);
             col->nrows = (int64_t) nrows;
             dtrealloc_g(col->meta, VarcharMeta, 1);
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
@@ -599,7 +585,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
                 sb->numuses--;
             }
 
-            int32_t* dest = ((int32_t*) col->data) + row0;
+            int32_t* dest = ((int32_t*) col->data()) + row0;
             int32_t iptr = (int32_t) ptr;
             for (int n = 0; n < nrows; n++) {
                 int32_t off = lo->off;
@@ -612,7 +598,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             int8_t elemsize = sizes[i];
             if (elemsize == 8) {
                 const uint64_t *src = ((const uint64_t*) buff8) + off8;
-                uint64_t *dest = ((uint64_t*) col->data) + row0;
+                uint64_t *dest = ((uint64_t*) col->data()) + row0;
                 for (int r = 0; r < nrows; r++) {
                     *dest = *src;
                     src += rowCount8;
@@ -621,7 +607,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             } else
             if (elemsize == 4) {
                 const uint32_t *src = ((const uint32_t*) buff4) + off4;
-                uint32_t *dest = ((uint32_t*) col->data) + row0;
+                uint32_t *dest = ((uint32_t*) col->data()) + row0;
                 for (int r = 0; r < nrows; r++) {
                     *dest = *src;
                     src += rowCount4;
@@ -630,7 +616,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
             } else
             if (elemsize == 1) {
                 const uint8_t *src = ((const uint8_t*) buff1) + off1;
-                uint8_t *dest = ((uint8_t*) col->data) + row0;
+                uint8_t *dest = ((uint8_t*) col->data()) + row0;
                 for (int r = 0; r < nrows; r++) {
                     *dest = *src;
                     src += rowCount1;

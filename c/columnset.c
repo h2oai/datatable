@@ -98,7 +98,7 @@ Column** columns_from_mixed(
         } else {
             SType stype = (SType)(-spec[i]);
             columns[i] = new Column(stype, (size_t) nrows);
-            out[j] = columns[i]->data;
+            out[j] = columns[i]->data();
             j++;
         }
     }

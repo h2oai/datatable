@@ -197,19 +197,19 @@ void* Stats::sum_raw() { return NULL; }
 //----------- Get Stat Value as a Column ------------
 Column* Stats::mean_column() {
     Column *out = new Column(ST_REAL_F8, 1);
-    *((double*)(out->data)) = mean();
+    *((double*)(out->data())) = mean();
     return out;
 }
 
 Column* Stats::sd_column() {
     Column *out = new Column(ST_REAL_F8, 1);
-    *((double*)(out->data)) = sd();
+    *((double*)(out->data())) = sd();
     return out;
 }
 
 Column* Stats::countna_column() {
     Column *out = new Column(ST_INTEGER_I8, 1);
-    *((int64_t*)(out->data)) = countna();
+    *((int64_t*)(out->data())) = countna();
     return out;
 }
 
@@ -350,7 +350,7 @@ Column* NumericalStats<T, A>::min_column() {
     const SType stype = _ref_col->stype;
     if (stype == ST_VOID) return NULL;
     Column* out = new Column(stype, 1);
-    *((T*)(out->data)) = min<T>();
+    *((T*)(out->data())) = min<T>();
     return out;
 }
 
@@ -359,7 +359,7 @@ Column* NumericalStats<T, A>::max_column() {
     const SType stype = _ref_col->stype;
     if (stype == ST_VOID) return NULL;
     Column* out = new Column(stype, 1);
-    *((T*)(out->data)) = max<T>();
+    *((T*)(out->data())) = max<T>();
     return out;
 }
 
@@ -368,7 +368,7 @@ Column* NumericalStats<T, A>::sum_column() {
     SType stype = stype_A();
     if (stype == ST_VOID) return NULL;
     Column* out = new Column(stype, 1);
-    *((A*)(out->data)) = sum<A>();
+    *((A*)(out->data())) = sum<A>();
     return out;
 }
 //---------------------------------------------------
@@ -393,7 +393,7 @@ void NumericalStats<T, A>::compute_numerical_stats() {
     double t_var  = 0;
     int64_t t_count_notna = 0;
     int64_t t_nrows = _ref_col->nrows;
-    T *data = (T*) _ref_col->data;
+    T *data = (T*) _ref_col->data();
     LOOP_OVER_ROWINDEX(i, t_nrows, _ref_ri,
         T val = data[i];
         if (ISNA(val)) continue;
@@ -492,7 +492,7 @@ BooleanStats::BooleanStats(const Column *col, const RowIndex *ri) :
 void BooleanStats::compute_numerical_stats() {
     int64_t t_count0 = 0,
             t_count1 = 0;
-    int8_t *data = (int8_t*) _ref_col->data;
+    int8_t *data = (int8_t*) _ref_col->data();
     int64_t nrows = _ref_col->nrows;
     LOOP_OVER_ROWINDEX(i, nrows, _ref_ri,
         switch (data[i]) {
@@ -565,9 +565,9 @@ Column* make_na_stat_column(SType stype) {
     Column *out = new Column(stype, 1);
     const void *val = stype_info[stype].na;
     if (!val)
-        memset(out->data, 0xFF, out->alloc_size);
+        memset(out->data(), 0xFF, out->alloc_size());
     else
-        memcpy(out->data, val, stype_info[stype].elemsize);
+        memcpy(out->data(), val, stype_info[stype].elemsize);
     return out;
 }
 

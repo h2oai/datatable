@@ -6,8 +6,8 @@
 
 static Column* easy_i1b_to_p8p(Column *self, Column *res)
 {
-    int8_t *src_data = (int8_t*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    int8_t *src_data = (int8_t*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         int8_t x = src_data[i];
         res_data[i] = x == 1? Py_True : x == 0? Py_False : Py_None;
@@ -19,8 +19,8 @@ static Column* easy_i1b_to_p8p(Column *self, Column *res)
 
 static Column* easy_i1i_to_p8p(Column *self, Column *res)
 {
-    int8_t *src_data = (int8_t*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    int8_t *src_data = (int8_t*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         int8_t x = src_data[i];
         res_data[i] = ISNA_I1(x) ? none() : PyLong_FromLong(x);
@@ -31,8 +31,8 @@ static Column* easy_i1i_to_p8p(Column *self, Column *res)
 
 static Column* easy_i2i_to_p8p(Column *self, Column *res)
 {
-    int16_t *src_data = (int16_t*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    int16_t *src_data = (int16_t*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         int16_t x = src_data[i];
         res_data[i] = ISNA_I2(x) ? none() : PyLong_FromLong(x);
@@ -43,8 +43,8 @@ static Column* easy_i2i_to_p8p(Column *self, Column *res)
 
 static Column* easy_i4i_to_p8p(Column *self, Column *res)
 {
-    int32_t *src_data = (int32_t*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    int32_t *src_data = (int32_t*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         int32_t x = src_data[i];
         res_data[i] = ISNA_I4(x) ? none() : PyLong_FromLong(x);
@@ -55,8 +55,8 @@ static Column* easy_i4i_to_p8p(Column *self, Column *res)
 
 static Column* easy_i8i_to_p8p(Column *self, Column *res)
 {
-    int64_t *src_data = (int64_t*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    int64_t *src_data = (int64_t*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         int64_t x = src_data[i];
         res_data[i] = ISNA_I8(x) ? none() : PyLong_FromLong(x);
@@ -67,8 +67,8 @@ static Column* easy_i8i_to_p8p(Column *self, Column *res)
 
 static Column* easy_f4r_to_p8p(Column *self, Column *res)
 {
-    float *src_data = (float*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    float *src_data = (float*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         float x = src_data[i];
         res_data[i] = ISNA_F4(x) ? none() : PyFloat_FromDouble((double) x);
@@ -79,8 +79,8 @@ static Column* easy_f4r_to_p8p(Column *self, Column *res)
 
 static Column* easy_f8r_to_p8p(Column *self, Column *res)
 {
-    double *src_data = (double*) self->data;
-    PyObject **res_data = (PyObject**) res->data;
+    double *src_data = (double*) self->data();
+    PyObject **res_data = (PyObject**) res->data();
     for (int64_t i = 0; i < self->nrows; i++) {
         double x = src_data[i];
         res_data[i] = ISNA_F8(x) ? none() : PyFloat_FromDouble(x);
@@ -91,10 +91,10 @@ static Column* easy_f8r_to_p8p(Column *self, Column *res)
 
 static Column* easy_i4s_to_p8p(Column *self, Column *res)
 {
-    char *strdata = (char*) self->data;
+    char *strdata = (char*) self->data();
     int64_t offoff = ((VarcharMeta*) self->meta)->offoff;
-    int32_t *offsets = (int32_t*) add_ptr(self->data, offoff);
-    PyObject **res_data = (PyObject**) res->data;
+    int32_t *offsets = (int32_t*) add_ptr(self->data(), offoff);
+    PyObject **res_data = (PyObject**) res->data();
     int32_t prev_off = 1;
     for (int64_t i = 0; i < self->nrows; i++) {
         int32_t off = offsets[i];

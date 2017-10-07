@@ -2,10 +2,12 @@
 #define dt_MEMORYBUF_H
 #include <string>
 #include <stdbool.h>
+#include "Python.h"
 
 #define MB_EXTERNAL  1
 #define MB_READONLY  2
 #define MB_CREATE    4
+
 
 
 //==============================================================================
@@ -22,34 +24,44 @@ protected:
   int flags;
   int _padding;
 
-  MemoryBuffer(): buf(NULL), allocsize(0), flags(0) {}
-  bool owned() const {
-    return (flags & MB_EXTERNAL) == 0;
-  }
+  MemoryBuffer();
+  bool owned() const;
 
 public:
   /**
    * Return pointer to the underlying memory region. The returned pointer can
    * be NULL if the memory was not allocated.
    */
-  void* get() const {
-    return buf;
-  }
+  void* get() const;
+
+  /**
+   * Return pointer to the specific offset within the buffer. The offset is
+   * assumed to be given in bytes. `at(0)` is equivalent to `get()`.
+   */
+  void* at(size_t n) const;
+  void* at(int64_t n) const;
+  void* at(int32_t n) const;
+
+  template <typename T>
+  void set_elem(size_t i, T value);
 
   /**
    * Return the allocation size of this memory buffer.
    */
-  size_t size() const {
-    return allocsize;
-  }
+  size_t size() const;
+
+  /**
+   * Return the total size of this object in memory. This consists not only of
+   * the underlying memory buffer, but also all other "auxiliary" items in the
+   * class.
+   */
+  virtual size_t memory_footprint() const;
 
   /**
    * Return true if the memory buffer is marked as readonly. Trying to modify
    * the contents of such buffer may lead to undesired consequences.
    */
-  bool readonly() const {
-    return (flags & MB_READONLY) != 0;
-  }
+  bool readonly() const;
 
   /**
    * Change allocation size of the memory region to be exactly `n` bytes. If
@@ -59,7 +71,7 @@ public:
    *
    * This function is equivalent to `realloc(buf, n)`.
    */
-  virtual void resize(size_t n) = 0;
+  virtual void resize(size_t n);
 
   /**
    * Ensure that at least `n` bytes in the buffer is available. If not, then
@@ -67,13 +79,17 @@ public:
    * that resizes do not happen too often). Passing values of `factor` less
    * than 1 will break this function's contract.
    */
-  void ensuresize(size_t n, double factor=1.3) {
-    if (n <= allocsize) return;
-    resize(static_cast<size_t>(factor * n));
-  }
+  void ensuresize(size_t n, double factor=1.3);
+
+  virtual PyObject* pyrepr() const;
 
   virtual ~MemoryBuffer();
+
+  MemoryBuffer(const MemoryBuffer&) = delete;  // copy-constructor
+  MemoryBuffer(MemoryBuffer&&);  // move-constructor
+  MemoryBuffer& operator=(MemoryBuffer&&); // move-assignment
 };
+
 
 
 
@@ -83,12 +99,14 @@ public:
  * Memory-based MemoryBuffer. Using this class is equivalent to standard C
  * functions malloc/realloc/free.
  */
-class RamMemoryBuffer : public MemoryBuffer
+class MemoryMemBuf : public MemoryBuffer
 {
 public:
-  RamMemoryBuffer(size_t n);
+  MemoryMemBuf(size_t n);
+  MemoryMemBuf(void *ptr, size_t n);
   virtual void resize(size_t n);
-  virtual ~RamMemoryBuffer();
+  virtual PyObject* pyrepr() const;
+  virtual ~MemoryMemBuf();
 };
 
 
@@ -100,12 +118,31 @@ public:
  * The string is not considered "owned" by this class, and its memory will not
  * be deallocated when the object is destroyed.
  */
-class StringMemoryBuffer : public MemoryBuffer
+class StringMemBuf : public MemoryBuffer
 {
 public:
-  StringMemoryBuffer(const char *str);
+  StringMemBuf(const char *str);
   virtual void resize(size_t);
-  virtual ~StringMemoryBuffer();
+  virtual PyObject* pyrepr() const;
+  virtual ~StringMemBuf();
+};
+
+
+
+//==============================================================================
+
+/**
+ */
+class ExternalMemBuf : public MemoryBuffer
+{
+  void* pybufinfo;
+
+public:
+  ExternalMemBuf(void *ptr, void *pybuf, size_t size);
+  virtual void resize(size_t);
+  virtual size_t memory_footprint() const;
+  virtual PyObject* pyrepr() const;
+  virtual ~ExternalMemBuf();
 };
 
 
@@ -118,10 +155,10 @@ public:
  * and then mapping them. This also includes creating temporary files.
  *
  * This class can also be used to save an existing memory buffer onto disk:
- * just create a new MmapMemoryBuffer object, and then memcpy the data into
+ * just create a new MemmapMemBuf object, and then memcpy the data into
  * its memory region.
  */
-class MmapMemoryBuffer : public MemoryBuffer
+class MemmapMemBuf : public MemoryBuffer
 {
   const char *filename;
 
@@ -145,11 +182,13 @@ public:
    *     When MB_READONLY is set, the file will be opened in readonly mode;
    *     otherwise it will be opened in read-write mode.
    */
-  MmapMemoryBuffer(const char *path, size_t n=0, int flags=0);
+  MemmapMemBuf(const char *path, size_t n=0, int flags=0);
 
   virtual void resize(size_t n);
+  virtual size_t memory_footprint() const;
+  virtual PyObject* pyrepr() const;
 
-  virtual ~MmapMemoryBuffer();
+  virtual ~MemmapMemBuf();
 };
 
 
@@ -290,5 +329,14 @@ public:
   virtual ~MmapWritableBuffer();
 };
 
+
+
+//==============================================================================
+// Template implementations
+
+template <typename T>
+void MemoryBuffer::set_elem(size_t i, T value) {
+  (static_cast<T*>(buf))[i] = value;
+}
 
 #endif
