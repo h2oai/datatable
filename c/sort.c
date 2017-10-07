@@ -268,11 +268,11 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
             memcpy(ordering, rowindex->ind32, (size_t)nrows * sizeof(int32_t));
         }
         else if (rowindex->type == RI_SLICE) {
-            RowIndex *ri = rowindex == NULL ? NULL : rowindex->expand();
+            RowIndex *ri = rowindex->expand();
             if (ri == NULL || ri->type != RI_ARR32) return NULL;
             ordering = ri->ind32;
             ri->ind32 = NULL;
-            if(ri) ri->decref();
+            ri->decref();
         }
     }
     SType stype = col->stype;

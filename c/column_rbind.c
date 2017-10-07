@@ -114,13 +114,13 @@ column_rbind_fw(Column *self, Column **cols, int64_t nrows, int col_empty)
             if (col->stype != self->stype) {
                 Column *newcol = col->cast(self->stype);
                 if (newcol == NULL) return NULL;
-                if(col) col->decref();
+                col->decref();
                 col = newcol;
             }
             memcpy(resptr, col->data, col->alloc_size);
             resptr = add_ptr(resptr, col->alloc_size);
         }
-        if(col) col->decref();
+        col->decref();
     }
     if (rows_to_fill) {
         set_value(resptr, na, elemsize, rows_to_fill);
@@ -212,7 +212,7 @@ column_rbind_str32(Column *self, Column **cols, int64_t nrows, int col_empty)
             memcpy(add_ptr(self->data, curr_offset), col->data, data_size);
             curr_offset += data_size;
         }
-        if(col) col->decref();
+        col->decref();
     }
     if (rows_to_fill) {
         const int32_t na = -curr_offset - 1;

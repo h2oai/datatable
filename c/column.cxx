@@ -417,7 +417,7 @@ Column* Column::extract(RowIndex *rowindex) {
     return res;
 
   fail:
-    if(res) res->decref();
+    res->decref();
     return NULL;
 }
 

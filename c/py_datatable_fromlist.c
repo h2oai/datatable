@@ -68,7 +68,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
   fail:
     if (cols) {
         for (int i = 0; cols[i] != NULL; ++i) {
-            if(cols[i]) cols[i]->decref();
+            cols[i]->decref();
         }
         dtfree(cols);
     }
@@ -347,6 +347,6 @@ Column* column_from_list(PyObject *list)
     }
 
   fail:
-    if(column) column->decref();
+    column->decref();
     return NULL;
 }

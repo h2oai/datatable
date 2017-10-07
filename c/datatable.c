@@ -54,7 +54,7 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     int k = 0;
     for (int i = 0; i < dt->ncols; i++) {
         if (i == next_col_to_remove) {
-            if(columns[i]) columns[i]->decref();
+            columns[i]->decref();
             columns[i] = NULL;
             if (stats) Stats::destruct(stats[i]);
             do {
@@ -85,9 +85,9 @@ void datatable_dealloc(DataTable *self)
 {
     if (self == NULL) return;
 
-    if(self->rowindex) self->rowindex->decref();
+    if (self->rowindex) self->rowindex->decref();
     for (int64_t i = 0; i < self->ncols; ++i) {
-        if(self->columns[i]) self->columns[i]->decref();
+        self->columns[i]->decref();
     }
     dtfree(self->columns);
     if (self->stats) {
@@ -224,10 +224,10 @@ void datatable_reify(DataTable *self) {
             newcol->stats->_ref_col = newcol;
             newcol->stats->_ref_ri = NULL;
         }
-        if(self->columns[i]) self->columns[i]->decref();
+        self->columns[i]->decref();
         self->columns[i] = newcol;
     }
-    if(self->rowindex) self->rowindex->decref();
+    if (self->rowindex) self->rowindex->decref();
     dtfree(self->stats);
     self->rowindex = NULL;
     self->stats = NULL;

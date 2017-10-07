@@ -45,7 +45,7 @@ DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts)
             }
         } else {
             for (int64_t ii = 0; ii < ncolsi; ii++) {
-                Column *c = dts[i]->columns[ii] == NULL ? NULL : dts[i]->columns[ii]->incref();
+                Column *c = dts[i]->columns[ii]->incref();
                 if (nrowsi < nrows) c = c->realloc_and_fill(nrows);
                 dt->columns[j++] = c;
             }
