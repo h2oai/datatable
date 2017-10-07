@@ -199,7 +199,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
 static Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 {
     if (col != NULL && stype_info[stype].ltype == LT_STRING) {
-        col->decref();
+        if(col) col->decref();
         return alloc_column(stype, nrows, j);
     }
     if (col == NULL) {
@@ -359,7 +359,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     printf("AllocateDT failed!\n");
     if (columns) {
         Column **col = columns;
-        while (*col++) (*col)->decref();
+        while (*col++) if((*col)) (*col)->decref();
         dtfree(columns);
     }
     return 0;

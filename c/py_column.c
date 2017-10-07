@@ -12,7 +12,7 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
 {
     Column_PyObject *pycol = Column_PyNew();
     if (pycol == NULL) return NULL;
-    pycol->ref = col->incref();
+    pycol->ref = col == NULL ? NULL : col->incref();
     pycol->pydt = pydt;
     pycol->colidx = colidx;
     Py_XINCREF(pydt);
@@ -127,7 +127,7 @@ void free_xbuf_column(Column *col)
 
 static void pycolumn_dealloc(Column_PyObject *self)
 {
-    self->ref->decref();
+    if(self->ref) self->ref->decref();
     Py_XDECREF(self->pydt);
     self->ref = NULL;
     self->pydt = NULL;

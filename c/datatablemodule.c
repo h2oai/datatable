@@ -58,7 +58,7 @@ static PyObject* pyget_internal_function_ptrs(UU, UU1)
     ADD(_dt_malloc);
     ADD(_dt_realloc);
     ADD(_dt_free);
-    ADD(rowindex_from_filterfn32);
+    ADD(RowIndex::from_filterfn32);
     #undef ADD
 
     return res;

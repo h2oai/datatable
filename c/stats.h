@@ -9,7 +9,7 @@
 
 typedef struct DataTable DataTable;
 class Column;
-typedef struct RowIndex RowIndex;
+class RowIndex;
 
 /**
  * Statistics Container

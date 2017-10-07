@@ -6,7 +6,7 @@
 #include "stats.h"
 
 typedef struct DataTable DataTable;
-typedef struct RowIndex RowIndex;
+class RowIndex;
 class Stats;
 
 //==============================================================================

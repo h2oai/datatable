@@ -22,7 +22,7 @@ PyObject* pyrowindex(RowIndex *src)
 {
     if (src == NULL) return NULL;
     PyObject *res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
-    ((RowIndex_PyObject*) res)->ref = rowindex_incref(src);
+    ((RowIndex_PyObject*) res)->ref = src == NULL ? NULL : src->incref();
     return res;
 }
 #define py pyrowindex
@@ -69,7 +69,7 @@ PyObject* pyrowindex_from_slice(UU, PyObject *args)
     if (!PyArg_ParseTuple(args, "LLL:RowIndex.from_slice",
                           &start, &count, &step))
         return NULL;
-    return py(rowindex_from_slice(start, count, step));
+    return py(new RowIndex(start, count, step));
 }
 
 
@@ -112,7 +112,7 @@ PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
         steps[i] = step;
     }
 
-    return py(rowindex_from_slicelist(starts, counts, steps, n1));
+    return py(new RowIndex(starts, counts, steps, n1));
 
   fail:
     free(starts);
@@ -159,8 +159,8 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
     }
 
     // Construct and return the RowIndex object
-    return data32? py(rowindex_from_i32_array(data32, len, 0))
-                 : py(rowindex_from_i64_array(data64, len, 0));
+    return data32? py(new RowIndex(data32, len, 0))
+                 : py(new RowIndex(data64, len, 0));
 
   fail:
     dtfree(data32);
@@ -193,8 +193,8 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
     }
 
     RowIndex *rowindex = dt->rowindex
-        ? rowindex_from_boolcolumn_with_rowindex(col, dt->rowindex)
-        : rowindex_from_boolcolumn(col, dt->nrows);
+        ? RowIndex::from_column_with_rowindex(col, dt->rowindex)
+        : RowIndex::from_boolcolumn(col, dt->nrows);
 
     return py(rowindex);
 }
@@ -224,8 +224,8 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
     }
 
     RowIndex *rowindex = dt->rowindex
-        ? rowindex_from_intcolumn_with_rowindex(col, dt->rowindex)
-        : rowindex_from_intcolumn(col, 0);
+        ? RowIndex::from_column_with_rowindex(col, dt->rowindex)
+        : RowIndex::from_intcolumn(col, 0);
 
     if (rowindex->min < 0 || rowindex->max >= target_nrows) {
         PyErr_Format(PyExc_ValueError,
@@ -253,10 +253,10 @@ PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
     int64_t nrows = (int64_t) _nrows;
     if (nrows <= INT32_MAX) {
         rowindex_filterfn32 *fnptr = (rowindex_filterfn32*)_fnptr;
-        return py(rowindex_from_filterfn32(fnptr, nrows, 0));
+        return py(RowIndex::from_filterfn32(fnptr, nrows, 0));
     } else {
         rowindex_filterfn64 *fnptr = (rowindex_filterfn64*)_fnptr;
-        return py(rowindex_from_filterfn64(fnptr, nrows, 0));
+        return py(RowIndex::from_filterfn64(fnptr, nrows, 0));
     }
 }
 
@@ -284,7 +284,7 @@ PyObject* pyrowindex_uplift(UU, PyObject *args)
     if (!PyArg_ParseTuple(args, "O&O&:RowIndex.uplift",
                           &rowindex_unwrap, &ri, &dt_unwrap, &dt))
         return NULL;
-    return py(rowindex_merge(dt->rowindex, ri));
+    return py(RowIndex::merge(dt->rowindex, ri));
 }
 
 
@@ -295,7 +295,7 @@ PyObject* pyrowindex_uplift(UU, PyObject *args)
 
 static void dealloc(RowIndex_PyObject *self)
 {
-    rowindex_decref(self->ref);
+    if(self->ref) self->ref->decref();
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 

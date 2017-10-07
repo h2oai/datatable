@@ -54,7 +54,7 @@ DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n)
     int k = 0;
     for (int i = 0; i < dt->ncols; i++) {
         if (i == next_col_to_remove) {
-            columns[i]->decref();
+            if(columns[i]) columns[i]->decref();
             columns[i] = NULL;
             if (stats) Stats::destruct(stats[i]);
             do {
@@ -85,9 +85,9 @@ void datatable_dealloc(DataTable *self)
 {
     if (self == NULL) return;
 
-    rowindex_decref(self->rowindex);
+    if(self->rowindex) self->rowindex->decref();
     for (int64_t i = 0; i < self->ncols; ++i) {
-        self->columns[i]->decref();
+        if(self->columns[i]) self->columns[i]->decref();
     }
     dtfree(self->columns);
     if (self->stats) {
@@ -224,10 +224,10 @@ void datatable_reify(DataTable *self) {
             newcol->stats->_ref_col = newcol;
             newcol->stats->_ref_ri = NULL;
         }
-        self->columns[i]->decref();
+        if(self->columns[i]) self->columns[i]->decref();
         self->columns[i] = newcol;
     }
-    rowindex_decref(self->rowindex);
+    if(self->rowindex) self->rowindex->decref();
     dtfree(self->stats);
     self->rowindex = NULL;
     self->stats = NULL;
@@ -242,7 +242,7 @@ size_t datatable_get_allocsize(DataTable *self)
     sz += (size_t)(self->ncols + 1) * sizeof(Column*);
     if (self->rowindex) {
         // If table is a view, then ignore sizes of each individual column.
-        sz += rowindex_get_allocsize(self->rowindex);
+        sz += self->rowindex->alloc_size();
     } else {
         for (int i = 0; i < self->ncols; i++) {
             sz += self->columns[i]->get_allocsize();

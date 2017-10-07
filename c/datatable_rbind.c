@@ -55,7 +55,7 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
             } else if (dts[j]->rowindex) {
                 cols0[j] = dts[j]->columns[cols[i][j]]->extract(dts[j]->rowindex);
             } else {
-                cols0[j] = dts[j]->columns[cols[i][j]]->incref();
+                cols0[j] = dts[j]->columns[cols[i][j]] == NULL ? NULL : dts[j]->columns[cols[i][j]]->incref();
             }
             if (cols0[j] == NULL) return NULL;
         }
