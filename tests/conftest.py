@@ -4,8 +4,10 @@
 # This file is used by `pytest` to define common fixtures shared across all
 # tests.
 #-------------------------------------------------------------------------------
+import os
 import sys
 import pytest
+import tempfile as mod_tempfile
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -54,3 +56,11 @@ def h2o():
             pytest.skip("h2o version 3.14+ is required, you have %s" % v)
     except ImportError:
         pytest.skip("h2o module is required for this test")
+
+
+@pytest.fixture(scope="function")
+def tempfile():
+    fd, fname = mod_tempfile.mkstemp()
+    os.close(fd)
+    yield fname
+    os.unlink(fname)
