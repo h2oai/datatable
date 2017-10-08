@@ -6,7 +6,7 @@
 #include "column.h"
 
 // avoid circular dependency between .h files
-typedef struct RowIndex RowIndex;
+class RowIndex;
 typedef struct ColMapping ColMapping;
 class Column;;
 class Stats;

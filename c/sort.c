@@ -260,7 +260,7 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
     int32_t nrows = (int32_t) _nrows;
     int32_t *ordering = NULL;
     if (nrows <= 1) {  // no need to sort
-        return rowindex_from_slice(0, nrows, 1);
+        return new RowIndex((int64_t) 0, nrows, 1);
     }
     if (rowindex) {
         if (rowindex->type == RI_ARR32) {
@@ -268,11 +268,11 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
             memcpy(ordering, rowindex->ind32, (size_t)nrows * sizeof(int32_t));
         }
         else if (rowindex->type == RI_SLICE) {
-            RowIndex *ri = rowindex_expand(rowindex);
+            RowIndex *ri = rowindex->expand();
             if (ri == NULL || ri->type != RI_ARR32) return NULL;
             ordering = ri->ind32;
             ri->ind32 = NULL;
-            rowindex_decref(ri);
+            ri->decref();
         }
     }
     SType stype = col->stype;
@@ -304,7 +304,7 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
         if (prepfn) {
             prepfn(col, ordering, (size_t)nrows, sc);
             if (sc->issorted) {
-                return rowindex_from_slice(0, nrows, 1);
+                return new RowIndex((int64_t) 0, nrows, 1);
             }
             if (sc->x != NULL) {
                 radix_psort(sc);
@@ -323,7 +323,7 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
     }
     dtfree(sc);
     if (!ordering) return NULL;
-    return rowindex_from_i32_array(ordering, nrows, 0);
+    return new RowIndex(ordering, nrows, 0);
 }
 
 

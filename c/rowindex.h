@@ -12,6 +12,9 @@ typedef enum RowIndexType {
     RI_SLICE = 3,
 } RowIndexType;
 
+typedef int (rowindex_filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
+typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
+
 
 /**
  * type
@@ -52,7 +55,8 @@ typedef enum RowIndexType {
  *     Number of references to this RowIndex object. When this count reaches 0
  *     the object can be deallocated.
  */
-typedef struct RowIndex {
+class RowIndex {
+public:
     int64_t length;
     int64_t min;
     int64_t max;
@@ -63,37 +67,34 @@ typedef struct RowIndex {
     };
     RowIndexType type;
     int32_t refcount;
-} RowIndex;
+    RowIndex(int64_t, int64_t, int64_t); // from slice
+    RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
+    RowIndex(int64_t*, int64_t, int);
+    RowIndex(int32_t*, int64_t, int);
+    RowIndex(const RowIndex&);
+    RowIndex(RowIndex*);
+    RowIndex* expand();
+    void compactify();
+    size_t alloc_size();
+    RowIndex* incref();
+    void decref();
+
+    static RowIndex* merge(RowIndex*, RowIndex*);
+    static RowIndex* from_intcolumn(Column*, int);
+    static RowIndex* from_boolcolumn(Column*, int64_t);
+    static RowIndex* from_column_with_rowindex(Column*, RowIndex*);
+    static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
+    static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);
+private:
+    ~RowIndex() {}
+};
 
 
 
 //==============================================================================
 // Public API
 //==============================================================================
-typedef int (rowindex_filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
-typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
 typedef RowIndex* (rowindex_getterfn)(void);
 
-RowIndex* rowindex_from_slice(int64_t start, int64_t count, int64_t step);
-RowIndex* rowindex_from_slicelist(
-    int64_t *starts, int64_t *counts, int64_t *steps, int64_t n);
-RowIndex* rowindex_from_i64_array(int64_t *array, int64_t n, int issorted);
-RowIndex* rowindex_from_i32_array(int32_t *array, int64_t n, int issorted);
-RowIndex* rowindex_from_boolcolumn(Column *col, int64_t nrows);
-RowIndex* rowindex_from_boolcolumn_with_rowindex(Column *col, RowIndex *ri);
-RowIndex* rowindex_from_intcolumn(Column *col, int is_temp_col);
-RowIndex* rowindex_from_intcolumn_with_rowindex(Column *col, RowIndex *ri);
-RowIndex* rowindex_from_filterfn32(rowindex_filterfn32 *f, int64_t nrows,
-                                   int issorted);
-RowIndex* rowindex_from_filterfn64(rowindex_filterfn64 *f, int64_t nrows,
-                                   int issorted);
-RowIndex* rowindex_copy(RowIndex *self);
-RowIndex* rowindex_merge(RowIndex *ri_ab, RowIndex *ri_bc);
-RowIndex* rowindex_expand(RowIndex *self);
-void rowindex_compactify(RowIndex *self);
-size_t rowindex_get_allocsize(RowIndex*);
-
-RowIndex* rowindex_incref(RowIndex*);
-void rowindex_decref(RowIndex*);
 
 #endif
