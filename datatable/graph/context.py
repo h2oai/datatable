@@ -79,7 +79,7 @@ class CModuleNode(object):
         varname = "dt" + str(dt._id)
         if varname not in self._global_names:
             ptr = dt.internal.datatable_ptr
-            self.add_global(varname, "DataTable*", "(DataTable*) %dL" % ptr)
+            self.add_global(varname, "void*", "(void*) %dL" % ptr)
         return varname
 
 
@@ -107,76 +107,21 @@ _header = """
 #include <stdint.h>  // intNN_t, etc.
 #include <stdlib.h>  // NULL, size_t, malloc, etc.
 
-typedef int RowIndexType;
-typedef int8_t SType;
-typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
-class Stats;
-class Column;
-class RowIndex;
-class DataTable;
-
-class RowIndex {
-public:
-    int64_t length;
-    int64_t min;
-    int64_t max;
-    union {
-        int32_t *ind32;
-        int64_t *ind64;
-        struct { int64_t start, step; } slice;
-    };
-    RowIndexType type;
-    int32_t refcount;
-    RowIndex(int64_t, int64_t, int64_t); // from slice
-    RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
-    RowIndex(int64_t*, int64_t, int);
-    RowIndex(int32_t*, int64_t, int);
-    RowIndex(const RowIndex&);
-    RowIndex(RowIndex*);
-private:
-    ~RowIndex() {}
-};
-
-class Column {
-public:
-    void   *data;        // 8
-    void   *meta;        // 8
-    int64_t nrows;       // 8
-    size_t  alloc_size;  // 8
-    union {              // 8
-        char *filename;
-        void *pybuf;
-    };
-    Stats*  stats;       // 8
-    int     refcount;    // 4
-    MType   mtype;       // 1
-    SType   stype;       // 1
-    int16_t _padding;    // 2
-
-    Column(SType, size_t); // Data Column
-    Column(const Column&);
-    Column(const Column*); // Copy
-private:
-    ~Column() {}
-};
-
-typedef struct DataTable {
-  int64_t nrows;
-  int64_t ncols;
-  RowIndex *rowindex;
-  Column **columns;
-  Stats **stats;
-} DataTable;
-
 // External functions
 typedef void* (*ptr_0)(size_t);
 typedef void* (*ptr_1)(void*, size_t);
 typedef void (*ptr_2)(void*);
-typedef RowIndex* (*ptr_4)(void*, int64_t, int);
+typedef void* (*ptr_3)(void*, int64_t, int);
+typedef void* (*ptr_4)(void*, int);
+typedef void (*ptr_5)(void*, int64_t*, int64_t*);
+typedef void (*ptr_6)(void*, void**);
 static ptr_0 dt_malloc = (ptr_0) %dL;
 static ptr_1 dt_realloc = (ptr_1) %dL;
 static ptr_2 dt_free = (ptr_2) %dL;
-static ptr_4 rowindex_from_filterfn32 = (ptr_4) %dL;
+static ptr_3 rowindex_from_filterfn32 = (ptr_3) %dL;
+static ptr_4 dt_column_data = (ptr_4) %dL;
+static ptr_5 dt_unpack_slicerowindex = (ptr_5) %dL;
+static ptr_6 dt_unpack_arrayrowindex = (ptr_6) %dL;
 
 #define BIN_NAF4 0x7F8007A2u
 #define BIN_NAF8 0x7FF00000000007A2ull

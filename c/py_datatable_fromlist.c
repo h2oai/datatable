@@ -98,7 +98,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
         memcpy(strbuffer + strbuffer_ptr, buf, (size_t) (len));                \
         strbuffer_ptr += (size_t) (len);                                       \
     }                                                                          \
-    mb.set_elem<int32_t>(i, (int32_t) (strbuffer_ptr + 1));                    \
+    mb->set_elem<int32_t>(i, (int32_t) (strbuffer_ptr + 1));                   \
 }
 
 #define WRITE_STR(s) {                                                         \
@@ -126,14 +126,14 @@ Column* column_from_list(PyObject *list)
     }
 
     SType stype = ST_VOID;
-    MemoryMemBuf mb(0);
+    MemoryMemBuf* mb = new MemoryMemBuf(0);
     char *strbuffer = NULL;
     size_t strbuffer_size = 0;
     size_t strbuffer_ptr = 0;
     int overflow = 0;
     while (stype < DT_STYPES_COUNT) {
         start_over: {}
-        mb.resize(stype_info[stype].elemsize * (size_t)nrows);
+        mb->resize(stype_info[stype].elemsize * (size_t)nrows);
         if (stype == ST_STRING_I4_VCHAR) {
             strbuffer_size = MIN(nrows * 1000, 1 << 20);
             strbuffer_ptr = 0;
@@ -152,15 +152,15 @@ Column* column_from_list(PyObject *list)
                 switch (stype) {
                     case ST_VOID:        /* do nothing */ break;
                     case ST_BOOLEAN_I1:
-                    case ST_INTEGER_I1:  mb.set_elem<int8_t>(i, NA_I1);  break;
-                    case ST_INTEGER_I2:  mb.set_elem<int16_t>(i, NA_I2); break;
-                    case ST_INTEGER_I4:  mb.set_elem<int32_t>(i, NA_I4); break;
-                    case ST_INTEGER_I8:  mb.set_elem<int64_t>(i, NA_I8); break;
-                    case ST_REAL_F8:     mb.set_elem<double>(i, NA_F8); break;
+                    case ST_INTEGER_I1:  mb->set_elem<int8_t>(i, NA_I1);  break;
+                    case ST_INTEGER_I2:  mb->set_elem<int16_t>(i, NA_I2); break;
+                    case ST_INTEGER_I4:  mb->set_elem<int32_t>(i, NA_I4); break;
+                    case ST_INTEGER_I8:  mb->set_elem<int64_t>(i, NA_I8); break;
+                    case ST_REAL_F8:     mb->set_elem<double>(i, NA_F8); break;
                     case ST_STRING_I4_VCHAR:
-                        mb.set_elem<int32_t>(i, (int32_t) (-strbuffer_ptr-1));
+                        mb->set_elem<int32_t>(i, (int32_t) (-strbuffer_ptr-1));
                         break;
-                    case ST_OBJECT_PYPTR: mb.set_elem<PyObject*>(i, none()); break;
+                    case ST_OBJECT_PYPTR: mb->set_elem<PyObject*>(i, none()); break;
                     DEFAULT("Py_None")
                 }
             } else
@@ -169,15 +169,15 @@ Column* column_from_list(PyObject *list)
                 int8_t val = (item == Py_True);
                 switch (stype) {
                     case ST_BOOLEAN_I1:
-                    case ST_INTEGER_I1:  mb.set_elem<int8_t>(i, val);  break;
-                    case ST_INTEGER_I2:  mb.set_elem<int16_t>(i, (int16_t)val);  break;
-                    case ST_INTEGER_I4:  mb.set_elem<int32_t>(i, (int32_t)val);  break;
-                    case ST_INTEGER_I8:  mb.set_elem<int64_t>(i, (int64_t)val);  break;
-                    case ST_REAL_F8:     mb.set_elem<double>(i, (double)val);  break;
+                    case ST_INTEGER_I1:  mb->set_elem<int8_t>(i, val);  break;
+                    case ST_INTEGER_I2:  mb->set_elem<int16_t>(i, (int16_t)val);  break;
+                    case ST_INTEGER_I4:  mb->set_elem<int32_t>(i, (int32_t)val);  break;
+                    case ST_INTEGER_I8:  mb->set_elem<int64_t>(i, (int64_t)val);  break;
+                    case ST_REAL_F8:     mb->set_elem<double>(i, (double)val);  break;
                     case ST_STRING_I4_VCHAR:
                         SET_I4S(val? "True" : "False", 5 - val);
                         break;
-                    case ST_OBJECT_PYPTR: mb.set_elem<PyObject*>(i, incref(item));  break;
+                    case ST_OBJECT_PYPTR: mb->set_elem<PyObject*>(i, incref(item));  break;
                     case ST_VOID:         TYPE_SWITCH(ST_BOOLEAN_I1);
                     DEFAULT("Py_True/Py_False")
                 }
@@ -195,15 +195,15 @@ Column* column_from_list(PyObject *list)
                         if (overflow || v == NA_I8) TYPE_SWITCH(ST_REAL_F8);
                         int64_t aval = llabs(v);
                         if (stype == ST_BOOLEAN_I1 && (v == 0 || v == 1))
-                            mb.set_elem<int8_t>(i, (int8_t)v);
+                            mb->set_elem<int8_t>(i, (int8_t)v);
                         else if (stype == ST_INTEGER_I1 && aval <= 127)
-                            mb.set_elem<int8_t>(i, (int8_t)v);
+                            mb->set_elem<int8_t>(i, (int8_t)v);
                         else if (stype == ST_INTEGER_I2 && aval <= 32767)
-                            mb.set_elem<int16_t>(i, (int16_t)v);
+                            mb->set_elem<int16_t>(i, (int16_t)v);
                         else if (stype == ST_INTEGER_I4 && aval <= INT32_MAX)
-                            mb.set_elem<int32_t>(i, (int32_t)v);
+                            mb->set_elem<int32_t>(i, (int32_t)v);
                         else if (stype == ST_INTEGER_I8 && aval <= INT64_MAX)
-                            mb.set_elem<int64_t>(i, v);
+                            mb->set_elem<int64_t>(i, v);
                         else {
                             // stype is ST_VOID, or current stype is too small
                             // to hold the value `v`.
@@ -223,9 +223,9 @@ Column* column_from_list(PyObject *list)
                                 goto fail;
                             PyErr_Clear();
                             int sign = _PyLong_Sign(item);
-                            mb.set_elem<double>(i, sign > 0? INFD : -INFD);
+                            mb->set_elem<double>(i, sign > 0? INFD : -INFD);
                         } else {
-                            mb.set_elem<double>(i, res);
+                            mb->set_elem<double>(i, res);
                         }
                     } break;
 
@@ -237,7 +237,7 @@ Column* column_from_list(PyObject *list)
                     } break;
 
                     case ST_OBJECT_PYPTR: {
-                        mb.set_elem<PyObject*>(i, incref(item));
+                        mb->set_elem<PyObject*>(i, incref(item));
                     } break;
 
                     DEFAULT("PyLong_Type")
@@ -249,8 +249,8 @@ Column* column_from_list(PyObject *list)
                 // The following call retrieves the underlying primitive:
                 double val = PyFloat_AS_DOUBLE(item);
                 switch (stype) {
-                    case ST_REAL_F8:       mb.set_elem<double>(i, val);  break;
-                    case ST_OBJECT_PYPTR:  mb.set_elem<PyObject*>(i, incref(item));  break;
+                    case ST_REAL_F8:       mb->set_elem<double>(i, val);  break;
+                    case ST_OBJECT_PYPTR:  mb->set_elem<PyObject*>(i, incref(item));  break;
 
                     case ST_VOID:
                     case ST_BOOLEAN_I1:
@@ -264,15 +264,15 @@ Column* column_from_list(PyObject *list)
                             int64_t v = (int64_t) n;
                             int64_t a = llabs(v);
                             if (stype == ST_BOOLEAN_I1 && (n == 0 || n == 1))
-                                mb.set_elem<int8_t>(i, (int8_t)v);
+                                mb->set_elem<int8_t>(i, (int8_t)v);
                             else if (stype == ST_INTEGER_I1 && a <= 127)
-                                mb.set_elem<int8_t>(i, (int8_t)v);
+                                mb->set_elem<int8_t>(i, (int8_t)v);
                             else if (stype == ST_INTEGER_I2 && a <= 32767)
-                                mb.set_elem<int16_t>(i, (int16_t)v);
+                                mb->set_elem<int16_t>(i, (int16_t)v);
                             else if (stype == ST_INTEGER_I4 && a <= INT32_MAX)
-                                mb.set_elem<int32_t>(i, (int32_t)v);
+                                mb->set_elem<int32_t>(i, (int32_t)v);
                             else if (stype == ST_INTEGER_I8)
-                                mb.set_elem<int64_t>(i, v);
+                                mb->set_elem<int64_t>(i, v);
                             else {
                                 TYPE_SWITCH(n == 0 || n == 1? ST_BOOLEAN_I1 :
                                             a <= 127? ST_INTEGER_I1 :
@@ -298,7 +298,7 @@ Column* column_from_list(PyObject *list)
             //---- store a string ----
             if (itemtype == &PyUnicode_Type) {
                 switch (stype) {
-                    case ST_OBJECT_PYPTR:     mb.set_elem<PyObject*>(i, incref(item));  break;
+                    case ST_OBJECT_PYPTR:     mb->set_elem<PyObject*>(i, incref(item));  break;
                     case ST_STRING_I4_VCHAR:  WRITE_STR(item);  break;
                     default:                  TYPE_SWITCH(ST_STRING_I4_VCHAR);
                 }
@@ -306,7 +306,7 @@ Column* column_from_list(PyObject *list)
             //---- store an object ----
             {
                 if (stype == ST_OBJECT_PYPTR)
-                    mb.set_elem<PyObject*>(i, incref(item));
+                    mb->set_elem<PyObject*>(i, incref(item));
                 else
                     TYPE_SWITCH(ST_OBJECT_PYPTR);
             }
@@ -324,13 +324,16 @@ Column* column_from_list(PyObject *list)
             size_t final_size = offoff + esz * (size_t)nrows;
             dtrealloc(strbuffer, char, final_size);
             memset(strbuffer + strbuffer_ptr, 0xFF, padding_size);
-            memcpy(strbuffer + offoff, mb.get(), esz * (size_t)nrows);
-            Column *column = new Column(stype, nrows, MemoryMemBuf(strbuffer, final_size));
+            memcpy(strbuffer + offoff, mb->get(), esz * (size_t)nrows);
+            Column *column = new Column(nrows, stype);
+            column->mbuf = new MemoryMemBuf(strbuffer, final_size);
             ((VarcharMeta*) column->meta)->offoff = (int64_t) offoff;
             return column;
+        } else {
+            Column *column = new Column(nrows, stype);
+            column->mbuf = mb;
+            return column;
         }
-
-        return new Column(stype, nrows, std::move(mb));
     }
 
   fail:

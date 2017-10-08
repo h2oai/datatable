@@ -184,9 +184,9 @@ PyObject* ExternalMemBuf::pyrepr() const {
 //==============================================================================
 
 MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, int flags_)
+    : filename(path)
 {
   flags = flags_;
-  filename = path;
   bool temporary = owned();
   bool isreadonly = readonly();
   bool create = (flags & MB_CREATE) == MB_CREATE;
@@ -205,7 +205,7 @@ MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, int flags_)
     //   throw std::runtime_error("File with such name already exists");
     // }
     // Create new file of size `n`.
-    FILE *fp = fopen(filename, "w");
+    FILE *fp = fopen(filename.c_str(), "w");
     if (n) {
       fseek(fp, (long)(n - 1), SEEK_SET);
       fputc('\0', fp);
@@ -214,18 +214,18 @@ MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, int flags_)
   } else {
     // Check that the file exists and is accessible
     int mode = isreadonly? R_OK : (R_OK|W_OK);
-    bool file_accessible = (access(filename, mode) != -1);
+    bool file_accessible = (access(filename.c_str(), mode) != -1);
     if (!file_accessible) {
-      throw std::runtime_error("File cannot be opened");
+      throw Error("File cannot be opened");
     }
   }
 
   // Open the file and determine its size
-  int fd = open(filename, isreadonly? O_RDONLY : O_RDWR, 0666);
-  if (fd == -1) throw std::runtime_error("Cannot open file");
+  int fd = open(filename.c_str(), isreadonly? O_RDONLY : O_RDWR, 0666);
+  if (fd == -1) throw Error("Cannot open file");
   struct stat statbuf;
-  if (fstat(fd, &statbuf) == -1) throw std::runtime_error("Error in fstat()");
-  if (S_ISDIR(statbuf.st_mode)) throw std::runtime_error("File is a directory");
+  if (fstat(fd, &statbuf) == -1) throw Error("Error in fstat()");
+  if (S_ISDIR(statbuf.st_mode)) throw Error("File is a directory");
   n = (size_t) statbuf.st_size;
 
   // Memory-map the file.
@@ -234,7 +234,7 @@ MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, int flags_)
              isreadonly? MAP_PRIVATE|MAP_NORESERVE : MAP_SHARED, fd, 0);
   close(fd);  // fd is no longer needed
   if (buf == MAP_FAILED) {
-    throw std::runtime_error("Memory map failed");
+    THROW_ERROR("Memory map failed: %s", strerror(errno));
   }
 }
 
@@ -242,7 +242,7 @@ MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, int flags_)
 MemmapMemBuf::~MemmapMemBuf() {
   munmap(buf, allocsize);
   if (owned()) {
-    remove(filename);
+    remove(filename.c_str());
   }
 }
 
@@ -250,21 +250,23 @@ MemmapMemBuf::~MemmapMemBuf() {
 void MemmapMemBuf::resize(size_t n) {
   if (readonly()) return;
   munmap(buf, allocsize);
-  truncate(filename, (off_t)n);
+  truncate(filename.c_str(), (off_t)n);
 
-  int fd = open(filename, O_RDWR);
+  int fd = open(filename.c_str(), O_RDWR);
+  if (fd == -1) {
+    THROW_ERROR("Unable to open file %s: %s", filename.c_str(), strerror(errno));
+  }
   buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
   close(fd);
   if (buf == MAP_FAILED) {
-    throw std::runtime_error("Memory map failed");
+    THROW_ERROR("Memory map failed: %s", strerror(errno));
   }
   allocsize = n;
 }
 
 
 size_t MemmapMemBuf::memory_footprint() const {
-  // +1 for trailing '\0'
-  return allocsize + strlen(filename) + 1 + sizeof(MemmapMemBuf);
+  return allocsize + filename.size() + sizeof(MemmapMemBuf);
 }
 
 

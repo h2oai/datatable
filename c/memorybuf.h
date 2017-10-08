@@ -160,7 +160,7 @@ public:
  */
 class MemmapMemBuf : public MemoryBuffer
 {
-  const char *filename;
+  std::string filename;
 
 public:
   /**

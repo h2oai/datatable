@@ -40,7 +40,7 @@ const char* filesize_to_str(size_t filesize);
 /**
  * Helper class to throw exceptions with nicely formatted messages.
  */
-class Error: std::exception {
+class Error : public std::exception {
   char msg[1000];
 public:
   Error(char const* format, ...) __attribute__((format(printf, 2, 3))) {
@@ -51,6 +51,12 @@ public:
   }
   char const* what() const throw() { return msg; }
 };
+
+#define APPLY(macro, arg) macro(arg)
+#define STRINGIFY_(L) #L
+#define STRINGIFY(x) APPLY(STRINGIFY_, x)
+#define THROW_ERROR(fmt, ...) \
+  throw Error(__FILE__ "(" STRINGIFY(__LINE__) "): " fmt, __VA_ARGS__);
 
 
 /**

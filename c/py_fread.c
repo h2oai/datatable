@@ -208,7 +208,7 @@ Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
     }
 
     size_t new_alloc_size = stype_info[stype].elemsize * nrows;
-    col->mbuf.resize(new_alloc_size);
+    col->mbuf->resize(new_alloc_size);
     col->stype = stype;
     col->nrows = (int64_t) nrows;
     return col;
@@ -388,9 +388,9 @@ void setFinalNrow(size_t nrows) {
                 int ret = rename(fname, fname2);
                 if (ret == -1) printf("Unable to rename: %d\n", errno);
             } else {
-                // dtfree(col->data);
+                delete col->mbuf;
             }
-            col->mbuf = MemoryMemBuf(final_ptr, final_size);
+            col->mbuf = new MemoryMemBuf(final_ptr, final_size);
             col->nrows = (int64_t) nrows;
             dtrealloc_g(col->meta, VarcharMeta, 1);
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;

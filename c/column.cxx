@@ -107,7 +107,7 @@ Column* Column::save_to_disk(const char *filename)
 Column::Column(const char* filename, SType st, size_t nr, const char* ms)
     : Column(nr, st)
 {
-  mbuf = new MemmapMemBuf(filename, 0);
+  mbuf = new MemmapMemBuf(filename, 0, MB_EXTERNAL|MB_READONLY);
   // Deserialize the meta information, if needed
   if (st == ST_STRING_I4_VCHAR || st == ST_STRING_I8_VCHAR) {
     if (strncmp(ms, "offoff=", 7) != 0)
@@ -496,6 +496,7 @@ void Column::decref() {
     if (refcount <= 0) {
         dtfree(meta);
         Stats::destruct(stats);
+        delete mbuf;
         delete this;
     }
 }

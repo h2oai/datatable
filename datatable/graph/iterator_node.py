@@ -112,26 +112,32 @@ class IteratorNode(object):
         args = "int64_t row0, int64_t row1"
         if self._extraargs:
             args += ", " + self._extraargs
-        iexpr = "i = ii"
+        iexpr = "i = ii;"
         if self._dt.internal.isview:
             target = self._cnode.get_dtvar(self._dt)
             ritype = self._dt.internal.rowindex_type
-            self.addto_preamble("RowIndex *ri = %s->rowindex;" % target)
             if ritype == "slice":
-                self.addto_preamble("int64_t step = ri->slice.step;")
-                self.addto_preamble("i = ri->slice.start - step;")
-                iexpr = "i += step"
+                self.addto_preamble("int64_t ristart, ristep;")
+                self.addto_preamble("dt_unpack_slicerowindex(%s, "
+                                    "&ristart, &ristep);" % target)
+                self.addto_preamble("i = ristart - ristep;")
+                iexpr = "i += ristep;"
+            elif ritype == "arr32":
+                self.addto_preamble("int32_t *riarr;")
+                self.addto_preamble("dt_unpack_arrayrowindex(%s, "
+                                    "(void**) &riarr);" % target)
+                iexpr = "i = (int64_t) riarr[ii];"
             else:
-                if ritype == "arr32":
-                    self.addto_preamble("int32_t *riarr = ri->ind32;")
-                else:
-                    self.addto_preamble("int64_t *riarr = ri->ind64;")
-                iexpr = "i = riarr[ii]"
-        fn = ("extern \"C\" int {func}({args}) {{\n"
+                self.addto_preamble("int64_t *riarr;")
+                self.addto_preamble("dt_unpack_arrayrowindex(%s, "
+                                    "(void**) &riarr);" % target)
+                iexpr = "i = riarr[ii];"
+
+        fn = ("int {func}({args}) {{\n"
               "    int64_t i;\n"
               "    {preamble}\n"
               "    for (int64_t ii = row0; ii < row1; ii++) {{\n"
-              "        {iexpr};\n"
+              "        {iexpr}\n"
               "        {mainloop}\n"
               "    }}\n"
               "    {epilogue}\n"

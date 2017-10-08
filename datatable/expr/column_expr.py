@@ -29,10 +29,11 @@ class ColSelectorExpr(BaseExpr):
         if True:
             datavar = key + "_data"
             inode.make_keyvar(datavar, datavar, exact=True)
-            dtcols = self._get_dt_columns(inode)
-            inode.addto_preamble("{type} *{data} = ({type}*) {columns}[{idx}]->data;"
+            inode.addto_preamble("{type} *{data} = "
+                                 "({type}*) dt_column_data({dt}, {idx});"
                                  .format(type=self.ctype, data=datavar,
-                                         columns=dtcols, idx=self._colid))
+                                         dt=self._get_dtvar(inode),
+                                         idx=self._colid))
             inode.addto_mainloop("{type} {var} = {data}[i];"
                                  .format(type=self.ctype, var=v, data=datavar))
         else:
@@ -72,13 +73,6 @@ class ColSelectorExpr(BaseExpr):
         return str(self._dtexpr) + "_" + colname
 
 
-    def _get_dt_columns(self, inode):
-        dt = self._dtexpr.get_datatable()  # type: DataTable
-        key = str(self._dtexpr) + "columns"
-        var = inode.get_keyvar(key)
-        if not var:
-            var = inode.make_keyvar(key, key, exact=True)
-            vdt = inode.get_dtvar(dt)
-            inode.addto_preamble("Column **{var} = {dt}->columns;"
-                                 .format(var=var, dt=vdt))
-        return var
+    def _get_dtvar(self, inode):
+        dt = self._dtexpr.get_datatable()
+        return inode.get_dtvar(dt)
