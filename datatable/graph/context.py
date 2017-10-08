@@ -111,17 +111,31 @@ typedef int RowIndexType;
 typedef int8_t SType;
 typedef enum MType { MT_DATA=1, MT_MMAP=2 } __attribute__ ((__packed__)) MType;
 class Stats;
+class Column;
+class RowIndex;
+class DataTable;
 
-typedef struct RowIndex {
+class RowIndex {
+public:
     int64_t length;
-    int64_t min, max;
+    int64_t min;
+    int64_t max;
     union {
         int32_t *ind32;
         int64_t *ind64;
         struct { int64_t start, step; } slice;
     };
     RowIndexType type;
-} RowIndex;
+    int32_t refcount;
+    RowIndex(int64_t, int64_t, int64_t); // from slice
+    RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
+    RowIndex(int64_t*, int64_t, int);
+    RowIndex(int32_t*, int64_t, int);
+    RowIndex(const RowIndex&);
+    RowIndex(RowIndex*);
+private:
+    ~RowIndex() {}
+};
 
 class Column {
 public:
@@ -140,25 +154,8 @@ public:
     int16_t _padding;    // 2
 
     Column(SType, size_t); // Data Column
-    Column(SType, size_t, const char*); // MMap Column
-    Column(SType, int64_t, void*, void*, size_t); // XBuf Column
-    Column(const char*, SType, int64_t, const char*); // Load from disk
     Column(const Column&);
     Column(const Column*); // Copy
-    Column* cast(SType);
-    Column* rbind(Column**);
-    Column* extract(RowIndex* = NULL);
-    Column* realloc_and_fill(int64_t);
-    Column* save_to_disk(const char*);
-    size_t i4s_datasize();
-    size_t i8s_datasize();
-    size_t get_allocsize();
-    Column* incref();
-    void decref();
-
-    static RowIndex* sort(Column*, RowIndex*);
-    static size_t i4s_padding(size_t datasize);
-    static size_t i8s_padding(size_t datasize);
 private:
     ~Column() {}
 };

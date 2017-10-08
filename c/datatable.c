@@ -85,7 +85,7 @@ void datatable_dealloc(DataTable *self)
 {
     if (self == NULL) return;
 
-    rowindex_decref(self->rowindex);
+    if (self->rowindex) self->rowindex->decref();
     for (int64_t i = 0; i < self->ncols; ++i) {
         self->columns[i]->decref();
     }
@@ -227,7 +227,7 @@ void datatable_reify(DataTable *self) {
         self->columns[i]->decref();
         self->columns[i] = newcol;
     }
-    rowindex_decref(self->rowindex);
+    if (self->rowindex) self->rowindex->decref();
     dtfree(self->stats);
     self->rowindex = NULL;
     self->stats = NULL;
@@ -242,7 +242,7 @@ size_t datatable_get_allocsize(DataTable *self)
     sz += (size_t)(self->ncols + 1) * sizeof(Column*);
     if (self->rowindex) {
         // If table is a view, then ignore sizes of each individual column.
-        sz += rowindex_get_allocsize(self->rowindex);
+        sz += self->rowindex->alloc_size();
     } else {
         for (int i = 0; i < self->ncols; i++) {
             sz += self->columns[i]->get_allocsize();
