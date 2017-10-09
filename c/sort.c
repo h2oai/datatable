@@ -288,13 +288,13 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
             dtfree(sc->x);
         } else if (stype == ST_STRING_I4_VCHAR) {
             int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
-            const unsigned char *strdata = (const unsigned char*) col->data;
-            const int32_t *offs = (const int32_t*) add_ptr(col->data, offoff);
+            const unsigned char *strdata = (const unsigned char*) col->data();
+            const int32_t *offs = (const int32_t*) add_ptr(col->data(), offoff);
             ordering = insert_sort_s4_noo(strdata, offs, 0, NULL, nrows);
         } else {
             insert_sort_fn sortfn = insert_sort_fns[stype];
             if (sortfn) {
-                ordering = sortfn(col->data, NULL, NULL, nrows);
+                ordering = sortfn(col->data(), NULL, NULL, nrows);
             }
             else
                 dterrr("Insert sort not implemented for column of stype %d",
@@ -311,7 +311,7 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
             }
             int error_occurred = (sc->x == NULL);
             ordering = sc->o;
-            if (sc->x != col->data) dtfree(sc->x);
+            if (sc->x != col->data()) dtfree(sc->x);
             dtfree(sc->next_x);
             dtfree(sc->next_o);
             dtfree(sc->histogram);
@@ -432,7 +432,7 @@ static void prepare_input_b1(const Column *col, int32_t *ordering, size_t n,
                              SortContext *sc)
 {
     if (ordering) {
-        uint8_t *xi = (uint8_t*) col->data;
+        uint8_t *xi = (uint8_t*) col->data();
         uint8_t *xo = NULL;
         dtmalloc_g(xo, uint8_t, n);
         uint8_t una = (uint8_t) NA_I1;
@@ -449,7 +449,7 @@ static void prepare_input_b1(const Column *col, int32_t *ordering, size_t n,
         sc->shift = 6;
         sc->nsigbits = 2;
         sc->dx = 0xBF;
-        sc->x = col->data;
+        sc->x = col->data();
         sc->o = NULL;
     }
 
@@ -472,7 +472,7 @@ prepare_input_i1(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
     uint8_t una = (uint8_t) NA_I1;
-    uint8_t *xi = (uint8_t*) col->data;
+    uint8_t *xi = (uint8_t*) col->data();
     uint8_t *xo = NULL;
     dtmalloc_g(xo, uint8_t, n);
 
@@ -504,7 +504,7 @@ prepare_input_i2(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
     uint16_t una = (uint16_t) NA_I2;
-    uint16_t *xi = (uint16_t*) col->data;
+    uint16_t *xi = (uint16_t*) col->data();
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);
 
@@ -539,7 +539,7 @@ static void
 prepare_input_i4(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
-    sc->x = col->data;
+    sc->x = col->data();
     sc->n = n;
     sc->o = ordering;
 
@@ -606,7 +606,7 @@ static void
 prepare_input_i8(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
-    sc->x = col->data;
+    sc->x = col->data();
     sc->n = n;
     sc->o = ordering;
 
@@ -726,7 +726,7 @@ prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
     // equivalent to using a union to convert from float into uint32_t
     // representation.
     uint32_t una = (uint32_t) NA_F4_BITS;
-    uint32_t *xi = (uint32_t*) col->data;
+    uint32_t *xi = (uint32_t*) col->data();
     uint32_t *xo = NULL;
     dtmalloc_g(xo, uint32_t, n);
 
@@ -769,7 +769,7 @@ prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
     uint64_t una = (uint64_t) NA_F8_BITS;
-    uint64_t *xi = (uint64_t*) col->data;
+    uint64_t *xi = (uint64_t*) col->data();
     uint64_t *xo = NULL;
     dtmalloc_g(xo, uint64_t, n);
 
@@ -818,9 +818,9 @@ static void
 prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
-    uint8_t *strbuf = (uint8_t*) add_ptr(col->data, -1);
+    uint8_t *strbuf = (uint8_t*) add_ptr(col->data(), -1);
     int64_t offoff = ((VarcharMeta*)col->meta)->offoff;
-    int32_t *offs = (int32_t*) add_ptr(col->data, offoff);
+    int32_t *offs = (int32_t*) add_ptr(col->data(), offoff);
     int maxlen = 0;
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);
@@ -840,7 +840,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
         }
     }
 
-    sc->strdata = (unsigned char*) col->data;
+    sc->strdata = (unsigned char*) col->data();
     sc->stroffs = offs;
     sc->strstart = 0;
     sc->strmore = maxlen > 2;

@@ -9,7 +9,7 @@
 #include "py_utils.h"
 
 // Forward declarations
-static Column* try_to_resolve_object_column(Column* col);
+Column* try_to_resolve_object_column(Column* col);
 static SType stype_from_format(const char *format, int64_t itemsize);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
@@ -76,28 +76,28 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
         int64_t nrows = view->len / view->itemsize;
         if (stype == ST_VOID) return NULL;
         if (view->strides == NULL) {
-            columns[i] = new Column(stype, nrows, view, view->buf,
+            columns[i] = new Column(stype, (size_t)nrows, view, view->buf,
                                             (size_t) view->len);
         } else {
             columns[i] = new Column(stype, (size_t) nrows);
             int64_t stride = view->strides[0] / view->itemsize;
             if (view->itemsize == 8) {
-                int64_t *out = (int64_t*) columns[i]->data;
+                int64_t *out = (int64_t*) columns[i]->data();
                 int64_t *inp = (int64_t*) view->buf;
                 for (int64_t j = 0; j < nrows; j++)
                     out[j] = inp[j * stride];
             } else if (view->itemsize == 4) {
-                int32_t *out = (int32_t*) columns[i]->data;
+                int32_t *out = (int32_t*) columns[i]->data();
                 int32_t *inp = (int32_t*) view->buf;
                 for (int64_t j = 0; j < nrows; j++)
                     out[j] = inp[j * stride];
             } else if (view->itemsize == 2) {
-                int16_t *out = (int16_t*) columns[i]->data;
+                int16_t *out = (int16_t*) columns[i]->data();
                 int16_t *inp = (int16_t*) view->buf;
                 for (int64_t j = 0; j < nrows; j++)
                     out[j] = inp[j * stride];
             } else if (view->itemsize == 1) {
-                int8_t *out = (int8_t*) columns[i]->data;
+                int8_t *out = (int8_t*) columns[i]->data();
                 int8_t *inp = (int8_t*) view->buf;
                 for (int64_t j = 0; j < nrows; j++)
                     out[j] = inp[j * stride];
@@ -121,9 +121,9 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
  * if more appropriate), and return either the original or the new modified
  * column. If a new column is returned, the original one is decrefed.
  */
-static Column* try_to_resolve_object_column(Column* col)
+Column* try_to_resolve_object_column(Column* col)
 {
-    PyObject **data = (PyObject**) col->data;
+    PyObject **data = (PyObject**) col->data();
     int64_t nrows = col->nrows;
 
     int all_strings = 1;
@@ -150,7 +150,7 @@ static Column* try_to_resolve_object_column(Column* col)
     dtmalloc(strbuf, char, total_length);
     size_t strbuf_size = (size_t) total_length;
     Column *res = new Column(ST_STRING_I4_VCHAR, (size_t)nrows);
-    int32_t *offsets = (int32_t*) res->data;
+    int32_t *offsets = (int32_t*) res->data();
 
     size_t offset = 0;
     for (int64_t i = 0; i < nrows; i++) {
@@ -176,9 +176,7 @@ static Column* try_to_resolve_object_column(Column* col)
     dtrealloc(strbuf, char, allocsize);
     memset(strbuf + datasize, 0xFF, padding);
     memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
-    dtfree(res->data);
-    res->data = strbuf;
-    res->alloc_size = allocsize;
+    res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
     ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
     col->decref();
     return res;
@@ -209,12 +207,12 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
         goto fail;
     }
 
-    info[0] = (Py_ssize_t)(col->alloc_size / elemsize);
+    info[0] = (Py_ssize_t)(col->alloc_size() / elemsize);
     info[1] = (Py_ssize_t) elemsize;
 
-    view->buf = col->data;
+    view->buf = col->data();
     view->obj = (PyObject*) self;
-    view->len = (Py_ssize_t) col->alloc_size;
+    view->len = (Py_ssize_t) col->alloc_size();
     view->itemsize = (Py_ssize_t) elemsize;
     view->readonly = 1;
     view->ndim = 1;
@@ -292,9 +290,9 @@ dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view, int flags)
     Py_ssize_t *info = NULL;
     Column *col = self->ref->columns[0];
     if (REQ_ND(flags)) dtcalloc_g(info, Py_ssize_t, 4);
-    view->buf = (void*) col->data;
+    view->buf = (void*) col->data();
     view->obj = incref((PyObject*) self);
-    view->len = (Py_ssize_t) col->alloc_size;
+    view->len = (Py_ssize_t) col->alloc_size();
     view->readonly = 1;
     view->itemsize = (Py_ssize_t) stype_info[col->stype].elemsize;
     view->format = REQ_FORMAT(flags) ?
@@ -363,13 +361,13 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
             col = col->extract(dt->rowindex);
         }
         if (col->stype == stype) {
-            assert(col->alloc_size == colsize);
-            memcpy(add_ptr(buf, i * colsize), col->data, colsize);
+            assert(col->alloc_size() == colsize);
+            memcpy(add_ptr(buf, i * colsize), col->data(), colsize);
         } else {
             Column *newcol = col->cast(stype);
             if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype, stype); goto fail; }
-            assert(newcol->alloc_size == colsize);
-            memcpy(add_ptr(buf, i * colsize), newcol->data, colsize);
+            assert(newcol->alloc_size() == colsize);
+            memcpy(add_ptr(buf, i * colsize), newcol->data(), colsize);
             newcol->decref();
         }
         if (dt->rowindex) {

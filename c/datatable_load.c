@@ -42,9 +42,9 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
     int64_t oos = ((VarcharMeta*) cols->meta)->offoff;
     int64_t oom = ((VarcharMeta*) colm->meta)->offoff;
-    int32_t *offf = (int32_t*) add_ptr(colf->data, oof);
-    int32_t *offs = (int32_t*) add_ptr(cols->data, oos);
-    int32_t *offm = (int32_t*) add_ptr(colm->data, oom);
+    int32_t *offf = (int32_t*) add_ptr(colf->data(), oof);
+    int32_t *offs = (int32_t*) add_ptr(cols->data(), oos);
+    int32_t *offm = (int32_t*) add_ptr(colm->data(), oom);
 
     static char filename[101];
     static char metastr[101];
@@ -55,7 +55,7 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
         if (flen > 100) dterrr("Filename is too long: %d", flen);
-        memcpy(filename, add_ptr(colf->data, fsta), (size_t) flen);
+        memcpy(filename, add_ptr(colf->data(), fsta), (size_t) flen);
         filename[flen] = '\0';
 
         // Extract stype
@@ -63,10 +63,10 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         int32_t send = abs(offs[i]) - 1;
         int32_t slen = send - ssta;
         if (slen != 3) dterrr("Incorrect stype's length: %d", slen);
-        SType stype = stype_from_string((char*)cols->data + (ssize_t)ssta);
+        SType stype = stype_from_string((char*)cols->data() + (ssize_t)ssta);
         if (stype == ST_VOID) {
             char stypestr[4];
-            memcpy(stypestr, add_ptr(cols->data, ssta), 3);
+            memcpy(stypestr, add_ptr(cols->data(), ssta), 3);
             stypestr[3] = '\0';
             dterrr("Unrecognized stype: %s", stypestr);
         }
@@ -76,11 +76,11 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         int32_t mend = abs(offm[i]) - 1;
         int32_t mlen = mend - msta;
         if (mlen > 100) dterrr("Meta string is too long: %d", mlen);
-        memcpy(metastr, add_ptr(colm->data, msta), (size_t) mlen);
+        memcpy(metastr, add_ptr(colm->data(), msta), (size_t) mlen);
         metastr[mlen] = '\0';
 
         // Load the column
-        columns[i] = new Column(filename, stype, nrows, metastr);
+        columns[i] = new Column(filename, stype, static_cast<size_t>(nrows), metastr);
         if (columns[i] == NULL) return NULL;
     }
 

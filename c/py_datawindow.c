@@ -167,13 +167,13 @@ static int _init_hexview(
     }
     Column *column = dt->columns[colidx];
 
-    int64_t maxrows = ((int64_t) column->alloc_size + 15) >> 4;
+    int64_t maxrows = ((int64_t) column->alloc_size() + 15) >> 4;
     if (col0 < 0 || col1 < col0 || col1 > 17 ||
         row0 < 0 || row1 < row0 || row1 > maxrows) {
         PyErr_Format(PyExc_ValueError,
             "Invalid data window bounds: [%ld..%ld x %ld..%ld] "
             "for a column with allocation size %zd",
-            row0, row1, col0, col1, column->alloc_size);
+            row0, row1, col0, col1, column->alloc_size());
         return -1;
     }
     // Window dimensions
@@ -181,8 +181,8 @@ static int _init_hexview(
     int64_t nrows = row1 - row0;
     // printf("ncols = %ld, nrows = %ld\n", ncols, nrows);
 
-    uint8_t *coldata = (uint8_t*) add_ptr(column->data, 16 * row0);
-    uint8_t *coldata_end = (uint8_t*) add_ptr(column->data, column->alloc_size);
+    uint8_t *coldata = (uint8_t*) add_ptr(column->data(), 16 * row0);
+    uint8_t *coldata_end = (uint8_t*) add_ptr(column->data(), column->alloc_size());
     // printf("coldata = %p, end = %p\n", coldata, coldata_end);
     viewdata = PyList_New(ncols);
     if (!viewdata) goto fail;

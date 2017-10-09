@@ -316,8 +316,13 @@ static PyObject* meth_rbind(DataTable_PyObject *self, PyObject *args)
         }
         dts[i] = dti;
     }
-    DataTable *ret = datatable_rbind(dt, dts, cols_to_append, ndts, final_ncols);
-    if (ret == NULL) return NULL;
+    try {
+        DataTable *ret = datatable_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+        if (ret == NULL) return NULL;
+    } catch (const std::exception& e) {
+        PyErr_SetString(PyExc_RuntimeError, e.what());
+        return NULL;
+    }
 
     dtfree(cols_to_append);
     dtfree(dts);

@@ -25,6 +25,5 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
                                       int64_t colidx);
 
 int init_py_column(PyObject *module);
-void free_xbuf_column(Column *col);
 
 #endif

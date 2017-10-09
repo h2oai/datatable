@@ -100,7 +100,7 @@ class RFNode(object):
         """
         ri = self.get_final_rowindex()
         # TODO: ensure that the pointer survives
-        return "((RowIndex*) %d)" % (ri.getptr() if ri else 0)
+        return "((void*) %d)" % (ri.getptr() if ri else 0)
 
 
 
@@ -329,12 +329,12 @@ class FilterExprRFNode(RFNode):
         inode.generate_c()
 
         rowindex_name = cmod.make_variable_name("rowindex")
-        cmod.add_global(rowindex_name, "RowIndex*", "NULL")
+        cmod.add_global(rowindex_name, "void*", "NULL")
         cmod.add_function(
             self._fnname,
-            "extern \"C\" RowIndex* {fnname}(void) {{\n"
+            "void* {fnname}(void) {{\n"
             "    if (!{riname})\n"
-            "        {riname} = rowindex_from_filterfn32("
+            "        {riname} = rowindex_from_filterfn32(\n"
             "                       (void*) {filter}, {nrows}, {sorted});\n"
             "    return {riname};\n"
             "}}".format(fnname=self._fnname,

@@ -37,7 +37,7 @@ if os.environ.get("CI_VERSION_SUFFIX"):
 c_sources = []
 for root, dirs, files in os.walk("c"):
     for name in files:
-        if name.endswith(".c") or name.endswith(".cxx"):
+        if name.endswith(".c") or name.endswith(".cxx") or name.endswith(".cc"):
             c_sources.append(os.path.join(root, name))
 
 # Find python source directories

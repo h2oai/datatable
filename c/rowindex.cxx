@@ -252,7 +252,7 @@ RowIndex* RowIndex::from_boolcolumn(Column *col, int64_t nrows)
 {
     if (stype_info[col->stype].ltype != LT_BOOLEAN)
         throw new Error("Column is not of boolean type");
-    int8_t *data = (int8_t*) col->data;
+    int8_t *data = (int8_t*) col->data();
     int64_t nout = 0;
     int64_t maxrow = 0;
     for (int64_t i = 0; i < nrows; i++)
@@ -297,7 +297,7 @@ RowIndex* RowIndex::from_column_with_rowindex(Column *col, RowIndex *rowindex)
     RowIndex* res = NULL;
     switch(stype_info[col->stype].ltype) {
     case LT_BOOLEAN: {
-        int8_t *data = (int8_t*) col->data;
+        int8_t *data = (int8_t*) col->data();
         int64_t nouts = 0;
         int64_t maxrow = 0;
         #define CODE                                                            \
@@ -370,11 +370,11 @@ RowIndex* RowIndex::from_intcolumn(Column *col, int is_temp_column)
     if (col->stype == ST_INTEGER_I8) {
         int64_t *arr64 = NULL;
         if (is_temp_column) {
-            arr64 = (int64_t*) col->data;
-            col->data = NULL;
+            arr64 = (int64_t*) col->data();
+            // col->data() = NULL;
         } else {
             arr64 = (int64_t*) malloc(sizeof(int64_t) * (size_t) nrows);
-            memcpy(arr64, col->data, (size_t) nrows * sizeof(int64_t));
+            memcpy(arr64, col->data(), (size_t) nrows * sizeof(int64_t));
         }
         res = new RowIndex(arr64, nrows, 0);
         res->compactify();
@@ -382,11 +382,11 @@ RowIndex* RowIndex::from_intcolumn(Column *col, int is_temp_column)
     if (col->stype == ST_INTEGER_I4) {
         int32_t *arr32 = NULL;
         if (is_temp_column) {
-            arr32 = (int32_t*) col->data;
-            col->data = NULL;
+            arr32 = (int32_t*) col->data();
+            // col->data() = NULL;
         } else {
             arr32 = (int32_t*) malloc(sizeof(int32_t) * (size_t) nrows);
-            memcpy(arr32, col->data, (size_t)nrows * sizeof(int32_t));
+            memcpy(arr32, col->data(), (size_t)nrows * sizeof(int32_t));
         }
         res = new RowIndex(arr32, nrows, 0);
     }

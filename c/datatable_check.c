@@ -260,11 +260,10 @@ int dt_verify_integrity(DataTable *dt, char **errors)
         Column *col = cols[i];
         Stats *stat = ri != NULL ? stats[i] : col->stats;
         SType stype = col->stype;
-        MType mtype = cols[i]->mtype;
 
-        if (mtype <= 0 || mtype >= MT_COUNT) {
-            ERR("Column %lld has invalid memory type %d\n", i, mtype);
-        }
+        /*
+        TODO: move into Column::check_integrity()
+        MType mtype = cols[i]->mtype;
         if (nrows && col->data == NULL) {
             ERR("In column %lld data buffer is not allocated\n", i);
             continue;
@@ -277,6 +276,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             ERR("Column %lld has mtype MT_TEMP but has no filename\n", i);
             continue;
         }
+        */
         if (stype <= ST_VOID || stype >= DT_STYPES_COUNT) {
             ERR("Invalid storage type %d in column %lld\n", stype, i);
             continue;
@@ -342,7 +342,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                 continue;
             }
             for (size_t j = 0; j < exp_padding; j++) {
-                unsigned char c = *((unsigned char*)col->data + datasize + j);
+                unsigned char c = *((unsigned char*)col->data() + datasize + j);
                 if (c != 0xFF) {
                     ERR("String column %lld is not padded with 0xFF bytes "
                         "correctly: byte %X is %X\n", i, datasize + j, c);
@@ -352,17 +352,17 @@ int dt_verify_integrity(DataTable *dt, char **errors)
         }
 
         // Check the alloc_size property
-        size_t act_allocsize = array_size(col->data, 1);
+        size_t act_allocsize = array_size(col->data(), 1);
         size_t elemsize = stype_info[stype].elemsize;
         if (stype == ST_STRING_FCHAR)
             elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
         size_t exp_allocsize = elemsize * (size_t)col->nrows;
         if (offoff > 0)
             exp_allocsize += (size_t)offoff;
-        if (col->alloc_size != exp_allocsize) {
+        if (col->alloc_size() != exp_allocsize) {
             ERR("Column %lld reports incorrect allocation size: %zd vs "
                 "expected %zd bytes (actually allocated: %zd bytes)\n",
-                i, col->alloc_size, exp_allocsize, act_allocsize);
+                i, col->alloc_size(), exp_allocsize, act_allocsize);
             continue;
         }
         if (act_allocsize > 0 && act_allocsize < exp_allocsize) {
@@ -373,7 +373,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
 
         // Verify that a boolean column has only values 0, 1 and NA_I1
         if (stype == ST_BOOLEAN_I1) {
-            int8_t *data = (int8_t*) col->data;
+            int8_t *data = (int8_t*) col->data();
             for (int64_t j = 0; j < col->nrows; j++) {
                 int8_t x = data[j];
                 if (!(x == NA_I1 || x == 0 || x == 1)) {
@@ -385,7 +385,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
 
         if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
             #define CASE(T) {                                              \
-                T *offsets = (T*) add_ptr(col->data, offoff);              \
+                T *offsets = (T*) add_ptr(col->data(), offoff);            \
                 T lastoff = 1;                                             \
                 if (offoff && offsets[-1] != -1) {                         \
                     ERR("Number -1 was not found in front of the offsets " \
@@ -417,7 +417,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                 strdata_size = (int64_t) lastoff - 1;                      \
             }
             int64_t strdata_size = 0;
-            const uint8_t *cdata = ((const uint8_t*) col->data) - 1;
+            const uint8_t *cdata = ((const uint8_t*) col->data()) - 1;
             if (stype == ST_STRING_I4_VCHAR)
                 CASE(int32_t)
             else
@@ -425,7 +425,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             #undef CASE
 
             for (int64_t j = strdata_size; j < offoff; j++) {
-                if (((uint8_t*) col->data)[j] != 0xFF) {
+                if (((uint8_t*) col->data())[j] != 0xFF) {
                     ERR("String data section in column %lld is not padded "
                         "with '\\xFF's, at offset %X\n", i, j);
                     // Do not report this error more than once

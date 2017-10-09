@@ -1,4 +1,5 @@
 #include <Python.h>
+#include "capi.h"
 #include "csv/writer.h"
 #include "py_column.h"
 #include "py_columnset.h"
@@ -51,7 +52,7 @@ static PyObject* pyregister_function(UU, PyObject *args)
 static PyObject* pyget_internal_function_ptrs(UU, UU1)
 {
     int i = 0;
-    PyObject *res = PyTuple_New(4);
+    PyObject *res = PyTuple_New(7);
     if (!res) return NULL;
 
     #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
@@ -59,6 +60,25 @@ static PyObject* pyget_internal_function_ptrs(UU, UU1)
     ADD(_dt_realloc);
     ADD(_dt_free);
     ADD(RowIndex::from_filterfn32);
+    ADD(datatable_get_column_data);
+    ADD(datatable_unpack_slicerowindex);
+    ADD(datatable_unpack_arrayrowindex);
+
+    return res;
+}
+
+
+static PyObject* pyget_integer_sizes(UU, UU1)
+{
+    int i = 0;
+    PyObject *res = PyTuple_New(5);
+    if (!res) return NULL;
+
+    ADD(sizeof(short int));
+    ADD(sizeof(int));
+    ADD(sizeof(long int));
+    ADD(sizeof(long long int));
+    ADD(sizeof(size_t));
     #undef ADD
 
     return res;
@@ -95,6 +115,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(register_function),
     METHOD0(install_buffer_hooks),
     METHOD1(get_internal_function_ptrs),
+    METHOD1(get_integer_sizes),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
