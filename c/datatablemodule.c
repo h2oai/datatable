@@ -63,6 +63,22 @@ static PyObject* pyget_internal_function_ptrs(UU, UU1)
     ADD(datatable_get_column_data);
     ADD(datatable_unpack_slicerowindex);
     ADD(datatable_unpack_arrayrowindex);
+
+    return res;
+}
+
+
+static PyObject* pyget_integer_sizes(UU, UU1)
+{
+    int i = 0;
+    PyObject *res = PyTuple_New(5);
+    if (!res) return NULL;
+
+    ADD(sizeof(short int));
+    ADD(sizeof(int));
+    ADD(sizeof(long int));
+    ADD(sizeof(long long int));
+    ADD(sizeof(size_t));
     #undef ADD
 
     return res;
@@ -99,6 +115,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0(register_function),
     METHOD0(install_buffer_hooks),
     METHOD1(get_internal_function_ptrs),
+    METHOD1(get_integer_sizes),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };

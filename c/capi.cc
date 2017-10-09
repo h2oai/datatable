@@ -4,7 +4,7 @@
 extern "C" {
 
 
-void* datatable_get_column_data(void* dt_, int column)
+void* datatable_get_column_data(void* dt_, int64_t column)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
   return dt->columns[column]->data();

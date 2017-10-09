@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 
-void* datatable_get_column_data(void* dt, int column);
+void* datatable_get_column_data(void* dt, int64_t column);
 void  datatable_unpack_slicerowindex(void *dt, int64_t *start, int64_t *step);
 void  datatable_unpack_arrayrowindex(void *dt, void **indices);
 
