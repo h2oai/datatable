@@ -1,13 +1,23 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
 #ifndef dt_MEMORYBUF_H
 #define dt_MEMORYBUF_H
-#include <string>
+#include <Python.h>
 #include <stdbool.h>
-#include "Python.h"
-
-#define MB_EXTERNAL  1
-#define MB_READONLY  2
-#define MB_CREATE    4
-
+#include <string>
 
 
 //==============================================================================
@@ -18,76 +28,103 @@
  */
 class MemoryBuffer
 {
-protected:
-  void *buf;
+  void*  buf;
   size_t allocsize;
-  int flags;
-  int _padding;
+  bool   readonly;
+  int64_t : 56;  // padding
 
-  MemoryBuffer();
-  bool owned() const;
 
+  //--- Public API -------------------------------------------------------------
 public:
+  // This class is not directly constructible: construct one of the derived
+  // classes instead.
+  MemoryBuffer(const MemoryBuffer&) = delete;  // copy-constructor
+  MemoryBuffer(MemoryBuffer&&) = delete;       // move-constructor
+  virtual ~MemoryBuffer();
+
   /**
-   * Return pointer to the underlying memory region. The returned pointer can
-   * be NULL if the memory was not allocated.
+   * Returns a void* pointer to the underlying memory region (`get()`) or to the
+   * specific offset within that region (`at()`). The offset is assumed to be
+   * given in bytes. Thus, `get()` is equivalent to `at(0)`. The returned
+   * pointer can be nullptr if the memory was not allocated.
+   *
+   * The multiple `at()` methods all do the same, they exist only to spare the
+   * user from having to cast their integer offset into a proper integer type.
    */
   void* get() const;
+  void* at(size_t offset) const;
+  void* at(int64_t offset) const;
+  void* at(int32_t offset) const;
 
   /**
-   * Return pointer to the specific offset within the buffer. The offset is
-   * assumed to be given in bytes. `at(0)` is equivalent to `get()`.
+   * Treats the memory buffer as an array `T[]` and retrieves / sets its `i`-th
+   * element. Note that type `T` is not attached to the `MemoryBuffer` class
+   * itself. This allows us to easily re-interpret the buffer as having a
+   * different underlying type, if needed.
+   *
+   * These functions do not perform any array bound checks. It is thus the
+   * responsibility of the caller to ensure that `i * sizeof(T) < size()`.
+   * Failure to do so will lead to memory corruption / seg.fault.
    */
-  void* at(size_t n) const;
-  void* at(int64_t n) const;
-  void* at(int32_t n) const;
-
-  template <typename T>
-  void set_elem(size_t i, T value);
+  template <typename T> T get_elem(int64_t i) const;
+  template <typename T> void set_elem(int64_t i, T value);
 
   /**
-   * Return the allocation size of this memory buffer.
+   * Returns the allocation size of the underlying memory buffer. This will be
+   * zero if memory is unallocated.
    */
   size_t size() const;
 
   /**
-   * Return the total size of this object in memory. This consists not only of
-   * the underlying memory buffer, but also all other "auxiliary" items in the
-   * class.
+   * Returns the best estimate of this object's total size in memory. This is
+   * comprised of the allocated size for the underlying memory buffer, as well
+   * as the size of the object itself, and sizes of all its member objects.
+   *
+   * The value returned by this method is platform-dependent, and may even
+   * change between subsequent runs of the program. Derived classes should
+   * override this function if they have any internal members.
    */
   virtual size_t memory_footprint() const;
 
   /**
-   * Return true if the memory buffer is marked as readonly. Trying to modify
-   * the contents of such buffer may lead to undesired consequences.
+   * Returns true if the memory buffer is marked read-only. A read-only buffer
+   * cannot be resized, nor its contents changed. These restrictions however
+   * are not enforced by the class itself -- instead it is the responsibility
+   * of the caller. Attempting to modify a readonly buffer may cause exceptions
+   * or seg.faults.
    */
-  bool readonly() const;
+  bool is_readonly() const;
 
   /**
-   * Change allocation size of the memory region to be exactly `n` bytes. If
+   * Changes allocation size of the memory region to be exactly `n` bytes. If
    * current allocation size is less than `n`, the buffer will be expanded
-   * retaining the existing data. If current allocation size if greater than
+   * retaining the existing data. If current allocation size is greater than
    * `n`, the buffer will be shrunk, truncating data at the end.
    *
-   * This function is equivalent to `realloc(buf, n)`.
+   * This function is similar to `realloc(buf, n)` in standard C. An exception
+   * will be thrown if the buffer could not be resized. This function must be
+   * overridden in the derived classes.
    */
   virtual void resize(size_t n);
 
   /**
-   * Ensure that at least `n` bytes in the buffer is available. If not, then
-   * the buffer will be resized to hold at least `n * factor` bytes (ensuring
-   * that resizes do not happen too often). Passing values of `factor` less
-   * than 1 will break this function's contract.
+   * Returns short python string (PyUnicodeObject*) describing the class of
+   * this MemoryBuffer object. The returned python object is a "New reference",
+   * and the caller is expected to DECREF it once it no longer needs this
+   * object.
+   *
+   * This method must be overridden in all subclasses. It is the equivalent of
+   * old "MType" enum, and is used for debugging purposes from the Python side.
+   * This method may be removed in the future.
    */
-  void ensuresize(size_t n, double factor=1.3);
-
   virtual PyObject* pyrepr() const;
 
-  virtual ~MemoryBuffer();
 
-  MemoryBuffer(const MemoryBuffer&) = delete;  // copy-constructor
-  MemoryBuffer(MemoryBuffer&&);  // move-constructor
-  MemoryBuffer& operator=(MemoryBuffer&&); // move-assignment
+  //--- Internal ---------------------------------------------------------------
+protected:
+  MemoryBuffer();
+  void replace_buffer(void* ptr, size_t sz);
+  void set_readonly(bool on = true);
 };
 
 
@@ -104,9 +141,9 @@ class MemoryMemBuf : public MemoryBuffer
 public:
   MemoryMemBuf(size_t n);
   MemoryMemBuf(void *ptr, size_t n);
-  virtual void resize(size_t n);
-  virtual PyObject* pyrepr() const;
-  virtual ~MemoryMemBuf();
+  virtual void resize(size_t n) override;
+  virtual PyObject* pyrepr() const override;
+  virtual ~MemoryMemBuf() override;
 };
 
 
@@ -122,9 +159,7 @@ class StringMemBuf : public MemoryBuffer
 {
 public:
   StringMemBuf(const char *str);
-  virtual void resize(size_t);
-  virtual PyObject* pyrepr() const;
-  virtual ~StringMemBuf();
+  virtual PyObject* pyrepr() const override;
 };
 
 
@@ -132,6 +167,11 @@ public:
 //==============================================================================
 
 /**
+ * MemoryBuffer corresponding to an external memory region guarded by a
+ * `Py_buffer` object. This memory was retrieved from an external application
+ * (such as numpy or pandas), and should not be modified or freed. Instead, when
+ * the column is deallocated we "release" the buffer, allowing its owner to
+ * dispose of that buffer if it is no longer in use.
  */
 class ExternalMemBuf : public MemoryBuffer
 {
@@ -139,10 +179,9 @@ class ExternalMemBuf : public MemoryBuffer
 
 public:
   ExternalMemBuf(void *ptr, void *pybuf, size_t size);
-  virtual void resize(size_t);
-  virtual size_t memory_footprint() const;
-  virtual PyObject* pyrepr() const;
-  virtual ~ExternalMemBuf();
+  virtual size_t memory_footprint() const override;
+  virtual PyObject* pyrepr() const override;
+  virtual ~ExternalMemBuf() override;
 };
 
 
@@ -164,31 +203,21 @@ class MemmapMemBuf : public MemoryBuffer
 
 public:
   /**
-   * Create a memory region backed by a disk file.
-   * This constructor may either map an existing file, or create a new one.
+   * Create a memory region backed by a memory-mapped disk file.
    *
-   * More specifically, if MB_CREATE flag is provided, then
-   *   - `path` must not correspond to any existing file,
-   *   - `n` should be the desired size of the file, in bytes,
-   *   - `flags` should be MB_CREATE, potentially combined with MB_EXTERNAL.
-   *     When MB_EXTERNAL is set, the file is considered "permanent", otherwise
-   *     the file is assumed to be temporary, and will be removed when this
-   *     memory buffer is deallocated.
-   *
-   * When MB_CREATE is not given, then
-   *   - `path` must point to an existing accessible file,
-   *   - `n` is ignored,
-   *   - `flags` should be MB_EXTERNAL, potentially combined with MB_READONLY.
-   *     When MB_READONLY is set, the file will be opened in readonly mode;
-   *     otherwise it will be opened in read-write mode.
+   * This constructor may either map an existing file (when `create = false`),
+   * or create a new one (if `create = true`). Specifically, when `create` is
+   * true, then `path` must be a valid path in the file system (it may or may
+   * not point to an existing file), and `n` should be the desired file size
+   * in bytes. Conversely, when `create` is false, then `path` must correspond
+   * to an existing accessible file, and parameter `n` is ignored.
    */
-  MemmapMemBuf(const char *path, size_t n=0, int flags=0);
+  MemmapMemBuf(const char *path, size_t n, bool create);
 
-  virtual void resize(size_t n);
-  virtual size_t memory_footprint() const;
-  virtual PyObject* pyrepr() const;
-
-  virtual ~MemmapMemBuf();
+  virtual ~MemmapMemBuf() override;
+  virtual void resize(size_t n) override;
+  virtual size_t memory_footprint() const override;
+  virtual PyObject* pyrepr() const override;
 };
 
 
@@ -334,8 +363,11 @@ public:
 //==============================================================================
 // Template implementations
 
-template <typename T>
-void MemoryBuffer::set_elem(size_t i, T value) {
+template <typename T> T MemoryBuffer::get_elem(int64_t i) const {
+  return (static_cast<T*>(buf))[i];
+}
+
+template <typename T> void MemoryBuffer::set_elem(int64_t i, T value) {
   (static_cast<T*>(buf))[i] = value;
 }
 
