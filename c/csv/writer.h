@@ -15,12 +15,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_H
 #define dt_CSV_H
-#include <string>
-#include <vector>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string>
+#include <vector>
 #include "datatable.h"
-#include "memorybuf.h"
+#include "writebuf.h"
 #include "utils.h"
 
 #define WRITE_STRATEGY_AUTO  0

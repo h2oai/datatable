@@ -59,7 +59,8 @@ Column::Column(SType stype_, size_t nrows_)
 Column::Column(SType stype_, size_t nrows_, const char* filename)
     : Column(nrows_, stype_)
 {
-  mbuf = new MemmapMemBuf(filename, allocsize0(stype_, nrows_), MB_CREATE);
+  size_t sz = allocsize0(stype_, nrows_);
+  mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
 }
 
 
@@ -107,7 +108,7 @@ Column* Column::save_to_disk(const char *filename)
 Column::Column(const char* filename, SType st, size_t nr, const char* ms)
     : Column(nr, st)
 {
-  mbuf = new MemmapMemBuf(filename, 0, MB_EXTERNAL|MB_READONLY);
+  mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
   // Deserialize the meta information, if needed
   if (st == ST_STRING_I4_VCHAR || st == ST_STRING_I8_VCHAR) {
     if (strncmp(ms, "offoff=", 7) != 0)
@@ -382,7 +383,7 @@ Column* Column::realloc_and_fill(int64_t nr)
         size_t elemsize = stype_info[stype].elemsize;
         Column *col;
         // DATA column with refcount 1 can be expanded in-place
-        if (!mbuf->readonly() && refcount == 1) {
+        if (!mbuf->is_readonly() && refcount == 1) {
             col = this;
             col->nrows = nr;
             col->mbuf->resize(elemsize * (size_t)nr);
@@ -425,7 +426,7 @@ Column* Column::realloc_and_fill(int64_t nr)
         Column *col;
 
         // DATA column with refcount 1: expand in-place
-        if (!mbuf->readonly() && refcount == 1) {
+        if (!mbuf->is_readonly() && refcount == 1) {
             col = this;
             col->mbuf->resize(new_alloc_size);
             if (old_offoff != new_offoff) {

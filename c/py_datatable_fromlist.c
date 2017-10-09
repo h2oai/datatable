@@ -91,7 +91,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
 #define SET_I4S(buf, len) {                                                    \
     size_t nextptr = strbuffer_ptr + (size_t) (len);                           \
     if (nextptr > strbuffer_size) {                                            \
-        strbuffer_size = nextptr + (nrows - i - 1) * (nextptr / (i + 1));      \
+        strbuffer_size = nextptr + (size_t)(nrows - i - 1) * (nextptr / (size_t)(i + 1));      \
         dtrealloc(strbuffer, char, strbuffer_size);                            \
     }                                                                          \
     if ((len) > 0) {                                                           \
@@ -120,7 +120,7 @@ Column* column_from_list(PyObject *list)
 {
     if (list == NULL || !PyList_Check(list)) return NULL;
 
-    size_t nrows = (size_t) Py_SIZE(list);
+    int64_t nrows = Py_SIZE(list);
     if (nrows == 0) {
         return new Column(ST_BOOLEAN_I1, 0);
     }
@@ -135,7 +135,7 @@ Column* column_from_list(PyObject *list)
         start_over: {}
         mb->resize(stype_info[stype].elemsize * (size_t)nrows);
         if (stype == ST_STRING_I4_VCHAR) {
-            strbuffer_size = MIN(nrows * 1000, 1 << 20);
+            strbuffer_size = MIN((size_t)nrows * 1000, 1 << 20);
             strbuffer_ptr = 0;
             dtmalloc(strbuffer, char, strbuffer_size);
         } else if (strbuffer) {
@@ -143,7 +143,7 @@ Column* column_from_list(PyObject *list)
             strbuffer_size = 0;
         }
 
-        for (size_t i = 0; i < nrows; i++) {
+        for (int64_t i = 0; i < nrows; i++) {
             PyObject *item = PyList_GET_ITEM(list, i);  // borrowed ref
             PyTypeObject *itemtype = Py_TYPE(item);     // borrowed ref
 
@@ -325,12 +325,12 @@ Column* column_from_list(PyObject *list)
             dtrealloc(strbuffer, char, final_size);
             memset(strbuffer + strbuffer_ptr, 0xFF, padding_size);
             memcpy(strbuffer + offoff, mb->get(), esz * (size_t)nrows);
-            Column *column = new Column(nrows, stype);
+            Column *column = new Column((size_t)nrows, stype);
             column->mbuf = new MemoryMemBuf(strbuffer, final_size);
             ((VarcharMeta*) column->meta)->offoff = (int64_t) offoff;
             return column;
         } else {
-            Column *column = new Column(nrows, stype);
+            Column *column = new Column((size_t)nrows, stype);
             column->mbuf = mb;
             return column;
         }
