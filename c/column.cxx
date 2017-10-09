@@ -154,6 +154,10 @@ void* Column::data() const {
     return mbuf->get();
 }
 
+void* Column::data_at(int64_t i) const {
+    return mbuf->at(i);
+}
+
 size_t Column::alloc_size() const {
     return mbuf->size();
 }

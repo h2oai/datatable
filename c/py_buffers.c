@@ -109,7 +109,7 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
         }
     }
 
-    DataTable *dt = make_datatable(columns, NULL);
+    DataTable *dt = new DataTable(columns);
     return pydt_from_dt(dt);
 }
 

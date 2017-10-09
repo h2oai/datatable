@@ -64,7 +64,7 @@ size_t MemoryBuffer::memory_footprint() const {
   return allocsize + sizeof(MemoryBuffer);
 }
 
-void MemoryBuffer::resize(size_t n) {}
+void MemoryBuffer::resize(size_t) {}
 
 void MemoryBuffer::ensuresize(size_t n, double factor) {
   if (n <= allocsize) return;

@@ -145,7 +145,7 @@ static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 DT_DOCS(alloc_size, "DataTable's internal size, in bytes")
 static PyObject* get_alloc_size(DataTable_PyObject *self)
 {
-    return PyLong_FromSize_t(datatable_get_allocsize(self->ref));
+    return PyLong_FromSize_t(self->ref->get_allocsize());
 }
 
 
@@ -186,7 +186,7 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
         rowindex = pyri->ref;
         pyri->ref = NULL;
     }
-    return py(make_datatable(columns, rowindex));
+    return py(new DataTable(columns, rowindex));
 }
 
 
@@ -198,7 +198,7 @@ PyObject* pydatatable_load(UU, PyObject *args)
     if (!PyArg_ParseTuple(args, "O&n:datatable_load",
                           &dt_unwrap, &colspec, &nrows))
         return NULL;
-    return py(datatable_load(colspec, nrows));
+    return py(DataTable::load(colspec, nrows));
 }
 
 
@@ -221,7 +221,7 @@ static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "|O:check", &stream)) return NULL;
 
     char *errors = NULL;
-    int nerrors = dt_verify_integrity(dt, &errors);
+    int nerrors = dt->verify_integrity(&errors);
     if (nerrors) {
         if (stream) {
             PyObject *ret = PyObject_CallMethod(stream, "write", "s", errors);
@@ -271,7 +271,7 @@ static PyObject* meth_delete_columns(DataTable_PyObject *self, PyObject *args)
         PyObject *item = PyList_GET_ITEM(list, i);
         cols_to_remove[i] = (int) PyLong_AsLong(item);
     }
-    dt_delete_columns(dt, cols_to_remove, ncols);
+    dt->delete_columns(cols_to_remove, ncols);
 
     dtfree(cols_to_remove);
     return none();
@@ -317,7 +317,7 @@ static PyObject* meth_rbind(DataTable_PyObject *self, PyObject *args)
         dts[i] = dti;
     }
     try {
-        DataTable *ret = datatable_rbind(dt, dts, cols_to_append, ndts, final_ncols);
+        DataTable *ret = dt->rbind( dts, cols_to_append, ndts, final_ncols);
         if (ret == NULL) return NULL;
     } catch (const std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
@@ -350,7 +350,7 @@ static PyObject* meth_cbind(DataTable_PyObject *self, PyObject *args)
         }
         dts[i] = ((DataTable_PyObject*) elem)->ref;
     }
-    DataTable *ret = datatable_cbind(dt, dts, ndts);
+    DataTable *ret = dt->cbind( dts, ndts);
     if (ret == NULL) return NULL;
 
     dtfree(dts);
@@ -408,7 +408,7 @@ static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
     }
     cols[dt->ncols] = NULL;
 
-    DataTable *newdt = make_datatable(cols, NULL);
+    DataTable *newdt = new DataTable(cols);
     return py(newdt);
 }
 
@@ -420,7 +420,7 @@ static PyObject* meth_apply_na_mask(DataTable_PyObject *self, PyObject *args)
     DataTable *mask = NULL;
     if (!PyArg_ParseTuple(args, "O&", &dt_unwrap, &mask)) return NULL;
 
-    DataTable *res = datatable_apply_na_mask(dt, mask);
+    DataTable *res = dt->apply_na_mask(mask);
     return (res == NULL) ? NULL : none();
 }
 
@@ -431,7 +431,7 @@ static PyObject* meth_apply_na_mask(DataTable_PyObject *self, PyObject *args)
  */
 static void _dealloc_(DataTable_PyObject *self)
 {
-    datatable_dealloc(self->ref);
+    delete self->ref;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 

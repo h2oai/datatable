@@ -36,7 +36,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
     if (listsize == 0) {
         dtmalloc(cols, Column*, 1);
         cols[0] = NULL;
-        return pydt_from_dt(make_datatable(cols, NULL));
+        return pydt_from_dt(new DataTable(cols));
     }
 
     // Basic check validity of the provided data.
@@ -64,7 +64,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
         if (!cols[i]) goto fail;
     }
 
-    return pydt_from_dt(make_datatable(cols, NULL));
+    return pydt_from_dt(new DataTable(cols));
 
   fail:
     if (cols) {

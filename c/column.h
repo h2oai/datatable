@@ -6,7 +6,7 @@
 #include "types.h"
 #include "stats.h"
 
-typedef struct DataTable DataTable;
+class DataTable;
 class RowIndex;
 class Stats;
 
@@ -84,6 +84,7 @@ public:
     explicit Column(const Column&);
 
     void* data() const;
+    void* data_at(int64_t) const;
     size_t alloc_size() const;
     PyObject* mbuf_repr() const;
 
