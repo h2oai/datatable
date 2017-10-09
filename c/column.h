@@ -10,42 +10,6 @@ typedef struct DataTable DataTable;
 class RowIndex;
 class Stats;
 
-//==============================================================================
-
-/**
- * "Memory" type of the column -- i.e. where the data is actually stored.
- * Columns with different `MType`s are generally interchangeable, except that
- * they may require different strategies for allocating/ reallocating/ freeing
- * their data buffers.
- *
- * MT_DATA
- *     The data is stored in RAM. This is the most common mtype for a column.
- *     When this column is deleted, its memory buffer will be freed.
- *
- * MT_MMAP
- *     The data is stored on disk, but memory-mapped into RAM. Such column is
- *     read-only. When the column is deleted its memory buffer is unmapped, but
- *     the file remains on disk.
- *
- * MT_TEMP
- *     Similar to MT_MMAP, but the data is stored in a temporary file. When the
- *     column is removed, the underlying temporary file is deleted as well.
- *     Uses field `filename`. Uses field `filename`.
- *
- * MT_XBUF
- *     The data is stored in external buffer, obtained via PyBuffers protocol.
- *     Such data is read-only, and when the column is deleted, the buffer has
- *     to be released. Uses field `pybuf`.
- */
-typedef enum MType {
-    MT_DATA = 1,
-    MT_MMAP = 2,
-    MT_TEMP = 3,
-    MT_XBUF = 4,
-} __attribute__ ((__packed__)) MType;
-
-#define MT_COUNT (MT_XBUF + 1)
-
 
 //==============================================================================
 
