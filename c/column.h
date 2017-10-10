@@ -106,10 +106,15 @@ public:
     size_t alloc_size() const;
     PyObject* mbuf_repr() const;
 
+    /**
+     * Resize the column up to `nrows` elements, and fill all new elements with
+     * NA values.
+     */
+    void resize_and_fill(int64_t nrows);
+
     Column* cast(SType);
     Column* rbind(Column**);
     Column* extract(RowIndex* = NULL);
-    Column* realloc_and_fill(int64_t);
     Column* save_to_disk(const char*);
     size_t i4s_datasize();
     size_t i8s_datasize();
@@ -125,7 +130,7 @@ protected:
     Column(int64_t nrows);
     Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
     Column* rbind_str32(Column**, int64_t, int);
-    virtual ~Column() {}
+    virtual ~Column();
 
     // FIXME
     friend Column* try_to_resolve_object_column(Column* col);

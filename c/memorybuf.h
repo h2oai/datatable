@@ -42,20 +42,24 @@ protected:
   // be accessible to the user).
   size_t allocsize;
 
+  // Reference count for this MemoryBuffer, in case it is shared by multiple
+  // users.
+  int refcount;
+
   // Readonly flag: indicates that the memory region cannot be written into,
-  // and cannot be resized (although it can still be freed).
+  // and cannot be resized.
   bool readonly;
 
-  int64_t : 56;  // padding
+  int64_t : 24;  // padding
 
 
   //--- Public API -------------------------------------------------------------
 public:
   // This class is not directly constructible: construct one of the derived
-  // classes instead.
+  // classes instead. Alternatively, if you need to shallow-copy the current
+  // object, use `membuf->newref()`.
   MemoryBuffer(const MemoryBuffer&) = delete;  // copy-constructor
   MemoryBuffer(MemoryBuffer&&) = delete;       // move-constructor
-  virtual ~MemoryBuffer();
 
   /**
    * Returns a void* pointer to the underlying memory region (`get()`) or to the
@@ -107,6 +111,11 @@ public:
    * are not enforced by the class itself -- instead it is the responsibility
    * of the caller. Attempting to modify a readonly buffer may cause exceptions
    * or seg.faults.
+   *
+   * This method also returns true if the internal reference counter is > 1,
+   * indicating that the memory buffer is shared among multiple users. Modifying
+   * such shared memory is not allowed, because one of the users will not be
+   * aware of the changes, and may crash as a result.
    */
   bool is_readonly() const;
 
@@ -134,10 +143,25 @@ public:
    */
   virtual PyObject* pyrepr() const;
 
+  /**
+   * Returns a new reference to the current object. For all intents and purposes
+   * this works as a copy of an object, except that no actual copy is made.
+   */
+  MemoryBuffer* newref();
+
+  /**
+   * This method should be called where you would normally say `delete membuf;`.
+   * Since this MemoryBuffer may be shared across multiple objects, this method
+   * decrements the internal reference counter, and only when the counter
+   * reaches zero deletes the object.
+   */
+  void release();
+
 
   //--- Internal ---------------------------------------------------------------
 protected:
   MemoryBuffer();
+  virtual ~MemoryBuffer();  // Private, use membuf->release() instead
 };
 
 
@@ -156,6 +180,8 @@ public:
   MemoryMemBuf(void *ptr, size_t n);
   virtual void resize(size_t n) override;
   virtual PyObject* pyrepr() const override;
+
+private:
   virtual ~MemoryMemBuf();
 };
 
@@ -175,6 +201,8 @@ class StringMemBuf : public MemoryBuffer
 public:
   StringMemBuf(const char *str);
   virtual PyObject* pyrepr() const override;
+
+private:
   virtual ~StringMemBuf();
 };
 
@@ -197,6 +225,8 @@ public:
   ExternalMemBuf(void *ptr, void *pybuf, size_t size);
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
+
+private:
   virtual ~ExternalMemBuf() override;
 };
 
@@ -230,10 +260,12 @@ public:
    */
   MemmapMemBuf(const char *path, size_t n, bool create);
 
-  virtual ~MemmapMemBuf() override;
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
+
+private:
+  virtual ~MemmapMemBuf();
 };
 
 
