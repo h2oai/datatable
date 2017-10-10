@@ -275,7 +275,7 @@ RowIndex* Column::sort(Column *col, RowIndex *rowindex)
             ri->decref();
         }
     }
-    SType stype = col->stype;
+    SType stype = col->stype();
     prepare_inp_fn prepfn = prepare_inp_fns[stype];
     SortContext *sc = NULL;
     dtcalloc(sc, SortContext, 1);

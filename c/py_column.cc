@@ -26,13 +26,13 @@ static PyObject* get_mtype(Column_PyObject *self) {
 
 DT_DOCS(stype, "'Storage' type of the column")
 static PyObject* get_stype(Column_PyObject *self) {
-    return incref(py_stype_names[self->ref->stype]);
+    return incref(py_stype_names[self->ref->stype()]);
 }
 
 
 DT_DOCS(ltype, "'Logical' type of the column")
 static PyObject* get_ltype(Column_PyObject *self) {
-    return incref(py_ltype_names[stype_info[self->ref->stype].ltype]);
+    return incref(py_ltype_names[stype_info[self->ref->stype()].ltype]);
 }
 
 
@@ -53,7 +53,7 @@ DT_DOCS(meta, "String representation of the column's `meta` struct")
 static PyObject* get_meta(Column_PyObject *self) {
     Column *col = self->ref;
     void *meta = col->meta;
-    switch (col->stype) {
+    switch (col->stype()) {
         case ST_STRING_I4_VCHAR:
         case ST_STRING_I8_VCHAR:
             return PyUnicode_FromFormat("offoff=%lld",

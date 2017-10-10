@@ -249,7 +249,7 @@ int DataTable::verify_integrity(char **errors)
     for (int64_t i = 0; i < ncols; i++) {
         Column *col = columns[i];
         Stats *stat = rowindex != NULL ? stats[i] : col->stats;
-        SType stype = col->stype;
+        SType stype = col->stype();
 
         /*
         TODO: move into Column::check_integrity()

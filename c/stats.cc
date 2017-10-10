@@ -214,15 +214,15 @@ Column* Stats::countna_column() {
 }
 
 Column* Stats::min_column() {
-    return make_na_stat_column(_ref_col->stype);
+    return make_na_stat_column(_ref_col->stype());
 }
 
 Column* Stats::max_column() {
-    return make_na_stat_column(_ref_col->stype);
+    return make_na_stat_column(_ref_col->stype());
 }
 
 Column* Stats::sum_column() {
-    return make_na_stat_column(_ref_col->stype);
+    return make_na_stat_column(_ref_col->stype());
 }
 //---------------------------------------------------
 
@@ -347,7 +347,7 @@ NumericalStats<T, A>::NumericalStats(const Column *col, const RowIndex *ri)
 //-------------- Get Stat as a Column ---------------
 template <typename T, typename A>
 Column* NumericalStats<T, A>::min_column() {
-    const SType stype = _ref_col->stype;
+    const SType stype = _ref_col->stype();
     if (stype == ST_VOID) return NULL;
     Column* out = new Column(stype, 1);
     *((T*)(out->data())) = min<T>();
@@ -356,7 +356,7 @@ Column* NumericalStats<T, A>::min_column() {
 
 template <typename T, typename A>
 Column* NumericalStats<T, A>::max_column() {
-    const SType stype = _ref_col->stype;
+    const SType stype = _ref_col->stype();
     if (stype == ST_VOID) return NULL;
     Column* out = new Column(stype, 1);
     *((T*)(out->data())) = max<T>();
@@ -529,23 +529,15 @@ void BooleanStats::compute_numerical_stats() {
  */
 Stats* Stats::construct(const Column *col, const RowIndex *ri) {
     if (col == NULL) return new Stats(NULL, NULL);
-    switch(col->stype) {
-    case ST_BOOLEAN_I1:
-        return new BooleanStats(col, ri);
-    case ST_INTEGER_I1:
-        return new IntegerStats<int8_t>(col, ri);
-    case ST_INTEGER_I2:
-        return new IntegerStats<int16_t>(col, ri);
-    case ST_INTEGER_I4:
-        return new IntegerStats<int32_t>(col, ri);
-    case ST_INTEGER_I8:
-        return new IntegerStats<int64_t>(col, ri);
-    case ST_REAL_F4:
-        return new RealStats<float>(col, ri);
-    case ST_REAL_F8:
-        return new RealStats<double>(col, ri);
-    default:
-        return new Stats(col, ri);
+    switch(col->stype()) {
+        case ST_BOOLEAN_I1: return new BooleanStats(col, ri);
+        case ST_INTEGER_I1: return new IntegerStats<int8_t>(col, ri);
+        case ST_INTEGER_I2: return new IntegerStats<int16_t>(col, ri);
+        case ST_INTEGER_I4: return new IntegerStats<int32_t>(col, ri);
+        case ST_INTEGER_I8: return new IntegerStats<int64_t>(col, ri);
+        case ST_REAL_F4:    return new RealStats<float>(col, ri);
+        case ST_REAL_F8:    return new RealStats<double>(col, ri);
+        default:            return new Stats(col, ri);
     }
 }
 

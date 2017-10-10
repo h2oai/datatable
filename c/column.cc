@@ -27,14 +27,14 @@ Column::Column(size_t nrows_, SType stype_)
       nrows(static_cast<int64_t>(nrows_)),
       stats(Stats::void_ptr()),
       refcount(1),
-      stype(stype_)
+      _stype(stype_)
 {
-    size_t meta_size = stype_info[stype].metasize;
+    size_t meta_size = stype_info[stype_].metasize;
     if (meta_size) {
         meta = malloc(meta_size);
-        if (stype == ST_STRING_I4_VCHAR)
+        if (stype_ == ST_STRING_I4_VCHAR)
             ((VarcharMeta*) meta)->offoff = (int64_t) i4s_padding(0);
-        if (stype == ST_STRING_I8_VCHAR)
+        if (stype_ == ST_STRING_I8_VCHAR)
             ((VarcharMeta*) meta)->offoff = (int64_t) i8s_padding(0);
     }
 }
@@ -137,34 +137,38 @@ Column::Column(SType st, size_t nr, void* pybuffer, void* data, size_t a_size)
  * call `column_incref()`.
  */
 Column::Column(const Column &other)
-    : Column(static_cast<size_t>(other.nrows), other.stype)
+    : Column(static_cast<size_t>(other.nrows), other.stype())
 {
   mbuf = new MemoryMemBuf(other.alloc_size());
   // TODO: deep copy stats when implemented
   if (alloc_size()) {
     memcpy(data(), other.data(), alloc_size());
   }
-  size_t meta_size = stype_info[stype].metasize;
+  size_t meta_size = stype_info[stype()].metasize;
   if (meta_size) {
     memcpy(meta, other.meta, meta_size);
   }
 }
 
 
+SType Column::stype() const {
+  return _stype;
+}
+
 void* Column::data() const {
-    return mbuf->get();
+  return mbuf->get();
 }
 
 void* Column::data_at(size_t i) const {
-    return mbuf->at(i);
+  return mbuf->at(i);
 }
 
 size_t Column::alloc_size() const {
-    return mbuf->size();
+  return mbuf->size();
 }
 
 PyObject* Column::mbuf_repr() const {
-    return mbuf->pyrepr();
+  return mbuf->pyrepr();
 }
 
 
@@ -181,19 +185,19 @@ Column* Column::extract(RowIndex *rowindex) {
     }
 
     size_t res_nrows = (size_t) rowindex->length;
-    size_t elemsize = (stype == ST_STRING_FCHAR)
+    size_t elemsize = (stype() == ST_STRING_FCHAR)
                         ? (size_t) ((FixcharMeta*) meta)->n
-                        : stype_info[stype].elemsize;
+                        : stype_info[stype()].elemsize;
 
     // Create the new Column object.
     // TODO: Stats should be copied from DataTable
-    Column *res = new Column(stype, 0);
+    Column *res = new Column(stype(), 0);
     res->nrows = (int64_t) res_nrows;
 
     // "Slice" rowindex with step = 1 is a simple subsection of the column
     if (rowindex->type == RI_SLICE && rowindex->slice.step == 1) {
         size_t start = (size_t) rowindex->slice.start;
-        switch (stype) {
+        switch (stype()) {
             case ST_STRING_I4_VCHAR: {
                 size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
                 int32_t *offs = (int32_t*) mbuf->at(offoff) + start;
@@ -243,7 +247,7 @@ Column* Column::extract(RowIndex *rowindex) {
                 break;
 
             default: {
-                assert(!stype_info[stype].varwidth);
+                assert(!stype_info[stype()].varwidth);
                 size_t res_alloc_size = res_nrows * elemsize;
                 size_t offset = start * elemsize;
                 res->mbuf->resize(res_alloc_size);
@@ -255,7 +259,7 @@ Column* Column::extract(RowIndex *rowindex) {
 
     // In all other cases we need to iterate through the rowindex and fetch
     // the required elements manually.
-    switch (stype) {
+    switch (stype()) {
         #define JINIT_SLICE                                                    \
             int64_t start = rowindex->slice.start;                             \
             int64_t step = rowindex->slice.step;                               \
@@ -333,7 +337,7 @@ Column* Column::extract(RowIndex *rowindex) {
             break;
 
         default: {
-            assert(!stype_info[stype].varwidth);
+            assert(!stype_info[stype()].varwidth);
             res->mbuf->resize(res_nrows * elemsize);
             char *dest = (char*) res->data();
             if (rowindex->type == RI_SLICE) {
@@ -383,8 +387,8 @@ Column* Column::realloc_and_fill(int64_t nr)
     size_t old_alloc_size = this->alloc_size();
     assert(diff_rows > 0);
 
-    if (!stype_info[stype].varwidth) {
-        size_t elemsize = stype_info[stype].elemsize;
+    if (!stype_info[stype()].varwidth) {
+        size_t elemsize = stype_info[stype()].elemsize;
         Column *col;
         // DATA column with refcount 1 can be expanded in-place
         if (!mbuf->is_readonly() && refcount == 1) {
@@ -395,7 +399,7 @@ Column* Column::realloc_and_fill(int64_t nr)
         // In all other cases we create a new Column object and copy the data
         // over. The current Column can be decrefed.
         else {
-            col = new Column(stype, (size_t) nr);
+            col = new Column(stype(), (size_t) nr);
             memcpy(col->data(), data(), alloc_size());
             decref();
         }
@@ -406,7 +410,7 @@ Column* Column::realloc_and_fill(int64_t nr)
             set_value(col->mbuf->at(old_alloc_size), col->data(),
                       elemsize, diff_rows);
         } else {
-            const void *na = stype_info[col->stype].na;
+            const void *na = stype_info[col->stype()].na;
             set_value(col->mbuf->at(old_alloc_size), na,
                       elemsize, diff_rows);
         }
@@ -415,7 +419,7 @@ Column* Column::realloc_and_fill(int64_t nr)
         return col;
     }
 
-    else if (stype == ST_STRING_I4_VCHAR) {
+    else if (stype() == ST_STRING_I4_VCHAR) {
         if (nr > INT32_MAX)
             dterrr("Nrows is too big for an i4s column: %lld", nr);
 
@@ -440,7 +444,7 @@ Column* Column::realloc_and_fill(int64_t nr)
         }
         // Otherwise create a new column and copy over the data
         else {
-            col = new Column(static_cast<size_t>(nr), stype);
+            col = new Column(static_cast<size_t>(nr), stype());
             col->mbuf = new MemoryMemBuf(new_alloc_size);
             memcpy(col->mbuf->get(), mbuf->get(), old_data_size);
             memcpy(col->mbuf->at(new_offoff),
@@ -470,7 +474,7 @@ Column* Column::realloc_and_fill(int64_t nr)
         return col;
     }
     // Exception
-    throw new Error("Cannot realloc column of stype %d", stype);
+    throw new Error("Cannot realloc column of stype %d", stype());
 }
 
 
@@ -525,12 +529,12 @@ size_t Column::i8s_padding(size_t datasize) {
  * Return the size of the data part in a ST_STRING_I(4|8)_VCHAR column.
  */
 size_t Column::i4s_datasize() {
-    assert(stype == ST_STRING_I4_VCHAR);
+    assert(stype() == ST_STRING_I4_VCHAR);
     void *end = mbuf->at(alloc_size());
     return (size_t) abs(((int32_t*) end)[-1]) - 1;
 }
 size_t Column::i8s_datasize() {
-    assert(stype == ST_STRING_I8_VCHAR);
+    assert(stype() == ST_STRING_I8_VCHAR);
     void *end = mbuf->at(alloc_size());
     return (size_t) llabs(((int64_t*) end)[-1]) - 1;
 }
@@ -544,7 +548,7 @@ size_t Column::get_allocsize()
 {
     size_t sz = sizeof(Column);
     sz += mbuf->memory_footprint();
-    sz += stype_info[stype].metasize;
+    sz += stype_info[stype()].metasize;
     return sz;
 }
 

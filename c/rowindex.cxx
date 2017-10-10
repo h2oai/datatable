@@ -250,7 +250,7 @@ RowIndex:: RowIndex(int64_t *array, int64_t n, int issorted) :
  */
 RowIndex* RowIndex::from_boolcolumn(Column *col, int64_t nrows)
 {
-    if (stype_info[col->stype].ltype != LT_BOOLEAN)
+    if (stype_info[col->stype()].ltype != LT_BOOLEAN)
         throw new Error("Column is not of boolean type");
     int8_t *data = (int8_t*) col->data();
     int64_t nout = 0;
@@ -295,7 +295,7 @@ RowIndex* RowIndex::from_boolcolumn(Column *col, int64_t nrows)
 RowIndex* RowIndex::from_column_with_rowindex(Column *col, RowIndex *rowindex)
 {
     RowIndex* res = NULL;
-    switch(stype_info[col->stype].ltype) {
+    switch(stype_info[col->stype()].ltype) {
     case LT_BOOLEAN: {
         int8_t *data = (int8_t*) col->data();
         int64_t nouts = 0;
@@ -357,17 +357,17 @@ RowIndex* RowIndex::from_column_with_rowindex(Column *col, RowIndex *rowindex)
  */
 RowIndex* RowIndex::from_intcolumn(Column *col, int is_temp_column)
 {
-    if (stype_info[col->stype].ltype != LT_INTEGER)
+    if (stype_info[col->stype()].ltype != LT_INTEGER)
         throw new Error("Column is not of integer type");
 
     RowIndex* res = NULL;
-    if (col->stype == ST_INTEGER_I1 || col->stype == ST_INTEGER_I2) {
+    if (col->stype() == ST_INTEGER_I1 || col->stype() == ST_INTEGER_I2) {
         col = col->cast(ST_INTEGER_I4);
         is_temp_column = 2;
     }
 
     int64_t nrows = col->nrows;
-    if (col->stype == ST_INTEGER_I8) {
+    if (col->stype() == ST_INTEGER_I8) {
         int64_t *arr64 = NULL;
         if (is_temp_column) {
             arr64 = (int64_t*) col->data();
@@ -379,7 +379,7 @@ RowIndex* RowIndex::from_intcolumn(Column *col, int is_temp_column)
         res = new RowIndex(arr64, nrows, 0);
         res->compactify();
     } else
-    if (col->stype == ST_INTEGER_I4) {
+    if (col->stype() == ST_INTEGER_I4) {
         int32_t *arr32 = NULL;
         if (is_temp_column) {
             arr32 = (int32_t*) col->data();

@@ -209,7 +209,7 @@ Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 
     size_t new_alloc_size = stype_info[stype].elemsize * nrows;
     col->mbuf->resize(new_alloc_size);
-    col->stype = stype;
+    col->_stype = stype;
     col->nrows = (int64_t) nrows;
     return col;
 }

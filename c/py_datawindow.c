@@ -116,7 +116,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
                            rindex_is_arr32? rindexarr32[j] :
                            rindex_is_arr64? (int64_t) rindexarr64[j] :
                                             rindexstart + rindexstep * j;
-            PyObject *value = py_stype_formatters[col->stype](col, irow);
+            PyObject *value = py_stype_formatters[col->stype()](col, irow);
             if (value == NULL) goto fail;
             PyList_SET_ITEM(py_coldata, n_init_rows++, value);
         }
@@ -128,7 +128,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     if (stypes == NULL || ltypes == NULL) goto fail;
     for (int64_t i = col0; i < col1; i++) {
         Column *col = dt->columns[i];
-        SType stype = col->stype;
+        SType stype = col->stype();
         LType ltype = stype_info[stype].ltype;
         PyList_SET_ITEM(ltypes, i - col0, incref(py_ltype_names[ltype]));
         PyList_SET_ITEM(stypes, i - col0, incref(py_stype_names[stype]));
@@ -330,17 +330,17 @@ static int _check_consistency(
     // check each column within the window for correctness
     for (int64_t i = col0; i < col1; ++i) {
         Column *col = dt->columns[i];
-        if (col->stype < 1 || col->stype >= DT_STYPES_COUNT) {
+        if (col->stype() < 1 || col->stype() >= DT_STYPES_COUNT) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has unknown type %d",
-                i, col->stype);
+                i, col->stype());
             return 0;
         }
-        if (col->meta == NULL && stype_info[col->stype].metasize > 0) {
+        if (col->meta == NULL && stype_info[col->stype()].metasize > 0) {
             PyErr_Format(PyExc_RuntimeError,
                 "Invalid datatable: column %ld has type %s but meta info is "
                 "missing",
-                i, stype_info[col->stype].code);
+                i, stype_info[col->stype()].code);
             return 0;
         }
     }

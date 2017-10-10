@@ -68,9 +68,9 @@ public:  // TODO: convert these into private
     int64_t nrows;       // 8
     Stats*  stats;       // 8
     int     refcount;    // 4
-    SType   stype;       // 1
 
 private:
+    SType   _stype;      // 1
     __attribute__((unused)) char _padding[3];
 
     Column(size_t nrows_, SType stype_); // helper for other constructors
@@ -83,6 +83,7 @@ public:
     Column(const char*, SType, size_t, const char*); // Load from disk
     explicit Column(const Column&);
 
+    SType stype() const;
     void* data() const;
     void* data_at(size_t) const;
     size_t alloc_size() const;

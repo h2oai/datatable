@@ -32,11 +32,11 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
     Column *colf = colspec->columns[0];
     Column *cols = colspec->columns[1];
     Column *colm = colspec->columns[2];
-    if (colf->stype != ST_STRING_I4_VCHAR ||
-        cols->stype != ST_STRING_I4_VCHAR ||
-        colm->stype != ST_STRING_I4_VCHAR) {
+    if (colf->stype() != ST_STRING_I4_VCHAR ||
+        cols->stype() != ST_STRING_I4_VCHAR ||
+        colm->stype() != ST_STRING_I4_VCHAR) {
         throw new Error("String columns are expected in colspec table, instead got "
-               "%d, %d and %d", colf->stype, cols->stype, colm->stype);
+               "%d, %d and %d", colf->stype(), cols->stype(), colm->stype());
     }
 
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
