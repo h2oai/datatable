@@ -64,6 +64,7 @@ size_t MemoryBuffer::memory_footprint() const {
   return allocsize + sizeof(MemoryBuffer);
 }
 
+
 void MemoryBuffer::resize(UNUSED(size_t n)) {
   throw Error("Resizing this object is not supported");
 }
@@ -160,6 +161,7 @@ PyObject* ExternalMemBuf::pyrepr() const {
 //==============================================================================
 // Disk-based MemoryBuffer
 //==============================================================================
+
 
 MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, bool create)
     : filename(path)

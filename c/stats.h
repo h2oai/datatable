@@ -7,7 +7,7 @@
 #include "datatable.h"
 #include "rowindex.h"
 
-typedef struct DataTable DataTable;
+class DataTable;
 class Column;
 class RowIndex;
 
@@ -81,8 +81,7 @@ protected:
     virtual void* max_raw();
     virtual void* sum_raw();
 
-    friend void datatable_reify(DataTable*);
-    friend int dt_verify_integrity(DataTable*, char**);
+    friend DataTable;
 };
 
 void init_stats(void);

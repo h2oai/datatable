@@ -81,9 +81,6 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
 /**
  * Check and repair the DataTable.
  *
- * @param dt
- *     The target DataTable.
- *
  * @param errors
  *     Reference to an unallocated `char*` variable that will be allocated and
  *     filled with diagnostic messages containing information about any problems
@@ -94,16 +91,11 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
  * @return
  *     0 if no problems were found, and the number of errors otherwise.
  */
-int dt_verify_integrity(DataTable *dt, char **errors)
+int DataTable::verify_integrity(char **errors)
 {
-    if (dt == NULL) return 1;
     int nerrors = 0;
     size_t errlen = 0;
     *errors = (char*) calloc(1, 1);
-
-    RowIndex *ri = dt->rowindex;
-    Column **cols = dt->columns;
-    Stats **stats = dt->stats;
 
     #define ERR(...) do {                                                      \
         if (nerrors++ < MAX_ERRORS)                                            \
@@ -111,7 +103,6 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     } while (0)
 
     // Check that the number of rows is nonnegative.
-    int64_t nrows = dt->nrows;
     if (nrows < 0) {
         ERR("Datatable has negative number of rows: %lld\n", nrows);
         return 1;
@@ -121,13 +112,12 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     // equal to `ncols + 1` (with extra column being NULL). Sometimes the
     // allocation size can be greater than the required number of columns,
     // because `malloc()` may allocate more than requested.
-    size_t n_cols_allocd = array_size(cols, sizeof(Column*));
-    int64_t ncols = dt->ncols;
+    size_t n_cols_allocd = array_size(columns, sizeof(Column*));
     if (ncols < 0) {
         ERR("Datatable has negative number of columns: %lld\n", ncols);
         return 1;
     }
-    if (!cols || !n_cols_allocd) {
+    if (!columns || !n_cols_allocd) {
         ERR("Columns array is not allocated\n");
         return 1;
     }
@@ -136,7 +126,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             "array\n", ncols);
         return 1;
     }
-    if (cols[ncols] != NULL) {
+    if (columns[ncols] != NULL) {
         // Memory was allocated for `ncols+1` columns, but the last element
         // was not set to NULL.
         // Note that if `cols` array was under-allocated and `malloc_size`
@@ -147,11 +137,11 @@ int dt_verify_integrity(DataTable *dt, char **errors)
         return 1;
     }
 
-    if (ri == NULL && stats != NULL) {
+    if (rowindex == NULL && stats != NULL) {
         ERR("`stats` array is not NULL when rowindex is NULL");
-    } else if (ri != NULL && stats == NULL) {
+    } else if (rowindex != NULL && stats == NULL) {
         ERR("`stats` array is NULL when rowindex is not NULL");
-    } else if (ri != NULL && stats != NULL){
+    } else if (rowindex != NULL && stats != NULL){
         size_t n_stats_allocd = array_size(stats, sizeof(Stats*));
 
         if ((!stats || !n_stats_allocd) && ncols > 0) {
@@ -166,7 +156,7 @@ int dt_verify_integrity(DataTable *dt, char **errors)
 
     // Check that each Column is not NULL
     for (int64_t i = 0; i < ncols; i++) {
-        if (cols[i] == NULL) {
+        if (columns[i] == NULL) {
             ERR("Column %lld in the datatable is NULL\n", i);
         }
     }
@@ -175,25 +165,25 @@ int dt_verify_integrity(DataTable *dt, char **errors)
     // Check validity of the RowIndex
     int64_t maxrow = -INT64_MAX;
     int64_t minrow = INT64_MAX;
-    if (ri != NULL) {
-        RowIndexType ritype = ri->type;
+    if (rowindex != NULL) {
+        RowIndexType ritype = rowindex->type;
         if (ritype != RI_SLICE && ritype != RI_ARR32 && ritype != RI_ARR64) {
             ERR("Invalid RowIndexType: %d\n", ritype);
             return 1;
         }
-        if (ri->length != nrows) {
+        if (rowindex->length != nrows) {
             ERR("The number of rows in the datatable's rowindex does not "
                 "match the number of rows in the datatable itself: %lld vs "
-                "%lld\n", ri->length, nrows);
+                "%lld\n", rowindex->length, nrows);
             return 1;
         }
-        if (ri->refcount <= 0) {
-            ERR("RowIndex has refcount %d which is invalid\n", ri->refcount);
+        if (rowindex->refcount <= 0) {
+            ERR("RowIndex has refcount %d which is invalid\n", rowindex->refcount);
             return 1;
         }
         if (ritype == RI_SLICE) {
-            int64_t start = ri->slice.start;
-            int64_t step = ri->slice.step;
+            int64_t start = rowindex->slice.start;
+            int64_t step = rowindex->slice.step;
             int64_t end = start + step * (nrows - 1);
             if (start < 0) {
                 ERR("Rowindex's start row is negative: %lld\n", start);
@@ -214,8 +204,8 @@ int dt_verify_integrity(DataTable *dt, char **errors)
                 ERR("RI_ARR32 rowindex is not allowed for a datatable with "
                     "%lld rows\n", nrows);
             }
-            int32_t *ridata = ri->ind32;
-            size_t n_allocd = array_size(ridata, sizeof(int32_t));
+            int32_t *ridata = rowindex->ind32;
+            size_t n_allocd = array_size(ridata, (size_t) sizeof(int32_t));
             if (n_allocd > 0 && n_allocd < (size_t)nrows) {
                 ERR("Rowindex array is allocated for %zd elements only, "
                     "while %lld elements were expected\n", n_allocd, nrows);
@@ -229,8 +219,8 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             }
         }
         if (ritype == RI_ARR64) {
-            int64_t *ridata = ri->ind64;
-            size_t n_allocd = array_size(ridata, sizeof(int64_t));
+            int64_t *ridata = rowindex->ind64;
+            size_t n_allocd = array_size(ridata, (size_t) sizeof(int64_t));
             if (n_allocd > 0 && n_allocd < (size_t)nrows) {
                 ERR("Rowindex array is allocated for %zd elements only, "
                     "while %lld elements were expected\n", n_allocd, nrows);
@@ -244,21 +234,21 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             }
         }
         if (nrows == 0) minrow = maxrow = 0;
-        if (ri->min != minrow) {
+        if (rowindex->min != minrow) {
             ERR("Invalid min.row=%lld in the rowindex, should be %lld\n",
-                ri->min, minrow);
+                rowindex->min, minrow);
         }
-        if (ri->max != maxrow) {
+        if (rowindex->max != maxrow) {
             ERR("Invalid max.row=%lld in the rowindex, should be %lld\n",
-                ri->max, maxrow);
+                rowindex->max, maxrow);
         }
     }
     if (nerrors) return nerrors;
 
     // Check each individual column
     for (int64_t i = 0; i < ncols; i++) {
-        Column *col = cols[i];
-        Stats *stat = ri != NULL ? stats[i] : col->stats;
+        Column *col = columns[i];
+        Stats *stat = rowindex != NULL ? stats[i] : col->stats;
         SType stype = col->stype;
 
         /*
@@ -281,12 +271,12 @@ int dt_verify_integrity(DataTable *dt, char **errors)
             ERR("Invalid storage type %d in column %lld\n", stype, i);
             continue;
         }
-        if (ri == NULL && col->nrows != nrows) {
+        if (rowindex == NULL && col->nrows != nrows) {
             ERR("Column %lld has nrows=%lld, while the datatable has %lld rows\n",
                 i, col->nrows, nrows);
             continue;
         }
-        if (ri != NULL && col->nrows > 0 && col->nrows <= maxrow) {
+        if (rowindex != NULL && col->nrows > 0 && col->nrows <= maxrow) {
             ERR("Column %lld has nrows=%lld, but rowindex references row %lld\n",
                 i, col->nrows, maxrow);
             continue;

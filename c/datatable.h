@@ -10,7 +10,7 @@ class RowIndex;
 typedef struct ColMapping ColMapping;
 class Column;;
 class Stats;
-typedef struct DataTable DataTable;
+class DataTable;
 
 
 
@@ -41,29 +41,29 @@ typedef struct DataTable DataTable;
  *     of a column in some other datatable, and only indices given in the
  *     `rowindex` should be used to access values in each column.
  */
-typedef struct DataTable {
+class DataTable {
+public:
     int64_t     nrows;
     int64_t     ncols;
     RowIndex   *rowindex;
     Column    **columns;
     Stats     **stats;
-} DataTable;
+
+    DataTable(Column**, RowIndex* = NULL);
+    ~DataTable();
+    DataTable* delete_columns(int*, int);
+    DataTable* apply_na_mask(DataTable*);
+    void reify();
+    DataTable* rbind(DataTable**, int**, int, int64_t);
+    DataTable* cbind(DataTable**, int);
+    size_t get_allocsize();
+    int verify_integrity(char**);
+
+    static DataTable* load(DataTable*, int64_t);
+};
 
 
 
 //==============================================================================
-
-int dt_verify_integrity(DataTable *dt, char **errors);
-DataTable* make_datatable(Column **cols, RowIndex *rowindex);
-DataTable* datatable_load(DataTable *colspec, int64_t nrows);
-DataTable* dt_delete_columns(DataTable *dt, int *cols_to_remove, int n);
-DataTable* datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts,
-                           int ncols);
-DataTable* datatable_cbind(DataTable *dt, DataTable **dts, int ndts);
-DataTable* datatable_apply_na_mask(DataTable *dt, DataTable *mask);
-void datatable_reify(DataTable *self);
-size_t datatable_get_allocsize(DataTable *dt);
-void datatable_dealloc(DataTable *self);
-
 
 #endif

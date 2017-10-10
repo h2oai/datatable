@@ -18,7 +18,7 @@
  * nrows
  *     Number of rows in the stored datatable.
  */
-DataTable* datatable_load(DataTable *colspec, int64_t nrows)
+DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
 {
     int64_t ncols = colspec->nrows;
     Column **columns = NULL;
@@ -26,7 +26,7 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
     columns[ncols] = NULL;
 
     if (colspec->ncols != 3) {
-        dterrr("colspec table should have had 3 columns, but %lld passed",
+        throw new Error("colspec table should have had 3 columns, but %lld passed",
                colspec->ncols);
     }
     Column *colf = colspec->columns[0];
@@ -35,48 +35,48 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
     if (colf->stype != ST_STRING_I4_VCHAR ||
         cols->stype != ST_STRING_I4_VCHAR ||
         colm->stype != ST_STRING_I4_VCHAR) {
-        dterrr("String columns are expected in colspec table, instead got "
+        throw new Error("String columns are expected in colspec table, instead got "
                "%d, %d and %d", colf->stype, cols->stype, colm->stype);
     }
 
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
     int64_t oos = ((VarcharMeta*) cols->meta)->offoff;
     int64_t oom = ((VarcharMeta*) colm->meta)->offoff;
-    int32_t *offf = (int32_t*) add_ptr(colf->data(), oof);
-    int32_t *offs = (int32_t*) add_ptr(cols->data(), oos);
-    int32_t *offm = (int32_t*) add_ptr(colm->data(), oom);
+    int32_t *offf = (int32_t*) colf->data_at(static_cast<size_t>(oof));
+    int32_t *offs = (int32_t*) cols->data_at(static_cast<size_t>(oos));
+    int32_t *offm = (int32_t*) colm->data_at(static_cast<size_t>(oom));
 
     static char filename[101];
     static char metastr[101];
-    for (int64_t i = 0; i < ncols; i++)
+    for (int64_t i = 0; i < ncols; ++i)
     {
         // Extract filename
         int32_t fsta = abs(offf[i - 1]) - 1;
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
-        if (flen > 100) dterrr("Filename is too long: %d", flen);
-        memcpy(filename, add_ptr(colf->data(), fsta), (size_t) flen);
+        if (flen > 100) throw new Error("Filename is too long: %d", flen);
+        memcpy(filename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
         filename[flen] = '\0';
 
         // Extract stype
         int32_t ssta = abs(offs[i - 1]) - 1;
         int32_t send = abs(offs[i]) - 1;
         int32_t slen = send - ssta;
-        if (slen != 3) dterrr("Incorrect stype's length: %d", slen);
+        if (slen != 3) throw new Error("Incorrect stype's length: %d", slen);
         SType stype = stype_from_string((char*)cols->data() + (ssize_t)ssta);
         if (stype == ST_VOID) {
             char stypestr[4];
-            memcpy(stypestr, add_ptr(cols->data(), ssta), 3);
+            memcpy(stypestr, cols->data_at(static_cast<size_t>(ssta)), 3);
             stypestr[3] = '\0';
-            dterrr("Unrecognized stype: %s", stypestr);
+            throw new Error("Unrecognized stype: %s", stypestr);
         }
 
         // Extract meta info (as a string)
         int32_t msta = abs(offm[i - 1]) - 1;
         int32_t mend = abs(offm[i]) - 1;
         int32_t mlen = mend - msta;
-        if (mlen > 100) dterrr("Meta string is too long: %d", mlen);
-        memcpy(metastr, add_ptr(colm->data(), msta), (size_t) mlen);
+        if (mlen > 100) throw new Error("Meta string is too long: %d", mlen);
+        memcpy(metastr, colm->data_at(static_cast<size_t>(msta)), (size_t) mlen);
         metastr[mlen] = '\0';
 
         // Load the column
@@ -84,5 +84,5 @@ DataTable* datatable_load(DataTable *colspec, int64_t nrows)
         if (columns[i] == NULL) return NULL;
     }
 
-    return make_datatable(columns, NULL);
+    return new DataTable(columns);
 }

@@ -243,7 +243,7 @@ Stats* Stats::void_ptr() { return VOID_PTR; }
         Column** out_cols = NULL;                                              \
         dtmalloc(out_cols, Column*, (size_t) (dt->ncols + 1));                 \
         if (dt->rowindex) {                                                    \
-            Stats** stats = dt->stats;                                \
+            Stats** stats = dt->stats;                                         \
             for (int64_t i = 0; i < dt->ncols; ++i) {                          \
                  if (stats[i]->is_void()) {                                    \
                      stats[i] = construct(cols[i], dt->rowindex);              \
@@ -260,7 +260,7 @@ Stats* Stats::void_ptr() { return VOID_PTR; }
             }                                                                  \
         }                                                                      \
         out_cols[dt->ncols] = NULL;                                            \
-        return make_datatable(out_cols, NULL);                                 \
+        return new DataTable(out_cols);                                        \
     }
 
 STAT_DATATABLE(mean)

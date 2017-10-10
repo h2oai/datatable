@@ -22,33 +22,33 @@
  * NAs).
  */
 DataTable*
-datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
+DataTable::rbind(DataTable **dts, int **cols, int ndts, int64_t ncols__)
 {
-    assert(ncols >= dt->ncols);
+    assert(ncols__ >= ncols);
 
     // If dt is a view datatable, then it must be converted to MT_DATA
-    datatable_reify(dt);
+    reify();
 
-    dtrealloc(dt->columns, Column*, ncols + 1);
-    for (int64_t i = dt->ncols; i < ncols; ++i) {
-        dt->columns[i] = NULL;
+    dtrealloc(columns, Column*, ncols__ + 1);
+    for (int64_t i = ncols; i < ncols__; ++i) {
+        columns[i] = NULL;
     }
-    dt->columns[ncols] = NULL;
+    columns[ncols__] = NULL;
 
-    int64_t nrows = dt->nrows;
-    for (int i = 0; i < ndts; i++) {
-        nrows += dts[i]->nrows;
+    int64_t nrows__ = nrows;
+    for (int i = 0; i < ndts; ++i) {
+        nrows__ += dts[i]->nrows;
     }
 
     Column **cols0 = NULL;
     dtmalloc(cols0, Column*, ndts + 1);
     cols0[ndts] = NULL;
 
-    for (int i = 0; i < ncols; ++i) {
+    for (int64_t i = 0; i < ncols__; ++i) {
         Column *ret = NULL;
-        Column *col0 = (i < dt->ncols)
-            ? dt->columns[i]
-            : new Column(ST_VOID, (size_t) dt->nrows);
+        Column *col0 = (i < ncols)
+            ? columns[i]
+            : new Column(ST_VOID, (size_t) nrows);
         for (int j = 0; j < ndts; ++j) {
             if (cols[i][j] < 0) {
                 cols0[j] = new Column(ST_VOID, (size_t) dts[j]->nrows);
@@ -61,10 +61,9 @@ datatable_rbind(DataTable *dt, DataTable **dts, int **cols, int ndts, int ncols)
         }
         ret = col0->rbind(cols0);
         if (ret == NULL) return NULL;
-        dt->columns[i] = ret;
+        columns[i] = ret;
     }
-    dt->ncols = ncols;
-    dt->nrows = nrows;
-
-    return dt;
+    ncols = ncols__;
+    nrows = nrows__;
+    return this;
 }
