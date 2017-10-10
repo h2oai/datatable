@@ -97,7 +97,7 @@ def test_rows_integer(dt0):
         assert is_slice(dt1)
     assert as_list(dt0(0)) == [[0], [7], [5]]
     assert as_list(dt0(-2))[:2] == [[1], [1]]
-    assert isnan(as_list(dt0(-2))[2][0])
+    assert as_list(dt0(-2))[2][0] is None  # nan turns into None
     assert as_list(dt0(2)) == [[1], [9], [1.3]]
     assert as_list(dt0(4)) == [[0], [None], [100000]]
     assert as_list(dt0[1, :]) == [[1], [-11], [1]]
