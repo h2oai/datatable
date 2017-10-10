@@ -142,6 +142,7 @@ template <typename T> class FwColumn : public Column
 {
 public:
   FwColumn(int64_t nrows);
+  T* elements();
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
 
@@ -187,6 +188,33 @@ extern template class IntColumn<int8_t>;
 extern template class IntColumn<int16_t>;
 extern template class IntColumn<int32_t>;
 extern template class IntColumn<int64_t>;
+
+
+
+//==============================================================================
+
+template <typename T> class RealColumn : public FwColumn<T>
+{
+public:
+  using FwColumn<T>::FwColumn;
+  virtual ~RealColumn();
+  virtual SType stype() const override;
+};
+
+extern template class RealColumn<float>;
+extern template class RealColumn<double>;
+
+
+
+//==============================================================================
+
+class PyObjectColumn : public FwColumn<PyObject*>
+{
+public:
+  using FwColumn<PyObject*>::FwColumn;
+  virtual ~PyObjectColumn();
+  virtual SType stype() const override;
+};
 
 
 

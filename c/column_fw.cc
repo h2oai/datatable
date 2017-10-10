@@ -25,6 +25,12 @@ FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 
 
 template <typename T>
+T* FwColumn<T>::elements() {
+  return static_cast<T*>(mbuf->get());
+}
+
+
+template <typename T>
 T FwColumn<T>::get_elem(int64_t i) const {
   return mbuf->get_elem<T>(i);
 }

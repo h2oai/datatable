@@ -500,4 +500,9 @@ constexpr SType stype_integer(size_t s) {
            s == 8? ST_INTEGER_I8 : ST_VOID;
 }
 
+constexpr SType stype_real(size_t s) {
+    return s == 4? ST_REAL_F4 :
+           s == 8? ST_REAL_F8 : ST_VOID;
+}
+
 #endif
