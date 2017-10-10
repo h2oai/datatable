@@ -84,7 +84,7 @@ public:
     explicit Column(const Column&);
 
     void* data() const;
-    void* data_at(int64_t) const;
+    void* data_at(size_t) const;
     size_t alloc_size() const;
     PyObject* mbuf_repr() const;
 
