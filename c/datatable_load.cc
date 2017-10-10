@@ -42,9 +42,9 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
     int64_t oos = ((VarcharMeta*) cols->meta)->offoff;
     int64_t oom = ((VarcharMeta*) colm->meta)->offoff;
-    int32_t *offf = (int32_t*) colf->data_at(oof);
-    int32_t *offs = (int32_t*) cols->data_at(oos);
-    int32_t *offm = (int32_t*) colm->data_at(oom);
+    int32_t *offf = (int32_t*) colf->data_at(static_cast<size_t>(oof));
+    int32_t *offs = (int32_t*) cols->data_at(static_cast<size_t>(oos));
+    int32_t *offm = (int32_t*) colm->data_at(static_cast<size_t>(oom));
 
     static char filename[101];
     static char metastr[101];
@@ -55,7 +55,7 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
         if (flen > 100) throw new Error("Filename is too long: %d", flen);
-        memcpy(filename, colf->data_at(fsta), (size_t) flen);
+        memcpy(filename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
         filename[flen] = '\0';
 
         // Extract stype
@@ -66,7 +66,7 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         SType stype = stype_from_string((char*)cols->data() + (ssize_t)ssta);
         if (stype == ST_VOID) {
             char stypestr[4];
-            memcpy(stypestr, cols->data_at(ssta), 3);
+            memcpy(stypestr, cols->data_at(static_cast<size_t>(ssta)), 3);
             stypestr[3] = '\0';
             throw new Error("Unrecognized stype: %s", stypestr);
         }
@@ -76,7 +76,7 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         int32_t mend = abs(offm[i]) - 1;
         int32_t mlen = mend - msta;
         if (mlen > 100) throw new Error("Meta string is too long: %d", mlen);
-        memcpy(metastr, colm->data_at(msta), (size_t) mlen);
+        memcpy(metastr, colm->data_at(static_cast<size_t>(msta)), (size_t) mlen);
         metastr[mlen] = '\0';
 
         // Load the column

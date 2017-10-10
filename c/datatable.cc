@@ -171,7 +171,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
             case ST_STRING_I4_VCHAR: {
                 int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
                 char *strdata = (char*)(col->data()) - 1;
-                int32_t *offdata = static_cast<int32_t*>(col->data_at(offoff));
+                int32_t *offdata = static_cast<int32_t*>(col->data_at(static_cast<size_t>(offoff)));
                 // How much to reduce the offsets by due to some strings being
                 // converted into NAs
                 int32_t doffset = 0;
