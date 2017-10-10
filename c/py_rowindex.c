@@ -187,7 +187,7 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
         return NULL;
     }
     Column *col = dt->columns[0];
-    if (col->stype != ST_BOOLEAN_I1) {
+    if (col->stype() != ST_BOOLEAN_I1) {
         PyErr_SetString(PyExc_ValueError, "A boolean column is required");
         return NULL;
     }
@@ -218,7 +218,7 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
         return NULL;
     }
     Column *col = dt->columns[0];
-    if (stype_info[col->stype].ltype != LT_INTEGER) {
+    if (stype_info[col->stype()].ltype != LT_INTEGER) {
         PyErr_SetString(PyExc_ValueError, "An integer column is required");
         return NULL;
     }

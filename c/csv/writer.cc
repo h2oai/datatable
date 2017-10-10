@@ -53,9 +53,9 @@ public:
   CsvColumn(Column *col) {
     data = col->data();
     strbuf = NULL;
-    writer = writers_per_stype[col->stype];
-    if (!writer) throw Error("Cannot write type %d", col->stype);
-    if (col->stype == ST_STRING_I4_VCHAR) {
+    writer = writers_per_stype[col->stype()];
+    if (!writer) throw Error("Cannot write type %d", col->stype());
+    if (col->stype() == ST_STRING_I4_VCHAR) {
       strbuf = reinterpret_cast<char*>(data) - 1;
       data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
     }
@@ -511,7 +511,7 @@ size_t CsvWriter::estimate_output_size()
   size_t total_string_size = 0;
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
-    SType stype = col->stype;
+    SType stype = col->stype();
     bool stype_i4s = (stype == ST_STRING_I4_VCHAR);
     bool stype_i8s = (stype == ST_STRING_I8_VCHAR);
     if (stype_i4s || stype_i8s) {
@@ -652,7 +652,7 @@ void CsvWriter::create_column_writers(size_t ncols)
   writers_per_stype[ST_REAL_F8] = usehex? write_f8_hex : write_f8_dec;
   for (int64_t i = 0; i < dt->ncols; i++) {
     Column *dtcol = dt->columns[i];
-    SType stype = dtcol->stype;
+    SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);
     if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {

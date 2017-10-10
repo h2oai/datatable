@@ -27,11 +27,11 @@ Column* Column::rbind(Column **cols)
     // Compute the final number of rows and stype
     int64_t res_nrows = this->nrows;
     int64_t nrows0 = res_nrows;
-    SType res_stype = this->stype;
+    SType res_stype = stype();
     for (Column **pcol = cols; *pcol; ++pcol) {
         Column *col = *pcol;
         res_nrows += col->nrows;
-        if (res_stype < col->stype) res_stype = col->stype;
+        if (res_stype < col->stype()) res_stype = col->stype();
     }
     if (res_stype == ST_VOID) res_stype = ST_BOOLEAN_I1;
 
@@ -39,17 +39,17 @@ Column* Column::rbind(Column **cols)
     // filled with NAs; the current column (`self`); a clone of the current
     // column (if it has refcount > 1); or a type-cast of the current column.
     Column *res = NULL;
-    bool col_empty = (this->stype == ST_VOID);
+    bool col_empty = (stype() == ST_VOID);
     if (col_empty) {
         res = new Column(res_stype, (size_t) this->nrows);
-    } else if (refcount == 1 && !mbuf->is_readonly() && stype == res_stype) {
+    } else if (refcount == 1 && !mbuf->is_readonly() && stype() == res_stype) {
         // Happy place: current column can be modified in-place.
         res = this;
     } else {
-        res = (this->stype == res_stype) ? new Column(*this) : cast(res_stype);
+        res = (stype() == res_stype) ? new Column(*this) : cast(res_stype);
     }
     if (res == NULL) return NULL;
-    assert(res->stype == res_stype && !res->mbuf->is_readonly() &&
+    assert(res->stype() == res_stype && !res->mbuf->is_readonly() &&
            res->nrows == nrows0);
 
     // TODO: Temporary Fix. To be resolved in #301
@@ -79,8 +79,8 @@ Column* Column::rbind(Column **cols)
  */
 Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
 {
-    size_t elemsize = stype_info[stype].elemsize;
-    const void *na = stype_info[stype].na;
+    size_t elemsize = stype_info[stype()].elemsize;
+    const void *na = stype_info[stype()].na;
 
     // Reallocate the column's data buffer
     size_t old_nrows = (size_t) nrows;
@@ -94,7 +94,7 @@ Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
     size_t rows_to_fill = col_empty ? old_nrows : 0;
     for (Column **pcol = cols; *pcol; pcol++) {
         Column *col = *pcol;
-        if (col->stype == 0) {
+        if (col->stype() == 0) {
             rows_to_fill += (size_t) col->nrows;
         } else {
             if (rows_to_fill) {
@@ -102,8 +102,8 @@ Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
                 resptr = add_ptr(resptr, rows_to_fill * elemsize);
                 rows_to_fill = 0;
             }
-            if (col->stype != stype) {
-                Column *newcol = col->cast(stype);
+            if (col->stype() != stype()) {
+                Column *newcol = col->cast(stype());
                 if (newcol == NULL) return NULL;
                 col->decref();
                 col = newcol;
@@ -136,7 +136,7 @@ Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
  */
 Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
 {
-    assert(stype == ST_STRING_I4_VCHAR);
+    assert(stype() == ST_STRING_I4_VCHAR);
     size_t elemsize = 4;
 
     // Determine the size of the memory to allocate
@@ -150,7 +150,7 @@ Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
     }
     for (Column **pcol = cols; *pcol; pcol++) {
         Column *col = *pcol;
-        if (col->stype == 0) continue;
+        if (col->stype() == 0) continue;
         int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
         int32_t *offsets = (int32_t*) col->mbuf->at(offoff);
         new_data_size += (size_t) abs(offsets[col->nrows - 1]) - 1;
@@ -182,7 +182,7 @@ Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
 
     for (Column **pcol = cols; *pcol; pcol++) {
         Column *col = *pcol;
-        if (col->stype == 0) {
+        if (col->stype() == 0) {
             rows_to_fill += col->nrows;
         } else {
             if (rows_to_fill) {

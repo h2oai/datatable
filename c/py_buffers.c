@@ -104,7 +104,7 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
             }
         }
         if (columns[i] == NULL) return NULL;
-        if (columns[i]->stype == ST_OBJECT_PYPTR) {
+        if (columns[i]->stype() == ST_OBJECT_PYPTR) {
             columns[i] = try_to_resolve_object_column(columns[i]);
         }
     }
@@ -195,14 +195,14 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 {
     Column *col = self->ref;
     Py_ssize_t *info = NULL;
-    size_t elemsize = stype_info[col->stype].elemsize;
+    size_t elemsize = stype_info[col->stype()].elemsize;
     dtmalloc_g(info, Py_ssize_t, 2);
 
     if (REQ_WRITABLE(flags)) {
         PyErr_SetString(PyExc_BufferError, "Cannot create writable buffer");
         goto fail;
     }
-    if (stype_info[col->stype].varwidth) {
+    if (stype_info[col->stype()].varwidth) {
         PyErr_SetString(PyExc_BufferError, "Column's data has variable width");
         goto fail;
     }
@@ -227,7 +227,7 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
     view->suboffsets = NULL;
     view->internal = NULL;
     view->format = REQ_FORMAT(flags) ?
-        const_cast<char*>(format_from_stype(col->stype)) : NULL;
+        const_cast<char*>(format_from_stype(col->stype())) : NULL;
 
     Py_INCREF(self);
     col->incref();
@@ -294,9 +294,9 @@ dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view, int flags)
     view->obj = incref((PyObject*) self);
     view->len = (Py_ssize_t) col->alloc_size();
     view->readonly = 1;
-    view->itemsize = (Py_ssize_t) stype_info[col->stype].elemsize;
+    view->itemsize = (Py_ssize_t) stype_info[col->stype()].elemsize;
     view->format = REQ_FORMAT(flags) ?
-        const_cast<char*>(format_from_stype(col->stype)) : NULL;
+        const_cast<char*>(format_from_stype(col->stype())) : NULL;
     view->ndim = 2;
     view->shape = REQ_ND(flags) ? info : NULL;
     info[0] = (Py_ssize_t) self->ref->nrows;
@@ -328,7 +328,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     // copied -- in which case it should be possible to return the buffer
     // by-reference instead of copying the data into an intermediate buffer.
     if (ncols == 1 && !dt->rowindex && !REQ_WRITABLE(flags) &&
-        !stype_info[self->ref->columns[0]->stype].varwidth) {
+        !stype_info[self->ref->columns[0]->stype()].varwidth) {
         return dt_getbuffer_1_col(self, view, flags);
     }
 
@@ -341,9 +341,9 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     SType stype = ST_VOID;
     int64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; i++) {
-        if (!(stypes_mask & (1 << dt->columns[i]->stype))) {
-            stypes_mask |= 1 << dt->columns[i]->stype;
-            stype = common_stype_for_buffer(stype, dt->columns[i]->stype);
+        if (!(stypes_mask & (1 << dt->columns[i]->stype()))) {
+            stypes_mask |= 1 << dt->columns[i]->stype();
+            stype = common_stype_for_buffer(stype, dt->columns[i]->stype());
         }
     }
 
@@ -360,12 +360,12 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
         if (dt->rowindex) {
             col = col->extract(dt->rowindex);
         }
-        if (col->stype == stype) {
+        if (col->stype() == stype) {
             assert(col->alloc_size() == colsize);
             memcpy(add_ptr(buf, i * colsize), col->data(), colsize);
         } else {
             Column *newcol = col->cast(stype);
-            if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype, stype); goto fail; }
+            if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype(), stype); goto fail; }
             assert(newcol->alloc_size() == colsize);
             memcpy(add_ptr(buf, i * colsize), newcol->data(), colsize);
             newcol->decref();

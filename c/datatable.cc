@@ -115,7 +115,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
         throw new Error("Neither target DataTable nor a mask can be views");
     }
     for (int64_t i = 0; i < ncols; ++i) {
-        if (mask->columns[i]->stype != ST_BOOLEAN_I1)
+        if (mask->columns[i]->stype() != ST_BOOLEAN_I1)
             dterrv("Column %lld in mask is not of a boolean type", i);
     }
 
@@ -124,7 +124,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
         Column *col = columns[i];
         col->stats->reset();
         uint8_t *mdata = (uint8_t*) mask->columns[i]->data();
-        switch (col->stype) {
+        switch (col->stype()) {
             case ST_BOOLEAN_I1:
             case ST_INTEGER_I1: {
                 uint8_t *cdata = (uint8_t*) col->data();
@@ -147,7 +147,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
             case ST_REAL_F4:
             case ST_INTEGER_I4: {
                 uint32_t *cdata = (uint32_t*) col->data();
-                uint32_t na = col->stype == ST_REAL_F4 ?
+                uint32_t na = col->stype() == ST_REAL_F4 ?
                               NA_F4_BITS :
                               static_cast<uint32_t>(GETNA<int32_t>());
                 #pragma omp parallel for schedule(dynamic,1024)
@@ -159,7 +159,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
             case ST_REAL_F8:
             case ST_INTEGER_I8: {
                 uint64_t *cdata = (uint64_t*) col->data();
-                uint64_t na = col->stype == ST_REAL_F8 ?
+                uint64_t na = col->stype() == ST_REAL_F8 ?
                               NA_F8_BITS :
                               static_cast<uint32_t>(GETNA<int32_t>());
                 #pragma omp parallel for schedule(dynamic,1024)
@@ -194,7 +194,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
                 break;
             }
             default:
-                throw new Error("Column type %d not supported", col->stype);
+                throw new Error("Column type %d not supported", col->stype());
         }
 
     }
