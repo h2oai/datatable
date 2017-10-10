@@ -178,7 +178,7 @@ Column* try_to_resolve_object_column(Column* col)
     memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
     res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
     ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
-    col->decref();
+    delete col;
     return res;
 }
 
@@ -245,7 +245,7 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 static void column_releasebuffer(Column_PyObject *self, Py_buffer *view)
 {
     dtfree(view->shape);
-    self->ref->decref();
+    delete self->ref;
     // This function MUST NOT decrement view->obj, since that is done
     // automatically in PyBuffer_Release()
 }
@@ -368,10 +368,10 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
             if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype(), stype); goto fail; }
             assert(newcol->alloc_size() == colsize);
             memcpy(add_ptr(buf, i * colsize), newcol->data(), colsize);
-            newcol->decref();
+            delete newcol;
         }
         if (dt->rowindex) {
-            col->decref();
+            delete col;
         }
     }
 
@@ -447,7 +447,7 @@ static void dt_releasebuffer(DataTable_PyObject *self, Py_buffer *view)
     // 1 = 0-col DataTable, 2 = 1-col DataTable, 3 = 2+-col DataTable
     size_t kind = (size_t) view->internal;
     if (kind == 2) {
-        self->ref->columns[0]->decref();
+        delete self->ref->columns[0];
     }
     if (kind == 3) {
         dtfree(view->buf);

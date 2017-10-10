@@ -507,13 +507,13 @@ Column* Column::incref() {
     return this;
 }
 
-void Column::decref() {
+void Column::decref_() {
 }
 
 Column::~Column() {
-  // dtfree(meta);
-  // Stats::destruct(stats);
-  // mbuf->release();
+  dtfree(meta);
+  Stats::destruct(stats);
+  mbuf->release();
 }
 
 

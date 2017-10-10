@@ -337,7 +337,7 @@ RowIndex* RowIndex::from_column_with_rowindex(Column *col, RowIndex *rowindex)
     case LT_INTEGER: {
         Column *newcol = col->extract(rowindex);
         res = from_intcolumn(newcol, 1);
-        newcol->decref();
+        delete newcol;
     } break;
 
     default:
@@ -392,7 +392,7 @@ RowIndex* RowIndex::from_intcolumn(Column *col, int is_temp_column)
     }
 
     if (is_temp_column == 2) {
-        col->decref();
+        delete col;
     }
     return res;
 }

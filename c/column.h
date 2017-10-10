@@ -99,6 +99,7 @@ public:
     Column(SType, size_t, void*, void*, size_t); // XBuf Column
     Column(const char*, SType, size_t, const char*); // Load from disk
     explicit Column(const Column&);
+    virtual ~Column();
 
     virtual SType stype() const;
     void* data() const;
@@ -120,7 +121,6 @@ public:
     size_t i8s_datasize();
     size_t get_allocsize();
     Column* incref();
-    void decref();
 
     static RowIndex* sort(Column*, RowIndex*);
     static size_t i4s_padding(size_t datasize);
@@ -130,7 +130,6 @@ protected:
     Column(int64_t nrows);
     Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
     Column* rbind_str32(Column**, int64_t, int);
-    virtual ~Column();
 
     // FIXME
     friend Column* try_to_resolve_object_column(Column* col);

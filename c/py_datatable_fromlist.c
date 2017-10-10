@@ -69,7 +69,7 @@ PyObject* pydatatable_from_list(UU, PyObject *args)
   fail:
     if (cols) {
         for (int i = 0; cols[i] != NULL; ++i) {
-            cols[i]->decref();
+            delete cols[i];
         }
         dtfree(cols);
     }
