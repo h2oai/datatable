@@ -24,13 +24,28 @@
 
 /**
  * Abstract interface that encapsulates data which can be stored in different
- * "backends".
+ * "backends". This class is a wrapper around a `void*` pointer to some memory
+ * region.
  */
 class MemoryBuffer
 {
-  void*  buf;
+protected:
+  // Pointer to the "underlying" memory region. This class knows how to read/
+  // write to this memory region, but not how to manage it (i.e. allocate /
+  // resize / free) -- this is the responsibility of each derived class. This is
+  // also the reason why the fields in this class are protected instead of
+  // private: the base class cannot handle these fields by itself.
+  void* buf;
+
+  // Size of the memory region `buf`, in bytes. (In practice, the memory region
+  // may have arbitrary "size" -- this field merely says how many bytes should
+  // be accessible to the user).
   size_t allocsize;
-  bool   readonly;
+
+  // Readonly flag: indicates that the memory region cannot be written into,
+  // and cannot be resized (although it can still be freed).
+  bool readonly;
+
   int64_t : 56;  // padding
 
 
@@ -123,8 +138,6 @@ public:
   //--- Internal ---------------------------------------------------------------
 protected:
   MemoryBuffer();
-  void replace_buffer(void* ptr, size_t sz);
-  void set_readonly(bool on = true);
 };
 
 
@@ -143,7 +156,7 @@ public:
   MemoryMemBuf(void *ptr, size_t n);
   virtual void resize(size_t n) override;
   virtual PyObject* pyrepr() const override;
-  virtual ~MemoryMemBuf() override;
+  virtual ~MemoryMemBuf();
 };
 
 
@@ -153,13 +166,16 @@ public:
 /**
  * MemoryBuffer which is mapped onto a C string. This buffer is immutable.
  * The string is not considered "owned" by this class, and its memory will not
- * be deallocated when the object is destroyed.
+ * be deallocated when the object is destroyed. It is the responsibility of the
+ * user of this class to ensure that the lifetime of the source string exceeds
+ * the lifetime of a StringMemBuf object.
  */
 class StringMemBuf : public MemoryBuffer
 {
 public:
   StringMemBuf(const char *str);
   virtual PyObject* pyrepr() const override;
+  virtual ~StringMemBuf();
 };
 
 
