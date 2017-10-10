@@ -3,6 +3,26 @@
 import sys
 from math import isnan
 
+# Try importing _datatable (core lib), so that if that doesn't work we don't
+# run any tests (which will all fail anyways). Additionally, we attempt to
+# resolve any obfuscated C++ names, for convenience.
+try:
+    import datatable.lib._datatable as c
+    assert c
+except ImportError as e:
+    import re
+    import subprocess
+    mm = re.search(r"dlopen\(.*\): Symbol not found: (\w+)", e.msg)
+    try:
+        symbol = mm.group(1)
+        decoded = subprocess.check_output(["c++filt", symbol]).decode().strip()
+        e = ImportError(re.sub(symbol, "'%s'" % decoded, e.msg))
+    except:
+        # mm is None, or subprocess fail to find c++filt, etc.
+        pass
+    raise e
+
+
 
 def same_iterables(a, b):
     """
