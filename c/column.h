@@ -208,6 +208,25 @@ extern template class RealColumn<double>;
 
 //==============================================================================
 
+template <typename T> class StringColumn : public Column
+{
+  MemoryBuffer *strbuf;
+
+public:
+  // static const size_t elemsize = sizeof(T);
+
+  StringColumn(int64_t nrows);
+  virtual ~StringColumn();
+  virtual Column* extract_simple_slice(RowIndex*) const;
+  virtual SType stype() const override;
+
+  static size_t padding(size_t datasize);
+};
+
+
+
+//==============================================================================
+
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
