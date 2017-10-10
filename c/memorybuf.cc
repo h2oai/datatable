@@ -21,6 +21,7 @@
 #include <sys/mman.h>  // mmap
 #include <sys/stat.h>  // fstat
 #include <unistd.h>    // access, close, write, lseek
+#include "myassert.h"
 #include "py_utils.h"
 #include "utils.h"
 
@@ -33,11 +34,10 @@
 MemoryBuffer::MemoryBuffer()
     : buf(nullptr), allocsize(0), readonly(false) {}
 
-MemoryBuffer::~MemoryBuffer() {}
-
-void MemoryBuffer::replace_buffer(void* ptr, size_t sz) {
-  buf = ptr;
-  allocsize = sz;
+// It is the job of a derived class to clean up the `buf`. Here we merely
+// check that the derived class did not forget to do so.
+MemoryBuffer::~MemoryBuffer() {
+  assert(buf == nullptr);
 }
 
 void* MemoryBuffer::get() const {
@@ -64,17 +64,12 @@ size_t MemoryBuffer::memory_footprint() const {
   return allocsize + sizeof(MemoryBuffer);
 }
 
-
 void MemoryBuffer::resize(UNUSED(size_t n)) {
   throw Error("Resizing this object is not supported");
 }
 
 bool MemoryBuffer::is_readonly() const {
   return readonly;
-}
-
-void MemoryBuffer::set_readonly(bool on) {
-  readonly = on;
 }
 
 PyObject* MemoryBuffer::pyrepr() const {
@@ -88,26 +83,28 @@ PyObject* MemoryBuffer::pyrepr() const {
 //==============================================================================
 
 MemoryMemBuf::MemoryMemBuf(size_t n) {
-  void* ptr = malloc(n);
-  if (!ptr) throw Error("Unable to allocate memory of size %zu", n);
-  replace_buffer(ptr, n);
+  buf = malloc(n);
+  allocsize = n;
+  if (!buf) throw Error("Unable to allocate memory of size %zu", n);
 }
 
 MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
   if (!ptr && n) throw Error("Unallocated memory region provided");
-  replace_buffer(ptr, n);
+  buf = ptr;
+  allocsize = n;
 }
 
 MemoryMemBuf::~MemoryMemBuf() {
-  void *buf = get();
   free(buf);
+  buf = nullptr;
 }
 
 void MemoryMemBuf::resize(size_t n) {
-  if (n == size()) return;
-  void *ptr = realloc(get(), n);
-  if (!ptr) throw Error("Unable to allocate memory of size %zu", n);
-  replace_buffer(ptr, n);
+  if (n == allocsize) return;
+  void *ptr = realloc(buf, n);
+  if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
+  buf = ptr;
+  allocsize = n;
 }
 
 PyObject* MemoryMemBuf::pyrepr() const {
@@ -122,13 +119,18 @@ PyObject* MemoryMemBuf::pyrepr() const {
 //==============================================================================
 
 StringMemBuf::StringMemBuf(const char *str) {
-  replace_buffer(static_cast<void*>(const_cast<char*>(str)), strlen(str));
-  set_readonly();
+  buf = static_cast<void*>(const_cast<char*>(str));
+  allocsize = strlen(str) + 1;
+  readonly = true;
 }
 
 PyObject* StringMemBuf::pyrepr() const {
   static PyObject* r = PyUnicode_FromString("string");
   return incref(r);
+}
+
+StringMemBuf::~StringMemBuf() {
+  buf = nullptr;
 }
 
 
@@ -138,17 +140,19 @@ PyObject* StringMemBuf::pyrepr() const {
 //==============================================================================
 
 ExternalMemBuf::ExternalMemBuf(void *ptr, void *pybuf, size_t size) {
-  replace_buffer(ptr, size);
+  buf = ptr;
+  allocsize = size;
   pybufinfo = pybuf;
-  set_readonly();
+  readonly = true;
 }
 
 ExternalMemBuf::~ExternalMemBuf() {
+  buf = nullptr;
   PyBuffer_Release(static_cast<Py_buffer*>(pybufinfo));
 }
 
 size_t ExternalMemBuf::memory_footprint() const {
-  return size() + sizeof(ExternalMemBuf) + sizeof(Py_buffer);
+  return allocsize + sizeof(ExternalMemBuf) + sizeof(Py_buffer);
 }
 
 PyObject* ExternalMemBuf::pyrepr() const {
@@ -190,46 +194,50 @@ MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, bool create)
 
   // Memory-map the file.
   int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
-  void* buf = mmap(/* addr = */ NULL, /* length = */ n,
-                   /* protection = */ PROT_WRITE|PROT_READ,
-                   flags, fd, /* offset = */ 0);
+  buf = mmap(/* addr = */ NULL, /* length = */ n,
+             /* protection = */ PROT_WRITE|PROT_READ,
+             flags, fd, /* offset = */ 0);
+  allocsize = n;
+  readonly = !create;
+
   close(fd);  // fd is no longer needed
   if (buf == MAP_FAILED) {
     THROW_ERROR("Memory map failed: %s", strerror(errno));
   }
-  replace_buffer(buf, n);
-  set_readonly(!create);
 }
 
 
 MemmapMemBuf::~MemmapMemBuf() {
-  munmap(get(), size());
-  if (!is_readonly()) {
+  munmap(buf, allocsize);
+  buf = nullptr;
+  if (!readonly) {
     remove(filename.c_str());
   }
 }
 
 
 void MemmapMemBuf::resize(size_t n) {
-  if (is_readonly()) return;
-  munmap(get(), size());
+  if (readonly) return;
+  munmap(buf, allocsize);
+  buf = nullptr;
   truncate(filename.c_str(), (off_t)n);
 
   int fd = open(filename.c_str(), O_RDWR);
   if (fd == -1) {
     THROW_ERROR("Unable to open file %s: %s", filename.c_str(), strerror(errno));
   }
-  void* buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  allocsize = n;
   close(fd);
   if (buf == MAP_FAILED) {
+    buf = nullptr;
     THROW_ERROR("Memory map failed: %s", strerror(errno));
   }
-  replace_buffer(buf, n);
 }
 
 
 size_t MemmapMemBuf::memory_footprint() const {
-  return size() + filename.size() + sizeof(MemmapMemBuf);
+  return allocsize + filename.size() + sizeof(MemmapMemBuf);
 }
 
 
