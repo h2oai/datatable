@@ -34,7 +34,8 @@
 MemoryBuffer::MemoryBuffer()
     : buf(nullptr), allocsize(0), readonly(false) {}
 
-// It is the job of an upstream class to clean up the
+// It is the job of a derived class to clean up the `buf`. Here we merely
+// check that the derived class did not forget to do so.
 MemoryBuffer::~MemoryBuffer() {
   assert(buf == nullptr);
 }
