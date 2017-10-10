@@ -1,3 +1,19 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+#include "column.h"
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>    // memcpy, strcmp
@@ -5,12 +21,19 @@
 #include <errno.h>
 #include <fcntl.h>     // open
 #include <unistd.h>    // close
-#include "column.h"
 #include "utils.h"
 #include "myassert.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "py_utils.h"
+
+
+Column::Column(int64_t nrows_)
+    : mbuf(nullptr),
+      meta(nullptr),
+      nrows(nrows_),
+      stats(Stats::void_ptr()),
+      refcount(1) {}
 
 
 size_t Column::allocsize0(SType stype, size_t n) {
