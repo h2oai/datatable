@@ -32,12 +32,13 @@
 //==============================================================================
 
 MemoryBuffer::MemoryBuffer()
-    : buf(nullptr), allocsize(0), readonly(false) {}
+    : buf(nullptr), allocsize(0), refcount(1), readonly(false) {}
 
 // It is the job of a derived class to clean up the `buf`. Here we merely
 // check that the derived class did not forget to do so.
 MemoryBuffer::~MemoryBuffer() {
   assert(buf == nullptr);
+  assert(refcount == 0);
 }
 
 void* MemoryBuffer::get() const {
@@ -69,11 +70,23 @@ void MemoryBuffer::resize(UNUSED(size_t n)) {
 }
 
 bool MemoryBuffer::is_readonly() const {
-  return readonly;
+  return readonly || refcount > 1;
 }
 
 PyObject* MemoryBuffer::pyrepr() const {
   return none();
+}
+
+MemoryBuffer* MemoryBuffer::newref() {
+  ++refcount;
+  return this;
+}
+
+void MemoryBuffer::release() {
+  --refcount;
+  if (refcount == 0) {
+    delete this;
+  }
 }
 
 
@@ -210,14 +223,14 @@ MemmapMemBuf::MemmapMemBuf(const char *path, size_t n, bool create)
 MemmapMemBuf::~MemmapMemBuf() {
   munmap(buf, allocsize);
   buf = nullptr;
-  if (!readonly) {
+  if (!is_readonly()) {
     remove(filename.c_str());
   }
 }
 
 
 void MemmapMemBuf::resize(size_t n) {
-  if (readonly) return;
+  if (is_readonly()) throw Error("Cannot resize a readonly buffer");
   munmap(buf, allocsize);
   buf = nullptr;
   truncate(filename.c_str(), (off_t)n);
