@@ -173,6 +173,22 @@ public:
 
 
 
+//==============================================================================
+
+template <typename T> class IntColumn : public FwColumn<T>
+{
+public:
+  using FwColumn<T>::FwColumn;
+  virtual ~IntColumn() {}
+  virtual SType stype() const override;
+};
+
+extern template class IntColumn<int8_t>;
+extern template class IntColumn<int16_t>;
+extern template class IntColumn<int32_t>;
+extern template class IntColumn<int64_t>;
+
+
 
 //==============================================================================
 typedef Column* (*castfn_ptr)(Column*, Column*);
