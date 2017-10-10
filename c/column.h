@@ -167,8 +167,8 @@ class BoolColumn : public FwColumn<int8_t>
 {
 public:
   using FwColumn<int8_t>::FwColumn;
-  virtual ~BoolColumn() {}
-  virtual SType stype() const override { return ST_BOOLEAN_I1; }
+  virtual ~BoolColumn();
+  virtual SType stype() const override;
 };
 
 
@@ -179,7 +179,7 @@ template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
   using FwColumn<T>::FwColumn;
-  virtual ~IntColumn() {}
+  virtual ~IntColumn();
   virtual SType stype() const override;
 };
 
