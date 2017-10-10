@@ -208,6 +208,7 @@ test_deps = [
     "pytest>=3.1",
     "pytest-cov",
     "pytest-benchmark>=3.1",
+    "pytest-ordering>=0.5",
 ]
 
 

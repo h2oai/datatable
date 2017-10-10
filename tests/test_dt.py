@@ -49,6 +49,7 @@ def as_list(datatable):
 # Run the tests
 #-------------------------------------------------------------------------------
 
+@pytest.mark.run(order=1)
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.DataTable)
     assert dt0.internal.check()
@@ -111,6 +112,7 @@ def test_dt_properties(dt0):
     #                                                                                                                                                                                                         +---+
 
 
+@pytest.mark.run(order=2)
 def test_dt_call(dt0, capsys):
     assert dt0.internal.column(0).refcount == 1
     dt1 = dt0(timeit=True)
@@ -122,6 +124,7 @@ def test_dt_call(dt0, capsys):
     assert "Time taken:" in out
 
 
+@pytest.mark.run(order=3)
 def test_dt_view(dt0, patched_terminal, capsys):
     dt0.view()
     out, err = capsys.readouterr()
@@ -137,6 +140,7 @@ def test_dt_view(dt0, patched_terminal, capsys):
             in out)
 
 
+@pytest.mark.run(order=4)
 def test_dt_colindex(dt0):
     assert dt0.colindex(0) == 0
     assert dt0.colindex(1) == 1
@@ -154,6 +158,7 @@ def test_dt_colindex(dt0):
     assert "Column index `-8` is invalid for a datatable with" in str(e.value)
 
 
+@pytest.mark.run(order=5)
 def test_dt_getitem(dt0):
     dt1 = dt0[0]
     assert dt1.shape == (4, 1)
@@ -170,6 +175,7 @@ def test_dt_getitem(dt0):
 
 
 
+@pytest.mark.run(order=6)
 def test_dt_delitem():
     """
     Test deleting columns from a datatable.
@@ -226,6 +232,7 @@ def test_dt_delitem():
 
 
 
+@pytest.mark.run(order=7)
 def test_column_hexview(dt0, patched_terminal, capsys):
     assert dt0.internal.column(0).data_pointer
     dt0.internal.column(-1).hexview()
@@ -257,6 +264,7 @@ def test_column_hexview(dt0, patched_terminal, capsys):
             in out)
 
 
+@pytest.mark.run(order=8)
 def test_rename():
     d0 = dt.DataTable([[1], [2], ["hello"]])
     assert d0.names == ("C1", "C2", "C3")
@@ -269,6 +277,7 @@ def test_rename():
     assert "Column `xxx` does not exist" in str(e.value)
 
 
+@pytest.mark.run(order=9)
 def test_internal_rowindex():
     d0 = dt.DataTable(list(range(100)))
     d1 = d0[:20, :]
@@ -281,6 +290,7 @@ def test_internal_rowindex():
 # Test conversions into Pandas / Numpy
 #-------------------------------------------------------------------------------
 
+@pytest.mark.run(order=10)
 @pytest.mark.usefixture("pandas")
 def test_topandas():
     d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
@@ -292,6 +302,7 @@ def test_topandas():
     assert p0["C"].values.tolist() == [True, False]
 
 
+@pytest.mark.run(order=11)
 @pytest.mark.usefixture("pandas")
 def test_topandas_view():
     d0 = dt.DataTable([[1, 5, 2, 0, 199, -12],
@@ -304,6 +315,7 @@ def test_topandas_view():
     assert p1.values.T.tolist() == d1.topython()
 
 
+@pytest.mark.run(order=12)
 def test_topython():
     src = [[-1, 0, 1, 3],
            ["cat", "dog", "mouse", "elephant"],
@@ -318,6 +330,7 @@ def test_topython():
     assert all(b is None or isinstance(b, bool) for b in a0[2])
 
 
+@pytest.mark.run(order=13)
 def test_topython2():
     src = [[1.0, None, float("nan"), 3.3]]
     d0 = dt.DataTable(src)
@@ -326,6 +339,7 @@ def test_topython2():
     assert a0 == [1.0, None, None, 3.3]
 
 
+@pytest.mark.run(order=14)
 def test_tonumpy0(numpy):
     d0 = dt.DataTable([1, 3, 5, 7, 9])
     a0 = d0.tonumpy()
@@ -336,6 +350,7 @@ def test_tonumpy0(numpy):
     assert (a0 == a1).all()
 
 
+@pytest.mark.run(order=15)
 def test_tonumpy1(numpy):
     d0 = dt.DataTable({"A": [1, 5], "B": ["helo", "you"],
                        "C": [True, False], "D": [3.4, None]})
@@ -347,6 +362,7 @@ def test_tonumpy1(numpy):
     assert (a0 == a1).all()
 
 
+@pytest.mark.run(order=16)
 def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.DataTable(tbl)
@@ -359,6 +375,7 @@ def test_numpy_constructor_simple(numpy):
     assert n0.T.tolist() == tbl
 
 
+@pytest.mark.run(order=17)
 def test_numpy_constructor_empty(numpy):
     d0 = dt.DataTable()
     assert d0.shape == (0, 0)
@@ -367,6 +384,7 @@ def test_numpy_constructor_empty(numpy):
     assert n0.tolist() == []
 
 
+@pytest.mark.run(order=18)
 def test_numpy_constructor_multi_types(numpy):
     # Test that multi-types datatable will be promoted into a common type
     tbl = [[1, 5, 10],
@@ -384,6 +402,7 @@ def test_numpy_constructor_multi_types(numpy):
     assert (d0.tonumpy() == n0).all()
 
 
+@pytest.mark.run(order=19)
 def test_numpy_constructor_view(numpy):
     d0 = dt.DataTable([list(range(100)), list(range(0, 1000000, 10000))])
     d1 = d0[::-2, :]
@@ -395,6 +414,7 @@ def test_numpy_constructor_view(numpy):
     assert (d1.tonumpy() == n1).all()
 
 
+@pytest.mark.run(order=20)
 def test_numpy_constructor_single_col(numpy):
     d0 = dt.DataTable([1, 1, 3, 5, 8, 13, 21, 34, 55])
     assert d0.stypes == ("i1i", )
@@ -404,6 +424,7 @@ def test_numpy_constructor_single_col(numpy):
     assert (n0 == d0.tonumpy()).all()
 
 
+@pytest.mark.run(order=21)
 def test_numpy_constructor_single_string_col(numpy):
     d = dt.DataTable(["adf", "dfkn", "qoperhi"])
     assert d.shape == (3, 1)
@@ -415,6 +436,7 @@ def test_numpy_constructor_single_string_col(numpy):
     assert (a == d.tonumpy()).all()
 
 
+@pytest.mark.run(order=22)
 def test_numpy_constructor_view_1col(numpy):
     d0 = dt.DataTable({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
     d2 = d0[::2, "B"]
