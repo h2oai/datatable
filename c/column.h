@@ -1,7 +1,22 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
 #ifndef dt_COLUMN_H
 #define dt_COLUMN_H
-#include <inttypes.h>  // int*_t
-#include <stddef.h>    // offsetof
+#include <Python.h>
+#include <stdint.h>
 #include "memorybuf.h"
 #include "types.h"
 #include "stats.h"
@@ -60,7 +75,9 @@ class Stats;
  *     DataTable is deleted, it decreases refcounts of all its constituent
  *     Columns, and once a Column's refcount becomes 0 it can be safely deleted.
  */
-class Column {
+class Column
+{
+protected:
     MemoryBuffer *mbuf;
 
 public:  // TODO: convert these into private
@@ -71,7 +88,7 @@ public:  // TODO: convert these into private
 
 private:
     SType   _stype;      // 1
-    __attribute__((unused)) char _padding[3];
+    int : 24;            // padding
 
     Column(size_t nrows_, SType stype_); // helper for other constructors
     static size_t allocsize0(SType, size_t n);
@@ -83,7 +100,7 @@ public:
     Column(const char*, SType, size_t, const char*); // Load from disk
     explicit Column(const Column&);
 
-    SType stype() const;
+    virtual SType stype() const;
     void* data() const;
     void* data_at(size_t) const;
     size_t alloc_size() const;
@@ -104,16 +121,118 @@ public:
     static size_t i4s_padding(size_t datasize);
     static size_t i8s_padding(size_t datasize);
 
-private:
+protected:
+    Column(int64_t nrows);
     Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
     Column* rbind_str32(Column**, int64_t, int);
-    ~Column() {}
+    virtual ~Column() {}
 
     // FIXME
     friend Column* try_to_resolve_object_column(Column* col);
     friend Column* column_from_list(PyObject *list);
     friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
     friend void setFinalNrow(size_t nrows);
+};
+
+
+
+//==============================================================================
+
+template <typename T> class FwColumn : public Column
+{
+public:
+  FwColumn(int64_t nrows);
+  T* elements();
+  T get_elem(int64_t i) const;
+  void set_elem(int64_t i, T value);
+
+protected:
+  // static constexpr size_t elemsize = sizeof(T);
+  // static constexpr T na_elem = GETNA<T>();
+  virtual Column* extract_simple_slice(RowIndex*) const;
+};
+
+extern template class FwColumn<int8_t>;
+extern template class FwColumn<int16_t>;
+extern template class FwColumn<int32_t>;
+extern template class FwColumn<int64_t>;
+extern template class FwColumn<float>;
+extern template class FwColumn<double>;
+extern template class FwColumn<PyObject*>;
+
+
+
+//==============================================================================
+
+class BoolColumn : public FwColumn<int8_t>
+{
+public:
+  using FwColumn<int8_t>::FwColumn;
+  virtual ~BoolColumn();
+  virtual SType stype() const override;
+};
+
+
+
+//==============================================================================
+
+template <typename T> class IntColumn : public FwColumn<T>
+{
+public:
+  using FwColumn<T>::FwColumn;
+  virtual ~IntColumn();
+  virtual SType stype() const override;
+};
+
+extern template class IntColumn<int8_t>;
+extern template class IntColumn<int16_t>;
+extern template class IntColumn<int32_t>;
+extern template class IntColumn<int64_t>;
+
+
+
+//==============================================================================
+
+template <typename T> class RealColumn : public FwColumn<T>
+{
+public:
+  using FwColumn<T>::FwColumn;
+  virtual ~RealColumn();
+  virtual SType stype() const override;
+};
+
+extern template class RealColumn<float>;
+extern template class RealColumn<double>;
+
+
+
+//==============================================================================
+
+template <typename T> class StringColumn : public Column
+{
+  MemoryBuffer *strbuf;
+
+public:
+  // static const size_t elemsize = sizeof(T);
+
+  StringColumn(int64_t nrows);
+  virtual ~StringColumn();
+  virtual Column* extract_simple_slice(RowIndex*) const;
+  virtual SType stype() const override;
+
+  static size_t padding(size_t datasize);
+};
+
+
+
+//==============================================================================
+
+class PyObjectColumn : public FwColumn<PyObject*>
+{
+public:
+  using FwColumn<PyObject*>::FwColumn;
+  virtual ~PyObjectColumn();
+  virtual SType stype() const override;
 };
 
 

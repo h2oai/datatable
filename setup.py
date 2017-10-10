@@ -171,6 +171,7 @@ extra_compile_args += [
     "-Werror=implicit-function-declaration",
     "-Werror=incompatible-pointer-types",
     "-Wno-weak-vtables",  # TODO: Remove
+    "-Wno-weak-template-vtables",
 ]
 extra_link_args = [
     "-v",
