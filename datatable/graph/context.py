@@ -173,9 +173,9 @@ static inline double _nand_(void) { double_repr x = { BIN_NAF8 }; return x.d; }
 
 _externs = {
     "ISNA_F4": "static inline int ISNA_F4(float x) "
-               "{ float_repr xx; xx.f = x; return xx.i == BIN_NAF4; }",
+               "{ return __builtin_isnan(x); }",
     "ISNA_F8": "static inline int ISNA_F8(double x) "
-               "{ double_repr xx; xx.d = x; return xx.i == BIN_NAF8; }",
+               "{ return __builtin_isnan(x); }",
     "ISNA_I1": "static inline int ISNA_I1(int8_t x) { return x == NA_I1; }",
     "ISNA_I2": "static inline int ISNA_I2(int16_t x) { return x == NA_I2; }",
     "ISNA_I4": "static inline int ISNA_I4(int32_t x) { return x == NA_I4; }",

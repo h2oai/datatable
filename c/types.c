@@ -42,28 +42,6 @@ dt_static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
 dt_static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 
 
-//==============================================================================
-// NA handling
-//==============================================================================
-
-typedef union { uint32_t i; float f; } _flt;
-typedef union { uint64_t i; double f; } _dbl;
-
-const int8_t   NA_I1 = INT8_MIN;
-const int16_t  NA_I2 = INT16_MIN;
-const int32_t  NA_I4 = INT32_MIN;
-const int64_t  NA_I8 = INT64_MIN;
-const uint8_t  NA_U1 = UINT8_MAX;
-const uint16_t NA_U2 = UINT16_MAX;
-const uint32_t NA_U4 = UINT32_MAX;
-const uint64_t NA_U8 = UINT64_MAX;
-float NA_F4;
-double NA_F8;
-
-int ISNA_F4(float x)    { return ((_flt){ .f = x }).i == NA_F4_BITS; }
-int ISNA_F8(double x)   { return ((_dbl){ .f = x }).i == NA_F8_BITS; }
-
-
 
 //==============================================================================
 // Initialize auxiliary data structures
@@ -74,9 +52,6 @@ static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 void init_types(void)
 {
-    NA_F4 = ((_flt){ .i = NA_F4_BITS }).f;
-    NA_F8 = ((_dbl){ .i = NA_F8_BITS }).f;
-
     #define STI(T, code, csize, msize, vw, ltype, na) \
         stype_info[T] = (STypeInfo){csize, msize, na, code, ltype, vw, 0}
     STI(ST_VOID,              "---", 0, 0,                   0, LT_MU,       NULL);

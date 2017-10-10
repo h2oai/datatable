@@ -2,6 +2,8 @@
 #define dt_TYPES_H
 #include <stddef.h>  // size_t
 #include <stdint.h>  // int*_t
+#include <cmath>     // isnan
+#include <limits>    // std::numeric_limits
 
 
 // intXX(32)  =>  int32_t
@@ -422,16 +424,17 @@ typedef struct EnumMeta {     // ST_STRING_UX_ENUM
 
 #define NA_F4_BITS 0x7F8007A2u
 #define NA_F8_BITS 0x7FF00000000007A2ull
-extern const int8_t   NA_I1;
-extern const int16_t  NA_I2;
-extern const int32_t  NA_I4;
-extern const int64_t  NA_I8;
-extern const uint8_t  NA_U1;
-extern const uint16_t NA_U2;
-extern const uint32_t NA_U4;
-extern const uint64_t NA_U8;
-extern       float    NA_F4;
-extern       double   NA_F8;
+
+constexpr int8_t   NA_I1 = INT8_MIN;
+constexpr int16_t  NA_I2 = INT16_MIN;
+constexpr int32_t  NA_I4 = INT32_MIN;
+constexpr int64_t  NA_I8 = INT64_MIN;
+constexpr uint8_t  NA_U1 = UINT8_MAX;
+constexpr uint16_t NA_U2 = UINT16_MAX;
+constexpr uint32_t NA_U4 = UINT32_MAX;
+constexpr uint64_t NA_U8 = UINT64_MAX;
+constexpr float    NA_F4 = std::numeric_limits<float>::quiet_NaN();
+constexpr double   NA_F8 = std::numeric_limits<double>::quiet_NaN();
 
 int ISNA_F4(float x);
 int ISNA_F8(double x);
@@ -443,6 +446,9 @@ int ISNA_F8(double x);
 #define ISNA_U1(x)  ((uint8_t)(x)  == NA_U1)
 #define ISNA_U2(x)  ((uint16_t)(x) == NA_U2)
 #define ISNA_U4(x)  ((uint32_t)(x) == NA_U4)
+#define ISNA_F4(x)  (isnan(x))
+#define ISNA_F8(x)  (isnan(x))
+
 
 /**
  * GETNA function
@@ -450,16 +456,16 @@ int ISNA_F8(double x);
  * type of `T`. Returns NULL if `T` is incompatible.
  */
 template <typename T>
-           inline T        GETNA() { return NULL;  }
-template<> inline int8_t   GETNA() { return NA_I1; }
-template<> inline int16_t  GETNA() { return NA_I2; }
-template<> inline int32_t  GETNA() { return NA_I4; }
-template<> inline int64_t  GETNA() { return NA_I8; }
-template<> inline uint8_t  GETNA() { return NA_U1; }
-template<> inline uint16_t GETNA() { return NA_U2; }
-template<> inline uint32_t GETNA() { return NA_U4; }
-template<> inline float    GETNA() { return NA_F4; }
-template<> inline double   GETNA() { return NA_F8; }
+           constexpr T        GETNA() { return NULL;  }
+template<> constexpr int8_t   GETNA() { return NA_I1; }
+template<> constexpr int16_t  GETNA() { return NA_I2; }
+template<> constexpr int32_t  GETNA() { return NA_I4; }
+template<> constexpr int64_t  GETNA() { return NA_I8; }
+template<> constexpr uint8_t  GETNA() { return NA_U1; }
+template<> constexpr uint16_t GETNA() { return NA_U2; }
+template<> constexpr uint32_t GETNA() { return NA_U4; }
+template<> constexpr float    GETNA() { return NA_F4; }
+template<> constexpr double   GETNA() { return NA_F8; }
 
 /**
  * ISNA function
@@ -475,8 +481,8 @@ template<> inline bool ISNA(int64_t x)  { return ISNA_I8(x); }
 template<> inline bool ISNA(uint8_t x)  { return ISNA_U1(x); }
 template<> inline bool ISNA(uint16_t x) { return ISNA_U2(x); }
 template<> inline bool ISNA(uint32_t x) { return ISNA_U4(x); }
-template<> inline bool ISNA(float x)    { return ISNA_F4(x); }
-template<> inline bool ISNA(double x)   { return ISNA_F8(x); }
+template<> inline bool ISNA(float x)    { return isnan(x); }
+template<> inline bool ISNA(double x)   { return isnan(x); }
 
 //==============================================================================
 
@@ -486,5 +492,12 @@ SType stype_from_string(const char *s);
 const char* format_from_stype(SType stype);
 SType common_stype_for_buffer(SType stype1, SType stype2);
 
+
+constexpr SType stype_integer(size_t s) {
+    return s == 1? ST_INTEGER_I1 :
+           s == 2? ST_INTEGER_I2 :
+           s == 4? ST_INTEGER_I4 :
+           s == 8? ST_INTEGER_I8 : ST_VOID;
+}
 
 #endif

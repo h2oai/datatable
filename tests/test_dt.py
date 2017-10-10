@@ -323,10 +323,7 @@ def test_topython2():
     d0 = dt.DataTable(src)
     assert d0.types == ("real", )
     a0 = d0.topython()[0]
-    assert a0[0] == 1.0
-    assert a0[1] is None
-    assert math.isnan(a0[2])
-    assert a0[3] == 3.3
+    assert a0 == [1.0, None, None, 3.3]
 
 
 def test_tonumpy0(numpy):
