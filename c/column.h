@@ -89,15 +89,13 @@ private:
   SType   _stype;      // 1
   int64_t : 56;        // padding
 
-  Column(SType stype, int64_t nrows);  // helper for other constructors
-  static size_t allocsize0(SType, int64_t nrows);
-
 public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const char* filename);
   static Column* open_mmap_column(SType, int64_t nrows, const char* filename,
-                                  const char* extra);
-  Column(SType, int64_t, void*, void*, size_t); // XBuf Column
+                                  const char* metastr);
+  static Column* new_xbuf_column(SType, int64_t nrows, void* pybuffer,
+                                 void* data, size_t datasize);
   Column(const Column*);  // make shallow copy of a column
   virtual ~Column();
 
@@ -128,7 +126,9 @@ public:
   static size_t i8s_padding(size_t datasize);
 
 protected:
+  static size_t allocsize0(SType, int64_t nrows);
   Column(int64_t nrows);
+  Column(SType stype, int64_t nrows);
   Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
   Column* rbind_str32(Column**, int64_t, int);
 

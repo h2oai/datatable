@@ -136,10 +136,12 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
 /**
  * Construct a column from the externally provided buffer.
  */
-Column::Column(SType st, int64_t nr, void* pybuffer, void* data, size_t a_size)
-    : Column(st, nr)
+Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
+                                void* data, size_t a_size)
 {
-  mbuf = new ExternalMemBuf(data, pybuffer, a_size);
+  Column* col = new Column(stype, nrows);
+  col->mbuf = new ExternalMemBuf(data, pybuffer, a_size);
+  return col;
 }
 
 
