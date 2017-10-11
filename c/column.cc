@@ -510,6 +510,7 @@ Column* Column::incref() {
 void Column::decref_() {
 }
 
+
 Column::~Column() {
   dtfree(meta);
   Stats::destruct(stats);

@@ -39,7 +39,7 @@ SType StringColumn<T>::stype() const {
 
 template <typename T>
 StringColumn<T>::~StringColumn() {
-  strbuf->release();
+  if (strbuf) strbuf->release();
 }
 
 
