@@ -528,7 +528,7 @@ void Column::decref() {
     if (refcount <= 0) {
         dtfree(meta);
         Stats::destruct(stats);
-        delete mbuf;
+        mbuf->release();
         delete this;
     }
 }

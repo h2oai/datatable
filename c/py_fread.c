@@ -388,7 +388,7 @@ void setFinalNrow(size_t nrows) {
                 int ret = rename(fname, fname2);
                 if (ret == -1) printf("Unable to rename: %d\n", errno);
             } else {
-                delete col->mbuf;
+                col->mbuf->release();
             }
             col->mbuf = new MemoryMemBuf(final_ptr, final_size);
             col->nrows = (int64_t) nrows;
