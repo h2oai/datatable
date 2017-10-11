@@ -92,13 +92,13 @@ private:
 
     Column(size_t nrows_, SType stype_); // helper for other constructors
     static size_t allocsize0(SType, size_t n);
+    explicit Column(const Column&);
 
 public:
     Column(SType, size_t); // Data Column
     Column(SType, size_t, const char*); // MMap Column
     Column(SType, size_t, void*, void*, size_t); // XBuf Column
     Column(const char*, SType, size_t, const char*); // Load from disk
-    explicit Column(const Column&);
     virtual ~Column();
 
     virtual SType stype() const;

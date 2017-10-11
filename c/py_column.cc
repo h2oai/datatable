@@ -118,8 +118,8 @@ static PyObject* meth_hexview(Column_PyObject *self, UU)
 
 static void pycolumn_dealloc(Column_PyObject *self)
 {
-    Column* col = self->ref;
-    delete col;
+    // FIXME!
+    // delete self->ref;
     Py_XDECREF(self->pydt);
     self->ref = NULL;
     self->pydt = NULL;

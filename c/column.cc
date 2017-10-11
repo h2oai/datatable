@@ -503,12 +503,15 @@ void Column::resize_and_fill(int64_t new_nrows)
  * Here `self` can also be NULL, in which case this function does nothing.
  */
 Column* Column::incref() {
-    ++refcount;
-    return this;
+  Column* res = new Column(nrows, stype());
+  res->mbuf = mbuf->newref();
+  if (meta) {
+    memcpy(res->meta, meta, stype_info[stype()].metasize);
+  }
+  // TODO: also copy Stats object
+  return res;
 }
 
-void Column::decref_() {
-}
 
 
 Column::~Column() {
