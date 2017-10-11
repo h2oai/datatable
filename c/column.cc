@@ -58,15 +58,6 @@ Column::Column(size_t nrows_, SType stype_)
 }
 
 
-/**
- * Simple Column constructor: create a Column with memory type `MT_DATA` and
- * having the provided SType. The column will be preallocated for `nrows` rows,
- * and will have `refcount` = 1. For a variable-width column only the "fixed-
- * -width" part will be allocated.
- *
- * If the column cannot be created (probably due to Out-of-Memory exception),
- * the function will return NULL.
- */
 Column* Column::new_data_column(SType stype, int64_t nrows) {
   size_t u_nrows = static_cast<size_t>(nrows);
   Column* col = new Column(u_nrows, stype);
@@ -75,11 +66,13 @@ Column* Column::new_data_column(SType stype, int64_t nrows) {
 }
 
 
-Column::Column(SType stype_, size_t nrows_, const char* filename)
-    : Column(nrows_, stype_)
-{
-  size_t sz = allocsize0(stype_, nrows_);
-  mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
+Column* Column::new_mmap_column(SType stype, int64_t nrows,
+                                const char* filename) {
+  size_t u_nrows = static_cast<size_t>(nrows);
+  size_t sz = allocsize0(stype, u_nrows);
+  Column* col = new Column(u_nrows, stype);
+  col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
+  return col;
 }
 
 
@@ -124,17 +117,24 @@ Column* Column::save_to_disk(const char *filename)
  * This function will not check data validity (i.e. that the buffer contains
  * valid values, and that the extra parameters match the buffer's contents).
  */
-Column::Column(const char* filename, SType st, size_t nr, const char* ms)
-    : Column(nr, st)
+Column* Column::open_mmap_column(SType stype, int64_t nrows,
+                                 const char* filename, const char* ms)
 {
-  mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
+  size_t u_nrows = static_cast<size_t>(nrows);
+  Column* col = new Column(u_nrows, stype);
+  col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
+  if (col->alloc_size() < allocsize0(stype, u_nrows)) {
+    throw new Error("File %s has size %zu, which is not sufficient for a column"
+                    " with %zu rows", filename, col->alloc_size(), u_nrows);
+  }
   // Deserialize the meta information, if needed
-  if (st == ST_STRING_I4_VCHAR || st == ST_STRING_I8_VCHAR) {
+  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
     if (strncmp(ms, "offoff=", 7) != 0)
       throw new Error("Cannot retrieve required metadata in string \"%s\"", ms);
     int64_t offoff = (int64_t) atoll(ms + 7);
-    ((VarcharMeta*) meta)->offoff = offoff;
+    ((VarcharMeta*) col->meta)->offoff = offoff;
   }
+  return col;
 }
 
 

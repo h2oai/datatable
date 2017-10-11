@@ -94,9 +94,10 @@ private:
 
 public:
   static Column* new_data_column(SType, int64_t nrows);
-  Column(SType, size_t, const char*); // MMap Column
+  static Column* new_mmap_column(SType, int64_t nrows, const char* filename);
+  static Column* open_mmap_column(SType, int64_t nrows, const char* filename,
+                                  const char* extra);
   Column(SType, size_t, void*, void*, size_t); // XBuf Column
-  Column(const char*, SType, size_t, const char*); // Load from disk
   Column(const Column*);  // make shallow copy of a column
   virtual ~Column();
 
