@@ -157,6 +157,12 @@ public:
    */
   void release();
 
+  /**
+   * Returns the internal ref counter of the MemoryBuffer. This is useful mostly
+   * for debugging purposes.
+   */
+  int get_refcount() const;
+
 
   //--- Internal ---------------------------------------------------------------
 protected:
@@ -178,6 +184,7 @@ class MemoryMemBuf : public MemoryBuffer
 public:
   MemoryMemBuf(size_t n);
   MemoryMemBuf(void *ptr, size_t n);
+  explicit MemoryMemBuf(const MemoryBuffer&);
   virtual void resize(size_t n) override;
   virtual PyObject* pyrepr() const override;
 

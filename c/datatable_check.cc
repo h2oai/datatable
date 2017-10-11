@@ -281,8 +281,8 @@ int DataTable::verify_integrity(char **errors)
                 i, col->nrows, maxrow);
             continue;
         }
-        if (col->refcount <= 0) {
-            ERR("Column's refcount is nonpositive: %d\n", col->refcount);
+        if (col->mbuf_refcount() <= 0) {
+            ERR("Column's refcount is nonpositive: %d\n", col->mbuf_refcount());
         }
         size_t metasize = stype_info[stype].metasize;
         if (metasize > 0) {

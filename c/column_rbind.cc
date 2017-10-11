@@ -42,11 +42,11 @@ Column* Column::rbind(Column **cols)
     bool col_empty = (stype() == ST_VOID);
     if (col_empty) {
         res = new Column(res_stype, (size_t) this->nrows);
-    } else if (refcount == 1 && !mbuf->is_readonly() && stype() == res_stype) {
+    } else if (!mbuf->is_readonly() && stype() == res_stype) {
         // Happy place: current column can be modified in-place.
         res = this;
     } else {
-        res = (stype() == res_stype) ? new Column(*this) : cast(res_stype);
+        res = (stype() == res_stype) ? deepcopy() : cast(res_stype);
     }
     if (res == NULL) return NULL;
     assert(res->stype() == res_stype && !res->mbuf->is_readonly() &&

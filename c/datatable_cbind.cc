@@ -45,7 +45,7 @@ DataTable* DataTable::cbind(DataTable **dts, int ndts)
             }
         } else {
             for (int64_t ii = 0; ii < ncolsi; ++ii) {
-                Column *c = dts[i]->columns[ii]->incref();
+                Column *c = new Column(dts[i]->columns[ii]);
                 if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
                 columns[j++] = c;
             }

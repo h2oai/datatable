@@ -55,7 +55,7 @@ DataTable::rbind(DataTable **dts, int **cols, int ndts, int64_t ncols__)
             } else if (dts[j]->rowindex) {
                 cols0[j] = dts[j]->columns[cols[i][j]]->extract(dts[j]->rowindex);
             } else {
-                cols0[j] = dts[j]->columns[cols[i][j]]->incref();
+                cols0[j] = new Column(dts[j]->columns[cols[i][j]]);
             }
             if (cols0[j] == NULL) return NULL;
         }

@@ -32,8 +32,7 @@ Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       meta(nullptr),
       nrows(nrows_),
-      stats(Stats::void_ptr()),
-      refcount(1) {}
+      stats(Stats::void_ptr()) {}
 
 
 size_t Column::allocsize0(SType stype, size_t n) {
@@ -45,13 +44,9 @@ size_t Column::allocsize0(SType stype, size_t n) {
 
 
 Column::Column(size_t nrows_, SType stype_)
-    : mbuf(nullptr),
-      meta(nullptr),
-      nrows(static_cast<int64_t>(nrows_)),
-      stats(Stats::void_ptr()),
-      refcount(1),
-      _stype(stype_)
+    : Column(static_cast<int64_t>(nrows_))
 {
+    _stype = stype_;
     size_t meta_size = stype_info[stype_].metasize;
     if (meta_size) {
         meta = malloc(meta_size);
@@ -152,25 +147,35 @@ Column::Column(SType st, size_t nr, void* pybuffer, void* data, size_t a_size)
 }
 
 
+/**
+ * Create a shallow copy of the provided column.
+ */
+Column::Column(const Column* other)
+    : Column(static_cast<size_t>(other->nrows), other->stype())
+{
+  assert(mbuf == nullptr);
+  mbuf = other->mbuf->newref();
+  if (meta) {
+    memcpy(meta, other->meta, stype_info[stype()].metasize);
+  }
+  // TODO: also copy Stats object
+}
+
 
 /**
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.
- * If a shallow copy is needed, then simply copy the column's reference and
- * call `column_incref()`.
+ * If a shallow copy is needed, then use a copy-constructor `new Column(*this)`.
  */
-Column::Column(const Column &other)
-    : Column(static_cast<size_t>(other.nrows), other.stype())
+Column* Column::deepcopy()
 {
-  mbuf = new MemoryMemBuf(other.alloc_size());
+  Column* res = new Column(static_cast<size_t>(nrows), stype());
+  res->mbuf = new MemoryMemBuf(*mbuf);
+  if (meta) {
+    memcpy(res->meta, meta, stype_info[stype()].metasize);
+  }
   // TODO: deep copy stats when implemented
-  if (alloc_size()) {
-    memcpy(data(), other.data(), alloc_size());
-  }
-  size_t meta_size = stype_info[stype()].metasize;
-  if (meta_size) {
-    memcpy(meta, other.meta, meta_size);
-  }
+  return res;
 }
 
 
@@ -194,6 +199,10 @@ PyObject* Column::mbuf_repr() const {
   return mbuf->pyrepr();
 }
 
+int Column::mbuf_refcount() const {
+  return mbuf->get_refcount();
+}
+
 
 /**
  * Extract data from this column at rows specified in the provided `rowindex`.
@@ -204,7 +213,7 @@ PyObject* Column::mbuf_repr() const {
 Column* Column::extract(RowIndex *rowindex) {
     // If `rowindex` is not provided, then return a shallow "copy".
     if (rowindex == NULL) {
-        return incref();
+        return new Column(this);
     }
 
     size_t res_nrows = (size_t) rowindex->length;
@@ -490,26 +499,6 @@ void Column::resize_and_fill(int64_t new_nrows)
     } else {
       throw new Error("Cannot realloc column of stype %d", stype());
     }
-}
-
-
-
-
-/**
- * Increase reference count on column `self`. This function should be called
- * when a new long-term copy to the column is created (for example if the column
- * is referenced from several data tables). For convenience, this function
- * returns the column object passed.
- * Here `self` can also be NULL, in which case this function does nothing.
- */
-Column* Column::incref() {
-  Column* res = new Column(nrows, stype());
-  res->mbuf = mbuf->newref();
-  if (meta) {
-    memcpy(res->meta, meta, stype_info[stype()].metasize);
-  }
-  // TODO: also copy Stats object
-  return res;
 }
 
 

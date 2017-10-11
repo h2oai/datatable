@@ -23,7 +23,7 @@ Column* Column::cast(SType new_stype)
         if (res == NULL) return NULL;
         return converter(this, res);
     } else if (_stype == new_stype) {
-        return new Column(*this);
+        return this->deepcopy();
     } else {
         dterrv("Unable to cast from stype=%d into stype=%d", _stype, new_stype);
     }
