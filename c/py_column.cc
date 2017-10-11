@@ -10,7 +10,7 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
 {
     Column_PyObject *pycol = Column_PyNew();
     if (pycol == NULL) return NULL;
-    pycol->ref = new Column(col);
+    pycol->ref = col->shallowcopy();
     pycol->pydt = pydt;
     pycol->colidx = colidx;
     Py_XINCREF(pydt);

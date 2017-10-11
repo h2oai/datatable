@@ -148,14 +148,14 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 /**
  * Create a shallow copy of the provided column.
  */
-Column::Column(const Column* other) : Column(other->stype(), other->nrows)
-{
-  assert(mbuf == nullptr);
-  mbuf = other->mbuf->newref();
+Column* Column::shallowcopy() {
+  Column* col = new Column(stype(), nrows);
+  col->mbuf = mbuf->newref();
   if (meta) {
-    memcpy(meta, other->meta, stype_info[stype()].metasize);
+    memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: also copy Stats object
+  return col;
 }
 
 
@@ -166,13 +166,13 @@ Column::Column(const Column* other) : Column(other->stype(), other->nrows)
  */
 Column* Column::deepcopy()
 {
-  Column* res = new Column(stype(), nrows);
-  res->mbuf = new MemoryMemBuf(*mbuf);
+  Column* col = new Column(stype(), nrows);
+  col->mbuf = new MemoryMemBuf(*mbuf);
   if (meta) {
-    memcpy(res->meta, meta, stype_info[stype()].metasize);
+    memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: deep copy stats when implemented
-  return res;
+  return col;
 }
 
 
@@ -210,7 +210,7 @@ int Column::mbuf_refcount() const {
 Column* Column::extract(RowIndex *rowindex) {
   // If `rowindex` is not provided, then return a shallow "copy".
   if (rowindex == NULL) {
-    return new Column(this);
+    return shallowcopy();
   }
 
   size_t res_nrows = (size_t) rowindex->length;

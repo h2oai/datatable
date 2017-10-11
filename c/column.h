@@ -96,7 +96,8 @@ public:
                                   const char* metastr);
   static Column* new_xbuf_column(SType, int64_t nrows, void* pybuffer,
                                  void* data, size_t datasize);
-  Column(const Column*);  // make shallow copy of a column
+  Column(const Column&) = delete;
+  Column(Column&&) = delete;
   virtual ~Column();
 
   virtual SType stype() const;
@@ -112,6 +113,7 @@ public:
    */
   void resize_and_fill(int64_t nrows);
 
+  Column* shallowcopy();
   Column* deepcopy();
   Column* cast(SType);
   Column* rbind(Column**);
