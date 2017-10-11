@@ -78,64 +78,64 @@ class Stats;
 class Column
 {
 protected:
-    MemoryBuffer *mbuf;
+  MemoryBuffer *mbuf;
 
 public:  // TODO: convert these into private
-    void   *meta;        // 8
-    int64_t nrows;       // 8
-    Stats*  stats;       // 8
+  void   *meta;        // 8
+  int64_t nrows;       // 8
+  Stats*  stats;       // 8
 
 private:
-    SType   _stype;      // 1
-    int64_t : 56;        // padding
+  SType   _stype;      // 1
+  int64_t : 56;        // padding
 
-    Column(size_t nrows_, SType stype_); // helper for other constructors
-    static size_t allocsize0(SType, size_t n);
+  Column(size_t nrows_, SType stype_); // helper for other constructors
+  static size_t allocsize0(SType, size_t n);
 
 public:
-    Column(SType, size_t); // Data Column
-    Column(SType, size_t, const char*); // MMap Column
-    Column(SType, size_t, void*, void*, size_t); // XBuf Column
-    Column(const char*, SType, size_t, const char*); // Load from disk
-    Column(const Column*);  // make shallow copy of a column
-    virtual ~Column();
+  Column(SType, size_t); // Data Column
+  Column(SType, size_t, const char*); // MMap Column
+  Column(SType, size_t, void*, void*, size_t); // XBuf Column
+  Column(const char*, SType, size_t, const char*); // Load from disk
+  Column(const Column*);  // make shallow copy of a column
+  virtual ~Column();
 
-    virtual SType stype() const;
-    void* data() const;
-    void* data_at(size_t) const;
-    size_t alloc_size() const;
-    PyObject* mbuf_repr() const;
-    int mbuf_refcount() const;
+  virtual SType stype() const;
+  void* data() const;
+  void* data_at(size_t) const;
+  size_t alloc_size() const;
+  PyObject* mbuf_repr() const;
+  int mbuf_refcount() const;
 
-    /**
-     * Resize the column up to `nrows` elements, and fill all new elements with
-     * NA values.
-     */
-    void resize_and_fill(int64_t nrows);
+  /**
+   * Resize the column up to `nrows` elements, and fill all new elements with
+   * NA values.
+   */
+  void resize_and_fill(int64_t nrows);
 
-    Column* deepcopy();
-    Column* cast(SType);
-    Column* rbind(Column**);
-    Column* extract(RowIndex* = NULL);
-    Column* save_to_disk(const char*);
-    size_t i4s_datasize();
-    size_t i8s_datasize();
-    size_t get_allocsize();
+  Column* deepcopy();
+  Column* cast(SType);
+  Column* rbind(Column**);
+  Column* extract(RowIndex* = NULL);
+  Column* save_to_disk(const char*);
+  size_t i4s_datasize();
+  size_t i8s_datasize();
+  size_t get_allocsize();
 
-    static RowIndex* sort(Column*, RowIndex*);
-    static size_t i4s_padding(size_t datasize);
-    static size_t i8s_padding(size_t datasize);
+  static RowIndex* sort(Column*, RowIndex*);
+  static size_t i4s_padding(size_t datasize);
+  static size_t i8s_padding(size_t datasize);
 
 protected:
-    Column(int64_t nrows);
-    Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
-    Column* rbind_str32(Column**, int64_t, int);
+  Column(int64_t nrows);
+  Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
+  Column* rbind_str32(Column**, int64_t, int);
 
-    // FIXME
-    friend Column* try_to_resolve_object_column(Column* col);
-    friend Column* column_from_list(PyObject *list);
-    friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
-    friend void setFinalNrow(size_t nrows);
+  // FIXME
+  friend Column* try_to_resolve_object_column(Column* col);
+  friend Column* column_from_list(PyObject *list);
+  friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
+  friend void setFinalNrow(size_t nrows);
 };
 
 
