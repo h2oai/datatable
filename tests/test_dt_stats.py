@@ -27,13 +27,9 @@ dt_float = {(9.5, 0.2, 5.4857301, -3.14159265358979),
 
 dt_all = dt_bool | dt_int | dt_float
 
-@pytest.fixture(params = dt_all)
+@pytest.fixture(params=dt_all)
 def src_all(request):
     src = request.param
-    # FIXME: DataTables created from pylists with NaNs does not register the
-    # NaN as a NA. See issue #323
-    if len([x for x in src if x is not None and isnan(x)]) > 0:
-        pytest.skip("DataTable cannot properly handle python lists with NaNs")
     return src
 
 # Helper function that provides the resulting stype after `min()` or `max()` is
@@ -53,6 +49,7 @@ def sum_stype(stype):
     if stype in ["f4r", "f8r"]:
         return "f8r"
     return stype
+
 
 #-------------------------------------------------------------------------------
 # Minimum function dt.min()
@@ -107,6 +104,7 @@ def test_dt_max(src_all):
         assert dt0.names[i] == dtr.names[i]
     assert dtr.topython() == [t_max(src_all)]
 
+
 #-------------------------------------------------------------------------------
 # Sum function dt.sum()
 #-------------------------------------------------------------------------------
@@ -127,12 +125,13 @@ def test_dt_sum(src_all):
     assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [t_sum(src_all)])
 
+
 #-------------------------------------------------------------------------------
 # Mean function dt.mean()
 #-------------------------------------------------------------------------------
 
 def t_mean(t):
-    t = [i for i in t 
+    t = [i for i in t
          if i is not None and not isnan(i)]
     if len(t) == 0:
         return [None]
@@ -175,7 +174,7 @@ def test_dt_mean_special_cases(src, res):
 #-------------------------------------------------------------------------------
 
 def t_sd(t):
-    t = [i for i in t 
+    t = [i for i in t
          if i is not None and not isnan(i)]
     if len(t) == 0:
         return [None]
@@ -207,6 +206,7 @@ def test_dt_sd_special_cases(src, res):
     assert dtr.internal.check()
     assert list_equals(dtr.topython(), [[res]])
 
+
 #-------------------------------------------------------------------------------
 # Count_na function dt.count_na()
 #-------------------------------------------------------------------------------
@@ -223,6 +223,7 @@ def test_dt_count_na(src_all):
     assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [t_count_na(src_all)])
 
+
 #-------------------------------------------------------------------------------
 # RowIndex compatability
 #-------------------------------------------------------------------------------
@@ -232,11 +233,10 @@ ridx_param = [([-3, 6, 1, 0, 4], slice(2, 5), 0),
               ([3.5, -182, None, 2, 3], [0, 2, 4], 3),
               ([True, True, True, None, False], slice(4), True),
               ([True, True, True, None, False], [0, 3], True)]
+
 @pytest.mark.parametrize("src,view,exp", ridx_param)
 def test_dt_ridx(src, view, exp):
     dt0 = dt.DataTable(src)
     dt_view = dt0(view)
     res = dt_view.min()
     assert res.topython()[0][0] == exp
-
-
