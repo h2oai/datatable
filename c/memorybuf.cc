@@ -89,6 +89,10 @@ void MemoryBuffer::release() {
   }
 }
 
+int MemoryBuffer::get_refcount() const {
+  return refcount;
+}
+
 
 
 //==============================================================================
@@ -96,15 +100,27 @@ void MemoryBuffer::release() {
 //==============================================================================
 
 MemoryMemBuf::MemoryMemBuf(size_t n) {
-  buf = malloc(n);
-  allocsize = n;
-  if (!buf) throw Error("Unable to allocate memory of size %zu", n);
+  if (n) {
+    allocsize = n;
+    buf = malloc(n);
+    if (!buf) throw Error("Unable to allocate memory of size %zu", n);
+  }
 }
 
 MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
-  if (!ptr && n) throw Error("Unallocated memory region provided");
-  buf = ptr;
-  allocsize = n;
+  if (n) {
+    allocsize = n;
+    buf = ptr;
+    if (!buf) throw Error("Unallocated memory region provided");
+  }
+}
+
+MemoryMemBuf::MemoryMemBuf(const MemoryBuffer& other)
+    : MemoryMemBuf(other.size())
+{
+  if (allocsize) {
+    memcpy(buf, other.get(), allocsize);
+  }
 }
 
 MemoryMemBuf::~MemoryMemBuf() {

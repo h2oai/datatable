@@ -84,11 +84,10 @@ public:  // TODO: convert these into private
     void   *meta;        // 8
     int64_t nrows;       // 8
     Stats*  stats;       // 8
-    int     refcount;    // 4
 
 private:
     SType   _stype;      // 1
-    int : 24;            // padding
+    int64_t : 56;        // padding
 
     Column(size_t nrows_, SType stype_); // helper for other constructors
     static size_t allocsize0(SType, size_t n);
@@ -98,24 +97,30 @@ public:
     Column(SType, size_t, const char*); // MMap Column
     Column(SType, size_t, void*, void*, size_t); // XBuf Column
     Column(const char*, SType, size_t, const char*); // Load from disk
-    explicit Column(const Column&);
+    Column(const Column*);  // make shallow copy of a column
+    virtual ~Column();
 
     virtual SType stype() const;
     void* data() const;
     void* data_at(size_t) const;
     size_t alloc_size() const;
     PyObject* mbuf_repr() const;
+    int mbuf_refcount() const;
 
+    /**
+     * Resize the column up to `nrows` elements, and fill all new elements with
+     * NA values.
+     */
+    void resize_and_fill(int64_t nrows);
+
+    Column* deepcopy();
     Column* cast(SType);
     Column* rbind(Column**);
     Column* extract(RowIndex* = NULL);
-    Column* realloc_and_fill(int64_t);
     Column* save_to_disk(const char*);
     size_t i4s_datasize();
     size_t i8s_datasize();
     size_t get_allocsize();
-    Column* incref();
-    void decref();
 
     static RowIndex* sort(Column*, RowIndex*);
     static size_t i4s_padding(size_t datasize);
@@ -125,7 +130,6 @@ protected:
     Column(int64_t nrows);
     Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
     Column* rbind_str32(Column**, int64_t, int);
-    virtual ~Column() {}
 
     // FIXME
     friend Column* try_to_resolve_object_column(Column* col);

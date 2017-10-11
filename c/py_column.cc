@@ -10,7 +10,7 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
 {
     Column_PyObject *pycol = Column_PyNew();
     if (pycol == NULL) return NULL;
-    pycol->ref = col->incref();
+    pycol->ref = new Column(col);
     pycol->pydt = pydt;
     pycol->colidx = colidx;
     Py_XINCREF(pydt);
@@ -83,9 +83,9 @@ static PyObject* get_meta(Column_PyObject *self) {
 
 DT_DOCS(refcount, "Reference count of the column")
 static PyObject* get_refcount(Column_PyObject *self) {
-    // Subtract 1 from refcount, because this Column_PyObject holds one
-    // reference to the column.
-    return PyLong_FromLong(self->ref->refcount - 1);
+    // "-1" because self->ref is a shallow copy of the "original" column, and
+    // therefore it holds an extra reference to the data buffer.
+    return PyLong_FromLong(self->ref->mbuf_refcount() - 1);
 }
 
 
@@ -118,7 +118,8 @@ static PyObject* meth_hexview(Column_PyObject *self, UU)
 
 static void pycolumn_dealloc(Column_PyObject *self)
 {
-    self->ref->decref();
+    // FIXME!
+    // delete self->ref;
     Py_XDECREF(self->pydt);
     self->ref = NULL;
     self->pydt = NULL;

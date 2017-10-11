@@ -32,8 +32,7 @@ Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       meta(nullptr),
       nrows(nrows_),
-      stats(Stats::void_ptr()),
-      refcount(1) {}
+      stats(Stats::void_ptr()) {}
 
 
 size_t Column::allocsize0(SType stype, size_t n) {
@@ -45,13 +44,9 @@ size_t Column::allocsize0(SType stype, size_t n) {
 
 
 Column::Column(size_t nrows_, SType stype_)
-    : mbuf(nullptr),
-      meta(nullptr),
-      nrows(static_cast<int64_t>(nrows_)),
-      stats(Stats::void_ptr()),
-      refcount(1),
-      _stype(stype_)
+    : Column(static_cast<int64_t>(nrows_))
 {
+    _stype = stype_;
     size_t meta_size = stype_info[stype_].metasize;
     if (meta_size) {
         meta = malloc(meta_size);
@@ -152,25 +147,35 @@ Column::Column(SType st, size_t nr, void* pybuffer, void* data, size_t a_size)
 }
 
 
+/**
+ * Create a shallow copy of the provided column.
+ */
+Column::Column(const Column* other)
+    : Column(static_cast<size_t>(other->nrows), other->stype())
+{
+  assert(mbuf == nullptr);
+  mbuf = other->mbuf->newref();
+  if (meta) {
+    memcpy(meta, other->meta, stype_info[stype()].metasize);
+  }
+  // TODO: also copy Stats object
+}
+
 
 /**
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.
- * If a shallow copy is needed, then simply copy the column's reference and
- * call `column_incref()`.
+ * If a shallow copy is needed, then use a copy-constructor `new Column(*this)`.
  */
-Column::Column(const Column &other)
-    : Column(static_cast<size_t>(other.nrows), other.stype())
+Column* Column::deepcopy()
 {
-  mbuf = new MemoryMemBuf(other.alloc_size());
+  Column* res = new Column(static_cast<size_t>(nrows), stype());
+  res->mbuf = new MemoryMemBuf(*mbuf);
+  if (meta) {
+    memcpy(res->meta, meta, stype_info[stype()].metasize);
+  }
   // TODO: deep copy stats when implemented
-  if (alloc_size()) {
-    memcpy(data(), other.data(), alloc_size());
-  }
-  size_t meta_size = stype_info[stype()].metasize;
-  if (meta_size) {
-    memcpy(meta, other.meta, meta_size);
-  }
+  return res;
 }
 
 
@@ -194,6 +199,10 @@ PyObject* Column::mbuf_repr() const {
   return mbuf->pyrepr();
 }
 
+int Column::mbuf_refcount() const {
+  return mbuf->get_refcount();
+}
+
 
 /**
  * Extract data from this column at rows specified in the provided `rowindex`.
@@ -204,7 +213,7 @@ PyObject* Column::mbuf_repr() const {
 Column* Column::extract(RowIndex *rowindex) {
     // If `rowindex` is not provided, then return a shallow "copy".
     if (rowindex == NULL) {
-        return incref();
+        return new Column(this);
     }
 
     size_t res_nrows = (size_t) rowindex->length;
@@ -403,136 +412,102 @@ Column* Column::extract(RowIndex *rowindex) {
  * single row, then this value will be repeated `nrows` times. If the column had
  * `nrows != 1`, then all extra rows will be filled with NAs.
  */
-Column* Column::realloc_and_fill(int64_t nr)
+void Column::resize_and_fill(int64_t new_nrows)
 {
-    size_t old_nrows = (size_t) this->nrows;
-    size_t diff_rows = (size_t) nr - old_nrows;
-    size_t old_alloc_size = this->alloc_size();
+    size_t old_nrows = (size_t) nrows;
+    size_t diff_rows = (size_t) new_nrows - old_nrows;
+    size_t old_alloc_size = alloc_size();
     assert(diff_rows > 0);
 
     if (!stype_info[stype()].varwidth) {
         size_t elemsize = stype_info[stype()].elemsize;
-        Column *col;
-        // DATA column with refcount 1 can be expanded in-place
-        if (!mbuf->is_readonly() && refcount == 1) {
-            col = this;
-            col->nrows = nr;
-            col->mbuf->resize(elemsize * (size_t)nr);
+        size_t newsize = elemsize * static_cast<size_t>(new_nrows);
+        if (mbuf->is_readonly()) {
+          // The buffer is readonly: make a copy of that buffer.
+          MemoryBuffer *new_mbuf = new MemoryMemBuf(newsize);
+          memcpy(new_mbuf->get(), mbuf->get(), old_alloc_size);
+          mbuf->release();
+          mbuf = new_mbuf;
+        } else {
+          // The buffer is not readonly: expand it in-place
+          mbuf->resize(newsize);
         }
-        // In all other cases we create a new Column object and copy the data
-        // over. The current Column can be decrefed.
-        else {
-            col = new Column(stype(), (size_t) nr);
-            memcpy(col->data(), data(), alloc_size());
-            decref();
-        }
+        nrows = new_nrows;
+
         // Replicate the value or fill with NAs
         size_t fill_size = elemsize * diff_rows;
-        assert(col->alloc_size() - old_alloc_size == fill_size);
+        assert(alloc_size() - old_alloc_size == fill_size);
         if (old_nrows == 1) {
-            set_value(col->mbuf->at(old_alloc_size), col->data(),
+            set_value(mbuf->at(old_alloc_size), data(),
                       elemsize, diff_rows);
         } else {
-            const void *na = stype_info[col->stype()].na;
-            set_value(col->mbuf->at(old_alloc_size), na,
+            const void *na = stype_info[stype()].na;
+            set_value(mbuf->at(old_alloc_size), na,
                       elemsize, diff_rows);
         }
         // TODO: Temporary fix. To be resolved in #301
-        col->stats->reset();
-        return col;
+        this->stats->reset();
     }
-
     else if (stype() == ST_STRING_I4_VCHAR) {
-        if (nr > INT32_MAX)
-            dterrr("Nrows is too big for an i4s column: %lld", nr);
+        if (new_nrows > INT32_MAX)
+          THROW_ERROR("Nrows is too big for an i4s column: %lld", new_nrows);
 
         size_t old_data_size = i4s_datasize();
         size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
         size_t new_data_size = old_data_size;
-        if (old_nrows == 1) new_data_size = old_data_size * (size_t) nr;
+        if (old_nrows == 1) new_data_size = old_data_size * (size_t) new_nrows;
         size_t new_padding_size = Column::i4s_padding(new_data_size);
         size_t new_offoff = new_data_size + new_padding_size;
-        size_t new_alloc_size = new_offoff + 4 * (size_t) nr;
+        size_t new_alloc_size = new_offoff + 4 * (size_t) new_nrows;
         assert(new_alloc_size > old_alloc_size);
-        Column *col;
 
         // DATA column with refcount 1: expand in-place
-        if (!mbuf->is_readonly() && refcount == 1) {
-            col = this;
-            col->mbuf->resize(new_alloc_size);
-            if (old_offoff != new_offoff) {
-                memmove(col->mbuf->at(new_offoff),
-                        col->mbuf->at(old_offoff), 4 * old_nrows);
-            }
+        if (mbuf->is_readonly()) {
+          MemoryBuffer* new_mbuf = new MemoryMemBuf(new_alloc_size);
+          memcpy(new_mbuf->get(), mbuf->get(), old_data_size);
+          memcpy(new_mbuf->at(new_offoff), mbuf->at(old_offoff), 4 * old_nrows);
+          mbuf->release();
+          mbuf = new_mbuf;
         }
         // Otherwise create a new column and copy over the data
         else {
-            col = new Column(static_cast<size_t>(nr), stype());
-            col->mbuf = new MemoryMemBuf(new_alloc_size);
-            memcpy(col->mbuf->get(), mbuf->get(), old_data_size);
-            memcpy(col->mbuf->at(new_offoff),
-                   mbuf->at(old_offoff), 4 * old_nrows);
-            decref();
+          mbuf->resize(new_alloc_size);
+          if (old_offoff != new_offoff) {
+            memmove(mbuf->at(new_offoff), mbuf->at(old_offoff), 4 * old_nrows);
+          }
         }
-        set_value(col->mbuf->at(new_data_size), NULL, 1, new_padding_size);
-        ((VarcharMeta*) col->meta)->offoff = (int64_t) new_offoff;
-        col->nrows = nr;
+        set_value(mbuf->at(new_data_size), NULL, 1, new_padding_size);
+        ((VarcharMeta*) meta)->offoff = (int64_t) new_offoff;
+        nrows = new_nrows;
 
         // Replicate the value, or fill with NAs
-        int32_t *offsets = (int32_t*) col->mbuf->at(new_offoff);
+        int32_t *offsets = (int32_t*) mbuf->at(new_offoff);
         if (old_nrows == 1 && offsets[0] > 0) {
-            set_value(col->mbuf->at(old_data_size), col->data(),
+            set_value(mbuf->at(old_data_size), data(),
                       old_data_size, diff_rows);
-            for (int32_t j = 0; j < (int32_t) nr; ++j) {
+            for (int32_t j = 0; j < (int32_t) new_nrows; ++j) {
                 offsets[j] = 1 + (j + 1) * (int32_t) old_data_size;
             }
         } else {
             if (old_nrows == 1) assert(old_data_size == 0);
             assert(old_offoff == new_offoff && old_data_size == new_data_size);
             int32_t na = -(int32_t) new_data_size - 1;
-            set_value(col->mbuf->at(old_alloc_size), &na, 4, diff_rows);
+            set_value(mbuf->at(old_alloc_size), &na, 4, diff_rows);
         }
         // TODO: Temporary fix. To be resolved in #301
-        col->stats->reset();
-        return col;
-    }
-    // Exception
-    throw new Error("Cannot realloc column of stype %d", stype());
-}
-
-
-
-
-/**
- * Increase reference count on column `self`. This function should be called
- * when a new long-term copy to the column is created (for example if the column
- * is referenced from several data tables). For convenience, this function
- * returns the column object passed.
- * Here `self` can also be NULL, in which case this function does nothing.
- */
-Column* Column::incref() {
-    ++refcount;
-    return this;
-}
-
-
-
-/**
- * Decrease reference count on column `self`. Call this function when disposing
- * of a previously held pointer to a column. If the internal reference counter
- * reaches 0, the column's data will be garbage-collected.
- * Here `self` can also be NULL, in which case this function does nothing.
- */
-void Column::decref() {
-    --refcount;
-    if (refcount <= 0) {
-        dtfree(meta);
-        Stats::destruct(stats);
-        mbuf->release();
-        delete this;
+        stats->reset();
+    } else {
+      throw new Error("Cannot realloc column of stype %d", stype());
     }
 }
 
+
+
+Column::~Column() {
+  dtfree(meta);
+  Stats::destruct(stats);
+  mbuf->release();
+}
 
 
 /**

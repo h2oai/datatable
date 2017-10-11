@@ -49,7 +49,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
     int k = 0;
     for (int i = 0; i < ncols; ++i) {
         if (i == next_col_to_remove) {
-            columns[i]->decref();
+            delete columns[i];
             if (stats) Stats::destruct(stats[i]);
             do {
                 ++k;
@@ -79,7 +79,7 @@ DataTable::~DataTable()
 {
     if (rowindex) rowindex->decref();
     for (int64_t i = 0; i < ncols; ++i) {
-        columns[i]->decref();
+        delete columns[i];
     }
     delete columns;
     if (stats) {
@@ -216,7 +216,7 @@ void DataTable::reify() {
             newcol->stats->_ref_col = newcol;
             newcol->stats->_ref_ri = NULL;
         }
-        columns[i]->decref();
+        delete columns[i];
         columns[i] = newcol;
     }
     if (rowindex) rowindex->decref();

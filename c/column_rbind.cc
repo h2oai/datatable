@@ -42,11 +42,11 @@ Column* Column::rbind(Column **cols)
     bool col_empty = (stype() == ST_VOID);
     if (col_empty) {
         res = new Column(res_stype, (size_t) this->nrows);
-    } else if (refcount == 1 && !mbuf->is_readonly() && stype() == res_stype) {
+    } else if (!mbuf->is_readonly() && stype() == res_stype) {
         // Happy place: current column can be modified in-place.
         res = this;
     } else {
-        res = (stype() == res_stype) ? new Column(*this) : cast(res_stype);
+        res = (stype() == res_stype) ? deepcopy() : cast(res_stype);
     }
     if (res == NULL) return NULL;
     assert(res->stype() == res_stype && !res->mbuf->is_readonly() &&
@@ -61,7 +61,7 @@ Column* Column::rbind(Column **cols)
     // If everything is fine, then the current column can be safely discarded
     // -- the upstream caller will replace this column with the `res`. However
     // if any error occurred (res == NULL), then `self` will be left intact.
-    if (res && res != this) decref();
+    if (res && res != this) delete this;
     return res;
 }
 
@@ -105,13 +105,13 @@ Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
             if (col->stype() != stype()) {
                 Column *newcol = col->cast(stype());
                 if (newcol == NULL) return NULL;
-                col->decref();
+                delete col;
                 col = newcol;
             }
             memcpy(resptr, col->data(), col->alloc_size());
             resptr = add_ptr(resptr, col->alloc_size());
         }
-        col->decref();
+        delete col;
     }
     if (rows_to_fill) {
         set_value(resptr, na, elemsize, rows_to_fill);
@@ -201,7 +201,7 @@ Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
             memcpy(mbuf->at(curr_offset), col->data(), data_size);
             curr_offset += data_size;
         }
-        col->decref();
+        delete col;
     }
     if (rows_to_fill) {
         const int32_t na = -curr_offset - 1;

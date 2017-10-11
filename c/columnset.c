@@ -17,7 +17,7 @@ columns_from_slice(DataTable *dt, int64_t start, int64_t count, int64_t step)
     columns[count] = NULL;
 
     for (int64_t i = 0, j = start; i < count; i++, j += step) {
-        columns[i] = srccols[j]->incref();
+        columns[i] = new Column(srccols[j]);
     }
     return columns;
 }
@@ -38,7 +38,7 @@ columns_from_array(DataTable *dt, int64_t *indices, int64_t ncols)
     columns[ncols] = NULL;
 
     for (int64_t i = 0; i < ncols; i++) {
-        columns[i] = srccols[indices[i]]->incref();
+        columns[i] = new Column(srccols[indices[i]]);
     }
     return columns;
 }
@@ -94,7 +94,7 @@ Column** columns_from_mixed(
     int64_t j = 0;
     for (int64_t i = 0; i < ncols; i++) {
         if (spec[i] >= 0) {
-            columns[i] = dt->columns[spec[i]]->incref();
+            columns[i] = new Column(dt->columns[spec[i]]);
         } else {
             SType stype = (SType)(-spec[i]);
             columns[i] = new Column(stype, (size_t) nrows);
