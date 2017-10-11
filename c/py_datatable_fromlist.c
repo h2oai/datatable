@@ -122,7 +122,7 @@ Column* column_from_list(PyObject *list)
 
     int64_t nrows = Py_SIZE(list);
     if (nrows == 0) {
-        return new Column(ST_BOOLEAN_I1, 0);
+        return Column::new_data_column(ST_BOOLEAN_I1, 0);
     }
 
     SType stype = ST_VOID;

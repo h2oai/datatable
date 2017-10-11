@@ -93,7 +93,7 @@ private:
   static size_t allocsize0(SType, size_t n);
 
 public:
-  Column(SType, size_t); // Data Column
+  static Column* new_data_column(SType, int64_t nrows);
   Column(SType, size_t, const char*); // MMap Column
   Column(SType, size_t, void*, void*, size_t); // XBuf Column
   Column(const char*, SType, size_t, const char*); // Load from disk

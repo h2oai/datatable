@@ -67,10 +67,11 @@ Column::Column(size_t nrows_, SType stype_)
  * If the column cannot be created (probably due to Out-of-Memory exception),
  * the function will return NULL.
  */
-Column::Column(SType stype_, size_t nrows_)
-    : Column(nrows_, stype_)
-{
-  mbuf = new MemoryMemBuf(allocsize0(stype_, nrows_));
+Column* Column::new_data_column(SType stype, int64_t nrows) {
+  size_t u_nrows = static_cast<size_t>(nrows);
+  Column* col = new Column(u_nrows, stype);
+  col->mbuf = new MemoryMemBuf(allocsize0(stype, u_nrows));
+  return col;
 }
 
 
@@ -223,7 +224,7 @@ Column* Column::extract(RowIndex *rowindex) {
 
   // Create the new Column object.
   // TODO: Stats should be copied from DataTable
-  Column *res = new Column(stype(), 0);
+  Column *res = Column::new_data_column(stype(), 0);
   res->nrows = (int64_t) res_nrows;
 
   // "Slice" rowindex with step = 1 is a simple subsection of the column

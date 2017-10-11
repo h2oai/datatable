@@ -155,7 +155,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
         snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
         col = new Column(stype, nrows, fname);
     } else{
-        col = new Column(stype, nrows);
+        col = Column::new_data_column(stype, static_cast<int64_t>(nrows));
     }
     if (col == NULL) return NULL;
 

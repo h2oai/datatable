@@ -79,7 +79,7 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
             columns[i] = new Column(stype, (size_t)nrows, view, view->buf,
                                             (size_t) view->len);
         } else {
-            columns[i] = new Column(stype, (size_t) nrows);
+            columns[i] = Column::new_data_column(stype, nrows);
             int64_t stride = view->strides[0] / view->itemsize;
             if (view->itemsize == 8) {
                 int64_t *out = (int64_t*) columns[i]->data();
@@ -149,7 +149,7 @@ Column* try_to_resolve_object_column(Column* col)
     char *strbuf = NULL;
     dtmalloc(strbuf, char, total_length);
     size_t strbuf_size = (size_t) total_length;
-    Column *res = new Column(ST_STRING_I4_VCHAR, (size_t)nrows);
+    Column *res = Column::new_data_column(ST_STRING_I4_VCHAR, nrows);
     int32_t *offsets = (int32_t*) res->data();
 
     size_t offset = 0;
