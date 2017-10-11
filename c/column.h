@@ -89,15 +89,15 @@ private:
   SType   _stype;      // 1
   int64_t : 56;        // padding
 
-  Column(size_t nrows_, SType stype_); // helper for other constructors
-  static size_t allocsize0(SType, size_t n);
+  Column(SType stype, int64_t nrows);  // helper for other constructors
+  static size_t allocsize0(SType, int64_t nrows);
 
 public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const char* filename);
   static Column* open_mmap_column(SType, int64_t nrows, const char* filename,
                                   const char* extra);
-  Column(SType, size_t, void*, void*, size_t); // XBuf Column
+  Column(SType, int64_t, void*, void*, size_t); // XBuf Column
   Column(const Column*);  // make shallow copy of a column
   virtual ~Column();
 

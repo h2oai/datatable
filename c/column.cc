@@ -28,6 +28,14 @@
 #include "py_utils.h"
 
 
+size_t Column::allocsize0(SType stype, int64_t nrows) {
+  size_t sz = static_cast<size_t>(nrows) * stype_info[stype].elemsize;
+  if (stype == ST_STRING_I4_VCHAR) sz += i4s_padding(0);
+  if (stype == ST_STRING_I8_VCHAR) sz += i8s_padding(0);
+  return sz;
+}
+
+
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       meta(nullptr),
@@ -35,17 +43,7 @@ Column::Column(int64_t nrows_)
       stats(Stats::void_ptr()) {}
 
 
-size_t Column::allocsize0(SType stype, size_t n) {
-  size_t sz = n * stype_info[stype].elemsize;
-  if (stype == ST_STRING_I4_VCHAR) sz += i4s_padding(0);
-  if (stype == ST_STRING_I8_VCHAR) sz += i8s_padding(0);
-  return sz;
-}
-
-
-Column::Column(size_t nrows_, SType stype_)
-    : Column(static_cast<int64_t>(nrows_))
-{
+Column::Column(SType stype_, int64_t nrows_) : Column(nrows_) {
   _stype = stype_;
   size_t meta_size = stype_info[stype_].metasize;
   if (meta_size) {
@@ -59,18 +57,16 @@ Column::Column(size_t nrows_, SType stype_)
 
 
 Column* Column::new_data_column(SType stype, int64_t nrows) {
-  size_t u_nrows = static_cast<size_t>(nrows);
-  Column* col = new Column(u_nrows, stype);
-  col->mbuf = new MemoryMemBuf(allocsize0(stype, u_nrows));
+  Column* col = new Column(stype, nrows);
+  col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
   return col;
 }
 
 
 Column* Column::new_mmap_column(SType stype, int64_t nrows,
                                 const char* filename) {
-  size_t u_nrows = static_cast<size_t>(nrows);
-  size_t sz = allocsize0(stype, u_nrows);
-  Column* col = new Column(u_nrows, stype);
+  size_t sz = allocsize0(stype, nrows);
+  Column* col = new Column(stype, nrows);
   col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
   return col;
 }
@@ -120,12 +116,11 @@ Column* Column::save_to_disk(const char *filename)
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
                                  const char* filename, const char* ms)
 {
-  size_t u_nrows = static_cast<size_t>(nrows);
-  Column* col = new Column(u_nrows, stype);
+  Column* col = new Column(stype, nrows);
   col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
-  if (col->alloc_size() < allocsize0(stype, u_nrows)) {
+  if (col->alloc_size() < allocsize0(stype, nrows)) {
     throw new Error("File %s has size %zu, which is not sufficient for a column"
-                    " with %zu rows", filename, col->alloc_size(), u_nrows);
+                    " with %zd rows", filename, col->alloc_size(), nrows);
   }
   // Deserialize the meta information, if needed
   if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
@@ -141,8 +136,8 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
 /**
  * Construct a column from the externally provided buffer.
  */
-Column::Column(SType st, size_t nr, void* pybuffer, void* data, size_t a_size)
-    : Column(nr, st)
+Column::Column(SType st, int64_t nr, void* pybuffer, void* data, size_t a_size)
+    : Column(st, nr)
 {
   mbuf = new ExternalMemBuf(data, pybuffer, a_size);
 }
@@ -151,8 +146,7 @@ Column::Column(SType st, size_t nr, void* pybuffer, void* data, size_t a_size)
 /**
  * Create a shallow copy of the provided column.
  */
-Column::Column(const Column* other)
-    : Column(static_cast<size_t>(other->nrows), other->stype())
+Column::Column(const Column* other) : Column(other->stype(), other->nrows)
 {
   assert(mbuf == nullptr);
   mbuf = other->mbuf->newref();
@@ -170,7 +164,7 @@ Column::Column(const Column* other)
  */
 Column* Column::deepcopy()
 {
-  Column* res = new Column(static_cast<size_t>(nrows), stype());
+  Column* res = new Column(stype(), nrows);
   res->mbuf = new MemoryMemBuf(*mbuf);
   if (meta) {
     memcpy(res->meta, meta, stype_info[stype()].metasize);

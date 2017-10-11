@@ -76,7 +76,7 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
         int64_t nrows = view->len / view->itemsize;
         if (stype == ST_VOID) return NULL;
         if (view->strides == NULL) {
-            columns[i] = new Column(stype, (size_t)nrows, view, view->buf,
+            columns[i] = new Column(stype, nrows, view, view->buf,
                                             (size_t) view->len);
         } else {
             columns[i] = Column::new_data_column(stype, nrows);
