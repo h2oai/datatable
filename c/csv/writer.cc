@@ -511,13 +511,13 @@ size_t CsvWriter::estimate_output_size()
   size_t total_string_size = 0;
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
-    SType stype = col->stype();
-    bool stype_i4s = (stype == ST_STRING_I4_VCHAR);
-    bool stype_i8s = (stype == ST_STRING_I8_VCHAR);
-    if (stype_i4s || stype_i8s) {
-      total_string_size += stype_i4s? col->i4s_datasize()
-                                    : col->i8s_datasize();
+    if (auto scol32 = dynamic_cast<StringColumn<int32_t>*>(col)) {
+      total_string_size += scol32->datasize();
+    } else
+    if (auto scol64 = dynamic_cast<StringColumn<int64_t>*>(col)) {
+      total_string_size += scol64->datasize();
     }
+    SType stype = col->stype();
     fixed_size_per_row += bytes_per_stype[stype] + 1;
   }
   size_t bytes_total = fixed_size_per_row * nrows
@@ -675,12 +675,12 @@ void init_csvwrite_constants() {
     writers_per_stype[i] = NULL;
   }
   bytes_per_stype[ST_BOOLEAN_I1]      = 1;  // 1
-  bytes_per_stype[ST_INTEGER_I1]      = 4;  // -100
-  bytes_per_stype[ST_INTEGER_I2]      = 6;  // -32000
-  bytes_per_stype[ST_INTEGER_I4]      = 11; // -2000000000
-  bytes_per_stype[ST_INTEGER_I8]      = 20; // -9223372036854775800
+  bytes_per_stype[ST_INTEGER_I1]      = 5;  // -100, -0x7F
+  bytes_per_stype[ST_INTEGER_I2]      = 7;  // -32767, -0xFFFF
+  bytes_per_stype[ST_INTEGER_I4]      = 11; // -2147483647, -0x7FFFFFFF
+  bytes_per_stype[ST_INTEGER_I8]      = 20; // -9223372036854775807, -0x7FFFFFFFFFFFFFFF
   bytes_per_stype[ST_REAL_F4]         = 16; // -0x1.123456p+120 / -1.23456789e+37
-  bytes_per_stype[ST_REAL_F8]         = 25; // -0x1.23456789ABCDEp+1000
+  bytes_per_stype[ST_REAL_F8]         = 25; // -1.1234567890123457e+307, -0x1.23456789ABCDEp+1022
   bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
   bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 

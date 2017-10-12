@@ -209,7 +209,7 @@ void DataTable::reify() {
 
 
 
-size_t DataTable::get_allocsize()
+size_t DataTable::memory_footprint()
 {
     size_t sz = 0;
     sz += sizeof(*this);
@@ -219,7 +219,7 @@ size_t DataTable::get_allocsize()
         sz += rowindex->alloc_size();
     } else {
         for (int i = 0; i < ncols; ++i) {
-            sz += columns[i]->get_allocsize();
+            sz += columns[i]->memory_footprint();
         }
     }
     return sz;

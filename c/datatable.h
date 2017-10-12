@@ -55,7 +55,7 @@ public:
     void reify();
     DataTable* rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
-    size_t get_allocsize();
+    size_t memory_footprint();
     int verify_integrity(char**);
 
     static DataTable* load(DataTable*, int64_t);

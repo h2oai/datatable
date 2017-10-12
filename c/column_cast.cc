@@ -17,14 +17,14 @@ static castfn_ptr hardcasts[DT_STYPES_COUNT][DT_STYPES_COUNT];
  */
 Column* Column::cast(SType new_stype)
 {
-    castfn_ptr converter = hardcasts[_stype][new_stype];
+    castfn_ptr converter = hardcasts[stype()][new_stype];
     if (converter) {
         Column *res = Column::new_data_column(new_stype, this->nrows);
         return converter(this, res);
-    } else if (_stype == new_stype) {
+    } else if (stype() == new_stype) {
         return this->deepcopy();
     } else {
-        dterrv("Unable to cast from stype=%d into stype=%d", _stype, new_stype);
+        dterrv("Unable to cast from stype=%d into stype=%d", stype(), new_stype);
     }
 }
 

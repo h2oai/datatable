@@ -28,6 +28,7 @@
 #include "py_utils.h"
 
 
+// TODO: make this function virtual
 size_t Column::allocsize0(SType stype, int64_t nrows) {
   size_t sz = static_cast<size_t>(nrows) * stype_info[stype].elemsize;
   if (stype == ST_STRING_I4_VCHAR) sz += i4s_padding(0);
@@ -41,9 +42,7 @@ Column::Column(int64_t nrows_)
       ri(nullptr),
       meta(nullptr),
       nrows(nrows_),
-      stats(Stats::void_ptr()),
-      _stype(ST_VOID) {}
-
+      stats(Stats::void_ptr()) {}
 
 
 Column* Column::new_column(SType stype) {
@@ -69,7 +68,6 @@ Column* Column::new_data_column(SType stype, int64_t nrows) {
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
-  col->_stype = stype;
   return col;
 }
 
@@ -80,7 +78,6 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
-  col->_stype = stype;
   return col;
 }
 
@@ -132,7 +129,6 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
-  col->_stype = stype;
   if (col->alloc_size() < allocsize0(stype, nrows)) {
     throw new Error("File %s has size %zu, which is not sufficient for a column"
                     " with %zd rows", filename, col->alloc_size(), nrows);
@@ -156,7 +152,6 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->_stype = stype;
   col->mbuf = new ExternalMemBuf(data, pybuffer, a_size);
   return col;
 }
@@ -169,7 +164,6 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 Column* Column::shallowcopy() {
   Column* col = new_column(stype());
   col->nrows = nrows;
-  col->_stype = stype();
   col->mbuf = mbuf->newref();
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
@@ -207,7 +201,6 @@ Column* Column::deepcopy()
 {
   Column* col = new_column(stype());
   col->nrows = nrows;
-  col->_stype = stype();
   col->mbuf = new MemoryMemBuf(*mbuf);
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
@@ -218,18 +211,18 @@ Column* Column::deepcopy()
 }
 
 
-int64_t Column::data_nrows() const {
-  int64_t offoff = 0;
-  if (meta != nullptr) {
-      if (stype() == ST_STRING_I4_VCHAR || stype() == ST_STRING_I8_VCHAR)
-          offoff = ((VarcharMeta*) meta)->offoff;
-  }
-  return (int64_t) ((mbuf->size() - (size_t) offoff) / stype_info[stype()].elemsize);
+// FIXME: this method should be pure virtual
+SType Column::stype() const {
+  return ST_VOID;
 }
 
-SType Column::stype() const {
-  return _stype;
+
+// FIXME: this method should be pure virtual
+int64_t Column::data_nrows() const {
+  return 0;
 }
+
+
 
 size_t Column::alloc_size() const {
   return mbuf->size();
@@ -442,100 +435,10 @@ Column* Column::extract() {
   return res;
 }
 
-/**
- * Expand the column up to `nrows` elements and return it. The pointer returned
- * will be `self` if the column can be modified in-place, or a new Column object
- * otherwise. In the latter case the original object `self` will be decrefed.
- *
- * The column itself will be expanded in the following way: if it had just a
- * single row, then this value will be repeated `nrows` times. If the column had
- * `nrows != 1`, then all extra rows will be filled with NAs.
- */
-void Column::resize_and_fill(int64_t new_nrows) {
-  size_t old_nrows = (size_t) nrows;
-  size_t diff_rows = (size_t) new_nrows - old_nrows;
-  size_t old_alloc_size = alloc_size();
-  assert(diff_rows > 0);
 
-  if (!stype_info[stype()].varwidth) {
-    size_t elemsize = stype_info[stype()].elemsize;
-    size_t newsize = elemsize * static_cast<size_t>(new_nrows);
-    if (mbuf->is_readonly()) {
-      // The buffer is readonly: make a copy of that buffer.
-      MemoryBuffer *new_mbuf = new MemoryMemBuf(newsize);
-      memcpy(new_mbuf->get(), mbuf->get(), old_alloc_size);
-      mbuf->release();
-      mbuf = new_mbuf;
-    } else {
-      // The buffer is not readonly: expand it in-place
-      mbuf->resize(newsize);
-    }
-    nrows = new_nrows;
+// FIXME: this method should be declared pure virtual
+void Column::resize_and_fill(int64_t) {}
 
-    // Replicate the value or fill with NAs
-    size_t fill_size = elemsize * diff_rows;
-    assert(alloc_size() - old_alloc_size == fill_size);
-    if (old_nrows == 1) {
-      set_value(mbuf->at(old_alloc_size), data(), elemsize, diff_rows);
-    } else {
-      const void *na = stype_info[stype()].na;
-      set_value(mbuf->at(old_alloc_size), na, elemsize, diff_rows);
-    }
-    // TODO: Temporary fix. To be resolved in #301
-    this->stats->reset();
-  } else if (stype() == ST_STRING_I4_VCHAR) {
-    if (new_nrows > INT32_MAX)
-      THROW_ERROR("Nrows is too big for an i4s column: %lld", new_nrows);
-
-    size_t old_data_size = i4s_datasize();
-    size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
-    size_t new_data_size = old_data_size;
-    if (old_nrows == 1)
-      new_data_size = old_data_size * (size_t) new_nrows;
-    size_t new_padding_size = Column::i4s_padding(new_data_size);
-    size_t new_offoff = new_data_size + new_padding_size;
-    size_t new_alloc_size = new_offoff + 4 * (size_t) new_nrows;
-    assert(new_alloc_size > old_alloc_size);
-
-    // DATA column with refcount 1: expand in-place
-    if (mbuf->is_readonly()) {
-      MemoryBuffer* new_mbuf = new MemoryMemBuf(new_alloc_size);
-      memcpy(new_mbuf->get(), mbuf->get(), old_data_size);
-      memcpy(new_mbuf->at(new_offoff), mbuf->at(old_offoff), 4 * old_nrows);
-      mbuf->release();
-      mbuf = new_mbuf;
-    }
-    // Otherwise create a new column and copy over the data
-    else {
-      mbuf->resize(new_alloc_size);
-      if (old_offoff != new_offoff) {
-        memmove(mbuf->at(new_offoff), mbuf->at(old_offoff), 4 * old_nrows);
-      }
-    }
-    set_value(mbuf->at(new_data_size), NULL, 1, new_padding_size);
-    ((VarcharMeta*) meta)->offoff = (int64_t) new_offoff;
-    nrows = new_nrows;
-
-    // Replicate the value, or fill with NAs
-    int32_t *offsets = (int32_t*) mbuf->at(new_offoff);
-    if (old_nrows == 1 && offsets[0] > 0) {
-      set_value(mbuf->at(old_data_size), data(), old_data_size, diff_rows);
-      for (int32_t j = 0; j < (int32_t) new_nrows; ++j) {
-        offsets[j] = 1 + (j + 1) * (int32_t) old_data_size;
-      }
-    } else {
-      if (old_nrows == 1)
-        assert(old_data_size == 0);
-      assert(old_offoff == new_offoff && old_data_size == new_data_size);
-      int32_t na = -(int32_t) new_data_size - 1;
-      set_value(mbuf->at(old_alloc_size), &na, 4, diff_rows);
-    }
-    // TODO: Temporary fix. To be resolved in #301
-    stats->reset();
-  } else {
-    throw new Error("Cannot realloc column of stype %d", stype());
-  }
-}
 
 
 
@@ -559,26 +462,13 @@ size_t Column::i8s_padding(size_t datasize) {
 }
 
 
-/**
- * Return the size of the data part in a ST_STRING_I(4|8)_VCHAR column.
- */
-size_t Column::i4s_datasize() {
-  assert(stype() == ST_STRING_I4_VCHAR);
-  void *end = mbuf->at(alloc_size());
-  return (size_t) abs(((int32_t*) end)[-1]) - 1;
-}
-size_t Column::i8s_datasize() {
-  assert(stype() == ST_STRING_I8_VCHAR);
-  void *end = mbuf->at(alloc_size());
-  return (size_t) llabs(((int64_t*) end)[-1]) - 1;
-}
 
 /**
  * Get the total size of the memory occupied by this Column. This is different
  * from `column->alloc_size`, which in general reports byte size of the `data`
  * portion of the column.
  */
-size_t Column::get_allocsize()
+size_t Column::memory_footprint() const
 {
   size_t sz = sizeof(Column);
   sz += mbuf->memory_footprint();

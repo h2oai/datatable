@@ -145,7 +145,7 @@ static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 DT_DOCS(alloc_size, "DataTable's internal size, in bytes")
 static PyObject* get_alloc_size(DataTable_PyObject *self)
 {
-    return PyLong_FromSize_t(self->ref->get_allocsize());
+    return PyLong_FromSize_t(self->ref->memory_footprint());
 }
 
 

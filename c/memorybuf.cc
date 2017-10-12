@@ -21,6 +21,7 @@
 #include <sys/mman.h>  // mmap
 #include <sys/stat.h>  // fstat
 #include <unistd.h>    // access, close, write, lseek
+#include <algorithm>   // min
 #include "myassert.h"
 #include "py_utils.h"
 #include "utils.h"
@@ -67,6 +68,20 @@ size_t MemoryBuffer::memory_footprint() const {
 
 void MemoryBuffer::resize(UNUSED(size_t n)) {
   throw Error("Resizing this object is not supported");
+}
+
+MemoryBuffer* MemoryBuffer::safe_resize(size_t n) {
+  if (this->is_readonly()) {
+    MemoryBuffer* mb = new MemoryMemBuf(n);
+    memcpy(mb->buf, this->buf, std::min(n, this->allocsize));
+    // Note: this may delete the current object! Do not access `this` after
+    // this call: it may have become a dangling pointer.
+    this->release();
+    return mb;
+  } else {
+    this->resize(n);
+    return this;
+  }
 }
 
 bool MemoryBuffer::is_readonly() const {

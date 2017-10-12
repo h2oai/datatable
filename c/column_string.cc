@@ -14,6 +14,8 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
+#include <cmath>  // abs
+#include "utils.h"
 
 
 template <typename T> StringColumn<T>::StringColumn() : StringColumn<T>(0) {}
@@ -47,13 +49,27 @@ StringColumn<T>::~StringColumn() {
 
 
 template <typename T>
+size_t StringColumn<T>::datasize() {
+  size_t sz = mbuf->size();
+  T* end = static_cast<T*>(mbuf->at(sz));
+  return static_cast<size_t>(abs(end[-1]) - 1);
+}
+
+template <typename T>
 size_t StringColumn<T>::padding(size_t datasize) {
-    return ((8 - ((datasize + sizeof(T)) & 7)) & 7) + sizeof(T);
+  return ((8 - ((datasize + sizeof(T)) & 7)) & 7) + sizeof(T);
+}
+
+template <typename T>
+int64_t StringColumn<T>::data_nrows() const {
+  size_t offoff = static_cast<size_t>(((VarcharMeta*) meta)->offoff);
+  return static_cast<int64_t>((mbuf->size() - offoff) / sizeof(T));
 }
 
 
+
 template <typename T>
-Column* StringColumn<T>::extract_simple_slice(RowIndex* rowindex) const {
+Column* StringColumn<T>::extract_simple_slice(RowIndex*) const {
 /*
   size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
   int32_t *offs = (int32_t*) mbuf->at(offoff) + start;
@@ -74,9 +90,76 @@ Column* StringColumn<T>::extract_simple_slice(RowIndex* rowindex) const {
                               : offs[i] + off0;
   }
 */
-  ((void)rowindex);
   return NULL;
 }
+
+
+template <typename T>
+void StringColumn<T>::resize_and_fill(int64_t new_nrows)
+{
+  // TODO: clean this up
+  size_t old_alloc_size = alloc_size();
+  int64_t old_nrows = nrows;
+  int64_t diff_rows = new_nrows - old_nrows;
+  if (diff_rows == 0) return;
+  if (diff_rows < 0) {
+    throw Error("Column::resize_and_fill() cannot shrink a column");
+  }
+
+  if (new_nrows > INT32_MAX && sizeof(T) == 4) {
+    // TODO: instead of throwing an error, upcast the column to <int64_t>
+    THROW_ERROR("Nrows is too big for an i4s column: %lld", new_nrows);
+  }
+
+  size_t old_data_size = datasize();
+  size_t old_offs_size = sizeof(T) * static_cast<size_t>(old_nrows);
+  size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
+  size_t new_data_size = old_data_size;
+  if (old_nrows == 1) new_data_size = old_data_size * (size_t) new_nrows;
+  size_t new_offs_size = sizeof(T) * static_cast<size_t>(new_nrows);
+  size_t new_padding_size = padding(new_data_size);
+  size_t new_offoff = new_data_size + new_padding_size;
+  size_t new_alloc_size = new_offoff + new_offs_size;
+  assert(new_alloc_size > old_alloc_size);
+
+  // DATA column with refcount 1: expand in-place
+  if (mbuf->is_readonly()) {
+    MemoryBuffer* new_mbuf = new MemoryMemBuf(new_alloc_size);
+    memcpy(new_mbuf->get(), mbuf->get(), old_data_size);
+    memcpy(new_mbuf->at(new_offoff), mbuf->at(old_offoff), old_offs_size);
+    mbuf->release();
+    mbuf = new_mbuf;
+  }
+  // Otherwise create a new column and copy over the data
+  else {
+    mbuf->resize(new_alloc_size);
+    if (old_offoff != new_offoff) {
+      memmove(mbuf->at(new_offoff), mbuf->at(old_offoff), old_offs_size);
+    }
+  }
+  set_value(mbuf->at(new_data_size), NULL, 1, new_padding_size);
+  ((VarcharMeta*) meta)->offoff = static_cast<int64_t>(new_offoff);
+  nrows = new_nrows;
+
+  // Replicate the value, or fill with NAs
+  T *offsets = static_cast<T*>(mbuf->at(new_offoff));
+  if (old_nrows == 1 && offsets[0] > 0) {
+    set_value(mbuf->at(old_data_size), data(),
+              old_data_size, static_cast<size_t>(diff_rows));
+    for (T j = 0; j < static_cast<T>(new_nrows); ++j) {
+      offsets[j] = 1 + (j + 1) * static_cast<T>(old_data_size);
+    }
+  } else {
+    if (old_nrows == 1) assert(old_data_size == 0);
+    assert(old_offoff == new_offoff && old_data_size == new_data_size);
+    T na = -static_cast<T>(new_data_size + 1);
+    set_value(mbuf->at(old_alloc_size), &na, sizeof(T),
+              static_cast<size_t>(diff_rows));
+  }
+  // TODO: Temporary fix. To be resolved in #301
+  stats->reset();
+}
+
 
 
 // Explicit instantiation of the template

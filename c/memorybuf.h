@@ -132,6 +132,22 @@ public:
   virtual void resize(size_t n);
 
   /**
+   * Similar to `resize(n)`, but can be applied to readonly memory buffers too.
+   * In that case this method will create a new `MemoryMemBuf` object, resize
+   * it, and copy the contents of the current buffer. In both cases the resized
+   * buffer will be returned. Also note that if the returned buffer is different
+   * from `this`, then `this` will be "released", i.e. it is assumed that the
+   * caller uses this method as follows:
+   *
+   *   membuf = membuf->safe_resize(n);
+   *
+   * This method also guarantees that the returned buffer is not readonly. Thus,
+   * it the current buffer is readonly, a new buffer will be created even when
+   * `n == size()`.
+   */
+  MemoryBuffer* safe_resize(size_t n);
+
+  /**
    * Returns short python string (PyUnicodeObject*) describing the class of
    * this MemoryBuffer object. The returned python object is a "New reference",
    * and the caller is expected to DECREF it once it no longer needs this
