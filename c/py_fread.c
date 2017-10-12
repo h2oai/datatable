@@ -150,12 +150,13 @@ PyObject* pyfread(UU, PyObject *args)
 
 static Column* alloc_column(SType stype, size_t nrows, int j)
 {
+    // TODO(pasha): figure out how to use `WritableBuffer`s here
     Column *col = NULL;
     if (targetdir) {
         snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
-        col = new Column(stype, nrows, fname);
+        col = Column::new_mmap_column(stype, static_cast<int64_t>(nrows), fname);
     } else{
-        col = new Column(stype, nrows);
+        col = Column::new_data_column(stype, static_cast<int64_t>(nrows));
     }
     if (col == NULL) return NULL;
 

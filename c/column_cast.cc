@@ -19,8 +19,7 @@ Column* Column::cast(SType new_stype)
 {
     castfn_ptr converter = hardcasts[_stype][new_stype];
     if (converter) {
-        Column *res = new Column(new_stype, (size_t) this->nrows);
-        if (res == NULL) return NULL;
+        Column *res = Column::new_data_column(new_stype, this->nrows);
         return converter(this, res);
     } else if (_stype == new_stype) {
         return this->deepcopy();

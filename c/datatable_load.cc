@@ -80,8 +80,7 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         metastr[mlen] = '\0';
 
         // Load the column
-        columns[i] = new Column(filename, stype, static_cast<size_t>(nrows), metastr);
-        if (columns[i] == NULL) return NULL;
+        columns[i] = Column::open_mmap_column(stype, nrows, filename, metastr);
     }
 
     return new DataTable(columns);

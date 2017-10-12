@@ -16,6 +16,9 @@
 #include "column.h"
 
 
+template <typename T> FwColumn<T>::FwColumn() : FwColumn<T>(0) {}
+
+
 template <typename T>
 FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 {
@@ -46,8 +49,7 @@ template <typename T>
 Column* FwColumn<T>::extract_simple_slice(RowIndex* rowindex) const
 {
   int64_t res_nrows = rowindex->length;
-  // Column *res = Column::make_data_column(stype(), res_nrows);
-  Column *res = new Column(stype(), (size_t)res_nrows);
+  Column *res = Column::new_data_column(stype(), res_nrows);
   size_t offset = static_cast<size_t>(rowindex->slice.start) * sizeof(T);
   memcpy(res->data(), this->mbuf->at(offset), res->alloc_size());
   return res;

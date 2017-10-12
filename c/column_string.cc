@@ -16,6 +16,9 @@
 #include "column.h"
 
 
+template <typename T> StringColumn<T>::StringColumn() : StringColumn<T>(0) {}
+
+
 template <typename T>
 StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
 {
@@ -27,7 +30,7 @@ StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
   // TODO: remove this
   strbuf = nullptr;
   meta = malloc(sizeof(VarcharMeta));
-  ((VarcharMeta*)meta)->offoff = static_cast<int64_t>(pd);
+  ((VarcharMeta*) meta)->offoff = static_cast<int64_t>(pd);
 }
 
 

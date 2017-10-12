@@ -28,57 +28,59 @@
 #include "py_utils.h"
 
 
-Column::Column(int64_t nrows_)
-    : mbuf(nullptr),
-      meta(nullptr),
-      nrows(nrows_),
-      stats(Stats::void_ptr()) {}
-
-
-size_t Column::allocsize0(SType stype, size_t n) {
-  size_t sz = n * stype_info[stype].elemsize;
+size_t Column::allocsize0(SType stype, int64_t nrows) {
+  size_t sz = static_cast<size_t>(nrows) * stype_info[stype].elemsize;
   if (stype == ST_STRING_I4_VCHAR) sz += i4s_padding(0);
   if (stype == ST_STRING_I8_VCHAR) sz += i8s_padding(0);
   return sz;
 }
 
 
-Column::Column(size_t nrows_, SType stype_)
-    : Column(static_cast<int64_t>(nrows_))
-{
-  _stype = stype_;
-  size_t meta_size = stype_info[stype_].metasize;
-  if (meta_size) {
-    meta = malloc(meta_size);
-    if (stype_ == ST_STRING_I4_VCHAR)
-      ((VarcharMeta*) meta)->offoff = (int64_t) i4s_padding(0);
-    if (stype_ == ST_STRING_I8_VCHAR)
-      ((VarcharMeta*) meta)->offoff = (int64_t) i8s_padding(0);
+Column::Column(int64_t nrows_)
+    : mbuf(nullptr),
+      meta(nullptr),
+      nrows(nrows_),
+      _stype(ST_VOID),
+      stats(Stats::void_ptr()) {}
+
+
+
+Column* Column::new_column(SType stype) {
+  switch (stype) {
+    case ST_BOOLEAN_I1:      return new BoolColumn();
+    case ST_INTEGER_I1:      return new IntColumn<int8_t>();
+    case ST_INTEGER_I2:      return new IntColumn<int16_t>();
+    case ST_INTEGER_I4:      return new IntColumn<int32_t>();
+    case ST_INTEGER_I8:      return new IntColumn<int64_t>();
+    case ST_REAL_F4:         return new RealColumn<float>();
+    case ST_REAL_F8:         return new RealColumn<double>();
+    case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
+    case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
+    case ST_OBJECT_PYPTR:    return new PyObjectColumn();
+    case ST_VOID:            return new Column(0);  // FIXME
+    default:
+      THROW_ERROR("Unable to create a column of SType = %d\n", stype);
   }
 }
 
 
-/**
- * Simple Column constructor: create a Column with memory type `MT_DATA` and
- * having the provided SType. The column will be preallocated for `nrows` rows,
- * and will have `refcount` = 1. For a variable-width column only the "fixed-
- * -width" part will be allocated.
- *
- * If the column cannot be created (probably due to Out-of-Memory exception),
- * the function will return NULL.
- */
-Column::Column(SType stype_, size_t nrows_)
-    : Column(nrows_, stype_)
-{
-  mbuf = new MemoryMemBuf(allocsize0(stype_, nrows_));
+Column* Column::new_data_column(SType stype, int64_t nrows) {
+  Column* col = new_column(stype);
+  col->nrows = nrows;
+  col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
+  col->_stype = stype;
+  return col;
 }
 
 
-Column::Column(SType stype_, size_t nrows_, const char* filename)
-    : Column(nrows_, stype_)
-{
-  size_t sz = allocsize0(stype_, nrows_);
-  mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
+Column* Column::new_mmap_column(SType stype, int64_t nrows,
+                                const char* filename) {
+  size_t sz = allocsize0(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
+  col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
+  col->_stype = stype;
+  return col;
 }
 
 
@@ -89,7 +91,7 @@ Column::Column(SType stype_, size_t nrows_, const char* filename)
  * file).
  * If a file with the given name already exists, it will be overwritten.
  */
-Column* Column::save_to_disk(const char *filename)
+Column* Column::save_to_disk(const char* filename)
 {
   // Open and memory-map the file
   int fd = open(filename, O_RDWR|O_CREAT, 0666);
@@ -123,59 +125,73 @@ Column* Column::save_to_disk(const char *filename)
  * This function will not check data validity (i.e. that the buffer contains
  * valid values, and that the extra parameters match the buffer's contents).
  */
-Column::Column(const char* filename, SType st, size_t nr, const char* ms)
-    : Column(nr, st)
+Column* Column::open_mmap_column(SType stype, int64_t nrows,
+                                 const char* filename, const char* ms)
 {
-  mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
+  col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
+  col->_stype = stype;
+  if (col->alloc_size() < allocsize0(stype, nrows)) {
+    throw new Error("File %s has size %zu, which is not sufficient for a column"
+                    " with %zd rows", filename, col->alloc_size(), nrows);
+  }
   // Deserialize the meta information, if needed
-  if (st == ST_STRING_I4_VCHAR || st == ST_STRING_I8_VCHAR) {
+  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
     if (strncmp(ms, "offoff=", 7) != 0)
       throw new Error("Cannot retrieve required metadata in string \"%s\"", ms);
     int64_t offoff = (int64_t) atoll(ms + 7);
-    ((VarcharMeta*) meta)->offoff = offoff;
+    ((VarcharMeta*) col->meta)->offoff = offoff;
   }
+  return col;
 }
 
 
 /**
  * Construct a column from the externally provided buffer.
  */
-Column::Column(SType st, size_t nr, void* pybuffer, void* data, size_t a_size)
-    : Column(nr, st)
+Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
+                                void* data, size_t a_size)
 {
-  mbuf = new ExternalMemBuf(data, pybuffer, a_size);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
+  col->_stype = stype;
+  col->mbuf = new ExternalMemBuf(data, pybuffer, a_size);
+  return col;
 }
 
 
 /**
  * Create a shallow copy of the provided column.
  */
-Column::Column(const Column* other)
-    : Column(static_cast<size_t>(other->nrows), other->stype())
-{
-  assert(mbuf == nullptr);
-  mbuf = other->mbuf->newref();
+Column* Column::shallowcopy() {
+  Column* col = new_column(stype());
+  col->nrows = nrows;
+  col->_stype = stype();
+  col->mbuf = mbuf->newref();
   if (meta) {
-    memcpy(meta, other->meta, stype_info[stype()].metasize);
+    memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: also copy Stats object
+  return col;
 }
 
 
 /**
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.
- * If a shallow copy is needed, then use a copy-constructor `new Column(*this)`.
  */
 Column* Column::deepcopy()
 {
-  Column* res = new Column(static_cast<size_t>(nrows), stype());
-  res->mbuf = new MemoryMemBuf(*mbuf);
+  Column* col = new_column(stype());
+  col->nrows = nrows;
+  col->_stype = stype();
+  col->mbuf = new MemoryMemBuf(*mbuf);
   if (meta) {
-    memcpy(res->meta, meta, stype_info[stype()].metasize);
+    memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: deep copy stats when implemented
-  return res;
+  return col;
 }
 
 
@@ -213,7 +229,7 @@ int Column::mbuf_refcount() const {
 Column* Column::extract(RowIndex *rowindex) {
   // If `rowindex` is not provided, then return a shallow "copy".
   if (rowindex == NULL) {
-    return new Column(this);
+    return shallowcopy();
   }
 
   size_t res_nrows = (size_t) rowindex->length;
@@ -221,9 +237,9 @@ Column* Column::extract(RowIndex *rowindex) {
                     ? (size_t) ((FixcharMeta*) meta)->n
                     : stype_info[stype()].elemsize;
 
-  // Create the new Column object.
+  // Create a new `Column` object.
   // TODO: Stats should be copied from DataTable
-  Column *res = new Column(stype(), 0);
+  Column *res = Column::new_data_column(stype(), 0);
   res->nrows = (int64_t) res_nrows;
 
   // "Slice" rowindex with step = 1 is a simple subsection of the column

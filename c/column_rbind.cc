@@ -41,7 +41,7 @@ Column* Column::rbind(Column **cols)
     Column *res = NULL;
     bool col_empty = (stype() == ST_VOID);
     if (col_empty) {
-        res = new Column(res_stype, (size_t) this->nrows);
+        res = Column::new_data_column(res_stype, this->nrows);
     } else if (!mbuf->is_readonly() && stype() == res_stype) {
         // Happy place: current column can be modified in-place.
         res = this;

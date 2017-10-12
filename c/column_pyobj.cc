@@ -17,10 +17,10 @@
 
 
 PyObjectColumn::~PyObjectColumn() {
-  PyObject** elems = elements();
-  for (int64_t i = 0; i < nrows; i++) {
-    Py_DECREF(elems[i]);
-  }
+  // PyObject** elems = elements();
+  // for (int64_t i = 0; i < nrows; i++) {
+  //   Py_DECREF(elems[i]);
+  // }
   // delete mbuf;
 }
 
