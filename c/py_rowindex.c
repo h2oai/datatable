@@ -18,11 +18,11 @@
  *
  * If `src` is NULL then this function also returns NULL.
  */
-PyObject* pyrowindex(RowIndex *src)
+PyObject* pyrowindex(RowIndex *rowindex)
 {
-    if (src == NULL) return NULL;
+    if (rowindex == NULL) return NULL;
     PyObject *res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
-    ((RowIndex_PyObject*) res)->ref = src->incref();
+    ((RowIndex_PyObject*) res)->ref = rowindex->shallowcopy();
     return res;
 }
 #define py pyrowindex
@@ -295,7 +295,7 @@ PyObject* pyrowindex_uplift(UU, PyObject *args)
 
 static void dealloc(RowIndex_PyObject *self)
 {
-    if (self->ref) self->ref->decref();
+    if (self->ref) self->ref->release();
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 

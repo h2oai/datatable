@@ -272,7 +272,7 @@ RowIndex* Column::sort() const
             if (ri_ == NULL || ri_->type != RI_ARR32) return NULL;
             ordering = ri_->ind32;
             ri_->ind32 = NULL;
-            ri_->decref();
+            ri_->release();
         }
     }
     SType stype_ = stype();

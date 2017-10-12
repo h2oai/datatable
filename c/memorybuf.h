@@ -57,7 +57,7 @@ protected:
 public:
   // This class is not directly constructible: construct one of the derived
   // classes instead. Alternatively, if you need to shallow-copy the current
-  // object, use `membuf->newref()`.
+  // object, use `membuf->shallowcopy()`.
   MemoryBuffer(const MemoryBuffer&) = delete;  // copy-constructor
   MemoryBuffer(MemoryBuffer&&) = delete;       // move-constructor
 
@@ -163,7 +163,7 @@ public:
    * Returns a new reference to the current object. For all intents and purposes
    * this works as a copy of an object, except that no actual copy is made.
    */
-  MemoryBuffer* newref();
+  MemoryBuffer* shallowcopy();
 
   /**
    * This method should be called where you would normally say `delete membuf;`.

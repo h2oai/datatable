@@ -736,21 +736,24 @@ size_t RowIndex::alloc_size()
 }
 
 
-RowIndex* RowIndex::incref()
+RowIndex* RowIndex::shallowcopy()
 {
     ++refcount;
     return this;
 }
 
 
-void RowIndex::decref()
+void RowIndex::release()
 {
     --refcount;
-    if (refcount > 0) return;
+    if (refcount <= 0) delete this;
+}
+
+
+RowIndex::~RowIndex() {
     switch (type) {
         case RI_ARR32: dtfree(ind32); break;
         case RI_ARR64: dtfree(ind64); break;
         default: /* do nothing */ break;
     }
-    delete this;
 }

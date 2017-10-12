@@ -92,7 +92,7 @@ PyObject* MemoryBuffer::pyrepr() const {
   return none();
 }
 
-MemoryBuffer* MemoryBuffer::newref() {
+MemoryBuffer* MemoryBuffer::shallowcopy() {
   ++refcount;
   return this;
 }
