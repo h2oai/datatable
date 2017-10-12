@@ -97,8 +97,16 @@ public:
    */
   virtual void resize_and_fill(int64_t nrows);
 
-  Column* shallowcopy();
-  Column* shallowcopy(RowIndex*);
+  /**
+   * Create a shallow copy of this Column, possibly applying the provided
+   * RowIndex. The copy is "shallow" in the sense that the main data buffer
+   * is copied by-reference. If this column has a rowindex, and the user
+   * asks to apply a new rowindex, then the new one will replace the original.
+   * If you want the rowindices to be merged, you should merge them manually
+   * and pass the merged rowindex to this method.
+   */
+  Column* shallowcopy(RowIndex* new_rowindex = nullptr);
+
   Column* deepcopy();
   Column* cast(SType);
   Column* rbind(Column**);

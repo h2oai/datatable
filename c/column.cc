@@ -159,9 +159,9 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 
 
 /**
- * Create a shallow copy of the provided column.
+ * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy() {
+Column* Column::shallowcopy(RowIndex* new_rowindex) {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
@@ -169,24 +169,12 @@ Column* Column::shallowcopy() {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: also copy Stats object
-  col->ri = rowindex() == nullptr ? nullptr : rowindex()->shallowcopy();
-  return col;
-}
 
-/**
- * Create a shallow copy and mask the result with the provided rowindex
- */
-Column* Column::shallowcopy(RowIndex* new_rowindex) {
-  Column* col = shallowcopy();
-  if (col->ri != nullptr) {
-    col->ri->release();
-  }
   if (new_rowindex) {
-    col->nrows = new_rowindex->length;
     col->ri = new_rowindex->shallowcopy();
-  } else {
-    col->nrows = col->data_nrows();
-    col->ri = nullptr;
+    col->nrows = new_rowindex->length;
+  } else if (ri) {
+    col->ri = ri->shallowcopy();
   }
   return col;
 }
