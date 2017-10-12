@@ -16,6 +16,9 @@
 #include "column.h"
 
 
+template <typename T> FwColumn<T>::FwColumn() : FwColumn<T>(0) {}
+
+
 template <typename T>
 FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 {

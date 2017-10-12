@@ -56,9 +56,30 @@ Column::Column(SType stype_, int64_t nrows_) : Column(nrows_) {
 }
 
 
+Column* Column::new_column(SType stype) {
+  switch (stype) {
+    case ST_BOOLEAN_I1:      return new BoolColumn();
+    case ST_INTEGER_I1:      return new IntColumn<int8_t>();
+    case ST_INTEGER_I2:      return new IntColumn<int16_t>();
+    case ST_INTEGER_I4:      return new IntColumn<int32_t>();
+    case ST_INTEGER_I8:      return new IntColumn<int64_t>();
+    case ST_REAL_F4:         return new RealColumn<float>();
+    case ST_REAL_F8:         return new RealColumn<double>();
+    case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
+    case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
+    case ST_OBJECT_PYPTR:    return new PyObjectColumn();
+    case ST_VOID:            return new Column(ST_VOID, 0);  // FIXME
+    default:
+      THROW_ERROR("Unable to create a column of SType = %d\n", stype);
+  }
+}
+
+
 Column* Column::new_data_column(SType stype, int64_t nrows) {
-  Column* col = new Column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
+  col->_stype = stype;
   return col;
 }
 
@@ -66,8 +87,10 @@ Column* Column::new_data_column(SType stype, int64_t nrows) {
 Column* Column::new_mmap_column(SType stype, int64_t nrows,
                                 const char* filename) {
   size_t sz = allocsize0(stype, nrows);
-  Column* col = new Column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
+  col->_stype = stype;
   return col;
 }
 
@@ -79,7 +102,7 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  * file).
  * If a file with the given name already exists, it will be overwritten.
  */
-Column* Column::save_to_disk(const char *filename)
+Column* Column::save_to_disk(const char* filename)
 {
   // Open and memory-map the file
   int fd = open(filename, O_RDWR|O_CREAT, 0666);
@@ -116,8 +139,11 @@ Column* Column::save_to_disk(const char *filename)
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
                                  const char* filename, const char* ms)
 {
-  Column* col = new Column(stype, nrows);
+  // Column* col = new Column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
+  col->_stype = stype;
   if (col->alloc_size() < allocsize0(stype, nrows)) {
     throw new Error("File %s has size %zu, which is not sufficient for a column"
                     " with %zd rows", filename, col->alloc_size(), nrows);
@@ -139,7 +165,9 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
 Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
                                 void* data, size_t a_size)
 {
-  Column* col = new Column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
+  col->_stype = stype;
   col->mbuf = new ExternalMemBuf(data, pybuffer, a_size);
   return col;
 }
@@ -149,7 +177,9 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
  * Create a shallow copy of the provided column.
  */
 Column* Column::shallowcopy() {
-  Column* col = new Column(stype(), nrows);
+  Column* col = new_column(stype());
+  col->nrows = nrows;
+  col->_stype = stype();
   col->mbuf = mbuf->newref();
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
@@ -166,7 +196,9 @@ Column* Column::shallowcopy() {
  */
 Column* Column::deepcopy()
 {
-  Column* col = new Column(stype(), nrows);
+  Column* col = new_column(stype());
+  col->nrows = nrows;
+  col->_stype = stype();
   col->mbuf = new MemoryMemBuf(*mbuf);
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);

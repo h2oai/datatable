@@ -29,24 +29,14 @@ class Stats;
 //==============================================================================
 
 /**
- * Single "data" column within a datatable.
+ * This class represents a single column within a DataTable.
  *
- * The `data` memory buffer is the raw storage of the column's data. The data
- * is stored in the "NFF" format, as described in the "types.h" file. Typically
- * it's just a plain array of primitive types, in which case the `j`-th element
- * can be accessed as `((ctype*)(column->data))[j]`. More complicated types
- * (such as strings) require a more elaborate access scheme.
  *
  * Parameters
  * ----------
  * data
  *     Raw data buffer in NFF format, depending on the column's `stype` (see
  *     specification in "types.h"). This may be NULL if column has 0 rows.
- *
- * mtype
- *     "Memory" type of the column -- i.e. where the data is actually stored.
- *     Possible values are MT_DATA (column is stored in RAM), MT_MMAP (memory-
- *     -mapped from disk), and MT_XBUF (acquired from an external buffer).
  *
  * stype
  *     Type of data within the column (the enum is defined in types.h). This is
@@ -62,18 +52,6 @@ class Stats;
  *     of the *Meta structs defined in "types.h". The actual struct used
  *     depends on the `stype`.
  *
- * alloc_size
- *     Size (in bytes) of memory buffer `data`. For columns of type MT_MMAP this
- *     size is equal to the file size.
- *
- * refcount
- *     Number of references to this Column object. It is a common for a single
- *     Column to be reused across multiple DataTables (for example when a new
- *     DataTable is created as a view onto an existing one). In such case the
- *     refcount of the Column should be increased. Any modification to a Column
- *     with refcount > 1 is not allowed -- a copy should be made first. When a
- *     DataTable is deleted, it decreases refcounts of all its constituent
- *     Columns, and once a Column's refcount becomes 0 it can be safely deleted.
  */
 class Column
 {
@@ -128,12 +106,14 @@ public:
   static size_t i8s_padding(size_t datasize);
 
 protected:
-  static size_t allocsize0(SType, int64_t nrows);
   Column(int64_t nrows);
   Column(SType stype, int64_t nrows);
   Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
   Column* rbind_str32(Column**, int64_t, int);
 
+private:
+  static size_t allocsize0(SType, int64_t nrows);
+  static Column* new_column(SType);
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
   friend Column* column_from_list(PyObject *list);
@@ -148,6 +128,7 @@ protected:
 template <typename T> class FwColumn : public Column
 {
 public:
+  FwColumn();
   FwColumn(int64_t nrows);
   T* elements();
   T get_elem(int64_t i) const;
@@ -215,13 +196,24 @@ extern template class RealColumn<double>;
 
 //==============================================================================
 
+class PyObjectColumn : public FwColumn<PyObject*>
+{
+public:
+  using FwColumn<PyObject*>::FwColumn;
+  virtual ~PyObjectColumn();
+  virtual SType stype() const override;
+};
+
+
+
+//==============================================================================
+
 template <typename T> class StringColumn : public Column
 {
   MemoryBuffer *strbuf;
 
 public:
-  // static const size_t elemsize = sizeof(T);
-
+  StringColumn();
   StringColumn(int64_t nrows);
   virtual ~StringColumn();
   virtual Column* extract_simple_slice(RowIndex*) const;
@@ -230,17 +222,8 @@ public:
   static size_t padding(size_t datasize);
 };
 
-
-
-//==============================================================================
-
-class PyObjectColumn : public FwColumn<PyObject*>
-{
-public:
-  using FwColumn<PyObject*>::FwColumn;
-  virtual ~PyObjectColumn();
-  virtual SType stype() const override;
-};
+extern template class StringColumn<int32_t>;
+extern template class StringColumn<int64_t>;
 
 
 
