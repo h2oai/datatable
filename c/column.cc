@@ -185,7 +185,7 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) {
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.
  */
-Column* Column::deepcopy()
+Column* Column::deepcopy() const
 {
   Column* col = new_column(stype());
   col->nrows = nrows;
@@ -433,7 +433,7 @@ void Column::resize_and_fill(int64_t) {}
 Column::~Column() {
   dtfree(meta);
   Stats::destruct(stats);
-  mbuf->release();
+  if (mbuf) mbuf->release();
   if (ri) ri->release();
 }
 

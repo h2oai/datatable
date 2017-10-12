@@ -1,11 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "column.h"
 #include "datatable.h"
+#include <vector>
 #include "myassert.h"
-#include "rowindex.h"
-#include "utils.h"
 
 
 
@@ -21,17 +16,17 @@
  * number `cols[i][j]` in datatable `dts[j]` (if `cols[i][j] >= 0`, otherwise
  * NAs).
  */
-DataTable*
-DataTable::rbind(DataTable **dts, int **cols, int ndts, int64_t new_ncols)
+DataTable* DataTable::rbind(DataTable **dts, int **cols, int ndts,
+                            int64_t new_ncols)
 {
     assert(new_ncols >= ncols);
 
-    // If dt is a view datatable, then it must be converted to MT_DATA
-    reify();
+    // If this is a view datatable, then it must be materialized.
+    this->reify();
 
     dtrealloc(columns, Column*, new_ncols + 1);
     for (int64_t i = ncols; i < new_ncols; ++i) {
-        columns[i] = NULL;
+        columns[i] = new VoidColumn(nrows);
     }
     columns[new_ncols] = NULL;
 
@@ -40,25 +35,14 @@ DataTable::rbind(DataTable **dts, int **cols, int ndts, int64_t new_ncols)
         new_nrows += dts[i]->nrows;
     }
 
-    Column **cols0 = NULL;
-    dtmalloc(cols0, Column*, ndts + 1);
-    cols0[ndts] = NULL;
-
+    std::vector<const Column*> cols_to_append(ndts);
     for (int64_t i = 0; i < new_ncols; ++i) {
-        Column *ret = NULL;
-        Column *col0 = (i < ncols)
-            ? columns[i]
-            : Column::new_data_column(ST_VOID, nrows);
         for (int j = 0; j < ndts; ++j) {
-            if (cols[i][j] < 0) {
-                cols0[j] = Column::new_data_column(ST_VOID, dts[j]->nrows);
-            } else {
-                cols0[j] = dts[j]->columns[cols[i][j]]->extract();
-            }
+            int k = cols[i][j];
+            cols_to_append[j] = k < 0 ? new VoidColumn(dts[j]->nrows)
+                                      : dts[j]->columns[k]->extract();
         }
-        ret = col0->rbind(cols0);
-        if (ret == NULL) return NULL;
-        columns[i] = ret;
+        columns[i] = columns[i]->rbind(cols_to_append);
     }
     ncols = new_ncols;
     nrows = new_nrows;

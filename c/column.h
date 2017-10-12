@@ -17,6 +17,7 @@
 #define dt_COLUMN_H
 #include <Python.h>
 #include <stdint.h>
+#include <vector>
 #include "memorybuf.h"
 #include "types.h"
 #include "stats.h"
@@ -107,9 +108,25 @@ public:
    */
   Column* shallowcopy(RowIndex* new_rowindex = nullptr);
 
-  Column* deepcopy();
-  Column* cast(SType);
-  Column* rbind(Column**);
+  Column* deepcopy() const;
+  Column* cast(SType) const;
+
+  /**
+   * Appends the provided columns to the bottom of the current column and
+   * returns the resulting column. This method is equivalent to `list.append()`
+   * in Python or `rbind()` in R.
+   *
+   * Current column is modified in-place, if possible. Otherwise, a new Column
+   * object is returned, and this Column is deleted. The expected usage pattern
+   * is thus as follows:
+   *
+   *   column = column->rbind(columns_to_bind);
+   *
+   * Individual entries in the `columns` array may be instances of `VoidColumn`,
+   * indicating columns that should be replaced with NAs.
+   */
+  Column* rbind(const std::vector<const Column*>& columns);
+
   Column* extract();
   Column* save_to_disk(const char*);
   RowIndex* sort() const;
@@ -119,8 +136,8 @@ public:
 
 protected:
   Column(int64_t nrows);
-  Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
-  Column* rbind_str32(Column**, int64_t, int);
+  Column* rbind_fw(const std::vector<const Column*>&, int64_t, bool);
+  Column* rbind_str32(const std::vector<const Column*>&, int64_t, bool);
 
 private:
   static size_t allocsize0(SType, int64_t nrows);
@@ -246,7 +263,17 @@ extern template class StringColumn<int64_t>;
 
 
 //==============================================================================
-typedef Column* (*castfn_ptr)(Column*, Column*);
+
+class VoidColumn : public Column {
+public:
+  VoidColumn(int64_t nrows = 0) : Column(nrows) {}
+  SType stype() const override { return ST_VOID; }
+};
+
+
+
+//==============================================================================
+typedef Column* (*castfn_ptr)(const Column*, Column*);
 
 Column* column_from_list(PyObject*);
 void init_column_cast_functions(void);

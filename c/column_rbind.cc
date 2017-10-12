@@ -1,67 +1,53 @@
 #include <stdio.h>   // printf
 #include <string.h>  // memcpy
 #include <stdlib.h>  // abs
+#include <algorithm> // max
 #include "column.h"
 #include "myassert.h"
 #include "types.h"
 #include "utils.h"
 
 
-/**
- * Append columns `cols` to the bottom of the current column -- equivalent of
- * Python's `list.append()` or R's `rbind()`.
- *
- * If possible, the current column will be modified in-place (which is a common
- * use-case). Otherwise, a new Column object will be created and returned,
- * while `self` will be dec-refed.
- *
- * This function also takes ownership of the `cols` array, deallocating it in
- * the end.
- *
- * Any of the columns passed to this function may have stype = 0, which means
- * that it is a column containing only NAs. Also, the array `cols` should be
- * NULL-terminating.
- */
-Column* Column::rbind(Column **cols)
+
+Column* Column::rbind(const std::vector<const Column*>& columns)
 {
+    // Is the current column "empty" ?
+    bool col_empty = (stype() == ST_VOID);
+
     // Compute the final number of rows and stype
-    int64_t res_nrows = this->nrows;
-    int64_t nrows0 = res_nrows;
-    SType res_stype = stype();
-    for (Column **pcol = cols; *pcol; ++pcol) {
-        Column *col = *pcol;
-        res_nrows += col->nrows;
-        if (res_stype < col->stype()) res_stype = col->stype();
+    int64_t new_nrows = this->nrows;
+    SType new_stype = std::max(stype(), ST_BOOLEAN_I1);
+    for (const Column* col : columns) {
+        new_nrows += col->nrows;
+        new_stype = std::max(new_stype, col->stype());
     }
-    if (res_stype == ST_VOID) res_stype = ST_BOOLEAN_I1;
 
     // Create the resulting Column object. It can be either: an empty column
-    // filled with NAs; the current column (`self`); a clone of the current
+    // filled with NAs; the current column (`this`); a clone of the current
     // column (if it has refcount > 1); or a type-cast of the current column.
-    Column *res = NULL;
-    bool col_empty = (stype() == ST_VOID);
+    Column *res = nullptr;
     if (col_empty) {
-        res = Column::new_data_column(res_stype, this->nrows);
-    } else if (!mbuf->is_readonly() && stype() == res_stype) {
-        // Happy place: current column can be modified in-place.
+        // FIXME: this is not filled with NAs!
+        res = Column::new_data_column(new_stype, this->nrows);
+    } else if (stype() == new_stype) {
+        mbuf = mbuf->safe_resize(mbuf->size());  // ensure mbuf is writable
         res = this;
     } else {
-        res = (stype() == res_stype) ? deepcopy() : cast(res_stype);
+        res = this->cast(new_stype);
     }
-    if (res == NULL) return NULL;
-    assert(res->stype() == res_stype && !res->mbuf->is_readonly() &&
-           res->nrows == nrows0);
+    assert(res->stype() == new_stype && !res->mbuf->is_readonly());
 
     // TODO: Temporary Fix. To be resolved in #301
-    if (res->stats) res->stats->reset();
+    res->stats->reset();
+
     // Use the appropriate strategy to continue appending the columns.
-    res = (res_stype == ST_STRING_I4_VCHAR) ? res->rbind_str32(cols, res_nrows, col_empty) :
-          (!stype_info[res_stype].varwidth) ? res->rbind_fw(cols, res_nrows, col_empty) : NULL;
+    res = (new_stype == ST_STRING_I4_VCHAR) ? res->rbind_str32(columns, new_nrows, col_empty) :
+          (!stype_info[new_stype].varwidth) ? res->rbind_fw(columns, new_nrows, col_empty) : NULL;
 
     // If everything is fine, then the current column can be safely discarded
     // -- the upstream caller will replace this column with the `res`. However
     // if any error occurred (res == NULL), then `self` will be left intact.
-    if (res && res != this) delete this;
+    if (res != this) delete this;
     return res;
 }
 
@@ -77,7 +63,8 @@ Column* Column::rbind(Column **cols)
  * `col_empty` indicates that the current column is empty and haven't been
  * filled with NAs yet.
  */
-Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
+Column* Column::rbind_fw(const std::vector<const Column*>& columns,
+                         int64_t new_nrows, bool col_empty)
 {
     size_t elemsize = stype_info[stype()].elemsize;
     const void *na = stype_info[stype()].na;
@@ -92,8 +79,7 @@ Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
     // Copy the data
     void *resptr = mbuf->at(col_empty ? 0 : old_alloc_size);
     size_t rows_to_fill = col_empty ? old_nrows : 0;
-    for (Column **pcol = cols; *pcol; pcol++) {
-        Column *col = *pcol;
+    for (const Column* col : columns) {
         if (col->stype() == 0) {
             rows_to_fill += (size_t) col->nrows;
         } else {
@@ -134,7 +120,8 @@ Column* Column::rbind_fw(Column **cols, int64_t new_nrows, int col_empty)
  * The meta information structure for this column contains the offset of the
  * "offsets" region.
  */
-Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
+Column* Column::rbind_str32(const std::vector<const Column*>& columns,
+                            int64_t new_nrows, bool col_empty)
 {
     assert(stype() == ST_STRING_I4_VCHAR);
     size_t elemsize = 4;
@@ -148,9 +135,8 @@ Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
         int32_t *offsets = (int32_t*) mbuf->at(old_offoff);
         new_data_size += (size_t) abs(offsets[nrows - 1]) - 1;
     }
-    for (Column **pcol = cols; *pcol; pcol++) {
-        Column *col = *pcol;
-        if (col->stype() == 0) continue;
+    for (const Column* col : columns) {
+        if (col->stype() == ST_VOID) continue;
         int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
         int32_t *offsets = (int32_t*) col->mbuf->at(offoff);
         new_data_size += (size_t) abs(offsets[col->nrows - 1]) - 1;
@@ -180,9 +166,8 @@ Column* Column::rbind_str32(Column **cols, int64_t new_nrows, int col_empty)
         offsets += old_nrows;
     }
 
-    for (Column **pcol = cols; *pcol; pcol++) {
-        Column *col = *pcol;
-        if (col->stype() == 0) {
+    for (const Column* col : columns) {
+        if (col->stype() == ST_VOID) {
             rows_to_fill += col->nrows;
         } else {
             if (rows_to_fill) {
