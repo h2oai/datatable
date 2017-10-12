@@ -325,12 +325,16 @@ Column* column_from_list(PyObject *list)
             dtrealloc(strbuffer, char, final_size);
             memset(strbuffer + strbuffer_ptr, 0xFF, padding_size);
             memcpy(strbuffer + offoff, mb->get(), esz * (size_t)nrows);
-            Column *column = new Column(stype, nrows);
+            Column *column = new StringColumn<int32_t>();
+            column->nrows = nrows;
+            column->_stype = stype;
             column->mbuf = new MemoryMemBuf(strbuffer, final_size);
             ((VarcharMeta*) column->meta)->offoff = (int64_t) offoff;
             return column;
         } else {
-            Column *column = new Column(stype, nrows);
+            Column *column = Column::new_column(stype);
+            column->_stype = stype;
+            column->nrows = nrows;
             column->mbuf = mb;
             return column;
         }

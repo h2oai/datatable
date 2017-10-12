@@ -107,7 +107,6 @@ public:
 
 protected:
   Column(int64_t nrows);
-  Column(SType stype, int64_t nrows);
   Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
   Column* rbind_str32(Column**, int64_t, int);
 

@@ -40,20 +40,9 @@ Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       meta(nullptr),
       nrows(nrows_),
+      _stype(ST_VOID),
       stats(Stats::void_ptr()) {}
 
-
-Column::Column(SType stype_, int64_t nrows_) : Column(nrows_) {
-  _stype = stype_;
-  size_t meta_size = stype_info[stype_].metasize;
-  if (meta_size) {
-    meta = malloc(meta_size);
-    if (stype_ == ST_STRING_I4_VCHAR)
-      ((VarcharMeta*) meta)->offoff = (int64_t) i4s_padding(0);
-    if (stype_ == ST_STRING_I8_VCHAR)
-      ((VarcharMeta*) meta)->offoff = (int64_t) i8s_padding(0);
-  }
-}
 
 
 Column* Column::new_column(SType stype) {
@@ -68,7 +57,7 @@ Column* Column::new_column(SType stype) {
     case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
     case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
     case ST_OBJECT_PYPTR:    return new PyObjectColumn();
-    case ST_VOID:            return new Column(ST_VOID, 0);  // FIXME
+    case ST_VOID:            return new Column(0);  // FIXME
     default:
       THROW_ERROR("Unable to create a column of SType = %d\n", stype);
   }
@@ -139,7 +128,6 @@ Column* Column::save_to_disk(const char* filename)
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
                                  const char* filename, const char* ms)
 {
-  // Column* col = new Column(stype, nrows);
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
@@ -192,7 +180,6 @@ Column* Column::shallowcopy() {
 /**
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.
- * If a shallow copy is needed, then use a copy-constructor `new Column(*this)`.
  */
 Column* Column::deepcopy()
 {
@@ -250,7 +237,7 @@ Column* Column::extract(RowIndex *rowindex) {
                     ? (size_t) ((FixcharMeta*) meta)->n
                     : stype_info[stype()].elemsize;
 
-  // Create the new Column object.
+  // Create a new `Column` object.
   // TODO: Stats should be copied from DataTable
   Column *res = Column::new_data_column(stype(), 0);
   res->nrows = (int64_t) res_nrows;
