@@ -14,6 +14,8 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
+#include <type_traits>
+#include "utils.h"
 
 
 template <typename T> FwColumn<T>::FwColumn() : FwColumn<T>(0) {}
@@ -39,6 +41,12 @@ T FwColumn<T>::get_elem(int64_t i) const {
 }
 
 
+template <>
+void FwColumn<PyObject*>::set_elem(int64_t i, PyObject* value) {
+  mbuf->set_elem<PyObject*>(i, value);
+  Py_XINCREF(value);
+}
+
 template <typename T>
 void FwColumn<T>::set_elem(int64_t i, T value) {
   mbuf->set_elem<T>(i, value);
@@ -54,6 +62,41 @@ Column* FwColumn<T>::extract_simple_slice(RowIndex* rowindex) const
   memcpy(res->data(), this->mbuf->at(offset), res->alloc_size());
   return res;
 }
+
+
+// The purpose of this template is to augment the behavior of the template
+// `resize_and_fill` method, for the case when `T` is `PyObject*`: if a
+// `PyObject*` value is replicated multiple times in a column, then its
+// refcount has to be increased that many times.
+template <typename T> void incr_refcnt(T, int64_t) {}
+template <> void incr_refcnt(PyObject* obj, int64_t drefcnt) {
+  if (obj) Py_REFCNT(obj) += drefcnt;
+}
+
+
+template <typename T>
+void FwColumn<T>::resize_and_fill(int64_t new_nrows)
+{
+  if (new_nrows == nrows) return;
+  if (new_nrows < nrows) {
+    throw Error("Column::resize_and_fill() cannot shrink a column");
+  }
+
+  mbuf = mbuf->safe_resize(sizeof(T) * static_cast<size_t>(new_nrows));
+
+  // Replicate the value or fill with NAs
+  T fill_value = nrows == 1? get_elem(0) : na_elem;
+  for (int64_t i = nrows; i < new_nrows; ++i) {
+    mbuf->set_elem<T>(i, fill_value);
+  }
+  incr_refcnt<T>(fill_value, new_nrows - nrows);
+  this->nrows = new_nrows;
+
+  // TODO(#301): Temporary fix.
+  this->stats->reset();
+}
+
+
 
 
 // Explicit instantiations

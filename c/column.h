@@ -84,13 +84,16 @@ public:
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
-   * NA values, except when the Column at first had just one row, in which case
+   * NA values, except when the Column initially had just one row, in which case
    * that one value will be used to fill the new rows. For example:
    *
-   *   {1, 3}.resize_and_fill(5) -> {1, 3, NA, NA, NA}
-   *   {1}.resize_and_fill(5)    -> {1, 1, 1, 1, 1}
+   *   {1, 2, 3, 4}.resize_and_fill(5) -> {1, 2, 3, 4, NA}
+   *   {1, 3}.resize_and_fill(5)       -> {1, 3, NA, NA, NA}
+   *   {1}.resize_and_fill(5)          -> {1, 1, 1, 1, 1}
+   *
+   * The contents of the column will be modified in-place if possible.
    */
-  void resize_and_fill(int64_t nrows);
+  virtual void resize_and_fill(int64_t nrows);
 
   Column* shallowcopy();
   Column* deepcopy();
@@ -132,11 +135,13 @@ public:
   void set_elem(int64_t i, T value);
 
 protected:
-  // static constexpr size_t elemsize = sizeof(T);
-  // static constexpr T na_elem = GETNA<T>();
-  virtual Column* extract_simple_slice(RowIndex*) const;
+  static constexpr T na_elem = GETNA<T>();
+  Column* extract_simple_slice(RowIndex*) const;
+  void resize_and_fill(int64_t nrows) override;
 };
 
+
+template <> void FwColumn<PyObject*>::set_elem(int64_t, PyObject*);
 extern template class FwColumn<int8_t>;
 extern template class FwColumn<int16_t>;
 extern template class FwColumn<int32_t>;
@@ -213,8 +218,9 @@ public:
   StringColumn();
   StringColumn(int64_t nrows);
   virtual ~StringColumn();
-  virtual Column* extract_simple_slice(RowIndex*) const;
-  virtual SType stype() const override;
+  SType stype() const override;
+  Column* extract_simple_slice(RowIndex*) const;
+  void resize_and_fill(int64_t nrows) override;
 
   size_t datasize();
   static size_t padding(size_t datasize);
