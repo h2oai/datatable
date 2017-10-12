@@ -63,10 +63,6 @@ public:  // TODO: convert these into private
   int64_t nrows;       // 8
   Stats*  stats;       // 8
 
-private:
-  SType   _stype;      // 1
-  int64_t : 56;        // padding
-
 public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const char* filename);
@@ -84,10 +80,15 @@ public:
   size_t alloc_size() const;
   PyObject* mbuf_repr() const;
   int mbuf_refcount() const;
+  size_t memory_footprint() const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
-   * NA values.
+   * NA values, except when the Column at first had just one row, in which case
+   * that one value will be used to fill the new rows. For example:
+   *
+   *   {1, 3}.resize_and_fill(5) -> {1, 3, NA, NA, NA}
+   *   {1}.resize_and_fill(5)    -> {1, 1, 1, 1, 1}
    */
   void resize_and_fill(int64_t nrows);
 
@@ -97,9 +98,6 @@ public:
   Column* rbind(Column**);
   Column* extract(RowIndex* = NULL);
   Column* save_to_disk(const char*);
-  size_t i4s_datasize();
-  size_t i8s_datasize();
-  size_t get_allocsize();
 
   static RowIndex* sort(Column*, RowIndex*);
   static size_t i4s_padding(size_t datasize);
@@ -218,6 +216,7 @@ public:
   virtual Column* extract_simple_slice(RowIndex*) const;
   virtual SType stype() const override;
 
+  size_t datasize();
   static size_t padding(size_t datasize);
 };
 

@@ -14,6 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
+#include <cmath>  // abs
 
 
 template <typename T> StringColumn<T>::StringColumn() : StringColumn<T>(0) {}
@@ -45,6 +46,13 @@ StringColumn<T>::~StringColumn() {
   if (strbuf) strbuf->release();
 }
 
+
+template <typename T>
+size_t StringColumn<T>::datasize() {
+  size_t sz = mbuf->size();
+  T* end = static_cast<T*>(mbuf->at(sz));
+  return static_cast<size_t>(abs(end[-1]) - 1);
+}
 
 template <typename T>
 size_t StringColumn<T>::padding(size_t datasize) {

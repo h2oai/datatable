@@ -322,6 +322,7 @@ int DataTable::verify_integrity(char **errors)
                     "which exceeds 32-bit storage limit\n", i, offoff);
                 continue;
             }
+            /*
             size_t datasize = is_i4 ? col->i4s_datasize()
                                     : col->i8s_datasize();
             size_t exp_padding = is_i4 ? Column::i4s_padding(datasize)
@@ -339,6 +340,7 @@ int DataTable::verify_integrity(char **errors)
                     break;
                 }
             }
+            */
         }
 
         // Check the alloc_size property

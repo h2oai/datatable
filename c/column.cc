@@ -28,6 +28,7 @@
 #include "py_utils.h"
 
 
+// TODO: make this function virtual
 size_t Column::allocsize0(SType stype, int64_t nrows) {
   size_t sz = static_cast<size_t>(nrows) * stype_info[stype].elemsize;
   if (stype == ST_STRING_I4_VCHAR) sz += i4s_padding(0);
@@ -40,9 +41,7 @@ Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       meta(nullptr),
       nrows(nrows_),
-      _stype(ST_VOID),
       stats(Stats::void_ptr()) {}
-
 
 
 Column* Column::new_column(SType stype) {
@@ -68,7 +67,6 @@ Column* Column::new_data_column(SType stype, int64_t nrows) {
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
-  col->_stype = stype;
   return col;
 }
 
@@ -79,7 +77,6 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
-  col->_stype = stype;
   return col;
 }
 
@@ -131,7 +128,6 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
-  col->_stype = stype;
   if (col->alloc_size() < allocsize0(stype, nrows)) {
     throw new Error("File %s has size %zu, which is not sufficient for a column"
                     " with %zd rows", filename, col->alloc_size(), nrows);
@@ -155,7 +151,6 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->_stype = stype;
   col->mbuf = new ExternalMemBuf(data, pybuffer, a_size);
   return col;
 }
@@ -167,7 +162,6 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 Column* Column::shallowcopy() {
   Column* col = new_column(stype());
   col->nrows = nrows;
-  col->_stype = stype();
   col->mbuf = mbuf->newref();
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
@@ -185,7 +179,6 @@ Column* Column::deepcopy()
 {
   Column* col = new_column(stype());
   col->nrows = nrows;
-  col->_stype = stype();
   col->mbuf = new MemoryMemBuf(*mbuf);
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
@@ -196,7 +189,7 @@ Column* Column::deepcopy()
 
 
 SType Column::stype() const {
-  return _stype;
+  return ST_VOID;
 }
 
 void* Column::data() const {
@@ -432,10 +425,13 @@ Column* Column::extract(RowIndex *rowindex) {
  */
 void Column::resize_and_fill(int64_t new_nrows)
 {
-  size_t old_nrows = (size_t) nrows;
-  size_t diff_rows = (size_t) new_nrows - old_nrows;
   size_t old_alloc_size = alloc_size();
-  assert(diff_rows > 0);
+  int64_t old_nrows = nrows;
+  int64_t diff_rows = new_nrows - old_nrows;
+  if (diff_rows == 0) return;
+  if (diff_rows < 0) {
+    throw Error("Column::resize_and_fill() cannot shrink a column");
+  }
 
   if (!stype_info[stype()].varwidth) {
     size_t elemsize = stype_info[stype()].elemsize;
@@ -466,15 +462,16 @@ void Column::resize_and_fill(int64_t new_nrows)
     // TODO: Temporary fix. To be resolved in #301
     this->stats->reset();
   }
-  else if (stype() == ST_STRING_I4_VCHAR) {
+  else if (auto scol32 = dynamic_cast<StringColumn<int32_t>*>(this)) {
+    // TODO(pasha): move this functionality to StringColumn class
     if (new_nrows > INT32_MAX)
       THROW_ERROR("Nrows is too big for an i4s column: %lld", new_nrows);
 
-    size_t old_data_size = i4s_datasize();
+    size_t old_data_size = scol32->datasize();
     size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
     size_t new_data_size = old_data_size;
     if (old_nrows == 1) new_data_size = old_data_size * (size_t) new_nrows;
-    size_t new_padding_size = Column::i4s_padding(new_data_size);
+    size_t new_padding_size = scol32->padding(new_data_size);
     size_t new_offoff = new_data_size + new_padding_size;
     size_t new_alloc_size = new_offoff + 4 * (size_t) new_nrows;
     assert(new_alloc_size > old_alloc_size);
@@ -541,26 +538,13 @@ size_t Column::i8s_padding(size_t datasize) {
 }
 
 
-/**
- * Return the size of the data part in a ST_STRING_I(4|8)_VCHAR column.
- */
-size_t Column::i4s_datasize() {
-  assert(stype() == ST_STRING_I4_VCHAR);
-  void *end = mbuf->at(alloc_size());
-  return (size_t) abs(((int32_t*) end)[-1]) - 1;
-}
-size_t Column::i8s_datasize() {
-  assert(stype() == ST_STRING_I8_VCHAR);
-  void *end = mbuf->at(alloc_size());
-  return (size_t) llabs(((int64_t*) end)[-1]) - 1;
-}
 
 /**
  * Get the total size of the memory occupied by this Column. This is different
  * from `column->alloc_size`, which in general reports byte size of the `data`
  * portion of the column.
  */
-size_t Column::get_allocsize()
+size_t Column::memory_footprint() const
 {
   size_t sz = sizeof(Column);
   sz += mbuf->memory_footprint();
