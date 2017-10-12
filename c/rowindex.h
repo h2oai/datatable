@@ -76,8 +76,8 @@ public:
     RowIndex* expand();
     void compactify();
     size_t alloc_size();
-    RowIndex* incref();
-    void decref();
+    RowIndex* shallowcopy();
+    void release();
 
     static RowIndex* merge(RowIndex*, RowIndex*);
     static RowIndex* from_intcolumn(Column*, int);
@@ -86,7 +86,7 @@ public:
     static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
     static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);
 private:
-    ~RowIndex() {}
+    ~RowIndex();
 };
 
 

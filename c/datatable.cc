@@ -72,7 +72,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
  */
 DataTable::~DataTable()
 {
-    if (rowindex) rowindex->decref();
+    if (rowindex) rowindex->release();
     for (int64_t i = 0; i < ncols; ++i) {
         delete columns[i];
     }
@@ -203,7 +203,7 @@ void DataTable::reify() {
         delete columns[i];
         columns[i] = newcol;
     }
-    rowindex->decref();
+    rowindex->release();
     rowindex = nullptr;
 }
 
