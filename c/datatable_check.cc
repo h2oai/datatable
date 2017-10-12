@@ -137,23 +137,6 @@ int DataTable::verify_integrity(char **errors)
         return 1;
     }
 
-    if (rowindex == NULL && stats != NULL) {
-        ERR("`stats` array is not NULL when rowindex is NULL");
-    } else if (rowindex != NULL && stats == NULL) {
-        ERR("`stats` array is NULL when rowindex is not NULL");
-    } else if (rowindex != NULL && stats != NULL){
-        size_t n_stats_allocd = array_size(stats, sizeof(Stats*));
-
-        if ((!stats || !n_stats_allocd) && ncols > 0) {
-            ERR("Stats array is not allocated\n");
-        }
-
-        if (ncols > (int64_t) n_stats_allocd) {
-            ERR("Size of the `stats` array %lld is smaller than the number of "
-                "columns %lld (and rowindex is not NULL)\n", (int64_t) n_stats_allocd, ncols);
-        }
-    }
-
     // Check that each Column is not NULL
     for (int64_t i = 0; i < ncols; i++) {
         if (columns[i] == NULL) {
@@ -248,8 +231,9 @@ int DataTable::verify_integrity(char **errors)
     // Check each individual column
     for (int64_t i = 0; i < ncols; i++) {
         Column *col = columns[i];
-        Stats *stat = rowindex != NULL ? stats[i] : col->stats;
+        Stats *stat = col->stats;
         SType stype = col->stype();
+        int64_t data_nrows = col->data_nrows();
 
         /*
         TODO: move into Column::check_integrity()
@@ -271,14 +255,26 @@ int DataTable::verify_integrity(char **errors)
             ERR("Invalid storage type %d in column %lld\n", stype, i);
             continue;
         }
-        if (rowindex == NULL && col->nrows != nrows) {
+        if (col->nrows != nrows) {
             ERR("Column %lld has nrows=%lld, while the datatable has %lld rows\n",
                 i, col->nrows, nrows);
             continue;
         }
-        if (rowindex != NULL && col->nrows > 0 && col->nrows <= maxrow) {
-            ERR("Column %lld has nrows=%lld, but rowindex references row %lld\n",
-                i, col->nrows, maxrow);
+        if (rowindex == NULL && col->nrows != data_nrows) {
+            ERR("Column %lld has nrows=%lld, while the "
+                "internal memory buffer has %lld rows\n",
+                i, col->nrows, data_nrows);
+            continue;
+        }
+        if (rowindex != nullptr && col->nrows != rowindex->length) {
+            ERR("Column %lld has nrows=%lld, while the rowindex has %lld rows\n",
+                i, col->nrows, rowindex->length);
+            continue;
+        }
+        if (rowindex != NULL && data_nrows > 0 && data_nrows <= maxrow) {
+            ERR("Internal memory buffer of column %lld has nrows=%lld, but "
+                "rowindex references row %lld\n",
+                i, data_nrows, maxrow);
             continue;
         }
         if (col->mbuf_refcount() <= 0) {
@@ -348,7 +344,7 @@ int DataTable::verify_integrity(char **errors)
         size_t elemsize = stype_info[stype].elemsize;
         if (stype == ST_STRING_FCHAR)
             elemsize = (size_t) ((FixcharMeta*) col->meta)->n;
-        size_t exp_allocsize = elemsize * (size_t)col->nrows;
+        size_t exp_allocsize = elemsize * (size_t) data_nrows;
         if (offoff > 0)
             exp_allocsize += (size_t)offoff;
         if (col->alloc_size() != exp_allocsize) {
@@ -366,7 +362,7 @@ int DataTable::verify_integrity(char **errors)
         // Verify that a boolean column has only values 0, 1 and NA_I1
         if (stype == ST_BOOLEAN_I1) {
             int8_t *data = (int8_t*) col->data();
-            for (int64_t j = 0; j < col->nrows; j++) {
+            for (int64_t j = 0; j < data_nrows; j++) {
                 int8_t x = data[j];
                 if (!(x == NA_I1 || x == 0 || x == 1)) {
                     ERR("Boolean column %lld has value %d in row %lld\n",
@@ -383,7 +379,7 @@ int DataTable::verify_integrity(char **errors)
                     ERR("Number -1 was not found in front of the offsets " \
                         "section\n");                                      \
                 }                                                          \
-                for (int64_t j = 0; j < col->nrows; j++) {                 \
+                for (int64_t j = 0; j < data_nrows; j++) {                 \
                     T oj = offsets[j];                                     \
                     if (oj < 0 ? (oj != -lastoff) : (oj < lastoff)) {      \
                         ERR("Invalid offset in column %lld row %lld: "     \

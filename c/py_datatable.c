@@ -171,22 +171,26 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
     ColumnSet_PyObject *pycols;
     if (!PyArg_ParseTuple(args, "OO!:datatable_assemble_view",
                           &arg1, &ColumnSet_PyType, &pycols))
-        return NULL;
+        return nullptr;
     Column **columns = pycols->columns;
-    pycols->columns = NULL;
-    RowIndex *rowindex = NULL;
+    pycols->columns = nullptr;
+    RowIndex *rowindex = nullptr;
     if (arg1 == Py_None) {
         /* Don't do anything: rowindex should be NULL */
     } else {
         if (!PyObject_TypeCheck(arg1, &RowIndex_PyType)) {
             PyErr_Format(PyExc_TypeError, "Expected object of type RowIndex");
-            return NULL;
+            return nullptr;
         }
         RowIndex_PyObject *pyri = (RowIndex_PyObject*) arg1;
         rowindex = pyri->ref;
-        pyri->ref = NULL;
+        for (int64_t i = 0; columns[i] != nullptr; ++i) {
+            Column* tmp = columns[i]->shallowcopy(rowindex);
+            delete columns[i];
+            columns[i] = tmp;
+        }
     }
-    return py(new DataTable(columns, rowindex));
+    return py(new DataTable(columns));
 }
 
 
@@ -367,7 +371,7 @@ static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
 
     Column *col = dt->columns[idx];
-    RowIndex *ri = Column::sort(col, dt->rowindex);
+    RowIndex *ri = col->sort();
     return pyrowindex(ri);
 }
 
@@ -394,16 +398,15 @@ static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "")) return NULL;
 
     DataTable *dt = self->ref;
-    RowIndex *ri = dt->rowindex;
-    if (ri == NULL) {
+    if (dt->rowindex == NULL) {
         PyErr_Format(PyExc_ValueError, "Only a view can be materialized");
         return NULL;
     }
 
     Column **cols = NULL;
     dtmalloc(cols, Column*, dt->ncols + 1);
-    for (int64_t i = 0; i < dt->ncols; i++) {
-        cols[i] = dt->columns[i]->extract(ri);
+    for (int64_t i = 0; i < dt->ncols; ++i) {
+        cols[i] = dt->columns[i]->extract();
         if (cols[i] == NULL) return NULL;
     }
     cols[dt->ncols] = NULL;

@@ -97,6 +97,10 @@ void FwColumn<T>::resize_and_fill(int64_t new_nrows)
 }
 
 
+template <typename T>
+int64_t FwColumn<T>::data_nrows() const {
+  return static_cast<int64_t>(mbuf->size() / sizeof(T));
+}
 
 
 // Explicit instantiations

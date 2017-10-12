@@ -53,10 +53,10 @@ class Stats;
  *     depends on the `stype`.
  *
  */
-class Column
-{
+class Column {
 protected:
   MemoryBuffer *mbuf;
+  RowIndex *ri;
 
 public:  // TODO: convert these into private
   void   *meta;        // 8
@@ -75,9 +75,11 @@ public:
   virtual ~Column();
 
   virtual SType stype() const;
-  void* data() const;
-  void* data_at(size_t) const;
+  inline void* data() const { return mbuf->get(); }
+  inline void* data_at(size_t i) const { return mbuf->at(i); }
+  inline RowIndex* rowindex() const { return ri; }
   size_t alloc_size() const;
+  virtual int64_t data_nrows() const;
   PyObject* mbuf_repr() const;
   int mbuf_refcount() const;
   size_t memory_footprint() const;
@@ -96,13 +98,14 @@ public:
   virtual void resize_and_fill(int64_t nrows);
 
   Column* shallowcopy();
+  Column* shallowcopy(RowIndex*);
   Column* deepcopy();
   Column* cast(SType);
   Column* rbind(Column**);
-  Column* extract(RowIndex* = NULL);
+  Column* extract();
   Column* save_to_disk(const char*);
+  RowIndex* sort() const;
 
-  static RowIndex* sort(Column*, RowIndex*);
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
 
@@ -133,6 +136,8 @@ public:
   T* elements();
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
+
+  int64_t data_nrows() const override;
 
 protected:
   static constexpr T na_elem = GETNA<T>();
@@ -223,6 +228,7 @@ public:
   void resize_and_fill(int64_t nrows) override;
 
   size_t datasize();
+  int64_t data_nrows() const override;
   static size_t padding(size_t datasize);
 };
 

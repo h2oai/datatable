@@ -47,9 +47,8 @@ public:
     int64_t     ncols;
     RowIndex   *rowindex;
     Column    **columns;
-    Stats     **stats;
 
-    DataTable(Column**, RowIndex* = NULL);
+    DataTable(Column**);
     ~DataTable();
     DataTable* delete_columns(int*, int);
     DataTable* apply_na_mask(DataTable*);

@@ -60,6 +60,13 @@ size_t StringColumn<T>::padding(size_t datasize) {
   return ((8 - ((datasize + sizeof(T)) & 7)) & 7) + sizeof(T);
 }
 
+template <typename T>
+int64_t StringColumn<T>::data_nrows() const {
+  size_t offoff = static_cast<size_t>(((VarcharMeta*) meta)->offoff);
+  return static_cast<int64_t>((mbuf->size() - offoff) / sizeof(T));
+}
+
+
 
 template <typename T>
 Column* StringColumn<T>::extract_simple_slice(RowIndex*) const {
