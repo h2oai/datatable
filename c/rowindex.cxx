@@ -292,8 +292,9 @@ RowIndex* RowIndex::from_boolcolumn(Column *col, int64_t nrows)
  * need to construct a RowIndex from a "view" column, then this column can
  * be mapped to a pair of source data column and a rowindex object.
  */
-RowIndex* RowIndex::from_column_with_rowindex(Column *col, RowIndex *rowindex)
+RowIndex* RowIndex::from_column(Column *col)
 {
+    RowIndex* rowindex = col->rowindex();
     RowIndex* res = NULL;
     switch(stype_info[col->stype()].ltype) {
     case LT_BOOLEAN: {
@@ -335,7 +336,7 @@ RowIndex* RowIndex::from_column_with_rowindex(Column *col, RowIndex *rowindex)
     } break;
 
     case LT_INTEGER: {
-        Column *newcol = col->extract(rowindex);
+        Column *newcol = col->extract();
         res = from_intcolumn(newcol, 1);
         delete newcol;
     } break;
@@ -443,8 +444,9 @@ RowIndex::RowIndex(RowIndex* other) :
  */
 RowIndex* RowIndex::merge(RowIndex *ri_ab, RowIndex *ri_bc)
 {
-    if (ri_ab == NULL) return new RowIndex(ri_bc);
-    if (ri_bc == NULL) return new RowIndex(ri_ab);
+    if (ri_ab == nullptr && ri_bc == nullptr) return nullptr;
+    if (ri_ab == nullptr) return new RowIndex(ri_bc);
+    if (ri_bc == nullptr) return new RowIndex(ri_ab);
 
     int64_t n = ri_bc->length;
     RowIndexType type_bc = ri_bc->type;

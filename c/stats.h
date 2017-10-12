@@ -31,7 +31,7 @@ class RowIndex;
  */
 class Stats {
 public:
-    static Stats* construct(const Column*, const RowIndex*);
+    static Stats* construct(Column*);
     static void destruct(Stats*);
 
     virtual void reset();
@@ -62,9 +62,8 @@ protected:
     double _sd;
     int64_t _countna;
     const Column* _ref_col;
-    const RowIndex* _ref_ri;
 
-    Stats(const Column*, const RowIndex*);
+    Stats(Column*);
     virtual ~Stats();
 
     //================== Get Stat as a Column ===================

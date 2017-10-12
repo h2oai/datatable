@@ -52,10 +52,8 @@ DataTable::rbind(DataTable **dts, int **cols, int ndts, int64_t new_ncols)
         for (int j = 0; j < ndts; ++j) {
             if (cols[i][j] < 0) {
                 cols0[j] = Column::new_data_column(ST_VOID, dts[j]->nrows);
-            } else if (dts[j]->rowindex) {
-                cols0[j] = dts[j]->columns[cols[i][j]]->extract(dts[j]->rowindex);
             } else {
-                cols0[j] = dts[j]->columns[cols[i][j]]->shallowcopy();
+                cols0[j] = dts[j]->columns[cols[i][j]]->extract();
             }
         }
         ret = col0->rbind(cols0);

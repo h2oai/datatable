@@ -193,7 +193,7 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
     }
 
     RowIndex *rowindex = dt->rowindex
-        ? RowIndex::from_column_with_rowindex(col, dt->rowindex)
+        ? RowIndex::from_column(col)
         : RowIndex::from_boolcolumn(col, dt->nrows);
 
     return py(rowindex);
@@ -224,7 +224,7 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
     }
 
     RowIndex *rowindex = dt->rowindex
-        ? RowIndex::from_column_with_rowindex(col, dt->rowindex)
+        ? RowIndex::from_column(col)
         : RowIndex::from_intcolumn(col, 0);
 
     if (rowindex->min < 0 || rowindex->max >= target_nrows) {

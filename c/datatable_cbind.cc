@@ -36,19 +36,10 @@ DataTable* DataTable::cbind(DataTable **dts, int ndts)
     for (int i = 0; i < ndts; ++i) {
         int64_t ncolsi = dts[i]->ncols;
         int64_t nrowsi = dts[i]->nrows;
-        if (dts[i]->rowindex) {
-            RowIndex *ri = dts[i]->rowindex;
-            for (int64_t ii = 0; ii < ncolsi; ++ii) {
-                Column *c = dts[i]->columns[ii]->extract(ri);
-                if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
-                columns[j++] = c;
-            }
-        } else {
-            for (int64_t ii = 0; ii < ncolsi; ++ii) {
-                Column *c = dts[i]->columns[ii]->shallowcopy();
-                if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
-                columns[j++] = c;
-            }
+        for (int64_t ii = 0; ii < ncolsi; ++ii) {
+            Column *c = dts[i]->columns[ii]->extract();
+            if (nrowsi < t_nrows) c->resize_and_fill(t_nrows);
+            columns[j++] = c;
         }
     }
     assert(j == t_ncols);

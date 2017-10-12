@@ -50,8 +50,7 @@
  *
  *     `RI`:    A RowIndex pointer.
  *
- *     `NROWS`: The length of the target column. This variable will be
- *              modified to store the `RI`->length, if applicable.
+ *     `NROWS`: The length of the target column.
  *
  *     `I`:     A variable name that will be initialized as an `int64_t` and
  *              used to store the resulting index during each pass.
@@ -62,31 +61,28 @@
  * resulting type and value is undefined.
  */
 #define LOOP_OVER_ROWINDEX(I, NROWS, RI, CODE)                                 \
-    if (RI == NULL) {                                                          \
+    if (RI == nullptr) {                                                       \
         for (int64_t I = 0; I < NROWS; ++I) {                                  \
             CODE                                                               \
         }                                                                      \
-    } else {                                                                   \
-        NROWS = RI->length;                                                    \
-        if (RI->type == RI_SLICE) {                                            \
-            int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;        \
-            for (; L_j < NROWS; ++L_j, I += L_s) {                             \
-                CODE                                                           \
-            }                                                                  \
-        } else if (RI->type == RI_ARR32) {                                     \
-           int32_t *L_s = RI->ind32;                                           \
-           for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                         \
-               int64_t I = (int64_t) L_s[L_j];                                 \
-               CODE                                                            \
-           }                                                                   \
-        } else if (RI->type == RI_ARR64) {                                     \
-            int64_t *L_s = RI->ind64;                                          \
-            for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                        \
-               int64_t I = L_s[L_j];                                           \
-               CODE                                                            \
-           }                                                                   \
+    } else if (RI->type == RI_SLICE) {                                         \
+        int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;            \
+        for (; L_j < NROWS; ++L_j, I += L_s) {                                 \
+            CODE                                                               \
         }                                                                      \
-    }
+    } else if (RI->type == RI_ARR32) {                                         \
+       int32_t *L_s = RI->ind32;                                               \
+       for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                             \
+           int64_t I = (int64_t) L_s[L_j];                                     \
+           CODE                                                                \
+       }                                                                       \
+    } else if (RI->type == RI_ARR64) {                                         \
+        int64_t *L_s = RI->ind64;                                              \
+        for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                            \
+           int64_t I = L_s[L_j];                                               \
+           CODE                                                                \
+       }                                                                       \
+    }                                                                          \
 
 /**
  * The CStat enum is primarily used as a bit mask for checking if a statistic
@@ -127,11 +123,11 @@ static Column* make_na_stat_column(SType);
 // Stats
 //==============================================================================
 
-Stats::Stats(const Column* col, const RowIndex* ri = NULL) {
-    _ref_col = col;
-    _ref_ri = ri;
-    _mean = _sd = GETNA<double>();
-    _countna = GETNA<int64_t>();
+Stats::Stats(Column* col) :
+    _mean(GETNA<double>()),
+    _sd(GETNA<double>()),
+    _countna(GETNA<int64_t>()),
+    _ref_col(col) {
 }
 
 
@@ -189,9 +185,9 @@ template <typename A> A Stats::sum() {
  * as a void pointer. See the description of the template `stat()` methods for
  * information.
  */
-void* Stats::min_raw() { return NULL; }
-void* Stats::max_raw() { return NULL; }
-void* Stats::sum_raw() { return NULL; }
+void* Stats::min_raw() { return nullptr; }
+void* Stats::max_raw() { return nullptr; }
+void* Stats::sum_raw() { return nullptr; }
 
 
 //----------- Get Stat Value as a Column ------------
@@ -237,29 +233,22 @@ Stats* Stats::void_ptr() { return VOID_PTR; }
  * is the name of the statistic; exactly how it is named in the
  * `stat_datatable()` method.
  */
+
+
 #define STAT_DATATABLE(STAT)                                                   \
     DataTable* Stats:: STAT ## _datatable(const DataTable* dt) {               \
         Column** cols = dt->columns;                                           \
-        Column** out_cols = NULL;                                              \
+        Column** out_cols = nullptr;                                           \
         dtmalloc(out_cols, Column*, (size_t) (dt->ncols + 1));                 \
-        if (dt->rowindex) {                                                    \
-            Stats** stats = dt->stats;                                         \
-            for (int64_t i = 0; i < dt->ncols; ++i) {                          \
-                 if (stats[i]->is_void()) {                                    \
-                     stats[i] = construct(cols[i], dt->rowindex);              \
-                 }                                                             \
-                 out_cols[i] = stats[i]-> STAT ## _column();                   \
+        if (true) {                                                            \
+        for (int64_t i = 0; i < dt->ncols; ++i) {                              \
+            Column* col = cols[i];                                             \
+            if (col->stats->is_void()) {                                       \
+                col->stats = construct(col);                                   \
             }                                                                  \
-        } else {                                                               \
-            for (int64_t i = 0; i < dt->ncols; ++i) {                          \
-                Column* col = cols[i];                                         \
-                if (col->stats->is_void()) {                                   \
-                    col->stats = construct(col, NULL);                         \
-                }                                                              \
-                out_cols[i] = col->stats-> STAT ## _column();                  \
-            }                                                                  \
-        }                                                                      \
-        out_cols[dt->ncols] = NULL;                                            \
+            out_cols[i] = col->stats-> STAT ## _column();                      \
+        } }                                                                    \
+        out_cols[dt->ncols] = nullptr;                                         \
         return new DataTable(out_cols);                                        \
     }
 
@@ -291,7 +280,7 @@ STAT_DATATABLE(sum)
 template <typename T, typename A>
 class NumericalStats : public Stats {
 public:
-    NumericalStats(const Column*, const RowIndex*);
+    NumericalStats(Column*);
     double  mean()    override final { compute_cstat(C_MEAN);     return _mean; }
     double  sd()      override final { compute_cstat(C_STD_DEV);  return _sd; }
     int64_t countna() override final { compute_cstat(C_COUNT_NA); return _countna; }
@@ -335,8 +324,8 @@ void NumericalStats<T, A>::reset() {
 
 
 template<typename T, typename A>
-NumericalStats<T, A>::NumericalStats(const Column *col, const RowIndex *ri)
-                              : Stats(col, ri) {
+NumericalStats<T, A>::NumericalStats(Column *col) :
+    Stats(col) {
     _min = GETNA<T>();
     _max = GETNA<T>();
     _sum = GETNA<A>();
@@ -348,7 +337,7 @@ NumericalStats<T, A>::NumericalStats(const Column *col, const RowIndex *ri)
 template <typename T, typename A>
 Column* NumericalStats<T, A>::min_column() {
     const SType stype = _ref_col->stype();
-    if (stype == ST_VOID) return NULL;
+    if (stype == ST_VOID) return nullptr;
     Column* out = Column::new_data_column(stype, 1);
     *((T*)(out->data())) = min<T>();
     return out;
@@ -357,7 +346,7 @@ Column* NumericalStats<T, A>::min_column() {
 template <typename T, typename A>
 Column* NumericalStats<T, A>::max_column() {
     const SType stype = _ref_col->stype();
-    if (stype == ST_VOID) return NULL;
+    if (stype == ST_VOID) return nullptr;
     Column* out = Column::new_data_column(stype, 1);
     *((T*)(out->data())) = max<T>();
     return out;
@@ -366,7 +355,7 @@ Column* NumericalStats<T, A>::max_column() {
 template <typename T, typename A>
 Column* NumericalStats<T, A>::sum_column() {
     SType stype = stype_A();
-    if (stype == ST_VOID) return NULL;
+    if (stype == ST_VOID) return nullptr;
     Column* out = Column::new_data_column(stype, 1);
     *((A*)(out->data())) = sum<A>();
     return out;
@@ -394,7 +383,7 @@ void NumericalStats<T, A>::compute_numerical_stats() {
     int64_t t_count_notna = 0;
     int64_t t_nrows = _ref_col->nrows;
     T *data = (T*) _ref_col->data();
-    LOOP_OVER_ROWINDEX(i, t_nrows, _ref_ri,
+    LOOP_OVER_ROWINDEX(i, t_nrows, _ref_col->rowindex(),
         T val = data[i];
         if (ISNA(val)) continue;
         ++t_count_notna;
@@ -433,8 +422,8 @@ void NumericalStats<T, A>::compute_numerical_stats() {
 template <typename T>
 class RealStats : public NumericalStats<T, double> {
 public:
-    RealStats(const Column* col, const RowIndex* ri) :
-        NumericalStats<T, double>(col, ri) {}
+    RealStats(Column* col) :
+        NumericalStats<T, double>(col) {}
 protected:
     SType stype_A() override final { return ST_REAL_F8; }
     void compute_numerical_stats() override;
@@ -464,8 +453,8 @@ void RealStats<T>::compute_numerical_stats() {
 template <typename T>
 class IntegerStats : public NumericalStats<T, int64_t> {
 public:
-    IntegerStats(const Column *col, const RowIndex *ri) :
-        NumericalStats<T, int64_t>(col, ri) {}
+    IntegerStats(Column *col) :
+        NumericalStats<T, int64_t>(col) {}
 protected:
     SType stype_A() override final { return ST_INTEGER_I8; }
 };
@@ -481,20 +470,18 @@ protected:
  */
 class BooleanStats : public IntegerStats<int8_t> {
 public:
-    BooleanStats(const Column*, const RowIndex*);
+    BooleanStats(Column* col) :
+        IntegerStats(col) {}
 protected:
     void compute_numerical_stats() override;
 };
-
-BooleanStats::BooleanStats(const Column *col, const RowIndex *ri) :
-                       IntegerStats<int8_t>(col, ri) {}
 
 void BooleanStats::compute_numerical_stats() {
     int64_t t_count0 = 0,
             t_count1 = 0;
     int8_t *data = (int8_t*) _ref_col->data();
     int64_t nrows = _ref_col->nrows;
-    LOOP_OVER_ROWINDEX(i, nrows, _ref_ri,
+    LOOP_OVER_ROWINDEX(i, nrows, _ref_col->rowindex(),
         switch (data[i]) {
             case 0 :
                 ++t_count0;
@@ -527,17 +514,25 @@ void BooleanStats::compute_numerical_stats() {
 /**
  * Initialize a Stats structure
  */
-Stats* Stats::construct(const Column *col, const RowIndex *ri) {
-    if (col == NULL) return new Stats(NULL, NULL);
+Stats* Stats::construct(Column *col) {
+    if (col == nullptr) return new Stats(nullptr);
     switch(col->stype()) {
-        case ST_BOOLEAN_I1: return new BooleanStats(col, ri);
-        case ST_INTEGER_I1: return new IntegerStats<int8_t>(col, ri);
-        case ST_INTEGER_I2: return new IntegerStats<int16_t>(col, ri);
-        case ST_INTEGER_I4: return new IntegerStats<int32_t>(col, ri);
-        case ST_INTEGER_I8: return new IntegerStats<int64_t>(col, ri);
-        case ST_REAL_F4:    return new RealStats<float>(col, ri);
-        case ST_REAL_F8:    return new RealStats<double>(col, ri);
-        default:            return new Stats(col, ri);
+    case ST_BOOLEAN_I1:
+        return new BooleanStats(col);
+    case ST_INTEGER_I1:
+        return new IntegerStats<int8_t>(col);
+    case ST_INTEGER_I2:
+        return new IntegerStats<int16_t>(col);
+    case ST_INTEGER_I4:
+        return new IntegerStats<int32_t>(col);
+    case ST_INTEGER_I8:
+        return new IntegerStats<int64_t>(col);
+    case ST_REAL_F4:
+        return new RealStats<float>(col);
+    case ST_REAL_F8:
+        return new RealStats<double>(col);
+    default:
+        return new Stats(col);
     }
 }
 
@@ -574,5 +569,5 @@ bool is_computed(const stat_cinfo info, const CStat cstat) {
 
 
 void init_stats(void) {
-    VOID_PTR = Stats::construct(NULL, NULL);
+    VOID_PTR = Stats::construct(nullptr);
 }
