@@ -357,9 +357,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     // Construct the data buffer
     for (size_t i = 0; i < ncols; i++) {
         Column *col = dt->columns[i];
-        if (dt->rowindex) {
-            col = col->extract(dt->rowindex);
-        }
+        col = col->extract();
         if (col->stype() == stype) {
             assert(col->alloc_size() == colsize);
             memcpy(add_ptr(buf, i * colsize), col->data(), colsize);
@@ -370,9 +368,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
             memcpy(add_ptr(buf, i * colsize), newcol->data(), colsize);
             delete newcol;
         }
-        if (dt->rowindex) {
-            delete col;
-        }
+        delete col;
     }
 
     // Fill in the `view` struct

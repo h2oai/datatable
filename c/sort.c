@@ -245,85 +245,85 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns NULL if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex* Column::sort(Column *col, RowIndex *rowindex)
+RowIndex* Column::sort() const
 {
-    int64_t _nrows = rowindex ? rowindex->length : col->nrows;
-    if (_nrows > INT32_MAX) {
-        dterrr("Cannot sort a datatable with %lld rows", col->nrows);
+
+    if (nrows > INT32_MAX) {
+        throw new Error("Cannot sort a datatable with %" PRId64 " rows", nrows);
     }
-    if (rowindex && (rowindex->type == RI_ARR64 ||
-                     rowindex->length > INT32_MAX ||
-                     rowindex->max > INT32_MAX)) {
-        dterrr0("Cannot sort a datatable which is based on a datatable "
-                "with >2**31 rows");
+    if (ri != nullptr && (ri->type == RI_ARR64 ||
+                          ri->length > INT32_MAX ||
+                          ri->max > INT32_MAX)) {
+        throw new Error("Cannot sort a datatable which is based on a datatable "
+                        "with >2**31 rows");
     }
-    int32_t nrows = (int32_t) _nrows;
+    int32_t nrows_ = (int32_t) nrows;
     int32_t *ordering = NULL;
-    if (nrows <= 1) {  // no need to sort
-        return new RowIndex((int64_t) 0, nrows, 1);
+    if (nrows_ <= 1) {  // no need to sort
+        return new RowIndex((int64_t) 0, nrows_, 1);
     }
-    if (rowindex) {
-        if (rowindex->type == RI_ARR32) {
-            dtmalloc(ordering, int32_t, nrows);
-            memcpy(ordering, rowindex->ind32, (size_t)nrows * sizeof(int32_t));
+    if (ri != nullptr) {
+        if (ri->type == RI_ARR32) {
+            dtmalloc(ordering, int32_t, nrows_);
+            memcpy(ordering, ri->ind32, (size_t) nrows_ * sizeof(int32_t));
         }
-        else if (rowindex->type == RI_SLICE) {
-            RowIndex *ri = rowindex->expand();
-            if (ri == NULL || ri->type != RI_ARR32) return NULL;
-            ordering = ri->ind32;
-            ri->ind32 = NULL;
-            ri->decref();
+        else if (ri->type == RI_SLICE) {
+            RowIndex *ri_ = ri->expand();
+            if (ri_ == NULL || ri_->type != RI_ARR32) return NULL;
+            ordering = ri_->ind32;
+            ri_->ind32 = NULL;
+            ri_->decref();
         }
     }
-    SType stype = col->stype();
-    prepare_inp_fn prepfn = prepare_inp_fns[stype];
+    SType stype_ = stype();
+    prepare_inp_fn prepfn = prepare_inp_fns[stype_];
     SortContext *sc = NULL;
     dtcalloc(sc, SortContext, 1);
 
-    if (nrows <= INSERT_SORT_THRESHOLD) {
-        if (stype == ST_REAL_F4 || stype == ST_REAL_F8 || rowindex) {
-            prepfn(col, ordering, (size_t)nrows, sc);
+    if (nrows_ <= INSERT_SORT_THRESHOLD) {
+        if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || ri != nullptr) {
+            prepfn(this, ordering, (size_t)nrows_, sc);
             insert_sort(sc);
             ordering = sc->o;
             dtfree(sc->x);
-        } else if (stype == ST_STRING_I4_VCHAR) {
-            int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
-            const unsigned char *strdata = (const unsigned char*) col->data();
-            const int32_t *offs = (const int32_t*) add_ptr(col->data(), offoff);
-            ordering = insert_sort_s4_noo(strdata, offs, 0, NULL, nrows);
+        } else if (stype_ == ST_STRING_I4_VCHAR) {
+            int64_t offoff = ((VarcharMeta*) meta)->offoff;
+            const unsigned char *strdata = (const unsigned char*) data();
+            const int32_t *offs = (const int32_t*) data_at(static_cast<size_t>(offoff));
+            ordering = insert_sort_s4_noo(strdata, offs, 0, NULL, nrows_);
         } else {
-            insert_sort_fn sortfn = insert_sort_fns[stype];
+            insert_sort_fn sortfn = insert_sort_fns[stype_];
             if (sortfn) {
-                ordering = sortfn(col->data(), NULL, NULL, nrows);
+                ordering = sortfn(data(), NULL, NULL, nrows_);
             }
             else
-                dterrr("Insert sort not implemented for column of stype %d",
-                       stype);
+                throw new Error("Insert sort not implemented for column of stype %d",
+                                stype_);
         }
     } else {
         if (prepfn) {
-            prepfn(col, ordering, (size_t)nrows, sc);
+            prepfn(this, ordering, (size_t)nrows_, sc);
             if (sc->issorted) {
-                return new RowIndex((int64_t) 0, nrows, 1);
+                return new RowIndex((int64_t) 0, nrows_, 1);
             }
             if (sc->x != NULL) {
                 radix_psort(sc);
             }
             int error_occurred = (sc->x == NULL);
             ordering = sc->o;
-            if (sc->x != col->data()) dtfree(sc->x);
+            if (sc->x != data()) dtfree(sc->x);
             dtfree(sc->next_x);
             dtfree(sc->next_o);
             dtfree(sc->histogram);
             if (error_occurred) ordering = NULL;
         } else {
-            dterrr("Radix sort not implemented for column of stype %d",
-                   stype);
+            throw new Error("Radix sort not implemented for column of stype %d",
+                            stype_);
         }
     }
     dtfree(sc);
     if (!ordering) return NULL;
-    return new RowIndex(ordering, nrows, 0);
+    return new RowIndex(ordering, nrows_, 0);
 }
 
 

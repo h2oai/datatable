@@ -14,32 +14,30 @@ static int _compare_ints(const void *a, const void *b);
  * object may also be NULL, in which case a DataTable without a rowindex will
  * be constructed.
  */
-DataTable::DataTable(Column **cols, RowIndex *ri) :
+DataTable::DataTable(Column **cols) :
     nrows(0),
     ncols(0),
-    rowindex(ri),
-    columns(cols),
-    stats(NULL)
+    rowindex(nullptr),
+    columns(cols)
 {
-    if (columns == NULL)
-        throw new Error("Column array cannot be NULL");
-    while(cols[ncols] != NULL) ++ncols;
-    if (rowindex != NULL) {
-        nrows = rowindex->length;
-        stats = new Stats*[sizeof(Stats*) * (size_t) ncols];
-        for (int64_t i = 0; i < ncols; ++i) {
-            stats[i] = Stats::void_ptr();
-        }
-    } else if (ncols) {
-        nrows = cols[0]->nrows;
+    if (cols == nullptr)
+        throw new Error("Column array cannot be null");
+    if (cols[ncols] == nullptr) return;
+    rowindex = cols[ncols]->rowindex();
+    nrows = cols[ncols]->nrows;
+
+    for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
+        if (rowindex != col->rowindex())
+            throw new Error("Mismatched RowIndex in Column %" PRId64, ncols);
+        if (nrows != col->nrows)
+            throw new Error("Mismatched length in Column %" PRId64 ": "
+                            "found %" PRId64 ", expected %" PRId64,
+                            ncols, col->nrows, nrows);
     }
 }
 
 
 
-/**
- *
- */
 DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 {
     if (n == 0) return this;
@@ -50,13 +48,11 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
     for (int i = 0; i < ncols; ++i) {
         if (i == next_col_to_remove) {
             delete columns[i];
-            if (stats) Stats::destruct(stats[i]);
             do {
                 ++k;
                 next_col_to_remove = k < n ? cols_to_remove[k] : -1;
             } while (next_col_to_remove == i);
         } else {
-            if (stats) stats[j] = stats[i];
             columns[j] = columns[i];
             ++j;
         }
@@ -65,7 +61,6 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
     // This may not be the same as `j` if there were repeating columns
     ncols = j;
     columns = static_cast<Column**>(realloc(columns, sizeof(Column*) * (size_t) (j + 1)));
-    if (stats) stats = static_cast<Stats**>(realloc(stats, sizeof(Stats*) * (size_t) j));
     return this;
 }
 
@@ -82,12 +77,6 @@ DataTable::~DataTable()
         delete columns[i];
     }
     delete columns;
-    if (stats) {
-        for (int64_t i = 0; i < ncols; ++i) {
-            Stats::destruct(stats[i]);
-        }
-        free(stats);
-    }
 }
 
 
@@ -120,7 +109,7 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
     }
 
     for (int64_t i = 0; i < ncols; ++i){
-        // TODO: Move this part into columns.cxx?
+        // TODO: Move this part into columns.cc?
         Column *col = columns[i];
         col->stats->reset();
         uint8_t *mdata = (uint8_t*) mask->columns[i]->data();
@@ -208,21 +197,14 @@ DataTable* DataTable::apply_na_mask(DataTable *mask)
  * Do nothing if the DataTable is not a view.
  */
 void DataTable::reify() {
-    if (rowindex == NULL) return;
+    if (rowindex == nullptr) return;
     for (int64_t i = 0; i < ncols; ++i) {
-        Column *newcol = columns[i]->extract(rowindex);
-        if (!stats[i]->is_void()) {
-            newcol->stats = stats[i];
-            newcol->stats->_ref_col = newcol;
-            newcol->stats->_ref_ri = NULL;
-        }
+        Column *newcol = columns[i]->extract();
         delete columns[i];
         columns[i] = newcol;
     }
-    if (rowindex) rowindex->decref();
-    delete stats;
-    rowindex = NULL;
-    stats = NULL;
+    rowindex->decref();
+    rowindex = nullptr;
 }
 
 
@@ -238,13 +220,6 @@ size_t DataTable::get_allocsize()
     } else {
         for (int i = 0; i < ncols; ++i) {
             sz += columns[i]->get_allocsize();
-        }
-    }
-    if (stats != NULL) {
-        sz += (size_t)(ncols) * sizeof(Stats*);
-        for (int64_t i = 0; i < ncols; ++i) {
-            if (stats[i])
-            sz += stats[i]->alloc_size();
         }
     }
     return sz;

@@ -53,10 +53,10 @@ class Stats;
  *     depends on the `stype`.
  *
  */
-class Column
-{
+class Column {
 protected:
   MemoryBuffer *mbuf;
+  RowIndex *ri;
 
 public:  // TODO: convert these into private
   void   *meta;        // 8
@@ -79,9 +79,11 @@ public:
   virtual ~Column();
 
   virtual SType stype() const;
-  void* data() const;
-  void* data_at(size_t) const;
+  inline void* data() const { return mbuf->get(); }
+  inline void* data_at(size_t i) const { return mbuf->at(i); }
+  inline RowIndex* rowindex() const { return ri; }
   size_t alloc_size() const;
+  int64_t data_nrows() const;
   PyObject* mbuf_repr() const;
   int mbuf_refcount() const;
 
@@ -92,16 +94,17 @@ public:
   void resize_and_fill(int64_t nrows);
 
   Column* shallowcopy();
+  Column* shallowcopy(RowIndex*);
   Column* deepcopy();
   Column* cast(SType);
   Column* rbind(Column**);
-  Column* extract(RowIndex* = NULL);
+  Column* extract();
   Column* save_to_disk(const char*);
   size_t i4s_datasize();
   size_t i8s_datasize();
   size_t get_allocsize();
+  RowIndex* sort() const;
 
-  static RowIndex* sort(Column*, RowIndex*);
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
 

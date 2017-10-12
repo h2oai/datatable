@@ -38,10 +38,11 @@ size_t Column::allocsize0(SType stype, int64_t nrows) {
 
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
+      ri(nullptr),
       meta(nullptr),
       nrows(nrows_),
-      _stype(ST_VOID),
-      stats(Stats::void_ptr()) {}
+      stats(Stats::void_ptr()),
+      _stype(ST_VOID) {}
 
 
 
@@ -161,6 +162,7 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 }
 
 
+
 /**
  * Create a shallow copy of the provided column.
  */
@@ -173,8 +175,28 @@ Column* Column::shallowcopy() {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: also copy Stats object
+  col->ri = rowindex() == nullptr ? nullptr : rowindex()->incref();
   return col;
 }
+
+/**
+ * Create a shallow copy and mask the result with the provided rowindex
+ */
+Column* Column::shallowcopy(RowIndex* ri_) {
+  Column* col = shallowcopy();
+  if (col->ri != nullptr) {
+    col->ri->decref();
+  }
+  if (ri_ != nullptr) {
+    ri_->incref();
+    col->nrows = ri_->length;
+  } else {
+    col->nrows = col->data_nrows();
+  }
+  col->ri = ri_;
+  return col;
+}
+
 
 
 /**
@@ -191,20 +213,22 @@ Column* Column::deepcopy()
     memcpy(col->meta, meta, stype_info[stype()].metasize);
   }
   // TODO: deep copy stats when implemented
+  col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
   return col;
 }
 
 
+int64_t Column::data_nrows() const {
+  int64_t offoff = 0;
+  if (meta != nullptr) {
+      if (stype() == ST_STRING_I4_VCHAR || stype() == ST_STRING_I8_VCHAR)
+          offoff = ((VarcharMeta*) meta)->offoff;
+  }
+  return (int64_t) ((mbuf->size() - (size_t) offoff) / stype_info[stype()].elemsize);
+}
+
 SType Column::stype() const {
   return _stype;
-}
-
-void* Column::data() const {
-  return mbuf->get();
-}
-
-void* Column::data_at(size_t i) const {
-  return mbuf->at(i);
 }
 
 size_t Column::alloc_size() const {
@@ -226,16 +250,16 @@ int Column::mbuf_refcount() const {
  * `rowindex` parameter can also be NULL, in which case a shallow copy
  * is returned (if a "deep" copy is needed, then use `column_copy()`).
  */
-Column* Column::extract(RowIndex *rowindex) {
+Column* Column::extract() {
   // If `rowindex` is not provided, then return a shallow "copy".
-  if (rowindex == NULL) {
+  if (rowindex() == nullptr) {
     return shallowcopy();
   }
 
-  size_t res_nrows = (size_t) rowindex->length;
-  size_t elemsize = (stype() == ST_STRING_FCHAR)
-                    ? (size_t) ((FixcharMeta*) meta)->n
-                    : stype_info[stype()].elemsize;
+  size_t res_nrows = (size_t) nrows;
+  size_t elemsize =
+      (stype() == ST_STRING_FCHAR) ?
+          (size_t) ((FixcharMeta*) meta)->n : stype_info[stype()].elemsize;
 
   // Create a new `Column` object.
   // TODO: Stats should be copied from DataTable
@@ -243,142 +267,48 @@ Column* Column::extract(RowIndex *rowindex) {
   res->nrows = (int64_t) res_nrows;
 
   // "Slice" rowindex with step = 1 is a simple subsection of the column
-  if (rowindex->type == RI_SLICE && rowindex->slice.step == 1) {
-    size_t start = (size_t) rowindex->slice.start;
+  if (ri->type == RI_SLICE && ri->slice.step == 1) {
+    size_t start = (size_t) ri->slice.start;
     switch (stype()) {
-      case ST_STRING_I4_VCHAR: {
-        size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
-        int32_t *offs = (int32_t*) mbuf->at(offoff) + start;
-        int32_t off0 = start ? abs(*(offs - 1)) - 1 : 0;
-        int32_t off1 = start + res_nrows ?
-                       abs(*(offs + res_nrows - 1)) - 1 : 0;
-        size_t datasize = (size_t)(off1 - off0);
-        size_t padding = i4s_padding(datasize);
-        size_t offssize = res_nrows * elemsize;
-        offoff = datasize + padding;
-        res->mbuf->resize(datasize + padding + offssize);
-        ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-        memcpy(res->data(), mbuf->at(off0), datasize);
-        memset(res->mbuf->at(datasize), 0xFF, padding);
-        int32_t *resoffs = (int32_t*) res->mbuf->at(offoff);
-        for (size_t i = 0; i < res_nrows; ++i) {
-          resoffs[i] = offs[i] > 0? offs[i] - off0
-                                  : offs[i] + off0;
-        }
-        break;
+    case ST_STRING_I4_VCHAR: {
+      size_t offoff = (size_t) ((VarcharMeta*) meta)->offoff;
+      int32_t *offs = (int32_t*) mbuf->at(offoff) + start;
+      int32_t off0 = start ? abs(*(offs - 1)) - 1 : 0;
+      int32_t off1 = start + res_nrows ? abs(*(offs + res_nrows - 1)) - 1 : 0;
+      size_t datasize = (size_t) (off1 - off0);
+      size_t padding = i4s_padding(datasize);
+      size_t offssize = res_nrows * elemsize;
+      offoff = datasize + padding;
+      res->mbuf->resize(datasize + padding + offssize);
+      ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;
+      memcpy(res->data(), mbuf->at(off0), datasize);
+      memset(res->mbuf->at(datasize), 0xFF, padding);
+      int32_t *resoffs = (int32_t*) res->mbuf->at(offoff);
+      for (size_t i = 0; i < res_nrows; ++i) {
+        resoffs[i] = offs[i] > 0 ? offs[i] - off0 : offs[i] + off0;
       }
-
-      case ST_STRING_I8_VCHAR: {
-        size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
-        int64_t *offs = (int64_t*) mbuf->at(offoff) + start;
-        int64_t off0 = start ? llabs(*(offs - 1)) - 1 : 0;
-        int64_t off1 = start + res_nrows ?
-                       llabs(*(offs + res_nrows - 1)) - 1 : 0;
-        size_t datasize = (size_t)(off1 - off0);
-        size_t padding = i8s_padding(datasize);
-        size_t offssize = res_nrows * elemsize;
-        offoff = datasize + padding;
-        res->mbuf->resize(datasize + padding + offssize);
-        ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-        memcpy(res->data(), mbuf->at(off0), datasize);
-        memset(res->mbuf->at(datasize), 0xFF, padding);
-        int64_t *resoffs = (int64_t*) res->mbuf->at(offoff);
-        for (size_t i = 0; i < res_nrows; ++i) {
-          resoffs[i] = offs[i] > 0? offs[i] - off0
-                                  : offs[i] + off0;
-        }
-        break;
-      }
-
-      case ST_STRING_U1_ENUM:
-      case ST_STRING_U2_ENUM:
-      case ST_STRING_U4_ENUM:
-        assert(0);  // not implemented yet
-        break;
-
-      default: {
-        assert(!stype_info[stype()].varwidth);
-        size_t res_alloc_size = res_nrows * elemsize;
-        size_t offset = start * elemsize;
-        res->mbuf->resize(res_alloc_size);
-        memcpy(res->data(), mbuf->at(offset), res_alloc_size);
-      }
-    }
-    return res;
-  }
-
-  // In all other cases we need to iterate through the rowindex and fetch
-  // the required elements manually.
-  switch (stype()) {
-    #define JINIT_SLICE                                                        \
-      int64_t start = rowindex->slice.start;                                   \
-      int64_t step = rowindex->slice.step;                                     \
-      int64_t j = start - step;
-    #define JITER_SLICE                                                        \
-      j += step;
-    #define JINIT_ARR(bits)                                                    \
-      intXX(bits) *rowindices = rowindex->ind ## bits;
-    #define JITER_ARR(bits)                                                    \
-      intXX(bits) j = rowindices[i];
-
-    #define CASE_IX_VCHAR_SUB(ctype, abs, JINIT, JITER) {                      \
-      size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;                   \
-      ctype *offs = (ctype*) mbuf->at(offoff);                                 \
-      size_t datasize = 0;                                                     \
-      { JINIT                                                                  \
-        for (size_t i = 0; i < res_nrows; ++i) {                               \
-          JITER                                                                \
-          if (offs[j] > 0) {                                                   \
-            ctype prevoff = j? abs(offs[j - 1]) : 1;                           \
-            datasize += (size_t)(offs[j] - prevoff);                           \
-          }                                                                    \
-        }                                                                      \
-      }                                                                        \
-      size_t padding = elemsize == 4 ? i4s_padding(datasize)                   \
-                                     : i8s_padding(datasize);                  \
-      size_t offssize = res_nrows * elemsize;                                  \
-      offoff = datasize + padding;                                             \
-      res->mbuf->resize(offoff + offssize);                                    \
-      ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;                   \
-      { JINIT                                                                  \
-        ctype lastoff = 1;                                                     \
-        char *dest = static_cast<char*>(res->data());                          \
-        ctype *resoffs = (ctype*) res->mbuf->at(offoff);                       \
-        for (size_t i = 0; i < res_nrows; ++i) {                               \
-          JITER                                                                \
-          if (offs[j] > 0) {                                                   \
-            ctype prevoff = j? abs(offs[j - 1]) : 1;                           \
-            size_t len = (size_t)(offs[j] - prevoff);                          \
-            if (len) {                                                         \
-              memcpy(dest, mbuf->at((size_t)(prevoff - 1)), len);              \
-              dest += len;                                                     \
-              lastoff += len;                                                  \
-            }                                                                  \
-            resoffs[i] = lastoff;                                              \
-          } else                                                               \
-            resoffs[i] = -lastoff;                                             \
-        }                                                                      \
-        memset(dest, 0xFF, padding);                                           \
-      }                                                                        \
-    }
-    #define CASE_IX_VCHAR(ctype, abs)                                          \
-      if (rowindex->type == RI_SLICE)                                          \
-        CASE_IX_VCHAR_SUB(ctype, abs, JINIT_SLICE, JITER_SLICE)                \
-      else if (rowindex->type == RI_ARR32)                                     \
-        CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(32), JITER_ARR(32))            \
-      else if (rowindex->type == RI_ARR64)                                     \
-        CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(64), JITER_ARR(64))            \
       break;
+    }
 
-    case ST_STRING_I4_VCHAR: CASE_IX_VCHAR(int32_t, abs)
-    case ST_STRING_I8_VCHAR: CASE_IX_VCHAR(int64_t, llabs)
-
-    #undef CASE_IX_VCHAR_SUB
-    #undef CASE_IX_VCHAR
-    #undef JINIT_SLICE
-    #undef JINIT_ARRAY
-    #undef JITER_SLICE
-    #undef JITER_ARRAY
+    case ST_STRING_I8_VCHAR: {
+      size_t offoff = (size_t) ((VarcharMeta*) meta)->offoff;
+      int64_t *offs = (int64_t*) mbuf->at(offoff) + start;
+      int64_t off0 = start ? llabs(*(offs - 1)) - 1 : 0;
+      int64_t off1 = start + res_nrows ? llabs(*(offs + res_nrows - 1)) - 1 : 0;
+      size_t datasize = (size_t) (off1 - off0);
+      size_t padding = i8s_padding(datasize);
+      size_t offssize = res_nrows * elemsize;
+      offoff = datasize + padding;
+      res->mbuf->resize(datasize + padding + offssize);
+      ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;
+      memcpy(res->data(), mbuf->at(off0), datasize);
+      memset(res->mbuf->at(datasize), 0xFF, padding);
+      int64_t *resoffs = (int64_t*) res->mbuf->at(offoff);
+      for (size_t i = 0; i < res_nrows; ++i) {
+        resoffs[i] = offs[i] > 0 ? offs[i] - off0 : offs[i] + off0;
+      }
+      break;
+    }
 
     case ST_STRING_U1_ENUM:
     case ST_STRING_U2_ENUM:
@@ -388,35 +318,126 @@ Column* Column::extract(RowIndex *rowindex) {
 
     default: {
       assert(!stype_info[stype()].varwidth);
-      res->mbuf->resize(res_nrows * elemsize);
-      char *dest = (char*) res->data();
-      if (rowindex->type == RI_SLICE) {
-        size_t startsize = (size_t) rowindex->slice.start * elemsize;
-        size_t stepsize = (size_t) rowindex->slice.step * elemsize;
-        char *src = (char*)(mbuf->get()) + startsize;
-        for (size_t i = 0; i < res_nrows; ++i) {
-          memcpy(dest, src, elemsize);
-          dest += elemsize;
-          src += stepsize;
+      size_t res_alloc_size = res_nrows * elemsize;
+      size_t offset = start * elemsize;
+      res->mbuf->resize(res_alloc_size);
+      memcpy(res->data(), mbuf->at(offset), res_alloc_size);
+    }
+    }
+    return res;
+  }
+
+  // In all other cases we need to iterate through the rowindex and fetch
+  // the required elements manually.
+  switch (stype()) {
+        #define JINIT_SLICE                                                    \
+            int64_t start = ri->slice.start;                                   \
+            int64_t step = ri->slice.step;                                     \
+            int64_t j = start - step;
+        #define JITER_SLICE                                                    \
+            j += step;
+        #define JINIT_ARR(bits)                                                \
+            intXX(bits) *rowindices = ri->ind ## bits;
+        #define JITER_ARR(bits)                                                \
+            intXX(bits) j = rowindices[i];
+
+        #define CASE_IX_VCHAR_SUB(ctype, abs, JINIT, JITER) {                  \
+            size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;             \
+            ctype *offs = (ctype*) mbuf->at(offoff);                           \
+            size_t datasize = 0;                                               \
+            {   JINIT                                                          \
+                for (size_t i = 0; i < res_nrows; ++i) {                       \
+                    JITER                                                      \
+                    if (offs[j] > 0) {                                         \
+                        ctype prevoff = j? abs(offs[j - 1]) : 1;               \
+                        datasize += (size_t)(offs[j] - prevoff);               \
+                    }                                                          \
+                }                                                              \
+            }                                                                  \
+            size_t padding = elemsize == 4 ? i4s_padding(datasize)             \
+                                           : i8s_padding(datasize);            \
+            size_t offssize = res_nrows * elemsize;                            \
+            offoff = datasize + padding;                                       \
+            res->mbuf->resize(offoff + offssize);                              \
+            ((VarcharMeta*) res->meta)->offoff = (int64_t) offoff;             \
+            {   JINIT                                                          \
+                ctype lastoff = 1;                                             \
+                char *dest = static_cast<char*>(res->data());                  \
+                ctype *resoffs = (ctype*) res->mbuf->at(offoff);               \
+                for (size_t i = 0; i < res_nrows; ++i) {                       \
+                    JITER                                                      \
+                    if (offs[j] > 0) {                                         \
+                        ctype prevoff = j? abs(offs[j - 1]) : 1;               \
+                        size_t len = (size_t)(offs[j] - prevoff);              \
+                        if (len) {                                             \
+                            memcpy(dest, mbuf->at((size_t)(prevoff - 1)), len);\
+                            dest += len;                                       \
+                            lastoff += len;                                    \
+                        }                                                      \
+                        resoffs[i] = lastoff;                                  \
+                    } else                                                     \
+                        resoffs[i] = -lastoff;                                 \
+                }                                                              \
+                memset(dest, 0xFF, padding);                                   \
+            }                                                                  \
         }
-      } else
-      if (rowindex->type == RI_ARR32) {
-        int32_t *rowindices = rowindex->ind32;
-        for (size_t i = 0; i < res_nrows; ++i) {
-          size_t j = (size_t) rowindices[i];
-          memcpy(dest, mbuf->at(j*elemsize), elemsize);
-          dest += elemsize;
-        }
-      } else
-      if (rowindex->type == RI_ARR32) {
-        int64_t *rowindices = rowindex->ind64;
-        for (size_t i = 0; i < res_nrows; ++i) {
-          size_t j = (size_t) rowindices[i];
-          memcpy(dest, mbuf->at(j*elemsize), elemsize);
-          dest += elemsize;
-        }
+        #define CASE_IX_VCHAR(ctype, abs)                                      \
+            if (ri->type == RI_SLICE)                                          \
+                CASE_IX_VCHAR_SUB(ctype, abs, JINIT_SLICE, JITER_SLICE)        \
+            else if (ri->type == RI_ARR32)                                     \
+                CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(32), JITER_ARR(32))    \
+            else if (ri->type == RI_ARR64)                                     \
+                CASE_IX_VCHAR_SUB(ctype, abs, JINIT_ARR(64), JITER_ARR(64))    \
+            break;
+
+  case ST_STRING_I4_VCHAR:
+    CASE_IX_VCHAR(int32_t, abs)
+  case ST_STRING_I8_VCHAR:
+    CASE_IX_VCHAR(int64_t, llabs)
+
+  #undef CASE_IX_VCHAR_SUB
+  #undef CASE_IX_VCHAR
+  #undef JINIT_SLICE
+  #undef JINIT_ARRAY
+  #undef JITER_SLICE
+  #undef JITER_ARRAY
+
+  case ST_STRING_U1_ENUM:
+  case ST_STRING_U2_ENUM:
+  case ST_STRING_U4_ENUM:
+    assert(0);  // not implemented yet
+    break;
+
+  default: {
+    assert(!stype_info[stype()].varwidth);
+    res->mbuf->resize(res_nrows * elemsize);
+    char *dest = (char*) res->data();
+    if (ri->type == RI_SLICE) {
+      size_t startsize = (size_t) ri->slice.start * elemsize;
+      size_t stepsize = (size_t) ri->slice.step * elemsize;
+      char *src = (char*) (mbuf->get()) + startsize;
+      for (size_t i = 0; i < res_nrows; ++i) {
+        memcpy(dest, src, elemsize);
+        dest += elemsize;
+        src += stepsize;
       }
-    } break;
+    } else if (ri->type == RI_ARR32) {
+      int32_t *rowindices = ri->ind32;
+      for (size_t i = 0; i < res_nrows; ++i) {
+        size_t j = (size_t) rowindices[i];
+        memcpy(dest, mbuf->at(j * elemsize), elemsize);
+        dest += elemsize;
+      }
+    } else if (ri->type == RI_ARR32) {
+      int64_t *rowindices = ri->ind64;
+      for (size_t i = 0; i < res_nrows; ++i) {
+        size_t j = (size_t) rowindices[i];
+        memcpy(dest, mbuf->at(j * elemsize), elemsize);
+        dest += elemsize;
+      }
+    }
+    break;
+  }
   }
   return res;
 }
@@ -430,8 +451,7 @@ Column* Column::extract(RowIndex *rowindex) {
  * single row, then this value will be repeated `nrows` times. If the column had
  * `nrows != 1`, then all extra rows will be filled with NAs.
  */
-void Column::resize_and_fill(int64_t new_nrows)
-{
+void Column::resize_and_fill(int64_t new_nrows) {
   size_t old_nrows = (size_t) nrows;
   size_t diff_rows = (size_t) new_nrows - old_nrows;
   size_t old_alloc_size = alloc_size();
@@ -456,24 +476,22 @@ void Column::resize_and_fill(int64_t new_nrows)
     size_t fill_size = elemsize * diff_rows;
     assert(alloc_size() - old_alloc_size == fill_size);
     if (old_nrows == 1) {
-      set_value(mbuf->at(old_alloc_size), data(),
-                elemsize, diff_rows);
+      set_value(mbuf->at(old_alloc_size), data(), elemsize, diff_rows);
     } else {
       const void *na = stype_info[stype()].na;
-      set_value(mbuf->at(old_alloc_size), na,
-                elemsize, diff_rows);
+      set_value(mbuf->at(old_alloc_size), na, elemsize, diff_rows);
     }
     // TODO: Temporary fix. To be resolved in #301
     this->stats->reset();
-  }
-  else if (stype() == ST_STRING_I4_VCHAR) {
+  } else if (stype() == ST_STRING_I4_VCHAR) {
     if (new_nrows > INT32_MAX)
       THROW_ERROR("Nrows is too big for an i4s column: %lld", new_nrows);
 
     size_t old_data_size = i4s_datasize();
     size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
     size_t new_data_size = old_data_size;
-    if (old_nrows == 1) new_data_size = old_data_size * (size_t) new_nrows;
+    if (old_nrows == 1)
+      new_data_size = old_data_size * (size_t) new_nrows;
     size_t new_padding_size = Column::i4s_padding(new_data_size);
     size_t new_offoff = new_data_size + new_padding_size;
     size_t new_alloc_size = new_offoff + 4 * (size_t) new_nrows;
@@ -501,13 +519,13 @@ void Column::resize_and_fill(int64_t new_nrows)
     // Replicate the value, or fill with NAs
     int32_t *offsets = (int32_t*) mbuf->at(new_offoff);
     if (old_nrows == 1 && offsets[0] > 0) {
-      set_value(mbuf->at(old_data_size), data(),
-                old_data_size, diff_rows);
+      set_value(mbuf->at(old_data_size), data(), old_data_size, diff_rows);
       for (int32_t j = 0; j < (int32_t) new_nrows; ++j) {
         offsets[j] = 1 + (j + 1) * (int32_t) old_data_size;
       }
     } else {
-      if (old_nrows == 1) assert(old_data_size == 0);
+      if (old_nrows == 1)
+        assert(old_data_size == 0);
       assert(old_offoff == new_offoff && old_data_size == new_data_size);
       int32_t na = -(int32_t) new_data_size - 1;
       set_value(mbuf->at(old_alloc_size), &na, 4, diff_rows);
@@ -565,6 +583,7 @@ size_t Column::get_allocsize()
   size_t sz = sizeof(Column);
   sz += mbuf->memory_footprint();
   sz += stype_info[stype()].metasize;
+  if (rowindex() != nullptr) sz += ri->alloc_size();
   return sz;
 }
 
