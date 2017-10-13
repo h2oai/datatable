@@ -419,12 +419,14 @@ static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
 DT_DOCS(apply_na_mask, "")
 static PyObject* meth_apply_na_mask(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     DataTable *mask = NULL;
     if (!PyArg_ParseTuple(args, "O&", &dt_unwrap, &mask)) return NULL;
 
-    DataTable *res = dt->apply_na_mask(mask);
-    return (res == NULL) ? NULL : none();
+    dt->apply_na_mask(mask);
+    return none();
+  )
 }
 
 

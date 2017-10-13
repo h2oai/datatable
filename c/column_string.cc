@@ -249,6 +249,37 @@ void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
 }
 
 
+template <typename T>
+void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
+  const int8_t* maskdata = mask->elements();
+  char* strdata = this->strdata();
+  T* offsets = this->offsets();
+
+  // How much to reduce the offsets by due to some strings turning into NAs
+  T doffset = 0;
+  T offp = 1;
+  for (int64_t j = 0; j < nrows; ++j) {
+    T offi = offsets[j];
+    T offa = abs(offi);
+    if (maskdata[j] == 1) {
+      doffset += offa - offp;
+      offsets[j] = -offp;
+      continue;
+    } else if (doffset) {
+      if (offi > 0) {
+        offsets[j] = offi - doffset;
+        memmove(strdata + offp, strdata + offp + doffset,
+                static_cast<size_t>(offi - offp - doffset));
+      } else {
+        offsets[j] = -offp;
+      }
+    }
+    offp = offa;
+  }
+}
+
+
+
 //----- Type casts -------------------------------------------------------------
 
 template <typename T>

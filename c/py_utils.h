@@ -105,6 +105,16 @@ PyObject* decref(PyObject *x);
 })
 
 
+#define CATCH_EXCEPTIONS(CODE)                                                 \
+    try {                                                                      \
+        CODE                                                                   \
+    } catch (const std::exception& e) {                                        \
+        PyErr_SetString(PyExc_RuntimeError, e.what());                         \
+        return NULL;                                                           \
+    }
+
+
+
 bool    get_attr_bool(PyObject *pyobj, const char *attr, bool dflt=false);
 int64_t get_attr_int64(PyObject *pyobj, const char *attr, int64_t dflt=0);
 std::string get_attr_string(PyObject *pyobj, const char *attr);
