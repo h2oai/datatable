@@ -283,8 +283,22 @@ public:
   using FwColumn<T>::FwColumn;
   virtual ~RealColumn();
   virtual SType stype() const override;
+
+protected:
+  void cast_into(BoolColumn*) const override;
+  void cast_into(IntColumn<int8_t>*) const override;
+  void cast_into(IntColumn<int16_t>*) const override;
+  void cast_into(IntColumn<int32_t>*) const override;
+  void cast_into(IntColumn<int64_t>*) const override;
+  void cast_into(RealColumn<float>*) const override;
+  void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
 };
 
+template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
+template <> void RealColumn<float>::cast_into(RealColumn<double>*) const;
+template <> void RealColumn<double>::cast_into(RealColumn<float>*) const;
+template <> void RealColumn<double>::cast_into(RealColumn<double>*) const;
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
 
@@ -351,5 +365,7 @@ Column* column_from_list(PyObject*);
 void init_column_cast_functions(void);
 // Implemented in py_column_cast.c
 void init_column_cast_functions2(castfn_ptr hardcasts[][DT_STYPES_COUNT]);
+
+
 
 #endif
