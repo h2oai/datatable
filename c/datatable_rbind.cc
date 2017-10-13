@@ -35,9 +35,10 @@ DataTable* DataTable::rbind(DataTable **dts, int **cols, int ndts,
         new_nrows += dts[i]->nrows;
     }
 
-    std::vector<const Column*> cols_to_append(ndts);
+    size_t undts = static_cast<size_t>(ndts);
+    std::vector<const Column*> cols_to_append(undts);
     for (int64_t i = 0; i < new_ncols; ++i) {
-        for (int j = 0; j < ndts; ++j) {
+        for (size_t j = 0; j < undts; ++j) {
             int k = cols[i][j];
             cols_to_append[j] = k < 0 ? new VoidColumn(dts[j]->nrows)
                                       : dts[j]->columns[k]->extract();

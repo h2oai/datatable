@@ -136,8 +136,8 @@ public:
 
 protected:
   Column(int64_t nrows);
-  Column* rbind_fw(const std::vector<const Column*>&, int64_t, bool);
-  Column* rbind_str32(const std::vector<const Column*>&, int64_t, bool);
+  virtual void rbind_impl(const std::vector<const Column*>& columns,
+                          int64_t nrows, bool isempty);
 
 private:
   static size_t allocsize0(SType, int64_t nrows);
@@ -163,11 +163,13 @@ public:
   void set_elem(int64_t i, T value);
 
   int64_t data_nrows() const override;
+  void resize_and_fill(int64_t nrows) override;
 
 protected:
   static constexpr T na_elem = GETNA<T>();
   Column* extract_simple_slice(RowIndex*) const;
-  void resize_and_fill(int64_t nrows) override;
+  void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
+                  bool isempty) override;
 };
 
 
@@ -255,7 +257,12 @@ public:
   size_t datasize();
   int64_t data_nrows() const override;
   static size_t padding(size_t datasize);
+
+protected:
+  void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
+                  bool isempty) override;
 };
+
 
 extern template class StringColumn<int32_t>;
 extern template class StringColumn<int64_t>;

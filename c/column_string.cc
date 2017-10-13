@@ -161,6 +161,81 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
 }
 
 
+template <typename T>
+void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
+                                 int64_t new_nrows, bool col_empty)
+{
+  // Determine the size of the memory to allocate
+  size_t old_nrows = (size_t) nrows;
+  size_t old_offoff = 0;
+  size_t new_data_size = 0;     // size of the string data region
+  if (!col_empty) {
+    old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
+    new_data_size += datasize();
+  }
+  for (const Column* col : columns) {
+    if (col->stype() == ST_VOID) continue;
+    // TODO: replace with datasize(). But: what if col is not a string?
+    int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
+    T *offsets = (T*) col->data_at(static_cast<size_t>(offoff));
+    new_data_size += (size_t) abs(offsets[col->nrows - 1]) - 1;
+  }
+  size_t new_offsets_size = sizeof(T) * static_cast<size_t>(new_nrows);
+  size_t padding_size = padding(new_data_size);
+  size_t new_offoff = new_data_size + padding_size;
+  size_t new_alloc_size = new_offoff + new_offsets_size;
+
+  // Reallocate the column
+  assert(new_alloc_size >= alloc_size());
+  mbuf->resize(new_alloc_size);
+  nrows = new_nrows;
+  T *offsets = (T*) mbuf->at(new_offoff);
+  ((VarcharMeta*) meta)->offoff = (int64_t) new_offoff;
+
+  // Move the original offsets
+  T rows_to_fill = 0;  // how many rows need to be filled with NAs
+  T curr_offset = 0;   // Current offset within string data section
+  if (col_empty) {
+    rows_to_fill += old_nrows;
+    offsets[-1] = -1;
+  } else {
+    memmove(offsets, mbuf->at(old_offoff), old_nrows * 4);
+    offsets[-1] = -1;
+    curr_offset = abs(offsets[old_nrows - 1]) - 1;
+    offsets += old_nrows;
+  }
+
+  for (const Column* col : columns) {
+    if (col->stype() == ST_VOID) {
+      rows_to_fill += col->nrows;
+    } else {
+      if (rows_to_fill) {
+        const T na = -curr_offset - 1;
+        set_value(offsets, &na, sizeof(T), (size_t)rows_to_fill);
+        offsets += rows_to_fill;
+        rows_to_fill = 0;
+      }
+      size_t offoff = static_cast<size_t>(((VarcharMeta*) col->meta)->offoff);
+      T *col_offsets = (T*) col->data_at(offoff);
+      for (int64_t j = 0; j < col->nrows; j++) {
+        T off = col_offsets[j];
+        *offsets++ = off > 0? off + curr_offset : off - curr_offset;
+      }
+      size_t data_size = (size_t)(abs(col_offsets[col->nrows - 1]) - 1);
+      memcpy(mbuf->at(curr_offset), col->data(), data_size);
+      curr_offset += data_size;
+    }
+    delete col;
+  }
+  if (rows_to_fill) {
+    const T na = -curr_offset - 1;
+    set_value(offsets, &na, sizeof(T), (size_t)rows_to_fill);
+  }
+  if (padding_size) {
+    memset(mbuf->at(new_offoff - padding_size), 0xFF, padding_size);
+  }
+}
+
 
 // Explicit instantiation of the template
 template class StringColumn<int32_t>;
