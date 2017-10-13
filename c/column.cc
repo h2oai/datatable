@@ -161,7 +161,7 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(RowIndex* new_rowindex) {
+Column* Column::shallowcopy(RowIndex* new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
@@ -490,3 +490,30 @@ size_t Column::memory_footprint() const
   return sz;
 }
 
+
+Column* Column::cast_(SType stype) const {
+  switch (stype) {
+    case ST_BOOLEAN_I1:      return cast_bool();
+    case ST_INTEGER_I1:      return cast_int8();
+    case ST_INTEGER_I2:      return cast_int16();
+    case ST_INTEGER_I4:      return cast_int32();
+    case ST_INTEGER_I8:      return cast_int64();
+    case ST_REAL_F4:         return cast_float();
+    case ST_REAL_F8:         return cast_double();
+    case ST_STRING_I4_VCHAR: return cast_str32();
+    case ST_STRING_I8_VCHAR: return cast_str64();
+    case ST_OBJECT_PYPTR:    return cast_pyobj();
+    default: THROW_ERROR("Unable to cast into stype = %d\n", stype);
+  }
+}
+
+BoolColumn*            Column::cast_bool() const   { throw Error("Cannot cast %d into bool", stype()); }
+IntColumn<int8_t>*     Column::cast_int8() const   { throw Error("Cannot cast %d into int8", stype()); }
+IntColumn<int16_t>*    Column::cast_int16() const  { throw Error("Cannot cast %d into int16", stype()); }
+IntColumn<int32_t>*    Column::cast_int32() const  { throw Error("Cannot cast %d into int32", stype()); }
+IntColumn<int64_t>*    Column::cast_int64() const  { throw Error("Cannot cast %d into int64", stype()); }
+RealColumn<float>*     Column::cast_float() const  { throw Error("Cannot cast %d into float", stype()); }
+RealColumn<double>*    Column::cast_double() const { throw Error("Cannot cast %d into double", stype()); }
+StringColumn<int32_t>* Column::cast_str32() const  { throw Error("Cannot cast %d into str32", stype()); }
+StringColumn<int64_t>* Column::cast_str64() const  { throw Error("Cannot cast %d into str64", stype()); }
+PyObjectColumn*        Column::cast_pyobj() const  { throw Error("Cannot cast %d into pyobj", stype()); }

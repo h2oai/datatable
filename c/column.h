@@ -25,6 +25,11 @@
 class DataTable;
 class RowIndex;
 class Stats;
+class BoolColumn;
+class PyObjectColumn;
+template <typename T> class IntColumn;
+template <typename T> class RealColumn;
+template <typename T> class StringColumn;
 
 
 //==============================================================================
@@ -106,10 +111,31 @@ public:
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  Column* shallowcopy(RowIndex* new_rowindex = nullptr);
+  Column* shallowcopy(RowIndex* new_rowindex = nullptr) const;
 
   Column* deepcopy() const;
+
+  /**
+   * Column type casts. The factory method `cast(stype)` will resolve `stype`
+   * and invoke one of the virtual `cast_*()` methods. Or you can invoke any
+   * of those methods directly, if you know which type you are casting into.
+   *
+   * Each of the "cast" functions does not modify the current column object,
+   * but instead returns a new one. When casting a column into its own type
+   * a shallow copy of the column will be returned.
+   */
   Column* cast(SType) const;
+  Column* cast_(SType) const;
+  virtual BoolColumn*            cast_bool() const;
+  virtual IntColumn<int8_t>*     cast_int8() const;
+  virtual IntColumn<int16_t>*    cast_int16() const;
+  virtual IntColumn<int32_t>*    cast_int32() const;
+  virtual IntColumn<int64_t>*    cast_int64() const;
+  virtual RealColumn<float>*     cast_float() const;
+  virtual RealColumn<double>*    cast_double() const;
+  virtual StringColumn<int32_t>* cast_str32() const;
+  virtual StringColumn<int64_t>* cast_str64() const;
+  virtual PyObjectColumn*        cast_pyobj() const;
 
   /**
    * Appends the provided columns to the bottom of the current column and

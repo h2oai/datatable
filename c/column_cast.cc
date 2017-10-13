@@ -22,7 +22,7 @@ Column* Column::cast(SType new_stype) const
         Column *res = Column::new_data_column(new_stype, this->nrows);
         return converter(this, res);
     } else if (stype() == new_stype) {
-        return this->deepcopy();
+        return this->shallowcopy();
     } else {
         dterrv("Unable to cast from stype=%d into stype=%d", stype(), new_stype);
     }
