@@ -30,7 +30,7 @@ FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 
 
 template <typename T>
-T* FwColumn<T>::elements() {
+T* FwColumn<T>::elements() const {
   return static_cast<T*>(mbuf->get());
 }
 

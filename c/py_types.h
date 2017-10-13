@@ -7,6 +7,7 @@
 
 #if LLONG_MAX==9223372036854775807
     // int64_t == long long int
+    dt_static_assert(sizeof(long long) == 8, "Sizeof(long long) != 8");
     #define PyLong_AsInt64             PyLong_AsLongLong
     #define PyLong_AsInt64AndOverflow  PyLong_AsLongLongAndOverflow
     #define PyLong_AsUInt64            PyLong_AsUnsignedLongLong
@@ -14,6 +15,7 @@
     #define PyLong_FromInt64           PyLong_FromLongLong
 #elif LONG_MAX==9223372036854775807
     // int64_t == long int
+    dt_static_assert(sizeof(long) == 8, "Sizeof(long) != 8");
     #define PyLong_AsInt64             PyLong_AsLong
     #define PyLong_AsInt64AndOverflow  PyLong_AsLongAndOverflow
     #define PyLong_AsUInt64            PyLong_AsUnsignedLong
