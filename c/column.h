@@ -390,12 +390,8 @@ public:
 
 
 //==============================================================================
-typedef Column* (*castfn_ptr)(const Column*, Column*);
 
 Column* column_from_list(PyObject*);
-void init_column_cast_functions(void);
-// Implemented in py_column_cast.c
-void init_column_cast_functions2(castfn_ptr hardcasts[][DT_STYPES_COUNT]);
 
 
 

@@ -491,7 +491,7 @@ size_t Column::memory_footprint() const
 }
 
 
-Column* Column::cast_(SType new_stype) const {
+Column* Column::cast(SType new_stype) const {
   if (new_stype == stype()) {
     return shallowcopy();
   }
@@ -506,11 +506,11 @@ Column* Column::cast_(SType new_stype) const {
     case ST_INTEGER_I2:      cast_into(static_cast<IntColumn<int16_t>*>(res)); break;
     case ST_INTEGER_I4:      cast_into(static_cast<IntColumn<int32_t>*>(res)); break;
     case ST_INTEGER_I8:      cast_into(static_cast<IntColumn<int64_t>*>(res)); break;
-    // case ST_REAL_F4:         cast_into(static_cast<RealColumn<float>*>(res)); break;
-    // case ST_REAL_F8:         cast_into(static_cast<RealColumn<double>*>(res)); break;
-    // case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<int32_t>*>(res)); break;
-    // case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<int64_t>*>(res)); break;
-    // case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn>(res)); break;
+    case ST_REAL_F4:         cast_into(static_cast<RealColumn<float>*>(res)); break;
+    case ST_REAL_F8:         cast_into(static_cast<RealColumn<double>*>(res)); break;
+    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<int32_t>*>(res)); break;
+    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<int64_t>*>(res)); break;
+    case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn*>(res)); break;
     default: THROW_ERROR("Unable to cast into stype = %d\n", new_stype);
   }
   return res;
