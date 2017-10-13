@@ -47,6 +47,7 @@ Column::Column(int64_t nrows_)
 
 Column* Column::new_column(SType stype) {
   switch (stype) {
+    case ST_VOID:            return new VoidColumn();
     case ST_BOOLEAN_I1:      return new BoolColumn();
     case ST_INTEGER_I1:      return new IntColumn<int8_t>();
     case ST_INTEGER_I2:      return new IntColumn<int16_t>();
@@ -57,7 +58,6 @@ Column* Column::new_column(SType stype) {
     case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
     case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
     case ST_OBJECT_PYPTR:    return new PyObjectColumn();
-    case ST_VOID:            return new Column(0);  // FIXME
     default:
       THROW_ERROR("Unable to create a column of SType = %d\n", stype);
   }
@@ -196,18 +196,6 @@ Column* Column::deepcopy() const
   // TODO: deep copy stats when implemented
   col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
   return col;
-}
-
-
-// FIXME: this method should be pure virtual
-SType Column::stype() const {
-  return ST_VOID;
-}
-
-
-// FIXME: this method should be pure virtual
-int64_t Column::data_nrows() const {
-  return 0;
 }
 
 
@@ -424,9 +412,6 @@ Column* Column::extract() {
 }
 
 
-// FIXME: this method should be declared pure virtual
-void Column::resize_and_fill(int64_t) {}
-
 
 Column* Column::rbind(const std::vector<const Column*>& columns)
 {
@@ -467,10 +452,6 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
     if (res != this) delete this;
     return res;
 }
-
-
-// FIXME: this method should be declared pure virtual
-void Column::rbind_impl(const std::vector<const Column*>&, int64_t, bool) {}
 
 
 Column::~Column() {

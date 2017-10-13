@@ -75,12 +75,12 @@ public:
   Column(Column&&) = delete;
   virtual ~Column();
 
-  virtual SType stype() const;
+  virtual SType stype() const = 0;
   inline void* data() const { return mbuf->get(); }
   inline void* data_at(size_t i) const { return mbuf->at(i); }
   inline RowIndex* rowindex() const { return ri; }
   size_t alloc_size() const;
-  virtual int64_t data_nrows() const;
+  virtual int64_t data_nrows() const = 0;
   PyObject* mbuf_repr() const;
   int mbuf_refcount() const;
   size_t memory_footprint() const;
@@ -96,7 +96,7 @@ public:
    *
    * The contents of the column will be modified in-place if possible.
    */
-  virtual void resize_and_fill(int64_t nrows);
+  virtual void resize_and_fill(int64_t nrows) = 0;
 
   /**
    * Create a shallow copy of this Column, possibly applying the provided
@@ -137,7 +137,7 @@ public:
 protected:
   Column(int64_t nrows);
   virtual void rbind_impl(const std::vector<const Column*>& columns,
-                          int64_t nrows, bool isempty);
+                          int64_t nrows, bool isempty) = 0;
 
 private:
   static size_t allocsize0(SType, int64_t nrows);
@@ -275,6 +275,9 @@ class VoidColumn : public Column {
 public:
   VoidColumn(int64_t nrows = 0) : Column(nrows) {}
   SType stype() const override { return ST_VOID; }
+  int64_t data_nrows() const override { return nrows; }
+  void resize_and_fill(int64_t) override {}
+  void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
 };
 
 
