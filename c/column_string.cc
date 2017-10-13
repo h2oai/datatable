@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <cmath>  // abs
+#include "py_utils.h"
 #include "utils.h"
 
 
@@ -64,6 +65,17 @@ template <typename T>
 int64_t StringColumn<T>::data_nrows() const {
   size_t offoff = static_cast<size_t>(((VarcharMeta*) meta)->offoff);
   return static_cast<int64_t>((mbuf->size() - offoff) / sizeof(T));
+}
+
+template <typename T>
+char* StringColumn<T>::strdata() const {
+  return static_cast<char*>(mbuf->get()) - 1;
+}
+
+template <typename T>
+T* StringColumn<T>::offsets() const {
+  int64_t offoff = ((VarcharMeta*) meta)->offoff;
+  return static_cast<T*>(mbuf->at(offoff));
 }
 
 
@@ -233,6 +245,28 @@ void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
   }
   if (padding_size) {
     memset(mbuf->at(new_offoff - padding_size), 0xFF, padding_size);
+  }
+}
+
+
+//----- Type casts -------------------------------------------------------------
+
+template <typename T>
+void StringColumn<T>::cast_into(PyObjectColumn* target) const {
+  char* strdata = this->strdata();
+  T* offsets = this->offsets();
+  PyObject** trg_data = target->elements();
+
+  T prev_off = 1;
+  for (int64_t i = 0; i < this->nrows; ++i) {
+    T off = offsets[i];
+    if (off < 0) {
+      trg_data[i] = none();
+    } else {
+      T len = off - prev_off;
+      trg_data[i] = PyUnicode_FromStringAndSize(strdata + prev_off, len);
+      prev_off = off;
+    }
   }
 }
 

@@ -25,6 +25,11 @@
 class DataTable;
 class RowIndex;
 class Stats;
+class BoolColumn;
+class PyObjectColumn;
+template <typename T> class IntColumn;
+template <typename T> class RealColumn;
+template <typename T> class StringColumn;
 
 
 //==============================================================================
@@ -106,9 +111,16 @@ public:
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  Column* shallowcopy(RowIndex* new_rowindex = nullptr);
+  Column* shallowcopy(RowIndex* new_rowindex = nullptr) const;
 
   Column* deepcopy() const;
+
+  /**
+   * Factory method to cast the current column into the given `stype`. If a
+   * column is cast into its own stype, a shallow copy is returned. Otherwise,
+   * this method constructs a new column of the provided stype and writes the
+   * converted data into it.
+   */
   Column* cast(SType) const;
 
   /**
@@ -139,6 +151,28 @@ protected:
   virtual void rbind_impl(const std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
 
+  /**
+   * These functions are designed to cast the current column into another type.
+   * Each of the functions takes as an argument the new column object which
+   * ought to be filled with the converted data. The `cast_into(...)` functions
+   * do not modify the current column.
+   *
+   * The argument to the `cast_into(...)` methods is the "target" column - a
+   * new writable column preallocated for `nrows` elements.
+   *
+   * Casting a column with a RowIndex is currently not supported.
+   */
+  virtual void cast_into(BoolColumn*) const;
+  virtual void cast_into(IntColumn<int8_t>*) const;
+  virtual void cast_into(IntColumn<int16_t>*) const;
+  virtual void cast_into(IntColumn<int32_t>*) const;
+  virtual void cast_into(IntColumn<int64_t>*) const;
+  virtual void cast_into(RealColumn<float>*) const;
+  virtual void cast_into(RealColumn<double>*) const;
+  virtual void cast_into(StringColumn<int32_t>*) const;
+  virtual void cast_into(StringColumn<int64_t>*) const;
+  virtual void cast_into(PyObjectColumn*) const;
+
 private:
   static size_t allocsize0(SType, int64_t nrows);
   static Column* new_column(SType);
@@ -158,7 +192,7 @@ template <typename T> class FwColumn : public Column
 public:
   FwColumn();
   FwColumn(int64_t nrows);
-  T* elements();
+  T* elements() const;
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
 
@@ -191,7 +225,19 @@ class BoolColumn : public FwColumn<int8_t>
 public:
   using FwColumn<int8_t>::FwColumn;
   virtual ~BoolColumn();
-  virtual SType stype() const override;
+  SType stype() const override;
+
+protected:
+  void cast_into(BoolColumn*) const override;
+  void cast_into(IntColumn<int8_t>*) const override;
+  void cast_into(IntColumn<int16_t>*) const override;
+  void cast_into(IntColumn<int32_t>*) const override;
+  void cast_into(IntColumn<int64_t>*) const override;
+  void cast_into(RealColumn<float>*) const override;
+  void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 
@@ -204,8 +250,24 @@ public:
   using FwColumn<T>::FwColumn;
   virtual ~IntColumn();
   virtual SType stype() const override;
+
+protected:
+  void cast_into(BoolColumn*) const override;
+  void cast_into(IntColumn<int8_t>*) const override;
+  void cast_into(IntColumn<int16_t>*) const override;
+  void cast_into(IntColumn<int32_t>*) const override;
+  void cast_into(IntColumn<int64_t>*) const override;
+  void cast_into(RealColumn<float>*) const override;
+  void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
+template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
+template <> void IntColumn<int16_t>::cast_into(IntColumn<int16_t>*) const;
+template <> void IntColumn<int32_t>::cast_into(IntColumn<int32_t>*) const;
+template <> void IntColumn<int64_t>::cast_into(IntColumn<int64_t>*) const;
 extern template class IntColumn<int8_t>;
 extern template class IntColumn<int16_t>;
 extern template class IntColumn<int32_t>;
@@ -221,8 +283,24 @@ public:
   using FwColumn<T>::FwColumn;
   virtual ~RealColumn();
   virtual SType stype() const override;
+
+protected:
+  void cast_into(BoolColumn*) const override;
+  void cast_into(IntColumn<int8_t>*) const override;
+  void cast_into(IntColumn<int16_t>*) const override;
+  void cast_into(IntColumn<int32_t>*) const override;
+  void cast_into(IntColumn<int64_t>*) const override;
+  void cast_into(RealColumn<float>*) const override;
+  void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
+template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
+template <> void RealColumn<float>::cast_into(RealColumn<double>*) const;
+template <> void RealColumn<double>::cast_into(RealColumn<float>*) const;
+template <> void RealColumn<double>::cast_into(RealColumn<double>*) const;
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
 
@@ -236,6 +314,18 @@ public:
   using FwColumn<PyObject*>::FwColumn;
   virtual ~PyObjectColumn();
   virtual SType stype() const override;
+
+protected:
+  // void cast_into(BoolColumn*) const override;
+  // void cast_into(IntColumn<int8_t>*) const override;
+  // void cast_into(IntColumn<int16_t>*) const override;
+  // void cast_into(IntColumn<int32_t>*) const override;
+  // void cast_into(IntColumn<int64_t>*) const override;
+  // void cast_into(RealColumn<float>*) const override;
+  // void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 
@@ -257,10 +347,23 @@ public:
   size_t datasize();
   int64_t data_nrows() const override;
   static size_t padding(size_t datasize);
+  char* strdata() const;
+  T* offsets() const;
 
 protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
+
+  // void cast_into(BoolColumn*) const override;
+  // void cast_into(IntColumn<int8_t>*) const override;
+  // void cast_into(IntColumn<int16_t>*) const override;
+  // void cast_into(IntColumn<int32_t>*) const override;
+  // void cast_into(IntColumn<int64_t>*) const override;
+  // void cast_into(RealColumn<float>*) const override;
+  // void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 
@@ -283,11 +386,9 @@ public:
 
 
 //==============================================================================
-typedef Column* (*castfn_ptr)(const Column*, Column*);
 
 Column* column_from_list(PyObject*);
-void init_column_cast_functions(void);
-// Implemented in py_column_cast.c
-void init_column_cast_functions2(castfn_ptr hardcasts[][DT_STYPES_COUNT]);
+
+
 
 #endif

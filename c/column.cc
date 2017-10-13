@@ -161,7 +161,7 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(RowIndex* new_rowindex) {
+Column* Column::shallowcopy(RowIndex* new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
@@ -490,3 +490,39 @@ size_t Column::memory_footprint() const
   return sz;
 }
 
+
+Column* Column::cast(SType new_stype) const {
+  if (new_stype == stype()) {
+    return shallowcopy();
+  }
+  if (ri) {
+    // TODO: implement this
+    throw Error("Cannot cast a column with rowindex");
+  }
+  Column *res = Column::new_data_column(new_stype, nrows);
+  switch (new_stype) {
+    case ST_BOOLEAN_I1:      cast_into(static_cast<BoolColumn*>(res)); break;
+    case ST_INTEGER_I1:      cast_into(static_cast<IntColumn<int8_t>*>(res)); break;
+    case ST_INTEGER_I2:      cast_into(static_cast<IntColumn<int16_t>*>(res)); break;
+    case ST_INTEGER_I4:      cast_into(static_cast<IntColumn<int32_t>*>(res)); break;
+    case ST_INTEGER_I8:      cast_into(static_cast<IntColumn<int64_t>*>(res)); break;
+    case ST_REAL_F4:         cast_into(static_cast<RealColumn<float>*>(res)); break;
+    case ST_REAL_F8:         cast_into(static_cast<RealColumn<double>*>(res)); break;
+    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<int32_t>*>(res)); break;
+    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<int64_t>*>(res)); break;
+    case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn*>(res)); break;
+    default: THROW_ERROR("Unable to cast into stype = %d\n", new_stype);
+  }
+  return res;
+}
+
+void Column::cast_into(BoolColumn*) const            { throw Error("Cannot cast %d into bool", stype()); }
+void Column::cast_into(IntColumn<int8_t>*) const     { throw Error("Cannot cast %d into int8", stype()); }
+void Column::cast_into(IntColumn<int16_t>*) const    { throw Error("Cannot cast %d into int16", stype()); }
+void Column::cast_into(IntColumn<int32_t>*) const    { throw Error("Cannot cast %d into int32", stype()); }
+void Column::cast_into(IntColumn<int64_t>*) const    { throw Error("Cannot cast %d into int64", stype()); }
+void Column::cast_into(RealColumn<float>*) const     { throw Error("Cannot cast %d into float", stype()); }
+void Column::cast_into(RealColumn<double>*) const    { throw Error("Cannot cast %d into double", stype()); }
+void Column::cast_into(StringColumn<int32_t>*) const { throw Error("Cannot cast %d into str32", stype()); }
+void Column::cast_into(StringColumn<int64_t>*) const { throw Error("Cannot cast %d into str64", stype()); }
+void Column::cast_into(PyObjectColumn*) const        { throw Error("Cannot cast %d into pyobj", stype()); }

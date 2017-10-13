@@ -202,7 +202,6 @@ PyTypeObject Column_PyType = {
 
 
 int init_py_column(PyObject *module) {
-    init_column_cast_functions();
     init_sort_functions();
 
     // Register Column_PyType on the module
