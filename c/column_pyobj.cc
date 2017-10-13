@@ -24,7 +24,20 @@ PyObjectColumn::~PyObjectColumn() {
   // delete mbuf;
 }
 
-
 SType PyObjectColumn::stype() const {
   return ST_OBJECT_PYPTR;
 }
+
+
+
+//----- Type casts -------------------------------------------------------------
+
+void PyObjectColumn::cast_into(PyObjectColumn* target) const {
+  PyObject** src_data = this->elements();
+  for (int64_t i = 0; i < this->nrows; ++i) {
+    Py_XINCREF(src_data[i]);
+  }
+  memcpy(target->data(), this->data(), alloc_size());
+}
+
+

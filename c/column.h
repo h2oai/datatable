@@ -240,6 +240,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 
@@ -262,6 +264,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
@@ -293,6 +297,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
@@ -312,6 +318,18 @@ public:
   using FwColumn<PyObject*>::FwColumn;
   virtual ~PyObjectColumn();
   virtual SType stype() const override;
+
+protected:
+  // void cast_into(BoolColumn*) const override;
+  // void cast_into(IntColumn<int8_t>*) const override;
+  // void cast_into(IntColumn<int16_t>*) const override;
+  // void cast_into(IntColumn<int32_t>*) const override;
+  // void cast_into(IntColumn<int64_t>*) const override;
+  // void cast_into(RealColumn<float>*) const override;
+  // void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 
@@ -333,10 +351,23 @@ public:
   size_t datasize();
   int64_t data_nrows() const override;
   static size_t padding(size_t datasize);
+  char* strdata() const;
+  T* offsets() const;
 
 protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
+
+  // void cast_into(BoolColumn*) const override;
+  // void cast_into(IntColumn<int8_t>*) const override;
+  // void cast_into(IntColumn<int16_t>*) const override;
+  // void cast_into(IntColumn<int32_t>*) const override;
+  // void cast_into(IntColumn<int64_t>*) const override;
+  // void cast_into(RealColumn<float>*) const override;
+  // void cast_into(RealColumn<double>*) const override;
+  void cast_into(PyObjectColumn*) const override;
+  // void cast_into(StringColumn<int32_t>*) const;
+  // void cast_into(StringColumn<int64_t>*) const;
 };
 
 
