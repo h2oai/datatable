@@ -103,102 +103,26 @@ static inline int _compare_ints(const void *a, const void *b) {
  * Modify datatable replacing values that are given by the mask with NAs.
  * The target datatable must have the same shape as the mask, and neither can
  * be a view.
- * Returns NULL in case of an error, or a pointer to `dt` otherwise.
  */
-DataTable* DataTable::apply_na_mask(DataTable *mask)
+void DataTable::apply_na_mask(DataTable* maskdt)
 {
-  if(mask == NULL) throw new Error("Mask cannot be NULL");
-  if (ncols != mask->ncols || nrows != mask->nrows) {
+  if (!maskdt) throw new Error("Mask cannot be NULL");
+  if (ncols != maskdt->ncols || nrows != maskdt->nrows) {
     throw new Error("Target datatable and mask have different shapes");
   }
-  if (rowindex || mask->rowindex) {
-    throw new Error("Neither target DataTable nor a mask can be views");
-  }
-  for (int64_t i = 0; i < ncols; ++i) {
-    if (mask->columns[i]->stype() != ST_BOOLEAN_I1)
-      dterrv("Column %lld in mask is not of a boolean type", i);
+  if (rowindex || maskdt->rowindex) {
+    throw new Error("Neither target DataTable nor the mask can be views");
   }
 
   for (int64_t i = 0; i < ncols; ++i){
-    // TODO: Move this part into columns.cc?
+    BoolColumn *maskcol = dynamic_cast<BoolColumn*>(maskdt->columns[i]);
+    if (!maskcol) {
+      throw new Error("Column %lld in mask is not of a boolean type", i);
+    }
     Column *col = columns[i];
     col->stats->reset();
-    uint8_t *mdata = (uint8_t*) mask->columns[i]->data();
-    switch (col->stype()) {
-      case ST_BOOLEAN_I1:
-      case ST_INTEGER_I1: {
-        uint8_t *cdata = (uint8_t*) col->data();
-        #pragma omp parallel for schedule(dynamic,1024)
-        for (int64_t j = 0; j < nrows; ++j) {
-          if (mdata[j])
-            cdata[j] = static_cast<uint8_t>(GETNA<int8_t>());
-        }
-        break;
-      }
-      case ST_INTEGER_I2: {
-        uint16_t *cdata = (uint16_t*) col->data();
-        #pragma omp parallel for schedule(dynamic,1024)
-        for (int64_t j = 0; j < nrows; ++j) {
-          if (mdata[j])
-            cdata[j] = static_cast<uint16_t>(GETNA<int16_t>());
-        }
-        break;
-      }
-      case ST_REAL_F4:
-      case ST_INTEGER_I4: {
-        uint32_t *cdata = (uint32_t*) col->data();
-        uint32_t na = col->stype() == ST_REAL_F4 ?
-                      NA_F4_BITS :
-                      static_cast<uint32_t>(GETNA<int32_t>());
-        #pragma omp parallel for schedule(dynamic,1024)
-        for (int64_t j = 0; j < nrows; ++j) {
-          if (mdata[j]) cdata[j] = na;
-        }
-        break;
-      }
-      case ST_REAL_F8:
-      case ST_INTEGER_I8: {
-        uint64_t *cdata = (uint64_t*) col->data();
-        uint64_t na = col->stype() == ST_REAL_F8 ?
-                      NA_F8_BITS :
-                      static_cast<uint32_t>(GETNA<int32_t>());
-        #pragma omp parallel for schedule(dynamic,1024)
-        for (int64_t j = 0; j < nrows; ++j) {
-          if (mdata[j]) cdata[j] = na;
-        }
-        break;
-      }
-      case ST_STRING_I4_VCHAR: {
-        int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
-        char *strdata = (char*)(col->data()) - 1;
-        int32_t *offdata = static_cast<int32_t*>(col->data_at(static_cast<size_t>(offoff)));
-        // How much to reduce the offsets by due to some strings being
-        // converted into NAs
-        int32_t doffset = 0;
-        for (int64_t j = 0; j < nrows; ++j) {
-          int32_t offi = offdata[j];
-          int32_t offp = abs(offdata[j - 1]);
-          if (mdata[j]) {
-            doffset += abs(offi) - offp;
-            offdata[j] = -offp;
-          } else if (doffset) {
-            if (offi > 0) {
-              offdata[j] = offi - doffset;
-              memmove(strdata + offp, strdata + offp + doffset,
-                      static_cast<size_t>((offi - offp - doffset)));
-            } else {
-              offdata[j] = -offp;
-            }
-          }
-        }
-        break;
-      }
-      default:
-        throw new Error("Column type %d not supported", col->stype());
-    }
+    col->apply_na_mask(maskcol);
   }
-
-  return this;
 }
 
 /**

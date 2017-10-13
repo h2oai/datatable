@@ -51,7 +51,7 @@ public:
     DataTable(Column**);
     ~DataTable();
     DataTable* delete_columns(int*, int);
-    DataTable* apply_na_mask(DataTable*);
+    void apply_na_mask(DataTable* mask);
     void reify();
     DataTable* rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);

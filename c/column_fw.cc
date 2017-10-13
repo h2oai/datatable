@@ -147,6 +147,18 @@ int64_t FwColumn<T>::data_nrows() const {
 }
 
 
+template <typename T>
+void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
+  const int8_t* maskdata = mask->elements();
+  constexpr T na = GETNA<T>();
+  T* coldata = this->elements();
+  #pragma omp parallel for schedule(dynamic, 1024)
+  for (int64_t j = 0; j < nrows; ++j) {
+    if (maskdata[j] == 1) coldata[j] = na;
+  }
+}
+
+
 // Explicit instantiations
 template class FwColumn<int8_t>;
 template class FwColumn<int16_t>;

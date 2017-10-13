@@ -104,6 +104,13 @@ public:
   virtual void resize_and_fill(int64_t nrows) = 0;
 
   /**
+   * Modify the Column, replacing values specified by the provided `mask` with
+   * NAs. The `mask` column must have the same number of rows as the current,
+   * and neither of them can have a RowIndex.
+   */
+  virtual void apply_na_mask(const BoolColumn* mask) = 0;
+
+  /**
    * Create a shallow copy of this Column, possibly applying the provided
    * RowIndex. The copy is "shallow" in the sense that the main data buffer
    * is copied by-reference. If this column has a rowindex, and the user
@@ -198,6 +205,7 @@ public:
 
   int64_t data_nrows() const override;
   void resize_and_fill(int64_t nrows) override;
+  void apply_na_mask(const BoolColumn* mask) override;
 
 protected:
   static constexpr T na_elem = GETNA<T>();
@@ -343,6 +351,7 @@ public:
   SType stype() const override;
   Column* extract_simple_slice(RowIndex*) const;
   void resize_and_fill(int64_t nrows) override;
+  void apply_na_mask(const BoolColumn* mask) override;
 
   size_t datasize();
   int64_t data_nrows() const override;
@@ -374,6 +383,8 @@ extern template class StringColumn<int64_t>;
 
 //==============================================================================
 
+// "Fake" column, its only use is to serve as a placeholder for a Column with an
+// unknown type. This column cannot be put into a DataTable.
 class VoidColumn : public Column {
 public:
   VoidColumn(int64_t nrows = 0) : Column(nrows) {}
@@ -381,6 +392,7 @@ public:
   int64_t data_nrows() const override { return nrows; }
   void resize_and_fill(int64_t) override {}
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
+  void apply_na_mask(const BoolColumn*) override {}
 };
 
 
