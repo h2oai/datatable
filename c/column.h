@@ -116,16 +116,12 @@ public:
   Column* deepcopy() const;
 
   /**
-   * Column type casts. The factory method `cast(stype)` will resolve `stype`
-   * and invoke one of the virtual `cast_*()` methods. Or you can invoke any
-   * of those methods directly, if you know which type you are casting into.
-   *
-   * Each of the "cast" functions does not modify the current column object,
-   * but instead returns a new one. When casting a column into its own type
-   * a shallow copy of the column will be returned.
+   * Factory method to cast the current column into the given `stype`. If a
+   * column is cast into its own stype, a shallow copy is returned. Otherwise,
+   * this method constructs a new column of the provided stype and writes the
+   * converted data into it.
    */
   Column* cast(SType) const;
-  Column* cast_(SType) const;
 
   /**
    * Appends the provided columns to the bottom of the current column and
