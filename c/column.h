@@ -17,6 +17,7 @@
 #define dt_COLUMN_H
 #include <Python.h>
 #include <stdint.h>
+#include <vector>
 #include "memorybuf.h"
 #include "types.h"
 #include "stats.h"
@@ -74,12 +75,12 @@ public:
   Column(Column&&) = delete;
   virtual ~Column();
 
-  virtual SType stype() const;
+  virtual SType stype() const = 0;
   inline void* data() const { return mbuf->get(); }
   inline void* data_at(size_t i) const { return mbuf->at(i); }
   inline RowIndex* rowindex() const { return ri; }
   size_t alloc_size() const;
-  virtual int64_t data_nrows() const;
+  virtual int64_t data_nrows() const = 0;
   PyObject* mbuf_repr() const;
   int mbuf_refcount() const;
   size_t memory_footprint() const;
@@ -95,7 +96,7 @@ public:
    *
    * The contents of the column will be modified in-place if possible.
    */
-  virtual void resize_and_fill(int64_t nrows);
+  virtual void resize_and_fill(int64_t nrows) = 0;
 
   /**
    * Create a shallow copy of this Column, possibly applying the provided
@@ -107,9 +108,25 @@ public:
    */
   Column* shallowcopy(RowIndex* new_rowindex = nullptr);
 
-  Column* deepcopy();
-  Column* cast(SType);
-  Column* rbind(Column**);
+  Column* deepcopy() const;
+  Column* cast(SType) const;
+
+  /**
+   * Appends the provided columns to the bottom of the current column and
+   * returns the resulting column. This method is equivalent to `list.append()`
+   * in Python or `rbind()` in R.
+   *
+   * Current column is modified in-place, if possible. Otherwise, a new Column
+   * object is returned, and this Column is deleted. The expected usage pattern
+   * is thus as follows:
+   *
+   *   column = column->rbind(columns_to_bind);
+   *
+   * Individual entries in the `columns` array may be instances of `VoidColumn`,
+   * indicating columns that should be replaced with NAs.
+   */
+  Column* rbind(const std::vector<const Column*>& columns);
+
   Column* extract();
   Column* save_to_disk(const char*);
   RowIndex* sort() const;
@@ -119,8 +136,8 @@ public:
 
 protected:
   Column(int64_t nrows);
-  Column* rbind_fw(Column**, int64_t, int);  // helper for rbind
-  Column* rbind_str32(Column**, int64_t, int);
+  virtual void rbind_impl(const std::vector<const Column*>& columns,
+                          int64_t nrows, bool isempty) = 0;
 
 private:
   static size_t allocsize0(SType, int64_t nrows);
@@ -146,11 +163,13 @@ public:
   void set_elem(int64_t i, T value);
 
   int64_t data_nrows() const override;
+  void resize_and_fill(int64_t nrows) override;
 
 protected:
   static constexpr T na_elem = GETNA<T>();
   Column* extract_simple_slice(RowIndex*) const;
-  void resize_and_fill(int64_t nrows) override;
+  void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
+                  bool isempty) override;
 };
 
 
@@ -238,7 +257,12 @@ public:
   size_t datasize();
   int64_t data_nrows() const override;
   static size_t padding(size_t datasize);
+
+protected:
+  void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
+                  bool isempty) override;
 };
+
 
 extern template class StringColumn<int32_t>;
 extern template class StringColumn<int64_t>;
@@ -246,7 +270,20 @@ extern template class StringColumn<int64_t>;
 
 
 //==============================================================================
-typedef Column* (*castfn_ptr)(Column*, Column*);
+
+class VoidColumn : public Column {
+public:
+  VoidColumn(int64_t nrows = 0) : Column(nrows) {}
+  SType stype() const override { return ST_VOID; }
+  int64_t data_nrows() const override { return nrows; }
+  void resize_and_fill(int64_t) override {}
+  void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
+};
+
+
+
+//==============================================================================
+typedef Column* (*castfn_ptr)(const Column*, Column*);
 
 Column* column_from_list(PyObject*);
 void init_column_cast_functions(void);

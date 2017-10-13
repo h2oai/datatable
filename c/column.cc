@@ -47,6 +47,7 @@ Column::Column(int64_t nrows_)
 
 Column* Column::new_column(SType stype) {
   switch (stype) {
+    case ST_VOID:            return new VoidColumn();
     case ST_BOOLEAN_I1:      return new BoolColumn();
     case ST_INTEGER_I1:      return new IntColumn<int8_t>();
     case ST_INTEGER_I2:      return new IntColumn<int16_t>();
@@ -57,7 +58,6 @@ Column* Column::new_column(SType stype) {
     case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
     case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
     case ST_OBJECT_PYPTR:    return new PyObjectColumn();
-    case ST_VOID:            return new Column(0);  // FIXME
     default:
       THROW_ERROR("Unable to create a column of SType = %d\n", stype);
   }
@@ -185,7 +185,7 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) {
  * Make a "deep" copy of the column. The column created with this method will
  * have memory-type MT_DATA and refcount of 1.
  */
-Column* Column::deepcopy()
+Column* Column::deepcopy() const
 {
   Column* col = new_column(stype());
   col->nrows = nrows;
@@ -196,18 +196,6 @@ Column* Column::deepcopy()
   // TODO: deep copy stats when implemented
   col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
   return col;
-}
-
-
-// FIXME: this method should be pure virtual
-SType Column::stype() const {
-  return ST_VOID;
-}
-
-
-// FIXME: this method should be pure virtual
-int64_t Column::data_nrows() const {
-  return 0;
 }
 
 
@@ -424,16 +412,52 @@ Column* Column::extract() {
 }
 
 
-// FIXME: this method should be declared pure virtual
-void Column::resize_and_fill(int64_t) {}
 
+Column* Column::rbind(const std::vector<const Column*>& columns)
+{
+    // Is the current column "empty" ?
+    bool col_empty = (stype() == ST_VOID);
 
+    // Compute the final number of rows and stype
+    int64_t new_nrows = this->nrows;
+    SType new_stype = std::max(stype(), ST_BOOLEAN_I1);
+    for (const Column* col : columns) {
+        new_nrows += col->nrows;
+        new_stype = std::max(new_stype, col->stype());
+    }
+
+    // Create the resulting Column object. It can be either: an empty column
+    // filled with NAs; the current column (`this`); a clone of the current
+    // column (if it has refcount > 1); or a type-cast of the current column.
+    Column *res = nullptr;
+    if (col_empty) {
+        // FIXME: this is not filled with NAs!
+        res = Column::new_data_column(new_stype, this->nrows);
+    } else if (stype() == new_stype) {
+        mbuf = mbuf->safe_resize(mbuf->size());  // ensure mbuf is writable
+        res = this;
+    } else {
+        res = this->cast(new_stype);
+    }
+    assert(res->stype() == new_stype && !res->mbuf->is_readonly());
+
+    // TODO: Temporary Fix. To be resolved in #301
+    res->stats->reset();
+
+    // Use the appropriate strategy to continue appending the columns.
+    res->rbind_impl(columns, new_nrows, col_empty);
+
+    // If everything is fine, then the current column can be safely discarded
+    // -- the upstream caller will replace this column with the `res`.
+    if (res != this) delete this;
+    return res;
+}
 
 
 Column::~Column() {
   dtfree(meta);
   Stats::destruct(stats);
-  mbuf->release();
+  if (mbuf) mbuf->release();
   if (ri) ri->release();
 }
 

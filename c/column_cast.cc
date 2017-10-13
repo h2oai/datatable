@@ -15,7 +15,7 @@ static castfn_ptr hardcasts[DT_STYPES_COUNT][DT_STYPES_COUNT];
  * If the requested conversion has not been implemented yet, an exception will
  * be raised and NULL pointer returned.
  */
-Column* Column::cast(SType new_stype)
+Column* Column::cast(SType new_stype) const
 {
     castfn_ptr converter = hardcasts[stype()][new_stype];
     if (converter) {
@@ -33,7 +33,7 @@ Column* Column::cast(SType new_stype)
 
 //---- ST_BOOLEAN_I1 -----------------------------------------------------------
 
-static Column* easy_i1b_to_i1i(Column *self, Column *res)
+static Column* easy_i1b_to_i1i(const Column *self, Column *res)
 {
     memcpy(res->data(), self->data(), self->alloc_size());
     return res;
@@ -42,7 +42,7 @@ static Column* easy_i1b_to_i1i(Column *self, Column *res)
 
 //---- ST_INTEGER_I1 -----------------------------------------------------------
 
-static Column* easy_i1i_to_i2i(Column *self, Column *res)
+static Column* easy_i1i_to_i2i(const Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data();
     int16_t *res_data = (int16_t*) res->data();
@@ -53,7 +53,7 @@ static Column* easy_i1i_to_i2i(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i1i_to_i4i(Column *self, Column *res)
+static Column* easy_i1i_to_i4i(const Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data();
     int32_t *res_data = (int32_t*) res->data();
@@ -64,7 +64,7 @@ static Column* easy_i1i_to_i4i(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i1i_to_i8i(Column *self, Column *res)
+static Column* easy_i1i_to_i8i(const Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data();
     int64_t *res_data = (int64_t*) res->data();
@@ -75,7 +75,7 @@ static Column* easy_i1i_to_i8i(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i1i_to_f4r(Column *self, Column *res)
+static Column* easy_i1i_to_f4r(const Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data();
     float *res_data = (float*) res->data();
@@ -86,7 +86,7 @@ static Column* easy_i1i_to_f4r(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i1i_to_f8r(Column *self, Column *res)
+static Column* easy_i1i_to_f8r(const Column *self, Column *res)
 {
     int8_t *src_data = (int8_t*) self->data();
     double *res_data = (double*) res->data();
@@ -100,7 +100,7 @@ static Column* easy_i1i_to_f8r(Column *self, Column *res)
 
 //---- ST_INTEGER_I2 -----------------------------------------------------------
 
-static Column* easy_i2i_to_i4i(Column *self, Column *res)
+static Column* easy_i2i_to_i4i(const Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data();
     int32_t *res_data = (int32_t*) res->data();
@@ -111,7 +111,7 @@ static Column* easy_i2i_to_i4i(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i2i_to_i8i(Column *self, Column *res)
+static Column* easy_i2i_to_i8i(const Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data();
     int64_t *res_data = (int64_t*) res->data();
@@ -122,7 +122,7 @@ static Column* easy_i2i_to_i8i(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i2i_to_f4r(Column *self, Column *res)
+static Column* easy_i2i_to_f4r(const Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data();
     float *res_data = (float*) res->data();
@@ -133,7 +133,7 @@ static Column* easy_i2i_to_f4r(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i2i_to_f8r(Column *self, Column *res)
+static Column* easy_i2i_to_f8r(const Column *self, Column *res)
 {
     int16_t *src_data = (int16_t*) self->data();
     double *res_data = (double*) res->data();
@@ -147,7 +147,7 @@ static Column* easy_i2i_to_f8r(Column *self, Column *res)
 
 //---- ST_INTEGER_I4 -----------------------------------------------------------
 
-static Column* easy_i4i_to_i8i(Column *self, Column *res)
+static Column* easy_i4i_to_i8i(const Column *self, Column *res)
 {
     int32_t *src_data = (int32_t*) self->data();
     int64_t *res_data = (int64_t*) res->data();
@@ -158,7 +158,7 @@ static Column* easy_i4i_to_i8i(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i4i_to_f4r(Column *self, Column *res)
+static Column* easy_i4i_to_f4r(const Column *self, Column *res)
 {
     int32_t *src_data = (int32_t*) self->data();
     float *res_data = (float*) res->data();
@@ -169,7 +169,7 @@ static Column* easy_i4i_to_f4r(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i4i_to_f8r(Column *self, Column *res)
+static Column* easy_i4i_to_f8r(const Column *self, Column *res)
 {
     int32_t *src_data = (int32_t*) self->data();
     double *res_data = (double*) res->data();
@@ -183,7 +183,7 @@ static Column* easy_i4i_to_f8r(Column *self, Column *res)
 
 //---- ST_INTEGER_I8 -----------------------------------------------------------
 
-static Column* easy_i8i_to_f4r(Column *self, Column *res)
+static Column* easy_i8i_to_f4r(const Column *self, Column *res)
 {
     int64_t *src_data = (int64_t*) self->data();
     float *res_data = (float*) res->data();
@@ -194,7 +194,7 @@ static Column* easy_i8i_to_f4r(Column *self, Column *res)
     return res;
 }
 
-static Column* easy_i8i_to_f8r(Column *self, Column *res)
+static Column* easy_i8i_to_f8r(const Column *self, Column *res)
 {
     int64_t *src_data = (int64_t*) self->data();
     double *res_data = (double*) res->data();
@@ -208,7 +208,7 @@ static Column* easy_i8i_to_f8r(Column *self, Column *res)
 
 //---- ST_REAL_F4 --------------------------------------------------------------
 
-static Column* easy_f4r_to_f8r(Column *self, Column *res)
+static Column* easy_f4r_to_f8r(const Column *self, Column *res)
 {
     float *src_data = (float*) self->data();
     double *res_data = (double*) res->data();
