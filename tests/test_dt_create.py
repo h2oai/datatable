@@ -248,7 +248,7 @@ def test_issue_42():
     assert d.internal.check()
     d = dt.DataTable([-1, 2, 5, "hooray"])
     assert d.shape == (4, 1)
-    assert d.types == ("str", )
+    assert d.types == ("obj", )
     assert d.internal.check()
 
 

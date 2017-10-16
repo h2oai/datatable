@@ -20,7 +20,7 @@ def dt0():
         [0.1, 2, -4, 4.4],
         [None, None, None, None],
         [0, 0, 0, 0],
-        [1, 2, "hello", "world"],
+        ["1", "2", "hello", "world"],
     ], colnames=list("ABCDEFG"))
 
 

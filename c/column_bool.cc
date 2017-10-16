@@ -14,6 +14,8 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
+#include <Python.h>
+
 
 
 BoolColumn::~BoolColumn() {}
