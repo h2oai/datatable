@@ -25,7 +25,18 @@ template <typename T>
 FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 {
   size_t sz = sizeof(T) * static_cast<size_t>(nrows_);
-  mbuf = new MemoryMemBuf(sz);
+  mbuf = sz? new MemoryMemBuf(sz) : nullptr;
+}
+
+template <typename T>
+void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
+  if (new_mbuf->size() % sizeof(T)) {
+    throw new Error("New buffer has invalid size %zu", new_mbuf->size());
+  }
+  MemoryBuffer* t = new_mbuf->shallowcopy();
+  if (mbuf) mbuf->release();
+  mbuf = t;
+  nrows = mbuf->size() / sizeof(T);
 }
 
 

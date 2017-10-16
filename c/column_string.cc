@@ -38,6 +38,43 @@ StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
 
 
 template <typename T>
+void StringColumn<T>::replace_buffer(MemoryBuffer* new_offbuf,
+                                     MemoryBuffer* new_strbuf)
+{
+  int64_t new_nrows = new_offbuf->size()/sizeof(T) - 1;
+  if (new_offbuf->size() % sizeof(T)) {
+    throw new Error("The size of `new_offbuf` is not a multiple of "
+                    STRINGIFY(sizeof(T)));
+  }
+  if (new_offbuf->get_elem<T>(0) != -1) {
+    throw new Error("Cannot use `new_offbuf` as an \"offsets\" buffer: first "
+                    "element of this array is not -1");
+  }
+  // MemoryBuffer* t = new_offbuf->shallowcopy();
+  // if (mbuf) mbuf->release();
+  // mbuf = t;
+  // t = new_strbuf->shallowcopy();
+  // if (strbuf) strbuf->release();
+  // strbuf = t;
+
+  nrows = new_nrows;
+  //---- Temporary -----
+  size_t strdata_size = new_strbuf->size();
+  size_t padding_size = padding(strdata_size);
+  size_t offsets_size = sizeof(T) * static_cast<size_t>(nrows);
+  size_t final_size = strdata_size + padding_size + offsets_size;
+  size_t offoff = strdata_size + padding_size;
+  new_strbuf->resize(final_size);
+  memset(new_strbuf->at(strdata_size), 0xFF, padding_size);
+  memcpy(new_strbuf->at(offoff), new_offbuf->at(sizeof(T)), offsets_size);
+  if (mbuf) mbuf->release();
+  mbuf = new_strbuf->shallowcopy();
+  ((VarcharMeta*) meta)->offoff = static_cast<int64_t>(offoff);
+}
+
+
+
+template <typename T>
 SType StringColumn<T>::stype() const {
   return stype_string(sizeof(T));
 }
@@ -69,11 +106,13 @@ int64_t StringColumn<T>::data_nrows() const {
 
 template <typename T>
 char* StringColumn<T>::strdata() const {
+  if (strbuf) return static_cast<char*>(strbuf->get()) - 1;
   return static_cast<char*>(mbuf->get()) - 1;
 }
 
 template <typename T>
 T* StringColumn<T>::offsets() const {
+  if (strbuf) return static_cast<T*>(mbuf->get());
   int64_t offoff = ((VarcharMeta*) meta)->offoff;
   return static_cast<T*>(mbuf->at(offoff));
 }

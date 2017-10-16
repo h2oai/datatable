@@ -59,7 +59,8 @@ template <typename T> class StringColumn;
  *     depends on the `stype`.
  *
  */
-class Column {
+class Column
+{
 protected:
   MemoryBuffer *mbuf;
   RowIndex *ri;
@@ -76,9 +77,12 @@ public:
                                   const char* metastr);
   static Column* new_xbuf_column(SType, int64_t nrows, void* pybuffer,
                                  void* data, size_t datasize);
+  static Column* from_pylist(PyObject* list, int stype0 = 0, int ltype0 = 0);
+
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
+  virtual void replace_buffer(MemoryBuffer*, MemoryBuffer*) = 0;
 
   virtual SType stype() const = 0;
   inline void* data() const { return mbuf->get(); }
@@ -185,7 +189,6 @@ private:
   static Column* new_column(SType);
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
-  friend Column* column_from_list(PyObject *list);
   friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
   friend void setFinalNrow(size_t nrows);
 };
@@ -199,6 +202,8 @@ template <typename T> class FwColumn : public Column
 public:
   FwColumn();
   FwColumn(int64_t nrows);
+  void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
+
   T* elements() const;
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
@@ -348,6 +353,8 @@ public:
   StringColumn();
   StringColumn(int64_t nrows);
   virtual ~StringColumn();
+  void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
+
   SType stype() const override;
   Column* extract_simple_slice(RowIndex*) const;
   void resize_and_fill(int64_t nrows) override;
@@ -388,6 +395,7 @@ extern template class StringColumn<int64_t>;
 class VoidColumn : public Column {
 public:
   VoidColumn(int64_t nrows = 0) : Column(nrows) {}
+  void replace_buffer(MemoryBuffer*, MemoryBuffer*) override {}
   SType stype() const override { return ST_VOID; }
   int64_t data_nrows() const override { return nrows; }
   void resize_and_fill(int64_t) override {}
@@ -395,11 +403,6 @@ public:
   void apply_na_mask(const BoolColumn*) override {}
 };
 
-
-
-//==============================================================================
-
-Column* column_from_list(PyObject*);
 
 
 
