@@ -55,3 +55,16 @@ def test_fread_float():
     assert d0.internal.check()
     assert d0.stypes == ("f4r", )
     assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
+
+
+def test_logger():
+    class MyLogger:
+        def __init__(self):
+            self.count = 0
+
+        def debug(self, msg):
+            self.count += 1
+
+    lg = MyLogger()
+    datatable.fread(text="A\n1\n2\n3", logger=lg)
+    assert lg.count > 10

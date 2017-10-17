@@ -1919,6 +1919,11 @@ int freadMain(freadMainArgs _args)
               ncol-ndrop, ncol, ndrop, allocnrow);
     }
     size_t DTbytes = allocateDT(type, size, ncol, ndrop, allocnrow);
+    if (DTbytes == 0) {
+      // Failed to allocate: return
+      freadCleanup();
+      return 0;
+    }
     double tAlloc = wallclock();
 
     // Read ahead and drop behind each point as they move through (assuming it's on a per thread basis).

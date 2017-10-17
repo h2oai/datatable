@@ -48,6 +48,7 @@ def fread(filename: str = None,
           skip_to_string: str = None,
           skip_lines: int = None,
           save_to: str = None,
+          logger=None,
           **extra) -> DataTable:
     freader = FReader(filename=filename,
                       text=text,
@@ -63,6 +64,7 @@ def fread(filename: str = None,
                       skip_lines=skip_lines,
                       verbose=verbose,
                       save_to=save_to,
+                      logger=logger,
                       **extra)
     return freader.read()
 
@@ -76,7 +78,8 @@ class FReader(object):
     def __init__(self, filename=None, text=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None,
-                 skip_to_string=None, skip_lines=None, save_to=None, **args):
+                 skip_to_string=None, skip_lines=None, save_to=None,
+                 logger=None, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -93,8 +96,8 @@ class FReader(object):
         self._skip_to_string = None
         self._columns = None
         self._save_to = save_to
+        self._logger = None
 
-        self._log_newline = True
         self._colnames = None
         self._bar_ends = None
         self._bar_symbols = None
@@ -115,6 +118,7 @@ class FReader(object):
         self.show_progress = show_progress
         self.skip_to_string = skip_to_string
         self.skip_lines = skip_lines
+        self.logger = logger
 
         if "separator" in args:
             self.sep = args.pop("separator")
@@ -269,26 +273,43 @@ class FReader(object):
         self._skip_lines = n
 
 
+    @property
+    def logger(self):
+        return self._logger
+
+    @logger.setter
+    def logger(self, l):
+        if l is None:
+            # reset to the default logger
+            l = _DefaultLogger()
+        else:
+            # If custom logger is provided, turn on the verbose mode
+            self.verbose = True
+        if not(hasattr(l, "debug") and callable(l.debug) and
+               (hasattr(l.debug, "__func__") and
+                l.debug.__func__.__code__.co_argcount >= 2 or
+                type(l) is type and hasattr(l.debug, "__code__") and
+                l.debug.__code__.co_argcount >= 1)):
+            # Allow either an instance of a class with .debug(self, msg) method,
+            # or the class itself, with static `.debug(msg)` method.
+            raise TTypeError("`logger` parameter must be a class with method "
+                             ".debug() taking at least one argument")
+        self._logger = l
+
 
     def read(self):
         _dt = c.fread(self)
         dt = DataTable(_dt, colnames=self._colnames)
         if self._tempfile:
             if self._verbose:
-                self._vlog("Removing temporary file %s\n" % self._tempfile)
+                self.logger.debug("Removing temporary file %s\n"
+                                  % self._tempfile)
             os.remove(self._tempfile)
             os.rmdir(self._tempdir)
         return dt
 
 
     #---------------------------------------------------------------------------
-
-    def _vlog(self, message):
-        if self._log_newline:
-            print("  ", end="")
-        self._log_newline = message.endswith("\n")
-        print(_log_color(message), end="", flush=True)
-
 
     def _progress(self, percent):
         """
@@ -320,17 +341,17 @@ class FReader(object):
         handle a dataset of the requested size.
         """
         if self.verbose:
-            self._vlog("  The DataTable is estimated to require %s\n"
-                       % humanize_bytes(estimated_size))
+            self.logger.debug("  The DataTable is estimated to require %s\n"
+                              % humanize_bytes(estimated_size))
         vm = psutil.virtual_memory()
         if self.verbose:
-            self._vlog("  Memory available = %s (out of %s)\n"
-                       % (humanize_bytes(vm.available),
-                          humanize_bytes(vm.total)))
+            self.logger.debug("  Memory available = %s (out of %s)\n"
+                              % (humanize_bytes(vm.available),
+                                 humanize_bytes(vm.total)))
         if (estimated_size < vm.available and self._save_to is None or
                 self._save_to == "memory"):
             if self.verbose:
-                self._vlog("  DataTable will be loaded into memory\n")
+                self.logger.debug("  DataTable will be loaded into memory\n")
             return None
         else:
             if self._save_to:
@@ -340,12 +361,13 @@ class FReader(object):
                 tmpdir = tempfile.mkdtemp()
             du = psutil.disk_usage(tmpdir)
             if self.verbose:
-                self._vlog("  Free disk space on drive %s = %s\n"
-                           % (os.path.splitdrive(tmpdir)[0] or "/",
-                              humanize_bytes(du.free)))
+                self.logger.debug("  Free disk space on drive %s = %s\n"
+                                  % (os.path.splitdrive(tmpdir)[0] or "/",
+                                     humanize_bytes(du.free)))
             if du.free > estimated_size or self._save_to:
                 if self.verbose:
-                    self._vlog("  DataTable will be stored in %s\n" % tmpdir)
+                    self.logger.debug("  DataTable will be stored in %s\n"
+                                      % tmpdir)
                 return tmpdir
         raise RuntimeError("The DataTable is estimated to require at lest %s "
                            "of memory, and you don't have that much available "
@@ -399,15 +421,15 @@ class FReader(object):
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
             if self._verbose:
-                self._vlog("Extracting %s to temporary directory %s\n"
-                           % (filename, self._tempdir))
+                self.logger.debug("Extracting %s to temporary directory %s\n"
+                                  % (filename, self._tempdir))
             self._tempfile = zf.extract(zff[0], path=self._tempdir)
 
         elif ext == ".gz":
             import gzip
             zf = gzip.GzipFile(filename)
             if self._verbose:
-                self._vlog("Extracting %s into memory\n" % filename)
+                self.logger.debug("Extracting %s into memory\n" % filename)
             self._text = zf.read()
 
 
@@ -560,6 +582,19 @@ class FReader(object):
                                % colspec)
 
 
+
+class _DefaultLogger:
+    def __init__(self):
+        self._log_newline = False
+
+    def debug(self, message):
+        if self._log_newline:
+            print("  ", end="")
+        self._log_newline = message.endswith("\n")
+        print(_log_color(message), end="", flush=True)
+
+
+#-------------------------------------------------------------------------------
 # Directly corresponds to `colType` enum in "fread.h"
 _coltypes_strs = [
     "drop",      # 0
