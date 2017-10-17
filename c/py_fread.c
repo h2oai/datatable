@@ -203,7 +203,7 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
 
 Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 {
-    if (col != NULL && stype_info[stype].ltype == LT_STRING) {
+    if (col != NULL && stype != col->stype()) {
         delete col;
         return alloc_column(stype, nrows, j);
     }
@@ -358,8 +358,8 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
 
 void setFinalNrow(size_t nrows) {
-    int i, j, k;
-    for (i = j = k = 0; i < ncols; i++) {
+    int i, j;
+    for (i = j = 0; i < ncols; i++) {
         int type = types[i];
         if (type == CT_DROP) continue;
         Column *col = dt->columns[j];
@@ -383,7 +383,7 @@ void setFinalNrow(size_t nrows) {
                 dtrealloc_g(final_ptr, void, final_size);
             }
             memset(add_ptr(final_ptr, curr_size), 0xFF, padding);
-            memcpy(add_ptr(final_ptr, offoff), col->data(), offs_size);
+            memcpy(add_ptr(final_ptr, offoff), col->mbuf->get(), offs_size);
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
             if (targetdir) {
                 snprintf(fname2, 1000, "%s/col%0*d", targetdir, ndigits, (int)j);
@@ -397,7 +397,6 @@ void setFinalNrow(size_t nrows) {
             col->nrows = (int64_t) nrows;
             dtrealloc_g(col->meta, VarcharMeta, 1);
             ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
-            k++;
         } else if (type > 0) {
             Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
             if (c == NULL) goto fail;
