@@ -35,6 +35,7 @@ static void cleanup_fread_session(freadMainArgs *frargs);
 // logic. This reference is non-NULL when fread() is running; and serves as a
 // lock preventing from running multiple fread() instances.
 static PyObject *freader = NULL;
+static PyObject *flogger = NULL;
 
 // DataTable being constructed.
 static DataTable *dt = NULL;
@@ -105,6 +106,8 @@ PyObject* pyfread(UU, PyObject *args)
     skipstring = TOSTRING(ATTR(freader, "skip_to_string"), &tmp3);
     na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"));
     verbose = TOBOOL(ATTR(freader, "verbose"), 0);
+    flogger = ATTR(freader, "logger");
+    Py_INCREF(flogger);
 
     frargs->filename = filename;
     frargs->input = input;
@@ -231,6 +234,7 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
         pyfree(frargs->freader);
     }
     pyfree(freader);
+    pyfree(flogger);
     dt = NULL;
 }
 
@@ -343,7 +347,6 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     return 1;
 
   fail:
-    printf("AllocateDT failed!\n");
     if (columns) {
         Column **col = columns;
         while (*col++) delete (*col);
@@ -662,5 +665,5 @@ void DTPRINT(const char *format, ...) {
         vsnprintf(msg, 2000, format, args);
     }
     va_end(args);
-    PyObject_CallMethod(freader, "_vlog", "O", PyUnicode_FromString(msg));
+    PyObject_CallMethod(flogger, "debug", "O", PyUnicode_FromString(msg));
 }
