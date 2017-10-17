@@ -741,7 +741,9 @@ static int parse_double_extended(const char **pch, double *target)
       // *target = NA_FLOAT64;
       return 1;
     }
-    *pch = ch + quoted;
+    ch += quoted;
+    if (!on_sep(&ch)) return 1;
+    *pch = ch;
     return 0;
 }
 
