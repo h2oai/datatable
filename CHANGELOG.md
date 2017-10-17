@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   which will be treated the same as if it was a single-column array.
 - Now `datatable`'s wheel will include libraries `libomp` and `libc++` on the platforms
   where they are not widely available.
+- New `fread`'s argument `logger` allows the user to supply custom logging mechanism to
+  fread. When this argument is provided, "verbose" mode is turned on automatically.
 
 #### Changed
 - `datatable` will no longer attempt to distinguish between NA and NAN floating-point values.
