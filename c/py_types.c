@@ -142,7 +142,6 @@ int init_py_types(UU)
     py_stype_formatters[ST_STRING_U2_ENUM]     = stype_notimpl;
     py_stype_formatters[ST_STRING_U4_ENUM]     = stype_notimpl;
     py_stype_formatters[ST_DATETIME_I8_EPOCH]  = stype_notimpl;
-    py_stype_formatters[ST_DATETIME_I8_PRTMN]  = stype_notimpl;
     py_stype_formatters[ST_DATETIME_I4_TIME]   = stype_notimpl;
     py_stype_formatters[ST_DATETIME_I4_DATE]   = stype_notimpl;
     py_stype_formatters[ST_DATETIME_I2_MONTH]  = stype_notimpl;

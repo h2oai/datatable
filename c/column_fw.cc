@@ -36,7 +36,7 @@ void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
   MemoryBuffer* t = new_mbuf->shallowcopy();
   if (mbuf) mbuf->release();
   mbuf = t;
-  nrows = mbuf->size() / sizeof(T);
+  nrows = static_cast<int64_t>(mbuf->size() / sizeof(T));
 }
 
 

@@ -52,31 +52,30 @@ static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 void init_types(void)
 {
-    #define STI(T, code, csize, msize, vw, ltype, na) \
-        stype_info[T] = (STypeInfo){csize, msize, na, code, ltype, vw, 0}
-    STI(ST_VOID,              "---", 0, 0,                   0, LT_MU,       NULL);
-    STI(ST_BOOLEAN_I1,        "i1b", 1, 0,                   0, LT_BOOLEAN,  &NA_I1);
-    STI(ST_INTEGER_I1,        "i1i", 1, 0,                   0, LT_INTEGER,  &NA_I1);
-    STI(ST_INTEGER_I2,        "i2i", 2, 0,                   0, LT_INTEGER,  &NA_I2);
-    STI(ST_INTEGER_I4,        "i4i", 4, 0,                   0, LT_INTEGER,  &NA_I4);
-    STI(ST_INTEGER_I8,        "i8i", 8, 0,                   0, LT_INTEGER,  &NA_I8);
-    STI(ST_REAL_F4,           "f4r", 4, 0,                   0, LT_REAL,     &NA_F4);
-    STI(ST_REAL_F8,           "f8r", 8, 0,                   0, LT_REAL,     &NA_F8);
-    STI(ST_REAL_I2,           "i2r", 2, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I2);
-    STI(ST_REAL_I4,           "i4r", 4, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I4);
-    STI(ST_REAL_I8,           "i8r", 8, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I8);
-    STI(ST_STRING_I4_VCHAR,   "i4s", 4, sizeof(VarcharMeta), 1, LT_STRING,   NULL);
-    STI(ST_STRING_I8_VCHAR,   "i8s", 8, sizeof(VarcharMeta), 1, LT_STRING,   NULL);
-    STI(ST_STRING_FCHAR,      "c#s", 0, sizeof(FixcharMeta), 0, LT_STRING,   NULL);
-    STI(ST_STRING_U1_ENUM,    "u1e", 1, sizeof(EnumMeta),    1, LT_STRING,   &NA_U1);
-    STI(ST_STRING_U2_ENUM,    "u2e", 2, sizeof(EnumMeta),    1, LT_STRING,   &NA_U2);
-    STI(ST_STRING_U4_ENUM,    "u4e", 4, sizeof(EnumMeta),    1, LT_STRING,   &NA_U4);
-    STI(ST_DATETIME_I8_EPOCH, "i8d", 8, 0,                   0, LT_DATETIME, &NA_I8);
-    STI(ST_DATETIME_I8_PRTMN, "i8w", 8, 0,                   0, LT_DATETIME, &NA_I8);
-    STI(ST_DATETIME_I4_TIME,  "i4t", 4, 0,                   0, LT_DATETIME, &NA_I4);
-    STI(ST_DATETIME_I4_DATE,  "i4d", 4, 0,                   0, LT_DATETIME, &NA_I4);
-    STI(ST_DATETIME_I2_MONTH, "i2d", 2, 0,                   0, LT_DATETIME, &NA_I2);
-    STI(ST_OBJECT_PYPTR,      "p8p", 8, 0,                   0, LT_OBJECT,   NULL);
+    #define STI(T, code, code2, csize, msize, vw, ltype, na) \
+        stype_info[T] = (STypeInfo){csize, msize, na, code, code2, ltype, vw}
+    STI(ST_VOID,              "---", "--", 0, 0,                   0, LT_MU,       NULL);
+    STI(ST_BOOLEAN_I1,        "i1b", "b1", 1, 0,                   0, LT_BOOLEAN,  &NA_I1);
+    STI(ST_INTEGER_I1,        "i1i", "i1", 1, 0,                   0, LT_INTEGER,  &NA_I1);
+    STI(ST_INTEGER_I2,        "i2i", "i2", 2, 0,                   0, LT_INTEGER,  &NA_I2);
+    STI(ST_INTEGER_I4,        "i4i", "i4", 4, 0,                   0, LT_INTEGER,  &NA_I4);
+    STI(ST_INTEGER_I8,        "i8i", "i8", 8, 0,                   0, LT_INTEGER,  &NA_I8);
+    STI(ST_REAL_F4,           "f4r", "r4", 4, 0,                   0, LT_REAL,     &NA_F4);
+    STI(ST_REAL_F8,           "f8r", "r8", 8, 0,                   0, LT_REAL,     &NA_F8);
+    STI(ST_REAL_I2,           "i2r", "d2", 2, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I2);
+    STI(ST_REAL_I4,           "i4r", "d4", 4, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I4);
+    STI(ST_REAL_I8,           "i8r", "d8", 8, sizeof(DecimalMeta), 0, LT_REAL,     &NA_I8);
+    STI(ST_STRING_I4_VCHAR,   "i4s", "s4", 4, sizeof(VarcharMeta), 1, LT_STRING,   NULL);
+    STI(ST_STRING_I8_VCHAR,   "i8s", "s8", 8, sizeof(VarcharMeta), 1, LT_STRING,   NULL);
+    STI(ST_STRING_FCHAR,      "c#s", "sx", 0, sizeof(FixcharMeta), 0, LT_STRING,   NULL);
+    STI(ST_STRING_U1_ENUM,    "u1e", "e1", 1, sizeof(EnumMeta),    1, LT_STRING,   &NA_U1);
+    STI(ST_STRING_U2_ENUM,    "u2e", "e2", 2, sizeof(EnumMeta),    1, LT_STRING,   &NA_U2);
+    STI(ST_STRING_U4_ENUM,    "u4e", "e4", 4, sizeof(EnumMeta),    1, LT_STRING,   &NA_U4);
+    STI(ST_DATETIME_I8_EPOCH, "i8d", "t8", 8, 0,                   0, LT_DATETIME, &NA_I8);
+    STI(ST_DATETIME_I4_TIME,  "i4t", "T4", 4, 0,                   0, LT_DATETIME, &NA_I4);
+    STI(ST_DATETIME_I4_DATE,  "i4d", "t4", 4, 0,                   0, LT_DATETIME, &NA_I4);
+    STI(ST_DATETIME_I2_MONTH, "i2d", "t2", 2, 0,                   0, LT_DATETIME, &NA_I2);
+    STI(ST_OBJECT_PYPTR,      "p8p", "o8", 8, 0,                   0, LT_OBJECT,   NULL);
     #undef STI
 
     #define UPCAST(stype1, stype2, stypeR)         \
@@ -158,8 +157,6 @@ SType stype_from_string(const char *s)
             if (s1 == '2') return ST_DATETIME_I2_MONTH;
             if (s1 == '4') return ST_DATETIME_I4_DATE;
             if (s1 == '8') return ST_DATETIME_I8_EPOCH;
-        } else if (s2 == 'w') {
-            if (s1 == '8') return ST_DATETIME_I8_PRTMN;
         } else if (s2 == 't') {
             if (s1 == '4') return ST_DATETIME_I4_TIME;
         }

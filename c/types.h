@@ -251,28 +251,6 @@ typedef enum LType {
  *     allowed time range is ≈290,000 years around the epoch. The time is
  *     assumed to be in UTC, and does not allow specifying a time zone.
  *
- * ST_DATETIME_I8_PRTMN
- *     elem: int64_t (8 bytes)
- *     NA:   -2**63
- *     Timestamp, stored as YYYYMMDDhhmmssmmmuuu, i.e. concatenated date parts.
- *     The widths of each subfield are:
- *         YYYY: years,        18 bits (signed)
- *           MM: months,        4 bits
- *           DD: days,          5 bits
- *           hh: hours,         5 bits
- *           mm: minutes,       6 bits
- *           ss: seconds,       6 bits
- *          mmm: milliseconds, 10 bits
- *          uuu: microseconds, 10 bits
- *     The allowed time range is ≈131,000 years around the epoch. The time is
- *     in UTC, and does not allow specifying a time zone.
- *
- * ST_DATETIME_I4_TIME
- *     elem: int32_t (4 bytes)
- *     NA:   -2**31
- *     Time only: the number of milliseconds since midnight. The allowed time
- *     range is ≈24 days.
- *
  * ST_DATETIME_I4_DATE
  *     elem: int32_t (4 bytes)
  *     NA:   -2**31
@@ -287,6 +265,12 @@ typedef enum LType {
  *     This type is specifically designed for business applications. It allows
  *     adding/subtraction in monthly/yearly intervals (other datetime types do
  *     not allow that since months/years have uneven lengths).
+ *
+ * ST_DATETIME_I4_TIME
+ *     elem: int32_t (4 bytes)
+ *     NA:   -2**31
+ *     Time only: the number of milliseconds since midnight. The allowed time
+ *     range is ≈24 days.
  *
  *
  * -----------------------------------------------------------------------------
@@ -315,11 +299,10 @@ typedef enum SType {
     ST_STRING_U2_ENUM    = 15,
     ST_STRING_U4_ENUM    = 16,
     ST_DATETIME_I8_EPOCH = 17,
-    ST_DATETIME_I8_PRTMN = 18,
-    ST_DATETIME_I4_TIME  = 19,
-    ST_DATETIME_I4_DATE  = 20,
-    ST_DATETIME_I2_MONTH = 21,
-    ST_OBJECT_PYPTR      = 22,
+    ST_DATETIME_I4_TIME  = 18,
+    ST_DATETIME_I4_DATE  = 19,
+    ST_DATETIME_I2_MONTH = 20,
+    ST_OBJECT_PYPTR      = 21,
 } __attribute__ ((__packed__)) SType;
 
 #define DT_STYPES_COUNT  (ST_OBJECT_PYPTR + 1)
@@ -361,9 +344,10 @@ typedef struct STypeInfo {
     size_t      metasize;
     const void *na;
     char        code[4];
+    char        code2[3];
     LType       ltype;
     bool        varwidth;
-    int16_t     _padding;
+    int64_t : 56;  // padding
 } STypeInfo;
 
 extern STypeInfo stype_info[DT_STYPES_COUNT];

@@ -104,7 +104,7 @@ static bool parse_as_double(PyObject* list, MemoryBuffer* membuf, int64_t& from)
   // Largest integer that can still be represented as double without loss of
   // precision. Thus, (2^53 + 1) is the first integer that cannot be stored in
   // a double and retrieved back: `(long)((double)(maxlong + 1)) != maxlong`.
-  constexpr double maxlong = 9007199254740992;  // = 2^53
+  // constexpr double maxlong = 9007199254740992;  // = 2^53
 
   for (int j = 0; j < 2; ++j) {
     int64_t ifrom = j ? 0 : from;
