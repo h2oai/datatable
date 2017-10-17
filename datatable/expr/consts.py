@@ -21,7 +21,6 @@ nas_map = {
     "u2e": "NA_U2",
     "u4e": "NA_U4",
     "i8d": "NA_I8",
-    "i8w": "NA_I8",
     "i4t": "NA_I4",
     "i4d": "NA_I4",
     "i2d": "NA_I2",
@@ -47,7 +46,6 @@ ctypes_map = {
     "u2e": "uint16_t",
     "u4e": "uint32_t",
     "i8d": "int64_t",
-    "i8w": "int64_t",
     "i4t": "int32_t",
     "i4d": "int32_t",
     "i2d": "int16_t",
@@ -73,11 +71,10 @@ itypes_map = {
     "u2e": 15,
     "u4e": 16,
     "i8d": 17,
-    "i8w": 18,
-    "i4t": 19,
-    "i4d": 20,
-    "i2d": 21,
-    "p8p": 22,
+    "i4t": 18,
+    "i4d": 19,
+    "i2d": 20,
+    "p8p": 21,
 }
 
 
