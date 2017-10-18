@@ -18,6 +18,7 @@
 #include <Python.h>
 #include <stdbool.h>
 #include <string>
+#include "datatable_check.h"
 
 
 //==============================================================================
@@ -178,6 +179,9 @@ public:
    * for debugging purposes.
    */
   int get_refcount() const;
+
+
+  int verify_integrity(std::vector<char>*, int, const char* = "MemoryBuffer") const;
 
 
   //--- Internal ---------------------------------------------------------------

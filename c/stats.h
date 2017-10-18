@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <vector>
 #include "types.h"
 #include "datatable.h"
 #include "rowindex.h"
@@ -39,6 +40,7 @@ public:
     void merge_stats(const Stats*); // TODO: virtual when implemented
     static Stats* void_ptr();
     bool is_void() const;
+    inline const Column* column_ref() { return _ref_col; }
 
     //===================== Get Stat Value ======================
     template <typename T> T min();
@@ -57,6 +59,8 @@ public:
     static DataTable* max_datatable    ( const DataTable*);
     static DataTable* sum_datatable    ( const DataTable*);
     //===========================================================
+
+    int verify_integrity(std::vector<char>*, int, const char* = "Stats") const;
 protected:
     double _mean;
     double _sd;

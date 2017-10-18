@@ -108,7 +108,14 @@ int MemoryBuffer::get_refcount() const {
   return refcount;
 }
 
-
+/**
+ * See DataTable::verify_integrity for method description
+ */
+int MemoryBuffer::verify_integrity(
+    std::vector<char>*, int, const char*) const
+{
+  return 0;
+}
 
 //==============================================================================
 // Memory-based MemoryBuffer

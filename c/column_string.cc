@@ -17,6 +17,9 @@
 #include <cmath>  // abs
 #include "py_utils.h"
 #include "utils.h"
+#include "datatable_check.h"
+#include "encodings.h"
+#include <limits> // numeric_limits::max()
 
 
 template <typename T> StringColumn<T>::StringColumn() : StringColumn<T>(0) {}
@@ -87,7 +90,7 @@ StringColumn<T>::~StringColumn() {
 
 
 template <typename T>
-size_t StringColumn<T>::datasize() {
+size_t StringColumn<T>::datasize() const{
   size_t sz = mbuf->size();
   T* end = static_cast<T*>(mbuf->at(sz));
   return static_cast<size_t>(abs(end[-1]) - 1);
@@ -338,6 +341,154 @@ void StringColumn<T>::cast_into(PyObjectColumn* target) const {
       prev_off = off;
     }
   }
+}
+
+
+//---- Verify integrity --------------------------------------------------------
+
+/**
+ * See DataTable::verify_integrity for method description
+ */
+template <typename T>
+int StringColumn<T>::verify_integrity(
+    std::vector<char> *errors, int max_errors, const char *name) const
+{
+  // Check general properties
+  // Note: meta value is implicitly checked here
+  int nerrors = Column::verify_integrity(errors, max_errors, name);
+  if (nerrors > 0) return nerrors;
+  int64_t strdata_size = 0;
+  const uint8_t *cdata = ((const uint8_t*) data());
+  int64_t offoff = ((VarcharMeta*) meta)->offoff;
+  T *offsets = (T*) data_at((size_t)offoff);
+
+  // Check that the offsets section is preceded by a -1
+  if (offsets[-1] != -1) {
+    ERR("Offsets section in %s of String type is not preceded by number -1\n",
+        name);
+  }
+  int64_t mbuf_nrows = data_nrows();
+  T lastoff = 1;
+
+  // Check for the validity of each offset
+  for (int64_t i = 0; i < mbuf_nrows; ++i) {
+    T oj = offsets[i];
+    if (oj < 0 && oj != -lastoff) {
+      ERR("Offset of NA String in row %lld of %s does not have the same "
+          "magnitude as the previous offset: "
+          "offset = %lld, previous offset = %lld\n",
+          i, name, (int64_t) oj, (int64_t) lastoff);
+    } else if (oj >= 0 && oj < lastoff) {
+      ERR("String offset in row %lld of %s cannot be less than the previous "
+          "offset: offset = %lld, previous offset = %lld\n",
+          i, name, (int64_t) oj, (int64_t) lastoff);
+    }
+    if (oj - 1 > offoff) {
+      ERR("String offset in row %lld of %s is greater than the length of the "
+          "String data region: offset = %lld, region length = %lld",
+          i, name, (int64_t) oj, offoff);
+    } else if (oj > 0 &&
+               !is_valid_utf8(cdata + lastoff - 1, (size_t) (oj - lastoff))) {
+        ERR("Invalid UTF-8 String in row %lld of %s: %s\n",
+            i, name, repr_utf8(cdata + lastoff - 1, cdata + oj - 1));
+
+    }
+    lastoff = std::abs(oj);
+  }
+  strdata_size = (int64_t) lastoff - 1;
+
+  // Check that the space between the string data and offset section is
+  // composed of 0xFFs
+  for (int64_t i = strdata_size; i < offoff; ++i) {
+    if (cdata[i] != 0xFF) {
+      ERR("String data section in %s is not padded with 0xFFs at offset %X\n",
+          name, i);
+      break; // Do not report this error more than once
+    }
+  }
+
+  return nerrors;
+}
+
+
+template <typename T>
+int StringColumn<T>::verify_meta_integrity(
+    std::vector<char> *errors, int max_errors, const char *name) const
+{
+  int nerrors = Column::verify_meta_integrity(errors, max_errors, name);
+  if (nerrors > 0) {
+    return nerrors;
+  }
+  if (errors == nullptr) return nerrors; // TODO: do something else?
+
+  // Check that the meta is not null
+  if (meta == nullptr) {
+    ERR("Meta information in %s of String type is null\n", name);
+    return nerrors;
+  } else {
+    // Check for a valid meta size
+    size_t meta_alloc = array_size(meta, 1);
+    if (meta_alloc > 0 && meta_alloc < 8) {
+      ERR("Inconsistent meta info structure in %s of String type: %d bytes "
+          "expected, but only %llu bytes were allocated\n",
+          name, 8, meta_alloc);
+      return nerrors;
+    }
+  }
+
+  int64_t offoff = ((VarcharMeta*) meta)->offoff;
+
+  // Check that the meta value is positive
+  if (offoff <= 0) {
+    ERR("`meta` data in %s of type String reports a nonpositive data length: "
+        "%lld\n", name, offoff);
+    return nerrors;
+  }
+
+  // Check that the meta value is at least the size of one integer
+  // (since offset data must be precluded with a -1)
+  if ((size_t) offoff < sizeof(T)) {
+    ERR("`meta` data in %s of type String reports an data length smaller "
+        "than the element size of %llu: %lld\n", name, sizeof(T), offoff);
+    return nerrors;
+  }
+
+  // Check that the meta value is a multiple of 8
+  if ((offoff & 7) != 0) {
+    ERR("`meta` data in %s of type String reports an data length that is not "
+        "a multiple of 8: %lld\n", name, offoff);
+    return nerrors;
+  }
+
+  // Check that the meta value is not longer than the maximum int value
+  if (offoff > std::numeric_limits<T>::max()) {
+    ERR("`meta` data in %s of type String reports a data length that "
+        "cannot be represented in %llu bytes: %lld\n", name, sizeof(T), offoff);
+    return nerrors;
+  }
+
+  // Calculate the meta value through other means and compare it with the
+  // reported value
+  size_t exp_padding = padding(datasize());
+  if ((size_t) offoff != datasize() + exp_padding) {
+    ERR("Mismatch between data length reported by `meta` and calculated "
+        "data length in %s of type String: `meta` reported %lld, but "
+        "calculated %llu\n", name, offoff, datasize() + exp_padding);
+    return nerrors;
+  }
+
+  // Check that the padding is all 0xFFs
+  uint8_t *cdata = (uint8_t*) data();
+  for (size_t i = 0; i < exp_padding; ++i) {
+    uint8_t c = *(cdata + datasize() + i);
+    if (c != 0xFF) {
+      ERR("String data of %s is not correctly padded with 0xFF bytes: "
+          "byte %X is %X\n", name, datasize() + i, c);
+      return nerrors;
+    }
+  }
+
+  return nerrors;
 }
 
 

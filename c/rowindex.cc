@@ -7,12 +7,11 @@
 #include "myomp.h"
 #include "types.h"
 #include "utils.h"
+#include "datatable_check.h"
 
 dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
                  "Addresses of RowIndex->ind32 and RowIndex->ind64 must "
                  "coincide");
-
-
 
 /**
  * Internal macro to help iterate over a rowindex. Assumes that macro `CODE`
@@ -756,4 +755,120 @@ RowIndex::~RowIndex() {
         case RI_ARR64: dtfree(ind64); break;
         default: /* do nothing */ break;
     }
+}
+
+
+/**
+ * See DataTable::verify_integrity for method description
+ */
+int RowIndex::verify_integrity(
+    std::vector<char> *errors, int max_errors, const char *name) const
+{
+  int nerrors = 0;
+  if (errors == nullptr) return nerrors;
+
+  // Check that rowindex length is valid
+  if (length < 0) {
+    ERR("%s cannot have negative length: %lld", name, length);
+    return nerrors;
+  }
+  int64_t maxrow = -INT64_MAX;
+  int64_t minrow = INT64_MAX;
+  // Check for a positive refcount
+  if (refcount <= 0) {
+    ERR("%s has a nonpositive refcount: %lld\n", refcount);
+    return nerrors;
+  }
+
+  switch (type) {
+  case RI_SLICE: {
+    int64_t start = slice.start;
+    // Check that the starting row is not negative
+    if (start < 0) {
+      ERR("Starting row of %s is negative: %lld\n", name, slice.start);
+      return nerrors;
+    }
+    int64_t step = slice.step;
+    // Ensure that the ending index wont lead to an overflow or a negative value
+    if (length > 1) {
+      if (step > (INT64_MAX - start) / (length - 1)) {
+        ERR("Slice in %s leads to integer overflow: "
+            "start = %lld, step = %lld, length = %lld\n", start, step, length);
+        return nerrors;
+      }
+      if (step < -start / (length - 1)) {
+        ERR("Slice in %s leads to negative integer: "
+            "start = %lld, step = %lld, length = %lld\n", start, step, length);
+        return nerrors;
+      }
+    }
+    int64_t end = start + step * (length - 1);
+    maxrow = step > 0 ? end : start;
+    minrow = step > 0 ? start : end;
+    break;
+  }
+  case RI_ARR32: {
+    // Check that the rowindex length can be represented as an int32
+    if (length > INT32_MAX) {
+      ERR("%s with type `RI_ARR32` cannot have a length greater than INT32_MAX: "
+          "length = %lld\n", name, length);
+    }
+
+    // Check that allocation size is valid
+    size_t n_allocd = array_size(ind32, sizeof(int32_t));
+    if (n_allocd < (size_t) length) {
+      ERR("%s requires a minimum array length for %lld elements, "
+          "but only allocated enough space for %llu\n",
+          name, length, n_allocd);
+      return nerrors;
+    }
+
+    // Check that every item in the array is a valid value
+    for (int32_t i = 0; i < length; ++i) {
+      if (ind32[i] < 0) {
+        ERR("Item %d in %s is negative: %d", i, name, ind32[i]);
+      }
+      if (ind32[i] > maxrow) maxrow = ind32[i];
+      if (ind32[i] < minrow) minrow = ind32[i];
+    }
+    break;
+  }
+  case RI_ARR64: {
+    // CHeck that the rowindex length can be represented as an int64
+    size_t n_allocd = array_size(ind64, sizeof(int64_t));
+    if (n_allocd < (size_t) length) {
+      ERR("%s requires a minimum array length for %lld elements, "
+          "but only allocated enough space for %llu\n",
+          name, length, n_allocd);
+      return nerrors;
+    }
+
+    // Check that every item in the array is a valid value
+    for (int64_t i = 0; i < length; ++i) {
+      if (ind64[i] < 0) {
+        ERR("Item %d in %s is negative: %d", i, name, ind64[i]);
+      }
+      if (ind64[i] > maxrow) maxrow = ind64[i];
+      if (ind64[i] < minrow) minrow = ind64[i];
+    }
+    break;
+  }
+  default: {
+    ERR("Invalid type for %s: %d\n", name, type);
+    return nerrors;
+  }
+  };
+
+  // Check that the found extrema coincides with the reported extrema
+  if (length == 0) minrow = maxrow = 0;
+  if (min != minrow) {
+    ERR("Mistmatch between minimum value reported by %s and computed minimum: "
+        "reported value was %lld, but expected %lld\n", min, minrow);
+  }
+  if (max != maxrow) {
+    ERR("Mistmatch between maximum value reported by %s and computed maximum: "
+        "reported value was %lld, but expected %lld\n", max, maxrow);
+  }
+
+  return nerrors;
 }

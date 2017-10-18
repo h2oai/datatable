@@ -43,6 +43,7 @@
 #include "utils.h"
 #include "column.h"
 #include "rowindex.h"
+#include "datatable_check.h"
 
 /**
  * Macro to get column indices based on a RowIndex `RI`.
@@ -263,6 +264,15 @@ STAT_DATATABLE(sum)
 
 //------------------------------------------------------------------------------
 
+/**
+ * See DataTable::verify_integrity for method description
+ */
+int Stats::verify_integrity(
+    std::vector<char>*, int, const char*) const
+{
+  // TODO: add checks (necessary when merge_stats is implemented)
+  return 0;
+}
 
 //==============================================================================
 // NumericalStats
