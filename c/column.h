@@ -157,6 +157,11 @@ public:
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
 
+ /**
+  * See DataTable::verify_integrity for method description
+  */
+  virtual int verify_integrity(std::vector<char>*, int, const char* = "Column") const;
+
 protected:
   Column(int64_t nrows);
   virtual void rbind_impl(const std::vector<const Column*>& columns,
@@ -184,6 +189,12 @@ protected:
   virtual void cast_into(StringColumn<int64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
 
+  /**
+   * Helper function that checks for meta integrity. Parameters are equivalent
+   * to those in Column::verify_integrity
+   */
+  virtual int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const;
+
 private:
   static size_t allocsize0(SType, int64_t nrows);
   static Column* new_column(SType);
@@ -203,7 +214,6 @@ public:
   FwColumn();
   FwColumn(int64_t nrows);
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
-
   T* elements() const;
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
@@ -251,6 +261,8 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
+
+  int verify_integrity(std::vector<char>*, int, const char* = "Column") const override;
 };
 
 
@@ -360,11 +372,13 @@ public:
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
 
-  size_t datasize();
+  size_t datasize() const;
   int64_t data_nrows() const override;
   static size_t padding(size_t datasize);
   char* strdata() const;
   T* offsets() const;
+
+  int verify_integrity(std::vector<char>*, int, const char* = "Column") const override;
 
 protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
@@ -380,6 +394,8 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
+
+  int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 };
 
 

@@ -26,6 +26,7 @@
 #include "rowindex.h"
 #include "sort.h"
 #include "py_utils.h"
+#include "datatable_check.h"
 
 
 // TODO: make this function virtual
@@ -526,3 +527,109 @@ void Column::cast_into(RealColumn<double>*) const    { throw Error("Cannot cast 
 void Column::cast_into(StringColumn<int32_t>*) const { throw Error("Cannot cast %d into str32", stype()); }
 void Column::cast_into(StringColumn<int64_t>*) const { throw Error("Cannot cast %d into str64", stype()); }
 void Column::cast_into(PyObjectColumn*) const        { throw Error("Cannot cast %d into pyobj", stype()); }
+
+
+
+int Column::verify_integrity(
+    std::vector<char> *errors, int max_errors, const char *name) const
+{
+  int nerrors = 0;
+  if (errors == nullptr) return nerrors; // TODO: do something different?
+  /**
+   * Sanity checks. Nothing else is checked if these don't pass.
+   */
+  // Check that the number of rows is nonnegative
+  if (nrows < 0) {
+    ERR("%s reports a negative value for `nrows: %lld\n", name, nrows);
+    return nerrors;
+  }
+
+  // Check MemoryBuffer
+  const char *mbuf_name = "MemoryBuffer";
+  // Ensure that the MemoryBuffer is not null
+  if (mbuf == nullptr) {
+    ERR("%s reference in %s is null\n", mbuf_name, name);
+    return nerrors;
+  }
+  int mbuf_nerrors = mbuf->verify_integrity(errors, max_errors - nerrors, mbuf_name);
+  if (mbuf_nerrors > 0) {
+    return nerrors + mbuf_nerrors;
+  }
+
+  // Check meta
+  int meta_nerrors = verify_meta_integrity(errors, max_errors - nerrors, name);
+  if (meta_nerrors > 0) {
+    return nerrors + meta_nerrors;
+  }
+
+  // data_nrows() may use the value in `meta`, so `meta` should be checked
+  // before using this method
+  int64_t mbuf_nrows = data_nrows();
+
+  // Check RowIndex
+  const char *ri_name = "RowIndex";
+  RowIndex *col_ri = rowindex();
+  if (col_ri != nullptr) { // rowindexes are allowed to be null
+    // RowIndex check
+    int ri_nerrors = col_ri->verify_integrity(errors, max_errors - nerrors, ri_name);
+    if (ri_nerrors > 0) {
+      return nerrors + ri_nerrors;
+    }
+
+    // Check that the length of the RowIndex corresponds to `nrows`
+    if (nrows != col_ri->length) {
+      ERR("Mismatch in reported number of rows: "
+          "%s reports %lld, %s reports %lld\n", name, nrows, ri_name, col_ri->length);
+    }
+
+    // Check that the RowIndex length is zero if the memory buffer's row length
+    // is zero
+    if (mbuf_nrows == 0 && col_ri->length > 0) {
+      ERR("Length of %s in %s must be zero when %s's row length is zero: "
+          "found %lld instead", ri_name, name, mbuf_name, col_ri->length);
+    }
+
+    // Check that the maximum value of the RowIndex does not exceed the maximum
+    // row number in the memory buffer
+    if (mbuf_nrows != 0 && mbuf_nrows <= col_ri->max) {
+      ERR("Maximum row number of %s exceeds number of rows in %s of %s: "
+          "%lld vs %lld\n", ri_name, mbuf_name, name, col_ri->max, mbuf_nrows);
+    }
+  } else {
+    // Check that nrows is a correct representation of mbuf's size
+    if (nrows != mbuf_nrows) {
+      ERR("Mismatch between reported number of rows: "
+          "%s reports %lld, %s reports %lld\n", name, nrows, mbuf_name, mbuf_nrows);
+    }
+  }
+
+  if (nerrors) return nerrors;
+
+  // Check Stats
+  const char* stats_name = "Stats";
+  if (stats == nullptr) {
+    ERR("reference of %s in %s is null\n", stats_name, name);
+    return nerrors;
+  }
+
+  int stats_nerrors = stats->verify_integrity(errors, max_errors - nerrors, stats_name);
+  if (stats_nerrors > 0) {
+    return nerrors + stats_nerrors;
+  }
+
+  // Check that the Stats instance's column reference points to this instance
+  if (!(stats->is_void() || stats->column_ref() == this)) {
+    ERR("Column reference in %s does not point to %s: expected %p, "
+        "but found %p\n", stats_name, name, this, stats->column_ref());
+  }
+  return nerrors;
+}
+
+/**
+ * Helper method that checks the structure of the `meta` and ensures that it
+ * coincides with the current state of the column
+ */
+int Column::verify_meta_integrity(std::vector<char>*, int, const char*) const {
+  return 0;
+}
+

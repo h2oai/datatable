@@ -1,8 +1,10 @@
 #include <exception>
 #include <fcntl.h>   // open
 #include <unistd.h>  // write, fsync, close
+#include <vector>
 #include "datatable.h"
 #include "stats.h"
+#include "datatable_check.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -224,18 +226,22 @@ static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "|O:check", &stream)) return NULL;
 
-    char *errors = NULL;
-    int nerrors = dt->verify_integrity(&errors);
+    std::vector<char> errors;
+    int nerrors = dt->verify_integrity(&errors, 200);
     if (nerrors) {
+        if (nerrors == 1)
+          push_error(&errors, "1 error found.\n");
+        else if (nerrors >= 2)
+          push_error(&errors, "%d errors found.\n", nerrors);
         if (stream) {
-            PyObject *ret = PyObject_CallMethod(stream, "write", "s", errors);
+            PyObject *ret = PyObject_CallMethod(stream, "write", "s",
+                errors.empty() ? nullptr : errors.data());
             if (ret == NULL) return NULL;
             Py_XDECREF(ret);
         }
         else
-            printf("%s\n", errors);
+            printf("%s\n", errors.empty() ? nullptr : errors.data());
     }
-    dtfree(errors);
     return incref(nerrors? Py_False : Py_True);
 }
 

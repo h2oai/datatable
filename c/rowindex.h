@@ -1,5 +1,6 @@
 #ifndef dt_ROWINDEX_H
 #define dt_ROWINDEX_H
+#include <vector>
 #include "column.h"
 #include "datatable.h"
 
@@ -78,6 +79,8 @@ public:
     size_t alloc_size();
     RowIndex* shallowcopy();
     void release();
+
+    int verify_integrity(std::vector<char>*, int, const char* = "RowIndex") const;
 
     static RowIndex* merge(RowIndex*, RowIndex*);
     static RowIndex* from_intcolumn(Column*, int);

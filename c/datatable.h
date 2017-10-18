@@ -1,6 +1,7 @@
 #ifndef dt_DATATABLE_H
 #define dt_DATATABLE_H
 #include <inttypes.h>
+#include <vector>
 #include "stats.h"
 #include "types.h"
 #include "column.h"
@@ -8,7 +9,7 @@
 // avoid circular dependency between .h files
 class RowIndex;
 typedef struct ColMapping ColMapping;
-class Column;;
+class Column;
 class Stats;
 class DataTable;
 
@@ -56,7 +57,7 @@ public:
     DataTable* rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
     size_t memory_footprint();
-    int verify_integrity(char**);
+    int verify_integrity(std::vector<char>*, int, const char* = "DataTable") const;
 
     static DataTable* load(DataTable*, int64_t);
 };
