@@ -97,6 +97,14 @@ MemoryBuffer* MemoryBuffer::shallowcopy() {
   return this;
 }
 
+MemoryMemBuf* MemoryBuffer::deepcopy() const {
+  MemoryMemBuf* res = new MemoryMemBuf(allocsize);
+  if (allocsize) {
+    memcpy(res->buf, buf, allocsize);
+  }
+  return res;
+}
+
 void MemoryBuffer::release() {
   --refcount;
   if (refcount == 0) {
@@ -137,14 +145,6 @@ MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
   }
 }
 
-MemoryMemBuf::MemoryMemBuf(const MemoryBuffer& other)
-    : MemoryMemBuf(other.size())
-{
-  if (allocsize) {
-    memcpy(buf, other.get(), allocsize);
-  }
-}
-
 MemoryMemBuf::~MemoryMemBuf() {
   free(buf);
   buf = nullptr;
@@ -166,44 +166,37 @@ PyObject* MemoryMemBuf::pyrepr() const {
 
 
 //==============================================================================
-// String MemoryBuffer
-//==============================================================================
-
-StringMemBuf::StringMemBuf(const char *str) {
-  buf = static_cast<void*>(const_cast<char*>(str));
-  allocsize = strlen(str) + 1;
-  readonly = true;
-}
-
-PyObject* StringMemBuf::pyrepr() const {
-  static PyObject* r = PyUnicode_FromString("string");
-  return incref(r);
-}
-
-StringMemBuf::~StringMemBuf() {
-  buf = nullptr;
-}
-
-
-
-//==============================================================================
 // External MemoryBuffer
 //==============================================================================
 
-ExternalMemBuf::ExternalMemBuf(void *ptr, void *pybuf, size_t size) {
+ExternalMemBuf::ExternalMemBuf(void* ptr, void* pybuf, size_t size) {
   buf = ptr;
   allocsize = size;
   pybufinfo = pybuf;
   readonly = true;
 }
 
+ExternalMemBuf::ExternalMemBuf(void* ptr, size_t n)
+    : ExternalMemBuf(ptr, nullptr, n) {}
+
+ExternalMemBuf::ExternalMemBuf(const char* str) {
+  buf = static_cast<void*>(const_cast<char*>(str));
+  allocsize = strlen(str) + 1;
+  pybufinfo = nullptr;
+  readonly = true;
+}
+
 ExternalMemBuf::~ExternalMemBuf() {
   buf = nullptr;
-  PyBuffer_Release(static_cast<Py_buffer*>(pybufinfo));
+  if (pybufinfo) {
+    PyBuffer_Release(static_cast<Py_buffer*>(pybufinfo));
+  }
 }
 
 size_t ExternalMemBuf::memory_footprint() const {
-  return allocsize + sizeof(ExternalMemBuf) + sizeof(Py_buffer);
+  size_t sz = allocsize + sizeof(ExternalMemBuf);
+  if (pybufinfo) sz += sizeof(Py_buffer);
+  return sz;
 }
 
 PyObject* ExternalMemBuf::pyrepr() const {
