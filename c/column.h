@@ -157,6 +157,9 @@ public:
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
 
+ /**
+  * See DataTable::verify_integrity for method description
+  */
   virtual int verify_integrity(std::vector<char>*, int, const char* = "Column") const;
 
 protected:
@@ -186,6 +189,10 @@ protected:
   virtual void cast_into(StringColumn<int64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
 
+  /**
+   * Helper function that checks for meta integrity. Parameters are equivalent
+   * to those in Column::verify_integrity
+   */
   virtual int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const;
 
 private:
@@ -255,7 +262,7 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
-  virtual int verify_integrity(std::vector<char>*, int, const char* = "Column") const override;
+  int verify_integrity(std::vector<char>*, int, const char* = "Column") const override;
 };
 
 

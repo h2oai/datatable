@@ -28,7 +28,6 @@
 #include "py_utils.h"
 #include "datatable_check.h"
 
-template <typename T> class StringColumn;
 
 // TODO: make this function virtual
 size_t Column::allocsize0(SType stype, int64_t nrows) {
@@ -531,9 +530,6 @@ void Column::cast_into(PyObjectColumn*) const        { throw Error("Cannot cast 
 
 
 
-/**
- * See DataTable::verify_integrity for method description
- */
 int Column::verify_integrity(
     std::vector<char> *errors, int max_errors, const char *name) const
 {
@@ -586,9 +582,16 @@ int Column::verify_integrity(
           "%s reports %lld, %s reports %lld\n", name, nrows, ri_name, col_ri->length);
     }
 
+    // Check that the RowIndex length is zero if the memory buffer's row length
+    // is zero
+    if (mbuf_nrows == 0 && col_ri->length > 0) {
+      ERR("Length of %s in %s must be zero when %s's row length is zero: "
+          "found %lld instead", ri_name, name, mbuf_name, col_ri->length);
+    }
+
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (mbuf_nrows < col_ri->max) {
+    if (mbuf_nrows != 0 && mbuf_nrows <= col_ri->max) {
       ERR("Maximum row number of %s exceeds number of rows in %s of %s: "
           "%lld vs %lld\n", ri_name, mbuf_name, name, col_ri->max, mbuf_nrows);
     }
@@ -596,9 +599,11 @@ int Column::verify_integrity(
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
       ERR("Mismatch between reported number of rows: "
-          "%s reports %lld, %s reports %lld\n", nrows, data_nrows());
+          "%s reports %lld, %s reports %lld\n", name, nrows, mbuf_name, mbuf_nrows);
     }
   }
+
+  if (nerrors) return nerrors;
 
   // Check Stats
   const char* stats_name = "Stats";

@@ -109,7 +109,7 @@ int BoolColumn::verify_integrity(
 
   // Check that all elements in column are either 0, 1, or NA_I1
   int64_t mbuf_nrows = data_nrows();
-  int8_t *vals = (int8_t*) elements();
+  int8_t *vals = elements();
   for (int64_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {

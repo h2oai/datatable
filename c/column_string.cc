@@ -358,12 +358,13 @@ int StringColumn<T>::verify_integrity(
   int nerrors = Column::verify_integrity(errors, max_errors, name);
   if (nerrors > 0) return nerrors;
   int64_t strdata_size = 0;
-  const uint8_t *cdata = ((const uint8_t*) data());
   int64_t offoff = ((VarcharMeta*) meta)->offoff;
-  T *offsets = (T*) data_at((size_t)offoff);
+  //*_utf8 functions use unsigned char*
+  const unsigned char *cdata = (unsigned char*) strdata();
+  const T *str_offsets = offsets();
 
   // Check that the offsets section is preceded by a -1
-  if (offsets[-1] != -1) {
+  if (str_offsets[-1] != -1) {
     ERR("Offsets section in %s of String type is not preceded by number -1\n",
         name);
   }
@@ -372,7 +373,7 @@ int StringColumn<T>::verify_integrity(
 
   // Check for the validity of each offset
   for (int64_t i = 0; i < mbuf_nrows; ++i) {
-    T oj = offsets[i];
+    T oj = str_offsets[i];
     if (oj < 0 && oj != -lastoff) {
       ERR("Offset of NA String in row %lld of %s does not have the same "
           "magnitude as the previous offset: "
@@ -388,9 +389,9 @@ int StringColumn<T>::verify_integrity(
           "String data region: offset = %lld, region length = %lld",
           i, name, (int64_t) oj, offoff);
     } else if (oj > 0 &&
-               !is_valid_utf8(cdata + lastoff - 1, (size_t) (oj - lastoff))) {
+               !is_valid_utf8(cdata + lastoff, (size_t) (oj - lastoff))) {
         ERR("Invalid UTF-8 String in row %lld of %s: %s\n",
-            i, name, repr_utf8(cdata + lastoff - 1, cdata + oj - 1));
+            i, name, repr_utf8(cdata + lastoff, cdata + oj));
 
     }
     lastoff = std::abs(oj);
@@ -400,7 +401,7 @@ int StringColumn<T>::verify_integrity(
   // Check that the space between the string data and offset section is
   // composed of 0xFFs
   for (int64_t i = strdata_size; i < offoff; ++i) {
-    if (cdata[i] != 0xFF) {
+    if (cdata[i+1] != 0xFF) {
       ERR("String data section in %s is not padded with 0xFFs at offset %X\n",
           name, i);
       break; // Do not report this error more than once
