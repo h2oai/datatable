@@ -2,8 +2,10 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.2.2)
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.2.1)
+
+### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
 #### Added
 - Ability to write DataTable into a CSV file: the `.to_csv()` method. The CSV writer
   is multi-threaded and extremely fast.

@@ -13,8 +13,8 @@ def linkMap = [ "Data" : "h2oai-benchmarks/Data",
 		"smalldata" : "h2o-3/smalldata",
 		"bigdata" : "h2o-3/bigdata",
 		"fread" : "h2o-3/fread" ]
-		   
-def largeTestsRootEnv = returnIfModified("(py_)?fread\\..*", targetDir)
+
+def largeTestsRootEnv = returnIfModified("(py_)?fread\\..*|__version__\\.py", targetDir)
 def dockerArgs = ""
 if (!largeTestsRootEnv.isEmpty()) {
     linkFolders(sourceDir, targetDir)
@@ -48,7 +48,7 @@ pipeline {
                     sh """
                             export CI_VERSION_SUFFIX=${ciVersionSuffix}
                             make mrproper
-                            make build > stage_build_with_omp_on_linux_output 
+                            make build > stage_build_with_omp_on_linux_output
                             touch LICENSE
                             python setup.py bdist_wheel >> stage_build_with_omp_on_linux_output.txt
                             python setup.py --version > dist/VERSION.txt
@@ -151,7 +151,7 @@ pipeline {
                         mkdir out; mv dist/* out/
                         make clean
                         export CI_VERSION_SUFFIX=${utilsLib.getCiVersionSuffix()}.noomp
-                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp 
+                        DTNOOPENMP=1 python setup.py bdist_wheel -d dist_noomp
                         mkdir dist; mv dist_noomp/*whl dist/
                         mv out/* dist/
                     """
@@ -275,10 +275,10 @@ def linkFolders(sourceDir, targetDir) {
     node {
         sh """
             mkdir ${targetDir} || true
-        
+
             mkdir ${targetDir}/h2oai-benchmarks || true
             ln -sf ${sourceDir}/Data ${targetDir}/h2oai-benchmarks
-        
+
             mkdir ${targetDir}/h2o-3 || true
             ln -sf ${sourceDir}/smalldata ${targetDir}/h2o-3
             ln -sf ${sourceDir}/bigdata ${targetDir}/h2o-3
@@ -287,7 +287,7 @@ def linkFolders(sourceDir, targetDir) {
     }
 }
 
-	       
+
 def makeDockerArgs(linkMap, sourceDir, targetDir) {
     def out = ""
     linkMap.each { key, value ->
