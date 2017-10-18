@@ -190,7 +190,7 @@ Column* Column::deepcopy() const
 {
   Column* col = new_column(stype());
   col->nrows = nrows;
-  col->mbuf = new MemoryMemBuf(*mbuf);
+  col->mbuf = mbuf->deepcopy();
   if (meta) {
     memcpy(col->meta, meta, stype_info[stype()].metasize);
   }

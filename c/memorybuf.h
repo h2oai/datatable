@@ -21,6 +21,9 @@
 #include "datatable_check.h"
 
 
+class MemoryMemBuf;
+
+
 //==============================================================================
 
 /**
@@ -167,6 +170,13 @@ public:
   MemoryBuffer* shallowcopy();
 
   /**
+   * Create and return a new MemoryMemBuf which is a "deep" copy of this
+   * MemoryBuffer. Note that a "deep" copy is always an instance of MemoryMemBuf
+   * class, regardless of the class of the current object.
+   */
+  MemoryMemBuf* deepcopy() const;
+
+  /**
    * This method should be called where you would normally say `delete membuf;`.
    * Since this MemoryBuffer may be shared across multiple objects, this method
    * decrements the internal reference counter, and only when the counter
@@ -202,9 +212,23 @@ protected:
 class MemoryMemBuf : public MemoryBuffer
 {
 public:
+  /**
+   * Allocate `n` bytes of memory and wrap this pointer into a new MemoryMemBuf
+   * object. An exception is raised if the memory cannot be allocated. The case
+   * `n = 0` is also valid: it will create an "empty" MemoryMemBuf without
+   * allocating any memory.
+   */
   MemoryMemBuf(size_t n);
-  MemoryMemBuf(void *ptr, size_t n);
-  explicit MemoryMemBuf(const MemoryBuffer&);
+
+  /**
+   * Create MemoryMemBuf of size `n` and baised on the pointer `ptr`. An
+   * exception will be raised if `n` is positive and `ptr` is is null. This
+   * constructor assumes ownership of pointer `ptr` and will free it when
+   * MemoryMemBuf is deleted. If you don't want MemoryMemBuf to assume
+   * ownership of the pointer, then use :class:`ExternalMemBuf` instead.
+   */
+  MemoryMemBuf(void* ptr, size_t n);
+
   virtual void resize(size_t n) override;
   virtual PyObject* pyrepr() const override;
 
@@ -217,39 +241,41 @@ private:
 //==============================================================================
 
 /**
- * MemoryBuffer which is mapped onto a C string. This buffer is immutable.
- * The string is not considered "owned" by this class, and its memory will not
- * be deallocated when the object is destroyed. It is the responsibility of the
- * user of this class to ensure that the lifetime of the source string exceeds
- * the lifetime of a StringMemBuf object.
- */
-class StringMemBuf : public MemoryBuffer
-{
-public:
-  StringMemBuf(const char *str);
-  virtual PyObject* pyrepr() const override;
-
-private:
-  virtual ~StringMemBuf();
-};
-
-
-
-//==============================================================================
-
-/**
- * MemoryBuffer corresponding to an external memory region guarded by a
- * `Py_buffer` object. This memory was retrieved from an external application
- * (such as numpy or pandas), and should not be modified or freed. Instead, when
- * the column is deallocated we "release" the buffer, allowing its owner to
- * dispose of that buffer if it is no longer in use.
+ * MemoryBuffer corresponding to a readonly external memory region. "External"
+ * in this case means that the object will not manage the memory region, and
+ * rely on the calling code to eventually free all resources (but not before
+ * this object is deleted!).
  */
 class ExternalMemBuf : public MemoryBuffer
 {
   void* pybufinfo;
 
 public:
-  ExternalMemBuf(void *ptr, void *pybuf, size_t size);
+  /**
+   * Create an ExternalMemBuf of size `n` based on the provided pointer `ptr`
+   * and guarded by the provided `Py_buffer` object. When this object is
+   * deleted, it will call `PyBuffer_Release()` handler signaling the owner
+   * that the pointer `ptr` is no longer in use.
+   */
+  ExternalMemBuf(void* ptr, void* pybuf, size_t n);
+
+  /**
+   * Create an ExternalMemBuf of size `n` based on the provided pointer `ptr`.
+   * The object will not assume the ownership of the pointer, and will not
+   * attempt to free it in the end. It is the responsibility of the user to
+   * ensure that the pointer is not freed prematurely.
+   */
+  ExternalMemBuf(void* ptr, size_t n);
+
+  /**
+   * Create an ExternalMemBuf mapped onto a C string. The C string is not
+   * considered "owned" by this class, and its memory will not be deallocated
+   * when the object is destroyed. It is the responsibility of the user of
+   * this class to ensure that the lifetime of the source string exceeds the
+   * lifetime of the constructed ExternalMemBuf object.
+   */
+  ExternalMemBuf(const char* cstr);
+
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
 
