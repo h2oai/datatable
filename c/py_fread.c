@@ -1,7 +1,23 @@
-#include <string.h>  // memcpy
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+#include <string.h>    // memcpy
 #include <fcntl.h>     // open
 #include <unistd.h>    // close, truncate
 #include <sys/mman.h>
+#include <exception>
 #include "py_fread.h"
 #include "fread.h"
 #include "memorybuf.h"
@@ -85,19 +101,19 @@ static int8_t *sizes = NULL;
  */
 PyObject* pyfread(UU, PyObject *args)
 {
-    PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *pydt = NULL;
-    int retval = 0;
-    if (freader != NULL || dt != NULL) {
-        PyErr_SetString(PyExc_RuntimeError,
-            "Cannot run multiple instances of fread() in-parallel.");
-        return NULL;
-    }
-    if (!PyArg_ParseTuple(args, "O:fread", &freader))
-        return NULL;
+  PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *pydt = NULL;
+  int retval = 0;
+  freadMainArgs *frargs = NULL;
+  if (freader != NULL || dt != NULL) {
+      PyErr_SetString(PyExc_RuntimeError,
+          "Cannot run multiple instances of fread() in-parallel.");
+      return NULL;
+  }
+  if (!PyArg_ParseTuple(args, "O:fread", &freader))
+      return NULL;
 
+  try {
     Py_INCREF(freader);
-
-    freadMainArgs *frargs = NULL;
     dtmalloc_g(frargs, freadMainArgs, 1);
 
     // filename & input are borrowed references
@@ -142,6 +158,10 @@ PyObject* pyfread(UU, PyObject *args)
     Py_XDECREF(tmp3);
     cleanup_fread_session(frargs);
     return pydt;
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    // fall-through into the "fail" clause
+  }
 
   fail:
     delete dt;

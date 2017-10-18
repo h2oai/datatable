@@ -146,7 +146,7 @@ MemoryMemBuf::~MemoryMemBuf() {
 void MemoryMemBuf::resize(size_t n) {
   if (n == allocsize) return;
   void *ptr = realloc(buf, n);
-  if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
+  if (!ptr && n) throw Error("Unable to reallocate memory to size %zu", n);
   buf = ptr;
   allocsize = n;
 }
