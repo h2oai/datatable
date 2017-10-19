@@ -298,7 +298,9 @@ private:
  */
 class MemmapMemBuf : public MemoryBuffer
 {
-  std::string filename;
+  const std::string filename;
+  void* xbuf;
+  size_t xbuf_size;
 
 public:
   /**
@@ -311,7 +313,7 @@ public:
    * in bytes. Conversely, when `create` is false, then `path` must correspond
    * to an existing accessible file, and parameter `n` is ignored.
    */
-  MemmapMemBuf(const char *path, size_t n, bool create);
+  MemmapMemBuf(const std::string& path, size_t n, bool create);
 
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
