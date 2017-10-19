@@ -14,6 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
+#include "myomp.h"
 #include "py_types.h"
 #include "py_utils.h"
 
@@ -36,6 +37,7 @@ void IntColumn<T>::cast_into(BoolColumn* target) const {
   constexpr int8_t na_trg = GETNA<int8_t>();
   T* src_data = this->elements();
   int8_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : (x != 0);
@@ -48,6 +50,7 @@ void IntColumn<T>::cast_into(IntColumn<int8_t>* target) const {
   constexpr int8_t na_trg = GETNA<int8_t>();
   T* src_data = this->elements();
   int8_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : static_cast<int8_t>(x);
@@ -60,6 +63,7 @@ void IntColumn<T>::cast_into(IntColumn<int16_t>* target) const {
   constexpr int16_t na_trg = GETNA<int16_t>();
   T* src_data = this->elements();
   int16_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : static_cast<int16_t>(x);
@@ -72,6 +76,7 @@ void IntColumn<T>::cast_into(IntColumn<int32_t>* target) const {
   constexpr int32_t na_trg = GETNA<int32_t>();
   T* src_data = this->elements();
   int32_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : static_cast<int32_t>(x);
@@ -84,6 +89,7 @@ void IntColumn<T>::cast_into(IntColumn<int64_t>* target) const {
   constexpr int64_t na_trg = GETNA<int64_t>();
   T* src_data = this->elements();
   int64_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : static_cast<int64_t>(x);
@@ -96,6 +102,7 @@ void IntColumn<T>::cast_into(RealColumn<float>* target) const {
   constexpr float na_trg = GETNA<float>();
   T* src_data = this->elements();
   float* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : static_cast<float>(x);
@@ -108,6 +115,7 @@ void IntColumn<T>::cast_into(RealColumn<double>* target) const {
   constexpr double na_trg = GETNA<double>();
   T* src_data = this->elements();
   double* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = x == na_src? na_trg : static_cast<double>(x);

@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <Python.h>
+#include "myomp.h"
 
 
 
@@ -40,6 +41,7 @@ void BoolColumn::cast_into(IntColumn<int16_t>* target) const {
   const int8_t na = GETNA<int8_t>();
   int8_t*  src_data = this->elements();
   int16_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < nrows; ++i) {
     int8_t x = src_data[i];
     trg_data[i] = x == na? GETNA<int16_t>() : x;
@@ -50,6 +52,7 @@ void BoolColumn::cast_into(IntColumn<int32_t>* target) const {
   const int8_t na = GETNA<int8_t>();
   int8_t*  src_data = this->elements();
   int32_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < nrows; ++i) {
     int8_t x = src_data[i];
     trg_data[i] = x == na? GETNA<int32_t>() : x;
@@ -60,6 +63,7 @@ void BoolColumn::cast_into(IntColumn<int64_t>* target) const {
   const int8_t na = GETNA<int8_t>();
   int8_t*  src_data = this->elements();
   int64_t* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < nrows; ++i) {
     int8_t x = src_data[i];
     trg_data[i] = x == na? GETNA<int64_t>() : x;
@@ -70,6 +74,7 @@ void BoolColumn::cast_into(RealColumn<float>* target) const {
   const int8_t na = GETNA<int8_t>();
   int8_t* src_data = this->elements();
   float*  trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < nrows; ++i) {
     int8_t x = src_data[i];
     trg_data[i] = x == na? GETNA<float>() : x;
@@ -80,6 +85,7 @@ void BoolColumn::cast_into(RealColumn<double>* target) const {
   const int8_t na = GETNA<int8_t>();
   int8_t* src_data = this->elements();
   double* trg_data = target->elements();
+  #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < nrows; ++i) {
     int8_t x = src_data[i];
     trg_data[i] = x == na? GETNA<double>() : x;
