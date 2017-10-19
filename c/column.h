@@ -131,8 +131,11 @@ public:
    * column is cast into its own stype, a shallow copy is returned. Otherwise,
    * this method constructs a new column of the provided stype and writes the
    * converted data into it.
+   *
+   * If the MemoryBuffer is provided, then that buffer will be used in the
+   * creation of the resulting column.
    */
-  Column* cast(SType) const;
+  Column* cast(SType, MemoryBuffer* mb = nullptr) const;
 
   /**
    * Appends the provided columns to the bottom of the current column and
