@@ -339,7 +339,7 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 
     // First, find the common stype for all columns in the DataTable.
     SType stype = ST_VOID;
-    int64_t stypes_mask = 0;
+    uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; i++) {
         if (!(stypes_mask & (1 << dt->columns[i]->stype()))) {
             stypes_mask |= 1 << dt->columns[i]->stype();
@@ -351,29 +351,45 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     assert(!stype_info[stype].varwidth);
     size_t elemsize = stype_info[stype].elemsize;
     size_t colsize = nrows * elemsize;
-    void *__restrict__ buf = NULL;
-    dtmalloc_g(buf, void, ncols * colsize);
+    // void *__restrict__ buf = NULL;
+    // dtmalloc_g(buf, void, ncols * colsize);
+    MemoryBuffer* mbuf = new MemoryMemBuf(ncols * colsize);
 
     // Construct the data buffer
-    for (size_t i = 0; i < ncols; i++) {
-        Column *col = dt->columns[i];
-        col = col->extract();
+    for (size_t i = 0; i < ncols; ++i) {
+        // either a shallow copy, or "materialized" column
+        Column *col = dt->columns[i]->extract();
         if (col->stype() == stype) {
             assert(col->alloc_size() == colsize);
-            memcpy(add_ptr(buf, i * colsize), col->data(), colsize);
+            memcpy(mbuf->at(i*colsize), col->data(), colsize);
         } else {
-            Column *newcol = col->cast(stype);
-            if (newcol == NULL) { printf("Cannot cast column %d into %d\n", col->stype(), stype); goto fail; }
+            // xmb becomes a "view" on a portion of the buffer `mbuf`. An
+            // ExternelMemBuf object is documented to be readonly; however in
+            // practice it can still be written to, just not resized (this is
+            // hacky, maybe fix in the future).
+            MemoryBuffer* xmb = new ExternalMemBuf(mbuf->at(i*colsize), colsize);
+            // Now we create a `newcol` by casting `col` into `stype`, using
+            // the buffer `xmb`. Since `xmb` already has the correct size, this
+            // is possible. The effect of this call is that `newcol` will be
+            // created having the converted data; but the side-effect of this is
+            // that `mbuf` will have the same data, and in the right place.
+            Column* newcol = col->cast(stype, xmb);
             assert(newcol->alloc_size() == colsize);
-            memcpy(add_ptr(buf, i * colsize), newcol->data(), colsize);
+            // We can now delete the new column: this will delete `xmb` as well,
+            // however an ExternalMemBuf object does not attempt to free its
+            // memory buffer. The converted data that was written to `mbuf` will
+            // thus remain intact. No need to delete `xmb` either.
             delete newcol;
         }
+        // Delete the `col` pointer, which was extracted from the i-th column
+        // of the DataTable. The `extract()` call have created a shallow copy
+        // (or a true copy, in case a RowIndex had to be applied).
         delete col;
     }
 
     // Fill in the `view` struct
     if (REQ_ND(flags)) dtmalloc_g(info, Py_ssize_t, 4);
-    view->buf = buf;
+    view->buf = mbuf->get();
     view->obj = (PyObject*) self;
     view->len = (Py_ssize_t)(ncols * colsize);
     view->readonly = 0;

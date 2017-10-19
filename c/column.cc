@@ -492,7 +492,11 @@ size_t Column::memory_footprint() const
 }
 
 
-Column* Column::cast(SType new_stype) const {
+//------------------------------------------------------------------------------
+// Casting
+//------------------------------------------------------------------------------
+
+Column* Column::cast(SType new_stype, MemoryBuffer* mb) const {
   if (new_stype == stype()) {
     return shallowcopy();
   }
@@ -500,7 +504,14 @@ Column* Column::cast(SType new_stype) const {
     // TODO: implement this
     throw Error("Cannot cast a column with rowindex");
   }
-  Column *res = Column::new_data_column(new_stype, nrows);
+  Column *res = nullptr;
+  if (mb) {
+    res = Column::new_column(new_stype);
+    res->nrows = nrows;
+    res->mbuf = mb;
+  } else {
+    res = Column::new_data_column(new_stype, nrows);
+  }
   switch (new_stype) {
     case ST_BOOLEAN_I1:      cast_into(static_cast<BoolColumn*>(res)); break;
     case ST_INTEGER_I1:      cast_into(static_cast<IntColumn<int8_t>*>(res)); break;
