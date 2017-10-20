@@ -327,7 +327,8 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
              /* offset = */ 0);
   close(fd);  // fd is no longer needed
   if (buf == MAP_FAILED) {
-    throw new Error("Memory-map failed: %s", strerror(errno));
+    throw new Error("Memory-map failed for file %s of size %zu: [%d] %s",
+                    filename.c_str(), filesize, errno, strerror(errno));
   }
 
   // Determine if additional memory-mapped region is necessary (only when
