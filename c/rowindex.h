@@ -8,9 +8,9 @@
 //==============================================================================
 
 typedef enum RowIndexType {
-    RI_ARR32 = 1,
-    RI_ARR64 = 2,
-    RI_SLICE = 3,
+  RI_ARR32 = 1,
+  RI_ARR64 = 2,
+  RI_SLICE = 3,
 } RowIndexType;
 
 typedef int (rowindex_filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
@@ -56,40 +56,43 @@ typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
  *     Number of references to this RowIndex object. When this count reaches 0
  *     the object can be deallocated.
  */
-class RowIndex {
+class RowIndex
+{
 public:
-    int64_t length;
-    int64_t min;
-    int64_t max;
-    union {
-        int32_t *ind32;
-        int64_t *ind64;
-        struct { int64_t start, step; } slice;
-    };
-    RowIndexType type;
-    int32_t refcount;
-    RowIndex(int64_t, int64_t, int64_t); // from slice
-    RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
-    RowIndex(int64_t*, int64_t, int);
-    RowIndex(int32_t*, int64_t, int);
-    RowIndex(const RowIndex&);
-    RowIndex(RowIndex*);
-    RowIndex* expand();
-    void compactify();
-    size_t alloc_size();
-    RowIndex* shallowcopy();
-    void release();
+  int64_t length;
+  int64_t min;
+  int64_t max;
+  union {
+    int32_t *ind32;
+    int64_t *ind64;
+    struct { int64_t start, step; } slice;
+  };
+  RowIndexType type;
+  int32_t refcount;
+  RowIndex(int64_t, int64_t, int64_t); // from slice
+  RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
+  RowIndex(int64_t*, int64_t, int);
+  RowIndex(int32_t*, int64_t, int);
+  RowIndex(const RowIndex&);
+  RowIndex(RowIndex*);
+  RowIndex* expand();
+  void compactify();
+  size_t alloc_size();
+  RowIndex* shallowcopy();
+  void release();
 
-    int verify_integrity(std::vector<char>*, int, const char* = "RowIndex") const;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& name = "RowIndex") const;
 
-    static RowIndex* merge(RowIndex*, RowIndex*);
-    static RowIndex* from_intcolumn(Column*, int);
-    static RowIndex* from_boolcolumn(Column*, int64_t);
-    static RowIndex* from_column(Column*);
-    static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
-    static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);
+  static RowIndex* merge(RowIndex*, RowIndex*);
+  static RowIndex* from_intcolumn(Column*, int);
+  static RowIndex* from_boolcolumn(Column*, int64_t);
+  static RowIndex* from_column(Column*);
+  static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
+  static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);
+
 private:
-    ~RowIndex();
+  ~RowIndex();
 };
 
 

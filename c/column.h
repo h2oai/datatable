@@ -160,10 +160,13 @@ public:
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
 
- /**
-  * See DataTable::verify_integrity for method description
-  */
-  virtual int verify_integrity(std::vector<char>*, int, const char* = "Column") const;
+  /**
+   * Check that the data in this Column object is correct. Use the provided
+   * `IntegrityCheckContext` to report any errors, and `name` is the name of
+   * the column to be used in the output messages.
+   */
+  virtual bool verify_integrity(IntegrityCheckContext&,
+                                const std::string& name = "Column") const;
 
 protected:
   Column(int64_t nrows);
@@ -191,12 +194,6 @@ protected:
   virtual void cast_into(StringColumn<int32_t>*) const;
   virtual void cast_into(StringColumn<int64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
-
-  /**
-   * Helper function that checks for meta integrity. Parameters are equivalent
-   * to those in Column::verify_integrity
-   */
-  virtual int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const;
 
 private:
   static size_t allocsize0(SType, int64_t nrows);
@@ -265,7 +262,8 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
-  int verify_integrity(std::vector<char>*, int, const char* = "Column") const override;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& name = "Column") const override;
 };
 
 
@@ -381,7 +379,8 @@ public:
   char* strdata() const;
   T* offsets() const;
 
-  int verify_integrity(std::vector<char>*, int, const char* = "Column") const override;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& name = "Column") const override;
 
 protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
@@ -397,8 +396,6 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
-
-  int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 };
 
 

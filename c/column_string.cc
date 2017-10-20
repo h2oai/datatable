@@ -344,19 +344,21 @@ void StringColumn<T>::cast_into(PyObjectColumn* target) const {
 }
 
 
-//---- Verify integrity --------------------------------------------------------
+//------------------------------------------------------------------------------
+// Integrity checks
+//------------------------------------------------------------------------------
 
-/**
- * See DataTable::verify_integrity for method description
- */
 template <typename T>
-int StringColumn<T>::verify_integrity(
-    std::vector<char> *errors, int max_errors, const char *name) const
+bool StringColumn<T>::verify_integrity(
+    IntegrityCheckContext& icc, const std::string& name) const
 {
+  bool r = Column::verify_integrity(icc, name);
+  if (!r) return false;
+  int nerrors = icc.n_errors();
+  auto end = icc.end();
+
   // Check general properties
   // Note: meta value is implicitly checked here
-  int nerrors = Column::verify_integrity(errors, max_errors, name);
-  if (nerrors > 0) return nerrors;
   int64_t strdata_size = 0;
   int64_t offoff = ((VarcharMeta*) meta)->offoff;
   //*_utf8 functions use unsigned char*
@@ -365,8 +367,8 @@ int StringColumn<T>::verify_integrity(
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != -1) {
-    ERR("Offsets section in %s of String type is not preceded by number -1\n",
-        name);
+    icc << "Offsets section in (string) " << name << " is not preceded by "
+        << "number -1" << end;
   }
   int64_t mbuf_nrows = data_nrows();
   T lastoff = 1;
@@ -375,43 +377,45 @@ int StringColumn<T>::verify_integrity(
   for (int64_t i = 0; i < mbuf_nrows; ++i) {
     T oj = str_offsets[i];
     if (oj < 0 && oj != -lastoff) {
-      ERR("Offset of NA String in row %lld of %s does not have the same "
-          "magnitude as the previous offset: "
-          "offset = %lld, previous offset = %lld\n",
-          i, name, (int64_t) oj, (int64_t) lastoff);
+      icc << "Offset of NA String in row " << i << " of " << name << " does not"
+          << " have the same magnitude as the previous offset: offset = " << oj
+          << ", previous offset = " << lastoff << end;
     } else if (oj >= 0 && oj < lastoff) {
-      ERR("String offset in row %lld of %s cannot be less than the previous "
-          "offset: offset = %lld, previous offset = %lld\n",
-          i, name, (int64_t) oj, (int64_t) lastoff);
+      icc << "String offset in row " << i << " of " << name << " cannot be less"
+          << " than the previous offset: offset = " << oj << ", previous offset"
+          << " = " << lastoff << end;
     }
     if (oj - 1 > offoff) {
-      ERR("String offset in row %lld of %s is greater than the length of the "
-          "String data region: offset = %lld, region length = %lld",
-          i, name, (int64_t) oj, offoff);
-    } else if (oj > 0 &&
-               !is_valid_utf8(cdata + lastoff, (size_t) (oj - lastoff))) {
-        ERR("Invalid UTF-8 String in row %lld of %s: %s\n",
-            i, name, repr_utf8(cdata + lastoff, cdata + oj));
-
+      icc << "String offset in row " << i << " of " << name << " is greater "
+          << "than the length of the string data region: offset = " << oj
+          << ", region length = " << offoff << end;
+    }
+    else if (oj > 0 && !is_valid_utf8(cdata + lastoff,
+                                      static_cast<size_t>(oj - lastoff))) {
+      icc << "Invalid UTF-8 string in row " << i << " of " << name << ": "
+          << repr_utf8(cdata + lastoff, cdata + oj) << end;
     }
     lastoff = std::abs(oj);
   }
-  strdata_size = (int64_t) lastoff - 1;
+  strdata_size = static_cast<int64_t>(lastoff) - 1;
 
   // Check that the space between the string data and offset section is
-  // composed of 0xFFs
+  // filled with 0xFFs
   for (int64_t i = strdata_size; i < offoff; ++i) {
     if (cdata[i+1] != 0xFF) {
-      ERR("String data section in %s is not padded with 0xFFs at offset %X\n",
-          name, i);
+      icc << "String data section in " << name << " is not padded with '0xFF's"
+          << " at offset " << i << end;
       break; // Do not report this error more than once
     }
   }
 
-  return nerrors;
+  return !icc.has_errors(nerrors);
 }
 
 
+// TODO: once `meta` is properly removed, make sure that all actually useful
+//       checks are transferred to the ::verify_integrity() function.
+/*
 template <typename T>
 int StringColumn<T>::verify_meta_integrity(
     std::vector<char> *errors, int max_errors, const char *name) const
@@ -491,6 +495,7 @@ int StringColumn<T>::verify_meta_integrity(
 
   return nerrors;
 }
+*/
 
 
 // Explicit instantiation of the template

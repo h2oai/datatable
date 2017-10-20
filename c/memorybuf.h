@@ -191,7 +191,8 @@ public:
   int get_refcount() const;
 
 
-  int verify_integrity(std::vector<char>*, int, const char* = "MemoryBuffer") const;
+  virtual bool verify_integrity(IntegrityCheckContext&,
+                                const std::string& name = "MemoryBuffer") const;
 
 
   //--- Internal ---------------------------------------------------------------
@@ -222,7 +223,7 @@ public:
 
   /**
    * Create MemoryMemBuf of size `n` and baised on the pointer `ptr`. An
-   * exception will be raised if `n` is positive and `ptr` is is null. This
+   * exception will be raised if `n` is positive and `ptr` is null. This
    * constructor assumes ownership of pointer `ptr` and will free it when
    * MemoryMemBuf is deleted. If you don't want MemoryMemBuf to assume
    * ownership of the pointer, then use :class:`ExternalMemBuf` instead.
@@ -231,6 +232,8 @@ public:
 
   virtual void resize(size_t n) override;
   virtual PyObject* pyrepr() const override;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& n = "MemoryBuffer") const override;
 
 private:
   virtual ~MemoryMemBuf();
@@ -278,6 +281,8 @@ public:
 
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& n = "MemoryBuffer") const override;
 
 private:
   virtual ~ExternalMemBuf() override;
@@ -318,6 +323,8 @@ public:
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& n = "MemoryBuffer") const override;
 
 private:
   virtual ~MemmapMemBuf();

@@ -1,16 +1,12 @@
-#ifndef STATS_H
-#define STATS_H
-
+#ifndef dt_STATS_H
+#define dt_STATS_H
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
-#include "types.h"
 #include "datatable.h"
 #include "rowindex.h"
+#include "types.h"
 
-class DataTable;
-class Column;
-class RowIndex;
 
 /**
  * Statistics Container
@@ -60,7 +56,8 @@ public:
     static DataTable* sum_datatable    ( const DataTable*);
     //===========================================================
 
-    int verify_integrity(std::vector<char>*, int, const char* = "Stats") const;
+  bool verify_integrity(IntegrityCheckContext&,
+                        const std::string& name = "Stats") const;
 protected:
     double _mean;
     double _sd;

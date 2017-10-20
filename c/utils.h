@@ -3,15 +3,16 @@
 //==============================================================================
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
-#include <stdexcept>
-#include <exception>
-#include <mutex>
 #include <stddef.h>
 #include <stdio.h>   // vsnprintf
 #include <stdint.h>
 #include <stdio.h>   // vsnprintf
 #include <errno.h>   // errno
 #include <string.h>  // strerr
+#include <exception>
+#include <mutex>
+#include <stdexcept>
+#include <string>
 
 // On Windows variables of type `size_t` cannot be printed with "%zu" in the
 // `snprintf()` function. For those variables we will cast them into
@@ -24,6 +25,10 @@ int64_t max(int64_t a, int64_t b);
 float max_f4(float a, float b);
 double wallclock(void);
 const char* filesize_to_str(size_t filesize);
+
+inline std::string operator "" _s(const char* str, size_t len) {
+  return std::string(str, len);
+}
 
 
 /**

@@ -1,4 +1,21 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
 #include "datatable_check.h"
+// #include <limits>    // std::numeric_limits
+#include "utils.h"
 
 
 /**
@@ -12,7 +29,7 @@ size_t array_size(void *ptr, size_t elemsize) {
     return ptr == NULL? 0 : malloc_size(ptr) / elemsize;
 }
 
-
+/*
 __attribute__ ((format (printf, 2, 0)))
 void push_error(std::vector<char> *out, const char* format, ...) {
   if (out == nullptr) return;
@@ -28,7 +45,7 @@ void push_error(std::vector<char> *out, const char* format, ...) {
   out->resize(len + add_len);
   memcpy(out->data() + len, buf, add_len);
 }
-
+*/
 
 char*
 repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
@@ -51,3 +68,60 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     return buf;
 }
 
+const EndOfError IntegrityCheckContext::eoe;
+
+
+IntegrityCheckContext::IntegrityCheckContext(int max) {
+  if (max < 0) max = 10000;
+  max_errors = max;
+  num_errors = 0;
+}
+
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(const std::string& s) {
+  if (num_errors < max_errors)
+    error_stream << s;
+  return *this;
+}
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(const char* s) {
+  if (num_errors < max_errors)
+    error_stream << s;
+  return *this;
+}
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(const void* s) {
+  if (num_errors < max_errors)
+    error_stream << s;
+  return *this;
+}
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(int64_t num) {
+  if (num_errors < max_errors)
+    error_stream << num;
+  return *this;
+}
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(int32_t num) {
+  if (num_errors < max_errors)
+    error_stream << num;
+  return *this;
+}
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(int8_t num) {
+  if (num_errors < max_errors)
+    error_stream << num;
+  return *this;
+}
+
+IntegrityCheckContext& IntegrityCheckContext::operator<<(size_t num) {
+  if (num_errors < max_errors)
+    error_stream << num;
+  return *this;
+}
+
+void IntegrityCheckContext::operator<<(const EndOfError&) {
+  if (num_errors < max_errors)
+    error_stream << "\n";
+  num_errors++;
+}
