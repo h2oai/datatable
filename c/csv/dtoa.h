@@ -861,6 +861,8 @@ inline void dtoa(char **pch, double dvalue)
     return;
   } else if (eb == 0x000) {
     *ch++ = '0';
+    *ch++ = '.';
+    *ch++ = '0';
     *pch = ch;
     return;
   }
@@ -885,20 +887,7 @@ inline void dtoa(char **pch, double dvalue)
     } else if (eps >= mod - rem) {
       D = D - rem + mod;
       break;
-    }/* else if (eps < rem && eps < mod - rem) {
-    } else if (eps == rem) {
-      int64_t dp = static_cast<int64_t>((pl >> 63) - ((A >> 53) & 1));
-      if (dp > 0 || (dp == 0 && pl < (A << 10))) {
-        D -= rem;
-        break;
-      }
-    } else if (eps == mod - rem) {
-      int dp = static_cast<int>((pl >> 63) + ((A >> 53) & 1));
-      if (dp == 0 || (dp == 1 && (pl >> 10) + (A & ((1<<55)-1) > (1<<54)))) {
-        D = D - rem + mod;
-        break;
-      }
-    }*/
+    }
     mod /= 10;
     rem %= mod;
   }
@@ -913,9 +902,10 @@ inline void dtoa(char **pch, double dvalue)
     // Small/large numbers write in scientific notation: 1.2345e+67
     int64_t d = D / TENp17;
     D -= d * TENp17;
-    *ch = static_cast<char>(d) + '0';
-    ch[1] = '.';
-    ch += 1 + (D != 0);
+    *ch++ = static_cast<char>(d) + '0';
+    *ch++ = '.';
+    *ch = '0';
+    ch += (D == 0);
     int r = 16;
     while (D) {
       d = D / DIVS64[r];
@@ -966,7 +956,13 @@ inline void dtoa(char **pch, double dvalue)
       int64_t d = D / DIVS64[r];
       D -= d * DIVS64[r];
       *ch++ = static_cast<char>(d) + '0';
-      if (r == rr && D) { *ch++ = '.'; }
+      if (r == rr) {
+        *ch++ = '.';
+        if (D == 0) {
+          *ch++ = '0';
+          break;
+        }
+      }
       r--;
     }
   }
@@ -1000,6 +996,8 @@ inline void ftoa(char **pch, float fvalue)
     }
     return;
   } else if (eb == 0x00) {
+    *ch++ = '0';
+    *ch++ = '.';
     *ch++ = '0';
     *pch = ch;
     return;
@@ -1043,11 +1041,11 @@ inline void ftoa(char **pch, float fvalue)
       *ch++ = static_cast<char>(dd) + '0';
       *ch++ = '.';
       *ch++ = static_cast<char>(d) + '0';
-      if (!d && !D) ch -= 2;
     } else {
       *ch++ = static_cast<char>(d) + '0';
-      *ch = '.';
-      ch += (D != 0);
+      *ch++ = '.';
+      *ch = '0';
+      ch += (D == 0);
     }
     int r = 7;
     while (D) {
@@ -1094,7 +1092,13 @@ inline void ftoa(char **pch, float fvalue)
       int32_t d = D / DIVS32[r];
       D -= d * DIVS32[r];
       *ch++ = static_cast<char>(d) + '0';
-      if (r == rr && D) { *ch++ = '.'; }
+      if (r == rr) {
+        *ch++ = '.';
+        if (D == 0) {
+          *ch++ = '0';
+          break;
+        }
+      }
       r--;
     }
   }
