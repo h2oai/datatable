@@ -3,6 +3,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.2.2)
+#### Changed
+- When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
+  For example, [0.0, 1.0, 1e23] now produce "0.0,1.0,1.0e+23" instead of "0,1,1e+23".
+
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
