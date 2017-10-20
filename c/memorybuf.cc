@@ -22,6 +22,7 @@
 #include <sys/stat.h>  // fstat
 #include <unistd.h>    // access, close, write, lseek
 #include <algorithm>   // min
+#include "datatable_check.h"
 #include "myassert.h"
 #include "py_utils.h"
 #include "utils.h"
@@ -116,14 +117,17 @@ int MemoryBuffer::get_refcount() const {
   return refcount;
 }
 
-/**
- * See DataTable::verify_integrity for method description
- */
-int MemoryBuffer::verify_integrity(
-    std::vector<char>*, int, const char*) const
+bool MemoryBuffer::verify_integrity(IntegrityCheckContext& icc,
+                                    const std::string& name) const
 {
-  return 0;
+  if (refcount <= 0) {
+    icc << name << "'s refcount is non-positive: " << refcount << icc.end();
+    return false;
+  }
+  return true;
 }
+
+
 
 //==============================================================================
 // Memory-based MemoryBuffer
@@ -152,15 +156,49 @@ MemoryMemBuf::~MemoryMemBuf() {
 
 void MemoryMemBuf::resize(size_t n) {
   if (n == allocsize) return;
-  void *ptr = realloc(buf, n);
-  if (!ptr && n) throw Error("Unable to reallocate memory to size %zu", n);
-  buf = ptr;
+  // if (n) {
+    void *ptr = realloc(buf, n);
+    if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
+    buf = ptr;
+  // } else {
+  //   free(buf);
+  //   buf = nullptr;
+  // }
   allocsize = n;
 }
 
 PyObject* MemoryMemBuf::pyrepr() const {
   static PyObject* r = PyUnicode_FromString("data");
   return incref(r);
+}
+
+
+bool MemoryMemBuf::verify_integrity(IntegrityCheckContext& icc,
+                                    const std::string& name) const
+{
+  int nerrs = icc.n_errors();
+  auto end = icc.end();
+
+  MemoryBuffer::verify_integrity(icc, name);
+
+  if (buf && allocsize) {
+    size_t actual_allocsize = malloc_size(buf);
+    if (allocsize > actual_allocsize) {
+      icc << name << " has allocsize=" << allocsize << ", while the internal "
+          << "buffer is allocated for " << actual_allocsize << " bytes only"
+          << end;
+    }
+  }
+  // else if (buf && !allocsize) {
+  //   icc << name << " has the internal buffer allocated (" << buf
+  //       << "), while allocsize is 0" << end;
+  // }
+  else if (!buf && allocsize) {
+    icc << name << " has the internal memory buffer not allocated, whereas "
+        << "its allocsize is " << allocsize << end;
+  }
+
+  return !icc.has_errors(nerrs);
 }
 
 
@@ -202,6 +240,19 @@ size_t ExternalMemBuf::memory_footprint() const {
 PyObject* ExternalMemBuf::pyrepr() const {
   static PyObject* r = PyUnicode_FromString("xbuf");
   return incref(r);
+}
+
+bool ExternalMemBuf::verify_integrity(IntegrityCheckContext& icc,
+                                      const std::string& name) const
+{
+  int nerrs = icc.n_errors();
+  MemoryBuffer::verify_integrity(icc, name);
+  // Not much we can do about checking the validity of `buf`, unfortunately. It
+  // is provided by an external source, and could in theory point to anything...
+  if (allocsize && !buf) {
+    icc << "Internal data pointer in " << name << " is null" << icc.end();
+  }
+  return !icc.has_errors(nerrs);
 }
 
 
@@ -288,4 +339,16 @@ size_t MemmapMemBuf::memory_footprint() const {
 PyObject* MemmapMemBuf::pyrepr() const {
   static PyObject* r = PyUnicode_FromString("mmap");
   return incref(r);
+}
+
+
+bool MemmapMemBuf::verify_integrity(IntegrityCheckContext& icc,
+                                    const std::string& name) const
+{
+  int nerrs = icc.n_errors();
+  MemoryBuffer::verify_integrity(icc, name);
+  if (!buf) {
+    icc << "Memory-map pointer in " << name << " is null" << icc.end();
+  }
+  return !icc.has_errors(nerrs);
 }

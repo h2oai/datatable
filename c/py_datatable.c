@@ -1,4 +1,5 @@
 #include <exception>
+#include <iostream>
 #include <fcntl.h>   // open
 #include <unistd.h>  // write, fsync, close
 #include <vector>
@@ -226,23 +227,20 @@ static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "|O:check", &stream)) return NULL;
 
-    std::vector<char> errors;
-    int nerrors = dt->verify_integrity(&errors, 200);
-    if (nerrors) {
-        if (nerrors == 1)
-          push_error(&errors, "1 error found.\n");
-        else if (nerrors >= 2)
-          push_error(&errors, "%d errors found.\n", nerrors);
+    IntegrityCheckContext icc(200);
+    dt->verify_integrity(icc);
+    if (icc.has_errors()) {
         if (stream) {
             PyObject *ret = PyObject_CallMethod(stream, "write", "s",
-                errors.empty() ? nullptr : errors.data());
+                                                icc.errors().str().c_str());
             if (ret == NULL) return NULL;
-            Py_XDECREF(ret);
+            Py_DECREF(ret);
         }
-        else
-            printf("%s\n", errors.empty() ? nullptr : errors.data());
+        else {
+            std::cout << icc.errors().str();
+        }
     }
-    return incref(nerrors? Py_False : Py_True);
+    return incref(icc.has_errors()? Py_False : Py_True);
 }
 
 

@@ -102,16 +102,18 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
   }
 }
 
-/**
- * See DataTable::verify_integrity for method description
- */
-int BoolColumn::verify_integrity(
-    std::vector<char> *errors, int max_errors, const char *name) const
+
+//------------------------------------------------------------------------------
+// Integrity checks
+//------------------------------------------------------------------------------
+
+bool BoolColumn::verify_integrity(IntegrityCheckContext& icc,
+                                  const std::string& name) const
 {
-  // Check general properties
-  int nerrors = FwColumn<int8_t>::verify_integrity(errors, max_errors, name);
-  if (nerrors > 0) return nerrors;
-  if (errors == nullptr) return nerrors; // TODO: do something different?
+  bool r = FwColumn<int8_t>::verify_integrity(icc, name);
+  if (!r) return false;
+  int nerrors = icc.n_errors();
+  auto end = icc.end();
 
   // Check that all elements in column are either 0, 1, or NA_I1
   int64_t mbuf_nrows = data_nrows();
@@ -119,8 +121,9 @@ int BoolColumn::verify_integrity(
   for (int64_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
-      ERR("%s is of Boolean type but has value %d in row %lld\n", name, val, i);
+      icc << "(Boolean) " << name << " has value " << val << " in row " << i
+          << end;
     }
   }
-  return nerrors;
+  return !icc.has_errors(nerrors);
 }

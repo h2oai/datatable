@@ -160,59 +160,38 @@ size_t DataTable::memory_footprint()
   return sz;
 }
 
-/**
- * Verify that the DataTable does not have any inappropriate values/elements
- *
- * @param errors
- *     Reference to an empty vector of `chars` that will be filled with
- *     diagnostic messages containing information about any problems found.
- *
- * @param max_errors
- *     The maximum amount of messages to be printed in `errors`. A negative
- *     argument will be treated as a zero. The return value is not
- *     affected by this parameter.
- *
- * @param name
- *     The name to be used when referring to this DataTable instance in error
- *     messages.
- *
- * @return
- *     The number of errors found.
- */
-int DataTable::verify_integrity(
-    std::vector<char> *errors, int max_errors, const char *name) const
-{
-  int nerrors = 0;
-  if (errors == nullptr) return nerrors; // TODO: do something different?
 
-  /**
-   * Sanity checks. Nothing else is checked if these don't pass.
-   */
-  // Check that number of rows in nonnegative
+/**
+ * Verify that all internal constraints in the DataTable hold, and that there
+ * are no any inappropriate values/elements.
+ */
+bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
+{
+  int nerrs = icc.n_errors();
+  auto end = icc.end();
+
+  // Check that the number of rows in nonnegative
   if (nrows < 0) {
-    ERR("%s reports a negative value for `nrows`: %lld\n", name, nrows);
-    return nerrors;
+    icc << "DataTable has a negative value for `nrows`: " << nrows << end;
   }
   // Check that the number of columns is nonnegative
   if (ncols < 0) {
-    ERR("%s reports a negative value for `ncols`: %lld\n", name, ncols);
-    return nerrors;
+    icc << "DataTable has a negative value for `ncols`: " << ncols << end;
   }
+
   // Check the number of columns; the number of allocated columns should be
   // equal to `ncols + 1` (with extra column being NULL). Sometimes the
   // allocation size can be greater than the required number of columns,
   // because `malloc()` may allocate more than requested.
   size_t n_cols_allocd = array_size(columns, sizeof(Column*));
   if (!columns || !n_cols_allocd) {
-    ERR("`columns` array of %s is not allocated\n", name);
-    return nerrors;
+    icc << "DataTable.columns array of is not allocated" << end;
   }
-  if (ncols + 1 > (int64_t) n_cols_allocd) {
-    ERR("`columns` array size of %s is not larger than `ncols`: "
-        "%lld vs. %lld\n",
-        name, (int64_t) n_cols_allocd, ncols);
-    return nerrors;
+  else if (ncols + 1 > static_cast<int64_t>(n_cols_allocd)) {
+    icc << "DataTable.columns array size is " << n_cols_allocd
+        << " whereas " << ncols + 1 << " columsn are expected." << end;
   }
+  if (icc.has_errors(nerrs)) return false;
 
   /**
    * Check the structure and contents of the column array.
@@ -222,29 +201,25 @@ int DataTable::verify_integrity(
    * are equal to those of each column.
    **/
   for (int64_t i = 0; i < ncols; ++i) {
+    std::string col_name = "Column "_s + std::to_string(i);
     Column* col = columns[i];
-    char col_name[28];
-    snprintf(col_name, 28, "Column %lld", i);
     if (col == nullptr) {
-      ERR("%s of %s is null\n", col_name, name);
+      icc << col_name << " of DataTable is null" << end;
       continue;
+    }
+    // Make sure the column and the datatable have the same value for `nrows`
+    if (nrows != col->nrows) {
+      icc << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
+          << ", while the DataTable has nrows=" << nrows << end;
+    }
+    // Make sure the column and the datatable point to the same rowindex object
+    if (rowindex != col->rowindex()) {
+      icc << "Mismatch in `rowindex`: " << col_name << ".rowindex = "
+          << col->rowindex() << ", while DataTable.rowindex=" << (rowindex)
+          << end;
     }
     // Column check
-    int col_nerrors = col->verify_integrity(errors, max_errors - nerrors, col_name);
-    if (col_nerrors > 0) {
-      nerrors += col_nerrors;
-      continue;
-    }
-    // Make sure column and datatable have the same value for `nrows`
-    if (nrows != col->nrows) {
-      ERR("Mismatch in `nrows`: %s reports %lld, %s reports %lld\n",
-          col_name, col->nrows, name, nrows);
-    }
-    // Make sure column and datatable point to the same rowindex instance
-    if (rowindex != col->rowindex()) {
-      ERR("Mismatch in `rowindex` instance: %s points to %p, %s points to %p\n",
-          col_name, col->rowindex(), name, rowindex);
-    }
+    col->verify_integrity(icc, col_name);
   }
 
   if (columns[ncols] != NULL) {
@@ -254,7 +229,7 @@ int DataTable::verify_integrity(
     // not available on this platform, then this might segfault... This is
     // unavoidable since if we skip the check and do `cols[ncols]` later on
     // then we will segfault anyways.
-    ERR("Last entry in the `columns` array of %s is not null\n", name);
+    icc << "Last entry in the `columns` array of DataTable is not null" << end;
   }
-  return nerrors;
+  return !icc.has_errors(nerrs);
 }
