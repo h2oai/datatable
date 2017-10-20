@@ -31,7 +31,7 @@ FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
   if (new_mbuf->size() % sizeof(T)) {
-    throw new Error("New buffer has invalid size %zu", new_mbuf->size());
+    throw Error("New buffer has invalid size %zu", new_mbuf->size());
   }
   MemoryBuffer* t = new_mbuf->shallowcopy();
   if (mbuf) mbuf->release();

@@ -46,12 +46,12 @@ void StringColumn<T>::replace_buffer(MemoryBuffer* new_offbuf,
 {
   int64_t new_nrows = new_offbuf->size()/sizeof(T) - 1;
   if (new_offbuf->size() % sizeof(T)) {
-    throw new Error("The size of `new_offbuf` is not a multiple of "
-                    STRINGIFY(sizeof(T)));
+    throw Error("The size of `new_offbuf` is not a multiple of "
+                STRINGIFY(sizeof(T)));
   }
   if (new_offbuf->get_elem<T>(0) != -1) {
-    throw new Error("Cannot use `new_offbuf` as an \"offsets\" buffer: first "
-                    "element of this array is not -1");
+    throw Error("Cannot use `new_offbuf` as an \"offsets\" buffer: first "
+                "element of this array is not -1");
   }
   // MemoryBuffer* t = new_offbuf->shallowcopy();
   // if (mbuf) mbuf->release();

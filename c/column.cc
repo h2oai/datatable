@@ -96,17 +96,17 @@ Column* Column::save_to_disk(const char* filename)
   int fd = open(filename, O_RDWR|O_CREAT, 0666);
   if (fd == -1) {
     close(fd);
-    throw new Error("Cannot open file %s", filename);
+    throw Error("Cannot open file %s", filename);
   }
   size_t sz = mbuf->size();
   int ret = ftruncate(fd, (off_t) sz);
   if (ret == -1) {
     close(fd);
-    throw new Error("Cannot truncate file %s", filename);
+    throw Error("Cannot truncate file %s", filename);
   }
   void *mmp = mmap(NULL, sz, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
   close(fd);
-  if (mmp == MAP_FAILED) throw new Error("Memory-map failed.");
+  if (mmp == MAP_FAILED) throw Error("Memory-map failed.");
 
   // Copy the data buffer into the file
   memcpy(mmp, data(), sz);
@@ -131,13 +131,13 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
   if (col->alloc_size() < allocsize0(stype, nrows)) {
-    throw new Error("File %s has size %zu, which is not sufficient for a column"
-                    " with %zd rows", filename, col->alloc_size(), nrows);
+    throw Error("File %s has size %zu, which is not sufficient for a column"
+                " with %zd rows", filename, col->alloc_size(), nrows);
   }
   // Deserialize the meta information, if needed
   if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
     if (strncmp(ms, "offoff=", 7) != 0)
-      throw new Error("Cannot retrieve required metadata in string \"%s\"", ms);
+      throw Error("Cannot retrieve required metadata in string \"%s\"", ms);
     int64_t offoff = (int64_t) atoll(ms + 7);
     ((VarcharMeta*) col->meta)->offoff = offoff;
   }
