@@ -249,13 +249,13 @@ RowIndex* Column::sort() const
 {
 
     if (nrows > INT32_MAX) {
-        throw new Error("Cannot sort a datatable with %" PRId64 " rows", nrows);
+        throw Error("Cannot sort a datatable with %" PRId64 " rows", nrows);
     }
     if (ri != nullptr && (ri->type == RI_ARR64 ||
                           ri->length > INT32_MAX ||
                           ri->max > INT32_MAX)) {
-        throw new Error("Cannot sort a datatable which is based on a datatable "
-                        "with >2**31 rows");
+        throw Error("Cannot sort a datatable which is based on a datatable "
+                    "with >2**31 rows");
     }
     int32_t nrows_ = (int32_t) nrows;
     int32_t *ordering = NULL;
@@ -297,8 +297,8 @@ RowIndex* Column::sort() const
                 ordering = sortfn(data(), NULL, NULL, nrows_);
             }
             else
-                throw new Error("Insert sort not implemented for column of stype %d",
-                                stype_);
+                throw Error("Insert sort not implemented for column of stype %d",
+                            stype_);
         }
     } else {
         if (prepfn) {
@@ -317,8 +317,8 @@ RowIndex* Column::sort() const
             dtfree(sc->histogram);
             if (error_occurred) ordering = NULL;
         } else {
-            throw new Error("Radix sort not implemented for column of stype %d",
-                            stype_);
+            throw Error("Radix sort not implemented for column of stype %d",
+                        stype_);
         }
     }
     dtfree(sc);

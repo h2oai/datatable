@@ -26,8 +26,8 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
     columns[ncols] = NULL;
 
     if (colspec->ncols != 3) {
-        throw new Error("colspec table should have had 3 columns, but %lld passed",
-               colspec->ncols);
+        throw Error("colspec table should have had 3 columns, but %lld passed",
+                    colspec->ncols);
     }
     Column *colf = colspec->columns[0];
     Column *cols = colspec->columns[1];
@@ -35,8 +35,8 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
     if (colf->stype() != ST_STRING_I4_VCHAR ||
         cols->stype() != ST_STRING_I4_VCHAR ||
         colm->stype() != ST_STRING_I4_VCHAR) {
-        throw new Error("String columns are expected in colspec table, instead got "
-               "%d, %d and %d", colf->stype(), cols->stype(), colm->stype());
+        throw Error("String columns are expected in colspec table, instead got "
+                    "%d, %d and %d", colf->stype(), cols->stype(), colm->stype());
     }
 
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
@@ -54,7 +54,7 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         int32_t fsta = abs(offf[i - 1]) - 1;
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
-        if (flen > 100) throw new Error("Filename is too long: %d", flen);
+        if (flen > 100) throw Error("Filename is too long: %d", flen);
         memcpy(filename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
         filename[flen] = '\0';
 
@@ -62,20 +62,20 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         int32_t ssta = abs(offs[i - 1]) - 1;
         int32_t send = abs(offs[i]) - 1;
         int32_t slen = send - ssta;
-        if (slen != 3) throw new Error("Incorrect stype's length: %d", slen);
+        if (slen != 3) throw Error("Incorrect stype's length: %d", slen);
         SType stype = stype_from_string((char*)cols->data() + (ssize_t)ssta);
         if (stype == ST_VOID) {
             char stypestr[4];
             memcpy(stypestr, cols->data_at(static_cast<size_t>(ssta)), 3);
             stypestr[3] = '\0';
-            throw new Error("Unrecognized stype: %s", stypestr);
+            throw Error("Unrecognized stype: %s", stypestr);
         }
 
         // Extract meta info (as a string)
         int32_t msta = abs(offm[i - 1]) - 1;
         int32_t mend = abs(offm[i]) - 1;
         int32_t mlen = mend - msta;
-        if (mlen > 100) throw new Error("Meta string is too long: %d", mlen);
+        if (mlen > 100) throw Error("Meta string is too long: %d", mlen);
         memcpy(metastr, colm->data_at(static_cast<size_t>(msta)), (size_t) mlen);
         metastr[mlen] = '\0';
 

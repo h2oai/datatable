@@ -33,18 +33,18 @@ DataTable::DataTable(Column **cols)
     columns(cols)
 {
   if (cols == nullptr)
-    throw new Error("Column array cannot be null");
+    throw Error("Column array cannot be null");
   if (cols[0] == nullptr) return;
   rowindex = cols[0]->rowindex();
   nrows = cols[0]->nrows;
 
   for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
     if (rowindex != col->rowindex())
-      throw new Error("Mismatched RowIndex in Column %" PRId64, ncols);
+      throw Error("Mismatched RowIndex in Column %" PRId64, ncols);
     if (nrows != col->nrows)
-      throw new Error("Mismatched length in Column %" PRId64 ": "
-                      "found %" PRId64 ", expected %" PRId64,
-                      ncols, col->nrows, nrows);
+      throw Error("Mismatched length in Column %" PRId64 ": "
+                  "found %" PRId64 ", expected %" PRId64,
+                  ncols, col->nrows, nrows);
   }
 }
 
@@ -107,18 +107,18 @@ static inline int _compare_ints(const void *a, const void *b) {
  */
 void DataTable::apply_na_mask(DataTable* maskdt)
 {
-  if (!maskdt) throw new Error("Mask cannot be NULL");
+  if (!maskdt) throw Error("Mask cannot be NULL");
   if (ncols != maskdt->ncols || nrows != maskdt->nrows) {
-    throw new Error("Target datatable and mask have different shapes");
+    throw Error("Target datatable and mask have different shapes");
   }
   if (rowindex || maskdt->rowindex) {
-    throw new Error("Neither target DataTable nor the mask can be views");
+    throw Error("Neither target DataTable nor the mask can be views");
   }
 
   for (int64_t i = 0; i < ncols; ++i){
     BoolColumn *maskcol = dynamic_cast<BoolColumn*>(maskdt->columns[i]);
     if (!maskcol) {
-      throw new Error("Column %lld in mask is not of a boolean type", i);
+      throw Error("Column %lld in mask is not of a boolean type", i);
     }
     Column *col = columns[i];
     col->stats->reset();
