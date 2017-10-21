@@ -244,8 +244,10 @@ class DataFrameWidget(object):
         if icol in self._colwidths:
             return self._colwidths[icol]
         else:
-            data = self._data_callback(icol, 1, self._view_row0,
-                                       self._view_nrows)
+            data = self._data_callback(self._view_row0,
+                                       self._view_row0 + self._view_nrows,
+                                       icol,
+                                       icol + 1)
             col = _Column(name=data["names"][0], ctype=data["types"][0],
                           data=data["columns"][0])
             w = min(col.width, _Column.MAX_WIDTH)
