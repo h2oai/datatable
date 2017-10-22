@@ -415,8 +415,8 @@ class FReader(object):
             zf = zipfile.ZipFile(filename)
             zff = zf.namelist()
             if len(zff) > 1:
-                raise TValueError("Zip file %s contains multiple compressed "
-                                  "files: %r" % (filename, zff))
+                warnings.warn("Zip file %s contains multiple compressed "
+                              "files: %r" % (filename, zff))
             if len(zff) == 0:
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
