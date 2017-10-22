@@ -69,23 +69,30 @@ DataTable* datatable_unwrapx(PyObject *object) {
 
 DT_DOCS(nrows, "Number of rows in the datatable")
 static PyObject* get_nrows(DataTable_PyObject *self) {
+  CATCH_EXCEPTIONS(
     return PyLong_FromLongLong(self->ref->nrows);
+  );
 }
 
 DT_DOCS(ncols, "Number of columns in the datatable")
 static PyObject* get_ncols(DataTable_PyObject *self) {
+  CATCH_EXCEPTIONS(
     return PyLong_FromLongLong(self->ref->ncols);
+  );
 }
 
 DT_DOCS(isview, "Is the datatable view or now?");
 static PyObject* get_isview(DataTable_PyObject *self) {
+  CATCH_EXCEPTIONS(
     return incref(self->ref->rowindex == NULL? Py_False : Py_True);
+  );
 }
 
 
 DT_DOCS(types, "List of column types")
 static PyObject* get_types(DataTable_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     int64_t i = self->ref->ncols;
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
@@ -95,12 +102,14 @@ static PyObject* get_types(DataTable_PyObject *self)
         PyTuple_SET_ITEM(list, i, incref(py_ltype_names[lt]));
     }
     return list;
+  );
 }
 
 
 DT_DOCS(stypes, "List of column storage types")
 static PyObject* get_stypes(DataTable_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     int64_t i = dt->ncols;
     PyObject *list = PyTuple_New((Py_ssize_t) i);
@@ -110,33 +119,40 @@ static PyObject* get_stypes(DataTable_PyObject *self)
         PyTuple_SET_ITEM(list, i, incref(py_stype_names[st]));
     }
     return list;
+  );
 }
 
 
 DT_DOCS(rowindex_type, "Type of the row index: 'slice' or 'array'")
 static PyObject* get_rowindex_type(DataTable_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     if (self->ref->rowindex == NULL)
         return none();
     RowIndexType rit = self->ref->rowindex->type;
     return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
            rit == RI_ARR32? incref(strRowIndexTypeArr32) :
            rit == RI_ARR64? incref(strRowIndexTypeArr64) : none();
+  );
 }
 
 
 DT_DOCS(rowindex, "Row index of the view datatable, or None if this is not a view datatable")
 static PyObject* get_rowindex(DataTable_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     RowIndex *ri = self->ref->rowindex;
     return ri? pyrowindex(self->ref->rowindex) : none();
+  );
 }
 
 
 DT_DOCS(datatable_ptr, "Get pointer (converted to an int) to the wrapped DataTable object")
 static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     return PyLong_FromLongLong((long long int)self->ref);
+  );
 }
 
 
@@ -148,14 +164,20 @@ static PyObject* get_datatable_ptr(DataTable_PyObject *self)
 DT_DOCS(alloc_size, "DataTable's internal size, in bytes")
 static PyObject* get_alloc_size(DataTable_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     return PyLong_FromSize_t(self->ref->memory_footprint());
+  );
 }
 
 
 DT_DOCS(window, "Retrieve datatable's data within a window");
 static DataWindow_PyObject* meth_window(DataTable_PyObject *self, PyObject *args)
 {
-    int64_t row0, row1, col0, col1;
+  CATCH_EXCEPTIONS(
+    int64_t row0;
+    int64_t row1;
+    int64_t col0;
+    int64_t col1;
     if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
         return NULL;
 
@@ -164,12 +186,14 @@ static DataWindow_PyObject* meth_window(DataTable_PyObject *self, PyObject *args
     Py_XDECREF(nargs);
 
     return (DataWindow_PyObject*) res;
+  );
 }
 
 
 
 PyObject* pydatatable_assemble(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     PyObject *arg1;
     ColumnSet_PyObject *pycols;
     if (!PyArg_ParseTuple(args, "OO!:datatable_assemble_view",
@@ -194,18 +218,21 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
         }
     }
     return py(new DataTable(columns));
+  );
 }
 
 
 
 PyObject* pydatatable_load(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *colspec;
     int64_t nrows;
     if (!PyArg_ParseTuple(args, "O&n:datatable_load",
                           &dt_unwrap, &colspec, &nrows))
         return NULL;
     return py(DataTable::load(colspec, nrows));
+  );
 }
 
 
@@ -222,6 +249,7 @@ PyObject* pydatatable_load(UU, PyObject *args)
 DT_DOCS(check, "Check and repair the datatable");
 static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     PyObject *stream = NULL;
 
@@ -241,6 +269,7 @@ static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
         }
     }
     return incref(icc.has_errors()? Py_False : Py_True);
+  );
 }
 
 
@@ -248,6 +277,7 @@ static PyObject* meth_check(DataTable_PyObject *self, PyObject *args)
 DT_DOCS(column, "Get the requested column in the datatable")
 static PyObject* meth_column(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     int64_t colidx;
     if (!PyArg_ParseTuple(args, "l:column", &colidx))
@@ -260,6 +290,7 @@ static PyObject* meth_column(DataTable_PyObject *self, PyObject *args)
     Column_PyObject *pycol =
         pycolumn_from_column(dt->columns[colidx], self, colidx);
     return (PyObject*) pycol;
+  );
 }
 
 
@@ -267,6 +298,7 @@ static PyObject* meth_column(DataTable_PyObject *self, PyObject *args)
 DT_DOCS(delete_columns, "Remove the specified list of columns from the datatable")
 static PyObject* meth_delete_columns(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     PyObject *list;
     if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
@@ -283,6 +315,7 @@ static PyObject* meth_delete_columns(DataTable_PyObject *self, PyObject *args)
 
     dtfree(cols_to_remove);
     return none();
+  );
 }
 
 
@@ -290,6 +323,7 @@ static PyObject* meth_delete_columns(DataTable_PyObject *self, PyObject *args)
 DT_DOCS(rbind, "Append rows of other datatables to the current")
 static PyObject* meth_rbind(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     int final_ncols;
     PyObject *list;
@@ -335,12 +369,14 @@ static PyObject* meth_rbind(DataTable_PyObject *self, PyObject *args)
     dtfree(cols_to_append);
     dtfree(dts);
     return none();
+  );
 }
 
 
 DT_DOCS(cbind, "Append columns of other datatables to the current")
 static PyObject* meth_cbind(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     PyObject *pydts;
     if (!PyArg_ParseTuple(args, "O!:cbind",
                           &PyList_Type, &pydts)) return NULL;
@@ -363,6 +399,7 @@ static PyObject* meth_cbind(DataTable_PyObject *self, PyObject *args)
 
     dtfree(dts);
     return none();
+  );
 }
 
 
@@ -370,6 +407,7 @@ static PyObject* meth_cbind(DataTable_PyObject *self, PyObject *args)
 DT_DOCS(sort, "Sort datatable according to a column")
 static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = self->ref;
     int idx;
     if (!PyArg_ParseTuple(args, "i:sort", &idx)) return NULL;
@@ -377,14 +415,17 @@ static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
     Column *col = dt->columns[idx];
     RowIndex *ri = col->sort();
     return pyrowindex(ri);
+  );
 }
 
 #define DT_METH_GET_STAT(STAT, DOCSTRING) \
     DT_DOCS(get_ ## STAT , DOCSTRING) \
     static PyObject* meth_get_## STAT (DataTable_PyObject *self, PyObject *args) \
     { \
+      CATCH_EXCEPTIONS( \
         if (!PyArg_ParseTuple(args, "")) return NULL; \
         return py(Stats:: STAT ## _datatable(self->ref)); \
+      ); \
     }
 
 DT_METH_GET_STAT(min, "Get the minimum for each column in the datatable")
@@ -399,6 +440,7 @@ DT_METH_GET_STAT(countna, "Get the NA count for each column in the datatable")
 DT_DOCS(materialize, "")
 static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     if (!PyArg_ParseTuple(args, "")) return NULL;
 
     DataTable *dt = self->ref;
@@ -417,6 +459,7 @@ static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
 
     DataTable *newdt = new DataTable(cols);
     return py(newdt);
+  );
 }
 
 
@@ -430,7 +473,7 @@ static PyObject* meth_apply_na_mask(DataTable_PyObject *self, PyObject *args)
 
     dt->apply_na_mask(mask);
     return none();
-  )
+  );
 }
 
 
