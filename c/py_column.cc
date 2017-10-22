@@ -8,6 +8,7 @@
 Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
                                       int64_t colidx)
 {
+  CATCH_EXCEPTIONS(
     Column_PyObject *pycol = Column_PyNew();
     if (pycol == NULL) return NULL;
     pycol->ref = col->shallowcopy();
@@ -15,42 +16,54 @@ Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
     pycol->colidx = colidx;
     Py_XINCREF(pydt);
     return pycol;
+  );
 }
 
 
 DT_DOCS(mtype, "'Memory' type of the column: data, or memmap")
 static PyObject* get_mtype(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     return self->ref->mbuf_repr();
+  );
 }
 
 
 DT_DOCS(stype, "'Storage' type of the column")
 static PyObject* get_stype(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     return incref(py_stype_names[self->ref->stype()]);
+  );
 }
 
 
 DT_DOCS(ltype, "'Logical' type of the column")
 static PyObject* get_ltype(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     return incref(py_ltype_names[stype_info[self->ref->stype()].ltype]);
+  );
 }
 
 
 DT_DOCS(data_size, "The amount of memory taken by column's data")
 static PyObject* get_data_size(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     Column *col = self->ref;
     return PyLong_FromSize_t(col->alloc_size());
+  );
 }
 
 DT_DOCS(data_pointer, "Pointer (cast to long int) to the column's internal memory buffer")
 static PyObject* get_data_pointer(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     Column *col = self->ref;
     return PyLong_FromSize_t(reinterpret_cast<size_t>(col->data()));
+  );
 }
 
 
 DT_DOCS(meta, "String representation of the column's `meta` struct")
 static PyObject* get_meta(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     Column *col = self->ref;
     void *meta = col->meta;
     switch (col->stype()) {
@@ -78,32 +91,38 @@ static PyObject* get_meta(Column_PyObject *self) {
             else
                 return PyUnicode_FromFormat("%p", meta);
     }
+  );
 }
 
 
 DT_DOCS(refcount, "Reference count of the column")
 static PyObject* get_refcount(Column_PyObject *self) {
+  CATCH_EXCEPTIONS(
     // "-1" because self->ref is a shallow copy of the "original" column, and
     // therefore it holds an extra reference to the data buffer.
     return PyLong_FromLong(self->ref->mbuf_refcount() - 1);
+  );
 }
 
 
 DT_DOCS(save_to_disk, "")
 static PyObject* meth_save_to_disk(Column_PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     Column *col = self->ref;
     const char *filename = NULL;
     if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
     Column *ret = col->save_to_disk(filename);
     if (!ret) return NULL;
     Py_RETURN_NONE;
+  );
 }
 
 
 DT_DOCS(hexview, "")
 static PyObject* meth_hexview(Column_PyObject *self, UU)
 {
+  CATCH_EXCEPTIONS(
     if (pyfn_column_hexview == NULL) {
         PyErr_Format(PyExc_RuntimeError,
                      "Function column_hexview() was not linked");
@@ -113,6 +132,7 @@ static PyObject* meth_hexview(Column_PyObject *self, UU)
     PyObject *ret = PyObject_CallObject(pyfn_column_hexview, v);
     Py_XDECREF(v);
     return ret;
+  );
 }
 
 

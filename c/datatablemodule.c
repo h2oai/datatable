@@ -18,6 +18,7 @@ PyObject* pyfn_column_hexview = NULL;  // Defined in py_column.h
 
 static PyObject* pyexec_function(PyObject *self, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     void *fnptr;
     PyObject *fnargs = NULL;
 
@@ -25,11 +26,13 @@ static PyObject* pyexec_function(PyObject *self, PyObject *args)
         return NULL;
 
     return ((PyCFunction) fnptr)(self, fnargs);
+  );
 }
 
 
 static PyObject* pyregister_function(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     int n = -1;
     PyObject *fnref = NULL;
 
@@ -46,16 +49,18 @@ static PyObject* pyregister_function(UU, PyObject *args)
         return NULL;
     }
     return none();
+  );
 }
 
 
 static PyObject* pyget_internal_function_ptrs(UU, UU1)
 {
+  #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
+  CATCH_EXCEPTIONS(
     int i = 0;
     PyObject *res = PyTuple_New(7);
     if (!res) return NULL;
 
-    #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
     ADD(_dt_malloc);
     ADD(_dt_realloc);
     ADD(_dt_free);
@@ -65,11 +70,13 @@ static PyObject* pyget_internal_function_ptrs(UU, UU1)
     ADD(datatable_unpack_arrayrowindex);
 
     return res;
+  );
 }
 
 
 static PyObject* pyget_integer_sizes(UU, UU1)
 {
+  CATCH_EXCEPTIONS(
     int i = 0;
     PyObject *res = PyTuple_New(5);
     if (!res) return NULL;
@@ -79,9 +86,10 @@ static PyObject* pyget_integer_sizes(UU, UU1)
     ADD(sizeof(long int));
     ADD(sizeof(long long int));
     ADD(sizeof(size_t));
-    #undef ADD
 
     return res;
+  );
+  #undef ADD
 }
 
 

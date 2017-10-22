@@ -78,6 +78,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     );
     if (!ret) return -1;
 
+  try {
     dt = pydt == NULL? NULL : pydt->ref;
     if (column >= 0) {
         return _init_hexview(self, dt, column, row0, row1, col0, col1);
@@ -142,6 +143,10 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     self->stypes = (PyListObject*) stypes;
     self->data = (PyListObject*) view;
     return 0;
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    // fall-through into 'fail'
+  }
 
   fail:
     Py_XDECREF(stypes);
@@ -161,6 +166,7 @@ static int _init_hexview(
     PyObject *stypes = NULL;
     // printf("_init_hexview(%p, %d)\n", dt, colidx);
 
+  try {
     if (colidx < 0 || colidx >= dt->ncols) {
         PyErr_Format(PyExc_ValueError, "Invalid column index %lld", colidx);
         return -1;
@@ -231,6 +237,10 @@ static int _init_hexview(
     self->types = (PyListObject*) ltypes;
     self->stypes = (PyListObject*) stypes;
     return 0;
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    // fall-through into 'fail'
+  }
 
   fail:
     Py_XDECREF(viewdata);

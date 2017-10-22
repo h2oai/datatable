@@ -3,13 +3,6 @@
 #include "py_utils.h"
 
 
-#define VALASSERT(test, ...)                                                   \
-    if (!(test)) {                                                             \
-        PyErr_Format(PyExc_ValueError, __VA_ARGS__);                           \
-        return NULL;                                                           \
-    }
-
-
 /**
  * Create a new RowIndex_PyObject by wrapping the provided RowIndex `src`.
  * The returned py-object will hold a durable reference to `src`; for example
@@ -65,11 +58,15 @@ int rowindex_unwrap(PyObject *object, void *address) {
  */
 PyObject* pyrowindex_from_slice(UU, PyObject *args)
 {
-    int64_t start, count, step;
+  CATCH_EXCEPTIONS(
+    int64_t start;
+    int64_t count;
+    int64_t step;
     if (!PyArg_ParseTuple(args, "LLL:RowIndex.from_slice",
                           &start, &count, &step))
         return NULL;
     return py(new RowIndex(start, count, step));
+  );
 }
 
 
@@ -81,26 +78,34 @@ PyObject* pyrowindex_from_slice(UU, PyObject *args)
  */
 PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
 {
-    PyObject *pystarts, *pycounts, *pysteps;
+  int64_t* starts = NULL;
+  int64_t* counts = NULL;
+  int64_t* steps = NULL;
+
+  CATCH_EXCEPTIONS(
+    PyObject* pystarts;
+    PyObject* pycounts;
+    PyObject* pysteps;
     if (!PyArg_ParseTuple(args, "O!O!O!:RowIndex.from_slicelist",
                           &PyList_Type, &pystarts,
                           &PyList_Type, &pycounts,
                           &PyList_Type, &pysteps))
         return NULL;
 
-    int64_t *starts = NULL, *counts = NULL, *steps = NULL;
     int64_t n1 = PyList_Size(pystarts);
     int64_t n2 = PyList_Size(pycounts);
     int64_t n3 = PyList_Size(pysteps);
-    VALASSERT(n1 >= n2, "counts array cannot be longer than the starts array")
-    VALASSERT(n1 >= n3, "steps array cannot be longer than the starts array")
+    if (n1 < n2) throw Error("counts array cannot be longer than the starts array");
+    if (n1 < n3) throw Error("steps array cannot be longer than the starts array");
     starts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
     counts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
     steps  = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
     if (!starts || !counts || !steps) goto fail;
 
     // Convert Pythonic lists into regular C arrays of longs
-    int64_t start, count, step;
+    int64_t start;
+    int64_t count;
+    int64_t step;
     for (int64_t i = 0; i < n1; i++) {
         start = PyLong_AsSsize_t(PyList_GET_ITEM(pystarts, i));
         count = i < n2? PyLong_AsSsize_t(PyList_GET_ITEM(pycounts, i)) : 1;
@@ -113,6 +118,7 @@ PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
     }
 
     return py(new RowIndex(starts, counts, steps, n1));
+  );
 
   fail:
     free(starts);
@@ -129,13 +135,13 @@ PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
  */
 PyObject* pyrowindex_from_array(UU, PyObject *args)
 {
+  int32_t *data32 = NULL;
+  int64_t *data64 = NULL;
+
+  CATCH_EXCEPTIONS(
     PyObject *list;
     if (!PyArg_ParseTuple(args, "O!:RowIndex.from_array",
-                          &PyList_Type, &list))
-        return NULL;
-
-    int32_t *data32 = NULL;
-    int64_t *data64 = NULL;
+                          &PyList_Type, &list)) return NULL;
 
     // Convert Pythonic List into a regular C array of int32's/int64's
     int64_t len = PyList_Size(list);
@@ -143,7 +149,7 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
     for (int64_t i = 0; i < len; i++) {
         int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
         if (x == -1 && PyErr_Occurred()) goto fail;
-        VALASSERT(x >= 0, "Negative indices not allowed: %zd", x)
+        if (x < 0) throw Error("Negative indices not allowed: %zd", x);
         if (data64) {
             data64[i] = x;
         } else if (x <= INT32_MAX) {
@@ -161,6 +167,7 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
     // Construct and return the RowIndex object
     return data32? py(new RowIndex(data32, len, 0))
                  : py(new RowIndex(data64, len, 0));
+  );
 
   fail:
     dtfree(data32);
@@ -178,6 +185,7 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
  */
 PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = NULL;
     if (!PyArg_ParseTuple(args, "O&:RowIndex.from_boolcolumn", &dt_unwrap, &dt))
         return NULL;
@@ -197,6 +205,7 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
         : RowIndex::from_boolcolumn(col, dt->nrows);
 
     return py(rowindex);
+  );
 }
 
 
@@ -207,6 +216,7 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
  */
 PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt = NULL;
     long target_nrows = 0;
     if (!PyArg_ParseTuple(args, "O&l:RowIndex.from_intcolumn",
@@ -234,6 +244,7 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
         return NULL;
     }
     return py(rowindex);
+  );
 }
 
 
@@ -245,7 +256,9 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
  */
 PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
 {
-    long long _fnptr, _nrows;
+  CATCH_EXCEPTIONS(
+    long long _fnptr;
+    long long _nrows;
     if (!PyArg_ParseTuple(args, "LL:RowIndex.from_filterfn",
                           &_fnptr, &_nrows))
         return NULL;
@@ -258,6 +271,7 @@ PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
         rowindex_filterfn64 *fnptr = (rowindex_filterfn64*)_fnptr;
         return py(RowIndex::from_filterfn64(fnptr, nrows, 0));
     }
+  );
 }
 
 
@@ -268,23 +282,27 @@ PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
  */
 PyObject* pyrowindex_from_function(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     long long _fnptr;
     if (!PyArg_ParseTuple(args, "L:RowIndex.from_function", &_fnptr))
         return NULL;
     rowindex_getterfn *fnptr = (rowindex_getterfn*) _fnptr;
     return py(fnptr());
+  );
 }
 
 
 
 PyObject* pyrowindex_uplift(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     RowIndex *ri;
     DataTable *dt;
     if (!PyArg_ParseTuple(args, "O&O&:RowIndex.uplift",
                           &rowindex_unwrap, &ri, &dt_unwrap, &dt))
         return NULL;
     return py(RowIndex::merge(dt->rowindex, ri));
+  );
 }
 
 
@@ -302,6 +320,7 @@ static void dealloc(RowIndex_PyObject *self)
 
 static PyObject* repr(RowIndex_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     RowIndex *ri = self->ref;
     if (ri == NULL)
         return PyUnicode_FromString("_RowIndex(NULL)");
@@ -316,14 +335,16 @@ static PyObject* repr(RowIndex_PyObject *self)
             ri->slice.start, ri->length, ri->slice.step);
     }
     return NULL;
+  );
 }
 
 
 static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
 {
-    if (!PyArg_ParseTuple(args, "")) return NULL;
-    RowIndex *ri = self->ref;
+  if (!PyArg_ParseTuple(args, "")) return NULL;
+  RowIndex *ri = self->ref;
 
+  CATCH_EXCEPTIONS(
     PyObject *list = PyList_New((Py_ssize_t) ri->length);
     switch (ri->type) {
         case RI_ARR32: {
@@ -350,13 +371,16 @@ static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
         }
     }
     return list;
+  );
 }
 
 
 static PyObject *getptr(RowIndex_PyObject *self, UU)
 {
+  CATCH_EXCEPTIONS(
     RowIndex *ri = self->ref;
     return PyLong_FromSize_t((size_t) ri);
+  );
 }
 
 

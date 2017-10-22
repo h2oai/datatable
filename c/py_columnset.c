@@ -39,19 +39,22 @@ int columnset_unwrap(PyObject *object, void *address) {
 
 PyObject* pycolumns_from_slice(UU, PyObject *args)
 {
-    DataTable *dt;
-    int64_t start, count, step;
+  DataTable *dt;
+  int64_t start, count, step;
+  CATCH_EXCEPTIONS(
     if (!PyArg_ParseTuple(args, "O&LLL:columns_from_slice",
                           &dt_unwrap, &dt, &start, &count, &step))
         return NULL;
 
     PyObject* res = py(columns_from_slice(dt, start, count, step));
     return res;
+  );
 }
 
 
 PyObject* pycolumns_from_array(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     DataTable *dt;
     PyObject *elems;
     if (!PyArg_ParseTuple(args, "O&O!:columns_from_slice",
@@ -68,11 +71,13 @@ PyObject* pycolumns_from_array(UU, PyObject *args)
 
     PyObject* res = py(columns_from_array(dt, indices, ncols));
     return res;
+  );
 }
 
 
 PyObject* pycolumns_from_mixed(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     PyObject *pyspec;
     DataTable *dt;
     long int nrows;
@@ -96,6 +101,7 @@ PyObject* pycolumns_from_mixed(UU, PyObject *args)
         }
     }
     return py(columns_from_mixed(spec, ncols, nrows, dt, fnptr));
+  );
   fail:
     return NULL;
 }
@@ -122,12 +128,14 @@ static void dealloc(ColumnSet_PyObject *self)
 
 static PyObject* repr(ColumnSet_PyObject *self)
 {
+  CATCH_EXCEPTIONS(
     Column **ptr = self->columns;
     if (ptr == NULL)
         return PyUnicode_FromString("_ColumnSet(NULL)");
     int ncols = 0;
     while (ptr[ncols]) ncols++;
     return PyUnicode_FromFormat("_ColumnSet(ncols=%d)", ncols);
+  );
 }
 
 

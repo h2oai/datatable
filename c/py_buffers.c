@@ -30,6 +30,7 @@ static char strB[] = "B";
  */
 PyObject* pydatatable_from_buffers(UU, PyObject *args)
 {
+  CATCH_EXCEPTIONS(
     PyObject *list = NULL;
 
     if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
@@ -111,6 +112,7 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
 
     DataTable *dt = new DataTable(columns);
     return pydt_from_dt(dt);
+  );
 }
 
 
@@ -193,8 +195,9 @@ Column* try_to_resolve_object_column(Column* col)
  */
 static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 {
+  Py_ssize_t *info = NULL;
+  try {
     Column *col = self->ref;
-    Py_ssize_t *info = NULL;
     size_t elemsize = stype_info[col->stype()].elemsize;
     dtmalloc_g(info, Py_ssize_t, 2);
 
@@ -231,6 +234,10 @@ static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
 
     Py_INCREF(self);
     return 0;
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    // fall-through
+  }
 
   fail:
     view->obj = NULL;
@@ -315,6 +322,7 @@ dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view, int flags)
 
 static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
 {
+  try {
     Py_ssize_t *info = NULL;
     DataTable *dt = self->ref;
     size_t ncols = (size_t) dt->ncols;
@@ -407,8 +415,12 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     view->internal = (void*) 3;
     Py_INCREF(self);
     return 0;
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    // fall-through into 'fail'
+  }
 
-    fail:
+  fail:
     view->obj = NULL;
     return -1;
 }

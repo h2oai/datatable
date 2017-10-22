@@ -38,9 +38,12 @@ MemoryBuffer::MemoryBuffer()
 
 // It is the job of a derived class to clean up the `buf`. Here we merely
 // check that the derived class did not forget to do so.
+// Note: it is possible to have `refcount > 0` here: this occurs only when the
+// destructor is called because the derived class' constructor has thrown an
+// exception.
 MemoryBuffer::~MemoryBuffer() {
   assert(buf == nullptr);
-  assert(refcount == 0);
+  // assert(refcount == 0);
 }
 
 void* MemoryBuffer::get() const {
@@ -277,7 +280,8 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
   }
   else {
     if (access(filename.c_str(), R_OK) == -1) {
-      throw Error("File cannot be opened");
+      throw Error("File %s cannot be accessed: %s",
+                  filename.c_str(), strerror(errno));
     }
     readonly = true;
   }
@@ -285,7 +289,8 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
   // Open the file and determine its size
   int fd = open(filename.c_str(), create? O_RDWR : O_RDONLY);
   if (fd == -1) {
-    throw Error("Cannot open file %s: %s", filename.c_str(), strerror(errno));
+    throw Error("Cannot open file %s: %s",
+                filename.c_str(), strerror(errno));
   }
   struct stat statbuf;
   int ret = fstat(fd, &statbuf);
