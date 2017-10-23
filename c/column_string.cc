@@ -318,6 +318,7 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
     }
     offp = offa;
   }
+  if (stats != nullptr) stats->reset();
 }
 
 template <typename T>
@@ -332,7 +333,7 @@ void StringColumn<T>::fill_na() {
 
 template <typename T>
 StringStats<T>* StringColumn<T>::get_stats() {
-  if (stats == nullptr) stats = new StringStats<T>(this);
+  if (stats == nullptr) stats = new StringStats<T>();
   return static_cast<StringStats<T>*>(stats);
 }
 

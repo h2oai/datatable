@@ -41,9 +41,9 @@ size_t Column::allocsize0(SType stype, int64_t nrows) {
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       ri(nullptr),
+      stats(nullptr),
       meta(nullptr),
-      nrows(nrows_),
-      stats(nullptr) {}
+      nrows(nrows_) {}
 
 
 Column* Column::new_column(SType stype) {
@@ -500,7 +500,7 @@ size_t Column::memory_footprint() const
 
 int64_t Column::countna() {
   Stats* s = get_stats();
-  if (!s->countna_computed()) s->compute_countna();
+  if (!s->countna_computed()) s->compute_countna(this);
   return s->_countna;
 }
 /**
@@ -514,8 +514,8 @@ Column* Column::max_column()     { return new_na_column(stype(), 1); }
 Column* Column::sum_column()     { return new_na_column(stype(), 1); }
 
 Column* Column::countna_column() {
-  Column* col = new_data_column(ST_INTEGER_I8, 1);
-  ((int64_t*) col->data())[0] = countna();
+  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
+  col->set_elem(0, countna());
   return col;
 }
 
@@ -628,13 +628,6 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   if (stats != nullptr) { // Stats are allowed to be null
     bool r = stats->verify_integrity(icc);
     if (!r) return false;
-
-    // Check that the Stats instance's column reference points to this instance
-    if (!(stats == nullptr || stats->column() == this)) {
-      icc << name << " is not linked properly with its stats: the back-reference "
-        << "to column in Stats object is " << stats->column() << ", while "
-        << "the Column instance is " << this << end;
-    }
   }
   return !icc.has_errors(nerrors);
 }

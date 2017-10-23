@@ -121,7 +121,6 @@ void DataTable::apply_na_mask(DataTable* maskdt)
       throw Error("Column %lld in mask is not of a boolean type", i);
     }
     Column *col = columns[i];
-    if (col->stats != nullptr) col->stats->reset();
     col->apply_na_mask(maskcol);
   }
 }

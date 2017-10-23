@@ -64,11 +64,11 @@ class Column
 protected:
   MemoryBuffer *mbuf;
   RowIndex *ri;
+  Stats  *stats;
 
 public:  // TODO: convert these into private
   void   *meta;        // 8
   int64_t nrows;       // 8
-  Stats  *stats;       // 8
 
 public:
   static Column* new_data_column(SType, int64_t nrows);
@@ -314,6 +314,7 @@ protected:
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Column") const override;
+  using Column::mbuf;
 };
 
 
@@ -354,7 +355,7 @@ protected:
   // void cast_into(StringColumn<int64_t>*) const;
 
   using Column::stats;
-  using Column::new_data_column;
+  using Column::mbuf;
 };
 
 template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;

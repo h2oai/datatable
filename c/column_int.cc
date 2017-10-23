@@ -32,7 +32,7 @@ SType IntColumn<T>::stype() const {
 
 template <typename T>
 IntegerStats<T>* IntColumn<T>::get_stats() {
-  if (stats == nullptr) stats = new IntegerStats<T>(this);
+  if (stats == nullptr) stats = new IntegerStats<T>();
   return static_cast<IntegerStats<T>*>(stats);
 }
 
@@ -40,35 +40,35 @@ IntegerStats<T>* IntColumn<T>::get_stats() {
 template <typename T>
 double IntColumn<T>::mean() {
   IntegerStats<T> *s = get_stats();
-  if (!s->mean_computed()) s->compute_mean();
+  if (!s->mean_computed()) s->compute_mean(this);
   return s->_mean;
 }
 
 template <typename T>
 double IntColumn<T>::sd() {
   IntegerStats<T> *s = get_stats();
-  if (!s->sd_computed()) s->compute_sd();
+  if (!s->sd_computed()) s->compute_sd(this);
   return s->_sd;
 }
 
 template <typename T>
 T IntColumn<T>::min() {
   IntegerStats<T> *s = get_stats();
-  if (!s->min_computed()) s->compute_min();
+  if (!s->min_computed()) s->compute_min(this);
   return s->_min;
 }
 
 template <typename T>
 T IntColumn<T>::max() {
   IntegerStats<T> *s = get_stats();
-  if (!s->max_computed()) s->compute_max();
+  if (!s->max_computed()) s->compute_max(this);
   return s->_max;
 }
 
 template <typename T>
 int64_t IntColumn<T>::sum() {
   IntegerStats<T> *s = get_stats();
-  if (!s->sum_computed()) s->compute_sum();
+  if (!s->sum_computed()) s->compute_sum(this);
   return s->_sum;
 }
 
@@ -76,36 +76,36 @@ int64_t IntColumn<T>::sum() {
 // Retrieve stat value as a column
 template <typename T>
 Column* IntColumn<T>::min_column() {
-  Column* col = new_data_column(stype(), 1);
-  ((T*) col->data())[0] = min();
+  IntColumn<T> *col = new IntColumn<T>(1);
+  col->set_elem(0, min());
   return col;
 }
 
 template <typename T>
 Column* IntColumn<T>::max_column() {
-  Column* col = new_data_column(stype(), 1);
-  ((T*) col->data())[0] = max();
+  IntColumn<T> *col = new IntColumn<T>(1);
+  col->set_elem(0, max());
   return col;
 }
 
 template <typename T>
 Column* IntColumn<T>::sum_column() {
-  Column* col = new_data_column(ST_INTEGER_I8, 1);
-  ((int64_t*) col->data())[0] = sum();
+  IntColumn<int64_t> *col = new IntColumn<int64_t>(1);
+  col->set_elem(0, sum());
   return col;
 }
 
 template <typename T>
 Column* IntColumn<T>::mean_column() {
-  Column* col = new_data_column(ST_REAL_F8, 1);
-  ((double*) col->data())[0] = mean();
+  RealColumn<double> *col = new RealColumn<double>(1);
+  col->set_elem(0, mean());
   return col;
 }
 
 template <typename T>
 Column* IntColumn<T>::sd_column() {
-  Column* col = new_data_column(ST_REAL_F8, 1);
-  ((double*) col->data())[0] = sd();
+  RealColumn<double> *col = new RealColumn<double>(1);
+  col->set_elem(0, sd());
   return col;
 }
 

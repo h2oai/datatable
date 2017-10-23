@@ -1,3 +1,19 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+
 /**
  * Standard deviation and mean computations are done using Welford's method.
  * (Source: https://www.johndcook.com/blog/standard_deviation)
@@ -13,26 +29,23 @@
 /**
  * The Stats class has an inheritance tree shown in the picture below.
  *
- * The Stats class itself is considered to be an 'invalid' class; it will always
- * return a NA value for any requested statistic.
- * All unimplemented STypes are currently associated with the Stats class.
- *
  * NumericalStats acts as a base class for all numerical STypes.
  * IntegerStats are used for I1I, I2I, I4I, and I8I.
  * BooleanStats are used for I1B.
  * RealStats are used for F4R and F8R.
+ * StringStats are used for I4S and I8S.
  *
- *                      +-------+
- *                      | Stats |
- *                      +-------+
- *                          |
- *                 +----------------+
- *                 | NumericalStats |
- *                 +----------------+
+ *                                +-------+
+ *                                | Stats |
+ *                                +-------+
+ *                                 /     \
+ *                 +----------------+   +-------------+
+ *                 | NumericalStats |   | StringStats |
+ *                 +----------------+   +-------------+
  *                   /           \
- *         +--------------+     +-----------+
- *         | IntegerStats |     | RealStats |
- *         +--------------+     +-----------+
+ *         +--------------+   +-----------+
+ *         | IntegerStats |   | RealStats |
+ *         +--------------+   +-----------+
  *              /
  *     +--------------+
  *     | BooleanStats |
@@ -84,6 +97,7 @@
        }                                                                       \
     }                                                                          \
 
+
 /**
  * The CStat enum is primarily used as a bit mask for checking if a statistic
  * has been computed. Note that the values of each CStat are not consecutive and
@@ -98,12 +112,12 @@ typedef enum CStat : uint64_t{
     C_COUNTNA = ((uint64_t) 1 << 5),
 } CStat;
 
+
 //==============================================================================
 // Stats
 //==============================================================================
 
-Stats::Stats(const Column* col) :
-  _ref_col(col),
+Stats::Stats() :
   compute_mask(0xFFFFFFFFFFFFFFFF),
   _countna(GETNA<int64_t>()) {
   compute_mask &= ~C_COUNTNA;
@@ -132,7 +146,6 @@ void Stats::merge_stats(const Stats*) {
 }
 
 
-
 /**
  * See DataTable::verify_integrity for method description
  */
@@ -144,11 +157,9 @@ bool Stats::verify_integrity(IntegrityCheckContext&,
 }
 
 
-
 //==============================================================================
 // NumericalStats
 //==============================================================================
-
 
 template <typename T, typename A>
 void NumericalStats<T, A>::reset() {
@@ -163,8 +174,8 @@ void NumericalStats<T, A>::reset() {
 
 
 template<typename T, typename A>
-NumericalStats<T, A>::NumericalStats(const Column *col) :
-  Stats(col),
+NumericalStats<T, A>::NumericalStats() :
+  Stats(),
   _mean(GETNA<double>()),
   _sd  (GETNA<double>()),
   _sum (GETNA<A>()),
@@ -176,22 +187,22 @@ NumericalStats<T, A>::NumericalStats(const Column *col) :
 
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_min() { compute_numerical_stats(); }
+void NumericalStats<T, A>::compute_min(const Column *col) { compute_numerical_stats(col); }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_max() { compute_numerical_stats(); }
+void NumericalStats<T, A>::compute_max(const Column *col) { compute_numerical_stats(col); }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_sum() { compute_numerical_stats(); }
+void NumericalStats<T, A>::compute_sum(const Column *col) { compute_numerical_stats(col); }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_mean() { compute_numerical_stats(); }
+void NumericalStats<T, A>::compute_mean(const Column *col) { compute_numerical_stats(col); }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_sd() { compute_numerical_stats(); }
+void NumericalStats<T, A>::compute_sd(const Column *col) { compute_numerical_stats(col); }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::compute_countna() { compute_numerical_stats(); }
+void NumericalStats<T, A>::compute_countna(const Column *col) { compute_numerical_stats(col); }
 
 
 template<typename T, typename A>
@@ -218,21 +229,20 @@ template<typename T, typename A>
 bool NumericalStats<T, A>::sum_computed() const {
   return ((compute_mask & C_SUM) != 0);
 }
-//---------------------------------------------------
 
 
 // This method should be compatible with all numerical STypes.
 template <typename T, typename A>
-void NumericalStats<T, A>::compute_numerical_stats() {
+void NumericalStats<T, A>::compute_numerical_stats(const Column *col) {
     T t_min = GETNA<T>();
     T t_max = GETNA<T>();
     A t_sum = 0;
     double t_mean = GETNA<double>();
     double t_var  = 0;
     int64_t t_count_notna = 0;
-    int64_t t_nrows = column()->nrows;
-    T *data = (T*) column()->data();
-    LOOP_OVER_ROWINDEX(i, t_nrows, column()->rowindex(),
+    int64_t t_nrows = col->nrows;
+    T *data = (T*) col->data();
+    LOOP_OVER_ROWINDEX(i, t_nrows, col->rowindex(),
         T val = data[i];
         if (ISNA(val)) continue;
         ++t_count_notna;
@@ -266,15 +276,15 @@ template class NumericalStats<int64_t, int64_t>;
 template class NumericalStats<float, double>;
 template class NumericalStats<double, double>;
 
+
 //==============================================================================
 // RealStats
 //==============================================================================
 
-
 // Adds a check for infinite/NaN mean and sd.
 template <typename T>
-void RealStats<T>::compute_numerical_stats() {
-    NumericalStats<T, double>::compute_numerical_stats();
+void RealStats<T>::compute_numerical_stats(const Column *col) {
+    NumericalStats<T, double>::compute_numerical_stats(col);
     if (isinf(this->_min) || isinf(this->_max)) {
         this->_sd = GETNA<double>();
         this->_mean = isinf(this->_min) && this->_min < 0 && isinf(this->_max) && this->_max > 0
@@ -297,15 +307,15 @@ template class IntegerStats<int64_t>;
 
 
 //==============================================================================
-// IntegerStats
+// BooleanStats
 //==============================================================================
 
-void BooleanStats::compute_numerical_stats() {
+void BooleanStats::compute_numerical_stats(const Column *col) {
     int64_t t_count0 = 0,
             t_count1 = 0;
-    int8_t *data = (int8_t*) column()->data();
-    int64_t nrows = column()->nrows;
-    LOOP_OVER_ROWINDEX(i, nrows, column()->rowindex(),
+    int8_t *data = (int8_t*) col->data();
+    int64_t nrows = col->nrows;
+    LOOP_OVER_ROWINDEX(i, nrows, col->rowindex(),
         switch (data[i]) {
             case 0 :
                 ++t_count0;
@@ -330,9 +340,14 @@ void BooleanStats::compute_numerical_stats() {
     compute_mask |= C_MIN | C_MAX | C_SUM | C_MEAN | C_SD | C_COUNTNA;
 }
 
+
+//==============================================================================
+// StringStats
+//==============================================================================
+
 template <typename T>
-StringStats<T>::StringStats(const Column *col) :
-  Stats(col) {}
+StringStats<T>::StringStats() :
+  Stats() {}
 
 
 template <typename T>
@@ -341,12 +356,12 @@ void StringStats<T>::reset() {
 }
 
 template <typename T>
-void StringStats<T>::compute_countna() {
-  const StringColumn<T>* col = static_cast<const StringColumn<T>*>(column());
-  int64_t nrows = col->nrows;
+void StringStats<T>::compute_countna(const Column *col) {
+  const StringColumn<T> *scol = static_cast<const StringColumn<T>*>(col);
+  int64_t nrows = scol->nrows;
   int64_t t_countna = 0;
-  T *data = col->offsets();
-  LOOP_OVER_ROWINDEX(i, nrows, col->rowindex(),
+  T *data = scol->offsets();
+  LOOP_OVER_ROWINDEX(i, nrows, scol->rowindex(),
       t_countna += data[i] < 0;
   )
   _countna = t_countna;
@@ -356,50 +371,5 @@ void StringStats<T>::compute_countna() {
 template class StringStats<int32_t>;
 template class StringStats<int64_t>;
 
-//==============================================================================
-// Helper Functions
-//==============================================================================
 
-/**
- * Initialize a Stats structure
- */
-/*Stats* Stats::construct(const Column *col) {
-    if (col == nullptr) return new Stats(nullptr);
-    switch(col->stype()) {
-    case ST_BOOLEAN_I1:
-        return new BooleanStats(col);
-    case ST_INTEGER_I1:
-        return new IntegerStats<int8_t>(col);
-    case ST_INTEGER_I2:
-        return new IntegerStats<int16_t>(col);
-    case ST_INTEGER_I4:
-        return new IntegerStats<int32_t>(col);
-    case ST_INTEGER_I8:
-        return new IntegerStats<int64_t>(col);
-    case ST_REAL_F4:
-        return new RealStats<float>(col);
-    case ST_REAL_F8:
-        return new RealStats<double>(col);
-    default:
-        return new Stats(col);
-    }
-}*/
-
-
-
-/**
- * Create a column that contains a single NA value.
- */
-/*Column* make_na_stat_column(SType stype) {
-    Column *out = Column::new_data_column(stype, 1);
-    const void *val = stype_info[stype].na;
-    if (!val)
-        memset(out->data(), 0xFF, out->alloc_size());
-    else
-        memcpy(out->data(), val, stype_info[stype].elemsize);
-    return out;
-}*/
-
-
-void init_stats(void) {
-}
+void init_stats(void) {}

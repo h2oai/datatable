@@ -167,6 +167,7 @@ void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
   for (int64_t j = 0; j < nrows; ++j) {
     if (maskdata[j] == 1) coldata[j] = na;
   }
+  if (stats != nullptr) stats->reset();
 }
 
 template <typename T>

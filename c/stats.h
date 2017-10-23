@@ -1,3 +1,19 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+
 #ifndef dt_STATS_H
 #define dt_STATS_H
 #include <stddef.h>
@@ -27,18 +43,15 @@ class Column;
  * statistic.
  */
 class Stats {
-private:
-  const Column* _ref_col;
 protected:
   uint64_t compute_mask;
 public:
   int64_t _countna;
 
-  Stats(const Column*);
+  Stats();
   virtual ~Stats();
-  virtual void compute_countna() {}
+  virtual void compute_countna(const Column*) = 0;
   bool countna_computed() const;
-  inline const Column* column() const { return _ref_col; }
 
   virtual void reset();
   size_t alloc_size() const;
@@ -68,19 +81,19 @@ public:
   T _min;
   T _max;
   int64_t : ((sizeof(A) + (sizeof(T) * 2) * 7) % 8) * 8;
-  NumericalStats(const Column*);
+  NumericalStats();
   void reset() override;
 
   /**
    * The `compute_stat` methods will compute the value of a statistic
    * regardless if it has been flagged as computed or not.
    */
-  void compute_mean();
-  void compute_sd();
-  void compute_min();
-  void compute_max();
-  void compute_sum();
-  void compute_countna() override;
+  void compute_mean(const Column*);
+  void compute_sd(const Column*);
+  void compute_min(const Column*);
+  void compute_max(const Column*);
+  void compute_sum(const Column*);
+  void compute_countna(const Column*) override;
 
   bool mean_computed() const;
   bool sd_computed() const;
@@ -90,7 +103,7 @@ public:
 
 protected:
   // Helper method that computes min, max, sum, mean, sd, and countna
-  virtual void compute_numerical_stats();
+  virtual void compute_numerical_stats(const Column*);
 };
 
 extern template class NumericalStats<int8_t, int64_t>;
@@ -107,10 +120,9 @@ extern template class NumericalStats<double, double>;
 template <typename T>
 class RealStats : public NumericalStats<T, double> {
 public:
-    RealStats(const Column* col) :
-        NumericalStats<T, double>(col) {}
+    RealStats() : NumericalStats<T, double>() {}
 protected:
-    void compute_numerical_stats() override;
+    void compute_numerical_stats(const Column*) override;
 };
 
 extern template class RealStats<float>;
@@ -124,8 +136,7 @@ extern template class RealStats<double>;
 template <typename T>
 class IntegerStats : public NumericalStats<T, int64_t> {
 public:
-  IntegerStats(const Column *col) :
-      NumericalStats<T, int64_t>(col) {}
+  IntegerStats() : NumericalStats<T, int64_t>() {}
 };
 
 extern template class IntegerStats<int8_t>;
@@ -140,9 +151,9 @@ extern template class IntegerStats<int64_t>;
  */
 class BooleanStats : public NumericalStats<int8_t, int64_t> {
 public:
-  BooleanStats(const Column* col) : NumericalStats(col) {}
+  BooleanStats() : NumericalStats<int8_t, int64_t>() {}
 protected:
-  void compute_numerical_stats() override;
+  void compute_numerical_stats(const Column *col) override;
 };
 
 
@@ -153,9 +164,9 @@ protected:
 template <typename T>
 class StringStats : public Stats {
 public:
-  StringStats(const Column *col);
+  StringStats();
   void reset() override;
-  void compute_countna() override;
+  void compute_countna(const Column*) override;
 };
 
 extern template class StringStats<int32_t>;
