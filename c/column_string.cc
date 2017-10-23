@@ -131,6 +131,121 @@ T* StringColumn<T>::offsets() const {
 }
 
 
+template <typename T>
+void StringColumn<T>::reify() {
+  // If our rowindex is null, then we're already done
+  if (ri == nullptr) return;
+
+  size_t offoff = static_cast<size_t>(static_cast<VarcharMeta*>(meta)->offoff);
+  size_t new_mbuf_size = 0;
+  MemoryBuffer *new_mbuf = mbuf;
+
+  if (ri->type == RI_SLICE && ri->slice.step == 1) {
+    size_t start = static_cast<size_t>(ri->slice.start);
+    T *offs = offsets() + start;
+    T off0 = abs(*(offs - 1));
+    T off1 = abs(*(offs + nrows - 1));
+    size_t datasize = static_cast<size_t>(off1 - off0);
+    size_t offset_size = static_cast<size_t>(nrows) * sizeof(T);
+    size_t pad_size = padding(datasize);
+    offoff = datasize + pad_size;
+    new_mbuf_size = offoff + offset_size;
+    if (mbuf->is_readonly()) {
+      new_mbuf = new MemoryMemBuf(offoff + offset_size);
+    }
+    memcpy(new_mbuf->get(), strdata() + off0, datasize);
+    memset(new_mbuf->at(datasize), 0xFF, pad_size);
+    T* data_dest = static_cast<T*>(new_mbuf->at(offoff));
+    if (off0 > 0) --off0;
+    for (int64_t i = 0; i < nrows; ++i) {
+      data_dest[i] = offs[i] > 0 ? offs[i] - off0 : offs[i] + off0;
+    }
+  } else if (ri->type == RI_SLICE && ri->slice.step > 0 && mbuf->is_readonly()) {
+    // Special case: We can still do this in-place
+    T start = static_cast<T>(ri->slice.start);
+    T *offs1 = offsets();
+    T *offs0 = offs1 - 1;
+    char *strs = strdata();
+    char *data_dest = static_cast<char*>(new_mbuf->get());
+    T nrows_cast = static_cast<T>(nrows);
+    for (T i = 0, j = start; i < nrows_cast; ++i) {
+      if (offs1[j] > 0) {
+        T off0 = abs(offs0[j]);
+        T str_len = offs1[j] - off0;
+        if (str_len != 0) {
+          memcpy(data_dest, strs + off0, static_cast<size_t>(str_len));
+          data_dest += str_len;
+        }
+      }
+    }
+    size_t datasize = static_cast<size_t>(
+        data_dest - static_cast<char*>(new_mbuf->get()));
+    size_t pad_size = padding(datasize);
+    offoff = datasize + pad_size;
+    new_mbuf_size = offoff + static_cast<size_t>(nrows) * sizeof(T);
+    T *new_offs = static_cast<T*>(new_mbuf->at(offoff));
+    T prev_off = 1;
+    for (T i = 0, j = start; i < nrows_cast; ++i) {
+      if (offs1[j] > 0) {
+        T off0 = abs(offs0[j]);
+        prev_off += offs1[j] - off0;
+        new_offs[i] = prev_off;
+      } else {
+          new_offs[i] = -prev_off;
+      }
+    }
+    memset(new_mbuf->at(datasize), 0xFF, pad_size);
+  } else {
+    // We have to make a copy otherwise :(
+    T *offs1 = offsets();
+    T *offs0 = offs1 - 1;
+    T datasize_cast = 0;
+    DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
+      if (offs1[i] > 0) {
+        datasize_cast += offs1[i] - abs(offs0[i]);
+      }
+    )
+    size_t datasize = static_cast<size_t>(datasize_cast);
+    size_t pad_size = padding(datasize);
+    offoff = datasize + pad_size;
+    new_mbuf_size = offoff + static_cast<size_t>(nrows) * sizeof(T);
+    new_mbuf = new MemoryMemBuf(new_mbuf_size);
+    T *new_offs = static_cast<T*>(new_mbuf->at(offoff));
+    char *strs = strdata();
+    char *data_dest = static_cast<char*>(new_mbuf->get());
+    T prev_off = 1;
+    DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
+      if (offs1[i] > 0) {
+        T off0 = abs(offs0[i]);
+        T str_len = offs1[i] - off0;
+        if (str_len != 0) {
+          memcpy(data_dest, strs + off0, static_cast<size_t>(str_len));
+          data_dest += str_len;
+          prev_off += str_len;
+        }
+        *new_offs = prev_off;
+        ++new_offs;
+      } else {
+        *new_offs = -prev_off;
+        ++new_offs;
+      }
+        for (size_t q = 0; q < new_mbuf_size; ++q) {
+    }
+    )
+    memset(new_mbuf->at(datasize), 0xFF, pad_size);
+  }
+
+  if (new_mbuf == mbuf) {
+    mbuf->resize(new_mbuf_size);
+  } else {
+    mbuf->release();
+    mbuf = new_mbuf;
+  }
+  static_cast<VarcharMeta*>(meta)->offoff = static_cast<int64_t>(offoff);
+  ri->release();
+  ri = nullptr;
+}
+
 
 template <typename T>
 Column* StringColumn<T>::extract_simple_slice(RowIndex*) const {

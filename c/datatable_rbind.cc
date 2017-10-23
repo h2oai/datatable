@@ -40,8 +40,10 @@ DataTable* DataTable::rbind(DataTable **dts, int **cols, int ndts,
     for (int64_t i = 0; i < new_ncols; ++i) {
         for (size_t j = 0; j < undts; ++j) {
             int k = cols[i][j];
-            cols_to_append[j] = k < 0 ? new VoidColumn(dts[j]->nrows)
-                                      : dts[j]->columns[k]->extract();
+            Column* col = k < 0 ? new VoidColumn(dts[j]->nrows)
+                                      : dts[j]->columns[k]->shallowcopy();
+            col->reify();
+            cols_to_append[j] = col;
         }
         columns[i] = columns[i]->rbind(cols_to_append);
     }

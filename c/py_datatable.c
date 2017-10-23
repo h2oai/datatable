@@ -451,8 +451,9 @@ static PyObject* meth_materialize(DataTable_PyObject *self, PyObject *args)
     Column **cols = NULL;
     dtmalloc(cols, Column*, dt->ncols + 1);
     for (int64_t i = 0; i < dt->ncols; ++i) {
-        cols[i] = dt->columns[i]->extract();
+        cols[i] = dt->columns[i]->shallowcopy();
         if (cols[i] == NULL) return NULL;
+        cols[i]->reify();
     }
     cols[dt->ncols] = NULL;
 

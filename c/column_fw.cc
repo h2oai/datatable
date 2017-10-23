@@ -75,6 +75,49 @@ void FwColumn<T>::set_elem(int64_t i, T value) {
 
 
 template <typename T>
+void FwColumn<T>::reify() {
+  // If our rowindex is null, then we're already done
+  if (ri == nullptr) return;
+
+  size_t elemsize = sizeof(T);
+  size_t nrows_cast = static_cast<size_t>(nrows);
+  size_t new_mbuf_size = elemsize * nrows_cast;
+
+  MemoryBuffer* new_mbuf = mbuf;
+  if (mbuf->is_readonly())
+    new_mbuf = new MemoryMemBuf(new_mbuf_size);
+
+  if (ri->type == RI_SLICE && ri->slice.step == 1) {
+    memcpy(new_mbuf->get(), mbuf->at(ri->slice.start), sizeof(T) * nrows_cast);
+  } else if (ri->type == RI_SLICE && ri->slice.step > 0) {
+    int64_t step = ri->slice.step;
+    T* data_src = elements();
+    T* data_dest = static_cast<T*>(new_mbuf->get());
+    for (int64_t i = 0, j = ri->slice.start; i < nrows; ++i, j += step) {
+      data_dest[i] = data_src[j];
+    }
+  } else {
+    // Can't safely resize memory buffer in place :(
+    if (mbuf == new_mbuf) new_mbuf = new MemoryMemBuf(new_mbuf_size);
+    T* data_src = elements();
+    T* data_dest = static_cast<T*>(new_mbuf->get());
+    DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
+        *(data_dest++) = data_src[i];
+    )
+  }
+
+  if (mbuf == new_mbuf) {
+    new_mbuf->resize(new_mbuf_size);
+  } else {
+    mbuf->release();
+    mbuf = new_mbuf;
+  }
+  ri->release();
+  ri = nullptr;
+}
+
+
+template <typename T>
 Column* FwColumn<T>::extract_simple_slice(RowIndex* rowindex) const
 {
   int64_t res_nrows = rowindex->length;
