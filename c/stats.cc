@@ -39,11 +39,10 @@
  *     +--------------+
  */
 #include <cmath>
-#include <stats.h>
 #include "utils.h"
+#include "stats.h"
 #include "column.h"
 #include "rowindex.h"
-#include "datatable_check.h"
 
 /**
  * Macro to get column indices based on a RowIndex `RI`.
@@ -90,57 +89,36 @@
  * has been computed. Note that the values of each CStat are not consecutive and
  * therefore should not be used for array maps.
  */
-typedef uint64_t stat_cinfo;
-typedef enum CStat : stat_cinfo {
-    C_MIN      = ((stat_cinfo) 1 << 0),
-    C_MAX      = ((stat_cinfo) 1 << 1),
-    C_SUM      = ((stat_cinfo) 1 << 2),
-    C_MEAN     = ((stat_cinfo) 1 << 3),
-    C_STD_DEV  = ((stat_cinfo) 1 << 4),
-    C_COUNT_NA = ((stat_cinfo) 1 << 5),
+typedef enum CStat : uint64_t{
+    C_MIN      = ((uint64_t) 1 << 0),
+    C_MAX      = ((uint64_t) 1 << 1),
+    C_SUM      = ((uint64_t) 1 << 2),
+    C_MEAN     = ((uint64_t) 1 << 3),
+    C_SD  = ((uint64_t) 1 << 4),
+    C_COUNTNA = ((uint64_t) 1 << 5),
 } CStat;
-
-/**
- * VOID_PTR acts as the "null" Stats instance to which all Stats pointers should
- * refer instead of NULL. This is so that a NULL check is not needed for every
- * Stats method call.
- **/
-static Stats* VOID_PTR;
-
-/**
- * Determines if a CStat is available for retrieval. If false, the CStat should
- * be computed before exposing. Note that all invalid CStats are considered to
- * be "computed" since their values are known to be NA.
- */
-static bool is_computed(const stat_cinfo, const CStat);
-
-/**
- * Helper function that makes a single-row column with a NA value.
- */
-static Column* make_na_stat_column(SType);
-
 
 //==============================================================================
 // Stats
 //==============================================================================
 
-Stats::Stats(Column* col) :
-    _mean(GETNA<double>()),
-    _sd(GETNA<double>()),
-    _countna(GETNA<int64_t>()),
-    _ref_col(col) {
+Stats::Stats(const Column* col) :
+  _ref_col(col),
+  compute_mask(0xFFFFFFFFFFFFFFFF),
+  _countna(GETNA<int64_t>()) {
+  compute_mask &= ~C_COUNTNA;
 }
-
 
 Stats::~Stats() {}
 
 
-bool Stats::is_void() const { return this == VOID_PTR; }
-
-
 void Stats::reset() {
-    _mean = _sd = GETNA<double>();
-    _countna = GETNA<int64_t>();
+  compute_mask = 0xFFFFFFFFFFFFFFFF;
+  compute_mask &= ~C_COUNTNA;
+}
+
+bool Stats::countna_computed() const {
+  return ((compute_mask & C_COUNTNA) != 0);
 }
 
 
@@ -149,120 +127,11 @@ size_t Stats::alloc_size() const {
 }
 
 
-// TODO: Implement in child classes
-void Stats::merge_stats(const Stats*) {}
-
-
-//------------------ Get Stat Value ------------------
-double  Stats::mean()     { return _mean; }
-double  Stats::sd()       { return _sd; }
-int64_t Stats::countna() { return _countna; }
-
-/** virtual template methods are not allowed in C++,
- * so these functions act as wrappers to the virtual
- * method `stat_raw()`. The methods below attempt to
- * cast the void pointer returned by `stat_raw()` to
- * the specified template type.
- */
-template <typename T> T Stats::min() {
-    T* val = (T*) min_raw();
-    return val ? *val : GETNA<T>();
+// TODO: implement
+void Stats::merge_stats(const Stats*) {
 }
 
-template <typename T> T Stats::max() {
-    T* val = (T*) max_raw();
-    return val ? *val : GETNA<T>();
-}
 
-template <typename A> A Stats::sum() {
-    A* val = (A*) sum_raw();
-    return val ? *val : GETNA<A>();
-}
-//----------------------------------------------------
-
-
-/**
- * The `stat_raw()` methods return a reference to the value of the statistic
- * as a void pointer. See the description of the template `stat()` methods for
- * information.
- */
-void* Stats::min_raw() { return nullptr; }
-void* Stats::max_raw() { return nullptr; }
-void* Stats::sum_raw() { return nullptr; }
-
-
-//----------- Get Stat Value as a Column ------------
-Column* Stats::mean_column() {
-    Column *out = Column::new_data_column(ST_REAL_F8, 1);
-    *((double*)(out->data())) = mean();
-    return out;
-}
-
-Column* Stats::sd_column() {
-    Column *out = Column::new_data_column(ST_REAL_F8, 1);
-    *((double*)(out->data())) = sd();
-    return out;
-}
-
-Column* Stats::countna_column() {
-    Column *out = Column::new_data_column(ST_INTEGER_I8, 1);
-    *((int64_t*)(out->data())) = countna();
-    return out;
-}
-
-Column* Stats::min_column() {
-    return make_na_stat_column(_ref_col->stype());
-}
-
-Column* Stats::max_column() {
-    return make_na_stat_column(_ref_col->stype());
-}
-
-Column* Stats::sum_column() {
-    return make_na_stat_column(_ref_col->stype());
-}
-//---------------------------------------------------
-
-
-//------------------------------- Static Methods -------------------------------
-
-Stats* Stats::void_ptr() { return VOID_PTR; }
-
-
-/**
- * Macro to define the static `stat_datatable()` methods. The `STAT` parameter
- * is the name of the statistic; exactly how it is named in the
- * `stat_datatable()` method.
- */
-
-
-#define STAT_DATATABLE(STAT)                                                   \
-    DataTable* Stats:: STAT ## _datatable(const DataTable* dt) {               \
-        Column** cols = dt->columns;                                           \
-        Column** out_cols = nullptr;                                           \
-        dtmalloc(out_cols, Column*, (size_t) (dt->ncols + 1));                 \
-        if (true) {                                                            \
-        for (int64_t i = 0; i < dt->ncols; ++i) {                              \
-            Column* col = cols[i];                                             \
-            if (col->stats->is_void()) {                                       \
-                col->stats = construct(col);                                   \
-            }                                                                  \
-            out_cols[i] = col->stats-> STAT ## _column();                      \
-        } }                                                                    \
-        out_cols[dt->ncols] = nullptr;                                         \
-        return new DataTable(out_cols);                                        \
-    }
-
-STAT_DATATABLE(mean)
-STAT_DATATABLE(sd)
-STAT_DATATABLE(countna)
-STAT_DATATABLE(min)
-STAT_DATATABLE(max)
-STAT_DATATABLE(sum)
-
-#undef STAT_DATATABLE
-
-//------------------------------------------------------------------------------
 
 /**
  * See DataTable::verify_integrity for method description
@@ -279,109 +148,77 @@ bool Stats::verify_integrity(IntegrityCheckContext&,
 //==============================================================================
 // NumericalStats
 //==============================================================================
-/**
- * Base class for all numerical STypes. Two template types are used:
- *     T - The type for all statistics containing a value from `_ref_col`
- *         (e.g. min, max). Naturally, `T` should be compatible with `_ref_col`s
- *         SType.
- *     A - The type for all aggregate statistics whose type is dependent on `T`
- *         (e.g. sum).
- * This class itself is not compatible with any SType; one of its children
- * should be used instead.
- */
-template <typename T, typename A>
-class NumericalStats : public Stats {
-public:
-    NumericalStats(Column*);
-    double  mean()    override final { compute_cstat(C_MEAN);     return _mean; }
-    double  sd()      override final { compute_cstat(C_STD_DEV);  return _sd; }
-    int64_t countna() override final { compute_cstat(C_COUNT_NA); return _countna; }
-    void reset() override final;
-protected:
-    A _sum;
-    T _min;
-    T _max;
-    int8_t _padding[8 - ((sizeof(T) * 2) % 8)];
-    stat_cinfo _computed;
-
-    Column* min_column() override final;
-    Column* max_column() override final;
-    Column* sum_column() override final;
-
-    void* min_raw() override final { compute_cstat(C_MIN); return &_min; }
-    void* max_raw() override final { compute_cstat(C_MAX); return &_max; }
-    void* sum_raw() override final { compute_cstat(C_SUM); return &_sum; }
-
-    // Helper method to call the appropriate computation function for each CStat
-    // (currently there is only one)
-    void compute_cstat(const CStat);
-
-    // There is no need for `stype_T()` since it should be equivalent to
-    // `_ref_col->stype`
-    virtual SType stype_A() { return ST_VOID; }
-
-    // Computes min, max, sum, mean, sd, and countna
-    virtual void compute_numerical_stats();
-};
 
 
 template <typename T, typename A>
 void NumericalStats<T, A>::reset() {
-    Stats::reset();
-    _min = GETNA<T>();
-    _max = GETNA<T>();
-    _sum = GETNA<A>();
-    _computed = ~((stat_cinfo) 0 | C_MIN | C_MAX | C_SUM | C_MEAN | C_STD_DEV | C_COUNT_NA);
+  Stats::reset();
+  _min     = GETNA<T>();
+  _max     = GETNA<T>();
+  _sum     = GETNA<A>();
+  _mean    = GETNA<double>();
+  _sd      = GETNA<double>();
+  compute_mask &= ~(C_MIN | C_MAX | C_SUM | C_MEAN | C_SD);
 }
 
 
 template<typename T, typename A>
-NumericalStats<T, A>::NumericalStats(Column *col) :
-    Stats(col) {
-    _min = GETNA<T>();
-    _max = GETNA<T>();
-    _sum = GETNA<A>();
-    _computed = ~((stat_cinfo) 0 | C_MIN | C_MAX | C_SUM | C_MEAN | C_STD_DEV | C_COUNT_NA);
+NumericalStats<T, A>::NumericalStats(const Column *col) :
+  Stats(col),
+  _mean(GETNA<double>()),
+  _sd  (GETNA<double>()),
+  _sum (GETNA<A>()),
+  _min (GETNA<T>()),
+  _max (GETNA<T>())
+  {
+  compute_mask &= ~(C_MIN | C_MAX | C_SUM | C_MEAN | C_SD);
 }
 
 
-//-------------- Get Stat as a Column ---------------
-template <typename T, typename A>
-Column* NumericalStats<T, A>::min_column() {
-    const SType stype = _ref_col->stype();
-    if (stype == ST_VOID) return nullptr;
-    Column* out = Column::new_data_column(stype, 1);
-    *((T*)(out->data())) = min<T>();
-    return out;
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_min() { compute_numerical_stats(); }
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_max() { compute_numerical_stats(); }
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_sum() { compute_numerical_stats(); }
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_mean() { compute_numerical_stats(); }
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_sd() { compute_numerical_stats(); }
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_countna() { compute_numerical_stats(); }
+
+
+template<typename T, typename A>
+bool NumericalStats<T, A>::mean_computed() const {
+  return ((compute_mask & C_MEAN) != 0);
 }
 
-template <typename T, typename A>
-Column* NumericalStats<T, A>::max_column() {
-    const SType stype = _ref_col->stype();
-    if (stype == ST_VOID) return nullptr;
-    Column* out = Column::new_data_column(stype, 1);
-    *((T*)(out->data())) = max<T>();
-    return out;
+template<typename T, typename A>
+bool NumericalStats<T, A>::sd_computed() const {
+  return ((compute_mask & C_SD) != 0);
 }
 
-template <typename T, typename A>
-Column* NumericalStats<T, A>::sum_column() {
-    SType stype = stype_A();
-    if (stype == ST_VOID) return nullptr;
-    Column* out = Column::new_data_column(stype, 1);
-    *((A*)(out->data())) = sum<A>();
-    return out;
+template<typename T, typename A>
+bool NumericalStats<T, A>::min_computed() const {
+  return ((compute_mask & C_MIN) != 0);
+}
+
+template<typename T, typename A>
+bool NumericalStats<T, A>::max_computed() const {
+  return ((compute_mask & C_MAX) != 0);
+}
+
+template<typename T, typename A>
+bool NumericalStats<T, A>::sum_computed() const {
+  return ((compute_mask & C_SUM) != 0);
 }
 //---------------------------------------------------
-
-
-// Pretty redundant now, but will be more useful when categorical stats are
-// implemented
-template <typename T, typename A>
-void NumericalStats<T, A>::compute_cstat(const CStat cstat) {
-    if (is_computed(_computed, cstat)) return;
-    compute_numerical_stats();
-}
 
 
 // This method should be compatible with all numerical STypes.
@@ -393,9 +230,9 @@ void NumericalStats<T, A>::compute_numerical_stats() {
     double t_mean = GETNA<double>();
     double t_var  = 0;
     int64_t t_count_notna = 0;
-    int64_t t_nrows = _ref_col->nrows;
-    T *data = (T*) _ref_col->data();
-    LOOP_OVER_ROWINDEX(i, t_nrows, _ref_col->rowindex(),
+    int64_t t_nrows = column()->nrows;
+    T *data = (T*) column()->data();
+    LOOP_OVER_ROWINDEX(i, t_nrows, column()->rowindex(),
         T val = data[i];
         if (ISNA(val)) continue;
         ++t_count_notna;
@@ -419,34 +256,25 @@ void NumericalStats<T, A>::compute_numerical_stats() {
     _sd = t_count_notna > 1 ? sqrt(t_var / (t_count_notna - 1)) :
             t_count_notna == 1 ? 0 : GETNA<double>();
     _countna = t_nrows - t_count_notna;
-    _computed |= C_MIN | C_MAX | C_SUM |
-            C_MEAN | C_STD_DEV | C_COUNT_NA;
+    compute_mask |= C_MIN | C_MAX | C_SUM | C_MEAN | C_SD | C_COUNTNA;
 }
 
+template class NumericalStats<int8_t, int64_t>;
+template class NumericalStats<int16_t, int64_t>;
+template class NumericalStats<int32_t, int64_t>;
+template class NumericalStats<int64_t, int64_t>;
+template class NumericalStats<float, double>;
+template class NumericalStats<double, double>;
 
 //==============================================================================
 // RealStats
 //==============================================================================
-/**
- * Child of NumericalStats that defaults `A` to a double. `T` should be a float
- * or double.
- */
-template <typename T>
-class RealStats : public NumericalStats<T, double> {
-public:
-    RealStats(Column* col) :
-        NumericalStats<T, double>(col) {}
-protected:
-    SType stype_A() override final { return ST_REAL_F8; }
-    void compute_numerical_stats() override;
-};
 
 
 // Adds a check for infinite/NaN mean and sd.
 template <typename T>
 void RealStats<T>::compute_numerical_stats() {
     NumericalStats<T, double>::compute_numerical_stats();
-    // The this pointer is required here. Not sure why.
     if (isinf(this->_min) || isinf(this->_max)) {
         this->_sd = GETNA<double>();
         this->_mean = isinf(this->_min) && this->_min < 0 && isinf(this->_max) && this->_max > 0
@@ -454,46 +282,30 @@ void RealStats<T>::compute_numerical_stats() {
     }
 }
 
+template class RealStats<float>;
+template class RealStats<double>;
+
 
 //==============================================================================
 // IntegerStats
 //==============================================================================
-/**
- * Child of NumericalStats that defaults `A` to int64_t. `T` should be an
- * integer type.
- */
-template <typename T>
-class IntegerStats : public NumericalStats<T, int64_t> {
-public:
-    IntegerStats(Column *col) :
-        NumericalStats<T, int64_t>(col) {}
-protected:
-    SType stype_A() override final { return ST_INTEGER_I8; }
-};
+
+template class IntegerStats<int8_t>;
+template class IntegerStats<int16_t>;
+template class IntegerStats<int32_t>;
+template class IntegerStats<int64_t>;
 
 
 //==============================================================================
-// BooleanStats
+// IntegerStats
 //==============================================================================
-/**
- * Child of IntegerStats that defaults `T` to int8_t.
- * `compute_numerical_stats()` is optimized since a boolean SType should only
- * have 3 values (true, false, NA).
- */
-class BooleanStats : public IntegerStats<int8_t> {
-public:
-    BooleanStats(Column* col) :
-        IntegerStats(col) {}
-protected:
-    void compute_numerical_stats() override;
-};
 
 void BooleanStats::compute_numerical_stats() {
     int64_t t_count0 = 0,
             t_count1 = 0;
-    int8_t *data = (int8_t*) _ref_col->data();
-    int64_t nrows = _ref_col->nrows;
-    LOOP_OVER_ROWINDEX(i, nrows, _ref_col->rowindex(),
+    int8_t *data = (int8_t*) column()->data();
+    int64_t nrows = column()->nrows;
+    LOOP_OVER_ROWINDEX(i, nrows, column()->rowindex(),
         switch (data[i]) {
             case 0 :
                 ++t_count0;
@@ -515,9 +327,34 @@ void BooleanStats::compute_numerical_stats() {
     _max = !ISNA<int8_t>(_min) ? t_count1 > 0 : GETNA<int8_t>();
     _sum = t_count1;
     _countna = nrows - t_count;
-    _computed |= C_MIN | C_MAX | C_COUNT_NA | C_SUM | C_MEAN | C_STD_DEV;
+    compute_mask |= C_MIN | C_MAX | C_SUM | C_MEAN | C_SD | C_COUNTNA;
 }
 
+template <typename T>
+StringStats<T>::StringStats(const Column *col) :
+  Stats(col) {}
+
+
+template <typename T>
+void StringStats<T>::reset() {
+  Stats::reset();
+}
+
+template <typename T>
+void StringStats<T>::compute_countna() {
+  const StringColumn<T>* col = static_cast<const StringColumn<T>*>(column());
+  int64_t nrows = col->nrows;
+  int64_t t_countna = 0;
+  T *data = col->offsets();
+  LOOP_OVER_ROWINDEX(i, nrows, col->rowindex(),
+      t_countna += data[i] < 0;
+  )
+  _countna = t_countna;
+  compute_mask |= C_COUNTNA;
+}
+
+template class StringStats<int32_t>;
+template class StringStats<int64_t>;
 
 //==============================================================================
 // Helper Functions
@@ -526,7 +363,7 @@ void BooleanStats::compute_numerical_stats() {
 /**
  * Initialize a Stats structure
  */
-Stats* Stats::construct(Column *col) {
+/*Stats* Stats::construct(const Column *col) {
     if (col == nullptr) return new Stats(nullptr);
     switch(col->stype()) {
     case ST_BOOLEAN_I1:
@@ -546,21 +383,14 @@ Stats* Stats::construct(Column *col) {
     default:
         return new Stats(col);
     }
-}
+}*/
 
-
-/**
- * Destroy a Stats structure
- */
-void Stats::destruct(Stats* self) {
-    if (self != VOID_PTR) delete self;
-}
 
 
 /**
  * Create a column that contains a single NA value.
  */
-Column* make_na_stat_column(SType stype) {
+/*Column* make_na_stat_column(SType stype) {
     Column *out = Column::new_data_column(stype, 1);
     const void *val = stype_info[stype].na;
     if (!val)
@@ -568,18 +398,8 @@ Column* make_na_stat_column(SType stype) {
     else
         memcpy(out->data(), val, stype_info[stype].elemsize);
     return out;
-}
-
-
-/**
- * Check if a CStat is computed
- */
-
-bool is_computed(const stat_cinfo info, const CStat cstat) {
-    return (info & cstat) != 0;
-}
+}*/
 
 
 void init_stats(void) {
-    VOID_PTR = Stats::construct(nullptr);
 }

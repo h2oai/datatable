@@ -104,7 +104,7 @@ void FwColumn<T>::resize_and_fill(int64_t new_nrows)
   this->nrows = new_nrows;
 
   // TODO(#301): Temporary fix.
-  this->stats->reset();
+  if (this->stats != nullptr) this->stats->reset();
 }
 
 
@@ -166,6 +166,15 @@ void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
   #pragma omp parallel for schedule(dynamic, 1024)
   for (int64_t j = 0; j < nrows; ++j) {
     if (maskdata[j] == 1) coldata[j] = na;
+  }
+}
+
+template <typename T>
+void FwColumn<T>::fill_na() {
+  int64_t mbuf_nrows = data_nrows();
+  T* data = elements();
+  for (int i = 0; i < mbuf_nrows; ++i) {
+    data[i] = GETNA<T>();
   }
 }
 

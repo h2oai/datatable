@@ -18,13 +18,13 @@
 #include <Python.h>
 #include <stdint.h>
 #include <vector>
+#include "rowindex.h"
 #include "memorybuf.h"
 #include "types.h"
 #include "stats.h"
 
 class DataTable;
 class RowIndex;
-class Stats;
 class BoolColumn;
 class PyObjectColumn;
 template <typename T> class IntColumn;
@@ -68,10 +68,11 @@ protected:
 public:  // TODO: convert these into private
   void   *meta;        // 8
   int64_t nrows;       // 8
-  Stats*  stats;       // 8
+  Stats  *stats;       // 8
 
 public:
   static Column* new_data_column(SType, int64_t nrows);
+  static Column* new_na_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const char* filename);
   static Column* open_mmap_column(SType, int64_t nrows, const char* filename,
                                   const char* metastr);
@@ -148,7 +149,7 @@ public:
    *
    *   column = column->rbind(columns_to_bind);
    *
-   * Individual entries in the `columns` array may be instances of `VoidColumn`,
+   * Individual entries in the `columns` array may be instances of `VoidColumn,
    * indicating columns that should be replaced with NAs.
    */
   Column* rbind(const std::vector<const Column*>& columns);
@@ -159,6 +160,24 @@ public:
 
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
+
+  int64_t countna();
+  /**
+   * Methods for retrieving statistics in the form of a Column. The resulting
+   * Column will contain a single row, in which is the value of the statistic.
+   * Fixed-type statistics (e.g mean, countna) will always return a Column with
+   * a corresponding stype, even if the statistic results in a NA value. For
+   * example, `mean_column` will always return RealColumn<double>.
+   * Variable-type statistics (e.g. min, sum) will instead result in a column of
+   * the same stype as the calling instance if the statistic is incompatible
+   * with the column stype.
+   */
+  virtual Column* min_column();
+  virtual Column* max_column();
+  virtual Column* sum_column();
+  virtual Column* mean_column();
+  virtual Column* sd_column();
+  Column* countna_column();
 
   /**
    * Check that the data in this Column object is correct. Use the provided
@@ -195,6 +214,22 @@ protected:
   virtual void cast_into(StringColumn<int64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
 
+  /**
+   * Sets every row in the column with a NA value. As of now this method
+   * modifies every element in the column's memory buffer regardless of its
+   * refcount or rowindex. Use with caution.
+   * This implementation will be made safer after Column::extract is modified
+   * to be an in-place operation.
+   */
+  virtual void fill_na() = 0;
+
+  /**
+   * Getter method for this column's reference to `Stats`. If the reference
+   * is null then the method will create a new Stats instance for this column
+   * and return a pointer to said instance.
+   */
+  virtual Stats* get_stats() = 0;
+
 private:
   static size_t allocsize0(SType, int64_t nrows);
   static Column* new_column(SType);
@@ -227,6 +262,7 @@ protected:
   Column* extract_simple_slice(RowIndex*) const;
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
+  void fill_na() override;
 };
 
 
@@ -250,7 +286,21 @@ public:
   virtual ~BoolColumn();
   SType stype() const override;
 
+  int8_t min();
+  int8_t max();
+  int64_t sum();
+  double mean();
+  double sd();
+
+  Column* min_column() override;
+  Column* max_column() override;
+  Column* sum_column() override;
+  Column* mean_column() override;
+  Column* sd_column() override;
+
 protected:
+  BooleanStats* get_stats() override;
+
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
   void cast_into(IntColumn<int16_t>*) const override;
@@ -277,7 +327,21 @@ public:
   virtual ~IntColumn();
   virtual SType stype() const override;
 
+  T min();
+  T max();
+  int64_t sum();
+  double mean();
+  double sd();
+
+  Column* min_column() override;
+  Column* max_column() override;
+  Column* sum_column() override;
+  Column* mean_column() override;
+  Column* sd_column() override;
+
 protected:
+  IntegerStats<T>* get_stats() override;
+
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
   void cast_into(IntColumn<int16_t>*) const override;
@@ -288,6 +352,9 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
+
+  using Column::stats;
+  using Column::new_data_column;
 };
 
 template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
@@ -300,7 +367,6 @@ extern template class IntColumn<int32_t>;
 extern template class IntColumn<int64_t>;
 
 
-
 //==============================================================================
 
 template <typename T> class RealColumn : public FwColumn<T>
@@ -310,7 +376,21 @@ public:
   virtual ~RealColumn();
   virtual SType stype() const override;
 
+  T min();
+  T max();
+  double sum();
+  double mean();
+  double sd();
+
+  Column* min_column() override;
+  Column* max_column() override;
+  Column* sum_column() override;
+  Column* mean_column() override;
+  Column* sd_column() override;
+
 protected:
+  RealStats<T>* get_stats() override;
+
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
   void cast_into(IntColumn<int16_t>*) const override;
@@ -321,6 +401,9 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
+
+  using Column::stats;
+  using Column::new_data_column;
 };
 
 template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
@@ -329,8 +412,6 @@ template <> void RealColumn<double>::cast_into(RealColumn<float>*) const;
 template <> void RealColumn<double>::cast_into(RealColumn<double>*) const;
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
-
-
 
 //==============================================================================
 
@@ -342,6 +423,10 @@ public:
   virtual SType stype() const override;
 
 protected:
+
+  // TODO: This should be corrected when PyObjectStats is implemented
+  Stats* get_stats() override { return nullptr; }
+
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
   // void cast_into(IntColumn<int16_t>*) const override;
@@ -352,6 +437,8 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
+
+  void fill_na() override {}
 };
 
 
@@ -386,6 +473,8 @@ protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
+  StringStats<T>* get_stats() override;
+
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
   // void cast_into(IntColumn<int16_t>*) const override;
@@ -396,6 +485,9 @@ protected:
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
+  void fill_na() override;
+
+  //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 };
 
 
@@ -417,6 +509,9 @@ public:
   void resize_and_fill(int64_t) override {}
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
+protected:
+  Stats* get_stats() override { return nullptr; }
+  void fill_na() override {}
 };
 
 

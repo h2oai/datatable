@@ -27,6 +27,87 @@ SType RealColumn<T>::stype() const {
   return stype_real(sizeof(T));
 }
 
+//---- Stats -------------------------------------------------------------------
+
+template <typename T>
+RealStats<T>* RealColumn<T>::get_stats() {
+  if (stats == nullptr) stats = new RealStats<T>(this);
+  return static_cast<RealStats<T>*>(stats);
+}
+
+// Retrieve stat value
+template <typename T>
+double RealColumn<T>::mean() {
+  RealStats<T> *s = get_stats();
+  if (!s->mean_computed()) s->compute_mean();
+  return s->_mean;
+}
+
+template <typename T>
+double RealColumn<T>::sd() {
+  RealStats<T> *s = get_stats();
+  if (!s->sd_computed()) s->compute_sd();
+  return s->_sd;
+}
+
+template <typename T>
+T RealColumn<T>::min() {
+  RealStats<T> *s = get_stats();
+  if (!s->min_computed()) s->compute_min();
+  return s->_min;
+}
+
+template <typename T>
+T RealColumn<T>::max() {
+  RealStats<T> *s = get_stats();
+  if (!s->max_computed()) s->compute_max();
+  return s->_max;
+}
+
+template <typename T>
+double RealColumn<T>::sum() {
+  RealStats<T> *s = get_stats();
+  if (!s->sum_computed()) s->compute_sum();
+  return s->_sum;
+}
+
+
+// Retrieve stat value as a column
+template <typename T>
+Column* RealColumn<T>::min_column() {
+  Column* col = new_data_column(stype(), 1);
+  ((T*) col->data())[0] = min();
+  return col;
+}
+
+template <typename T>
+Column* RealColumn<T>::max_column() {
+  Column* col = new_data_column(stype(), 1);
+  ((T*) col->data())[0] = max();
+  return col;
+}
+
+template <typename T>
+Column* RealColumn<T>::sum_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = sum();
+  return col;
+}
+
+template <typename T>
+Column* RealColumn<T>::mean_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = mean();
+  return col;
+}
+
+template <typename T>
+Column* RealColumn<T>::sd_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = sd();
+  return col;
+}
+
 
 //----- Type casts -------------------------------------------------------------
 

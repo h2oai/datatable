@@ -28,6 +28,87 @@ SType IntColumn<T>::stype() const {
   return stype_integer(sizeof(T));
 }
 
+//---- Stats -------------------------------------------------------------------
+
+template <typename T>
+IntegerStats<T>* IntColumn<T>::get_stats() {
+  if (stats == nullptr) stats = new IntegerStats<T>(this);
+  return static_cast<IntegerStats<T>*>(stats);
+}
+
+// Retrieve stat value
+template <typename T>
+double IntColumn<T>::mean() {
+  IntegerStats<T> *s = get_stats();
+  if (!s->mean_computed()) s->compute_mean();
+  return s->_mean;
+}
+
+template <typename T>
+double IntColumn<T>::sd() {
+  IntegerStats<T> *s = get_stats();
+  if (!s->sd_computed()) s->compute_sd();
+  return s->_sd;
+}
+
+template <typename T>
+T IntColumn<T>::min() {
+  IntegerStats<T> *s = get_stats();
+  if (!s->min_computed()) s->compute_min();
+  return s->_min;
+}
+
+template <typename T>
+T IntColumn<T>::max() {
+  IntegerStats<T> *s = get_stats();
+  if (!s->max_computed()) s->compute_max();
+  return s->_max;
+}
+
+template <typename T>
+int64_t IntColumn<T>::sum() {
+  IntegerStats<T> *s = get_stats();
+  if (!s->sum_computed()) s->compute_sum();
+  return s->_sum;
+}
+
+
+// Retrieve stat value as a column
+template <typename T>
+Column* IntColumn<T>::min_column() {
+  Column* col = new_data_column(stype(), 1);
+  ((T*) col->data())[0] = min();
+  return col;
+}
+
+template <typename T>
+Column* IntColumn<T>::max_column() {
+  Column* col = new_data_column(stype(), 1);
+  ((T*) col->data())[0] = max();
+  return col;
+}
+
+template <typename T>
+Column* IntColumn<T>::sum_column() {
+  Column* col = new_data_column(ST_INTEGER_I8, 1);
+  ((int64_t*) col->data())[0] = sum();
+  return col;
+}
+
+template <typename T>
+Column* IntColumn<T>::mean_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = mean();
+  return col;
+}
+
+template <typename T>
+Column* IntColumn<T>::sd_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = sd();
+  return col;
+}
+
 
 //----- Type casts -------------------------------------------------------------
 

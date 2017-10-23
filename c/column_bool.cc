@@ -26,6 +26,59 @@ SType BoolColumn::stype() const {
   return ST_BOOLEAN_I1;
 }
 
+//---- Stats -------------------------------------------------------------------
+
+BooleanStats* BoolColumn::get_stats() {
+  if (stats == nullptr) stats = new BooleanStats(this);
+  return static_cast<BooleanStats*>(stats);
+}
+
+# define DEF_STAT_GET(STAT, RET_TYPE)                                           \
+  RET_TYPE BoolColumn:: STAT () {                                               \
+    BooleanStats *s = get_stats();                                              \
+    if (!s-> STAT ## _computed()) s->compute_ ## STAT();                        \
+    return s->_ ## STAT;                                                        \
+}
+
+DEF_STAT_GET(mean, double)
+DEF_STAT_GET(sd, double)
+DEF_STAT_GET(min, int8_t)
+DEF_STAT_GET(max, int8_t)
+DEF_STAT_GET(sum, int64_t)
+
+#undef DEF_STAT_GET
+
+// Retrieve stat value as a column
+Column* BoolColumn::min_column() {
+  Column* col = new_data_column(ST_BOOLEAN_I1, 1);
+  ((int8_t*) col->data())[0] = min();
+  return col;
+}
+
+Column* BoolColumn::max_column() {
+  Column* col = new_data_column(ST_BOOLEAN_I1, 1);
+  ((int8_t*) col->data())[0] = max();
+  return col;
+}
+
+Column* BoolColumn::sum_column() {
+  Column* col = new_data_column(ST_INTEGER_I8, 1);
+  ((int64_t*) col->data())[0] = sum();
+  return col;
+}
+
+Column* BoolColumn::mean_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = mean();
+  return col;
+}
+
+Column* BoolColumn::sd_column() {
+  Column* col = new_data_column(ST_REAL_F8, 1);
+  ((double*) col->data())[0] = sd();
+  return col;
+}
+
 
 //----- Type casts -------------------------------------------------------------
 

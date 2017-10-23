@@ -121,7 +121,7 @@ void DataTable::apply_na_mask(DataTable* maskdt)
       throw Error("Column %lld in mask is not of a boolean type", i);
     }
     Column *col = columns[i];
-    col->stats->reset();
+    if (col->stats != nullptr) col->stats->reset();
     col->apply_na_mask(maskcol);
   }
 }
@@ -160,6 +160,32 @@ size_t DataTable::memory_footprint()
   return sz;
 }
 
+
+/**
+ * Macro to define the `stat_datatable()` methods. The `STAT` parameter
+ * is the name of the statistic; exactly how it is named in the
+ * `stat_datatable()` method.
+ */
+#define STAT_DATATABLE(STAT)                                                    \
+  DataTable* DataTable:: STAT ## _datatable() const {                           \
+    Column** out_cols = nullptr;                                                \
+    dtmalloc(out_cols, Column*, (size_t) (ncols + 1));                          \
+    for (int64_t i = 0; i < ncols; ++i)                                         \
+    {                                                                           \
+      out_cols[i] = columns[i]-> STAT ## _column();                             \
+    }                                                                           \
+    out_cols[ncols] = nullptr;                                                  \
+    return new DataTable(out_cols);                                             \
+  }
+
+STAT_DATATABLE(mean)
+STAT_DATATABLE(sd)
+STAT_DATATABLE(countna)
+STAT_DATATABLE(min)
+STAT_DATATABLE(max)
+STAT_DATATABLE(sum)
+
+#undef STAT_DATATABLE
 
 /**
  * Verify that all internal constraints in the DataTable hold, and that there
