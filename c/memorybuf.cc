@@ -157,18 +157,29 @@ MemoryMemBuf::~MemoryMemBuf() {
   buf = nullptr;
 }
 
+
 void MemoryMemBuf::resize(size_t n) {
+  // The documentation for `void* realloc(void* ptr, size_t new_size);` says
+  // the following:
+  // | If there is not enough memory, the old memory block is not freed and
+  // | null pointer is returned.
+  // | If new_size is zero, the behavior is implementation defined (null
+  // | pointer may be returned (in which case the old memory block may or may
+  // | not be freed), or some non-null pointer may be returned that may not be
+  // | used to access storage). Support for zero size is deprecated as of
+  // | C11 DR 400.
   if (n == allocsize) return;
-  // if (n) {
+  if (n) {
     void *ptr = realloc(buf, n);
     if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
     buf = ptr;
-  // } else {
-  //   free(buf);
-  //   buf = nullptr;
-  // }
+  } else if (buf) {
+    free(buf);
+    buf = nullptr;
+  }
   allocsize = n;
 }
+
 
 PyObject* MemoryMemBuf::pyrepr() const {
   static PyObject* r = PyUnicode_FromString("data");
