@@ -332,7 +332,7 @@ void StringColumn<T>::fill_na() {
 //---- Stats -------------------------------------------------------------------
 
 template <typename T>
-StringStats<T>* StringColumn<T>::get_stats() {
+StringStats<T>* StringColumn<T>::get_stats() const {
   if (stats == nullptr) stats = new StringStats<T>();
   return static_cast<StringStats<T>*>(stats);
 }

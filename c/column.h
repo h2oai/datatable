@@ -64,7 +64,7 @@ class Column
 protected:
   MemoryBuffer *mbuf;
   RowIndex *ri;
-  Stats  *stats;
+  mutable Stats  *stats;
 
 public:  // TODO: convert these into private
   void   *meta;        // 8
@@ -161,7 +161,7 @@ public:
   static size_t i4s_padding(size_t datasize);
   static size_t i8s_padding(size_t datasize);
 
-  int64_t countna();
+  int64_t countna() const;
   /**
    * Methods for retrieving statistics in the form of a Column. The resulting
    * Column will contain a single row, in which is the value of the statistic.
@@ -172,12 +172,12 @@ public:
    * the same stype as the calling instance if the statistic is incompatible
    * with the column stype.
    */
-  virtual Column* min_column();
-  virtual Column* max_column();
-  virtual Column* sum_column();
-  virtual Column* mean_column();
-  virtual Column* sd_column();
-  Column* countna_column();
+  virtual Column* min_column() const;
+  virtual Column* max_column() const;
+  virtual Column* sum_column() const;
+  virtual Column* mean_column() const;
+  virtual Column* sd_column() const;
+  Column* countna_column() const;
 
   /**
    * Check that the data in this Column object is correct. Use the provided
@@ -228,7 +228,7 @@ protected:
    * is null then the method will create a new Stats instance for this column
    * and return a pointer to said instance.
    */
-  virtual Stats* get_stats() = 0;
+  virtual Stats* get_stats() const = 0;
 
 private:
   static size_t allocsize0(SType, int64_t nrows);
@@ -286,20 +286,20 @@ public:
   virtual ~BoolColumn();
   SType stype() const override;
 
-  int8_t min();
-  int8_t max();
-  int64_t sum();
-  double mean();
-  double sd();
+  int8_t min() const;
+  int8_t max() const;
+  int64_t sum() const;
+  double mean() const;
+  double sd() const;
 
-  Column* min_column() override;
-  Column* max_column() override;
-  Column* sum_column() override;
-  Column* mean_column() override;
-  Column* sd_column() override;
+  Column* min_column() const override;
+  Column* max_column() const override;
+  Column* sum_column() const override;
+  Column* mean_column() const override;
+  Column* sd_column() const override;
 
 protected:
-  BooleanStats* get_stats() override;
+  BooleanStats* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
@@ -328,20 +328,20 @@ public:
   virtual ~IntColumn();
   virtual SType stype() const override;
 
-  T min();
-  T max();
-  int64_t sum();
-  double mean();
-  double sd();
+  T min() const;
+  T max() const;
+  int64_t sum() const;
+  double mean() const;
+  double sd() const;
 
-  Column* min_column() override;
-  Column* max_column() override;
-  Column* sum_column() override;
-  Column* mean_column() override;
-  Column* sd_column() override;
+  Column* min_column() const override;
+  Column* max_column() const override;
+  Column* sum_column() const override;
+  Column* mean_column() const override;
+  Column* sd_column() const override;
 
 protected:
-  IntegerStats<T>* get_stats() override;
+  IntegerStats<T>* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
@@ -377,20 +377,20 @@ public:
   virtual ~RealColumn();
   virtual SType stype() const override;
 
-  T min();
-  T max();
-  double sum();
-  double mean();
-  double sd();
+  T min() const;
+  T max() const;
+  double sum() const;
+  double mean() const;
+  double sd() const;
 
-  Column* min_column() override;
-  Column* max_column() override;
-  Column* sum_column() override;
-  Column* mean_column() override;
-  Column* sd_column() override;
+  Column* min_column() const override;
+  Column* max_column() const override;
+  Column* sum_column() const override;
+  Column* mean_column() const override;
+  Column* sd_column() const override;
 
 protected:
-  RealStats<T>* get_stats() override;
+  RealStats<T>* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
   void cast_into(IntColumn<int8_t>*) const override;
@@ -426,7 +426,7 @@ public:
 protected:
 
   // TODO: This should be corrected when PyObjectStats is implemented
-  Stats* get_stats() override { return nullptr; }
+  Stats* get_stats() const override { return nullptr; }
 
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
@@ -474,7 +474,7 @@ protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
-  StringStats<T>* get_stats() override;
+  StringStats<T>* get_stats() const override;
 
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
@@ -511,7 +511,7 @@ public:
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
 protected:
-  Stats* get_stats() override { return nullptr; }
+  Stats* get_stats() const override { return nullptr; }
   void fill_na() override {}
 };
 

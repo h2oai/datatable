@@ -28,13 +28,13 @@ SType BoolColumn::stype() const {
 
 //---- Stats -------------------------------------------------------------------
 
-BooleanStats* BoolColumn::get_stats() {
+BooleanStats* BoolColumn::get_stats() const {
   if (stats == nullptr) stats = new BooleanStats();
   return static_cast<BooleanStats*>(stats);
 }
 
 # define DEF_STAT_GET(STAT, RET_TYPE)                                           \
-  RET_TYPE BoolColumn:: STAT () {                                               \
+  RET_TYPE BoolColumn:: STAT () const {                                         \
     BooleanStats *s = get_stats();                                              \
     if (!s-> STAT ## _computed()) s->compute_ ## STAT(this);                    \
     return s->_ ## STAT;                                                        \
@@ -49,31 +49,31 @@ DEF_STAT_GET(sum, int64_t)
 #undef DEF_STAT_GET
 
 // Retrieve stat value as a column
-Column* BoolColumn::min_column() {
+Column* BoolColumn::min_column() const {
   BoolColumn *col = new BoolColumn(1);
   col->set_elem(0, min());
   return col;
 }
 
-Column* BoolColumn::max_column() {
+Column* BoolColumn::max_column() const {
   BoolColumn *col = new BoolColumn(1);
   col->set_elem(0, max());
   return col;
 }
 
-Column* BoolColumn::sum_column() {
+Column* BoolColumn::sum_column() const {
   IntColumn<int64_t> *col = new IntColumn<int64_t>(1);
   col->set_elem(0, sum());
   return col;
 }
 
-Column* BoolColumn::mean_column() {
+Column* BoolColumn::mean_column() const {
   RealColumn<double> *col = new RealColumn<double>(1);
   col->set_elem(0, mean());
   return col;
 }
 
-Column* BoolColumn::sd_column() {
+Column* BoolColumn::sd_column() const {
   RealColumn<double> *col = new RealColumn<double>(1);
   col->set_elem(0, sd());
   return col;

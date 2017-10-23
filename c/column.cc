@@ -498,7 +498,7 @@ size_t Column::memory_footprint() const
 }
 
 
-int64_t Column::countna() {
+int64_t Column::countna() const {
   Stats* s = get_stats();
   if (!s->countna_computed()) s->compute_countna(this);
   return s->_countna;
@@ -507,13 +507,13 @@ int64_t Column::countna() {
  * Methods for retrieving stats but in column form. These should be populated
  * with NA values when called from the base column instance.
  */
-Column* Column::mean_column()    { return new_na_column(ST_REAL_F8, 1); }
-Column* Column::sd_column()      { return new_na_column(ST_REAL_F8, 1); }
-Column* Column::min_column()     { return new_na_column(stype(), 1); }
-Column* Column::max_column()     { return new_na_column(stype(), 1); }
-Column* Column::sum_column()     { return new_na_column(stype(), 1); }
+Column* Column::mean_column() const    { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::sd_column() const      { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::min_column() const     { return new_na_column(stype(), 1); }
+Column* Column::max_column() const     { return new_na_column(stype(), 1); }
+Column* Column::sum_column() const     { return new_na_column(stype(), 1); }
 
-Column* Column::countna_column() {
+Column* Column::countna_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
   col->set_elem(0, countna());
   return col;
