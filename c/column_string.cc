@@ -82,6 +82,10 @@ SType StringColumn<T>::stype() const {
   return stype_string(sizeof(T));
 }
 
+template <typename T>
+size_t StringColumn<T>::elemsize() const {
+  return sizeof(T);
+}
 
 template <typename T>
 StringColumn<T>::~StringColumn() {

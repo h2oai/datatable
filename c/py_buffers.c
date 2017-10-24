@@ -189,77 +189,100 @@ Column* try_to_resolve_object_column(Column* col)
 // Buffers interface for Column_PyObject
 //==============================================================================
 
+typedef struct XInfo {
+  // Shallow copy of the exported MemoryBuffer.
+  MemoryBuffer* mbuf;
+
+  // An array of Py_ssize_t of length `ndim`, indicating the shape of the
+  // memory as an n-dimensional array (prod(shape) * itemsize == len).
+  // Must be provided iff PyBUF_ND is set.
+  Py_ssize_t shape[2];
+
+  // An array of Py_ssize_t of length `ndim` giving the number of bytes to skip
+  // to get to a new element in each dimension.
+  // Must be provided iff PyBUF_STRIDES is set.
+  Py_ssize_t strides[2];
+} XInfo;
+
+
 /**
- * Handle a request to fill in structure `view` as specified by `flags`.
+ * Handle a request to fill-in structure `view` as specified by `flags`.
  * See https://docs.python.org/3/c-api/typeobj.html#buffer-structs for details.
+ *
+ * This function:
+ *   - increments refcount and stores pointer to `self` in `view->obj`;
+ *   - allocates `XInfo` structure and stores it in the `view->internal`;
+ *   - creates a shallow copy of the Column (together with its buffer), and
+ *     stores it in the `XInfo` struct.
  */
-static int column_getbuffer(Column_PyObject *self, Py_buffer *view, int flags)
+static int column_getbuffer(Column_PyObject* self, Py_buffer* view, int flags)
 {
-  Py_ssize_t *info = NULL;
+  XInfo* xinfo = nullptr;
+  MemoryBuffer* mbuf = nullptr;
   try {
-    Column *col = self->ref;
-    size_t elemsize = stype_info[col->stype()].elemsize;
-    dtmalloc_g(info, Py_ssize_t, 2);
+    Column* col = self->ref;
+    mbuf = col->mbuf_shallowcopy();
 
     if (REQ_WRITABLE(flags)) {
-        PyErr_SetString(PyExc_BufferError, "Cannot create writable buffer");
-        goto fail;
+      // Do not provide a writable array (this may violate all kinds of internal
+      // assumptions about the data). Instead let the requester ask again, this
+      // time for a read-only buffer.
+      throw Error("Cannot create a writable buffer for a Column");
     }
     if (stype_info[col->stype()].varwidth) {
-        PyErr_SetString(PyExc_BufferError, "Column's data has variable width");
-        goto fail;
+      throw Error("Column's data has variable width");
     }
 
-    info[0] = (Py_ssize_t)(col->alloc_size() / elemsize);
-    info[1] = (Py_ssize_t) elemsize;
+    xinfo = new XInfo();
+    xinfo->mbuf = mbuf;
+    xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
+    xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
 
-    view->buf = col->data();
-    view->obj = (PyObject*) self;
-    view->len = (Py_ssize_t) col->alloc_size();
-    view->itemsize = (Py_ssize_t) elemsize;
+    view->buf = mbuf->get();
+    view->obj = reinterpret_cast<PyObject*>(self);
+    view->len = static_cast<Py_ssize_t>(mbuf->size());
+    view->itemsize = xinfo->strides[0];
     view->readonly = 1;
     view->ndim = 1;
-    // An array of Py_ssize_t of length `ndim`, indicating the shape of the
-    // memory as an n-dimensional array (prod(shape) * itemsize == len).
-    // Must be provided iff PyBUF_ND is set.
-    view->shape = REQ_ND(flags)? info : NULL;
-    // An array of Py_ssize_t of length `ndim` giving the number of bytes to
-    // skip to get to a new element in each dimension.
-    // Must be provided iff PyBUF_STRIDES is set.
-    view->strides = REQ_STRIDES(flags)? info + 1 : NULL;
-    view->suboffsets = NULL;
-    view->internal = NULL;
+    view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
+    view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
+    view->suboffsets = nullptr;
+    view->internal = xinfo;
     view->format = REQ_FORMAT(flags) ?
-        const_cast<char*>(format_from_stype(col->stype())) : NULL;
+        const_cast<char*>(format_from_stype(col->stype())) : nullptr;
 
     Py_INCREF(self);
     return 0;
-  } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
-    // fall-through
-  }
 
-  fail:
-    view->obj = NULL;
-    dtfree(info);
+  } catch (const std::exception& e) {
+    view->obj = nullptr;
+    view->internal = nullptr;
+    delete xinfo;
+    if (mbuf) mbuf->release();
+    PyErr_SetString(PyExc_RuntimeError, e.what());
     return -1;
+  }
 }
+
 
 /**
  * Handle a request to release the resources of the buffer.
+ *
+ * This function MUST NOT decrement view->obj (== self), since it is done by
+ * Python in `PyBuffer_Release()`.
  */
-static void column_releasebuffer(Column_PyObject *self, Py_buffer *view)
+static void column_releasebuffer(Column_PyObject*, Py_buffer* view)
 {
-    dtfree(view->shape);
-    // FIXME?
-    // delete self->ref;
-    // This function MUST NOT decrement view->obj, since that is done
-    // automatically in PyBuffer_Release()
+  XInfo* xinfo = static_cast<XInfo*>(view->internal);
+  xinfo->mbuf->release();
+  delete xinfo;
+  view->internal = nullptr;
 }
 
+
 PyBufferProcs column_as_buffer = {
-    (getbufferproc) column_getbuffer,
-    (releasebufferproc) column_releasebuffer,
+  (getbufferproc) column_getbuffer,
+  (releasebufferproc) column_releasebuffer,
 };
 
 

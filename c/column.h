@@ -86,6 +86,7 @@ public:
   virtual void replace_buffer(MemoryBuffer*, MemoryBuffer*) = 0;
 
   virtual SType stype() const = 0;
+  virtual size_t elemsize() const = 0;
   inline void* data() const { return mbuf->get(); }
   inline void* data_at(size_t i) const { return mbuf->at(i); }
   inline RowIndex* rowindex() const { return ri; }
@@ -93,6 +94,7 @@ public:
   virtual int64_t data_nrows() const = 0;
   PyObject* mbuf_repr() const;
   int mbuf_refcount() const;
+  MemoryBuffer* mbuf_shallowcopy() const;
   size_t memory_footprint() const;
 
   /**
@@ -256,6 +258,7 @@ public:
   int64_t data_nrows() const override;
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
+  size_t elemsize() const override;
 
 protected:
   static constexpr T na_elem = GETNA<T>();
@@ -457,6 +460,7 @@ public:
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
 
   SType stype() const override;
+  size_t elemsize() const override;
   Column* extract_simple_slice(RowIndex*) const;
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
@@ -506,6 +510,7 @@ public:
   VoidColumn(int64_t nrows = 0) : Column(nrows) {}
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override {}
   SType stype() const override { return ST_VOID; }
+  size_t elemsize() const override { return 0; }
   int64_t data_nrows() const override { return nrows; }
   void resize_and_fill(int64_t) override {}
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}

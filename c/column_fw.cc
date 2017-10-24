@@ -39,6 +39,10 @@ void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
   nrows = static_cast<int64_t>(mbuf->size() / sizeof(T));
 }
 
+template <typename T>
+size_t FwColumn<T>::elemsize() const {
+  return sizeof(T);
+}
 
 template <typename T>
 T* FwColumn<T>::elements() const {
