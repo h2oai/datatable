@@ -219,6 +219,11 @@ int Column::mbuf_refcount() const {
   return mbuf->get_refcount();
 }
 
+MemoryBuffer* Column::mbuf_shallowcopy() const {
+  return mbuf->shallowcopy();
+}
+
+
 
 /**
  * Extract data from this column at rows specified in the provided `rowindex`.

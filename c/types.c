@@ -180,19 +180,6 @@ SType stype_from_string(const char *s)
 }
 
 
-const char* format_from_stype(SType stype)
-{
-    return stype == ST_BOOLEAN_I1? "?" :
-           stype == ST_INTEGER_I1? "b" :
-           stype == ST_INTEGER_I2? "h" :
-           stype == ST_INTEGER_I4? "i" :
-           stype == ST_INTEGER_I8? "q" :
-           stype == ST_REAL_F4? "f" :
-           stype == ST_REAL_F8? "d" :
-           stype == ST_OBJECT_PYPTR? "O" : "x";
-}
-
-
 SType common_stype_for_buffer(SType stype1, SType stype2)
 {
     return stype_upcast_map[stype1][stype2];

@@ -88,6 +88,7 @@ def test_h2o3_smalldata(f):
         os.path.join("jira", "runit_pubdev_3590_unexpected_column.csv"),
         os.path.join("junit", "test_parse_mix.csv"),
         os.path.join("junit", "arff", "jm1_arff.txt"),
+        os.path.join("junit", "arff", "jm1.arff.txt"),
         os.path.join("merge", "livestock.nuts.csv"),
         os.path.join("merge", "tourism.csv"),
         os.path.join("parser", "column.csv"),
@@ -125,6 +126,10 @@ def test_h2o3_bigdata(f):
         os.path.join("lending-club", "LoanStats3b.csv"),
         os.path.join("lending-club", "LoanStats3c.csv"),
         os.path.join("lending-club", "LoanStats3d.csv"),
+        os.path.join("LoanStats3a.csv"),
+        os.path.join("LoanStats3b.csv"),
+        os.path.join("LoanStats3c.csv"),
+        os.path.join("LoanStats3d.csv"),
     }
     if any(ff in f for ff in ignored_files):
         pytest.skip("On the ignored files list")
