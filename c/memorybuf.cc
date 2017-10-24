@@ -434,7 +434,11 @@ void MemmapMemBuf::resize(size_t n) {
   if (is_readonly()) throw Error("Cannot resize a readonly buffer");
   munmap(buf, allocsize);
   buf = nullptr;
-  truncate(filename.c_str(), (off_t)n);
+  int ret = truncate(filename.c_str(), (off_t)n);
+  if (ret == -1) {
+    throw Error("Cannot truncate file %s to size %zu: [errno %d] %s",
+                filename.c_str(), n, errno, strerror(errno));
+  }
 
   int fd = open(filename.c_str(), O_RDWR);
   if (fd == -1) {
