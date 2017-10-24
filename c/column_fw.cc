@@ -45,6 +45,12 @@ size_t FwColumn<T>::elemsize() const {
 }
 
 template <typename T>
+bool FwColumn<T>::is_fixedwidth() const {
+  return true;
+}
+
+
+template <typename T>
 T* FwColumn<T>::elements() const {
   return static_cast<T*>(mbuf->get());
 }

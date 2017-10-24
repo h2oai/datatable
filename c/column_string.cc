@@ -88,6 +88,12 @@ size_t StringColumn<T>::elemsize() const {
 }
 
 template <typename T>
+bool StringColumn<T>::is_fixedwidth() const {
+  return false;
+}
+
+
+template <typename T>
 StringColumn<T>::~StringColumn() {
   if (strbuf) strbuf->release();
 }

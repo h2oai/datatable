@@ -473,7 +473,6 @@ template<> inline bool ISNA(double x)   { return isnan(x); }
 // Initializer function
 void init_types(void);
 SType stype_from_string(const char *s);
-const char* format_from_stype(SType stype);
 SType common_stype_for_buffer(SType stype1, SType stype2);
 
 
