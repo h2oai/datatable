@@ -219,16 +219,20 @@ MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
 {
   const char *c_name = filename.c_str();
   int fd = open(c_name, O_RDWR|O_CREAT, 0666);
-  if (fd == -1) throw Error("Cannot open file %s: Error %d %s",
+  if (fd == -1) throw Error("Cannot open file %s: [errno %d] %s",
                             c_name, errno, strerror(errno));
 
-  lseek(fd, static_cast<off_t>(size), SEEK_SET);
-  ::write(fd, static_cast<void*>(&fd), 1);  // write 1 byte, doesn't matter what
+  if (size) {
+    int zero = 0;
+    lseek(fd, static_cast<off_t>(size - 1), SEEK_SET);
+    ::write(fd, static_cast<void*>(&zero), 1);  // write 1 byte: '\0'
+  }
 
   buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
   close(fd);
   if (buffer == MAP_FAILED) {
-    throw Error("Memory map failed, error %d: %s", errno, strerror(errno));
+    throw Error("Memory map failed for file %s of size %zu: [errno %d] %s",
+                path.c_str(), size, errno, strerror(errno));
   }
 }
 
@@ -242,9 +246,14 @@ MmapWritableBuffer::~MmapWritableBuffer()
 void MmapWritableBuffer::realloc(size_t newsize)
 {
   munmap(buffer, allocsize);
+  buffer = nullptr;
 
   const char *c_fname = filename.c_str();
-  truncate(c_fname, static_cast<off_t>(newsize));
+  int ret = truncate(c_fname, static_cast<off_t>(newsize));
+  if (ret == -1) {
+    throw Error("Unable to truncate file to size %zu: [errno %d] %s",
+                newsize, errno, strerror(errno));
+  }
 
   int fd = open(c_fname, O_RDWR);
   buffer = mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);

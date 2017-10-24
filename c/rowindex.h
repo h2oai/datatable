@@ -105,4 +105,45 @@ private:
 typedef RowIndex* (rowindex_getterfn)(void);
 
 
+/**
+ * Macro to get column indices based on a RowIndex `RI`.
+ * Creates a for loop with from the following parameters:
+ *
+ *     `RI`:    A RowIndex pointer.
+ *
+ *     `NROWS`: The length of the target column (`Column::nrows`).
+ *
+ *     `I`:     A variable name that will be initialized as an `int64_t` and
+ *              used to store the resulting index during each pass.
+ *
+ *     `CODE`:  The code to be placed in the body of the for loop.
+ *
+ * Two variables named `L_j` and `L_s` will also be created; Their
+ * resulting type and value is undefined.
+ */
+#define DT_LOOP_OVER_ROWINDEX(I, NROWS, RI, CODE)                              \
+    if (RI == nullptr) {                                                       \
+        for (int64_t I = 0; I < NROWS; ++I) {                                  \
+            CODE                                                               \
+        }                                                                      \
+    } else if (RI->type == RI_SLICE) {                                         \
+        int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;            \
+        for (; L_j < NROWS; ++L_j, I += L_s) {                                 \
+            CODE                                                               \
+        }                                                                      \
+    } else if (RI->type == RI_ARR32) {                                         \
+       int32_t *L_s = RI->ind32;                                               \
+       for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                             \
+           int64_t I = (int64_t) L_s[L_j];                                     \
+           CODE                                                                \
+       }                                                                       \
+    } else if (RI->type == RI_ARR64) {                                         \
+        int64_t *L_s = RI->ind64;                                              \
+        for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                            \
+           int64_t I = L_s[L_j];                                               \
+           CODE                                                                \
+       }                                                                       \
+    }
+
+
 #endif

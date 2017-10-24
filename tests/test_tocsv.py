@@ -74,6 +74,22 @@ def test_strategy(capsys, tempfile):
     assert ("Creating an empty destination file " + tempfile) in out
 
 
+@pytest.mark.parametrize("col, scol", [("col", "col"),
+                                       ("", '""'),
+                                       (" ", '" "'),
+                                       ('"', '""""')])
+def test_issue507(tempfile, col, scol):
+    """
+    On Unix platform some of these cases were producing random extra character
+    at the end of the file (problem with truncate?). This test verifies that the
+    problem doesn't reappear in the future.
+    """
+    d = dt.DataTable({col: [-0.006492080633259916]})
+    d.to_csv(tempfile)
+    exp_text = scol + "\n-0.006492080633259916\n"
+    assert open(tempfile, "rb").read() == exp_text.encode()
+
+
 
 #-------------------------------------------------------------------------------
 # Test writing different data types

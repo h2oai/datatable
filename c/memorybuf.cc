@@ -140,7 +140,7 @@ MemoryMemBuf::MemoryMemBuf(size_t n) {
   if (n) {
     allocsize = n;
     buf = malloc(n);
-    if (!buf) throw Error("Unable to allocate memory of size %zu", n);
+    if (buf == nullptr) throw Error("Unable to allocate memory of size %zu", n);
   }
 }
 
@@ -148,7 +148,7 @@ MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
   if (n) {
     allocsize = n;
     buf = ptr;
-    if (!buf) throw Error("Unallocated memory region provided");
+    if (buf == nullptr) throw Error("Unallocated memory region provided");
   }
 }
 
@@ -157,18 +157,29 @@ MemoryMemBuf::~MemoryMemBuf() {
   buf = nullptr;
 }
 
+
 void MemoryMemBuf::resize(size_t n) {
+  // The documentation for `void* realloc(void* ptr, size_t new_size);` says
+  // the following:
+  // | If there is not enough memory, the old memory block is not freed and
+  // | null pointer is returned.
+  // | If new_size is zero, the behavior is implementation defined (null
+  // | pointer may be returned (in which case the old memory block may or may
+  // | not be freed), or some non-null pointer may be returned that may not be
+  // | used to access storage). Support for zero size is deprecated as of
+  // | C11 DR 400.
   if (n == allocsize) return;
-  // if (n) {
+  if (n) {
     void *ptr = realloc(buf, n);
     if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
     buf = ptr;
-  // } else {
-  //   free(buf);
-  //   buf = nullptr;
-  // }
+  } else if (buf) {
+    free(buf);
+    buf = nullptr;
+  }
   allocsize = n;
 }
+
 
 PyObject* MemoryMemBuf::pyrepr() const {
   static PyObject* r = PyUnicode_FromString("data");
@@ -215,17 +226,20 @@ ExternalMemBuf::ExternalMemBuf(void* ptr, void* pybuf, size_t size) {
   allocsize = size;
   pybufinfo = pybuf;
   readonly = true;
+  if (buf == nullptr && allocsize > 0) {
+    throw Error("Unallocated buffer supplied to the ExternalMemBuf() "
+                "constructor, exptected memory region of size %zu", size);
+  }
 }
 
 ExternalMemBuf::ExternalMemBuf(void* ptr, size_t n)
     : ExternalMemBuf(ptr, nullptr, n) {}
 
-ExternalMemBuf::ExternalMemBuf(const char* str) {
-  buf = static_cast<void*>(const_cast<char*>(str));
-  allocsize = strlen(str) + 1;
-  pybufinfo = nullptr;
-  readonly = true;
-}
+ExternalMemBuf::ExternalMemBuf(const char* str)
+    : ExternalMemBuf(const_cast<char*>(str),
+                     nullptr,
+                     strlen(str) + 1) {}
+
 
 ExternalMemBuf::~ExternalMemBuf() {
   buf = nullptr;
@@ -332,6 +346,9 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
              /* offset = */ 0);
   close(fd);  // fd is no longer needed
   if (buf == MAP_FAILED) {
+    // Exception is thrown from the constructor -> the base class' destructor
+    // will be called, which checks that `buf` is null.
+    buf = nullptr;
     throw Error("Memory-map failed for file %s of size %zu: [%d] %s",
                 filename.c_str(), filesize, errno, strerror(errno));
   }
@@ -384,6 +401,9 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
                 /* file descriptor, ignored */ -1,
                 /* offset = */ 0);
     if (xbuf == MAP_FAILED) {
+      munmap(buf, allocsize);
+      buf = nullptr;
+      xbuf = nullptr;
       throw Error("Cannot allocate additional %zu bytes at address %p",
                   xbuf_size, target);
     }
@@ -402,6 +422,7 @@ MemmapMemBuf::~MemmapMemBuf() {
   if (xbuf) {
     ret = munmap(xbuf, xbuf_size);
     if (ret) printf("Cannot unmap extra memory %p: %s", xbuf, strerror(errno));
+    xbuf = nullptr;
   }
   if (!is_readonly()) {
     remove(filename.c_str());
@@ -413,7 +434,11 @@ void MemmapMemBuf::resize(size_t n) {
   if (is_readonly()) throw Error("Cannot resize a readonly buffer");
   munmap(buf, allocsize);
   buf = nullptr;
-  truncate(filename.c_str(), (off_t)n);
+  int ret = truncate(filename.c_str(), (off_t)n);
+  if (ret == -1) {
+    throw Error("Cannot truncate file %s to size %zu: [errno %d] %s",
+                filename.c_str(), n, errno, strerror(errno));
+  }
 
   int fd = open(filename.c_str(), O_RDWR);
   if (fd == -1) {
