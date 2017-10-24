@@ -509,6 +509,7 @@ size_t CsvWriter::estimate_output_size()
   size_t nrows = static_cast<size_t>(dt->nrows);
   size_t ncols = static_cast<size_t>(dt->ncols);
   size_t total_string_size = 0;
+  size_t total_columns_size = 0;
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
     if (auto scol32 = dynamic_cast<StringColumn<int32_t>*>(col)) {
@@ -518,11 +519,13 @@ size_t CsvWriter::estimate_output_size()
       total_string_size += scol64->datasize();
     }
     SType stype = col->stype();
-    fixed_size_per_row += bytes_per_stype[stype] + 1;
+    fixed_size_per_row += bytes_per_stype[stype];
+    total_columns_size += column_names[i].size() + 1;
   }
   size_t bytes_total = fixed_size_per_row * nrows
-                       + static_cast<size_t>(1.2 * total_string_size);
-  VLOG("Estimated output size: %zu\n", bytes_total);
+                       + static_cast<size_t>(1.2 * total_string_size)
+                       + total_columns_size;
+  VLOG("  Estimated output size: %zu\n", bytes_total);
   t_size_estimation = checkpoint();
   return bytes_total;
 }
