@@ -4,7 +4,6 @@
 #include <unistd.h>  // write, fsync, close
 #include <vector>
 #include "datatable.h"
-#include "stats.h"
 #include "datatable_check.h"
 #include "py_column.h"
 #include "py_columnset.h"
@@ -419,14 +418,14 @@ static PyObject* meth_sort(DataTable_PyObject *self, PyObject *args)
 }
 
 #define DT_METH_GET_STAT(STAT, DOCSTRING) \
-    DT_DOCS(get_ ## STAT , DOCSTRING) \
-    static PyObject* meth_get_## STAT (DataTable_PyObject *self, PyObject *args) \
-    { \
-      CATCH_EXCEPTIONS( \
-        if (!PyArg_ParseTuple(args, "")) return NULL; \
-        return py(Stats:: STAT ## _datatable(self->ref)); \
-      ); \
-    }
+  DT_DOCS(get_ ## STAT , DOCSTRING) \
+  static PyObject* meth_get_## STAT (DataTable_PyObject *self, PyObject *args) \
+  { \
+    CATCH_EXCEPTIONS( \
+      if (!PyArg_ParseTuple(args, "")) return NULL; \
+      return py(self->ref-> STAT ## _datatable()); \
+    ); \
+  }
 
 DT_METH_GET_STAT(min, "Get the minimum for each column in the datatable")
 DT_METH_GET_STAT(max, "Get the maximum for each column in the datatable")

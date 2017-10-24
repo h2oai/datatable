@@ -211,7 +211,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
               static_cast<size_t>(diff_rows));
   }
   // TODO: Temporary fix. To be resolved in #301
-  stats->reset();
+  if (stats != nullptr) stats->reset();
 }
 
 
@@ -318,9 +318,24 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
     }
     offp = offa;
   }
+  if (stats != nullptr) stats->reset();
 }
 
+template <typename T>
+void StringColumn<T>::fill_na() {
+  int64_t mbuf_nrows = data_nrows();
+  mbuf->resize(static_cast<size_t>(mbuf_nrows) * sizeof(T) + padding(0));
+  ((VarcharMeta*) meta)->offoff = (int64_t) padding(0);
+  memset(mbuf->get(), 0xFF, static_cast<size_t>(mbuf_nrows) * sizeof(T) + padding(0));
+}
 
+//---- Stats -------------------------------------------------------------------
+
+template <typename T>
+StringStats<T>* StringColumn<T>::get_stats() const {
+  if (stats == nullptr) stats = new StringStats<T>();
+  return static_cast<StringStats<T>*>(stats);
+}
 
 //----- Type casts -------------------------------------------------------------
 

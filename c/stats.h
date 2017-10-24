@@ -1,12 +1,28 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+
 #ifndef dt_STATS_H
 #define dt_STATS_H
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
-#include "datatable.h"
-#include "rowindex.h"
 #include "types.h"
+#include "datatable_check.h"
 
+class Column;
 
 /**
  * Statistics Container
@@ -27,62 +43,134 @@
  * statistic.
  */
 class Stats {
+protected:
+  uint64_t compute_mask;
 public:
-    static Stats* construct(Column*);
-    static void destruct(Stats*);
+  int64_t _countna;
 
-    virtual void reset();
-    size_t alloc_size() const;
-    void merge_stats(const Stats*); // TODO: virtual when implemented
-    static Stats* void_ptr();
-    bool is_void() const;
-    inline const Column* column_ref() { return _ref_col; }
+  Stats();
+  virtual ~Stats();
+  virtual void compute_countna(const Column*) = 0;
+  bool countna_computed() const;
 
-    //===================== Get Stat Value ======================
-    template <typename T> T min();
-    template <typename T> T max();
-    template <typename A> A sum();
-    virtual double          mean();
-    virtual double          sd();
-    virtual int64_t         countna();
-    //===========================================================
-
-    //================ Get Stats for a DataTable ================
-    static DataTable* mean_datatable   ( const DataTable*);
-    static DataTable* sd_datatable     ( const DataTable*);
-    static DataTable* countna_datatable( const DataTable*);
-    static DataTable* min_datatable    ( const DataTable*);
-    static DataTable* max_datatable    ( const DataTable*);
-    static DataTable* sum_datatable    ( const DataTable*);
-    //===========================================================
+  virtual void reset();
+  size_t alloc_size() const;
+  void merge_stats(const Stats*); // TODO: virtual when implemented
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Stats") const;
-protected:
-    double _mean;
-    double _sd;
-    int64_t _countna;
-    const Column* _ref_col;
-
-    Stats(Column*);
-    virtual ~Stats();
-
-    //================== Get Stat as a Column ===================
-    Column*         mean_column();
-    Column*         sd_column();
-    Column*         countna_column();
-    virtual Column* min_column();
-    virtual Column* max_column();
-    virtual Column* sum_column();
-    //===========================================================
-
-    // Helper functions to deal with the template stats
-    virtual void* min_raw();
-    virtual void* max_raw();
-    virtual void* sum_raw();
-
-    friend DataTable;
 };
+
+
+/**
+ * Base class for all numerical STypes. Two template types are used:
+ *     T - The type for all statistics containing a value from `_ref_col`
+ *         (e.g. min, max). Naturally, `T` should be compatible with `_ref_col`s
+ *         SType.
+ *     A - The type for all aggregate statistics whose type is dependent on `T`
+ *         (e.g. sum). `T` should be able to cast into `A`
+ * This class itself is not compatible with any SType; one of its children
+ * should be used instead.
+ */
+template <typename T, typename A>
+class NumericalStats : public Stats {
+public:
+  double _mean;
+  double _sd;
+  A _sum;
+  T _min;
+  T _max;
+  int64_t : ((sizeof(A) + (sizeof(T) * 2) * 7) % 8) * 8;
+  NumericalStats();
+  void reset() override;
+
+  /**
+   * The `compute_stat` methods will compute the value of a statistic
+   * regardless if it has been flagged as computed or not.
+   */
+  void compute_mean(const Column*);
+  void compute_sd(const Column*);
+  void compute_min(const Column*);
+  void compute_max(const Column*);
+  void compute_sum(const Column*);
+  void compute_countna(const Column*) override;
+
+  bool mean_computed() const;
+  bool sd_computed() const;
+  bool min_computed() const;
+  bool max_computed() const;
+  bool sum_computed() const;
+
+protected:
+  // Helper method that computes min, max, sum, mean, sd, and countna
+  virtual void compute_numerical_stats(const Column*);
+};
+
+extern template class NumericalStats<int8_t, int64_t>;
+extern template class NumericalStats<int16_t, int64_t>;
+extern template class NumericalStats<int32_t, int64_t>;
+extern template class NumericalStats<int64_t, int64_t>;
+extern template class NumericalStats<float, double>;
+extern template class NumericalStats<double, double>;
+
+/**
+ * Child of NumericalStats that defaults `A` to a double. `T` should be a float
+ * or double.
+ */
+template <typename T>
+class RealStats : public NumericalStats<T, double> {
+public:
+    RealStats() : NumericalStats<T, double>() {}
+protected:
+    void compute_numerical_stats(const Column*) override;
+};
+
+extern template class RealStats<float>;
+extern template class RealStats<double>;
+
+
+/**
+ * Child of NumericalStats that defaults `A` to int64_t. `T` should be an
+ * integer type.
+ */
+template <typename T>
+class IntegerStats : public NumericalStats<T, int64_t> {
+public:
+  IntegerStats() : NumericalStats<T, int64_t>() {}
+};
+
+extern template class IntegerStats<int8_t>;
+extern template class IntegerStats<int16_t>;
+extern template class IntegerStats<int32_t>;
+extern template class IntegerStats<int64_t>;
+
+/**
+ * Child of NumericalStats that defaults `T` to int8_t and `A` to int64_t.
+ * `compute_numerical_stats()` is optimized since a boolean SType should only
+ * have 3 values (true, false, NA).
+ */
+class BooleanStats : public NumericalStats<int8_t, int64_t> {
+public:
+  BooleanStats() : NumericalStats<int8_t, int64_t>() {}
+protected:
+  void compute_numerical_stats(const Column *col) override;
+};
+
+
+/**
+ * Stats for variable string columns. Uses a template type `T` to define the
+ * integer type that is used to represent its offsets.
+ */
+template <typename T>
+class StringStats : public Stats {
+public:
+  StringStats();
+  void reset() override;
+  void compute_countna(const Column*) override;
+};
+
+extern template class StringStats<int32_t>;
+extern template class StringStats<int64_t>;
 
 void init_stats(void);
 

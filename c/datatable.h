@@ -18,7 +18,6 @@
 #include <inttypes.h>
 #include <vector>
 #include "datatable_check.h"
-#include "stats.h"
 #include "types.h"
 #include "column.h"
 
@@ -73,6 +72,14 @@ public:
     DataTable* rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
     size_t memory_footprint();
+
+    DataTable* min_datatable() const;
+    DataTable* max_datatable() const;
+    DataTable* sum_datatable() const;
+    DataTable* mean_datatable() const;
+    DataTable* sd_datatable() const;
+    DataTable* countna_datatable() const;
+
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
     static DataTable* load(DataTable*, int64_t);

@@ -41,9 +41,9 @@ size_t Column::allocsize0(SType stype, int64_t nrows) {
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       ri(nullptr),
+      stats(nullptr),
       meta(nullptr),
-      nrows(nrows_),
-      stats(Stats::void_ptr()) {}
+      nrows(nrows_) {}
 
 
 Column* Column::new_column(SType stype) {
@@ -69,6 +69,12 @@ Column* Column::new_data_column(SType stype, int64_t nrows) {
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
+  return col;
+}
+
+Column* Column::new_na_column(SType stype, int64_t nrows) {
+  Column* col = new_data_column(stype, nrows);
+  col->fill_na();
   return col;
 }
 
@@ -443,7 +449,7 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
     assert(res->stype() == new_stype && !res->mbuf->is_readonly());
 
     // TODO: Temporary Fix. To be resolved in #301
-    res->stats->reset();
+    if (res->stats != nullptr) res->stats->reset();
 
     // Use the appropriate strategy to continue appending the columns.
     res->rbind_impl(columns, new_nrows, col_empty);
@@ -457,7 +463,7 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
 
 Column::~Column() {
   dtfree(meta);
-  Stats::destruct(stats);
+  delete stats;
   if (mbuf) mbuf->release();
   if (ri) ri->release();
 }
@@ -491,6 +497,27 @@ size_t Column::memory_footprint() const
   return sz;
 }
 
+
+int64_t Column::countna() const {
+  Stats* s = get_stats();
+  if (!s->countna_computed()) s->compute_countna(this);
+  return s->_countna;
+}
+/**
+ * Methods for retrieving stats but in column form. These should be populated
+ * with NA values when called from the base column instance.
+ */
+Column* Column::mean_column() const    { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::sd_column() const      { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::min_column() const     { return new_na_column(stype(), 1); }
+Column* Column::max_column() const     { return new_na_column(stype(), 1); }
+Column* Column::sum_column() const     { return new_na_column(stype(), 1); }
+
+Column* Column::countna_column() const {
+  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
+  col->set_elem(0, countna());
+  return col;
+}
 
 //------------------------------------------------------------------------------
 // Casting
@@ -598,19 +625,9 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   if (icc.has_errors(nerrors)) return false;
 
   // Check Stats
-  if (stats == nullptr) {
-    icc << "Stats in " << name << " is null" << end;
-    return false;
-  } else {
+  if (stats != nullptr) { // Stats are allowed to be null
     bool r = stats->verify_integrity(icc);
     if (!r) return false;
-  }
-
-  // Check that the Stats instance's column reference points to this instance
-  if (!(stats->is_void() || stats->column_ref() == this)) {
-    icc << name << " is not linked properly with its stats: the back-reference "
-        << "to column in Stats object is " << stats->column_ref() << ", while "
-        << "the Column instance is " << this << end;
   }
   return !icc.has_errors(nerrors);
 }
