@@ -107,6 +107,7 @@ class FReader(object):
         if na_strings is None:
             na_strings = ["NA"]
         self.verbose = verbose
+        self.logger = logger
         self.text = text
         self.filename = filename
         self.columns = columns
@@ -118,7 +119,6 @@ class FReader(object):
         self.show_progress = show_progress
         self.skip_to_string = skip_to_string
         self.skip_lines = skip_lines
-        self.logger = logger
 
         if "separator" in args:
             self.sep = args.pop("separator")
