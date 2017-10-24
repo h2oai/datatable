@@ -1,4 +1,18 @@
 //------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
 // Functionality related to "Buffers" interface
 // See https://www.python.org/dev/peps/pep-3118/
 //------------------------------------------------------------------------------
@@ -32,83 +46,76 @@ static char strB[] = "B";
 PyObject* pydatatable_from_buffers(UU, PyObject *args)
 {
   CATCH_EXCEPTIONS(
-    PyObject *list = NULL;
-
+    PyObject* list = nullptr;
     if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
-        return NULL;
+      return nullptr;
 
-    int n = (int) PyList_Size(list);
-    Column **columns = NULL;
+    int n = static_cast<int>(PyList_Size(list));
+    Column** columns = nullptr;
     dtmalloc(columns, Column*, n + 1);
-    columns[n] = NULL;
+    columns[n] = nullptr;
 
-    for (int i = 0; i < n; i++) {
-        PyObject *item = PyList_GET_ITEM(list, i);
-        if (!PyObject_CheckBuffer(item)) {
-            PyErr_Format(PyExc_ValueError,
-                "Element %d in the list of sources does not support buffers "
-                "interface", i);
-            return NULL;
-        }
-        Py_buffer *view;
-        dtcalloc(view, Py_buffer, 1);
+    for (int i = 0; i < n; ++i) {
+      PyObject *item = PyList_GET_ITEM(list, i);
+      if (!PyObject_CheckBuffer(item)) {
+        throw Error("Element %d in the list of sources does not support "
+                    "buffers interface", i);
+      }
+      Py_buffer* view;
+      dtcalloc(view, Py_buffer, 1);
 
-        // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
-        // the `view->format` field should be filled; and PyBUF_ND will fill the
-        // `view->shape` information (while `strides` and `suboffsets` will be
-        // NULL).
-        int ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_ND);
-        if (ret != 0) {
-            PyErr_Clear();  // otherwise system functions may fail later on
-            ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
-        }
-        if (ret != 0) {
-            if (!PyErr_Occurred())
-                PyErr_Format(PyExc_ValueError,
-                    "Unable to retrieve buffer for column %d", i);
-            return NULL;
-        }
-        if (view->ndim != 1) {
-            PyErr_Format(PyExc_ValueError,
-                "Buffer returned has ndim=%d, cannot handle", view->ndim);
-            return NULL;
-        }
+      // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
+      // the `view->format` field should be filled; and PyBUF_ND will fill the
+      // `view->shape` information (while `strides` and `suboffsets` will be
+      // nullptr).
+      int ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_ND);
+      if (ret != 0) {
+        PyErr_Clear();  // otherwise system functions may fail later on
+        ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
+      }
+      if (ret != 0) {
+        if (!PyErr_Occurred())
+          throw Error("Unable to retrieve buffer for column %d", i);
+        return nullptr;
+      }
+      if (view->ndim != 1) {
+        throw Error("Buffer has ndim=%d, cannot handle", view->ndim);
+      }
 
-        SType stype = stype_from_format(view->format, view->itemsize);
-        int64_t nrows = view->len / view->itemsize;
-        if (stype == ST_VOID) return NULL;
-        if (view->strides == NULL) {
-            columns[i] = Column::new_xbuf_column(stype, nrows, view, view->buf,
-                                                 static_cast<size_t>(view->len));
-        } else {
-            columns[i] = Column::new_data_column(stype, nrows);
-            int64_t stride = view->strides[0] / view->itemsize;
-            if (view->itemsize == 8) {
-                int64_t *out = (int64_t*) columns[i]->data();
-                int64_t *inp = (int64_t*) view->buf;
-                for (int64_t j = 0; j < nrows; j++)
-                    out[j] = inp[j * stride];
-            } else if (view->itemsize == 4) {
-                int32_t *out = (int32_t*) columns[i]->data();
-                int32_t *inp = (int32_t*) view->buf;
-                for (int64_t j = 0; j < nrows; j++)
-                    out[j] = inp[j * stride];
-            } else if (view->itemsize == 2) {
-                int16_t *out = (int16_t*) columns[i]->data();
-                int16_t *inp = (int16_t*) view->buf;
-                for (int64_t j = 0; j < nrows; j++)
-                    out[j] = inp[j * stride];
-            } else if (view->itemsize == 1) {
-                int8_t *out = (int8_t*) columns[i]->data();
-                int8_t *inp = (int8_t*) view->buf;
-                for (int64_t j = 0; j < nrows; j++)
-                    out[j] = inp[j * stride];
-            }
+      SType stype = stype_from_format(view->format, view->itemsize);
+      int64_t nrows = view->len / view->itemsize;
+      if (stype == ST_VOID) return nullptr;
+      if (view->strides == nullptr) {
+        columns[i] = Column::new_xbuf_column(stype, nrows, view, view->buf,
+                                             static_cast<size_t>(view->len));
+      } else {
+        columns[i] = Column::new_data_column(stype, nrows);
+        int64_t stride = view->strides[0] / view->itemsize;
+        if (view->itemsize == 8) {
+          int64_t* out = reinterpret_cast<int64_t*>(columns[i]->data());
+          int64_t* inp = reinterpret_cast<int64_t*>(view->buf);
+          for (int64_t j = 0; j < nrows; ++j)
+            out[j] = inp[j * stride];
+        } else if (view->itemsize == 4) {
+          int32_t* out = reinterpret_cast<int32_t*>(columns[i]->data());
+          int32_t* inp = reinterpret_cast<int32_t*>(view->buf);
+          for (int64_t j = 0; j < nrows; ++j)
+            out[j] = inp[j * stride];
+        } else if (view->itemsize == 2) {
+          int16_t* out = reinterpret_cast<int16_t*>(columns[i]->data());
+          int16_t* inp = reinterpret_cast<int16_t*>(view->buf);
+          for (int64_t j = 0; j < nrows; ++j)
+            out[j] = inp[j * stride];
+        } else if (view->itemsize == 1) {
+          int8_t* out = reinterpret_cast<int8_t*>(columns[i]->data());
+          int8_t* inp = reinterpret_cast<int8_t*>(view->buf);
+          for (int64_t j = 0; j < nrows; ++j)
+            out[j] = inp[j * stride];
         }
-        if (columns[i] == NULL) return NULL;
-        if (columns[i]->stype() == ST_OBJECT_PYPTR) {
-            columns[i] = try_to_resolve_object_column(columns[i]);
-        }
+      }
+      if (columns[i]->stype() == ST_OBJECT_PYPTR) {
+        columns[i] = try_to_resolve_object_column(columns[i]);
+      }
     }
 
     DataTable *dt = new DataTable(columns);
@@ -126,63 +133,63 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
  */
 Column* try_to_resolve_object_column(Column* col)
 {
-    PyObject **data = (PyObject**) col->data();
-    int64_t nrows = col->nrows;
+  PyObject **data = (PyObject**) col->data();
+  int64_t nrows = col->nrows;
 
-    int all_strings = 1;
-    // Approximate total length of all strings. Do not take into account
-    // possibility that the strings may expand in UTF-8 -- if needed, we'll
-    // realloc the buffer later.
-    int64_t total_length = 10;
-    for (int64_t i = 0; i < nrows; i++) {
-        if (data[i] == Py_None) continue;
-        if (!PyUnicode_Check(data[i])) {
-            all_strings = 0;
-            break;
-        }
-        total_length += PyUnicode_GetLength(data[i]);
+  int all_strings = 1;
+  // Approximate total length of all strings. Do not take into account
+  // possibility that the strings may expand in UTF-8 -- if needed, we'll
+  // realloc the buffer later.
+  int64_t total_length = 10;
+  for (int64_t i = 0; i < nrows; ++i) {
+    if (data[i] == Py_None) continue;
+    if (!PyUnicode_Check(data[i])) {
+      all_strings = 0;
+      break;
     }
+    total_length += PyUnicode_GetLength(data[i]);
+  }
 
-    // Not all elements were strings -- return the original column unmodified
-    if (!all_strings) {
-        return col;
+  // Not all elements were strings -- return the original column unmodified
+  if (!all_strings) {
+    return col;
+  }
+
+  // Otherwise the column is all-strings: convert it into *STRING stype.
+  char *strbuf = NULL;
+  dtmalloc(strbuf, char, total_length);
+  size_t strbuf_size = static_cast<size_t>(total_length);
+  auto res = new StringColumn<int32_t>(nrows);
+  int32_t* offsets = res->offsets();
+
+  size_t offset = 0;
+  for (int64_t i = 0; i < nrows; i++) {
+    if (data[i] == Py_None) {
+      offsets[i] = static_cast<int32_t>(-offset - 1);
+    } else {
+      PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
+      size_t sz = static_cast<size_t>(PyBytes_Size(z));
+      if (offset + sz > strbuf_size) {
+        strbuf_size = static_cast<size_t>(1.5 * strbuf_size);
+        dtrealloc(strbuf, char, strbuf_size);
+      }
+      memcpy(strbuf + offset, PyBytes_AsString(z), sz);
+      Py_DECREF(z);
+      offset += sz;
+      offsets[i] = static_cast<int32_t>(offset + 1);
     }
+  }
 
-    // Otherwise the column is all-strings: convert it into *STRING stype.
-    char *strbuf = NULL;
-    dtmalloc(strbuf, char, total_length);
-    size_t strbuf_size = (size_t) total_length;
-    Column *res = Column::new_data_column(ST_STRING_I4_VCHAR, nrows);
-    int32_t *offsets = (int32_t*) res->data();
-
-    size_t offset = 0;
-    for (int64_t i = 0; i < nrows; i++) {
-        if (data[i] == Py_None) {
-            offsets[i] = (int32_t)(-offset - 1);
-        } else {
-            PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
-            size_t sz = (size_t) PyBytes_Size(z);
-            if (offset + sz > strbuf_size) {
-                strbuf_size = (size_t) (1.5 * strbuf_size);
-                dtrealloc(strbuf, char, strbuf_size);
-            }
-            memcpy(strbuf + offset, PyBytes_AsString(z), sz);
-            Py_DECREF(z);
-            offset += sz;
-            offsets[i] = (int32_t)(offset + 1);
-        }
-    }
-
-    size_t datasize = offset;
-    size_t padding = Column::i4s_padding(datasize);
-    size_t allocsize = datasize + padding + 4 * (size_t)nrows;
-    dtrealloc(strbuf, char, allocsize);
-    memset(strbuf + datasize, 0xFF, padding);
-    memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
-    res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
-    ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
-    delete col;
-    return res;
+  size_t datasize = offset;
+  size_t padding = Column::i4s_padding(datasize);
+  size_t allocsize = datasize + padding + 4 * (size_t)nrows;
+  dtrealloc(strbuf, char, allocsize);
+  memset(strbuf + datasize, 0xFF, padding);
+  memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
+  res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
+  ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
+  delete col;
+  return res;
 }
 
 
