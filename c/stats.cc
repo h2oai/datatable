@@ -322,7 +322,7 @@ void StringStats<T>::compute_countna(const Column *col) {
   int64_t nrows = scol->nrows;
   int64_t t_countna = 0;
   T *data = scol->offsets();
-  LOOP_OVER_ROWINDEX(i, nrows, scol->rowindex(),
+  DT_LOOP_OVER_ROWINDEX(i, nrows, scol->rowindex(),
       t_countna += data[i] < 0;
   )
   _countna = t_countna;
