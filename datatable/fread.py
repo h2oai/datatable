@@ -413,10 +413,16 @@ class FReader(object):
         if ext == ".zip":
             import zipfile
             zf = zipfile.ZipFile(filename)
-            zff = zf.namelist()
+            # MacOS is found guilty of adding extra files into the Zip archives
+            # it creates. The files are hidden, and in the directory __MACOSX/.
+            # We remove those files from the list, since they are not real user
+            # files, and have an unknown binary format.
+            zff = [name for name in zf.namelist()
+                   if not name.startswith("__MACOSX/")]
             if len(zff) > 1:
                 warnings.warn("Zip file %s contains multiple compressed "
-                              "files: %r" % (filename, zff))
+                              "files: %r. Only the first of them will be used."
+                              % (filename, zff))
             if len(zff) == 0:
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
