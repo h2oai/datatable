@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-import math
 import pytest
 import sys
 import datatable as dt
-from tests import same_iterables
+from tests import same_iterables, list_equals
 
 
 #-------------------------------------------------------------------------------
@@ -65,51 +64,6 @@ def test_dt_properties(dt0):
             sum(sys.getsizeof(colname) for colname in dt0.names) +
             sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._types) +
             sys.getsizeof(dt0._stypes))
-    # +--------------+------------+    +------+
-    # | nrows:     8 | **stats: 8 |--->| NULL |
-    # | ncols:     8 |------------+    +------+
-    # |--------------|
-    # | **columns: 8 |    +----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+------------+
-    # |              |--->| Column* (i1i): 8           | Column* (i1b): 8           | Column* (i1b): 8           | Column* (f8r): 8           | Column* (i1b): 8           | Column* (i1b): 8           | Column* (i4s): 8           | Column*: 8 |
-    # |--------------+    +----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+----------------------------+------------+
-    # | *rowindex: 8 |      |                            |                            |                            |                            |                            |                            |                                 |
-    # +--------------+      |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+          v
-    #         |             |  | NULL |     | NULL |     |  | NULL |     | NULL |     |  | NULL |     | NULL |     |  | NULL |     | NULL |     |  | NULL |     | NULL |     |  | NULL |     | NULL |     |  | NULL |     | NULL |      +------+
-    #         v             |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+     |  +------+     +------+      | NULL |
-    #     +------+          |     ^             ^        |     ^             ^        |     ^             ^        |     ^             ^        |     ^             ^        |     ^             ^        |     ^             ^         +------+
-    #     | NULL |          v     |             |        v     |             |        v     |             |        v     |             |        v     |             |        v     |             |        v     |             |
-    #     +------+        +---------------------------++---------------------------++---------------------------++---------------------------++---------------------------++---------------------------++---------------------------+
-    #                     | *pybuf:     8 | *stats: 8 || *pybuf:     8 | *stats: 8 || *pybuf:     8 | *stats: 8 || *pybuf:     8 | *stats: 8 || *pybuf:     8 | *stats: 8 || *pybuf:     8 | *stats: 8 || *pybuf:     8 | *stats: 8 |
-    #                     |---------------------------||---------------------------||---------------------------||---------------------------||---------------------------||---------------------------||---------------------------|
-    #                     | refcount:   4 | mtype:  1 || refcount:   4 | mtype:  1 || refcount:   4 | mtype:  1 || refcount:   4 | mtype:  1 || refcount:   4 | mtype:  1 || refcount:   4 | mtype:  1 || refcount:   4 | mtype:  1 |
-    #                     | alloc_size: 8 | stype:  1 || alloc_size: 8 | stype:  1 || alloc_size: 8 | stype:  1 || alloc_size: 8 | stype:  1 || alloc_size: 8 | stype:  1 || alloc_size: 8 | stype:  1 || alloc_size: 8 | stype:  1 |
-    #                     | _padding:   2 | nrows:  8 || _padding:   2 | nrows:  8 || _padding:   2 | nrows:  8 || _padding:   2 | nrows:  8 || _padding:   2 | nrows:  8 || _padding:   2 | nrows:  8 || _padding:   2 | nrows:  8 |
-    #                     |---------------|-----------||---------------|-----------||---------------|-----------||---------------|-----------||---------------|-----------||---------------|-----------||---------------|-----------|
-    #                     | *data:      8 | *meta:  8 || *data:      8 | *meta:  8 || *data:      8 | *meta:  8 || *data:      8 | *meta:  8 || *data:      8 | *meta:  8 || *data:      8 | *meta:  8 || *data:      8 | *meta:  8 |
-    #                     +---------------------------++---------------------------++---------------------------++---------------------------++---------------------------++---------------------------++---------------------------+
-    #                             |             |              |             |              |             |              |             |              |             |              |             |              |             |
-    #                             v             v              v             v              v             v              v             v              v             v              v             v              v             v
-    #                           +---+       +------+         +---+       +------+         +---+       +------+         +---+       +------+         +---+       +------+         +---+       +------+         +---+         +---+
-    #                           | 1 | 2     | NULL |         | 1 | 1     | NULL |         | 1 | 1     | NULL |         | 8 | 0.1   | NULL |         | 1 | NA_I8 | NULL |         | 1 | 0     | NULL |         | 1 | "1"     | 8 | 12
-    #                           |---|       +------+         |---|       +------+         |---|       +------+         |---|       +------+         |---|       +------+         |---|       +------+         |---|         +---+
-    #                           | 1 | 7                      | 1 | 0                      | 1 | 1                      | 8 | 2                      | 1 | NA_I8                  | 1 | 0                      | 1 | "2"
-    #                           |---|                        |---|                        |---|                        |---|                        |---|                        |---|                        |---|
-    #                           | 1 | 0                      | 1 | 0                      | 1 | 1                      | 8 | -4                     | 1 | NA_I8                  | 1 | 0                      | 5 | "hello"
-    #                           |---|                        |---|                        |---|                        |---|                        |---|                        |---|                        |---|
-    #                           | 1 | 0                      | 1 | 1                      | 1 | 1                      | 8 | 4.4                    | 1 | NA_I8                  | 1 | 0                      | 4 | "world"
-    #                           +---+                        +---+                        +---+                        +---+                        +---+                        +---+                        |---|
-    #                                                                                                                                                                                                         | 1 | pad
-    #                                                                                                                                                                                                         |---|
-    #                                                                                                                                                                                                         | 4 | -1
-    #                                                                                                                                                                                                         |---|
-    #                                                                                                                                                                                                         | 4 | 2
-    #                                                                                                                                                                                                         |---|
-    #                                                                                                                                                                                                         | 4 | 3
-    #                                                                                                                                                                                                         |---|
-    #                                                                                                                                                                                                         | 4 | 8
-    #                                                                                                                                                                                                         |---|
-    #                                                                                                                                                                                                         | 4 | 12
-    #                                                                                                                                                                                                         +---+
 
 
 @pytest.mark.run(order=2)
@@ -443,3 +397,22 @@ def test_numpy_constructor_view_1col(numpy):
     a = d2.tonumpy()
     assert a.T.tolist() == [[True, True]]
     assert (a == numpy.array(d2)).all()
+
+
+@pytest.mark.run(order=23)
+def test_tonumpy_with_stype(numpy):
+    """
+    Test using dt.tonumpy() with explicit `stype` argument.
+    """
+    src = [[1.5, 2.6, 5.4], [3, 7, 10]]
+    d0 = dt.DataTable(src)
+    assert d0.stypes == ("f8r", "i1i")
+    a1 = d0.tonumpy("float32")
+    a2 = d0.tonumpy()
+    del d0
+    # Check using list_equals(), which allows a tolerance of 1e-6, because
+    # conversion to float32 resulted in loss of precision
+    assert list_equals(a1.T.tolist(), src)
+    assert a2.T.tolist() == src
+    assert a1.dtype == numpy.dtype("float32")
+    assert a2.dtype == numpy.dtype("float64")
