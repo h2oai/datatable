@@ -37,6 +37,8 @@ public:
   void assert_is_not_dir() const;
   const char* cname() const;
 
+  static void remove(const std::string& name, bool except = false);
+
 private:
   void load_stats() const;
 };

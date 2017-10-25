@@ -1,9 +1,7 @@
+#include "datatable.h"
 #include <exception>
 #include <iostream>
-#include <fcntl.h>   // open
-#include <unistd.h>  // write, fsync, close
 #include <vector>
-#include "datatable.h"
 #include "datatable_check.h"
 #include "py_column.h"
 #include "py_columnset.h"

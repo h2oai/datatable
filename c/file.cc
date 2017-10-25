@@ -16,6 +16,7 @@
 #include "file.h"
 #include <errno.h>      // errno
 #include <fcntl.h>      // open
+#include <stdio.h>      // remove
 #include <string.h>     // strerror
 #include <sys/stat.h>   // fstat
 #include <unistd.h>     // close, write, ftruncate
@@ -89,5 +90,18 @@ void File::load_stats() const {
   if (ret == -1) {
     throw Error("Error in fstat() for file %s: [errno %d] %s",
                 name.c_str(), errno, strerror(errno));
+  }
+}
+
+void File::remove(const std::string& filename, bool except) {
+  int ret = ::remove(filename.c_str());
+  if (ret == -1) {
+    if (except) {
+      throw Error("Unable to remove file %s: [errno %d] %s",
+                  filename.c_str(), errno, strerror(errno));
+    } else {
+      printf("Unable to remove file %s: [errno %d] %s",
+             filename.c_str(), errno, strerror(errno));
+    }
   }
 }

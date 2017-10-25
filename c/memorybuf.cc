@@ -15,14 +15,13 @@
 //------------------------------------------------------------------------------
 #include "memorybuf.h"
 #include <errno.h>     // errno
-#include <fcntl.h>     // open
-#include <stdio.h>     // remove
+#include <fcntl.h>     // O_RDWR, O_CREAT, O_RDONLY
 #include <string.h>    // strlen, strerror
 #include <sys/mman.h>  // mmap
-#include <sys/stat.h>  // fstat
-#include <unistd.h>    // access, close, write, lseek, sysconf
+#include <unistd.h>    // sysconf
 #include <algorithm>   // min
 #include "datatable_check.h"
+#include "file.h"
 #include "myassert.h"
 #include "py_utils.h"
 #include "utils.h"
@@ -43,7 +42,6 @@ MemoryBuffer::MemoryBuffer()
 // exception.
 MemoryBuffer::~MemoryBuffer() {
   assert(buf == nullptr);
-  // assert(refcount == 0);
 }
 
 void* MemoryBuffer::get() const {
@@ -282,40 +280,14 @@ bool ExternalMemBuf::verify_integrity(IntegrityCheckContext& icc,
 MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
     : filename(path), xbuf(nullptr), xbuf_size(0)
 {
-  if (create) {
-    FILE *fp = fopen(filename.c_str(), "w");
-    if (!fp) throw Error("Cannot open file");
-    if (n) {
-      fseek(fp, (long)(n - 1), SEEK_SET);
-      fputc('\0', fp);
-    }
-    fclose(fp);
-    readonly = false;
-  }
-  else {
-    if (access(filename.c_str(), R_OK) == -1) {
-      throw Error("File %s cannot be accessed: %s",
-                  filename.c_str(), strerror(errno));
-    }
-    readonly = true;
-  }
+  readonly = !create;
 
-  // Open the file and determine its size
-  int fd = open(filename.c_str(), create? O_RDWR : O_RDONLY);
-  if (fd == -1) {
-    throw Error("Cannot open file %s: %s",
-                filename.c_str(), strerror(errno));
+  File file(filename, create? O_RDWR|O_CREAT : O_RDONLY);
+  file.assert_is_not_dir();
+  if (create) {
+    file.resize(n);
   }
-  struct stat statbuf;
-  int ret = fstat(fd, &statbuf);
-  if (ret == -1) {
-    throw Error("Error in fstat(): %s", strerror(errno));
-  }
-  if (S_ISDIR(statbuf.st_mode)) {
-    close(fd);
-    throw Error("File %s is a directory", filename.c_str());
-  }
-  size_t filesize = static_cast<size_t>(statbuf.st_size);
+  size_t filesize = file.size();
   allocsize = filesize + (create? 0 : n);
 
   // Memory-map the file.
@@ -342,15 +314,14 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
              /* length = */ allocsize,
              /* protection = */ PROT_WRITE|PROT_READ,
              /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,
-             /* file descriptor = */ fd,
+             /* fd = */ file.descriptor(),
              /* offset = */ 0);
-  close(fd);  // fd is no longer needed
   if (buf == MAP_FAILED) {
     // Exception is thrown from the constructor -> the base class' destructor
     // will be called, which checks that `buf` is null.
     buf = nullptr;
     throw Error("Memory-map failed for file %s of size %zu: [%d] %s",
-                filename.c_str(), filesize, errno, strerror(errno));
+                file.cname(), filesize, errno, strerror(errno));
   }
 
   // Determine if additional memory-mapped region is necessary (only when
@@ -414,9 +385,9 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
 MemmapMemBuf::~MemmapMemBuf() {
   int ret = munmap(buf, allocsize);
   if (ret) {
-    // Too bad we can't throw exceptions from a destructor...
-    printf("System error '%s' unmapping the view of file. Resources may have "
-           "been not freed properly.", strerror(errno));
+    // Cannot throw exceptions from a destructor, so just print a message
+    printf("Error unmapping the view of file: [errno %d] %s. Resources may "
+           "have not been freed properly.", errno, strerror(errno));
   }
   buf = nullptr;  // Checked in the upstream destructor
   if (xbuf) {
@@ -425,7 +396,7 @@ MemmapMemBuf::~MemmapMemBuf() {
     xbuf = nullptr;
   }
   if (!is_readonly()) {
-    remove(filename.c_str());
+    File::remove(filename);
   }
 }
 
@@ -434,22 +405,15 @@ void MemmapMemBuf::resize(size_t n) {
   if (is_readonly()) throw Error("Cannot resize a readonly buffer");
   munmap(buf, allocsize);
   buf = nullptr;
-  int ret = truncate(filename.c_str(), (off_t)n);
-  if (ret == -1) {
-    throw Error("Cannot truncate file %s to size %zu: [errno %d] %s",
-                filename.c_str(), n, errno, strerror(errno));
-  }
 
-  int fd = open(filename.c_str(), O_RDWR);
-  if (fd == -1) {
-    THROW_ERROR("Unable to open file %s: %s", filename.c_str(), strerror(errno));
-  }
-  buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  File file(filename, O_RDWR);
+  file.resize(n);
+  buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, file.descriptor(), 0);
   allocsize = n;
-  close(fd);
   if (buf == MAP_FAILED) {
     buf = nullptr;
-    THROW_ERROR("Memory map failed: %s", strerror(errno));
+    throw Error("Memory map failed for file %s when resizing to %zu: "
+                "[errno %d] %s", file.cname(), n, errno, strerror(errno));
   }
 }
 
