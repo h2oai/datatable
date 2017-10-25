@@ -304,8 +304,11 @@ class FReader(object):
             if self._verbose:
                 self.logger.debug("Removing temporary file %s\n"
                                   % self._tempfile)
-            os.remove(self._tempfile)
-            os.rmdir(self._tempdir)
+            try:
+                os.remove(self._tempfile)
+                os.rmdir(self._tempdir)
+            except OSError as e:
+                self.logger.warn("Failed to remove temporary files: %r" % e)
         return dt
 
 
@@ -598,6 +601,10 @@ class _DefaultLogger:
             print("  ", end="")
         self._log_newline = message.endswith("\n")
         print(_log_color(message), end="", flush=True)
+
+    def warn(self, message):
+        warnings.warn(message)
+
 
 
 #-------------------------------------------------------------------------------
