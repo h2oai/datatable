@@ -17,6 +17,7 @@
 #define dt_WRITEBUF_H
 #include <stdio.h>     // size_t
 #include <string>      // std::string
+#include "file.h"
 
 
 //==============================================================================
@@ -82,9 +83,7 @@ public:
 
 class FileWritableBuffer : public WritableBuffer
 {
-protected:
-  int fd;
-  int _unused;
+  File* file;
 
 public:
   FileWritableBuffer(const std::string &path);
@@ -104,7 +103,7 @@ class ThreadsafeWritableBuffer : public WritableBuffer
 protected:
   void*  buffer;
   size_t allocsize;
-  int    nlocks;
+  volatile int nlocks;
   int    _unused;
 
   virtual void realloc(size_t newsize) = 0;
@@ -124,9 +123,6 @@ public:
 
 class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 {
-protected:
-  virtual void realloc(size_t newsize);
-
 public:
   MemoryWritableBuffer(size_t size);
   virtual ~MemoryWritableBuffer();
@@ -137,6 +133,9 @@ public:
    * it will be the responsibility of the caller to handle it.
    */
   void* get();
+
+private:
+  void realloc(size_t newsize) override;
 };
 
 
@@ -145,14 +144,16 @@ public:
 
 class MmapWritableBuffer : public ThreadsafeWritableBuffer
 {
-protected:
   std::string filename;
-
-  virtual void realloc(size_t newsize);
 
 public:
   MmapWritableBuffer(const std::string& path, size_t size);
-  virtual ~MmapWritableBuffer();
+  ~MmapWritableBuffer();
+
+private:
+  void realloc(size_t newsize) override;
+  void map(int fd, size_t size);
+  void unmap();
 };
 
 

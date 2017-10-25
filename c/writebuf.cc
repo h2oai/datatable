@@ -15,9 +15,8 @@
 //------------------------------------------------------------------------------
 #include "writebuf.h"
 #include <errno.h>     // errno
-#include <fcntl.h>     // open
 #include <sys/mman.h>  // mmap
-#include <unistd.h>    // close, write, lseek, truncate
+#include <unistd.h>    // write
 #include "myomp.h"
 #include "utils.h"
 
@@ -27,25 +26,19 @@
 // FileWritableBuffer
 //==============================================================================
 
-FileWritableBuffer::FileWritableBuffer(const std::string& path)
-{
-  const char *cpath = path.c_str();
-  fd = open(cpath, O_WRONLY|O_CREAT|O_TRUNC, 0666);
-  if (fd == -1) throw Error("Cannot open file %s: Error %d %s",
-                            cpath, errno, strerror(errno));
+FileWritableBuffer::FileWritableBuffer(const std::string& path) {
+  file = new File(path, File::OVERWRITE);
+}
+
+FileWritableBuffer::~FileWritableBuffer() {
+  delete file;
 }
 
 
-FileWritableBuffer::~FileWritableBuffer()
-{
-  if (fd != -1) close(fd);
-}
-
-
-size_t FileWritableBuffer::prep_write(size_t size, const void *src)
+size_t FileWritableBuffer::prep_write(size_t size, const void* src)
 {
   // See https://linux.die.net/man/2/write
-  ssize_t r = ::write(fd, static_cast<const void*>(src), size);
+  ssize_t r = ::write(file->descriptor(), src, size);
 
   if (r == -1) {
     throw Error("Error %d writing to file: %s (bytes already written: %zu)",
@@ -64,8 +57,7 @@ size_t FileWritableBuffer::prep_write(size_t size, const void *src)
 }
 
 
-void FileWritableBuffer::write_at(
-    UNUSED(size_t pos), UNUSED(size_t size), UNUSED(const void *src))
+void FileWritableBuffer::write_at(size_t, size_t, const void*)
 {
   // Do nothing. FileWritableBuffer does all the writing at the "prep_write"
   // stage, because it is unable to write from multiple threads at the same
@@ -80,9 +72,8 @@ void FileWritableBuffer::write_at(
 
 void FileWritableBuffer::finalize()
 {
-  // We could check for errors here, but I don't see the point...
-  close(fd);
-  fd = -1;
+  delete file;
+  file = nullptr;
 }
 
 
@@ -92,15 +83,13 @@ void FileWritableBuffer::finalize()
 //==============================================================================
 
 ThreadsafeWritableBuffer::ThreadsafeWritableBuffer(size_t size)
-  : buffer(nullptr), allocsize(size), nlocks(0)
-{}
+  : buffer(nullptr), allocsize(size), nlocks(0) {}
 
 
-ThreadsafeWritableBuffer::~ThreadsafeWritableBuffer()
-{}
+ThreadsafeWritableBuffer::~ThreadsafeWritableBuffer() {}
 
 
-size_t ThreadsafeWritableBuffer::prep_write(size_t n, UNUSED(const void *src))
+size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*)
 {
   size_t pos = bytes_written;
   bytes_written += n;
@@ -108,7 +97,7 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, UNUSED(const void *src))
   // In the rare case when we need to reallocate the underlying buffer (because
   // more space is needed than originally anticipated), this will block until
   // all other threads finish writing their chunks, and only then proceed with
-  // the reallocation. Otherwise reallocating the memory when some other thread
+  // the reallocation. Otherwise, reallocating the memory when some other thread
   // is writing into it leads to very-hard-to-debug crashes...
   while (bytes_written > allocsize) {
     size_t newsize = bytes_written * 2;
@@ -217,48 +206,44 @@ void* MemoryWritableBuffer::get()
 MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
   : ThreadsafeWritableBuffer(size), filename(path)
 {
-  const char *c_name = filename.c_str();
-  int fd = open(c_name, O_RDWR|O_CREAT, 0666);
-  if (fd == -1) throw Error("Cannot open file %s: [errno %d] %s",
-                            c_name, errno, strerror(errno));
-
-  if (size) {
-    int zero = 0;
-    lseek(fd, static_cast<off_t>(size - 1), SEEK_SET);
-    ::write(fd, static_cast<void*>(&zero), 1);  // write 1 byte: '\0'
-  }
-
-  buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-  close(fd);
-  if (buffer == MAP_FAILED) {
-    throw Error("Memory map failed for file %s of size %zu: [errno %d] %s",
-                path.c_str(), size, errno, strerror(errno));
-  }
+  File file(path, File::CREATE);
+  if (size) file.resize(size);
+  map(file.descriptor(), size);
 }
 
 
-MmapWritableBuffer::~MmapWritableBuffer()
-{
-  munmap(buffer, allocsize);
+MmapWritableBuffer::~MmapWritableBuffer() {
+  unmap();
+}
+
+
+void MmapWritableBuffer::map(int fd, size_t size) {
+  if (buffer) throw Error("buffer is not null");
+  buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  if (buffer == MAP_FAILED) {
+    buffer = nullptr;
+    throw Error("Memory map failed for file %s of size %zu: [errno %d] %s",
+                filename.c_str(), size, errno, strerror(errno));
+  }
+  allocsize = size;
+}
+
+
+void MmapWritableBuffer::unmap() {
+  if (!buffer) return;
+  int ret = munmap(buffer, allocsize);
+  if (ret) {
+    printf("Error unmapping the view of file %s (%p..+%zu): [errno %d] %s",
+           filename.c_str(), buffer, allocsize, errno, strerror(errno));
+  }
+  buffer = nullptr;
 }
 
 
 void MmapWritableBuffer::realloc(size_t newsize)
 {
-  munmap(buffer, allocsize);
-  buffer = nullptr;
-
-  const char *c_fname = filename.c_str();
-  int ret = truncate(c_fname, static_cast<off_t>(newsize));
-  if (ret == -1) {
-    throw Error("Unable to truncate file to size %zu: [errno %d] %s",
-                newsize, errno, strerror(errno));
-  }
-
-  int fd = open(c_fname, O_RDWR);
-  buffer = mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-  close(fd);
-  if (!buffer) throw Error("Unable to resize the file to %s",
-                           filesize_to_str(newsize));
-  allocsize = newsize;
+  unmap();
+  File file(filename, File::READWRITE);
+  file.resize(newsize);
+  map(file.descriptor(), newsize);
 }

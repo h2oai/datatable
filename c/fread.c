@@ -1,20 +1,19 @@
+#include "fread.h"
+#include "freadLookups.h"
 #ifdef WIN32             // means WIN64, too, oddly
   #include <windows.h>
 #else
-  #include <sys/mman.h>  // mmap
-  #include <sys/stat.h>  // fstat for filesize
-  #include <fcntl.h>     // open
-  #include <unistd.h>    // close
   #include <ctype.h>     // isspace
   #include <errno.h>     // errno
   #include <string.h>    // strerror
   #include <stdarg.h>    // va_list, va_start
   #include <stdio.h>     // vsnprintf
+  #include <sys/mman.h>  // mmap
   #include <math.h>      // ceil, sqrt, isfinite
 #endif
 #include <stdbool.h>     // bool, true, false
-#include "fread.h"
-#include "freadLookups.h"
+#include "file.h"
+
 
 // Private globals to save passing all of them through to highly iterated field processors
 static char sep, eol, eol2;
@@ -1080,20 +1079,10 @@ int freadMain(freadMainArgs _args)
   else if (args.filename) {
     if (verbose) DTPRINT("  Opening file %s\n", args.filename);
     const char* fnam = args.filename;
-    #ifndef WIN32
-      // First, try to open the file and determine its size.
-      int fd = open(fnam, O_RDONLY);
-      if (fd == -1) STOP("Error opening file %s: %s", fnam, strerror(errno));
-      struct stat stat_buf;
-      int ret = fstat(fd, &stat_buf);
-      if (ret == -1) {
-        close(fd);
-        STOP("Cannot obtain file's size: %s", strerror(errno));
-      }
-      if (S_ISDIR(stat_buf.st_mode)) STOP("%s is a directory", fnam);
-      fileSize = (size_t) stat_buf.st_size;
+    {
+      File file(fnam, File::READ);
+      fileSize = file.size();
       if (fileSize == 0) {
-        close(fd);
         STOP("File is empty: %s", fnam);
       }
       if (verbose) DTPRINT("  File opened, size = %s.\n", filesize_to_str(fileSize));
@@ -1112,8 +1101,8 @@ int freadMain(freadMainArgs _args)
       // |   mapping.  When swap space is not reserved one might get SIGSEGV
       // |   upon a write if no physical memory is available.
       //
-      mmp = mmap(NULL, fileSize + 1, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_NORESERVE, fd, 0);
-      close(fd);  // we don't need to keep file handle open
+      mmp = mmap(NULL, fileSize + 1, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_NORESERVE,
+                 file.descriptor(), 0);
       if (mmp == MAP_FAILED) {
         STOP("Cannot memory-map the file: %s", strerror(errno));
       }
@@ -1156,39 +1145,7 @@ int freadMain(freadMainArgs _args)
         if (verbose) DTPRINT("  Extra memory allocated at %p\n", xmmp);
         ((char*)xmmp)[0] = '\0';
       }
-
-    #else
-      // Following: http://msdn.microsoft.com/en-gb/library/windows/desktop/aa366548(v=vs.85).aspx
-      HANDLE hFile = INVALID_HANDLE_VALUE;
-      int attempts = 0;
-      while(hFile==INVALID_HANDLE_VALUE && attempts<5) {
-        hFile = CreateFile(fnam, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-        // FILE_SHARE_WRITE is required otherwise if the file is open in Excel, CreateFile fails. Should be ok now.
-        if (hFile==INVALID_HANDLE_VALUE) {
-            if (GetLastError()==ERROR_FILE_NOT_FOUND) STOP("File not found: %s",fnam);
-            if (attempts<4) Sleep(250);  // 250ms
-        }
-        attempts++;
-        // Looped retry to avoid ephemeral locks by system utilities as recommended here : http://support.microsoft.com/kb/316609
-      }
-      if (hFile==INVALID_HANDLE_VALUE) STOP("Unable to open file after %d attempts (error %d): %s", attempts, GetLastError(), fnam);
-      LARGE_INTEGER liFileSize;
-      if (GetFileSizeEx(hFile,&liFileSize)==0) { CloseHandle(hFile); STOP("GetFileSizeEx failed (returned 0) on file: %s", fnam); }
-      fileSize = (size_t)liFileSize.QuadPart;
-      if (fileSize<=0) { CloseHandle(hFile); STOP("File is empty: %s", fnam); }
-      if (verbose) DTPRINT("  File opened, size = %s.\n", filesize_to_str(fileSize));
-      DWORD hi = (fileSize) >> 32;            // tried very very hard again on 26 & 27th April 2017 to over-map file by 1 byte
-      DWORD lo = (fileSize) & 0xFFFFFFFFull;  // on Windows for COW/FILE_MAP_COPY on read-only file, with no joy.
-      // TODO: Use VirtualAlloc() to reserve extra space?
-      HANDLE hMap=CreateFileMapping(hFile, NULL, PAGE_WRITECOPY, hi, lo, NULL);
-      if (hMap==NULL) { CloseHandle(hFile); STOP("This is Windows, CreateFileMapping returned error %d for file %s", GetLastError(), fnam); }
-      mmp = MapViewOfFile(hMap,FILE_MAP_COPY,0,0,fileSize);  // fileSize must be <= hilo passed to CreateFileMapping above.
-      CloseHandle(hMap);  // we don't need to keep the file open; the MapView keeps an internal reference;
-      CloseHandle(hFile); //   see https://msdn.microsoft.com/en-us/library/windows/desktop/aa366537(v=vs.85).aspx
-      if (mmp == NULL) STOP("Cannot memory-map file %s: Error %d", fnam, GetLastError());
-      if (verbose) DTPRINT("  File memory-mapped at address %p\n", mmp);
-    #endif
-
+    }
     sof = (const char*) mmp;
   } else {
     STOP("Neither `input` nor `filename` are given, nothing to read.");

@@ -13,19 +13,18 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include <string.h>    // memcpy
-#include <fcntl.h>     // open
-#include <unistd.h>    // close, truncate
-#include <sys/mman.h>
-#include <exception>
 #include "py_fread.h"
 #include "fread.h"
+#include <string.h>    // memcpy
+#include <sys/mman.h>  // mmap
+#include <exception>
+#include "file.h"
 #include "memorybuf.h"
 #include "myassert.h"
-#include "utils.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_utils.h"
+#include "utils.h"
 
 
 static const SType colType_to_stype[NUMTYPE] = {
@@ -194,20 +193,17 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
         // run time.
         size_t alloc_size = nrows * 5;
         if (targetdir) {
+            // Create new file of size `alloc_size` and memory-map it.
             snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
-            // Create new file of size `alloc_size`.
-            FILE *fp = fopen(fname, "w");
-            fseek(fp, (long)(alloc_size - 1), SEEK_SET);
-            fputc('\0', fp);
-            fclose(fp);
-            // Memory-map the file.
-            int fd = open(fname, O_RDWR);
-            sb->buf = (char*) mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-            if (sb->buf == MAP_FAILED) {
-                printf("Memory map failed with errno %d: %s\n", errno, strerror(errno));
-                return NULL;
+            File file(fname, File::CREATE);
+            file.resize(alloc_size);
+            void* mmp = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED,
+                             file.descriptor(), 0);
+            if (mmp == MAP_FAILED) {
+              throw Error("Memory-map failed when mapping file %s [errno %d] %s\n",
+                          file.cname(), errno, strerror(errno));
             }
-            close(fd);
+            sb->buf = static_cast<char*>(mmp);
         } else {
             dtmalloc(sb->buf, char, alloc_size);
         }
@@ -393,12 +389,12 @@ void setFinalNrow(size_t nrows) {
             size_t offs_size = 4 * nrows;
             size_t final_size = offoff + offs_size;
             if (targetdir) {
-                snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, (int)j);
-                truncate(fname, (off_t)final_size);
-                munmap(final_ptr, sb->size);
-                int fd = open(fname, O_RDWR);
-                final_ptr = mmap(NULL, final_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-                close(fd);
+              munmap(final_ptr, sb->size);
+              snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, (int)j);
+              File file(fname, File::READWRITE);
+              file.resize(final_size);
+              final_ptr = mmap(NULL, final_size, PROT_WRITE|PROT_READ,
+                               MAP_SHARED, file.descriptor(), 0);
             } else {
                 dtrealloc_g(final_ptr, void, final_size);
             }
@@ -407,7 +403,7 @@ void setFinalNrow(size_t nrows) {
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
             if (targetdir) {
                 snprintf(fname2, 1000, "%s/col%0*d", targetdir, ndigits, (int)j);
-                remove(fname2);
+                File::remove(fname2);
                 int ret = rename(fname, fname2);
                 if (ret == -1) printf("Unable to rename: %d\n", errno);
             } else {
@@ -541,12 +537,17 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
             // buffer and only then restore the `numuses` variable.
             if (old == 0) {
                 if (targetdir) {
-                    snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
-                    truncate(fname, (off_t)newsize);
-                    int fd = open(fname, O_RDWR);
                     munmap(sb->buf, sb->size);
-                    sb->buf = (char*) mmap(NULL, newsize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-                    close(fd);
+                    snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
+                    File file(fname, File::READWRITE);
+                    file.resize(newsize);
+                    void* mmp = mmap(NULL, newsize, PROT_WRITE|PROT_READ,
+                                     MAP_SHARED, file.descriptor(), 0);
+                    if (mmp == MAP_FAILED) {
+                      throw Error("Unable to memory-map file %s: [errno %d] %s",
+                                  file.cname(), errno, strerror(errno));
+                    }
+                    sb->buf = static_cast<char*>(mmp);
                 } else {
                     dtrealloc_g(sb->buf, char, newsize);
                 }

@@ -13,18 +13,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
+#include "csv/writer.h"
 #include <new>          // placement new
 #include <stdexcept>    // std::runtime_error
-#include <errno.h>      // errno
-#include <fcntl.h>      // open
 #include <stdint.h>     // int32_t, etc
 #include <stdio.h>      // printf
-#include <string.h>     // strerror
-#include <sys/mman.h>   // mmap
 #include "column.h"
 #include "csv/dtoa.h"
 #include "csv/itoa.h"
-#include "csv/writer.h"
 #include "datatable.h"
 #include "math.h"
 #include "memorybuf.h"
