@@ -605,16 +605,18 @@ class DataTable(object):
         self._fill_from_dt(self._dt, names=names)
 
 
+
+    #---------------------------------------------------------------------------
+    # Converters
+    #---------------------------------------------------------------------------
+
     def topandas(self):
+        """
+        Convert DataTable to a pandas DataFrame, or raise an error if `pandas`
+        module is not installed.
+        """
         pandas = load_module("pandas")
         numpy = load_module("numpy")
-        dtypes = {"i1b": numpy.dtype("bool"),
-                  "i1i": numpy.dtype("int8"),
-                  "i2i": numpy.dtype("int16"),
-                  "i4i": numpy.dtype("int32"),
-                  "i8i": numpy.dtype("int64"),
-                  "f4r": numpy.dtype("float32"),
-                  "f8r": numpy.dtype("float64")}
         nas = {"i1b": -128,
                "i1i": -128,
                "i2i": -32768,
@@ -627,8 +629,8 @@ class DataTable(object):
         for i in range(self._ncols):
             name = self._names[i]
             column = srcdt.column(i)
-            dtype = dtypes.get(column.stype)
-            if dtype is None:
+            dtype = datatable.stype(column.stype).dtype
+            if dtype == numpy.dtype("object"):
                 # Variable-width types can only be represented in Numpy as
                 # dtype='object'. However Numpy cannot ingest a buffer of
                 # PyObject types -- getting error
@@ -647,9 +649,25 @@ class DataTable(object):
         return pd
 
 
-    def tonumpy(self):
+    def tonumpy(self, stype=None):
+        """
+        Convert DataTable into a numpy array, optionally forcing it into a
+        specific stype/dtype.
+
+        Parameters
+        ----------
+        stype: datatable.stype, numpy.dtype or str
+            Cast datatable into this dtype before converting it into a numpy
+            array.
+        """
         numpy = load_module("numpy")
-        return numpy.array(self.internal)
+        st = 0
+        if stype:
+            st = datatable.stype(stype).value
+        self.internal.use_stype_for_buffers(st)
+        res = numpy.array(self.internal)
+        self.internal.use_stype_for_buffers(0)
+        return res
 
 
     def topython(self):

@@ -26,7 +26,9 @@ PyObject* pydt_from_dt(DataTable *dt)
     if (dt == NULL) return NULL;
     PyObject *pydt = PyObject_CallObject((PyObject*) &DataTable_PyType, NULL);
     if (pydt) {
-        ((DataTable_PyObject*) pydt)->ref = dt;
+        auto pypydt = reinterpret_cast<DataTable_PyObject*>(pydt);
+        pypydt->ref = dt;
+        pypydt->use_stype_for_buffers = ST_VOID;
     }
     return pydt;
 }
@@ -474,6 +476,18 @@ static PyObject* meth_apply_na_mask(DataTable_PyObject *self, PyObject *args)
 }
 
 
+DT_DOCS(use_stype_for_buffers, "")
+static PyObject* meth_use_stype_for_buffers(
+    DataTable_PyObject* self, PyObject* args
+) {
+  CATCH_EXCEPTIONS(
+    int st = 0;
+    if (!PyArg_ParseTuple(args, "|i:use_stype_for_buffers", &st)) return NULL;
+    self->use_stype_for_buffers = static_cast<SType>(st);
+    return none();
+  );
+}
+
 
 /**
  * Deallocator function, called when the object is being garbage-collected.
@@ -506,6 +520,7 @@ static PyMethodDef datatable_methods[] = {
     DT_METHOD1(get_countna),
     DT_METHOD1(materialize),
     DT_METHOD1(apply_na_mask),
+    DT_METHOD1(use_stype_for_buffers),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

@@ -107,6 +107,13 @@ class stype(enum.Enum):
         return _stype_2_ctype[self]
 
     @property
+    def dtype(self):
+        if not _stype_2_dtype:
+            raise RuntimeError("numpy module is not installed")
+        return _stype_2_dtype[self]
+
+
+    @property
     def struct(self):
         """
         :module:`struct` format string corresponding to this stype.
@@ -224,6 +231,23 @@ _stype_2_ctype = {
     stype.obj: ctypes.py_object,
 }
 
+try:
+    import numpy
+    _stype_2_dtype = {
+        stype.bool: numpy.dtype("bool"),
+        stype.int8: numpy.dtype("int8"),
+        stype.int16: numpy.dtype("int16"),
+        stype.int32: numpy.dtype("int32"),
+        stype.int64: numpy.dtype("int64"),
+        stype.float32: numpy.dtype("float32"),
+        stype.float64: numpy.dtype("float64"),
+        stype.str32: numpy.dtype("object"),
+        stype.str64: numpy.dtype("object"),
+        stype.obj: numpy.dtype("object"),
+    }
+except ImportError:
+    _stype_2_dtype = {}
+
 _stype_2_struct = {
     stype.bool: "b",
     stype.int8: "b",
@@ -269,6 +293,17 @@ def _additional_stype_members():
         yield (np.dtype("object"), stype.obj)
     except ImportError:  # pragma: no cover
         pass
+    # "old"-style stypes
+    yield ("i1b", stype.bool)
+    yield ("i1i", stype.int8)
+    yield ("i2i", stype.int16)
+    yield ("i4i", stype.int32)
+    yield ("i8i", stype.int64)
+    yield ("f4r", stype.float32)
+    yield ("f8r", stype.float64)
+    yield ("i4s", stype.str32)
+    yield ("i8s", stype.str64)
+    yield ("p8p", stype.obj)
 
 
 for k, st in _additional_stype_members():

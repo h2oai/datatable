@@ -43,9 +43,9 @@ static char strB[] = "B";
  *
  * See: https://docs.python.org/3/c-api/buffer.html
  */
-PyObject* pydatatable_from_buffers(UU, PyObject *args)
+PyObject* pydatatable_from_buffers(PyObject*, PyObject* args)
 {
-  CATCH_EXCEPTIONS(
+  try {
     PyObject* list = nullptr;
     if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
       return nullptr;
@@ -120,7 +120,11 @@ PyObject* pydatatable_from_buffers(UU, PyObject *args)
 
     DataTable *dt = new DataTable(columns);
     return pydt_from_dt(dt);
-  );
+
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    return NULL;
+  }
 }
 
 
@@ -374,7 +378,7 @@ static int dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view,
 }
 
 
-static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
+static int dt_getbuffer(DataTable_PyObject* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
   MemoryBuffer* mbuf = nullptr;
@@ -401,13 +405,16 @@ static int dt_getbuffer(DataTable_PyObject *self, Py_buffer *view, int flags)
     // "INDIRECT" buffer.
 
     // First, find the common stype for all columns in the DataTable.
-    SType stype = ST_VOID;
-    uint64_t stypes_mask = 0;
-    for (size_t i = 0; i < ncols; ++i) {
-      SType next_stype = dt->columns[i]->stype();
-      if (stypes_mask & (1 << next_stype)) continue;
-      stypes_mask |= 1 << next_stype;
-      stype = common_stype_for_buffer(stype, next_stype);
+    SType stype = self->use_stype_for_buffers;
+    if (stype == ST_VOID) {
+      // Auto-detect common stype
+      uint64_t stypes_mask = 0;
+      for (size_t i = 0; i < ncols; ++i) {
+        SType next_stype = dt->columns[i]->stype();
+        if (stypes_mask & (1 << next_stype)) continue;
+        stypes_mask |= 1 << next_stype;
+        stype = common_stype_for_buffer(stype, next_stype);
+      }
     }
 
     // Allocate the final buffer
