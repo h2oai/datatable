@@ -124,8 +124,6 @@ PyObject* pyfread(UU, PyObject *args)
     flogger = ATTR(freader, "logger");
     Py_INCREF(flogger);
 
-    frargs->filename = filename;
-    frargs->input = input;
     frargs->sep = TOCHAR(ATTR(freader, "sep"), 0);
     frargs->dec = '.';
     frargs->quote = '"';
@@ -146,6 +144,19 @@ PyObject* pyfread(UU, PyObject *args)
 
     frargs->freader = freader;
     Py_INCREF(freader);
+
+    MemoryBuffer* mbuf = nullptr;
+    if (input) {
+      mbuf = new ExternalMemBuf(input);
+    } else if (filename) {
+      if (verbose) DTPRINT("  Opening file %s\n", filename);
+      mbuf = new OvermapMemBuf(filename, 1);
+      if (verbose) DTPRINT("  File opened, size: %s\n", filesize_to_str(mbuf->size() - 1));
+    } else {
+      throw Error("Neither filename nor input were provided");
+    }
+    frargs->buf = mbuf->get();
+    frargs->bufsize = mbuf->size();
 
     retval = freadMain(*frargs);
     if (!retval) goto fail;
