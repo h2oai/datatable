@@ -20,6 +20,8 @@
 typedef struct DataTable_PyObject {
     PyObject_HEAD
     DataTable *ref;
+    SType use_stype_for_buffers;
+    int64_t : 56;
 } DataTable_PyObject;
 
 
