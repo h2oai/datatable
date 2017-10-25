@@ -14,19 +14,17 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
-#include <sys/mman.h>
-#include <stdio.h>
-#include <string.h>    // memcpy, strcmp
+#include <errno.h>     // errno
+#include <sys/mman.h>  // mmap
+#include <string.h>    // memcpy, strcmp, strerror
 #include <cstdlib>     // atoll
-#include <errno.h>
-#include <fcntl.h>     // open
-#include <unistd.h>    // close
-#include "utils.h"
+#include "datatable_check.h"
+#include "file.h"
 #include "myassert.h"
+#include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
-#include "py_utils.h"
-#include "datatable_check.h"
+#include "utils.h"
 
 
 // TODO: make this function virtual
@@ -98,21 +96,19 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  */
 Column* Column::save_to_disk(const char* filename)
 {
-  // Open and memory-map the file
-  int fd = open(filename, O_RDWR|O_CREAT, 0666);
-  if (fd == -1) {
-    close(fd);
-    throw Error("Cannot open file %s", filename);
-  }
+  void* mmp = nullptr;
   size_t sz = mbuf->size();
-  int ret = ftruncate(fd, (off_t) sz);
-  if (ret == -1) {
-    close(fd);
-    throw Error("Cannot truncate file %s", filename);
+  {
+    File file(filename, File::CREATE);
+    file.resize(sz);
+
+    mmp = mmap(nullptr, sz, PROT_READ|PROT_WRITE, MAP_SHARED,
+               file.descriptor(), 0);
+    if (mmp == MAP_FAILED) {
+      throw Error("Memory-map failed for file %s: [errno %d] %s",
+                  file.cname(), errno, strerror(errno));
+    }
   }
-  void *mmp = mmap(NULL, sz, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-  close(fd);
-  if (mmp == MAP_FAILED) throw Error("Memory-map failed.");
 
   // Copy the data buffer into the file
   memcpy(mmp, data(), sz);
