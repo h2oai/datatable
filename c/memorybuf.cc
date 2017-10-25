@@ -272,12 +272,19 @@ bool ExternalMemBuf::verify_integrity(IntegrityCheckContext& icc,
 
 
 //==============================================================================
-// Disk-based MemoryBuffer
+// MemoryBuffer based on a memmapped file
 //==============================================================================
+
+MemmapMemBuf::MemmapMemBuf(const std::string& path)
+    : MemmapMemBuf(path, 0, false) {}
+
+
+MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n)
+    : MemmapMemBuf(path, n, true) {}
 
 
 MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
-    : filename(path), xbuf(nullptr), xbuf_size(0)
+    : filename(path)
 {
   readonly = !create;
 
@@ -293,8 +300,8 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
   // In "open" mode if `n` is non-zero, then we will be opening a buffer
   // with larger size than the actual file size. Also, the file is opened in
   // "private, read-write" mode -- meaning that the user can write to that
-  // buffer if needed.
-  // From the man pages of `mmap`:
+  // buffer if needed. From the man pages of `mmap`:
+  //
   // | MAP_SHARED
   // |   Share this mapping. Updates to the mapping are visible to other
   // |   processes that map this file, and are carried through to the underlying
@@ -319,64 +326,9 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
     // Exception is thrown from the constructor -> the base class' destructor
     // will be called, which checks that `buf` is null.
     buf = nullptr;
-    throw Error("Memory-map failed for file %s of size %zu: [%d] %s",
-                file.cname(), filesize, errno, strerror(errno));
-  }
-
-  // Determine if additional memory-mapped region is necessary (only when
-  // opening an existing file, and `n > 0` bytes are requested).
-  // From `mmap`'s man page:
-  // | A file is mapped in multiples of the page size. For a file that is
-  // | not a multiple of the page size, the remaining memory is 0ed when
-  // | mapped, and writes to that region are not written out to the file.
-  //
-  // Thus, when `filesize` is *not* a multiple of pagesize, then the
-  // memory mapping will have some writable "scratch" space at the end,
-  // filled with '\0' bytes. We check -- if this space is large enough to
-  // hold `n` bytes, then don't do anything extra. If not (for example
-  // when `filesize` is an exact multiple of `pagesize`), then attempt to
-  // read/write past physical end of file wil fail with a BUS error -- despite
-  // the fact that the map was overallocated for the extra `n` bytes:
-  // | Use of a mapped region can result in these signals:
-  // | SIGBUS:
-  // |   Attempted access to a portion of the buffer that does not
-  // |   correspond to the file (for example, beyond the end of the file)
-  //
-  // In order to circumvent this, we allocate a new memory-mapped region of size
-  // `n` and placed at address `buf + filesize`. In theory, this should always
-  // succeed because we over-allocated `buf` by `n` bytes; and even though
-  // those extra bytes are not readable/writable, at least there is a guarantee
-  // that it is not occupied by anyone else. Now, `mmap()` documentation
-  // explicitly allows to declare mappings that overlap each other:
-  // | MAP_ANONYMOUS:
-  // |   The mapping is not backed by any file; its contents are
-  // |   initialized to zero. The fd argument is ignored.
-  // | MAP_FIXED
-  // |   Don't interpret addr as a hint: place the mapping at exactly
-  // |   that address.  `addr` must be a multiple of the page size. If
-  // |   the memory region specified by addr and len overlaps pages of
-  // |   any existing mapping(s), then the overlapped part of the existing
-  // |   mapping(s) will be discarded.
-  //
-  size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
-  // How much to add to filesize to align it to a page boundary
-  size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
-  if (!create && n > gapsize) {
-    void* target = this->at(filesize + gapsize);
-    xbuf_size = n - gapsize;
-    xbuf = mmap(/* address = */ target,
-                /* size = */ xbuf_size,
-                /* protection = */ PROT_WRITE|PROT_READ,
-                /* flags - */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
-                /* file descriptor, ignored */ -1,
-                /* offset = */ 0);
-    if (xbuf == MAP_FAILED) {
-      munmap(buf, allocsize);
-      buf = nullptr;
-      xbuf = nullptr;
-      throw Error("Cannot allocate additional %zu bytes at address %p",
-                  xbuf_size, target);
-    }
+    throw Error("Memory-map failed for file %s of size %zu+%zu: [%d] %s",
+                file.cname(), filesize, allocsize - filesize,
+                errno, strerror(errno));
   }
 }
 
@@ -389,11 +341,6 @@ MemmapMemBuf::~MemmapMemBuf() {
            "have not been freed properly.", errno, strerror(errno));
   }
   buf = nullptr;  // Checked in the upstream destructor
-  if (xbuf) {
-    ret = munmap(xbuf, xbuf_size);
-    if (ret) printf("Cannot unmap extra memory %p: %s", xbuf, strerror(errno));
-    xbuf = nullptr;
-  }
   if (!is_readonly()) {
     File::remove(filename);
   }
@@ -435,6 +382,116 @@ bool MemmapMemBuf::verify_integrity(IntegrityCheckContext& icc,
   MemoryBuffer::verify_integrity(icc, name);
   if (!buf) {
     icc << "Memory-map pointer in " << name << " is null" << icc.end();
+  }
+  return !icc.has_errors(nerrs);
+}
+
+
+
+//==============================================================================
+// MemoryBuffer based on an "overmapped" memmapped file
+//==============================================================================
+
+OvermapMemBuf::OvermapMemBuf(const std::string& path, size_t xn)
+    : MemmapMemBuf(path, xn, false)
+{
+  xbuf = nullptr;
+  xbuf_size = 0;
+  if (xn == 0) return;
+
+  // The parent's constructor has opened a memory-mapped region of size
+  // `filesize + xn`. This, however, is not always enough:
+  // | A file is mapped in multiples of the page size. For a file that is
+  // | not a multiple of the page size, the remaining memory is 0ed when
+  // | mapped, and writes to that region are not written out to the file.
+  //
+  // Thus, when `filesize` is *not* a multiple of pagesize, then the
+  // memory mapping will have some writable "scratch" space at the end,
+  // filled with '\0' bytes. We check -- if this space is large enough to
+  // hold `xn` bytes, then don't do anything extra. If not (for example
+  // when `filesize` is an exact multiple of `pagesize`), then attempt to
+  // read/write past physical end of file wil fail with a BUS error -- despite
+  // the fact that the map was overallocated for the extra `xn` bytes:
+  // | Use of a mapped region can result in these signals:
+  // | SIGBUS:
+  // |   Attempted access to a portion of the buffer that does not
+  // |   correspond to the file (for example, beyond the end of the file)
+  //
+  // In order to circumvent this, we allocate a new memory-mapped region of size
+  // `xn` and placed at address `buf + filesize`. In theory, this should always
+  // succeed because we over-allocated `buf` by `xn` bytes; and even though
+  // those extra bytes are not readable/writable, at least there is a guarantee
+  // that it is not occupied by anyone else. Now, `mmap()` documentation
+  // explicitly allows to declare mappings that overlap each other:
+  // | MAP_ANONYMOUS:
+  // |   The mapping is not backed by any file; its contents are
+  // |   initialized to zero. The fd argument is ignored.
+  // | MAP_FIXED
+  // |   Don't interpret addr as a hint: place the mapping at exactly
+  // |   that address.  `addr` must be a multiple of the page size. If
+  // |   the memory region specified by addr and len overlaps pages of
+  // |   any existing mapping(s), then the overlapped part of the existing
+  // |   mapping(s) will be discarded.
+  //
+  size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+  size_t filesize = allocsize - xn;
+  // How much to add to filesize to align it to a page boundary
+  size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
+  if (xn > gapsize) {
+    void* target = this->at(filesize + gapsize);
+    xbuf_size = xn - gapsize;
+    xbuf = mmap(/* address = */ target,
+                /* size = */ xbuf_size,
+                /* protection = */ PROT_WRITE|PROT_READ,
+                /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
+                /* file descriptor, ignored */ -1,
+                /* offset, ignored */ 0);
+    if (xbuf == MAP_FAILED) {
+      throw Error("Cannot allocate additional %zu bytes at address %p: "
+                  "[errno %d] %s", xbuf_size, target, errno, strerror(errno));
+    }
+  }
+}
+
+
+OvermapMemBuf::~OvermapMemBuf() {
+  if (!xbuf) return;
+  int ret = munmap(xbuf, xbuf_size);
+  if (ret) {
+    printf("Cannot unmap extra memory %p: [errno %d] %s",
+           xbuf, errno, strerror(errno));
+  }
+}
+
+
+void OvermapMemBuf::resize(size_t) {
+  throw Error("Objects of class OvermapMemBuf cannot be resized");
+}
+
+
+size_t OvermapMemBuf::memory_footprint() const {
+  return (MemmapMemBuf::memory_footprint() - sizeof(MemmapMemBuf) +
+          xbuf_size + sizeof(OvermapMemBuf));
+}
+
+
+PyObject* OvermapMemBuf::pyrepr() const {
+  static PyObject* r = PyUnicode_FromString("omap");
+  return incref(r);
+}
+
+bool OvermapMemBuf::verify_integrity(
+    IntegrityCheckContext& icc, const std::string& name) const
+{
+  int nerrs = icc.n_errors();
+  MemmapMemBuf::verify_integrity(icc, name);
+  if (xbuf_size && !xbuf) {
+    icc << name << " has xbuf_size=" << xbuf_size << ", but its xbuf is null"
+        << icc.end();
+  }
+  if (xbuf && !xbuf_size) {
+    icc << name << " has xbuf=" << xbuf << ", but its xbuf_size is 0"
+        << icc.end();
   }
   return !icc.has_errors(nerrs);
 }

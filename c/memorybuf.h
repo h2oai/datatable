@@ -304,13 +304,24 @@ private:
 class MemmapMemBuf : public MemoryBuffer
 {
   const std::string filename;
-  void* xbuf;
-  size_t xbuf_size;
 
 public:
   /**
-   * Create a memory region backed by a memory-mapped disk file.
-   *
+   * Open and memory-map an existing file (first constructor), or create a new
+   * file of size `n` and then memory-map it (second constructor).
+   */
+  MemmapMemBuf(const std::string& file);
+  MemmapMemBuf(const std::string& file, size_t n);
+
+  virtual void resize(size_t n) override;
+  virtual size_t memory_footprint() const override;
+  virtual PyObject* pyrepr() const override;
+  virtual bool verify_integrity(
+    IntegrityCheckContext&, const std::string& n = "MemoryBuffer"
+  ) const override;
+
+protected:
+  /**
    * This constructor may either map an existing file (when `create = false`),
    * or create a new one (if `create = true`). Specifically, when `create` is
    * true, then `path` must be a valid path in the file system (it may or may
@@ -319,15 +330,34 @@ public:
    * to an existing accessible file, and parameter `n` is ignored.
    */
   MemmapMemBuf(const std::string& path, size_t n, bool create);
+  virtual ~MemmapMemBuf();
+};
+
+
+
+//==============================================================================
+
+/**
+ * A variant of MemmapMemBuf that attempts to overallocate the memory region
+ * by a specific number of bytes. This is used in fread.
+ */
+class OvermapMemBuf : public MemmapMemBuf
+{
+  void* xbuf;
+  size_t xbuf_size;
+
+public:
+  OvermapMemBuf(const std::string& path, size_t n);
 
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& n = "MemoryBuffer") const override;
+  virtual bool verify_integrity(
+    IntegrityCheckContext&, const std::string& n = "MemoryBuffer"
+  ) const override;
 
-private:
-  virtual ~MemmapMemBuf();
+protected:
+  virtual ~OvermapMemBuf();
 };
 
 
