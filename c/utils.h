@@ -4,15 +4,16 @@
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
 #include <stddef.h>
-#include <stdio.h>   // vsnprintf
+#include <stdio.h>     // vsnprintf
 #include <stdint.h>
-#include <stdio.h>   // vsnprintf
-#include <errno.h>   // errno
-#include <string.h>  // strerr
+#include <stdio.h>     // vsnprintf
+#include <errno.h>     // errno
+#include <string.h>    // strerr
 #include <exception>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+
 
 // On Windows variables of type `size_t` cannot be printed with "%zu" in the
 // `snprintf()` function. For those variables we will cast them into
@@ -31,16 +32,8 @@ inline std::string operator "" _s(const char* str, size_t len) {
 }
 
 
-/**
- * Helper method that attempts to compute object `x`, but executes "goto fail"
- * if the object turns out to be NULL.
- */
-#define TRY(x) ({                                                              \
-    void *y = x;                                                               \
-    if (y == NULL) goto fail;                                                  \
-    y;                                                                         \
-})
 
+//------------------------------------------------------------------------------
 
 /**
  * Helper class to throw exceptions with nicely formatted messages.
