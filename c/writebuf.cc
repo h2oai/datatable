@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #include "writebuf.h"
 #include <errno.h>     // errno
-#include <fcntl.h>     // O_WRONLY, O_CREAT, O_TRUNC
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
 #include "myomp.h"
@@ -28,7 +27,7 @@
 //==============================================================================
 
 FileWritableBuffer::FileWritableBuffer(const std::string& path) {
-  file = new File(path, O_WRONLY|O_CREAT|O_TRUNC);
+  file = new File(path, File::OVERWRITE);
 }
 
 FileWritableBuffer::~FileWritableBuffer() {
@@ -207,7 +206,7 @@ void* MemoryWritableBuffer::get()
 MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
   : ThreadsafeWritableBuffer(size), filename(path)
 {
-  File file(path, O_RDWR|O_CREAT);
+  File file(path, File::CREATE);
   if (size) file.resize(size);
   map(file.descriptor(), size);
 }
@@ -244,7 +243,7 @@ void MmapWritableBuffer::unmap() {
 void MmapWritableBuffer::realloc(size_t newsize)
 {
   unmap();
-  File file(filename, O_RDWR);
+  File file(filename, File::READWRITE);
   file.resize(newsize);
   map(file.descriptor(), newsize);
 }

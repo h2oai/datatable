@@ -27,6 +27,11 @@ class File
   int : 32;
 
 public:
+  static const int READ;
+  static const int READWRITE;
+  static const int CREATE;
+  static const int OVERWRITE;
+
   File(const std::string& file);
   File(const std::string& file, int flags, mode_t mode = 0666);
   ~File();

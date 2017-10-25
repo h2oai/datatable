@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #include "memorybuf.h"
 #include <errno.h>     // errno
-#include <fcntl.h>     // O_RDWR, O_CREAT, O_RDONLY
 #include <string.h>    // strlen, strerror
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // sysconf
@@ -282,7 +281,7 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
 {
   readonly = !create;
 
-  File file(filename, create? O_RDWR|O_CREAT : O_RDONLY);
+  File file(filename, create? File::CREATE : File::READ);
   file.assert_is_not_dir();
   if (create) {
     file.resize(n);
@@ -406,7 +405,7 @@ void MemmapMemBuf::resize(size_t n) {
   munmap(buf, allocsize);
   buf = nullptr;
 
-  File file(filename, O_RDWR);
+  File file(filename, File::READWRITE);
   file.resize(n);
   buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, file.descriptor(), 0);
   allocsize = n;
