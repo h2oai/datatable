@@ -82,7 +82,7 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
   size_t sz = allocsize0(stype, nrows);
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->mbuf = new MemmapMemBuf(filename, sz, /* create = */ true);
+  col->mbuf = new MemmapMemBuf(filename, sz);
   return col;
 }
 
@@ -131,7 +131,7 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->mbuf = new MemmapMemBuf(filename, 0, /* create = */ false);
+  col->mbuf = new MemmapMemBuf(filename);
   if (col->alloc_size() < allocsize0(stype, nrows)) {
     throw Error("File %s has size %zu, which is not sufficient for a column"
                 " with %zd rows", filename, col->alloc_size(), nrows);

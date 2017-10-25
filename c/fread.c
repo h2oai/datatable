@@ -1054,105 +1054,12 @@ int freadMain(freadMainArgs _args)
   // Additionally, we will sometimes need to switch to a different parsing
   // context in order to accommodate for the lack of newline on the last line
   // of file.
-  const char *sof = NULL;
-  const char *eof = NULL;
+  fileSize = args.bufsize - 1;
+  const char *sof = static_cast<char*>(args.buf);
+  const char *eof = sof + fileSize;
+  ASSERT(*eof == '\0');
   // Convenience variable for iteration over the file.
   const char *ch = NULL, *end = NULL;
-
-
-  //*********************************************************************************************
-  // [2] Open and memory-map the input file, setting up variables `sof` and `eof`.
-  //     We also arrange so that `*eof == '\0'`, which means that parsers do not need to check
-  //     condition `ch < eof` all the time.
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[2] Opening the file\n");
-
-  if (args.input) {
-    sof = args.input;
-    fileSize = strlen(sof);
-    if (verbose) {
-      eol = '\n';  // just a guess, so that strlim below work correctly
-      DTPRINT("  Input is passed as raw text, starting \"%s\"\n",
-              strlim(sof, 20, sof+fileSize));
-    }
-  }
-  else if (args.filename) {
-    if (verbose) DTPRINT("  Opening file %s\n", args.filename);
-    const char* fnam = args.filename;
-    {
-      File file(fnam, File::READ);
-      fileSize = file.size();
-      if (fileSize == 0) {
-        STOP("File is empty: %s", fnam);
-      }
-      if (verbose) DTPRINT("  File opened, size = %s.\n", filesize_to_str(fileSize));
-
-      long pageSize = sysconf(_SC_PAGE_SIZE);
-      if (verbose) DTPRINT("  System memory page size: %ldB\n", pageSize);
-
-      // Over-allocate by 1 byte and open in "Private, read-write" mode -- so
-      // that we can write a single '\0' byte at the end.
-      // | MAP_PRIVATE:
-      // |   Create a private copy-on-write mapping.  Updates to the mapping
-      // |   are not carried through to the underlying file.
-      // | MAP_NORESERVE
-      // |   Do not reserve swap space for this mapping.  When swap space is
-      // |   reserved, one has the guarantee that it is possible to modify the
-      // |   mapping.  When swap space is not reserved one might get SIGSEGV
-      // |   upon a write if no physical memory is available.
-      //
-      mmp = mmap(NULL, fileSize + 1, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_NORESERVE,
-                 file.descriptor(), 0);
-      if (mmp == MAP_FAILED) {
-        STOP("Cannot memory-map the file: %s", strerror(errno));
-      }
-      if (verbose) DTPRINT("  File memory-mapped at address %p\n", mmp);
-
-      // | A file is mapped in multiples of the page size. For a file that is
-      // | not a multiple of the page size, the remaining memory is 0ed when
-      // | mapped, and writes to that region are not written out to the file.
-      // Thus, when `fileSize` is *not* a multiple of pageSize, then the
-      // memory mapping will have some writable "scratch" space at the end,
-      // filled with '\0' bytes. In this case we don't need to do anything
-      // special.
-      // However when `fileSize` *is* a multiple of pageSize, then attempt to
-      // read/write *eof wil fail with a BUS error:
-      // | Use of a mapped region can result in these signals:
-      // | SIGBUS:
-      // |   Attempted access to a portion of the buffer that does not
-      // |   correspond to the file (for example, beyond the end of the file)
-      // In order to circumvent this, we allocate a new memory-mapped region,
-      // placed at the address `mmp + fileSize`. In theory, this should always
-      // succeed because we over-allocated `mmp` by 1 byte; and even though
-      // that 1 byte is not readable/writable, at least there is a guarantee
-      // that it is not occupied by anyone else. Now, `mmap()` documentation
-      // explicitly allows to declare mapping that overlap each other:
-      // | MAP_ANONYMOUS:
-      // |   The mapping is not backed by any file; its contents are
-      // |   initialized to zero. The fd argument is ignored.
-      // | MAP_FIXED
-      // |   Don't interpret addr as a hint: place the mapping at exactly
-      // |   that address.  `addr` must be a multiple of the page size. If
-      // |   the memory region specified by addr and len overlaps pages of
-      // |   any existing mapping(s), then the overlapped part of the existing
-      // |   mapping(s) will be discarded.
-      //
-      if (fileSize % (unsigned long)pageSize == 0) {
-        if (verbose) DTPRINT("  File size is a multiple of page size, need to allocate extra 1 page of memory\n");
-        void *target = (void*)((char*)mmp + fileSize);
-        xmmp = mmap(target, 1, PROT_WRITE|PROT_READ, MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
-        if (xmmp == MAP_FAILED) STOP("Cannot allocate 1 byte at address %p", target);
-        if (verbose) DTPRINT("  Extra memory allocated at %p\n", xmmp);
-        ((char*)xmmp)[0] = '\0';
-      }
-    }
-    sof = (const char*) mmp;
-  } else {
-    STOP("Neither `input` nor `filename` are given, nothing to read.");
-  }
-  eof = sof + fileSize;
-  ASSERT(*eof == '\0');
-  double tMap = wallclock();
 
 
   //*********************************************************************************************
@@ -2342,8 +2249,7 @@ int freadMain(freadMainArgs _args)
   if (verbose) {
     DTPRINT("=============================\n");
     if (tTot<0.000001) tTot=0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
-    DTPRINT("%8.3fs (%3.0f%%) Memory map %.3fGB file\n", tMap-t0, 100.0*(tMap-t0)/tTot, 1.0*fileSize/(1024*1024*1024));
-    DTPRINT("%8.3fs (%3.0f%%) sep=", tLayout-tMap, 100.0*(tLayout-tMap)/tTot);
+    DTPRINT("%8.3fs (%3.0f%%) sep=", tLayout-t0, 100.0*(tLayout-t0)/tTot);
     DTPRINT(sep=='\t' ? "'\\t'" : (sep=='\n' ? "'\\n'" : "'%c'"), sep);
     DTPRINT(" ncol=%d and header detection\n", ncol);
     DTPRINT("%8.3fs (%3.0f%%) Column type detection using %zd sample rows\n",

@@ -56,15 +56,10 @@ typedef struct {
 
 typedef struct freadMainArgs
 {
-  // Name of the file to open (a \0-terminated C string). If the file name
-  // contains non-ASCII characters, it should be UTF-8 encoded (however fread
-  // will not validate the encoding).
-  const char *filename;
-
-  // Data buffer: a \0-terminated C string. When this parameter is given,
-  // fread() will read from the provided string. This parameter is exclusive
-  // with `filename`.
-  const char *input;
+  // Pointer to the memory region that holds the data to be read + its size.
+  // The buffer must be '\0'-terminated (i.e. `*(buf + bufsize - 1) == 0`).
+  void* buf;
+  size_t bufsize;
 
   // Maximum number of rows to read, or INT64_MAX to read the entire dataset.
   // Note that even if `nrowLimit = 0`, fread() will scan a sample of rows in

@@ -55,6 +55,8 @@ static PyObject *flogger = NULL;
 // DataTable being constructed.
 static DataTable *dt = NULL;
 
+static MemoryBuffer* mbuf = nullptr;
+
 // These variables are handed down to `freadMain`, and are stored globally only
 // because we want to free these memory buffers in the end.
 static char *filename = NULL;
@@ -124,8 +126,6 @@ PyObject* pyfread(UU, PyObject *args)
     flogger = ATTR(freader, "logger");
     Py_INCREF(flogger);
 
-    frargs->filename = filename;
-    frargs->input = input;
     frargs->sep = TOCHAR(ATTR(freader, "sep"), 0);
     frargs->dec = '.';
     frargs->quote = '"';
@@ -146,6 +146,18 @@ PyObject* pyfread(UU, PyObject *args)
 
     frargs->freader = freader;
     Py_INCREF(freader);
+
+    if (input) {
+      mbuf = new ExternalMemBuf(input);
+    } else if (filename) {
+      if (verbose) DTPRINT("  Opening file %s\n", filename);
+      mbuf = new OvermapMemBuf(filename, 1);
+      if (verbose) DTPRINT("  File opened, size: %s\n", filesize_to_str(mbuf->size() - 1));
+    } else {
+      throw Error("Neither filename nor input were provided");
+    }
+    frargs->buf = mbuf->get();
+    frargs->bufsize = mbuf->size();
 
     retval = freadMain(*frargs);
     if (!retval) goto fail;
@@ -241,6 +253,10 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
     types = NULL;
     sizes = NULL;
     dtfree(targetdir);
+    if (mbuf) {
+      mbuf->release();
+      mbuf = NULL;
+    }
     if (frargs) {
         if (na_strings) {
             char **ptr = na_strings;
