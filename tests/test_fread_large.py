@@ -40,7 +40,7 @@ def get_file_list(*path):
     for dirname, subdirs, files in os.walk(rootdir):
         for filename in files:
             f = os.path.join(dirname, filename)
-            if ("readme" not in filename and
+            if ("readme" not in filename.lower() and
                     ".svm" not in filename and
                     ".json" not in filename and
                     any(filename.endswith(ext) for ext in exts)):
