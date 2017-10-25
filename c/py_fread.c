@@ -55,6 +55,8 @@ static PyObject *flogger = NULL;
 // DataTable being constructed.
 static DataTable *dt = NULL;
 
+static MemoryBuffer* mbuf = nullptr;
+
 // These variables are handed down to `freadMain`, and are stored globally only
 // because we want to free these memory buffers in the end.
 static char *filename = NULL;
@@ -145,7 +147,6 @@ PyObject* pyfread(UU, PyObject *args)
     frargs->freader = freader;
     Py_INCREF(freader);
 
-    MemoryBuffer* mbuf = nullptr;
     if (input) {
       mbuf = new ExternalMemBuf(input);
     } else if (filename) {
@@ -252,6 +253,10 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
     types = NULL;
     sizes = NULL;
     dtfree(targetdir);
+    if (mbuf) {
+      mbuf->release();
+      mbuf = NULL;
+    }
     if (frargs) {
         if (na_strings) {
             char **ptr = na_strings;
