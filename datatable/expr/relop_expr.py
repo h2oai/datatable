@@ -3,6 +3,7 @@
 
 from .base_expr import BaseExpr
 from .literal_expr import LiteralExpr
+from ..types import stype
 
 
 
@@ -16,7 +17,7 @@ class RelationalOpExpr(BaseExpr):
         self._op = op
         self._lhs = lhs
         self._rhs = rhs
-        self._stype = "i1b"
+        self._stype = stype.bool8
 
 
     def _isna(self, key, inode):

@@ -6,6 +6,7 @@ import pytest
 import types
 import datatable as dt
 from tests import assert_equals
+from datatable import stype
 
 
 #-------------------------------------------------------------------------------
@@ -230,9 +231,9 @@ def test_append_different_stypes1():
     dt0 = dt.DataTable([[1, 5, 24, 100]])
     dt1 = dt.DataTable([[1000, 2000]])
     dt2 = dt.DataTable([[134976130]])
-    assert dt0.stypes[0] == "i1i"
-    assert dt1.stypes[0] == "i2i"
-    assert dt2.stypes[0] == "i4i"
+    assert dt0.stypes[0] == stype.int8
+    assert dt1.stypes[0] == stype.int16
+    assert dt2.stypes[0] == stype.int32
     dt0.append(dt1, dt2)
     dtr = dt.DataTable([[1, 5, 24, 100, 1000, 2000, 134976130]])
     assert_equals(dt0, dtr)
@@ -242,9 +243,9 @@ def test_append_different_stypes2():
     dt0 = dt.DataTable([[True, False, True]])
     dt1 = dt.DataTable([[1, 2, 3]])
     dt2 = dt.DataTable([[0.1, 0.5]])
-    assert dt0.stypes[0] == "i1b"
-    assert dt1.stypes[0] == "i1i"
-    assert dt2.stypes[0] == "f8r"
+    assert dt0.stypes[0] == stype.bool8
+    assert dt1.stypes[0] == stype.int8
+    assert dt2.stypes[0] == stype.float64
     dt0.append(dt1, dt2)
     dtr = dt.DataTable([[1, 0, 1, 1, 2, 3, 0.1, 0.5]])
     assert_equals(dt0, dtr)

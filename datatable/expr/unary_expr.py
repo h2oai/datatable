@@ -3,7 +3,7 @@
 
 from .base_expr import BaseExpr
 from .consts import unary_ops_rules
-
+from ..types import stype
 
 
 class UnaryOpExpr(BaseExpr):
@@ -16,7 +16,7 @@ class UnaryOpExpr(BaseExpr):
         if self._stype is None:
             raise TypeError("Operation %s not allowed on operands of type %s"
                             % (self.op, arg.stype))
-        if self.op == "~" and self._stype == "i1b":
+        if self.op == "~" and self._stype == stype.bool8:
             self.op = "!"
 
 

@@ -16,6 +16,7 @@
 #-------------------------------------------------------------------------------
 import ctypes
 import enum
+import datatable.lib._datatable as _datatable
 from datatable.utils.typechecks import TValueError
 
 __all__ = ("stype", "ltype")
@@ -48,7 +49,7 @@ class stype(enum.Enum):
     >>> dt.stype("double")
     stype.float64
     >>> dt.stype(numpy.dtype("object"))
-    stype.obj
+    stype.obj64
     >>> dt.stype("i4")
     stype.int32
 
@@ -65,7 +66,7 @@ class stype(enum.Enum):
     >>> dt.stype.int16.struct
     '=h'
     """
-    bool = 1
+    bool8 = 1
     int8 = 2
     int16 = 3
     int32 = 4
@@ -74,7 +75,7 @@ class stype(enum.Enum):
     float64 = 7
     str32 = 11
     str64 = 12
-    obj = 21
+    obj64 = 21
 
     def __repr__(self):
         return str(self)
@@ -193,7 +194,7 @@ setattr(ltype, "__new__", ___new___)
 
 
 _stype_2_short = {
-    stype.bool: "b1",
+    stype.bool8: "b1",
     stype.int8: "i1",
     stype.int16: "i2",
     stype.int32: "i4",
@@ -202,11 +203,11 @@ _stype_2_short = {
     stype.float64: "r8",
     stype.str32: "s4",
     stype.str64: "s8",
-    stype.obj: "o8",
+    stype.obj64: "o8",
 }
 
 _stype_2_ltype = {
-    stype.bool: ltype.bool,
+    stype.bool8: ltype.bool,
     stype.int8: ltype.int,
     stype.int16: ltype.int,
     stype.int32: ltype.int,
@@ -215,11 +216,11 @@ _stype_2_ltype = {
     stype.float64: ltype.real,
     stype.str32: ltype.str,
     stype.str64: ltype.str,
-    stype.obj: ltype.obj,
+    stype.obj64: ltype.obj,
 }
 
 _stype_2_ctype = {
-    stype.bool: ctypes.c_int8,
+    stype.bool8: ctypes.c_int8,
     stype.int8: ctypes.c_int8,
     stype.int16: ctypes.c_int16,
     stype.int32: ctypes.c_int32,
@@ -228,13 +229,13 @@ _stype_2_ctype = {
     stype.float64: ctypes.c_double,
     stype.str32: ctypes.c_int32,
     stype.str64: ctypes.c_int64,
-    stype.obj: ctypes.py_object,
+    stype.obj64: ctypes.py_object,
 }
 
 try:
     import numpy
     _stype_2_dtype = {
-        stype.bool: numpy.dtype("bool"),
+        stype.bool8: numpy.dtype("bool"),
         stype.int8: numpy.dtype("int8"),
         stype.int16: numpy.dtype("int16"),
         stype.int32: numpy.dtype("int32"),
@@ -243,13 +244,13 @@ try:
         stype.float64: numpy.dtype("float64"),
         stype.str32: numpy.dtype("object"),
         stype.str64: numpy.dtype("object"),
-        stype.obj: numpy.dtype("object"),
+        stype.obj64: numpy.dtype("object"),
     }
 except ImportError:
     _stype_2_dtype = {}
 
 _stype_2_struct = {
-    stype.bool: "b",
+    stype.bool8: "b",
     stype.int8: "b",
     stype.int16: "=h",
     stype.int32: "=i",
@@ -258,7 +259,7 @@ _stype_2_struct = {
     stype.float64: "=d",
     stype.str32: "=i",
     stype.str64: "=q",
-    stype.obj: "O",
+    stype.obj64: "O",
 }
 
 
@@ -267,8 +268,9 @@ def _additional_stype_members():
         yield (v.name, v)
     for st, code in _stype_2_short.items():
         yield (code, st)
-    yield (bool, stype.bool)
-    yield ("boolean", stype.bool)
+    yield (bool, stype.bool8)
+    yield ("bool", stype.bool8)
+    yield ("boolean", stype.bool8)
     yield (int, stype.int64)
     yield ("int", stype.int64)
     yield ("integer", stype.int64)
@@ -278,11 +280,13 @@ def _additional_stype_members():
     yield (str, stype.str64)
     yield ("str", stype.str64)
     yield ("string", stype.str64)
-    yield (object, stype.obj)
-    yield ("object", stype.obj)
+    yield (object, stype.obj64)
+    yield ("obj", stype.obj64)
+    yield ("object", stype.obj64)
+    yield ("object64", stype.obj64)
     try:
         import numpy as np
-        yield (np.dtype("bool"), stype.bool)
+        yield (np.dtype("bool"), stype.bool8)
         yield (np.dtype("int8"), stype.int8)
         yield (np.dtype("int16"), stype.int16)
         yield (np.dtype("int32"), stype.int32)
@@ -290,11 +294,11 @@ def _additional_stype_members():
         yield (np.dtype("float32"), stype.float32)
         yield (np.dtype("float64"), stype.float64)
         yield (np.dtype("str"), stype.str64)
-        yield (np.dtype("object"), stype.obj)
+        yield (np.dtype("object"), stype.obj64)
     except ImportError:  # pragma: no cover
         pass
     # "old"-style stypes
-    yield ("i1b", stype.bool)
+    yield ("i1b", stype.bool8)
     yield ("i1i", stype.int8)
     yield ("i2i", stype.int16)
     yield ("i4i", stype.int32)
@@ -303,10 +307,13 @@ def _additional_stype_members():
     yield ("f8r", stype.float64)
     yield ("i4s", stype.str32)
     yield ("i8s", stype.str64)
-    yield ("p8p", stype.obj)
+    yield ("p8p", stype.obj64)
 
 
 for k, st in _additional_stype_members():
     assert type(st) is stype
     stype._value2member_map_[k] = st
     ltype._value2member_map_[k] = st.ltype
+
+_datatable.register_function(2, stype)
+_datatable.register_function(3, ltype)

@@ -3,6 +3,7 @@
 
 from .base_expr import BaseExpr
 from ..utils.typechecks import TTypeError, DataTable_t, is_type
+from ..types import stype
 
 __all__ = ("isna", )
 
@@ -12,7 +13,7 @@ class Isna(BaseExpr):
     def __init__(self, arg):
         super().__init__()
         self._arg = arg
-        self._stype = "i1b"
+        self._stype = stype.bool8
 
 
     def _isna(self, key, block):

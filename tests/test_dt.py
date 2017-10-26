@@ -3,6 +3,7 @@
 import pytest
 import sys
 import datatable as dt
+from datatable import stype, ltype
 from tests import same_iterables, list_equals
 
 
@@ -56,13 +57,15 @@ def test_dt_properties(dt0):
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
-    assert dt0.types == ("int", "bool", "bool", "real", "bool", "bool", "str")
-    assert dt0.stypes == ("i1i", "i1b", "i1b", "f8r", "i1b", "i1b", "i4s")
+    assert dt0.ltypes == (ltype.int, ltype.bool, ltype.bool, ltype.real,
+                          ltype.bool, ltype.bool, ltype.str)
+    assert dt0.stypes == (stype.int8, stype.bool8, stype.bool8, stype.float64,
+                          stype.bool8, stype.bool8, stype.str32)
     assert dt0.internal.alloc_size > 500
     assert (sys.getsizeof(dt0) > dt0.internal.alloc_size +
             sys.getsizeof(dt0.names) +
             sum(sys.getsizeof(colname) for colname in dt0.names) +
-            sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._types) +
+            sys.getsizeof(dt0._inames) + sys.getsizeof(dt0._ltypes) +
             sys.getsizeof(dt0._stypes))
 
 
@@ -275,7 +278,7 @@ def test_topython():
            ["cat", "dog", "mouse", "elephant"],
            [False, True, None, True]]
     d0 = dt.DataTable(src, colnames=["A", "B", "C"])
-    assert d0.types == ("int", "str", "bool")
+    assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
     a0 = d0.topython()
     assert len(a0) == 3
     assert len(a0[0]) == 4
@@ -288,7 +291,7 @@ def test_topython():
 def test_topython2():
     src = [[1.0, None, float("nan"), 3.3]]
     d0 = dt.DataTable(src)
-    assert d0.types == ("real", )
+    assert d0.ltypes == (ltype.real, )
     a0 = d0.topython()[0]
     assert a0 == [1.0, None, None, 3.3]
 
@@ -296,6 +299,7 @@ def test_topython2():
 @pytest.mark.run(order=14)
 def test_tonumpy0(numpy):
     d0 = dt.DataTable([1, 3, 5, 7, 9])
+    assert d0.stypes == (stype.int8, )
     a0 = d0.tonumpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("int8")
@@ -321,7 +325,7 @@ def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.DataTable(tbl)
     assert d0.shape == (5, 3)
-    assert d0.stypes == ("i1i", "i1i", "i1i")
+    assert d0.stypes == (stype.int8, stype.int8, stype.int8)
     assert d0.topython() == tbl
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
@@ -346,7 +350,7 @@ def test_numpy_constructor_multi_types(numpy):
            [30498, 1349810, -134308],
            [1.454, 4.9e-23, 10000000]]
     d0 = dt.DataTable(tbl)
-    assert d0.stypes == ("i1i", "i1b", "i4i", "f8r")
+    assert d0.stypes == (stype.int8, stype.bool8, stype.int32, stype.float64)
     n0 = numpy.array(d0)
     assert n0.dtype == numpy.dtype("float64")
     assert n0.T.tolist() == [[1.0, 5.0, 10.0],
@@ -371,7 +375,7 @@ def test_numpy_constructor_view(numpy):
 @pytest.mark.run(order=20)
 def test_numpy_constructor_single_col(numpy):
     d0 = dt.DataTable([1, 1, 3, 5, 8, 13, 21, 34, 55])
-    assert d0.stypes == ("i1i", )
+    assert d0.stypes == (stype.int8, )
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
     assert n0.dtype == numpy.dtype("int8")
@@ -382,7 +386,7 @@ def test_numpy_constructor_single_col(numpy):
 def test_numpy_constructor_single_string_col(numpy):
     d = dt.DataTable(["adf", "dfkn", "qoperhi"])
     assert d.shape == (3, 1)
-    assert d.stypes == ("i4s", )
+    assert d.stypes == (stype.str32, )
     a = numpy.array(d)
     assert a.shape == d.shape
     assert a.dtype == numpy.dtype("object")
@@ -406,7 +410,7 @@ def test_tonumpy_with_stype(numpy):
     """
     src = [[1.5, 2.6, 5.4], [3, 7, 10]]
     d0 = dt.DataTable(src)
-    assert d0.stypes == ("f8r", "i1i")
+    assert d0.stypes == (stype.float64, stype.int8)
     a1 = d0.tonumpy("float32")
     a2 = d0.tonumpy()
     del d0

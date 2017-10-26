@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 import datatable
-from .consts import ctypes_map, itypes_map, nas_map
+from .consts import ctypes_map, nas_map
 
 
 
@@ -48,8 +48,7 @@ class BaseExpr(object):
         """
         "Storage type" of the column produced by this expression.
 
-        The stype is a 3-char string such as 'i8i', 'f4r', 'i4s', etc -- see
-        file `c/types.c` for the description of these types.
+        The stype is an enum declared in `types.py`.
 
         Each class deriving from ``BaseExpr`` is expected to set the
         ``self._stype`` property in its initializer.
@@ -75,7 +74,7 @@ class BaseExpr(object):
         """
         SType of the element, expressed as an integer (same as ST_* constants).
         """
-        return itypes_map[self._stype]
+        return self._stype.value
 
 
 

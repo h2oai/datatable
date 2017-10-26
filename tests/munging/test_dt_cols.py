@@ -3,6 +3,7 @@
 import pytest
 import datatable as dt
 from tests import same_iterables
+from datatable import stype, ltype
 
 
 #-------------------------------------------------------------------------------
@@ -46,14 +47,14 @@ def assert_typeerror(datatable, cols, error_message):
 def test_dt_properties(dt0):
     assert dt0.shape == (6, 4)
     assert dt0.names == ("A", "B", "C", "D")
-    assert dt0.types == ("int", "int", "real", "bool")
+    assert dt0.ltypes == (ltype.int, ltype.int, ltype.real, ltype.bool)
 
 
 def test_cols_ellipsis(dt0):
     dt1 = dt0(select=...)
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
-    assert dt1.types == dt0.types
+    assert dt1.stypes == dt0.stypes
     assert not dt1.internal.isview
 
 
@@ -61,7 +62,7 @@ def test_cols_none(dt0):
     dt1 = dt0(select=None)
     assert dt1.shape == dt0.shape
     assert dt1.names == dt0.names
-    assert dt1.types == dt0.types
+    assert dt1.stypes == dt0.stypes
     assert not dt1.internal.isview
 
 
@@ -115,7 +116,7 @@ def test_cols_intslice(dt0, tbl0):
         dt1 = dt0(select=s)
         assert as_list(dt1) == tbl0[s]
         assert dt1.names == dt0.names[s]
-        assert dt1.types == dt0.types[s]
+        assert dt1.stypes == dt0.stypes[s]
         assert not dt1.internal.isview
 
 
@@ -213,12 +214,12 @@ def test_cols_expression(dt0, tbl0):
     dt1 = dt0[lambda f: f.A + f.B]
     assert dt1.internal.check()
     assert dt1.shape == (6, 1)
-    assert dt1.types == ("int", )
+    assert dt1.ltypes == (ltype.int, )
     assert as_list(dt1) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)]]
     dt2 = dt0[lambda f: [f.A + f.B, f.C - f.D, f.A / f.C, f.B * f.D]]
     assert dt2.internal.check()
     assert dt2.shape == (6, 4)
-    assert dt2.types == ("int", "real", "real", "int")
+    assert dt2.ltypes == (ltype.int, ltype.real, ltype.real, ltype.int)
     assert as_list(dt2) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)],
                             [tbl0[2][i] - tbl0[3][i] for i in range(6)],
                             [tbl0[0][i] / tbl0[2][i] for i in range(6)],
@@ -227,7 +228,8 @@ def test_cols_expression(dt0, tbl0):
     assert dt3.internal.check()
     assert dt3.shape == (6, 4)
     assert same_iterables(dt3.names, ("foo", "a", "b", "c"))
-    assert same_iterables(dt3.types, ("real", "int", "int", "real"))
+    assert same_iterables(dt3.ltypes,
+                          (ltype.real, ltype.int, ltype.int, ltype.real))
     assert not dt3.internal.isview
     assert as_list(dt3["foo"]) == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                     for i in range(6)]]

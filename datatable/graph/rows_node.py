@@ -6,6 +6,7 @@ import datatable
 import datatable.lib._datatable as _datatable
 from .iterator_node import IteratorNode
 from datatable.expr import DatatableExpr, BaseExpr
+from datatable.types import stype, ltype
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import (
@@ -300,7 +301,7 @@ class FilterExprRFNode(RFNode):
 
     def __init__(self, dt, expr, cmod):
         super().__init__(dt)
-        assert expr.stype == "i1b"
+        assert expr.stype == stype.bool8
         self._cmodule = cmod
         self._expr = expr
         self._fnname = cmod.make_variable_name("make_rowindex")
@@ -488,21 +489,21 @@ def make_rowfilter(rows, dt, cmod, _nested=False):
                               % (arr.shape[-1], plural(dt.nrows, "row")))
         rows = datatable.DataTable(arr)
         assert rows.ncols == 1
-        assert rows.types[0] == "bool" or rows.types[0] == "int"
+        assert rows.ltypes[0] == ltype.bool or rows.ltypes[0] == ltype.int
 
     if is_type(rows, DataTable_t):
         if rows.ncols != 1:
             raise TValueError("`rows` argument should be a single-column "
                               "datatable, got %r" % rows)
-        col0type = rows.types[0]
-        if col0type == "bool":
+        col0type = rows.ltypes[0]
+        if col0type == ltype.bool:
             if rows.nrows != dt.nrows:
                 s1rows = plural(rows.nrows, "row")
                 s2rows = plural(dt.nrows, "row")
                 raise TValueError("`rows` datatable has %s, but applied to a "
                                   "datatable with %s" % (s1rows, s2rows))
             return BooleanColumnRFNode(dt, rows)
-        elif col0type == "int":
+        elif col0type == ltype.int:
             return IntegerColumnRFNode(dt, rows)
         else:
             raise TTypeError("`rows` datatable should be either a boolean or "

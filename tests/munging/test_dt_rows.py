@@ -3,6 +3,7 @@
 import pytest
 import datatable as dt
 from math import isnan
+from datatable import stype, ltype
 
 
 #-------------------------------------------------------------------------------
@@ -61,8 +62,8 @@ def test_dt0_properties(dt0):
     assert dt0.ncols == 3
     assert dt0.shape == (10, 3)  # must be a tuple, not a list!
     assert dt0.names == ("colA", "colB", "colC")
-    assert dt0.types == ("bool", "int", "real")
-    assert dt0.stypes == ("i1b", "i2i", "f8r")
+    assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
+    assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
     assert str(dt0.internal.__class__) == "<class '_datatable.DataTable'>"
     assert dt0.internal.isview is False
     assert dt0.internal.rowindex_type is None
@@ -93,7 +94,7 @@ def test_rows_integer(dt0):
         assert dt1.internal.check()
         assert dt1.shape == (1, 3)
         assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.types == ("bool", "int", "real")
+        assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
         assert is_slice(dt1)
     assert as_list(dt0(0)) == [[0], [7], [5]]
     assert as_list(dt0(-2))[:2] == [[1], [1]]
@@ -125,7 +126,7 @@ def test_rows_slice(dt0):
         assert dt1.internal.check()
         assert dt1.shape == (nrows, 3)
         assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.types == ("bool", "int", "real")
+        assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
         assert is_slice_or_arr(dt1, nrows)
     assert as_list(dt0[:5, :])[0] == [0, 1, 1, None, 0]
     assert as_list(dt0[::-1, :])[1] == [None, 1, -1, 0, 0, None, 1e4, 9, -11, 7]
@@ -159,7 +160,7 @@ def test_rows_range(dt0):
         assert isinstance(rangeobj, range)
         assert dt1.shape == (nrows, 3)
         assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.types == ("bool", "int", "real")
+        assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
         assert is_slice_or_arr(dt1, nrows)
     assert_valueerror(dt0, range(15),
                       "Invalid range(0, 15) for a datatable with 10 rows")
@@ -200,7 +201,7 @@ def test_rows_multislice(dt0, selector, nrows):
     assert dt1.internal.check()
     assert dt1.shape == (nrows, 3)
     assert dt1.names == ("colA", "colB", "colC")
-    assert dt1.types == ("bool", "int", "real")
+    assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert is_arr(dt1)
 
 
@@ -230,7 +231,7 @@ def test_rows_bool_column(dt0):
     assert dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
-    assert dt1.types == ("bool", "int", "real")
+    assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [7, 9, 10000, -1, 1]
 
@@ -248,7 +249,7 @@ def test_rows_bool_numpy_array(dt0, numpy):
     assert dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
-    assert dt1.types == ("bool", "int", "real")
+    assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert as_list(dt1)[1] == [7, 9, 10000, 0, None]
 
 
@@ -278,7 +279,7 @@ def tes_rows_int_column(dt0):
     assert dt1.internal.check()
     assert dt1.shape == (4, 3)
     assert dt1.names == dt0.names
-    assert dt1.types == dt0.types
+    assert dt1.ltypes == dt0.ltypes
     assert dt1.topython() == [[0, None, 0, 1],
                               [7, 10000, 7, -11],
                               [5, 0.1, 5, 1]]
@@ -289,7 +290,7 @@ def test_rows_int_numpy_array(dt0, numpy):
     dt1 = dt0(rows=arr)
     assert dt1.internal.check()
     assert dt1.shape == (4, 3)
-    assert dt1.types == dt0.types
+    assert dt1.ltypes == dt0.ltypes
     assert dt1.topython() == [[None, 1, 0, None],
                               [-1, -11, 7, 10000],
                               [-14, 1, 5, 0.1]]

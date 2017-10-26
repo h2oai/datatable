@@ -101,5 +101,5 @@ def assert_equals(datatable1, datatable2):
     assert datatable2.internal.check()
     assert datatable1.shape == datatable2.shape
     assert same_iterables(datatable1.names, datatable2.names)
-    assert same_iterables(datatable1.types, datatable2.types)
+    assert same_iterables(datatable1.stypes, datatable2.stypes)
     assert same_iterables(datatable1.topython(), datatable2.topython())

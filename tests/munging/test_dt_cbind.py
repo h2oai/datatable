@@ -4,6 +4,7 @@ import pytest
 import types
 import datatable as dt
 from tests import assert_equals
+from datatable import stype
 
 
 def dt_compute_stats(*dts):
@@ -180,7 +181,7 @@ def test_cbind_1row_none():
     d1 = dt.DataTable({"B": [None, "doo"]})[0, :]
     dt_compute_stats(d0, d1)
     assert d1.shape == (1, 1)
-    assert d1.stypes == ("i4s", )
+    assert d1.stypes == (stype.str32, )
     d0.cbind(d1)
     dr = dt.DataTable({"A": [1, 2, 3, 4], "B": [None, None, None, "f"]})[:-1, :]
     assert_equals(d0, dr)

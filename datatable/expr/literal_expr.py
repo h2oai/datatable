@@ -3,6 +3,7 @@
 
 from .base_expr import BaseExpr
 from .consts import nas_map
+from ..types import stype
 
 
 class LiteralExpr(BaseExpr):
@@ -12,19 +13,19 @@ class LiteralExpr(BaseExpr):
         self.arg = arg
         # Determine smallest type
         if arg is True or arg is False or arg is None:
-            self._stype = "i1b"
+            self._stype = stype.bool8
         elif isinstance(arg, int):
             aarg = abs(arg)
             if aarg < 128:
-                self._stype = "i1i"
+                self._stype = stype.int8
             elif aarg < 32768:
-                self._stype = "i2i"
+                self._stype = stype.int16
             elif aarg < 1 << 31:
-                self._stype = "i4i"
+                self._stype = stype.int32
             elif aarg < 1 << 63:
-                self._stype = "i8i"
+                self._stype = stype.int64
             else:
-                self._stype = "f8r"
+                self._stype = stype.float64
         elif isinstance(arg, float):
             aarg = abs(arg)
             # sarg = str(aarg)
@@ -36,19 +37,19 @@ class LiteralExpr(BaseExpr):
             #     assert self.arg / tenp == arg
             #     aarg = abs(self.arg)
             #     if aarg < 32768:
-            #         self._stype = "i2r"
+            #         self._stype = stype.dec16
             #     elif aarg < 1 << 31:
-            #         self._stype = "i4r"
+            #         self._stype = stype.dec32
             #     elif aarg < 1 << 63:
-            #         self._stype = "i8r"
+            #         self._stype = stype.dec64
             #     else:
             #         self.arg = arg
-            #         self._stype = "f8r"
+            #         self._stype = stype.float64
             #         self.scale = 0
             if aarg < 3.4e38:
-                self._stype = "f4r"
+                self._stype = stype.float32
             else:
-                self._stype = "f8r"
+                self._stype = stype.float64
         else:
             raise TypeError("Cannot use value %r in the expression" % arg)
 

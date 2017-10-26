@@ -3,6 +3,9 @@
 
 PyObject* py_ltype_names[DT_LTYPES_COUNT];
 PyObject* py_stype_names[DT_STYPES_COUNT];
+PyObject* py_ltype_objs[DT_LTYPES_COUNT];
+PyObject* py_stype_objs[DT_STYPES_COUNT];
+
 stype_formatter* py_stype_formatters[DT_STYPES_COUNT];
 size_t py_buffers_size;
 
@@ -148,4 +151,28 @@ int init_py_types(UU)
     py_stype_formatters[ST_OBJECT_PYPTR]       = stype_object_pyptr_tostring;
 
     return 1;
+}
+
+void init_py_stype_objs(PyObject* stype_enum)
+{
+  for (int i = 0; i < DT_STYPES_COUNT; i++) {
+    // The call may raise an exception -- that's ok
+    py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
+    if (py_stype_objs[i] == NULL) {
+      PyErr_Clear();
+      py_stype_objs[i] = none();
+    }
+  }
+}
+
+void init_py_ltype_objs(PyObject* ltype_enum)
+{
+  for (int i = 0; i < DT_LTYPES_COUNT; i++) {
+    // The call may raise an exception -- that's ok
+    py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
+    if (py_ltype_objs[i] == NULL) {
+      PyErr_Clear();
+      py_ltype_objs[i] = none();
+    }
+  }
 }

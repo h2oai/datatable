@@ -19,7 +19,7 @@ from datatable.utils.typechecks import (
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 from datatable.csv import write_csv
-from datatable.expr.consts import CStats
+from datatable.types import stype
 
 __all__ = ("DataTable", )
 
@@ -38,7 +38,7 @@ class DataTable(object):
     """
     _id_counter_ = 0
 
-    __slots__ = ("_id", "_ncols", "_nrows", "_types", "_stypes", "_names",
+    __slots__ = ("_id", "_ncols", "_nrows", "_ltypes", "_stypes", "_names",
                  "_inames", "_dt")
 
     def __init__(self, src=None, colnames=None):
@@ -46,8 +46,8 @@ class DataTable(object):
         self._id = DataTable._id_counter_  # type: int
         self._ncols = 0      # type: int
         self._nrows = 0      # type: int
-        self._types = None   # type: Tuple[str]
-        self._stypes = None  # type: Tuple[str]
+        self._ltypes = None  # type: Tuple[ltype]
+        self._stypes = None  # type: Tuple[stype]
         self._names = None   # type: Tuple[str]
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
@@ -81,9 +81,11 @@ class DataTable(object):
         return self._names
 
     @property
-    def types(self):
+    def ltypes(self):
         """Tuple of column types."""
-        return self._types
+        if self._ltypes is None:
+            self._ltypes = self._dt.ltypes
+        return self._ltypes
 
     @property
     def stypes(self):
@@ -168,11 +170,13 @@ class DataTable(object):
         self._fill_from_dt(c.datatable_from_list(src), names=names)
 
 
-    def _fill_from_dt(self, dt, names=None):
-        self._dt = dt
-        self._ncols = dt.ncols
-        self._nrows = dt.nrows
-        self._types = dt.types
+    def _fill_from_dt(self, _dt, names=None):
+        self._dt = _dt
+        self._ncols = _dt.ncols
+        self._nrows = _dt.nrows
+        # Clear the memorized values, in case they were already computed.
+        self._stypes = None
+        self._ltypes = None
         if not names:
             names = tuple("C%d" % (i + 1) for i in range(self._ncols))
         if not isinstance(names, tuple):
@@ -339,7 +343,7 @@ class DataTable(object):
                   current datatable with automatically generated column names.
                   The mappers may also explicitly specify the name(s)/type(s)
                   of columns produce; if any of these names already exist in
-                  the datatble, these columns will be replaced.
+                  the datatable, these columns will be replaced.
                 - a list of ``Reducer``s (or single reducer), which will
                   produce a constant column having the value produced by the
                   reducer after running on all rows of the current datatable.
@@ -617,11 +621,11 @@ class DataTable(object):
         """
         pandas = load_module("pandas")
         numpy = load_module("numpy")
-        nas = {"i1b": -128,
-               "i1i": -128,
-               "i2i": -32768,
-               "i4i": -2147483648,
-               "i8i": -9223372036854775808}
+        nas = {stype.bool8: -128,
+               stype.int8: -128,
+               stype.int16: -32768,
+               stype.int32: -2147483648,
+               stype.int64: -9223372036854775808}
         srcdt = self._dt
         if srcdt.isview:
             srcdt = srcdt.materialize()
