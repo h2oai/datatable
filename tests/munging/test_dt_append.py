@@ -223,8 +223,6 @@ def test_append_views3():
     dt0.append(dt1)
     dtr = dt.DataTable({"A": [129, 73, -9, 365],
                         "B": ["eenie", "meenie", "miney", "mo"]})
-    print (dt0.topython())
-    print (dtr.topython())
     assert_equals(dt0, dtr)
 
 
