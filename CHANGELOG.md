@@ -6,11 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Method `df.tonumpy()` now has argument `stype` which will force conversion into
   a numpy array of the specific stype.
+- Enums `stype` and `ltype` that encapsulate the type-system of the `datatable`
+  module.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
   For example, [0.0, 1.0, 1e23] now produce "0.0,1.0,1.0e+23" instead of "0,1,1e+23".
-
+- `df.stypes` now returns a tuple of `stype` elements (previously it was returning
+  a list of strings). Likewise, `df.types` was renamed into `df.ltypes` and now it
+  returns a tuple of `ltype` elements instead of strings.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
