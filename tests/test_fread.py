@@ -58,6 +58,18 @@ def test_fread_float():
     assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
 
 
+def test_fread_issue527():
+    """
+    Test handling of invalid UTF-8 characters: right now they are decoded
+    using Windows-1252 code page (this is better than throwing an exception).
+    """
+    inp = b"A,B\xFF,C\n1,2,3\xAA\n"
+    d0 = datatable.fread(text=inp)
+    assert d0.internal.check()
+    assert d0.names == ("A", "Bÿ", "C")
+    assert d0.topython() == [[1], [2], ["3ª"]]
+
+
 def test_logger():
     class MyLogger:
         def __init__(self):

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   a numpy array of the specific stype.
 - Enums `stype` and `ltype` that encapsulate the type-system of the `datatable`
   module.
+- It is now possible to fread from a `bytes` object.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.
+- reading a csv file with invalid UTF-8 characters in column names will no longer
+  throw an exception.
 
 
 
