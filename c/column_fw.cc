@@ -88,7 +88,7 @@ void FwColumn<T>::reify() {
     new_mbuf = new MemoryMemBuf(new_mbuf_size);
 
   if (ri->type == RI_SLICE && ri->slice.step == 1) {
-    memcpy(new_mbuf->get(), mbuf->at(ri->slice.start), sizeof(T) * nrows_cast);
+    memcpy(new_mbuf->get(), elements() + ri->slice.start, new_mbuf_size);
   } else if (ri->type == RI_SLICE && ri->slice.step > 0) {
     int64_t step = ri->slice.step;
     T* data_src = elements();
@@ -102,7 +102,8 @@ void FwColumn<T>::reify() {
     T* data_src = elements();
     T* data_dest = static_cast<T*>(new_mbuf->get());
     DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
-        *(data_dest++) = data_src[i];
+        *data_dest = data_src[i];
+        ++data_dest;
     )
   }
 

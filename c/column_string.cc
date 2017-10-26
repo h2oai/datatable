@@ -152,28 +152,31 @@ void StringColumn<T>::reify() {
     new_mbuf_size = offoff + offset_size;
     if (mbuf->is_readonly()) {
       new_mbuf = new MemoryMemBuf(offoff + offset_size);
+      memcpy(new_mbuf->get(), strdata() + off0, datasize);
+    } else {
+      memmove(new_mbuf->get(), strdata() + off0, datasize);
     }
-    memcpy(new_mbuf->get(), strdata() + off0, datasize);
     memset(new_mbuf->at(datasize), 0xFF, pad_size);
     T* data_dest = static_cast<T*>(new_mbuf->at(offoff));
     if (off0 > 0) --off0;
     for (int64_t i = 0; i < nrows; ++i) {
       data_dest[i] = offs[i] > 0 ? offs[i] - off0 : offs[i] + off0;
     }
-  } else if (ri->type == RI_SLICE && ri->slice.step > 0 && mbuf->is_readonly()) {
+  } else if (ri->type == RI_SLICE && ri->slice.step > 0 && !mbuf->is_readonly()) {
     // Special case: We can still do this in-place
+    T step = static_cast<T>(ri->slice.step);
     T start = static_cast<T>(ri->slice.start);
     T *offs1 = offsets();
     T *offs0 = offs1 - 1;
     char *strs = strdata();
     char *data_dest = static_cast<char*>(new_mbuf->get());
     T nrows_cast = static_cast<T>(nrows);
-    for (T i = 0, j = start; i < nrows_cast; ++i) {
+    for (T i = 0, j = start; i < nrows_cast; ++i, j += step) {
       if (offs1[j] > 0) {
         T off0 = abs(offs0[j]);
         T str_len = offs1[j] - off0;
         if (str_len != 0) {
-          memcpy(data_dest, strs + off0, static_cast<size_t>(str_len));
+          memmove(data_dest, strs + off0, static_cast<size_t>(str_len));
           data_dest += str_len;
         }
       }
@@ -185,13 +188,13 @@ void StringColumn<T>::reify() {
     new_mbuf_size = offoff + static_cast<size_t>(nrows) * sizeof(T);
     T *new_offs = static_cast<T*>(new_mbuf->at(offoff));
     T prev_off = 1;
-    for (T i = 0, j = start; i < nrows_cast; ++i) {
+    for (T i = 0, j = start; i < nrows_cast; ++i, j+= step) {
       if (offs1[j] > 0) {
         T off0 = abs(offs0[j]);
         prev_off += offs1[j] - off0;
         new_offs[i] = prev_off;
       } else {
-          new_offs[i] = -prev_off;
+        new_offs[i] = -prev_off;
       }
     }
     memset(new_mbuf->at(datasize), 0xFF, pad_size);
@@ -229,8 +232,6 @@ void StringColumn<T>::reify() {
         *new_offs = -prev_off;
         ++new_offs;
       }
-        for (size_t q = 0; q < new_mbuf_size; ++q) {
-    }
     )
     memset(new_mbuf->at(datasize), 0xFF, pad_size);
   }

@@ -212,6 +212,21 @@ def test_append_views2():
     dtr = dt.DataTable({"A": [1, 5, 7, 3], "B": ["one", "two", None, "omega"]})
     assert_equals(dt1, dtr)
 
+def test_append_views3():
+    # view + view
+    dt0 = dt.DataTable({"A": [129, 4, 73, 86],
+                        "B": ["eenie", None, "meenie", "teenie"]})
+    dt0 = dt0[::2, :]
+    dt1 = dt.DataTable({"A": [365, -9],
+                        "B": ["mo", "miney"]})
+    dt1 = dt1[::-1, :]
+    dt0.append(dt1)
+    dtr = dt.DataTable({"A": [129, 73, -9, 365],
+                        "B": ["eenie", "meenie", "miney", "mo"]})
+    print (dt0.topython())
+    print (dtr.topython())
+    assert_equals(dt0, dtr)
+
 
 def test_append_different_stypes1():
     dt0 = dt.DataTable([[1, 5, 24, 100]])
