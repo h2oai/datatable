@@ -275,35 +275,49 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
 bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
                    int ncols_)
 {
-    types = types_;
-    PyObject *colNamesList = PyList_New(ncols_);
-    PyObject *colTypesList = PyList_New(ncols_);
-    for (int i = 0; i < ncols_; i++) {
-        lenOff ocol = colNames[i];
-        PyObject *col =
-            ocol.len > 0? PyUnicode_FromStringAndSize(anchor + ocol.off, ocol.len)
-                        : PyUnicode_FromFormat("V%d", i);
-        PyObject *typ = PyLong_FromLong(types[i]);
-        PyList_SET_ITEM(colNamesList, i, col);
-        PyList_SET_ITEM(colTypesList, i, typ);
+  types = types_;
+  PyObject *colNamesList = PyList_New(ncols_);
+  PyObject *colTypesList = PyList_New(ncols_);
+  for (int i = 0; i < ncols_; i++) {
+    lenOff ocol = colNames[i];
+    PyObject* pycol = NULL;
+    if (ocol.len > 0) {
+      const char* src = anchor + ocol.off;
+      const uint8_t* usrc = reinterpret_cast<const uint8_t*>(src);
+      size_t zlen = static_cast<size_t>(ocol.len);
+      if (is_valid_utf8(usrc, zlen)) {
+        pycol = PyUnicode_FromStringAndSize(src, ocol.len);
+      } else {
+        char* newsrc = new char[zlen * 2];
+        uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
+        int newlen = decode_windows1252(usrc, ocol.len, unewsrc);
+        pycol = PyUnicode_FromStringAndSize(newsrc, newlen);
+        delete[] newsrc;
+      }
+    } else {
+      pycol = PyUnicode_FromFormat("V%d", i);
     }
-    PyObject *ret = PyObject_CallMethod(freader, "_override_columns",
-                                        "OO", colNamesList, colTypesList);
-    if (!ret) {
-        pyfree(colTypesList);
-        pyfree(colNamesList);
-        return 0;
-    }
-
-    for (int i = 0; i < ncols_; i++) {
-        PyObject *t = PyList_GET_ITEM(colTypesList, i);
-        types[i] = (int8_t) PyLong_AsUnsignedLongMask(t);
-    }
-
+    PyObject *pytype = PyLong_FromLong(types[i]);
+    PyList_SET_ITEM(colNamesList, i, pycol);
+    PyList_SET_ITEM(colTypesList, i, pytype);
+  }
+  PyObject *ret = PyObject_CallMethod(freader, "_override_columns",
+                                      "OO", colNamesList, colTypesList);
+  if (!ret) {
     pyfree(colTypesList);
     pyfree(colNamesList);
-    pyfree(ret);
-    return 1;  // continue reading the file
+    return 0;
+  }
+
+  for (int i = 0; i < ncols_; i++) {
+    PyObject *t = PyList_GET_ITEM(colTypesList, i);
+    types[i] = (int8_t) PyLong_AsUnsignedLongMask(t);
+  }
+
+  pyfree(colTypesList);
+  pyfree(colNamesList);
+  pyfree(ret);
+  return 1;  // continue reading the file
 }
 
 
