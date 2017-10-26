@@ -44,7 +44,7 @@ def test_tocsv_double_datatable(benchmark, src, pivot, capsys):
     benchmark.name = "datatable"
     benchmark.group = "tocsv(double):%d" % src.nrows
     d = src
-    assert d.stypes == ("f8r",) * 10
+    assert d.stypes == (datatable.stype.float64,) * 10
     benchmark(lambda: d.to_csv("out.csv"))
     pivot.save(benchmark)
     # Hack: make `capsys` fixture available to pivot

@@ -3,6 +3,7 @@
 import pytest
 import datatable as dt
 import statistics
+from datatable import stype
 from math import inf, nan, isnan
 from tests import list_equals
 
@@ -34,21 +35,21 @@ def src_all(request):
 
 # Helper function that provides the resulting stype after `min()` or `max()` is
 # called
-def min_max_stype(stype):
-    return stype
+def min_max_stype(st):
+    return st
 
 # Helper function that provides the resulting stype after `mean()` or `sd()` is
 # called
-def mean_sd_stype(stype):
-    return "f8r"
+def mean_sd_stype(st):
+    return stype.float64
 
 # Helper function that provides the result stype after `sum()` is called
-def sum_stype(stype):
-    if stype in ["i1b", "i1i", "i2i", "i4i", "i8i"]:
-        return "i8i"
-    if stype in ["f4r", "f8r"]:
-        return "f8r"
-    return stype
+def sum_stype(st):
+    if st in [stype.bool8, stype.int8, stype.int16, stype.int32, stype.int64]:
+        return stype.int64
+    if st in [stype.float32, stype.float64]:
+        return stype.float64
+    return st
 
 
 #-------------------------------------------------------------------------------
@@ -218,7 +219,7 @@ def test_dt_count_na(src_all):
     dt0 = dt.DataTable(src_all)
     dtr = dt0.countna()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == ["i8i"] * dt0.ncols
+    assert list(dtr.stypes) == [stype.int64] * dt0.ncols
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [t_count_na(src_all)])

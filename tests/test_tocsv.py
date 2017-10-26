@@ -5,6 +5,7 @@ import random
 import re
 import pytest
 from tests import list_equals
+from datatable import ltype, stype
 
 def pyhex(v):
     """
@@ -42,7 +43,7 @@ def test_issue365():
     d1 = dt.fread(text=d0.to_csv())
     assert d1.shape == d0.shape
     assert d1.names == d0.names
-    assert d1.types == d0.types
+    assert d1.ltypes == d0.ltypes
     assert d1.topython() == d0.topython()
 
 
@@ -97,20 +98,20 @@ def test_issue507(tempfile, col, scol):
 
 def test_save_bool():
     d = dt.DataTable([True, False, None, None, False, False, True, False])
-    assert d.types == ("bool", )
+    assert d.stypes == (stype.bool8, )
     assert d.to_csv() == "C1\n1\n0\n\n\n0\n0\n1\n0\n"
 
 
 def test_save_int8():
     d = dt.DataTable([1, 0, -5, None, 127, -127, 99, 10, 100, -100, -10])
-    assert d.stypes == ("i1i", )
+    assert d.stypes == (stype.int8, )
     assert d.to_csv() == "C1\n1\n0\n-5\n\n127\n-127\n99\n10\n100\n-100\n-10\n"
 
 
 def test_save_int16():
     d = dt.DataTable([0, 10, 100, 1000, 10000, 32767, -32767, -10, -20,
                       5, 5125, 3791, 21, -45, 499, 999, 1001, -8, None, -1])
-    assert d.stypes == ("i2i", )
+    assert d.stypes == (stype.int16, )
     assert d.to_csv() == "C1\n0\n10\n100\n1000\n10000\n32767\n-32767\n" \
                          "-10\n-20\n5\n5125\n3791\n21\n-45\n499\n999\n" \
                          "1001\n-8\n\n-1\n"
@@ -120,7 +121,7 @@ def test_save_int32():
     d = dt.DataTable([0, None, 1, 10, 100, 1000, 1000000, 1000000000,
                       2147483647, -2147483647, -25, 111, 215932, -1,
                       None, 34857304, 999999, -1048573, 123456789])
-    assert d.stypes == ("i4i", )
+    assert d.stypes == (stype.int32, )
     assert d.to_csv() == "C1\n0\n\n1\n10\n100\n1000\n1000000\n1000000000\n" \
                          "2147483647\n-2147483647\n-25\n111\n215932\n-1\n" \
                          "\n34857304\n999999\n-1048573\n123456789\n"
@@ -132,7 +133,7 @@ def test_save_int64():
                       9223372036854775807, -9223372036854775807, None,
                       123456789876543210, -245253356, 328365213640134,
                       99999999999, 10000000000001, 33, -245, 3])
-    assert d.stypes == ("i8i", )
+    assert d.stypes == (stype.int64, )
     assert d.to_csv() == ("C1\n0\n\n1\n10\n100\n1000\n1000000\n1000000000\n"
                           "10000000000\n1000000000000000\n1000000000000000000\n"
                           "9223372036854775807\n-9223372036854775807\n\n"
@@ -158,7 +159,7 @@ def test_save_double2():
            [str(10.0**i) for i in range(15)] +
            ["1.0e+%02d" % i for i in range(15, 308)])
     d = dt.DataTable(src)
-    assert d.stypes == ("f8r", )
+    assert d.stypes == (stype.float64, )
     assert d.to_csv().split("\n")[1:-1] == res
 
 
@@ -166,7 +167,7 @@ def test_save_round_doubles():
     src = [1.0, 0.0, -3.0, 123.0, 5e55]
     res = ["1.0", "0.0", "-3.0", "123.0", "5.0e+55"]
     d = dt.DataTable(src)
-    assert d.stypes == ("f8r", )
+    assert d.stypes == (stype.float64, )
     assert d.to_csv().split("\n")[1:-1] == res
 
 
@@ -231,7 +232,7 @@ def test_save_hexfloat_sample(pandas):
         -3e328: "-inf",
     }
     d = dt.DataTable(pandas.DataFrame({"A": list(src.keys())}, dtype="float32"))
-    assert d.stypes == ("f4r", )
+    assert d.stypes == (stype.float32, )
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == list(src.values())
 
@@ -263,7 +264,7 @@ def test_save_float_sample(pandas):
         1.134043e+28: "1.134043e+28",
     }
     d = dt.DataTable(pandas.DataFrame(list(src.keys()), dtype="float32"))
-    assert d.stypes == ("f4r", )
+    assert d.stypes == (stype.float32, )
     decs = d.to_csv().split("\n")[1:-1]
     assert decs == list(src.values())
 
@@ -276,7 +277,7 @@ def test_save_strings():
             "\twith tabs\t", '"oh-no', "single'quote", "'squoted'",
             "\0bwahaha!", "?", "here be dragons"]
     d = dt.DataTable([src1, src2], colnames=["A", "B"])
-    assert d.types == ("str", "str")
+    assert d.stypes == (stype.str32, stype.str32)
     assert d.internal.check()
     assert d.to_csv().split("\n") == [
         'A,B',

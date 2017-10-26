@@ -7,6 +7,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+from datatable import ltype, stype
 from tests import same_iterables, list_equals, assert_equals
 
 
@@ -14,7 +15,7 @@ def test_create_from_list():
     d0 = dt.DataTable([1, 2, 3])
     assert d0.shape == (3, 1)
     assert d0.names == ("C1", )
-    assert d0.types == ("int", )
+    assert d0.ltypes == (ltype.int, )
     assert d0.internal.check()
 
 
@@ -22,21 +23,21 @@ def test_create_from_list_of_lists():
     d1 = dt.DataTable([[1, 2], [True, False], [.3, -0]], colnames="ABC")
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
-    assert d1.types == ("int", "bool", "real")
+    assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
     assert d1.internal.check()
 
 
 def test_create_from_tuple():
     d2 = dt.DataTable((3, 5, 6, 0))
     assert d2.shape == (4, 1)
-    assert d2.types == ("int", )
+    assert d2.ltypes == (ltype.int, )
     assert d2.internal.check()
 
 
 def test_create_from_set():
     d3 = dt.DataTable({1, 13, 15, -16, -10, 7, 9, 1})
     assert d3.shape == (7, 1)
-    assert d3.types == ("int", )
+    assert d3.ltypes == (ltype.int, )
     assert d3.internal.check()
 
 
@@ -44,7 +45,7 @@ def test_create_from_nothing():
     d4 = dt.DataTable()
     assert d4.shape == (0, 0)
     assert d4.names == tuple()
-    assert d4.types == tuple()
+    assert d4.ltypes == tuple()
     assert d4.stypes == tuple()
     assert d4.internal.check()
 
@@ -53,8 +54,8 @@ def test_create_from_empty_list():
     d5 = dt.DataTable([])
     assert d5.shape == (0, 1)
     assert d5.names == ("C1", )
-    assert d5.types == ("bool", )
-    assert d5.stypes == ("i1b", )
+    assert d5.ltypes == (ltype.bool, )
+    assert d5.stypes == (stype.bool8, )
     assert d5.internal.check()
 
 
@@ -62,7 +63,7 @@ def test_create_from_empty_list_of_lists():
     d6 = dt.DataTable([[]])
     assert d6.shape == (0, 1)
     assert d6.names == ("C1", )
-    assert d6.types == ("bool", )
+    assert d6.ltypes == (ltype.bool, )
     assert d6.internal.check()
 
 
@@ -72,7 +73,7 @@ def test_create_from_dict():
                        "C": ["alpha", "beta", "gamma"]})
     assert d7.shape == (3, 3)
     assert same_iterables(d7.names, ("A", "B", "C"))
-    assert same_iterables(d7.types, ("int", "bool", "str"))
+    assert same_iterables(d7.ltypes, (ltype.int, ltype.bool, ltype.str))
     assert d7.internal.check()
 
 
@@ -177,7 +178,7 @@ def test_create_from_masked_numpy_array1(numpy):
     arr = numpy.ma.array(a, mask=m)
     d = dt.DataTable(arr)
     assert d.shape == (5, 1)
-    assert d.stypes == ("i1b", )
+    assert d.stypes == (stype.bool8, )
     assert d.internal.check()
     assert d.topython() == [[True, None, True, False, None]]
 
@@ -189,7 +190,7 @@ def test_create_from_masked_numpy_array2(numpy):
     arr = numpy.ma.array(a, mask=m, dtype="int16")
     d = dt.DataTable(arr)
     assert d.shape == (n, 1)
-    assert d.stypes == ("i2i", )
+    assert d.stypes == (stype.int16, )
     assert d.internal.check()
     assert d.topython() == [arr.tolist()]
 
@@ -201,7 +202,7 @@ def test_create_from_masked_numpy_array3(numpy):
     arr = numpy.ma.array(a, mask=m, dtype="int32")
     d = dt.DataTable(arr)
     assert d.shape == (n, 1)
-    assert d.stypes == ("i4i", )
+    assert d.stypes == (stype.int32, )
     assert d.internal.check()
     assert d.topython() == [arr.tolist()]
 
@@ -213,7 +214,7 @@ def test_create_from_masked_numpy_array4(numpy):
     arr = numpy.ma.array(a, mask=m, dtype="float64")
     d = dt.DataTable(arr)
     assert d.shape == (n, 1)
-    assert d.stypes == ("f8r", )
+    assert d.stypes == (stype.float64, )
     assert d.internal.check()
     assert list_equals(d.topython(), [arr.tolist()])
 
@@ -244,11 +245,11 @@ def test_bad():
 def test_issue_42():
     d = dt.DataTable([-1])
     assert d.shape == (1, 1)
-    assert d.types == ("int", )
+    assert d.ltypes == (ltype.int, )
     assert d.internal.check()
     d = dt.DataTable([-1, 2, 5, "hooray"])
     assert d.shape == (4, 1)
-    assert d.types == ("obj", )
+    assert d.ltypes == (ltype.obj, )
     assert d.internal.check()
 
 
@@ -256,7 +257,7 @@ def test_issue_409():
     from math import inf, copysign
     d = dt.DataTable([10**333, -10**333, 10**-333, -10**-333])
     assert d.internal.check()
-    assert d.types == ("real", )
+    assert d.ltypes == (ltype.real, )
     p = d.topython()
     assert p == [[inf, -inf, 0.0, -0.0]]
     assert copysign(1, p[0][-1]) == -1

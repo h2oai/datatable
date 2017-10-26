@@ -4,6 +4,7 @@ import pytest
 import datatable
 import random
 import math
+from datatable import stype, ltype
 
 
 def test_fread_columns_set():
@@ -39,7 +40,7 @@ def test_fread_hex():
     inp = "A\n%s\n" % "\n".join(x.hex() for x in arr)
     d0 = datatable.fread(text=inp)
     assert d0.internal.check()
-    assert d0.types == ("real", )
+    assert d0.ltypes == (ltype.real, )
     assert d0.topython() == [arr]
 
 
@@ -53,7 +54,7 @@ def test_fread_float():
     inp = "A\n0x0p0\n0x1.5p0\n0x1.5p-1\n0x1.2AAAAAp+22"
     d0 = datatable.fread(text=inp)
     assert d0.internal.check()
-    assert d0.stypes == ("f4r", )
+    assert d0.stypes == (stype.float32, )
     assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
 
 

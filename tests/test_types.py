@@ -17,8 +17,8 @@ expr_consts = datatable.expr.consts
 @pytest.fixture()
 def c_stypes():
     """
-    Create a dictionary whose keys are 3-char stype codes (eg. 'i8i' or 'f4r'),
-    and values are dictionaries with the following properties:
+    Create a dictionary whose keys are 3-char old stype codes, and values
+    are dictionaries with the following properties:
         * sname (str): the 'ST_*' C name of the enum constant
         * itype (int): integer value of the stype constant
         * stype (str): 3-character string code of the SType
@@ -87,34 +87,6 @@ def c_stypes2(c_stypes):
 
 
 
-#-------------------------------------------------------------------------------
-# Tests (old)
-#-------------------------------------------------------------------------------
-
-def test_consts_py_nas_map(c_stypes):
-    nas_map = expr_consts.nas_map
-    for stype, na in nas_map.items():
-        if stype == "p8p" or stype == "c#s":
-            assert na == "NULL"
-        else:
-            assert na == "NA_" + stype[:2].upper()
-    assert set(nas_map.keys()) == set(c_stypes.keys())
-
-
-def test_consts_py_ctypes_map(c_stypes):
-    ctypes_map = expr_consts.ctypes_map
-    for stype, ctype in ctypes_map.items():
-        assert c_stypes[stype]["ctype"] == ctype
-    assert set(ctypes_map.keys()) == set(c_stypes.keys())
-
-
-def test_consts_py_itypes_map(c_stypes):
-    itypes_map = expr_consts.itypes_map
-    for stype, itype in itypes_map.items():
-        assert c_stypes[stype]["itype"] == itype
-    assert set(itypes_map.keys()) == set(c_stypes.keys())
-
-
 
 #-------------------------------------------------------------------------------
 # Test stype enum
@@ -122,7 +94,7 @@ def test_consts_py_itypes_map(c_stypes):
 
 def test_stype():
     from datatable import stype
-    assert stype.bool
+    assert stype.bool8
     assert stype.int8
     assert stype.int16
     assert stype.int32
@@ -131,14 +103,14 @@ def test_stype():
     assert stype.float64
     assert stype.str32
     assert stype.str64
-    assert stype.obj
+    assert stype.obj64
     # When new stypes are added, don't forget to update this test suite
     assert len(stype) == 10
 
 
 def test_stype_names():
     from datatable import stype
-    assert stype.bool.name == "bool"
+    assert stype.bool8.name == "bool8"
     assert stype.int8.name == "int8"
     assert stype.int16.name == "int16"
     assert stype.int32.name == "int32"
@@ -147,7 +119,7 @@ def test_stype_names():
     assert stype.float64.name == "float64"
     assert stype.str32.name == "str32"
     assert stype.str64.name == "str64"
-    assert stype.obj.name == "obj"
+    assert stype.obj64.name == "obj64"
 
 
 def test_stype_repr():
@@ -158,7 +130,7 @@ def test_stype_repr():
 
 def test_stype_codes():
     from datatable import stype
-    assert stype.bool.code == "b1"
+    assert stype.bool8.code == "b1"
     assert stype.int8.code == "i1"
     assert stype.int16.code == "i2"
     assert stype.int32.code == "i4"
@@ -167,7 +139,7 @@ def test_stype_codes():
     assert stype.float64.code == "r8"
     assert stype.str32.code == "s4"
     assert stype.str64.code == "s8"
-    assert stype.obj.code == "o8"
+    assert stype.obj64.code == "o8"
 
 
 def test_stype_values(c_stypes2):
@@ -185,7 +157,7 @@ def test_stype_sizes(c_stypes2):
 def test_stype_ctypes():
     from datatable import stype
     import ctypes
-    assert stype.bool.ctype == ctypes.c_int8
+    assert stype.bool8.ctype == ctypes.c_int8
     assert stype.int8.ctype == ctypes.c_int8
     assert stype.int16.ctype == ctypes.c_int16
     assert stype.int32.ctype == ctypes.c_int32
@@ -194,12 +166,12 @@ def test_stype_ctypes():
     assert stype.float64.ctype == ctypes.c_double
     assert stype.str32.ctype == ctypes.c_int32
     assert stype.str64.ctype == ctypes.c_int64
-    assert stype.obj.ctype == ctypes.py_object
+    assert stype.obj64.ctype == ctypes.py_object
 
 
 def test_stype_struct():
     from datatable import stype
-    assert stype.bool.struct == "b"
+    assert stype.bool8.struct == "b"
     assert stype.int8.struct == "b"
     assert stype.int16.struct == "=h"
     assert stype.int32.struct == "=i"
@@ -208,7 +180,7 @@ def test_stype_struct():
     assert stype.float64.struct == "=d"
     assert stype.str32.struct == "=i"
     assert stype.str64.struct == "=q"
-    assert stype.obj.struct == "O"
+    assert stype.obj64.struct == "O"
 
 
 def test_stype_instantiate():
@@ -216,10 +188,12 @@ def test_stype_instantiate():
     for st in stype:
         assert stype(st) is st
         assert stype(st.value) is st
-    assert stype(bool) is stype.bool
-    assert stype("b1") is stype.bool
-    assert stype("bool") is stype.bool
-    assert stype("boolean") is stype.bool
+        assert stype(st.name) is st
+        assert stype(st.code) is st
+    assert stype(bool) is stype.bool8
+    assert stype("b1") is stype.bool8
+    assert stype("bool") is stype.bool8
+    assert stype("boolean") is stype.bool8
     assert stype(int) is stype.int64
     assert stype("int") is stype.int64
     assert stype("integer") is stype.int64
@@ -236,14 +210,14 @@ def test_stype_instantiate():
     assert stype("str") is stype.str64
     assert stype("str32") is stype.str32
     assert stype("str64") is stype.str64
-    assert stype(object) is stype.obj
-    assert stype("obj") is stype.obj
-    assert stype("object") is stype.obj
+    assert stype(object) is stype.obj64
+    assert stype("obj") is stype.obj64
+    assert stype("object") is stype.obj64
 
 
 def test_stype_instantiate_from_numpy(numpy):
     from datatable import stype
-    assert stype(numpy.dtype("bool")) is stype.bool
+    assert stype(numpy.dtype("bool")) is stype.bool8
     assert stype(numpy.dtype("int8")) is stype.int8
     assert stype(numpy.dtype("int16")) is stype.int16
     assert stype(numpy.dtype("int32")) is stype.int32
@@ -251,7 +225,7 @@ def test_stype_instantiate_from_numpy(numpy):
     assert stype(numpy.dtype("float32")) is stype.float32
     assert stype(numpy.dtype("float64")) is stype.float64
     assert stype(numpy.dtype("str")) is stype.str64
-    assert stype(numpy.dtype("object")) is stype.obj
+    assert stype(numpy.dtype("object")) is stype.obj64
 
 
 def test_stype_instantiate_bad():
@@ -309,10 +283,10 @@ def test_stype_ltypes(c_stypes2):
 
 def test_ltype_stypes():
     from datatable import stype, ltype
-    assert ltype.bool.stypes == [stype.bool]
+    assert ltype.bool.stypes == [stype.bool8]
     assert ltype.int.stypes == [stype.int8, stype.int16, stype.int32,
                                 stype.int64]
     assert ltype.real.stypes == [stype.float32, stype.float64]
     assert ltype.str.stypes == [stype.str32, stype.str64]
     assert ltype.time.stypes == []
-    assert ltype.obj.stypes == [stype.obj]
+    assert ltype.obj.stypes == [stype.obj64]

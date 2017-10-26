@@ -4,6 +4,7 @@
 from .base_expr import BaseExpr
 from .consts import ctypes_map, nas_map
 from ..utils.typechecks import DataTable_t, is_type
+from ..types import stype
 
 __all__ = ("min", "max", "MinMaxReducer")
 
@@ -80,9 +81,9 @@ class MinMaxReducer(BaseExpr):
 
 
     def _isna(self, block):
-        if self.stype == "f8r":
+        if self.stype == stype.float64:
             return "ISNA_F8(%s)" % self.value(block)
-        elif self.stype == "f4r":
+        elif self.stype == stype.float32:
             return "ISNA_F4(%s)" % self.value(block)
         else:
             return "(%s == %s)" % (self.value(block), nas_map[self.stype])

@@ -1,80 +1,55 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 from enum import Enum
-
+from ..types import stype
 
 nas_map = {
-    "i1b": "NA_I1",
-    "i1i": "NA_I1",
-    "i2i": "NA_I2",
-    "i4i": "NA_I4",
-    "i8i": "NA_I8",
-    "i2r": "NA_I2",
-    "i4r": "NA_I4",
-    "i8r": "NA_I8",
-    "f4r": "NA_F4",
-    "f8r": "NA_F8",
-    "i4s": "NA_I4",
-    "i8s": "NA_I8",
-    "c#s": "NULL",
-    "u1e": "NA_U1",
-    "u2e": "NA_U2",
-    "u4e": "NA_U4",
-    "i8d": "NA_I8",
-    "i4t": "NA_I4",
-    "i4d": "NA_I4",
-    "i2d": "NA_I2",
-    "p8p": "NULL",
+    stype.bool8: "NA_I1",
+    stype.int8: "NA_I1",
+    stype.int16: "NA_I2",
+    stype.int32: "NA_I4",
+    stype.int64: "NA_I8",
+    # "i2r": "NA_I2",
+    # "i4r": "NA_I4",
+    # "i8r": "NA_I8",
+    stype.float32: "NA_F4",
+    stype.float64: "NA_F8",
+    stype.str32: "NA_I4",
+    stype.str64: "NA_I8",
+    # "c#s": "NULL",
+    # "u1e": "NA_U1",
+    # "u2e": "NA_U2",
+    # "u4e": "NA_U4",
+    # "i8d": "NA_I8",
+    # "i4t": "NA_I4",
+    # "i4d": "NA_I4",
+    # "i2d": "NA_I2",
+    stype.obj64: "NULL",
 }
 
 
 ctypes_map = {
-    "i1b": "int8_t",
-    "i1i": "int8_t",
-    "i2i": "int16_t",
-    "i4i": "int32_t",
-    "i8i": "int64_t",
-    "i2r": "int16_t",
-    "i4r": "int32_t",
-    "i8r": "int64_t",
-    "f4r": "float",
-    "f8r": "double",
-    "i4s": "int32_t",
-    "i8s": "int64_t",
-    "c#s": "char*",
-    "u1e": "uint8_t",
-    "u2e": "uint16_t",
-    "u4e": "uint32_t",
-    "i8d": "int64_t",
-    "i4t": "int32_t",
-    "i4d": "int32_t",
-    "i2d": "int16_t",
-    "p8p": "void*",
-}
-
-
-itypes_map = {
-    "i1b": 1,
-    "i1i": 2,
-    "i2i": 3,
-    "i4i": 4,
-    "i8i": 5,
-    "f4r": 6,
-    "f8r": 7,
-    "i2r": 8,
-    "i4r": 9,
-    "i8r": 10,
-    "i4s": 11,
-    "i8s": 12,
-    "c#s": 13,
-    "u1e": 14,
-    "u2e": 15,
-    "u4e": 16,
-    "i8d": 17,
-    "i4t": 18,
-    "i4d": 19,
-    "i2d": 20,
-    "p8p": 21,
+    stype.bool8: "int8_t",
+    stype.int8: "int8_t",
+    stype.int16: "int16_t",
+    stype.int32: "int32_t",
+    stype.int64: "int64_t",
+    # "i2r": "int16_t",
+    # "i4r": "int32_t",
+    # "i8r": "int64_t",
+    stype.float32: "float",
+    stype.float64: "double",
+    stype.str32: "int32_t",
+    stype.str64: "int64_t",
+    # "c#s": "char*",
+    # "u1e": "uint8_t",
+    # "u2e": "uint16_t",
+    # "u4e": "uint32_t",
+    # "i8d": "int64_t",
+    # "i4t": "int32_t",
+    # "i4d": "int32_t",
+    # "i2d": "int16_t",
+    stype.obj64: "void*",
 }
 
 
@@ -87,16 +62,17 @@ class CStats(Enum):
     count_na = 5
 
 
-stype_bool = {"i1b"}
-stype_int = {"i1i", "i2i", "i4i", "i8i"}
-stype_float = {"f4r", "f8r"}
-stype_decimal = {"i2r", "i4r", "i8r"}
+stype_bool = {stype.bool8}
+stype_int = {stype.int8, stype.int16, stype.int32, stype.int64}
+stype_float = {stype.float32, stype.float64}
+stype_decimal = set()  # {"i2r", "i4r", "i8r"}
 stype_real = stype_float | stype_decimal
 stype_numerical = stype_int | stype_real
 
 
-stypes_ladder = ["i1b", "i1i", "i2i", "i4i", "i8i",
-                 "i2r", "i4r", "i8r", "f4r", "f8r"]
+stypes_ladder = [stype.bool8, stype.int8, stype.int16, stype.int32, stype.int64,
+                 # "i2r", "i4r", "i8r",
+                 stype.float32, stype.float64]
 
 
 ops_rules = {}
@@ -109,20 +85,20 @@ for i, st1 in enumerate(stypes_ladder):
 
 for st1 in stypes_ladder:
     for st2 in stypes_ladder:
-        ops_rules[("/", st1, st2)] = "f8r"
+        ops_rules[("/", st1, st2)] = stype.float64
         for op in [">", ">=", "<", "<=", "==", "!="]:
-            ops_rules[(op, st1, st2)] = "i1b"
+            ops_rules[(op, st1, st2)] = stype.bool8
 
 for st in stypes_ladder:
-    ops_rules[("mean", st)] = st if st[-1] == "r" else "f8r"
-    ops_rules[("sd", st)] = st if st[-1] == "r" else "f8r"
+    ops_rules[("mean", st)] = stype.float64
+    ops_rules[("sd", st)] = stype.float64
 
-ops_rules[("+", "i1b", "i1b")] = "i1i"
-ops_rules[("-", "i1b", "i1b")] = "i1i"
-ops_rules[("*", "i1b", "i1b")] = "i1b"
-ops_rules[("/", "i1b", "i1b")] = None
-ops_rules[("//", "i1b", "i1b")] = None
-ops_rules[("%", "i1b", "i1b")] = None
+ops_rules[("+", stype.bool8, stype.bool8)] = stype.int8
+ops_rules[("-", stype.bool8, stype.bool8)] = stype.int8
+ops_rules[("*", stype.bool8, stype.bool8)] = stype.bool8
+ops_rules[("/", stype.bool8, stype.bool8)] = None
+ops_rules[("//", stype.bool8, stype.bool8)] = None
+ops_rules[("%", stype.bool8, stype.bool8)] = None
 
 
 division_ops = {"//", "/", "%"}

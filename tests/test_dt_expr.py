@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
+from datatable import stype
 from tests import list_equals
 
 
@@ -12,7 +13,7 @@ dt_bool = {(False, True, False, False, True),
 dt_int = {(5, -3, 6, 3, 0),
           (None, -1, 0, 26, -3),
           # TODO: currently ~ operation fails on v = 2**31 - 1. Should we
-          #       promote the resulting column to i8i in such case?
+          #       promote the resulting column to int64 in such case?
           (2**31 - 2, -(2**31 - 1), 0, -1, 1)}
 
 dt_float = {(9.5, 0.2, 5.4857301, -3.14159265338979),
@@ -109,5 +110,5 @@ def test_dt_isna(src):
     dt0 = dt.DataTable(src)
     dtr = dt0(select=lambda f: dt.isna(f[0]))
     assert dtr.internal.check()
-    assert dtr.stypes == ("i1b",)
+    assert dtr.stypes == (stype.bool8,)
     assert dtr.topython()[0] == [x is None for x in src]

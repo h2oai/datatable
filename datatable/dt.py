@@ -19,7 +19,7 @@ from datatable.utils.typechecks import (
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 from datatable.csv import write_csv
-from datatable.expr.consts import CStats
+from datatable.types import stype
 
 __all__ = ("DataTable", )
 
@@ -81,7 +81,7 @@ class DataTable(object):
         return self._names
 
     @property
-    def types(self):
+    def ltypes(self):
         """Tuple of column types."""
         if self._ltypes is None:
             self._ltypes = self._dt.ltypes
@@ -174,6 +174,9 @@ class DataTable(object):
         self._dt = _dt
         self._ncols = _dt.ncols
         self._nrows = _dt.nrows
+        # Clear the memorized values, in case they were already computed.
+        self._stypes = None
+        self._ltypes = None
         if not names:
             names = tuple("C%d" % (i + 1) for i in range(self._ncols))
         if not isinstance(names, tuple):
@@ -618,11 +621,11 @@ class DataTable(object):
         """
         pandas = load_module("pandas")
         numpy = load_module("numpy")
-        nas = {"i1b": -128,
-               "i1i": -128,
-               "i2i": -32768,
-               "i4i": -2147483648,
-               "i8i": -9223372036854775808}
+        nas = {stype.bool8: -128,
+               stype.int8: -128,
+               stype.int16: -32768,
+               stype.int32: -2147483648,
+               stype.int64: -9223372036854775808}
         srcdt = self._dt
         if srcdt.isview:
             srcdt = srcdt.materialize()
