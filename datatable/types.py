@@ -16,6 +16,7 @@
 #-------------------------------------------------------------------------------
 import ctypes
 import enum
+import datatable.lib._datatable as _datatable
 from datatable.utils.typechecks import TValueError
 
 __all__ = ("stype", "ltype")
@@ -310,3 +311,6 @@ for k, st in _additional_stype_members():
     assert type(st) is stype
     stype._value2member_map_[k] = st
     ltype._value2member_map_[k] = st.ltype
+
+_datatable.register_function(2, stype)
+_datatable.register_function(3, ltype)

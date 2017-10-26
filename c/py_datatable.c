@@ -88,37 +88,45 @@ static PyObject* get_isview(DataTable_PyObject *self) {
 }
 
 
-DT_DOCS(types, "List of column types")
-static PyObject* get_types(DataTable_PyObject *self)
+DT_DOCS(ltypes, "List of column logical types")
+static PyObject* get_ltypes(DataTable_PyObject *self)
 {
-  CATCH_EXCEPTIONS(
+  try {
     int64_t i = self->ref->ncols;
     PyObject *list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        SType st = self->ref->columns[i]->stype();
-        LType lt = stype_info[st].ltype;
-        PyTuple_SET_ITEM(list, i, incref(py_ltype_names[lt]));
+      SType st = self->ref->columns[i]->stype();
+      LType lt = stype_info[st].ltype;
+      PyTuple_SET_ITEM(list, i, incref(py_ltype_objs[lt]));
     }
     return list;
-  );
+
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    return NULL;
+  }
 }
 
 
 DT_DOCS(stypes, "List of column storage types")
 static PyObject* get_stypes(DataTable_PyObject *self)
 {
-  CATCH_EXCEPTIONS(
-    DataTable *dt = self->ref;
+  try {
+    DataTable* dt = self->ref;
     int64_t i = dt->ncols;
-    PyObject *list = PyTuple_New((Py_ssize_t) i);
+    PyObject* list = PyTuple_New((Py_ssize_t) i);
     if (list == NULL) return NULL;
     while (--i >= 0) {
-        SType st = dt->columns[i]->stype();
-        PyTuple_SET_ITEM(list, i, incref(py_stype_names[st]));
+      SType st = dt->columns[i]->stype();
+      PyTuple_SET_ITEM(list, i, incref(py_stype_objs[st]));
     }
     return list;
-  );
+
+  } catch (const std::exception& e) {
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+    return NULL;
+  }
 }
 
 
@@ -527,7 +535,7 @@ static PyMethodDef datatable_methods[] = {
 static PyGetSetDef datatable_getseters[] = {
     DT_GETSETTER(nrows),
     DT_GETSETTER(ncols),
-    DT_GETSETTER(types),
+    DT_GETSETTER(ltypes),
     DT_GETSETTER(stypes),
     DT_GETSETTER(isview),
     DT_GETSETTER(rowindex),
