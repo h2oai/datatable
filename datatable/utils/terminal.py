@@ -5,6 +5,7 @@ Various functions to help display something in a terminal.
 """
 import sys
 import blessed
+import _locale
 
 __all__ = ("term", "wait_for_keypresses", "register_onresize")
 
@@ -29,7 +30,22 @@ class MyTerminal(blessed.Terminal):
         self.__dict__, tt.__dict__ = tt.__dict__, self.__dict__
 
 
+# Save current locale settings
+try:
+    _lls = []
+    for i in range(100):
+        ll = _locale.setlocale(i)
+        _lls.append(ll)
+except _locale.Error:
+    pass
+
+# Instantiate a terminal
 term = MyTerminal()
+
+# Restore previous locale settings
+for i, ll in enumerate(_lls):
+    _locale.setlocale(i, ll)
+
 
 
 # Override sys.displayhook to allow better control over what is being printed

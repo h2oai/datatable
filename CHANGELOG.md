@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   a list of strings). Likewise, `df.types` was renamed into `df.ltypes` and now it
   returns a tuple of `ltype` elements instead of strings.
 
+#### Fixed
+- `datatable` will no longer cause the C locale settings to change upon importing.
+
+
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
 #### Added
