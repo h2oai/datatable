@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `datatable` will no longer cause the C locale settings to change upon importing.
 - reading a csv file with invalid UTF-8 characters in column names will no longer
   throw an exception.
+- creating a DataTable from pandas.Series with explicit `colnames` will no longer
+  ignore those column names.
 
 
 

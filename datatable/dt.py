@@ -192,7 +192,6 @@ class DataTable(object):
                 colnames = [str(c) for c in pddf.columns]
             colarrays = [pddf[c].values for c in pddf.columns]
         elif is_type(pddf, PandasSeries_t):
-            colnames = None
             colarrays = [pddf.values]
         else:
             raise TTypeError("Unexpected type of parameter %r" % pddf)

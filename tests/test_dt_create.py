@@ -123,6 +123,15 @@ def test_create_from_pandas_with_names(pandas):
     assert d.internal.check()
 
 
+def test_create_from_pandas_series_with_names(pandas):
+    p = pandas.Series([10000, 5, 19, -12])
+    d = dt.DataTable(p, colnames=["ha!"])
+    assert d.internal.check()
+    assert d.shape == (4, 1)
+    assert d.names == ("ha!", )
+    assert d.topython() == [[10000, 5, 19, -12]]
+
+
 
 #-------------------------------------------------------------------------------
 # Create from Numpy
