@@ -35,7 +35,7 @@ TColumnsSpec = Union[
 
 @typed()
 def fread(filename: str = None,
-          text: str = None,
+          text: Union[str, bytes] = None,
           columns: TColumnsSpec = None,
           sep: str = None,
           max_nrows: int = None,
@@ -155,7 +155,7 @@ class FReader(object):
         return self._text
 
     @text.setter
-    @typed(text=U(str, None))
+    @typed(text=U(str, bytes, None))
     def text(self, text):
         self._text = text or None
 
