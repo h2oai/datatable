@@ -133,9 +133,7 @@ void DataTable::apply_na_mask(DataTable* maskdt)
 void DataTable::reify() {
   if (rowindex == nullptr) return;
   for (int64_t i = 0; i < ncols; ++i) {
-    Column *newcol = columns[i]->extract();
-    delete columns[i];
-    columns[i] = newcol;
+    columns[i]->reify();
   }
   rowindex->release();
   rowindex = nullptr;

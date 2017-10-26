@@ -335,7 +335,8 @@ RowIndex* RowIndex::from_column(Column *col)
     } break;
 
     case LT_INTEGER: {
-        Column *newcol = col->extract();
+        Column *newcol = col->shallowcopy();
+        newcol->reify();
         res = from_intcolumn(newcol, 1);
         delete newcol;
     } break;

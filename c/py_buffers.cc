@@ -427,7 +427,8 @@ static int dt_getbuffer(DataTable_PyObject* self, Py_buffer* view, int flags)
     // Construct the data buffer
     for (size_t i = 0; i < ncols; ++i) {
       // either a shallow copy, or "materialized" column
-      Column* col = dt->columns[i]->extract();
+      Column* col = dt->columns[i]->shallowcopy();
+      col->reify();
       if (col->stype() == stype) {
         assert(col->alloc_size() == colsize);
         memcpy(mbuf->at(i*colsize), col->data(), colsize);
@@ -451,8 +452,7 @@ static int dt_getbuffer(DataTable_PyObject* self, Py_buffer* view, int flags)
         delete newcol;
       }
       // Delete the `col` pointer, which was extracted from the i-th column
-      // of the DataTable. The `extract()` call have created a shallow copy
-      // (or a true copy, in case a RowIndex had to be applied).
+      // of the DataTable.
       delete col;
     }
 
