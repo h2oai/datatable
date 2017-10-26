@@ -159,16 +159,19 @@ public:
   Column* rbind(const std::vector<const Column*>& columns);
 
   /**
-   * Modifies the Column's memory buffer such that its data matches the buffer's
-   * current state with the Column's rowindex applied. The rowindex reference is
-   * subsequently released and set to null. A new `MemoryBuffer` instance will
-   * be created and assigned to this Column if the current buffer is flagged as
-   * "read only". This method does nothing if the Column's rowindex reference is
-   * already null.
-   * This operation occurs in-place.
+   * "Materialize" the Column. If the Column has no rowindex, this is a no-op.
+   * Otherwise, this method "applies" the rowindex to the column's data and
+   * subsequently replaces the column's data buffer with a new one that contains
+   * "plain" data. The rowindex object is subsequently released, and the Column
+   * becomes converted from "view column" into a "data column".
+   *
+   * This operation is in-place, and we attempt to reuse existing memory buffer
+   * whenever possible.
    */
   virtual void reify() = 0;
+
   Column* save_to_disk(const char*);
+
   RowIndex* sort() const;
 
   static size_t i4s_padding(size_t datasize);
@@ -275,7 +278,6 @@ public:
 
 protected:
   static constexpr T na_elem = GETNA<T>();
-  Column* extract_simple_slice(RowIndex*) const;
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
   void fill_na() override;
@@ -477,7 +479,6 @@ public:
   bool is_fixedwidth() const override;
 
   void reify() override;
-  Column* extract_simple_slice(RowIndex*) const;
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
 

@@ -81,34 +81,41 @@ void FwColumn<T>::reify() {
 
   size_t elemsize = sizeof(T);
   size_t nrows_cast = static_cast<size_t>(nrows);
-  size_t new_mbuf_size = elemsize * nrows_cast;
+  size_t newsize = elemsize * nrows_cast;
 
-  MemoryBuffer* new_mbuf = mbuf;
-  if (mbuf->is_readonly())
-    new_mbuf = new MemoryMemBuf(new_mbuf_size);
+  // Current `mbuf` can be reused iff it is not readonly. Thus, `new_mbuf` can
+  // be either the same as `mbuf` (with old size), or a newly allocated buffer
+  // (with new size). Correspondingly, the old buffer may or may not have to be
+  // released afterwards.
+  // Note also that `newsize` may be either smaller or bigger than the old size,
+  // this must be taken into consideration.
+  auto new_mbuf = mbuf->is_readonly()? new MemoryMemBuf(newsize) : mbuf;
 
   if (ri->type == RI_SLICE && ri->slice.step == 1) {
-    memcpy(new_mbuf->get(), elements() + ri->slice.start, new_mbuf_size);
-  } else if (ri->type == RI_SLICE && ri->slice.step > 0) {
-    int64_t step = ri->slice.step;
-    T* data_src = elements();
-    T* data_dest = static_cast<T*>(new_mbuf->get());
-    for (int64_t i = 0, j = ri->slice.start; i < nrows; ++i, j += step) {
-      data_dest[i] = data_src[j];
-    }
+    // Slice with step 1: a portion of the buffer can be simply mem-moved onto
+    // the new buffer (use memmove because the old and the new buffer can be
+    // the same).
+    assert(newsize + ri->slice.start*elemsize <= mbuf->size());
+    memmove(new_mbuf->get(), elements() + ri->slice.start, newsize);
+
   } else {
-    // Can't safely resize memory buffer in place :(
-    if (mbuf == new_mbuf) new_mbuf = new MemoryMemBuf(new_mbuf_size);
+    // In all other cases we have to manually loop over the rowindex and
+    // copy array elements onto the new positions. This can be done in-place
+    // only if we know that the indices are monotonically increasing (otherwise
+    // there is a risk of scrambling the data).
+    if (mbuf == new_mbuf && !(ri->type == RI_SLICE && ri->slice.step > 0)) {
+      new_mbuf = new MemoryMemBuf(newsize);
+    }
     T* data_src = elements();
     T* data_dest = static_cast<T*>(new_mbuf->get());
     DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
-        *data_dest = data_src[i];
-        ++data_dest;
+      *data_dest = data_src[i];
+      ++data_dest;
     )
   }
 
   if (mbuf == new_mbuf) {
-    new_mbuf->resize(new_mbuf_size);
+    new_mbuf->resize(newsize);
   } else {
     mbuf->release();
     mbuf = new_mbuf;
@@ -117,16 +124,6 @@ void FwColumn<T>::reify() {
   ri = nullptr;
 }
 
-
-template <typename T>
-Column* FwColumn<T>::extract_simple_slice(RowIndex* rowindex) const
-{
-  int64_t res_nrows = rowindex->length;
-  Column *res = Column::new_data_column(stype(), res_nrows);
-  size_t offset = static_cast<size_t>(rowindex->slice.start) * sizeof(T);
-  memcpy(res->data(), this->mbuf->at(offset), res->alloc_size());
-  return res;
-}
 
 
 // The purpose of this template is to augment the behavior of the template

@@ -248,31 +248,6 @@ void StringColumn<T>::reify() {
 }
 
 
-template <typename T>
-Column* StringColumn<T>::extract_simple_slice(RowIndex*) const {
-/*
-  size_t offoff = (size_t)((VarcharMeta*) meta)->offoff;
-  int32_t *offs = (int32_t*) mbuf->at(offoff) + start;
-  int32_t off0 = start ? abs(*(offs - 1)) - 1 : 0;
-  int32_t off1 = start + res_nrows ?
-                 abs(*(offs + res_nrows - 1)) - 1 : 0;
-  size_t datasize = (size_t)(off1 - off0);
-  size_t padding = i4s_padding(datasize);
-  size_t offssize = res_nrows * elemsize;
-  offoff = datasize + padding;
-  res->mbuf->resize(datasize + padding + offssize);
-  ((VarcharMeta*) res->meta)->offoff = (int64_t)offoff;
-  memcpy(res->data(), mbuf->at(off0), datasize);
-  memset(res->mbuf->at(datasize), 0xFF, padding);
-  int32_t *resoffs = (int32_t*) res->mbuf->at(offoff);
-  for (size_t i = 0; i < res_nrows; ++i) {
-      resoffs[i] = offs[i] > 0? offs[i] - off0
-                              : offs[i] + off0;
-  }
-*/
-  return NULL;
-}
-
 
 template <typename T>
 void StringColumn<T>::resize_and_fill(int64_t new_nrows)
