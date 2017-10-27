@@ -21,7 +21,7 @@ def dt0():
         [None, None, None, None],
         [0, 0, 0, 0],
         ["1", "2", "hello", "world"],
-    ], colnames=list("ABCDEFG"))
+    ], names=list("ABCDEFG"))
 
 
 @pytest.fixture()
@@ -141,7 +141,7 @@ def test_dt_delitem():
     """
     def smalldt():
         return dt.DataTable([[i] for i in range(16)],
-                            colnames="ABCDEFGHIJKLMNOP")
+                            names="ABCDEFGHIJKLMNOP")
 
     d0 = smalldt()
     del d0["A"]
@@ -235,7 +235,7 @@ def test_rename():
 
 @pytest.mark.run(order=8.1)
 def test_rename_bad():
-    d0 = dt.DataTable([[1], [2], ["hello"]], colnames=("a", "b", "c"))
+    d0 = dt.DataTable([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError):
         d0.rename({"a", "b"})
     with pytest.raises(ValueError) as e:
@@ -293,7 +293,7 @@ def test_topandas():
 def test_topandas_view():
     d0 = dt.DataTable([[1, 5, 2, 0, 199, -12],
                        ["alpha", "beta", None, "delta", "epsilon", "zeta"],
-                       [.3, 1e2, -.5, 1.9, 2.2, 7.9]], colnames=["A", "b", "c"])
+                       [.3, 1e2, -.5, 1.9, 2.2, 7.9]], names=["A", "b", "c"])
     d1 = d0[::-2, :]
     p1 = d1.topandas()
     assert p1.shape == d1.shape
@@ -306,7 +306,7 @@ def test_topython():
     src = [[-1, 0, 1, 3],
            ["cat", "dog", "mouse", "elephant"],
            [False, True, None, True]]
-    d0 = dt.DataTable(src, colnames=["A", "B", "C"])
+    d0 = dt.DataTable(src, names=["A", "B", "C"])
     assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
     a0 = d0.topython()
     assert len(a0) == 3

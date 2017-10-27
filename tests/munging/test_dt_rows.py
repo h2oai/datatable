@@ -17,7 +17,7 @@ def dt0():
         [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
         [7, -11,   9, 10000, None,  0,    0,   -1,   1, None],  # int
         [5,   1, 1.3,   0.1,  1e5,  0, -2.6,  -14, nan,    2],  # real
-    ], colnames=["colA", "colB", "colC"])
+    ], names=["colA", "colB", "colC"])
 
 
 def assert_valueerror(datatable, rows, error_message):

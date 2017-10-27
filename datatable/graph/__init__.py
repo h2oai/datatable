@@ -43,7 +43,7 @@ def make_datatable(dt, rows, select, sort):
         rowindex = rows_node.get_final_rowindex()
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(rowindex, columns)
-        return datatable.DataTable(res_dt, colnames=cols_node.column_names)
+        return datatable.DataTable(res_dt, names=cols_node.column_names)
 
     # Select computed columns + all rows from datatable which is not a view --
     # in this case the rowindex is None, and the selected columns can be copied
@@ -52,7 +52,7 @@ def make_datatable(dt, rows, select, sort):
     if isinstance(rows_node, AllRFNode) and not dt.internal.isview:
         columns = cols_node.get_result()
         res_dt = _datatable.datatable_assemble(None, columns)
-        return datatable.DataTable(res_dt, colnames=cols_node.column_names)
+        return datatable.DataTable(res_dt, names=cols_node.column_names)
 
     raise RuntimeError(  # pragma: no cover
         "Unable to handle input (rows=%r, select=%r)"

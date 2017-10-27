@@ -27,7 +27,7 @@ def pyhex(v):
 
 def test_save_simple():
     d = dt.DataTable([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
-                     colnames=["A", "B", "C"])
+                     names=["A", "B", "C"])
     out = d.to_csv()
     assert out == "A,B,C\n1,1,foo\n4,0,\n5,,bar\n"
 
@@ -276,7 +276,7 @@ def test_save_strings():
     src2 = ["", "empty", "None", None, "   with whitespace ", "with,commas",
             "\twith tabs\t", '"oh-no', "single'quote", "'squoted'",
             "\0bwahaha!", "?", "here be dragons"]
-    d = dt.DataTable([src1, src2], colnames=["A", "B"])
+    d = dt.DataTable([src1, src2], names=["A", "B"])
     assert d.stypes == (stype.str32, stype.str32)
     assert d.internal.check()
     assert d.to_csv().split("\n") == [

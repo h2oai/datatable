@@ -54,7 +54,7 @@ def test_int32_small_stable():
     d0 = datatable.DataTable([
         [5, 3, 5, None, 1000000, None, 3, None],
         [1, 5, 10, 20, 50, 100, 200, 500]
-    ], colnames=["A", "B"])
+    ], names=["A", "B"])
     d1 = d0.sort("A")
     assert d1.internal.check()
     assert d1.topython() == [
@@ -169,7 +169,7 @@ def test_int8_small_stable():
     d0 = datatable.DataTable([
         [5, 3, 5, None, 100, None, 3, None],
         [1, 5, 10, 20, 50, 100, 200, 500]
-    ], colnames=["A", "B"])
+    ], names=["A", "B"])
     d1 = d0(sort="A")
     assert d1.internal.check()
     assert d1.topython() == [
@@ -240,7 +240,7 @@ def test_bool8_large(n):
 @pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 10000])
 def test_bool8_large_stable(n):
     d0 = datatable.DataTable([[True, False, None] * n, list(range(3 * n))],
-                             colnames=["A", "B"])
+                             names=["A", "B"])
     assert d0.stypes[0] == stype.bool8
     d1 = d0(sort="A", select="B")
     assert d1.internal.isview
@@ -283,7 +283,7 @@ def test_int16_large():
 @pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])
 def test_int16_large_stable(n):
     d0 = datatable.DataTable([[-5, None, 5, -999, 1000] * n,
-                              list(range(n * 5))], colnames=["A", "B"])
+                              list(range(n * 5))], names=["A", "B"])
     assert d0.stypes[0] == stype.int16
     d1 = d0(sort="A", select="B")
     assert d1.internal.check()

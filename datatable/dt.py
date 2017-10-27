@@ -3,6 +3,7 @@
 import collections
 import time
 import sys
+import warnings
 from types import GeneratorType
 from typing import Tuple, Dict, List, Union
 
@@ -41,7 +42,13 @@ class DataTable(object):
     __slots__ = ("_id", "_ncols", "_nrows", "_ltypes", "_stypes", "_names",
                  "_inames", "_dt")
 
-    def __init__(self, src=None, colnames=None):
+    def __init__(self, src=None, names=None, **kwargs):
+        if "colnames" in kwargs and names is None:
+            names = kwargs.pop("colnames")
+            warnings.warn("Parameter `colnames` in DataTable constructor is "
+                          "deprecated. Use `names` instead.")
+        if kwargs:
+            warnings.warn("Unknown options %r to DataTable()" % kwargs)
         DataTable._id_counter_ += 1
         self._id = DataTable._id_counter_  # type: int
         self._ncols = 0      # type: int
@@ -52,7 +59,7 @@ class DataTable(object):
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
         self._dt = None      # type: c.DataTable
-        self._fill_from_source(src, colnames=colnames)
+        self._fill_from_source(src, names=names)
 
 
 
@@ -150,30 +157,30 @@ class DataTable(object):
     # Initialization helpers
     #---------------------------------------------------------------------------
 
-    def _fill_from_source(self, src, colnames):
+    def _fill_from_source(self, src, names):
         if isinstance(src, list):
             if src and isinstance(src[0], list):
-                self._fill_from_list(src, names=colnames)
+                self._fill_from_list(src, names=names)
             else:
-                self._fill_from_list([src], names=colnames)
+                self._fill_from_list([src], names=names)
         elif isinstance(src, (tuple, set)):
-            self._fill_from_list([list(src)], names=colnames)
+            self._fill_from_list([list(src)], names=names)
         elif isinstance(src, dict):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
         elif isinstance(src, c.DataTable):
-            self._fill_from_dt(src, names=colnames)
+            self._fill_from_dt(src, names=names)
         elif is_type(src, PandasDataFrame_t):
-            self._fill_from_pandas(src, colnames)
+            self._fill_from_pandas(src, names)
         elif is_type(src, PandasSeries_t):
-            self._fill_from_pandas(src, colnames)
+            self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
-            self._fill_from_numpy(src, names=colnames)
+            self._fill_from_numpy(src, names=names)
         elif src is None:
             self._fill_from_list([])
         elif is_type(src, DataTable_t):
-            if colnames is None:
-                colnames = src.names
-            self._fill_from_dt(src.internal, names=colnames)
+            if names is None:
+                names = src.names
+            self._fill_from_dt(src.internal, names=names)
         else:
             raise TTypeError("Cannot create DataTable from %r" % src)
 
@@ -198,10 +205,10 @@ class DataTable(object):
         self._inames = {n: i for i, n in enumerate(names)}
 
 
-    def _fill_from_pandas(self, pddf, colnames=None):
+    def _fill_from_pandas(self, pddf, names=None):
         if is_type(pddf, PandasDataFrame_t):
-            if colnames is None:
-                colnames = [str(c) for c in pddf.columns]
+            if names is None:
+                names = [str(c) for c in pddf.columns]
             colarrays = [pddf[c].values for c in pddf.columns]
         elif is_type(pddf, PandasSeries_t):
             colarrays = [pddf.values]
@@ -213,7 +220,7 @@ class DataTable(object):
                 colarrays[i] = colarrays[i].byteswap().newbyteorder()
                 assert colarrays[i].dtype.isnative
         dt = c.datatable_from_buffers(colarrays)
-        self._fill_from_dt(dt, names=colnames)
+        self._fill_from_dt(dt, names=names)
 
 
     def _fill_from_numpy(self, arr, names):
@@ -528,7 +535,7 @@ class DataTable(object):
         ri = self._dt.sort(idx)
         cs = c.columns_from_slice(self._dt, 0, self._ncols, 1)
         dt = c.datatable_assemble(ri, cs)
-        return DataTable(dt, colnames=self.names)
+        return DataTable(dt, names=self.names)
 
 
     def min(self):
@@ -541,7 +548,7 @@ class DataTable(object):
         values for each column (or NA if not applicable).
         """
         return DataTable(self._dt.get_min(),
-                         colnames=self.names)
+                         names=self.names)
 
     def max(self):
         """
@@ -553,7 +560,7 @@ class DataTable(object):
         values for each column (or NA if not applicable).
         """
         return DataTable(self._dt.get_max(),
-                         colnames=self.names)
+                         names=self.names)
 
     def sum(self):
         """
@@ -565,7 +572,7 @@ class DataTable(object):
         for each column (or NA if not applicable).
         """
         return DataTable(self._dt.get_sum(),
-                         colnames=self.names)
+                         names=self.names)
 
     def mean(self):
         """
@@ -577,7 +584,7 @@ class DataTable(object):
         values for each column (or NA if not applicable).
         """
         return DataTable(self._dt.get_mean(),
-                         colnames=self.names)
+                         names=self.names)
 
     def sd(self):
         """
@@ -589,7 +596,7 @@ class DataTable(object):
         deviation values for each column (or NA if not applicable).
         """
         return DataTable(self._dt.get_sd(),
-                         colnames=self.names)
+                         names=self.names)
 
     def countna(self):
         """
@@ -601,7 +608,7 @@ class DataTable(object):
         values in each column.
         """
         return DataTable(self._dt.get_countna(),
-                         colnames=self.names)
+                         names=self.names)
 
 
 

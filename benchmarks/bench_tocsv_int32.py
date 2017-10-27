@@ -25,7 +25,7 @@ def src(numpy, request):
         numpy.random.randint(2**31, size=n, dtype="int32"),
         numpy.random.randint(-2**31, 2**31, size=n, dtype="int32"),
     ]
-    dts = [datatable.DataTable(x, colnames=["C%d" % i])
+    dts = [datatable.DataTable(x, names=["C%d" % i])
            for i, x in enumerate(cols)]
     return datatable.DataTable().cbind(*dts)
 

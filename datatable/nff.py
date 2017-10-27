@@ -82,7 +82,7 @@ def open(path):
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
         _dt = _datatable.datatable_load(f1.internal, nrows, path)
-        dt = DataTable(_dt, colnames=colnames)
+        dt = DataTable(_dt, names=colnames)
         assert dt.nrows == nrows, "Wrong number of rows read: %d" % dt.nrows
         return dt
     finally:
