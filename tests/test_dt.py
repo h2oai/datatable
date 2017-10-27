@@ -225,13 +225,42 @@ def test_column_hexview(dt0, patched_terminal, capsys):
 def test_rename():
     d0 = dt.DataTable([[1], [2], ["hello"]])
     assert d0.names == ("C1", "C2", "C3")
-    d0.rename({0: "x", "C2": "y", -1: "z"})
+    d0.rename({0: "x", -1: "z"})
+    d0.rename({"C2": "y"})
     assert d0.names == ("x", "y", "z")
+    assert d0.colindex("x") == 0
+    assert d0.colindex("y") == 1
+    assert d0.colindex("z") == 2
+
+
+@pytest.mark.run(order=8.1)
+def test_rename_bad():
+    d0 = dt.DataTable([[1], [2], ["hello"]], colnames=("a", "b", "c"))
     with pytest.raises(TypeError):
-        d0.rename(["a", "b"])
+        d0.rename({"a", "b"})
     with pytest.raises(ValueError) as e:
         d0.rename({"xxx": "yyy"})
     assert "Column `xxx` does not exist" in str(e.value)
+    with pytest.raises(ValueError) as e:
+        d0.names = ['1', '2', '3', '5']
+    assert ("Cannot rename columns to ['1', '2', '3', '5']: "
+            "expected 3 names" in str(e.value))
+    with pytest.raises(ValueError) as e:
+        d0.names = ('k', )
+    assert ("Cannot rename columns to ('k',): "
+            "expected 3 names" in str(e.value))
+
+
+@pytest.mark.run(order=8.2)
+def test_rename_setter():
+    d0 = dt.DataTable([[7], [2], [5]])
+    d0.names = ("A", "B", "E")
+    d0.names = ["a", "c", "e"]
+    assert d0.internal.check()
+    assert d0.names == ("a", "c", "e")
+    assert d0.colindex("a") == 0
+    assert d0.colindex("c") == 1
+    assert d0.colindex("e") == 2
 
 
 @pytest.mark.run(order=9)

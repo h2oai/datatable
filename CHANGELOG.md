@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Enums `stype` and `ltype` that encapsulate the type-system of the `datatable`
   module.
 - It is now possible to fread from a `bytes` object.
+- Allow columns to be renamed by setting the `names` property on the datatable.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
