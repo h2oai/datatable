@@ -18,7 +18,7 @@
  * nrows
  *     Number of rows in the stored datatable.
  */
-DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
+DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
 {
     int64_t ncols = colspec->nrows;
     Column **columns = NULL;
@@ -46,8 +46,18 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
     int32_t *offs = (int32_t*) cols->data_at(static_cast<size_t>(oos));
     int32_t *offm = (int32_t*) colm->data_at(static_cast<size_t>(oom));
 
-    static char filename[101];
+    static char filename[1001];
     static char metastr[101];
+    size_t len = strlen(path);
+    if (len > 900) throw Error("The path is too long: %s", path);
+    if (len > 0) {
+        strcpy(filename, path);
+        if (filename[len - 1] != '/') {
+            filename[len] = '/';
+            len++;
+        }
+    }
+    char* ffilename = filename + len;
     for (int64_t i = 0; i < ncols; ++i)
     {
         // Extract filename
@@ -55,8 +65,8 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows)
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
         if (flen > 100) throw Error("Filename is too long: %d", flen);
-        memcpy(filename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
-        filename[flen] = '\0';
+        memcpy(ffilename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
+        ffilename[flen] = '\0';
 
         // Extract stype
         int32_t ssta = abs(offs[i - 1]) - 1;

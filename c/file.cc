@@ -68,6 +68,17 @@ size_t File::size() const {
   return static_cast<size_t>(statbuf.st_size);
 }
 
+// Same as `size()`, but static (i.e. no need to open the file).
+size_t File::asize(const std::string& filename) {
+  struct stat statbuf;
+  int ret = stat(filename.c_str(), &statbuf);
+  if (ret == -1) {
+    throw Error("Unable to obtain size of %s: [errno %d] %s",
+                filename.c_str(), errno, strerror(errno));
+  }
+  return static_cast<size_t>(statbuf.st_size);
+}
+
 const char* File::cname() const {
   return name.c_str();
 }

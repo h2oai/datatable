@@ -38,6 +38,7 @@ public:
 
   int descriptor() const;
   size_t size() const;
+  static size_t asize(const std::string& filename);
   void resize(size_t newsize);
   void assert_is_not_dir() const;
   const char* cname() const;

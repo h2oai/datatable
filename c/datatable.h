@@ -82,7 +82,7 @@ public:
 
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
-    static DataTable* load(DataTable*, int64_t);
+    static DataTable* load(DataTable* schema, int64_t nrows, const char* path);
 };
 
 
