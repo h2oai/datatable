@@ -53,12 +53,6 @@ static float NA_FLOAT32;
 // Private globals used during the fread-ing session. They will be reset in
 // `freadCleanup()` both on successful exit, and on error.
 //------------------------------------------------------------------------------
-// Pointer to the memory region where the file being read is mapped
-static void *mmp = NULL;
-// Extra memory-mapped region, used only on Unix platforms and only when file's
-// size is a multiple of the page size
-static void *xmmp = NULL;
-
 static size_t fileSize;
 static char *lineCopy = NULL;
 static int8_t *type = NULL, *size = NULL;
@@ -98,25 +92,6 @@ void freadCleanup(void)
   free(lineCopy); lineCopy = NULL;
   free(colNames); colNames = NULL;
   free(oldType); oldType = NULL;
-  if (mmp != NULL) {
-    // Important to unmap as OS keeps internal reference open on file.
-    // Note that if there was an error unmapping the view of file, then we should not attempt
-    // to call STOP() for 2 reasons: 1) freadCleanup() may have itself been called from STOP(),
-    // and we would not want to overwrite the original error message; and 2) STOP() function
-    // may call freadCleanup(), thus resulting in an infinite loop.
-    #ifdef WIN32
-      int ret = UnmapViewOfFile(mmp);
-      if (!ret) DTPRINT("System error %d unmapping view of file\n", GetLastError());
-    #else
-      int ret = munmap(mmp, fileSize);
-      if (ret) DTPRINT("System errno %d unmapping file\n", errno);
-      if (xmmp) {
-        munmap(xmmp, 1);
-        xmmp = NULL;
-      }
-    #endif
-    mmp = NULL;
-  }
   fileSize = 0;
   sep = whiteChar = eol = eol2 = quote = dec = '\0';
   eolLen = 0;
@@ -968,7 +943,7 @@ int freadMain(freadMainArgs _args)
   bool warningsAreErrors = args.warningsAreErrors;
   if (verbose) DTPRINT("[1] Check arguments\n");
 
-  if (mmp || colNames || oldType || lineCopy || type || size) {
+  if (colNames || oldType || lineCopy || type || size) {
     DTWARN("Internal error: Previous fread() session was not cleaned up properly");
     freadCleanup();
   }
@@ -1798,14 +1773,6 @@ int freadMain(freadMainArgs _args)
   }
   double tAlloc = wallclock();
 
-  // Read ahead and drop behind each point as they move through (assuming it's on a per thread basis).
-  // Considered it but when processing string columns the buffers point to offsets in the mmp'd pages
-  // which are revisited when writing the finished buffer to DT. So, it isn't sequential.
-  // if (fnam!=NULL) {
-  //   #ifdef MADV_SEQUENTIAL  // not on Windows. PrefetchVirtualMemory from Windows 8+ ?
-  //   int ret = madvise((void *)mmp, (size_t)fileSize, MADV_SEQUENTIAL);
-  //   #endif
-  // }
 
 
   //*********************************************************************************************
