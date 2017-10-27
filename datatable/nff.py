@@ -53,10 +53,11 @@ def open(path):
         path = os.path.expanduser(path)
         if not os.path.isdir(path):
             raise ValueError("%s is not a valid directory" % path)
-        os.chdir(path)
+        # os.chdir(path)
 
         nrows = 0
-        with _builtin_open("_meta.nff") as inp:
+        metafile = os.path.join(path, "_meta.nff")
+        with _builtin_open(metafile) as inp:
             info = []
             for line in inp:
                 if line.startswith("#"):
@@ -76,11 +77,11 @@ def open(path):
             else:
                 raise ValueError("Unknown NFF format: %s" % info[0])
 
-        f0 = fread("_meta.nff", sep=",",
+        f0 = fread(metafile, sep=",",
                    columns=lambda i, name, type: (name, str))
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
-        _dt = _datatable.datatable_load(f1.internal, nrows)
+        _dt = _datatable.datatable_load(f1.internal, nrows, path)
         dt = DataTable(_dt, colnames=colnames)
         assert dt.nrows == nrows, "Wrong number of rows read: %d" % dt.nrows
         return dt

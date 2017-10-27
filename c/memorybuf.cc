@@ -39,15 +39,15 @@ MemoryBuffer::MemoryBuffer() : refcount(1), readonly(false) {}
 MemoryBuffer::~MemoryBuffer() {}
 
 
-void* MemoryBuffer::at(size_t n) const {
+void* MemoryBuffer::at(size_t n) {
   return static_cast<void*>(static_cast<char*>(get()) + n);
 }
 
-void* MemoryBuffer::at(int64_t n) const {
+void* MemoryBuffer::at(int64_t n) {
   return static_cast<void*>(static_cast<char*>(get()) + n);
 }
 
-void* MemoryBuffer::at(int32_t n) const {
+void* MemoryBuffer::at(int32_t n) {
   return static_cast<void*>(static_cast<char*>(get()) + n);
 }
 
@@ -82,7 +82,7 @@ MemoryBuffer* MemoryBuffer::shallowcopy() {
   return this;
 }
 
-MemoryMemBuf* MemoryBuffer::deepcopy() const {
+MemoryMemBuf* MemoryBuffer::deepcopy() {
   size_t allocsize = size();
   MemoryMemBuf* res = new MemoryMemBuf(allocsize);
   if (allocsize) {
@@ -140,11 +140,11 @@ MemoryMemBuf::~MemoryMemBuf() {
   free(buf);
 }
 
-void* MemoryMemBuf::get() const {
+void* MemoryMemBuf::get() {
   return buf;
 }
 
-size_t MemoryMemBuf::size() const {
+size_t MemoryMemBuf::size() {
   return allocsize;
 }
 
@@ -198,10 +198,10 @@ bool MemoryMemBuf::verify_integrity(IntegrityCheckContext& icc,
           << end;
     }
   }
-  // else if (buf && !allocsize) {
-  //   icc << name << " has the internal buffer allocated (" << buf
-  //       << "), while allocsize is 0" << end;
-  // }
+  else if (buf && !allocsize) {
+    icc << name << " has the internal buffer allocated (" << buf
+        << "), while allocsize is 0" << end;
+  }
   else if (!buf && allocsize) {
     icc << name << " has the internal memory buffer not allocated, whereas "
         << "its allocsize is " << allocsize << end;
@@ -242,11 +242,11 @@ ExternalMemBuf::~ExternalMemBuf() {
   }
 }
 
-void* ExternalMemBuf::get() const {
+void* ExternalMemBuf::get() {
   return buf;
 }
 
-size_t ExternalMemBuf::size() const {
+size_t ExternalMemBuf::size() {
   return allocsize;
 }
 
@@ -289,17 +289,23 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n)
 
 
 MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
-    : buf(nullptr), allocsize(0), filename(path)
+    : mmp(nullptr), mmpsize(0), filename(path)
 {
   readonly = !create;
+  mmpsize = n;
+}
 
+void MemmapMemBuf::memmap()
+{
+  bool create = !readonly;
+  size_t n = mmpsize;
   File file(filename, create? File::CREATE : File::READ);
   file.assert_is_not_dir();
   if (create) {
     file.resize(n);
   }
   size_t filesize = file.size();
-  allocsize = filesize + (create? 0 : n);
+  mmpsize = filesize + (create? 0 : n);
 
   // Memory-map the file.
   // In "open" mode if `n` is non-zero, then we will be opening a buffer
@@ -321,56 +327,64 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
   // |   mapping.  When swap space is not reserved one might get SIGSEGV
   // |   upon a write if no physical memory is available.
   //
-  buf = mmap(/* address = */ NULL,
-             /* length = */ allocsize,
+  mmp = mmap(/* address = */ NULL,
+             /* length = */ mmpsize,
              /* protection = */ PROT_WRITE|PROT_READ,
              /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,
              /* fd = */ file.descriptor(),
              /* offset = */ 0);
-  if (buf == MAP_FAILED) {
+  if (mmp == MAP_FAILED) {
     // Exception is thrown from the constructor -> the base class' destructor
-    // will be called, which checks that `buf` is null.
-    buf = nullptr;
+    // will be called, which checks that `mmp` is null.
+    mmp = nullptr;
     throw Error("Memory-map failed for file %s of size %zu+%zu: [%d] %s",
-                file.cname(), filesize, allocsize - filesize,
+                file.cname(), filesize, mmpsize - filesize,
                 errno, strerror(errno));
   }
 }
 
 
 MemmapMemBuf::~MemmapMemBuf() {
-  int ret = munmap(buf, allocsize);
-  if (ret) {
-    // Cannot throw exceptions from a destructor, so just print a message
-    printf("Error unmapping the view of file: [errno %d] %s. Resources may "
-           "have not been freed properly.", errno, strerror(errno));
+  if (mmp) {
+    int ret = munmap(mmp, mmpsize);
+    if (ret) {
+      // Cannot throw exceptions from a destructor, so just print a message
+      printf("Error unmapping the view of file: [errno %d] %s. Resources may "
+             "have not been freed properly.", errno, strerror(errno));
+    }
   }
-  buf = nullptr;  // Checked in the upstream destructor
   if (!is_readonly()) {
     File::remove(filename);
   }
 }
 
-void* MemmapMemBuf::get() const {
-  return buf;
+void* MemmapMemBuf::get() {
+  if (!mmp) memmap();
+  return mmp;
 }
 
-size_t MemmapMemBuf::size() const {
-  return allocsize;
+size_t MemmapMemBuf::size() {
+  if (mmp) {
+    return mmpsize;
+  } else {
+    return File::asize(filename);
+  }
 }
 
 
 void MemmapMemBuf::resize(size_t n) {
   if (is_readonly()) throw Error("Cannot resize a readonly buffer");
-  munmap(buf, allocsize);
-  buf = nullptr;
+  if (mmp) {
+    munmap(mmp, mmpsize);
+    mmp = nullptr;
+  }
 
   File file(filename, File::READWRITE);
   file.resize(n);
-  buf = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, file.descriptor(), 0);
-  allocsize = n;
-  if (buf == MAP_FAILED) {
-    buf = nullptr;
+  mmp = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, file.descriptor(), 0);
+  mmpsize = n;
+  if (mmp == MAP_FAILED) {
+    mmp = nullptr;
     throw Error("Memory map failed for file %s when resizing to %zu: "
                 "[errno %d] %s", file.cname(), n, errno, strerror(errno));
   }
@@ -378,7 +392,7 @@ void MemmapMemBuf::resize(size_t n) {
 
 
 size_t MemmapMemBuf::memory_footprint() const {
-  return allocsize + filename.size() + sizeof(MemmapMemBuf);
+  return (mmp? mmpsize : 0) + filename.size() + sizeof(MemmapMemBuf);
 }
 
 
@@ -389,14 +403,8 @@ PyObject* MemmapMemBuf::pyrepr() const {
 
 
 bool MemmapMemBuf::verify_integrity(IntegrityCheckContext& icc,
-                                    const std::string& name) const
-{
-  int nerrs = icc.n_errors();
-  MemoryBuffer::verify_integrity(icc, name);
-  if (!buf) {
-    icc << "Memory-map pointer in " << name << " is null" << icc.end();
-  }
-  return !icc.has_errors(nerrs);
+                                    const std::string& name) const {
+  return MemoryBuffer::verify_integrity(icc, name);
 }
 
 
@@ -406,11 +414,13 @@ bool MemmapMemBuf::verify_integrity(IntegrityCheckContext& icc,
 //==============================================================================
 
 OvermapMemBuf::OvermapMemBuf(const std::string& path, size_t xn)
-    : MemmapMemBuf(path, xn, false)
+    : MemmapMemBuf(path, xn, false), xbuf(nullptr), xbuf_size(xn) {}
+
+
+void OvermapMemBuf::memmap()
 {
-  xbuf = nullptr;
-  xbuf_size = 0;
-  if (xn == 0) return;
+  MemmapMemBuf::memmap();
+  if (xbuf_size == 0) return;
 
   // The parent's constructor has opened a memory-mapped region of size
   // `filesize + xn`. This, however, is not always enough:
@@ -446,6 +456,7 @@ OvermapMemBuf::OvermapMemBuf(const std::string& path, size_t xn)
   // |   any existing mapping(s), then the overlapped part of the existing
   // |   mapping(s) will be discarded.
   //
+  size_t xn = xbuf_size;
   size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
   size_t filesize = size() - xn;
   // How much to add to filesize to align it to a page boundary

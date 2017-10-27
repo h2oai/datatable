@@ -62,10 +62,10 @@ public:
    * The multiple `at()` methods all do the same, they exist only to spare the
    * user from having to cast their integer offset into a proper integer type.
    */
-  virtual void* get() const = 0;
-  void* at(size_t offset) const;
-  void* at(int64_t offset) const;
-  void* at(int32_t offset) const;
+  virtual void* get() = 0;
+  void* at(size_t offset);
+  void* at(int64_t offset);
+  void* at(int32_t offset);
 
   /**
    * Treats the memory buffer as an array `T[]` and retrieves / sets its `i`-th
@@ -77,14 +77,14 @@ public:
    * responsibility of the caller to ensure that `i * sizeof(T) < size()`.
    * Failure to do so will lead to memory corruption / seg.fault.
    */
-  template <typename T> T get_elem(int64_t i) const;
+  template <typename T> T get_elem(int64_t i);
   template <typename T> void set_elem(int64_t i, T value);
 
   /**
    * Returns the allocation size of the underlying memory buffer. This should be
    * zero if memory is unallocated.
    */
-  virtual size_t size() const = 0;
+  virtual size_t size() = 0;
 
   /**
    * Returns the best estimate of this object's total size in memory. This is
@@ -161,7 +161,7 @@ public:
    * MemoryBuffer. Note that a "deep" copy is always an instance of MemoryMemBuf
    * class, regardless of the class of the current object.
    */
-  MemoryMemBuf* deepcopy() const;
+  MemoryMemBuf* deepcopy();
 
   /**
    * This method should be called where you would normally say `delete membuf;`.
@@ -220,8 +220,8 @@ public:
    */
   MemoryMemBuf(void* ptr, size_t n);
 
-  void* get() const override;
-  size_t size() const override;
+  void* get() override;
+  size_t size() override;
   size_t memory_footprint() const override;
   PyObject* pyrepr() const override;
   virtual void resize(size_t n) override;
@@ -275,8 +275,8 @@ public:
    */
   ExternalMemBuf(const char* cstr);
 
-  void* get() const override;
-  size_t size() const override;
+  void* get() override;
+  size_t size() override;
   size_t memory_footprint() const override;
   PyObject* pyrepr() const override;
   bool verify_integrity(IntegrityCheckContext&,
@@ -301,8 +301,8 @@ private:
  */
 class MemmapMemBuf : public MemoryBuffer
 {
-  void* buf;
-  size_t allocsize;
+  void* mmp;
+  size_t mmpsize;
   const std::string filename;
 
 public:
@@ -313,8 +313,8 @@ public:
   MemmapMemBuf(const std::string& file);
   MemmapMemBuf(const std::string& file, size_t n);
 
-  void* get() const override;
-  size_t size() const override;
+  void* get() override;
+  size_t size() override;
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
@@ -333,6 +333,7 @@ protected:
    */
   MemmapMemBuf(const std::string& path, size_t n, bool create);
   virtual ~MemmapMemBuf();
+  virtual void memmap();
 };
 
 
@@ -360,6 +361,7 @@ public:
 
 protected:
   virtual ~OvermapMemBuf();
+  void memmap() override;
 };
 
 
@@ -367,7 +369,7 @@ protected:
 //==============================================================================
 // Template implementations
 
-template <typename T> T MemoryBuffer::get_elem(int64_t i) const {
+template <typename T> T MemoryBuffer::get_elem(int64_t i) {
   return (static_cast<T*>(get()))[i];
 }
 

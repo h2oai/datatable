@@ -132,10 +132,10 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
   Column* col = new_column(stype);
   col->nrows = nrows;
   col->mbuf = new MemmapMemBuf(filename);
-  if (col->alloc_size() < allocsize0(stype, nrows)) {
-    throw Error("File %s has size %zu, which is not sufficient for a column"
-                " with %zd rows", filename, col->alloc_size(), nrows);
-  }
+  // if (col->alloc_size() < allocsize0(stype, nrows)) {
+  //   throw Error("File %s has size %zu, which is not sufficient for a column"
+  //               " with %zd rows", filename, col->alloc_size(), nrows);
+  // }
   // Deserialize the meta information, if needed
   if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
     if (strncmp(ms, "offoff=", 7) != 0)

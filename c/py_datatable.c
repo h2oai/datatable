@@ -230,15 +230,16 @@ PyObject* pydatatable_assemble(UU, PyObject *args)
 
 
 
-PyObject* pydatatable_load(UU, PyObject *args)
+PyObject* pydatatable_load(PyObject*, PyObject* args)
 {
   CATCH_EXCEPTIONS(
     DataTable *colspec;
     int64_t nrows;
-    if (!PyArg_ParseTuple(args, "O&n:datatable_load",
-                          &dt_unwrap, &colspec, &nrows))
+    const char* path;
+    if (!PyArg_ParseTuple(args, "O&ns:datatable_load",
+                          &dt_unwrap, &colspec, &nrows, &path))
         return NULL;
-    return py(DataTable::load(colspec, nrows));
+    return py(DataTable::load(colspec, nrows, path));
   );
 }
 
