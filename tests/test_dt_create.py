@@ -20,7 +20,7 @@ def test_create_from_list():
 
 
 def test_create_from_list_of_lists():
-    d1 = dt.DataTable([[1, 2], [True, False], [.3, -0]], colnames="ABC")
+    d1 = dt.DataTable([[1, 2], [True, False], [.3, -0]], names="ABC")
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
     assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
@@ -117,7 +117,7 @@ def test_create_from_pandas_series(pandas):
 
 def test_create_from_pandas_with_names(pandas):
     p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
-    d = dt.DataTable(p, colnames=["miniature", "miniscule"])
+    d = dt.DataTable(p, names=["miniature", "miniscule"])
     assert d.shape == (3, 2)
     assert same_iterables(d.names, ("miniature", "miniscule"))
     assert d.internal.check()
@@ -125,7 +125,7 @@ def test_create_from_pandas_with_names(pandas):
 
 def test_create_from_pandas_series_with_names(pandas):
     p = pandas.Series([10000, 5, 19, -12])
-    d = dt.DataTable(p, colnames=["ha!"])
+    d = dt.DataTable(p, names=["ha!"])
     assert d.internal.check()
     assert d.shape == (4, 1)
     assert d.names == ("ha!", )
@@ -230,7 +230,7 @@ def test_create_from_masked_numpy_array4(numpy):
 
 def test_create_from_numpy_array_with_names(numpy):
     a = numpy.array([1, 2, 3])
-    d = dt.DataTable(a, colnames=["gargantuan"])
+    d = dt.DataTable(a, names=["gargantuan"])
     assert d.shape == (3, 1)
     assert d.names == ("gargantuan", )
     assert d.internal.check()

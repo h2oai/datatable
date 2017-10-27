@@ -299,7 +299,7 @@ class FReader(object):
 
     def read(self):
         _dt = c.fread(self)
-        dt = DataTable(_dt, colnames=self._colnames)
+        dt = DataTable(_dt, names=self._colnames)
         if self._tempfile:
             if self._verbose:
                 self.logger.debug("Removing temporary file %s\n"

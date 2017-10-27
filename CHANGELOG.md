@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `df.stypes` now returns a tuple of `stype` elements (previously it was returning
   a list of strings). Likewise, `df.types` was renamed into `df.ltypes` and now it
   returns a tuple of `ltype` elements instead of strings.
+- Parameter `colnames=` in DataTable constructor was renamed to `names=`. The old
+  parameter may still be used, but it will result in a warning.
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.

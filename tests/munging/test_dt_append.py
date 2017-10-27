@@ -56,10 +56,10 @@ def test_append_fails():
 
 
 def test_append_bynumbers():
-    dt0 = dt.DataTable([[1, 2, 3], [7, 7, 0]], colnames=["A", "V"])
-    dt1 = dt.DataTable([[10, -1], [3, -1]], colnames=["C", "Z"])
+    dt0 = dt.DataTable([[1, 2, 3], [7, 7, 0]], names=["A", "V"])
+    dt1 = dt.DataTable([[10, -1], [3, -1]], names=["C", "Z"])
     dtr = dt.DataTable([[1, 2, 3, 10, -1], [7, 7, 0, 3, -1]],
-                       colnames=["A", "V"])
+                       names=["A", "V"])
     dt0.append(dt1, bynames=False)
     assert_equals(dt0, dtr)
 
@@ -109,22 +109,22 @@ def test_not_inplace():
 
 
 def test_repeating_names():
-    dt0 = dt.DataTable([[5], [6], [7], [4]], colnames=["x", "y", "x", "x"])
-    dt1 = dt.DataTable([[4], [3], [2]], colnames=["y", "x", "x"])
-    dtr = dt.DataTable([[5, 3], [6, 4], [7, 2], [4, None]], colnames="xyxx")
+    dt0 = dt.DataTable([[5], [6], [7], [4]], names=["x", "y", "x", "x"])
+    dt1 = dt.DataTable([[4], [3], [2]], names=["y", "x", "x"])
+    dtr = dt.DataTable([[5, 3], [6, 4], [7, 2], [4, None]], names="xyxx")
     dt0.append(dt1, force=True)
     assert_equals(dt0, dtr)
 
     dt0 = dt.DataTable({"a": [23]})
-    dt1 = dt.DataTable([[2], [4], [8]], colnames="aaa")
-    dtr = dt.DataTable([[23, 2], [None, 4], [None, 8]], colnames="aaa")
+    dt1 = dt.DataTable([[2], [4], [8]], names="aaa")
+    dtr = dt.DataTable([[23, 2], [None, 4], [None, 8]], names="aaa")
     dt0.append(dt1, force=True)
     assert_equals(dt0, dtr)
 
-    dt0 = dt.DataTable([[22], [44], [88]], colnames="aba")
-    dt1 = dt.DataTable([[2], [4], [8]], colnames="aaa")
+    dt0 = dt.DataTable([[22], [44], [88]], names="aba")
+    dt1 = dt.DataTable([[2], [4], [8]], names="aaa")
     dtr = dt.DataTable([[22, 2], [44, None], [88, 4], [None, 8]],
-                       colnames=["a", "b", "a", "a"])
+                       names=["a", "b", "a", "a"])
     dt0.append(dt1, force=True)
     assert_equals(dt0, dtr)
 

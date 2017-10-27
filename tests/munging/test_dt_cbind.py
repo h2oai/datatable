@@ -33,7 +33,7 @@ def test_cbind_simple():
     d1 = dt.DataTable([4, 5, 6])
     dt_compute_stats(d0, d1)
     d0.cbind(d1)
-    dr = dt.DataTable([[1, 2, 3], [4, 5, 6]], colnames=["C1", "C1"])
+    dr = dt.DataTable([[1, 2, 3], [4, 5, 6]], names=["C1", "C1"])
     assert_equals(d0, dr)
 
 
@@ -48,7 +48,7 @@ def test_cbind_self():
     d0 = dt.DataTable({"fun": [1, 2, 3]})
     dt_compute_stats(d0)
     d0.cbind(d0).cbind(d0).cbind(d0)
-    dr = dt.DataTable([[1, 2, 3]] * 8, colnames=["fun"] * 8)
+    dr = dt.DataTable([[1, 2, 3]] * 8, names=["fun"] * 8)
     assert_equals(d0, dr)
 
 
@@ -81,7 +81,7 @@ def test_cbind_forced1():
     d1 = dt.DataTable([4, 5])
     dt_compute_stats(d0, d1)
     d0.cbind(d1, force=True)
-    dr = dt.DataTable([[1, 2, 3], [4, 5, None]], colnames=["C1", "C1"])
+    dr = dt.DataTable([[1, 2, 3], [4, 5, None]], names=["C1", "C1"])
     assert_equals(d0, dr)
 
 

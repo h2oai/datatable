@@ -21,7 +21,7 @@ def tbl0():
 
 @pytest.fixture()
 def dt0(tbl0):
-    return dt.DataTable(tbl0, colnames=["A", "B", "C", "D"])
+    return dt.DataTable(tbl0, names=["A", "B", "C", "D"])
 
 def as_list(datatable):
     nrows, ncols = datatable.shape
