@@ -43,23 +43,13 @@ PyObject* pydt_from_dt(DataTable *dt)
  * This function does not attempt to DECREF the source PyObject.
  */
 int dt_unwrap(PyObject *object, DataTable **address) {
+    if (!object) return 0;
     if (!PyObject_TypeCheck(object, &DataTable_PyType)) {
         PyErr_SetString(PyExc_TypeError, "Expected object of type DataTable");
         return 0;
     }
     *address = ((DataTable_PyObject*)object)->ref;
     return 1;
-}
-
-
-/**
- * Similar to `dt_unwrap`, however the DataTable object is returned on success,
- * and an exception is thrown on error.
- */
-DataTable* datatable_unwrapx(PyObject *object) {
-    DataTable *dt;
-    if (!dt_unwrap(object, &dt)) throw std::exception();
-    return dt;
 }
 
 

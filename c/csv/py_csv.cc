@@ -1,9 +1,24 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+#include "csv/writer.h"
 #include <exception>
 #include <vector>
 #include <stdbool.h>
 #include <stdlib.h>
 #include "Python.h"
-#include "csv/writer.h"
 #include "myomp.h"
 #include "utils.h"
 #include "py_datatable.h"
@@ -11,23 +26,15 @@
 #include "py_utils.h"
 
 
-PyObject* pywrite_csv(UU, PyObject *args)
+PyObject* pywrite_csv(PyObject*, PyObject* args)
 {
-  // Note: every call to PyObject_GetAttrString returns a new reference to the
-  // underlying PyObject*. Thus, we must be careful to DECREF those references
-  // at the end.
-  //
-  DataTable *dt = NULL;
-  PyObject *pydt = NULL;
   PyObject *pywriter = NULL;
   PyObject *result = NULL;
-  if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter)) return NULL;
   Py_INCREF(pywriter);
 
   try {
-    pydt = PyObject_GetAttrString(pywriter, "datatable");
-    dt = datatable_unwrapx(pydt);
+    DataTable* dt = get_attr_datatable(pywriter, "datatable");
     std::string filename = get_attr_string(pywriter, "path");
     std::string strategy = get_attr_string(pywriter, "_strategy");
 
@@ -75,7 +82,6 @@ PyObject* pywrite_csv(UU, PyObject *args)
     if (!PyErr_Occurred())
       PyErr_Format(PyExc_RuntimeError, e.what());
   }
-  Py_XDECREF(pydt);
   Py_XDECREF(pywriter);
   return result;
 }

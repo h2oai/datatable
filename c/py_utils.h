@@ -9,6 +9,7 @@
 #include <vector>
 #include "utils.h"
 
+class DataTable;
 
 /**
  * This macro can be inserted into a function's signature in place of an unused
@@ -115,13 +116,14 @@ PyObject* decref(PyObject *x);
 
 
 
-bool    get_attr_bool(PyObject *pyobj, const char *attr, bool dflt=false);
-int64_t get_attr_int64(PyObject *pyobj, const char *attr, int64_t dflt=0);
-std::string get_attr_string(PyObject *pyobj, const char *attr);
-void get_attr_stringlist(PyObject *pyobj, const char *attr,
+bool get_attr_bool(PyObject* pyobj, const char* attr, bool dflt=false);
+int64_t get_attr_int64(PyObject* pyobj, const char* attr, int64_t dflt=0);
+std::string get_attr_string(PyObject* pyobj, const char* attr);
+DataTable* get_attr_datatable(PyObject* pyobj, const char* attr);
+void get_attr_stringlist(PyObject* pyobj, const char* attr,
                          std::vector<std::string> &res);
 
-char* _to_string(PyObject *x, PyObject **tmp);
-char** _to_string_list(PyObject *x);
+char* _to_string(PyObject* x, PyObject** tmp);
+char** _to_string_list(PyObject* x);
 
 #endif

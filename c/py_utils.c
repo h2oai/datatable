@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <string.h>  // memcpy
+#include "py_datatable.h"
 #include "py_utils.h"
 
 
@@ -253,6 +254,22 @@ std::string get_attr_string(PyObject *pyobj, const char *attr)
   Py_XDECREF(x);
   Py_XDECREF(z);
   return res;
+}
+
+
+/**
+ * Retrieve the value of `pyobj.attr` as a `DataTable*` object. If the value is
+ * None in Python, then a null pointer is returned. If `pyobj.attr` does not
+ * correspond to a DataTable PyObject then an exception is raised.
+ */
+DataTable* get_attr_datatable(PyObject* pyobj, const char* attr)
+{
+  DataTable* dt = nullptr;
+  PyObject* pydt = PyObject_GetAttrString(pyobj, attr);
+  int ret = dt_unwrap(pydt, &dt);
+  Py_XDECREF(pydt);
+  if (!ret) throw Error();
+  return dt;
 }
 
 

@@ -3,6 +3,7 @@
 //==============================================================================
 #ifndef dt_UTILS_H
 #define dt_UTILS_H
+#include <Python.h>
 #include <stddef.h>
 #include <stdio.h>     // vsnprintf
 #include <stdint.h>
@@ -41,6 +42,7 @@ inline std::string operator "" _s(const char* str, size_t len) {
 class Error : public std::exception {
   char msg[1000];
 public:
+  Error() {}
   Error(char const* format, ...) __attribute__((format(printf, 2, 3))) {
     va_list vargs;
     va_start(vargs, format);
