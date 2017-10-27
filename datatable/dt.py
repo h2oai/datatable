@@ -4,7 +4,7 @@ import collections
 import time
 import sys
 from types import GeneratorType
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List, Union
 
 # noinspection PyUnresolvedReferences
 import datatable.lib._datatable as c
@@ -98,6 +98,18 @@ class DataTable(object):
     def internal(self):
         """Access to the underlying C DataTable object."""
         return self._dt
+
+
+    #---------------------------------------------------------------------------
+    # Property setters
+    #---------------------------------------------------------------------------
+
+    @names.setter
+    @typed()
+    def names(self, newnames: Union[List[str], Tuple[str, ...]]):
+        """Rename the columns of the DataTable."""
+        self.rename(newnames)
+
 
 
     #---------------------------------------------------------------------------
@@ -593,18 +605,25 @@ class DataTable(object):
 
 
 
-    @typed(columns={U(str, int): str})
-    def rename(self, columns):
+    @typed()
+    def rename(self, columns: Union[Dict[str, str], Dict[int, str], List[str],
+                                    Tuple[str, ...]]):
         """
         Rename columns of the datatable.
 
         :param columns: dictionary of the {old_name: new_name} entries.
         :returns: None
         """
-        names = list(self._names)
-        for oldname, newname in columns.items():
-            idx = self.colindex(oldname)
-            names[idx] = newname
+        if isinstance(columns, (list, tuple)):
+            names = columns
+            if len(names) != self._ncols:
+                raise TValueError("Cannot rename columns to %r: expected %s"
+                                  % (names, plural(self._ncols, "name")))
+        else:
+            names = list(self._names)
+            for oldname, newname in columns.items():
+                idx = self.colindex(oldname)
+                names[idx] = newname
         self._fill_from_dt(self._dt, names=names)
 
 
