@@ -34,18 +34,6 @@ class MemoryMemBuf;
 class MemoryBuffer
 {
 protected:
-  // Pointer to the "underlying" memory region. This class knows how to read/
-  // write to this memory region, but not how to manage it (i.e. allocate /
-  // resize / free) -- this is the responsibility of each derived class. This is
-  // also the reason why the fields in this class are protected instead of
-  // private: the base class cannot handle these fields by itself.
-  void* buf;
-
-  // Size of the memory region `buf`, in bytes. (In practice, the memory region
-  // may have arbitrary "size" -- this field merely says how many bytes should
-  // be accessible to the user).
-  size_t allocsize;
-
   // Reference count for this MemoryBuffer, in case it is shared by multiple
   // users.
   int refcount;
@@ -54,7 +42,7 @@ protected:
   // and cannot be resized.
   bool readonly;
 
-  int64_t : 24;  // padding
+  int32_t : 24;  // padding
 
 
   //--- Public API -------------------------------------------------------------
@@ -74,7 +62,7 @@ public:
    * The multiple `at()` methods all do the same, they exist only to spare the
    * user from having to cast their integer offset into a proper integer type.
    */
-  void* get() const;
+  virtual void* get() const = 0;
   void* at(size_t offset) const;
   void* at(int64_t offset) const;
   void* at(int32_t offset) const;
@@ -93,10 +81,10 @@ public:
   template <typename T> void set_elem(int64_t i, T value);
 
   /**
-   * Returns the allocation size of the underlying memory buffer. This will be
+   * Returns the allocation size of the underlying memory buffer. This should be
    * zero if memory is unallocated.
    */
-  size_t size() const;
+  virtual size_t size() const = 0;
 
   /**
    * Returns the best estimate of this object's total size in memory. This is
@@ -104,10 +92,9 @@ public:
    * as the size of the object itself, and sizes of all its member objects.
    *
    * The value returned by this method is platform-dependent, and may even
-   * change between subsequent runs of the program. Derived classes should
-   * override this function if they have any internal members.
+   * change between subsequent runs of the program.
    */
-  virtual size_t memory_footprint() const;
+  virtual size_t memory_footprint() const = 0;
 
   /**
    * Returns true if the memory buffer is marked read-only. A read-only buffer
@@ -212,6 +199,9 @@ protected:
  */
 class MemoryMemBuf : public MemoryBuffer
 {
+  void* buf;
+  size_t allocsize;
+
 public:
   /**
    * Allocate `n` bytes of memory and wrap this pointer into a new MemoryMemBuf
@@ -230,12 +220,16 @@ public:
    */
   MemoryMemBuf(void* ptr, size_t n);
 
+  void* get() const override;
+  size_t size() const override;
+  size_t memory_footprint() const override;
+  PyObject* pyrepr() const override;
   virtual void resize(size_t n) override;
-  virtual PyObject* pyrepr() const override;
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& n = "MemoryBuffer") const override;
 
 private:
+  MemoryMemBuf();
   virtual ~MemoryMemBuf();
 };
 
@@ -251,6 +245,8 @@ private:
  */
 class ExternalMemBuf : public MemoryBuffer
 {
+  void* buf;
+  size_t allocsize;
   void* pybufinfo;
 
 public:
@@ -279,8 +275,10 @@ public:
    */
   ExternalMemBuf(const char* cstr);
 
-  virtual size_t memory_footprint() const override;
-  virtual PyObject* pyrepr() const override;
+  void* get() const override;
+  size_t size() const override;
+  size_t memory_footprint() const override;
+  PyObject* pyrepr() const override;
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& n = "MemoryBuffer") const override;
 
@@ -303,6 +301,8 @@ private:
  */
 class MemmapMemBuf : public MemoryBuffer
 {
+  void* buf;
+  size_t allocsize;
   const std::string filename;
 
 public:
@@ -313,6 +313,8 @@ public:
   MemmapMemBuf(const std::string& file);
   MemmapMemBuf(const std::string& file, size_t n);
 
+  void* get() const override;
+  size_t size() const override;
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;
@@ -366,11 +368,11 @@ protected:
 // Template implementations
 
 template <typename T> T MemoryBuffer::get_elem(int64_t i) const {
-  return (static_cast<T*>(buf))[i];
+  return (static_cast<T*>(get()))[i];
 }
 
 template <typename T> void MemoryBuffer::set_elem(int64_t i, T value) {
-  (static_cast<T*>(buf))[i] = value;
+  (static_cast<T*>(get()))[i] = value;
 }
 
 #endif

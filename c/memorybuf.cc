@@ -31,50 +31,34 @@
 // Base MemoryBuffer
 //==============================================================================
 
-MemoryBuffer::MemoryBuffer()
-    : buf(nullptr), allocsize(0), refcount(1), readonly(false) {}
+MemoryBuffer::MemoryBuffer() : refcount(1), readonly(false) {}
 
-// It is the job of a derived class to clean up the `buf`. Here we merely
-// check that the derived class did not forget to do so.
 // Note: it is possible to have `refcount > 0` here: this occurs only when the
 // destructor is called because the derived class' constructor has thrown an
 // exception.
-MemoryBuffer::~MemoryBuffer() {
-  assert(buf == nullptr);
-}
+MemoryBuffer::~MemoryBuffer() {}
 
-void* MemoryBuffer::get() const {
-  return buf;
-}
 
 void* MemoryBuffer::at(size_t n) const {
-  return static_cast<void*>(static_cast<char*>(buf) + n);
+  return static_cast<void*>(static_cast<char*>(get()) + n);
 }
 
 void* MemoryBuffer::at(int64_t n) const {
-  return static_cast<void*>(static_cast<char*>(buf) + n);
+  return static_cast<void*>(static_cast<char*>(get()) + n);
 }
 
 void* MemoryBuffer::at(int32_t n) const {
-  return static_cast<void*>(static_cast<char*>(buf) + n);
+  return static_cast<void*>(static_cast<char*>(get()) + n);
 }
 
-size_t MemoryBuffer::size() const {
-  return allocsize;
-}
-
-size_t MemoryBuffer::memory_footprint() const {
-  return allocsize + sizeof(MemoryBuffer);
-}
-
-void MemoryBuffer::resize(UNUSED(size_t n)) {
+void MemoryBuffer::resize(size_t) {
   throw Error("Resizing this object is not supported");
 }
 
 MemoryBuffer* MemoryBuffer::safe_resize(size_t n) {
   if (this->is_readonly()) {
     MemoryBuffer* mb = new MemoryMemBuf(n);
-    memcpy(mb->buf, this->buf, std::min(n, this->allocsize));
+    memcpy(mb->get(), this->get(), std::min(n, this->size()));
     // Note: this may delete the current object! Do not access `this` after
     // this call: it may have become a dangling pointer.
     this->release();
@@ -99,9 +83,10 @@ MemoryBuffer* MemoryBuffer::shallowcopy() {
 }
 
 MemoryMemBuf* MemoryBuffer::deepcopy() const {
+  size_t allocsize = size();
   MemoryMemBuf* res = new MemoryMemBuf(allocsize);
   if (allocsize) {
-    memcpy(res->buf, buf, allocsize);
+    memcpy(res->get(), this->get(), allocsize);
   }
   return res;
 }
@@ -133,7 +118,9 @@ bool MemoryBuffer::verify_integrity(IntegrityCheckContext& icc,
 // Memory-based MemoryBuffer
 //==============================================================================
 
-MemoryMemBuf::MemoryMemBuf(size_t n) {
+MemoryMemBuf::MemoryMemBuf() : buf(nullptr), allocsize(0) {}
+
+MemoryMemBuf::MemoryMemBuf(size_t n) : MemoryMemBuf() {
   if (n) {
     allocsize = n;
     buf = malloc(n);
@@ -141,7 +128,7 @@ MemoryMemBuf::MemoryMemBuf(size_t n) {
   }
 }
 
-MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
+MemoryMemBuf::MemoryMemBuf(void* ptr, size_t n) : MemoryMemBuf() {
   if (n) {
     allocsize = n;
     buf = ptr;
@@ -151,9 +138,15 @@ MemoryMemBuf::MemoryMemBuf(void *ptr, size_t n) {
 
 MemoryMemBuf::~MemoryMemBuf() {
   free(buf);
-  buf = nullptr;
 }
 
+void* MemoryMemBuf::get() const {
+  return buf;
+}
+
+size_t MemoryMemBuf::size() const {
+  return allocsize;
+}
 
 void MemoryMemBuf::resize(size_t n) {
   // The documentation for `void* realloc(void* ptr, size_t new_size);` says
@@ -167,7 +160,7 @@ void MemoryMemBuf::resize(size_t n) {
   // | C11 DR 400.
   if (n == allocsize) return;
   if (n) {
-    void *ptr = realloc(buf, n);
+    void* ptr = realloc(buf, n);
     if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
     buf = ptr;
   } else if (buf) {
@@ -175,6 +168,11 @@ void MemoryMemBuf::resize(size_t n) {
     buf = nullptr;
   }
   allocsize = n;
+}
+
+
+size_t MemoryMemBuf::memory_footprint() const {
+  return sizeof(MemoryMemBuf) + allocsize;
 }
 
 
@@ -239,10 +237,17 @@ ExternalMemBuf::ExternalMemBuf(const char* str)
 
 
 ExternalMemBuf::~ExternalMemBuf() {
-  buf = nullptr;
   if (pybufinfo) {
     PyBuffer_Release(static_cast<Py_buffer*>(pybufinfo));
   }
+}
+
+void* ExternalMemBuf::get() const {
+  return buf;
+}
+
+size_t ExternalMemBuf::size() const {
+  return allocsize;
 }
 
 size_t ExternalMemBuf::memory_footprint() const {
@@ -284,7 +289,7 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n)
 
 
 MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
-    : filename(path)
+    : buf(nullptr), allocsize(0), filename(path)
 {
   readonly = !create;
 
@@ -344,6 +349,14 @@ MemmapMemBuf::~MemmapMemBuf() {
   if (!is_readonly()) {
     File::remove(filename);
   }
+}
+
+void* MemmapMemBuf::get() const {
+  return buf;
+}
+
+size_t MemmapMemBuf::size() const {
+  return allocsize;
 }
 
 
@@ -434,7 +447,7 @@ OvermapMemBuf::OvermapMemBuf(const std::string& path, size_t xn)
   // |   mapping(s) will be discarded.
   //
   size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
-  size_t filesize = allocsize - xn;
+  size_t filesize = size() - xn;
   // How much to add to filesize to align it to a page boundary
   size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
   if (xn > gapsize) {
