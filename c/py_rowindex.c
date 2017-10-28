@@ -95,8 +95,14 @@ PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
     int64_t n1 = PyList_Size(pystarts);
     int64_t n2 = PyList_Size(pycounts);
     int64_t n3 = PyList_Size(pysteps);
-    if (n1 < n2) throw Error("counts array cannot be longer than the starts array");
-    if (n1 < n3) throw Error("steps array cannot be longer than the starts array");
+    if (n1 < n2) {
+        throw ValueError() << "counts array cannot be longer than the "
+                              "starts array";
+    }
+    if (n1 < n3) {
+        throw ValueError() << "steps array cannot be longer than the "
+                              "starts array";
+    }
     starts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
     counts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
     steps  = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
@@ -149,7 +155,9 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
     for (int64_t i = 0; i < len; i++) {
         int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
         if (x == -1 && PyErr_Occurred()) goto fail;
-        if (x < 0) throw Error("Negative indices not allowed: %zd", x);
+        if (x < 0) {
+            throw ValueError() << "Negative indices not allowed: " << x;
+        }
         if (data64) {
             data64[i] = x;
         } else if (x <= INT32_MAX) {

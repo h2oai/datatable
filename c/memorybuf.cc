@@ -52,7 +52,7 @@ void* MemoryBuffer::at(int32_t n) {
 }
 
 void MemoryBuffer::resize(size_t) {
-  throw Error("Resizing this object is not supported");
+  throw NotImplError() << "Resizing this object is not supported";
 }
 
 MemoryBuffer* MemoryBuffer::safe_resize(size_t n) {
@@ -124,7 +124,9 @@ MemoryMemBuf::MemoryMemBuf(size_t n) : MemoryMemBuf() {
   if (n) {
     allocsize = n;
     buf = malloc(n);
-    if (buf == nullptr) throw Error("Unable to allocate memory of size %zu", n);
+    if (buf == nullptr) {
+      throw MemoryError() << "Unable to allocate memory of size " << n;
+    }
   }
 }
 
@@ -132,7 +134,9 @@ MemoryMemBuf::MemoryMemBuf(void* ptr, size_t n) : MemoryMemBuf() {
   if (n) {
     allocsize = n;
     buf = ptr;
-    if (buf == nullptr) throw Error("Unallocated memory region provided");
+    if (buf == nullptr) {
+      throw ValueError() << "Unallocated memory region provided";
+    }
   }
 }
 
@@ -161,7 +165,9 @@ void MemoryMemBuf::resize(size_t n) {
   if (n == allocsize) return;
   if (n) {
     void* ptr = realloc(buf, n);
-    if (!ptr) throw Error("Unable to reallocate memory to size %zu", n);
+    if (!ptr) {
+      throw MemoryError() << "Unable to reallocate memory to size " << n;
+    }
     buf = ptr;
   } else if (buf) {
     free(buf);
@@ -222,8 +228,9 @@ ExternalMemBuf::ExternalMemBuf(void* ptr, void* pybuf, size_t size) {
   pybufinfo = pybuf;
   readonly = true;
   if (buf == nullptr && allocsize > 0) {
-    throw Error("Unallocated buffer supplied to the ExternalMemBuf() "
-                "constructor, exptected memory region of size %zu", size);
+    throw ValueError() << "Unallocated buffer supplied to the ExternalMemBuf() "
+                       << "constructor, expected memory region of size "
+                       << size;
   }
 }
 
@@ -337,9 +344,9 @@ void MemmapMemBuf::memmap()
     // Exception is thrown from the constructor -> the base class' destructor
     // will be called, which checks that `mmp` is null.
     mmp = nullptr;
-    throw Error("Memory-map failed for file %s of size %zu+%zu: [%d] %s",
-                file.cname(), filesize, mmpsize - filesize,
-                errno, strerror(errno));
+    throw RuntimeError() << "Memory-map failed for file " << file.cname()
+                         << " of size " << filesize
+                         << " +" << mmpsize - filesize << Errno;
   }
 }
 
@@ -373,7 +380,7 @@ size_t MemmapMemBuf::size() {
 
 
 void MemmapMemBuf::resize(size_t n) {
-  if (is_readonly()) throw Error("Cannot resize a readonly buffer");
+  if (is_readonly()) throw RuntimeError() << "Cannot resize a readonly buffer";
   if (mmp) {
     munmap(mmp, mmpsize);
     mmp = nullptr;
@@ -385,8 +392,8 @@ void MemmapMemBuf::resize(size_t n) {
   mmpsize = n;
   if (mmp == MAP_FAILED) {
     mmp = nullptr;
-    throw Error("Memory map failed for file %s when resizing to %zu: "
-                "[errno %d] %s", file.cname(), n, errno, strerror(errno));
+    throw RuntimeError() << "Memory map failed for file " << file.cname()
+                         << " when resizing to " << n << ": " << Errno;
   }
 }
 
@@ -471,8 +478,8 @@ void OvermapMemBuf::memmap()
                 /* file descriptor, ignored */ -1,
                 /* offset, ignored */ 0);
     if (xbuf == MAP_FAILED) {
-      throw Error("Cannot allocate additional %zu bytes at address %p: "
-                  "[errno %d] %s", xbuf_size, target, errno, strerror(errno));
+      throw RuntimeError() << "Cannot allocate additional " << xbuf_size
+                           << " bytes at address " << target << ": " << Errno;
     }
   }
 }
@@ -489,7 +496,7 @@ OvermapMemBuf::~OvermapMemBuf() {
 
 
 void OvermapMemBuf::resize(size_t) {
-  throw Error("Objects of class OvermapMemBuf cannot be resized");
+  throw RuntimeError() << "Objects of class OvermapMemBuf cannot be resized";
 }
 
 

@@ -37,8 +37,7 @@ File::File(const std::string& file)
 File::File(const std::string& file, int flags, mode_t mode) {
   fd = open(file.c_str(), flags, mode);
   if (fd == -1) {
-    throw Error("Cannot open file %s: [errno %d] %s",
-                file.c_str(), errno, strerror(errno));
+    throw RuntimeError() << "Cannot open file " << file << ": " << Errno;
   }
   name = file;
   // size of -1 is used to indicate that `statbuf` was not loaded yet
@@ -69,12 +68,12 @@ size_t File::size() const {
 }
 
 // Same as `size()`, but static (i.e. no need to open the file).
-size_t File::asize(const std::string& filename) {
+size_t File::asize(const std::string& name) {
   struct stat statbuf;
-  int ret = stat(filename.c_str(), &statbuf);
+  int ret = stat(name.c_str(), &statbuf);
   if (ret == -1) {
-    throw Error("Unable to obtain size of %s: [errno %d] %s",
-                filename.c_str(), errno, strerror(errno));
+    throw RuntimeError() << "Unable to obtain size of " << name
+                         << ": " << Errno;
   }
   return static_cast<size_t>(statbuf.st_size);
 }
@@ -87,8 +86,8 @@ const char* File::cname() const {
 void File::resize(size_t newsize) {
   int ret = ftruncate(fd, static_cast<off_t>(newsize));
   if (ret == -1) {
-    throw Error("Unable to truncate() file %s to size %zu: [errno %d] %s",
-                cname(), newsize, errno, strerror(errno));
+    throw RuntimeError() << "Unable to truncate() file " << name
+                         << " to size " << newsize << ": " << Errno;
   }
   statbuf.st_size = -1;  // force reload stats on next request
 }
@@ -97,7 +96,7 @@ void File::resize(size_t newsize) {
 void File::assert_is_not_dir() const {
   load_stats();
   if (S_ISDIR(statbuf.st_mode)) {
-    throw Error("File %s is a directory", name.c_str());
+    throw RuntimeError() << "File " << name << " is a directory";
   }
 }
 
@@ -105,20 +104,20 @@ void File::load_stats() const {
   if (statbuf.st_size >= 0) return;
   int ret = fstat(fd, &statbuf);
   if (ret == -1) {
-    throw Error("Error in fstat() for file %s: [errno %d] %s",
-                name.c_str(), errno, strerror(errno));
+    throw RuntimeError() << "Error in fstat() for file " << name
+                         << ": " << Errno;
   }
 }
 
-void File::remove(const std::string& filename, bool except) {
-  int ret = ::remove(filename.c_str());
+void File::remove(const std::string& name, bool except) {
+  int ret = ::remove(name.c_str());
   if (ret == -1) {
     if (except) {
-      throw Error("Unable to remove file %s: [errno %d] %s",
-                  filename.c_str(), errno, strerror(errno));
+      throw RuntimeError() << "Unable to remove file " << name
+                           << ": " << Errno;
     } else {
       printf("Unable to remove file %s: [errno %d] %s",
-             filename.c_str(), errno, strerror(errno));
+             name.c_str(), errno, strerror(errno));
     }
   }
 }

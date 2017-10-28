@@ -26,8 +26,8 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
     columns[ncols] = NULL;
 
     if (colspec->ncols != 3) {
-        throw Error("colspec table should have had 3 columns, but %lld passed",
-                    colspec->ncols);
+        throw ValueError() << "colspec table should have had 3 columns, "
+                           << "but " << colspec->ncols << " were passed";
     }
     Column *colf = colspec->columns[0];
     Column *cols = colspec->columns[1];
@@ -35,8 +35,9 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
     if (colf->stype() != ST_STRING_I4_VCHAR ||
         cols->stype() != ST_STRING_I4_VCHAR ||
         colm->stype() != ST_STRING_I4_VCHAR) {
-        throw Error("String columns are expected in colspec table, instead got "
-                    "%d, %d and %d", colf->stype(), cols->stype(), colm->stype());
+        throw ValueError() << "String columns are expected in colspec table, "
+                           << "instead got " << colf->stype() << ", "
+                           << cols->stype() << ", and " << colm->stype();
     }
 
     int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
@@ -49,7 +50,9 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
     static char filename[1001];
     static char metastr[101];
     size_t len = strlen(path);
-    if (len > 900) throw Error("The path is too long: %s", path);
+    if (len > 900) {
+        throw ValueError() << "The path is too long: " << path;
+    }
     if (len > 0) {
         strcpy(filename, path);
         if (filename[len - 1] != '/') {
@@ -64,7 +67,9 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
         int32_t fsta = abs(offf[i - 1]) - 1;
         int32_t fend = abs(offf[i]) - 1;
         int32_t flen = fend - fsta;
-        if (flen > 100) throw Error("Filename is too long: %d", flen);
+        if (flen > 100) {
+            throw ValueError() << "Filename is too long: " << flen;
+        }
         memcpy(ffilename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
         ffilename[flen] = '\0';
 
@@ -72,20 +77,24 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
         int32_t ssta = abs(offs[i - 1]) - 1;
         int32_t send = abs(offs[i]) - 1;
         int32_t slen = send - ssta;
-        if (slen != 3) throw Error("Incorrect stype's length: %d", slen);
+        if (slen != 3) {
+            throw ValueError() << "Incorrect stype's length: " << slen;
+        }
         SType stype = stype_from_string((char*)cols->data() + (ssize_t)ssta);
         if (stype == ST_VOID) {
             char stypestr[4];
             memcpy(stypestr, cols->data_at(static_cast<size_t>(ssta)), 3);
             stypestr[3] = '\0';
-            throw Error("Unrecognized stype: %s", stypestr);
+            throw ValueError() << "Unrecognized stype: " << stypestr;
         }
 
         // Extract meta info (as a string)
         int32_t msta = abs(offm[i - 1]) - 1;
         int32_t mend = abs(offm[i]) - 1;
         int32_t mlen = mend - msta;
-        if (mlen > 100) throw Error("Meta string is too long: %d", mlen);
+        if (mlen > 100) {
+            throw ValueError() << "Meta string is too long: " << mlen;
+        }
         memcpy(metastr, colm->data_at(static_cast<size_t>(msta)), (size_t) mlen);
         metastr[mlen] = '\0';
 

@@ -29,23 +29,6 @@ size_t array_size(void *ptr, size_t elemsize) {
     return ptr == NULL? 0 : malloc_size(ptr) / elemsize;
 }
 
-/*
-__attribute__ ((format (printf, 2, 0)))
-void push_error(std::vector<char> *out, const char* format, ...) {
-  if (out == nullptr) return;
-  static char buf[1001];
-  va_list args;
-  va_start(args, format);
-  int ret = vsnprintf(buf, 1001, format, args);
-  if (ret < 0) return;
-  va_end(args);
-  size_t add_len = strlen(buf) + 1; // +1 because of '\0'
-  size_t len = out->size();
-  if (len != 0) --len;
-  out->resize(len + add_len);
-  memcpy(out->data() + len, buf, add_len);
-}
-*/
 
 char*
 repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {

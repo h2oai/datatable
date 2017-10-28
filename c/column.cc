@@ -58,7 +58,7 @@ Column* Column::new_column(SType stype) {
     case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
     case ST_OBJECT_PYPTR:    return new PyObjectColumn();
     default:
-      THROW_ERROR("Unable to create a column of SType = %d\n", stype);
+      throw ValueError() << "Unable to create a column of SType = " << stype;
   }
 }
 
@@ -105,8 +105,8 @@ Column* Column::save_to_disk(const char* filename)
     mmp = mmap(nullptr, sz, PROT_READ|PROT_WRITE, MAP_SHARED,
                file.descriptor(), 0);
     if (mmp == MAP_FAILED) {
-      throw Error("Memory-map failed for file %s: [errno %d] %s",
-                  file.cname(), errno, strerror(errno));
+      throw RuntimeError() << "Memory-map failed for file " << filename
+                           << ": " << Errno;
     }
   }
 
@@ -138,8 +138,10 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
   // }
   // Deserialize the meta information, if needed
   if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-    if (strncmp(ms, "offoff=", 7) != 0)
-      throw Error("Cannot retrieve required metadata in string \"%s\"", ms);
+    if (strncmp(ms, "offoff=", 7) != 0) {
+      throw ValueError() << "Cannot retrieve required metadata in string "
+                         << '"' << ms << '"';
+    }
     int64_t offoff = (int64_t) atoll(ms + 7);
     ((VarcharMeta*) col->meta)->offoff = offoff;
   }
@@ -330,7 +332,7 @@ Column* Column::cast(SType new_stype, MemoryBuffer* mb) const {
   }
   if (ri) {
     // TODO: implement this
-    throw Error("Cannot cast a column with rowindex");
+    throw RuntimeError() << "Cannot cast a column with rowindex";
   }
   Column *res = nullptr;
   if (mb) {
@@ -351,21 +353,42 @@ Column* Column::cast(SType new_stype, MemoryBuffer* mb) const {
     case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<int32_t>*>(res)); break;
     case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<int64_t>*>(res)); break;
     case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn*>(res)); break;
-    default: THROW_ERROR("Unable to cast into stype = %d\n", new_stype);
+    default:
+      throw ValueError() << "Unable to cast into stype = " << new_stype;
   }
   return res;
 }
 
-void Column::cast_into(BoolColumn*) const            { throw Error("Cannot cast %d into bool", stype()); }
-void Column::cast_into(IntColumn<int8_t>*) const     { throw Error("Cannot cast %d into int8", stype()); }
-void Column::cast_into(IntColumn<int16_t>*) const    { throw Error("Cannot cast %d into int16", stype()); }
-void Column::cast_into(IntColumn<int32_t>*) const    { throw Error("Cannot cast %d into int32", stype()); }
-void Column::cast_into(IntColumn<int64_t>*) const    { throw Error("Cannot cast %d into int64", stype()); }
-void Column::cast_into(RealColumn<float>*) const     { throw Error("Cannot cast %d into float", stype()); }
-void Column::cast_into(RealColumn<double>*) const    { throw Error("Cannot cast %d into double", stype()); }
-void Column::cast_into(StringColumn<int32_t>*) const { throw Error("Cannot cast %d into str32", stype()); }
-void Column::cast_into(StringColumn<int64_t>*) const { throw Error("Cannot cast %d into str64", stype()); }
-void Column::cast_into(PyObjectColumn*) const        { throw Error("Cannot cast %d into pyobj", stype()); }
+void Column::cast_into(BoolColumn*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into bool";
+}
+void Column::cast_into(IntColumn<int8_t>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into int8";
+}
+void Column::cast_into(IntColumn<int16_t>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into int16";
+}
+void Column::cast_into(IntColumn<int32_t>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into int32";
+}
+void Column::cast_into(IntColumn<int64_t>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into int64";
+}
+void Column::cast_into(RealColumn<float>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into float";
+}
+void Column::cast_into(RealColumn<double>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into double";
+}
+void Column::cast_into(StringColumn<int32_t>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into str32";
+}
+void Column::cast_into(StringColumn<int64_t>*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into str64";
+}
+void Column::cast_into(PyObjectColumn*) const {
+  throw ValueError() << "Cannot cast " << stype() << " into pyobj";
+}
 
 
 

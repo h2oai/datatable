@@ -154,7 +154,7 @@ PyObject* pyfread(UU, PyObject *args)
       mbuf = new OvermapMemBuf(filename, 1);
       if (verbose) DTPRINT("  File opened, size: %s\n", filesize_to_str(mbuf->size() - 1));
     } else {
-      throw Error("Neither filename nor input were provided");
+      throw ValueError() << "Neither filename nor input were provided";
     }
     frargs->buf = mbuf->get();
     frargs->bufsize = mbuf->size();
@@ -212,8 +212,8 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
             void* mmp = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED,
                              file.descriptor(), 0);
             if (mmp == MAP_FAILED) {
-              throw Error("Memory-map failed when mapping file %s [errno %d] %s\n",
-                          file.cname(), errno, strerror(errno));
+              throw RuntimeError() << "Memory-map failed when mapping file "
+                                   << file.cname() << Errno;
             }
             sb->buf = static_cast<char*>(mmp);
         } else {
@@ -574,8 +574,8 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
                     void* mmp = mmap(NULL, newsize, PROT_WRITE|PROT_READ,
                                      MAP_SHARED, file.descriptor(), 0);
                     if (mmp == MAP_FAILED) {
-                      throw Error("Unable to memory-map file %s: [errno %d] %s",
-                                  file.cname(), errno, strerror(errno));
+                      throw RuntimeError() << "Unable to memory-map file "
+                                           << file.cname() << Errno;
                     }
                     sb->buf = static_cast<char*>(mmp);
                 } else {

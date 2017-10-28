@@ -5,18 +5,16 @@
 
 
 
-Column_PyObject* pycolumn_from_column(Column *col, DataTable_PyObject *pydt,
-                                      int64_t colidx)
+Column_PyObject* pycolumn_from_column(
+    Column *col, DataTable_PyObject *pydt, int64_t colidx)
 {
-  CATCH_EXCEPTIONS(
-    Column_PyObject *pycol = Column_PyNew();
-    if (pycol == NULL) return NULL;
-    pycol->ref = col->shallowcopy();
-    pycol->pydt = pydt;
-    pycol->colidx = colidx;
-    Py_XINCREF(pydt);
-    return pycol;
-  );
+  Column_PyObject *pycol = Column_PyNew();
+  if (pycol == NULL) throw PyError();
+  pycol->ref = col->shallowcopy();
+  pycol->pydt = pydt;
+  pycol->colidx = colidx;
+  Py_XINCREF(pydt);
+  return pycol;
 }
 
 
@@ -106,44 +104,39 @@ static PyObject* get_refcount(Column_PyObject *self) {
 
 
 DT_DOCS(save_to_disk, "")
-static PyObject* meth_save_to_disk(Column_PyObject *self, PyObject *args)
+static PyObject* save_to_disk(PyObject* arg1, PyObject* args)
 {
-  CATCH_EXCEPTIONS(
-    Column *col = self->ref;
-    const char *filename = NULL;
-    if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
-    Column *ret = col->save_to_disk(filename);
-    if (!ret) return NULL;
-    Py_RETURN_NONE;
-  );
+  const char* filename = NULL;
+  if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
+  Column_PyObject* self = reinterpret_cast<Column_PyObject*>(arg1);
+  Column* col = self->ref;
+  col->save_to_disk(filename);
+  return none();
 }
 
 
 DT_DOCS(hexview, "")
-static PyObject* meth_hexview(Column_PyObject *self, UU)
+static PyObject* hexview(PyObject* arg1, PyObject*)
 {
-  CATCH_EXCEPTIONS(
-    if (pyfn_column_hexview == NULL) {
-        PyErr_Format(PyExc_RuntimeError,
-                     "Function column_hexview() was not linked");
-        return NULL;
-    }
-    PyObject *v = Py_BuildValue("(OOi)", self, self->pydt, self->colidx);
-    PyObject *ret = PyObject_CallObject(pyfn_column_hexview, v);
-    Py_XDECREF(v);
-    return ret;
-  );
+  if (pyfn_column_hexview == NULL) {
+    throw RuntimeError() << "Function column_hexview() was not linked";
+  }
+  Column_PyObject* self = reinterpret_cast<Column_PyObject*>(arg1);
+  PyObject* v = Py_BuildValue("(OOi)", self, self->pydt, self->colidx);
+  PyObject* ret = PyObject_CallObject(pyfn_column_hexview, v);
+  Py_XDECREF(v);
+  return ret;
 }
 
 
 static void pycolumn_dealloc(Column_PyObject *self)
 {
-    // FIXME!
-    // delete self->ref;
-    Py_XDECREF(self->pydt);
-    self->ref = NULL;
-    self->pydt = NULL;
-    Py_TYPE(self)->tp_free((PyObject*)self);
+  // FIXME!
+  delete self->ref;
+  Py_XDECREF(self->pydt);
+  self->ref = NULL;
+  self->pydt = NULL;
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
@@ -151,6 +144,8 @@ static void pycolumn_dealloc(Column_PyObject *self)
 //==============================================================================
 // Column type definition
 //==============================================================================
+MAKE_EXCEPTION_SAFE(hexview);
+MAKE_EXCEPTION_SAFE(save_to_disk);
 
 static PyGetSetDef column_getseters[] = {
     DT_GETSETTER(mtype),
@@ -164,9 +159,9 @@ static PyGetSetDef column_getseters[] = {
 };
 
 static PyMethodDef column_methods[] = {
-    DT_METHOD1(save_to_disk),
-    DT_METHOD1(hexview),
-    {NULL, NULL, 0, NULL}           /* sentinel */
+  DT_METHOD1es(save_to_disk),
+  DT_METHOD1es(hexview),
+  {NULL, NULL, 0, NULL}           /* sentinel */
 };
 
 PyTypeObject Column_PyType = {

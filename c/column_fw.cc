@@ -31,7 +31,7 @@ FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
   if (new_mbuf->size() % sizeof(T)) {
-    throw Error("New buffer has invalid size %zu", new_mbuf->size());
+    throw RuntimeError() << "New buffer has invalid size " << new_mbuf->size();
   }
   MemoryBuffer* t = new_mbuf->shallowcopy();
   if (mbuf) mbuf->release();
@@ -141,7 +141,7 @@ void FwColumn<T>::resize_and_fill(int64_t new_nrows)
 {
   if (new_nrows == nrows) return;
   if (new_nrows < nrows) {
-    throw Error("Column::resize_and_fill() cannot shrink a column");
+    throw RuntimeError() << "Column::resize_and_fill() cannot shrink a column";
   }
 
   mbuf = mbuf->safe_resize(sizeof(T) * static_cast<size_t>(new_nrows));

@@ -66,7 +66,8 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
       WritableBuffer *wb = cwriter.get_output_buffer();
       MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);
       if (!mb) {
-        throw Error("Unable to case WritableBuffer into MemoryWritableBuffer");
+        throw RuntimeError() << "Unable to case WritableBuffer into "
+                                "MemoryWritableBuffer";
       }
       // -1 because the buffer also stores trailing \0
       Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);

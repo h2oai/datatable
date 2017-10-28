@@ -32,19 +32,21 @@ DataTable::DataTable(Column **cols)
     rowindex(nullptr),
     columns(cols)
 {
-  if (cols == nullptr)
-    throw Error("Column array cannot be null");
+  if (cols == nullptr) {
+    throw ValueError() << "Column array cannot be null";
+  }
   if (cols[0] == nullptr) return;
   rowindex = cols[0]->rowindex();
   nrows = cols[0]->nrows;
 
   for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
-    if (rowindex != col->rowindex())
-      throw Error("Mismatched RowIndex in Column %" PRId64, ncols);
-    if (nrows != col->nrows)
-      throw Error("Mismatched length in Column %" PRId64 ": "
-                  "found %" PRId64 ", expected %" PRId64,
-                  ncols, col->nrows, nrows);
+    if (rowindex != col->rowindex()) {
+      throw ValueError() << "Mismatched RowIndex in Column " << ncols;
+    }
+    if (nrows != col->nrows) {
+      throw ValueError() << "Mismatched length in Column " << ncols << ": "
+                         << "found " << col->nrows << ", expected " << nrows;
+    }
   }
 }
 
@@ -107,18 +109,21 @@ static inline int _compare_ints(const void *a, const void *b) {
  */
 void DataTable::apply_na_mask(DataTable* maskdt)
 {
-  if (!maskdt) throw Error("Mask cannot be NULL");
+  if (!maskdt) {
+    throw ValueError() << "Mask cannot be NULL";
+  }
   if (ncols != maskdt->ncols || nrows != maskdt->nrows) {
-    throw Error("Target datatable and mask have different shapes");
+    throw ValueError() << "Target datatable and mask have different shapes";
   }
   if (rowindex || maskdt->rowindex) {
-    throw Error("Neither target DataTable nor the mask can be views");
+    throw ValueError() << "Neither target DataTable nor the mask can be views";
   }
 
   for (int64_t i = 0; i < ncols; ++i){
     BoolColumn *maskcol = dynamic_cast<BoolColumn*>(maskdt->columns[i]);
     if (!maskcol) {
-      throw Error("Column %lld in mask is not of a boolean type", i);
+      throw ValueError() << "Column " << i
+                         << " in mask is not of a boolean type";
     }
     Column *col = columns[i];
     col->apply_na_mask(maskcol);

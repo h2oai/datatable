@@ -34,6 +34,9 @@ class DataTable;
 #define DT_METHOD1(name) \
     {dtvar_##name, (PyCFunction)meth_##name, METH_VARARGS, dtdoc_##name}
 
+#define DT_METHOD1es(name) \
+    {dtvar_##name, (PyCFunction)pyes_##name, METH_VARARGS, dtdoc_##name}
+
 
 PyObject* none(void);
 PyObject* incref(PyObject *x);
