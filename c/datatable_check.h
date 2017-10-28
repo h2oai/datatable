@@ -67,14 +67,8 @@ public:
 char*
 repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1);
 
-__attribute__ ((format (printf, 2, 0)))
-void push_error(std::vector<char> *out, const char* format, ...);
-size_t array_size(void *ptr, size_t elemsize);
 
-#define ERR(...) do {                                                           \
-  if (nerrors++ <= max_errors)                                                  \
-    push_error(errors, __VA_ARGS__);                                            \
-  } while(0)
+size_t array_size(void *ptr, size_t elemsize);
 
 
 #endif

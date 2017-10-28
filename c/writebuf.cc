@@ -41,16 +41,16 @@ size_t FileWritableBuffer::prep_write(size_t size, const void* src)
   ssize_t r = ::write(file->descriptor(), src, size);
 
   if (r == -1) {
-    throw Error("Error %d writing to file: %s (bytes already written: %zu)",
-                errno, strerror(errno), bytes_written);
+    throw RuntimeError() << "Cannot write to file: " << Errno
+                         << " (bytes already written: " << bytes_written << ")";
   }
   if (r < static_cast<ssize_t>(size)) {
     // This could happen if: (a) there is insufficient space on the target
     // physical medium, (b) RLIMIT_FSIZE resource limit is encountered,
     // (c) the call was interrupted by a signal handler before all data was
     // written.
-    throw Error("Output to file truncated: %zd out of %zu bytes written",
-                r, size);
+    throw RuntimeError() << "Output to file truncated: " << r << " out of "
+                         << size << " bytes written";
   }
   bytes_written += size;
   return bytes_written;
@@ -169,7 +169,7 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
 {
   buffer = malloc(size);
   if (!buffer) {
-    throw Error("Unable to allocate memory buffer of size %zu", size);
+    throw MemoryError() << "Unable to allocate memory buffer of size " << size;
   }
 }
 
@@ -183,8 +183,9 @@ MemoryWritableBuffer::~MemoryWritableBuffer()
 void MemoryWritableBuffer::realloc(size_t newsize)
 {
   buffer = ::realloc(buffer, newsize);
-  if (!buffer) throw Error("Unable to allocate memory buffer of size %zu",
-                           newsize);
+  if (!buffer) {
+    throw MemoryError() << "Unable to allocate memory of size " << newsize;
+  }
   allocsize = newsize;
 }
 
@@ -218,12 +219,14 @@ MmapWritableBuffer::~MmapWritableBuffer() {
 
 
 void MmapWritableBuffer::map(int fd, size_t size) {
-  if (buffer) throw Error("buffer is not null");
+  if (buffer) {
+    throw ValueError() << "buffer is not null";
+  }
   buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
     buffer = nullptr;
-    throw Error("Memory map failed for file %s of size %zu: [errno %d] %s",
-                filename.c_str(), size, errno, strerror(errno));
+    throw RuntimeError() << "Memory map failed for file " << filename
+                         << " of size " << size << Errno;
   }
   allocsize = size;
 }

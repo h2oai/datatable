@@ -58,8 +58,8 @@ PyObject* pydatatable_from_buffers(PyObject*, PyObject* args)
     for (int i = 0; i < n; ++i) {
       PyObject *item = PyList_GET_ITEM(list, i);
       if (!PyObject_CheckBuffer(item)) {
-        throw Error("Element %d in the list of sources does not support "
-                    "buffers interface", i);
+        throw ValueError() << "Element " << i << " in the list of sources "
+                           << "does not support buffers interface";
       }
       Py_buffer* view;
       dtcalloc(view, Py_buffer, 1);
@@ -74,12 +74,15 @@ PyObject* pydatatable_from_buffers(PyObject*, PyObject* args)
         ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
       }
       if (ret != 0) {
-        if (!PyErr_Occurred())
-          throw Error("Unable to retrieve buffer for column %d", i);
-        return nullptr;
+        if (PyErr_Occurred()) {
+          throw PyError();
+        } else {
+          throw RuntimeError() << "Unable to retrieve buffer for column " << i;
+        }
       }
       if (view->ndim != 1) {
-        throw Error("Buffer has ndim=%d, cannot handle", view->ndim);
+        throw NotImplError() << "Buffer has ndim=" << view->ndim
+                             << ", cannot handle";
       }
 
       SType stype = stype_from_format(view->format, view->itemsize);
@@ -239,10 +242,10 @@ static int column_getbuffer(Column_PyObject* self, Py_buffer* view, int flags)
       // Do not provide a writable array (this may violate all kinds of internal
       // assumptions about the data). Instead let the requester ask again, this
       // time for a read-only buffer.
-      throw Error("Cannot create a writable buffer for a Column");
+      throw ValueError() << "Cannot create a writable buffer for a Column";
     }
     if (stype_info[col->stype()].varwidth) {
-      throw Error("Column's data has variable width");
+      throw ValueError() << "Column's data has variable width";
     }
 
     xinfo = new XInfo();

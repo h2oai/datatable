@@ -50,7 +50,9 @@ public:
     data = col->data();
     strbuf = NULL;
     writer = writers_per_stype[col->stype()];
-    if (!writer) throw Error("Cannot write type %d", col->stype());
+    if (!writer) {
+      throw ValueError() << "Cannot write type " << col->stype();
+    }
     if (col->stype() == ST_STRING_I4_VCHAR) {
       strbuf = reinterpret_cast<char*>(data) - 1;
       data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
@@ -392,8 +394,10 @@ void CsvWriter::write()
     OMPCODE(
       // Note: do not use new[] here, as it can't be safely realloced
       thbuf = static_cast<char*>(malloc(thbufsize));
-      if (!thbuf) throw Error("Unable to allocate %zu bytes for thread-local "
-                              "buffer", thbufsize);
+      if (!thbuf) {
+        throw RuntimeError() << "Unable to allocate " << thbufsize
+                             << " bytes for thread-local buffer";
+      }
     )
 
     // Main data-writing loop
@@ -423,8 +427,10 @@ void CsvWriter::write()
         if (thbufsize < reqsize) {
           thbuf = static_cast<char*>(realloc(thbuf, reqsize));
           thbufsize = reqsize;
-          if (!thbuf) throw Error("Unable to allocate %zu bytes for "
-                                  "thread-local buffer", thbufsize);
+          if (!thbuf) {
+            throw RuntimeError() << "Unable to allocate " << thbufsize
+                                 << " bytes for thread-local buffer";
+          }
         }
 
         // Write the data in rows row0..row1 and in all columns
@@ -633,9 +639,12 @@ void CsvWriter::determine_chunking_strategy(size_t bytes_total, int64_t nrows)
     }
   }
   // This shouldn't really happen, but who knows...
-  throw Error("Unable to determine how to write the file: bytes_total=%zu, "
-              "nrows=%zd, nthreads=%d, min.chunk=%zu, max.chunk=%zu",
-              bytes_total, nrows, nthreads, min_chunk_size, max_chunk_size);
+  throw RuntimeError() << "Unable to determine how to write the file"
+                       << ": bytes_total = " << bytes_total
+                       << ", nrows = " << nrows
+                       << ", nthreads = " << nthreads
+                       << ", min.chunk = " << min_chunk_size
+                       << ", max.chunk = " << max_chunk_size;
 }
 
 

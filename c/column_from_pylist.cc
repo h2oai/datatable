@@ -235,9 +235,12 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
 
 Column* Column::from_pylist(PyObject* list, int stype0, int ltype0)
 {
-  if (stype0 && ltype0) throw Error("Cannot fix both stype and ltype");
-  if (list == NULL || !PyList_Check(list))
-    throw Error("Python list is expected");
+  if (stype0 && ltype0) {
+    throw ValueError() << "Cannot fix both stype and ltype";
+  }
+  if (list == NULL || !PyList_Check(list)) {
+    throw ValueError() << "Python list is expected";
+  }
 
   MemoryBuffer* membuf = new MemoryMemBuf(0);
   MemoryBuffer* strbuf = nullptr;
@@ -274,5 +277,5 @@ Column* Column::from_pylist(PyObject* list, int stype0, int ltype0)
     stype = find_next_stype(stype, stype0, ltype0);
   }
   // Shouldn't be reachable...
-  throw Error("Unable to create a Column from this list");
+  throw RuntimeError() << "Unable to create a Column from this list";
 }

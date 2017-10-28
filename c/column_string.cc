@@ -46,12 +46,12 @@ void StringColumn<T>::replace_buffer(MemoryBuffer* new_offbuf,
 {
   int64_t new_nrows = new_offbuf->size()/sizeof(T) - 1;
   if (new_offbuf->size() % sizeof(T)) {
-    throw Error("The size of `new_offbuf` is not a multiple of "
-                STRINGIFY(sizeof(T)));
+    throw ValueError() << "The size of `new_offbuf` is not a multiple of "
+                          STRINGIFY(sizeof(T));
   }
   if (new_offbuf->get_elem<T>(0) != -1) {
-    throw Error("Cannot use `new_offbuf` as an \"offsets\" buffer: first "
-                "element of this array is not -1");
+    throw ValueError() << "Cannot use `new_offbuf` as an \"offsets\" buffer: "
+                          "first element of this array is not -1";
   }
   // MemoryBuffer* t = new_offbuf->shallowcopy();
   // if (mbuf) mbuf->release();
@@ -258,12 +258,12 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
   int64_t diff_rows = new_nrows - old_nrows;
   if (diff_rows == 0) return;
   if (diff_rows < 0) {
-    throw Error("Column::resize_and_fill() cannot shrink a column");
+    throw RuntimeError() << "Column::resize_and_fill() cannot shrink a column";
   }
 
   if (new_nrows > INT32_MAX && sizeof(T) == 4) {
     // TODO: instead of throwing an error, upcast the column to <int64_t>
-    THROW_ERROR("Nrows is too big for an i4s column: %lld", new_nrows);
+    throw ValueError() << "Nrows is too big for a str32 column: " << new_nrows;
   }
 
   size_t old_data_size = datasize();

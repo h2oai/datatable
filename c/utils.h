@@ -10,10 +10,8 @@
 #include <stdio.h>     // vsnprintf
 #include <errno.h>     // errno
 #include <string.h>    // strerr
-#include <exception>
-#include <mutex>
-#include <stdexcept>
 #include <string>
+#include "exceptions.h"
 
 
 // On Windows variables of type `size_t` cannot be printed with "%zu" in the
@@ -31,58 +29,6 @@ const char* filesize_to_str(size_t filesize);
 inline std::string operator "" _s(const char* str, size_t len) {
   return std::string(str, len);
 }
-
-
-
-//------------------------------------------------------------------------------
-
-/**
- * Helper class to throw exceptions with nicely formatted messages.
- */
-class Error : public std::exception {
-  char msg[1000];
-public:
-  Error() {}
-  Error(char const* format, ...) __attribute__((format(printf, 2, 3))) {
-    va_list vargs;
-    va_start(vargs, format);
-    vsnprintf(msg, 1000, format, vargs);
-    va_end(vargs);
-  }
-  char const* what() const throw() { return msg; }
-};
-
-#define APPLY(macro, arg) macro(arg)
-#define STRINGIFY_(L) #L
-#define STRINGIFY(x) APPLY(STRINGIFY_, x)
-#define THROW_ERROR(fmt, ...) \
-  throw Error(__FILE__ "(" STRINGIFY(__LINE__) "): " fmt, __VA_ARGS__);
-
-
-/**
- * Helper class for dealing with exceptions inside OMP code: it allows one to
- * capture exceptions that occur, and then re-throw them later after the OMP
- * region.
- * ----
- * Adapted from StackOverflow question <stackoverflow.com/questions/11828539>
- * by user Grizzly <stackoverflow.com/users/201270/grizzly>.
- * Licensed under CC BY-SA 3.0 <http://creativecommons.org/licenses/by-sa/3.0/>
- */
-class OmpExceptionManager {
-  std::exception_ptr ptr;
-  std::mutex lock;
-public:
-  OmpExceptionManager(): ptr(nullptr) {}
-  ~OmpExceptionManager() {}
-  bool exception_caught() { return bool(ptr); }
-  void capture_exception() {
-    std::unique_lock<std::mutex> guard(this->lock);
-    if (!ptr) ptr = std::current_exception();
-  }
-  void rethrow_exception_if_any() {
-    if (ptr) std::rethrow_exception(ptr);
-  }
-};
 
 
 
@@ -112,6 +58,10 @@ public:
 // Finally, this expands into `sizeof(char)` if T is void, into `sizeof(char*)`
 // if T is void*, and into `sizeof(<T>)` in all other cases.
 #define SIZEOF(T) zIIF(zIS_T_VOID(T))(sizeof(zEXPANDT2(T)), sizeof(T))
+
+#define APPLY(macro, arg) macro(arg)
+#define STRINGIFY_(L) #L
+#define STRINGIFY(x) APPLY(STRINGIFY_, x)
 
 /**
  * Use this macro to malloc a memory region and assign it to a variable. For

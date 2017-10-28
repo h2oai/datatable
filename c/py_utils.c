@@ -183,12 +183,12 @@ char** _to_string_list(PyObject *x) {
 bool get_attr_bool(PyObject *pyobj, const char *attr, bool res)
 {
   PyObject *x = PyObject_GetAttrString(pyobj, attr);
-  if (!x) throw std::exception();
+  if (!x) throw PyError();
   if (x == Py_True) res = true;
   else if (x == Py_False) res = false;
   else if (x != Py_None) {
     Py_DECREF(x);
-    throw Error("Attribute %s is not boolean", attr);
+    throw ValueError() << "Attribute `" << attr << "` is not boolean";
   }
   Py_DECREF(x);
   return res;
@@ -204,12 +204,12 @@ bool get_attr_bool(PyObject *pyobj, const char *attr, bool res)
 int64_t get_attr_int64(PyObject *pyobj, const char *attr, int64_t res)
 {
   PyObject *x = PyObject_GetAttrString(pyobj, attr);
-  if (!x) throw std::exception();
+  if (!x) throw PyError();
   if (PyLong_Check(x)) {
     res = static_cast<int64_t>(PyLong_AsLongLong(x));
   } else if (x != Py_None) {
     Py_DECREF(x);
-    throw Error("Attribute %s is not integer", attr);
+    throw ValueError() << "Attribute `" << attr << "` is not integer";
   }
   Py_DECREF(x);
   return res;
@@ -238,16 +238,15 @@ std::string get_attr_string(PyObject *pyobj, const char *attr)
 {
   PyObject *x = PyObject_GetAttrString(pyobj, attr);
   PyObject *z = NULL;
-  if (!x) {
-    throw std::exception();
-  } else if (PyUnicode_Check(x)) {
+  if (!x) throw PyError();
+  if (PyUnicode_Check(x)) {
     z = PyUnicode_AsEncodedString(x, "utf-8", "strict");
   } else if (PyBytes_Check(x)) {
     z = x;
     Py_INCREF(x);
   } else if (x == Py_None) {
   } else {
-    throw Error("Attribute %s is not a string", attr);
+    throw ValueError() << "Attribute `" << attr << "` is not a string";
   }
   // This will copy the contents of z
   std::string res(z? PyBytes_AsString(z) : "");
@@ -291,7 +290,7 @@ void get_attr_stringlist(PyObject *pyobj, const char *attr,
                          std::vector<std::string>& res)
 {
   PyObject *x = PyObject_GetAttrString(pyobj, attr);
-  if (!x) throw std::exception();
+  if (!x) throw PyError();
 
   if (x == Py_None) {}
   else if (PyList_Check(x) || PyTuple_Check(x)) {
@@ -303,21 +302,18 @@ void get_attr_stringlist(PyObject *pyobj, const char *attr,
       PyObject *item = islist? PyList_GetItem(x, i) : PyTuple_GetItem(x, i);
       if (PyUnicode_Check(item)) {
         PyObject *y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
-        if (!y) throw std::exception();
+        if (!y) throw PyError();
         res.push_back(PyBytes_AsString(y));
         Py_DECREF(y);
       } else if (PyBytes_Check(item)) {
         res.push_back(PyBytes_AsString(item));
       } else {
-        PyErr_Format(PyExc_TypeError,
-          "Argument %d in the list is not a string: %R (%R)",
-          i, item, PyObject_Type(item));
-        throw std::exception();
+        throw TypeError() << "Argument " << i << " in the list is not a string"
+                          << ": " << item << " (" << PyObject_Type(item) << ")";
       }
     }
   } else {
-    PyErr_Format(PyExc_TypeError, "A list of strings is expected, got %R", x);
-    throw std::exception();
+    throw TypeError() << "A list of strings is expected, got " << x;
   }
   Py_XDECREF(x);
 }

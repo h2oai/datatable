@@ -94,8 +94,10 @@ RowIndex::RowIndex(int64_t start, int64_t count, int64_t step) :
     // check that 0 <= start, count, start + (count-1)*step <= INT64_MAX
     if (start < 0 || count < 0 ||
         (count > 1 && step < -(start/(count - 1))) ||
-        (count > 1 && step > (INT64_MAX - start)/(count - 1)))
-        throw Error("Invalid RowIndex slice (%lld:%lld:%lld)", start, start + step * count, step);
+        (count > 1 && step > (INT64_MAX - start)/(count - 1))) {
+        throw ValueError() << "Invalid RowIndex slice (" << start << ":"
+                           << start + step * count << ":" << step << ")";
+    }
     slice.start = start;
     slice.step = step;
     min = !count? 0 : step >= 0? start : start + step * (count - 1);
@@ -116,7 +118,9 @@ RowIndex::RowIndex(
     int64_t *starts, int64_t *counts, int64_t *steps, int64_t n) :
     refcount(1)
 {
-    if (n < 0) throw Error("Invalid slice array length: %lld", n);
+    if (n < 0) {
+        throw ValueError() << "Invalid slice array length: " << n;
+    }
 
     // Compute the total number of elements, and the largest index that needs
     // to be stored. Also check for potential overflows / invalid values.
@@ -129,8 +133,10 @@ RowIndex::RowIndex(
         if (len == 0) continue;
         if (len < 0 || start < 0 || count + len > INT64_MAX ||
             (len > 1 && step < -(start/(len - 1))) ||
-            (len > 1 && step > (INT64_MAX - start)/(len - 1)))
-            throw Error("Invalid RowIndex slice (%lld:%lld:%lld)", start, start + step * len, step);
+            (len > 1 && step > (INT64_MAX - start)/(len - 1))) {
+            throw ValueError() << "Invalid RowIndex slice (" << start << ":"
+                               << start + step * len << ":" << step << ")";
+        }
         int64_t end = start + step * (len - 1);
         if (start < minidx) minidx = start;
         if (start > maxidx) maxidx = start;
@@ -189,7 +195,9 @@ RowIndex::RowIndex(int32_t *array, int64_t n, int issorted) :
     type(RI_ARR32),
     refcount(1)
 {
-    if (n < 0 || n > INT32_MAX) throw Error("Invalid int32 array length: %lld", n);
+    if (n < 0 || n > INT32_MAX) {
+        throw ValueError() << "Invalid int32 array length: " << n;
+    }
     if (n == 0) {
         min = 0;
         max = 0;
@@ -217,7 +225,9 @@ RowIndex::RowIndex(int64_t *array, int64_t n, int issorted) :
     type(RI_ARR64),
     refcount(1)
 {
-    if (n < 0) throw Error("Invalid int32 array length: %lld", n);
+    if (n < 0) {
+        throw ValueError() << "Invalid int64 array length: " << n;
+    }
     if (n == 0) {
         min = 0;
         max = 0;
@@ -250,7 +260,7 @@ RowIndex::RowIndex(int64_t *array, int64_t n, int issorted) :
 RowIndex* RowIndex::from_boolcolumn(Column *col, int64_t nrows)
 {
     if (stype_info[col->stype()].ltype != LT_BOOLEAN)
-        throw Error("Column is not of boolean type");
+        throw ValueError() << "Column is not of boolean type";
     int8_t *data = (int8_t*) col->data();
     int64_t nout = 0;
     int64_t maxrow = 0;
@@ -342,7 +352,7 @@ RowIndex* RowIndex::from_column(Column *col)
     } break;
 
     default:
-        throw Error("Column in not of boolean or integer type");
+        throw ValueError() << "Column in not of boolean or integer type";
     }
     return res;
 }
@@ -358,8 +368,9 @@ RowIndex* RowIndex::from_column(Column *col)
  */
 RowIndex* RowIndex::from_intcolumn(Column *col, int is_temp_column)
 {
-    if (stype_info[col->stype()].ltype != LT_INTEGER)
-        throw Error("Column is not of integer type");
+    if (stype_info[col->stype()].ltype != LT_INTEGER) {
+        throw ValueError() << "Column is not of integer type";
+    }
 
     RowIndex* res = NULL;
     if (col->stype() == ST_INTEGER_I1 || col->stype() == ST_INTEGER_I2) {
@@ -600,7 +611,9 @@ RowIndex* RowIndex::merge(RowIndex *ri_ab, RowIndex *ri_bc)
 RowIndex* RowIndex::from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows,
                          int issorted)
 {
-    if (nrows > INT32_MAX) throw Error("nrows (%lld) exceeds scope of int32", nrows);
+    if (nrows > INT32_MAX) {
+        throw ValueError() << "nrows = " << nrows << " exceeds range of int32";
+    }
 
     // Output buffer, where we will write the indices of selected rows. This
     // buffer is preallocated to the length of the original dataset, and it will
@@ -687,7 +700,7 @@ RowIndex* RowIndex::from_filterfn32(rowindex_filterfn32 *filterfn, int64_t nrows
 
 RowIndex* RowIndex::from_filterfn64(rowindex_filterfn64*, int64_t, int)
 {
-    throw Error("Not implemented");
+    throw NotImplError();
 }
 
 
