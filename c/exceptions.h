@@ -58,10 +58,12 @@ public:
   Error& operator<<(int32_t);
   Error& operator<<(int8_t);
   Error& operator<<(size_t);
-  Error& operator<<(ssize_t);
   Error& operator<<(SType);
   Error& operator<<(const CErrno&);
   Error& operator<<(PyObject*);
+  #ifdef __APPLE__
+    Error& operator<<(ssize_t);
+  #endif
 
   virtual const char* what() const noexcept;
 

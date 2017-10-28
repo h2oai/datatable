@@ -381,8 +381,8 @@ void CsvWriter::write()
   {
     #pragma omp single
     {
-      VLOG("Writing file using %lld chunks, with %.1f rows per chunk\n",
-           nchunks, rows_per_chunk);
+      VLOG("Writing file using %zu chunks, with %.1f rows per chunk\n",
+           static_cast<size_t>(nchunks), rows_per_chunk);
       VLOG("Using nthreads = %d\n", omp_get_num_threads());
       VLOG("Initial buffer size in each thread: %zu\n", bytes_per_chunk*2);
     }
