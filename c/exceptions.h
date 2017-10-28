@@ -26,12 +26,14 @@
 
 
 #define MAKE_EXCEPTION_SAFE(fn)                                                \
-  PyObject* pyes_ ## fn(PyObject* self, PyObject* args) {                      \
+  static PyObject* pyes_ ## fn(PyObject* self, PyObject* args) {               \
     try {                                                                      \
       return fn(self, args);                                                   \
-    } catch (const Error& err) {                                               \
+    } catch (Error& err) {                                                     \
       err.topython();                                                          \
-    } catch (...) {}                                                           \
+    } catch (std::exception& e) {                                              \
+      (Error() << e.what()).topython();                                        \
+    }                                                                          \
     return nullptr;                                                            \
   }
 
