@@ -1,6 +1,7 @@
 #include <Python.h>
 #include "capi.h"
 #include "csv/py_fread.h"
+#include "csv/reader.h"
 #include "csv/writer.h"
 #include "py_column.h"
 #include "py_columnset.h"
@@ -119,6 +120,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0_(datatable_load),
     METHODv(datatable_from_buffers),
     METHOD0_(fread),
+    METHOD0_(gread),
     METHOD0_(write_csv),
     METHOD0_(exec_function),
     METHOD0_(register_function),

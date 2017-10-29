@@ -13,6 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
+#include "csv/reader.h"
 #include "csv/writer.h"
 #include <exception>
 #include <vector>
@@ -80,11 +81,28 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
       result = none();
     }
 
+  } catch (const Error& e) {
+    e.topython();
   } catch (const std::exception& e) {
     exception_to_python(e);
   }
   Py_XDECREF(pywriter);
   return result;
+}
+
+
+PyObject* gread(PyObject*, PyObject* args)
+{
+  PyObject* pyrdr = nullptr;
+  if (!PyArg_ParseTuple(args, "O:gread", &pyrdr)) return nullptr;
+
+  try {
+    GenericReader rdr(pyrdr);
+    return rdr.read();
+
+  } catch (const Error& e) {
+    e.topython();
+  }
 }
 
 
