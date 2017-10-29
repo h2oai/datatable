@@ -13,8 +13,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_EXCEPTIONS_H
-#define dt_EXCEPTIONS_H
+#ifndef dt_UTILS_EXCEPTIONS_H
+#define dt_UTILS_EXCEPTIONS_H
 #include <Python.h>
 #include <stdint.h>
 #include <exception>
