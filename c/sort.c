@@ -55,7 +55,7 @@
 #include <string.h>  // memcpy
 #include "myomp.h"
 #include "column.h"
-#include "myassert.h"
+#include "utils/assert.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "types.h"

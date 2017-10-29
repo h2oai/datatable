@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm> // min
-#include "myassert.h"
+#include "utils/assert.h"
 #include "rowindex.h"
 #include "myomp.h"
 #include "types.h"

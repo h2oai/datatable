@@ -1,5 +1,5 @@
 #include "datatable.h"
-#include "myassert.h"
+#include "utils/assert.h"
 #include "rowindex.h"
 #include "utils.h"
 

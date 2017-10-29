@@ -20,7 +20,7 @@
 #include <cstdlib>     // atoll
 #include "datatable_check.h"
 #include "file.h"
-#include "myassert.h"
+#include "utils/assert.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
