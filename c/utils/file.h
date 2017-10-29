@@ -13,8 +13,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_FILE_H
-#define dt_FILE_H
+#ifndef dt_UTILS_FILE_H
+#define dt_UTILS_FILE_H
 #include "sys/stat.h"  // fstat
 #include <string>      // std::string
 

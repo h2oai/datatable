@@ -12,7 +12,7 @@
   #include <math.h>      // ceil, sqrt, isfinite
 #endif
 #include <stdbool.h>     // bool, true, false
-#include "file.h"
+#include "utils/file.h"
 
 
 // Private globals to save passing all of them through to highly iterated field processors
