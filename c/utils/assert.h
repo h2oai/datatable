@@ -13,41 +13,28 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_FILE_H
-#define dt_FILE_H
-#include "sys/stat.h"  // fstat
-#include <string>      // std::string
+#ifndef dt_UTILS_ASSERT_H
+#define dt_UTILS_ASSERT_H
 
+#ifdef NDEBUG
+  // Macro NDEBUG, if present, disables all assert statements. Unfortunately,
+  // Python turns on this macro by default, so we need to turn it off
+  // explicitly.
+  #ifdef NONDEBUG
+    #undef NDEBUG
+  #endif
+#endif
+#include <assert.h>  // assert, dt_static_assert
 
-class File
-{
-  std::string name;
-  mutable struct stat statbuf;
-  int fd;
-  int : 32;
-
-public:
-  static const int READ;
-  static const int READWRITE;
-  static const int CREATE;
-  static const int OVERWRITE;
-
-  File(const std::string& file);
-  File(const std::string& file, int flags, mode_t mode = 0666);
-  ~File();
-
-  int descriptor() const;
-  size_t size() const;
-  static size_t asize(const std::string& filename);
-  void resize(size_t newsize);
-  void assert_is_not_dir() const;
-  const char* cname() const;
-
-  static void remove(const std::string& name, bool except = false);
-
-private:
-  void load_stats() const;
-};
+#ifdef static_assert
+  #define dt_static_assert static_assert
+#else
+  // Some system libraries fail to define this macro :( At least 3 people have
+  // reported having this problem on the first day of testing, so it's not
+  // that uncommon.
+  // In this case we just disable the checks.
+  #define dt_static_assert(x, y)
+#endif
 
 
 #endif

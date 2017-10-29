@@ -5,7 +5,7 @@
 #include <stdlib.h>  // size_t
 #include "utils.h"
 #ifdef DTPY
-  #include "myomp.h"
+  #include "utils/omp.h"
   #include "py_fread.h"
 #else
   #include <omp.h>

@@ -1,7 +1,7 @@
 #include <stdlib.h>  // abs
 #include <string.h>  // memcpy
 #include "datatable.h"
-#include "myassert.h"
+#include "utils/assert.h"
 #include "utils.h"
 
 

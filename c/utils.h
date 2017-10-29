@@ -11,7 +11,7 @@
 #include <errno.h>     // errno
 #include <string.h>    // strerr
 #include <string>
-#include "exceptions.h"
+#include "utils/exceptions.h"
 
 
 // On Windows variables of type `size_t` cannot be printed with "%zu" in the

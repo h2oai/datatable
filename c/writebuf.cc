@@ -17,7 +17,7 @@
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
-#include "myomp.h"
+#include "utils/omp.h"
 #include "utils.h"
 
 

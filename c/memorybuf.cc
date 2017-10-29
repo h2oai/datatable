@@ -20,8 +20,8 @@
 #include <unistd.h>    // sysconf
 #include <algorithm>   // min
 #include "datatable_check.h"
-#include "file.h"
-#include "myassert.h"
+#include "utils/file.h"
+#include "utils/assert.h"
 #include "py_utils.h"
 #include "utils.h"
 

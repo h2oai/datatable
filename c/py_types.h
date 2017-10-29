@@ -1,6 +1,6 @@
 #ifndef dt_PY_TYPES_H
 #define dt_PY_TYPES_H
-#include "myassert.h"
+#include "utils/assert.h"
 #include <Python.h>
 #include "types.h"
 #include "datatable.h"

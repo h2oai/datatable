@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm> // min
-#include "myassert.h"
+#include "utils/assert.h"
 #include "rowindex.h"
-#include "myomp.h"
+#include "utils/omp.h"
 #include "types.h"
 #include "utils.h"
 #include "datatable_check.h"

@@ -24,7 +24,7 @@
 #include "datatable.h"
 #include "math.h"
 #include "memorybuf.h"
-#include "myomp.h"
+#include "utils/omp.h"
 #include "types.h"
 #include "utils.h"
 

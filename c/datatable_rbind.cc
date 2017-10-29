@@ -1,6 +1,8 @@
 #include "datatable.h"
 #include <vector>
-#include "myassert.h"
+#include "column.h"
+#include "utils.h"
+#include "utils/assert.h"
 
 
 
@@ -41,7 +43,7 @@ DataTable* DataTable::rbind(DataTable **dts, int **cols, int ndts,
         for (size_t j = 0; j < undts; ++j) {
             int k = cols[i][j];
             Column* col = k < 0 ? new VoidColumn(dts[j]->nrows)
-                                      : dts[j]->columns[k]->shallowcopy();
+                                : dts[j]->columns[k]->shallowcopy();
             col->reify();
             cols_to_append[j] = col;
         }

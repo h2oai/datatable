@@ -53,9 +53,9 @@
 #include <stdlib.h>  // abs
 #include <stdio.h>   // printf
 #include <string.h>  // memcpy
-#include "myomp.h"
+#include "utils/omp.h"
 #include "column.h"
-#include "myassert.h"
+#include "utils/assert.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "types.h"

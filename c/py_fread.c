@@ -18,9 +18,9 @@
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
-#include "file.h"
+#include "utils/file.h"
 #include "memorybuf.h"
-#include "myassert.h"
+#include "utils/assert.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_utils.h"
