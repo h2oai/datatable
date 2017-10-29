@@ -19,7 +19,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "Python.h"
-#include "myomp.h"
+#include "utils/omp.h"
 #include "utils.h"
 #include "py_datatable.h"
 #include "py_fread.h"

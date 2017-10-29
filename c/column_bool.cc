@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <Python.h>
-#include "myomp.h"
+#include "utils/omp.h"
 
 
 

@@ -14,7 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
-#include "myomp.h"
+#include "utils/omp.h"
 #include "py_utils.h"
 
 

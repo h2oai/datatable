@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include "datatable.h"
 #include <stdlib.h>
-#include "myomp.h"
+#include "utils/omp.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
