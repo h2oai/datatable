@@ -7,6 +7,17 @@
 #include <Python.h>
 #include "utils.h"
 
+#define DECLARE_API_FUNCTION(name, docstring, home)                            \
+  namespace py {                                                               \
+    PyObject* name(PyObject* self, PyObject* args);                            \
+    IF1(home                                                                   \
+    , char doc_##name[] = docstring;                                           \
+      char name_##name[] = #name;                                              \
+    , extern char doc_##name[];                                                \
+      extern char name_##name[];                                               \
+    )                                                                          \
+  }
+
 
 #define DT_DOCS(name, doc) \
     static char dtvar_##name[] = #name; \

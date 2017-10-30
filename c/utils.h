@@ -47,6 +47,7 @@ inline std::string operator "" _s(const char* str, size_t len) {
 #define zIIF(c) zPRIMITIVE_CAT(zIIF_, c)
 #define zTEST1_void x,1,
 #define zTEST2_void char
+#define zTEST3_1 ~,1,
 // This expands into `x,1,` if T is void, into `x,1,*` if T is void*, or into
 // `zTEST1_<T>` otherwise.
 #define zEXPANDT1(T) zCAT(zTEST1_, T)
@@ -58,6 +59,12 @@ inline std::string operator "" _s(const char* str, size_t len) {
 // Finally, this expands into `sizeof(char)` if T is void, into `sizeof(char*)`
 // if T is void*, and into `sizeof(<T>)` in all other cases.
 #define SIZEOF(T) zIIF(zIS_T_VOID(T))(sizeof(zEXPANDT2(T)), sizeof(T))
+
+// This macro expands to `t` if symbol `x` is defined and equal to 1, and to
+// `f` otherwise.
+#define IS1(x, t, f) zIIF(zCHECK(zPRIMITIVE_CAT(zTEST3_, x)))(t, f)
+
+
 
 #define APPLY(macro, arg) macro(arg)
 #define STRINGIFY_(L) #L
