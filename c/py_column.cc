@@ -63,13 +63,14 @@ DT_DOCS(meta, "String representation of the column's `meta` struct")
 static PyObject* get_meta(Column_PyObject *self) {
   CATCH_EXCEPTIONS(
     Column *col = self->ref;
-    void *meta = col->meta;
     switch (col->stype()) {
         case ST_STRING_I4_VCHAR:
+            return PyUnicode_FromFormat("offoff=%ld",
+                                        static_cast<StringColumn<int32_t>*>(col)->meta());
         case ST_STRING_I8_VCHAR:
             return PyUnicode_FromFormat("offoff=%lld",
-                                        ((VarcharMeta*)meta)->offoff);
-        case ST_STRING_FCHAR:
+                                        static_cast<StringColumn<int64_t>*>(col)->meta());
+        /*case ST_STRING_FCHAR:
             return PyUnicode_FromFormat("n=%d", ((FixcharMeta*)meta)->n);
         case ST_REAL_I2:
         case ST_REAL_I4:
@@ -82,12 +83,13 @@ static PyObject* get_meta(Column_PyObject *self) {
             EnumMeta *m = (EnumMeta*) meta;
             return PyUnicode_FromFormat("offoff=%lld&dataoff=%lld&nlevels=%d",
                                         m->offoff, m->dataoff, m->nlevels);
-        }
+        }*/
         default:
-            if (meta == NULL)
+          return none();
+            /*if (meta == NULL)
                 return none();
             else
-                return PyUnicode_FromFormat("%p", meta);
+                return PyUnicode_FromFormat("%p", meta);*/
     }
   );
 }
