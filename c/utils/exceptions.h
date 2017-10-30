@@ -37,6 +37,16 @@
     return nullptr;                                                            \
   }
 
+// TODO: remove this macro, replacing with `MAKE_EXCEPTION_SAFE`
+#define CATCH_EXCEPTIONS(CODE)                                                 \
+  try {                                                                        \
+    CODE                                                                       \
+  } catch (const std::exception& e) {                                          \
+    PyErr_SetString(PyExc_RuntimeError, e.what());                             \
+    return NULL;                                                               \
+  }
+
+
 class CErrno {};
 extern CErrno Errno;
 

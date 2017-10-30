@@ -161,19 +161,27 @@ static inline void skip_white(const char **pch) {
 }
 
 
+static inline bool on_eol(const char* ch) {
+  return (*ch==eol && ch[eolLen-1]==eol2) || *ch=='\0';
+}
+
+static inline void skip_eol(const char** pch) {
+  *pch += **pch=='\0'? 1 : eolLen;
+}
+
 static inline bool on_sep(const char **pch) {
   const char *ch = *pch;
   if (sep==' ' && *ch==' ') {
     while (*(ch+1)==' ') ch++;  // move to last of this sequence of spaces
-    if (*(ch+1)==eol) ch++;    // if that's followed by eol then move over
+    if (*(ch+1)==eol) ch++;    // if that's followed by EOL then move over
   }
   *pch = ch;
-  return *ch==sep || *ch==eol;
+  return *ch==sep || on_eol(ch);
 }
 
 static inline void next_sep(const char **pch) {
   const char *ch = *pch;
-  while (*ch!=sep && *ch!=eol) ch++;
+  while (*ch!=sep && !on_eol(ch)) ch++;
   on_sep(&ch); // to deal with multiple spaces when sep==' '
   *pch = ch;
 }
@@ -187,7 +195,7 @@ static inline bool is_NAstring(const char *fieldStart) {
     while (*ch1 == *ch2) { ch1++; ch2++; }  // not using strncmp due to eof not being '\0'
     if (*ch2=='\0') {
       skip_white(&ch1);
-      if (*ch1==sep || *ch1==eol) return true;
+      if (*ch1==sep || on_eol(ch1)) return true;
       // if "" is in NAstrings then true will be returned as intended
     }
     nastr++;
@@ -198,7 +206,7 @@ static inline bool is_NAstring(const char *fieldStart) {
 
 /**
  * Compute the number of fields on the current line (taking into account the
- * global `sep`, `eol` and `quoteRule`), and move the parsing location to the
+ * global `sep`, `on_eol` and `quoteRule`), and move the parsing location to the
  * beginning of the next line.
  * Returns the number of fields on the current line, or -1 if the line cannot
  * be parsed using current settings.
@@ -212,8 +220,9 @@ static inline int countfields(const char **pch, const char **end, const char *so
   skip_white(&ch);
 
   int ncol = 0;
-  if (*ch==eol) {
-    *pch = ch + eolLen;
+  if (on_eol(ch)) {
+    skip_eol(&ch);
+    *pch = ch;
     return 0;
   }
   while (1) {
@@ -233,9 +242,9 @@ static inline int countfields(const char **pch, const char **end, const char *so
         res = parse_string_continue(&ch, &trash);
       }
     }
-    // Field() leaves *ch resting on sep or eol. Checked inside Field().
+    // Field() leaves *ch resting on sep or EOL. Checked inside Field().
     ncol++;
-    if (*ch==eol) { ch+=eolLen; break; }
+    if (on_eol(ch)) { skip_eol(&ch); break; }
     ch++;  // move over sep (which will already be last ' ' if sep=' ').
   }
   *pch = ch;
@@ -254,8 +263,8 @@ static inline bool nextGoodLine(const char **pch, int ncol, const char *eof)
   // the line number and error message to be worked out up there.
   int attempts=0;
   while (ch<eof && attempts++<30) {
-    while (*ch!=eol) ch++;
-    ch += eolLen;
+    while (!on_eol(ch)) ch++;
+    skip_eol(&ch);
     int i = 0, thisNcol=0;
     const char *ch2 = ch;
     const char *end = eof;
@@ -329,7 +338,7 @@ static int Field(const char **pch, lenOff *target)
 
   if (*ch!=quote || quoteRule==3) {
     // unambiguously not quoted. simply search for sep|eol. If field contains sep|eol then it must be quoted instead.
-    while(*ch!=sep && *ch!=eol) ch++;
+    while(*ch!=sep && !on_eol(ch)) ch++;
   } else {
     // the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
     // or the field is quoted but quotes are not escaped (quoteRule 2)
@@ -342,17 +351,18 @@ static int Field(const char **pch, lenOff *target)
         // The field may have embedded newlines. The field ends when the first
         // undoubled quote character is encountered.
         ch = fieldStart;
-        while (*ch!=eol) {
+        while (!on_eol(ch)) {
           if (*ch==quote) {
             if (ch[1] == quote) ch++;
             else break;
           }
           ch++;
         }
-        if (*ch==eol) {
+        if (on_eol(ch)) {
           target->len = (int32_t)(ch - fieldStart) + eolLen;
           target->off = (int32_t)(fieldStart - *pch);
-          *pch = ch + eolLen;
+          skip_eol(&ch);
+          *pch = ch;
           return 2;
         }
         break;
@@ -362,13 +372,14 @@ static int Field(const char **pch, lenOff *target)
         // the backslash character. The field is allowed to have embedded
         // newlines. The field ends when the first unescaped quote is found.
         ch = fieldStart;
-        while (*ch!=eol && *ch!=quote) {
+        while (!on_eol(ch) && *ch!=quote) {
           ch += 1 + (*ch == '\\' && ch[1] != eol);
         }
-        if (*ch==eol) {
+        if (on_eol(ch)) {
           target->len = (int32_t)(ch - fieldStart) + eolLen;
           target->off = (int32_t)(fieldStart - *pch);
-          *pch = ch + eolLen;
+          skip_eol(&ch);
+          *pch = ch;
           return 2;
         }
         break;
@@ -381,15 +392,16 @@ static int Field(const char **pch, lenOff *target)
         // followed by a separator. This rule doesn't allow embedded newlines
         // inside fields.
         const char *ch2 = ch;
-        while (*(++ch)!=eol) {
-          if (*ch==quote && (*(ch+1)==sep || *(ch+1)==eol)) {ch2=ch; break;}   // (*1) regular ", ending
+        ch = fieldStart;
+        while (!on_eol(++ch)) {
+          if (*ch==quote && (*(ch+1)==sep || on_eol(ch+1))) {ch2=ch; break;}   // (*1) regular ", ending
           if (*ch==sep) {
             // first sep in this field
             // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
             // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
             ch2 = ch;
-            while (*(++ch2)!=eol) {
-              if (*ch2==quote && (*(ch2+1)==sep || *(ch2+1)==eol)) {
+            while (!on_eol(++ch2)) {
+              if (*ch2==quote && (*(ch2+1)==sep || on_eol(ch2+1))) {
                 ch = ch2; // (*2) move on to that first ", -- that's this field's ending
                 break;
               }
@@ -431,7 +443,7 @@ static int parse_string_continue(const char **ptr, lenOff *target)
   const char *ch = *ptr;
   ASSERT(quoteRule <= 1);
   if (quoteRule == 0) {
-    while (*ch != eol) {
+    while (!on_eol(ch)) {
       if (*ch == quote) {
         if (ch[1] == quote) ch++;
         else break;
@@ -439,13 +451,14 @@ static int parse_string_continue(const char **ptr, lenOff *target)
       ch++;
     }
   } else {
-    while (*ch != eol && *ch != quote) {
+    while (!on_eol(ch) && *ch != quote) {
       ch += 1 + (*ch == '\\' && ch[1] != eol);
     }
   }
-  if (*ch == eol) {
+  if (on_eol(ch)) {
     target->len += (int32_t)(ch - *ptr + eolLen);
-    *ptr = ch + eolLen;
+    skip_eol(&ch);
+    *ptr = ch;
     return 2;
   } else {
     ASSERT(*ch == quote);
@@ -464,7 +477,7 @@ static int parse_string_continue(const char **ptr, lenOff *target)
 static int StrtoI64(const char **pch, int64_t *target)
 {
   // Specialized clib strtoll that :
-  // i) skips leading isspace() too but other than field separator and eol (e.g. '\t' and ' \t' in FUT1206.txt)
+  // i) skips leading isspace() too but other than field separator and EOL (e.g. '\t' and ' \t' in FUT1206.txt)
   // ii) has fewer branches for speed as no need for non decimal base
   // iii) updates global ch directly saving arguments
   // iv) safe for mmap which can't be \0 terminated on Windows (but can be on unix and mac)
@@ -511,7 +524,7 @@ static int StrtoI64(const char **pch, int64_t *target)
 static int StrtoI32_bare(const char **pch, int32_t *target)
 {
   const char *ch = *pch;
-  if (*ch==sep || *ch==eol) { *target = NA_INT32; return 0; }
+  if (*ch==sep || on_eol(ch)) { *target = NA_INT32; return 0; }
   if (sep==' ') return 1;  // bare doesn't do sep=' '. TODO - remove
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
@@ -524,7 +537,7 @@ static int StrtoI32_bare(const char **pch, int32_t *target)
   }
   *target = neg ? -(int32_t)acc : (int32_t)acc;   // cast 64bit acc to 32bit; range checked in return below
   *pch = ch;
-  return (*ch!=sep && *ch!=eol) ||
+  return (*ch!=sep && !on_eol(ch)) ||
          (acc ? *start=='0' || acc>INT32_MAX || (ch-start)>10 : ch-start!=1);
   // If false, both *target and where *pch is moved on to, are undefined.
   // INT32 range is NA==-2147483648(INT32_MIN) then symmetric [-2147483647,+2147483647] so we can just test INT32_MAX
@@ -1469,7 +1482,7 @@ int freadMain(freadMainArgs _args)
     }
 
   }
-  if (*ch!=eol)
+  if (!on_eol(ch))
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch,30,eof));
   // already checked above that tt==ncol unless fill=TRUE
   // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
@@ -1514,9 +1527,9 @@ int freadMain(freadMainArgs _args)
         ret = parse_string_continue(&ch, colNames + i);
       }
       colNames[i].off += (size_t)(start-colNamesAnchor);
-      if (*ch==eol) break;   // already checked number of fields previously above
+      if (on_eol(ch)) break;   // already checked number of fields previously above
     }
-    if (*ch != eol) STOP("Internal error: reading colnames did not end on eol");
+    ASSERT(on_eol(ch));
     advance_sof_to(ch + eolLen, &sof, &eof, &soh, &eoh);
   }
   int row1Line = line;
@@ -1577,17 +1590,18 @@ int freadMain(freadMainArgs _args)
           (jline<JUMPLINES || j==nJumps-1))
     {  // nJumps==1 implies sample all of input to eof; last jump to eof too
       const char *jlineStart = ch;
+      const char* jlineStart_end = end;
       if (sep==' ') while (*ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
       // detect blank lines
       skip_white(&ch);
-      if (*ch==eol) {
+      if (on_eol(ch)) {
         if (!skipEmptyLines && !fill) break;
         jlineStart = ch;  // to avoid 'Line finished early' below and get to the sampleLines++ block at the end of this while
       }
       jline++;
       int field=0;
       const char *fieldStart = ch;  // Needed outside loop for error messages below
-      while (*ch!=eol && field<ncol) {
+      while (!on_eol(ch) && field<ncol) {
         fieldStart=ch;
         int res;
         while (type[field]<=CT_STRING && (res = fun[type[field]](&ch, trash))) {
@@ -1620,7 +1634,7 @@ int freadMain(freadMainArgs _args)
           }
         }
         // DTPRINT("%d  (ch = %p)\n", type[field], ch);
-        if (*ch == eol && ch[eolLen-1] == eol2) {
+        if (on_eol(ch)) {
           break;
         } else {
           // skip over the field separator
@@ -1630,16 +1644,15 @@ int freadMain(freadMainArgs _args)
         }
       }
       if (field<ncol-1 && !fill) {
-        if (ch<end && *ch!=eol) {
-          STOP("Internal error: line has finished early but not on an eol or eof (fill=false). Please report as bug.");
-        } else if (ch>jlineStart) {
+        ASSERT(ch==end || on_eol(ch));
+        if (ch>jlineStart) {
           STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. "
                "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart,200,end));
         }
       }
       ASSERT(ch < end);
-      if (*ch!=eol || field>=ncol) {   // the || >=ncol is for when a comma ends the line with eol straight after
-        if (field!=ncol) STOP("Internal error: Line has too many fields but field(%d)!=ncol(%d)", field, ncol);
+      if (!on_eol(ch) || field>=ncol) {
+        ASSERT(field==ncol);
         STOP("Line %d from sampling jump %d starting \"%s\" has more than the expected %d fields. "
              "Separator %d occurs at position %d which is character %d of the last field: \"%s\". "
              "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
@@ -1652,7 +1665,7 @@ int freadMain(freadMainArgs _args)
       // The warning is only issued if the file didn't have the newline on the last line.
       // This warning is early at type skipping around stage before reading starts, so user can cancel early
       if (type[ncol-1]==CT_STRING && *fieldStart==quote && *(ch-1)!=quote && trailing_newline_added) {
-        if (quoteRule<2) STOP("Internal error: Last field of last line should select quote rule 2");
+        ASSERT(quoteRule>=2);
         DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
                 strlim(fieldStart, 200, end));
       }
@@ -1662,6 +1675,10 @@ int freadMain(freadMainArgs _args)
       lastRowEnd = ch;
       //DTPRINT("\n");
       int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes eolLen already
+      if (end != jlineStart_end) {
+        thisLineLen = (int)((jlineStart_end - jlineStart) + (ch - soh));
+      }
+      ASSERT(thisLineLen >= 0);
       sampleLines++;
       sumLen += thisLineLen;
       sumLenSq += thisLineLen*thisLineLen;
@@ -1898,7 +1915,7 @@ int freadMain(freadMainArgs _args)
       const char *tch = sof + (size_t)jump * chunkBytes;
       const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+eolLen : eof;
       // +eolLen is for when nextJump happens to fall exactly on a line start (or on eol2 on Windows). The
-      // next thread will start one line later because nextGoodLine() starts by finding next eol
+      // next thread will start one line later because nextGoodLine() starts by finding next EOL
       // Easier to imagine eolLen==1 and tch<=nextJump in the while() below
       if (jump>0 && !nextGoodLine(&tch, ncol, nextJump)) {
         stopTeam=true;
@@ -1942,8 +1959,8 @@ int freadMain(freadMainArgs _args)
         const char *tlineStart = tch;  // for error message
         if (sep==' ') while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep(!)
         skip_white(&tch);  // solely for blank lines otherwise could leave to field processors which handle leading white
-        if (*tch==eol) {
-          if (skipEmptyLines) { tch+=eolLen; continue; }
+        if (on_eol(tch)) {
+          if (skipEmptyLines) { skip_eol(&tch); continue; }
           else if (!fill) {
             #pragma omp critical
             if (!stopTeam) {
@@ -2013,8 +2030,8 @@ int freadMain(freadMainArgs _args)
           }
           *((char**) allBuffPos[size[j]]) += size[j];
           j++;
-          if (*tch==eol) {
-            tch += eolLen;
+          if (on_eol(tch)) {
+            skip_eol(&tch);
             if (tch == eof && soh) {
               fake_anchor += soh - tch;
               tch = soh;

@@ -2,8 +2,10 @@
 #include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_rowindex.h"
+#include "py_types.h"
 #include "py_utils.h"
 #include "utils.h"
+#include "utils/pyobj.h"
 
 
 static PyObject* py(Column **columns)
@@ -95,15 +97,13 @@ PyObject* pycolumns_from_mixed(UU, PyObject *args)
     for (int64_t i = 0; i < ncols; i++) {
         PyObject *elem = PyList_GET_ITEM(pyspec, i);
         if (PyLong_CheckExact(elem)) {
-            spec[i] = (int64_t) PyLong_AsSize_t(elem);
+            spec[i] = PyLong_AsInt64(elem);
         } else {
-            spec[i] = -TOINT64(ATTR(elem, "itype"), 0);
+            spec[i] = -PyObj(elem, "itype").as_int64();
         }
     }
     return py(columns_from_mixed(spec, ncols, nrows, dt, fnptr));
   );
-  fail:
-    return NULL;
 }
 
 

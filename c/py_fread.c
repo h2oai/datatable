@@ -18,7 +18,6 @@
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
-#include "utils/file.h"
 #include "memorybuf.h"
 #include "datatable.h"
 #include "column.h"
@@ -26,6 +25,9 @@
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_utils.h"
+#include "utils/assert.h"
+#include "utils/file.h"
+#include "utils/pyobj.h"
 #include "utils.h"
 
 
@@ -64,10 +66,7 @@ static StrBuf** strbufs = nullptr;
 
 // These variables are handed down to `freadMain`, and are stored globally only
 // because we want to free these memory buffers in the end.
-static char *filename = NULL;
-static char *input = NULL;
 static char *targetdir = NULL;
-static char *skipstring = NULL;
 static char **na_strings = NULL;
 
 // For temporary printing file names.
@@ -107,7 +106,7 @@ static int8_t *sizes = NULL;
  */
 PyObject* pyfread(UU, PyObject *args)
 {
-  PyObject *tmp1 = NULL, *tmp2 = NULL, *tmp3 = NULL, *pydt = NULL;
+  PyObject *pydt = NULL;
   int retval = 0;
   freadMainArgs *frargs = NULL;
   if (freader != NULL || dt != NULL) {
@@ -122,28 +121,33 @@ PyObject* pyfread(UU, PyObject *args)
     Py_INCREF(freader);
     dtmalloc_g(frargs, freadMainArgs, 1);
 
-    // filename & input are borrowed references
-    filename = TOSTRING(ATTR(freader, "filename"), &tmp1);
-    input = TOSTRING(ATTR(freader, "text"), &tmp2);
-    skipstring = TOSTRING(ATTR(freader, "skip_to_string"), &tmp3);
-    na_strings = TOSTRINGLIST(ATTR(freader, "na_strings"));
-    verbose = TOBOOL(ATTR(freader, "verbose"), 0);
-    flogger = ATTR(freader, "logger");
-    Py_INCREF(flogger);
+    PyObj pyfreader(freader);
+    PyObj filename_arg = pyfreader.attr("filename");
+    PyObj input_arg = pyfreader.attr("text");
+    PyObj skipstring_arg = pyfreader.attr("skip_to_string");
 
-    frargs->sep = TOCHAR(ATTR(freader, "sep"), 0);
+    // filename and input are borrowed references; they remain valid as long as
+    // filename_arg and input_arg are alive.
+    const char* filename = filename_arg.as_cstring();
+    const char* input = input_arg.as_cstring();
+    const char* skipstring = skipstring_arg.as_cstring();
+    na_strings = pyfreader.attr("na_strings").as_cstringlist();
+    verbose = pyfreader.attr("verbose").as_bool();
+    flogger = pyfreader.attr("logger").as_pyobject();
+
+    frargs->sep = pyfreader.attr("sep").as_char();
     frargs->dec = '.';
     frargs->quote = '"';
-    frargs->nrowLimit = TOINT64(ATTR(freader, "max_nrows"), 0);
-    frargs->skipNrow = TOINT64(ATTR(freader, "skip_lines"), 0);
+    frargs->nrowLimit = pyfreader.attr("max_nrows").as_int64();
+    frargs->skipNrow = pyfreader.attr("skip_lines").as_int64();
     frargs->skipString = skipstring;
-    frargs->header = TOBOOL(ATTR(freader, "header"), NA_BOOL8);
+    frargs->header = pyfreader.attr("header").as_bool();
     frargs->verbose = verbose;
     frargs->NAstrings = (const char* const*) na_strings;
     frargs->stripWhite = 1;
     frargs->skipEmptyLines = 1;
-    frargs->fill = TOBOOL(ATTR(freader, "fill"), 0);
-    frargs->showProgress = TOBOOL(ATTR(freader, "show_progress"), 0);
+    frargs->fill = pyfreader.attr("fill").as_bool();
+    frargs->showProgress = pyfreader.attr("show_progress").as_bool();
     frargs->nth = 0;
     frargs->warningsAreErrors = 0;
     if (frargs->nrowLimit < 0)
@@ -169,9 +173,6 @@ PyObject* pyfread(UU, PyObject *args)
 
     pydt = pydt_from_dt(dt);
     if (pydt == NULL) goto fail;
-    Py_XDECREF(tmp1);
-    Py_XDECREF(tmp2);
-    Py_XDECREF(tmp3);
     cleanup_fread_session(frargs);
     return pydt;
   } catch (const std::exception& e) {
@@ -263,8 +264,8 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
     if (frargs) {
         if (na_strings) {
             char **ptr = na_strings;
-            while (*ptr++) dtfree(*ptr);
-            dtfree(na_strings);
+            while (*ptr++) delete[] *ptr;
+            delete[] na_strings;
         }
         pyfree(frargs->freader);
     }
@@ -363,8 +364,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         // Call the Python upstream to determine the strategy where the
         // DataTable should be created.
         PyObject *r = PyObject_CallMethod(freader, "_get_destination", "n", alloc_size);
-        targetdir = TOSTRING(r, NULL);  // This will also dec-ref `res`
-        if (targetdir == (char*)-1) goto fail;
+        targetdir = PyObj(r).as_ccstring();
     } else {
         assert(dt != NULL && ncols == ncols_);
         columns = dt->columns;
