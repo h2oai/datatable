@@ -19,11 +19,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "Python.h"
-#include "utils/omp.h"
-#include "utils.h"
 #include "py_datatable.h"
 #include "py_fread.h"
 #include "py_utils.h"
+#include "utils.h"
+#include "utils/omp.h"
+#include "utils/pyobj.h"
 
 
 PyObject* pywrite_csv(PyObject*, PyObject* args)
@@ -34,24 +35,25 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
   Py_INCREF(pywriter);
 
   try {
-    DataTable* dt = get_attr_datatable(pywriter, "datatable");
-    std::string filename = get_attr_string(pywriter, "path");
-    std::string strategy = get_attr_string(pywriter, "_strategy");
+    PyObj pywr(pywriter);
+    DataTable* dt = pywr.attr("datatable").as_datatable();
+    std::string filename = pywr.attr("path").as_string();
+    std::string strategy = pywr.attr("_strategy").as_string();
 
     // Create the CsvWriter object
     CsvWriter cwriter(dt, filename);
     cwriter.set_logger(pywriter);
-    cwriter.set_verbose(get_attr_bool(pywriter, "verbose"));
-    cwriter.set_usehex(get_attr_bool(pywriter, "hex"));
+    cwriter.set_verbose(pywr.attr("verbose").as_bool());
+    cwriter.set_usehex(pywr.attr("hex").as_bool());
     cwriter.set_strategy((strategy == "mmap")  ? WRITE_STRATEGY_MMAP :
                          (strategy == "write") ? WRITE_STRATEGY_WRITE :
                                                  WRITE_STRATEGY_AUTO);
 
-    std::vector<std::string> colnames;
-    get_attr_stringlist(pywriter, "column_names", colnames);
+    std::vector<std::string>
+        colnames = pywr.attr("column_names").as_stringlist();
     cwriter.set_column_names(colnames);  // move-assignment
 
-    int nthreads = static_cast<int>(get_attr_int64(pywriter, "nthreads"));
+    int nthreads = static_cast<int>(pywr.attr("nthreads").as_int64());
     int maxth = omp_get_max_threads();
     if (nthreads > maxth) nthreads = maxth;
     if (nthreads <= 0) nthreads += maxth;

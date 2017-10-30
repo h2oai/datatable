@@ -5,11 +5,7 @@
 #ifndef dt_PYUTILS_H
 #define dt_PYUTILS_H
 #include <Python.h>
-#include <string>
-#include <vector>
 #include "utils.h"
-
-class DataTable;
 
 /**
  * This macro can be inserted into a function's signature in place of an unused
@@ -44,89 +40,5 @@ PyObject* decref(PyObject *x);
 
 #define pyfree(ptr)  do { Py_XDECREF(ptr); ptr = NULL; } while(0)
 
-
-/**
- * Returned named attribute of a python object. This is a shortcut for
- * ``PyObject_GetAttrString``.
- */
-#define ATTR(pyobj, attr)  PyObject_GetAttrString(pyobj, attr)
-
-
-/**
- * Convert the provided PyObject* into a C UTF-8-encoded string; this macro
- * will "goto fail" if there are any errors.
- * The returned result is a newly allocated memory buffer, and it is the
- * responsibility of the caller to free it.
- */
-#define TOSTRING(pyobj, tmp) ({                                                \
-    char *res = _to_string(pyobj, tmp);                                        \
-    if ((int64_t)res == -1) goto fail;                                         \
-    res;                                                                       \
-})
-
-
-
-#define TOCHAR(pyobj, dflt) ({                                                 \
-    char res = dflt;                                                           \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        res = (char)PyUnicode_ReadChar(x, 0);                                  \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-
-#define TOINT64(pyobj, dflt) ({                                                \
-    int64_t res = dflt;                                                        \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        res = PyLong_AsLongLong(x);                                            \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-
-#define TOBOOL(pyobj, dflt) ({                                                 \
-    int8_t res = dflt;                                                         \
-    PyObject *x = pyobj;                                                       \
-    if (x == NULL) goto fail;                                                  \
-    if (x != Py_None) {                                                        \
-        res = (x == Py_True);                                                  \
-    }                                                                          \
-    Py_DECREF(x);                                                              \
-    res;                                                                       \
-})
-
-
-#define TOSTRINGLIST(pyobj) ({                                                 \
-    char **res = _to_string_list(pyobj);                                       \
-    if ((int64_t)res == -1) goto fail;                                         \
-    res;                                                                       \
-})
-
-
-#define CATCH_EXCEPTIONS(CODE)                                                 \
-    try {                                                                      \
-        CODE                                                                   \
-    } catch (const std::exception& e) {                                        \
-        PyErr_SetString(PyExc_RuntimeError, e.what());                         \
-        return NULL;                                                           \
-    }
-
-
-
-bool get_attr_bool(PyObject* pyobj, const char* attr, bool dflt=false);
-int64_t get_attr_int64(PyObject* pyobj, const char* attr, int64_t dflt=0);
-std::string get_attr_string(PyObject* pyobj, const char* attr);
-DataTable* get_attr_datatable(PyObject* pyobj, const char* attr);
-void get_attr_stringlist(PyObject* pyobj, const char* attr,
-                         std::vector<std::string> &res);
-
-char* _to_string(PyObject* x, PyObject** tmp);
-char** _to_string_list(PyObject* x);
 
 #endif
