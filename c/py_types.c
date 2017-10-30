@@ -104,7 +104,7 @@ static PyObject* stype_notimpl(Column *col, UNUSED(int64_t row))
 }
 
 
-int init_py_types(UU)
+int init_py_types(PyObject*)
 {
     init_types();
     py_buffers_size = sizeof(Py_buffer);

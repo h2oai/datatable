@@ -188,7 +188,7 @@ static DataWindow_PyObject* meth_window(DataTable_PyObject *self, PyObject *args
 
 
 
-PyObject* pydatatable_assemble(UU, PyObject *args)
+PyObject* pydatatable_assemble(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     PyObject *arg1;

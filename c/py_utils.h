@@ -7,18 +7,6 @@
 #include <Python.h>
 #include "utils.h"
 
-/**
- * This macro can be inserted into a function's signature in place of an unused
- * `PyObject*` parameter, for example:
- *     PyObject* make_schmoo(UU, PyObject *args) { ... }
- * Use macros UU1 and UU2 if you need more than one unused PyObject*. If you
- * need to have an unused parameter of any other type, use macro `UNUSED`
- * directly (the macro is defined in `utils.h`).
- */
-#define UU   UNUSED(PyObject *_unused0)
-#define UU1  UNUSED(PyObject *_unused1)
-#define UU2  UNUSED(PyObject *_unused2)
-
 
 #define DT_DOCS(name, doc) \
     static char dtvar_##name[] = #name; \

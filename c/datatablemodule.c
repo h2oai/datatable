@@ -30,7 +30,7 @@ static PyObject* pyexec_function(PyObject *self, PyObject *args)
 }
 
 
-static PyObject* pyregister_function(UU, PyObject *args)
+static PyObject* pyregister_function(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     int n = -1;
@@ -55,7 +55,7 @@ static PyObject* pyregister_function(UU, PyObject *args)
 }
 
 
-static PyObject* pyget_internal_function_ptrs(UU, UU1)
+static PyObject* pyget_internal_function_ptrs(PyObject*, PyObject*)
 {
   #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
   CATCH_EXCEPTIONS(
@@ -76,7 +76,7 @@ static PyObject* pyget_internal_function_ptrs(UU, UU1)
 }
 
 
-static PyObject* pyget_integer_sizes(UU, UU1)
+static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
 {
   CATCH_EXCEPTIONS(
     int i = 0;

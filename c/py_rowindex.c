@@ -56,7 +56,7 @@ int rowindex_unwrap(PyObject *object, void *address) {
  * Construct a (py)RowIndex "slice" object given a tuple (start, count, step).
  * This is a Python wrapper for :func:`rowindex_from_slice`.
  */
-PyObject* pyrowindex_from_slice(UU, PyObject *args)
+PyObject* pyrowindex_from_slice(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     int64_t start;
@@ -76,7 +76,7 @@ PyObject* pyrowindex_from_slice(UU, PyObject *args)
  * that are given in the form of 3 arrays start[], count[], step[].
  * This is a Python wrapper for :func:`rowindex_from_slicelist`.
  */
-PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
+PyObject* pyrowindex_from_slicelist(PyObject*, PyObject *args)
 {
   int64_t* starts = NULL;
   int64_t* counts = NULL;
@@ -139,7 +139,7 @@ PyObject* pyrowindex_from_slicelist(UU, PyObject *args)
  * Construct RowIndex object from an array of indices. This is a wrapper
  * for :func:`rowindex_from_i32_array` / :func:`rowindex_from_i64_array`.
  */
-PyObject* pyrowindex_from_array(UU, PyObject *args)
+PyObject* pyrowindex_from_array(PyObject*, PyObject *args)
 {
   int32_t *data32 = NULL;
   int64_t *data64 = NULL;
@@ -191,7 +191,7 @@ PyObject* pyrowindex_from_array(UU, PyObject *args)
  * with the indices that corresponds to the rows where the boolean column has
  * true values (all false / NA columns are skipped).
  */
-PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
+PyObject* pyrowindex_from_boolcolumn(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     DataTable *dt = NULL;
@@ -222,7 +222,7 @@ PyObject* pyrowindex_from_boolcolumn(UU, PyObject *args)
  * Construct a RowIndex object from a DataTable having a single integer column.
  * This column will be converted into a RowIndex directly.
  */
-PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
+PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     DataTable *dt = NULL;
@@ -262,7 +262,7 @@ PyObject* pyrowindex_from_intcolumn(UU, PyObject *args)
  * the number of rows that has to be filtered. This is a wrapper around
  * `rowindex_from_filterfn[32|64]`.
  */
-PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
+PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     long long _fnptr;
@@ -288,7 +288,7 @@ PyObject* pyrowindex_from_filterfn(UU, PyObject *args)
  * Construct a rowindex object given a pointer to a function that returns a
  * `RowIndex*` value.
  */
-PyObject* pyrowindex_from_function(UU, PyObject *args)
+PyObject* pyrowindex_from_function(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     long long _fnptr;
@@ -301,7 +301,7 @@ PyObject* pyrowindex_from_function(UU, PyObject *args)
 
 
 
-PyObject* pyrowindex_uplift(UU, PyObject *args)
+PyObject* pyrowindex_uplift(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     RowIndex *ri;
@@ -383,7 +383,7 @@ static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
 }
 
 
-static PyObject *getptr(RowIndex_PyObject *self, UU)
+static PyObject *getptr(RowIndex_PyObject *self, PyObject*)
 {
   CATCH_EXCEPTIONS(
     RowIndex *ri = self->ref;
