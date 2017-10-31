@@ -13,7 +13,6 @@
 
 
 PyMODINIT_FUNC PyInit__datatable(void);
-PyObject* pyfn_column_hexview = NULL;  // Defined in py_column.h
 
 
 static PyObject* pyexec_function(PyObject *self, PyObject *args)
@@ -30,7 +29,7 @@ static PyObject* pyexec_function(PyObject *self, PyObject *args)
 }
 
 
-static PyObject* pyregister_function(UU, PyObject *args)
+static PyObject* pyregister_function(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     int n = -1;
@@ -43,7 +42,7 @@ static PyObject* pyregister_function(UU, PyObject *args)
         return NULL;
     }
     Py_XINCREF(fnref);
-    if (n == 1) pyfn_column_hexview = fnref;
+    if (n == 1) pycolumn::fn_hexview = fnref;
     else if (n == 2) init_py_stype_objs(fnref);
     else if (n == 3) init_py_ltype_objs(fnref);
     else {
@@ -55,7 +54,7 @@ static PyObject* pyregister_function(UU, PyObject *args)
 }
 
 
-static PyObject* pyget_internal_function_ptrs(UU, UU1)
+static PyObject* pyget_internal_function_ptrs(PyObject*, PyObject*)
 {
   #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
   CATCH_EXCEPTIONS(
@@ -76,7 +75,7 @@ static PyObject* pyget_internal_function_ptrs(UU, UU1)
 }
 
 
-static PyObject* pyget_integer_sizes(UU, UU1)
+static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
 {
   CATCH_EXCEPTIONS(
     int i = 0;
@@ -100,32 +99,32 @@ static PyObject* pyget_integer_sizes(UU, UU1)
 // Module definition
 //------------------------------------------------------------------------------
 
-#define METHOD0(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
-#define METHOD1(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
+#define METHOD0_(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
+#define METHOD1_(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
-    METHOD0(columns_from_mixed),
-    METHOD0(columns_from_slice),
-    METHOD0(columns_from_array),
-    METHOD0(rowindex_from_slice),
-    METHOD0(rowindex_from_slicelist),
-    METHOD0(rowindex_from_array),
-    METHOD0(rowindex_from_boolcolumn),
-    METHOD0(rowindex_from_intcolumn),
-    METHOD0(rowindex_from_filterfn),
-    METHOD0(rowindex_from_function),
-    METHOD0(rowindex_uplift),
-    METHOD0(datatable_assemble),
-    METHOD0(datatable_from_list),
-    METHOD0(datatable_load),
-    METHOD0(datatable_from_buffers),
-    METHOD0(fread),
-    METHOD0(write_csv),
-    METHOD0(exec_function),
-    METHOD0(register_function),
-    METHOD0(install_buffer_hooks),
-    METHOD1(get_internal_function_ptrs),
-    METHOD1(get_integer_sizes),
+    METHOD0_(columns_from_mixed),
+    METHOD0_(columns_from_slice),
+    METHOD0_(columns_from_array),
+    METHOD0_(rowindex_from_slice),
+    METHOD0_(rowindex_from_slicelist),
+    METHOD0_(rowindex_from_array),
+    METHOD0_(rowindex_from_boolcolumn),
+    METHOD0_(rowindex_from_intcolumn),
+    METHOD0_(rowindex_from_filterfn),
+    METHOD0_(rowindex_from_function),
+    METHOD0_(rowindex_uplift),
+    METHOD0_(datatable_assemble),
+    METHOD0_(datatable_from_list),
+    METHOD0_(datatable_load),
+    METHOD0_(datatable_from_buffers),
+    METHOD0_(fread),
+    METHOD0_(write_csv),
+    METHOD0_(exec_function),
+    METHOD0_(register_function),
+    METHOD0_(install_buffer_hooks),
+    METHOD1_(get_internal_function_ptrs),
+    METHOD1_(get_integer_sizes),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -155,7 +154,7 @@ PyInit__datatable(void) {
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
-    if (!init_py_column(m)) return NULL;
+    if (!pycolumn::static_init(m)) return NULL;
     if (!init_py_columnset(m)) return NULL;
     if (!init_py_encodings(m)) return NULL;
 
