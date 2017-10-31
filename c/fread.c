@@ -1368,9 +1368,6 @@ int freadMain(freadMainArgs _args)
   ASSERT(firstJumpEnd);
   // the size in bytes of the first JUMPLINES from the start (jump point 0)
   size_t jump0size = (size_t)(firstJumpEnd - sof);
-  if (!(jump0size >= 0 && jump0size <= fileSize + (size_t)eolLen))
-    printf("jump0size = %zu, fileSize = %zu, eolLen = %zu; sof=%p, eof=%p, firstJumpEnd=%p, soh=%p, eoh=%p\n",
-           jump0size, fileSize, eolLen, sof, eof, firstJumpEnd, soh, eoh);
   ASSERT(jump0size >= 0 && jump0size <= fileSize + (size_t)eolLen);
   quoteRule = topQuoteRule;
   sep = topSep;
