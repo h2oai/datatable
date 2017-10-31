@@ -19,6 +19,9 @@
 #include <sys/mman.h>  // mmap
 #include <exception>
 #include "memorybuf.h"
+#include "datatable.h"
+#include "column.h"
+#include "utils/assert.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_utils.h"
@@ -57,6 +60,9 @@ static PyObject *flogger = NULL;
 static DataTable *dt = NULL;
 
 static MemoryBuffer* mbuf = nullptr;
+
+// Array of StrBufs to coincide with the number of columns being constructed in the datatable
+static StrBuf** strbufs = nullptr;
 
 // These variables are handed down to `freadMain`, and are stored globally only
 // because we want to free these memory buffers in the end.
@@ -194,12 +200,9 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
     }
     if (col == NULL) return NULL;
 
-    // For string columns we temporarily replace the `meta` structure with a
-    // `StrBuf` which will hold auxiliary values needed for construction of
-    // the column.
     if (stype_info[stype].ltype == LT_STRING) {
-        dtrealloc(col->meta, StrBuf, 1);
-        StrBuf *sb = (StrBuf*) col->meta;
+        dtrealloc(strbufs[j], StrBuf, 1);
+        StrBuf* sb = strbufs[j];
         // Pre-allocate enough memory to hold 5-char strings in the buffer. If
         // this is not enough, we will always be able to re-allocate during the
         // run time.
@@ -248,6 +251,7 @@ Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 
 
 static void cleanup_fread_session(freadMainArgs *frargs) {
+    strbufs = nullptr;
     ncols = 0;
     nstrcols = 0;
     types = NULL;
@@ -354,6 +358,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         }
         assert(j == ncols_ - ndrop_);
         dtcalloc_g(columns, Column*, j + 1);
+        dtcalloc_g(strbufs, StrBuf*, j);
         columns[j] = NULL;
 
         // Call the Python upstream to determine the strategy where the
@@ -397,6 +402,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
         while (*col++) delete (*col);
         dtfree(columns);
     }
+    delete strbufs;
     return 0;
 }
 
@@ -409,7 +415,7 @@ void setFinalNrow(size_t nrows) {
         if (type == CT_DROP) continue;
         Column *col = dt->columns[j];
         if (type == CT_STRING) {
-            StrBuf *sb = (StrBuf*) col->meta;
+            StrBuf* sb = strbufs[j];
             assert(sb->numuses == 0);
             void *final_ptr = (void*) sb->buf;
             size_t curr_size = sb->ptr;
@@ -440,8 +446,7 @@ void setFinalNrow(size_t nrows) {
             }
             col->mbuf = new MemoryMemBuf(final_ptr, final_size);
             col->nrows = (int64_t) nrows;
-            dtrealloc_g(col->meta, VarcharMeta, 1);
-            ((VarcharMeta*) col->meta)->offoff = (int64_t) offoff;
+            static_cast<StringColumn<int32_t>*>(col)->offoff = static_cast<int32_t>(offoff);
         } else if (type > 0) {
             Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
             if (c == NULL) goto fail;
@@ -542,7 +547,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
     StrBuf *ctx_strbufs = ctx->strbufs;
     for (int k = 0; k < nstrcols; k++) {
         int j = ctx_strbufs[k].idxdt;
-        StrBuf *sb = (StrBuf*) dt->columns[j]->meta;
+        StrBuf *sb = strbufs[j];
         size_t sz = ctx_strbufs[k].ptr;
         size_t ptr = sb->ptr;
         // If we need to write more than the size of the available buffer, the
@@ -617,7 +622,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
         Column *col = dt->columns[j];
 
         if (types[i] == CT_STRING) {
-            StrBuf *sb = (StrBuf*) col->meta;
+            StrBuf *sb = strbufs[j];
             int idx8 = ctx_strbufs[k].idx8;
             size_t ptr = ctx_strbufs[k].ptr;
             const lenOff *__restrict__ lo =

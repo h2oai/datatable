@@ -287,9 +287,8 @@ RowIndex* Column::sort() const
             ordering = sc->o;
             dtfree(sc->x);
         } else if (stype_ == ST_STRING_I4_VCHAR) {
-            int64_t offoff = ((VarcharMeta*) meta)->offoff;
             const unsigned char *strdata = (const unsigned char*) data();
-            const int32_t *offs = (const int32_t*) data_at(static_cast<size_t>(offoff));
+            const int32_t *offs = static_cast<const StringColumn<int32_t>*>(this)->offsets();
             ordering = insert_sort_s4_noo(strdata, offs, 0, NULL, nrows_);
         } else {
             insert_sort_fn sortfn = insert_sort_fns[stype_];
@@ -325,7 +324,6 @@ RowIndex* Column::sort() const
     if (!ordering) return NULL;
     return new RowIndex(ordering, nrows_, 0);
 }
-
 
 
 //==============================================================================
@@ -819,8 +817,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
     uint8_t *strbuf = (uint8_t*) add_ptr(col->data(), -1);
-    int64_t offoff = ((VarcharMeta*)col->meta)->offoff;
-    int32_t *offs = (int32_t*) add_ptr(col->data(), offoff);
+    int32_t *offs = static_cast<const StringColumn<int32_t>*>(col)->offsets();
     int maxlen = 0;
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);

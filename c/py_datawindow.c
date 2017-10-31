@@ -346,13 +346,6 @@ static int _check_consistency(
                 i, col->stype());
             return 0;
         }
-        if (col->meta == NULL && stype_info[col->stype()].metasize > 0) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has type %s but meta info is "
-                "missing",
-                i, stype_info[col->stype()].code);
-            return 0;
-        }
     }
     return 1;
 }

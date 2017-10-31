@@ -35,8 +35,22 @@ StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
 
   // TODO: remove this
   strbuf = nullptr;
-  meta = malloc(sizeof(VarcharMeta));
-  ((VarcharMeta*) meta)->offoff = static_cast<int64_t>(pd);
+  offoff = static_cast<T>(pd);
+}
+
+
+template <typename T>
+Column* StringColumn<T>::shallowcopy(RowIndex* new_rowindex) const {
+  StringColumn<T>* col = static_cast<StringColumn<T>*>(Column::shallowcopy(new_rowindex));
+  col->offoff = offoff;
+  return col;
+}
+
+template <typename T>
+Column* StringColumn<T>::deepcopy() const {
+  StringColumn<T>* col = static_cast<StringColumn<T>*>(Column::deepcopy());
+  col->offoff = offoff;
+  return col;
 }
 
 
@@ -66,13 +80,12 @@ void StringColumn<T>::replace_buffer(MemoryBuffer* new_offbuf,
   size_t padding_size = padding(strdata_size);
   size_t offsets_size = sizeof(T) * static_cast<size_t>(nrows);
   size_t final_size = strdata_size + padding_size + offsets_size;
-  size_t offoff = strdata_size + padding_size;
+  offoff = static_cast<T>(strdata_size + padding_size);
   new_strbuf->resize(final_size);
   memset(new_strbuf->at(strdata_size), 0xFF, padding_size);
   memcpy(new_strbuf->at(offoff), new_offbuf->at(sizeof(T)), offsets_size);
   if (mbuf) mbuf->release();
   mbuf = new_strbuf->shallowcopy();
-  ((VarcharMeta*) meta)->offoff = static_cast<int64_t>(offoff);
 }
 
 
@@ -113,8 +126,7 @@ size_t StringColumn<T>::padding(size_t datasize) {
 
 template <typename T>
 int64_t StringColumn<T>::data_nrows() const {
-  size_t offoff = static_cast<size_t>(((VarcharMeta*) meta)->offoff);
-  return static_cast<int64_t>((mbuf->size() - offoff) / sizeof(T));
+  return static_cast<int64_t>((mbuf->size() - static_cast<size_t>(offoff)) / sizeof(T));
 }
 
 template <typename T>
@@ -126,7 +138,6 @@ char* StringColumn<T>::strdata() const {
 template <typename T>
 T* StringColumn<T>::offsets() const {
   if (strbuf) return static_cast<T*>(mbuf->get());
-  int64_t offoff = ((VarcharMeta*) meta)->offoff;
   return static_cast<T*>(mbuf->at(offoff));
 }
 
@@ -136,7 +147,7 @@ void StringColumn<T>::reify() {
   // If our rowindex is null, then we're already done
   if (ri == nullptr) return;
 
-  size_t offoff = static_cast<size_t>(static_cast<VarcharMeta*>(meta)->offoff);
+  size_t new_offoff = static_cast<size_t>(offoff);
   size_t new_mbuf_size = 0;
   MemoryBuffer *new_mbuf = mbuf;
 
@@ -148,16 +159,16 @@ void StringColumn<T>::reify() {
     size_t datasize = static_cast<size_t>(off1 - off0);
     size_t offset_size = static_cast<size_t>(nrows) * sizeof(T);
     size_t pad_size = padding(datasize);
-    offoff = datasize + pad_size;
-    new_mbuf_size = offoff + offset_size;
+    new_offoff = datasize + pad_size;
+    new_mbuf_size = new_offoff + offset_size;
     if (mbuf->is_readonly()) {
-      new_mbuf = new MemoryMemBuf(offoff + offset_size);
+      new_mbuf = new MemoryMemBuf(new_offoff + offset_size);
       memcpy(new_mbuf->get(), strdata() + off0, datasize);
     } else {
       memmove(new_mbuf->get(), strdata() + off0, datasize);
     }
     memset(new_mbuf->at(datasize), 0xFF, pad_size);
-    T* data_dest = static_cast<T*>(new_mbuf->at(offoff));
+    T* data_dest = static_cast<T*>(new_mbuf->at(new_offoff));
     if (off0 > 0) --off0;
     for (int64_t i = 0; i < nrows; ++i) {
       data_dest[i] = offs[i] > 0 ? offs[i] - off0 : offs[i] + off0;
@@ -184,9 +195,9 @@ void StringColumn<T>::reify() {
     size_t datasize = static_cast<size_t>(
         data_dest - static_cast<char*>(new_mbuf->get()));
     size_t pad_size = padding(datasize);
-    offoff = datasize + pad_size;
-    new_mbuf_size = offoff + static_cast<size_t>(nrows) * sizeof(T);
-    T *new_offs = static_cast<T*>(new_mbuf->at(offoff));
+    new_offoff = datasize + pad_size;
+    new_mbuf_size = new_offoff + static_cast<size_t>(nrows) * sizeof(T);
+    T *new_offs = static_cast<T*>(new_mbuf->at(new_offoff));
     T prev_off = 1;
     for (T i = 0, j = start; i < nrows_cast; ++i, j+= step) {
       if (offs1[j] > 0) {
@@ -210,10 +221,10 @@ void StringColumn<T>::reify() {
     )
     size_t datasize = static_cast<size_t>(datasize_cast);
     size_t pad_size = padding(datasize);
-    offoff = datasize + pad_size;
-    new_mbuf_size = offoff + static_cast<size_t>(nrows) * sizeof(T);
+    new_offoff = datasize + pad_size;
+    new_mbuf_size = new_offoff + static_cast<size_t>(nrows) * sizeof(T);
     new_mbuf = new MemoryMemBuf(new_mbuf_size);
-    T *new_offs = static_cast<T*>(new_mbuf->at(offoff));
+    T *new_offs = static_cast<T*>(new_mbuf->at(new_offoff));
     char *strs = strdata();
     char *data_dest = static_cast<char*>(new_mbuf->get());
     T prev_off = 1;
@@ -242,7 +253,7 @@ void StringColumn<T>::reify() {
     mbuf->release();
     mbuf = new_mbuf;
   }
-  static_cast<VarcharMeta*>(meta)->offoff = static_cast<int64_t>(offoff);
+  offoff = static_cast<T>(new_offoff);
   ri->release();
   ri = nullptr;
 }
@@ -268,7 +279,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
 
   size_t old_data_size = datasize();
   size_t old_offs_size = sizeof(T) * static_cast<size_t>(old_nrows);
-  size_t old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
+  size_t old_offoff = static_cast<size_t>(offoff);
   size_t new_data_size = old_data_size;
   if (old_nrows == 1) new_data_size = old_data_size * (size_t) new_nrows;
   size_t new_offs_size = sizeof(T) * static_cast<size_t>(new_nrows);
@@ -293,7 +304,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
     }
   }
   set_value(mbuf->at(new_data_size), NULL, 1, new_padding_size);
-  ((VarcharMeta*) meta)->offoff = static_cast<int64_t>(new_offoff);
+  offoff = static_cast<T>(new_offoff);
   nrows = new_nrows;
 
   // Replicate the value, or fill with NAs
@@ -325,15 +336,14 @@ void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
   size_t old_offoff = 0;
   size_t new_data_size = 0;     // size of the string data region
   if (!col_empty) {
-    old_offoff = (size_t) ((VarcharMeta*) meta)->offoff;
+    old_offoff = static_cast<size_t>(offoff);
     new_data_size += datasize();
   }
   for (const Column* col : columns) {
     if (col->stype() == ST_VOID) continue;
     // TODO: replace with datasize(). But: what if col is not a string?
-    int64_t offoff = ((VarcharMeta*) col->meta)->offoff;
-    T *offsets = (T*) col->data_at(static_cast<size_t>(offoff));
-    new_data_size += (size_t) abs(offsets[col->nrows - 1]) - 1;
+    new_data_size += static_cast<size_t>(
+        abs(static_cast<const StringColumn<T>*>(col)->offsets()[col->nrows - 1]) - 1);
   }
   size_t new_offsets_size = sizeof(T) * static_cast<size_t>(new_nrows);
   size_t padding_size = padding(new_data_size);
@@ -345,7 +355,7 @@ void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
   mbuf->resize(new_alloc_size);
   nrows = new_nrows;
   T *offsets = (T*) mbuf->at(new_offoff);
-  ((VarcharMeta*) meta)->offoff = (int64_t) new_offoff;
+  offoff = static_cast<T>(new_offoff);
 
   // Move the original offsets
   T rows_to_fill = 0;  // how many rows need to be filled with NAs
@@ -370,8 +380,7 @@ void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
         offsets += rows_to_fill;
         rows_to_fill = 0;
       }
-      size_t offoff = static_cast<size_t>(((VarcharMeta*) col->meta)->offoff);
-      T *col_offsets = (T*) col->data_at(offoff);
+      T *col_offsets = static_cast<const StringColumn<T>*>(col)->offsets();
       for (int64_t j = 0; j < col->nrows; j++) {
         T off = col_offsets[j];
         *offsets++ = off > 0? off + curr_offset : off - curr_offset;
@@ -426,7 +435,7 @@ template <typename T>
 void StringColumn<T>::fill_na() {
   int64_t mbuf_nrows = data_nrows();
   mbuf->resize(static_cast<size_t>(mbuf_nrows) * sizeof(T) + padding(0));
-  ((VarcharMeta*) meta)->offoff = (int64_t) padding(0);
+  offoff = static_cast<T>(padding(0));
   memset(mbuf->get(), 0xFF, static_cast<size_t>(mbuf_nrows) * sizeof(T) + padding(0));
 }
 
@@ -475,8 +484,7 @@ bool StringColumn<T>::verify_integrity(
 
   // Check general properties
   // Note: meta value is implicitly checked here
-  int64_t strdata_size = 0;
-  int64_t offoff = ((VarcharMeta*) meta)->offoff;
+  T strdata_size = 0;
   //*_utf8 functions use unsigned char*
   const unsigned char *cdata = (unsigned char*) strdata();
   const T *str_offsets = offsets();
@@ -513,11 +521,11 @@ bool StringColumn<T>::verify_integrity(
     }
     lastoff = std::abs(oj);
   }
-  strdata_size = static_cast<int64_t>(lastoff) - 1;
+  strdata_size = static_cast<T>(lastoff) - 1;
 
   // Check that the space between the string data and offset section is
   // filled with 0xFFs
-  for (int64_t i = strdata_size; i < offoff; ++i) {
+  for (T i = strdata_size; i < offoff; ++i) {
     if (cdata[i+1] != 0xFF) {
       icc << "String data section in " << name << " is not padded with '0xFF's"
           << " at offset " << i << end;
