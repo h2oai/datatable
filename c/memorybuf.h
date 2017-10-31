@@ -37,7 +37,7 @@ class MemoryBuffer
 protected:
   // Reference count for this MemoryBuffer, in case it is shared by multiple
   // users.
-  mutable int refcount;
+  int refcount;
 
   // Readonly flag: indicates that the memory region cannot be written into,
   // and cannot be resized.
@@ -91,7 +91,7 @@ public:
    * Returns the allocation size of the underlying memory buffer. This should be
    * zero if memory is unallocated.
    */
-  virtual size_t size() const = 0;
+  virtual size_t size() = 0;
 
   /**
    * Returns the best estimate of this object's total size in memory. This is
@@ -228,7 +228,7 @@ public:
   MemoryMemBuf(void* ptr, size_t n);
 
   void* get() override;
-  size_t size() const override;
+  size_t size() override;
   size_t memory_footprint() const override;
   PyObject* pyrepr() const override;
   virtual void resize(size_t n) override;
@@ -283,7 +283,7 @@ public:
   ExternalMemBuf(const char* cstr);
 
   void* get() override;
-  size_t size() const override;
+  size_t size() override;
   size_t memory_footprint() const override;
   PyObject* pyrepr() const override;
   bool verify_integrity(IntegrityCheckContext&,
@@ -321,7 +321,7 @@ public:
   MemmapMemBuf(const std::string& file, size_t n);
 
   void* get() override;
-  size_t size() const override;
+  size_t size() override;
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;
   virtual PyObject* pyrepr() const override;

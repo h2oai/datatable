@@ -153,7 +153,7 @@ void* MemoryMemBuf::get() {
   return buf;
 }
 
-size_t MemoryMemBuf::size() const {
+size_t MemoryMemBuf::size() {
   return allocsize;
 }
 
@@ -258,7 +258,7 @@ void* ExternalMemBuf::get() {
   return buf;
 }
 
-size_t ExternalMemBuf::size() const {
+size_t ExternalMemBuf::size() {
   return allocsize;
 }
 
@@ -375,7 +375,7 @@ void* MemmapMemBuf::get() {
   return mmp;
 }
 
-size_t MemmapMemBuf::size() const {
+size_t MemmapMemBuf::size() {
   if (mmp) {
     return mmpsize;
   } else {
