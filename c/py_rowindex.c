@@ -397,11 +397,11 @@ static PyObject *getptr(RowIndex_PyObject *self, PyObject*)
 // DataTable type definition
 //==============================================================================
 
-#define METHOD0(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
-#define METHOD1(name) {#name, (PyCFunction)name, METH_NOARGS, NULL}
+#define METHOD0_(name) {#name, (PyCFunction)name, METH_VARARGS, NULL}
+#define METHOD1_(name) {#name, (PyCFunction)name, METH_NOARGS, NULL}
 static PyMethodDef rowindex_methods[] = {
-    METHOD0(tolist),
-    METHOD1(getptr),
+    METHOD0_(tolist),
+    METHOD1_(getptr),
     {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

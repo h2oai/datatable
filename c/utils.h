@@ -62,7 +62,8 @@ inline std::string operator "" _s(const char* str, size_t len) {
 
 // This macro expands to `t` if symbol `x` is defined and equal to 1, and to
 // `f` otherwise.
-#define IS1(x, t, f) zIIF(zCHECK(zPRIMITIVE_CAT(zTEST3_, x)))(t, f)
+#define IF1(x, t, f) zIIF(zCHECK(zPRIMITIVE_CAT(zTEST3_, x)))(t, f)
+#define WHEN(x, t) IF1(x, t, )
 
 
 

@@ -100,32 +100,32 @@ static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
 // Module definition
 //------------------------------------------------------------------------------
 
-#define METHOD0(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
-#define METHOD1(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
+#define METHOD0_(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
+#define METHOD1_(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
-    METHOD0(columns_from_mixed),
-    METHOD0(columns_from_slice),
-    METHOD0(columns_from_array),
-    METHOD0(rowindex_from_slice),
-    METHOD0(rowindex_from_slicelist),
-    METHOD0(rowindex_from_array),
-    METHOD0(rowindex_from_boolcolumn),
-    METHOD0(rowindex_from_intcolumn),
-    METHOD0(rowindex_from_filterfn),
-    METHOD0(rowindex_from_function),
-    METHOD0(rowindex_uplift),
-    METHOD0(datatable_assemble),
-    METHOD0(datatable_from_list),
-    METHOD0(datatable_load),
-    METHOD0(datatable_from_buffers),
-    METHOD0(fread),
-    METHOD0(write_csv),
-    METHOD0(exec_function),
-    METHOD0(register_function),
-    METHOD0(install_buffer_hooks),
-    METHOD1(get_internal_function_ptrs),
-    METHOD1(get_integer_sizes),
+    METHOD0_(columns_from_mixed),
+    METHOD0_(columns_from_slice),
+    METHOD0_(columns_from_array),
+    METHOD0_(rowindex_from_slice),
+    METHOD0_(rowindex_from_slicelist),
+    METHOD0_(rowindex_from_array),
+    METHOD0_(rowindex_from_boolcolumn),
+    METHOD0_(rowindex_from_intcolumn),
+    METHOD0_(rowindex_from_filterfn),
+    METHOD0_(rowindex_from_function),
+    METHOD0_(rowindex_uplift),
+    METHOD0_(datatable_assemble),
+    METHOD0_(datatable_from_list),
+    METHOD0_(datatable_load),
+    METHOD0_(datatable_from_buffers),
+    METHOD0_(fread),
+    METHOD0_(write_csv),
+    METHOD0_(exec_function),
+    METHOD0_(register_function),
+    METHOD0_(install_buffer_hooks),
+    METHOD1_(get_internal_function_ptrs),
+    METHOD1_(get_integer_sizes),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
