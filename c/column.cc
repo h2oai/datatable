@@ -40,7 +40,6 @@ Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       ri(nullptr),
       stats(nullptr),
-      meta(nullptr),
       nrows(nrows_) {}
 
 
@@ -142,8 +141,11 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
       throw ValueError() << "Cannot retrieve required metadata in string "
                          << '"' << ms << '"';
     }
-    int64_t offoff = (int64_t) atoll(ms + 7);
-    ((VarcharMeta*) col->meta)->offoff = offoff;
+    if (stype == ST_STRING_I4_VCHAR) {
+      static_cast<StringColumn<int32_t>*>(col)->offoff = static_cast<int32_t>(atol(ms + 7));
+    } else {
+      static_cast<StringColumn<int64_t>*>(col)->offoff = static_cast<int64_t>(atoll(ms + 7));
+    }
   }
   return col;
 }
@@ -170,9 +172,6 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
-  if (meta) {
-    memcpy(col->meta, meta, stype_info[stype()].metasize);
-  }
   // TODO: also copy Stats object
 
   if (new_rowindex) {
@@ -195,9 +194,6 @@ Column* Column::deepcopy() const
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->deepcopy();
-  if (meta) {
-    memcpy(col->meta, meta, stype_info[stype()].metasize);
-  }
   // TODO: deep copy stats when implemented
   col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
   return col;
@@ -265,7 +261,6 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
 
 
 Column::~Column() {
-  dtfree(meta);
   delete stats;
   if (mbuf) mbuf->release();
   if (ri) ri->release();
@@ -293,9 +288,8 @@ size_t Column::i8s_padding(size_t datasize) {
  */
 size_t Column::memory_footprint() const
 {
-  size_t sz = sizeof(Column);
+  size_t sz = sizeof(*this);
   sz += mbuf->memory_footprint();
-  sz += stype_info[stype()].metasize;
   if (rowindex() != nullptr) sz += ri->alloc_size();
   return sz;
 }

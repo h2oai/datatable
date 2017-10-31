@@ -67,7 +67,6 @@ protected:
   mutable Stats  *stats;
 
 public:  // TODO: convert these into private
-  void   *meta;        // 8
   int64_t nrows;       // 8
 
 public:
@@ -127,9 +126,9 @@ public:
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  Column* shallowcopy(RowIndex* new_rowindex = nullptr) const;
+  virtual Column* shallowcopy(RowIndex* new_rowindex = nullptr) const;
 
-  Column* deepcopy() const;
+  virtual Column* deepcopy() const;
 
   /**
    * Factory method to cast the current column into the given `stype`. If a
@@ -467,6 +466,8 @@ protected:
 template <typename T> class StringColumn : public Column
 {
   MemoryBuffer *strbuf;
+  T offoff;
+  int64_t pad_ : 64 - (sizeof(T) % 8) * 8;
 
 public:
   StringColumn();
@@ -475,6 +476,7 @@ public:
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
 
   SType stype() const override;
+  inline T meta() const { return offoff; }
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
 
@@ -487,6 +489,9 @@ public:
   static size_t padding(size_t datasize);
   char* strdata() const;
   T* offsets() const;
+
+  Column* shallowcopy(RowIndex* new_rowindex = nullptr) const override;
+  Column* deepcopy() const override;
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Column") const override;
@@ -510,6 +515,10 @@ protected:
   void fill_na() override;
 
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
+
+  friend Column* Column::open_mmap_column(SType, int64_t, const char*, const char*);
+  friend Column* try_to_resolve_object_column(Column*);
+  friend void setFinalNrow(size_t);
 };
 
 

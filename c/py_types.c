@@ -53,36 +53,39 @@ static PyObject* stype_real_f64_tostring(Column *col, int64_t row)
     return ISNA_F8(x)? none() : PyFloat_FromDouble(x);
 }
 
-static PyObject* stype_real_i16_tostring(Column *col, int64_t row)
+static PyObject* stype_real_i16_tostring(UNUSED(Column *col), UNUSED(int64_t row))
 {
-    DecimalMeta *meta = (DecimalMeta*) col->meta;
+    /*DecimalMeta *meta = (DecimalMeta*) col->meta;
     int16_t x = ((int16_t*)col->data())[row];
     if (x == NA_I2) return none();
     double s = pow(10, meta->scale);
-    return PyFloat_FromDouble(x / s);
+    return PyFloat_FromDouble(x / s);*/
+    return none();
 }
 
-static PyObject* stype_real_i32_tostring(Column *col, int64_t row)
+static PyObject* stype_real_i32_tostring(UNUSED(Column *col), UNUSED(int64_t row))
 {
-    DecimalMeta *meta = (DecimalMeta*) col->meta;
+    /*DecimalMeta *meta = (DecimalMeta*) col->meta;
     int32_t x = ((int32_t*)col->data())[row];
     if (x == NA_I4) return none();
     double s = pow(10, meta->scale);
-    return PyFloat_FromDouble(x / s);
+    return PyFloat_FromDouble(x / s);*/
+    return none();
 }
 
-static PyObject* stype_real_i64_tostring(Column *col, int64_t row)
+static PyObject* stype_real_i64_tostring(UNUSED(Column *col), UNUSED(int64_t row))
 {
-    DecimalMeta *meta = (DecimalMeta*) col->meta;
+    /*DecimalMeta *meta = (DecimalMeta*) col->meta;
     int64_t x = ((int64_t*)col->data())[row];
     if (x == NA_I8) return none();
     double s = pow(10, meta->scale);
-    return PyFloat_FromDouble(x / s);
+    return PyFloat_FromDouble(x / s);*/
+    return none();
 }
 
 static PyObject* stype_vchar_i32_tostring(Column *col, int64_t row)
 {
-    int32_t offoff = (int32_t) ((VarcharMeta*) col->meta)->offoff;
+    int32_t offoff = static_cast<StringColumn<int32_t>*>(col)->meta();
     int32_t *offsets = (int32_t*) add_ptr(col->data(), offoff);
     if (offsets[row] < 0)
         return none();

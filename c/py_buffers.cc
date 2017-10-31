@@ -166,7 +166,7 @@ Column* try_to_resolve_object_column(Column* col)
   char *strbuf = NULL;
   dtmalloc(strbuf, char, total_length);
   size_t strbuf_size = static_cast<size_t>(total_length);
-  auto res = new StringColumn<int32_t>(nrows);
+  StringColumn<int32_t>* res = new StringColumn<int32_t>(nrows);
   int32_t* offsets = res->offsets();
 
   size_t offset = 0;
@@ -194,7 +194,7 @@ Column* try_to_resolve_object_column(Column* col)
   memset(strbuf + datasize, 0xFF, padding);
   memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
   res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
-  ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
+  res->offoff = static_cast<int32_t>(datasize + padding);
   delete col;
   return res;
 }
