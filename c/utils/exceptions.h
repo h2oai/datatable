@@ -25,8 +25,8 @@
 
 
 
-#define MAKE_EXCEPTION_SAFE(fn)                                                \
-  static PyObject* pyes_ ## fn(PyObject* self, PyObject* args) {               \
+#define MAKE_EXCEPTION_SAFE(fn, base)                                          \
+  static PyObject* safe_##fn(base* self, PyObject* args) {                     \
     try {                                                                      \
       return fn(self, args);                                                   \
     } catch (Error& err) {                                                     \
@@ -36,6 +36,7 @@
     }                                                                          \
     return nullptr;                                                            \
   }
+
 
 // TODO: remove this macro, replacing with `MAKE_EXCEPTION_SAFE`
 #define CATCH_EXCEPTIONS(CODE)                                                 \

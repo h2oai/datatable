@@ -6,32 +6,71 @@
 #define dt_PYUTILS_H
 #include <Python.h>
 #include "utils.h"
+#include "utils/exceptions.h"
 
-/**
- * This macro can be inserted into a function's signature in place of an unused
- * `PyObject*` parameter, for example:
- *     PyObject* make_schmoo(UU, PyObject *args) { ... }
- * Use macros UU1 and UU2 if you need more than one unused PyObject*. If you
- * need to have an unused parameter of any other type, use macro `UNUSED`
- * directly (the macro is defined in `utils.h`).
- */
-#define UU   UNUSED(PyObject *_unused0)
-#define UU1  UNUSED(PyObject *_unused1)
-#define UU2  UNUSED(PyObject *_unused2)
+#define ES_FUNCTION(decl, call)                                                \
+  decl {                                                                       \
+    try {                                                                      \
+      return call;                                                             \
+    } catch (Error& err) {                                                     \
+      err.topython();                                                          \
+    } catch (std::exception& e) {                                              \
+      (Error() << e.what()).topython();                                        \
+    }                                                                          \
+    return nullptr;                                                            \
+  }
+
+
+
+#define DECLARE_INFO(name, docstring)                                          \
+  WHEN(HOMEFLAG,                                                               \
+    static char cls_name[] = #name;                                            \
+    static char cls_doc[] = docstring;                                         \
+  )
+
+#define DECLARE_METHOD(fn, docstring)                                          \
+  PyObject* fn(BASECLS* self, PyObject* args);                                 \
+  WHEN(HOMEFLAG,                                                               \
+    static char doc_##fn[] = docstring;                                        \
+    static char name_##fn[] = #fn;                                             \
+    ES_FUNCTION(                                                               \
+      static PyObject* safe_##fn(BASECLS* self, PyObject* args),               \
+      fn(self, args))                                                          \
+  )                                                                            \
+
+#define DECLARE_GETTER(fn, docstring)                                          \
+  PyObject* get_##fn(BASECLS* self);                                           \
+  WHEN(HOMEFLAG,                                                               \
+    static char doc_get_##fn[] = docstring;                                    \
+    static char name_get_##fn[] = #fn;                                         \
+    ES_FUNCTION(                                                               \
+      static PyObject* safe_get_##fn(BASECLS* self, void*),                    \
+      get_##fn(self))                                                          \
+  )                                                                            \
+
+
+#define METHOD0(fn)                                                            \
+  {name_##fn, (PyCFunction)safe_##fn, METH_NOARGS, doc_##fn}
+#define METHODv(fn)                                                            \
+  {name_##fn, (PyCFunction)safe_##fn, METH_VARARGS, doc_##fn}
+#define METHODo(fn)                                                            \
+  {name_##fn, (PyCFunction)safe_##fn, METH_O, doc_##fn}
+#define GETTER(fn)                                                             \
+  {name_get_##fn, (getter)safe_get_##fn, NULL, doc_get_##fn, NULL}
+#define GETSET(fn)                                                             \
+  {name_get_##fn, (getter)safe_get_##fn, (setter)safe_set_##fn,                \
+   doc_get_##fn, NULL}
 
 
 #define DT_DOCS(name, doc) \
-    static char dtvar_##name[] = #name; \
-    static char dtdoc_##name[] = doc;
+    static char dtdoc_##name[] = doc; \
+    static char dtvar_##name[] = #name;
 
 #define DT_GETSETTER(name) \
     {dtvar_##name, (getter)get_##name, NULL, dtdoc_##name, NULL}
 
 #define DT_METHOD1(name) \
     {dtvar_##name, (PyCFunction)meth_##name, METH_VARARGS, dtdoc_##name}
-
-#define DT_METHOD1es(name) \
-    {dtvar_##name, (PyCFunction)pyes_##name, METH_VARARGS, dtdoc_##name}
 
 
 PyObject* none(void);

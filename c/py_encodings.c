@@ -33,7 +33,7 @@ int decode_windows1251(const unsigned char *__restrict__ src, int len,
 
 
 // Module initialization
-int init_py_encodings(UU)
+int init_py_encodings(PyObject*)
 {
     initialize_map(win1252_map, 256, "Windows-1252");
     initialize_map(win1251_map, 256, "Windows-1251");

@@ -20,7 +20,7 @@
  * Otherwise, we assume that the list represents a single data column, and
  * build the datatable appropriately.
  */
-PyObject* pydatatable_from_list(UU, PyObject *args)
+PyObject* pydatatable_from_list(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     Column **cols = NULL;

@@ -201,7 +201,7 @@ Column* try_to_resolve_object_column(Column* col)
 
 
 //==============================================================================
-// Buffers interface for Column_PyObject
+// Buffers interface for pycolumn::obj
 //==============================================================================
 
 typedef struct XInfo {
@@ -230,7 +230,7 @@ typedef struct XInfo {
  *   - creates a shallow copy of the Column (together with its buffer), and
  *     stores it in the `XInfo` struct.
  */
-static int column_getbuffer(Column_PyObject* self, Py_buffer* view, int flags)
+static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
   MemoryBuffer* mbuf = nullptr;
@@ -286,7 +286,7 @@ static int column_getbuffer(Column_PyObject* self, Py_buffer* view, int flags)
  * This function MUST NOT decrement view->obj (== self), since it is done by
  * Python in `PyBuffer_Release()`.
  */
-static void column_releasebuffer(Column_PyObject*, Py_buffer* view)
+static void column_releasebuffer(pycolumn::obj*, Py_buffer* view)
 {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   xinfo->mbuf->release();
@@ -295,7 +295,7 @@ static void column_releasebuffer(Column_PyObject*, Py_buffer* view)
 }
 
 
-PyBufferProcs column_as_buffer = {
+PyBufferProcs pycolumn::as_buffer = {
   (getbufferproc) column_getbuffer,
   (releasebufferproc) column_releasebuffer,
 };

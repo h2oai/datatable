@@ -39,7 +39,7 @@ int columnset_unwrap(PyObject *object, void *address) {
 
 //==============================================================================
 
-PyObject* pycolumns_from_slice(UU, PyObject *args)
+PyObject* pycolumns_from_slice(PyObject*, PyObject *args)
 {
   DataTable *dt;
   int64_t start, count, step;
@@ -54,7 +54,7 @@ PyObject* pycolumns_from_slice(UU, PyObject *args)
 }
 
 
-PyObject* pycolumns_from_array(UU, PyObject *args)
+PyObject* pycolumns_from_array(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     DataTable *dt;
@@ -77,7 +77,7 @@ PyObject* pycolumns_from_array(UU, PyObject *args)
 }
 
 
-PyObject* pycolumns_from_mixed(UU, PyObject *args)
+PyObject* pycolumns_from_mixed(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     PyObject *pyspec;
