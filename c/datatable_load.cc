@@ -40,12 +40,9 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
                            << cols->stype() << ", and " << colm->stype();
     }
 
-    int64_t oof = ((VarcharMeta*) colf->meta)->offoff;
-    int64_t oos = ((VarcharMeta*) cols->meta)->offoff;
-    int64_t oom = ((VarcharMeta*) colm->meta)->offoff;
-    int32_t *offf = (int32_t*) colf->data_at(static_cast<size_t>(oof));
-    int32_t *offs = (int32_t*) cols->data_at(static_cast<size_t>(oos));
-    int32_t *offm = (int32_t*) colm->data_at(static_cast<size_t>(oom));
+    int32_t *offf = static_cast<StringColumn<int32_t>*>(colf)->offsets();
+    int32_t *offs = static_cast<StringColumn<int32_t>*>(cols)->offsets();
+    int32_t *offm = static_cast<StringColumn<int32_t>*>(colm)->offsets();
 
     static char filename[1001];
     static char metastr[101];

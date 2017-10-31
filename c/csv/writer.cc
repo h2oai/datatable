@@ -54,8 +54,8 @@ public:
       throw ValueError() << "Cannot write type " << col->stype();
     }
     if (col->stype() == ST_STRING_I4_VCHAR) {
-      strbuf = reinterpret_cast<char*>(data) - 1;
-      data = strbuf + 1 + ((VarcharMeta*)col->meta)->offoff;
+      strbuf = static_cast<StringColumn<int32_t>*>(col)->strdata();
+      data = static_cast<StringColumn<int32_t>*>(col)->offsets();
     }
   }
 

@@ -285,8 +285,8 @@ static PyObject* meth_column(DataTable_PyObject *self, PyObject *args)
         return NULL;
     }
     if (colidx < 0) colidx += dt->ncols;
-    Column_PyObject *pycol =
-        pycolumn_from_column(dt->columns[colidx], self, colidx);
+    pycolumn::obj* pycol =
+        pycolumn::from_column(dt->columns[colidx], self, colidx);
     return (PyObject*) pycol;
   );
 }

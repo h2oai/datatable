@@ -13,23 +13,25 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#define PY_COLUMN_cc 1
+#define PY_COLUMN_cc
 #include "py_column.h"
 #include "sort.h"
 #include "py_types.h"
 
-
-
-Column_PyObject* pycolumn_from_column(
-    Column *col, DataTable_PyObject *pydt, int64_t colidx)
+namespace pycolumn
 {
-  PyObject* coltype = reinterpret_cast<PyObject*>(&Column_PyType);
+PyObject* fn_hexview = NULL;  // see datatablemodule.c/pyregister_function
+
+
+pycolumn::obj* from_column(Column* col, DataTable_PyObject* pydt, int64_t idx)
+{
+  PyObject* coltype = reinterpret_cast<PyObject*>(&pycolumn::type);
   PyObject* pyobj = PyObject_CallObject(coltype, NULL);
-  Column_PyObject* pycol = reinterpret_cast<Column_PyObject*>(pyobj);
+  auto pycol = reinterpret_cast<pycolumn::obj*>(pyobj);
   if (!pycol) throw PyError();
   pycol->ref = col->shallowcopy();
   pycol->pydt = pydt;
-  pycol->colidx = colidx;
+  pycol->colidx = idx;
   Py_XINCREF(pydt);
   return pycol;
 }
@@ -40,50 +42,53 @@ Column_PyObject* pycolumn_from_column(
 // Column getters/setters
 //==============================================================================
 
-PyObject* get_mtype(Column_PyObject* self) {
+PyObject* get_mtype(pycolumn::obj* self) {
   return self->ref->mbuf_repr();
 }
 
 
-PyObject* get_stype(Column_PyObject* self) {
+PyObject* get_stype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
   return incref(py_stype_names[stype]);
 }
 
 
-PyObject* get_ltype(Column_PyObject* self) {
+PyObject* get_ltype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
   return incref(py_ltype_names[stype_info[stype].ltype]);
 }
 
 
-PyObject* get_data_size(Column_PyObject *self) {
+PyObject* get_data_size(pycolumn::obj* self) {
   Column* col = self->ref;
   return PyLong_FromSize_t(col->alloc_size());
 }
 
 
-PyObject* get_data_pointer(Column_PyObject *self) {
+PyObject* get_data_pointer(pycolumn::obj* self) {
   Column* col = self->ref;
   return PyLong_FromSize_t(reinterpret_cast<size_t>(col->data()));
 }
 
 
-PyObject* get_meta(Column_PyObject* self) {
+PyObject* get_meta(pycolumn::obj* self) {
   Column* col = self->ref;
-  void* meta = col->meta;
   switch (col->stype()) {
-    case ST_STRING_I4_VCHAR:
-    case ST_STRING_I8_VCHAR:
-      return PyUnicode_FromFormat("offoff=%lld",
-                                  ((VarcharMeta*)meta)->offoff);
+    case ST_STRING_I4_VCHAR: {
+      auto scol = static_cast<StringColumn<int32_t>*>(col);
+      return PyUnicode_FromFormat("offoff=%lld", scol->meta());
+    }
+    case ST_STRING_I8_VCHAR: {
+      auto scol = static_cast<StringColumn<int64_t>*>(col);
+      return PyUnicode_FromFormat("offoff=%lld", scol->meta());
+    }
     default:
       return none();
   }
 }
 
 
-PyObject* get_refcount(Column_PyObject* self) {
+PyObject* get_refcount(pycolumn::obj* self) {
   // "-1" because self->ref is a shallow copy of the "original" column, and
   // therefore it holds an extra reference to the data buffer.
   return PyLong_FromLong(self->ref->mbuf_refcount() - 1);
@@ -95,7 +100,7 @@ PyObject* get_refcount(Column_PyObject* self) {
 // Column methods
 //==============================================================================
 
-PyObject* save_to_disk(Column_PyObject* self, PyObject* args) {
+PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
   const char* filename = NULL;
   if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
   Column* col = self->ref;
@@ -104,21 +109,20 @@ PyObject* save_to_disk(Column_PyObject* self, PyObject* args) {
 }
 
 
-PyObject* hexview(Column_PyObject* self, PyObject*)
+PyObject* hexview(pycolumn::obj* self, PyObject*)
 {
-  if (!pyfn_column_hexview) {
+  if (!fn_hexview) {
     throw RuntimeError() << "Function column_hexview() was not linked";
   }
   PyObject* v = Py_BuildValue("(OOi)", self, self->pydt, self->colidx);
-  PyObject* ret = PyObject_CallObject(pyfn_column_hexview, v);
+  PyObject* ret = PyObject_CallObject(fn_hexview, v);
   Py_XDECREF(v);
   return ret;
 }
 
 
-static void pycolumn_dealloc(Column_PyObject *self)
+static void pycolumn_dealloc(pycolumn::obj* self)
 {
-  // FIXME!
   delete self->ref;
   Py_XDECREF(self->pydt);
   self->ref = NULL;
@@ -149,10 +153,10 @@ static PyMethodDef column_methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-PyTypeObject Column_PyType = {
+PyTypeObject pycolumn::type = {
   PyVarObject_HEAD_INIT(NULL, 0)
-  "_datatable.Column",                /* tp_name */
-  sizeof(Column_PyObject),            /* tp_basicsize */
+  cls_name,                           /* tp_name */
+  sizeof(pycolumn::obj),              /* tp_basicsize */
   0,                                  /* tp_itemsize */
   (destructor)pycolumn_dealloc,       /* tp_dealloc */
   0,                                  /* tp_print */
@@ -168,9 +172,9 @@ PyTypeObject Column_PyType = {
   0,                                  /* tp_str */
   0,                                  /* tp_getattro */
   0,                                  /* tp_setattro */
-  &column_as_buffer,                  /* tp_as_buffer; see py_buffers.c */
+  &pycolumn::as_buffer,               /* tp_as_buffer; see py_buffers.c */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-  "Column object",                    /* tp_doc */
+  cls_doc,                            /* tp_doc */
   0,                                  /* tp_traverse */
   0,                                  /* tp_clear */
   0,                                  /* tp_richcompare */
@@ -201,15 +205,18 @@ PyTypeObject Column_PyType = {
 };
 
 
-int init_py_column(PyObject *module) {
+int static_init(PyObject* module) {
   init_sort_functions();
 
-  // Register Column_PyType on the module
-  Column_PyType.tp_new = PyType_GenericNew;
-  if (PyType_Ready(&Column_PyType) < 0) return 0;
-  Py_INCREF(&Column_PyType);
-  PyModule_AddObject(module, "Column",
-                     reinterpret_cast<PyObject*>(&Column_PyType));
+  // Register pycolumn::type on the module
+  pycolumn::type.tp_new = PyType_GenericNew;
+  if (PyType_Ready(&pycolumn::type) < 0) return 0;
+  PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
+  Py_INCREF(typeobj);
+  PyModule_AddObject(module, "Column", typeobj);
 
   return 1;
 }
+
+
+};  // namespace pycolumn

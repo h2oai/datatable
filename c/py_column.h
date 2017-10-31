@@ -20,73 +20,84 @@
 #include "py_datatable.h"
 #include "py_utils.h"
 
+namespace pycolumn
+{
+#define BASECLS pycolumn::obj
+#define HOMEFLAG PY_COLUMN_cc
 
-typedef struct Column_PyObject {
+
+typedef struct obj {
     PyObject_HEAD
     Column *ref;
     DataTable_PyObject *pydt;
     int64_t colidx;
-} Column_PyObject;
+} obj;
 
 
-extern PyTypeObject Column_PyType;
-extern PyBufferProcs column_as_buffer;
-extern PyObject* pyfn_column_hexview;
+extern PyTypeObject type;
+extern PyBufferProcs as_buffer;
+extern PyObject* fn_hexview;
 
 
-Column_PyObject* pycolumn_from_column(
-    Column*, DataTable_PyObject*, int64_t colidx);
-int init_py_column(PyObject *module);
+pycolumn::obj* from_column(Column*, DataTable_PyObject*, int64_t);
+int static_init(PyObject* module);
 
+
+
+//---- Generic info ------------------------------------------------------------
+
+DECLARE_INFO(
+  "_datatable.Column",
+  "Single Column within a DataTable.")
 
 
 //---- Getters/setters ---------------------------------------------------------
-#define PYCOLUMN_GETTER(fn, doc) \
-  DECLARE_GETTER(fn, Column_PyObject, doc, PY_COLUMN_cc)
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   mtype,
   "'Memory' type of the column: data, or memmap")
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   stype,
   "'Storage' type of the column")
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   ltype,
   "'Logical' type of the column")
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   data_size,
   "The amount of memory taken by column's data")
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   data_pointer,
   "Pointer (cast to long int) to the column's internal memory buffer")
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   refcount,
   "Reference count of the column")
 
-PYCOLUMN_GETTER(
+DECLARE_GETTER(
   meta,
   "String representation of the column's `meta` struct")
 
 
 
 //---- Methods -----------------------------------------------------------------
-#define PYCOLUMN_METHOD(fn, doc) \
-  DECLARE_METHOD(fn, Column_PyObject, doc, PY_COLUMN_cc)
 
-PYCOLUMN_METHOD(
+DECLARE_METHOD(
   save_to_disk,
   "save_to_disk(filename)\n\n"
   "Save this column's data into the file `filename`.\n")
 
-PYCOLUMN_METHOD(
+DECLARE_METHOD(
   hexview,
   "hexview()\n\n"
   "View column's internal data as hex bytes.\n")
 
 
+
+};  // namespace pycolumn
+#undef BASECLS
+#undef HOMEFLAG
 #endif

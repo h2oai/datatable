@@ -166,7 +166,7 @@ Column* try_to_resolve_object_column(Column* col)
   char *strbuf = NULL;
   dtmalloc(strbuf, char, total_length);
   size_t strbuf_size = static_cast<size_t>(total_length);
-  auto res = new StringColumn<int32_t>(nrows);
+  StringColumn<int32_t>* res = new StringColumn<int32_t>(nrows);
   int32_t* offsets = res->offsets();
 
   size_t offset = 0;
@@ -194,14 +194,14 @@ Column* try_to_resolve_object_column(Column* col)
   memset(strbuf + datasize, 0xFF, padding);
   memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
   res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
-  ((VarcharMeta*) res->meta)->offoff = (int64_t) (datasize + padding);
+  res->offoff = static_cast<int32_t>(datasize + padding);
   delete col;
   return res;
 }
 
 
 //==============================================================================
-// Buffers interface for Column_PyObject
+// Buffers interface for pycolumn::obj
 //==============================================================================
 
 typedef struct XInfo {
@@ -230,7 +230,7 @@ typedef struct XInfo {
  *   - creates a shallow copy of the Column (together with its buffer), and
  *     stores it in the `XInfo` struct.
  */
-static int column_getbuffer(Column_PyObject* self, Py_buffer* view, int flags)
+static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
   MemoryBuffer* mbuf = nullptr;
@@ -286,7 +286,7 @@ static int column_getbuffer(Column_PyObject* self, Py_buffer* view, int flags)
  * This function MUST NOT decrement view->obj (== self), since it is done by
  * Python in `PyBuffer_Release()`.
  */
-static void column_releasebuffer(Column_PyObject*, Py_buffer* view)
+static void column_releasebuffer(pycolumn::obj*, Py_buffer* view)
 {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   xinfo->mbuf->release();
@@ -295,7 +295,7 @@ static void column_releasebuffer(Column_PyObject*, Py_buffer* view)
 }
 
 
-PyBufferProcs column_as_buffer = {
+PyBufferProcs pycolumn::as_buffer = {
   (getbufferproc) column_getbuffer,
   (releasebufferproc) column_releasebuffer,
 };

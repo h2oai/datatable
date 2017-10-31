@@ -22,27 +22,29 @@
 
 
 
-#define DECLARE_API_FUNCTION(fn, docstring, home)                              \
-  DECLARE_METHOD(fn, PyObject, docstring, home)
+#define DECLARE_INFO(name, docstring)                                          \
+  WHEN(HOMEFLAG,                                                               \
+    static char cls_name[] = #name;                                            \
+    static char cls_doc[] = docstring;                                         \
+  )
 
-
-#define DECLARE_METHOD(fn, base, docstring, home)                              \
-  PyObject* fn(base* self, PyObject* args);                                    \
-  WHEN(home,                                                                   \
+#define DECLARE_METHOD(fn, docstring)                                          \
+  PyObject* fn(BASECLS* self, PyObject* args);                                 \
+  WHEN(HOMEFLAG,                                                               \
     static char doc_##fn[] = docstring;                                        \
     static char name_##fn[] = #fn;                                             \
     ES_FUNCTION(                                                               \
-      static PyObject* safe_##fn(base* self, PyObject* args),                  \
+      static PyObject* safe_##fn(BASECLS* self, PyObject* args),               \
       fn(self, args))                                                          \
   )                                                                            \
 
-#define DECLARE_GETTER(fn, base, docstring, home)                              \
-  PyObject* get_##fn(base* self);                                              \
-  WHEN(home,                                                                   \
+#define DECLARE_GETTER(fn, docstring)                                          \
+  PyObject* get_##fn(BASECLS* self);                                           \
+  WHEN(HOMEFLAG,                                                               \
     static char doc_get_##fn[] = docstring;                                    \
     static char name_get_##fn[] = #fn;                                         \
     ES_FUNCTION(                                                               \
-      static PyObject* safe_get_##fn(base* self, void*),                       \
+      static PyObject* safe_get_##fn(BASECLS* self, void*),                    \
       get_##fn(self))                                                          \
   )                                                                            \
 

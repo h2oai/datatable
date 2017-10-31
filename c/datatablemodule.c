@@ -13,7 +13,6 @@
 
 
 PyMODINIT_FUNC PyInit__datatable(void);
-PyObject* pyfn_column_hexview = NULL;  // Defined in py_column.h
 
 
 static PyObject* pyexec_function(PyObject *self, PyObject *args)
@@ -43,7 +42,7 @@ static PyObject* pyregister_function(PyObject*, PyObject *args)
         return NULL;
     }
     Py_XINCREF(fnref);
-    if (n == 1) pyfn_column_hexview = fnref;
+    if (n == 1) pycolumn::fn_hexview = fnref;
     else if (n == 2) init_py_stype_objs(fnref);
     else if (n == 3) init_py_ltype_objs(fnref);
     else {
@@ -155,7 +154,7 @@ PyInit__datatable(void) {
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
-    if (!init_py_column(m)) return NULL;
+    if (!pycolumn::static_init(m)) return NULL;
     if (!init_py_columnset(m)) return NULL;
     if (!init_py_encodings(m)) return NULL;
 
