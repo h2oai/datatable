@@ -1169,13 +1169,14 @@ int freadMain(freadMainArgs _args)
   //     subsequent sections will have to take into account the fact that the
   //     input may have been split into 2 parts.
   //*********************************************************************************************
-  if (verbose) DTPRINT("[5] Check for missing newline at the end of input\n");
+  // if (verbose) DTPRINT("[5] Check for missing newline at the end of input\n");
 
   // "Hidden line" context: start-of-hidden section and end-of-hidden section.
   const char *soh = NULL;
   const char *eoh = NULL;
 
   bool trailing_newline_added = false;
+  /*
   if (!(eof[-eolLen] == eol && eof[-1] == eol2)) {
     const char *oldeof = eof;
     while (eof[-eolLen] != eol || eof[-1] != eol2) eof--;
@@ -1196,7 +1197,7 @@ int freadMain(freadMainArgs _args)
     trailing_newline_added = true;
   }
   ASSERT(eof[-eolLen] == eol && eof[-1] == eol2);
-
+  */
 
   //*********************************************************************************************
   // [6] Position to line `skipNrow+1` or to line containing `skipString`.
@@ -1650,7 +1651,7 @@ int freadMain(freadMainArgs _args)
                "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart,200,end));
         }
       }
-      ASSERT(ch < end);
+      ASSERT(ch <= end);
       if (!on_eol(ch) || field>=ncol) {
         ASSERT(field==ncol);
         STOP("Line %d from sampling jump %d starting \"%s\" has more than the expected %d fields. "
@@ -1669,7 +1670,7 @@ int freadMain(freadMainArgs _args)
         DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
                 strlim(fieldStart, 200, end));
       }
-      ch += eolLen;
+      skip_eol(&ch);
       // Two reasons:  1) to get the end of the very last good row before whitespace or footer before eof
       //               2) to check sample jumps don't overlap, otherwise double count and bad estimate
       lastRowEnd = ch;
