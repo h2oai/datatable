@@ -38,6 +38,11 @@ MemoryBuffer::MemoryBuffer() : refcount(1), readonly(false) {}
 // exception.
 MemoryBuffer::~MemoryBuffer() {}
 
+void MemoryBuffer::save_to_disk(const std::string path) {
+  WritableBuffer* wb = WritableBuffer::create_target(path, size());
+  wb->write(size(), get());
+  delete wb;
+}
 
 void* MemoryBuffer::at(size_t n) {
   return static_cast<void*>(static_cast<char*>(get()) + n);
@@ -148,7 +153,7 @@ void* MemoryMemBuf::get() {
   return buf;
 }
 
-size_t MemoryMemBuf::size() {
+size_t MemoryMemBuf::size() const {
   return allocsize;
 }
 
@@ -253,7 +258,7 @@ void* ExternalMemBuf::get() {
   return buf;
 }
 
-size_t ExternalMemBuf::size() {
+size_t ExternalMemBuf::size() const {
   return allocsize;
 }
 
@@ -370,7 +375,7 @@ void* MemmapMemBuf::get() {
   return mmp;
 }
 
-size_t MemmapMemBuf::size() {
+size_t MemmapMemBuf::size() const {
   if (mmp) {
     return mmpsize;
   } else {

@@ -23,10 +23,6 @@
 #include "writebuf.h"
 #include "utils.h"
 
-#define WRITE_STRATEGY_AUTO  0
-#define WRITE_STRATEGY_MMAP  1
-#define WRITE_STRATEGY_WRITE 2
-
 
 class CsvColumn;
 
