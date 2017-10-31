@@ -1175,29 +1175,6 @@ int freadMain(freadMainArgs _args)
   const char *soh = NULL;
   const char *eoh = NULL;
 
-  bool trailing_newline_added = false;
-  /*
-  if (!(eof[-eolLen] == eol && eof[-1] == eol2)) {
-    const char *oldeof = eof;
-    while (eof[-eolLen] != eol || eof[-1] != eol2) eof--;
-    size_t sz = (size_t)(oldeof - eof + eolLen);
-    size_t sz0 = sz - (size_t)eolLen;
-    lineCopy = (char*) malloc(sz);
-    if (!lineCopy) STOP("Unable to allocate %zd bytes for a temporary buffer", sz);
-    memcpy(lineCopy, eof, sz0);
-    lineCopy[sz - 1] = eol2;
-    lineCopy[sz0] = eol;
-    soh = lineCopy;
-    eoh = lineCopy + sz;
-    if (verbose)
-      DTPRINT("  Last character in the file is not a newline, so EOF is "
-              "temporarily moved %zd bytes backwards\n", sz0);
-    ASSERT(eoh[-eolLen] == eol && eoh[-1] == eol2);
-    ASSERT(*eof == *soh && oldeof[-1] == eoh[-eolLen-1]);
-    trailing_newline_added = true;
-  }
-  ASSERT(eof[-eolLen] == eol && eof[-1] == eol2);
-  */
 
   //*********************************************************************************************
   // [6] Position to line `skipNrow+1` or to line containing `skipString`.
@@ -1254,9 +1231,8 @@ int freadMain(freadMainArgs _args)
 
   // Skip the first `skipNrow` lines of input.
   if (args.skipNrow) {
-    ch = sof; end = eof;
-    while ((ch < end || (soh && (end != eoh) && (ch = soh) && (end = eoh)))
-           && line <= args.skipNrow)
+    ch = sof;
+    while (ch < eof && line <= args.skipNrow)
     {
       line += (*ch++ == eol && (eolLen == 1 || *ch++ == eol2));
     }
@@ -1270,16 +1246,15 @@ int freadMain(freadMainArgs _args)
 
   // Additionally, skip any blank lines at the start
   const char *lineStart = sof;
-  ch = sof; end = eof;
-  while ((ch < end || (soh && (end != eoh) && (ch = soh) && (end = eoh)))
-         && isspace(*ch))  // isspace() matches ' ', \t, \n and \r
+  ch = sof;
+  while (ch < eof && isspace(*ch))  // isspace() matches ' ', \t, \n and \r
   {
     if (*ch++ == eol && (eolLen == 1 || *ch++ == eol2)) {
       lineStart = ch;
       line++;
     }
   }
-  if (ch >= end) {
+  if (ch >= eof) {
     if (args.skipNrow || args.skipString)
       STOP("All input has been skipped: the remainder of the file has nothing but whitespace.\n");
     else
@@ -1348,8 +1323,7 @@ int freadMain(freadMainArgs _args)
       int i=-1; // The slot we're counting the currently contiguous consistent ncol
       int thisLine=0, lastncol=-1;
       ch = sof; end = eof;
-      while ((ch < end || (soh && (end != eoh) && (ch = soh) && (end = eoh)))
-             && thisLine++ < JUMPLINES)
+      while (ch < end && thisLine++ < JUMPLINES)
       {
         // Compute num columns and move `ch` to the start of next line
         int thisncol = countfields(&ch, &end, soh, eoh);
@@ -1391,11 +1365,12 @@ int freadMain(freadMainArgs _args)
       }
     }
   }
-  if (!firstJumpEnd) STOP("Internal error: no sep won");
+  ASSERT(firstJumpEnd);
   // the size in bytes of the first JUMPLINES from the start (jump point 0)
-  size_t jump0size = (sof <= firstJumpEnd && firstJumpEnd <= eof)
-                      ? (size_t)(firstJumpEnd - sof)
-                      : (size_t)(eof - sof) + (size_t)(firstJumpEnd - soh);
+  size_t jump0size = (size_t)(firstJumpEnd - sof);
+  if (!(jump0size >= 0 && jump0size <= fileSize + (size_t)eolLen))
+    printf("jump0size = %zu, fileSize = %zu, eolLen = %zu; sof=%p, eof=%p, firstJumpEnd=%p, soh=%p, eoh=%p\n",
+           jump0size, fileSize, eolLen, sof, eof, firstJumpEnd, soh, eoh);
   ASSERT(jump0size >= 0 && jump0size <= fileSize + (size_t)eolLen);
   quoteRule = topQuoteRule;
   sep = topSep;
@@ -1665,7 +1640,7 @@ int freadMain(freadMainArgs _args)
       // a warning regardless of quoting rule just in case file has been inadvertently truncated.
       // The warning is only issued if the file didn't have the newline on the last line.
       // This warning is early at type skipping around stage before reading starts, so user can cancel early
-      if (type[ncol-1]==CT_STRING && *fieldStart==quote && *(ch-1)!=quote && trailing_newline_added) {
+      if (type[ncol-1]==CT_STRING && *fieldStart==quote && *(ch-1)!=quote) {
         ASSERT(quoteRule>=2);
         DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
                 strlim(fieldStart, 200, end));
