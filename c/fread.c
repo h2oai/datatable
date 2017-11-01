@@ -250,7 +250,7 @@ static inline int countfields(const char **pch)
 
 
 
-static inline bool nextGoodLine(const char **pch, int ncol, const char *eof)
+static inline bool nextGoodLine(const char **pch, int ncol)
 {
   const char *ch = *pch;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
@@ -1460,7 +1460,7 @@ int freadMain(freadMainArgs _args)
     ch = (j == 0) ? sof :
          (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
                            sof + (size_t)j*(sz/(size_t)(nJumps-1));
-    if (j>0 && !nextGoodLine(&ch, ncol, eof))
+    if (j>0 && !nextGoodLine(&ch, ncol))
       STOP("Could not find first good line start after jump point %d when sampling.", j);
     end = eof;
     bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
@@ -1468,7 +1468,6 @@ int freadMain(freadMainArgs _args)
     while (ch < end && (jline<JUMPLINES || j==nJumps-1))
     {  // nJumps==1 implies sample all of input to eof; last jump to eof too
       const char *jlineStart = ch;
-      const char* jlineStart_end = end;
       if (sep==' ') while (*ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
       // detect blank lines
       skip_white(&ch);
@@ -1792,7 +1791,7 @@ int freadMain(freadMainArgs _args)
       // +eolLen is for when nextJump happens to fall exactly on a line start (or on eol2 on Windows). The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
       // Easier to imagine eolLen==1 and tch<=nextJump in the while() below
-      if (jump>0 && !nextGoodLine(&tch, ncol, nextJump)) {
+      if (jump>0 && !nextGoodLine(&tch, ncol)) {
         stopTeam=true;
         DTPRINT("No good line could be found from jump point %d\n",jump); // TODO: change to stopErr
         continue;
