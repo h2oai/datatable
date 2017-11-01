@@ -20,7 +20,30 @@
 #include "utils/omp.h"
 #include "utils.h"
 
+//==============================================================================
+// WritableBuffer
+//==============================================================================
 
+WritableBuffer* WritableBuffer::create_target(const std::string path, size_t size, int8_t strategy) {
+  if (path.empty()) {
+    return new MemoryWritableBuffer(size);
+  } else {
+    if (strategy == WRITE_STRATEGY_AUTO) {
+      #ifdef __APPLE__
+        strategy = WRITE_STRATEGY_WRITE;
+      #else
+        strategy = WRITE_STRATEGY_MMAP;
+      #endif
+    }
+    if (strategy == WRITE_STRATEGY_WRITE) {
+      return new FileWritableBuffer(path);
+    }
+    if (strategy == WRITE_STRATEGY_MMAP) {
+      return new MmapWritableBuffer(path, size);
+    }
+  }
+  throw Error() << "Invalid write strategy code: " << strategy;
+}
 
 //==============================================================================
 // FileWritableBuffer

@@ -547,9 +547,7 @@ size_t CsvWriter::estimate_output_size()
  */
 void CsvWriter::create_target(size_t size)
 {
-  if (path.empty()) {
-    wb = new MemoryWritableBuffer(size);
-  } else {
+  if (!path.empty()) {
     if (strategy == WRITE_STRATEGY_AUTO) {
       #ifdef __APPLE__
         strategy = WRITE_STRATEGY_WRITE;
@@ -560,15 +558,14 @@ void CsvWriter::create_target(size_t size)
     if (strategy == WRITE_STRATEGY_WRITE) {
       VLOG("Creating an empty destination file %s. If the file already exists "
            "it will be truncated.\n", path.c_str());
-      wb = new FileWritableBuffer(path);
     }
     if (strategy == WRITE_STRATEGY_MMAP) {
       VLOG("Creating and memory-mapping destination file %s of size %s. If the "
            "file already exists it will be overwritten.\n",
            path.c_str(), filesize_to_str(size));
-      wb = new MmapWritableBuffer(path, size);
     }
   }
+  wb = WritableBuffer::create_target(path, size, strategy);
   t_create_target = checkpoint();
 }
 
