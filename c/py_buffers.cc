@@ -193,6 +193,7 @@ Column* try_to_resolve_object_column(Column* col)
   dtrealloc(strbuf, char, allocsize);
   memset(strbuf + datasize, 0xFF, padding);
   memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
+  res->mbuf->release();
   res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
   res->offoff = static_cast<int32_t>(datasize + padding);
   delete col;
