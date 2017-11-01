@@ -20,6 +20,8 @@ static char sep, eol, eol2;
 static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
 static int eolLen;
 static char quote, dec;
+static const char* sof;
+static const char* eof;
 
 // Quote rule:
 //   0 = Fields may be quoted, any quote inside the field is doubled. This is
@@ -212,10 +214,9 @@ static inline bool is_NAstring(const char *fieldStart) {
  * Returns the number of fields on the current line, or -1 if the line cannot
  * be parsed using current settings.
  */
-static inline int countfields(const char **pch, const char **end, const char *soh, const char *eoh)
+static inline int countfields(const char **pch)
 {
   static lenOff trash;  // target for writing out parsed fields
-  const char *tend = *end;
   const char *ch = *pch;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_white(&ch);
@@ -232,13 +233,8 @@ static inline int countfields(const char **pch, const char **end, const char *so
     if (res == 2) {
       int linesCount = 0;
       while (res == 2 && linesCount++ < 100) {
-        if (ch == tend) {
-          if (eoh && tend != eoh) {
-            ch = soh;
-            tend = eoh;
-          } else {
-            return -1;
-          }
+        if (ch == eof) {
+          return -1;
         }
         res = parse_string_continue(&ch, &trash);
       }
@@ -249,7 +245,6 @@ static inline int countfields(const char **pch, const char **end, const char *so
     ch++;  // move over sep (which will already be last ' ' if sep=' ').
   }
   *pch = ch;
-  *end = tend;
   return ncol;
 }
 
@@ -268,8 +263,7 @@ static inline bool nextGoodLine(const char **pch, int ncol, const char *eof)
     skip_eol(&ch);
     int i = 0, thisNcol=0;
     const char *ch2 = ch;
-    const char *end = eof;
-    while (ch2<eof && i<5 && ( (thisNcol=countfields(&ch2, &end, NULL, NULL))==ncol ||
+    while (ch2<eof && i<5 && ( (thisNcol=countfields(&ch2))==ncol ||
                                (thisNcol==0 && (skipEmptyLines || fill)))) i++;
     if (i==5 || ch2>=eof) break;
   }
@@ -999,8 +993,8 @@ int freadMain(freadMainArgs _args)
   // context in order to accommodate for the lack of newline on the last line
   // of file.
   fileSize = args.bufsize - 1;
-  const char *sof = static_cast<char*>(args.buf);
-  const char *eof = sof + fileSize;
+  sof = static_cast<char*>(args.buf);
+  eof = sof + fileSize;
   ASSERT(*eof == '\0');
   // Convenience variable for iteration over the file.
   const char *ch = NULL, *end = NULL;
@@ -1107,29 +1101,6 @@ int freadMain(freadMainArgs _args)
     }
   }
 
-
-  //*********************************************************************************************
-  // [5] Temporarily hide the last line if it doesn't end with a newline.
-  //
-  //     Ensure file ends with eol so we don't need to check 'ch < eof &&
-  //     *ch...' everywhere in deep loops just because the very last field in
-  //     the file might finish abrubtly with no final \n.
-  //
-  //     If we do see that the file has no trailing newline, then we create
-  //     the "hidden line" context by copying the last line of the file into a
-  //     separate buffer (with newline characters appended at the end). We
-  //     will need to be careful to switch to this context when appropriate.
-  //
-  //     After this section, it is guaranteed that `eof[-eolLen] == eol` and
-  //     `eoh` is either NULL or `eoh[-eolLen] == eol`. On the other hand, all
-  //     subsequent sections will have to take into account the fact that the
-  //     input may have been split into 2 parts.
-  //*********************************************************************************************
-  // if (verbose) DTPRINT("[5] Check for missing newline at the end of input\n");
-
-  // "Hidden line" context: start-of-hidden section and end-of-hidden section.
-  const char *soh = NULL;
-  const char *eoh = NULL;
 
 
   //*********************************************************************************************
@@ -1268,11 +1239,11 @@ int freadMain(freadMainArgs _args)
       for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
       int i=-1; // The slot we're counting the currently contiguous consistent ncol
       int thisLine=0, lastncol=-1;
-      ch = sof; end = eof;
-      while (ch < end && thisLine++ < JUMPLINES)
+      ch = sof;
+      while (ch < eof && thisLine++ < JUMPLINES)
       {
         // Compute num columns and move `ch` to the start of next line
-        int thisncol = countfields(&ch, &end, soh, eoh);
+        int thisncol = countfields(&ch);
         if (thisncol < 0) {
           // invalid file with this sep and quote rule; abort
           numFields[0] = -1;
@@ -1331,12 +1302,11 @@ int freadMain(freadMainArgs _args)
   } else {
     ncol = topNumFields;
     int thisLine = -1;
-    ch = sof; end = eof;
-    while ((ch < eof || (soh && (end != eoh) && (end=eoh) && (ch=soh)))
-           && ++thisLine < JUMPLINES)
+    ch = sof;
+    while (ch < eof && ++thisLine < JUMPLINES)
     {
       const char *ch2 = ch;   // lineStart
-      int cols = countfields(&ch, &end, soh, eoh);  // advances ch to next line
+      int cols = countfields(&ch);  // advances ch to next line
       if (cols == ncol) {
         sof = ch2;
         line += thisLine;
@@ -1348,8 +1318,7 @@ int freadMain(freadMainArgs _args)
 
   ASSERT(ncol >= 1 && line >= 1);
   ch = sof;
-  end = eof;
-  int tt = countfields(&ch, &end, soh, eoh);
+  int tt = countfields(&ch);
   if (verbose) {
     DTPRINT("  Detected %d columns on line %d. This line is either column "
             "names or first data row. Line starts as: \"%s\"\n",
@@ -1391,12 +1360,7 @@ int freadMain(freadMainArgs _args)
     int res = Field(&ch, (lenOff *)trash);
     ASSERT(res != 1);
     while (res == 2) {
-      if (ch == end) {
-        if (eoh && end != eoh) {
-          ch = soh;
-          end = eoh;
-        } else ASSERT(0);
-      }
+      ASSERT(ch != end);
       res = parse_string_continue(&ch, (lenOff *)trash);
     }
 
@@ -1410,7 +1374,6 @@ int freadMain(freadMainArgs _args)
     if (verbose && args.header==NA_BOOL8) DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.\n", line);
     // colNames was calloc'd so nothing to do; all len=off=0 already
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
-    end = eof;
     // now check previous line which is being discarded and give helpful msg to user ...
     if (ch>headerPtr && args.skipNrow==0) {
       ch -= (eolLen+1);
@@ -1418,7 +1381,7 @@ int freadMain(freadMainArgs _args)
       while (ch>headerPtr && *ch!=eol2) ch--;
       if (ch>headerPtr) ch++;
       const char *prevStart = ch;
-      int tmp = countfields(&ch, &end, soh, eoh);
+      int tmp = countfields(&ch);
       if (tmp==ncol) STOP("Internal error: row before first data row has the same number of fields but we're not using it.");
       if (tmp>1) DTWARN("Starting data input on line %d \"%s\" with %d fields and discarding "
                         "line %d \"%s\" before it because it has a different number of fields (%d).",
@@ -1429,7 +1392,7 @@ int freadMain(freadMainArgs _args)
     if (verbose && args.header==NA_BOOL8) {
       DTPRINT("  All the fields on line %d are character fields. Treating as the column names.\n", line);
     }
-    ch = sof; end = eof;
+    ch = sof;
     line++;
     if (sep==' ') while (*ch==' ') ch++;
     ch--;
@@ -1439,10 +1402,6 @@ int freadMain(freadMainArgs _args)
       ASSERT(ret != 1);
       while (ret == 2) {
         line++;
-        if (ch == eof) {
-          ASSERT(eoh);
-          ch = soh; end = eoh;
-        }
         ret = parse_string_continue(&ch, colNames + i);
       }
       colNames[i].off += (size_t)(start-colNamesAnchor);
@@ -1478,7 +1437,7 @@ int freadMain(freadMainArgs _args)
   // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
   // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
   int nJumps = 0;
-  size_t sz = (size_t)(eof - sof + (eoh ? eoh - soh : 0));
+  size_t sz = (size_t)(eof - sof);
   if (jump0size>0) {
     if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
     else if (jump0size*10*2 < sz) nJumps=10;
@@ -1594,9 +1553,6 @@ int freadMain(freadMainArgs _args)
       lastRowEnd = ch;
       //DTPRINT("\n");
       int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
-      if (end != jlineStart_end) {
-        thisLineLen = (int)((jlineStart_end - jlineStart) + (ch - soh));
-      }
       ASSERT(thisLineLen >= 0);
       sampleLines++;
       sumLen += thisLineLen;
@@ -1609,14 +1565,14 @@ int freadMain(freadMainArgs _args)
       DTPRINT("  Quote rule %d\n", quoteRule);
     }
   }
-  while ((ch < end || (soh && (end != eoh) && (end=eoh) && (ch=soh))) && isspace(*ch)) ch++;
+  while (ch < end && isspace(*ch)) ch++;
   if (ch < end) {
     DTWARN("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(ch, 200));
   }
   eof = lastRowEnd;
 
   size_t estnrow=1, allocnrow=1;
-  size_t bytesRead = (size_t)(eof - sof) + (size_t)(eoh? eoh - soh : 0);
+  size_t bytesRead = (size_t)(eof - sof);
   size_t bytesToRead = bytesRead;
   double meanLineLen=0;
   if (sampleLines == 0) {
@@ -1639,7 +1595,7 @@ int freadMain(freadMainArgs _args)
                allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
     }
     if (nJumps==1) {
-      estnrow = allocnrow = sampleLines + (soh != NULL);
+      estnrow = allocnrow = sampleLines;
       if (verbose) DTPRINT("  All rows were sampled since file is small so we know nrow=%zd exactly\n", estnrow);
     } else {
       if (sampleLines > allocnrow) STOP("Internal error: sampleLines(%zd) > allocnrow(%zd)", sampleLines, allocnrow);
@@ -1911,8 +1867,7 @@ int freadMain(freadMainArgs _args)
             if (ret == 0) break;
             while (ret == 2) {
               if (tch == eof) {
-                if (eoh) { tch = soh; nextJump = eoh; }
-                else break;
+                break;
               }
               ret = parse_string_continue(&tch, (lenOff*)target);
             }
@@ -1951,11 +1906,6 @@ int freadMain(freadMainArgs _args)
           j++;
           if (on_eol(tch)) {
             skip_eol(&tch);
-            if (tch == eof && soh) {
-              fake_anchor += soh - tch;
-              tch = soh;
-              nextJump = eoh;
-            }
             at_line_end = true;
             break;
           }
