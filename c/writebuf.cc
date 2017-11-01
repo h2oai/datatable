@@ -29,11 +29,11 @@ WritableBuffer* WritableBuffer::create_target(const std::string path, size_t siz
     return new MemoryWritableBuffer(size);
   } else {
     if (strategy == WRITE_STRATEGY_AUTO) {
-#ifdef __APPLE__
-      strategy = WRITE_STRATEGY_WRITE;
-#else
-      strategy = WRITE_STRATEGY_MMAP;
-#endif
+      #ifdef __APPLE__
+        strategy = WRITE_STRATEGY_WRITE;
+      #else
+        strategy = WRITE_STRATEGY_MMAP;
+      #endif
     }
     if (strategy == WRITE_STRATEGY_WRITE) {
       return new FileWritableBuffer(path);
