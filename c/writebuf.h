@@ -19,6 +19,9 @@
 #include <string>      // std::string
 #include "utils/file.h"
 
+#define WRITE_STRATEGY_AUTO  0
+#define WRITE_STRATEGY_MMAP  1
+#define WRITE_STRATEGY_WRITE 2
 
 //==============================================================================
 
@@ -28,6 +31,7 @@ protected:
   size_t bytes_written;
 
 public:
+  static WritableBuffer* create_target(const std::string path, size_t size, int8_t strategy = WRITE_STRATEGY_AUTO);
   WritableBuffer(): bytes_written(0) {}
   virtual ~WritableBuffer() {}
 
