@@ -418,6 +418,7 @@ void setFinalNrow(size_t nrows) {
             StrBuf* sb = strbufs[j];
             assert(sb->numuses == 0);
             void *final_ptr = (void*) sb->buf;
+            sb->buf = NULL;
             size_t curr_size = sb->ptr;
             size_t padding = Column::i4s_padding(curr_size);
             size_t offoff = curr_size + padding;
@@ -436,15 +437,20 @@ void setFinalNrow(size_t nrows) {
             memset(add_ptr(final_ptr, curr_size), 0xFF, padding);
             memcpy(add_ptr(final_ptr, offoff), col->mbuf->get(), offs_size);
             ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
+            if (col->mbuf) {
+                col->mbuf->release();
+                col->mbuf = nullptr;
+            }
             if (targetdir) {
                 snprintf(fname2, 1000, "%s/col%0*d", targetdir, ndigits, (int)j);
                 File::remove(fname2);
                 int ret = rename(fname, fname2);
                 if (ret == -1) printf("Unable to rename: %d\n", errno);
+                munmap(final_ptr, final_size);
+                col->mbuf = new MemmapMemBuf(fname);
             } else {
-                col->mbuf->release();
+                col->mbuf = new MemoryMemBuf(final_ptr, final_size);
             }
-            col->mbuf = new MemoryMemBuf(final_ptr, final_size);
             col->nrows = (int64_t) nrows;
             static_cast<StringColumn<int32_t>*>(col)->offoff = static_cast<int32_t>(offoff);
         } else if (type > 0) {

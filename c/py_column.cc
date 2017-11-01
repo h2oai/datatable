@@ -153,7 +153,7 @@ static PyMethodDef column_methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-PyTypeObject pycolumn::type = {
+PyTypeObject type = {
   PyVarObject_HEAD_INIT(NULL, 0)
   cls_name,                           /* tp_name */
   sizeof(pycolumn::obj),              /* tp_basicsize */

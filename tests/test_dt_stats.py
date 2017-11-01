@@ -160,7 +160,7 @@ def test_dt_mean(src_all):
                                       ([5, 1, inf], inf),
                                       ([inf, 4, 2], inf),
                                       ([-inf, -inf, -inf, -inf], -inf),
-                                      ([-inf, 0, inf], nan),
+                                      ([-inf, 0, inf], None),
                                       ])
 def test_dt_mean_special_cases(src, res):
     dt0 = dt.DataTable(src)
@@ -182,7 +182,8 @@ def t_sd(t):
     elif len(t) == 1:
         return [0.0]
     else:
-        return [statistics.stdev(t)]
+        res = statistics.stdev(t)
+        return [res if not isnan(res) else None]
 
 def test_dt_sd(src_all):
     dt0 = dt.DataTable(src_all)
@@ -198,8 +199,8 @@ def test_dt_sd(src_all):
                                       ([], None),
                                       ([3.0], 0),
                                       ([None, None, None], None),
-                                      ([inf, inf, inf], nan),
-                                      ([-inf, 0, inf], nan),
+                                      ([inf, inf, inf], None),
+                                      ([-inf, 0, inf], None),
                                       ])
 def test_dt_sd_special_cases(src, res):
     dt0 = dt.DataTable(src)
