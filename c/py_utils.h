@@ -12,12 +12,10 @@
   decl {                                                                       \
     try {                                                                      \
       return call;                                                             \
-    } catch (Error& err) {                                                     \
-      err.topython();                                                          \
-    } catch (std::exception& e) {                                              \
-      (Error() << e.what()).topython();                                        \
+    } catch (const std::exception& e) {                                        \
+      exception_to_python(e);                                                  \
+      return NULL;                                                             \
     }                                                                          \
-    return nullptr;                                                            \
   }
 
 

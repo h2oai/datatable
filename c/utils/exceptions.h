@@ -29,12 +29,10 @@
   static PyObject* safe_##fn(base* self, PyObject* args) {                     \
     try {                                                                      \
       return fn(self, args);                                                   \
-    } catch (Error& err) {                                                     \
-      err.topython();                                                          \
-    } catch (std::exception& e) {                                              \
-      (Error() << e.what()).topython();                                        \
+    } catch (const std::exception& e) {                                        \
+      exception_to_python(e);                                                  \
+      return NULL;                                                             \
     }                                                                          \
-    return nullptr;                                                            \
   }
 
 
@@ -43,13 +41,15 @@
   try {                                                                        \
     CODE                                                                       \
   } catch (const std::exception& e) {                                          \
-    PyErr_SetString(PyExc_RuntimeError, e.what());                             \
+    exception_to_python(e);                                                    \
     return NULL;                                                               \
   }
 
 
 class CErrno {};
 extern CErrno Errno;
+
+void exception_to_python(const std::exception&);
 
 
 //------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ public:
    * Translate this exception into a Python error by calling PyErr_SetString
    * with the appropriate exception class and message.
    */
-  virtual void topython();
+  virtual void topython() const;
 
   /**
    * Return Python class corresponding to this exception.
@@ -95,14 +95,14 @@ public:
 
 class PyError : public Error
 {
-  PyObject* exc_type;
-  PyObject* exc_value;
-  PyObject* exc_traceback;
+  mutable PyObject* exc_type;
+  mutable PyObject* exc_value;
+  mutable PyObject* exc_traceback;
 
 public:
   PyError();
   ~PyError();
-  void topython() override;
+  void topython() const override;
   PyObject* pyclass() const override;
 };
 
