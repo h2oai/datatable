@@ -22,11 +22,54 @@ template <typename T> FwColumn<T>::FwColumn() : FwColumn<T>(0) {}
 
 
 template <typename T>
-FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
-{
+FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {
   size_t sz = sizeof(T) * static_cast<size_t>(nrows_);
   mbuf = sz? new MemoryMemBuf(sz) : nullptr;
 }
+
+
+//==============================================================================
+// Initialization methods
+//==============================================================================
+
+template <typename T>
+void FwColumn<T>::init_data(int64_t nrows_) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  ri = nullptr;
+  mbuf = new MemoryMemBuf(static_cast<size_t>(nrows_) * elemsize());
+}
+
+template <typename T>
+void FwColumn<T>::init_mmap(int64_t nrows_, const char* filename) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows_) * elemsize());
+  ri = nullptr;
+}
+
+template <typename T>
+void FwColumn<T>::open_mmap(int64_t nrows_, const char* filename) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  mbuf = new MemmapMemBuf(filename);
+  ri = nullptr;
+}
+
+template <typename T>
+void FwColumn<T>::init_xbuf(int64_t nrows_, void* pybuffer, void* data) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  mbuf = new ExternalMemBuf(data, pybuffer, static_cast<size_t>(nrows_) * elemsize());
+  ri = nullptr;
+}
+
+
+//==============================================================================
 
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {

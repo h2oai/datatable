@@ -204,6 +204,10 @@ public:
 
 protected:
   Column(int64_t nrows);
+  virtual void init_data(int64_t nrows) = 0;
+  virtual void init_mmap(int64_t nrows, const char* filename) = 0;
+  virtual void open_mmap(int64_t nrows, const char* filename) = 0;
+  virtual void init_xbuf(int64_t nrows, void* pybuffer, void* data) = 0;
   virtual void rbind_impl(const std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
 
@@ -246,7 +250,6 @@ protected:
   virtual Stats* get_stats() const = 0;
 
 private:
-  static size_t allocsize0(SType, int64_t nrows);
   static Column* new_column(SType);
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
@@ -276,6 +279,10 @@ public:
   void reify() override;
 
 protected:
+  void init_data(int64_t nrows) override;
+  void init_mmap(int64_t nrows, const char* filename) override;
+  void open_mmap(int64_t nrows, const char* filename) override;
+  void init_xbuf(int64_t nrows, void* pybuffer, void* data) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
@@ -441,7 +448,6 @@ public:
   virtual SType stype() const override;
 
 protected:
-
   // TODO: This should be corrected when PyObjectStats is implemented
   Stats* get_stats() const override { return nullptr; }
 
@@ -497,6 +503,11 @@ public:
                         const std::string& name = "Column") const override;
 
 protected:
+  void init_data(int64_t nrows) override;
+  void init_mmap(int64_t nrows, const char* filename) override;
+  void open_mmap(int64_t nrows, const char* filename) override;
+  void init_xbuf(int64_t nrows, void* pybuffer, void* data) override;
+
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
@@ -545,6 +556,11 @@ public:
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
 protected:
+  void init_data(int64_t) override {}
+  void init_mmap(int64_t, const char*) override {}
+  void open_mmap(int64_t, const char*) override {}
+  void init_xbuf(int64_t, void*, void*) override {}
+
   Stats* get_stats() const override { return nullptr; }
   void fill_na() override {}
 };

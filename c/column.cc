@@ -27,15 +27,6 @@
 #include "utils.h"
 
 
-// TODO: make this function virtual
-size_t Column::allocsize0(SType stype, int64_t nrows) {
-  size_t sz = static_cast<size_t>(nrows) * stype_info[stype].elemsize;
-  if (stype == ST_STRING_I4_VCHAR) sz += i4s_padding(0);
-  if (stype == ST_STRING_I8_VCHAR) sz += i8s_padding(0);
-  return sz;
-}
-
-
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
       ri(nullptr),
@@ -64,8 +55,7 @@ Column* Column::new_column(SType stype) {
 
 Column* Column::new_data_column(SType stype, int64_t nrows) {
   Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->mbuf = new MemoryMemBuf(allocsize0(stype, nrows));
+  col->init_data(nrows);
   return col;
 }
 
@@ -78,10 +68,8 @@ Column* Column::new_na_column(SType stype, int64_t nrows) {
 
 Column* Column::new_mmap_column(SType stype, int64_t nrows,
                                 const char* filename) {
-  size_t sz = allocsize0(stype, nrows);
   Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->mbuf = new MemmapMemBuf(filename, sz);
+  col->init_mmap(nrows, filename);
   return col;
 }
 
@@ -95,23 +83,8 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  */
 Column* Column::save_to_disk(const char* filename)
 {
-  void* mmp = nullptr;
-  size_t sz = mbuf->size();
-  {
-    File file(filename, File::CREATE);
-    file.resize(sz);
-
-    mmp = mmap(nullptr, sz, PROT_READ|PROT_WRITE, MAP_SHARED,
-               file.descriptor(), 0);
-    if (mmp == MAP_FAILED) {
-      throw RuntimeError() << "Memory-map failed for file " << filename
-                           << ": " << Errno;
-    }
-  }
-
-  // Copy the data buffer into the file
-  memcpy(mmp, data(), sz);
-  munmap(mmp, sz);
+  assert(mbuf != nullptr);
+  mbuf->save_to_disk(filename);
   return this;
 }
 
@@ -129,24 +102,7 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
                                  const char* filename, const char* ms)
 {
   Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->mbuf = new MemmapMemBuf(filename);
-  // if (col->alloc_size() < allocsize0(stype, nrows)) {
-  //   throw Error("File %s has size %zu, which is not sufficient for a column"
-  //               " with %zd rows", filename, col->alloc_size(), nrows);
-  // }
-  // Deserialize the meta information, if needed
-  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-    if (strncmp(ms, "offoff=", 7) != 0) {
-      throw ValueError() << "Cannot retrieve required metadata in string "
-                         << '"' << ms << '"';
-    }
-    if (stype == ST_STRING_I4_VCHAR) {
-      static_cast<StringColumn<int32_t>*>(col)->offoff = static_cast<int32_t>(atol(ms + 7));
-    } else {
-      static_cast<StringColumn<int64_t>*>(col)->offoff = static_cast<int64_t>(atoll(ms + 7));
-    }
-  }
+  col->open_mmap(nrows, filename);
   return col;
 }
 
@@ -158,8 +114,7 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
                                 void* data, size_t a_size)
 {
   Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->mbuf = new ExternalMemBuf(data, pybuffer, a_size);
+  col->init_xbuf(nrows, pybuffer, data);
   return col;
 }
 

@@ -39,6 +39,53 @@ StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
 }
 
 
+//==============================================================================
+// Initialization methods
+//==============================================================================
+
+template <typename T>
+void StringColumn<T>::init_data(int64_t nrows_) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  ri = nullptr;
+  offoff = static_cast<T>(padding(0));
+  mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff)); // TODO: change when data and offsets are split
+}
+
+template <typename T>
+void StringColumn<T>::init_mmap(int64_t nrows_, const char* filename) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  offoff = static_cast<T>(padding(0));
+  mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff));
+  ri = nullptr;
+}
+
+template <typename T>
+void StringColumn<T>::open_mmap(int64_t nrows_, const char* filename) {
+  nrows = nrows_;
+  if (ri != nullptr) ri->release();
+  if (mbuf != nullptr) mbuf->release();
+  mbuf = new MemmapMemBuf(filename);
+  // Hacky hack for temporary compatibility
+  T* temp = static_cast<T*>(mbuf->at(mbuf->size() - sizeof(T)));
+  T data_size = abs(temp[0]) - 1;
+  offoff = data_size + static_cast<T>(padding(static_cast<size_t>(data_size)));
+  ri = nullptr;
+}
+
+// Not implemented (should it be?) see method signature in `Column` for
+// parameter definitions.
+template <typename T>
+void StringColumn<T>::init_xbuf(int64_t, void*, void*) {
+  throw Error() << "String columns are incompatible with external buffers";
+}
+
+
+//==============================================================================
+
 template <typename T>
 Column* StringColumn<T>::shallowcopy(RowIndex* new_rowindex) const {
   StringColumn<T>* col = static_cast<StringColumn<T>*>(Column::shallowcopy(new_rowindex));
