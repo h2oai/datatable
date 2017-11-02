@@ -91,7 +91,6 @@ pipeline {
                 dumpInfo 'Coverage on Linux'
                 sh """
                     make mrproper
-                    export DT_LARGE_TESTS_ROOT="${largeTestsRootEnv}"
                     rm -rf .venv venv 2> /dev/null
                     virtualenv --python=python3.6 --no-download .venv
                     make coverage PYTHON=.venv/bin/python

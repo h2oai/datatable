@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+# Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import datatable as dt
+import pytest
+import random
+from tests import assert_equals
+
+
+#-------------------------------------------------------------------------------
+alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+def random_string(n):
+    return "".join(random.choice(alphabet) for _ in range(n))
+
+
+
+#-------------------------------------------------------------------------------
+
+@pytest.mark.skip(reason="Not implemented")
+def test_empty():
+    d0 = dt.fread(text="")
+    d1 = dt.fread(text=" ")
+    d2 = dt.fread(text="\n")
+    d3 = dt.fread(text="  \n" * 3)
+    d4 = dt.fread(text="\t\n  \n\n        \t  ")
+    for d in [d0, d1, d2, d3, d4]:
+        assert d0.shape == (0, 0)
+
+
+# TODO: also test repl=None, which currently gets deserialized into empty
+# strings.
+@pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
+@pytest.mark.parametrize("repl", ["", "?"])
+def test_empty_strings(seed, repl):
+    random.seed(seed)
+    ncols = random.randint(3, 10)
+    nrows = int(random.expovariate(1 / 200) + 1)
+    p = random.uniform(0.1, 0.5)
+    src = []
+    for i in range(ncols):
+        src.append([(random_string(8) if random.random() < p else repl)
+                    for j in range(nrows)])
+        if all(t == repl for t in src[i]):
+            src[i][0] = "!!!"
+    colnames = list(alphabet[:ncols].upper())
+    d0 = dt.DataTable(src, names=colnames)
+    assert d0.names == tuple(colnames)
+    assert d0.ltypes == (dt.ltype.str,) * ncols
+    text = d0.to_csv()
+    d1 = dt.fread(text=text)
+    assert d1.internal.check()
+    assert d1.names == d0.names
+    assert d1.stypes == d0.stypes
+    assert d1.topython() == src
+
+
