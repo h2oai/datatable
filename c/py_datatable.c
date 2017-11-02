@@ -93,7 +93,7 @@ static PyObject* get_ltypes(DataTable_PyObject *self)
     return list;
 
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     return NULL;
   }
 }
@@ -114,7 +114,7 @@ static PyObject* get_stypes(DataTable_PyObject *self)
     return list;
 
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     return NULL;
   }
 }
@@ -360,7 +360,7 @@ static PyObject* meth_rbind(DataTable_PyObject *self, PyObject *args)
         DataTable *ret = dt->rbind( dts, cols_to_append, ndts, final_ncols);
         if (ret == NULL) return NULL;
     } catch (const std::exception& e) {
-        PyErr_SetString(PyExc_RuntimeError, e.what());
+        exception_to_python(e);
         return NULL;
     }
 

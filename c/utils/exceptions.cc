@@ -24,6 +24,36 @@ CErrno Errno;
 
 //==============================================================================
 
+static bool is_string_empty(const char* msg) {
+  if (!msg) return true;
+  char c;
+  while ((c = *msg)) {
+    if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r'))
+      return false;
+    msg++;
+  }
+  return true;
+}
+
+
+void exception_to_python(const std::exception& e) {
+  const Error* error = dynamic_cast<const Error*>(&e);
+  if (error) {
+    error->topython();
+  } else if (!PyErr_Occurred()) {
+    const char* msg = e.what();
+    if (is_string_empty(msg)) {
+      PyErr_SetString(PyExc_Exception, "unknown error");
+    } else {
+      PyErr_SetString(PyExc_Exception, msg);
+    }
+  }
+}
+
+
+
+//==============================================================================
+
 Error::Error(const Error& other) {
   error << other.error.str();
 }
@@ -68,7 +98,7 @@ const char* Error::what() const noexcept {
   return error.str().c_str();
 }
 
-void Error::topython() {
+void Error::topython() const {
   PyErr_SetString(pyclass(), what());
 }
 
@@ -90,7 +120,7 @@ PyError::~PyError() {
   Py_XDECREF(exc_traceback);
 }
 
-void PyError::topython() {
+void PyError::topython() const {
   PyErr_Restore(exc_type, exc_value, exc_traceback);
   exc_type = nullptr;
   exc_value = nullptr;

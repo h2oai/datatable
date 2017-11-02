@@ -21,6 +21,7 @@
 #include "py_datatable.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "utils/exceptions.h"
 
 // Forward declarations
 Column* try_to_resolve_object_column(Column* col);
@@ -125,7 +126,7 @@ PyObject* pydatatable_from_buffers(PyObject*, PyObject* args)
     return pydt_from_dt(dt);
 
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     return NULL;
   }
 }
@@ -271,11 +272,11 @@ static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
     return 0;
 
   } catch (const std::exception& e) {
+    exception_to_python(e);
     view->obj = nullptr;
     view->internal = nullptr;
     delete xinfo;
     if (mbuf) mbuf->release();
-    PyErr_SetString(PyExc_RuntimeError, e.what());
     return -1;
   }
 }
@@ -334,9 +335,9 @@ static int dt_getbuffer_no_cols(DataTable_PyObject *self, Py_buffer *view,
     return 0;
 
   } catch (const std::exception& e) {
+    exception_to_python(e);
     view->obj = nullptr;
     delete xinfo;
-    PyErr_SetString(PyExc_RuntimeError, e.what());
     return -1;
   }
 }
@@ -373,10 +374,10 @@ static int dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view,
     return 0;
 
   } catch (const std::exception& e) {
+    exception_to_python(e);
     view->obj = nullptr;
     if (mbuf) mbuf->release();
     delete xinfo;
-    PyErr_SetString(PyExc_RuntimeError, e.what());
     return -1;
   }
 }
@@ -482,7 +483,7 @@ static int dt_getbuffer(DataTable_PyObject* self, Py_buffer* view, int flags)
     return 0;
 
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     view->obj = nullptr;
     if (mbuf) mbuf->release();
     delete xinfo;

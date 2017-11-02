@@ -80,10 +80,7 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
     }
 
   } catch (const std::exception& e) {
-    // If the error message was already set, then we don't want to overwrite it.
-    // Otherwise, retrieve error message from the exception and pass to Python.
-    if (!PyErr_Occurred())
-      PyErr_Format(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
   }
   Py_XDECREF(pywriter);
   return result;

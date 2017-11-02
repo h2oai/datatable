@@ -144,7 +144,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     self->data = (PyListObject*) view;
     return 0;
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     // fall-through into 'fail'
   }
 
@@ -238,7 +238,7 @@ static int _init_hexview(
     self->stypes = (PyListObject*) stypes;
     return 0;
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     // fall-through into 'fail'
   }
 

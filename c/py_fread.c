@@ -176,7 +176,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
     cleanup_fread_session(frargs);
     return pydt;
   } catch (const std::exception& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.what());
+    exception_to_python(e);
     // fall-through into the "fail" clause
   }
 
