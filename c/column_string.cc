@@ -15,11 +15,12 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <cmath>  // abs
+#include <limits> // numeric_limits::max()
 #include "py_utils.h"
 #include "utils.h"
 #include "datatable_check.h"
 #include "encodings.h"
-#include <limits> // numeric_limits::max()
+#include "utils/assert.h"
 
 
 template <typename T>
@@ -63,6 +64,8 @@ void StringColumn<T>::open_mmap(const std::string& filename) {
   T* temp = static_cast<T*>(mbuf->at(mbuf->size() - sizeof(T)));
   T data_size = abs(temp[0]) - 1;
   offoff = data_size + static_cast<T>(padding(static_cast<size_t>(data_size)));
+  assert(mbuf->size() == static_cast<size_t>(offoff) +
+      static_cast<size_t>(nrows) * sizeof(T));
 }
 
 // Not implemented (should it be?) see method signature in `Column` for

@@ -13,9 +13,10 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <type_traits>
+#include "column.h"
 #include "utils.h"
+#include "utils/assert.h"
 
 
 template <typename T>
@@ -45,6 +46,7 @@ void FwColumn<T>::open_mmap(const std::string& filename) {
   assert(ri == nullptr);
   assert(mbuf == nullptr);
   mbuf = new MemmapMemBuf(filename);
+  assert(mbuf->size() == static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
@@ -124,7 +126,7 @@ void FwColumn<T>::reify() {
     // Slice with step 1: a portion of the buffer can be simply mem-moved onto
     // the new buffer (use memmove because the old and the new buffer can be
     // the same).
-    assert(newsize + ri->slice.start*elemsize <= mbuf->size());
+    assert(newsize + static_cast<size_t>(ri->slice.start) * elemsize <= mbuf->size());
     memmove(new_mbuf->get(), elements() + ri->slice.start, newsize);
 
   } else {

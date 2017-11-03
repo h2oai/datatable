@@ -77,7 +77,6 @@ template <typename T>
 Column* RealColumn<T>::min_column() const {
   RealColumn<T>* col =
       static_cast<RealColumn<T>*>(new_data_column(stype_real(sizeof(T)), 1));
-  col->init_data();
   col->set_elem(0, min());
   return col;
 }
@@ -86,7 +85,6 @@ template <typename T>
 Column* RealColumn<T>::max_column() const {
   RealColumn<T>* col =
       static_cast<RealColumn<T>*>(new_data_column(stype_real(sizeof(T)), 1));
-  col->init_data();
   col->set_elem(0, max());
   return col;
 }

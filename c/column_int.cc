@@ -78,7 +78,6 @@ template <typename T>
 Column* IntColumn<T>::min_column() const {
   IntColumn<T>* col =
       static_cast<IntColumn<T>*>(new_data_column(stype_integer(sizeof(T)), 1));
-  col->init_data();
   col->set_elem(0, min());
   return col;
 }
@@ -87,7 +86,6 @@ template <typename T>
 Column* IntColumn<T>::max_column() const {
   IntColumn<T>* col =
       static_cast<IntColumn<T>*>(new_data_column(stype_integer(sizeof(T)), 1));
-  col->init_data();
   col->set_elem(0, max());
   return col;
 }
