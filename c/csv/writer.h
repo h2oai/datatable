@@ -39,7 +39,7 @@ class CsvWriter {
   __attribute__((unused)) char _padding[1];
 
   // Intermediate values used while writing the file
-  WritableBuffer* wb;
+  std::unique_ptr<WritableBuffer> wb;
   size_t fixed_size_per_row;
   double rows_per_chunk;
   size_t bytes_per_chunk;
@@ -67,7 +67,7 @@ public:
   }
 
   void write();
-  WritableBuffer* get_output_buffer() const { return wb; }
+  WritableBuffer* get_output_buffer() { return wb.release(); }
 
 private:
   double checkpoint();

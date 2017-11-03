@@ -34,10 +34,13 @@
 // switching to FileWritableBuffer on MacOS improved the overall time of writing
 // a CSV by a factor of 2 (on a 4GB file).
 //
-WritableBuffer* WritableBuffer::create_target(
+std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
     const std::string& path, size_t size, WritableBuffer::Strategy strategy)
 {
-  if (!path.empty()) {
+  WritableBuffer* res = nullptr;
+  if (path.empty()) {
+    res = new MemoryWritableBuffer(size);
+  } else {
     if (strategy == Strategy::Auto) {
       #ifdef __APPLE__
         strategy = Strategy::Write;
@@ -46,13 +49,13 @@ WritableBuffer* WritableBuffer::create_target(
       #endif
     }
     if (strategy == Strategy::Write) {
-      return new FileWritableBuffer(path);
+      res = new FileWritableBuffer(path);
     }
     if (strategy == Strategy::Mmap) {
-      return new MmapWritableBuffer(path, size);
+      res = new MmapWritableBuffer(path, size);
     }
   }
-  return new MemoryWritableBuffer(size);
+  return std::unique_ptr<WritableBuffer>(res);
 }
 
 

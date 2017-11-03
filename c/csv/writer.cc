@@ -356,7 +356,6 @@ CsvWriter::CsvWriter(DataTable *dt_, const std::string& path_)
 
 CsvWriter::~CsvWriter()
 {
-  delete wb;
   for (size_t i = 0; i < columns.size(); i++)
     delete columns[i];
 }

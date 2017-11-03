@@ -52,7 +52,7 @@ public:
    *     (choose the best subclass automatically), while all  other values
    *     force the choice of a particular subclass.
    */
-  static WritableBuffer* create_target(
+  static std::unique_ptr<WritableBuffer> create_target(
     const std::string& path, size_t size, Strategy strategy = Strategy::Auto
   );
 

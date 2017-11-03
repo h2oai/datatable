@@ -38,10 +38,9 @@ MemoryBuffer::MemoryBuffer() : refcount(1), readonly(false) {}
 // exception.
 MemoryBuffer::~MemoryBuffer() {}
 
-void MemoryBuffer::save_to_disk(const std::string path) {
-  WritableBuffer* wb = WritableBuffer::create_target(path, size());
+void MemoryBuffer::save_to_disk(const std::string& path) {
+  auto wb = WritableBuffer::create_target(path, size());
   wb->write(size(), get());
-  delete wb;
 }
 
 void* MemoryBuffer::at(size_t n) {

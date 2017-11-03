@@ -55,10 +55,10 @@ public:
   MemoryBuffer(MemoryBuffer&&) = delete;       // move-constructor
 
   /**
-   * Writes the current state of the memory buffer to `path`. Any file that `path`
-   * currently leads to will be overwritten.
+   * Writes the current state of the memory buffer to `path`. Any file that
+   * `path` currently leads to will be overwritten.
    */
-  void save_to_disk(const std::string path);
+  void save_to_disk(const std::string& path);
 
   /**
    * Returns a void* pointer to the underlying memory region (`get()`) or to the

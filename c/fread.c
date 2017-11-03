@@ -8,7 +8,6 @@
   #include <string.h>    // strerror
   #include <stdarg.h>    // va_list, va_start
   #include <stdio.h>     // vsnprintf
-  #include <sys/mman.h>  // mmap
   #include <math.h>      // ceil, sqrt, isfinite
 #endif
 #include <stdbool.h>     // bool, true, false
@@ -430,9 +429,7 @@ static int StrtoI64(const char **pch, int64_t *target)
   // i) skips leading isspace() too but other than field separator and EOL (e.g. '\t' and ' \t' in FUT1206.txt)
   // ii) has fewer branches for speed as no need for non decimal base
   // iii) updates global ch directly saving arguments
-  // iv) safe for mmap which can't be \0 terminated on Windows (but can be on unix and mac)
   // v) fails if whole field isn't consumed such as "3.14" (strtol consumes the 3 and stops)
-  // ... all without needing to read into a buffer at all (reads the mmap directly)
   const char *ch = *pch;
   skip_white(&ch);  //  ',,' or ',   ,' or '\t\t' or '\t   \t' etc => NA
   if (on_sep(&ch)) {  // most often ',,'
