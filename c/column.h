@@ -204,11 +204,11 @@ public:
                                 const std::string& name = "Column") const;
 
 protected:
-  Column(int64_t nrows);
-  virtual void init_data(int64_t nrows) = 0;
-  virtual void init_mmap(int64_t nrows, const std::string& filename) = 0;
-  virtual void open_mmap(int64_t nrows, const std::string& filename) = 0;
-  virtual void init_xbuf(int64_t nrows, void* pybuffer, void* data) = 0;
+  Column(int64_t nrows = 0);
+  virtual void init_data() = 0;
+  virtual void init_mmap(const std::string& filename) = 0;
+  virtual void open_mmap(const std::string& filename) = 0;
+  virtual void init_xbuf(void* pybuffer, void* data) = 0;
   virtual void rbind_impl(const std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
 
@@ -234,6 +234,7 @@ protected:
   virtual void cast_into(StringColumn<int64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
 
+
   /**
    * Sets every row in the column with a NA value. As of now this method
    * modifies every element in the column's memory buffer regardless of its
@@ -251,7 +252,7 @@ protected:
   virtual Stats* get_stats() const = 0;
 
 private:
-  static Column* new_column(SType);
+  static Column* new_column(SType, int64_t nrows = 0);
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
   friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
@@ -265,8 +266,7 @@ private:
 template <typename T> class FwColumn : public Column
 {
 public:
-  FwColumn();
-  FwColumn(int64_t nrows);
+  FwColumn(int64_t nrows = 0);
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
   T* elements() const;
   T get_elem(int64_t i) const;
@@ -280,10 +280,10 @@ public:
   void reify() override;
 
 protected:
-  void init_data(int64_t nrows) override;
-  void init_mmap(int64_t nrows, const std::string& filename) override;
-  void open_mmap(int64_t nrows, const std::string& filename) override;
-  void init_xbuf(int64_t nrows, void* pybuffer, void* data) override;
+  void init_data() override;
+  void init_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename) override;
+  void init_xbuf(void* pybuffer, void* data) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
@@ -381,6 +381,7 @@ protected:
 
   using Column::stats;
   using Column::mbuf;
+  using Column::new_data_column;
 };
 
 template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
@@ -477,8 +478,7 @@ template <typename T> class StringColumn : public Column
   int64_t pad_ : 64 - (sizeof(T) % 8) * 8;
 
 public:
-  StringColumn();
-  StringColumn(int64_t nrows);
+  StringColumn(int64_t nrows = 0);
   virtual ~StringColumn();
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
 
@@ -504,10 +504,10 @@ public:
                         const std::string& name = "Column") const override;
 
 protected:
-  void init_data(int64_t nrows) override;
-  void init_mmap(int64_t nrows, const std::string& filename) override;
-  void open_mmap(int64_t nrows, const std::string& filename) override;
-  void init_xbuf(int64_t nrows, void* pybuffer, void* data) override;
+  void init_data() override;
+  void init_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename) override;
+  void init_xbuf(void* pybuffer, void* data) override;
 
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
@@ -556,10 +556,10 @@ public:
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
 protected:
-  void init_data(int64_t) override {}
-  void init_mmap(int64_t, const std::string&) override {}
-  void open_mmap(int64_t, const std::string&) override {}
-  void init_xbuf(int64_t, void*, void*) override {}
+  void init_data() override {}
+  void init_mmap(const std::string&) override {}
+  void open_mmap(const std::string&) override {}
+  void init_xbuf(void*, void*) override {}
 
   Stats* get_stats() const override { return nullptr; }
   void fill_na() override {}

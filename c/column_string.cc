@@ -22,15 +22,10 @@
 #include <limits> // numeric_limits::max()
 
 
-template <typename T> StringColumn<T>::StringColumn() : StringColumn<T>(0) {}
-
-
 template <typename T>
-StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
+StringColumn<T>::StringColumn(int64_t nrows_) : Column(nrows_)
 {
-  size_t sz = sizeof(T) * static_cast<size_t>(nrows);
   size_t pd = padding(0);
-  mbuf = new MemoryMemBuf(sz + pd);
   // strbuf = new MemoryMemBuf(sz);
 
   // TODO: remove this
@@ -44,30 +39,27 @@ StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
 //==============================================================================
 
 template <typename T>
-void StringColumn<T>::init_data(int64_t nrows_) {
-  nrows = nrows_;
-  if (ri != nullptr) ri->release();
-  if (mbuf != nullptr) mbuf->release();
+void StringColumn<T>::init_data() {
+  assert(ri != nullptr);
+  assert(mbuf != nullptr);
   ri = nullptr;
   offoff = static_cast<T>(padding(0));
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff)); // TODO: change when data and offsets are split
 }
 
 template <typename T>
-void StringColumn<T>::init_mmap(int64_t nrows_, const std::string& filename) {
-  nrows = nrows_;
-  if (ri != nullptr) ri->release();
-  if (mbuf != nullptr) mbuf->release();
+void StringColumn<T>::init_mmap(const std::string& filename) {
+  assert(ri != nullptr);
+  assert(mbuf != nullptr);
   offoff = static_cast<T>(padding(0));
   mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff));
   ri = nullptr;
 }
 
 template <typename T>
-void StringColumn<T>::open_mmap(int64_t nrows_, const std::string& filename) {
-  nrows = nrows_;
-  if (ri != nullptr) ri->release();
-  if (mbuf != nullptr) mbuf->release();
+void StringColumn<T>::open_mmap(const std::string& filename) {
+  assert(ri != nullptr);
+  assert(mbuf != nullptr);
   mbuf = new MemmapMemBuf(filename);
   // Hacky hack for temporary compatibility
   T* temp = static_cast<T*>(mbuf->at(mbuf->size() - sizeof(T)));
@@ -79,7 +71,7 @@ void StringColumn<T>::open_mmap(int64_t nrows_, const std::string& filename) {
 // Not implemented (should it be?) see method signature in `Column` for
 // parameter definitions.
 template <typename T>
-void StringColumn<T>::init_xbuf(int64_t, void*, void*) {
+void StringColumn<T>::init_xbuf(void*, void*) {
   throw Error() << "String columns are incompatible with external buffers";
 }
 
