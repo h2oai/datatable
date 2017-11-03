@@ -40,32 +40,29 @@ StringColumn<T>::StringColumn(int64_t nrows_) : Column(nrows_)
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
-  ri = nullptr;
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   offoff = static_cast<T>(padding(0));
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff)); // TODO: change when data and offsets are split
 }
 
 template <typename T>
 void StringColumn<T>::init_mmap(const std::string& filename) {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   offoff = static_cast<T>(padding(0));
   mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff));
-  ri = nullptr;
 }
 
 template <typename T>
 void StringColumn<T>::open_mmap(const std::string& filename) {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   mbuf = new MemmapMemBuf(filename);
   // Hacky hack for temporary compatibility
   T* temp = static_cast<T*>(mbuf->at(mbuf->size() - sizeof(T)));
   T data_size = abs(temp[0]) - 1;
   offoff = data_size + static_cast<T>(padding(static_cast<size_t>(data_size)));
-  ri = nullptr;
 }
 
 // Not implemented (should it be?) see method signature in `Column` for

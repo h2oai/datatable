@@ -28,34 +28,30 @@ FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {}
 
 template <typename T>
 void FwColumn<T>::init_data() {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
-  ri = nullptr;
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::init_mmap(const std::string& filename) {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * elemsize());
-  ri = nullptr;
 }
 
 template <typename T>
 void FwColumn<T>::open_mmap(const std::string& filename) {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   mbuf = new MemmapMemBuf(filename);
-  ri = nullptr;
 }
 
 template <typename T>
 void FwColumn<T>::init_xbuf(void* pybuffer, void* data) {
-  assert(ri != nullptr);
-  assert(mbuf != nullptr);
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
   mbuf = new ExternalMemBuf(data, pybuffer, static_cast<size_t>(nrows) * elemsize());
-  ri = nullptr;
 }
 
 
