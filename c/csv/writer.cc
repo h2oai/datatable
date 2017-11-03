@@ -535,36 +535,8 @@ size_t CsvWriter::estimate_output_size()
 
 /**
  * Create the target memory region (either in RAM, or on disk).
- *
- * We use different strategy on MacOS than on other operating systems because
- * Macs' default file system HFS does not support sparse files, which means
- * that trying to create an empty file of size `size` (so that it can be later
- * memory-mapped) would cause the operating system to physically write that
- * many zeros into the file. This effectively means that the file will be
- * written twice, which results in degraded performance. In my experiments,
- * switching to FileWritableBuffer on MacOS improved the overall time of writing
- * a CSV by a factor of 2 (on a 4GB file).
  */
-void CsvWriter::create_target(size_t size)
-{
-  if (!path.empty()) {
-    if (strategy == WRITE_STRATEGY_AUTO) {
-      #ifdef __APPLE__
-        strategy = WRITE_STRATEGY_WRITE;
-      #else
-        strategy = WRITE_STRATEGY_MMAP;
-      #endif
-    }
-    if (strategy == WRITE_STRATEGY_WRITE) {
-      VLOG("Creating an empty destination file %s. If the file already exists "
-           "it will be truncated.\n", path.c_str());
-    }
-    if (strategy == WRITE_STRATEGY_MMAP) {
-      VLOG("Creating and memory-mapping destination file %s of size %s. If the "
-           "file already exists it will be overwritten.\n",
-           path.c_str(), filesize_to_str(size));
-    }
-  }
+void CsvWriter::create_target(size_t size) {
   wb = WritableBuffer::create_target(path, size, strategy);
   t_create_target = checkpoint();
 }

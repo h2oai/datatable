@@ -39,15 +39,16 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
     DataTable* dt = pywr.attr("datatable").as_datatable();
     std::string filename = pywr.attr("path").as_string();
     std::string strategy = pywr.attr("_strategy").as_string();
+    auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
+                     (strategy == "write") ? WritableBuffer::Strategy::Write :
+                                             WritableBuffer::Strategy::Auto;
 
     // Create the CsvWriter object
     CsvWriter cwriter(dt, filename);
     cwriter.set_logger(pywriter);
     cwriter.set_verbose(pywr.attr("verbose").as_bool());
     cwriter.set_usehex(pywr.attr("hex").as_bool());
-    cwriter.set_strategy((strategy == "mmap")  ? WRITE_STRATEGY_MMAP :
-                         (strategy == "write") ? WRITE_STRATEGY_WRITE :
-                                                 WRITE_STRATEGY_AUTO);
+    cwriter.set_strategy(sstrategy);
 
     std::vector<std::string>
         colnames = pywr.attr("column_names").as_stringlist();

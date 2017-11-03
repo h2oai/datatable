@@ -33,7 +33,7 @@ class CsvWriter {
   std::vector<std::string> column_names;
   void *logger;
   int nthreads;
-  int8_t strategy;
+  WritableBuffer::Strategy strategy;
   bool usehex;
   bool verbose;
   __attribute__((unused)) char _padding[1];
@@ -61,7 +61,7 @@ public:
   void set_nthreads(int n) { nthreads = n; }
   void set_usehex(bool v) { usehex = v; }
   void set_verbose(bool v) { verbose = v; }
-  void set_strategy(int s) { strategy = static_cast<int8_t>(s); }
+  void set_strategy(WritableBuffer::Strategy s) { strategy = s; }
   void set_column_names(std::vector<std::string>& names) {
     column_names = std::move(names);
   }

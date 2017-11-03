@@ -24,26 +24,38 @@
 // WritableBuffer
 //==============================================================================
 
-WritableBuffer* WritableBuffer::create_target(const std::string path, size_t size, int8_t strategy) {
-  if (path.empty()) {
-    return new MemoryWritableBuffer(size);
-  } else {
-    if (strategy == WRITE_STRATEGY_AUTO) {
+
+// We use different strategy on MacOS than on other operating systems because
+// Macs' default file system HFS does not support sparse files, which means
+// that trying to create an empty file of size `size` (so that it can be later
+// memory-mapped) would cause the operating system to physically write that
+// many zeros into the file. This effectively means that the file will be
+// written twice, which results in degraded performance. In my experiments,
+// switching to FileWritableBuffer on MacOS improved the overall time of writing
+// a CSV by a factor of 2 (on a 4GB file).
+//
+WritableBuffer* WritableBuffer::create_target(
+    const std::string& path, size_t size, WritableBuffer::Strategy strategy)
+{
+  if (!path.empty()) {
+    if (strategy == Strategy::Auto) {
       #ifdef __APPLE__
-        strategy = WRITE_STRATEGY_WRITE;
+        strategy = Strategy::Write;
       #else
-        strategy = WRITE_STRATEGY_MMAP;
+        strategy = Strategy::Mmap;
       #endif
     }
-    if (strategy == WRITE_STRATEGY_WRITE) {
+    if (strategy == Strategy::Write) {
       return new FileWritableBuffer(path);
     }
-    if (strategy == WRITE_STRATEGY_MMAP) {
+    if (strategy == Strategy::Mmap) {
       return new MmapWritableBuffer(path, size);
     }
   }
-  throw Error() << "Invalid write strategy code: " << strategy;
+  return new MemoryWritableBuffer(size);
 }
+
+
 
 //==============================================================================
 // FileWritableBuffer
