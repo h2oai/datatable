@@ -17,6 +17,7 @@
 #define dt_COLUMN_H
 #include <Python.h>
 #include <stdint.h>
+#include <string>
 #include <vector>
 #include "rowindex.h"
 #include "memorybuf.h"
@@ -72,9 +73,9 @@ public:  // TODO: convert these into private
 public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_na_column(SType, int64_t nrows);
-  static Column* new_mmap_column(SType, int64_t nrows, const char* filename);
-  static Column* open_mmap_column(SType, int64_t nrows, const char* filename,
-                                  const char* metastr);
+  static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
+  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename,
+                                  const std::string& metastr);
   static Column* new_xbuf_column(SType, int64_t nrows, void* pybuffer,
                                  void* data, size_t datasize);
   static Column* from_pylist(PyObject* list, int stype0 = 0, int ltype0 = 0);
@@ -205,8 +206,8 @@ public:
 protected:
   Column(int64_t nrows);
   virtual void init_data(int64_t nrows) = 0;
-  virtual void init_mmap(int64_t nrows, const char* filename) = 0;
-  virtual void open_mmap(int64_t nrows, const char* filename) = 0;
+  virtual void init_mmap(int64_t nrows, const std::string& filename) = 0;
+  virtual void open_mmap(int64_t nrows, const std::string& filename) = 0;
   virtual void init_xbuf(int64_t nrows, void* pybuffer, void* data) = 0;
   virtual void rbind_impl(const std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
@@ -280,8 +281,8 @@ public:
 
 protected:
   void init_data(int64_t nrows) override;
-  void init_mmap(int64_t nrows, const char* filename) override;
-  void open_mmap(int64_t nrows, const char* filename) override;
+  void init_mmap(int64_t nrows, const std::string& filename) override;
+  void open_mmap(int64_t nrows, const std::string& filename) override;
   void init_xbuf(int64_t nrows, void* pybuffer, void* data) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
@@ -504,8 +505,8 @@ public:
 
 protected:
   void init_data(int64_t nrows) override;
-  void init_mmap(int64_t nrows, const char* filename) override;
-  void open_mmap(int64_t nrows, const char* filename) override;
+  void init_mmap(int64_t nrows, const std::string& filename) override;
+  void open_mmap(int64_t nrows, const std::string& filename) override;
   void init_xbuf(int64_t nrows, void* pybuffer, void* data) override;
 
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
@@ -527,7 +528,6 @@ protected:
 
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 
-  friend Column* Column::open_mmap_column(SType, int64_t, const char*, const char*);
   friend Column* try_to_resolve_object_column(Column*);
   friend void setFinalNrow(size_t);
 };
@@ -557,8 +557,8 @@ public:
   void apply_na_mask(const BoolColumn*) override {}
 protected:
   void init_data(int64_t) override {}
-  void init_mmap(int64_t, const char*) override {}
-  void open_mmap(int64_t, const char*) override {}
+  void init_mmap(int64_t, const std::string&) override {}
+  void open_mmap(int64_t, const std::string&) override {}
   void init_xbuf(int64_t, void*, void*) override {}
 
   Stats* get_stats() const override { return nullptr; }

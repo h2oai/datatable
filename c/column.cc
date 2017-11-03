@@ -67,7 +67,7 @@ Column* Column::new_na_column(SType stype, int64_t nrows) {
 
 
 Column* Column::new_mmap_column(SType stype, int64_t nrows,
-                                const char* filename) {
+                                const std::string& filename) {
   Column* col = new_column(stype);
   col->init_mmap(nrows, filename);
   return col;
@@ -99,7 +99,8 @@ Column* Column::save_to_disk(const char* filename)
  * valid values, and that the extra parameters match the buffer's contents).
  */
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
-                                 const char* filename, const char* ms)
+                                 const std::string& filename,
+                                 const std::string& ms)
 {
   Column* col = new_column(stype);
   col->open_mmap(nrows, filename);

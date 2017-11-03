@@ -54,7 +54,7 @@ void StringColumn<T>::init_data(int64_t nrows_) {
 }
 
 template <typename T>
-void StringColumn<T>::init_mmap(int64_t nrows_, const char* filename) {
+void StringColumn<T>::init_mmap(int64_t nrows_, const std::string& filename) {
   nrows = nrows_;
   if (ri != nullptr) ri->release();
   if (mbuf != nullptr) mbuf->release();
@@ -64,7 +64,7 @@ void StringColumn<T>::init_mmap(int64_t nrows_, const char* filename) {
 }
 
 template <typename T>
-void StringColumn<T>::open_mmap(int64_t nrows_, const char* filename) {
+void StringColumn<T>::open_mmap(int64_t nrows_, const std::string& filename) {
   nrows = nrows_;
   if (ri != nullptr) ri->release();
   if (mbuf != nullptr) mbuf->release();
