@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   returns a tuple of `ltype` elements instead of strings.
 - Parameter `colnames=` in DataTable constructor was renamed to `names=`. The old
   parameter may still be used, but it will result in a warning.
+- DataTable can no longer have duplicate column names. If such names are given,
+  they will be mangled to make them unique, and a warning will be issued.
+- Special characters (in the ASCII range `\x00 - \x1F`) are no longer permitted in
+  the column names. If encountered, they will be replaced with a dot `.`.
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.
