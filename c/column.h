@@ -169,7 +169,7 @@ public:
    */
   virtual void reify() = 0;
 
-  Column* save_to_disk(const char*);
+  void save_to_disk(const char*);
 
   RowIndex* sort() const;
 

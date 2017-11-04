@@ -14,17 +14,14 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
-#include <errno.h>     // errno
-#include <sys/mman.h>  // mmap
-#include <string.h>    // memcpy, strcmp, strerror
 #include <cstdlib>     // atoll
 #include "datatable_check.h"
-#include "utils/file.h"
-#include "utils/assert.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "utils.h"
+#include "utils/assert.h"
+#include "utils/file.h"
 
 
 // TODO: make this function virtual
@@ -93,26 +90,8 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  * file).
  * If a file with the given name already exists, it will be overwritten.
  */
-Column* Column::save_to_disk(const char* filename)
-{
-  void* mmp = nullptr;
-  size_t sz = mbuf->size();
-  {
-    File file(filename, File::CREATE);
-    file.resize(sz);
-
-    mmp = mmap(nullptr, sz, PROT_READ|PROT_WRITE, MAP_SHARED,
-               file.descriptor(), 0);
-    if (mmp == MAP_FAILED) {
-      throw RuntimeError() << "Memory-map failed for file " << filename
-                           << ": " << Errno;
-    }
-  }
-
-  // Copy the data buffer into the file
-  memcpy(mmp, data(), sz);
-  munmap(mmp, sz);
-  return this;
+void Column::save_to_disk(const char* filename) {
+  mbuf->save_to_disk(filename);
 }
 
 

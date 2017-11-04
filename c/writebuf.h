@@ -19,9 +19,7 @@
 #include <string>      // std::string
 #include "utils/file.h"
 
-#define WRITE_STRATEGY_AUTO  0
-#define WRITE_STRATEGY_MMAP  1
-#define WRITE_STRATEGY_WRITE 2
+
 
 //==============================================================================
 
@@ -31,10 +29,38 @@ protected:
   size_t bytes_written;
 
 public:
-  static WritableBuffer* create_target(const std::string path, size_t size, int8_t strategy = WRITE_STRATEGY_AUTO);
+  enum class Strategy : int8_t { Auto, Mmap, Write };
+
   WritableBuffer(): bytes_written(0) {}
   virtual ~WritableBuffer() {}
 
+  /**
+   * Factory method for instantiating one of the `WritableBuffer` derived
+   * classes based on the strategy and the current platform.
+   *
+   * @param path
+   *     Name of the file to write to. If empty, then we will be writing into
+   *     the memory, and MemoryWritableBuffer is returned.
+   *
+   * @param size
+   *     Expected size of the data to be written. This doesn't have to be the
+   *     exact amount, however having a good estimate may improve efficiency.
+   *     This may also have effect on the choice of the writing strategy.
+   *
+   * @param strategy
+   *     Which subclass of `WritableBuffer` to construct. This could be `Auto`
+   *     (choose the best subclass automatically), while all  other values
+   *     force the choice of a particular subclass.
+   */
+  static std::unique_ptr<WritableBuffer> create_target(
+    const std::string& path, size_t size, Strategy strategy = Strategy::Auto
+  );
+
+  /**
+   * Return the current size of the writable buffer -- i.e. the amount of bytes
+   * written into it. Note that this is different from the current buffer's
+   * "capacity" (i.e. the size it was pre-allocated for).
+   */
   size_t size() const { return bytes_written; }
 
   /**

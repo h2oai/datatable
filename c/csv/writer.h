@@ -33,13 +33,13 @@ class CsvWriter {
   std::vector<std::string> column_names;
   void *logger;
   int nthreads;
-  int8_t strategy;
+  WritableBuffer::Strategy strategy;
   bool usehex;
   bool verbose;
   __attribute__((unused)) char _padding[1];
 
   // Intermediate values used while writing the file
-  WritableBuffer* wb;
+  std::unique_ptr<WritableBuffer> wb;
   size_t fixed_size_per_row;
   double rows_per_chunk;
   size_t bytes_per_chunk;
@@ -61,13 +61,13 @@ public:
   void set_nthreads(int n) { nthreads = n; }
   void set_usehex(bool v) { usehex = v; }
   void set_verbose(bool v) { verbose = v; }
-  void set_strategy(int s) { strategy = static_cast<int8_t>(s); }
+  void set_strategy(WritableBuffer::Strategy s) { strategy = s; }
   void set_column_names(std::vector<std::string>& names) {
     column_names = std::move(names);
   }
 
   void write();
-  WritableBuffer* get_output_buffer() const { return wb; }
+  WritableBuffer* get_output_buffer() { return wb.release(); }
 
 private:
   double checkpoint();
