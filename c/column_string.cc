@@ -64,8 +64,15 @@ void StringColumn<T>::open_mmap(const std::string& filename) {
   T* temp = static_cast<T*>(mbuf->at(mbuf->size() - sizeof(T)));
   T data_size = abs(temp[0]) - 1;
   offoff = data_size + static_cast<T>(padding(static_cast<size_t>(data_size)));
-  assert(mbuf->size() == static_cast<size_t>(offoff) +
-      static_cast<size_t>(nrows) * sizeof(T));
+  if (mbuf->size() != static_cast<size_t>(offoff) +
+      static_cast<size_t>(nrows) * sizeof(T)) {
+    size_t exp_size = static_cast<size_t>(offoff) +
+      static_cast<size_t>(nrows) * sizeof(T);
+    throw Error() << "File \"" << filename <<
+        "\" cannot be used to create a column with " << nrows <<
+        " rows. Expected file size of " << exp_size <<
+        " bytes, actual size is " << mbuf->size() << " bytes";
+  }
 }
 
 // Not implemented (should it be?) see method signature in `Column` for
