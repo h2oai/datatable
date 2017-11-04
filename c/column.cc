@@ -14,17 +14,14 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "column.h"
-#include <errno.h>     // errno
-#include <sys/mman.h>  // mmap
-#include <string.h>    // memcpy, strcmp, strerror
 #include <cstdlib>     // atoll
 #include "datatable_check.h"
-#include "utils/file.h"
-#include "utils/assert.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "utils.h"
+#include "utils/assert.h"
+#include "utils/file.h"
 
 
 Column::Column(int64_t nrows_)
@@ -81,11 +78,9 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  * file).
  * If a file with the given name already exists, it will be overwritten.
  */
-Column* Column::save_to_disk(const char* filename)
-{
+void Column::save_to_disk(const char* filename) {
   assert(mbuf != nullptr);
   mbuf->save_to_disk(filename);
-  return this;
 }
 
 
