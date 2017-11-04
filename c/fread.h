@@ -335,7 +335,7 @@ void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 /**
  * Progress-reporting function.
  */
-void progress(double percent/*[0,1]*/, double ETA/*secs*/);
+void progress(double percent/*[0, 100]*/);
 
 
 void freadCleanup(void);

@@ -152,6 +152,8 @@ PyObject* pyfread(PyObject*, PyObject *args)
     frargs->warningsAreErrors = 0;
     if (frargs->nrowLimit < 0)
         frargs->nrowLimit = LONG_MAX;
+    if (frargs->skipNrow < 0)
+        frargs->skipNrow = 0;
 
     frargs->freader = freader;
     Py_INCREF(freader);
@@ -159,9 +161,9 @@ PyObject* pyfread(PyObject*, PyObject *args)
     if (input) {
       mbuf = new ExternalMemBuf(input);
     } else if (filename) {
-      if (verbose) DTPRINT("  Opening file %s\n", filename);
+      if (verbose) DTPRINT("  Opening file %s", filename);
       mbuf = new OvermapMemBuf(filename, 1);
-      if (verbose) DTPRINT("  File opened, size: %s\n", filesize_to_str(mbuf->size() - 1));
+      if (verbose) DTPRINT("  File opened, size: %s", filesize_to_str(mbuf->size() - 1));
     } else {
       throw ValueError() << "Neither filename nor input were provided";
     }
@@ -342,7 +344,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
     // `prepareThreadContext` and `postprocessBuffer`), as well as allocating
     // the `Column**` array.
     if (ncols == 0) {
-        // DTPRINT("Writing the DataTable into %s\n", targetdir);
+        // DTPRINT("Writing the DataTable into %s", targetdir);
         assert(dt == NULL);
         ncols = ncols_;
 
@@ -695,9 +697,7 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void progress(double percent/*[0,1]*/, double ETA/*secs*/)
-{
-    (void)ETA;
+void progress(double percent/*[0,100]*/) {
     PyObject_CallMethod(freader, "_progress", "d", percent);
 }
 
