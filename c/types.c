@@ -135,9 +135,10 @@ void init_types(void)
  * constant. The string `s` must have length 3. If the stype is invalid, this
  * function will return ST_VOID.
  */
-SType stype_from_string(const char *s)
+SType stype_from_string(const std::string& str)
 {
-    char s0 = s[0], s1 = s[1], s2 = s[2];
+  assert(str.length() == 3);
+  char s0 = str[0], s1 = str[1], s2 = str[2];
     if (s0 == 'i') {
         if (s2 == 'b') {
             if (s1 == '1') return ST_BOOLEAN_I1;

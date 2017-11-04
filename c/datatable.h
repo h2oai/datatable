@@ -17,6 +17,7 @@
 #define dt_DATATABLE_H
 #include <inttypes.h>
 #include <vector>
+#include <string>
 #include "datatable_check.h"
 #include "types.h"
 #include "column.h"
@@ -82,7 +83,7 @@ public:
 
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
-    static DataTable* load(DataTable* schema, int64_t nrows, const char* path);
+    static DataTable* load(DataTable* schema, int64_t nrows, const std::string& path);
 };
 
 

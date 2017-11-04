@@ -1,5 +1,5 @@
 #include <stdlib.h>  // abs
-#include <string.h>  // memcpy
+#include <string>  // memcpy
 #include "datatable.h"
 #include "utils/assert.h"
 #include "utils.h"
@@ -18,10 +18,10 @@
  * nrows
  *     Number of rows in the stored datatable.
  */
-DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
+DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string& path)
 {
     int64_t ncols = colspec->nrows;
-    Column **columns = NULL;
+    Column** columns = NULL;
     dtmalloc(columns, Column*, ncols + 1);
     columns[ncols] = NULL;
 
@@ -29,71 +29,72 @@ DataTable* DataTable::load(DataTable *colspec, int64_t nrows, const char* path)
         throw ValueError() << "colspec table should have had 3 columns, "
                            << "but " << colspec->ncols << " were passed";
     }
-    Column *colf = colspec->columns[0];
-    Column *cols = colspec->columns[1];
-    Column *colm = colspec->columns[2];
-    if (colf->stype() != ST_STRING_I4_VCHAR ||
-        cols->stype() != ST_STRING_I4_VCHAR ||
-        colm->stype() != ST_STRING_I4_VCHAR) {
+    SType stypef = colspec->columns[0]->stype();
+    SType stypes = colspec->columns[1]->stype();
+    SType stypem = colspec->columns[2]->stype();
+    if (stypef != ST_STRING_I4_VCHAR ||
+        stypes != ST_STRING_I4_VCHAR ||
+        stypem != ST_STRING_I4_VCHAR) {
         throw ValueError() << "String columns are expected in colspec table, "
-                           << "instead got " << colf->stype() << ", "
-                           << cols->stype() << ", and " << colm->stype();
+                           << "instead got " << stypef << ", "
+                           << stypes << ", and " << stypem;
     }
 
-    int32_t *offf = static_cast<StringColumn<int32_t>*>(colf)->offsets();
-    int32_t *offs = static_cast<StringColumn<int32_t>*>(cols)->offsets();
-    int32_t *offm = static_cast<StringColumn<int32_t>*>(colm)->offsets();
+    StringColumn<int32_t>* colf =
+        static_cast<StringColumn<int32_t>*>(colspec->columns[0]);
+    StringColumn<int32_t>* cols =
+        static_cast<StringColumn<int32_t>*>(colspec->columns[1]);
+    StringColumn<int32_t>* colm =
+        static_cast<StringColumn<int32_t>*>(colspec->columns[2]);
 
-    static char filename[1001];
+    int32_t* offf = colf->offsets();
+    int32_t* offs = cols->offsets();
+    int32_t* offm = colm->offsets();
+
+
+    /*static char filename[1001];
     static char metastr[101];
-    size_t len = strlen(path);
+    size_t len = path.length();
     if (len > 900) {
         throw ValueError() << "The path is too long: " << path;
-    }
-    if (len > 0) {
-        strcpy(filename, path);
-        if (filename[len - 1] != '/') {
-            filename[len] = '/';
-            len++;
-        }
-    }
-    char* ffilename = filename + len;
+    }*/
     for (int64_t i = 0; i < ncols; ++i)
     {
         // Extract filename
-        int32_t fsta = abs(offf[i - 1]) - 1;
-        int32_t fend = abs(offf[i]) - 1;
-        int32_t flen = fend - fsta;
-        if (flen > 100) {
+        size_t fsta = static_cast<size_t>(abs(offf[i - 1]));
+        size_t fend = static_cast<size_t>(abs(offf[i]));
+        size_t flen = static_cast<size_t>(fend - fsta);
+        /*if (flen > 100) {
             throw ValueError() << "Filename is too long: " << flen;
         }
         memcpy(ffilename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
-        ffilename[flen] = '\0';
+        ffilename[flen] = '\0';*/
+        std::string filename(path);
+        if (!(filename.empty() || filename.back() == '/'))
+          filename += "/";
+        filename.append(colf->strdata() + fsta, flen);
 
         // Extract stype
-        int32_t ssta = abs(offs[i - 1]) - 1;
-        int32_t send = abs(offs[i]) - 1;
-        int32_t slen = send - ssta;
+        size_t ssta = static_cast<size_t>(abs(offs[i - 1]));
+        size_t send = static_cast<size_t>(abs(offs[i]));
+        size_t slen = static_cast<size_t>(send - ssta);
         if (slen != 3) {
             throw ValueError() << "Incorrect stype's length: " << slen;
         }
-        SType stype = stype_from_string((char*)cols->data() + (ssize_t)ssta);
+        std::string stype_str(cols->strdata() + ssta, slen);
+        SType stype = stype_from_string(stype_str);
         if (stype == ST_VOID) {
-            char stypestr[4];
-            memcpy(stypestr, cols->data_at(static_cast<size_t>(ssta)), 3);
-            stypestr[3] = '\0';
-            throw ValueError() << "Unrecognized stype: " << stypestr;
+            throw ValueError() << "Unrecognized stype: " << stype_str;
         }
 
         // Extract meta info (as a string)
-        int32_t msta = abs(offm[i - 1]) - 1;
-        int32_t mend = abs(offm[i]) - 1;
-        int32_t mlen = mend - msta;
-        if (mlen > 100) {
+        size_t msta = static_cast<size_t>(abs(offm[i - 1]));
+        size_t mend = static_cast<size_t>(abs(offm[i]));
+        size_t mlen = static_cast<size_t>(mend - msta);
+        /*if (mlen > 100) {
             throw ValueError() << "Meta string is too long: " << mlen;
-        }
-        memcpy(metastr, colm->data_at(static_cast<size_t>(msta)), (size_t) mlen);
-        metastr[mlen] = '\0';
+        }*/
+        std::string metastr(colm->strdata() + msta, mlen);
 
         // Load the column
         columns[i] = Column::open_mmap_column(stype, nrows, filename, metastr);

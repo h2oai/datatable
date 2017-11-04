@@ -2,6 +2,7 @@
 #define dt_TYPES_H
 #include <stddef.h>  // size_t
 #include <stdint.h>  // int*_t
+#include <string>
 #include <cmath>     // isnan
 #include <limits>    // std::numeric_limits
 
@@ -472,7 +473,7 @@ template<> inline bool ISNA(double x)   { return isnan(x); }
 
 // Initializer function
 void init_types(void);
-SType stype_from_string(const char *s);
+SType stype_from_string(const std::string&);
 SType common_stype_for_buffer(SType stype1, SType stype2);
 
 

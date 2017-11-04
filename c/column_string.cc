@@ -15,22 +15,18 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <cmath>  // abs
+#include <limits> // numeric_limits::max()
 #include "py_utils.h"
 #include "utils.h"
 #include "datatable_check.h"
 #include "encodings.h"
-#include <limits> // numeric_limits::max()
-
-
-template <typename T> StringColumn<T>::StringColumn() : StringColumn<T>(0) {}
+#include "utils/assert.h"
 
 
 template <typename T>
-StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
+StringColumn<T>::StringColumn(int64_t nrows_) : Column(nrows_)
 {
-  size_t sz = sizeof(T) * static_cast<size_t>(nrows);
   size_t pd = padding(0);
-  mbuf = new MemoryMemBuf(sz + pd);
   // strbuf = new MemoryMemBuf(sz);
 
   // TODO: remove this
@@ -38,6 +34,56 @@ StringColumn<T>::StringColumn(int64_t nrows) : Column(nrows)
   offoff = static_cast<T>(pd);
 }
 
+
+//==============================================================================
+// Initialization methods
+//==============================================================================
+
+template <typename T>
+void StringColumn<T>::init_data() {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  offoff = static_cast<T>(padding(0));
+  mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff)); // TODO: change when data and offsets are split
+}
+
+template <typename T>
+void StringColumn<T>::init_mmap(const std::string& filename) {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  offoff = static_cast<T>(padding(0));
+  mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * sizeof(T) + static_cast<size_t>(offoff));
+}
+
+template <typename T>
+void StringColumn<T>::open_mmap(const std::string& filename) {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  mbuf = new MemmapMemBuf(filename);
+  // Hacky hack for temporary compatibility
+  T* temp = static_cast<T*>(mbuf->at(mbuf->size() - sizeof(T)));
+  T data_size = abs(temp[0]) - 1;
+  offoff = data_size + static_cast<T>(padding(static_cast<size_t>(data_size)));
+  if (mbuf->size() != static_cast<size_t>(offoff) +
+      static_cast<size_t>(nrows) * sizeof(T)) {
+    size_t exp_size = static_cast<size_t>(offoff) +
+      static_cast<size_t>(nrows) * sizeof(T);
+    throw Error() << "File \"" << filename <<
+        "\" cannot be used to create a column with " << nrows <<
+        " rows. Expected file size of " << exp_size <<
+        " bytes, actual size is " << mbuf->size() << " bytes";
+  }
+}
+
+// Not implemented (should it be?) see method signature in `Column` for
+// parameter definitions.
+template <typename T>
+void StringColumn<T>::init_xbuf(void*, void*) {
+  throw Error() << "String columns are incompatible with external buffers";
+}
+
+
+//==============================================================================
 
 template <typename T>
 Column* StringColumn<T>::shallowcopy(RowIndex* new_rowindex) const {

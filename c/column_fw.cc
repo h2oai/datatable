@@ -13,20 +13,57 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <type_traits>
+#include "column.h"
 #include "utils.h"
-
-
-template <typename T> FwColumn<T>::FwColumn() : FwColumn<T>(0) {}
+#include "utils/assert.h"
 
 
 template <typename T>
-FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_)
-{
-  size_t sz = sizeof(T) * static_cast<size_t>(nrows_);
-  mbuf = sz? new MemoryMemBuf(sz) : nullptr;
+FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {}
+
+
+//==============================================================================
+// Initialization methods
+//==============================================================================
+
+template <typename T>
+void FwColumn<T>::init_data() {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * elemsize());
 }
+
+template <typename T>
+void FwColumn<T>::init_mmap(const std::string& filename) {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * elemsize());
+}
+
+template <typename T>
+void FwColumn<T>::open_mmap(const std::string& filename) {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  mbuf = new MemmapMemBuf(filename);
+  if (mbuf->size() != static_cast<size_t>(nrows) * sizeof(T)) {
+    size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
+    throw Error() << "File \"" << filename <<
+        "\" cannot be used to create a column with " << nrows <<
+        " rows. Expected file size of " << exp_size <<
+        " bytes, actual size is " << mbuf->size() << " bytes";
+  }
+}
+
+template <typename T>
+void FwColumn<T>::init_xbuf(void* pybuffer, void* data) {
+  assert(ri == nullptr);
+  assert(mbuf == nullptr);
+  mbuf = new ExternalMemBuf(data, pybuffer, static_cast<size_t>(nrows) * elemsize());
+}
+
+
+//==============================================================================
 
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
@@ -95,7 +132,7 @@ void FwColumn<T>::reify() {
     // Slice with step 1: a portion of the buffer can be simply mem-moved onto
     // the new buffer (use memmove because the old and the new buffer can be
     // the same).
-    assert(newsize + ri->slice.start*elemsize <= mbuf->size());
+    assert(newsize + static_cast<size_t>(ri->slice.start) * elemsize <= mbuf->size());
     memmove(new_mbuf->get(), elements() + ri->slice.start, newsize);
 
   } else {

@@ -75,35 +75,40 @@ double RealColumn<T>::sum() const {
 // Retrieve stat value as a column
 template <typename T>
 Column* RealColumn<T>::min_column() const {
-  RealColumn<T> *col = new RealColumn<T>(1);
+  RealColumn<T>* col =
+      static_cast<RealColumn<T>*>(new_data_column(stype_real(sizeof(T)), 1));
   col->set_elem(0, min());
   return col;
 }
 
 template <typename T>
 Column* RealColumn<T>::max_column() const {
-  RealColumn<T> *col = new RealColumn<T>(1);
+  RealColumn<T>* col =
+      static_cast<RealColumn<T>*>(new_data_column(stype_real(sizeof(T)), 1));
   col->set_elem(0, max());
   return col;
 }
 
 template <typename T>
 Column* RealColumn<T>::sum_column() const {
-  RealColumn<double> *col = new RealColumn<double>(1);
+  RealColumn<double>* col =
+      static_cast<RealColumn<double>*>(new_data_column(ST_REAL_F8, 1));
   col->set_elem(0, sum());
   return col;
 }
 
 template <typename T>
 Column* RealColumn<T>::mean_column() const {
-  RealColumn<double> *col = new RealColumn<double>(1);
+  RealColumn<double>* col =
+      static_cast<RealColumn<double>*>(new_data_column(ST_REAL_F8, 1));
   col->set_elem(0, mean());
   return col;
 }
 
 template <typename T>
 Column* RealColumn<T>::sd_column() const {
-  RealColumn<double> *col = new RealColumn<double>(1);
+  RealColumn<double>* col =
+      static_cast<RealColumn<double>*>(new_data_column(ST_REAL_F8, 1));
   col->set_elem(0, sd());
   return col;
 }
