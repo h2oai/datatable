@@ -302,7 +302,7 @@ class FReader(object):
         dt = DataTable(_dt, names=self._colnames)
         if self._tempfile:
             if self._verbose:
-                self.logger.debug("Removing temporary file %s\n"
+                self.logger.debug("Removing temporary file %s"
                                   % self._tempfile)
             try:
                 os.remove(self._tempfile)
@@ -320,7 +320,7 @@ class FReader(object):
         reached the specified level (expressed as a number from 0 to 100.0).
         """
         bs = self._bar_symbols
-        s0 = "Reading file: "
+        s0 = "  Reading file: "
         s1 = " %3d%%" % int(percent)
         line_width = min(100, term.width)
         bar_width = line_width - len(s0) - len(s1) - 2
@@ -344,17 +344,17 @@ class FReader(object):
         handle a dataset of the requested size.
         """
         if self.verbose:
-            self.logger.debug("  The DataTable is estimated to require %s\n"
+            self.logger.debug("  The DataTable is estimated to require %s"
                               % humanize_bytes(estimated_size))
         vm = psutil.virtual_memory()
         if self.verbose:
-            self.logger.debug("  Memory available = %s (out of %s)\n"
+            self.logger.debug("  Memory available = %s (out of %s)"
                               % (humanize_bytes(vm.available),
                                  humanize_bytes(vm.total)))
         if (estimated_size < vm.available and self._save_to is None or
                 self._save_to == "memory"):
             if self.verbose:
-                self.logger.debug("  DataTable will be loaded into memory\n")
+                self.logger.debug("  DataTable will be loaded into memory")
             return None
         else:
             if self._save_to:
@@ -364,12 +364,12 @@ class FReader(object):
                 tmpdir = tempfile.mkdtemp()
             du = psutil.disk_usage(tmpdir)
             if self.verbose:
-                self.logger.debug("  Free disk space on drive %s = %s\n"
+                self.logger.debug("  Free disk space on drive %s = %s"
                                   % (os.path.splitdrive(tmpdir)[0] or "/",
                                      humanize_bytes(du.free)))
             if du.free > estimated_size or self._save_to:
                 if self.verbose:
-                    self.logger.debug("  DataTable will be stored in %s\n"
+                    self.logger.debug("  DataTable will be stored in %s"
                                       % tmpdir)
                 return tmpdir
         raise RuntimeError("The DataTable is estimated to require at lest %s "
@@ -430,7 +430,7 @@ class FReader(object):
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
             if self._verbose:
-                self.logger.debug("Extracting %s to temporary directory %s\n"
+                self.logger.debug("Extracting %s to temporary directory %s"
                                   % (filename, self._tempdir))
             self._tempfile = zf.extract(zff[0], path=self._tempdir)
 
@@ -438,7 +438,7 @@ class FReader(object):
             import gzip
             zf = gzip.GzipFile(filename)
             if self._verbose:
-                self.logger.debug("Extracting %s into memory\n" % filename)
+                self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
 
@@ -593,14 +593,8 @@ class FReader(object):
 
 
 class _DefaultLogger:
-    def __init__(self):
-        self._log_newline = False
-
     def debug(self, message):
-        if self._log_newline:
-            print("  ", end="")
-        self._log_newline = message.endswith("\n")
-        print(_log_color(message), end="", flush=True)
+        print(_log_color(message), flush=True)
 
     def warn(self, message):
         warnings.warn(message)

@@ -74,10 +74,13 @@ def test_logger():
     class MyLogger:
         def __init__(self):
             self.count = 0
+            self.msg = ""
 
         def debug(self, msg):
+            self.msg += msg + "\n"
             self.count += 1
 
     lg = MyLogger()
     datatable.fread(text="A\n1\n2\n3", logger=lg)
     assert lg.count > 10
+    assert "\n\n" not in lg.msg
