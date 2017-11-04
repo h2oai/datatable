@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import collections
-import time
+import re
 import sys
+import time
 import warnings
 from types import GeneratorType
 from typing import Tuple, Dict, List, Union
@@ -198,11 +199,9 @@ class DataTable(object):
         self._ltypes = None
         if not names:
             names = tuple("C%d" % (i + 1) for i in range(self._ncols))
-        if not isinstance(names, tuple):
-            names = tuple(names)
-        assert len(names) == self._ncols
+        names, inames = DataTable._dedup_names(names)
         self._names = names
-        self._inames = {n: i for i, n in enumerate(names)}
+        self._inames = inames
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -248,6 +247,38 @@ class DataTable(object):
         if names is None:
             names = ["C%d" % i for i in range(1, ncols + 1)]
         self._fill_from_dt(dt, names=names)
+
+
+    @staticmethod
+    def _dedup_names(names) -> Tuple[Tuple[str, ...], Dict[str, int]]:
+        re0 = re.compile(r"[\x00-\x1F]+")
+        inames = {}
+        tnames = []
+        dupnames = []
+        for i, name in enumerate(names):
+            name = re.sub(re0, ".", name)
+            if name in inames:
+                mm = re.match(r"^(.*)(\d+)$", name)
+                if mm:
+                    base = mm.group(1)
+                    count = int(mm.group(2)) + 1
+                else:
+                    base = name + "."
+                    count = 1
+                newname = name
+                while newname in inames:
+                    newname = "%s%d" % (base, count)
+                    count += 1
+                dupnames.append(name)
+            else:
+                newname = name
+            inames[newname] = i
+            tnames.append(newname)
+        if dupnames:
+            warnings.warn("Duplicate column names found: %r. They were assigned"
+                          " unique names." % dupnames)
+        assert len(inames) == len(tnames) == len(names)
+        return (tuple(tnames), inames)
 
 
 

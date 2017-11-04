@@ -32,8 +32,9 @@ def test_cbind_simple():
     d0 = dt.DataTable([1, 2, 3])
     d1 = dt.DataTable([4, 5, 6])
     dt_compute_stats(d0, d1)
-    d0.cbind(d1)
-    dr = dt.DataTable([[1, 2, 3], [4, 5, 6]], names=["C1", "C1"])
+    with pytest.warns(UserWarning):
+        d0.cbind(d1)
+    dr = dt.DataTable([[1, 2, 3], [4, 5, 6]], names=["C1", "C2"])
     assert_equals(d0, dr)
 
 
@@ -47,8 +48,10 @@ def test_cbind_empty():
 def test_cbind_self():
     d0 = dt.DataTable({"fun": [1, 2, 3]})
     dt_compute_stats(d0)
-    d0.cbind(d0).cbind(d0).cbind(d0)
-    dr = dt.DataTable([[1, 2, 3]] * 8, names=["fun"] * 8)
+    with pytest.warns(UserWarning):
+        d0.cbind(d0).cbind(d0).cbind(d0)
+    dr = dt.DataTable([[1, 2, 3]] * 8,
+                      names=["fun"] + ["fun.%d" % i for i in range(1, 8)])
     assert_equals(d0, dr)
 
 
@@ -80,8 +83,9 @@ def test_cbind_forced1():
     d0 = dt.DataTable([1, 2, 3])
     d1 = dt.DataTable([4, 5])
     dt_compute_stats(d0, d1)
-    d0.cbind(d1, force=True)
-    dr = dt.DataTable([[1, 2, 3], [4, 5, None]], names=["C1", "C1"])
+    with pytest.warns(UserWarning):
+        d0.cbind(d1, force=True)
+    dr = dt.DataTable([[1, 2, 3], [4, 5, None]], names=["C1", "C2"])
     assert_equals(d0, dr)
 
 

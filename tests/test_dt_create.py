@@ -270,3 +270,26 @@ def test_issue_409():
     p = d.topython()
     assert p == [[inf, -inf, 0.0, -0.0]]
     assert copysign(1, p[0][-1]) == -1
+
+
+def test_duplicate_names1():
+    with pytest.warns(UserWarning) as ws:
+        d = dt.DataTable([[1], [2], [3]], names=["A", "A", "A"])
+        assert d.names == ("A", "A.1", "A.2")
+    assert len(ws) == 1
+    assert "Duplicate column names found: ['A', 'A']" in ws[0].message.args[0]
+
+
+def test_duplicate_names2():
+    with pytest.warns(UserWarning):
+        d = dt.DataTable([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
+        assert d.names == ("A", "A.1", "A.2", "A.3")
+
+
+def test_special_characters_in_names():
+    d = dt.DataTable([[1], [2], [3], [4]],
+                     names=("".join(chr(i) for i in range(32)),
+                            "help\nneeded",
+                            "foo\t\tbar\t \tbaz",
+                            "A\n\rB\n\rC\n\rD\n\r"))
+    assert d.names == (".", "help.needed", "foo.bar. .baz", "A.B.C.D.")

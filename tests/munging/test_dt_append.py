@@ -109,24 +109,27 @@ def test_not_inplace():
 
 
 def test_repeating_names():
-    dt0 = dt.DataTable([[5], [6], [7], [4]], names=["x", "y", "x", "x"])
-    dt1 = dt.DataTable([[4], [3], [2]], names=["y", "x", "x"])
-    dtr = dt.DataTable([[5, 3], [6, 4], [7, 2], [4, None]], names="xyxx")
-    dt0.append(dt1, force=True)
-    assert_equals(dt0, dtr)
+    # Warnings about repeated names -- ignore
+    with pytest.warns(UserWarning):
+        dt0 = dt.DataTable([[5], [6], [7], [4]], names=["x", "y", "x", "x"])
+        dt1 = dt.DataTable([[4], [3], [2]], names=["y", "x", "x"])
+        dtr = dt.DataTable([[5, 3], [6, 4], [7, 2], [4, None]],
+                           names=["x", "y", "x.1", "x.2"])
+        dt0.append(dt1, force=True)
+        assert_equals(dt0, dtr)
 
-    dt0 = dt.DataTable({"a": [23]})
-    dt1 = dt.DataTable([[2], [4], [8]], names="aaa")
-    dtr = dt.DataTable([[23, 2], [None, 4], [None, 8]], names="aaa")
-    dt0.append(dt1, force=True)
-    assert_equals(dt0, dtr)
+        dt0 = dt.DataTable({"a": [23]})
+        dt1 = dt.DataTable([[2], [4], [8]], names="aaa")
+        dtr = dt.DataTable([[23, 2], [None, 4], [None, 8]], names="aaa")
+        dt0.append(dt1, force=True)
+        assert_equals(dt0, dtr)
 
-    dt0 = dt.DataTable([[22], [44], [88]], names="aba")
-    dt1 = dt.DataTable([[2], [4], [8]], names="aaa")
-    dtr = dt.DataTable([[22, 2], [44, None], [88, 4], [None, 8]],
-                       names=["a", "b", "a", "a"])
-    dt0.append(dt1, force=True)
-    assert_equals(dt0, dtr)
+        dt0 = dt.DataTable([[22], [44], [88]], names="aba")
+        dt1 = dt.DataTable([[2], [4], [8]], names="aaa")
+        dtr = dt.DataTable([[22, 2], [44, None], [88, 4], [None, 8]],
+                           names=["a", "b", "a", "a"])
+        dt0.append(dt1, force=True)
+        assert_equals(dt0, dtr)
 
 
 def test_append_strings():
