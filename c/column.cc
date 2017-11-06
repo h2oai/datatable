@@ -266,8 +266,7 @@ Column* Column::max_column() const     { return new_na_column(stype(), 1); }
 Column* Column::sum_column() const     { return new_na_column(stype(), 1); }
 
 Column* Column::countna_column() const {
-  IntColumn<int64_t>* col =
-      static_cast<IntColumn<int64_t>*>(new_data_column(ST_INTEGER_I8, 1));
+  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
   col->set_elem(0, countna());
   return col;
 }
