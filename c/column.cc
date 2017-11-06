@@ -31,19 +31,19 @@ Column::Column(int64_t nrows_)
       nrows(nrows_) {}
 
 
-Column* Column::new_column(SType stype, int64_t nrows) {
+Column* Column::new_column(SType stype) {
   switch (stype) {
-    case ST_VOID:            return new VoidColumn(nrows);
-    case ST_BOOLEAN_I1:      return new BoolColumn(nrows);
-    case ST_INTEGER_I1:      return new IntColumn<int8_t>(nrows);
-    case ST_INTEGER_I2:      return new IntColumn<int16_t>(nrows);
-    case ST_INTEGER_I4:      return new IntColumn<int32_t>(nrows);
-    case ST_INTEGER_I8:      return new IntColumn<int64_t>(nrows);
-    case ST_REAL_F4:         return new RealColumn<float>(nrows);
-    case ST_REAL_F8:         return new RealColumn<double>(nrows);
-    case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>(nrows);
-    case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>(nrows);
-    case ST_OBJECT_PYPTR:    return new PyObjectColumn(nrows);
+    case ST_VOID:            return new VoidColumn();
+    case ST_BOOLEAN_I1:      return new BoolColumn();
+    case ST_INTEGER_I1:      return new IntColumn<int8_t>();
+    case ST_INTEGER_I2:      return new IntColumn<int16_t>();
+    case ST_INTEGER_I4:      return new IntColumn<int32_t>();
+    case ST_INTEGER_I8:      return new IntColumn<int64_t>();
+    case ST_REAL_F4:         return new RealColumn<float>();
+    case ST_REAL_F8:         return new RealColumn<double>();
+    case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
+    case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
+    case ST_OBJECT_PYPTR:    return new PyObjectColumn();
     default:
       throw ValueError() << "Unable to create a column of SType = " << stype;
   }
@@ -51,7 +51,8 @@ Column* Column::new_column(SType stype, int64_t nrows) {
 
 
 Column* Column::new_data_column(SType stype, int64_t nrows) {
-  Column* col = new_column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->init_data();
   return col;
 }
@@ -65,7 +66,8 @@ Column* Column::new_na_column(SType stype, int64_t nrows) {
 
 Column* Column::new_mmap_column(SType stype, int64_t nrows,
                                 const std::string& filename) {
-  Column* col = new_column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->init_mmap(filename);
   return col;
 }
@@ -97,7 +99,8 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
                                  const std::string& filename,
                                  const std::string& ms)
 {
-  Column* col = new_column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->open_mmap(filename);
   return col;
 }
@@ -109,7 +112,8 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
 Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
                                 void* data, size_t a_size)
 {
-  Column* col = new_column(stype, nrows);
+  Column* col = new_column(stype);
+  col->nrows = nrows;
   col->init_xbuf(pybuffer, data);
   return col;
 }
@@ -120,7 +124,8 @@ Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
 Column* Column::shallowcopy(RowIndex* new_rowindex) const {
-  Column* col = new_column(stype(), nrows);
+  Column* col = new_column(stype());
+  col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
   // TODO: also copy Stats object
 
@@ -141,7 +146,8 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) const {
  */
 Column* Column::deepcopy() const
 {
-  Column* col = new_column(stype(), nrows);
+  Column* col = new_column(stype());
+  col->nrows = nrows;
   col->mbuf = mbuf->deepcopy();
   // TODO: deep copy stats when implemented
   col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
@@ -280,7 +286,8 @@ Column* Column::cast(SType new_stype, MemoryBuffer* mb) const {
   }
   Column *res = nullptr;
   if (mb) {
-    res = Column::new_column(new_stype, nrows);
+    res = Column::new_column(new_stype);
+    res->nrows = nrows;
     res->mbuf = mb;
   } else {
     res = Column::new_data_column(new_stype, nrows);

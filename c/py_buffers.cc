@@ -168,7 +168,6 @@ Column* try_to_resolve_object_column(Column* col)
   dtmalloc(strbuf, char, total_length);
   size_t strbuf_size = static_cast<size_t>(total_length);
   StringColumn<int32_t>* res = new StringColumn<int32_t>(nrows);
-  res->init_data();
   int32_t* offsets = res->offsets();
 
   size_t offset = 0;

@@ -252,7 +252,7 @@ protected:
   virtual Stats* get_stats() const = 0;
 
 private:
-  static Column* new_column(SType, int64_t nrows = 0);
+  static Column* new_column(SType);
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
   friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
@@ -266,7 +266,7 @@ private:
 template <typename T> class FwColumn : public Column
 {
 public:
-  FwColumn(int64_t nrows = 0);
+  FwColumn(int64_t nrows, MemoryBuffer* = nullptr);
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
   T* elements() const;
   T get_elem(int64_t i) const;
@@ -288,6 +288,9 @@ protected:
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
   void fill_na() override;
+
+  FwColumn();
+  friend Column;
 };
 
 
@@ -307,7 +310,7 @@ extern template class FwColumn<PyObject*>;
 class BoolColumn : public FwColumn<int8_t>
 {
 public:
-  using FwColumn<int8_t>::FwColumn;
+  BoolColumn(int64_t nrows, MemoryBuffer* = nullptr);
   virtual ~BoolColumn();
   SType stype() const override;
 
@@ -324,6 +327,7 @@ public:
   Column* sd_column() const override;
 
 protected:
+  BoolColumn();
   BooleanStats* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -339,7 +343,9 @@ protected:
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Column") const override;
+
   using Column::mbuf;
+  friend Column;
 };
 
 
@@ -349,7 +355,7 @@ protected:
 template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
-  using FwColumn<T>::FwColumn;
+  IntColumn(int64_t nrows, MemoryBuffer* = nullptr);
   virtual ~IntColumn();
   virtual SType stype() const override;
 
@@ -366,6 +372,7 @@ public:
   Column* sd_column() const override;
 
 protected:
+  IntColumn();
   IntegerStats<T>* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -382,6 +389,7 @@ protected:
   using Column::stats;
   using Column::mbuf;
   using Column::new_data_column;
+  friend Column;
 };
 
 template <> void IntColumn<int8_t>::cast_into(IntColumn<int8_t>*) const;
@@ -399,7 +407,7 @@ extern template class IntColumn<int64_t>;
 template <typename T> class RealColumn : public FwColumn<T>
 {
 public:
-  using FwColumn<T>::FwColumn;
+  RealColumn(int64_t nrows, MemoryBuffer* = nullptr);
   virtual ~RealColumn();
   virtual SType stype() const override;
 
@@ -416,6 +424,8 @@ public:
   Column* sd_column() const override;
 
 protected:
+  RealColumn();
+
   RealStats<T>* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -431,6 +441,7 @@ protected:
 
   using Column::stats;
   using Column::new_data_column;
+  friend Column;
 };
 
 template <> void RealColumn<float>::cast_into(RealColumn<float>*) const;
@@ -445,11 +456,12 @@ extern template class RealColumn<double>;
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
-  using FwColumn<PyObject*>::FwColumn;
+  PyObjectColumn(int64_t nrows, MemoryBuffer* = nullptr);
   virtual ~PyObjectColumn();
   virtual SType stype() const override;
 
 protected:
+  PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
   Stats* get_stats() const override { return nullptr; }
 
@@ -465,6 +477,7 @@ protected:
   // void cast_into(StringColumn<int64_t>*) const;
 
   void fill_na() override {}
+  friend Column;
 };
 
 
@@ -478,7 +491,8 @@ template <typename T> class StringColumn : public Column
   int64_t pad_ : 64 - (sizeof(T) % 8) * 8;
 
 public:
-  StringColumn(int64_t nrows = 0);
+  StringColumn(int64_t nrows,
+      MemoryBuffer* = nullptr);
   virtual ~StringColumn();
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
 
@@ -504,6 +518,7 @@ public:
                         const std::string& name = "Column") const override;
 
 protected:
+  StringColumn();
   void init_data() override;
   void init_mmap(const std::string& filename) override;
   void open_mmap(const std::string& filename) override;
@@ -528,6 +543,7 @@ protected:
 
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 
+  friend Column;
   friend Column* try_to_resolve_object_column(Column*);
   friend void setFinalNrow(size_t);
 };
@@ -545,7 +561,7 @@ extern template class StringColumn<int64_t>;
 class VoidColumn : public Column
 {
 public:
-  VoidColumn(int64_t nrows = 0) : Column(nrows) {}
+  VoidColumn(int64_t nrows) : Column(nrows) {}
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override {}
   SType stype() const override { return ST_VOID; }
   size_t elemsize() const override { return 0; }
@@ -556,6 +572,7 @@ public:
   void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
 protected:
+  VoidColumn() {}
   void init_data() override {}
   void init_mmap(const std::string&) override {}
   void open_mmap(const std::string&) override {}
@@ -563,6 +580,8 @@ protected:
 
   Stats* get_stats() const override { return nullptr; }
   void fill_na() override {}
+
+  friend Column;
 };
 
 

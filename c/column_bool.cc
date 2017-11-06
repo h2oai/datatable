@@ -17,6 +17,10 @@
 #include <Python.h>
 #include "utils/omp.h"
 
+BoolColumn::BoolColumn() : FwColumn<int8_t>() {}
+
+BoolColumn::BoolColumn(int64_t nrows_, MemoryBuffer* mb) :
+    FwColumn<int8_t>(nrows_, mb) {}
 
 
 BoolColumn::~BoolColumn() {}

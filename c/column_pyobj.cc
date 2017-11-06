@@ -15,6 +15,11 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 
+PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {}
+
+PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryBuffer* mb) :
+    FwColumn<PyObject*>(nrows_, mb) {}
+
 
 PyObjectColumn::~PyObjectColumn() {
   // PyObject** elems = elements();
