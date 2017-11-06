@@ -18,8 +18,9 @@
 #include <Python.h>
 #include <stdbool.h>
 #include <string>
-#include "writebuf.h"
 #include "datatable_check.h"
+#include "mmm.h"
+#include "writebuf.h"
 
 
 class MemoryMemBuf;
@@ -306,11 +307,12 @@ private:
  * just create a new MemmapMemBuf object, and then memcpy the data into
  * its memory region.
  */
-class MemmapMemBuf : public MemoryBuffer
+class MemmapMemBuf : public MemoryBuffer, MemoryMapWorker
 {
   void* mmp;
   size_t mmpsize;
   const std::string filename;
+  size_t mmm_index;
 
 public:
   /**
@@ -329,6 +331,10 @@ public:
     IntegrityCheckContext&, const std::string& n = "MemoryBuffer"
   ) const override;
 
+  // MemoryMapWorker interface
+  void save_entry_index(size_t i) override { mmm_index = i; }
+  void evict() override;
+
 protected:
   /**
    * This constructor may either map an existing file (when `create = false`),
@@ -339,7 +345,7 @@ protected:
    * to an existing accessible file, and parameter `n` is ignored.
    */
   MemmapMemBuf(const std::string& path, size_t n, bool create);
-  virtual ~MemmapMemBuf();
+  virtual ~MemmapMemBuf() override;
   virtual void memmap();
 };
 

@@ -308,6 +308,7 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
 
 void MemmapMemBuf::memmap()
 {
+  assert(mmp == nullptr);
   bool create = !readonly;
   size_t n = mmpsize;
   File file(filename, create? File::CREATE : File::READ);
@@ -338,19 +339,28 @@ void MemmapMemBuf::memmap()
   // |   mapping.  When swap space is not reserved one might get SIGSEGV
   // |   upon a write if no physical memory is available.
   //
-  mmp = mmap(/* address = */ NULL,
-             /* length = */ mmpsize,
-             /* protection = */ PROT_WRITE|PROT_READ,
-             /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,
-             /* fd = */ file.descriptor(),
-             /* offset = */ 0);
-  if (mmp == MAP_FAILED) {
-    // Exception is thrown from the constructor -> the base class' destructor
-    // will be called, which checks that `mmp` is null.
-    mmp = nullptr;
-    throw RuntimeError() << "Memory-map failed for file " << file.cname()
-                         << " of size " << filesize
-                         << " +" << mmpsize - filesize << Errno;
+  while (true) {
+    mmp = mmap(/* address = */ NULL,
+               /* length = */ mmpsize,
+               /* protection = */ PROT_WRITE|PROT_READ,
+               /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,
+               /* fd = */ file.descriptor(),
+               /* offset = */ 0);
+    if (mmp == MAP_FAILED) {
+      if (errno == 12) {  // release some memory and try again
+        MemoryMapManager::get()->freeup_memory();
+        continue;
+      }
+      // Exception is thrown from the constructor -> the base class' destructor
+      // will be called, which checks that `mmp` is null.
+      mmp = nullptr;
+      throw RuntimeError() << "Memory-map failed for file " << file.cname()
+                           << " of size " << filesize
+                           << " +" << mmpsize - filesize << Errno;
+    } else {
+      MemoryMapManager::get()->add_entry(this, mmpsize);
+      break;
+    }
   }
 }
 
@@ -363,11 +373,13 @@ MemmapMemBuf::~MemmapMemBuf() {
       printf("Error unmapping the view of file: [errno %d] %s. Resources may "
              "have not been freed properly.", errno, strerror(errno));
     }
+    MemoryMapManager::get()->del_entry(mmm_index);
   }
   if (!is_readonly()) {
     File::remove(filename);
   }
 }
+
 
 void* MemmapMemBuf::get() {
   if (!mmp) memmap();
@@ -380,6 +392,14 @@ size_t MemmapMemBuf::size() {
   } else {
     return File::asize(filename);
   }
+}
+
+
+void MemmapMemBuf::evict() {
+  if (!mmp) return;
+  munmap(mmp, mmpsize);
+  mmp = nullptr;
+  mmpsize = 0;
 }
 
 
