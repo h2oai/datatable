@@ -71,7 +71,11 @@ DECLARE_GETTER(
 
 DECLARE_GETTER(
   data_pointer,
-  "Pointer (cast to long int) to the column's internal memory buffer")
+  "Pointer (cast to int64_t) to the column's internal memory buffer.\n"
+  "This pointer may only be used immediately upon acquiral. The pointer may \n"
+  "become invalid if the column is modified or garbage-collected, and also \n"
+  "when .data_pointer of some other column is accessed. Reading from an \n"
+  "invalid pointer may return incorrect data, or result in a seg.fault.")
 
 DECLARE_GETTER(
   refcount,

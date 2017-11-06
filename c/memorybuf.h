@@ -347,6 +347,7 @@ protected:
   MemmapMemBuf(const std::string& path, size_t n, bool create);
   virtual ~MemmapMemBuf() override;
   virtual void memmap();
+  void memunmap();
 };
 
 

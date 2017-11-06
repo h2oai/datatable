@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   module.
 - It is now possible to fread from a `bytes` object.
 - Allow columns to be renamed by setting the `names` property on the datatable.
+- Internal "MemoryMapManager" will make datatable more robust when opening a
+  frame with many columns on Linux systems. In particular, error 12 "not enough
+  memory" should become much more rare now.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

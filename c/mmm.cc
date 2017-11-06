@@ -34,17 +34,18 @@ MemoryMapManager* MemoryMapManager::get() {
 
 
 void MemoryMapManager::add_entry(MemoryMapWorker* obj, size_t mmapsize) {
+  count++;
   if (count == entries.size()) {
     entries.reserve(count * 2);
   }
   entries[count].size = mmapsize;
   entries[count].obj = obj;
   obj->save_entry_index(count);
-  count++;
 }
 
 
 void MemoryMapManager::del_entry(size_t i) {
+  if (i == 0) return;
   count--;
   if (i < count) {
     entries[i].size = entries[count].size;
@@ -74,10 +75,10 @@ void MemoryMapManager::freeup_memory() {
 
 
 void MemoryMapManager::sort_entries() {
-  auto start = entries.begin();
+  auto start = entries.begin() + 1;
   auto end = start + static_cast<ptrdiff_t>(count);
   std::sort(start, end, [](const MmmEntry& a, const MmmEntry& b) -> bool {
-    return a.size > b.size;
+    return a.size >= b.size;
   });
 }
 

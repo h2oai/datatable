@@ -34,25 +34,20 @@ public:
 
 
 class MemoryMapManager {
-  std::vector<MmmEntry> entries;
+  std::vector<MmmEntry> entries;  // 0th entry always remains empty.
   size_t count;  // Number of items currently in the `entries` array.
 
-  static const size_t n_entries_to_purge = 128;
-
-  MemoryMapManager(size_t nelems);
 public:
   static MemoryMapManager* get();
-
   void add_entry(MemoryMapWorker* obj, size_t size);
   void del_entry(size_t i);
   void freeup_memory();
 
 private:
+  static const size_t n_entries_to_purge = 128;
+  MemoryMapManager(size_t nelems);
   void sort_entries();
 };
-
-
-extern MemoryMapManager mmapmanager;
 
 
 #endif
