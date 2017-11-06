@@ -40,28 +40,11 @@ StringColumn<T>::StringColumn(int64_t nrows_,
     // Hack (will be removed in the near future)
     // Gets the last 4/8 bytes of the MemoryBuffer, casts it as type T, and take the absolute value
     // The data size should coincide with this resulting value.
-    size_t exp_data_size = static_cast<size_t>(abs(*(static_cast<T*>(mb->at(mb->size() - sizeof(T)))))) - 1;
+    assert(mbuf->size() >= exp_off_size + sizeof(T));
+    size_t exp_data_size = static_cast<size_t>(abs(*static_cast<T*>(mb->at(mb->size() - sizeof(T))))) - 1;
     size_t exp_pad_size = padding(exp_data_size);
     assert(exp_data_size + exp_pad_size + exp_off_size == mb->size());
     offoff = static_cast<T>(exp_data_size + exp_pad_size);
-    T* offs = static_cast<T*>(mb->at(offoff));
-    T prev_off = 1;
-
-    // Ensure padding is all 0xFF
-    char* pads = static_cast<char*>(mb->at(exp_data_size));
-    for (size_t i = 0; i < exp_pad_size; ++i) {
-      assert(pads[i] == 0xFF);
-    }
-
-    // Ensure offsets are valid
-    for (size_t i = 0; i < exp_off_size; ++i) {
-      if (offs[i] > 0) {
-        assert(offs[i] >= prev_off);
-        prev_off = offs[i];
-      } else {
-        assert(-offs[i] == prev_off);
-      }
-    }
   }
 
   mbuf = mb;
