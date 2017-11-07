@@ -48,6 +48,7 @@ def fread(filename: str = None,
           skip_to_string: str = None,
           skip_lines: int = None,
           save_to: str = None,
+          nthreads: int = None,
           logger=None,
           **extra) -> DataTable:
     freader = FReader(filename=filename,
@@ -64,6 +65,7 @@ def fread(filename: str = None,
                       skip_lines=skip_lines,
                       verbose=verbose,
                       save_to=save_to,
+                      nthreads=nthreads,
                       logger=logger,
                       **extra)
     return freader.read()
@@ -79,7 +81,7 @@ class FReader(object):
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, save_to=None,
-                 logger=None, **args):
+                 nthreads=None, logger=None, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -96,6 +98,7 @@ class FReader(object):
         self._skip_to_string = None
         self._columns = None
         self._save_to = save_to
+        self._nthreads = nthreads
         self._logger = None
 
         self._colnames = None
@@ -271,6 +274,17 @@ class FReader(object):
     @typed(n=U(int, None))
     def skip_lines(self, n):
         self._skip_lines = n
+
+
+    @property
+    def nthreads(self):
+        """Number of threads to use when reading the file."""
+        return self._nthreads
+
+    @nthreads.setter
+    @typed(nth=U(int, None))
+    def nthreads(self, nth):
+        self._nthreads = nth
 
 
     @property

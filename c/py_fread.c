@@ -148,7 +148,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
     frargs->skipEmptyLines = 1;
     frargs->fill = pyfreader.attr("fill").as_bool();
     frargs->showProgress = pyfreader.attr("show_progress").as_bool();
-    frargs->nth = 0;
+    frargs->nth = static_cast<int32_t>(pyfreader.attr("nthreads").as_int64());
     frargs->warningsAreErrors = 0;
     if (frargs->nrowLimit < 0)
         frargs->nrowLimit = LONG_MAX;
