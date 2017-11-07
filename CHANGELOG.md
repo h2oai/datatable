@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   throw an exception.
 - creating a DataTable from pandas.Series with explicit `colnames` will no longer
   ignore those column names.
+- fread(fill=True) will correctly fill missing fields with NAs.
 
 
 
