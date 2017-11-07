@@ -163,14 +163,18 @@ Column* try_to_resolve_object_column(Column* col)
   }
 
   // Otherwise the column is all-strings: convert it into *STRING stype.
-  char *strbuf = NULL;
-  dtmalloc(strbuf, char, total_length);
   size_t strbuf_size = static_cast<size_t>(total_length);
-  StringColumn<int32_t>* res = new StringColumn<int32_t>(nrows);
-  int32_t* offsets = res->offsets();
+  MemoryBuffer* offbuf = new MemoryMemBuf(
+      (static_cast<size_t>(nrows) + 1) * sizeof(int32_t));
+  MemoryBuffer* strbuf = new MemoryMemBuf(strbuf_size);
+  int32_t* offsets = static_cast<int32_t*>(offbuf->get());
+  char* strs = static_cast<char*>(strbuf->get());
+
+  offsets[0] = -1;
+  ++offsets;
 
   size_t offset = 0;
-  for (int64_t i = 0; i < nrows; i++) {
+  for (int64_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) {
       offsets[i] = static_cast<int32_t>(-offset - 1);
     } else {
@@ -178,26 +182,19 @@ Column* try_to_resolve_object_column(Column* col)
       size_t sz = static_cast<size_t>(PyBytes_Size(z));
       if (offset + sz > strbuf_size) {
         strbuf_size = static_cast<size_t>(1.5 * strbuf_size);
-        dtrealloc(strbuf, char, strbuf_size);
+        strbuf->resize(strbuf_size);
+        strs = static_cast<char*>(strbuf->get()); // Location may have changed
       }
-      memcpy(strbuf + offset, PyBytes_AsString(z), sz);
+      memcpy(strs + offset, PyBytes_AsString(z), sz);
       Py_DECREF(z);
       offset += sz;
       offsets[i] = static_cast<int32_t>(offset + 1);
     }
   }
 
-  size_t datasize = offset;
-  size_t padding = Column::i4s_padding(datasize);
-  size_t allocsize = datasize + padding + 4 * (size_t)nrows;
-  dtrealloc(strbuf, char, allocsize);
-  memset(strbuf + datasize, 0xFF, padding);
-  memcpy(strbuf + datasize + padding, offsets, 4 * (size_t)nrows);
-  res->mbuf->release();
-  res->mbuf = new MemoryMemBuf(static_cast<void*>(strbuf), allocsize);
-  res->offoff = static_cast<int32_t>(datasize + padding);
+  strbuf->resize(offset);
   delete col;
-  return res;
+  return new StringColumn<int32_t>(nrows, offbuf, strbuf);
 }
 
 

@@ -85,13 +85,14 @@ static PyObject* stype_real_i64_tostring(UNUSED(Column *col), UNUSED(int64_t row
 
 static PyObject* stype_vchar_i32_tostring(Column *col, int64_t row)
 {
-    int32_t offoff = static_cast<StringColumn<int32_t>*>(col)->meta();
-    int32_t *offsets = (int32_t*) add_ptr(col->data(), offoff);
-    if (offsets[row] < 0)
-        return none();
-    int32_t start = row == 0? 0 : abs(offsets[row - 1]) - 1;
-    int32_t len = offsets[row] - 1 - start;
-    return PyUnicode_FromStringAndSize((char*)(col->data()) + (size_t)start, len);
+  StringColumn<int32_t>* str_col = static_cast<StringColumn<int32_t>*>(col);
+  int32_t* offsets = str_col->offsets();
+  if (offsets[row] < 0)
+      return none();
+  int32_t start = abs(offsets[row - 1]);
+  int32_t len = offsets[row] - start;
+  return PyUnicode_FromStringAndSize(str_col->strdata() +
+      static_cast<size_t>(start), len);
 }
 
 static PyObject* stype_object_pyptr_tostring(Column *col, int64_t row)

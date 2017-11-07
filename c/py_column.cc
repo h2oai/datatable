@@ -71,20 +71,10 @@ PyObject* get_data_pointer(pycolumn::obj* self) {
 }
 
 
-PyObject* get_meta(pycolumn::obj* self) {
-  Column* col = self->ref;
-  switch (col->stype()) {
-    case ST_STRING_I4_VCHAR: {
-      auto scol = static_cast<StringColumn<int32_t>*>(col);
-      return PyUnicode_FromFormat("offoff=%lld", scol->meta());
-    }
-    case ST_STRING_I8_VCHAR: {
-      auto scol = static_cast<StringColumn<int64_t>*>(col);
-      return PyUnicode_FromFormat("offoff=%lld", scol->meta());
-    }
-    default:
-      return none();
-  }
+PyObject* get_meta(pycolumn::obj*) {
+  // Does nothing after the removal of metas in StringColumns.
+  // Might be used when fixed-point decimals are implemented
+  return none();
 }
 
 

@@ -80,7 +80,7 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  * file).
  * If a file with the given name already exists, it will be overwritten.
  */
-void Column::save_to_disk(const char* filename) {
+void Column::save_to_disk(const std::string& filename) {
   assert(mbuf != nullptr);
   mbuf->save_to_disk(filename);
 }
@@ -178,7 +178,6 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
 {
     // Is the current column "empty" ?
     bool col_empty = (stype() == ST_VOID);
-
     // Compute the final number of rows and stype
     int64_t new_nrows = this->nrows;
     SType new_stype = std::max(stype(), ST_BOOLEAN_I1);
@@ -195,12 +194,11 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
         // FIXME: this is not filled with NAs!
         res = Column::new_data_column(new_stype, this->nrows);
     } else if (stype() == new_stype) {
-        mbuf = mbuf->safe_resize(mbuf->size());  // ensure mbuf is writable
         res = this;
     } else {
         res = this->cast(new_stype);
     }
-    assert(res->stype() == new_stype && !res->mbuf->is_readonly());
+    assert(res->stype() == new_stype);
 
     // TODO: Temporary Fix. To be resolved in #301
     if (res->stats != nullptr) res->stats->reset();
@@ -391,7 +389,7 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
       icc << "Mismatch between reported number of rows: " << name
-          << " has nrows=" << nrows << " and MemoryBuffer has data for "
+          << " has nrows=" << nrows << " but MemoryBuffer has data for "
           << mbuf_nrows << " rows" << end;
     }
   }

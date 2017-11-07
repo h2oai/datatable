@@ -168,7 +168,7 @@ public:
    */
   virtual void reify() = 0;
 
-  void save_to_disk(const char*);
+  virtual void save_to_disk(const std::string&);
 
   RowIndex* sort() const;
 
@@ -485,17 +485,15 @@ protected:
 template <typename T> class StringColumn : public Column
 {
   MemoryBuffer *strbuf;
-  T offoff;
-  int64_t pad_ : 64 - (sizeof(T) % 8) * 8;
 
 public:
   StringColumn(int64_t nrows,
-      MemoryBuffer* = nullptr);
+      MemoryBuffer* offbuf = nullptr, MemoryBuffer* strbuf = nullptr);
   virtual ~StringColumn();
+  void save_to_disk(const std::string& filename) override;
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
 
   SType stype() const override;
-  inline T meta() const { return offoff; }
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
 
@@ -543,7 +541,7 @@ protected:
 
   friend Column;
   friend Column* try_to_resolve_object_column(Column*);
-  friend void setFinalNrow(size_t);
+  friend Column* alloc_column(SType, size_t, int);
 };
 
 
