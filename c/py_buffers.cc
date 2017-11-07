@@ -90,8 +90,7 @@ PyObject* pydatatable_from_buffers(PyObject*, PyObject* args)
       int64_t nrows = view->len / view->itemsize;
       if (stype == ST_VOID) return nullptr;
       if (view->strides == nullptr) {
-        columns[i] = Column::new_xbuf_column(stype, nrows, view, view->buf,
-                                             static_cast<size_t>(view->len));
+        columns[i] = Column::new_xbuf_column(stype, nrows, view);
       } else {
         columns[i] = Column::new_data_column(stype, nrows);
         int64_t stride = view->strides[0] / view->itemsize;
