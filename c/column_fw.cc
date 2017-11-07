@@ -19,8 +19,23 @@
 #include "utils/assert.h"
 
 
+/**
+ * Private constructor that creates an "invalid" column. An `init_X` method
+ * should be subsequently called before using this column.
+ */
 template <typename T>
-FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {}
+FwColumn<T>::FwColumn() : Column(0) {}
+
+template <typename T>
+FwColumn<T>::FwColumn(int64_t nrows_, MemoryBuffer* mb) : Column(nrows_) {
+  size_t req_size = elemsize() * static_cast<size_t>(nrows_);
+  if (mb == nullptr) {
+    mb = new MemoryMemBuf(req_size);
+  } else {
+    assert(mb->size() == req_size);
+  }
+  mbuf = mb;
+}
 
 
 //==============================================================================

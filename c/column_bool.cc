@@ -17,6 +17,10 @@
 #include <Python.h>
 #include "utils/omp.h"
 
+BoolColumn::BoolColumn() : FwColumn<int8_t>() {}
+
+BoolColumn::BoolColumn(int64_t nrows_, MemoryBuffer* mb) :
+    FwColumn<int8_t>(nrows_, mb) {}
 
 
 BoolColumn::~BoolColumn() {}
@@ -50,36 +54,31 @@ DEF_STAT_GET(sum, int64_t)
 
 // Retrieve stat value as a column
 Column* BoolColumn::min_column() const {
-  BoolColumn* col =
-      static_cast<BoolColumn*>(new_data_column(ST_BOOLEAN_I1, 1));
+  BoolColumn* col = new BoolColumn(1);
   col->set_elem(0, min());
   return col;
 }
 
 Column* BoolColumn::max_column() const {
-  BoolColumn* col =
-      static_cast<BoolColumn*>(new_data_column(ST_BOOLEAN_I1, 1));
+  BoolColumn* col = new BoolColumn(1);
   col->set_elem(0, max());
   return col;
 }
 
 Column* BoolColumn::sum_column() const {
-  IntColumn<int64_t>* col =
-      static_cast<IntColumn<int64_t>*>(new_data_column(ST_INTEGER_I8, 1));
+  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
   col->set_elem(0, sum());
   return col;
 }
 
 Column* BoolColumn::mean_column() const {
-  RealColumn<double>* col =
-      static_cast<RealColumn<double>*>(new_data_column(ST_REAL_F8, 1));
+  RealColumn<double>* col = new RealColumn<double>(1);
   col->set_elem(0, mean());
   return col;
 }
 
 Column* BoolColumn::sd_column() const {
-  RealColumn<double>* col =
-      static_cast<RealColumn<double>*>(new_data_column(ST_REAL_F8, 1));
+  RealColumn<double>* col = new RealColumn<double>(1);
   col->set_elem(0, sd());
   return col;
 }

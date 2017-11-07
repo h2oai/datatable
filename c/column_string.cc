@@ -22,16 +22,33 @@
 #include "encodings.h"
 #include "utils/assert.h"
 
+template <typename T>
+StringColumn<T>::StringColumn() : Column(0) {
+  strbuf = nullptr;
+}
 
 template <typename T>
-StringColumn<T>::StringColumn(int64_t nrows_) : Column(nrows_)
+StringColumn<T>::StringColumn(int64_t nrows_,
+    MemoryBuffer* mb) : Column(nrows_)
 {
-  size_t pd = padding(0);
-  // strbuf = new MemoryMemBuf(sz);
+  size_t exp_off_size = sizeof(T) * static_cast<size_t>(nrows_);
+  if (mb == nullptr) {
+    mb = new MemoryMemBuf(exp_off_size + sizeof(T));
+    memset(mb->get(), 0xFF, mb->size());
+    offoff = static_cast<T>(sizeof(T));
+  } else {
+    // Hack (will be removed in the near future)
+    // Gets the last 4/8 bytes of the MemoryBuffer, casts it as type T, and take the absolute value
+    // The data size should coincide with this resulting value.
+    assert(mbuf->size() >= exp_off_size + sizeof(T));
+    size_t exp_data_size = static_cast<size_t>(abs(*static_cast<T*>(mb->at(mb->size() - sizeof(T))))) - 1;
+    size_t exp_pad_size = padding(exp_data_size);
+    assert(exp_data_size + exp_pad_size + exp_off_size == mb->size());
+    offoff = static_cast<T>(exp_data_size + exp_pad_size);
+  }
 
-  // TODO: remove this
+  mbuf = mb;
   strbuf = nullptr;
-  offoff = static_cast<T>(pd);
 }
 
 
