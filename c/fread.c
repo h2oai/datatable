@@ -882,6 +882,8 @@ static int StrtoB(const char **pch, int8_t *target)
 //   - add entry in array `colType` in "fread.h" and increase NUMTYPE
 //   - add record in array `colType_to_stype` in "py_fread.c"
 //   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
+//   - add entry to `switch(type[j])` around line 1948
+//   - update `test_fread_fillna` in test_fread.py to include the new column type
 //
 typedef int (*reader_fun_t)(const char **ptr, void *target);
 static reader_fun_t fun[NUMTYPE] = {
@@ -1956,11 +1958,16 @@ int freadMain(freadMainArgs _args)
             case CT_INT64:
               *(int64_t*)myBuff8Pos = NA_INT64;
               break;
+            case CT_FLOAT32_HEX:
+              *(float*)myBuff4Pos = NA_FLOAT32;
+              break;
             case CT_FLOAT64:
+            case CT_FLOAT64_EXT:
+            case CT_FLOAT64_HEX:
               *(double*)myBuff8Pos = NA_FLOAT64;
               break;
             case CT_STRING:
-              ((lenOff*)myBuff8Pos)->len = blank_is_a_NAstring ? INT8_MIN : 0;
+              ((lenOff*)myBuff8Pos)->len = NA_LENOFF;
               ((lenOff*)myBuff8Pos)->off = 0;
               break;
             default:
