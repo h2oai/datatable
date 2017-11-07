@@ -306,8 +306,18 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
   mmpsize = n;
 }
 
+
+MemmapMemBuf::~MemmapMemBuf() {
+  memunmap();
+  if (!is_readonly()) {
+    File::remove(filename);
+  }
+}
+
+
 void MemmapMemBuf::memmap()
 {
+  assert(mmp == nullptr);
   bool create = !readonly;
   size_t n = mmpsize;
   File file(filename, create? File::CREATE : File::READ);
@@ -338,36 +348,49 @@ void MemmapMemBuf::memmap()
   // |   mapping.  When swap space is not reserved one might get SIGSEGV
   // |   upon a write if no physical memory is available.
   //
-  mmp = mmap(/* address = */ NULL,
-             /* length = */ mmpsize,
-             /* protection = */ PROT_WRITE|PROT_READ,
-             /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,
-             /* fd = */ file.descriptor(),
-             /* offset = */ 0);
-  if (mmp == MAP_FAILED) {
-    // Exception is thrown from the constructor -> the base class' destructor
-    // will be called, which checks that `mmp` is null.
-    mmp = nullptr;
-    throw RuntimeError() << "Memory-map failed for file " << file.cname()
-                         << " of size " << filesize
-                         << " +" << mmpsize - filesize << Errno;
-  }
-}
-
-
-MemmapMemBuf::~MemmapMemBuf() {
-  if (mmp) {
-    int ret = munmap(mmp, mmpsize);
-    if (ret) {
-      // Cannot throw exceptions from a destructor, so just print a message
-      printf("Error unmapping the view of file: [errno %d] %s. Resources may "
-             "have not been freed properly.", errno, strerror(errno));
+  int attempts = 3;
+  while (attempts--) {
+    mmp = mmap(/* address = */ NULL,
+               /* length = */ mmpsize,
+               /* protection = */ PROT_WRITE|PROT_READ,
+               /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,
+               /* fd = */ file.descriptor(),
+               /* offset = */ 0);
+    if (mmp == MAP_FAILED) {
+      if (errno == 12) {  // release some memory and try again
+        MemoryMapManager::get()->freeup_memory();
+        continue;
+      }
+      // Exception is thrown from the constructor -> the base class' destructor
+      // will be called, which checks that `mmp` is null.
+      mmp = nullptr;
+      throw RuntimeError() << "Memory-map failed for file " << file.cname()
+                           << " of size " << filesize
+                           << " +" << mmpsize - filesize << Errno;
+    } else {
+      MemoryMapManager::get()->add_entry(this, mmpsize);
+      break;
     }
   }
-  if (!is_readonly()) {
-    File::remove(filename);
+}
+
+
+void MemmapMemBuf::memunmap() {
+  if (!mmp) return;
+  int ret = munmap(mmp, mmpsize);
+  if (ret) {
+    // Cannot throw exceptions from a destructor, so just print a message
+    printf("Error unmapping the view of file: [errno %d] %s. Resources may "
+           "have not been freed properly.", errno, strerror(errno));
+  }
+  mmp = nullptr;
+  mmpsize = 0;
+  if (mmm_index) {
+    MemoryMapManager::get()->del_entry(mmm_index);
+    mmm_index = 0;
   }
 }
+
 
 void* MemmapMemBuf::get() {
   if (!mmp) memmap();
@@ -383,22 +406,18 @@ size_t MemmapMemBuf::size() {
 }
 
 
+void MemmapMemBuf::evict() {
+  memunmap();
+}
+
+
 void MemmapMemBuf::resize(size_t n) {
   if (is_readonly()) throw RuntimeError() << "Cannot resize a readonly buffer";
-  if (mmp) {
-    munmap(mmp, mmpsize);
-    mmp = nullptr;
-  }
+  memunmap();
 
   File file(filename, File::READWRITE);
   file.resize(n);
-  mmp = mmap(NULL, n, PROT_WRITE|PROT_READ, MAP_SHARED, file.descriptor(), 0);
-  mmpsize = n;
-  if (mmp == MAP_FAILED) {
-    mmp = nullptr;
-    throw RuntimeError() << "Memory map failed for file " << file.cname()
-                         << " when resizing to " << n << ": " << Errno;
-  }
+  memmap();
 }
 
 

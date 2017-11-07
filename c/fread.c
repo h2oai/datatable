@@ -2021,7 +2021,7 @@ int freadMain(freadMainArgs _args)
     // Push out all buffers one last time.
     if (myNrow) {
       pushBuffer(&ctx);
-      if (me == 0 && args.showProgress) {
+      if (me == 0 && hasPrinted) {
         progress(100.0);
       }
     }
