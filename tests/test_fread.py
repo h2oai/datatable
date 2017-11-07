@@ -70,7 +70,7 @@ def test_fread_issue527():
     assert d0.topython() == [[1], [2], ["3ª"]]
 
 
-def test_logger():
+def test_fread_logger():
     class MyLogger:
         def __init__(self):
             self.count = 0
@@ -84,3 +84,10 @@ def test_logger():
     datatable.fread(text="A\n1\n2\n3", logger=lg)
     assert lg.count > 10
     assert "\n\n" not in lg.msg
+
+
+def test_fread_nthreads(capsys):
+    """Check that the `nthreads` parameter is respected"""
+    datatable.fread(text="A\n1\n2\n3", verbose=True, nthreads=1)
+    out, err = capsys.readouterr()
+    assert "Using 1 thread" in out
