@@ -74,10 +74,8 @@ public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_na_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
-  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename,
-                                  const std::string& metastr);
-  static Column* new_xbuf_column(SType, int64_t nrows, void* pybuffer,
-                                 void* data, size_t datasize);
+  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
+  static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
   static Column* from_pylist(PyObject* list, int stype0 = 0, int ltype0 = 0);
 
   Column(const Column&) = delete;
@@ -208,7 +206,7 @@ protected:
   virtual void init_data() = 0;
   virtual void init_mmap(const std::string& filename) = 0;
   virtual void open_mmap(const std::string& filename) = 0;
-  virtual void init_xbuf(void* pybuffer, void* data) = 0;
+  virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(const std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
 
@@ -283,7 +281,7 @@ protected:
   void init_data() override;
   void init_mmap(const std::string& filename) override;
   void open_mmap(const std::string& filename) override;
-  void init_xbuf(void* pybuffer, void* data) override;
+  void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
@@ -522,7 +520,7 @@ protected:
   void init_data() override;
   void init_mmap(const std::string& filename) override;
   void open_mmap(const std::string& filename) override;
-  void init_xbuf(void* pybuffer, void* data) override;
+  void init_xbuf(Py_buffer* pybuffer) override;
 
   void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
@@ -576,7 +574,7 @@ protected:
   void init_data() override {}
   void init_mmap(const std::string&) override {}
   void open_mmap(const std::string&) override {}
-  void init_xbuf(void*, void*) override {}
+  void init_xbuf(Py_buffer*) override {}
 
   Stats* get_stats() const override { return nullptr; }
   void fill_na() override {}

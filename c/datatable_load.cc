@@ -31,25 +31,20 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     }
     SType stypef = colspec->columns[0]->stype();
     SType stypes = colspec->columns[1]->stype();
-    SType stypem = colspec->columns[2]->stype();
     if (stypef != ST_STRING_I4_VCHAR ||
-        stypes != ST_STRING_I4_VCHAR ||
-        stypem != ST_STRING_I4_VCHAR) {
+        stypes != ST_STRING_I4_VCHAR) {
         throw ValueError() << "String columns are expected in colspec table, "
-                           << "instead got " << stypef << ", "
-                           << stypes << ", and " << stypem;
+                           << "instead got " << stypef << " and "
+                           << stypes;
     }
 
     StringColumn<int32_t>* colf =
         static_cast<StringColumn<int32_t>*>(colspec->columns[0]);
     StringColumn<int32_t>* cols =
         static_cast<StringColumn<int32_t>*>(colspec->columns[1]);
-    StringColumn<int32_t>* colm =
-        static_cast<StringColumn<int32_t>*>(colspec->columns[2]);
 
     int32_t* offf = colf->offsets();
     int32_t* offs = cols->offsets();
-    int32_t* offm = colm->offsets();
 
 
     /*static char filename[1001];
@@ -87,17 +82,8 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
             throw ValueError() << "Unrecognized stype: " << stype_str;
         }
 
-        // Extract meta info (as a string)
-        size_t msta = static_cast<size_t>(abs(offm[i - 1]));
-        size_t mend = static_cast<size_t>(abs(offm[i]));
-        size_t mlen = static_cast<size_t>(mend - msta);
-        /*if (mlen > 100) {
-            throw ValueError() << "Meta string is too long: " << mlen;
-        }*/
-        std::string metastr(colm->strdata() + msta, mlen);
-
         // Load the column
-        columns[i] = Column::open_mmap_column(stype, nrows, filename, metastr);
+        columns[i] = Column::open_mmap_column(stype, nrows, filename);
     }
 
     return new DataTable(columns);

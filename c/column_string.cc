@@ -95,7 +95,7 @@ void StringColumn<T>::open_mmap(const std::string& filename) {
 // Not implemented (should it be?) see method signature in `Column` for
 // parameter definitions.
 template <typename T>
-void StringColumn<T>::init_xbuf(void*, void*) {
+void StringColumn<T>::init_xbuf(Py_buffer*) {
   throw Error() << "String columns are incompatible with external buffers";
 }
 

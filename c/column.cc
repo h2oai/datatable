@@ -96,8 +96,7 @@ void Column::save_to_disk(const char* filename) {
  * valid values, and that the extra parameters match the buffer's contents).
  */
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
-                                 const std::string& filename,
-                                 const std::string& ms)
+                                 const std::string& filename)
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
@@ -109,12 +108,13 @@ Column* Column::open_mmap_column(SType stype, int64_t nrows,
 /**
  * Construct a column from the externally provided buffer.
  */
-Column* Column::new_xbuf_column(SType stype, int64_t nrows, void* pybuffer,
-                                void* data, size_t a_size)
+Column* Column::new_xbuf_column(SType stype,
+                                int64_t nrows,
+                                Py_buffer* pybuffer)
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->init_xbuf(pybuffer, data);
+  col->init_xbuf(pybuffer);
   return col;
 }
 

@@ -71,10 +71,16 @@ void FwColumn<T>::open_mmap(const std::string& filename) {
 }
 
 template <typename T>
-void FwColumn<T>::init_xbuf(void* pybuffer, void* data) {
+void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
   assert(ri == nullptr);
   assert(mbuf == nullptr);
-  mbuf = new ExternalMemBuf(data, pybuffer, static_cast<size_t>(nrows) * elemsize());
+  size_t exp_buf_len = static_cast<size_t>(nrows) * elemsize();
+  if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
+    throw Error() << "PyBuffer cannot be used to create a column of " << nrows
+                  << " rows: buffer length is " << static_cast<size_t>(pybuffer->len)
+                  << ", expected " << exp_buf_len;
+  }
+  mbuf = new ExternalMemBuf(pybuffer->buf, pybuffer, exp_buf_len);
 }
 
 
