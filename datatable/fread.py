@@ -486,16 +486,20 @@ class FReader(object):
             return
 
         if isinstance(colspec, set):
-            cols = set(colspec)  # Make a copy, so that we can modify it freely
+            # Make a copy of the `colspec`, in order to check whether all the
+            # columns requested by the user were found, and issue a warning
+            # otherwise.
+            colsfound = set(colspec)
             for i in range(n):
-                if colnames[i] in cols:
-                    cols.remove(colnames[i])
+                if colnames[i] in colspec:
+                    if colnames[i] in colsfound:
+                        colsfound.remove(colnames[i])
                     self._colnames.append(colnames[i])
                 else:
                     coltypes[i] = 0
-            if cols:
+            if colsfound:
                 warnings.warn("Column(s) %r not found in the input file" %
-                              list(cols))
+                              list(colsfound))
             return
 
         if isinstance(colspec, list):
