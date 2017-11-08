@@ -36,6 +36,7 @@ public:
 class MemoryMapManager {
   std::vector<MmmEntry> entries;  // 0th entry always remains empty.
   size_t count;  // Number of items currently in the `entries` array.
+                 // The entries are at indices 1 .. count
 
 public:
   static MemoryMapManager* get();

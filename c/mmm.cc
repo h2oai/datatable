@@ -46,14 +46,15 @@ void MemoryMapManager::add_entry(MemoryMapWorker* obj, size_t mmapsize) {
 
 void MemoryMapManager::del_entry(size_t i) {
   if (i == 0) return;
-  count--;
   if (i < count) {
+    // Move the last entry into the now-empty slot <i>
     entries[i].size = entries[count].size;
     entries[i].obj = entries[count].obj;
-    entries[i].obj->save_entry_index(i);
+    entries[count].obj->save_entry_index(i);
   }
   entries[count].size = 0;
   entries[count].obj = nullptr;
+  count--;
 }
 
 
