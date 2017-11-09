@@ -38,10 +38,17 @@ def test_cbind_simple():
     assert_equals(d0, dr)
 
 
-def test_cbind_empty():
+def test_cbind_empty1():
     d0 = dt.DataTable([1, 2, 3])
     dt_compute_stats(d0)
     d0.cbind()
+    assert_equals(d0, dt.DataTable([1, 2, 3]))
+
+
+def test_cbind_empty2():
+    d0 = dt.DataTable([1, 2, 3])
+    dt_compute_stats(d0)
+    d0.cbind(dt.DataTable())
     assert_equals(d0, dt.DataTable([1, 2, 3]))
 
 
@@ -72,10 +79,6 @@ def test_cbind_notforced():
     with pytest.raises(ValueError) as e:
         d0.cbind(d1)
     assert ("Cannot merge datatable with 2 rows to a datatable with 3 rows"
-            in str(e.value))
-    with pytest.raises(ValueError) as e:
-        d0.cbind(dt.DataTable())
-    assert ("Cannot merge datatable with 0 rows to a datatable with 3 rows"
             in str(e.value))
 
 
