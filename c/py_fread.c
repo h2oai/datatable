@@ -416,7 +416,7 @@ void setFinalNrow(size_t nrows) {
   }
   dt->nrows = (int64_t) nrows;
   return;
-  } catch (std::exception& e) {
+  } catch (std::exception&) {
     printf("setFinalNrow() failed\n");
   }
 }
@@ -441,7 +441,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
     }
     return;
 
-  } catch (std::exception& e) {
+  } catch (std::exception&) {
     printf("prepareThreadContext() failed\n");
     for (int k = 0; k < nstrcols; k++) {
       if (ctx->strbufs[k].mbuf)
@@ -501,7 +501,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
       ctx_strbufs[k].ptr = (size_t) (off - 1);
     }
     return;
-  } catch (std::exception& e) {
+  } catch (std::exception&) {
     printf("postprocessBuffer() failed\n");
     *(ctx->stopTeam) = 1;
   }
@@ -550,7 +550,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
       sb->ptr = ptr + sz;
     }
     return;
-  } catch (std::exception& e) {
+  } catch (std::exception&) {
     printf("orderBuffer() failed");
     *(ctx->stopTeam) = 1;
   }
