@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import datatable
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import typed, DataTable_t
+from datatable.utils.typechecks import typed, DataTable_t, TValueError
 
 
 
@@ -90,8 +90,9 @@ def rbind(self, *dts, force=False, bynames=True, inplace=True):
             else:
                 inames[col] = i
         for dt in dts:
+            if dt.nrows == 0: continue
             if not(dt.ncols == n or force):
-                raise ValueError(
+                raise TValueError(
                     "Cannot rbind datatable with %s to a datatable with %s. If"
                     " you wish rbind the datatables anyways filling missing "
                     "values with NAs, then use option `force=True`"
@@ -107,7 +108,7 @@ def rbind(self, *dts, force=False, bynames=True, inplace=True):
                 if icol is None:
                     # Column with this name not present in the spec yet
                     if not force:
-                        raise ValueError(
+                        raise TValueError(
                             "Column '%s' is not found in the source datatable. "
                             "If you want to rbind the datatables anyways "
                             "filling missing values with NAs, then specify "
@@ -142,9 +143,10 @@ def rbind(self, *dts, force=False, bynames=True, inplace=True):
     # Append by column numbers
     else:
         for dt in dts:
+            if dt.nrows == 0: continue
             nn = dt.ncols
             if nn != n and not force:
-                raise ValueError(
+                raise TValueError(
                     "Cannot rbind datatable with %s to a datatable with %s. If"
                     " you wish rbind the datatables anyways filling missing "
                     "values with NAs, then use option `force=True`"
@@ -225,6 +227,7 @@ def cbind(self, *dts, force=False, inplace=True):
     # list of _DataTables to be passed down into the C level.
     nrows = src.nrows or -1
     for dt in dts:
+        if dt.ncols == 0: continue
         nn = dt.nrows
         if nrows == -1:
             nrows = nn
@@ -232,7 +235,7 @@ def cbind(self, *dts, force=False, inplace=True):
             if nrows <= 1:
                 nrows = nn
             else:
-                raise ValueError(
+                raise TValueError(
                     "Cannot merge datatable with %s to a datatable with %s. If "
                     "you want to disregard this warning and merge datatables "
                     "anyways, then please provide option `inplace=True`"
