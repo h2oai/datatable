@@ -532,8 +532,23 @@ void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
 
 template <typename T>
 void StringColumn<T>::fill_na() {
-  strbuf->resize(0);
-  memset(mbuf->get(), 0xFF, mbuf->size());
+  // Perform a mini reify (the actual `reify` method will copy string and offset
+  // data, both of which is extraneous for this method)
+  strbuf = strbuf->safe_resize(0);
+  size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
+  if (mbuf->is_readonly()) {
+    mbuf->release();
+    mbuf = new MemoryMemBuf(new_mbuf_size);
+  } else {
+    mbuf->resize(new_mbuf_size);
+  }
+  T* off_data = static_cast<T*>(mbuf->get());
+  *off_data++ = -1;
+#pragma omp parallel for
+  for (int64_t i = 0; i < nrows; ++i) {
+    off_data[i] = -1;
+  }
+  ri = nullptr;
 }
 
 //---- Stats -------------------------------------------------------------------

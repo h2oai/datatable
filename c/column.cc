@@ -191,8 +191,7 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
     // column (if it has refcount > 1); or a type-cast of the current column.
     Column *res = nullptr;
     if (col_empty) {
-        // FIXME: this is not filled with NAs!
-        res = Column::new_data_column(new_stype, this->nrows);
+        res = Column::new_na_column(new_stype, this->nrows);
     } else if (stype() == new_stype) {
         res = this;
     } else {
