@@ -88,12 +88,12 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
+  assert(new_mbuf != nullptr);
   if (new_mbuf->size() % sizeof(T)) {
     throw RuntimeError() << "New buffer has invalid size " << new_mbuf->size();
   }
-  MemoryBuffer* t = new_mbuf->shallowcopy();
   if (mbuf) mbuf->release();
-  mbuf = t;
+  mbuf = new_mbuf;
   nrows = static_cast<int64_t>(mbuf->size() / sizeof(T));
 }
 
@@ -228,7 +228,8 @@ void FwColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
     size_t old_nrows = (size_t) nrows;
     size_t old_alloc_size = alloc_size();
     size_t new_alloc_size = sizeof(T) * (size_t) new_nrows;
-    mbuf->resize(new_alloc_size);
+    mbuf = mbuf->safe_resize(new_alloc_size);
+    assert(!mbuf->is_readonly());
     nrows = new_nrows;
 
     // Copy the data

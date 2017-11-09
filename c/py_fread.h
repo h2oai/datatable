@@ -1,6 +1,7 @@
 #ifndef dt_FREAD_IMPL_H
 #define dt_FREAD_IMPL_H
 #include <Python.h>
+#include "memorybuf.h"
 
 
 #define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
@@ -30,8 +31,9 @@
 //         other threads is allowed to initiate a memcopy.
 //
 typedef struct StrBuf {
-    char *buf;
-    size_t size;
+    MemoryBuffer* mbuf;
+    //char *buf;
+    //size_t size;
     size_t ptr;
     int idx8;
     int idxdt;

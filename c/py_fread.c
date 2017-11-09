@@ -71,7 +71,6 @@ static char **na_strings = NULL;
 
 // For temporary printing file names.
 static char fname[1000];
-static char fname2[1000];
 
 // ncols -- number of fields in the CSV file. This field first becomes available
 //     in the `userOverride()` callback, and doesn't change after that.
@@ -190,7 +189,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
 }
 
 
-static Column* alloc_column(SType stype, size_t nrows, int j)
+Column* alloc_column(SType stype, size_t nrows, int j)
 {
     // TODO(pasha): figure out how to use `WritableBuffer`s here
     Column *col = NULL;
@@ -209,22 +208,8 @@ static Column* alloc_column(SType stype, size_t nrows, int j)
         // this is not enough, we will always be able to re-allocate during the
         // run time.
         size_t alloc_size = nrows * 5;
-        if (targetdir) {
-            // Create new file of size `alloc_size` and memory-map it.
-            snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
-            File file(fname, File::CREATE);
-            file.resize(alloc_size);
-            void* mmp = mmap(NULL, alloc_size, PROT_WRITE|PROT_READ, MAP_SHARED,
-                             file.descriptor(), 0);
-            if (mmp == MAP_FAILED) {
-              throw RuntimeError() << "Memory-map failed when mapping file "
-                                   << file.cname() << Errno;
-            }
-            sb->buf = static_cast<char*>(mmp);
-        } else {
-            dtmalloc(sb->buf, char, alloc_size);
-        }
-        sb->size = alloc_size;
+        sb->mbuf = static_cast<StringColumn<int32_t>*>(col)->strbuf;
+        sb->mbuf->resize(alloc_size);
         sb->ptr = 0;
         sb->idx8 = -1;  // not needed for this structure
         sb->idxdt = j;
@@ -411,73 +396,41 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
 
 void setFinalNrow(size_t nrows) {
+  try {
     int i, j;
     for (i = j = 0; i < ncols; i++) {
-        int type = types[i];
-        if (type == CT_DROP) continue;
-        Column *col = dt->columns[j];
-        if (type == CT_STRING) {
-            StrBuf* sb = strbufs[j];
-            assert(sb->numuses == 0);
-            void *final_ptr = (void*) sb->buf;
-            sb->buf = NULL;
-            size_t curr_size = sb->ptr;
-            size_t padding = Column::i4s_padding(curr_size);
-            size_t offoff = curr_size + padding;
-            size_t offs_size = 4 * nrows;
-            size_t final_size = offoff + offs_size;
-            if (targetdir) {
-              munmap(final_ptr, sb->size);
-              snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, (int)j);
-              File file(fname, File::READWRITE);
-              file.resize(final_size);
-              final_ptr = mmap(NULL, final_size, PROT_WRITE|PROT_READ,
-                               MAP_SHARED, file.descriptor(), 0);
-            } else {
-                dtrealloc_g(final_ptr, void, final_size);
-            }
-            memset(add_ptr(final_ptr, curr_size), 0xFF, padding);
-            memcpy(add_ptr(final_ptr, offoff), col->mbuf->get(), offs_size);
-            ((int32_t*)add_ptr(final_ptr, offoff))[-1] = -1;
-            if (col->mbuf) {
-                col->mbuf->release();
-                col->mbuf = nullptr;
-            }
-            if (targetdir) {
-                snprintf(fname2, 1000, "%s/col%0*d", targetdir, ndigits, (int)j);
-                File::remove(fname2);
-                int ret = rename(fname, fname2);
-                if (ret == -1) printf("Unable to rename: %d\n", errno);
-                munmap(final_ptr, final_size);
-                col->mbuf = new MemmapMemBuf(fname);
-            } else {
-                col->mbuf = new MemoryMemBuf(final_ptr, final_size);
-            }
-            col->nrows = (int64_t) nrows;
-            static_cast<StringColumn<int32_t>*>(col)->offoff = static_cast<int32_t>(offoff);
-        } else if (type > 0) {
-            Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
-            if (c == NULL) goto fail;
-        }
-        j++;
-    }
-    dt->nrows = (int64_t) nrows;
-    return;
-  fail:
-    printf("setFinalNrow() failed!\n");
+      int type = types[i];
+      if (type == CT_DROP) continue;
+      Column *col = dt->columns[j];
+      if (type == CT_STRING) {
+        StrBuf* sb = strbufs[j];
+        assert(sb->numuses == 0);
+        sb->mbuf->resize(sb->ptr);
+        sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
+        col->nrows = static_cast<int64_t>(nrows);
+      } else if (type > 0) {
+        Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
+        if (c == nullptr) throw Error() << "Could not reallocate column";
+      }
+      j++;
+  }
+  dt->nrows = (int64_t) nrows;
+  return;
+  } catch (std::exception& e) {
+    printf("setFinalNrow() failed\n");
+  }
 }
 
 
 void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
-    ctx->strbufs = NULL;
-    dtcalloc_g(ctx->strbufs, StrBuf, nstrcols);
+  try {
+    ctx->strbufs = new StrBuf[nstrcols]();
     for (int i = 0, j = 0, k = 0, off8 = 0; i < (int)ncols; i++) {
         if (types[i] == CT_DROP) continue;
         if (types[i] == CT_STRING) {
             assert(k < nstrcols);
-            dtmalloc_g(ctx->strbufs[k].buf, char, 4096);
-            ctx->strbufs[k].size = 4096;
+            ctx->strbufs[k].mbuf = new MemoryMemBuf(4096);
             ctx->strbufs[k].ptr = 0;
             ctx->strbufs[k].idx8 = off8;
             ctx->strbufs[k].idxdt = j;
@@ -488,123 +441,119 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
     }
     return;
 
-  fail:
+  } catch (std::exception& e) {
     printf("prepareThreadContext() failed\n");
-    for (int k = 0; k < nstrcols; k++) dtfree(ctx->strbufs[k].buf);
+    for (int k = 0; k < nstrcols; k++) {
+      if (ctx->strbufs[k].mbuf)
+        ctx->strbufs[k].mbuf->release();
+    }
     dtfree(ctx->strbufs);
     *(ctx->stopTeam) = 1;
+  }
 }
 
 
 void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
 {
-    StrBuf *ctx_strbufs = ctx->strbufs;
+  try {
+    StrBuf* ctx_strbufs = ctx->strbufs;
     const unsigned char *anchor = (const unsigned char*) ctx->anchor;
     size_t nrows = ctx->nRows;
-    lenOff *__restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff8;
+    lenOff* __restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff8;
     int rowCount8 = (int) ctx->rowSize8 / 8;
 
     for (int k = 0; k < nstrcols; k++) {
-        assert(ctx_strbufs != NULL);
+      assert(ctx_strbufs != NULL);
 
-        lenOff *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
-        unsigned char *strdest = (unsigned char*) ctx_strbufs[k].buf;
-        int32_t off = 1;
-        size_t bufsize = ctx_strbufs[k].size;
-        for (size_t n = 0; n < nrows; n++) {
-            int32_t len  = lo->len;
-            if (len > 0) {
-                size_t zlen = (size_t) len;
-                if (bufsize < zlen * 3 + (size_t)off) {
-                    bufsize = bufsize * 2 + zlen * 3;
-                    dtrealloc_g(strdest, unsigned char, bufsize);
-                    ctx_strbufs[k].buf = (char*) strdest;
-                    ctx_strbufs[k].size = bufsize;
-                }
-                const unsigned char *src = anchor + lo->off;
-                unsigned char *dest = strdest + off - 1;
-                if (is_valid_utf8(src, zlen)) {
-                    memcpy(dest, src, zlen);
-                    off += zlen;
-                    lo->off = off;
-                } else {
-                    int newlen = decode_windows1252(src, len, dest);
-                    assert(newlen > 0);
-                    off += (size_t) newlen;
-                    lo->off = off;
-                }
-            } else if (len == 0) {
-                lo->off = off;
-            } else {
-                assert(len == NA_LENOFF);
-                lo->off = -off;
-            }
-            lo += rowCount8;
+      lenOff *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
+      MemoryBuffer* strdest = ctx_strbufs[k].mbuf;
+      int32_t off = 1;
+      size_t bufsize = ctx_strbufs[k].mbuf->size();
+      for (size_t n = 0; n < nrows; n++) {
+        int32_t len = lo->len;
+        if (len > 0) {
+          size_t zlen = (size_t) len;
+          if (bufsize < zlen * 3 + (size_t) off) {
+            bufsize = bufsize * 2 + zlen * 3;
+            strdest->resize(bufsize);
+          }
+          const unsigned char *src = anchor + lo->off;
+          unsigned char *dest =
+              static_cast<unsigned char*>(strdest->at(off - 1));
+          if (is_valid_utf8(src, zlen)) {
+            memcpy(dest, src, zlen);
+            off += zlen;
+            lo->off = off;
+          } else {
+            int newlen = decode_windows1252(src, len, dest);
+            assert(newlen > 0);
+            off += (size_t) newlen;
+            lo->off = off;
+          }
+        } else if (len == 0) {
+          lo->off = off;
+        } else {
+          assert(len == NA_LENOFF);
+          lo->off = -off;
         }
-        ctx_strbufs[k].ptr = (size_t)(off - 1);
+        lo += rowCount8;
+      }
+      ctx_strbufs[k].ptr = (size_t) (off - 1);
     }
     return;
-  fail:
+  } catch (std::exception& e) {
     printf("postprocessBuffer() failed\n");
     *(ctx->stopTeam) = 1;
+  }
 }
 
 
 void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 {
-    StrBuf *ctx_strbufs = ctx->strbufs;
-    for (int k = 0; k < nstrcols; k++) {
-        int j = ctx_strbufs[k].idxdt;
-        StrBuf *sb = strbufs[j];
-        size_t sz = ctx_strbufs[k].ptr;
-        size_t ptr = sb->ptr;
-        // If we need to write more than the size of the available buffer, the
-        // buffer has to grow. Check documentation for `StrBuf.numuses` in
-        // `py_fread.h`.
-        while (ptr + sz > sb->size) {
-            size_t newsize = (ptr + sz) * 2;
-            int old = 0;
-            // (1) wait until no other process is writing into the buffer
-            while (sb->numuses > 0)
-                /* wait until .numuses == 0 (all threads finished writing) */;
-            // (2) make `numuses` negative, indicating that no other thread may
-            // initiate a memcopy operation for now.
-            #pragma omp atomic capture
-            { old = sb->numuses; sb->numuses -= 1000000; }
-            // (3) The only case when `old != 0` is if another thread started
-            // memcopy operation in-between statements (1) and (2) above. In
-            // that case we restore the previous value of `numuses` and repeat
-            // the loop.
-            // Otherwise (and it is the most common case) we reallocate the
-            // buffer and only then restore the `numuses` variable.
-            if (old == 0) {
-                if (targetdir) {
-                    munmap(sb->buf, sb->size);
-                    snprintf(fname, 1000, "%s/str%0*d", targetdir, ndigits, j);
-                    File file(fname, File::READWRITE);
-                    file.resize(newsize);
-                    void* mmp = mmap(NULL, newsize, PROT_WRITE|PROT_READ,
-                                     MAP_SHARED, file.descriptor(), 0);
-                    if (mmp == MAP_FAILED) {
-                      throw RuntimeError() << "Unable to memory-map file "
-                                           << file.cname() << Errno;
-                    }
-                    sb->buf = static_cast<char*>(mmp);
-                } else {
-                    dtrealloc_g(sb->buf, char, newsize);
-                }
-                sb->size = newsize;
-            }
-            #pragma omp atomic update
-            sb->numuses += 1000000;
+  try {
+    StrBuf* ctx_strbufs = ctx->strbufs;
+    for (int k = 0; k < nstrcols; ++k) {
+      int j = ctx_strbufs[k].idxdt;
+      StrBuf* sb = strbufs[j];
+      size_t sz = ctx_strbufs[k].ptr;
+      size_t ptr = sb->ptr;
+      MemoryBuffer* sb_mbuf = sb->mbuf;
+      // If we need to write more than the size of the available buffer, the
+      // buffer has to grow. Check documentation for `StrBuf.numuses` in
+      // `py_fread.h`.
+      while (ptr + sz > sb_mbuf->size()) {
+        size_t newsize = (ptr + sz) * 2;
+        int old = 0;
+        // (1) wait until no other process is writing into the buffer
+        while (sb->numuses > 0)
+          /* wait until .numuses == 0 (all threads finished writing) */;
+        // (2) make `numuses` negative, indicating that no other thread may
+        // initiate a memcopy operation for now.
+        #pragma omp atomic capture
+        {
+          old = sb->numuses;
+          sb->numuses -= 1000000;
         }
-        ctx_strbufs[k].ptr = ptr;
-        sb->ptr = ptr + sz;
+        // (3) The only case when `old != 0` is if another thread started
+        // memcopy operation in-between statements (1) and (2) above. In
+        // that case we restore the previous value of `numuses` and repeat
+        // the loop.
+        // Otherwise (and it is the most common case) we reallocate the
+        // buffer and only then restore the `numuses` variable.
+        if (old == 0) {
+          sb_mbuf->resize(newsize);
+        }
+        #pragma omp atomic update
+        sb->numuses += 1000000;
+      }
+      ctx_strbufs[k].ptr = ptr;
+      sb->ptr = ptr + sz;
     }
     return;
-  fail:
+  } catch (std::exception& e) {
     printf("orderBuffer() failed");
     *(ctx->stopTeam) = 1;
+  }
 }
 
 
@@ -643,14 +592,14 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
                 #pragma omp atomic capture
                 old = sb->numuses++;
                 if (old >= 0) {
-                    memcpy(sb->buf + ptr, ctx_strbufs[k].buf, sz);
+                    memcpy(sb->mbuf->at(ptr), ctx_strbufs[k].mbuf->get(), sz);
                     done = 1;
                 }
                 #pragma omp atomic update
                 sb->numuses--;
             }
 
-            int32_t* dest = ((int32_t*) col->data()) + row0;
+            int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
             int32_t iptr = (int32_t) ptr;
             for (int n = 0; n < nrows; n++) {
                 int32_t off = lo->off;
@@ -704,12 +653,13 @@ void progress(double percent/*[0,100]*/) {
 
 void freeThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
-    if (ctx->strbufs) {
-        for (int k = 0; k < nstrcols; k++) {
-            dtfree(ctx->strbufs[k].buf);
-        }
-        dtfree(ctx->strbufs);
+  if (ctx->strbufs) {
+    for (int k = 0; k < nstrcols; k++) {
+      if (ctx->strbufs[k].mbuf)
+        ctx->strbufs[k].mbuf->release();
     }
+    dtfree(ctx->strbufs);
+  }
 }
 
 

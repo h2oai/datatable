@@ -287,7 +287,8 @@ RowIndex* Column::sort() const
             ordering = sc->o;
             dtfree(sc->x);
         } else if (stype_ == ST_STRING_I4_VCHAR) {
-            const unsigned char *strdata = (const unsigned char*) data();
+            const unsigned char *strdata =
+                (const unsigned char*) static_cast<const StringColumn<int32_t>*>(this)->strdata() + 1;
             const int32_t *offs = static_cast<const StringColumn<int32_t>*>(this)->offsets();
             ordering = insert_sort_s4_noo(strdata, offs, 0, NULL, nrows_);
         } else {
@@ -310,7 +311,13 @@ RowIndex* Column::sort() const
             }
             int error_occurred = (sc->x == NULL);
             ordering = sc->o;
-            if (sc->x != data()) dtfree(sc->x);
+            if (stype_ == ST_STRING_I4_VCHAR) {
+              if (sc->x !=
+                  static_cast<const StringColumn<int32_t>*>(this)->strdata() + 1)
+                dtfree(sc->x);
+            } else {
+              if (sc->x != data()) dtfree(sc->x);
+            }
             dtfree(sc->next_x);
             dtfree(sc->next_o);
             dtfree(sc->histogram);
@@ -816,12 +823,13 @@ static void
 prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
                  SortContext *sc)
 {
-    uint8_t *strbuf = (uint8_t*) add_ptr(col->data(), -1);
-    int32_t *offs = static_cast<const StringColumn<int32_t>*>(col)->offsets();
+    uint8_t* strbuf = (uint8_t*) static_cast<const StringColumn<int32_t>*>(col)->strdata();
+    int32_t* offs = static_cast<const StringColumn<int32_t>*>(col)->offsets();
     int maxlen = 0;
     uint16_t *xo = NULL;
     dtmalloc_g(xo, uint16_t, n);
 
+    // TODO: This can be used for stats
     #pragma omp parallel for schedule(static) reduction(max:maxlen)
     for (size_t j = 0; j < n; j++) {
         int32_t offend = offs[j];
@@ -837,7 +845,7 @@ prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
         }
     }
 
-    sc->strdata = (unsigned char*) col->data();
+    sc->strdata = (unsigned char*) strbuf + 1;
     sc->stroffs = offs;
     sc->strstart = 0;
     sc->strmore = maxlen > 2;
@@ -1391,7 +1399,7 @@ static int32_t* insert_sort_s4_o(
         own_tmp = 1;
     }
     tmp[0] = 0;
-    const unsigned char *strdata1 = strdata - 1;
+    const unsigned char* strdata1 = strdata - 1;
     for (int32_t i = 1; i < n; i++) {
         int32_t off0i = abs(stroffs[o[i]-1]) + strstart;
         int32_t off1i = stroffs[o[i]];
@@ -1425,7 +1433,7 @@ static int32_t* insert_sort_s4_noo(
         dtmalloc(tmp, int32_t, n);
     }
     tmp[0] = 0;
-    const unsigned char *strdata1 = strdata - 1;
+    const unsigned char* strdata1 = strdata - 1;
     for (int32_t i = 1; i < n; i++) {
         int32_t off0i = abs(stroffs[i-1]) + strstart;
         int32_t off1i = stroffs[i];

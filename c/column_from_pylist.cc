@@ -149,7 +149,7 @@ static bool parse_as_str(PyObject* list, MemoryBuffer* offbuf,
                          MemoryBuffer*& strbuf)
 {
   int64_t nrows = Py_SIZE(list);
-  offbuf->resize(static_cast<size_t>(nrows + 1) * sizeof(T));
+  offbuf->resize((static_cast<size_t>(nrows) + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf->get()) + 1;
   offsets[-1] = -1;
   if (strbuf == nullptr) {
@@ -270,8 +270,6 @@ Column* Column::from_pylist(PyObject* list, int stype0, int ltype0)
     if (ret) {
       Column* col = Column::new_column(static_cast<SType>(stype));
       col->replace_buffer(membuf, strbuf);
-      if (membuf) membuf->release();
-      if (strbuf) strbuf->release();
       return col;
     }
     stype = find_next_stype(stype, stype0, ltype0);
