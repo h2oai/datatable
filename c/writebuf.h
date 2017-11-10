@@ -166,6 +166,7 @@ public:
    */
   void* get_cptr();
   MemoryMemBuf* get_mbuf();
+  std::string get_string();
 
 private:
   void realloc(size_t newsize) override;

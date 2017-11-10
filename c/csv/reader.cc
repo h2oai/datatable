@@ -15,32 +15,70 @@
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include "py_utils.h"
+#include "utils/omp.h"
+
+// Forward-declare utility functions
+static int normalize_nthreads(const PyObj&);
 
 
-GenericReader::GenericReader(PyObject* pyrdr)
+
+//------------------------------------------------------------------------------
+
+GenericReader::GenericReader(const PyObj& pyrdr)
+    : nthreads(normalize_nthreads(pyrdr.attr("nthreads"))),
+      verbose(pyrdr.attr("verbose").as_bool()),
+      filename_arg(pyrdr.attr("filename")),
+      text_arg(pyrdr.attr("text")),
+      mbuf(nullptr)
 {
-  int64_t nthreads64 = get_attr_int64(pyrdr, "nthreads");
-  int nthreads = static_cast<int>(nthreads64);
+  verbose = true;
+}
+
+GenericReader::~GenericReader() {
+  if (mbuf) mbuf->release();
+}
+
+static int normalize_nthreads(const PyObj& nth) {
+  int nthreads = static_cast<int>(nth.as_int64());
   int maxth = omp_get_max_threads();
   if (nthreads > maxth) nthreads = maxth;
   if (nthreads <= 0) nthreads += maxth;
   if (nthreads <= 0) nthreads = 1;
-
+  return nthreads;
 }
 
-GenericReader::~GenericReader() {}
 
+
+//------------------------------------------------------------------------------
+
+void GenericReader::open_input() {
+  const char* filename = filename_arg.as_cstring();
+  const char* text = text_arg.as_cstring();
+  if (text) {
+    mbuf = new ExternalMemBuf(text);
+  } else if (filename) {
+    if (verbose) printf("  Opening file %s\n", filename);
+    mbuf = new OvermapMemBuf(filename, 1);
+    if (verbose) printf("  File opened, size: %zu\n", (mbuf->size() - 1));
+  }
+}
 
 const char* GenericReader::dataptr() const {
   return static_cast<const char*>(mbuf->get());
 }
 
 
-bool GenericReader::read()
+std::unique_ptr<DataTable> GenericReader::read()
 {
-  return true;
+  open_input();
+
+  {
+    ArffReader arffreader(*this);
+    auto dt = arffreader.read();
+    if (dt) return dt;
+  }
+
+  return nullptr;
 }
-
-
-

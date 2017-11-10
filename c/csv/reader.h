@@ -27,21 +27,31 @@ class GenericReader
   int nthreads;
   bool verbose;
   // Runtime parameters
+  PyObj filename_arg;
+  PyObj text_arg;
   MemoryBuffer* mbuf;
 
 public:
   GenericReader(PyObject* pyreader);
   ~GenericReader();
 
+  std::unique_ptr<DataTable> read();
+
   const char* dataptr() const;
-  bool read();
+  bool get_verbose() const { return verbose; }
+
+private:
+  void open_input();
 };
 
 
 
 class ArffReader {
   GenericReader& greader;
-  MemoryMemBuf* preamble;
+  std::string preamble;
+  std::string name;
+  bool verbose;
+  int64_t : 56;
 
 public:
   ArffReader(GenericReader&);

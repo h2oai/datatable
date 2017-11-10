@@ -20,23 +20,39 @@
 static void skip_whitespace(const char** pch);
 static void skip_ext_whitespace(const char** pch);
 static bool read_keyword(const char** pch, const char* keyword);
-static bool read_relation(const char** pch, const char** start, int* length);
-static bool read_name(const char** pch, const char** start, int* length);
+static bool read_name(const char** pch, const char** start, size_t* length);
 
 
 //------------------------------------------------------------------------------
 
-ArffReader::ArffReader(GenericReader& gr)
-    : greader(gr), preamble(nullptr) {}
-
-ArffReader::~ArffReader() {
-  if (preamble) preamble->release();
+ArffReader::ArffReader(GenericReader& gr) : greader(gr)
+{
+  verbose = gr.get_verbose();
 }
+
+ArffReader::~ArffReader() {}
 
 
 std::unique_ptr<DataTable> ArffReader::read() {
+  if (verbose) printf("[ARFF reader]\n");
   const char* ch = greader.dataptr();
+
   read_preamble(&ch);
+  if (verbose) {
+    size_t sz = preamble.length();
+    if (sz)
+      printf("  Preamble found: %zu bytes\n", sz);
+    else
+      printf("  Preamble not found\n");
+  }
+
+  bool res = read_relation(&ch);
+  if (res) {
+    if (verbose) printf("  @relation token found: name = '%s'\n", name.c_str());
+  } else {
+    if (verbose) printf("  @relation not found: this is not an ARFF file\n");
+    return nullptr;
+  }
   return nullptr;
 }
 
@@ -69,7 +85,7 @@ void ArffReader::read_preamble(const char** pch) {
   }
   *pch = ch;
   out.finalize();
-  preamble = out.get_mbuf();
+  preamble = out.get_string();
 }
 
 
@@ -95,8 +111,9 @@ bool ArffReader::read_relation(const char** pch) {
   if (!read_keyword(pch, "@relation")) return false;
   skip_whitespace(pch);
   const char* nameStart;
-  int nameLen;
+  size_t nameLen;
   if (!read_name(pch, &nameStart, &nameLen)) return false;
+  name = std::string(nameStart, nameLen);
   skip_whitespace(pch);
   return true;
 }
@@ -163,7 +180,7 @@ static void skip_ext_whitespace(const char** pch) {
   }
 }
 
-static bool read_name(const char** pch, const char** start, int* len) {
+static bool read_name(const char** pch, const char** start, size_t* len) {
   const char* ch0 = *pch;
   if (*ch0 == '"' || *ch0 == '\'') {
     char quote = *ch0;
@@ -172,7 +189,7 @@ static bool read_name(const char** pch, const char** start, int* len) {
     while (*ch1 && *ch1 != quote && *ch1 != '\n' && *ch1 != '\r') ch1++;
     if (*ch1 == quote) {
       *start = ch0;
-      *len = static_cast<int>(ch1 - ch0);
+      *len = static_cast<size_t>(ch1 - ch0);
       *pch = ch1 + 1;
       return true;
     }
@@ -182,7 +199,7 @@ static bool read_name(const char** pch, const char** start, int* len) {
     while (*ch1 && *ch1 != ' ' && *ch1 != '\t' &&
            *ch1 != '\r' && *ch1 != '\n') ch1++;
     *start = ch0;
-    *len = static_cast<int>(ch1 - ch0);
+    *len = static_cast<size_t>(ch1 - ch0);
     *pch = ch1;
     return true;
   }
