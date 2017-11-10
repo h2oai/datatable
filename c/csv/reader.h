@@ -16,6 +16,8 @@
 #ifndef dt_CSV_READER_H
 #define dt_CSV_READER_H
 #include <Python.h>
+#include <memory>        // std::unique_ptr
+#include "datatable.h"
 #include "memorybuf.h"
 
 
@@ -31,11 +33,32 @@ public:
   GenericReader(PyObject* pyreader);
   ~GenericReader();
 
+  const char* dataptr() const;
   bool read();
 };
 
 
 
-PyObject* gread(PyObject*, PyObject*);
+class ArffReader {
+  GenericReader& greader;
+  MemoryMemBuf* preamble;
+
+public:
+  ArffReader(GenericReader&);
+  ~ArffReader();
+
+  std::unique_ptr<DataTable> read();
+
+private:
+  void read_preamble(const char** pch);
+
+  /**
+   * Read the "\@relation <name>" expression from the input. If successful,
+   * return true, advance pointer `pch`, and store the relation's name; or
+   * return false otherwise.
+   */
+  bool read_relation(const char** pch);
+};
+
 
 #endif

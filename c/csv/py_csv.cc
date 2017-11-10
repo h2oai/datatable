@@ -75,7 +75,7 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
       }
       // -1 because the buffer also stores trailing \0
       Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
-      char *str = static_cast<char*>(mb->get());
+      char *str = static_cast<char*>(mb->get_cptr());
       result = PyUnicode_FromStringAndSize(str, len);
     } else {
       result = none();

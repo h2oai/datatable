@@ -19,6 +19,8 @@
 #include <string>      // std::string
 #include "utils/file.h"
 
+class MemoryMemBuf;
+
 
 
 //==============================================================================
@@ -162,7 +164,8 @@ public:
    * after `finalize()`. This class surrenders ownership of the buffer, and
    * it will be the responsibility of the caller to handle it.
    */
-  void* get();
+  void* get_cptr();
+  MemoryMemBuf* get_mbuf();
 
 private:
   void realloc(size_t newsize) override;

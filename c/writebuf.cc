@@ -17,8 +17,11 @@
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
+#include "memorybuf.h"
 #include "utils/omp.h"
 #include "utils.h"
+
+
 
 //==============================================================================
 // WritableBuffer
@@ -228,12 +231,19 @@ void MemoryWritableBuffer::realloc(size_t newsize)
 }
 
 
-void* MemoryWritableBuffer::get()
+void* MemoryWritableBuffer::get_cptr()
 {
-  void *buf = buffer;
+  void* buf = buffer;
   buffer = nullptr;
   allocsize = 0;
   return buf;
+}
+
+
+MemoryMemBuf* MemoryWritableBuffer::get_mbuf() {
+  size_t size = allocsize;
+  void* ptr = get_cptr();
+  return new MemoryMemBuf(ptr, size);
 }
 
 

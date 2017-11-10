@@ -224,7 +224,8 @@ public:
    * exception will be raised if `n` is positive and `ptr` is null. This
    * constructor assumes ownership of pointer `ptr` and will free it when
    * MemoryMemBuf is deleted. If you don't want MemoryMemBuf to assume
-   * ownership of the pointer, then use :class:`ExternalMemBuf` instead.
+   * ownership of the pointer, then use :class:`ExternalMemBuf` instead. The
+   * pointer `ptr` has to be allocated using `malloc`, not with `operator new`.
    */
   MemoryMemBuf(void* ptr, size_t n);
 

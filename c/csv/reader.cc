@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "reader.h"
+#include "csv/reader.h"
 #include <stdint.h>
 #include "py_utils.h"
 
@@ -29,9 +29,18 @@ GenericReader::GenericReader(PyObject* pyrdr)
 
 }
 
+GenericReader::~GenericReader() {}
+
+
+const char* GenericReader::dataptr() const {
+  return static_cast<const char*>(mbuf->get());
+}
+
 
 bool GenericReader::read()
 {
   return true;
 }
+
+
 
