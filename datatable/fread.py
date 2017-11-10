@@ -34,7 +34,9 @@ TColumnsSpec = Union[
 
 
 @typed()
-def fread(filename: str = None,
+def fread(filename_or_text: Union[str, bytes] = None,
+          *,
+          filename: str = None,
           text: Union[str, bytes] = None,
           columns: TColumnsSpec = None,
           sep: str = None,
@@ -51,6 +53,14 @@ def fread(filename: str = None,
           nthreads: int = None,
           logger=None,
           **extra) -> DataTable:
+    if filename_or_text is not None:
+        if filename is not None or text is not None:
+            raise TValueError("If first unnamed argument is passed, then "
+                              "neither `filename` nor `text` should be given")
+        if "\n" in filename_or_text:
+            text = filename_or_text
+        else:
+            filename = filename_or_text
     freader = FReader(filename=filename,
                       text=text,
                       columns=columns,
