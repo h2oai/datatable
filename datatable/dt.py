@@ -170,6 +170,11 @@ class DataTable(object):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
         elif isinstance(src, c.DataTable):
             self._fill_from_dt(src, names=names)
+        elif isinstance(src, str):
+            srcdt = datatable.fread(src)
+            if names is None:
+                names = srcdt.names
+            self._fill_from_dt(srcdt.internal, names=names)
         elif is_type(src, PandasDataFrame_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, PandasSeries_t):

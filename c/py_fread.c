@@ -396,29 +396,25 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
 
 void setFinalNrow(size_t nrows) {
-  try {
-    int i, j;
-    for (i = j = 0; i < ncols; i++) {
-      int type = types[i];
-      if (type == CT_DROP) continue;
-      Column *col = dt->columns[j];
-      if (type == CT_STRING) {
-        StrBuf* sb = strbufs[j];
-        assert(sb->numuses == 0);
-        sb->mbuf->resize(sb->ptr);
-        sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
-        col->nrows = static_cast<int64_t>(nrows);
-      } else if (type > 0) {
-        Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
-        if (c == nullptr) throw Error() << "Could not reallocate column";
-      }
-      j++;
+  int i, j;
+  for (i = j = 0; i < ncols; i++) {
+    int type = types[i];
+    if (type == CT_DROP) continue;
+    Column *col = dt->columns[j];
+    if (type == CT_STRING) {
+      StrBuf* sb = strbufs[j];
+      assert(sb->numuses == 0);
+      sb->mbuf->resize(sb->ptr);
+      sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
+      col->mbuf->resize(sizeof(int32_t) * (nrows + 1));
+      col->nrows = static_cast<int64_t>(nrows);
+    } else if (type > 0) {
+      Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
+      if (c == nullptr) throw Error() << "Could not reallocate column";
+    }
+    j++;
   }
   dt->nrows = (int64_t) nrows;
-  return;
-  } catch (std::exception&) {
-    printf("setFinalNrow() failed\n");
-  }
 }
 
 

@@ -3,7 +3,6 @@
 import datatable as dt
 import pytest
 import random
-from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -11,7 +10,6 @@ alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 def random_string(n):
     return "".join(random.choice(alphabet) for _ in range(n))
-
 
 
 #-------------------------------------------------------------------------------
@@ -58,7 +56,37 @@ def test_select_some_columns():
     # * Last field of last line contains separator
     # * The file doesn't end with \n
     # * Only subset of columns is requested
-    f = dt.fread(text='A,B,C\n1,2,"a,b"', columns={'A', 'B'})
+    f = dt.fread('A,B,C\n1,2,"a,b"', columns={'A', 'B'})
     assert f.internal.check()
     assert f.names == ("A", "B")
     assert f.topython() == [[1], [2]]
+
+
+def test_fread1():
+    f = dt.fread("hello\n"
+                 "1.1\n"
+                 "200000\n"
+                 "100.3")
+    assert f.shape == (3, 1)
+    assert f.names == ("hello", )
+    assert f.topython() == [[1.1, 200000.0, 100.3]]
+
+
+def test_fread2():
+    f = dt.fread("""
+        A,B,C,D
+        1,2,3,4
+        0,0,,7.2
+        ,1,12,3.3333333333
+        """)
+    assert f.shape == (3, 4)
+    assert f.names == ("A", "B", "C", "D")
+    assert f.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int, dt.ltype.real)
+
+
+def test_fread3():
+    f = dt.fread("C\n12.345")
+    assert f.internal.check()
+    assert f.shape == (1, 1)
+    assert f.names == ("C", )
+    assert f.topython() == [[12.345]]

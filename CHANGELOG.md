@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   frame with many columns on Linux systems. In particular, error 12 "not enough
   memory" should become much more rare now.
 - Number of threads used by fread can now be controlled via parameter `nthreads`.
+- It is now possible to supply string argument to `dt.DataTable` constructor,
+  which in turn will try to interpret that argument via `fread`.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

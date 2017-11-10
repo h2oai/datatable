@@ -87,6 +87,21 @@ def test_create_from_datatable():
     assert_equals(d8_0, d8_2)
 
 
+def test_create_from_string():
+    d0 = dt.DataTable("""
+        A,B,C,D
+        1,2,3,boo
+        0,5.5,,bar
+        ,NaN,1000,""
+    """)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C", "D")
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.int,
+                         dt.ltype.str)
+    assert d0.topython() == [[1, 0, None], [2.0, 5.5, None],
+                             [3, None, 1000], ["boo", "bar", ""]]
+
+
 #-------------------------------------------------------------------------------
 # Create from Pandas
 #-------------------------------------------------------------------------------
@@ -244,8 +259,8 @@ def test_create_from_numpy_array_with_names(numpy):
 
 def test_bad():
     with pytest.raises(TypeError) as e:
-        dt.DataTable("scratch")
-    assert "Cannot create DataTable from 'scratch'" in str(e.value)
+        dt.DataTable(1)
+    assert "Cannot create DataTable from 1" in str(e.value)
     with pytest.raises(TypeError) as e:
         dt.DataTable(dt)
     assert "Cannot create DataTable from <module 'datatable'" in str(e.value)
