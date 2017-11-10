@@ -543,12 +543,14 @@ void StringColumn<T>::fill_na() {
     mbuf->resize(new_mbuf_size);
   }
   T* off_data = static_cast<T*>(mbuf->get());
-  *off_data++ = -1;
-#pragma omp parallel for
-  for (int64_t i = 0; i < nrows; ++i) {
+  #pragma omp parallel for
+  for (int64_t i = -1; i < nrows; ++i) {
     off_data[i] = -1;
   }
-  ri = nullptr;
+  if (ri != nullptr) {
+    ri->release();
+    ri = nullptr;
+  }
 }
 
 //---- Stats -------------------------------------------------------------------

@@ -287,7 +287,7 @@ void FwColumn<T>::fill_na() {
   // `reify` will copy extraneous data, so we implement our own reification here
   if (mbuf->is_readonly()) {
     mbuf->release();
-    mbuf = new MemoryMemBuf(mbuf->size());
+    mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * elemsize());
   }
   T* vals = static_cast<T*>(mbuf->get());
   T na = GETNA<T>();
@@ -295,7 +295,10 @@ void FwColumn<T>::fill_na() {
   for (int64_t i = 0; i < nrows; ++i) {
     vals[i] = na;
   }
-  ri = nullptr;
+  if (ri != nullptr) {
+    ri->release();
+    ri = nullptr;
+  }
 }
 
 
