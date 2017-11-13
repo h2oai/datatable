@@ -14,9 +14,11 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include <type_traits>
+#include "omp.h"
 #include "column.h"
 #include "utils.h"
 #include "utils/assert.h"
+
 
 
 /**
@@ -282,10 +284,20 @@ void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
 
 template <typename T>
 void FwColumn<T>::fill_na() {
-  int64_t mbuf_nrows = data_nrows();
-  T* data = elements();
-  for (int i = 0; i < mbuf_nrows; ++i) {
-    data[i] = GETNA<T>();
+  // `reify` will copy extraneous data, so we implement our own reification here
+  if (mbuf->is_readonly()) {
+    mbuf->release();
+    mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * elemsize());
+  }
+  T* vals = static_cast<T*>(mbuf->get());
+  T na = GETNA<T>();
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < nrows; ++i) {
+    vals[i] = na;
+  }
+  if (ri != nullptr) {
+    ri->release();
+    ri = nullptr;
   }
 }
 
