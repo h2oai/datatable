@@ -21,6 +21,24 @@
 #include "memorybuf.h"
 
 
+
+
+struct ColumnSpec {
+  enum class Type: int8_t {
+    Drop,
+    Bool,
+    Integer,
+    Real,
+    String
+  };
+
+  std::string name;
+  Type type;
+
+  ColumnSpec(std::string n, Type t): name(n), type(t) {}
+};
+
+
 class GenericReader
 {
   // Input parameters
@@ -46,12 +64,21 @@ private:
 
 
 
-class ArffReader {
+/**
+ * Reader for files in ARFF format.
+ */
+class ArffReader
+{
   GenericReader& greader;
   std::string preamble;
   std::string name;
   bool verbose;
   int64_t : 56;
+
+  // Runtime parameters
+  const char* ch;  // pointer to the current reading location
+  int line;        // line number currently being read
+  std::vector<ColumnSpec> columns;
 
 public:
   ArffReader(GenericReader&);
@@ -60,14 +87,46 @@ public:
   std::unique_ptr<DataTable> read();
 
 private:
-  void read_preamble(const char** pch);
+  /**
+   * Read the comment lines at the beginning of the file, and store them in
+   * the `preamble` variable. This method is needed because ARFF files typically
+   * carry extended description of the dataset in the initial comment section,
+   * and the user may want to access that decsription.
+   */
+  void read_preamble();
 
   /**
    * Read the "\@relation <name>" expression from the input. If successful,
-   * return true, advance pointer `pch`, and store the relation's name; or
-   * return false otherwise.
+   * store the relation's name; otherwise the name will remain empty.
    */
-  bool read_relation(const char** pch);
+  void read_relation();
+
+  void read_attributes();
+
+  /**
+   * Returns true if `keyword` is present at the current location in the input.
+   * The keyword can be an arbitrary string, and it is matched
+   * case-insensitively. Both the keyword and the input are assumed to be
+   * \0-terminated. The keyword cannot contain newlines.
+   */
+  bool read_keyword(const char* keyword);
+
+  /**
+   * Advances pointer `ch` to the next non-whitespace character on the current
+   * line. Only spaces and tabs are considered whitespace. Returns true if any
+   * whitespace was consumed.
+   */
+  bool read_whitespace();
+
+  bool read_end_of_line();
+
+  /**
+   * Advances pointer `ch` to the next non-whitespace character, skipping over
+   * regular whitespace, newlines and comments.
+   */
+  void skip_ext_whitespace();
+
+  void skip_newlines();
 };
 
 

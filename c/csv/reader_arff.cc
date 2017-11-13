@@ -14,10 +14,9 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
-
+#include "utils/exceptions.h"
 
 // Forward-declare static helper functions
-static void skip_whitespace(const char** pch);
 static void skip_ext_whitespace(const char** pch);
 static bool read_keyword(const char** pch, const char* keyword);
 static bool read_name(const char** pch, const char** start, size_t* length);
@@ -35,24 +34,14 @@ ArffReader::~ArffReader() {}
 
 std::unique_ptr<DataTable> ArffReader::read() {
   if (verbose) printf("[ARFF reader]\n");
-  const char* ch = greader.dataptr();
+  ch = greader.dataptr();
+  line = 1;
 
-  read_preamble(&ch);
-  if (verbose) {
-    size_t sz = preamble.length();
-    if (sz)
-      printf("  Preamble found: %zu bytes\n", sz);
-    else
-      printf("  Preamble not found\n");
-  }
+  read_preamble();
+  read_relation();
+  if (name.empty()) return nullptr;
+  read_attributes();
 
-  bool res = read_relation(&ch);
-  if (res) {
-    if (verbose) printf("  @relation token found: name = '%s'\n", name.c_str());
-  } else {
-    if (verbose) printf("  @relation not found: this is not an ARFF file\n");
-    return nullptr;
-  }
   return nullptr;
 }
 
@@ -60,32 +49,29 @@ std::unique_ptr<DataTable> ArffReader::read() {
 
 //------------------------------------------------------------------------------
 
-/**
- * This is similar to `skip_ext_whitespace`, except the text of the comments is
- * saved into `preamble`.
- */
-void ArffReader::read_preamble(const char** pch) {
-  const char* ch = *pch;
-  MemoryWritableBuffer out(64);
-
+void ArffReader::read_preamble() {
+  MemoryWritableBuffer out(256);  // initial allocation size is arbitrary
   while (true) {
-    skip_whitespace(&ch);
+    read_whitespace();
     if (*ch == '%') {
-      ch++;
+      ch++;  // step over '%'
       const char* ch0 = ch;
-      while (*ch && *ch != '\n' && *ch != '\r') ch++;
-      while (*ch == '\n' || *ch == '\r') ch++;
+      while (*ch && *ch != '\n' && *ch != '\r') ch++;  // skip until eol
+      skip_newlines();
       size_t len = static_cast<size_t>(ch - ch0);
       out.write(len, ch0);
     } else if (*ch == '\n' || *ch == '\r') {
-      ch++;
+      skip_newlines();
     } else {
       break;
     }
   }
-  *pch = ch;
   out.finalize();
   preamble = out.get_string();
+  if (verbose && !preamble.empty()) {
+    printf("  Preamble found (%zu bytes), file info begins on line %d\n",
+           preamble.length(), line);
+  }
 }
 
 
@@ -106,80 +92,156 @@ void ArffReader::read_preamble(const char** pch) {
  * | ... The \@RELATION declaration is case-insensitive.
  *
  */
-bool ArffReader::read_relation(const char** pch) {
-  skip_ext_whitespace(pch);
-  if (!read_keyword(pch, "@relation")) return false;
-  skip_whitespace(pch);
+void ArffReader::read_relation() {
   const char* nameStart;
-  size_t nameLen;
-  if (!read_name(pch, &nameStart, &nameLen)) return false;
-  name = std::string(nameStart, nameLen);
-  skip_whitespace(pch);
-  return true;
-}
-
-
-/**
- * If `keyword` is present at the current location in the input, returns true
- * and advances pointer `pch`; otherwise returns false and leaves pointer `pch`
- * unmodified. The keyword is matched case-insensitively. Both the keyword and
- * the input are assumed to be \0-terminated. The keyword must also be followed
- * by whitespace (or newline) in  order to match.
- */
-static bool read_keyword(const char** pch, const char* keyword) {
-  const char* ch = *pch;
-  while (true) {
-    char ck = *keyword;
-    char cc = *ch;
-    if (!ck) {
-      if (!cc || cc==' ' || cc=='\t' || cc=='\n' || cc=='\r') {
-        *pch = ch;
-        return true;
-      }
-      return false;
-    }
-    uint8_t ccl = static_cast<uint8_t>(cc - 'a');
-    uint8_t ccu = static_cast<uint8_t>(cc - 'A');
-    uint8_t ckl = static_cast<uint8_t>(ck - 'a');
-    uint8_t cku = static_cast<uint8_t>(ck - 'A');
-    if (!((ck == cc) ||
-          (ckl < 26 && ckl == ccu) ||
-          (cku < 26 && cku == ccl))) return false;
-    ch++;
-    keyword++;
+  size_t nameLen = 0;
+  bool res = read_keyword("@relation") &&
+             read_whitespace() &&
+             read_name(&ch, &nameStart, &nameLen) &&
+             read_end_of_line();
+  if (res && nameLen) {
+    name = std::string(nameStart, nameLen);
+    if (verbose) printf("  @relation name = '%s'\n", name.c_str());
+  } else {
+    if (verbose) printf("  @relation declaration not found: this is not an ARFF "
+                        "file\n");
   }
 }
 
 
-/**
- * Advances the pointer `pch` to the next non-whitespace character on the
- * current line. Only spaces and tabs are considered whitespace.
- */
-static void skip_whitespace(const char** pch) {
-  const char* ch = *pch;
-  while (*ch == ' ' || *ch == '\t') ch++;
-  *pch = ch;
+void ArffReader::read_attributes() {
+  const char* start;
+  size_t len;
+  while (true) {
+    if (!(read_keyword("@attribute") &&
+          read_whitespace())) break;
+    bool res = read_name(&ch, &start, &len);
+    if (!res) {
+      throw IOError() <<
+          "Invalid @attribute in line " << line << " of the ARFF file: the "
+          "name is missing";
+    }
+    std::string attrName = std::string(start, len);
+    read_whitespace();
+    ColumnSpec::Type coltype = ColumnSpec::Type::Drop;
+    if (*ch == '{') {
+      ch++;
+      read_whitespace();
+      for (int n = 0; ; ++n) {
+        res = read_name(&ch, &start, &len);
+        if (!res) {
+          throw IOError() <<
+              "Invalid categorical @attribute '" << attrName << "' in line " <<
+              line << " of the ARFF file: level " << (n+1) << " is ill-formed";
+        }
+        read_whitespace();
+        int comma = (*ch == ',');
+        ch += comma;
+        read_whitespace();
+        if (*ch == '}') { ch++; break; }
+        if (!comma) {
+          throw IOError() <<
+              "Invalid categorical @attribute '" << attrName << "' in line " <<
+              line << " of the ARFF file: expected a closing brace '}'";
+        }
+      }
+      coltype = ColumnSpec::Type::String;
+    } else if (read_keyword("numeric") || read_keyword("real")) {
+      coltype = ColumnSpec::Type::Real;
+    } else if (read_keyword("integer")) {
+      coltype = ColumnSpec::Type::Integer;
+    } else if (read_keyword("string")) {
+      coltype = ColumnSpec::Type::String;
+    }
+    columns.push_back(ColumnSpec(attrName, coltype));
+    skip_ext_whitespace();
+  }
+  if (columns.empty()) {
+    throw IOError() << "Invalid ARFF file: @attribute declarations are missing";
+  }
+  if (verbose) {
+    printf("  Detected %d columns\n", columns.size());
+  }
 }
 
 
-/**
- * Skips possibly multi-line whitespace, i.e. same as `skip_whitespace`, but
- * also skips over newlines and comments.
- */
-static void skip_ext_whitespace(const char** pch) {
-  const char* ch = *pch;
-  while (true) {
-    if (*ch == ' ' || *ch == '\t' || *ch == '\r' || *ch == '\n') {
+
+//------------------------------------------------------------------------------
+
+bool ArffReader::read_keyword(const char* keyword) {
+  const char* ch0 = ch;
+  while (*keyword) {
+    uint8_t chl = static_cast<uint8_t>(*ch - 'a');
+    uint8_t chu = static_cast<uint8_t>(*ch - 'A');
+    uint8_t kwl = static_cast<uint8_t>(*keyword - 'a');
+    uint8_t kwu = static_cast<uint8_t>(*keyword - 'A');
+    if (kwl == chl || (kwl < 26 && kwl == chu) || (kwu < 26 && kwu == chl)) {
       ch++;
-    } else if (*ch == '%') {
-      while (*ch && *ch != '\n' && *ch != '\r') ch++;
+      keyword++;
     } else {
-      *pch = ch;
+      ch = ch0;
+      return false;
+    }
+  }
+  return true;
+}
+
+
+bool ArffReader::read_whitespace() {
+  const char* ch0 = ch;
+  while (*ch == ' ' || *ch == '\t') ch++;
+  return (ch > ch0);
+}
+
+
+bool ArffReader::read_end_of_line() {
+  while (*ch == ' ' || *ch == '\t') ch++;
+  char c = *ch;
+  if (c == '\0' || c == '\r' || c == '\n' || c == '%') {
+    skip_ext_whitespace();
+    return true;
+  }
+  return false;
+}
+
+void ArffReader::skip_newlines() {
+  while (true) {
+    if (*ch == '\n') {
+      ch += 1 + (ch[1] == '\r');
+      line++;
+    } else if (*ch == '\r') {
+      ch += 1 + (ch[1] == '\n');
+      line++;
+    } else {
       return;
     }
   }
 }
 
+
+void ArffReader::skip_ext_whitespace() {
+  while (true) {
+    if (*ch == ' ' || *ch == '\t') {
+      ch++;
+    } else if (*ch == '\r' || *ch == '\n') {
+      skip_newlines();
+    } else if (*ch == '%') {
+      while (*ch && *ch != '\n' && *ch != '\r') ch++;
+    } else {
+      return;
+    }
+  }
+}
+
+
+/**
+ * Read a "name" from the current input location. The name can be either quoted
+ * or a bareword. Bareword names cannot start with any of '%', ',', '{', '}', or
+ * characters in the range U+0000 - U+0020, and cannot contain whitespace.
+ * If successful, this function returns true, advances the pointer `pch`, and
+ * saves the pointer to the beginning of the name in `start` and name's length
+ * in `len`. If not successful, the function returns false.
+ */
 static bool read_name(const char** pch, const char** start, size_t* len) {
   const char* ch0 = *pch;
   if (*ch0 == '"' || *ch0 == '\'') {

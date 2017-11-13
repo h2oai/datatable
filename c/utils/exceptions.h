@@ -147,6 +147,14 @@ public:
 
 //------------------------------------------------------------------------------
 
+class IOError : public Error {
+public:
+  PyObject* pyclass() const override { return PyExc_IOError; }
+};
+
+
+//------------------------------------------------------------------------------
+
 /**
  * Helper class for dealing with exceptions inside OMP code: it allows one to
  * capture exceptions that occur, and then re-throw them later after the OMP
