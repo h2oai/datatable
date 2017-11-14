@@ -21,7 +21,10 @@
 #include "memorybuf.h"
 
 
-
+struct RelStr {
+  int32_t offset;
+  int32_t length;
+};
 
 struct ColumnSpec {
   enum class Type: int8_t {
@@ -102,6 +105,8 @@ private:
   void read_relation();
 
   void read_attributes();
+
+  void read_data_decl();
 
   /**
    * Returns true if `keyword` is present at the current location in the input.

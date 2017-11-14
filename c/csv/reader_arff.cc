@@ -17,8 +17,6 @@
 #include "utils/exceptions.h"
 
 // Forward-declare static helper functions
-static void skip_ext_whitespace(const char** pch);
-static bool read_keyword(const char** pch, const char* keyword);
 static bool read_name(const char** pch, const char** start, size_t* length);
 
 
@@ -41,6 +39,7 @@ std::unique_ptr<DataTable> ArffReader::read() {
   read_relation();
   if (name.empty()) return nullptr;
   read_attributes();
+  read_data_decl();
 
   return nullptr;
 }
@@ -93,7 +92,7 @@ void ArffReader::read_preamble() {
  *
  */
 void ArffReader::read_relation() {
-  const char* nameStart;
+  const char* nameStart = nullptr;
   size_t nameLen = 0;
   bool res = read_keyword("@relation") &&
              read_whitespace() &&
@@ -161,6 +160,18 @@ void ArffReader::read_attributes() {
   }
   if (verbose) {
     printf("  Detected %d columns\n", columns.size());
+  }
+}
+
+
+void ArffReader::read_data_decl() {
+  bool res = read_keyword("@data") &&
+             read_end_of_line();
+  if (!res) {
+    throw IOError() << "Invalid ARFF file: @data section is missing";
+  }
+  if (verbose) {
+    printf("  Data begins on line %d\n", line);
   }
 }
 
