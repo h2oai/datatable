@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - It is now possible to supply string argument to `dt.DataTable` constructor,
   which in turn will try to interpret that argument via `fread`.
 - `fread` can now read compressed `.xz` files.
+- `fread` now automatically skips Ctrl+Z / NUL characters at the end of the file.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
