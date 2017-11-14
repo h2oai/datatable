@@ -465,6 +465,13 @@ class FReader(object):
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
+        elif ext == ".xz":
+            import lzma
+            zf = lzma.open(filename)
+            if self._verbose:
+                self.logger.debug("Extracting %s into memory" % filename)
+            self._text = zf.read()
+
 
     def _override_columns(self, colnames, coltypes):
         assert len(colnames) == len(coltypes)

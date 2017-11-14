@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Number of threads used by fread can now be controlled via parameter `nthreads`.
 - It is now possible to supply string argument to `dt.DataTable` constructor,
   which in turn will try to interpret that argument via `fread`.
+- `fread` can now read compressed `.xz` files.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
