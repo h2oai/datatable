@@ -133,9 +133,8 @@ def test_fread_columns_fn1():
 
 
 
-
 #-------------------------------------------------------------------------------
-# Other
+# Misc
 #-------------------------------------------------------------------------------
 
 def test_fread_hex():
@@ -209,3 +208,20 @@ def test_fread_fillna():
     assert d.internal.check()
     p = d[1:, 1:].topython()
     assert p == [[None] * 4] * 8
+
+
+def test_fread_CtrlZ():
+    """Check that Ctrl+Z characters at the end of the file are removed"""
+    src = b"A,B,C\n1,2,3\x1A\x1A"
+    d0 = dt.fread(text=src)
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1], [2], [3]]
+
+
+def test_fread_NUL():
+    """Check that NUL characters at the end of the file are removed"""
+    d0 = dt.fread(text=b"A,B\n2.3,5\0\0\0\0\0\0\0\0\0\0")
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.real, dt.ltype.int)
+    assert d0.topython() == [[2.3], [5]]
