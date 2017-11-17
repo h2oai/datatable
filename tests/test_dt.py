@@ -301,6 +301,22 @@ def test_topandas_view():
     assert p1.values.T.tolist() == d1.topython()
 
 
+@pytest.mark.run(order=11.1)
+@pytest.mark.usefixture("pandas")
+def test_topandas_nas():
+    d0 = dt.DataTable([[True, None, None, None, False],
+                       [1, 5, None, -16, 100],
+                       [249, None, 30000, 1, None],
+                       [4587074, None, 109348, 1394, -343],
+                       [None, None, None, None, 134918374091834]])
+    assert d0.internal.check()
+    assert d0.stypes == (dt.stype.bool8, dt.stype.int8, dt.stype.int16,
+                         dt.stype.int32, dt.stype.int64)
+    p0 = d0.topandas()
+    # Check that each column in Pandas DataFrame has the correct number of NAs
+    assert p0.count().tolist() == [2, 4, 3, 4, 1]
+
+
 @pytest.mark.run(order=12)
 def test_topython():
     src = [[-1, 0, 1, 3],

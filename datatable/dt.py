@@ -694,7 +694,9 @@ class DataTable(object):
         for i in range(self._ncols):
             name = self._names[i]
             column = srcdt.column(i)
-            dtype = datatable.stype(column.stype).dtype
+            dtype = self.stypes[i].dtype
+            if dtype == numpy.bool:
+                dtype = numpy.int8
             if dtype == numpy.dtype("object"):
                 # Variable-width types can only be represented in Numpy as
                 # dtype='object'. However Numpy cannot ingest a buffer of
@@ -705,7 +707,7 @@ class DataTable(object):
                 x = srcdt.window(0, self.nrows, i, i + 1).data[0]
             else:
                 x = numpy.frombuffer(column, dtype=dtype)
-                na = nas.get(column.stype)
+                na = nas.get(self.stypes[i])
                 if na is not None:
                     x = numpy.ma.masked_equal(x, na, copy=False)
             srccols[name] = x
