@@ -159,7 +159,7 @@ void ArffReader::read_attributes() {
     throw IOError() << "Invalid ARFF file: @attribute declarations are missing";
   }
   if (verbose) {
-    printf("  Detected %d columns\n", columns.size());
+    printf("  Detected %zu columns\n", columns.size());
   }
 }
 

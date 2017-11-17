@@ -19,11 +19,6 @@
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
-// Forward-declare
-static int normalize_nthreads(const PyObj&);
-struct OutputColumn;
-struct StrBuf;
-
 
 
 //------------------------------------------------------------------------------
@@ -35,14 +30,14 @@ GenericReader::GenericReader(const PyObj& pyrdr)
       text_arg(pyrdr.attr("text")),
       mbuf(nullptr)
 {
-  verbose = true;
+  verbose = true; // temporary
 }
 
 GenericReader::~GenericReader() {
   if (mbuf) mbuf->release();
 }
 
-static int normalize_nthreads(const PyObj& nth) {
+int GenericReader::normalize_nthreads(const PyObj& nth) {
   int nthreads = static_cast<int>(nth.as_int64());
   int maxth = omp_get_max_threads();
   if (nthreads > maxth) nthreads = maxth;
@@ -123,52 +118,13 @@ public:
 };
 
 
-struct OutputColumn {
-  MemoryMemBuf* data;
-  WritableBuffer* strdata;
-
-  OutputColumn() : data(nullptr), strdata(nullptr) {}
-  ~OutputColumn() {
-    data->release();
-    delete strdata;
-  }
-};
-
 
 
 //------------------------------------------------------------------------------
-// StrBuf
+// StrBuf2
 //------------------------------------------------------------------------------
 
-/**
- * Per-column per-thread temporary string buffers used to assemble processed
- * string data. This buffer is used as a "staging ground" where the string data
- * is being stored / postprocessed before being transferred to the "main"
- * string buffer in a Column. Such 2-stage process is needed for the multi-
- * threaded string data writing.
- *
- * Members of this struct:
- *   .strdata -- memory region where the string data is stored.
- *   .allocsize -- allocation size of this memory buffer.
- *   .usedsize -- amount of memory already in use in the buffer.
- *   .writepos -- position in the global string data buffer where the current
- *       buffer's data should be moved. This value is returned from
- *       `WritableBuffer::prep_write()`.
- */
-struct StrBuf {
-  char* strdata;
-  size_t allocsize;
-  size_t usedsize;
-  size_t writepos;
-  int64_t colidx;
-
-  StrBuf(int64_t i);
-  ~StrBuf();
-  void resize(size_t newsize);
-};
-
-
-StrBuf::StrBuf(int64_t i) {
+StrBuf2::StrBuf2(int64_t i) {
   colidx = i;
   writepos = 0;
   usedsize = 0;
@@ -180,11 +136,11 @@ StrBuf::StrBuf(int64_t i) {
   }
 }
 
-StrBuf::~StrBuf() {
+StrBuf2::~StrBuf2() {
   free(strdata);
 }
 
-void StrBuf::resize(size_t newsize) {
+void StrBuf2::resize(size_t newsize) {
   strdata = static_cast<char*>(realloc(strdata, newsize));
   allocsize = newsize;
   if (!strdata) {
@@ -250,7 +206,7 @@ void ChunkedDataReader<TThreadContext>::push_buffers(TThreadContext& ctx)
       continue;
     }
     if (coltype == ColumnSpec::Type::String) {
-      StrBuf& sb = ctx.strbufs[k];
+      StrBuf2& sb = ctx.strbufs[k];
       outcols[j].strdata->write_at(sb.writepos, sb.usedsize, sb.strdata);
       sb.usedsize = 0;
 
@@ -302,25 +258,6 @@ void ChunkedDataReader<TThreadContext>::set_input(
 // ThreadContext
 //------------------------------------------------------------------------------
 
-struct ThreadContext {
-  void* wbuf;
-  std::vector<StrBuf> strbufs;
-  size_t rowsize;
-  size_t wbuf_nrows;
-  size_t used_nrows;
-  int ithread;
-  int : 32;
-
-  ThreadContext(int ithread, size_t nrows, size_t ncols);
-  virtual ~ThreadContext();
-  virtual void prepare_strbufs(const std::vector<ColumnSpec>& columns);
-  virtual void* next_row();
-  virtual void push_buffers() = 0;
-  virtual void discard();
-  virtual void order() = 0;
-};
-
-
 ThreadContext::ThreadContext(int ith, size_t nrows, size_t ncols) {
   ithread = ith;
   rowsize = 8 * ncols;
@@ -340,7 +277,7 @@ void ThreadContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
   int64_t ncols = static_cast<int64_t>(columns.size());
   for (int64_t i = 0; i < ncols; ++i) {
     if (columns[i].type == ColumnSpec::Type::String) {
-      strbufs.push_back(StrBuf(i));
+      strbufs.push_back(StrBuf2(i));
     }
   }
 }
