@@ -279,9 +279,10 @@ bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
       if (is_valid_utf8(usrc, zlen)) {
         pycol = PyUnicode_FromStringAndSize(src, ocol.len);
       } else {
-        char* newsrc = new char[zlen * 2];
+        char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
-        int newlen = decode_windows1252(usrc, ocol.len, unewsrc);
+        int newlen = decode_win1252(usrc, ocol.len, unewsrc);
+        assert(newlen > 0);
         pycol = PyUnicode_FromStringAndSize(newsrc, newlen);
         delete[] newsrc;
       }
@@ -481,7 +482,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
             off += zlen;
             lo->off = off;
           } else {
-            int newlen = decode_windows1252(src, len, dest);
+            int newlen = decode_win1252(src, len, dest);
             assert(newlen > 0);
             off += (size_t) newlen;
             lo->off = off;

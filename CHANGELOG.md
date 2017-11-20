@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread(fill=True) will correctly fill missing fields with NAs.
 - fread(columns=set(...)) will correctly handle the case when the input contains
   multiple columns with the same names.
+- fread will no longer crash if the input dataset contains invalid utf8/win1252
+  data in the column headers.
 
 
 
