@@ -227,6 +227,17 @@ def test_fread_dec_bad():
         dt.fread("A,B\n1,2", dec="")
 
 
+def test_fread_header():
+    """Check the effect of 'header' parameter."""
+    inp = 'A,B\n1,2'
+    d0 = dt.fread(inp, header=True)
+    d1 = dt.fread(inp, header=False)
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d0.topython() == [[1], [2]]
+    assert d1.topython() == [["A", "1"], ["B", "2"]]
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
