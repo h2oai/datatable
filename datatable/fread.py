@@ -4,7 +4,7 @@ import os
 import tempfile
 import warnings
 import psutil
-from typing import List, Union, Callable, Tuple, Dict, Set
+from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 # noinspection PyUnresolvedReferences
 import datatable.lib._datatable as c
@@ -51,6 +51,7 @@ def fread(filename_or_text: Union[str, bytes] = None,
           skip_lines: int = None,
           skip_blank_lines: bool = True,
           strip_white: bool = True,
+          quotechar: Optional[str] = '"',
           save_to: str = None,
           nthreads: int = None,
           logger=None,
@@ -63,25 +64,10 @@ def fread(filename_or_text: Union[str, bytes] = None,
             text = filename_or_text
         else:
             filename = filename_or_text
-    freader = FReader(filename=filename,
-                      text=text,
-                      columns=columns,
-                      sep=sep,
-                      max_nrows=max_nrows,
-                      header=header,
-                      na_strings=na_strings,
-                      fill=fill,
-                      show_progress=show_progress,
-                      encoding=encoding,
-                      skip_to_string=skip_to_string,
-                      skip_lines=skip_lines,
-                      skip_blank_lines=skip_blank_lines,
-                      strip_white=strip_white,
-                      verbose=verbose,
-                      save_to=save_to,
-                      nthreads=nthreads,
-                      logger=logger,
-                      **extra)
+    params = {**locals(), **extra}
+    del params["extra"]
+    del params["filename_or_text"]
+    freader = FReader(**params)
     return freader.read()
 
 
@@ -96,7 +82,7 @@ class FReader(object):
                  fill=False, show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
-                 strip_white=True, **args):
+                 strip_white=True, quotechar='"', **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -108,7 +94,8 @@ class FReader(object):
         self._verbose = False   # type: bool
         self._fill = False      # type: bool
         self._show_progress = True  # type: bool
-        self._encoding = encoding
+        self._encoding = encoding   # type: str
+        self._quotechar = None      # type: str
         self._skip_lines = None
         self._skip_blank_lines = True
         self._skip_to_string = None
@@ -141,6 +128,7 @@ class FReader(object):
         self.skip_lines = skip_lines
         self.skip_blank_lines = skip_blank_lines
         self.strip_white = strip_white
+        self.quotechar = quotechar
 
         if "separator" in args:
             self.sep = args.pop("separator")
@@ -314,6 +302,17 @@ class FReader(object):
     def strip_white(self, v: bool):
         self._strip_white = v
 
+
+    @property
+    def quotechar(self):
+        return self._quotechar
+
+    @quotechar.setter
+    @typed()
+    def quotechar(self, v: Optional[str]):
+        if v not in {None, "'", '"', "`"}:
+            raise ValueError("quotechar should be one of [\"'`] or None")
+        self._quotechar = v
 
     @property
     def nthreads(self):

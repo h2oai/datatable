@@ -136,7 +136,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
 
     frargs->sep = pyfreader.attr("sep").as_char();
     frargs->dec = '.';
-    frargs->quote = '"';
+    frargs->quote = pyfreader.attr("quotechar").as_char();
     frargs->nrowLimit = pyfreader.attr("max_nrows").as_int64();
     frargs->skipNrow = pyfreader.attr("skip_lines").as_int64();
     frargs->skipString = skipstring;
