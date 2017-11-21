@@ -143,7 +143,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
     frargs->header = pyfreader.attr("header").as_bool();
     frargs->verbose = verbose;
     frargs->NAstrings = (const char* const*) na_strings;
-    frargs->stripWhite = 1;
+    frargs->stripWhite = pyfreader.attr("strip_white").as_bool();
     frargs->skipEmptyLines = pyfreader.attr("skip_blank_lines").as_bool();
     frargs->fill = pyfreader.attr("fill").as_bool();
     frargs->showProgress = pyfreader.attr("show_progress").as_bool();

@@ -159,6 +159,21 @@ def test_fread_skip_blank_lines():
             in ws[0].message.args[0])
 
 
+def test_fread_strip_white():
+    inp = ("A,B\n"
+           "1,  c  \n"
+           "3, d\n")
+    d0 = dt.fread(text=inp, strip_white=True)
+    assert d0.internal.check()
+    assert d0.shape == (2, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.str)
+    assert d0.topython() == [[1, 3], ["c", "d"]]
+    d1 = dt.fread(text=inp, strip_white=False)
+    assert d1.internal.check()
+    assert d1.shape == (2, 2)
+    assert d1.ltypes == (dt.ltype.int, dt.ltype.str)
+    assert d1.topython() == [[1, 3], ["  c  ", " d"]]
+
 
 
 #-------------------------------------------------------------------------------

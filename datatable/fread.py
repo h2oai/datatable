@@ -50,6 +50,7 @@ def fread(filename_or_text: Union[str, bytes] = None,
           skip_to_string: str = None,
           skip_lines: int = None,
           skip_blank_lines: bool = True,
+          strip_white: bool = True,
           save_to: str = None,
           nthreads: int = None,
           logger=None,
@@ -75,6 +76,7 @@ def fread(filename_or_text: Union[str, bytes] = None,
                       skip_to_string=skip_to_string,
                       skip_lines=skip_lines,
                       skip_blank_lines=skip_blank_lines,
+                      strip_white=strip_white,
                       verbose=verbose,
                       save_to=save_to,
                       nthreads=nthreads,
@@ -93,7 +95,8 @@ class FReader(object):
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, save_to=None,
-                 nthreads=None, logger=None, skip_blank_lines=True, **args):
+                 nthreads=None, logger=None, skip_blank_lines=True,
+                 strip_white=True, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -109,6 +112,7 @@ class FReader(object):
         self._skip_lines = None
         self._skip_blank_lines = True
         self._skip_to_string = None
+        self._strip_white = True
         self._columns = None
         self._save_to = save_to
         self._nthreads = nthreads
@@ -136,6 +140,7 @@ class FReader(object):
         self.skip_to_string = skip_to_string
         self.skip_lines = skip_lines
         self.skip_blank_lines = skip_blank_lines
+        self.strip_white = strip_white
 
         if "separator" in args:
             self.sep = args.pop("separator")
@@ -298,6 +303,16 @@ class FReader(object):
     @typed()
     def skip_blank_lines(self, v: bool):
         self._skip_blank_lines = v
+
+
+    @property
+    def strip_white(self) -> bool:
+        return self._strip_white
+
+    @strip_white.setter
+    @typed()
+    def strip_white(self, v: bool):
+        self._strip_white = v
 
 
     @property
