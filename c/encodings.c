@@ -94,3 +94,38 @@ int is_valid_utf8(const unsigned char *__restrict__ src, size_t len)
     }
     return (ch == end);
 }
+
+
+/**
+ * Convert UTF-32 encoded buffer `buf` into UTF-8 and write the bytes into
+ * buffer `ch`. The function will stop encoding upon encountering \0 byte,
+ * or after processing `maxchars` characters, whichever happens first. The
+ * function returns the number of bytes written to the output buffer. It is the
+ * responsibility of the user to ensure that `ch` has sufficient space to write
+ * all the bytes (no more than `maxchars*4` bytes will be needed).
+ */
+int64_t utf32_to_utf8(uint32_t* buf, int64_t maxchars, char* ch)
+{
+  char* out0 = ch;
+  uint32_t* end = buf + maxchars;
+  while (buf < end) {
+    uint32_t code = *buf++;
+    if (!code) break;
+    if (code <= 0x7F) {
+      *ch++ = static_cast<char>(code);
+    } else if (code <= 0x7FF) {
+      *ch++ = static_cast<char>(0xC0 | (code >> 6));
+      *ch++ = static_cast<char>(0x80 | (code & 0x3F));
+    } else if (code <= 0xFFFF) {
+      *ch++ = static_cast<char>(0xE0 | (code >> 12));
+      *ch++ = static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+      *ch++ = static_cast<char>(0x80 | (code & 0x3F));
+    } else {
+      *ch++ = static_cast<char>(0xF0 | (code >> 18));
+      *ch++ = static_cast<char>(0x80 | ((code >> 12) & 0x3F));
+      *ch++ = static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+      *ch++ = static_cast<char>(0x80 | (code & 0x3F));
+    }
+  }
+  return static_cast<int64_t>(ch - out0);
+}

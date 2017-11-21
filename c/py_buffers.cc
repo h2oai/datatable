@@ -18,7 +18,9 @@
 // See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
 #define PY_BUFFERS_cc
+#include <stdlib.h>  // atoi
 #include "column.h"
+#include "encodings.h"
 #include "py_column.h"
 #include "py_datatable.h"
 #include "py_types.h"
@@ -29,6 +31,7 @@
 Column* try_to_resolve_object_column(Column* col);
 static SType stype_from_format(const char *format, int64_t itemsize);
 static const char* format_from_stype(SType stype);
+static Column* convert_fwchararray_to_column(Py_buffer* view);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
 #define REQ_FORMAT(flags)   ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
@@ -87,8 +90,10 @@ PyObject* datatable_from_buffers(PyObject*, PyObject* args)
 
     SType stype = stype_from_format(view->format, view->itemsize);
     int64_t nrows = view->len / view->itemsize;
-    if (stype == ST_VOID) return nullptr;
-    if (view->strides == nullptr) {
+
+    if (stype == ST_STRING_I4_VCHAR) {
+      columns[i] = convert_fwchararray_to_column(view);
+    } else if (view->strides == nullptr) {
       columns[i] = Column::new_xbuf_column(stype, nrows, view);
     } else {
       columns[i] = Column::new_data_column(stype, nrows);
@@ -123,6 +128,35 @@ PyObject* datatable_from_buffers(PyObject*, PyObject* args)
   DataTable *dt = new DataTable(columns);
   return pydt_from_dt(dt);
 }
+
+
+Column* convert_fwchararray_to_column(Py_buffer* view)
+{
+  // Number of characters in each element
+  int64_t k = view->itemsize / 4;
+  int64_t nrows = view->len / view->itemsize;
+  int64_t stride = view->strides? view->strides[0]/4 : k;
+  uint32_t* input = reinterpret_cast<uint32_t*>(view->buf);
+
+  size_t maxsize = static_cast<size_t>(view->len);
+  MemoryBuffer* strbuf = new MemoryMemBuf(maxsize);
+  MemoryBuffer* offbuf = new MemoryMemBuf(static_cast<size_t>(nrows + 1) * 4);
+  char* strptr = static_cast<char*>(strbuf->get());
+  int32_t* offptr = static_cast<int32_t*>(offbuf->get());
+  *offptr++ = -1;
+  int32_t offset = 1;
+  for (int64_t j = 0; j < nrows; ++j) {
+    uint32_t* start = input + j*stride;
+    int64_t bytes_len = utf32_to_utf8(start, k, strptr);
+    offset += bytes_len;
+    strptr += bytes_len;
+    *offptr++ = offset;
+  }
+
+  strbuf->resize(static_cast<size_t>(offset - 1));
+  return new StringColumn<int32_t>(nrows, offbuf, strbuf);
+}
+
 
 
 /**
@@ -614,9 +648,17 @@ static SType stype_from_format(const char* format, int64_t itemsize)
   else if (c == 'O') {
     stype = ST_OBJECT_PYPTR;
   }
+  else if (c >= '1' && c <= '9') {
+    if (format[strlen(format) - 1] == 'w') {
+      int numeral = atoi(format);
+      if (itemsize == numeral * 4) {
+        stype = ST_STRING_I4_VCHAR;
+      }
+    }
+  }
   if (stype == ST_VOID) {
-    PyErr_Format(PyExc_ValueError,
-                 "Unknown format '%s' with itemsize %zd", format, itemsize);
+    throw ValueError()
+        << "Unknown format '" << format << "' with itemsize " << itemsize;
   }
   return stype;
 }
