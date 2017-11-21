@@ -26,15 +26,27 @@
     static char cls_doc[] = docstring;                                         \
   )
 
+
 #define DECLARE_METHOD(fn, docstring)                                          \
-  PyObject* fn(BASECLS* self, PyObject* args);                                 \
-  WHEN(HOMEFLAG,                                                               \
-    static char doc_##fn[] = docstring;                                        \
-    static char name_##fn[] = #fn;                                             \
+  DECLARE_METHOD4(fn, docstring, BASECLS, HOMEFLAG)
+
+#define DECLARE_METHOD4(fn, docstring, basecls, homeflag)                      \
+  PyObject* fn(basecls* self, PyObject* args);                                 \
+  PyObject* safe_##fn(basecls*, PyObject*);                                    \
+  extern char doc_##fn[];                                                      \
+  extern char name_##fn[];                                                     \
+  WHEN(homeflag,                                                               \
+    char doc_##fn[] = docstring;                                               \
+    char name_##fn[] = #fn;                                                    \
     ES_FUNCTION(                                                               \
-      static PyObject* safe_##fn(BASECLS* self, PyObject* args),               \
+      PyObject* safe_##fn(basecls* self, PyObject* args),                      \
       fn(self, args))                                                          \
   )                                                                            \
+
+
+#define DECLARE_FUNCTION(fn, docstring, homeflag)                              \
+  DECLARE_METHOD4(fn, docstring, PyObject, homeflag)
+
 
 #define DECLARE_GETTER(fn, docstring)                                          \
   PyObject* get_##fn(BASECLS* self);                                           \

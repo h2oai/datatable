@@ -2,6 +2,7 @@
 #define dt_PY_DATATABLE_H
 #include <Python.h>
 #include "datatable.h"
+#include "py_utils.h"
 
 
 /**
@@ -35,12 +36,21 @@ extern PyTypeObject DataTable_PyType;
 int dt_unwrap(PyObject *object, DataTable **address);
 PyObject* pydt_from_dt(DataTable *dt);
 PyObject* pydatatable_from_list(PyObject *self, PyObject *args);
-PyObject* pydatatable_from_buffers(PyObject *self, PyObject *args);
 PyObject* pydatatable_assemble(PyObject *self, PyObject *args);
 PyObject* pydatatable_load(PyObject *self, PyObject *args);
 PyObject* pyinstall_buffer_hooks(PyObject *self, PyObject *args);
 int init_py_datatable(PyObject *module);
-
 DataTable* datatable_unwrapx(PyObject *object);
+
+
+DECLARE_FUNCTION(
+  datatable_from_buffers,
+  "datatable_from_buffers(buffers: List)\n\n"
+  "Load datatable from a list of Python objects supporting Buffers protocol.\n"
+  "This is typically a list of numpy arrays, and this function is invoked\n"
+  "when converting a pandas DataFrame into a DataTable (each column in pandas\n"
+  "has its own type, and is backed by a separate numpy array).\n",
+  PY_BUFFERS_cc)
+
 
 #endif
