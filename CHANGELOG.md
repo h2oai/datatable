@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   which in turn will try to interpret that argument via `fread`.
 - `fread` can now read compressed `.xz` files.
 - `fread` now automatically skips Ctrl+Z / NUL characters at the end of the file.
+- It is now possible to create a datatable from string numpy array.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

@@ -186,13 +186,12 @@ def test_create_from_3d_numpy_array(numpy):
     assert "Cannot create DataTable from a 3-D numpy array" in str(e.value)
 
 
-@pytest.mark.skip(reason="Not implemented")
 def test_create_from_string_numpy_array(numpy):
     a = numpy.array(["alef", "bet", "gimel", "dalet", "he", "юйґї"])
     d = dt.DataTable(a)
+    assert d.internal.check()
     assert d.shape == (6, 1)
     assert d.names == ("C1", )
-    assert d.internal.check()
     assert d.topython() == [a.tolist()]
 
 
