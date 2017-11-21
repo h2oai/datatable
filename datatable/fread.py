@@ -40,6 +40,7 @@ def fread(filename_or_text: Union[str, bytes] = None,
           text: Union[str, bytes] = None,
           columns: TColumnsSpec = None,
           sep: str = None,
+          dec: str = ".",
           max_nrows: int = None,
           header: bool = None,
           na_strings: List[str] = None,
@@ -79,7 +80,7 @@ class FReader(object):
 
     def __init__(self, filename=None, text=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
-                 fill=False, show_progress=None, encoding=None,
+                 fill=False, show_progress=None, encoding=None, dec=".",
                  skip_to_string=None, skip_lines=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_white=True, quotechar='"', **args):
@@ -88,6 +89,7 @@ class FReader(object):
         self._tempdir = None    # type: str
         self._text = None       # type: str
         self._sep = None        # type: str
+        self._dec = None        # type: str
         self._maxnrows = None   # type: int
         self._header = None     # type: bool
         self._nastrings = []    # type: List[str]
@@ -119,6 +121,7 @@ class FReader(object):
         self.filename = filename
         self.columns = columns
         self.sep = sep
+        self.dec = dec
         self.max_nrows = max_nrows
         self.header = header
         self.na_strings = na_strings
@@ -197,6 +200,18 @@ class FReader(object):
                 raise TValueError("The separator should be an ASCII character, "
                                   "got %r" % sep)
             self._sep = sep
+
+
+    @property
+    def dec(self):
+        return self._dec
+
+    @dec.setter
+    def dec(self, v):
+        if v == "." or v == ",":
+            self._dec = v
+        else:
+            raise ValueError("Only dec='.' or ',' are allowed")
 
 
     @property

@@ -199,6 +199,33 @@ def test_fread_quotechar_bad():
     # Multi-character raises as well
     with pytest.raises(ValueError):
         dt.fread("A,B\n1,2", quotechar="''")
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", quotechar="")
+
+
+def test_fread_dec():
+    inp = 'A,B\n1.000,"1,000"\n2.345,"5,432e+10"\n'
+    d0 = dt.fread(inp)  # default is dec='.'
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.real, dt.ltype.str)
+    assert d0.topython() == [[1.0, 2.345], ["1,000", "5,432e+10"]]
+    d1 = dt.fread(inp, dec=",")
+    assert d1.internal.check()
+    assert d1.ltypes == (dt.ltype.str, dt.ltype.real)
+    assert d1.topython() == [["1.000", "2.345"], [1.0, 5.432e+10]]
+
+
+def test_fread_dec_bad():
+    for c in "~!@#$%abcdqerlkzABCZXE*()-_+=^&:;{}[]\\|></?0123456789'\"`":
+        with pytest.raises(ValueError) as e:
+            dt.fread("A,B\n1,2", dec=c)
+        assert "Only dec='.' or ',' are allowed" in str(e.value)
+    # Multi-character raises as well
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", dec="..")
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", dec="")
+
 
 
 #-------------------------------------------------------------------------------

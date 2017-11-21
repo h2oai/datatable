@@ -135,7 +135,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
     flogger = pyfreader.attr("logger").as_pyobject();
 
     frargs->sep = pyfreader.attr("sep").as_char();
-    frargs->dec = '.';
+    frargs->dec = pyfreader.attr("dec").as_char();
     frargs->quote = pyfreader.attr("quotechar").as_char();
     frargs->nrowLimit = pyfreader.attr("max_nrows").as_int64();
     frargs->skipNrow = pyfreader.attr("skip_lines").as_int64();
