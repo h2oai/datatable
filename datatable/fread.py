@@ -49,6 +49,7 @@ def fread(filename_or_text: Union[str, bytes] = None,
           encoding: str = None,
           skip_to_string: str = None,
           skip_lines: int = None,
+          skip_blank_lines: bool = True,
           save_to: str = None,
           nthreads: int = None,
           logger=None,
@@ -73,6 +74,7 @@ def fread(filename_or_text: Union[str, bytes] = None,
                       encoding=encoding,
                       skip_to_string=skip_to_string,
                       skip_lines=skip_lines,
+                      skip_blank_lines=skip_blank_lines,
                       verbose=verbose,
                       save_to=save_to,
                       nthreads=nthreads,
@@ -91,7 +93,7 @@ class FReader(object):
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None,
                  skip_to_string=None, skip_lines=None, save_to=None,
-                 nthreads=None, logger=None, **args):
+                 nthreads=None, logger=None, skip_blank_lines=True, **args):
         self._filename = None   # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
@@ -105,6 +107,7 @@ class FReader(object):
         self._show_progress = True  # type: bool
         self._encoding = encoding
         self._skip_lines = None
+        self._skip_blank_lines = True
         self._skip_to_string = None
         self._columns = None
         self._save_to = save_to
@@ -132,6 +135,7 @@ class FReader(object):
         self.show_progress = show_progress
         self.skip_to_string = skip_to_string
         self.skip_lines = skip_lines
+        self.skip_blank_lines = skip_blank_lines
 
         if "separator" in args:
             self.sep = args.pop("separator")
@@ -284,6 +288,16 @@ class FReader(object):
     @typed(n=U(int, None))
     def skip_lines(self, n):
         self._skip_lines = n
+
+
+    @property
+    def skip_blank_lines(self) -> bool:
+        return self._skip_blank_lines
+
+    @skip_blank_lines.setter
+    @typed()
+    def skip_blank_lines(self, v: bool):
+        self._skip_blank_lines = v
 
 
     @property

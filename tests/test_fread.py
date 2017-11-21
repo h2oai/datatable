@@ -134,6 +134,34 @@ def test_fread_columns_fn1():
 
 
 #-------------------------------------------------------------------------------
+# Other parameters
+#-------------------------------------------------------------------------------
+
+def test_fread_skip_blank_lines():
+    inp = ("A,B\n"
+           "1,2\n"
+           "\n"
+           "3,4\n")
+    d0 = dt.fread(text=inp, skip_blank_lines=True)
+    assert d0.internal.check()
+    assert d0.shape == (2, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3], [2, 4]]
+
+    with pytest.warns(RuntimeWarning) as ws:
+        d1 = dt.fread(text=inp, skip_blank_lines=False)
+        assert d1.internal.check()
+        assert d1.shape == (1, 2)
+        assert d1.ltypes == (dt.ltype.int, dt.ltype.int)
+        assert d1.topython() == [[1], [2]]
+    assert len(ws) == 1
+    assert ("Found the last consistent line but text exists afterwards"
+            in ws[0].message.args[0])
+
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 

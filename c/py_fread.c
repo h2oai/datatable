@@ -144,7 +144,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
     frargs->verbose = verbose;
     frargs->NAstrings = (const char* const*) na_strings;
     frargs->stripWhite = 1;
-    frargs->skipEmptyLines = 1;
+    frargs->skipEmptyLines = pyfreader.attr("skip_blank_lines").as_bool();
     frargs->fill = pyfreader.attr("fill").as_bool();
     frargs->showProgress = pyfreader.attr("show_progress").as_bool();
     frargs->nth = static_cast<int32_t>(pyfreader.attr("nthreads").as_int64());
