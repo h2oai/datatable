@@ -117,7 +117,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0_(datatable_assemble),
     METHOD0_(datatable_from_list),
     METHOD0_(datatable_load),
-    METHOD0_(datatable_from_buffers),
+    METHODv(datatable_from_buffers),
     METHOD0_(fread),
     METHOD0_(write_csv),
     METHOD0_(exec_function),

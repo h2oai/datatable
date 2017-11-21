@@ -14,8 +14,10 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 // Functionality related to "Buffers" interface
-// See https://www.python.org/dev/peps/pep-3118/
+// See: https://www.python.org/dev/peps/pep-3118/
+// See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
+#define PY_BUFFERS_cc
 #include "column.h"
 #include "py_column.h"
 #include "py_datatable.h"
@@ -38,96 +40,88 @@ static const char* format_from_stype(SType stype);
 
 static char strB[] = "B";
 
+//------------------------------------------------------------------------------
 
-/**
- * Load datatable from a list of Python objects supporting Buffers protocol.
- *
- * See: https://docs.python.org/3/c-api/buffer.html
- */
-PyObject* pydatatable_from_buffers(PyObject*, PyObject* args)
+// Declared in py_datatable.h
+PyObject* datatable_from_buffers(PyObject*, PyObject* args)
 {
-  try {
-    PyObject* list = nullptr;
-    if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
-      return nullptr;
+  PyObject* list = nullptr;
+  if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
+    return nullptr;
 
-    int n = static_cast<int>(PyList_Size(list));
-    Column** columns = nullptr;
-    dtmalloc(columns, Column*, n + 1);
-    columns[n] = nullptr;
+  int n = static_cast<int>(PyList_Size(list));
+  Column** columns = nullptr;
+  dtmalloc(columns, Column*, n + 1);
+  columns[n] = nullptr;
 
-    for (int i = 0; i < n; ++i) {
-      PyObject *item = PyList_GET_ITEM(list, i);
-      if (!PyObject_CheckBuffer(item)) {
-        throw ValueError() << "Element " << i << " in the list of sources "
-                           << "does not support buffers interface";
-      }
-      Py_buffer* view;
-      dtcalloc(view, Py_buffer, 1);
+  for (int i = 0; i < n; ++i) {
+    PyObject* item = PyList_GET_ITEM(list, i);
+    if (!PyObject_CheckBuffer(item)) {
+      throw ValueError() << "Element " << i << " in the list of sources "
+                         << "does not support PyBuffers (PEP-3118) interface";
+    }
+    Py_buffer* view;
+    dtcalloc(view, Py_buffer, 1);
 
-      // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
-      // the `view->format` field should be filled; and PyBUF_ND will fill the
-      // `view->shape` information (while `strides` and `suboffsets` will be
-      // nullptr).
-      int ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_ND);
-      if (ret != 0) {
-        PyErr_Clear();  // otherwise system functions may fail later on
-        ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
-      }
-      if (ret != 0) {
-        if (PyErr_Occurred()) {
-          throw PyError();
-        } else {
-          throw RuntimeError() << "Unable to retrieve buffer for column " << i;
-        }
-      }
-      if (view->ndim != 1) {
-        throw NotImplError() << "Buffer has ndim=" << view->ndim
-                             << ", cannot handle";
-      }
-
-      SType stype = stype_from_format(view->format, view->itemsize);
-      int64_t nrows = view->len / view->itemsize;
-      if (stype == ST_VOID) return nullptr;
-      if (view->strides == nullptr) {
-        columns[i] = Column::new_xbuf_column(stype, nrows, view);
+    // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
+    // the `view->format` field should be filled; and PyBUF_ND will fill the
+    // `view->shape` information (while `strides` and `suboffsets` will be
+    // nullptr).
+    int ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_ND);
+    if (ret != 0) {
+      PyErr_Clear();  // otherwise system functions may fail later on
+      ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
+    }
+    if (ret != 0) {
+      if (PyErr_Occurred()) {
+        throw PyError();
       } else {
-        columns[i] = Column::new_data_column(stype, nrows);
-        int64_t stride = view->strides[0] / view->itemsize;
-        if (view->itemsize == 8) {
-          int64_t* out = reinterpret_cast<int64_t*>(columns[i]->data());
-          int64_t* inp = reinterpret_cast<int64_t*>(view->buf);
-          for (int64_t j = 0; j < nrows; ++j)
-            out[j] = inp[j * stride];
-        } else if (view->itemsize == 4) {
-          int32_t* out = reinterpret_cast<int32_t*>(columns[i]->data());
-          int32_t* inp = reinterpret_cast<int32_t*>(view->buf);
-          for (int64_t j = 0; j < nrows; ++j)
-            out[j] = inp[j * stride];
-        } else if (view->itemsize == 2) {
-          int16_t* out = reinterpret_cast<int16_t*>(columns[i]->data());
-          int16_t* inp = reinterpret_cast<int16_t*>(view->buf);
-          for (int64_t j = 0; j < nrows; ++j)
-            out[j] = inp[j * stride];
-        } else if (view->itemsize == 1) {
-          int8_t* out = reinterpret_cast<int8_t*>(columns[i]->data());
-          int8_t* inp = reinterpret_cast<int8_t*>(view->buf);
-          for (int64_t j = 0; j < nrows; ++j)
-            out[j] = inp[j * stride];
-        }
-      }
-      if (columns[i]->stype() == ST_OBJECT_PYPTR) {
-        columns[i] = try_to_resolve_object_column(columns[i]);
+        throw RuntimeError() << "Unable to retrieve buffer for column " << i;
       }
     }
+    if (view->ndim != 1) {
+      throw NotImplError()
+        << "Buffer " << i << " in the list of buffers has ndim=" << view->ndim
+        << ", whereas only 1D buffers are supported";
+    }
 
-    DataTable *dt = new DataTable(columns);
-    return pydt_from_dt(dt);
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return NULL;
+    SType stype = stype_from_format(view->format, view->itemsize);
+    int64_t nrows = view->len / view->itemsize;
+    if (stype == ST_VOID) return nullptr;
+    if (view->strides == nullptr) {
+      columns[i] = Column::new_xbuf_column(stype, nrows, view);
+    } else {
+      columns[i] = Column::new_data_column(stype, nrows);
+      int64_t stride = view->strides[0] / view->itemsize;
+      if (view->itemsize == 8) {
+        int64_t* out = reinterpret_cast<int64_t*>(columns[i]->data());
+        int64_t* inp = reinterpret_cast<int64_t*>(view->buf);
+        for (int64_t j = 0; j < nrows; ++j)
+          out[j] = inp[j * stride];
+      } else if (view->itemsize == 4) {
+        int32_t* out = reinterpret_cast<int32_t*>(columns[i]->data());
+        int32_t* inp = reinterpret_cast<int32_t*>(view->buf);
+        for (int64_t j = 0; j < nrows; ++j)
+          out[j] = inp[j * stride];
+      } else if (view->itemsize == 2) {
+        int16_t* out = reinterpret_cast<int16_t*>(columns[i]->data());
+        int16_t* inp = reinterpret_cast<int16_t*>(view->buf);
+        for (int64_t j = 0; j < nrows; ++j)
+          out[j] = inp[j * stride];
+      } else if (view->itemsize == 1) {
+        int8_t* out = reinterpret_cast<int8_t*>(columns[i]->data());
+        int8_t* inp = reinterpret_cast<int8_t*>(view->buf);
+        for (int64_t j = 0; j < nrows; ++j)
+          out[j] = inp[j * stride];
+      }
+    }
+    if (columns[i]->stype() == ST_OBJECT_PYPTR) {
+      columns[i] = try_to_resolve_object_column(columns[i]);
+    }
   }
+
+  DataTable *dt = new DataTable(columns);
+  return pydt_from_dt(dt);
 }
 
 
