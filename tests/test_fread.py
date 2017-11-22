@@ -368,3 +368,13 @@ def test_fread_1col():
     assert d1.names == ("QUOTE",)
     assert d1.topython() == [["If you think", "you can do it,", "",
                               "you can.", ""]]
+
+
+def test_fread_line_endings():
+    entries = ["A", "", "1", "2", "3"]
+    for eol in ["\n", "\r", "\n\r", "\r\n", "\r\r\n"]:
+        text = eol.join(entries)
+        d0 = dt.fread(text=text)
+        assert d0.internal.check()
+        assert d0.names == ("A",)
+        assert d0.topython() == [[None, 1, 2, 3]]
