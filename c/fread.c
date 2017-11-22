@@ -1112,19 +1112,20 @@ int freadMain(freadMainArgs _args)
     eol = eol2 = *ch;
     eolLen = 1;
     if (eol=='\r') {
+      if (ch+2<eof && *(ch+1)=='\r' && *(ch+2)=='\n') {
+        if (verbose) DTPRINT("  Detected eol as \\r\\r\\n (CRCRLF).");
+        eol2 = '\r'; eolLen = 3;
+      } else
       if (ch+1<eof && *(ch+1)=='\n') {
         if (verbose) DTPRINT("  Detected eol as \\r\\n (CRLF).");
-        eol2='\n'; eolLen=2;
+        eol2 = '\n'; eolLen = 2;
       } else {
-        if (ch+1<eof && *(ch+1)=='\r')
-          STOP("Line ending is \\r\\r\\n. R's download.file() appears to add the extra \\r in text mode on Windows. Please download again in binary mode (mode='wb') which might be faster too. Alternatively, pass the URL directly to fread and it will download the file in binary mode for you.");
-          // NB: on Windows, download.file from file: seems to condense \r\r too. So
         if (verbose) DTPRINT("  Detected eol as \\r only.");
       }
     } else {
       if (ch+1<eof && *(ch+1)=='\r') {
-        if (verbose) DTPRINT("  Detected eol as \\n\\r.");
-        eol2='\r'; eolLen=2;
+        if (verbose) DTPRINT("  Detected eol as \\n\\r (LFCR).");
+        eol2 = '\r'; eolLen = 2;
       } else {
         if (verbose) DTPRINT("  Detected eol as \\n only.");
       }

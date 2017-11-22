@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - It is now possible to create a datatable from string numpy array.
 - Added parameters `skip_blank_lines`, `strip_white`, `quotechar` and `dec` to fread.
 - Single-column files with blank lines can now be read successfully.
+- Fread now recognizes \r\r\n as a valid line ending.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
