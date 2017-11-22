@@ -135,16 +135,16 @@ PyObject* pyfread(PyObject*, PyObject *args)
     flogger = pyfreader.attr("logger").as_pyobject();
 
     frargs->sep = pyfreader.attr("sep").as_char();
-    frargs->dec = '.';
-    frargs->quote = '"';
+    frargs->dec = pyfreader.attr("dec").as_char();
+    frargs->quote = pyfreader.attr("quotechar").as_char();
     frargs->nrowLimit = pyfreader.attr("max_nrows").as_int64();
     frargs->skipNrow = pyfreader.attr("skip_lines").as_int64();
     frargs->skipString = skipstring;
     frargs->header = pyfreader.attr("header").as_bool();
     frargs->verbose = verbose;
     frargs->NAstrings = (const char* const*) na_strings;
-    frargs->stripWhite = 1;
-    frargs->skipEmptyLines = 1;
+    frargs->stripWhite = pyfreader.attr("strip_white").as_bool();
+    frargs->skipEmptyLines = pyfreader.attr("skip_blank_lines").as_bool();
     frargs->fill = pyfreader.attr("fill").as_bool();
     frargs->showProgress = pyfreader.attr("show_progress").as_bool();
     frargs->nth = static_cast<int32_t>(pyfreader.attr("nthreads").as_int64());

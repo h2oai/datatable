@@ -134,6 +134,112 @@ def test_fread_columns_fn1():
 
 
 #-------------------------------------------------------------------------------
+# Other parameters
+#-------------------------------------------------------------------------------
+
+def test_fread_skip_blank_lines():
+    inp = ("A,B\n"
+           "1,2\n"
+           "\n"
+           "3,4\n")
+    d0 = dt.fread(text=inp, skip_blank_lines=True)
+    assert d0.internal.check()
+    assert d0.shape == (2, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3], [2, 4]]
+
+    with pytest.warns(RuntimeWarning) as ws:
+        d1 = dt.fread(text=inp, skip_blank_lines=False)
+        assert d1.internal.check()
+        assert d1.shape == (1, 2)
+        assert d1.ltypes == (dt.ltype.int, dt.ltype.int)
+        assert d1.topython() == [[1], [2]]
+    assert len(ws) == 1
+    assert ("Found the last consistent line but text exists afterwards"
+            in ws[0].message.args[0])
+
+
+def test_fread_strip_white():
+    inp = ("A,B\n"
+           "1,  c  \n"
+           "3, d\n")
+    d0 = dt.fread(text=inp, strip_white=True)
+    assert d0.internal.check()
+    assert d0.shape == (2, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.str)
+    assert d0.topython() == [[1, 3], ["c", "d"]]
+    d1 = dt.fread(text=inp, strip_white=False)
+    assert d1.internal.check()
+    assert d1.shape == (2, 2)
+    assert d1.ltypes == (dt.ltype.int, dt.ltype.str)
+    assert d1.topython() == [[1, 3], ["  c  ", " d"]]
+
+
+def test_fread_quotechar():
+    inp = "A,B\n'foo',1\n\"bar\",2\n`baz`,3\n"
+    d0 = dt.fread(inp)  # default is quotechar='"'
+    assert d0.internal.check()
+    assert d0.topython() == [["'foo'", "bar", "`baz`"], [1, 2, 3]]
+    d1 = dt.fread(inp, quotechar="'")
+    assert d1.internal.check()
+    assert d1.topython() == [["foo", '"bar"', "`baz`"], [1, 2, 3]]
+    d1 = dt.fread(inp, quotechar="`")
+    assert d1.internal.check()
+    assert d1.topython() == [["'foo'", '"bar"', "baz"], [1, 2, 3]]
+    d1 = dt.fread(inp, quotechar=None)
+    assert d1.internal.check()
+    assert d1.topython() == [["'foo'", '"bar"', "`baz`"], [1, 2, 3]]
+
+
+def test_fread_quotechar_bad():
+    for c in "~!@#$%abcd*()-_+=^&:;{}[]\\|,.></?0123456789":
+        with pytest.raises(ValueError) as e:
+            dt.fread("A,B\n1,2", quotechar=c)
+        assert "quotechar should be one of [\"'`] or None" in str(e.value)
+    # Multi-character raises as well
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", quotechar="''")
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", quotechar="")
+
+
+def test_fread_dec():
+    inp = 'A,B\n1.000,"1,000"\n2.345,"5,432e+10"\n'
+    d0 = dt.fread(inp)  # default is dec='.'
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.real, dt.ltype.str)
+    assert d0.topython() == [[1.0, 2.345], ["1,000", "5,432e+10"]]
+    d1 = dt.fread(inp, dec=",")
+    assert d1.internal.check()
+    assert d1.ltypes == (dt.ltype.str, dt.ltype.real)
+    assert d1.topython() == [["1.000", "2.345"], [1.0, 5.432e+10]]
+
+
+def test_fread_dec_bad():
+    for c in "~!@#$%abcdqerlkzABCZXE*()-_+=^&:;{}[]\\|></?0123456789'\"`":
+        with pytest.raises(ValueError) as e:
+            dt.fread("A,B\n1,2", dec=c)
+        assert "Only dec='.' or ',' are allowed" in str(e.value)
+    # Multi-character raises as well
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", dec="..")
+    with pytest.raises(ValueError):
+        dt.fread("A,B\n1,2", dec="")
+
+
+def test_fread_header():
+    """Check the effect of 'header' parameter."""
+    inp = 'A,B\n1,2'
+    d0 = dt.fread(inp, header=True)
+    d1 = dt.fread(inp, header=False)
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d0.topython() == [[1], [2]]
+    assert d1.topython() == [["A", "1"], ["B", "2"]]
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 
