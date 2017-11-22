@@ -9,6 +9,7 @@ import random
 alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 def random_string(n):
+    """Return random string of `n` characters."""
     return "".join(random.choice(alphabet) for _ in range(n))
 
 

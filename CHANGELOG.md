@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `fread` now automatically skips Ctrl+Z / NUL characters at the end of the file.
 - It is now possible to create a datatable from string numpy array.
 - Added parameters `skip_blank_lines`, `strip_white`, `quotechar` and `dec` to fread.
+- Single-column files with blank lines can now be read successfully.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

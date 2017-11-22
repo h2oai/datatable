@@ -352,3 +352,19 @@ def test_fread_NUL():
     assert d0.internal.check()
     assert d0.ltypes == (dt.ltype.real, dt.ltype.int)
     assert d0.topython() == [[2.3], [5]]
+
+
+def test_fread_1col():
+    """Check that it is possible to read 1-column file witn NAs."""
+    d0 = dt.fread(text="A\n1\n2\n\n4\n\n5\n\n")
+    assert d0.internal.check()
+    assert d0.names == ("A",)
+    assert d0.topython() == [[1, 2, None, 4, None, 5, None]]
+    d1 = dt.fread("QUOTE\n"
+                  "If you think\n"
+                  "you can do it,\n\n"
+                  "you can.\n\n", sep="\n")
+    assert d1.internal.check()
+    assert d1.names == ("QUOTE",)
+    assert d1.topython() == [["If you think", "you can do it,", "",
+                              "you can.", ""]]
