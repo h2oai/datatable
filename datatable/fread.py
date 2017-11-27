@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
-import tempfile
-import warnings
+import pathlib
 import psutil
+import re
+import tempfile
+import urllib.request
+import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 # noinspection PyUnresolvedReferences
@@ -33,41 +36,36 @@ TColumnsSpec = Union[
 ]
 
 
-@typed()
-def fread(filename_or_text: Union[str, bytes] = None,
-          *,
-          filename: str = None,
-          text: Union[str, bytes] = None,
-          columns: TColumnsSpec = None,
-          sep: str = None,
-          dec: str = ".",
-          max_nrows: int = None,
-          header: bool = None,
-          na_strings: List[str] = None,
-          verbose: bool = False,
-          fill: bool = False,
-          show_progress: bool = None,
-          encoding: str = None,
-          skip_to_string: str = None,
-          skip_lines: int = None,
-          skip_blank_lines: bool = True,
-          strip_white: bool = True,
-          quotechar: Optional[str] = '"',
-          save_to: str = None,
-          nthreads: int = None,
-          logger=None,
-          **extra) -> DataTable:
-    if filename_or_text is not None:
-        if filename is not None or text is not None:
-            raise TValueError("If first unnamed argument is passed, then "
-                              "neither `filename` nor `text` should be given")
-        if "\n" in filename_or_text:
-            text = filename_or_text
-        else:
-            filename = filename_or_text
+def fread(
+        # Input source
+        anysource=None, *,
+        file=None,
+        text=None,
+        cmd=None,
+        url=None,
+
+        columns: TColumnsSpec = None,
+        sep: str = None,
+        dec: str = ".",
+        max_nrows: int = None,
+        header: bool = None,
+        na_strings: List[str] = None,
+        verbose: bool = False,
+        fill: bool = False,
+        show_progress: bool = None,
+        encoding: str = None,
+        skip_to_string: str = None,
+        skip_lines: int = None,
+        skip_blank_lines: bool = True,
+        strip_white: bool = True,
+        quotechar: Optional[str] = '"',
+        save_to: str = None,
+        nthreads: int = None,
+        logger=None,
+        **extra) -> DataTable:
     params = {**locals(), **extra}
     del params["extra"]
-    del params["filename_or_text"]
+    _resolve_source(params)
     freader = FReader(**params)
     return freader.read()
 
@@ -78,13 +76,13 @@ class FReader(object):
     Parser object for reading CSV files.
     """
 
-    def __init__(self, filename=None, text=None, columns=None, sep=None,
+    def __init__(self, file=None, text=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None, dec=".",
                  skip_to_string=None, skip_lines=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_white=True, quotechar='"', **args):
-        self._filename = None   # type: str
+        self._file = None       # type: str
         self._tempfile = None   # type: str
         self._tempdir = None    # type: str
         self._text = None       # type: str
@@ -118,7 +116,7 @@ class FReader(object):
         self.verbose = verbose
         self.logger = logger
         self.text = text
-        self.filename = filename
+        self.file = file
         self.columns = columns
         self.sep = sep
         self.dec = dec
@@ -140,27 +138,30 @@ class FReader(object):
             if not callable(progress):
                 raise TTypeError("`progress_fn` argument should be a function")
             self._progress = progress
+        if "_tempdir" in args:
+            self._tempdir = args.pop("_tempdir")
+        if "_tempfile" in args:
+            self._tempfile = args.pop("_tempfile")
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
 
 
     @property
-    def filename(self):
+    def file(self):
         if self._text:
             return None
-        return self._tempfile or self._filename
+        return self._tempfile or self._file
 
-    @filename.setter
-    @typed(filename=U(str, None))
-    def filename(self, filename):
-        if not filename:
-            self._filename = None
+    @file.setter
+    @typed(file=U(str, bytes, None))
+    def file(self, file):
+        if not file:
+            self._file = None
         else:
-            if filename.startswith("~"):
-                filename = os.path.expanduser(filename)
-            self._check_file(filename)
-            self._filename = filename
+            file = os.path.expanduser(file)
+            self._check_file(file)
+            self._file = file
 
 
     @property
@@ -467,8 +468,8 @@ class FReader(object):
 
 
     def _check_file(self, filename):
-        if "\x00" in filename:
-            raise TValueError("Path %s contains NUL characters" % filename)
+        # if "\x00" in filename:
+        #     raise TValueError("Path %s contains NUL characters" % filename)
         if not os.path.exists(filename):
             xpath = os.path.abspath(filename)
             ypath = xpath
@@ -676,6 +677,91 @@ class _DefaultLogger:
 
     def warn(self, message):
         warnings.warn(message)
+
+
+# os.PathLike interface was added in Python 3.6
+_pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
+            (str, bytes)
+
+
+def _resolve_source(params):
+    all_src_names = ("anysource", "file", "text", "url", "cmd", "files")
+    args = [n for n in all_src_names if params.get(n, None) is not None]
+    anysource = params.pop("anysource")
+    text = params.pop("text")
+    file = params.pop("file")
+    cmd = params.pop("cmd")
+    url = params.pop("url")
+    params.pop("files", None)
+    if len(args) == 0:
+        raise TValueError("No input source for `fread` was given. Please "
+                          "provide one of `file`, `text`, `url`, `cmd`, or "
+                          "an unnamed argument.")
+    if len(args) > 1:
+        if anysource is None:
+            args.remove("anysource")
+            raise TValueError("When an unnamed argument is passed to `fread`, "
+                              "it is invalid to also provide the `%s` "
+                              "argument." % args[0])
+        else:
+            raise TValueError("Both arguments `%s` and `%s` cannot be passed "
+                              "to fread simultaneously." % (args[0], args[1]))
+    if anysource is not None:
+        if isinstance(anysource, (str, bytes)):
+            # If there are any control characters (such as \n or \r) in the
+            # text of `anysource`, then its type is "text".
+            if len(anysource) < 4096:
+                for ch in anysource:
+                    if ord(ch) < 0x20:
+                        text = anysource
+                        break
+            if text is None:
+                if (isinstance(anysource, str) and
+                        re.match(r"(?:https?|ftp|file)://", anysource)):
+                    url = anysource
+                else:
+                    file = anysource
+        elif isinstance(anysource, _pathlike):
+            file = os.path.expanduser(anysource)
+            file = os.fsencode(file)
+        anysource = None
+    if text is not None:
+        if not isinstance(text, (str, bytes)):
+            raise TTypeError("Invalid parameter `text` in fread: expected "
+                             "str or bytes, got %r" % type(text))
+        params["text"] = text
+    if file is not None:
+        if isinstance(file, _pathlike):
+            file = os.path.expanduser(file)
+            file = os.fsencode(file)
+        elif isinstance(file, pathlib.Path):
+            # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
+            # os.PathLike interface and is included in `_pathlike`.
+            file = file.expanduser()
+            file = os.fsencode(str(file))
+        else:
+            raise TTypeError("Invalid parameter `file` in fread: expected a "
+                             "str/bytes/PathLike, got %r" % type(file))
+        assert isinstance(file, bytes)
+        params["file"] = file
+    if cmd is not None:
+        # Note: `cmd` parameter must be supplied explicitly. We will not attempt
+        # to "guess" it from the input, as it may potentially present a security
+        # vulnerability.
+        if not isinstance(cmd, str):
+            raise TTypeError("Invalid parameter `cmd` in fread: expected str, "
+                             "got %r" % type(cmd))
+        result = os.popen(cmd)
+        params["text"] = result.read()
+    if url is not None:
+        tempdir = params.get("_tempdir", None)
+        if tempdir is None:
+            tempdir = tempfile.mkdtemp()
+            params["_tempdir"] = tempdir
+        targetfile = tempfile.mktemp(dir=tempdir)
+        params["_tempfile"] = targetfile
+        urllib.request.urlretrieve(url, filename=targetfile)
+        params["file"] = targetfile
 
 
 
