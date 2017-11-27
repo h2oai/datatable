@@ -121,7 +121,7 @@ PyObject* pyfread(PyObject*, PyObject *args)
     dtmalloc_g(frargs, freadMainArgs, 1);
 
     PyObj pyfreader(freader);
-    PyObj filename_arg = pyfreader.attr("filename");
+    PyObj filename_arg = pyfreader.attr("file");
     PyObj input_arg = pyfreader.attr("text");
     PyObj skipstring_arg = pyfreader.attr("skip_to_string");
 
