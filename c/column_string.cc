@@ -111,9 +111,9 @@ void StringColumn<T>::open_mmap(const std::string& filename) {
     mbuf->release();
     strbuf->release();
     throw Error() << "File \"" << filename_str <<
-    "\" cannot be used to create a column with " << nrows <<
-    " rows. Expected file size of " << exp_strbuf_size <<
-    " bytes, actual size is " << strbuf_size << " bytes";
+      "\" cannot be used to create a column with " << nrows <<
+      " rows. Expected file size of " << exp_strbuf_size <<
+      " bytes, actual size is " << strbuf_size << " bytes";
   }
 }
 

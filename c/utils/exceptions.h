@@ -76,8 +76,6 @@ public:
     Error& operator<<(ssize_t);
   #endif
 
-  virtual const char* what() const noexcept;
-
   /**
    * Translate this exception into a Python error by calling PyErr_SetString
    * with the appropriate exception class and message.
