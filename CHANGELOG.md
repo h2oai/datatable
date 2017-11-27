@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   multiple columns with the same names.
 - fread will no longer crash if the input dataset contains invalid utf8/win1252
   data in the column headers.
+- fixed bug in exception handling, which occasionally caused empty exception
+  messages.
 
 
 

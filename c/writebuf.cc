@@ -260,6 +260,10 @@ void MmapWritableBuffer::map(int fd, size_t size) {
   if (buffer) {
     throw ValueError() << "buffer is not null";
   }
+  if (size == 0) {
+    allocsize = 0;
+    return;
+  }
   buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
     buffer = nullptr;

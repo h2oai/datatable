@@ -94,12 +94,13 @@ Error& Error::operator<<(SType stype) {
 }
 
 
-const char* Error::what() const noexcept {
-  return error.str().c_str();
-}
-
 void Error::topython() const {
-  PyErr_SetString(pyclass(), what());
+  // The pointer returned by errstr.c_str() is valid until errstr gets out
+  // of scope. By contrast, `error.str().c_str()` returns a dangling pointer,
+  // which usually works but sometimes doesn't...
+  // See https://stackoverflow.com/questions/1374468
+  const std::string& errstr = error.str();
+  PyErr_SetString(pyclass(), errstr.c_str());
 }
 
 PyObject* Error::pyclass() const {

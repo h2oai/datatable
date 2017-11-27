@@ -327,6 +327,12 @@ void MemmapMemBuf::memmap()
   }
   size_t filesize = file.size();
   mmpsize = filesize + (create? 0 : n);
+  if (filesize == 0) {
+    // Cannot memory-map 0-bytes file. However we shouldn't really need to:
+    // if memory size is 0 then mmp can be NULL as nobody is going to read
+    // from it anyways.
+    return;
+  }
 
   // Memory-map the file.
   // In "open" mode if `n` is non-zero, then we will be opening a buffer
