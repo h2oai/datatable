@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   they will be mangled to make them unique, and a warning will be issued.
 - Special characters (in the ASCII range `\x00 - \x1F`) are no longer permitted in
   the column names. If encountered, they will be replaced with a dot `.`.
+- Fread now ignores trailing whitespace on each line, even if ' ' separator is used.
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.

@@ -378,3 +378,24 @@ def test_fread_line_endings():
         assert d0.internal.check()
         assert d0.names == ("A",)
         assert d0.topython() == [[None, 1, 2, 3]]
+
+
+def test_fread_with_whitespace():
+    """
+    Check that whitespace at the ends of lines is ignored, even if sep=' ' is
+    detected. See issue #606
+    """
+    d0 = dt.fread(text="A\n23     ")
+    assert d0.internal.check()
+    assert d0.names == ("A",)
+    assert d0.topython() == [[23]]
+    d1 = dt.fread("A B C \n10 11 12 \n")
+    assert d1.internal.check()
+    assert d1.names == ("A", "B", "C")
+    assert d1.topython() == [[10], [11], [12]]
+    d2 = dt.fread("a  b  c\nfoo  bar  baz\noof  bam  \nnah  aye  l8r")
+    assert d2.internal.check()
+    assert d2.names == ("a", "b", "c")
+    assert d2.topython() == [["foo", "oof", "nah"],
+                             ["bar", "bam", "aye"],
+                             ["baz", None,  "l8r"]]  # should this be ""?

@@ -255,8 +255,15 @@ static inline int countfields(const char **pch)
     }
     // Field() leaves *ch resting on sep or EOL. Checked inside Field().
     ncol++;
-    if (on_eol(ch)) { skip_eol(&ch); break; }
-    ch++;  // move over sep (which will already be last ' ' if sep=' ').
+    if (sep==' ') {
+      // If separator is ' ', then skip multiple spaces. Also, spaces at the
+      // end of the line are ignored.
+      while (*ch==' ') ch++;
+      if (on_eol(ch)) { skip_eol(&ch); break; }
+    } else {
+      if (on_eol(ch)) { skip_eol(&ch); break; }
+      ch++;  // move over sep (which will already be last ' ' if sep=' ').
+    }
   }
   *pch = ch;
   return ncol;
@@ -1291,11 +1298,14 @@ int freadMain(freadMainArgs _args)
       i = -1;
       while (numLines[++i]) {
         if (numFields[i] > nmax) nmax=numFields[i];  // for fill=true to know max number of columns
-        //if (args.verbose) DTPRINT("numLines[i]=%d, topNumLines=%d, numFields[i]=%d, topNumFields=%d\n",
-        //                           numLines[i], topNumLines, numFields[i], topNumFields);
-        if (numFields[i]>1 &&
-            ( numLines[i]>topNumLines ||   // most number of consistent ncol wins
-             (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=' '))) {  // ties resolved by numFields
+        // if (verbose) DTPRINT("sep='%c', QR=%d, numLines[i]=%d, topNumLines=%d, numFields[i]=%d, topNumFields=%d",
+        //                      sep, quoteRule, numLines[i], topNumLines, numFields[i], topNumFields);
+        if ( numFields[i]>1 &&
+            (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
+            ((numLines[i]>topNumLines) ||   // most number of consistent ncol wins
+             (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
+             //                                       ^ ties in numLines resolved by numFields (more fields win)
+             //                                                           ^ but don't resolve a tie with a higher quote rule unless the sep is different too, #2404 and test 2839
           topNumLines = numLines[i];
           topNumFields = numFields[i];
           topSep = sep;
@@ -1321,6 +1331,10 @@ int freadMain(freadMainArgs _args)
   quoteRule = topQuoteRule;
   sep = topSep;
   whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
+  if (sep==' ' && !fill) {
+    if (verbose) DTPRINT("  sep=' ' detected, setting fill to True\n");
+    fill = 1;
+  }
 
   // Find the first line with the consistent number of fields.  There might
   // be irregular header lines above it.
