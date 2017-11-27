@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
-import tempfile
-import warnings
 import pathlib
 import psutil
+import re
+import tempfile
+import urllib.request
+import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 # noinspection PyUnresolvedReferences
@@ -40,6 +42,7 @@ def fread(
         file=None,
         text=None,
         cmd=None,
+        url=None,
 
         columns: TColumnsSpec = None,
         sep: str = None,
@@ -61,8 +64,8 @@ def fread(
         logger=None,
         **extra) -> DataTable:
     params = {**locals(), **extra}
-    _resolve_source(params)
     del params["extra"]
+    _resolve_source(params)
     freader = FReader(**params)
     return freader.read()
 
@@ -135,6 +138,10 @@ class FReader(object):
             if not callable(progress):
                 raise TTypeError("`progress_fn` argument should be a function")
             self._progress = progress
+        if "_tempdir" in args:
+            self._tempdir = args.pop("_tempdir")
+        if "_tempfile" in args:
+            self._tempfile = args.pop("_tempfile")
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
@@ -684,7 +691,7 @@ def _resolve_source(params):
     text = params.pop("text")
     file = params.pop("file")
     cmd = params.pop("cmd")
-    params.pop("url", None)
+    url = params.pop("url")
     params.pop("files", None)
     if len(args) == 0:
         raise TValueError("No input source for `fread` was given. Please "
@@ -709,7 +716,11 @@ def _resolve_source(params):
                         text = anysource
                         break
             if text is None:
-                file = anysource
+                if (isinstance(anysource, str) and
+                        re.match(r"(?:https?|ftp)://", anysource)):
+                    url = anysource
+                else:
+                    file = anysource
         elif isinstance(anysource, _pathlike):
             file = os.path.expanduser(anysource)
             file = os.fsencode(file)
@@ -742,6 +753,15 @@ def _resolve_source(params):
                              "got %r" % type(cmd))
         result = os.popen(cmd)
         params["text"] = result.read()
+    if url is not None:
+        tempdir = params.get("_tempdir", None)
+        if tempdir is None:
+            tempdir = tempfile.mkdtemp()
+            params["_tempdir"] = tempdir
+        targetfile = tempfile.mktemp(dir=tempdir)
+        params["_tempfile"] = targetfile
+        urllib.request.urlretrieve(url, filename=targetfile)
+        params["file"] = targetfile
 
 
 
