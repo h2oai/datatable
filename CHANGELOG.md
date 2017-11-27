@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added parameters `skip_blank_lines`, `strip_white`, `quotechar` and `dec` to fread.
 - Single-column files with blank lines can now be read successfully.
 - Fread now recognizes \r\r\n as a valid line ending.
+- Added parameters `url` and `cmd` to `fread`, as well as ability to detect URLs
+  automatically. The `url` parameter downloads file from HTTP/HTTPS/FTP server
+  into a temporary location and reads it from there. The `cmd` parameter executes
+  the provided shell command and then reads the data from the stdout.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

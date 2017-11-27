@@ -717,7 +717,7 @@ def _resolve_source(params):
                         break
             if text is None:
                 if (isinstance(anysource, str) and
-                        re.match(r"(?:https?|ftp)://", anysource)):
+                        re.match(r"(?:https?|ftp|file)://", anysource)):
                     url = anysource
                 else:
                     file = anysource

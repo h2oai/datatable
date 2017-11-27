@@ -2,6 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
+import os
 import random
 import math
 from datatable import stype, ltype
@@ -399,3 +400,20 @@ def test_fread_with_whitespace():
     assert d2.topython() == [["foo", "oof", "nah"],
                              ["bar", "bam", "aye"],
                              ["baz", None,  "l8r"]]  # should this be ""?
+
+
+def test_fread_cmd():
+    d0 = dt.fread(cmd="ls", header=False)
+    assert d0.internal.check()
+    assert d0.ncols == 1
+    assert d0.nrows >= 15
+    d1 = dt.fread(cmd="cat LICENSE", sep="\n")
+    assert d1.internal.check()
+    assert d1.nrows == 200
+
+
+def test_fread_url():
+    path = os.path.abspath("LICENSE")
+    d0 = dt.fread("file://" + path, sep="\n")
+    assert d0.internal.check()
+    assert d0.shape == (200, 1)
