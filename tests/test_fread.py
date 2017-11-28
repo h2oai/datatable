@@ -441,3 +441,13 @@ def test_fread_url():
     d0 = dt.fread("file://" + path, sep="\n")
     assert d0.internal.check()
     assert d0.shape == (200, 1)
+
+
+def test_fread_issue615():
+    d0 = dt.fread("A,B,C,D,E,F,G,H,I\n"
+                  "NaNaNa,Infinity-3,nanny,0x1.5p+12@boo,23ba,2.5e-4q,"
+                  "Truely,Falsely,1\n")
+    assert d0.internal.check()
+    assert d0.topython() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
+                             ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
+                             ["Truely"], ["Falsely"], [1]]
