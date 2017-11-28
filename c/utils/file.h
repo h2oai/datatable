@@ -24,16 +24,17 @@ class File
   std::string name;
   mutable struct stat statbuf;
   int fd;
-  int : 32;
+  int flags;
 
 public:
   static const int READ;
   static const int READWRITE;
   static const int CREATE;
   static const int OVERWRITE;
+  static const int EXTERNALFD;
 
   File(const std::string& file);
-  File(const std::string& file, int flags, mode_t mode = 0666);
+  File(const std::string& file, int flags, int fd = -1, mode_t mode = 0666);
   ~File();
 
   int descriptor() const;

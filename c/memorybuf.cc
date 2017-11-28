@@ -292,15 +292,16 @@ bool ExternalMemBuf::verify_integrity(IntegrityCheckContext& icc,
 //==============================================================================
 
 MemmapMemBuf::MemmapMemBuf(const std::string& path)
-    : MemmapMemBuf(path, 0, false) {}
+    : MemmapMemBuf(path, 0, -1, false) {}
 
 
-MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n)
-    : MemmapMemBuf(path, n, true) {}
+MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, int fileno)
+    : MemmapMemBuf(path, n, fileno, true) {}
 
 
-MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, bool create)
-    : mmp(nullptr), mmpsize(0), filename(path)
+MemmapMemBuf::MemmapMemBuf(
+    const std::string& path, size_t n, int fileno, bool create
+  ) : mmp(nullptr), mmpsize(0), filename(path), fd(fileno)
 {
   readonly = !create;
   mmpsize = n;
@@ -320,7 +321,7 @@ void MemmapMemBuf::memmap()
   assert(mmp == nullptr);
   bool create = !readonly;
   size_t n = mmpsize;
-  File file(filename, create? File::CREATE : File::READ);
+  File file(filename, create? File::CREATE : File::READ, fd);
   file.assert_is_not_dir();
   if (create) {
     file.resize(n);
@@ -449,8 +450,8 @@ bool MemmapMemBuf::verify_integrity(IntegrityCheckContext& icc,
 // MemoryBuffer based on an "overmapped" memmapped file
 //==============================================================================
 
-OvermapMemBuf::OvermapMemBuf(const std::string& path, size_t xn)
-    : MemmapMemBuf(path, xn, false), xbuf(nullptr), xbuf_size(xn) {}
+OvermapMemBuf::OvermapMemBuf(const std::string& path, size_t xn, int fd)
+    : MemmapMemBuf(path, xn, fd, false), xbuf(nullptr), xbuf_size(xn) {}
 
 
 void OvermapMemBuf::memmap()

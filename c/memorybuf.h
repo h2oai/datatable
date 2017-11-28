@@ -313,6 +313,8 @@ class MemmapMemBuf : public MemoryBuffer, MemoryMapWorker
   size_t mmpsize;
   const std::string filename;
   size_t mmm_index;
+  int fd;
+  int : 32;
 
 public:
   /**
@@ -320,7 +322,7 @@ public:
    * file of size `n` and then memory-map it (second constructor).
    */
   MemmapMemBuf(const std::string& file);
-  MemmapMemBuf(const std::string& file, size_t n);
+  MemmapMemBuf(const std::string& file, size_t n, int fd = -1);
 
   void* get() override;
   size_t size() override;
@@ -344,7 +346,7 @@ protected:
    * in bytes. Conversely, when `create` is false, then `path` must correspond
    * to an existing accessible file, and parameter `n` is ignored.
    */
-  MemmapMemBuf(const std::string& path, size_t n, bool create);
+  MemmapMemBuf(const std::string& path, size_t n, int fd, bool create);
   virtual ~MemmapMemBuf() override;
   virtual void memmap();
   void memunmap();
@@ -364,7 +366,7 @@ class OvermapMemBuf : public MemmapMemBuf
   size_t xbuf_size;
 
 public:
-  OvermapMemBuf(const std::string& path, size_t n);
+  OvermapMemBuf(const std::string& path, size_t n, int fd = -1);
 
   virtual void resize(size_t n) override;
   virtual size_t memory_footprint() const override;

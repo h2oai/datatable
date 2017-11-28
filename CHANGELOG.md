@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   automatically. The `url` parameter downloads file from HTTP/HTTPS/FTP server
   into a temporary location and reads it from there. The `cmd` parameter executes
   the provided shell command and then reads the data from the stdout.
+- It is now possible to pass `file` objects to `fread` (or any objects exposing
+  method `read()`).
+- File path given to `fread` can now transparently select files within .zip archives.
+  This doesn't work with archives-within-archives.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
