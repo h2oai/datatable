@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   data in the column headers.
 - fixed bug in exception handling, which occasionally caused empty exception
   messages.
+- fixed bug in fread where string fields starting with "NaN" caused an assertion error.
 
 
 

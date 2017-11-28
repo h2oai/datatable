@@ -769,17 +769,20 @@ static int parse_double_hexadecimal(const char **pch, double *target)
       if (E < 1 || E > 2046) goto fail;
     }
     *(reinterpret_cast<uint64_t*>(target)) = (neg << 63) | (E << 52) | (acc);
+    if (!on_sep(&ch)) goto fail;
     *pch = ch;
     return 0;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
     *target = NA_FLOAT64;
+    if (!on_sep(&ch)) goto fail;
     *pch = ch + 3;
     return 0;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
     *target = neg ? -INFD : INFD;
+    if (!on_sep(&ch)) goto fail;
     *pch = ch + 8;
     return 0;
   }
@@ -829,17 +832,20 @@ static int parse_float_hexadecimal(const char **pch, float *target)
       if (E < 1 || E > 254) goto fail;
     }
     *(reinterpret_cast<uint32_t*>(target)) = (neg << 31) | (E << 23) | (acc);
+    if (!on_sep(&ch)) goto fail;
     *pch = ch;
     return 0;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
     *target = NA_FLOAT32;
+    if (!on_sep(&ch)) goto fail;
     *pch = ch + 3;
     return 0;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
     *target = neg ? -INFINITY : INFINITY;
+    if (!on_sep(&ch)) goto fail;
     *pch = ch + 8;
     return 0;
   }
