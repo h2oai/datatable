@@ -181,7 +181,7 @@ class DataTable(object):
             if names is None:
                 names = src.names
             self._fill_from_dt(src.internal, names=names)
-        elif is_type(src, (PandasDataFrame_t, PandasSeries_t)):
+        elif is_type(src, PandasDataFrame_t, PandasSeries_t):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
