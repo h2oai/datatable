@@ -175,18 +175,16 @@ class DataTable(object):
             if names is None:
                 names = srcdt.names
             self._fill_from_dt(srcdt.internal, names=names)
-        elif is_type(src, PandasDataFrame_t):
-            self._fill_from_pandas(src, names)
-        elif is_type(src, PandasSeries_t):
-            self._fill_from_pandas(src, names)
-        elif is_type(src, NumpyArray_t):
-            self._fill_from_numpy(src, names=names)
         elif src is None:
             self._fill_from_list([])
         elif is_type(src, DataTable_t):
             if names is None:
                 names = src.names
             self._fill_from_dt(src.internal, names=names)
+        elif is_type(src, PandasDataFrame_t, PandasSeries_t):
+            self._fill_from_pandas(src, names)
+        elif is_type(src, NumpyArray_t):
+            self._fill_from_numpy(src, names=names)
         else:
             raise TTypeError("Cannot create DataTable from %r" % src)
 
