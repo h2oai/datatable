@@ -27,6 +27,7 @@ const int File::READ = O_RDONLY;
 const int File::READWRITE = O_RDWR;
 const int File::CREATE = O_RDWR | O_CREAT;
 const int File::OVERWRITE = O_RDWR | O_CREAT | O_TRUNC;
+const int File::EXTERNALFD = -1;
 
 
 //------------------------------------------------------------------------------
@@ -34,10 +35,16 @@ const int File::OVERWRITE = O_RDWR | O_CREAT | O_TRUNC;
 File::File(const std::string& file)
     : File(file, READ, 0) {}
 
-File::File(const std::string& file, int flags, mode_t mode) {
-  fd = open(file.c_str(), flags, mode);
-  if (fd == -1) {
-    throw RuntimeError() << "Cannot open file " << file << ": " << Errno;
+File::File(const std::string& file, int oflags, int fileno, mode_t mode) {
+  if (fileno > 0) {
+    fd = fileno;
+    flags = File::EXTERNALFD;
+  } else {
+    fd = open(file.c_str(), oflags, mode);
+    flags = oflags;
+    if (fd == -1) {
+      throw RuntimeError() << "Cannot open file " << file << ": " << Errno;
+    }
   }
   name = file;
   // size of -1 is used to indicate that `statbuf` was not loaded yet
@@ -45,7 +52,7 @@ File::File(const std::string& file, int flags, mode_t mode) {
 }
 
 File::~File() {
-  if (fd != -1) {
+  if (fd != -1 && flags != File::EXTERNALFD) {
     int ret = close(fd);
     if (ret == -1) {
       // Cannot throw an exception from a destructor, so just print a message

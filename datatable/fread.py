@@ -9,7 +9,7 @@ import urllib.request
 import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyProtectedMember
 import datatable.lib._datatable as c
 from datatable.dt import DataTable
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
@@ -65,34 +65,36 @@ def fread(
         **extra) -> DataTable:
     params = {**locals(), **extra}
     del params["extra"]
-    _resolve_source(params)
-    freader = FReader(**params)
+    freader = TextReader(**params)
     return freader.read()
 
 
 
-class FReader(object):
+class TextReader(object):
     """
     Parser object for reading CSV files.
     """
 
-    def __init__(self, file=None, text=None, columns=None, sep=None,
+    def __init__(self, anysource=None, *, file=None, text=None, url=None,
+                 cmd=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None, dec=".",
                  skip_to_string=None, skip_lines=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_white=True, quotechar='"', **args):
-        self._file = None       # type: str
-        self._tempfile = None   # type: str
-        self._tempdir = None    # type: str
-        self._text = None       # type: str
-        self._sep = None        # type: str
-        self._dec = None        # type: str
-        self._maxnrows = None   # type: int
-        self._header = None     # type: bool
-        self._nastrings = []    # type: List[str]
-        self._verbose = False   # type: bool
-        self._fill = False      # type: bool
+        self._file = None           # type: str
+        self._files = None          # type: List[str]
+        self._fileno = None         # type: int
+        self._tempfile = None       # type: str
+        self._tempdir = None        # type: str
+        self._text = None           # type: Union[str, bytes]
+        self._sep = None            # type: str
+        self._dec = None            # type: str
+        self._maxnrows = None       # type: int
+        self._header = None         # type: bool
+        self._nastrings = []        # type: List[str]
+        self._verbose = False       # type: bool
+        self._fill = False          # type: bool
         self._show_progress = True  # type: bool
         self._encoding = encoding   # type: str
         self._quotechar = None      # type: str
@@ -113,10 +115,13 @@ class FReader(object):
             show_progress = term.is_a_tty
         if na_strings is None:
             na_strings = ["NA"]
+        if "_tempdir" in args:
+            self._tempdir = args.pop("_tempdir")
         self.verbose = verbose
         self.logger = logger
-        self.text = text
-        self.file = file
+        self._resolve_source(anysource, file, text, cmd, url)
+        # self.text = text
+        # self.file = file
         self.columns = columns
         self.sep = sep
         self.dec = dec
@@ -138,40 +143,256 @@ class FReader(object):
             if not callable(progress):
                 raise TTypeError("`progress_fn` argument should be a function")
             self._progress = progress
-        if "_tempdir" in args:
-            self._tempdir = args.pop("_tempdir")
         if "_tempfile" in args:
             self._tempfile = args.pop("_tempfile")
+        if "_fileno" in args:
+            self._fileno = args.pop("_fileno")
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
 
 
+
+    #---------------------------------------------------------------------------
+    # Parameter helpers
+    #---------------------------------------------------------------------------
+
+    def _resolve_source(self, anysource, file, text, cmd, url):
+        args = (["any"] * (anysource is not None) +
+                ["file"] * (file is not None) +
+                ["text"] * (text is not None) +
+                ["cmd"] * (cmd is not None) +
+                ["url"] * (url is not None))
+        if len(args) == 0:
+            raise TValueError(
+                "No input source for `fread` was given. Please specify one of "
+                "the parameters `file`, `text`, `url`, or `cmd`")
+        if len(args) > 1:
+            if anysource is None:
+                raise TValueError(
+                    "Both parameters `%s` and `%s` cannot be passed to fread "
+                    "simultaneously." % (args[0], args[1]))
+            else:
+                args.remove("any")
+                raise TValueError(
+                    "When an unnamed argument is passed, it is invalid to also "
+                    "provide the `%s` parameter." % args[0])
+        if anysource is not None:
+            text, file, url = self._resolve_source_any(anysource)
+        self._resolve_source_text(text)
+        self._resolve_source_file(file)
+        self._resolve_source_cmd(cmd)
+        self._resolve_source_url(url)
+
+
+    def _resolve_source_any(self, src):
+        """
+        Returns triple (text, file, url); only one of them will be set.
+        """
+        text = file = url = None
+        if isinstance(src, (str, bytes)):
+            # If there are any control characters (such as \n or \r) in the
+            # text of `src`, then its type is "text".
+            if len(src) >= 4096:
+                if self.verbose:
+                    self.logger.debug("  Source has length %d characters, and "
+                                      "will be treated as raw text" % len(src))
+                text = src
+            else:
+                for i, ch in enumerate(src):
+                    ccode = ord(ch)
+                    if ccode < 0x20:
+                        if self.verbose:
+                            self.logger.debug("  Character %d in the input is "
+                                              "%r, treating input as raw text"
+                                              % (i, chr(ccode)))
+                        text = src
+                        break
+            if text is None:
+                if (isinstance(src, str) and
+                        re.match(r"(?:https?|ftp|file)://", src)):
+                    if self.verbose:
+                        self.logger.debug("  Input looks like a URL.")
+                    url = src
+                else:
+                    if self.verbose:
+                        self.logger.debug("  Input will be treated as a file "
+                                          "name.")
+                    file = src
+        elif isinstance(src, _pathlike) or hasattr(src, "read"):
+            file = src
+        else:
+            raise TTypeError("Unknown type for the first argument in fread: %r"
+                             % type(src))
+        return (text, file, url)
+
+
+    def _resolve_source_text(self, text):
+        if text is None:
+            return
+        if not isinstance(text, (str, bytes)):
+            raise TTypeError("Invalid parameter `text` in fread: expected "
+                             "str or bytes, got %r" % type(text))
+        self._text = text
+
+
+    def _resolve_source_file(self, file):
+        if file is None:
+            return
+        if isinstance(file, _pathlike):
+            # `_pathlike` contains (str, bytes), and on Python 3.6 also
+            # os.PathLike interface
+            file = os.path.expanduser(file)
+            file = os.fsdecode(file)
+        elif isinstance(file, pathlib.Path):
+            # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
+            # os.PathLike interface and is included in `_pathlike`.
+            file = file.expanduser()
+            file = str(file)
+        elif hasattr(file, "read") and callable(file.read):
+            # A builtin `file` object, or something similar. We check for the
+            # presence of `fileno` attribute, which will allow us to provide a
+            # more direct access to the underlying file.
+            # noinspection PyBroadException
+            try:
+                # .fileno can be either a method, or a property
+                # The implementation of .fileno may raise an exception too
+                # (indicating that no file descriptor is available)
+                fd = file.fileno
+                if callable(fd):
+                    fd = fd()
+                if not isinstance(fd, int) or fd <= 0:
+                    raise Exception
+                self._fileno = fd
+            except Exception:
+                # Catching if: file.fileno is not defined, or is not an integer,
+                # or raises an error, or returns a closed file descriptor
+                rawtxt = file.read()
+                self._text = rawtxt
+            file = getattr(file, "name", None)
+            if not isinstance(file, (str, bytes)):
+                self._file = "<file>"
+            elif isinstance(file, bytes):
+                self._file = os.fsdecode(file)
+            else:
+                self._file = file
+            return
+        else:
+            raise TTypeError("Invalid parameter `file` in fread: expected a "
+                             "str/bytes/PathLike, got %r" % type(file))
+        assert isinstance(file, str)
+        if not os.path.exists(file):
+            xpath = os.path.abspath(file)
+            ypath = xpath
+            while not os.path.exists(xpath):
+                xpath = os.path.abspath(os.path.join(xpath, ".."))
+            ypath = ypath[len(xpath):]
+            if os.path.isfile(xpath):
+                self._resolve_archive(xpath, ypath)
+                return
+            else:
+                raise TValueError("File %s`%s` does not exist" % (xpath, ypath))
+        if not os.path.isfile(file):
+            raise TValueError("Path `%s` is not a file" % file)
+        self._resolve_archive(file)
+
+
+    def _resolve_source_cmd(self, cmd):
+        if cmd is None:
+            return
+        if not isinstance(cmd, str):
+            raise TTypeError("Invalid parameter `cmd` in fread: expected str, "
+                             "got %r" % type(cmd))
+        result = os.popen(cmd)
+        self._text = result.read()
+
+
+    def _resolve_source_url(self, url):
+        if url is None:
+            return
+        tempdir = self._tempdir
+        if tempdir is None:
+            tempdir = tempfile.mkdtemp()
+            self._tempdir = tempdir
+        targetfile = tempfile.mktemp(dir=tempdir)
+        self._tempfile = targetfile
+        urllib.request.urlretrieve(url, filename=targetfile)
+        self._file = targetfile
+
+
+    def _resolve_archive(self, filename, subpath=None):
+        ext = os.path.splitext(filename)[1]
+        if subpath and subpath[0] == "/":
+            subpath = subpath[1:]
+
+        if ext == ".zip":
+            import zipfile
+            zf = zipfile.ZipFile(filename)
+            # MacOS is found guilty of adding extra files into the Zip archives
+            # it creates. The files are hidden, and in the directory __MACOSX/.
+            # We remove those files from the list, since they are not real user
+            # files, and have an unknown binary format.
+            zff = [name for name in zf.namelist()
+                   if not(name.startswith("__MACOSX/") or name.endswith("/"))]
+            if subpath:
+                if subpath in zff:
+                    zff = [subpath]
+                else:
+                    raise TValueError("File `%s` does not exist in archive "
+                                      "`%s`" % (subpath, filename))
+            if len(zff) > 1:
+                warnings.warn("Zip file %s contains multiple compressed "
+                              "files: %r. Only the first of them will be used."
+                              % (filename, zff))
+            if len(zff) == 0:
+                raise TValueError("Zip file %s is empty" % filename)
+            self._tempdir = tempfile.mkdtemp()
+            if self._verbose:
+                self.logger.debug("  Extracting %s to temporary directory %s"
+                                  % (filename, self._tempdir))
+            self._tempfile = zf.extract(zff[0], path=self._tempdir)
+
+        elif ext == ".gz":
+            import gzip
+            zf = gzip.GzipFile(filename)
+            if self._verbose:
+                self.logger.debug("  Extracting %s into memory" % filename)
+            self._text = zf.read()
+
+        elif ext == ".xz":
+            import lzma
+            zf = lzma.open(filename)
+            if self._verbose:
+                self.logger.debug("  Extracting %s into memory" % filename)
+            self._text = zf.read()
+
+        else:
+            self._file = filename
+
+
+    #---------------------------------------------------------------------------
+    # Properties
+    #---------------------------------------------------------------------------
+
     @property
-    def file(self):
-        if self._text:
-            return None
+    def file(self) -> Optional[str]:
+        """
+        Name of the file to be read by fread.
+
+        This may also be a placeholder value "<file>" if the real file name is
+        unknown -- in this case `.fileno` property must be set. If there is no
+        file to read, the returned value is `None`. If fread is using a
+        temporary file for storing the content, then this property will return
+        the name of that temporary file. The returned value is always a string
+        (or None), even if the user passed a `bytes` object as `file=` argument
+        to the constructor.
+        """
         return self._tempfile or self._file
 
-    @file.setter
-    @typed(file=U(str, bytes, None))
-    def file(self, file):
-        if not file:
-            self._file = None
-        else:
-            file = os.path.expanduser(file)
-            self._check_file(file)
-            self._file = file
-
 
     @property
-    def text(self):
+    def text(self) -> Union[str, bytes, None]:
         return self._text
-
-    @text.setter
-    @typed(text=U(str, bytes, None))
-    def text(self, text):
-        self._text = text or None
 
 
     @property
@@ -467,56 +688,6 @@ class FReader(object):
                 print("Warning: unknown encoding %s" % tty_encoding)
 
 
-    def _check_file(self, filename):
-        # if "\x00" in filename:
-        #     raise TValueError("Path %s contains NUL characters" % filename)
-        if not os.path.exists(filename):
-            xpath = os.path.abspath(filename)
-            ypath = xpath
-            while not os.path.exists(xpath):
-                xpath = os.path.abspath(os.path.join(xpath, ".."))
-            ypath = ypath[len(xpath):]
-            raise TValueError("File %s`%s` does not exist" % (xpath, ypath))
-        if not os.path.isfile(filename):
-            raise TValueError("Path `%s` is not a file" % filename)
-
-        ext = os.path.splitext(filename)[1]
-        if ext == ".zip":
-            import zipfile
-            zf = zipfile.ZipFile(filename)
-            # MacOS is found guilty of adding extra files into the Zip archives
-            # it creates. The files are hidden, and in the directory __MACOSX/.
-            # We remove those files from the list, since they are not real user
-            # files, and have an unknown binary format.
-            zff = [name for name in zf.namelist()
-                   if not name.startswith("__MACOSX/")]
-            if len(zff) > 1:
-                warnings.warn("Zip file %s contains multiple compressed "
-                              "files: %r. Only the first of them will be used."
-                              % (filename, zff))
-            if len(zff) == 0:
-                raise TValueError("Zip file %s is empty" % filename)
-            self._tempdir = tempfile.mkdtemp()
-            if self._verbose:
-                self.logger.debug("Extracting %s to temporary directory %s"
-                                  % (filename, self._tempdir))
-            self._tempfile = zf.extract(zff[0], path=self._tempdir)
-
-        elif ext == ".gz":
-            import gzip
-            zf = gzip.GzipFile(filename)
-            if self._verbose:
-                self.logger.debug("Extracting %s into memory" % filename)
-            self._text = zf.read()
-
-        elif ext == ".xz":
-            import lzma
-            zf = lzma.open(filename)
-            if self._verbose:
-                self.logger.debug("Extracting %s into memory" % filename)
-            self._text = zf.read()
-
-
     def _override_columns(self, colnames, coltypes):
         assert len(colnames) == len(coltypes)
         n = len(colnames)
@@ -684,85 +855,6 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)
 
 
-def _resolve_source(params):
-    all_src_names = ("anysource", "file", "text", "url", "cmd", "files")
-    args = [n for n in all_src_names if params.get(n, None) is not None]
-    anysource = params.pop("anysource")
-    text = params.pop("text")
-    file = params.pop("file")
-    cmd = params.pop("cmd")
-    url = params.pop("url")
-    params.pop("files", None)
-    if len(args) == 0:
-        raise TValueError("No input source for `fread` was given. Please "
-                          "provide one of `file`, `text`, `url`, `cmd`, or "
-                          "an unnamed argument.")
-    if len(args) > 1:
-        if anysource is None:
-            args.remove("anysource")
-            raise TValueError("When an unnamed argument is passed to `fread`, "
-                              "it is invalid to also provide the `%s` "
-                              "argument." % args[0])
-        else:
-            raise TValueError("Both arguments `%s` and `%s` cannot be passed "
-                              "to fread simultaneously." % (args[0], args[1]))
-    if anysource is not None:
-        if isinstance(anysource, (str, bytes)):
-            # If there are any control characters (such as \n or \r) in the
-            # text of `anysource`, then its type is "text".
-            if len(anysource) < 4096:
-                for ch in anysource:
-                    if ord(ch) < 0x20:
-                        text = anysource
-                        break
-            if text is None:
-                if (isinstance(anysource, str) and
-                        re.match(r"(?:https?|ftp|file)://", anysource)):
-                    url = anysource
-                else:
-                    file = anysource
-        elif isinstance(anysource, _pathlike):
-            file = os.path.expanduser(anysource)
-            file = os.fsencode(file)
-        anysource = None
-    if text is not None:
-        if not isinstance(text, (str, bytes)):
-            raise TTypeError("Invalid parameter `text` in fread: expected "
-                             "str or bytes, got %r" % type(text))
-        params["text"] = text
-    if file is not None:
-        if isinstance(file, _pathlike):
-            file = os.path.expanduser(file)
-            file = os.fsencode(file)
-        elif isinstance(file, pathlib.Path):
-            # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
-            # os.PathLike interface and is included in `_pathlike`.
-            file = file.expanduser()
-            file = os.fsencode(str(file))
-        else:
-            raise TTypeError("Invalid parameter `file` in fread: expected a "
-                             "str/bytes/PathLike, got %r" % type(file))
-        assert isinstance(file, bytes)
-        params["file"] = file
-    if cmd is not None:
-        # Note: `cmd` parameter must be supplied explicitly. We will not attempt
-        # to "guess" it from the input, as it may potentially present a security
-        # vulnerability.
-        if not isinstance(cmd, str):
-            raise TTypeError("Invalid parameter `cmd` in fread: expected str, "
-                             "got %r" % type(cmd))
-        result = os.popen(cmd)
-        params["text"] = result.read()
-    if url is not None:
-        tempdir = params.get("_tempdir", None)
-        if tempdir is None:
-            tempdir = tempfile.mkdtemp()
-            params["_tempdir"] = tempdir
-        targetfile = tempfile.mktemp(dir=tempdir)
-        params["_tempfile"] = targetfile
-        urllib.request.urlretrieve(url, filename=targetfile)
-        params["file"] = targetfile
-
 
 
 #-------------------------------------------------------------------------------
@@ -780,7 +872,6 @@ _coltypes_strs = [
     "str",       # 9
 ]
 
-# FIXME !
 _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
     (bool,       "bool8"),
     (int,        "int32"),

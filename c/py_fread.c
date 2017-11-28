@@ -133,6 +133,8 @@ PyObject* pyfread(PyObject*, PyObject *args)
     na_strings = pyfreader.attr("na_strings").as_cstringlist();
     verbose = pyfreader.attr("verbose").as_bool();
     flogger = pyfreader.attr("logger").as_pyobject();
+    int64_t fileno64 = pyfreader.attr("_fileno").as_int64();
+    int fileno = fileno64 < 0? -1 : static_cast<int>(fileno64);
 
     frargs->sep = pyfreader.attr("sep").as_char();
     frargs->dec = pyfreader.attr("dec").as_char();
@@ -160,8 +162,8 @@ PyObject* pyfread(PyObject*, PyObject *args)
     if (input) {
       mbuf = new ExternalMemBuf(input);
     } else if (filename) {
-      if (verbose) DTPRINT("  Opening file %s", filename);
-      mbuf = new OvermapMemBuf(filename, 1);
+      if (verbose) DTPRINT("  Opening file %s [fd=%d]", filename, fileno);
+      mbuf = new OvermapMemBuf(filename, 1, fileno);
       if (verbose) DTPRINT("  File opened, size: %s", filesize_to_str(mbuf->size() - 1));
     } else {
       throw ValueError() << "Neither filename nor input were provided";

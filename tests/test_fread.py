@@ -7,6 +7,30 @@ import random
 import math
 from datatable import stype, ltype
 
+#-------------------------------------------------------------------------------
+# Tests for fread "source" arguments
+#-------------------------------------------------------------------------------
+
+def test_fread_from_stringbuf():
+    from io import StringIO
+    s = StringIO("A,B,C\n1,2,3\n4,5,6")
+    d0 = dt.fread(s)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[1, 4], [2, 5], [3, 6]]
+
+
+def test_fread_from_fileobj(tempfile):
+    with open(tempfile, "w") as f:
+        f.write("A,B,C\nfoo,bar,baz\n")
+
+    with open(tempfile, "r") as f:
+        d0 = dt.fread(f)
+        assert d0.internal.check()
+        assert d0.names == ("A", "B", "C")
+        assert d0.topython() == [["foo"], ["bar"], ["baz"]]
+
+
 
 #-------------------------------------------------------------------------------
 # Tests for the `columns` argument
