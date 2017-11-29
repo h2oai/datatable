@@ -1,12 +1,12 @@
 #include <Python.h>
 #include "capi.h"
+#include "csv/py_fread.h"
 #include "csv/writer.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
 #include "py_datawindow.h"
 #include "py_encodings.h"
-#include "py_fread.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"

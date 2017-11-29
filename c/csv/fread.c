@@ -1,5 +1,5 @@
-#include "fread.h"
-#include "freadLookups.h"
+#include "csv/fread.h"
+#include "csv/freadLookups.h"
 #ifdef WIN32             // means WIN64, too, oddly
   #include <windows.h>
 #else

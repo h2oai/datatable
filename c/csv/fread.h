@@ -6,7 +6,7 @@
 #include "utils.h"
 #ifdef DTPY
   #include "utils/omp.h"
-  #include "py_fread.h"
+  #include "csv/py_fread.h"
 #else
   #include <omp.h>
   #include "freadR.h"

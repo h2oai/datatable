@@ -13,15 +13,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "py_fread.h"
-#include "fread.h"
+#include "csv/py_fread.h"
+#include "csv/fread.h"
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
 #include "memorybuf.h"
 #include "datatable.h"
 #include "column.h"
-#include "utils/assert.h"
 #include "py_datatable.h"
 #include "py_encodings.h"
 #include "py_utils.h"
