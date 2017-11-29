@@ -7,9 +7,91 @@ import random
 import math
 from datatable import stype, ltype
 
+
+
 #-------------------------------------------------------------------------------
 # Tests for fread "source" arguments
 #-------------------------------------------------------------------------------
+
+def test_fread_from_anysource_as_text1(capsys):
+    src = "A\n" + "\n".join(str(i) for i in range(100))
+    assert len(src) < 4096
+    d0 = dt.fread(src, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert ("Character 1 in the input is '\\n', treating input as raw text"
+            in out)
+
+
+def test_fread_from_anysource_as_text2(capsys):
+    src = "A\n" + "\n".join(str(i) for i in range(1000, 2000))
+    assert len(src) > 4096
+    d0 = dt.fread(src, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert ("Source has length %d characters, and will be treated as "
+            "raw text" % len(src)) in out
+
+
+def test_fread_from_anysource_as_text3(capsys):
+    src = b"A,B,C\n1,2,3\n5,4,3\n"
+    d0 = dt.fread(src, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert d0.topython() == [[1, 5], [2, 4], [3, 3]]
+    assert ("Character 5 in the input is '\\n', treating input as raw text"
+            in out)
+
+
+def test_fread_from_anysource_as_file1(tempfile, capsys):
+    assert isinstance(tempfile, str)
+    with open(tempfile, "w") as o:
+        o.write("A,B\n1,2\n")
+    d0 = dt.fread(tempfile, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert "Input is assumed to be a file name" in out
+
+
+def test_fread_from_anysource_as_file2(tempfile):
+    import pathlib
+    with open(tempfile, "w") as o:
+        o.write("A,B\n1,2\n")
+    d0 = dt.fread(tempfile)
+    d1 = dt.fread(tempfile.encode())
+    d2 = dt.fread(pathlib.Path(tempfile))
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d0.topython() == d1.topython() == d2.topython()
+
+
+def test_fread_from_anysource_filelike():
+    class MyFile:
+        def __init__(self):
+            self.name = b"fake file"
+
+        def fileno(self):
+            return NotImplemented
+
+        def read(self):
+            return "A,B,C\na,b,c\n"
+
+    d0 = dt.fread(MyFile())
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [["a"], ["b"], ["c"]]
+
+
+def test_fread_from_anysource_as_url(tempfile, capsys):
+    assert isinstance(tempfile, str)
+    with open(tempfile, "w") as o:
+        o.write("A,B\n1,2\n")
+    d0 = dt.fread("file://" + os.path.abspath(tempfile), verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert "Input is a URL" in out
+
 
 def test_fread_from_stringbuf():
     from io import StringIO
@@ -29,6 +111,155 @@ def test_fread_from_fileobj(tempfile):
         assert d0.internal.check()
         assert d0.names == ("A", "B", "C")
         assert d0.topython() == [["foo"], ["bar"], ["baz"]]
+
+
+def test_fread_file_not_exists():
+    name = "qerubvwpif8rAIB9845gb1_"
+    path = os.path.abspath(".")
+    with pytest.raises(ValueError) as e:
+        dt.fread(name)
+    assert ("File %s`/%s` does not exist" % (path, name)) in str(e)
+
+
+def test_fread_file_is_directory():
+    path = os.path.abspath(".")
+    with pytest.raises(ValueError) as e:
+        dt.fread(path)
+    assert ("Path `%s` is not a file" % path) in str(e)
+
+
+def test_fread_xz_file(tempfile, capsys):
+    import lzma
+    xzfile = tempfile + ".xz"
+    with lzma.open(xzfile, "wb") as f:
+        f.write(b"A\n1\n2\n3\n")
+    d0 = dt.fread(xzfile, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert d0.topython() == [[1, 2, 3]]
+    assert ("Extracting %s into memory" % xzfile) in out
+    os.unlink(xzfile)
+
+
+def test_fread_gz_file(tempfile, capsys):
+    import gzip
+    gzfile = tempfile + ".gz"
+    with gzip.open(gzfile, "wb") as f:
+        f.write(b"A\n10\n20\n30\n")
+    d0 = dt.fread(gzfile, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert d0.topython() == [[10, 20, 30]]
+    assert ("Extracting %s into memory" % gzfile) in out
+    os.unlink(gzfile)
+
+
+def test_fread_zip_file_1(tempfile, capsys):
+    import zipfile
+    zfname = tempfile + ".zip"
+    with zipfile.ZipFile(zfname, "x", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("data1.csv", "a,b,c\n10,20,30\n5,7,12\n")
+    d0 = dt.fread(zfname, verbose=True)
+    out, err = capsys.readouterr()
+    assert d0.internal.check()
+    assert d0.names == ("a", "b", "c")
+    assert d0.topython() == [[10, 5], [20, 7], [30, 12]]
+    assert ("Extracting %s to temporary directory" % zfname) in out
+    os.unlink(zfname)
+
+
+def test_fread_zip_file_multi(tempfile):
+    import zipfile
+    zfname = tempfile + ".zip"
+    with zipfile.ZipFile(zfname, "x", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
+        zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
+        zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
+    with pytest.warns(UserWarning) as ws:
+        d0 = dt.fread(zfname)
+        d1 = dt.fread(zfname + "/data2.csv")
+        d2 = dt.fread(zfname + "/data3.csv")
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d0.names == ("a", "b", "c")
+    assert d1.names == ("A", "B", "C")
+    assert d2.names == ("Aa", "Bb", "Cc")
+    assert d0.topython() == [["foo", "gee"], ["bar", "jou"], ["baz", "sha"]]
+    assert d1.topython() == [[3, 6], [4, 7], [5, 8]]
+    assert d2.topython() == [[True, False], [1.5, 1e20], ["", "yay"]]
+    assert len(ws) == 1
+    assert ("Zip file %s contains multiple compressed files"
+            % zfname) in ws[0].message.args[0]
+    os.unlink(zfname)
+
+
+def test_fread_zip_file_bad1(tempfile):
+    import zipfile
+    zfname = tempfile + ".zip"
+    with zipfile.ZipFile(zfname, "x"):
+        pass
+    with pytest.raises(ValueError) as e:
+        dt.fread(zfname)
+    assert ("Zip file %s is empty" % zfname) in str(e)
+    os.unlink(zfname)
+
+
+def test_fread_zip_file_bad2(tempfile):
+    import zipfile
+    zfname = tempfile + ".zip"
+    with zipfile.ZipFile(zfname, "x") as zf:
+        zf.writestr("data1.csv", "Egeustimentis")
+    with pytest.raises(ValueError) as e:
+        dt.fread(zfname + "/out.csv")
+    assert "File `out.csv` does not exist in archive" in str(e)
+    os.unlink(zfname)
+
+
+
+def test_fread_bad_source_none():
+    with pytest.raises(ValueError) as e:
+        dt.fread()
+    assert "No input source" in str(e)
+
+
+def test_fread_bad_source_any_and_source():
+    with pytest.raises(ValueError) as e:
+        dt.fread("a", text="b")
+    assert "When an unnamed argument is passed, it is invalid to also " \
+           "provide the `text` parameter" in str(e)
+
+
+def test_fread_bad_source_2sources():
+    with pytest.raises(ValueError) as e:
+        dt.fread(file="a", text="b")
+    assert "Both parameters `file` and `text` cannot be passed to fread " \
+           "simultaneously" in str(e)
+
+
+def test_fread_bad_source_anysource():
+    with pytest.raises(TypeError) as e:
+        dt.fread(12345)
+    assert "Unknown type for the first argument in fread" in str(e)
+
+
+def test_fread_bad_source_text():
+    with pytest.raises(TypeError) as e:
+        dt.fread(text=["a", "b", "c"])
+    assert "Invalid parameter `text` in fread: expected str or bytes" in str(e)
+
+
+def test_fread_bad_source_file():
+    with pytest.raises(TypeError) as e:
+        dt.fread(file=TypeError)
+    assert ("Invalid parameter `file` in fread: expected a str/bytes/PathLike"
+            in str(e))
+
+
+def test_fread_bad_source_cmd():
+    with pytest.raises(TypeError) as e:
+        dt.fread(cmd=["ls", "-l", ".."])
+    assert "Invalid parameter `cmd` in fread: expected str" in str(e)
 
 
 
@@ -155,6 +386,16 @@ def test_fread_columns_fn1():
     assert d0.internal.check()
     assert d0.names == ("A2", "A4", "x16")
     assert d0.topython() == [[4], [2], [0]]
+
+
+def test_select_some_columns():
+    # * Last field of last line contains separator
+    # * The file doesn't end with \n
+    # * Only subset of columns is requested
+    f = dt.fread('A,B,C\n1,2,"a,b"', columns={'A', 'B'})
+    assert f.internal.check()
+    assert f.names == ("A", "B")
+    assert f.topython() == [[1], [2]]
 
 
 

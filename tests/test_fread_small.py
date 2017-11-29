@@ -56,16 +56,6 @@ def test_empty_strings(seed, repl):
     assert d1.topython() == src
 
 
-def test_select_some_columns():
-    # * Last field of last line contains separator
-    # * The file doesn't end with \n
-    # * Only subset of columns is requested
-    f = dt.fread('A,B,C\n1,2,"a,b"', columns={'A', 'B'})
-    assert f.internal.check()
-    assert f.names == ("A", "B")
-    assert f.topython() == [[1], [2]]
-
-
 def test_fread1():
     f = dt.fread("hello\n"
                  "1.1\n"
