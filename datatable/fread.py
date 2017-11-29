@@ -199,8 +199,9 @@ class TextReader(object):
                                       "will be treated as raw text" % len(src))
                 text = src
             else:
+                fn = ord if isinstance(src, str) else int
                 for i, ch in enumerate(src):
-                    ccode = ord(ch)
+                    ccode = fn(ch)
                     if ccode < 0x20:
                         if self.verbose:
                             self.logger.debug("  Character %d in the input is "
@@ -212,12 +213,12 @@ class TextReader(object):
                 if (isinstance(src, str) and
                         re.match(r"(?:https?|ftp|file)://", src)):
                     if self.verbose:
-                        self.logger.debug("  Input looks like a URL.")
+                        self.logger.debug("  Input is a URL.")
                     url = src
                 else:
                     if self.verbose:
-                        self.logger.debug("  Input will be treated as a file "
-                                          "name.")
+                        self.logger.debug("  Input is assumed to be a "
+                                          "file name.")
                     file = src
         elif isinstance(src, _pathlike) or hasattr(src, "read"):
             file = src
