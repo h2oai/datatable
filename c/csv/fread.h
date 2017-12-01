@@ -340,4 +340,6 @@ void progress(double percent/*[0, 100]*/);
 
 void freadCleanup(void);
 
+void decode_utf16(freadMainArgs* args);
+
 #endif

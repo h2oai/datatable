@@ -1033,6 +1033,7 @@ int freadMain(freadMainArgs _args)
   // Additionally, we will sometimes need to switch to a different parsing
   // context in order to accommodate for the lack of newline on the last line
   // of file.
+  declare_sof:
   fileSize = args.bufsize - 1;
   sof = static_cast<char*>(args.buf);
   eof = sof + fileSize;
@@ -1052,21 +1053,25 @@ int freadMain(freadMainArgs _args)
   if (fileSize >= 3 && memcmp(sof, "\xEF\xBB\xBF", 3) == 0) {
     sof += 3;
     // ienc = CE_UTF8;
-    if (args.verbose) DTPRINT("  UTF-8 byte order mark EF BB BF found at the start of the file and skipped.");
+    if (verbose) DTPRINT("  UTF-8 byte order mark EF BB BF found at the start of the file and skipped.");
   }
   else if (fileSize >= 4 && memcmp(sof, "\x84\x31\x95\x33", 4) == 0) {
     sof += 4;
     // ienc = CE_GB18030;
-    if (args.verbose) DTPRINT("  GB-18030 byte order mark 84 31 95 33 found at the start of the file and skipped.");
+    if (verbose) DTPRINT("  GB-18030 byte order mark 84 31 95 33 found at the start of the file and skipped.");
     DTWARN("GB-18030 encoding detected, however fread() is unable to decode it. Some character fields may be garbled.");
   }
   else if (fileSize >= 2 && sof[0] + sof[1] == '\xFE' + '\xFF') {  // either 0xFE 0xFF or 0xFF 0xFE
-    STOP("File is encoded in UTF-16, this encoding is not supported by fread(). Please recode the file to UTF-8.");
+    if (verbose) DTPRINT("  UTF-16 byte order mark %s found, recoding file into UTF-8",
+                         sof[0] == '\xFE'? "FE FF" : "FF FE");
+    decode_utf16(&args);
+    goto declare_sof;
+    // STOP("File is encoded in UTF-16, this encoding is not supported by fread(). Please recode the file to UTF-8.");
   }
   if (eof[-1] == '\x1A' || eof[-1] == '\0') {
     char c = eof[-1];
     while (eof > sof && eof[-1] == c) eof--;
-    if (verbose) DTPRINT("  Last byte(s) of input found to be %s and removed.\n",
+    if (verbose) DTPRINT("  Last byte(s) of input found to be %s and removed.",
                          c? "0x1A (Ctrl+Z)" : "0x00 (NUL)");
     *const_cast<char*>(eof) = '\0';
   }

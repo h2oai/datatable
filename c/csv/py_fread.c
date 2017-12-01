@@ -18,6 +18,7 @@
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
+#include <Python.h>
 #include "memorybuf.h"
 #include "datatable.h"
 #include "column.h"
@@ -54,6 +55,7 @@ static void cleanup_fread_session(freadMainArgs *frargs);
 // lock preventing from running multiple fread() instances.
 static PyObject *freader = NULL;
 static PyObject *flogger = NULL;
+static PyObject *tempstr = NULL;
 
 // DataTable being constructed.
 static DataTable *dt = NULL;
@@ -104,7 +106,7 @@ static int8_t *sizes = NULL;
  */
 PyObject* pyfread(PyObject*, PyObject *args)
 {
-  PyObject *pydt = NULL;
+  PyObject* pydt = NULL;
   int retval = 0;
   freadMainArgs *frargs = NULL;
   if (freader != NULL || dt != NULL) {
@@ -193,6 +195,20 @@ PyObject* pyfread(PyObject*, PyObject *args)
 }
 
 
+void decode_utf16(freadMainArgs* args) {
+  int byteorder = 0;
+  // bufsize includes trailing \0, hence -1
+  Py_ssize_t size = static_cast<Py_ssize_t>(args->bufsize - 1);
+  // new reference
+  tempstr = PyUnicode_DecodeUTF16(static_cast<char*>(args->buf), size,
+                                  "replace", &byteorder);
+  // borrowed reference
+  char* buf = PyUnicode_AsUTF8AndSize(tempstr, &size);
+  args->buf = buf;
+  args->bufsize = static_cast<size_t>(size) + 1;
+}
+
+
 Column* alloc_column(SType stype, size_t nrows, int j)
 {
     // TODO(pasha): figure out how to use `WritableBuffer`s here
@@ -262,6 +278,7 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
     }
     pyfree(freader);
     pyfree(flogger);
+    pyfree(tempstr);
     dt = NULL;
 }
 
