@@ -18,15 +18,17 @@ def random_string(n):
 
 #-------------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="Not implemented")
-def test_empty():
-    d0 = dt.fread(text="")
-    d1 = dt.fread(text=" ")
-    d2 = dt.fread(text="\n")
-    d3 = dt.fread(text="  \n" * 3)
-    d4 = dt.fread(text="\t\n  \n\n        \t  ")
-    for d in [d0, d1, d2, d3, d4]:
+def test_empty(tempfile):
+    sources = ["", " ", "\n", " \n" * 3, "\t\n  \n\n        \t  "]
+    for src in sources:
+        with open(tempfile, "w") as o:
+            o.write(src)
+        d0 = dt.fread(text=src)
+        d1 = dt.fread(tempfile)
+        assert d0.internal.check()
         assert d0.shape == (0, 0)
+        assert d1.internal.check()
+        assert d1.shape == (0, 0)
 
 
 # TODO: also test repl=None, which currently gets deserialized into empty

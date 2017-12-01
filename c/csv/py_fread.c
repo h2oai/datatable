@@ -163,7 +163,10 @@ PyObject* pyfread(PyObject*, PyObject *args)
     } else if (filename) {
       if (verbose) DTPRINT("  Opening file %s [fd=%d]", filename, fileno);
       mbuf = new OvermapMemBuf(filename, 1, fileno);
-      if (verbose) DTPRINT("  File opened, size: %s", filesize_to_str(mbuf->size() - 1));
+      if (verbose) {
+        size_t sz = mbuf->size();
+        DTPRINT("  File opened, size: %s", sz? filesize_to_str(sz - 1) : "0");
+      }
     } else {
       throw ValueError() << "Neither filename nor input were provided";
     }
