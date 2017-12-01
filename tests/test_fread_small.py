@@ -88,6 +88,25 @@ def test_fread3():
     assert f.topython() == [[12.345]]
 
 
+def test_utf16(tempfile):
+    names = ("alpha", "beta", "gamma")
+    col1 = [1.5, 12.999, -4e-6, 2.718281828]
+    col2 = ["я", "не", "нездужаю", "нівроку"]
+    col3 = [444, 5, -7, 0]
+    srctxt = ("\uFEFF" +  # BOM
+              ",".join(names) + "\n" +
+              "\n".join('%r,"%s",%d' % row for row in zip(col1, col2, col3)))
+    for encoding in ["utf-16le", "utf-16be"]:
+        with open(tempfile, "wb") as o:
+            srcbytes = srctxt.encode(encoding)
+            assert srcbytes[0] + srcbytes[1] == 0xFE + 0xFF
+            o.write(srcbytes)
+        d0 = dt.fread(tempfile)
+        assert d0.internal.check()
+        assert d0.names == names
+        assert d0.topython() == [col1, col2, col3]
+
+
 
 #-------------------------------------------------------------------------------
 # Omnibus Test
@@ -112,10 +131,10 @@ def test_fread_omnibus(seed):
     allparams = {}
     while True:
         ncols = random.choice([1, 1, 1, 2, 2, 3, 3, 3, 4, 5, 6, 7, 8, 128,
-                               int(random.expovariate(1e-3))])
+                               int(random.expovariate(1e-2))])
         nrows = random.choice([0, 1, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 64,
                                128, 999, int(random.expovariate(1e-4))])
-        if ncols * nrows < 1000000:
+        if ncols * nrows < 100000:
             allparams["ncols"] = ncols
             allparams["nrows"] = nrows
             break
