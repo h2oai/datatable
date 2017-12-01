@@ -98,7 +98,7 @@ def test_h2o3_smalldata(f):
     else:
         params = {}
         if "test_pubdev3589" in f:
-            params["fill"] = True
+            params["sep"] = "\n"
         d0 = datatable.fread(f, **params)
         assert d0.internal.check()
 
