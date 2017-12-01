@@ -7,9 +7,12 @@ from .fread import fread, TextReader
 from .nff import save, open
 from .expr import mean, min, max, sd, isna
 from .types import stype, ltype
+from .utils.typechecks import TTypeError as TypeError
+from .utils.typechecks import TValueError as ValueError
 
 __all__ = ("__version__", "DataTable", "max", "mean", "min", "open", "sd",
-           "isna", "fread", "TextReader", "save", "stype", "ltype")
+           "isna", "fread", "TextReader", "save", "stype", "ltype",
+           "TypeError", "ValueError")
 
 
 DataTable.__module__ = "datatable"

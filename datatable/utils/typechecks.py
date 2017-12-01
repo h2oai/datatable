@@ -18,9 +18,9 @@ class TImportError(ImportError):
     _handle_ = TTypeError._handle_
 
 
-TTypeError.__module__ = "dt"
-TValueError.__module__ = "dt"
-TImportError.__module__ = "dt"
+TTypeError.__module__ = "datatable"
+TValueError.__module__ = "datatable"
+TImportError.__module__ = "datatable"
 TTypeError.__qualname__ = "TypeError"
 TValueError.__qualname__ = "ValueError"
 TImportError.__qualname__ = "ImportError"
