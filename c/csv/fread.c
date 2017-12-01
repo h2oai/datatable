@@ -292,6 +292,13 @@ static inline bool nextGoodLine(const char **pch, int ncol)
   return false;
 }
 
+static int makeEmptyDT() {
+  if (args.verbose) DTPRINT("  Input is empty, creating a (0 x 0) DataTable");
+  allocateDT(NULL, NULL, 0, 0, 0);
+  freadCleanup();
+  return 1;
+}
+
 
 
 //=================================================================================================
@@ -929,6 +936,7 @@ int freadMain(freadMainArgs _args)
   //*********************************************************************************************
   // [1] Extract the arguments and check their validity
   //*********************************************************************************************
+  if (args.bufsize <= 1) return makeEmptyDT();
   bool verbose = args.verbose;
   bool warningsAreErrors = args.warningsAreErrors;
   if (verbose) DTPRINT("[1] Check arguments");
@@ -1062,7 +1070,7 @@ int freadMain(freadMainArgs _args)
                          c? "0x1A (Ctrl+Z)" : "0x00 (NUL)");
     *const_cast<char*>(eof) = '\0';
   }
-  if (eof<=sof) STOP("Input is empty after removing BOM and any terminal control characters");
+  if (eof<=sof) return makeEmptyDT();
 
 
   //*********************************************************************************************
@@ -1216,10 +1224,7 @@ int freadMain(freadMainArgs _args)
     }
   }
   if (ch >= eof) {
-    if (args.skipNrow || args.skipString)
-      STOP("All input has been skipped: the remainder of the file has nothing but whitespace.");
-    else
-      STOP("Input is empty or contains only Whitespace.");
+    return makeEmptyDT();
   }
   if (verbose) {
     if (lineStart != sof) {

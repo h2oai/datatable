@@ -633,9 +633,11 @@ class TextReader(object):
         exception if it determines that it cannot find a good strategy to
         handle a dataset of the requested size.
         """
-        if self.verbose:
-            self.logger.debug("  The DataTable is estimated to require %s"
+        if self.verbose and estimated_size > 1:
+            self.logger.debug("  The DataTable is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
+        if estimated_size < 1024:
+            return None
         vm = psutil.virtual_memory()
         if self.verbose:
             self.logger.debug("  Memory available = %s (out of %s)"

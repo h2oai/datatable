@@ -103,9 +103,9 @@ void set_value(void * __restrict__ ptr, const void * __restrict__ value,
  */
 const char* filesize_to_str(size_t fsize)
 {
-  #define NSUFFIXES 4
+  #define NSUFFIXES 5
   #define BUFFSIZE 100
-  static char suffixes[NSUFFIXES] = {'T', 'G', 'M', 'K'};
+  static char suffixes[NSUFFIXES] = {'P', 'T', 'G', 'M', 'K'};
   static char output[BUFFSIZE];
   static const char one_byte[] = "1 byte";
   llu lsize = (llu) fsize;
