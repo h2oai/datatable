@@ -23,14 +23,14 @@ def dt0():
 def assert_valueerror(datatable, rows, error_message):
     with pytest.raises(ValueError) as e:
         datatable(rows=rows)
-    assert str(e.type) == "<class 'dt.ValueError'>"
+    assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
 
 def assert_typeerror(datatable, rows, error_message):
     with pytest.raises(TypeError) as e:
         datatable(rows=rows)
-    assert str(e.type) == "<class 'dt.TypeError'>"
+    assert str(e.type) == "<class 'datatable.TypeError'>"
     assert error_message in str(e.value)
 
 
