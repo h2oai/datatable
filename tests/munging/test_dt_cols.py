@@ -30,13 +30,13 @@ def as_list(datatable):
 def assert_valueerror(datatable, cols, error_message):
     with pytest.raises(ValueError) as e:
         datatable(select=cols)
-    assert str(e.type) == "<class 'dt.ValueError'>"
+    assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
 def assert_typeerror(datatable, cols, error_message):
     with pytest.raises(TypeError) as e:
         datatable(select=cols)
-    assert str(e.type) == "<class 'dt.TypeError'>"
+    assert str(e.type) == "<class 'datatable.TypeError'>"
     assert error_message in str(e.value)
 
 
