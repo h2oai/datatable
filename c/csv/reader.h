@@ -42,9 +42,12 @@ class GenericReader
   int : 24;
 
   // Runtime parameters
-  PyObj filename_arg;
+  PyObj src_arg;
+  PyObj file_arg;
   PyObj text_arg;
   MemoryBuffer* mbuf;
+  int fileno;
+  int : 32;
 
 public:
   GenericReader(const PyObj& pyreader);

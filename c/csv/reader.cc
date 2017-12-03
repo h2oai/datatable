@@ -26,9 +26,12 @@
 GenericReader::GenericReader(const PyObj& pyrdr) {
   nthreads = normalize_nthreads(pyrdr.attr("nthreads").as_int32());
   verbose = pyrdr.attr("verbose").as_bool() == 1;
-  filename_arg = pyrdr.attr("file");
+  src_arg = pyrdr.attr("src");
+  file_arg = pyrdr.attr("file");
   text_arg = pyrdr.attr("text");
+  fileno = pyrdr.attr("fileno").as_int32();
   mbuf = nullptr;
+
   verbose = true; // temporary
 }
 
@@ -49,15 +52,26 @@ int32_t GenericReader::normalize_nthreads(int32_t nthreads) {
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
-  const char* filename = filename_arg.as_cstring();
+  if (fileno > 0) {
+    const char* src = src_arg.as_cstring();
+    if (verbose) printf("  Using file %s opened at fd=%d\n", src, fileno);
+    mbuf = new OvermapMemBuf(src, 1, fileno);
+    if (verbose) printf("  File size: %zu\n", (mbuf->size() - 1));
+    return;
+  }
   const char* text = text_arg.as_cstring();
   if (text) {
     mbuf = new ExternalMemBuf(text);
-  } else if (filename) {
+    return;
+  }
+  const char* filename = file_arg.as_cstring();
+  if (filename) {
     if (verbose) printf("  Opening file %s\n", filename);
     mbuf = new OvermapMemBuf(filename, 1);
     if (verbose) printf("  File opened, size: %zu\n", (mbuf->size() - 1));
+    return;
   }
+  throw RuntimeError() << "No input given to the GenericReader";
 }
 
 const char* GenericReader::dataptr() const {

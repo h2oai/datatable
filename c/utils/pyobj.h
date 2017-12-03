@@ -66,8 +66,9 @@ public:
    * containing the string. The returned pointer will not be owned by the
    * caller, and its lifetime is tied to the lifetime of the current PyObj.
    * This method can be called only once on the PyObj. It is more efficient than
-   * the first one (avoids extra copy), but less safe (the user must handle the
-   * lifetime carefully). If the object is Py_None, a null pointer is returned.
+   * the first one (avoids extra copy), but less safe (the user must not free
+   * the pointer accidentally, and cannot use the pointer after PyObj went out
+   * of scope). If the object is Py_None, a null pointer is returned.
    *
    * The `as_ccstring` method is similar to `as_cstring`, however the returned
    * pointer will be owned by the caller, and the caller is responsible for its
