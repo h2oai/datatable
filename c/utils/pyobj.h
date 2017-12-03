@@ -35,6 +35,7 @@ class PyObj
   mutable PyObject* tmp;
 
 public:
+  PyObj();
   PyObj(PyObject*);
   PyObj(PyObject*, const char* attr);
   PyObj(const PyObj&);
@@ -48,6 +49,7 @@ public:
   PyObj attr(const char* a) const;
 
   int8_t as_bool() const;
+  int32_t as_int32() const;
   int64_t as_int64() const;
   double as_double() const;
 

@@ -19,6 +19,7 @@
 #include <memory>        // std::unique_ptr
 #include "datatable.h"
 #include "memorybuf.h"
+#include "utils/pyobj.h"
 
 // Forward declarations
 struct RelStr;
@@ -36,15 +37,17 @@ struct OutputColumn;
 class GenericReader
 {
   // Input parameters
-  int nthreads;
+  int32_t nthreads;
   bool verbose;
+  int : 24;
+
   // Runtime parameters
   PyObj filename_arg;
   PyObj text_arg;
   MemoryBuffer* mbuf;
 
 public:
-  GenericReader(PyObject* pyreader);
+  GenericReader(const PyObj& pyreader);
   ~GenericReader();
 
   std::unique_ptr<DataTable> read();
@@ -53,7 +56,7 @@ public:
   bool get_verbose() const { return verbose; }
 
 private:
-  static int normalize_nthreads(const PyObj&);
+  static int normalize_nthreads(int nth);
   void open_input();
 };
 

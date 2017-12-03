@@ -120,7 +120,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0_(datatable_load),
     METHODv(datatable_from_buffers),
     METHOD0_(fread),
-    METHOD0_(gread),
+    METHODv(gread),
     METHOD0_(write_csv),
     METHOD0_(exec_function),
     METHOD0_(register_function),

@@ -13,13 +13,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
+#define CSV_PY_CSV_cc
+#include "csv/py_csv.h"
 #include "csv/reader.h"
 #include "csv/writer.h"
 #include <exception>
 #include <vector>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "Python.h"
 #include "py_datatable.h"
 #include "py_fread.h"
 #include "py_utils.h"
@@ -91,18 +92,16 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
 }
 
 
+// Python API function which is a wrapper around GenericReader's functionality.
 PyObject* gread(PyObject*, PyObject* args)
 {
-  PyObject* pyrdr = nullptr;
-  if (!PyArg_ParseTuple(args, "O:gread", &pyrdr)) return nullptr;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:gread", &arg1)) return nullptr;
+  PyObj pyreader(arg1);
 
-  try {
-    GenericReader rdr(pyrdr);
-    return rdr.read();
-
-  } catch (const Error& e) {
-    e.topython();
-  }
+  GenericReader rdr(pyreader);
+  std::unique_ptr<DataTable> dtptr = rdr.read();
+  return pydt_from_dt(dtptr.release());
 }
 
 

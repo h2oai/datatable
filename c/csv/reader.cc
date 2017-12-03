@@ -23,13 +23,12 @@
 
 //------------------------------------------------------------------------------
 
-GenericReader::GenericReader(const PyObj& pyrdr)
-    : nthreads(normalize_nthreads(pyrdr.attr("nthreads"))),
-      verbose(pyrdr.attr("verbose").as_bool()),
-      filename_arg(pyrdr.attr("filename")),
-      text_arg(pyrdr.attr("text")),
-      mbuf(nullptr)
-{
+GenericReader::GenericReader(const PyObj& pyrdr) {
+  nthreads = normalize_nthreads(pyrdr.attr("nthreads").as_int32());
+  verbose = pyrdr.attr("verbose").as_bool() == 1;
+  filename_arg = pyrdr.attr("file");
+  text_arg = pyrdr.attr("text");
+  mbuf = nullptr;
   verbose = true; // temporary
 }
 
@@ -37,9 +36,8 @@ GenericReader::~GenericReader() {
   if (mbuf) mbuf->release();
 }
 
-int GenericReader::normalize_nthreads(const PyObj& nth) {
-  int nthreads = static_cast<int>(nth.as_int64());
-  int maxth = omp_get_max_threads();
+int32_t GenericReader::normalize_nthreads(int32_t nthreads) {
+  int32_t maxth = omp_get_max_threads();
   if (nthreads > maxth) nthreads = maxth;
   if (nthreads <= 0) nthreads += maxth;
   if (nthreads <= 0) nthreads = 1;

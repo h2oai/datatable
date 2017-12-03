@@ -19,6 +19,10 @@
 #include "utils/exceptions.h"
 
 
+PyObj::PyObj() {
+  obj = nullptr;
+  tmp = nullptr;
+}
 
 PyObj::PyObj(PyObject* o) {
   obj = o;
@@ -41,7 +45,7 @@ PyObj::PyObj(const PyObj& other) {
 }
 
 PyObj::~PyObj() {
-  Py_DECREF(obj);
+  Py_XDECREF(obj);
   Py_XDECREF(tmp);
 }
 
@@ -75,6 +79,11 @@ int64_t PyObj::as_int64() const {
   if (PyLong_Check(obj)) return PyLong_AsInt64(obj);
   if (obj == Py_None) return GETNA<int64_t>();
   throw ValueError() << "Value " << obj << " is not integer";
+}
+
+
+int32_t PyObj::as_int32() const {
+  return static_cast<int32_t>(as_int64());
 }
 
 
@@ -125,7 +134,7 @@ char PyObj::as_char() const {
 
 
 PyObject* PyObj::as_pyobject() const {
-  Py_INCREF(obj);
+  Py_XINCREF(obj);
   return obj;
 }
 

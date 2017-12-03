@@ -122,19 +122,21 @@ PyObject* pyfread(PyObject*, PyObject *args)
     dtmalloc_g(frargs, freadMainArgs, 1);
 
     PyObj pyfreader(freader);
+    PyObj src_arg = pyfreader.attr("src");
     PyObj filename_arg = pyfreader.attr("file");
     PyObj input_arg = pyfreader.attr("text");
     PyObj skipstring_arg = pyfreader.attr("skip_to_string");
 
     // filename and input are borrowed references; they remain valid as long as
     // filename_arg and input_arg are alive.
+    const char* src = src_arg.as_cstring();
     const char* filename = filename_arg.as_cstring();
     const char* input = input_arg.as_cstring();
     const char* skipstring = skipstring_arg.as_cstring();
     na_strings = pyfreader.attr("na_strings").as_cstringlist();
     verbose = pyfreader.attr("verbose").as_bool();
     flogger = pyfreader.attr("logger").as_pyobject();
-    int64_t fileno64 = pyfreader.attr("_fileno").as_int64();
+    int64_t fileno64 = pyfreader.attr("fileno").as_int64();
     int fileno = fileno64 < 0? -1 : static_cast<int>(fileno64);
 
     frargs->sep = pyfreader.attr("sep").as_char();
@@ -162,7 +164,8 @@ PyObject* pyfread(PyObject*, PyObject *args)
 
     if (input) {
       mbuf = new ExternalMemBuf(input);
-    } else if (filename) {
+    } else if (filename || fileno > 0) {
+      if (!filename) filename = src;
       if (verbose) DTPRINT("  Opening file %s [fd=%d]", filename, fileno);
       mbuf = new OvermapMemBuf(filename, 1, fileno);
       if (verbose) {
