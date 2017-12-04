@@ -355,14 +355,14 @@ class TextReader(object):
 
         elif ext == ".gz":
             import gzip
-            zf = gzip.GzipFile(filename)
+            zf = gzip.GzipFile(filename, mode="rb")
             if self._verbose:
                 self.logger.debug("  Extracting %s into memory" % filename)
             self._text = zf.read()
 
         elif ext == ".xz":
             import lzma
-            zf = lzma.open(filename)
+            zf = lzma.open(filename, mode="rb")
             if self._verbose:
                 self.logger.debug("  Extracting %s into memory" % filename)
             self._text = zf.read()
