@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread(columns=set(...)) will correctly handle the case when the input contains
   multiple columns with the same names.
 - fread will no longer crash if the input dataset contains invalid utf8/win1252
-  data in the column headers.
+  data in the column headers (#594, #628).
 - fixed bug in exception handling, which occasionally caused empty exception
   messages.
 - fixed bug in fread where string fields starting with "NaN" caused an assertion error.
