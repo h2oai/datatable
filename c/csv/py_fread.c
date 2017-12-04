@@ -693,5 +693,15 @@ void DTPRINT(const char *format, ...) {
         vsnprintf(msg, 2000, format, args);
     }
     va_end(args);
-    PyObject_CallMethod(flogger, "debug", "O", PyUnicode_FromString(msg));
+    // Both methods return new references
+    PyObject* pymsg = PyUnicode_Decode(msg, strlen(msg), "utf-8", "backslashreplace");
+    PyObject* retval = PyObject_CallMethod(flogger, "debug", "O", pymsg);
+    if (pymsg == NULL || retval == NULL) {
+      // Any errors with running the logger are silently ignored: we'd rather
+      // read the file successfully than throw an exception about some debug
+      // message not printing correctly...
+      PyErr_Clear();
+    }
+    Py_XDECREF(retval);
+    Py_XDECREF(pymsg);
 }

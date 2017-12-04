@@ -692,3 +692,13 @@ def test_fread_issue615():
     assert d0.topython() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
                              ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
                              ["Truely"], ["Falsely"], [1]]
+
+
+def test_fread_issue628():
+    """Similar to #594 but read in verbose mode."""
+    d0 = dt.fread(b"a,\x80\n11,2\n", verbose=True)
+    assert d0.internal.check()
+    assert d0.topython() == [[11], [2]]
+    # The interpretation of byte \x80 as symbol € is not set in stone: we may
+    # alter it in the future, or make it platform-dependent?
+    assert d0.names == ("a", "€")
