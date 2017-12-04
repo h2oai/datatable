@@ -633,7 +633,7 @@ class TextReader(object):
 
 
     def read(self):
-        _dt = c.fread(self)
+        _dt = c.gread(self)
         dt = DataTable(_dt, names=self._colnames)
         if self._tempfile:
             if self._verbose:

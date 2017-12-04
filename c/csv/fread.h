@@ -195,7 +195,7 @@ typedef struct ThreadLocalFreadParsingContext
  * It should have been called just "fread", but that name is already defined in
  * the system libraries...
  */
-int freadMain(freadMainArgs args);
+int freadMain(const freadMainArgs& args);
 
 
 /**

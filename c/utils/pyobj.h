@@ -39,6 +39,8 @@ public:
   PyObj(PyObject*);
   PyObj(PyObject*, const char* attr);
   PyObj(const PyObj&);
+  PyObj(PyObj&&);
+  PyObj& operator=(const PyObj& other);
   ~PyObj();
 
   /**

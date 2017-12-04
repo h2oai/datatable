@@ -14,6 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/py_fread.h"
+#include "csv/reader.h"
 #include "csv/fread.h"
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
@@ -93,6 +94,60 @@ static int verbose = 0;
 // duration of the parse. Must not be freed.
 static int8_t *types = NULL;
 static int8_t *sizes = NULL;
+
+
+//------------------------------------------------------------------------------
+
+FreadReader::FreadReader(const GenericReader& g) {
+  frargs.sep = g.sep;
+  frargs.dec = g.dec;
+  frargs.quote = g.quote;
+  frargs.nrowLimit = g.max_nrows;
+  frargs.skipNrow = g.skip_lines;
+  frargs.skipString = g.skip_string;
+  frargs.header = g.header;
+  frargs.verbose = g.verbose;
+  frargs.NAstrings = g.na_strings;
+  frargs.stripWhite = g.strip_white;
+  frargs.skipEmptyLines = g.skip_blank_lines;
+  frargs.fill = g.fill;
+  frargs.showProgress = g.show_progress;
+  frargs.nth = g.nthreads;
+  frargs.warningsAreErrors = 0;
+  frargs.freader = g.freader.as_pyobject();  // new reference
+  frargs.buf = g.mbuf->get();
+  frargs.bufsize = g.mbuf->size();
+  flogger = g.logger;
+}
+
+FreadReader::~FreadReader() {
+  dt = NULL;
+  strbufs = NULL;
+  freader = NULL;
+  flogger = NULL;
+  tempstr = NULL;
+  types = sizes = NULL;
+  ncols = nstrcols = 0;
+  targetdir = NULL;
+  frargs.freader = NULL;
+  mbuf = NULL;
+  na_strings = NULL;
+  // Py_XDECREF(frargs.freader);
+  // Py_XDECREF(tempstr);
+}
+
+
+std::unique_ptr<DataTable> FreadReader::read() {
+  freader = frargs.freader;
+  try {
+    int retval = freadMain(frargs);
+    if (!retval) throw PyError();
+  } catch (const std::exception& e) {
+    freadCleanup();
+    throw;
+  }
+  return std::unique_ptr<DataTable>(dt);
+}
 
 
 
@@ -261,6 +316,7 @@ Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 
 
 static void cleanup_fread_session(freadMainArgs *frargs) {
+  /*
     strbufs = nullptr;
     ncols = 0;
     nstrcols = 0;
@@ -283,6 +339,7 @@ static void cleanup_fread_session(freadMainArgs *frargs) {
     pyfree(flogger);
     pyfree(tempstr);
     dt = NULL;
+  */
 }
 
 
@@ -322,7 +379,7 @@ bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
   if (!ret) {
     pyfree(colTypesList);
     pyfree(colNamesList);
-    return 0;
+    throw PyError();
   }
 
   for (int i = 0; i < ncols_; i++) {

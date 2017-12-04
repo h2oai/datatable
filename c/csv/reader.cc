@@ -24,39 +24,87 @@
 //------------------------------------------------------------------------------
 
 GenericReader::GenericReader(const PyObj& pyrdr) {
-  nthreads = normalize_nthreads(pyrdr.attr("nthreads").as_int32());
-  verbose = pyrdr.attr("verbose").as_bool() == 1;
+  mbuf = nullptr;
+  freader = pyrdr;
   src_arg = pyrdr.attr("src");
   file_arg = pyrdr.attr("file");
   text_arg = pyrdr.attr("text");
   fileno = pyrdr.attr("fileno").as_int32();
-  mbuf = nullptr;
 
-  verbose = true; // temporary
+  logger = pyrdr.attr("logger").as_pyobject();
+  set_nthreads(pyrdr.attr("nthreads").as_int32());
+  set_verbose(pyrdr.attr("verbose").as_bool());
+  set_fill(pyrdr.attr("fill").as_bool());
+  sep = pyrdr.attr("sep").as_char();
+  dec = pyrdr.attr("dec").as_char();
+  quote = pyrdr.attr("quotechar").as_char();
+  set_maxnrows(pyrdr.attr("max_nrows").as_int64());
+  set_skiplines(pyrdr.attr("skip_lines").as_int64());
+  header = pyrdr.attr("header").as_bool();
+  strip_white = pyrdr.attr("strip_white").as_bool();
+  skip_blank_lines = pyrdr.attr("skip_blank_lines").as_bool();
+  show_progress = pyrdr.attr("show_progress").as_bool();
+  skipstring_arg = pyrdr.attr("skip_to_string");
+  skip_string = skipstring_arg.as_cstring();
+  na_strings = pyrdr.attr("na_strings").as_cstringlist();
 }
 
 GenericReader::~GenericReader() {
   if (mbuf) mbuf->release();
 }
 
-int32_t GenericReader::normalize_nthreads(int32_t nthreads) {
+
+void GenericReader::set_nthreads(int32_t nth) {
   int32_t maxth = omp_get_max_threads();
-  if (nthreads > maxth) nthreads = maxth;
-  if (nthreads <= 0) nthreads += maxth;
-  if (nthreads <= 0) nthreads = 1;
-  return nthreads;
+  if (nth > maxth) nth = maxth;
+  if (nth <= 0) nth += maxth;
+  if (nth <= 0) nth = 1;
+  nthreads = nth;
+}
+
+void GenericReader::set_verbose(int8_t v) {
+  verbose = (v > 0);
+  verbose = true;  // temporarily
+}
+
+void GenericReader::set_fill(int8_t v) {
+  fill = (v > 0);
+}
+
+void GenericReader::set_maxnrows(int64_t n) {
+  max_nrows = (n < 0)? LONG_MAX : n;
+}
+
+void GenericReader::set_skiplines(int64_t n) {
+  skip_lines = (n < 0)? 0 : n;
 }
 
 
 
 //------------------------------------------------------------------------------
 
+void GenericReader::trace(const char* format, ...) const {
+  if (!verbose) return;
+  va_list args;
+  va_start(args, format);
+  char *msg;
+  if (strcmp(format, "%s") == 0) {
+    msg = va_arg(args, char*);
+  } else {
+    msg = (char*) alloca(2001);
+    vsnprintf(msg, 2000, format, args);
+  }
+  va_end(args);
+  PyObject_CallMethod(logger, "debug", "O", PyUnicode_FromString(msg));
+}
+
+
 void GenericReader::open_input() {
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
-    if (verbose) printf("  Using file %s opened at fd=%d\n", src, fileno);
     mbuf = new OvermapMemBuf(src, 1, fileno);
-    if (verbose) printf("  File size: %zu\n", (mbuf->size() - 1));
+    trace("  Using file %s opened at fd=%d; size = %zu\n",
+          src, fileno, (mbuf->size() - 1));
     return;
   }
   const char* text = text_arg.as_cstring();
@@ -66,9 +114,8 @@ void GenericReader::open_input() {
   }
   const char* filename = file_arg.as_cstring();
   if (filename) {
-    if (verbose) printf("  Opening file %s\n", filename);
     mbuf = new OvermapMemBuf(filename, 1);
-    if (verbose) printf("  File opened, size: %zu\n", (mbuf->size() - 1));
+    trace("  File \"%s\" opened, size: %zu\n", filename, (mbuf->size() - 1));
     return;
   }
   throw RuntimeError() << "No input given to the GenericReader";
@@ -84,12 +131,17 @@ std::unique_ptr<DataTable> GenericReader::read()
   open_input();
 
   {
-    ArffReader arffreader(*this);
-    auto dt = arffreader.read();
+    FreadReader frreader(*this);
+    auto dt = frreader.read();
     if (dt) return dt;
   }
+  // {
+  //   ArffReader arffreader(*this);
+  //   auto dt = arffreader.read();
+  //   if (dt) return dt;
+  // }
 
-  return nullptr;
+  throw RuntimeError() << "Unable to read input " << src_arg.as_cstring();
 }
 
 

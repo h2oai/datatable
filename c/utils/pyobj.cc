@@ -44,6 +44,21 @@ PyObj::PyObj(const PyObj& other) {
   Py_INCREF(obj);
 }
 
+PyObj::PyObj(PyObj&& other) {
+  obj = other.obj;
+  tmp = other.tmp;
+  other.obj = nullptr;
+  other.tmp = nullptr;
+}
+
+PyObj& PyObj::operator=(const PyObj& other) {
+  obj = other.obj;
+  tmp = other.tmp;
+  Py_XINCREF(obj);
+  Py_XINCREF(tmp);
+  return *this;
+}
+
 PyObj::~PyObj() {
   Py_XDECREF(obj);
   Py_XDECREF(tmp);
@@ -100,6 +115,7 @@ double PyObj::as_double() const {
 
 
 const char* PyObj::as_cstring() const {
+  if (!obj) throw ValueError() << "PyObj() was not initialized properly";
   if (PyUnicode_Check(obj)) {
     if (tmp) throw RuntimeError() << "Cannot convert to string more than once";
     tmp = PyUnicode_AsEncodedString(obj, "utf-8", "strict");

@@ -54,6 +54,7 @@ typedef struct StrBuf {
     do {                                                                       \
         PyErr_Format(PyExc_RuntimeError, __VA_ARGS__);                         \
         freadCleanup();                                                        \
+        throw PyError(); \
         return 0;                                                              \
     } while(0)
 

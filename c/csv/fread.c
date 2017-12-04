@@ -928,7 +928,7 @@ static reader_fun_t fun[NUMTYPE] = {
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-int freadMain(freadMainArgs _args)
+int freadMain(const freadMainArgs& _args)
 {
   args = _args;  // assign to global for use by DTPRINT() in other functions
   double t0 = wallclock();

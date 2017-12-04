@@ -17,6 +17,7 @@
 #define dt_CSV_READER_H
 #include <Python.h>
 #include <memory>        // std::unique_ptr
+#include "csv/fread.h"
 #include "datatable.h"
 #include "memorybuf.h"
 #include "utils/pyobj.h"
@@ -37,16 +38,31 @@ struct OutputColumn;
 class GenericReader
 {
   // Input parameters
+  PyObject* logger;
   int32_t nthreads;
   bool verbose;
-  int : 24;
+  char sep;
+  char dec;
+  char quote;
+  int64_t max_nrows;
+  int64_t skip_lines;
+  const char* skip_string;
+  const char* const* na_strings;
+  int8_t header;
+  bool strip_white;
+  bool skip_blank_lines;
+  bool show_progress;
+  bool fill;
+  int: 24;
 
   // Runtime parameters
+  PyObj freader;
   PyObj src_arg;
   PyObj file_arg;
   PyObj text_arg;
+  PyObj skipstring_arg;
   MemoryBuffer* mbuf;
-  int fileno;
+  int32_t fileno;
   int : 32;
 
 public:
@@ -57,10 +73,16 @@ public:
 
   const char* dataptr() const;
   bool get_verbose() const { return verbose; }
+  void trace(const char* format, ...) const;
 
 private:
-  static int normalize_nthreads(int nth);
+  void set_nthreads(int32_t nthreads);
+  void set_verbose(int8_t verbose);
+  void set_fill(int8_t fill);
+  void set_maxnrows(int64_t n);
+  void set_skiplines(int64_t n);
   void open_input();
+  friend class FreadReader;
 };
 
 
@@ -123,6 +145,16 @@ private:
   void skip_newlines();
 };
 
+
+
+class FreadReader {
+  freadMainArgs frargs;
+
+public:
+  FreadReader(const GenericReader& g);
+  ~FreadReader();
+  std::unique_ptr<DataTable> read();
+};
 
 
 //------------------------------------------------------------------------------
