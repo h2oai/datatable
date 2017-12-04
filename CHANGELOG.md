@@ -61,7 +61,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fixed bug in exception handling, which occasionally caused empty exception
   messages.
 - fixed bug in fread where string fields starting with "NaN" caused an assertion error.
-
+- Fixed bug when saving a DataTable with unicode column names into .nff format
+  on systems where default encoding is not unicode-aware.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18

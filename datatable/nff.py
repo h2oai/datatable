@@ -27,7 +27,7 @@ def save(dt, dest):
     else:
         os.makedirs(dest)
     metafile = os.path.join(dest, "_meta.nff")
-    with _builtin_open(metafile, "w") as out:
+    with _builtin_open(metafile, "w", encoding="utf-8") as out:
         out.write("# NFF1\n")
         out.write("# nrows = %d\n" % dt.nrows)
         out.write('filename,stype,meta,colname\n')
@@ -57,7 +57,7 @@ def open(path):
 
         nrows = 0
         metafile = os.path.join(path, "_meta.nff")
-        with _builtin_open(metafile) as inp:
+        with _builtin_open(metafile, encoding="utf-8") as inp:
             info = []
             for line in inp:
                 if line.startswith("#"):

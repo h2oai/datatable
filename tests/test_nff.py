@@ -33,3 +33,14 @@ def test_empty_string_col():
     dt1 = dt.open(dir1)
     assert_equals(dt0, dt1)
     shutil.rmtree(dir1)
+
+
+def test_issue627():
+    """Test saving DataTable with unicode file names"""
+    dir1 = tempfile.mkdtemp()
+    dt0 = dt.DataTable({"py": [1], "ру": [2], "рy": [3], "pу": [4]})
+    assert dt0.shape == (1, 4)
+    dt.save(dt0, dir1)
+    dt1 = dt.open(dir1)
+    assert_equals(dt0, dt1)
+    shutil.rmtree(dir1)
