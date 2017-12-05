@@ -46,15 +46,10 @@ static const SType colType_to_stype[NUMTYPE] = {
 };
 
 
-// Forward declarations
-static void cleanup_fread_session(freadMainArgs *frargs);
-
-
 
 // Python FReader object, which holds specifications for the current reader
 // logic. This reference is non-NULL when fread() is running; and serves as a
 // lock preventing from running multiple fread() instances.
-static PyObject *freader = NULL;
 static PyObject *flogger = NULL;
 static PyObject *tempstr = NULL;
 
@@ -86,7 +81,6 @@ static char fname[1000];
 static int ncols = 0;
 static int nstrcols = 0;
 static int ndigits = 0;
-static int verbose = 0;
 
 // types -- array of types for each field in the input file. Length = `ncols`.
 // sizes -- array of byte sizes for each field. Length = `ncols`.
@@ -121,136 +115,31 @@ FreadReader::FreadReader(const GenericReader& g) {
 }
 
 FreadReader::~FreadReader() {
+  freadCleanup();
   dt = NULL;
   strbufs = NULL;
-  freader = NULL;
   flogger = NULL;
-  tempstr = NULL;
   types = sizes = NULL;
   ncols = nstrcols = 0;
   targetdir = NULL;
-  frargs.freader = NULL;
   mbuf = NULL;
   na_strings = NULL;
-  // Py_XDECREF(frargs.freader);
-  // Py_XDECREF(tempstr);
+  Py_XDECREF(frargs.freader);
+  Py_XDECREF(tempstr);
+  frargs.freader = NULL;
+  tempstr = NULL;
 }
 
 
 std::unique_ptr<DataTable> FreadReader::read() {
-  freader = frargs.freader;
-  try {
-    int retval = freadMain(frargs);
-    if (!retval) throw PyError();
-  } catch (const std::exception& e) {
-    freadCleanup();
-    throw;
-  }
+  int retval = freadMain();
+  if (!retval) throw PyError();
   return std::unique_ptr<DataTable>(dt);
 }
 
 
 
 //------------------------------------------------------------------------------
-
-/**
- * Python wrapper around `freadMain()`. This function extracts the arguments
- * from the provided :class:`FReader` python object, converts them into the
- * `freadMainArgs` structure, and then passes that structure to the `freadMain`
- * function.
- */
-PyObject* pyfread(PyObject*, PyObject *args)
-{
-  PyObject* pydt = NULL;
-  int retval = 0;
-  freadMainArgs *frargs = NULL;
-  if (freader != NULL || dt != NULL) {
-      PyErr_SetString(PyExc_RuntimeError,
-          "Cannot run multiple instances of fread() in-parallel.");
-      return NULL;
-  }
-  if (!PyArg_ParseTuple(args, "O:fread", &freader))
-      return NULL;
-
-  try {
-    Py_INCREF(freader);
-    dtmalloc_g(frargs, freadMainArgs, 1);
-
-    PyObj pyfreader(freader);
-    PyObj src_arg = pyfreader.attr("src");
-    PyObj filename_arg = pyfreader.attr("file");
-    PyObj input_arg = pyfreader.attr("text");
-    PyObj skipstring_arg = pyfreader.attr("skip_to_string");
-
-    // filename and input are borrowed references; they remain valid as long as
-    // filename_arg and input_arg are alive.
-    const char* src = src_arg.as_cstring();
-    const char* filename = filename_arg.as_cstring();
-    const char* input = input_arg.as_cstring();
-    const char* skipstring = skipstring_arg.as_cstring();
-    na_strings = pyfreader.attr("na_strings").as_cstringlist();
-    verbose = pyfreader.attr("verbose").as_bool();
-    flogger = pyfreader.attr("logger").as_pyobject();
-    int64_t fileno64 = pyfreader.attr("fileno").as_int64();
-    int fileno = fileno64 < 0? -1 : static_cast<int>(fileno64);
-
-    frargs->sep = pyfreader.attr("sep").as_char();
-    frargs->dec = pyfreader.attr("dec").as_char();
-    frargs->quote = pyfreader.attr("quotechar").as_char();
-    frargs->nrowLimit = pyfreader.attr("max_nrows").as_int64();
-    frargs->skipNrow = pyfreader.attr("skip_lines").as_int64();
-    frargs->skipString = skipstring;
-    frargs->header = pyfreader.attr("header").as_bool();
-    frargs->verbose = verbose;
-    frargs->NAstrings = (const char* const*) na_strings;
-    frargs->stripWhite = pyfreader.attr("strip_white").as_bool();
-    frargs->skipEmptyLines = pyfreader.attr("skip_blank_lines").as_bool();
-    frargs->fill = pyfreader.attr("fill").as_bool();
-    frargs->showProgress = pyfreader.attr("show_progress").as_bool();
-    frargs->nth = static_cast<int32_t>(pyfreader.attr("nthreads").as_int64());
-    frargs->warningsAreErrors = 0;
-    if (frargs->nrowLimit < 0)
-        frargs->nrowLimit = LONG_MAX;
-    if (frargs->skipNrow < 0)
-        frargs->skipNrow = 0;
-
-    frargs->freader = freader;
-    Py_INCREF(freader);
-
-    if (input) {
-      mbuf = new ExternalMemBuf(input);
-    } else if (filename || fileno > 0) {
-      if (!filename) filename = src;
-      if (verbose) DTPRINT("  Opening file %s [fd=%d]", filename, fileno);
-      mbuf = new OvermapMemBuf(filename, 1, fileno);
-      if (verbose) {
-        size_t sz = mbuf->size();
-        DTPRINT("  File opened, size: %s", sz? filesize_to_str(sz - 1) : "0");
-      }
-    } else {
-      throw ValueError() << "Neither filename nor input were provided";
-    }
-    frargs->buf = mbuf->get();
-    frargs->bufsize = mbuf->size();
-
-    retval = freadMain(*frargs);
-    if (!retval) goto fail;
-
-    pydt = pydt_from_dt(dt);
-    if (pydt == NULL) goto fail;
-    cleanup_fread_session(frargs);
-    return pydt;
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    // fall-through into the "fail" clause
-  }
-
-  fail:
-    delete dt;
-    cleanup_fread_session(frargs);
-    dtfree(frargs);
-    return NULL;
-}
 
 
 void decode_utf16(freadMainArgs* args) {
@@ -315,37 +204,7 @@ Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
 
 
 
-static void cleanup_fread_session(freadMainArgs *frargs) {
-  /*
-    strbufs = nullptr;
-    ncols = 0;
-    nstrcols = 0;
-    types = NULL;
-    sizes = NULL;
-    dtfree(targetdir);
-    if (mbuf) {
-      mbuf->release();
-      mbuf = NULL;
-    }
-    if (frargs) {
-        if (na_strings) {
-            char **ptr = na_strings;
-            while (*ptr++) delete[] *ptr;
-            delete[] na_strings;
-        }
-        pyfree(frargs->freader);
-    }
-    pyfree(freader);
-    pyfree(flogger);
-    pyfree(tempstr);
-    dt = NULL;
-  */
-}
-
-
-
-bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
-                   int ncols_)
+bool FreadReader::userOverride(int8_t *types_, lenOff *colNames, const char *anchor, int ncols_)
 {
   types = types_;
   PyObject *colNamesList = PyList_New(ncols_);
@@ -374,7 +233,7 @@ bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
     PyList_SET_ITEM(colNamesList, i, pycol);
     PyList_SET_ITEM(colTypesList, i, pytype);
   }
-  PyObject *ret = PyObject_CallMethod(freader, "_override_columns",
+  PyObject *ret = PyObject_CallMethod(frargs.freader, "_override_columns",
                                       "OO", colNamesList, colTypesList);
   if (!ret) {
     pyfree(colTypesList);
@@ -397,8 +256,8 @@ bool userOverride(int8_t *types_, lenOff *colNames, const char *anchor,
 /**
  * Allocate memory for the DataTable that is being constructed.
  */
-size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
-                  size_t nrows)
+size_t FreadReader::allocateDT(int8_t *types_, int8_t *sizes_, int ncols_,
+                               int ndrop_, size_t nrows)
 {
     Column **columns = NULL;
     types = types_;
@@ -432,7 +291,7 @@ size_t allocateDT(int8_t *types_, int8_t *sizes_, int ncols_, int ndrop_,
 
         // Call the Python upstream to determine the strategy where the
         // DataTable should be created.
-        PyObject *r = PyObject_CallMethod(freader, "_get_destination", "n", alloc_size);
+        PyObject *r = PyObject_CallMethod(frargs.freader, "_get_destination", "n", alloc_size);
         targetdir = PyObj(r).as_ccstring();
     } else {
         assert(dt != NULL && ncols == ncols_);
@@ -724,8 +583,8 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void progress(double percent/*[0,100]*/) {
-    PyObject_CallMethod(freader, "_progress", "d", percent);
+void FreadReader::progress(double percent/*[0,100]*/) {
+    PyObject_CallMethod(frargs.freader, "_progress", "d", percent);
 }
 
 

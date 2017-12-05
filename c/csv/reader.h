@@ -147,6 +147,9 @@ private:
 
 
 
+/**
+ * Wrapper class around `freadMain` function.
+ */
 class FreadReader {
   freadMainArgs frargs;
 
@@ -154,6 +157,97 @@ public:
   FreadReader(const GenericReader& g);
   ~FreadReader();
   std::unique_ptr<DataTable> read();
+
+private:
+  int freadMain();
+
+  int makeEmptyDT();
+
+  /**
+   * This callback is invoked by `freadMain` after the initial pre-scan of the
+   * file, when all parsing parameters have been determined; most importantly the
+   * column names and their types.
+   *
+   * This function serves two purposes: first, it tells the upstream code what the
+   * detected column names are; and secondly what is the expected type of each
+   * column. The upstream code then has an opportunity to upcast the column types
+   * if requested by the user, or mark some columns as skipped.
+   *
+   * @param types
+   *    type codes of each column in the CSV file. Possible type codes are
+   *    described by the `colType` enum. The function may modify this array
+   *    setting some types to 0 (CT_DROP), or upcasting the types. Downcasting is
+   *    not allowed and will trigger an error from `freadMain` later on.
+   *
+   * @param colNames
+   *    array of `lenOff` structures (offsets are relative to the `anchor`)
+   *    describing the column names. If the CSV file had no header row, then this
+   *    array will be filled with 0s.
+   *
+   * @param anchor
+   *    pointer to a string buffer (usually somewhere inside the memory-mapped
+   *    file) within which the column names are located, as described by the
+   *    `colNames` array.
+   *
+   * @param ncols
+   *    total number of columns. This is the length of arrays `types` and
+   *    `colNames`.
+   *
+   * @return
+   *    this function may return `false` to request that fread abort reading
+   *    the CSV file. Normally, this function should return `true`.
+   */
+  bool userOverride(int8_t *types, lenOff* colNames, const char* anchor, int ncols);
+
+  /**
+   * This function is invoked by `freadMain` right before the main scan of the
+   * input file. This function should allocate the resulting `DataTable` structure
+   * and prepare to receive the data in chunks.
+   *
+   * If the input file needs to be re-read due to out-of-sample type exceptions,
+   * then this function will be called second time with updated `types` array.
+   * Then this function's responsibility is to update the allocation of those
+   * columns properly.
+   *
+   * @param types
+   *     array of type codes for each column. Same as in the `userOverride`
+   *     function.
+   *
+   * @param sizes
+   *    the size (in bytes) of each column within the buffer(s) that will be
+   *    passed to `pushBuffer()` during the scan. This array should be saved for
+   *    later use. It exists mostly for convenience, since the size of each
+   *    non-skipped column may be determined from that column's type.
+   *
+   * @param ncols
+   *    number of columns in the CSV file. This is the size of arrays `types` and
+   *    `sizes`.
+   *
+   * @param ndrop
+   *    count of columns with type CT_DROP. This parameter is provided for
+   *    convenience, since it can always be computed from `types`. The resulting
+   *    datatable will have `ncols - ndrop` columns.
+   *
+   * @param nrows
+   *    the number of rows to allocate for the datatable. This number of rows is
+   *    estimated during the initial pre-scan, and then adjusted upwards to
+   *    account for possible variation. It is very unlikely that this number
+   *    underestimates the final row count.
+   *
+   * @return
+   *    this function should return the total size of the Datatable created (for
+   *    reporting purposes). If the return value is 0, then it indicates an error
+   *    and `fread` will abort.
+   */
+  size_t allocateDT(int8_t* types, int8_t* sizes, int ncols, int ndrop, size_t nrows);
+
+  /**
+   * Progress-reporting function.
+   *
+   * @param percent
+   *    A number from 0 to 100
+   */
+  void progress(double percent);
 };
 
 

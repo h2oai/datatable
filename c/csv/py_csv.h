@@ -20,7 +20,6 @@
 
 // TODO: clean up these old-style declarations
 PyObject* pywrite_csv(PyObject* self, PyObject* args);
-PyObject* pyfread(PyObject* self, PyObject* args);
 
 
 DECLARE_FUNCTION(

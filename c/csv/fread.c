@@ -1,5 +1,6 @@
 #include "csv/fread.h"
 #include "csv/freadLookups.h"
+#include "csv/reader.h"
 #ifdef WIN32             // means WIN64, too, oddly
   #include <windows.h>
 #else
@@ -292,7 +293,7 @@ static inline bool nextGoodLine(const char **pch, int ncol)
   return false;
 }
 
-static int makeEmptyDT() {
+int FreadReader::makeEmptyDT() {
   if (args.verbose) DTPRINT("  Input is empty, creating a (0 x 0) DataTable");
   allocateDT(NULL, NULL, 0, 0, 0);
   freadCleanup();
@@ -928,9 +929,9 @@ static reader_fun_t fun[NUMTYPE] = {
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-int freadMain(const freadMainArgs& _args)
+int FreadReader::freadMain()
 {
-  args = _args;  // assign to global for use by DTPRINT() in other functions
+  args = frargs;  // assign to global for use by DTPRINT() in other functions
   double t0 = wallclock();
 
   //*********************************************************************************************
