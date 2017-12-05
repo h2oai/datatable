@@ -20,7 +20,7 @@ curdir = os.path.dirname(os.path.abspath(__file__))
 
 # Determine the version
 version = None
-with open("datatable/__version__.py") as f:
+with open("datatable/__version__.py", encoding="utf-8") as f:
     rx = re.compile(r"""version\s*=\s*['"]([\d.]*)['"]\s*""")
     for line in f:
         mm = re.match(rx, line)
