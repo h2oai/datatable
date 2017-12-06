@@ -114,7 +114,7 @@ def test_utf16(tempfile):
 
 def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
-    # return [427901879]
+    # return [767904686]
     n = 25
     if os.environ.get(root_env_name, "") != "":
         n = 500
@@ -174,6 +174,10 @@ def test_fread_omnibus(seed):
         out.append("")  # Ensures trailing newline
     nl = random.choice(["\n", "\n", "\r", "\r\n", "\n\r", "\r\r\n"])
     text = nl.join(out)
+    if ncols == 0:
+        # A datatable with 0 cols and N rows will serialize into N newlines,
+        # which are read as an empty datatable (nrows = 0).
+        nrows = 0
 
     params["text"] = text
     d0 = dt.fread(**params)
