@@ -30,10 +30,10 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   file_arg = pyrdr.attr("file");
   text_arg = pyrdr.attr("text");
   fileno = pyrdr.attr("fileno").as_int32();
-
   logger = pyrdr.attr("logger");
-  set_nthreads(pyrdr.attr("nthreads").as_int32());
+
   set_verbose(pyrdr.attr("verbose").as_bool());
+  set_nthreads(pyrdr.attr("nthreads").as_int32());
   set_fill(pyrdr.attr("fill").as_bool());
   sep = pyrdr.attr("sep").as_char();
   dec = pyrdr.attr("dec").as_char();
@@ -47,6 +47,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   skipstring_arg = pyrdr.attr("skip_to_string");
   skip_string = skipstring_arg.as_cstring();
   na_strings = pyrdr.attr("na_strings").as_cstringlist();
+  warnings_to_errors = 0;
 }
 
 GenericReader::~GenericReader() {
@@ -55,16 +56,17 @@ GenericReader::~GenericReader() {
 
 
 void GenericReader::set_nthreads(int32_t nth) {
-  int32_t maxth = omp_get_max_threads();
-  if (nth > maxth) nth = maxth;
-  if (nth <= 0) nth += maxth;
-  if (nth <= 0) nth = 1;
   nthreads = nth;
+  int32_t maxth = omp_get_max_threads();
+  if (nthreads > maxth) nthreads = maxth;
+  if (nthreads <= 0) nthreads += maxth;
+  if (nthreads <= 0) nthreads = 1;
+  trace("  Using %d threads (requested=%d, max.available=%d)",
+        nthreads, nth, maxth);
 }
 
 void GenericReader::set_verbose(int8_t v) {
   verbose = (v > 0);
-  verbose = true;  // temporarily
 }
 
 void GenericReader::set_fill(int8_t v) {
@@ -83,6 +85,7 @@ void GenericReader::set_skiplines(int64_t n) {
 
 //------------------------------------------------------------------------------
 
+__attribute__((format(printf, 2, 3)))
 void GenericReader::trace(const char* format, ...) const {
   if (!verbose) return;
   va_list args;
@@ -95,8 +98,19 @@ void GenericReader::trace(const char* format, ...) const {
     vsnprintf(msg, 2000, format, args);
   }
   va_end(args);
-  logger.invoke("debug", "(O)", PyUnicode_FromString(msg));
+
+  try {
+    Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
+    PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
+                                       "backslashreplace");  // new ref
+    if (!pymsg) throw PyError();
+    logger.invoke("debug", "(O)", pymsg);
+    Py_XDECREF(pymsg);
+  } catch (const std::exception&) {
+    // ignore any exceptions
+  }
 }
+
 
 
 void GenericReader::open_input() {
@@ -338,10 +352,10 @@ ThreadContext::~ThreadContext() {
 
 
 void ThreadContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
-  int64_t ncols = static_cast<int64_t>(columns.size());
-  for (int64_t i = 0; i < ncols; ++i) {
+  size_t ncols = columns.size();
+  for (size_t i = 0; i < ncols; ++i) {
     if (columns[i].type == ColumnSpec::Type::String) {
-      strbufs.push_back(StrBuf2(i));
+      strbufs.push_back(StrBuf2(static_cast<int64_t>(i)));
     }
   }
 }

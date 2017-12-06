@@ -52,25 +52,13 @@ static char fname[1000];
 //------------------------------------------------------------------------------
 
 FreadReader::FreadReader(GenericReader& greader) : g(greader) {
-  frargs.sep = g.sep;
-  frargs.dec = g.dec;
-  frargs.quote = g.quote;
-  frargs.nrowLimit = g.max_nrows;
-  frargs.skipNrow = g.skip_lines;
-  frargs.skipString = g.skip_string;
-  frargs.header = g.header;
-  frargs.verbose = g.verbose;
-  frargs.NAstrings = g.na_strings;
-  frargs.stripWhite = g.strip_white;
-  frargs.skipEmptyLines = g.skip_blank_lines;
-  frargs.fill = g.fill;
-  frargs.showProgress = g.show_progress;
-  frargs.nth = g.nthreads;
-  frargs.warningsAreErrors = 0;
-  frargs.buf = g.mbuf->get();
-  frargs.bufsize = g.mbuf->size();
   targetdir = nullptr;
   strbufs = nullptr;
+  colNames = nullptr;
+  lineCopy = nullptr;
+  types = nullptr;
+  sizes = nullptr;
+  old_types = nullptr;
   ncols = 0;
   nstrcols = 0;
   ndigits = 0;
@@ -79,6 +67,11 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
 FreadReader::~FreadReader() {
   freadCleanup();
   delete[] strbufs;
+  free(colNames);
+  free(lineCopy);
+  free(types);
+  free(sizes);
+  free(old_types);
 }
 
 
@@ -96,17 +89,19 @@ std::unique_ptr<DataTable> FreadReader::read() {
 void FreadReader::decode_utf16() {
   int byteorder = 0;
   // bufsize includes trailing \0, hence -1
-  Py_ssize_t size = static_cast<Py_ssize_t>(frargs.bufsize - 1);
+  Py_ssize_t size = static_cast<Py_ssize_t>(g.mbuf->size() - 1);
 
   tempstr = PyObj::fromPyObjectNewRef(
-    PyUnicode_DecodeUTF16(static_cast<char*>(frargs.buf), size,
+    PyUnicode_DecodeUTF16(g.mbuf->getstr(), size,
                           "replace", &byteorder)
   );
   PyObject* t = tempstr.as_pyobject();
   // borrowed reference
   char* buf = PyUnicode_AsUTF8AndSize(t, &size);
-  frargs.buf = buf;
-  frargs.bufsize = static_cast<size_t>(size) + 1;
+  // frargs.buf_ = buf;
+  // frargs.bufsize_ = static_cast<size_t>(size) + 1;
+  g.mbuf->release();
+  g.mbuf = new ExternalMemBuf(buf, static_cast<size_t>(size) + 1);
   Py_DECREF(t);
 }
 
@@ -159,7 +154,7 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-bool FreadReader::userOverride(int8_t *types_, lenOff *colNames, const char *anchor, int ncols_)
+bool FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
 {
   types = types_;
   PyObject *colNamesList = PyList_New(ncols_);
@@ -205,12 +200,9 @@ bool FreadReader::userOverride(int8_t *types_, lenOff *colNames, const char *anc
 /**
  * Allocate memory for the DataTable that is being constructed.
  */
-size_t FreadReader::allocateDT(int8_t *types_, int8_t *sizes_, int ncols_,
-                               int ndrop_, size_t nrows)
+size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
 {
     Column **columns = NULL;
-    types = types_;
-    sizes = sizes_;
     nstrcols = 0;
 
     // First we need to estimate the size of the dataset that needs to be
@@ -545,30 +537,4 @@ void FreadReader::freeThreadContext(ThreadLocalFreadParsingContext *ctx)
     }
     dtfree(ctx->strbufs);
   }
-}
-
-
-__attribute__((format(printf, 2, 3)))
-void FreadReader::DTPRINT(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    char *msg;
-    if (strcmp(format, "%s") == 0) {
-        msg = va_arg(args, char*);
-    } else {
-        msg = (char*) alloca(2001);
-        vsnprintf(msg, 2000, format, args);
-    }
-    va_end(args);
-    try {
-      Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
-      PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
-                                         "backslashreplace");  // new ref
-      if (!pymsg) throw PyError();
-      g.logger.invoke("debug", "(O)", pymsg);
-      Py_XDECREF(pymsg);
-    } catch (const std::exception&) {
-      throw;
-      // ignore any exceptions
-    }
 }

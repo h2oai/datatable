@@ -53,7 +53,8 @@ class GenericReader
   bool skip_blank_lines;
   bool show_progress;
   bool fill;
-  int: 24;
+  bool warnings_to_errors;
+  int: 16;
 
   // Runtime parameters
   PyObj logger;
@@ -158,7 +159,8 @@ private:
 class FreadReader
 {
   GenericReader& g;
-  freadMainArgs frargs;
+  lenOff* colNames;
+  char* lineCopy;
 
   //----- Runtime parameters ---------------------------------------------------
   // ncols: number of fields in the CSV file. This field first becomes available
@@ -182,6 +184,7 @@ class FreadReader
   int: 32;
   int8_t* types;
   int8_t* sizes;
+  int8_t* old_types;
 
 
 public:
@@ -212,11 +215,6 @@ private:
    *    setting some types to 0 (CT_DROP), or upcasting the types. Downcasting is
    *    not allowed and will trigger an error from `freadMain` later on.
    *
-   * @param colNames
-   *    array of `lenOff` structures (offsets are relative to the `anchor`)
-   *    describing the column names. If the CSV file had no header row, then this
-   *    array will be filled with 0s.
-   *
    * @param anchor
    *    pointer to a string buffer (usually somewhere inside the memory-mapped
    *    file) within which the column names are located, as described by the
@@ -230,7 +228,7 @@ private:
    *    this function may return `false` to request that fread abort reading
    *    the CSV file. Normally, this function should return `true`.
    */
-  bool userOverride(int8_t *types, lenOff* colNames, const char* anchor, int ncols);
+  bool userOverride(int8_t *types, const char* anchor, int ncols);
 
   /**
    * This function is invoked by `freadMain` right before the main scan of the
@@ -241,16 +239,6 @@ private:
    * then this function will be called second time with updated `types` array.
    * Then this function's responsibility is to update the allocation of those
    * columns properly.
-   *
-   * @param types
-   *     array of type codes for each column. Same as in the `userOverride`
-   *     function.
-   *
-   * @param sizes
-   *    the size (in bytes) of each column within the buffer(s) that will be
-   *    passed to `pushBuffer()` during the scan. This array should be saved for
-   *    later use. It exists mostly for convenience, since the size of each
-   *    non-skipped column may be determined from that column's type.
    *
    * @param ncols
    *    number of columns in the CSV file. This is the size of arrays `types` and
@@ -272,7 +260,7 @@ private:
    *    reporting purposes). If the return value is 0, then it indicates an error
    *    and `fread` will abort.
    */
-  size_t allocateDT(int8_t* types, int8_t* sizes, int ncols, int ndrop, size_t nrows);
+  size_t allocateDT(int ncols, int ndrop, size_t nrows);
 
   /**
    * Called at the end to specify what the actual number of rows in the datatable
@@ -302,8 +290,7 @@ private:
   void pushBuffer(ThreadLocalFreadParsingContext *ctx);
   void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 
-
-  void DTPRINT(const char *format, ...);
+  const char* printTypes(int ncol) const;
 };
 
 

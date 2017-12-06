@@ -56,11 +56,6 @@ typedef struct {
 
 typedef struct freadMainArgs
 {
-  // Pointer to the memory region that holds the data to be read + its size.
-  // The buffer must be '\0'-terminated (i.e. `*(buf + bufsize - 1) == 0`).
-  void* buf;
-  size_t bufsize;
-
   // Maximum number of rows to read, or INT64_MAX to read the entire dataset.
   // Note that even if `nrowLimit = 0`, fread() will scan a sample of rows in
   // the file to detect column names and types (and other parsing settings).

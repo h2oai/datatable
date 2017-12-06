@@ -66,5 +66,6 @@ typedef struct StrBuf {
     } while(0)
 
 
+#define DTPRINT(...) g.trace(__VA_ARGS__)
 
 #endif

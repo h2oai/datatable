@@ -21,7 +21,6 @@ static char sep, eol, eol2;
 static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
 static int eolLen;
 static char quote, dec;
-static const char* sof;
 static const char* eof;
 
 // Quote rule:
@@ -46,29 +45,15 @@ static bool blank_is_a_NAstring=false;
 static bool stripWhite=true;  // only applies to character columns; numeric fields always stripped
 static bool skipEmptyLines=false, fill=false;
 
-static double NA_FLOAT64;  // takes fread.h:NA_FLOAT64_VALUE
-static float NA_FLOAT32;
-
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
-
-
-//------------------------------------------------------------------------------
-// Private globals used during the fread-ing session. They will be reset in
-// `freadCleanup()` both on successful exit, and on error.
-//------------------------------------------------------------------------------
-static size_t fileSize;
-static char *lineCopy = NULL;
-static int8_t *type = NULL, *size = NULL;
-static lenOff *colNames = NULL;
-static int8_t *oldType = NULL;
-static freadMainArgs args;  // global for use by DTPRINT
 
 const char typeSymbols[NUMTYPE]  = {'x',    'b',     'i',     'j',     'I',     'h',       'd',       'D',       'H',       's'};
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "int32", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
 int8_t     typeSize[NUMTYPE]     = { 0,      1,       4,       4,       8,      4,         8,         8,         8,         8       };
-// size_t to prevent potential overflow of n*typeSize[i] (standard practice)
 
 // NAN and INFINITY constants are float, so cast to double once up front.
+static double NA_FLOAT64;  // takes fread.h:NA_FLOAT64_VALUE
+static float NA_FLOAT32;
 static const double NAND = (double)NAN;
 static const double INFD = (double)INFINITY;
 
@@ -91,12 +76,6 @@ static int parse_string_continue(const char **ptr, lenOff *target);
  */
 void FreadReader::freadCleanup(void)
 {
-  free(type); type = NULL;
-  free(size); size = NULL;
-  free(lineCopy); lineCopy = NULL;
-  free(colNames); colNames = NULL;
-  free(oldType); oldType = NULL;
-  fileSize = 0;
   sep = whiteChar = eol = eol2 = quote = dec = '\0';
   eolLen = 0;
   quoteRule = -1;
@@ -156,24 +135,27 @@ static const char* strlim(const char *ch, size_t limit) {
 
 
 
-static const char* printTypes(int ncol) {
+const char* FreadReader::printTypes(int ncol) const {
   // e.g. files with 10,000 columns, don't print all of it to verbose output.
   static char out[111];
-  int tt = ncol<=110? ncol : 90;
   char *ch = out;
-  for (int i=0; i<tt; i++) {
-    *ch++ = typeSymbols[type[i]];
-  }
-  if (ncol>110) {
-    *ch++ = '.';
-    *ch++ = '.';
-    *ch++ = '.';
-    for (int i=ncol-10; i<ncol; i++)
-      *ch++ = typeSymbols[type[i]];
+  if (types) {
+    int tt = ncol<=110? ncol : 90;
+    for (int i=0; i<tt; i++) {
+      *ch++ = typeSymbols[types[i]];
+    }
+    if (ncol>110) {
+      *ch++ = '.';
+      *ch++ = '.';
+      *ch++ = '.';
+      for (int i=ncol-10; i<ncol; i++)
+        *ch++ = typeSymbols[types[i]];
+    }
   }
   *ch = '\0';
   return out;
 }
+
 
 static inline void skip_white(const char **pch) {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
@@ -294,8 +276,8 @@ static inline bool nextGoodLine(const char **pch, int ncol)
 }
 
 int FreadReader::makeEmptyDT() {
-  if (args.verbose) DTPRINT("  Input is empty, creating a (0 x 0) DataTable");
-  allocateDT(NULL, NULL, 0, 0, 0);
+  if (g.verbose) DTPRINT("  Input is empty, creating a (0 x 0) DataTable");
+  allocateDT(0, 0, 0);
   freadCleanup();
   return 1;
 }
@@ -931,38 +913,23 @@ static reader_fun_t fun[NUMTYPE] = {
 //=================================================================================================
 int FreadReader::freadMain()
 {
-  args = frargs;  // assign to global for use by DTPRINT() in other functions
   double t0 = wallclock();
 
   //*********************************************************************************************
   // [1] Extract the arguments and check their validity
   //*********************************************************************************************
-  if (args.bufsize <= 1) return makeEmptyDT();
-  bool verbose = args.verbose;
-  bool warningsAreErrors = args.warningsAreErrors;
-  if (verbose) DTPRINT("[1] Check arguments");
-
-  if (colNames || oldType || lineCopy || type || size) {
-    DTWARN("Internal error: Previous fread() session was not cleaned up properly");
-    freadCleanup();
-  }
-
-  int nth = args.nth;
-  {
-    int maxth = omp_get_max_threads();
-    if (nth > maxth) nth = maxth;
-    if (nth <= 0) nth += maxth;
-    if (nth <= 0) nth = 1;
-    if (verbose) DTPRINT("  Using %d threads (omp_get_max_threads()=%d, nth=%d)", nth, maxth, args.nth);
-  }
+  if (g.mbuf->size() <= 1) return makeEmptyDT();
+  bool verbose = g.verbose;
+  bool warningsAreErrors = g.warnings_to_errors;
+  int nth = g.nthreads;
 
   uint64_t ui64 = NA_FLOAT64_I64;
   uint32_t ui32 = NA_FLOAT32_I32;
   memcpy(&NA_FLOAT64, &ui64, 8);
   memcpy(&NA_FLOAT32, &ui32, 4);
 
-  size_t nrowLimit = (size_t) args.nrowLimit;
-  NAstrings = args.NAstrings;
+  size_t nrowLimit = (size_t) g.max_nrows;
+  NAstrings = g.na_strings;
   any_number_like_NAstrings = false;
   blank_is_a_NAstring = false;
   // if we know there are no nastrings which are numbers (like -999999) then in the number
@@ -1011,19 +978,19 @@ int FreadReader::freadMain()
     }
   }
   if (verbose) {
-    if (args.skipNrow) DTPRINT("  skip lines = %lld", (long long)args.skipNrow);
-    if (args.skipString) DTPRINT("  skip to string = \"%s\"", args.skipString);
-    DTPRINT("  showProgress = %d", args.showProgress);
+    if (g.skip_lines) DTPRINT("  skip_lines = %lld", (long long)g.skip_lines);
+    if (g.skip_string) DTPRINT("  skip to string = \"%s\"", g.skip_string);
+    DTPRINT("  show_progress = %d", g.show_progress);
   }
 
-  stripWhite = args.stripWhite;
-  skipEmptyLines = args.skipEmptyLines;
-  fill = args.fill;
-  dec = args.dec;
-  quote = args.quote;
-  if (args.sep == quote && quote!='\0') STOP("sep == quote ('%c') is not allowed", quote);
+  stripWhite = g.strip_white;
+  skipEmptyLines = g.skip_blank_lines;
+  fill = g.fill;
+  dec = g.dec;
+  quote = g.quote;
+  if (g.sep == quote && quote!='\0') STOP("sep == quote ('%c') is not allowed", quote);
   if (dec=='\0') STOP("dec='' not allowed. Should be '.' or ','");
-  if (args.sep == dec) STOP("sep == dec ('%c') is not allowed", dec);
+  if (g.sep == dec) STOP("sep == dec ('%c') is not allowed", dec);
   if (quote == dec) STOP("quote == dec ('%c') is not allowed", dec);
 
   // File parsing context: pointer to the start of file, and to the end of
@@ -1035,11 +1002,11 @@ int FreadReader::freadMain()
   // context in order to accommodate for the lack of newline on the last line
   // of file.
   declare_sof:
-  fileSize = frargs.bufsize - 1;
-  sof = static_cast<char*>(frargs.buf);
+  size_t fileSize = g.mbuf->size() - 1;
+  const char* sof = g.mbuf->getstr();
   eof = sof + fileSize;
   ASSERT(*eof == '\0');
-  // Convenience variable for iteration over the file.
+  // Convenience variables for iteration over the file.
   const char *ch = NULL, *end = NULL;
 
 
@@ -1178,12 +1145,12 @@ int FreadReader::freadMain()
 
   int line = 1;
 
-  if (args.skipString) {
+  if (g.skip_string) {
     // TODO: unsafe! there might be no \0 at the end of the file
-    ch = strstr(sof, args.skipString);
+    ch = strstr(sof, g.skip_string);
     if (!ch) {
       STOP("skip='%s' not found in input (it is case sensitive and literal; "
-           "i.e., no patterns, wildcards or regexps)", args.skipString);
+           "i.e., no patterns, wildcards or regexps)", g.skip_string);
     }
     // Move to beginning of line. We ignore complications arising from
     // possibility to end up inside a quoted field. Presumably, if the user
@@ -1198,24 +1165,24 @@ int FreadReader::freadMain()
       }
       if (verbose) {
         DTPRINT("  Found skip='%s' on line %d. The file will be scanned from "
-                "that line onwards.", args.skipString, line);
+                "that line onwards.", g.skip_string, line);
       }
       sof = start;
     }
   } else
 
   // Skip the first `skipNrow` lines of input.
-  if (args.skipNrow) {
+  if (g.skip_lines) {
     ch = sof;
-    while (ch < eof && line <= args.skipNrow)
+    while (ch < eof && line <= g.skip_lines)
     {
       line += (*ch++ == eol && (eolLen == 1 || *ch++ == eol2));
     }
-    if (line > args.skipNrow) {
+    if (line > g.skip_lines) {
       sof = ch;
       if (verbose) DTPRINT("  Skipped %d line(s) of input.", line);
     } else {
-      STOP("skip=%d but the input has only %d line(s)", args.skipNrow, line-1);
+      STOP("skip=%d but the input has only %d line(s)", g.skip_lines, line-1);
     }
   }
 
@@ -1257,14 +1224,14 @@ int FreadReader::freadMain()
   char seps[]=",|;\t ";  // default seps in order of preference. See ?fread.
   // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
 
-  if (args.sep == '\0') {  // default is '\0' meaning 'auto'
+  if (g.sep == '\0') {  // default is '\0' meaning 'auto'
     if (verbose) DTPRINT("  Detecting sep ...");
     nseps = (int) strlen(seps);
   } else {
-    seps[0] = args.sep;
+    seps[0] = g.sep;
     seps[1] = '\0';
     nseps = 1;
-    if (verbose) DTPRINT("  Using supplied sep '%s'", args.sep=='\t' ? "\\t" : seps);
+    if (verbose) DTPRINT("  Using supplied sep '%s'", g.sep=='\t' ? "\\t" : seps);
   }
 
   int topNumLines=0;        // the most number of lines with the same number of fields, so far
@@ -1432,15 +1399,15 @@ int FreadReader::freadMain()
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
   // already checked above that tt==ncol unless fill=TRUE
   // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
-  if (verbose && args.header!=NA_BOOL8)
-    DTPRINT("  'header' changed by user from 'auto' to %s", args.header?"true":"false");
-  if (args.header==false || (args.header==NA_BOOL8 && !allchar)) {
-    if (verbose && args.header==NA_BOOL8)
+  if (verbose && g.header!=NA_BOOL8)
+    DTPRINT("  'header' changed by user from 'auto' to %s", g.header?"true":"false");
+  if (g.header==false || (g.header==NA_BOOL8 && !allchar)) {
+    if (verbose && g.header==NA_BOOL8)
       DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.", line);
     // colNames was calloc'd so nothing to do; all len=off=0 already
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
     // now check previous line which is being discarded and give helpful msg to user ...
-    if (ch>headerPtr && args.skipNrow==0) {
+    if (ch>headerPtr && g.skip_lines==0) {
       ch -= (eolLen+1);
       if (ch<headerPtr) ch=headerPtr;  // for when headerPtr[0]=='\n'
       while (ch>headerPtr && *ch!=eol2) ch--;
@@ -1454,7 +1421,7 @@ int FreadReader::freadMain()
     }
     if (ch!=sof) STOP("Internal error. ch!=sof after prevBlank check");
   } else {
-    if (verbose && args.header==NA_BOOL8) {
+    if (verbose && g.header==NA_BOOL8) {
       DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
     }
     ch = sof;
@@ -1487,15 +1454,15 @@ int FreadReader::freadMain()
   //     good nrow estimate.
   //*********************************************************************************************
   if (verbose) DTPRINT("[9] Detect column types");
-  type = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  size = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  if (!type || !size) STOP("Failed to allocate %d x 2 bytes for type/size: %s", ncol, strerror(errno));
+  types = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
+  sizes = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
+  if (!types || !sizes) STOP("Failed to allocate %d x 2 bytes for type/size: %s", ncol, strerror(errno));
 
   for (int j = 0; j < ncol; j++) {
     // initialize with the first (lowest) type, 1==CT_BOOL8 at the time of writing. If we add CT_BOOL1 or CT_BOOL2 in
     /// future, using 1 here means this line won't need to be changed. CT_DROP is 0 and 1 is the first type.
-    type[j] = 1;
-    size[j] = typeSize[type[j]];
+    types[j] = 1;
+    sizes[j] = typeSize[types[j]];
   }
 
   // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
@@ -1547,7 +1514,7 @@ int FreadReader::freadMain()
       while (!on_eol(ch) && field<ncol) {
         fieldStart=ch;
         int res;
-        while (type[field]<=CT_STRING && (res = fun[type[field]](&ch, trash))) {
+        while (types[field]<=CT_STRING && (res = fun[types[field]](&ch, trash))) {
           int neols = 0;
           while (res == 2 && neols++ < 100) {
             if (ch == end) {
@@ -1558,8 +1525,8 @@ int FreadReader::freadMain()
           }
           if (res == 0) break;
           ch = fieldStart;
-          if (type[field] < CT_STRING) {
-            type[field]++;
+          if (types[field] < CT_STRING) {
+            types[field]++;
             bumped = true;
           } else {
             // the field could not be read with this quote rule, try again with next one
@@ -1576,7 +1543,7 @@ int FreadReader::freadMain()
             continue;
           }
         }
-        // DTPRINT("%d  (ch = %p)\n", type[field], ch);
+        // DTPRINT("%d  (ch = %p)\n", types[field], ch);
         if (on_eol(ch)) {
           break;
         } else {
@@ -1607,7 +1574,7 @@ int FreadReader::freadMain()
       // a warning regardless of quoting rule just in case file has been inadvertently truncated.
       // The warning is only issued if the file didn't have the newline on the last line.
       // This warning is early at type skipping around stage before reading starts, so user can cancel early
-      // if (type[ncol-1]==CT_STRING && *fieldStart==quote && ch[-1]!=quote) {
+      // if (types[ncol-1]==CT_STRING && *fieldStart==quote && ch[-1]!=quote) {
       //   ASSERT(quoteRule>=2);
       //   DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
       //           strlim(fieldStart, 200));
@@ -1678,10 +1645,10 @@ int FreadReader::freadMain()
   //*********************************************************************************************
   if (verbose) DTPRINT("[10] Apply user overrides on column types");
   ch = sof;
-  oldType = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  if (!oldType) STOP("Unable to allocate %d bytes to check user overrides of column types", ncol);
-  memcpy(oldType, type, (size_t)ncol) ;
-  if (!userOverride(type, colNames, colNamesAnchor, ncol)) { // colNames must not be changed but type[] can be
+  old_types = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
+  if (!old_types) STOP("Unable to allocate %d bytes to check user overrides of column types", ncol);
+  memcpy(old_types, types, (size_t)ncol) ;
+  if (!userOverride(types, colNamesAnchor, ncol)) { // colNames must not be changed but type[] can be
     if (verbose) DTPRINT("  Cancelled by user: userOverride() returned false.");
     freadCleanup();
     return 1;
@@ -1693,18 +1660,18 @@ int FreadReader::freadMain()
   int nStringCols = 0;
   int nNonStringCols = 0;
   for (int j=0; j<ncol; j++) {
-    size[j] = typeSize[type[j]];
-    rowSize1 += (size[j] & 1);  // only works if all sizes are powers of 2
-    rowSize4 += (size[j] & 4);
-    rowSize8 += (size[j] & 8);
-    if (type[j]==CT_DROP) { ndrop++; continue; }
-    if (type[j]<oldType[j]) {
+    sizes[j] = typeSize[types[j]];
+    rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
+    rowSize4 += (sizes[j] & 4);
+    rowSize8 += (sizes[j] & 8);
+    if (types[j]==CT_DROP) { ndrop++; continue; }
+    if (types[j]<old_types[j]) {
       STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
            "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-           j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[oldType[j]], typeName[type[j]]);
+           j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[old_types[j]], typeName[types[j]]);
     }
-    nUserBumped += type[j]>oldType[j];
-    if (type[j] == CT_STRING) nStringCols++; else nNonStringCols++;
+    nUserBumped += types[j]>old_types[j];
+    if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
   }
   if (verbose) {
     DTPRINT("  After %d type and %d drop user overrides : %s",
@@ -1721,7 +1688,7 @@ int FreadReader::freadMain()
     DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
             ncol-ndrop, ncol, ndrop, allocnrow);
   }
-  size_t DTbytes = allocateDT(type, size, ncol, ndrop, allocnrow);
+  size_t DTbytes = allocateDT(ncol, ndrop, allocnrow);
   if (DTbytes == 0) {
     // Failed to allocate: return
     freadCleanup();
@@ -1835,7 +1802,7 @@ int FreadReader::freadMain()
         pushBuffer(&ctx);
         if (verbose) { tt1 = wallclock(); thPush += tt1 - tt0; tt0 = tt1; }
 
-        if (me==0 && (hasPrinted || (args.showProgress && jump/nth==4  &&
+        if (me==0 && (hasPrinted || (g.show_progress && jump/nth==4  &&
                                     ((double)nJumps/(nth*3)-1.0)*(wallclock()-tAlloc)>1.0 ))) {
           // Important for thread safety inside progess() that this is called not just from critical but that
           // it's the master thread too, hence me==0.
@@ -1917,16 +1884,16 @@ int FreadReader::freadMain()
         int j = 0;
         bool at_line_end = false; // set to true if the loop ends at a line end
         while (j < ncol) {
-          // DTPRINT("Field %d: '%.10s' as type %d  (tch=%p)\n", j+1, tch, type[j], tch);
+          // DTPRINT("Field %d: '%.10s' as type %d  (tch=%p)\n", j+1, tch, types[j], tch);
           const char *fieldStart = tch;
-          int8_t joldType = type[j];   // fetch shared type once. Cannot read half-written byte.
+          int8_t joldType = types[j];   // fetch shared type once. Cannot read half-written byte.
           int8_t thisType = joldType;  // to know if it was bumped in (rare) out-of-sample type exceptions
           int8_t absType = (int8_t) abs(thisType);
 
           // always write to buffPos even when CT_DROP. It'll just overwrite on next non-CT_DROP
           while (absType < NUMTYPE) {
             // normally returns success=1, and myBuffPos is assigned inside *fun.
-            void *target = thisType > 0? *(allBuffPos[size[j]]) : myBuff0;
+            void *target = thisType > 0? *(allBuffPos[sizes[j]]) : myBuff0;
             int ret = fun[absType](&tch, target);
             if (ret == 0) break;
             while (ret == 2) {
@@ -1948,7 +1915,7 @@ int FreadReader::freadMain()
           } else if (thisType != joldType) {  // rare out-of-sample type exception
             #pragma omp critical
             {
-              joldType = type[j];  // fetch shared value again in case another thread bumped it while I was waiting.
+              joldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
               // Can't PRINT because we're likely not master. So accumulate message and print afterwards.
               if (thisType < joldType) {   // thisType<0 (type-exception)
                 char temp[1001];
@@ -1962,11 +1929,11 @@ int FreadReader::freadMain()
                 typeBumpMsgSize += (size_t)len;
                 nTypeBump++;
                 if (joldType>0) nTypeBumpCols++;
-                type[j] = thisType;
+                types[j] = thisType;
               } // else other thread bumped to a (negative) higher or equal type, so do nothing
             }
           }
-          *((char**) allBuffPos[size[j]]) += size[j];
+          *((char**) allBuffPos[sizes[j]]) += sizes[j];
           j++;
           if (on_eol(tch)) {
             skip_eol(&tch);
@@ -1990,7 +1957,7 @@ int FreadReader::freadMain()
             break;
           }
           while (j<ncol) {
-            switch (type[j]) {
+            switch (types[j]) {
             case CT_BOOL8:
               *(int8_t*)myBuff1Pos = NA_BOOL8;
               break;
@@ -2016,7 +1983,7 @@ int FreadReader::freadMain()
             default:
               break;
             }
-            *((char**) allBuffPos[size[j]]) += size[j];
+            *((char**) allBuffPos[sizes[j]]) += sizes[j];
             j++;
           }
         }
@@ -2104,7 +2071,7 @@ int FreadReader::freadMain()
                buffGrown, nth, nth);
       int typeCounts[NUMTYPE];
       for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
-      for (int i=0; i<ncol; i++) typeCounts[ (int)abs(type[i]) ]++;
+      for (int i=0; i<ncol; i++) typeCounts[ (int)abs(types[i]) ]++;
       DTPRINT("  Final type counts:");
       for (int i=0; i<NUMTYPE; i++) DTPRINT("  %10d : %-9s", typeCounts[i], typeName[i]);
     }
@@ -2141,25 +2108,25 @@ int FreadReader::freadMain()
     nStringCols = 0;
     nNonStringCols = 0;
     for (int j=0, resj=-1; j<ncol; j++) {
-      if (type[j] == CT_DROP) continue;
+      if (types[j] == CT_DROP) continue;
       resj++;
-      if (type[j]<0) {
+      if (types[j]<0) {
         // column was bumped due to out-of-sample type exception
         // reallocColType(resj, newType);
-        type[j] = -type[j];
-        size[j] = typeSize[type[j]];
-        rowSize1 += (size[j] & 1);
-        rowSize4 += (size[j] & 4);
-        rowSize8 += (size[j] & 8);
-        if (type[j] == CT_STRING) nStringCols++; else nNonStringCols++;
-      } else if (type[j]>=1) {
+        types[j] = -types[j];
+        sizes[j] = typeSize[types[j]];
+        rowSize1 += (sizes[j] & 1);
+        rowSize4 += (sizes[j] & 4);
+        rowSize8 += (sizes[j] & 8);
+        if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
+      } else if (types[j]>=1) {
         // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
-        // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
-        type[j] = -CT_STRING;
-        size[j] = 0;
+        // not -types[i] either because that would reprocess the contents of not-bumped columns wastefully
+        types[j] = -CT_STRING;
+        sizes[j] = 0;
       }
     }
-    allocateDT(type, size, ncol, ncol - nStringCols - nNonStringCols, DTi);
+    allocateDT(ncol, ncol - nStringCols - nNonStringCols, DTi);
     // reread from the beginning
     DTi = 0;
     prevJumpEnd = ch = sof;
