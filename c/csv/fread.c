@@ -110,7 +110,9 @@ static inline bool on_eol(const char* ch) {
 
 static inline void skip_eol(const char** pch) {
   const char *ch = *pch;
-  *pch += *ch=='\0'? 1 : eolLen;
+  *pch += *ch=='\n'? 1 + (ch[1]=='\r') :
+          *ch=='\r'? 1 + (ch[1]=='\n') + (ch[1]=='\r' && ch[2]=='\n')*2 :
+                     (*ch=='\0');
 }
 
 
