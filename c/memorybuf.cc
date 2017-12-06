@@ -408,7 +408,7 @@ size_t MemmapMemBuf::size() {
   if (mmp) {
     return mmpsize;
   } else {
-    return File::asize(filename);
+    return File::asize(filename) + (readonly? mmpsize : 0);
   }
 }
 

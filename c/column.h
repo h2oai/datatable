@@ -28,6 +28,7 @@ class DataTable;
 class RowIndex;
 class BoolColumn;
 class PyObjectColumn;
+class FreadReader;  // used as a friend
 template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
@@ -253,7 +254,7 @@ private:
   static Column* new_column(SType);
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
-  friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
+  friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
   friend void setFinalNrow(size_t nrows);
 };
 
@@ -541,7 +542,7 @@ protected:
 
   friend Column;
   friend Column* try_to_resolve_object_column(Column*);
-  friend Column* alloc_column(SType, size_t, int);
+  friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
 };
 
 

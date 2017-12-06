@@ -74,6 +74,7 @@ public:
   void* at(size_t offset);
   void* at(int64_t offset);
   void* at(int32_t offset);
+  char* getstr() { return static_cast<char*>(get()); }
 
   /**
    * Treats the memory buffer as an array `T[]` and retrieves / sets its `i`-th
