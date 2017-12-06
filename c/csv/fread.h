@@ -195,7 +195,7 @@ typedef struct ThreadLocalFreadParsingContext
  * It should have been called just "fread", but that name is already defined in
  * the system libraries...
  */
-int freadMain(freadMainArgs args);
+// int freadMain(const freadMainArgs& args);
 
 
 /**
@@ -232,8 +232,8 @@ int freadMain(freadMainArgs args);
  *    this function may return `false` to request that fread abort reading
  *    the CSV file. Normally, this function should return `true`.
  */
-bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
-                   int ncol);
+// bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
+//                    int ncol);
 
 
 /**
@@ -276,8 +276,8 @@ bool userOverride(int8_t *types, lenOff *colNames, const char *anchor,
  *    reporting purposes). If the return value is 0, then it indicates an error
  *    and `fread` will abort.
  */
-size_t allocateDT(int8_t *types, int8_t *sizes, int ncols, int ndrop,
-                  size_t nrows);
+// size_t allocateDT(int8_t *types, int8_t *sizes, int ncols, int ndrop,
+//                   size_t nrows);
 
 
 /**
@@ -335,7 +335,7 @@ void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 /**
  * Progress-reporting function.
  */
-void progress(double percent/*[0, 100]*/);
+// void progress(double percent/*[0, 100]*/);
 
 
 void freadCleanup(void);

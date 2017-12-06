@@ -82,6 +82,7 @@ class TextReader(object):
                  skip_to_string=None, skip_lines=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_white=True, quotechar='"', **args):
+        self._src = None            # type: str
         self._file = None           # type: str
         self._files = None          # type: List[str]
         self._fileno = None         # type: int
@@ -145,6 +146,7 @@ class TextReader(object):
             self._progress = progress
         if "_tempfile" in args:
             self._tempfile = args.pop("_tempfile")
+            self._file = self._tempfile
         if "_fileno" in args:
             self._fileno = args.pop("_fileno")
         if args:
@@ -177,8 +179,7 @@ class TextReader(object):
                 raise TValueError(
                     "When an unnamed argument is passed, it is invalid to also "
                     "provide the `%s` parameter." % args[0])
-        if anysource is not None:
-            text, file, url = self._resolve_source_any(anysource)
+        self._resolve_source_any(anysource)
         self._resolve_source_text(text)
         self._resolve_source_file(file)
         self._resolve_source_cmd(cmd)
@@ -186,10 +187,8 @@ class TextReader(object):
 
 
     def _resolve_source_any(self, src):
-        """
-        Returns triple (text, file, url); only one of them will be set.
-        """
-        text = file = url = None
+        if src is None:
+            return
         if isinstance(src, (str, bytes)):
             # If there are any control characters (such as \n or \r) in the
             # text of `src`, then its type is "text".
@@ -197,7 +196,7 @@ class TextReader(object):
                 if self.verbose:
                     self.logger.debug("  Source has length %d characters, and "
                                       "will be treated as raw text" % len(src))
-                text = src
+                self._resolve_source_text(src)
             else:
                 fn = ord if isinstance(src, str) else int
                 for i, ch in enumerate(src):
@@ -207,25 +206,23 @@ class TextReader(object):
                             self.logger.debug("  Character %d in the input is "
                                               "%r, treating input as raw text"
                                               % (i, chr(ccode)))
-                        text = src
-                        break
-            if text is None:
+                        self._resolve_source_text(src)
+                        return
                 if (isinstance(src, str) and
                         re.match(r"(?:https?|ftp|file)://", src)):
                     if self.verbose:
                         self.logger.debug("  Input is a URL.")
-                    url = src
+                    self._resolve_source_url(src)
                 else:
                     if self.verbose:
                         self.logger.debug("  Input is assumed to be a "
                                           "file name.")
-                    file = src
+                    self._resolve_source_file(src)
         elif isinstance(src, _pathlike) or hasattr(src, "read"):
-            file = src
+            self._resolve_source_file(src)
         else:
             raise TTypeError("Unknown type for the first argument in fread: %r"
                              % type(src))
-        return (text, file, url)
 
 
     def _resolve_source_text(self, text):
@@ -235,6 +232,7 @@ class TextReader(object):
             raise TTypeError("Invalid parameter `text` in fread: expected "
                              "str or bytes, got %r" % type(text))
         self._text = text
+        self._src = "<text>"
 
 
     def _resolve_source_file(self, file):
@@ -272,15 +270,16 @@ class TextReader(object):
                 self._text = rawtxt
             file = getattr(file, "name", None)
             if not isinstance(file, (str, bytes)):
-                self._file = "<file>"
+                self._src = "<file>"
             elif isinstance(file, bytes):
-                self._file = os.fsdecode(file)
+                self._src = os.fsdecode(file)
             else:
-                self._file = file
+                self._src = file
             return
         else:
             raise TTypeError("Invalid parameter `file` in fread: expected a "
                              "str/bytes/PathLike, got %r" % type(file))
+        # if `file` is not str, then `os.path.join(file, "..")` below will fail
         assert isinstance(file, str)
         if not os.path.exists(file):
             xpath = os.path.abspath(file)
@@ -295,6 +294,7 @@ class TextReader(object):
                 raise TValueError("File %s`%s` does not exist" % (xpath, ypath))
         if not os.path.isfile(file):
             raise TValueError("Path `%s` is not a file" % file)
+        self._src = file
         self._resolve_archive(file)
 
 
@@ -306,6 +306,7 @@ class TextReader(object):
                              "got %r" % type(cmd))
         result = os.popen(cmd)
         self._text = result.read()
+        self._src = cmd
 
 
     def _resolve_source_url(self, url):
@@ -316,9 +317,10 @@ class TextReader(object):
             tempdir = tempfile.mkdtemp()
             self._tempdir = tempdir
         targetfile = tempfile.mktemp(dir=tempdir)
-        self._tempfile = targetfile
         urllib.request.urlretrieve(url, filename=targetfile)
+        self._tempfile = targetfile
         self._file = targetfile
+        self._src = url
 
 
     def _resolve_archive(self, filename, subpath=None):
@@ -352,6 +354,7 @@ class TextReader(object):
                 self.logger.debug("  Extracting %s to temporary directory %s"
                                   % (filename, self._tempdir))
             self._tempfile = zf.extract(zff[0], path=self._tempdir)
+            self._file = self._tempfile
 
         elif ext == ".gz":
             import gzip
@@ -376,24 +379,66 @@ class TextReader(object):
     #---------------------------------------------------------------------------
 
     @property
+    def src(self) -> str:
+        """
+        Name of the source of the data.
+
+        This is a "portmanteau" value, intended mostly for displaying in error
+        messages or verbose output. This value contains one of:
+          - the name of the file requested by the user (possibly with minor
+            modifications such as user/glob expansion). This never gives the
+            name of a temporary file created by FRead internally.
+          - URL text, if the user provided a url to fread.
+          - special token "<file>" if an open file object was provided, but
+            its file name is not known.
+          - "<text>" if the input was a raw text.
+
+        In order to determine the actual data source, the caller should query
+        properties `.file`, `.text` and `.fileno`. One and only one of them
+        will be non-None.
+        """
+        return self._src
+
+
+    @property
     def file(self) -> Optional[str]:
         """
-        Name of the file to be read by fread.
+        Name of the file to be read.
 
-        This may also be a placeholder value "<file>" if the real file name is
-        unknown -- in this case `.fileno` property must be set. If there is no
-        file to read, the returned value is `None`. If fread is using a
-        temporary file for storing the content, then this property will return
-        the name of that temporary file. The returned value is always a string
-        (or None), even if the user passed a `bytes` object as `file=` argument
-        to the constructor.
+        This always refers to the actual file, on a file system, that the
+        underlying C code is expected to open and read. In particular, if the
+        "original" source (as provided by the user) required processing the
+        content and saving it into a temporary file, then this property will
+        return the name of that temporary file. On the other hand, if the
+        source is not a file, this property will return None. The returned value
+        is always a string, even if the user passed a `bytes` object as `file=`
+        argument to the constructor.
         """
-        return self._tempfile or self._file
+        return self._file
 
 
     @property
     def text(self) -> Union[str, bytes, None]:
+        """
+        String/bytes object with the content to read.
+
+        The returned value is None if the content should be read from file or
+        some other source.
+        """
         return self._text
+
+
+    @property
+    def fileno(self) -> Optional[int]:
+        """
+        File descriptor of an open file that should be read.
+
+        This property is an equivalent way of specifying a file source. However
+        instead of providing a file name, this property gives a file descriptor
+        of a file that was already opened. The caller should not attempt to
+        close this file.
+        """
+        return self._fileno
 
 
     @property
@@ -588,7 +633,7 @@ class TextReader(object):
 
 
     def read(self):
-        _dt = c.fread(self)
+        _dt = c.gread(self)
         dt = DataTable(_dt, names=self._colnames)
         if self._tempfile:
             if self._verbose:

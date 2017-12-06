@@ -19,6 +19,10 @@
 #include "utils/exceptions.h"
 
 
+PyObj::PyObj() {
+  obj = nullptr;
+  tmp = nullptr;
+}
 
 PyObj::PyObj(PyObject* o) {
   obj = o;
@@ -40,9 +44,35 @@ PyObj::PyObj(const PyObj& other) {
   Py_INCREF(obj);
 }
 
+PyObj::PyObj(PyObj&& other) {
+  obj = other.obj;
+  tmp = other.tmp;
+  other.obj = nullptr;
+  other.tmp = nullptr;
+}
+
+PyObj& PyObj::operator=(const PyObj& other) {
+  if (obj || tmp) {
+    throw RuntimeError()
+      << "Cannot assign to PyObj: it already contains a PyObject " << obj
+      << " [tmp=" << tmp << "]";
+  }
+  obj = other.obj;
+  tmp = other.tmp;
+  Py_XINCREF(obj);
+  Py_XINCREF(tmp);
+  return *this;
+}
+
 PyObj::~PyObj() {
-  Py_DECREF(obj);
+  Py_XDECREF(obj);
   Py_XDECREF(tmp);
+}
+
+PyObj PyObj::fromPyObjectNewRef(PyObject* t) {
+  PyObj res(t);
+  Py_XDECREF(t);
+  return res;
 }
 
 
@@ -63,6 +93,28 @@ PyObj PyObj::attr(const char* attrname) const {
 }
 
 
+PyObj PyObj::invoke(const char* fn, const char* format, ...) const {
+  if (!obj) throw RuntimeError() << "Cannot invoke an empty PyObj";
+  PyObject* callable = nullptr;
+  PyObject* args = nullptr;
+  PyObject* res = nullptr;
+  do {
+    callable = PyObject_GetAttrString(obj, fn);  // new ref
+    if (!callable) break;
+    va_list va;
+    va_start(va, format);
+    args = Py_VaBuildValue(format, va);  // new ref
+    va_end(va);
+    if (!args) break;
+    res = PyObject_CallObject(callable, args);  // new ref
+  } while (0);
+  Py_XDECREF(callable);
+  Py_XDECREF(args);
+  if (!res) throw PyError();
+  return PyObj::fromPyObjectNewRef(res);
+}
+
+
 int8_t PyObj::as_bool() const {
   if (obj == Py_True) return 1;
   if (obj == Py_False) return 0;
@@ -75,6 +127,11 @@ int64_t PyObj::as_int64() const {
   if (PyLong_Check(obj)) return PyLong_AsInt64(obj);
   if (obj == Py_None) return GETNA<int64_t>();
   throw ValueError() << "Value " << obj << " is not integer";
+}
+
+
+int32_t PyObj::as_int32() const {
+  return static_cast<int32_t>(as_int64());
 }
 
 
@@ -91,6 +148,7 @@ double PyObj::as_double() const {
 
 
 const char* PyObj::as_cstring() const {
+  if (!obj) throw ValueError() << "PyObj() was not initialized properly";
   if (PyUnicode_Check(obj)) {
     if (tmp) throw RuntimeError() << "Cannot convert to string more than once";
     tmp = PyUnicode_AsEncodedString(obj, "utf-8", "strict");
@@ -125,7 +183,7 @@ char PyObj::as_char() const {
 
 
 PyObject* PyObj::as_pyobject() const {
-  Py_INCREF(obj);
+  Py_XINCREF(obj);
   return obj;
 }
 
@@ -209,4 +267,11 @@ char** PyObj::as_cstringlist() const {
     }
   }
   throw TypeError() << "A list of strings is expected, got " << obj;
+}
+
+
+void PyObj::print() {
+  PyObject* s = PyObject_Repr(obj);
+  printf("%s\n", PyUnicode_AsUTF8(s));
+  Py_XDECREF(s);
 }

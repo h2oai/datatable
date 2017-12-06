@@ -1,5 +1,6 @@
 #include "csv/fread.h"
 #include "csv/freadLookups.h"
+#include "csv/reader.h"
 #ifdef WIN32             // means WIN64, too, oddly
   #include <windows.h>
 #else
@@ -292,7 +293,7 @@ static inline bool nextGoodLine(const char **pch, int ncol)
   return false;
 }
 
-static int makeEmptyDT() {
+int FreadReader::makeEmptyDT() {
   if (args.verbose) DTPRINT("  Input is empty, creating a (0 x 0) DataTable");
   allocateDT(NULL, NULL, 0, 0, 0);
   freadCleanup();
@@ -928,9 +929,9 @@ static reader_fun_t fun[NUMTYPE] = {
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-int freadMain(freadMainArgs _args)
+int FreadReader::freadMain()
 {
-  args = _args;  // assign to global for use by DTPRINT() in other functions
+  args = frargs;  // assign to global for use by DTPRINT() in other functions
   double t0 = wallclock();
 
   //*********************************************************************************************
@@ -1034,8 +1035,8 @@ int freadMain(freadMainArgs _args)
   // context in order to accommodate for the lack of newline on the last line
   // of file.
   declare_sof:
-  fileSize = args.bufsize - 1;
-  sof = static_cast<char*>(args.buf);
+  fileSize = frargs.bufsize - 1;
+  sof = static_cast<char*>(frargs.buf);
   eof = sof + fileSize;
   ASSERT(*eof == '\0');
   // Convenience variable for iteration over the file.
@@ -1064,7 +1065,7 @@ int freadMain(freadMainArgs _args)
   else if (fileSize >= 2 && sof[0] + sof[1] == '\xFE' + '\xFF') {  // either 0xFE 0xFF or 0xFF 0xFE
     if (verbose) DTPRINT("  UTF-16 byte order mark %s found, recoding file into UTF-8",
                          sof[0] == '\xFE'? "FE FF" : "FF FE");
-    decode_utf16(&args);
+    decode_utf16();
     goto declare_sof;
     // STOP("File is encoded in UTF-16, this encoding is not supported by fread(). Please recode the file to UTF-8.");
   }

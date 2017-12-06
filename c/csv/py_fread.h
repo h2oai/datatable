@@ -2,6 +2,7 @@
 #define dt_FREAD_IMPL_H
 #include <Python.h>
 #include "memorybuf.h"
+#include "csv/py_csv.h"
 
 
 #define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
@@ -53,6 +54,7 @@ typedef struct StrBuf {
     do {                                                                       \
         PyErr_Format(PyExc_RuntimeError, __VA_ARGS__);                         \
         freadCleanup();                                                        \
+        throw PyError(); \
         return 0;                                                              \
     } while(0)
 
@@ -76,8 +78,5 @@ typedef struct StrBuf {
 void DTPRINT(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 
-
-PyObject* pyfread(PyObject *self, PyObject *args);
-PyObject* pywrite_csv(PyObject *self, PyObject *args);
 
 #endif

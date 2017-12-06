@@ -10,6 +10,7 @@
 #include <stdio.h>     // vsnprintf
 #include <errno.h>     // errno
 #include <string.h>    // strerr
+#include <memory>      // std::unique_ptr
 #include <string>
 #include "utils/exceptions.h"
 

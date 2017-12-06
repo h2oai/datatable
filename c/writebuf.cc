@@ -17,8 +17,11 @@
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
+#include "memorybuf.h"
 #include "utils/omp.h"
 #include "utils.h"
+
+
 
 //==============================================================================
 // WritableBuffer
@@ -228,12 +231,26 @@ void MemoryWritableBuffer::realloc(size_t newsize)
 }
 
 
-void* MemoryWritableBuffer::get()
+void* MemoryWritableBuffer::get_cptr()
 {
-  void *buf = buffer;
+  void* buf = buffer;
   buffer = nullptr;
   allocsize = 0;
   return buf;
+}
+
+
+MemoryMemBuf* MemoryWritableBuffer::get_mbuf() {
+  size_t size = allocsize;
+  void* ptr = get_cptr();
+  return new MemoryMemBuf(ptr, size);
+}
+
+
+// This method leaves `buffer` intact; and it will be freed when the destructor
+// is invoked.
+std::string MemoryWritableBuffer::get_string() {
+  return std::string(static_cast<char*>(buffer), allocsize);
 }
 
 

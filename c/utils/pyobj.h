@@ -35,10 +35,14 @@ class PyObj
   mutable PyObject* tmp;
 
 public:
+  PyObj();
   PyObj(PyObject*);
   PyObj(PyObject*, const char* attr);
   PyObj(const PyObj&);
+  PyObj(PyObj&&);
+  PyObj& operator=(const PyObj& other);
   ~PyObj();
+  static PyObj fromPyObjectNewRef(PyObject*);
 
   /**
    * Retrieve attribute `a` from this python object. This is equivalent to
@@ -47,7 +51,14 @@ public:
    */
   PyObj attr(const char* a) const;
 
+  /**
+   * Call method `fn` on this object, passing an arbitrary list of arguments.
+   * If the method returns an error, an exception will be thrown.
+   */
+  PyObj invoke(const char* fn, const char* format, ...) const;
+
   int8_t as_bool() const;
+  int32_t as_int32() const;
   int64_t as_int64() const;
   double as_double() const;
 
@@ -64,8 +75,9 @@ public:
    * containing the string. The returned pointer will not be owned by the
    * caller, and its lifetime is tied to the lifetime of the current PyObj.
    * This method can be called only once on the PyObj. It is more efficient than
-   * the first one (avoids extra copy), but less safe (the user must handle the
-   * lifetime carefully). If the object is Py_None, a null pointer is returned.
+   * the first one (avoids extra copy), but less safe (the user must not free
+   * the pointer accidentally, and cannot use the pointer after PyObj went out
+   * of scope). If the object is Py_None, a null pointer is returned.
    *
    * The `as_ccstring` method is similar to `as_cstring`, however the returned
    * pointer will be owned by the caller, and the caller is responsible for its
@@ -98,6 +110,8 @@ public:
    */
   std::vector<std::string> as_stringlist() const;
   char** as_cstringlist() const;
+
+  void print();
 };
 
 
