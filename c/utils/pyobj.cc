@@ -52,6 +52,11 @@ PyObj::PyObj(PyObj&& other) {
 }
 
 PyObj& PyObj::operator=(const PyObj& other) {
+  if (obj || tmp) {
+    throw RuntimeError()
+      << "Cannot assign to PyObj: it already contains a PyObject " << obj
+      << " [tmp=" << tmp << "]";
+  }
   obj = other.obj;
   tmp = other.tmp;
   Py_XINCREF(obj);
@@ -62,6 +67,12 @@ PyObj& PyObj::operator=(const PyObj& other) {
 PyObj::~PyObj() {
   Py_XDECREF(obj);
   Py_XDECREF(tmp);
+}
+
+PyObj PyObj::fromPyObjectNewRef(PyObject* t) {
+  PyObj res(t);
+  Py_XDECREF(t);
+  return res;
 }
 
 
@@ -79,6 +90,28 @@ PyObj::~PyObj() {
 //
 PyObj PyObj::attr(const char* attrname) const {
   return PyObj(obj, attrname);
+}
+
+
+PyObj PyObj::invoke(const char* fn, const char* format, ...) const {
+  if (!obj) throw RuntimeError() << "Cannot invoke an empty PyObj";
+  PyObject* callable = nullptr;
+  PyObject* args = nullptr;
+  PyObject* res = nullptr;
+  do {
+    callable = PyObject_GetAttrString(obj, fn);  // new ref
+    if (!callable) break;
+    va_list va;
+    va_start(va, format);
+    args = Py_VaBuildValue(format, va);  // new ref
+    va_end(va);
+    if (!args) break;
+    res = PyObject_CallObject(callable, args);  // new ref
+  } while (0);
+  Py_XDECREF(callable);
+  Py_XDECREF(args);
+  if (!res) throw PyError();
+  return PyObj::fromPyObjectNewRef(res);
 }
 
 
@@ -234,4 +267,11 @@ char** PyObj::as_cstringlist() const {
     }
   }
   throw TypeError() << "A list of strings is expected, got " << obj;
+}
+
+
+void PyObj::print() {
+  PyObject* s = PyObject_Repr(obj);
+  printf("%s\n", PyUnicode_AsUTF8(s));
+  Py_XDECREF(s);
 }

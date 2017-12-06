@@ -1035,8 +1035,8 @@ int FreadReader::freadMain()
   // context in order to accommodate for the lack of newline on the last line
   // of file.
   declare_sof:
-  fileSize = args.bufsize - 1;
-  sof = static_cast<char*>(args.buf);
+  fileSize = frargs.bufsize - 1;
+  sof = static_cast<char*>(frargs.buf);
   eof = sof + fileSize;
   ASSERT(*eof == '\0');
   // Convenience variable for iteration over the file.
@@ -1065,7 +1065,7 @@ int FreadReader::freadMain()
   else if (fileSize >= 2 && sof[0] + sof[1] == '\xFE' + '\xFF') {  // either 0xFE 0xFF or 0xFF 0xFE
     if (verbose) DTPRINT("  UTF-16 byte order mark %s found, recoding file into UTF-8",
                          sof[0] == '\xFE'? "FE FF" : "FF FE");
-    decode_utf16(&args);
+    decode_utf16();
     goto declare_sof;
     // STOP("File is encoded in UTF-16, this encoding is not supported by fread(). Please recode the file to UTF-8.");
   }

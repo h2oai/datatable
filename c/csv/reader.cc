@@ -31,7 +31,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   text_arg = pyrdr.attr("text");
   fileno = pyrdr.attr("fileno").as_int32();
 
-  logger = pyrdr.attr("logger").as_pyobject();
+  logger = pyrdr.attr("logger");
   set_nthreads(pyrdr.attr("nthreads").as_int32());
   set_verbose(pyrdr.attr("verbose").as_bool());
   set_fill(pyrdr.attr("fill").as_bool());
@@ -95,7 +95,7 @@ void GenericReader::trace(const char* format, ...) const {
     vsnprintf(msg, 2000, format, args);
   }
   va_end(args);
-  PyObject_CallMethod(logger, "debug", "O", PyUnicode_FromString(msg));
+  logger.invoke("debug", "(O)", PyUnicode_FromString(msg));
 }
 
 

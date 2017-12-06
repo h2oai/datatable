@@ -42,6 +42,7 @@ public:
   PyObj(PyObj&&);
   PyObj& operator=(const PyObj& other);
   ~PyObj();
+  static PyObj fromPyObjectNewRef(PyObject*);
 
   /**
    * Retrieve attribute `a` from this python object. This is equivalent to
@@ -49,6 +50,12 @@ public:
    * attribute, an exception will be raised.
    */
   PyObj attr(const char* a) const;
+
+  /**
+   * Call method `fn` on this object, passing an arbitrary list of arguments.
+   * If the method returns an error, an exception will be thrown.
+   */
+  PyObj invoke(const char* fn, const char* format, ...) const;
 
   int8_t as_bool() const;
   int32_t as_int32() const;
@@ -103,6 +110,8 @@ public:
    */
   std::vector<std::string> as_stringlist() const;
   char** as_cstringlist() const;
+
+  void print();
 };
 
 

@@ -46,13 +46,6 @@ static const SType colType_to_stype[NUMTYPE] = {
 };
 
 
-
-// Python FReader object, which holds specifications for the current reader
-// logic. This reference is non-NULL when fread() is running; and serves as a
-// lock preventing from running multiple fread() instances.
-static PyObject *flogger = NULL;
-static PyObject *tempstr = NULL;
-
 // DataTable being constructed.
 static DataTable *dt = NULL;
 
@@ -92,7 +85,7 @@ static int8_t *sizes = NULL;
 
 //------------------------------------------------------------------------------
 
-FreadReader::FreadReader(const GenericReader& g) {
+FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   frargs.sep = g.sep;
   frargs.dec = g.dec;
   frargs.quote = g.quote;
@@ -111,23 +104,19 @@ FreadReader::FreadReader(const GenericReader& g) {
   frargs.freader = g.freader.as_pyobject();  // new reference
   frargs.buf = g.mbuf->get();
   frargs.bufsize = g.mbuf->size();
-  flogger = g.logger;
 }
 
 FreadReader::~FreadReader() {
   freadCleanup();
   dt = NULL;
   strbufs = NULL;
-  flogger = NULL;
   types = sizes = NULL;
   ncols = nstrcols = 0;
   targetdir = NULL;
   mbuf = NULL;
   na_strings = NULL;
   Py_XDECREF(frargs.freader);
-  Py_XDECREF(tempstr);
   frargs.freader = NULL;
-  tempstr = NULL;
 }
 
 
@@ -142,17 +131,21 @@ std::unique_ptr<DataTable> FreadReader::read() {
 //------------------------------------------------------------------------------
 
 
-void decode_utf16(freadMainArgs* args) {
+void FreadReader::decode_utf16() {
   int byteorder = 0;
   // bufsize includes trailing \0, hence -1
-  Py_ssize_t size = static_cast<Py_ssize_t>(args->bufsize - 1);
-  // new reference
-  tempstr = PyUnicode_DecodeUTF16(static_cast<char*>(args->buf), size,
-                                  "replace", &byteorder);
+  Py_ssize_t size = static_cast<Py_ssize_t>(frargs.bufsize - 1);
+
+  tempstr = PyObj::fromPyObjectNewRef(
+    PyUnicode_DecodeUTF16(static_cast<char*>(frargs.buf), size,
+                          "replace", &byteorder)
+  );
+  PyObject* t = tempstr.as_pyobject();
   // borrowed reference
-  char* buf = PyUnicode_AsUTF8AndSize(tempstr, &size);
-  args->buf = buf;
-  args->bufsize = static_cast<size_t>(size) + 1;
+  char* buf = PyUnicode_AsUTF8AndSize(t, &size);
+  frargs.buf = buf;
+  frargs.bufsize = static_cast<size_t>(size) + 1;
+  Py_DECREF(t);
 }
 
 
@@ -600,8 +593,8 @@ void freeThreadContext(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-__attribute__((format(printf, 1, 2)))
-void DTPRINT(const char *format, ...) {
+__attribute__((format(printf, 2, 3)))
+void FreadReader::DTPRINT(const char *format, ...) {
     va_list args;
     va_start(args, format);
     char *msg;
@@ -612,15 +605,15 @@ void DTPRINT(const char *format, ...) {
         vsnprintf(msg, 2000, format, args);
     }
     va_end(args);
-    // Both methods return new references
-    PyObject* pymsg = PyUnicode_Decode(msg, strlen(msg), "utf-8", "backslashreplace");
-    PyObject* retval = PyObject_CallMethod(flogger, "debug", "O", pymsg);
-    if (pymsg == NULL || retval == NULL) {
-      // Any errors with running the logger are silently ignored: we'd rather
-      // read the file successfully than throw an exception about some debug
-      // message not printing correctly...
-      PyErr_Clear();
+    try {
+      Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
+      PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
+                                         "backslashreplace");  // new ref
+      if (!pymsg) throw PyError();
+      g.logger.invoke("debug", "(O)", pymsg);
+      Py_XDECREF(pymsg);
+    } catch (const std::exception&) {
+      throw;
+      // ignore any exceptions
     }
-    Py_XDECREF(retval);
-    Py_XDECREF(pymsg);
 }

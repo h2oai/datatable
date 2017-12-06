@@ -38,7 +38,6 @@ struct OutputColumn;
 class GenericReader
 {
   // Input parameters
-  PyObject* logger;
   int32_t nthreads;
   bool verbose;
   char sep;
@@ -56,6 +55,7 @@ class GenericReader
   int: 24;
 
   // Runtime parameters
+  PyObj logger;
   PyObj freader;
   PyObj src_arg;
   PyObj file_arg;
@@ -151,10 +151,14 @@ private:
  * Wrapper class around `freadMain` function.
  */
 class FreadReader {
+  GenericReader& g;
   freadMainArgs frargs;
 
+  // runtime parameters
+  PyObj tempstr;
+
 public:
-  FreadReader(const GenericReader& g);
+  FreadReader(GenericReader& g);
   ~FreadReader();
   std::unique_ptr<DataTable> read();
 
@@ -162,6 +166,7 @@ private:
   int freadMain();
 
   int makeEmptyDT();
+  void decode_utf16();
 
   /**
    * This callback is invoked by `freadMain` after the initial pre-scan of the
@@ -248,6 +253,8 @@ private:
    *    A number from 0 to 100
    */
   void progress(double percent);
+
+  void DTPRINT(const char *format, ...);
 };
 
 
