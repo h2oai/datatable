@@ -5,10 +5,6 @@
 #include "csv/py_csv.h"
 
 
-#define FREAD_MAIN_ARGS_EXTRA_FIELDS  PyObject *freader;
-
-
-
 // Per-column per-thread temporary string buffers used to assemble processed
 // string data. Length = `nstrcols`. Each element in this array has the
 // following fields:
@@ -53,9 +49,7 @@ typedef struct StrBuf {
 #define STOP(...)                                                              \
     do {                                                                       \
         PyErr_Format(PyExc_RuntimeError, __VA_ARGS__);                         \
-        freadCleanup();                                                        \
-        throw PyError(); \
-        return 0;                                                              \
+        throw PyError();                                                       \
     } while(0)
 
 
@@ -70,12 +64,6 @@ typedef struct StrBuf {
             return 0;                                                          \
         }                                                                      \
     } while(0)
-
-
-// Print message to the output log. Usage:
-//     DTPRINT("Nothing suspicious here, move along...");
-//
-void DTPRINT(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 
 

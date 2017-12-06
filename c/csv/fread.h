@@ -132,9 +132,6 @@ typedef struct freadMainArgs
 
   char _padding[2];
 
-  // Any additional implementation-specific parameters.
-  FREAD_MAIN_ARGS_EXTRA_FIELDS
-
 } freadMainArgs;
 
 
@@ -285,7 +282,7 @@ typedef struct ThreadLocalFreadParsingContext
  * input file. If the file needs to be rescanned because of out-of-type
  * exceptions, this will be called again before the second scan.
  */
-void prepareThreadContext(ThreadLocalFreadParsingContext *ctx);
+// void prepareThreadContext(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
@@ -293,7 +290,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx);
  * finished reading its chunk but before it enters the "ordered" section.
  * Variable `ctx.DTi` is not available at this moment.
  */
-void postprocessBuffer(ThreadLocalFreadParsingContext *ctx);
+// void postprocessBuffer(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
@@ -301,7 +298,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx);
  * lightweight processing should be performed here, since this section stalls
  * execution of any other thread!
  */
-void orderBuffer(ThreadLocalFreadParsingContext *ctx);
+// void orderBuffer(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
@@ -311,7 +308,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx);
  * to transpose the data: convert from row-major order within each buffer
  * into the column-major order for the resulting DataTable.
  */
-void pushBuffer(ThreadLocalFreadParsingContext *ctx);
+// void pushBuffer(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
@@ -323,13 +320,13 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx);
  * finished scanning but before any calls to `reallocColType()`, and then the
  * second time after the entire input file was scanned again.
  */
-void setFinalNrow(size_t nrows);
+// void setFinalNrow(size_t nrows);
 
 
 /**
  * Free any srtuctures associated with the thread-local parsing context.
  */
-void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
+// void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 
 
 /**
@@ -338,8 +335,8 @@ void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
 // void progress(double percent/*[0, 100]*/);
 
 
-void freadCleanup(void);
+// void freadCleanup(void);
 
-void decode_utf16(freadMainArgs* args);
+// void decode_utf16(freadMainArgs* args);
 
 #endif

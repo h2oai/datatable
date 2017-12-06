@@ -89,7 +89,7 @@ static int parse_string_continue(const char **ptr, lenOff *target);
  * bring all global variables to a "clean slate". This function must always be
  * executed when fread() exits, either successfully or not.
  */
-void freadCleanup(void)
+void FreadReader::freadCleanup(void)
 {
   free(type); type = NULL;
   free(size); size = NULL;

@@ -17,6 +17,7 @@
 #define dt_CSV_READER_H
 #include <Python.h>
 #include <memory>        // std::unique_ptr
+#include "column.h"
 #include "csv/fread.h"
 #include "datatable.h"
 #include "memorybuf.h"
@@ -87,6 +88,8 @@ private:
 
 
 
+//------------------------------------------------------------------------------
+
 /**
  * Reader for files in ARFF format.
  */
@@ -147,23 +150,48 @@ private:
 
 
 
+//------------------------------------------------------------------------------
+
 /**
  * Wrapper class around `freadMain` function.
  */
-class FreadReader {
+class FreadReader
+{
   GenericReader& g;
   freadMainArgs frargs;
 
-  // runtime parameters
+  //----- Runtime parameters ---------------------------------------------------
+  // ncols: number of fields in the CSV file. This field first becomes available
+  //     in the `userOverride()` callback, and doesn't change after that.
+  // nstrcols: number of string columns in the output DataTable. This will be
+  //     computed within `allocateDT()` callback, and used for allocation of
+  //     string buffers. If the file is re-read (due to type bumps), this
+  //     variable will only count those string columns that need to be re-read.
+  // ndigits: len(str(ncols))
+  // types: array of types for each field in the input file, length `ncols`.
+  //     Borrowed ref, do not free.
+  // sizes: array of byte sizes for each field, length `ncols`.
+  //     Borrowed ref, do not free.
   PyObj tempstr;
+  char* targetdir;
+  StrBuf** strbufs;
+  std::unique_ptr<DataTable> dt;
+  int ncols;
+  int nstrcols;
+  int ndigits;
+  int: 32;
+  int8_t* types;
+  int8_t* sizes;
+
 
 public:
-  FreadReader(GenericReader& g);
+  FreadReader(GenericReader&);
   ~FreadReader();
   std::unique_ptr<DataTable> read();
 
 private:
   int freadMain();
+  void freadCleanup();
 
   int makeEmptyDT();
   void decode_utf16();
@@ -247,12 +275,33 @@ private:
   size_t allocateDT(int8_t* types, int8_t* sizes, int ncols, int ndrop, size_t nrows);
 
   /**
+   * Called at the end to specify what the actual number of rows in the datatable
+   * was. The function should adjust the datatable, reallocing the buffers if
+   * necessary.
+   * If the input file needs to be rescanned due to some columns having wrong
+   * column types, then this function will be called once after the file is
+   * finished scanning but before any calls to `reallocColType()`, and then the
+   * second time after the entire input file was scanned again.
+   */
+  void setFinalNrow(size_t nrows);
+
+  Column* alloc_column(SType stype, size_t nrows, int j);
+  Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
+
+  /**
    * Progress-reporting function.
    *
    * @param percent
    *    A number from 0 to 100
    */
   void progress(double percent);
+
+  void prepareThreadContext(ThreadLocalFreadParsingContext *ctx);
+  void postprocessBuffer(ThreadLocalFreadParsingContext *ctx);
+  void orderBuffer(ThreadLocalFreadParsingContext *ctx);
+  void pushBuffer(ThreadLocalFreadParsingContext *ctx);
+  void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
+
 
   void DTPRINT(const char *format, ...);
 };

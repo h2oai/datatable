@@ -16,10 +16,10 @@
 #include "csv/py_fread.h"
 #include "csv/reader.h"
 #include "csv/fread.h"
+#include <Python.h>
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
-#include <Python.h>
 #include "memorybuf.h"
 #include "datatable.h"
 #include "column.h"
@@ -31,56 +31,22 @@
 #include "utils/pyobj.h"
 #include "utils.h"
 
-
 static const SType colType_to_stype[NUMTYPE] = {
-    ST_VOID,
-    ST_BOOLEAN_I1,
-    ST_INTEGER_I4,
-    ST_INTEGER_I4,
-    ST_INTEGER_I8,
-    ST_REAL_F4,
-    ST_REAL_F8,
-    ST_REAL_F8,
-    ST_REAL_F8,
-    ST_STRING_I4_VCHAR,
+  ST_VOID,
+  ST_BOOLEAN_I1,
+  ST_INTEGER_I4,
+  ST_INTEGER_I4,
+  ST_INTEGER_I8,
+  ST_REAL_F4,
+  ST_REAL_F8,
+  ST_REAL_F8,
+  ST_REAL_F8,
+  ST_STRING_I4_VCHAR,
 };
-
-
-// DataTable being constructed.
-static DataTable *dt = NULL;
-
-static MemoryBuffer* mbuf = nullptr;
-
-// Array of StrBufs to coincide with the number of columns being constructed in the datatable
-static StrBuf** strbufs = nullptr;
-
-// These variables are handed down to `freadMain`, and are stored globally only
-// because we want to free these memory buffers in the end.
-static char *targetdir = NULL;
-static char **na_strings = NULL;
 
 // For temporary printing file names.
 static char fname[1000];
 
-// ncols -- number of fields in the CSV file. This field first becomes available
-//     in the `userOverride()` callback, and doesn't change after that.
-// nstrcols -- number of string columns in the output DataTable. This will be
-//     computed within `allocateDT()` callback, and used for allocation of
-//     string buffers. If the file is re-read (due to type bumps), this variable
-//     will only count those string columns that need to be re-read.
-// ndigits = len(str(ncols))
-// verbose -- if True, then emit verbose messages during parsing.
-//
-static int ncols = 0;
-static int nstrcols = 0;
-static int ndigits = 0;
-
-// types -- array of types for each field in the input file. Length = `ncols`.
-// sizes -- array of byte sizes for each field. Length = `ncols`.
-// Both of these arrays are borrowed references and are valid only for the
-// duration of the parse. Must not be freed.
-static int8_t *types = NULL;
-static int8_t *sizes = NULL;
 
 
 //------------------------------------------------------------------------------
@@ -101,29 +67,25 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   frargs.showProgress = g.show_progress;
   frargs.nth = g.nthreads;
   frargs.warningsAreErrors = 0;
-  frargs.freader = g.freader.as_pyobject();  // new reference
   frargs.buf = g.mbuf->get();
   frargs.bufsize = g.mbuf->size();
+  targetdir = nullptr;
+  strbufs = nullptr;
+  ncols = 0;
+  nstrcols = 0;
+  ndigits = 0;
 }
 
 FreadReader::~FreadReader() {
   freadCleanup();
-  dt = NULL;
-  strbufs = NULL;
-  types = sizes = NULL;
-  ncols = nstrcols = 0;
-  targetdir = NULL;
-  mbuf = NULL;
-  na_strings = NULL;
-  Py_XDECREF(frargs.freader);
-  frargs.freader = NULL;
+  delete[] strbufs;
 }
 
 
 std::unique_ptr<DataTable> FreadReader::read() {
   int retval = freadMain();
   if (!retval) throw PyError();
-  return std::unique_ptr<DataTable>(dt);
+  return std::move(dt);  // relinquish ownership of dt
 }
 
 
@@ -149,7 +111,7 @@ void FreadReader::decode_utf16() {
 }
 
 
-Column* alloc_column(SType stype, size_t nrows, int j)
+Column* FreadReader::alloc_column(SType stype, size_t nrows, int j)
 {
     // TODO(pasha): figure out how to use `WritableBuffer`s here
     Column *col = NULL;
@@ -179,7 +141,7 @@ Column* alloc_column(SType stype, size_t nrows, int j)
 }
 
 
-Column* realloc_column(Column *col, SType stype, size_t nrows, int j)
+Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int j)
 {
     if (col != NULL && stype != col->stype()) {
         delete col;
@@ -226,13 +188,8 @@ bool FreadReader::userOverride(int8_t *types_, lenOff *colNames, const char *anc
     PyList_SET_ITEM(colNamesList, i, pycol);
     PyList_SET_ITEM(colTypesList, i, pytype);
   }
-  PyObject *ret = PyObject_CallMethod(frargs.freader, "_override_columns",
-                                      "OO", colNamesList, colTypesList);
-  if (!ret) {
-    pyfree(colTypesList);
-    pyfree(colNamesList);
-    throw PyError();
-  }
+
+  g.freader.invoke("_override_columns", "(OO)", colNamesList, colTypesList);
 
   for (int i = 0; i < ncols_; i++) {
     PyObject *t = PyList_GET_ITEM(colTypesList, i);
@@ -241,7 +198,6 @@ bool FreadReader::userOverride(int8_t *types_, lenOff *colNames, const char *anc
 
   pyfree(colTypesList);
   pyfree(colNamesList);
-  pyfree(ret);
   return 1;  // continue reading the file
 }
 
@@ -264,7 +220,7 @@ size_t FreadReader::allocateDT(int8_t *types_, int8_t *sizes_, int ncols_,
     // the `Column**` array.
     if (ncols == 0) {
         // DTPRINT("Writing the DataTable into %s", targetdir);
-        assert(dt == NULL);
+        assert(!dt);
         ncols = ncols_;
 
         size_t alloc_size = 0;
@@ -284,10 +240,10 @@ size_t FreadReader::allocateDT(int8_t *types_, int8_t *sizes_, int ncols_,
 
         // Call the Python upstream to determine the strategy where the
         // DataTable should be created.
-        PyObject *r = PyObject_CallMethod(frargs.freader, "_get_destination", "n", alloc_size);
-        targetdir = PyObj(r).as_ccstring();
+        targetdir = g.freader.invoke("_get_destination", "(n)", alloc_size)
+                     .as_ccstring();
     } else {
-        assert(dt != NULL && ncols == ncols_);
+        assert(dt && ncols == ncols_);
         columns = dt->columns;
         for (int i = 0; i < ncols; i++)
             nstrcols += (types[i] == CT_STRING);
@@ -311,9 +267,8 @@ size_t FreadReader::allocateDT(int8_t *types_, int8_t *sizes_, int ncols_,
         j++;
     }
 
-    if (dt == NULL) {
-        dt = new DataTable(columns);
-        if (dt == NULL) goto fail;
+    if (!dt) {
+      dt.reset(new DataTable(columns));
     }
     return 1;
 
@@ -329,7 +284,7 @@ size_t FreadReader::allocateDT(int8_t *types_, int8_t *sizes_, int ncols_,
 
 
 
-void setFinalNrow(size_t nrows) {
+void FreadReader::setFinalNrow(size_t nrows) {
   int i, j;
   for (i = j = 0; i < ncols; i++) {
     int type = types[i];
@@ -352,7 +307,7 @@ void setFinalNrow(size_t nrows) {
 }
 
 
-void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
   try {
     ctx->strbufs = new StrBuf[nstrcols]();
@@ -383,7 +338,7 @@ void prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
 {
   try {
     StrBuf* ctx_strbufs = ctx->strbufs;
@@ -438,7 +393,7 @@ void postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void orderBuffer(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 {
   try {
     StrBuf* ctx_strbufs = ctx->strbufs;
@@ -487,7 +442,7 @@ void orderBuffer(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void pushBuffer(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
     StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
     const void *__restrict__ buff8 = ctx->buff8;
@@ -577,11 +532,11 @@ void pushBuffer(ThreadLocalFreadParsingContext *ctx)
 
 
 void FreadReader::progress(double percent/*[0,100]*/) {
-    PyObject_CallMethod(frargs.freader, "_progress", "d", percent);
+  g.freader.invoke("_progress", "(d)", percent);
 }
 
 
-void freeThreadContext(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::freeThreadContext(ThreadLocalFreadParsingContext *ctx)
 {
   if (ctx->strbufs) {
     for (int k = 0; k < nstrcols; k++) {
