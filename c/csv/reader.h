@@ -98,6 +98,7 @@ class GenericReader
     void decode_utf16();
 
     DataTablePtr read_empty_input();
+    void detect_improper_files();
 };
 
 

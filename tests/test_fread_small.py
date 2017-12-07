@@ -32,6 +32,14 @@ def test_empty(tempfile, src):
     assert d1.shape == (0, 0)
 
 
+def test_html():
+    with pytest.raises(Exception) as e:
+        dt.fread("  \n  <!DOCTYPE html>\n"
+                 "<html><body>HA!</body></html>", verbose=True)
+    assert "<text> is an HTML file" in str(e)
+
+
+
 # TODO: also test repl=None, which currently gets deserialized into empty
 # strings.
 @pytest.mark.parametrize("seed", [random.randint(0, 2**31)])

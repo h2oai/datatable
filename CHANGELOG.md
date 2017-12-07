@@ -30,7 +30,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   method `read()`).
 - File path given to `fread` can now transparently select files within .zip archives.
   This doesn't work with archives-within-archives.
-- Fread now supports auto-detecting and reading UTF-16 files.
+- GenericReader now supports auto-detecting and reading UTF-16 files.
+- GenericReader now attempts to detect whether the input file is an HTML, and if so
+  raises an exception with the appropriate error message.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

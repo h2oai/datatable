@@ -18,6 +18,7 @@
 #include "csv/reader_fread.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <cstring>   // std::memcmp
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -101,6 +102,7 @@ DataTablePtr GenericReader::read()
 
   DataTablePtr dt(nullptr);
   if (!dt) dt = read_empty_input();
+  if (!dt) detect_improper_files();
   if (!dt) dt = FreadReader(*this).read();
   // if (!dt) dt = ArffReader(*this).read();
   if (!dt) throw RuntimeError() << "Unable to read input "
@@ -254,6 +256,22 @@ DataTablePtr GenericReader::read_empty_input() {
     return DataTablePtr(new DataTable(columns));
   }
   return nullptr;
+}
+
+
+/**
+ * This method will attempt to check whether the file looks like it is one
+ * of the unsupported formats (such as HTML). If so, an exception will be
+ * thrown.
+ */
+void GenericReader::detect_improper_files() {
+  const char* ch = dataptr();
+  const char* eof = ch + datasize();
+  while (ch < eof && *ch==' ' || *ch=='\t') ch++;
+  if (std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
+    throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
+        << "open it in a browser and then save in a plain text format.";
+  }
 }
 
 
