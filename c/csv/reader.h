@@ -39,54 +39,65 @@ struct OutputColumn;
 class GenericReader
 {
   // Input parameters
-  int32_t nthreads;
-  bool verbose;
-  char sep;
-  char dec;
-  char quote;
-  int64_t max_nrows;
-  int64_t skip_lines;
-  const char* skip_string;
-  const char* const* na_strings;
-  int8_t header;
-  bool strip_white;
-  bool skip_blank_lines;
-  bool show_progress;
-  bool fill;
-  bool warnings_to_errors;
-  int: 16;
+  public:
+    int32_t nthreads;
+    bool verbose;
+    char sep;
+    char dec;
+    char quote;
+    int64_t max_nrows;
+    int64_t skip_lines;
+    const char* skip_string;
+    const char* const* na_strings;
+    int8_t header;
+    bool strip_white;
+    bool skip_blank_lines;
+    bool show_progress;
+    bool fill;
+    bool warnings_to_errors;
+    int: 16;
 
   // Runtime parameters
-  PyObj logger;
-  PyObj freader;
-  PyObj src_arg;
-  PyObj file_arg;
-  PyObj text_arg;
-  PyObj skipstring_arg;
-  MemoryBuffer* mbuf;
-  int32_t fileno;
-  int : 32;
+  private:
+    PyObj logger;
+    PyObj freader;
+    PyObj src_arg;
+    PyObj file_arg;
+    PyObj text_arg;
+    PyObj skipstring_arg;
+    PyObj tempstr;
+    MemoryBuffer* mbuf;
+    size_t offset;
+    int32_t fileno;
+    int : 32;
 
-public:
-  GenericReader(const PyObj& pyreader);
-  ~GenericReader();
+  // Public API
+  public:
+    GenericReader(const PyObj& pyreader);
+    ~GenericReader();
 
-  std::unique_ptr<DataTable> read();
+    DataTablePtr read();
 
-  const char* dataptr() const;
-  size_t datasize() const;
-  bool get_verbose() const { return verbose; }
-  void trace(const char* format, ...) const;
+    const char* dataptr() const;
+    size_t datasize() const;
+    const PyObj& pyreader() const { return freader; }
+    bool get_verbose() const { return verbose; }
+    void trace(const char* format, ...) const;
 
-private:
-  void set_nthreads(int32_t nthreads);
-  void set_verbose(int8_t verbose);
-  void set_fill(int8_t fill);
-  void set_maxnrows(int64_t n);
-  void set_skiplines(int64_t n);
-  void open_input();
-  friend class ArffReader;
-  friend class FreadReader;
+  // Helper functions
+  private:
+    void set_nthreads(int32_t nthreads);
+    void set_verbose(int8_t verbose);
+    void set_fill(int8_t fill);
+    void set_maxnrows(int64_t n);
+    void set_skiplines(int64_t n);
+
+    void open_input();
+    void detect_and_skip_bom();
+    void skip_initial_whitespace();
+    void decode_utf16();
+
+    DataTablePtr read_empty_input();
 };
 
 

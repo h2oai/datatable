@@ -18,17 +18,18 @@ def random_string(n):
 
 #-------------------------------------------------------------------------------
 
-def test_empty(tempfile):
-    sources = ["", " ", "\n", " \n" * 3, "\t\n  \n\n        \t  "]
-    for src in sources:
-        with open(tempfile, "w") as o:
-            o.write(src)
-        d0 = dt.fread(text=src)
-        d1 = dt.fread(tempfile)
-        assert d0.internal.check()
-        assert d0.shape == (0, 0)
-        assert d1.internal.check()
-        assert d1.shape == (0, 0)
+@pytest.mark.parametrize("src", ["", " ", "\n", " \n" * 3,
+                                 "\t\n  \n\n        \t  ",
+                                 "\uFEFF", "\uFEFF\n", "\uFEFF  \t\n \n\n"])
+def test_empty(tempfile, src):
+    with open(tempfile, "w", encoding="utf-8") as o:
+        o.write(src)
+    d0 = dt.fread(text=src)
+    d1 = dt.fread(file=tempfile)
+    assert d0.internal.check()
+    assert d0.shape == (0, 0)
+    assert d1.internal.check()
+    assert d1.shape == (0, 0)
 
 
 # TODO: also test repl=None, which currently gets deserialized into empty

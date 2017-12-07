@@ -24,9 +24,12 @@
 
 
 //------------------------------------------------------------------------------
+// GenericReader initialization
+//------------------------------------------------------------------------------
 
 GenericReader::GenericReader(const PyObj& pyrdr) {
   mbuf = nullptr;
+  offset = 0;
   freader = pyrdr;
   src_arg = pyrdr.attr("src");
   file_arg = pyrdr.attr("file");
@@ -63,7 +66,7 @@ void GenericReader::set_nthreads(int32_t nth) {
   if (nthreads > maxth) nthreads = maxth;
   if (nthreads <= 0) nthreads += maxth;
   if (nthreads <= 0) nthreads = 1;
-  trace("  Using %d threads (requested=%d, max.available=%d)",
+  trace("Using %d threads (requested=%d, max.available=%d)",
         nthreads, nth, maxth);
 }
 
@@ -73,6 +76,7 @@ void GenericReader::set_verbose(int8_t v) {
 
 void GenericReader::set_fill(int8_t v) {
   fill = (v > 0);
+  if (fill) trace("fill=True (incomplete lines will be filled with NAs)");
 }
 
 void GenericReader::set_maxnrows(int64_t n) {
@@ -86,6 +90,36 @@ void GenericReader::set_skiplines(int64_t n) {
 
 
 //------------------------------------------------------------------------------
+// Main read() function
+//------------------------------------------------------------------------------
+
+DataTablePtr GenericReader::read()
+{
+  open_input();
+  detect_and_skip_bom();
+  skip_initial_whitespace();
+
+  DataTablePtr dt(nullptr);
+  if (!dt) dt = read_empty_input();
+  if (!dt) dt = FreadReader(*this).read();
+  // if (!dt) dt = ArffReader(*this).read();
+  if (!dt) throw RuntimeError() << "Unable to read input "
+                                << src_arg.as_cstring();
+  return dt;  // copy-elision
+}
+
+
+
+//------------------------------------------------------------------------------
+
+const char* GenericReader::dataptr() const {
+  return static_cast<const char*>(mbuf->at(offset));
+}
+
+size_t GenericReader::datasize() const {
+  return mbuf->size() - offset;
+}
+
 
 __attribute__((format(printf, 2, 3)))
 void GenericReader::trace(const char* format, ...) const {
@@ -115,12 +149,16 @@ void GenericReader::trace(const char* format, ...) const {
 
 
 
+//------------------------------------------------------------------------------
+
 void GenericReader::open_input() {
+  offset = 0;
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
     mbuf = new OvermapMemBuf(src, 1, fileno);
-    trace("  Using file %s opened at fd=%d; size = %zu\n",
-          src, fileno, (mbuf->size() - 1));
+    size_t sz = mbuf->size();
+    trace("Using file %s opened at fd=%d; size = %zu",
+          src, fileno, sz > 0? sz - 1 : 0);
     return;
   }
   const char* text = text_arg.as_cstring();
@@ -131,40 +169,114 @@ void GenericReader::open_input() {
   const char* filename = file_arg.as_cstring();
   if (filename) {
     mbuf = new OvermapMemBuf(filename, 1);
-    trace("  File \"%s\" opened, size: %zu\n", filename, (mbuf->size() - 1));
+    size_t sz = mbuf->size();
+    trace("File \"%s\" opened, size: %zu", filename, sz > 0? sz - 1 : 0);
     return;
   }
   throw RuntimeError() << "No input given to the GenericReader";
 }
 
 
-const char* GenericReader::dataptr() const {
-  return static_cast<const char*>(mbuf->get());
-}
-
-size_t GenericReader::datasize() const {
-  return mbuf->size();
-}
-
-
-std::unique_ptr<DataTable> GenericReader::read()
-{
-  open_input();
-
-  {
-    FreadReader frreader(*this);
-    auto dt = frreader.read();
-    if (dt) return dt;
+/**
+ * Check whether the input contains BOM (Byte Order Mark), and if so skip it
+ * modifying `offset`. If BOM indicates UTF-16 file, then recode the file into
+ * UTF-8 (we cannot read UTF-16 directly).
+ *
+ * See: https://en.wikipedia.org/wiki/Byte_order_mark
+ */
+void GenericReader::detect_and_skip_bom() {
+  size_t sz = datasize();
+  const char* ch = dataptr();
+  if (!sz) return;
+  if (sz >= 3 && ch[0]=='\xEF' && ch[1]=='\xBB' && ch[2]=='\xBF') {
+    offset += 3;
+    trace("UTF-8 byte order mark EF BB BF found at the start of the file "
+          "and skipped");
+  } else
+  if (sz >= 2 && ch[0] + ch[1] == '\xFE' + '\xFF') {
+    trace("UTF-16 byte order mark %s found at the start of the file and "
+          "skipped", ch[0]=='\xFE'? "FE FF" : "FF FE");
+    decode_utf16();
+    detect_and_skip_bom();  // just in case BOM was not discarded
   }
-  // {
-  //   ArffReader arffreader(*this);
-  //   auto dt = arffreader.read();
-  //   if (dt) return dt;
-  // }
-
-  throw RuntimeError() << "Unable to read input " << src_arg.as_cstring();
 }
 
+
+/**
+ * Skip all initial whitespace in the file (i.e. empty lines and spaces).
+ * However if `strip_white` is false, then we want to remove empty lines only,
+ * leaving the initial spaces on the last line.
+ *
+ * This function modifies `offset` so that it points to: (1) the first
+ * non-whitespace character in the file, if strip_white is true; or (2) the
+ * first character on the first line that contains any non-whitespace
+ * characters, if strip_white is false.
+ *
+ * Example
+ * -------
+ * Suppose input is the following (_ shows spaces, ␤ is newline, and ⇥ is tab):
+ *
+ *     _ _ _ _ ␤ _ ⇥ _ H e l l o …
+ *
+ * If strip_white=true, then this function will move the offset to character H;
+ * whereas if strip_white=false, this function will move the offset to the
+ * first space after '␤'.
+ */
+void GenericReader::skip_initial_whitespace() {
+  const char* sof = dataptr();         // start-of-file
+  const char* eof = sof + datasize();  // end-of-file
+  const char* ch = sof;
+  if (!sof) return;
+  while ((ch < eof) && (*ch <= ' ') &&
+         (*ch==' ' || *ch=='\n' || *ch=='\r' || *ch=='\t')) {
+    ch++;
+  }
+  if (!strip_white) {
+    ch--;
+    while (ch >= sof && (*ch==' ' || *ch=='\t')) ch--;
+    ch++;
+  }
+  if (ch > sof) {
+    size_t doffset = static_cast<size_t>(ch - sof);
+    offset += doffset;
+    trace("Skipped %zu initial character(s): whitespace only", doffset);
+  }
+}
+
+
+DataTablePtr GenericReader::read_empty_input() {
+  size_t size = datasize();
+  const char* sof = dataptr();
+  if (size == 0 || (size == 1 && *sof == '\0')) {
+    trace("Input is empty, returning a (0 x 0) DataTable");
+    Column** columns = static_cast<Column**>(malloc(sizeof(Column*)));
+    columns[0] = nullptr;
+    return DataTablePtr(new DataTable(columns));
+  }
+  return nullptr;
+}
+
+
+void GenericReader::decode_utf16() {
+  const char* ch = dataptr();
+  size_t size = datasize();
+  if (!size) return;
+  if (ch[size - 1] == '\0') size--;
+
+  Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
+  int byteorder = 0;
+  tempstr = PyObj::fromPyObjectNewRef(
+    PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder)
+  );
+  PyObject* t = tempstr.as_pyobject();  // new ref
+  // borrowed ref, belongs to PyObject `t`
+  char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
+  mbuf->release();
+  mbuf = new ExternalMemBuf(buf, static_cast<size_t>(ssize) + 1);
+  offset = 0;
+  // the object `t` remains alive within `tempstr`
+  Py_DECREF(t);
+}
 
 
 

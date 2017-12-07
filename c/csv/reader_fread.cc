@@ -75,33 +75,15 @@ FreadReader::~FreadReader() {
 }
 
 
-std::unique_ptr<DataTable> FreadReader::read() {
+DataTablePtr FreadReader::read() {
   int retval = freadMain();
   if (!retval) throw PyError();
-  return std::move(dt);  // relinquish ownership of dt
+  return std::move(dt);
 }
 
 
 
 //------------------------------------------------------------------------------
-
-
-void FreadReader::decode_utf16() {
-  int byteorder = 0;
-  // bufsize includes trailing \0, hence -1
-  Py_ssize_t size = static_cast<Py_ssize_t>(g.datasize() - 1);
-
-  tempstr = PyObj::fromPyObjectNewRef(
-    PyUnicode_DecodeUTF16(g.dataptr(), size, "replace", &byteorder)
-  );
-  PyObject* t = tempstr.as_pyobject();
-  // borrowed reference
-  char* buf = PyUnicode_AsUTF8AndSize(t, &size);
-  g.mbuf->release();
-  g.mbuf = new ExternalMemBuf(buf, static_cast<size_t>(size) + 1);
-  Py_DECREF(t);
-}
-
 
 Column* FreadReader::alloc_column(SType stype, size_t nrows, int j)
 {
@@ -181,7 +163,7 @@ bool FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
     PyList_SET_ITEM(colTypesList, i, pytype);
   }
 
-  g.freader.invoke("_override_columns", "(OO)", colNamesList, colTypesList);
+  g.pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
 
   for (int i = 0; i < ncols_; i++) {
     PyObject *t = PyList_GET_ITEM(colTypesList, i);
@@ -229,7 +211,7 @@ size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
 
         // Call the Python upstream to determine the strategy where the
         // DataTable should be created.
-        targetdir = g.freader.invoke("_get_destination", "(n)", alloc_size)
+        targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
                      .as_ccstring();
     } else {
         assert(dt && ncols == ncols_);
@@ -521,7 +503,7 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
 
 
 void FreadReader::progress(double percent/*[0,100]*/) {
-  g.freader.invoke("_progress", "(d)", percent);
+  g.pyreader().invoke("_progress", "(d)", percent);
 }
 
 

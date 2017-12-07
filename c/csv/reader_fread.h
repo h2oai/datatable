@@ -45,10 +45,9 @@ class FreadReader
   //     Borrowed ref, do not free.
   // sizes: array of byte sizes for each field, length `ncols`.
   //     Borrowed ref, do not free.
-  PyObj tempstr;
   char* targetdir;
   StrBuf** strbufs;
-  std::unique_ptr<DataTable> dt;
+  DataTablePtr dt;
   int ncols;
   int nstrcols;
   int ndigits;
@@ -61,14 +60,11 @@ class FreadReader
 public:
   FreadReader(GenericReader&);
   ~FreadReader();
-  std::unique_ptr<DataTable> read();
+  DataTablePtr read();
 
 private:
   int freadMain();
   void freadCleanup();
-
-  int makeEmptyDT();
-  void decode_utf16();
 
   /**
    * This callback is invoked by `freadMain` after the initial pre-scan of the

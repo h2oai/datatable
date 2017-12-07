@@ -278,13 +278,6 @@ static inline bool nextGoodLine(const char **pch, int ncol)
   return false;
 }
 
-int FreadReader::makeEmptyDT() {
-  if (g.verbose) DTPRINT("  Input is empty, creating a (0 x 0) DataTable");
-  allocateDT(0, 0, 0);
-  freadCleanup();
-  return 1;
-}
-
 
 
 //=================================================================================================
@@ -921,7 +914,6 @@ int FreadReader::freadMain()
   //*********************************************************************************************
   // [1] Extract the arguments and check their validity
   //*********************************************************************************************
-  if (g.datasize() <= 1) return makeEmptyDT();
   bool verbose = g.verbose;
   bool warningsAreErrors = g.warnings_to_errors;
   int nth = g.nthreads;
@@ -1004,7 +996,6 @@ int FreadReader::freadMain()
   // Additionally, we will sometimes need to switch to a different parsing
   // context in order to accommodate for the lack of newline on the last line
   // of file.
-  declare_sof:
   size_t fileSize = g.datasize() - 1;
   const char* sof = g.dataptr();
   eof = sof + fileSize;
@@ -1012,33 +1003,6 @@ int FreadReader::freadMain()
   // Convenience variables for iteration over the file.
   const char *ch = NULL, *end = NULL;
 
-
-  //*********************************************************************************************
-  // [3] Check whether the file contains BOM (Byte Order Mark), and if yes
-  //     strip it, modifying `sof`. Also, presence of BOM allows us to
-  //     reliably detect the file's encoding.
-  //     See: https://en.wikipedia.org/wiki/Byte_order_mark
-  //     See: issues #1087 and #1465
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[3] Detect and skip BOM");
-  if (fileSize >= 3 && memcmp(sof, "\xEF\xBB\xBF", 3) == 0) {
-    sof += 3;
-    // ienc = CE_UTF8;
-    if (verbose) DTPRINT("  UTF-8 byte order mark EF BB BF found at the start of the file and skipped.");
-  }
-  else if (fileSize >= 4 && memcmp(sof, "\x84\x31\x95\x33", 4) == 0) {
-    sof += 4;
-    // ienc = CE_GB18030;
-    if (verbose) DTPRINT("  GB-18030 byte order mark 84 31 95 33 found at the start of the file and skipped.");
-    DTWARN("GB-18030 encoding detected, however fread() is unable to decode it. Some character fields may be garbled.");
-  }
-  else if (fileSize >= 2 && sof[0] + sof[1] == '\xFE' + '\xFF') {  // either 0xFE 0xFF or 0xFF 0xFE
-    if (verbose) DTPRINT("  UTF-16 byte order mark %s found, recoding file into UTF-8",
-                         sof[0] == '\xFE'? "FE FF" : "FF FE");
-    decode_utf16();
-    goto declare_sof;
-    // STOP("File is encoded in UTF-16, this encoding is not supported by fread(). Please recode the file to UTF-8.");
-  }
   if (eof[-1] == '\x1A' || eof[-1] == '\0') {
     char c = eof[-1];
     while (eof > sof && eof[-1] == c) eof--;
@@ -1046,7 +1010,7 @@ int FreadReader::freadMain()
                          c? "0x1A (Ctrl+Z)" : "0x00 (NUL)");
     *const_cast<char*>(eof) = '\0';
   }
-  if (eof<=sof) return makeEmptyDT();
+  ASSERT(eof>sof);  // if not, we should have had created an empty DT already...
 
 
   //*********************************************************************************************
@@ -1200,7 +1164,7 @@ int FreadReader::freadMain()
     }
   }
   if (ch >= eof) {
-    return makeEmptyDT();
+    // return makeEmptyDT();
   }
   if (verbose) {
     if (lineStart != sof) {

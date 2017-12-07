@@ -308,15 +308,35 @@ private:
  * This class can also be used to save an existing memory buffer onto disk:
  * just create a new MemmapMemBuf object, and then memcpy the data into
  * its memory region.
+ *
+ * This class behaves lazily: no memory mapping will be performed until the
+ * actual memory region is requested.
  */
 class MemmapMemBuf : public MemoryBuffer, MemoryMapWorker
 {
-  void* mmp;
-  size_t mmpsize;
-  const std::string filename;
-  size_t mmm_index;
-  int fd;
-  int : 32;
+  /**
+   * mmp, mmpsize
+   *   Pointer to the mapped region and its size. If mapping was not done yet
+   *   then `mmp=nullptr`, and `mmpsize` contains either the desired file size
+   *   if `create=true`, or the number of bytes to overallocate if
+   *   `create=false`.
+   * filename, fd
+   *   The name of the file to open / descriptor of the already opened file.
+   * mapped
+   *   Flag indicating whether the file was open or not. If `mapped=false` then
+   *   `mmp=nullptr`. However, it is also possible to have `mmp=nullptr` when
+   *   `mapped=true` (if the file to map has 0 size).
+   * mmm_index
+   *   Index of this entry within the MemoryMapManager.
+   */
+  private:
+    void* mmp;
+    size_t mmpsize;
+    const std::string filename;
+    size_t mmm_index;
+    int fd;
+    bool mapped;
+    int : 24;
 
 public:
   /**
@@ -342,11 +362,17 @@ public:
 protected:
   /**
    * This constructor may either map an existing file (when `create = false`),
-   * or create a new one (if `create = true`). Specifically, when `create` is
-   * true, then `path` must be a valid path in the file system (it may or may
-   * not point to an existing file), and `n` should be the desired file size
-   * in bytes. Conversely, when `create` is false, then `path` must correspond
-   * to an existing accessible file, and parameter `n` is ignored.
+   * or create a new one (if `create = true`).
+   *
+   * Specifically, when `create` is true, then `path` must be a valid path in
+   * the file system (it may or may not point to an existing file), and `n`
+   * should be the desired file size in bytes.
+   *
+   * At the same time, when `create` is false, then `path`/`fd` must correspond
+   * to an existing accessible file, and parameter `n` is the number of extra
+   * bytes to allocate. If the underlying file is empty, then nothing will be
+   * allocated (`get()` will return a null pointer), even if the desired
+   * overallocation amount is non-zero.
    */
   MemmapMemBuf(const std::string& path, size_t n, int fd, bool create);
   virtual ~MemmapMemBuf() override;
@@ -361,6 +387,9 @@ protected:
 /**
  * A variant of MemmapMemBuf that attempts to overallocate the memory region
  * by a specific number of bytes. This is used in fread.
+ *
+ * Note: if the underlying file is empty, `mbuf->get()` will return a null
+ * pointer regardless of the requested "overmap" amount.
  */
 class OvermapMemBuf : public MemmapMemBuf
 {
