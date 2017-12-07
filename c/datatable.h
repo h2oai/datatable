@@ -29,6 +29,7 @@ class Column;
 class Stats;
 class DataTable;
 
+typedef std::unique_ptr<DataTable> DataTablePtr;
 
 
 //==============================================================================

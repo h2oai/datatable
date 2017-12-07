@@ -301,10 +301,9 @@ MemmapMemBuf::MemmapMemBuf(const std::string& path, size_t n, int fileno)
 
 MemmapMemBuf::MemmapMemBuf(
     const std::string& path, size_t n, int fileno, bool create
-  ) : mmp(nullptr), mmpsize(0), filename(path), fd(fileno)
+  ) : mmp(nullptr), mmpsize(n), filename(path), fd(fileno), mapped(false)
 {
   readonly = !create;
-  mmpsize = n;
 }
 
 
@@ -318,22 +317,25 @@ MemmapMemBuf::~MemmapMemBuf() {
 
 void MemmapMemBuf::memmap()
 {
-  assert(mmp == nullptr);
+  assert(!mapped && mmp == nullptr);
+  mapped = true;
   bool create = !readonly;
   size_t n = mmpsize;
+
   File file(filename, create? File::CREATE : File::READ, fd);
   file.assert_is_not_dir();
   if (create) {
     file.resize(n);
   }
   size_t filesize = file.size();
-  mmpsize = filesize + (create? 0 : n);
   if (filesize == 0) {
     // Cannot memory-map 0-bytes file. However we shouldn't really need to:
     // if memory size is 0 then mmp can be NULL as nobody is going to read
     // from it anyways.
+    mmpsize = 0;
     return;
   }
+  mmpsize = filesize + (create? 0 : n);
 
   // Memory-map the file.
   // In "open" mode if `n` is non-zero, then we will be opening a buffer
@@ -400,15 +402,18 @@ void MemmapMemBuf::memunmap() {
 
 
 void* MemmapMemBuf::get() {
-  if (!mmp) memmap();
+  if (!mapped) memmap();
   return mmp;
 }
 
 size_t MemmapMemBuf::size() {
-  if (mmp) {
+  if (mapped) {
     return mmpsize;
   } else {
-    return File::asize(filename) + (readonly? mmpsize : 0);
+    bool create = !readonly;
+    size_t filesize = File::asize(filename);
+    size_t extra = create? 0 : mmpsize;
+    return filesize==0? 0 : filesize + extra;
   }
 }
 
@@ -429,7 +434,7 @@ void MemmapMemBuf::resize(size_t n) {
 
 
 size_t MemmapMemBuf::memory_footprint() const {
-  return (mmp? mmpsize : 0) + filename.size() + sizeof(MemmapMemBuf);
+  return (mapped? mmpsize : 0) + filename.size() + sizeof(MemmapMemBuf);
 }
 
 
@@ -458,6 +463,7 @@ void OvermapMemBuf::memmap()
 {
   MemmapMemBuf::memmap();
   if (xbuf_size == 0) return;
+  if (!MemmapMemBuf::get()) return;
 
   // The parent's constructor has opened a memory-mapped region of size
   // `filesize + xn`. This, however, is not always enough:
