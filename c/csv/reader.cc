@@ -14,6 +14,8 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
+#include "csv/reader_arff.h"
+#include "csv/reader_fread.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include "utils/exceptions.h"

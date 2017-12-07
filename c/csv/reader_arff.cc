@@ -13,26 +13,23 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "csv/reader.h"
+#include "csv/reader_arff.h"
 #include "utils/exceptions.h"
 
 // Forward-declare static helper functions
 static bool read_name(const char** pch, const char** start, size_t* length);
 
 
+
 //------------------------------------------------------------------------------
 
-ArffReader::ArffReader(GenericReader& gr) : greader(gr)
-{
-  verbose = gr.get_verbose();
-}
+ArffReader::ArffReader(GenericReader& greader) : g(greader) {}
 
 ArffReader::~ArffReader() {}
 
-
 std::unique_ptr<DataTable> ArffReader::read() {
-  if (verbose) printf("[ARFF reader]\n");
-  ch = greader.dataptr();
+  g.trace("[ARFF reader]");
+  ch = g.dataptr();
   line = 1;
 
   read_preamble();

@@ -6,7 +6,8 @@
 #include "utils.h"
 #ifdef DTPY
   #include "utils/omp.h"
-  #include "csv/py_fread.h"
+  // #include "csv/reader_fread.h"
+  #include "memorybuf.h"
 #else
   #include <omp.h>
   #include "freadR.h"
@@ -49,6 +50,44 @@ typedef struct {
 #define NA_FLOAT64_I64   0x7FF00000000007A2
 #define NA_FLOAT32_I32   0x7F8007A2
 #define NA_LENOFF        INT32_MIN  // lenOff.len only; lenOff.off undefined for NA
+
+
+// Per-column per-thread temporary string buffers used to assemble processed
+// string data. Length = `nstrcols`. Each element in this array has the
+// following fields:
+//     .buf -- memory region where all string data is stored.
+//     .size -- allocation size of this memory buffer.
+//     .ptr -- the `postprocessBuffer` stores here the total amount of string
+//         data currently held in the buffer; while the `orderBuffer` function
+//         puts here the offset within the global string buffer where the
+//         current buffer should be copied to.
+//     .idx8 -- index of the current column within the `buff8` array.
+//     .idxdt -- index of the current column within the output DataTable.
+//     .numuses -- synchronization lock. The purpose of this variable is to
+//         prevent race conditions between threads that do memcpy, and another
+//         thread that needs to realloc the underlying buffer. Without the lock,
+//         if one thread is performing a mem-copy and the other thread wants to
+//         reallocs the buffer, then the first thread will segfault in the
+//         middle of its operation. In order to prevent this, we use this
+//         `.numuses` variable: when positive it shows the number of threads
+//         that are currently writing to the same buffer. However when this
+//         variable is negative, it means the buffer is being realloced, and no
+//         other threads is allowed to initiate a memcopy.
+//
+typedef struct StrBuf {
+    MemoryBuffer* mbuf;
+    //char *buf;
+    //size_t size;
+    size_t ptr;
+    int idx8;
+    int idxdt;
+    volatile int numuses;
+    int _padding;
+} StrBuf;
+
+#define FREAD_PUSH_BUFFERS_EXTRA_FIELDS                                        \
+    StrBuf *strbufs;                                                           \
+
 
 
 

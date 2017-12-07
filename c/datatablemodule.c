@@ -1,7 +1,6 @@
 #include <Python.h>
 #include "capi.h"
-#include "csv/py_fread.h"
-#include "csv/reader.h"
+#include "csv/py_csv.h"
 #include "csv/writer.h"
 #include "py_column.h"
 #include "py_columnset.h"

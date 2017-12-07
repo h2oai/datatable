@@ -22,7 +22,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "py_datatable.h"
-#include "py_fread.h"
 #include "py_utils.h"
 #include "utils.h"
 #include "utils/omp.h"

@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "csv/py_fread.h"
+#include "csv/reader_fread.h"
 #include "csv/reader.h"
 #include "csv/fread.h"
 #include <Python.h>
