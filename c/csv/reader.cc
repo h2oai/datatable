@@ -137,8 +137,13 @@ void GenericReader::open_input() {
   throw RuntimeError() << "No input given to the GenericReader";
 }
 
+
 const char* GenericReader::dataptr() const {
   return static_cast<const char*>(mbuf->get());
+}
+
+size_t GenericReader::datasize() const {
+  return mbuf->size();
 }
 
 

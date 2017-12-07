@@ -74,6 +74,7 @@ public:
   std::unique_ptr<DataTable> read();
 
   const char* dataptr() const;
+  size_t datasize() const;
   bool get_verbose() const { return verbose; }
   void trace(const char* format, ...) const;
 

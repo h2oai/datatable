@@ -921,7 +921,7 @@ int FreadReader::freadMain()
   //*********************************************************************************************
   // [1] Extract the arguments and check their validity
   //*********************************************************************************************
-  if (g.mbuf->size() <= 1) return makeEmptyDT();
+  if (g.datasize() <= 1) return makeEmptyDT();
   bool verbose = g.verbose;
   bool warningsAreErrors = g.warnings_to_errors;
   int nth = g.nthreads;
@@ -1005,8 +1005,8 @@ int FreadReader::freadMain()
   // context in order to accommodate for the lack of newline on the last line
   // of file.
   declare_sof:
-  size_t fileSize = g.mbuf->size() - 1;
-  const char* sof = g.mbuf->getstr();
+  size_t fileSize = g.datasize() - 1;
+  const char* sof = g.dataptr();
   eof = sof + fileSize;
   ASSERT(*eof == '\0');
   // Convenience variables for iteration over the file.

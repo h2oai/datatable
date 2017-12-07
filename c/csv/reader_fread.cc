@@ -89,17 +89,14 @@ std::unique_ptr<DataTable> FreadReader::read() {
 void FreadReader::decode_utf16() {
   int byteorder = 0;
   // bufsize includes trailing \0, hence -1
-  Py_ssize_t size = static_cast<Py_ssize_t>(g.mbuf->size() - 1);
+  Py_ssize_t size = static_cast<Py_ssize_t>(g.datasize() - 1);
 
   tempstr = PyObj::fromPyObjectNewRef(
-    PyUnicode_DecodeUTF16(g.mbuf->getstr(), size,
-                          "replace", &byteorder)
+    PyUnicode_DecodeUTF16(g.dataptr(), size, "replace", &byteorder)
   );
   PyObject* t = tempstr.as_pyobject();
   // borrowed reference
   char* buf = PyUnicode_AsUTF8AndSize(t, &size);
-  // frargs.buf_ = buf;
-  // frargs.bufsize_ = static_cast<size_t>(size) + 1;
   g.mbuf->release();
   g.mbuf = new ExternalMemBuf(buf, static_cast<size_t>(size) + 1);
   Py_DECREF(t);
