@@ -118,6 +118,17 @@ def test_utf16(tempfile):
         assert d0.topython() == [col1, col2, col3]
 
 
+def test_issue641():
+    f = dt.fread("A,B,C\n"
+                 "5,,\n"
+                 "6,foo\rbar,z\n"
+                 "7,bah,")
+    assert f.internal.check()
+    assert f.names == ("A", "B", "C")
+    assert f.ltypes == (dt.ltype.int, dt.ltype.str, dt.ltype.str)
+    assert f.topython() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
+
+
 
 #-------------------------------------------------------------------------------
 # Omnibus Test

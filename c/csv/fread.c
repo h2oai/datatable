@@ -44,7 +44,9 @@ static const char* const* NAstrings;
 static bool any_number_like_NAstrings=false;
 static bool blank_is_a_NAstring=false;
 static bool stripWhite=true;  // only applies to character columns; numeric fields always stripped
-static bool skipEmptyLines=false, fill=false;
+static bool skipEmptyLines = false;
+static bool fill = false;
+static bool LFpresent = false;
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
@@ -106,16 +108,29 @@ static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
 }
 
 static inline bool on_eol(const char* ch) {
-  return *ch=='\n' || *ch=='\r' || *ch=='\0' || ch==eof;
+  if (*ch == '\r') {
+    if (LFpresent) {
+      while (*ch=='\r') ch++;
+      return (*ch=='\n');
+    } else {
+      return true;
+    }
+  }
+  return *ch=='\n' || *ch=='\0';
 }
 
 static inline void skip_eol(const char** pch) {
   const char *ch = *pch;
-  *pch += *ch=='\n'? 1 + (ch[1]=='\r') :
-          *ch=='\r'? 1 + (ch[1]=='\n') + (ch[1]=='\r' && ch[2]=='\n')*2 :
-                     (*ch=='\0');
+  if (*ch == '\n') {
+    *pch += 1 + (ch[1] == '\r');
+  } else if (*ch == '\r') {
+    if (ch[1] == '\n') *pch += 2;
+    else if (ch[1] == '\r' && ch[2] == '\n') *pch += 3;
+    else if (!LFpresent) *pch += 1;
+  } else if (*ch == '\0') {
+    *pch++;
+  }
 }
-
 
 /**
  * Helper for error and warning messages to extract an input line starting at
@@ -1007,6 +1022,19 @@ int FreadReader::freadMain()
   //     first and the second line-separator characters respectively.
   //*********************************************************************************************
   if (verbose) DTPRINT("[4] Detect end-of-line character(s)");
+
+  int cnt = 0;
+  ch = sof;
+  while (ch < eof && *ch != '\n' && cnt < 100) {
+    cnt += (*ch == '\r');
+    ch++;
+  }
+  LFpresent = (ch < eof && *ch == '\n');
+  if (LFpresent) {
+    g.trace("LF character (\\n) found in input, \\r-only line endings are prohibited");
+  } else {
+    g.trace("LF character (\\n) not found in input, CR (\\r) will be considered a line ending");
+  }
 
   // Scan the file until the first newline character is found. By the end of
   // this loop `ch` will be pointing to such a character, or to eof if there
