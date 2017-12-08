@@ -68,6 +68,7 @@ class GenericReader
     PyObj tempstr;
     MemoryBuffer* mbuf;
     size_t offset;
+    size_t offend;
     int32_t fileno;
     int : 32;
 
@@ -78,8 +79,29 @@ class GenericReader
 
     DataTablePtr read();
 
+    /**
+     * Return the pointer to the input data buffer and its size. The method
+     * `open_input()` must be called first. The pointer returned may be null
+     * if the underlying file is empty -- call `read_empty_input()` to deal
+     * with such situation. The memory region
+     *
+     *    dataptr() .. dataptr() + datasize() - 1
+     *
+     * is guaranteed to be readable, provided the region is not empty.
+     */
     const char* dataptr() const;
     size_t datasize() const;
+
+    /**
+     * If this method returns true, then it is valid to access byte at the
+     * address
+     *
+     *    dataptr() + datasize()
+     *
+     * (1 byte past the end of the "main" data region).
+     */
+    bool extra_byte_accessible() const;
+
     const PyObj& pyreader() const { return freader; }
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
@@ -95,6 +117,7 @@ class GenericReader
     void open_input();
     void detect_and_skip_bom();
     void skip_initial_whitespace();
+    void skip_trailing_whitespace();
     void decode_utf16();
 
     DataTablePtr read_empty_input();

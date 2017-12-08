@@ -226,8 +226,8 @@ bool MemoryMemBuf::verify_integrity(IntegrityCheckContext& icc,
 // External MemoryBuffer
 //==============================================================================
 
-ExternalMemBuf::ExternalMemBuf(void* ptr, void* pybuf, size_t size) {
-  buf = ptr;
+ExternalMemBuf::ExternalMemBuf(const void* ptr, void* pybuf, size_t size) {
+  buf = const_cast<void*>(ptr);
   allocsize = size;
   pybufinfo = pybuf;
   readonly = true;
@@ -238,13 +238,11 @@ ExternalMemBuf::ExternalMemBuf(void* ptr, void* pybuf, size_t size) {
   }
 }
 
-ExternalMemBuf::ExternalMemBuf(void* ptr, size_t n)
+ExternalMemBuf::ExternalMemBuf(const void* ptr, size_t n)
     : ExternalMemBuf(ptr, nullptr, n) {}
 
 ExternalMemBuf::ExternalMemBuf(const char* str)
-    : ExternalMemBuf(const_cast<char*>(str),
-                     nullptr,
-                     strlen(str) + 1) {}
+    : ExternalMemBuf(str, nullptr, strlen(str) + 1) {}
 
 
 ExternalMemBuf::~ExternalMemBuf() {

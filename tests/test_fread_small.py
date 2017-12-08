@@ -20,7 +20,9 @@ def random_string(n):
 
 @pytest.mark.parametrize("src", ["", " ", "\n", " \n" * 3,
                                  "\t\n  \n\n        \t  ",
-                                 "\uFEFF", "\uFEFF\n", "\uFEFF  \t\n \n\n"])
+                                 "\uFEFF", "\uFEFF\n", "\uFEFF  \t\n \n\n",
+                                 "\n\x1A\x1A", "\0", "\0\0\0\0", "\n\0",
+                                 "\uFEFF  \n  \n\t\0\x1A\0\x1A"])
 def test_empty(tempfile, src):
     with open(tempfile, "w", encoding="utf-8") as o:
         o.write(src)
