@@ -49,40 +49,47 @@ print("\nFound packages: %r\n" % packages, file=stderr)
 # Prepare the environment
 #-------------------------------------------------------------------------------
 
-# Check whether there is 'llvm4' folder in the package folder
-if "LLVM4" not in os.environ:
-    d = os.path.join(curdir, "datatable/llvm4")
-    if os.path.isdir(d):
-        os.environ["LLVM4"] = d
+# Verify the LLVM4/LLVM5 installation directory
+for LLVMX in ["LLVM4", "LLVM5"]:
+    # Check whether there is 'llvm4' folder in the package folder
+    if LLVMX not in os.environ:
+        d = os.path.join(curdir, "datatable/" + LLVMX.lower())
+        if os.path.isdir(d):
+            os.environ[LLVMX] = d
+    if LLVMX not in os.environ:
+        continue
 
-# Verify the LLVM4 installation directory
-if "LLVM4" in os.environ:
-    llvm4 = os.path.expanduser(os.environ["LLVM4"])
-    if llvm4.endswith("/"):
-        llvm4 = llvm4[:-1]
-    if " " in llvm4:
-        raise ValueError("LLVM4 directory %r contains spaces -- this is not "
+    llvmlite_req = ("==0.20.0" if LLVMX == "LLVM4" else
+                    ">=0.21.0" if LLVMX == "LLVM5" else None)
+    llvmx = os.path.expanduser(os.environ[LLVMX])
+    if llvmx.endswith("/"):
+        llvmx = llvmx[:-1]
+    if " " in llvmx:
+        raise ValueError("%s directory %r contains spaces -- this is not "
                          "supported, please move the folder, or make a symlink "
-                         "or provide a 'short' name (if on Windows)" % llvm4)
-    if not os.path.isdir(llvm4):
-        raise ValueError("Variable LLVM4 = %r is not a directory" % llvm4)
-    llvm_config = os.path.join(llvm4, "bin", "llvm-config")
-    clang = os.path.join(llvm4, "bin", "clang++")
-    libsdir = os.path.join(llvm4, "lib")
-    includes = os.path.join(llvm4, "include")
+                         "or provide a 'short' name (if on Windows)"
+                         % (LLVMX, llvmx))
+    if not os.path.isdir(llvmx):
+        raise ValueError("Variable %s = %r is not a directory"
+                         % (LLVMX, llvmx))
+    llvm_config = os.path.join(llvmx, "bin", "llvm-config")
+    clang = os.path.join(llvmx, "bin", "clang++")
+    libsdir = os.path.join(llvmx, "lib")
+    includes = os.path.join(llvmx, "include")
     for f in [llvm_config, clang, libsdir, includes]:
         if not os.path.exists(f):
-            raise RuntimeError("Cannot find %r inside the LLVM4 folder. "
-                               "Is this a valid installation?" % f)
+            raise RuntimeError("Cannot find %r inside the %s folder. "
+                               "Is this a valid installation?" % (LLVMX, f))
     ver = subprocess.check_output([llvm_config, "--version"]).decode().strip()
-    if not ver.startswith("4.0."):
-        raise RuntimeError("Wrong LLVM version: expected 4.0.x but "
-                           "found %s" % ver)
-else:
-    raise RuntimeError("Environment variable LLVM4 is not set. Please set this "
-                       "variable to the location of the Clang+Llvm-4.0.0 "
-                       "distribution, which you can download from "
-                       "http://releases.llvm.org/download.html#4.0.0")
+    if not ver.startswith(LLVMX[-1] + "."):
+        raise RuntimeError("Wrong LLVM version: expected %s.x but found %s"
+                           % (LLVMX[-1], ver))
+
+if not llvmlite_req:
+    raise RuntimeError("Environment variables LLVM4 or LLVM5 are not set. "
+                       "Please set one of these variables to the location of "
+                       "the Clang+Llvm distribution, which you can download "
+                       "from http://releases.llvm.org/download.html")
 
 # Compiler
 os.environ["CC"] = clang + " "
@@ -124,6 +131,9 @@ os.environ["ARCHFLAGS"] = "-m64"
 # If we need to install llvmlite, this would help
 os.environ["LLVM_CONFIG"] = llvm_config
 
+print("Setting environment variables:")
+for n in ["CC", "CXX", "LDFLAGS", "ARCHFLAGS", "LLVM_CONFIG"]:
+    print("  %s = %s" % (n, os.environ[n]))
 
 
 #-------------------------------------------------------------------------------
@@ -132,8 +142,8 @@ os.environ["LLVM_CONFIG"] = llvm_config
 extra_compile_args = ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
 
 # Include path to C++ header files
-extra_compile_args += ["-I" + os.environ["LLVM4"] + "/include/c++/v1",
-                       "-isystem " + os.environ["LLVM4"] + "/include/c++/v1"]
+extra_compile_args += ["-I" + llvmx + "/include/c++/v1",
+                       "-isystem " + llvmx + "/include/c++/v1"]
 
 # This flag becomes C-level macro DTPY, which indicates that we are compiling
 # (Py)datatable. This is used for example in fread.c to distinguish between
@@ -248,7 +258,7 @@ setup(
     install_requires=[
         "typesentry>=0.2.4",
         "blessed",
-        "llvmlite",
+        "llvmlite" + llvmlite_req,
         "psutil"
     ],
 
