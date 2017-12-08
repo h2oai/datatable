@@ -31,6 +31,7 @@
 GenericReader::GenericReader(const PyObj& pyrdr) {
   mbuf = nullptr;
   offset = 0;
+  offend = 0;
   freader = pyrdr;
   src_arg = pyrdr.attr("src");
   file_arg = pyrdr.attr("file");
@@ -99,6 +100,7 @@ DataTablePtr GenericReader::read()
   open_input();
   detect_and_skip_bom();
   skip_initial_whitespace();
+  skip_trailing_whitespace();
 
   DataTablePtr dt(nullptr);
   if (!dt) dt = read_empty_input();
@@ -119,7 +121,11 @@ const char* GenericReader::dataptr() const {
 }
 
 size_t GenericReader::datasize() const {
-  return mbuf->size() - offset;
+  return mbuf->size() - offset - offend;
+}
+
+bool GenericReader::extra_byte_accessible() const {
+  return (offend > 0);
 }
 
 
@@ -155,24 +161,33 @@ void GenericReader::trace(const char* format, ...) const {
 
 void GenericReader::open_input() {
   offset = 0;
+  offend = 0;
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
     mbuf = new OvermapMemBuf(src, 1, fileno);
     size_t sz = mbuf->size();
-    trace("Using file %s opened at fd=%d; size = %zu",
-          src, fileno, sz > 0? sz - 1 : 0);
+    if (sz > 0) {
+      sz--;
+      *(mbuf->getstr() + sz) = '\0';
+    }
+    trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
     return;
   }
-  const char* text = text_arg.as_cstring();
+  size_t size = 0;
+  const char* text = text_arg.as_cstring(&size);
   if (text) {
-    mbuf = new ExternalMemBuf(text);
+    mbuf = new ExternalMemBuf(text, size + 1);
     return;
   }
   const char* filename = file_arg.as_cstring();
   if (filename) {
     mbuf = new OvermapMemBuf(filename, 1);
     size_t sz = mbuf->size();
-    trace("File \"%s\" opened, size: %zu", filename, sz > 0? sz - 1 : 0);
+    if (sz > 0) {
+      sz--;
+      *(mbuf->getstr() + sz) = '\0';
+    }
+    trace("File \"%s\" opened, size: %zu", filename, sz);
     return;
   }
   throw RuntimeError() << "No input given to the GenericReader";
@@ -241,7 +256,26 @@ void GenericReader::skip_initial_whitespace() {
   if (ch > sof) {
     size_t doffset = static_cast<size_t>(ch - sof);
     offset += doffset;
-    trace("Skipped %zu initial character(s): whitespace only", doffset);
+    trace("Skipped %zu initial whitespace character(s)", doffset);
+  }
+}
+
+
+void GenericReader::skip_trailing_whitespace() {
+  const char* sof = dataptr();
+  const char* eof = sof + datasize();
+  const char* ch = eof - 1;
+  if (!sof) return;
+  // Skip characters \0 and Ctrl+Z
+  while (ch >= sof && (*ch=='\0' || *ch=='\x1A')) {
+    ch--;
+  }
+  if (ch < eof - 1) {
+    size_t d = static_cast<size_t>(eof - 1 - ch);
+    offend += d;
+    if (d > 1) {
+      trace("Skipped %zu trailing whitespace characters", d);
+    }
   }
 }
 
@@ -267,7 +301,7 @@ DataTablePtr GenericReader::read_empty_input() {
 void GenericReader::detect_improper_files() {
   const char* ch = dataptr();
   const char* eof = ch + datasize();
-  while (ch < eof && *ch==' ' || *ch=='\t') ch++;
+  while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
     throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
         << "open it in a browser and then save in a plain text format.";
@@ -292,6 +326,7 @@ void GenericReader::decode_utf16() {
   mbuf->release();
   mbuf = new ExternalMemBuf(buf, static_cast<size_t>(ssize) + 1);
   offset = 0;
+  offend = 0;
   // the object `t` remains alive within `tempstr`
   Py_DECREF(t);
 }

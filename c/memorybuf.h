@@ -266,7 +266,7 @@ public:
    * deleted, it will call `PyBuffer_Release()` handler signaling the owner
    * that the pointer `ptr` is no longer in use.
    */
-  ExternalMemBuf(void* ptr, void* pybuf, size_t n);
+  ExternalMemBuf(const void* ptr, void* pybuf, size_t n);
 
   /**
    * Create an ExternalMemBuf of size `n` based on the provided pointer `ptr`.
@@ -274,7 +274,7 @@ public:
    * attempt to free it in the end. It is the responsibility of the user to
    * ensure that the pointer is not freed prematurely.
    */
-  ExternalMemBuf(void* ptr, size_t n);
+  ExternalMemBuf(const void* ptr, size_t n);
 
   /**
    * Create an ExternalMemBuf mapped onto a C string. The C string is not

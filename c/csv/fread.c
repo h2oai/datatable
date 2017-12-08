@@ -106,7 +106,7 @@ static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
 }
 
 static inline bool on_eol(const char* ch) {
-  return *ch==eol || *ch=='\0';
+  return *ch=='\n' || *ch=='\r' || *ch=='\0' || ch==eof;
 }
 
 static inline void skip_eol(const char** pch) {
@@ -984,33 +984,18 @@ int FreadReader::freadMain()
   dec = g.dec;
   quote = g.quote;
   if (g.sep == quote && quote!='\0') STOP("sep == quote ('%c') is not allowed", quote);
-  if (dec=='\0') STOP("dec='' not allowed. Should be '.' or ','");
+  if (g.dec == '\0') STOP("dec='' not allowed. Should be '.' or ','");
   if (g.sep == dec) STOP("sep == dec ('%c') is not allowed", dec);
   if (quote == dec) STOP("quote == dec ('%c') is not allowed", dec);
 
-  // File parsing context: pointer to the start of file, and to the end of
-  // the file. The `sof` pointer may be shifted in order to skip over
-  // "irrelevant" parts: the BOM mark, the banner, the headers, the skipped
-  // lines, etc. Similarly, `eof` may be adjusted to take out the footer of
-  // the file.
-  // Additionally, we will sometimes need to switch to a different parsing
-  // context in order to accommodate for the lack of newline on the last line
-  // of file.
-  size_t fileSize = g.datasize() - 1;
+  size_t fileSize = g.datasize();
   const char* sof = g.dataptr();
   eof = sof + fileSize;
-  ASSERT(*eof == '\0');
+  // TODO: Do not require the extra byte, and do not write into the input stream...
+  ASSERT(g.extra_byte_accessible() && fileSize > 0);
+  *const_cast<char*>(eof) = '\0';
   // Convenience variables for iteration over the file.
   const char *ch = NULL, *end = NULL;
-
-  if (eof[-1] == '\x1A' || eof[-1] == '\0') {
-    char c = eof[-1];
-    while (eof > sof && eof[-1] == c) eof--;
-    if (verbose) DTPRINT("  Last byte(s) of input found to be %s and removed.",
-                         c? "0x1A (Ctrl+Z)" : "0x00 (NUL)");
-    *const_cast<char*>(eof) = '\0';
-  }
-  ASSERT(eof>sof);  // if not, we should have had created an empty DT already...
 
 
   //*********************************************************************************************
@@ -1092,7 +1077,6 @@ int FreadReader::freadMain()
       }
     }
   }
-
 
 
   //*********************************************************************************************
@@ -1241,6 +1225,7 @@ int FreadReader::freadMain()
         if (thisncol!=lastncol) { numFields[++i]=thisncol; lastncol=thisncol; } // new contiguous consistent ncol started
         numLines[i]++;
       }
+      if (ch > eof) ch = eof;
       if (numFields[0]==-1) continue;
       if (firstJumpEnd==NULL) firstJumpEnd=ch;  // if this wins (doesn't get updated), it'll be single column input
       bool updated=false;
@@ -1278,7 +1263,7 @@ int FreadReader::freadMain()
   ASSERT(firstJumpEnd);
   // the size in bytes of the first JUMPLINES from the start (jump point 0)
   size_t jump0size = (size_t)(firstJumpEnd - sof);
-  ASSERT(jump0size >= 0 && jump0size <= fileSize + (size_t)eolLen);
+  ASSERT(jump0size <= fileSize + (size_t)eolLen);
   quoteRule = topQuoteRule;
   sep = topSep;
   whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
@@ -1527,7 +1512,7 @@ int FreadReader::freadMain()
                "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
         }
       }
-      ASSERT(ch <= end);
+      if (ch > end) ch = end;
       if (!on_eol(ch) || field>=ncol) {
         ASSERT(field==ncol);
         STOP("Line %d from sampling jump %d starting \"%s\" has more than the expected %d fields. "

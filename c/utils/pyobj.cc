@@ -148,30 +148,42 @@ double PyObj::as_double() const {
 
 
 const char* PyObj::as_cstring() const {
+  return as_cstring(NULL);
+}
+
+const char* PyObj::as_cstring(size_t* size) const {
   if (!obj) throw ValueError() << "PyObj() was not initialized properly";
   if (PyUnicode_Check(obj)) {
     if (tmp) throw RuntimeError() << "Cannot convert to string more than once";
     tmp = PyUnicode_AsEncodedString(obj, "utf-8", "strict");
+    if (size) *size = PyBytes_Size(tmp);
     return PyBytes_AsString(tmp);
   }
-  if (PyBytes_Check(obj)) return PyBytes_AsString(obj);
-  if (obj == Py_None) return nullptr;
+  if (PyBytes_Check(obj)) {
+    if (size) *size = PyBytes_Size(obj);
+    return PyBytes_AsString(obj);
+  }
+  if (obj == Py_None) {
+    if (size) *size = 0;
+    return nullptr;
+  }
   throw ValueError() << "Value " << obj << " is not a string";
 }
 
 
 std::string PyObj::as_string() const {
-  const char* src = as_cstring();
-  return std::string(src? src : "");
+  size_t sz = 0;
+  const char* src = as_cstring(&sz);
+  return std::string(src? src : "", sz);
 }
 
 
 char* PyObj::as_ccstring() const {
-  const char* src = as_cstring();
+  size_t sz = 0;
+  const char* src = as_cstring(&sz);
   if (!src) return nullptr;
-  size_t len = strlen(src);
-  char* newbuf = new char[len + 1];
-  memcpy(newbuf, src, len + 1);
+  char* newbuf = new char[sz + 1];
+  memcpy(newbuf, src, sz + 1);
   return newbuf;
 }
 
