@@ -77,7 +77,9 @@ public:
    * This method can be called only once on the PyObj. It is more efficient than
    * the first one (avoids extra copy), but less safe (the user must not free
    * the pointer accidentally, and cannot use the pointer after PyObj went out
-   * of scope). If the object is Py_None, a null pointer is returned.
+   * of scope). If the object is Py_None, a null pointer is returned. If a
+   * size_t* pointer is passed, then string length will be stored in that
+   * pointer (the length doesn't take into account the last \0 byte).
    *
    * The `as_ccstring` method is similar to `as_cstring`, however the returned
    * pointer will be owned by the caller, and the caller is responsible for its
@@ -87,6 +89,7 @@ public:
    */
   std::string as_string() const;
   const char* as_cstring() const;
+  const char* as_cstring(size_t*) const;
   char* as_ccstring() const;
 
   /**
