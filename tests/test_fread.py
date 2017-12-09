@@ -449,24 +449,27 @@ def test_fread_quotechar():
     d1 = dt.fread(inp, quotechar="'")
     assert d1.internal.check()
     assert d1.topython() == [["foo", '"bar"', "`baz`"], [1, 2, 3]]
-    d1 = dt.fread(inp, quotechar="`")
-    assert d1.internal.check()
-    assert d1.topython() == [["'foo'", '"bar"', "baz"], [1, 2, 3]]
-    d1 = dt.fread(inp, quotechar=None)
-    assert d1.internal.check()
-    assert d1.topython() == [["'foo'", '"bar"', "`baz`"], [1, 2, 3]]
+    d2 = dt.fread(inp, quotechar="`")
+    assert d2.internal.check()
+    assert d2.topython() == [["'foo'", '"bar"', "baz"], [1, 2, 3]]
+    d3 = dt.fread(inp, quotechar="")
+    assert d3.internal.check()
+    assert d3.topython() == [["'foo'", '"bar"', "`baz`"], [1, 2, 3]]
+    d4 = dt.fread(inp, quotechar=None)
+    assert d4.internal.check()
+    assert d4.topython() == [["'foo'", "bar", "`baz`"], [1, 2, 3]]
 
 
 def test_fread_quotechar_bad():
     for c in "~!@#$%abcd*()-_+=^&:;{}[]\\|,.></?0123456789":
         with pytest.raises(ValueError) as e:
             dt.fread("A,B\n1,2", quotechar=c)
-        assert "quotechar should be one of [\"'`] or None" in str(e.value)
+        assert "quotechar should be one of [\"'`] or '' or None" in str(e.value)
     # Multi-character raises as well
     with pytest.raises(ValueError):
         dt.fread("A,B\n1,2", quotechar="''")
     with pytest.raises(ValueError):
-        dt.fread("A,B\n1,2", quotechar="")
+        dt.fread("A,B\n1,2", quotechar="\0")
 
 
 def test_fread_dec():

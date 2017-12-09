@@ -156,11 +156,11 @@ const char* PyObj::as_cstring(size_t* size) const {
   if (PyUnicode_Check(obj)) {
     if (tmp) throw RuntimeError() << "Cannot convert to string more than once";
     tmp = PyUnicode_AsEncodedString(obj, "utf-8", "strict");
-    if (size) *size = PyBytes_Size(tmp);
+    if (size) *size = static_cast<size_t>(PyBytes_Size(tmp));
     return PyBytes_AsString(tmp);
   }
   if (PyBytes_Check(obj)) {
-    if (size) *size = PyBytes_Size(obj);
+    if (size) *size = static_cast<size_t>(PyBytes_Size(obj));
     return PyBytes_AsString(obj);
   }
   if (obj == Py_None) {
@@ -189,8 +189,14 @@ char* PyObj::as_ccstring() const {
 
 
 char PyObj::as_char() const {
-  const char* src = as_cstring();
-  return src? src[0] : '\0';
+  return as_char('\0', '\0');
+}
+char PyObj::as_char(char ifnone, char ifempty) const {
+  size_t sz = 0;
+  const char* src = as_cstring(&sz);
+  if (src == nullptr) return ifnone;
+  if (sz == 0) return ifempty;
+  return src[0];
 }
 
 

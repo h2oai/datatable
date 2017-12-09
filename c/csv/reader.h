@@ -38,7 +38,30 @@ struct OutputColumn;
  */
 class GenericReader
 {
+  //============================================================================
   // Input parameters
+  //============================================================================
+  // nthreads:
+  //   Number of threads to use; 0 means use maximum possible, negative number
+  //   means use that many less than the maximum. The default is 0.
+  // verbose:
+  //   Print diagnostic information about the parsing process.
+  // sep:
+  //   The separator character. The default is \xFF, which means "auto-detect".
+  //   The `sep` may also be '\n', which indicates "single-line mode" (i.e. the
+  //   lines should not be split into fields). The value `sep=' '` is likewise
+  //   special: multiple space characters are always treated as a single
+  //   separator (i.e. the separator is effectively /\s+/). At the same time the
+  //   `sep` cannot be any of [0-9a-zA-Z'"`].
+  // dec:
+  //   The decimal separator in numbers. Only '.' (default) and ',' are allowed.
+  // quote:
+  //   The quotation mark. Only '"' (default), '\'' and '`' are allowed. In
+  //   addition this can also be '\0', which indicates no quoting is allowed.
+  // header:
+  //   Is the header present? Possible values are 0 (no), 1 (yes), and -128
+  //   (auto-detect, default).
+  //
   public:
     int32_t nthreads;
     bool verbose;
@@ -55,7 +78,8 @@ class GenericReader
     bool show_progress;
     bool fill;
     bool warnings_to_errors;
-    int: 16;
+    bool blank_is_na;
+    bool number_is_na;
 
   // Runtime parameters
   private:
@@ -108,11 +132,20 @@ class GenericReader
 
   // Helper functions
   private:
-    void set_nthreads(int32_t nthreads);
-    void set_verbose(int8_t verbose);
-    void set_fill(int8_t fill);
-    void set_maxnrows(int64_t n);
-    void set_skiplines(int64_t n);
+    void init_verbose();
+    void init_nthreads();
+    void init_fill();
+    void init_maxnrows();
+    void init_skiplines();
+    void init_sep();
+    void init_dec();
+    void init_quote();
+    void init_showprogress();
+    void init_header();
+    void init_nastrings();
+    void init_skipstring();
+    void init_stripwhite();
+    void init_skipblanklines();
 
     void open_input();
     void detect_and_skip_bom();

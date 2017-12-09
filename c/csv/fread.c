@@ -128,7 +128,7 @@ static inline void skip_eol(const char** pch) {
     else if (ch[1] == '\r' && ch[2] == '\n') *pch += 3;
     else if (!LFpresent) *pch += 1;
   } else if (*ch == '\0') {
-    *pch++;
+    *pch += 1;
   }
 }
 
@@ -925,83 +925,24 @@ static reader_fun_t fun[NUMTYPE] = {
 int FreadReader::freadMain()
 {
   double t0 = wallclock();
-
-  //*********************************************************************************************
-  // [1] Extract the arguments and check their validity
-  //*********************************************************************************************
   bool verbose = g.verbose;
   bool warningsAreErrors = g.warnings_to_errors;
   int nth = g.nthreads;
+  size_t nrowLimit = (size_t) g.max_nrows;
 
   uint64_t ui64 = NA_FLOAT64_I64;
   uint32_t ui32 = NA_FLOAT32_I32;
   memcpy(&NA_FLOAT64, &ui64, 8);
   memcpy(&NA_FLOAT32, &ui32, 4);
 
-  size_t nrowLimit = (size_t) g.max_nrows;
   NAstrings = g.na_strings;
-  any_number_like_NAstrings = false;
-  blank_is_a_NAstring = false;
-  // if we know there are no nastrings which are numbers (like -999999) then in the number
-  // field processors we can save an expensive step in checking the NAstrings. If the field parses as a number,
-  // we then when any_number_like_nastrings==FALSE we know it can't be NA.
-  const char * const* nastr = NAstrings;
-  while (*nastr) {
-    if (**nastr == '\0') {
-      blank_is_a_NAstring = true;
-      nastr++;
-      continue;
-    }
-    const char *ch = *nastr;
-    size_t nchar = strlen(ch);
-    if (isspace(ch[0]) || isspace(ch[nchar-1]))
-      STOP("freadMain: NAstring \"%s\" has whitespace at the beginning or end", ch);
-    if (strcmp(ch,"T")==0    || strcmp(ch,"F")==0 ||
-        strcmp(ch,"TRUE")==0 || strcmp(ch,"FALSE")==0 ||
-        strcmp(ch,"True")==0 || strcmp(ch,"False")==0 ||
-        strcmp(ch,"1")==0    || strcmp(ch,"0")==0)
-      STOP("freadMain: NAstring \"%s\" is recognized as type boolean, this is not permitted.", ch);
-    char *end;
-    errno = 0;
-    strtod(ch, &end);  // careful not to let "" get to here (see continue above) as strtod considers "" numeric
-    if (errno==0 && (size_t)(end - ch) == nchar) any_number_like_NAstrings = true;
-    nastr++;
-  }
-  if (verbose) {
-    if (*NAstrings == NULL) {
-      DTPRINT("  No NAstrings provided.");
-    } else {
-      std::string out = "  NAstrings = [";
-      const char * const* s = NAstrings;
-      while (*s++) {
-        out += '"';
-        out += s[-1];
-        out += '"';
-        if (*s) out += ", ";
-      }
-      out += "]";
-      DTPRINT("%s", out.c_str());
-      if (any_number_like_NAstrings)
-        DTPRINT("  One or more of the NAstrings looks like a number.");
-      else
-        DTPRINT("  None of the NAstrings look like numbers.");
-    }
-  }
-  if (verbose) {
-    if (g.skip_lines) DTPRINT("  skip_lines = %lld", (long long)g.skip_lines);
-    if (g.skip_string) DTPRINT("  skip to string = \"%s\"", g.skip_string);
-    DTPRINT("  show_progress = %d", g.show_progress);
-  }
-
+  blank_is_a_NAstring = g.blank_is_na;
+  any_number_like_NAstrings = g.number_is_na;
   stripWhite = g.strip_white;
   skipEmptyLines = g.skip_blank_lines;
   fill = g.fill;
   dec = g.dec;
   quote = g.quote;
-  if (g.sep == quote && quote!='\0') STOP("sep == quote ('%c') is not allowed", quote);
-  if (g.dec == '\0') STOP("dec='' not allowed. Should be '.' or ','");
-  if (g.sep == dec) STOP("sep == dec ('%c') is not allowed", dec);
-  if (quote == dec) STOP("quote == dec ('%c') is not allowed", dec);
 
   size_t fileSize = g.datasize();
   const char* sof = g.dataptr();
@@ -1009,6 +950,7 @@ int FreadReader::freadMain()
   // TODO: Do not require the extra byte, and do not write into the input stream...
   ASSERT(g.extra_byte_accessible() && fileSize > 0);
   *const_cast<char*>(eof) = '\0';
+
   // Convenience variables for iteration over the file.
   const char *ch = NULL, *end = NULL;
 
@@ -1203,7 +1145,7 @@ int FreadReader::freadMain()
   char seps[]=",|;\t ";  // default seps in order of preference. See ?fread.
   // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
 
-  if (g.sep == '\0') {  // default is '\0' meaning 'auto'
+  if (g.sep == '\xFF') {   // '\xFF' means 'auto'
     if (verbose) DTPRINT("  Detecting sep ...");
     nseps = (int) strlen(seps);
   } else {
@@ -1379,8 +1321,6 @@ int FreadReader::freadMain()
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
   // already checked above that tt==ncol unless fill=TRUE
   // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
-  if (verbose && g.header!=NA_BOOL8)
-    DTPRINT("  'header' changed by user from 'auto' to %s", g.header?"true":"false");
   if (g.header==false || (g.header==NA_BOOL8 && !allchar)) {
     if (verbose && g.header==NA_BOOL8)
       DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.", line);

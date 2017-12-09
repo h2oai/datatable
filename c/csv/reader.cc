@@ -17,8 +17,10 @@
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
 #include <stdint.h>
-#include <stdlib.h>
-#include <cstring>   // std::memcmp
+#include <stdlib.h>   // strtod
+#include <strings.h>  // strcasecmp
+#include <cerrno>     // errno
+#include <cstring>    // std::memcmp
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -39,21 +41,20 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   fileno = pyrdr.attr("fileno").as_int32();
   logger = pyrdr.attr("logger");
 
-  set_verbose(pyrdr.attr("verbose").as_bool());
-  set_nthreads(pyrdr.attr("nthreads").as_int32());
-  set_fill(pyrdr.attr("fill").as_bool());
-  sep = pyrdr.attr("sep").as_char();
-  dec = pyrdr.attr("dec").as_char();
-  quote = pyrdr.attr("quotechar").as_char();
-  set_maxnrows(pyrdr.attr("max_nrows").as_int64());
-  set_skiplines(pyrdr.attr("skip_lines").as_int64());
-  header = pyrdr.attr("header").as_bool();
-  strip_white = pyrdr.attr("strip_white").as_bool();
-  skip_blank_lines = pyrdr.attr("skip_blank_lines").as_bool();
-  show_progress = pyrdr.attr("show_progress").as_bool();
-  skipstring_arg = pyrdr.attr("skip_to_string");
-  skip_string = skipstring_arg.as_cstring();
-  na_strings = pyrdr.attr("na_strings").as_cstringlist();
+  init_verbose();
+  init_nthreads();
+  init_fill();
+  init_maxnrows();
+  init_skiplines();
+  init_sep();
+  init_dec();
+  init_quote();
+  init_showprogress();
+  init_header();
+  init_nastrings();
+  init_skipstring();
+  init_stripwhite();
+  init_skipblanklines();
   warnings_to_errors = 0;
 }
 
@@ -62,7 +63,13 @@ GenericReader::~GenericReader() {
 }
 
 
-void GenericReader::set_nthreads(int32_t nth) {
+void GenericReader::init_verbose() {
+  int8_t v = freader.attr("verbose").as_bool();
+  verbose = (v > 0);
+}
+
+void GenericReader::init_nthreads() {
+  int32_t nth = freader.attr("nthreads").as_int32();
   nthreads = nth;
   int32_t maxth = omp_get_max_threads();
   if (nthreads > maxth) nthreads = maxth;
@@ -72,21 +79,153 @@ void GenericReader::set_nthreads(int32_t nth) {
         nthreads, nth, maxth);
 }
 
-void GenericReader::set_verbose(int8_t v) {
-  verbose = (v > 0);
-}
-
-void GenericReader::set_fill(int8_t v) {
+void GenericReader::init_fill() {
+  int8_t v = freader.attr("fill").as_bool();
   fill = (v > 0);
-  if (fill) trace("fill=True (incomplete lines will be filled with NAs)");
+  if (fill) trace("fill=True (incomplete lines will be padded with NAs)");
 }
 
-void GenericReader::set_maxnrows(int64_t n) {
+void GenericReader::init_maxnrows() {
+  int64_t n = freader.attr("max_nrows").as_int64();
   max_nrows = (n < 0)? LONG_MAX : n;
+  if (n >= 0) trace("max_nrows=%lld", static_cast<long long>(n));
 }
 
-void GenericReader::set_skiplines(int64_t n) {
+void GenericReader::init_skiplines() {
+  int64_t n = freader.attr("skip_lines").as_int64();
   skip_lines = (n < 0)? 0 : n;
+  if (n > 0) trace("skip_lines = %lld", static_cast<long long>(n));
+}
+
+void GenericReader::init_sep() {
+  size_t size = 0;
+  const char* ch = freader.attr("sep").as_cstring(&size);
+  if (ch == nullptr) {
+    sep = '\xFF';
+    trace("sep = <auto-detect>");
+  } else if (size == 0 || *ch == '\n' || *ch == '\r') {
+    sep = '\n';
+    trace("sep = <single-column mode>");
+  } else if (size > 1) {
+    throw ValueError() << "Multi-character sep is not allowed: '" << ch << "'";
+  } else {
+    if (*ch=='"' || *ch=='\'' || *ch=='`' || ('0' <= *ch && *ch <= '9') ||
+        ('a' <= *ch && *ch <= 'z') || ('A' <= *ch && *ch <= 'Z')) {
+      throw ValueError() << "sep = '" << ch << "' is not allowed";
+    }
+    sep = *ch;
+  }
+}
+
+void GenericReader::init_dec() {
+  size_t size = 0;
+  const char* ch = freader.attr("dec").as_cstring(&size);
+  if (ch == nullptr || size == 0) {  // None | ""
+    // TODO: switch to auto-detect mode
+    dec = '.';
+  } else if (size > 1) {
+    throw ValueError() << "Multi-character decimal separator is not allowed: '"
+                       << ch << "'";
+  } else if (*ch == '.' || *ch == ',') {
+    dec = *ch;
+    trace("Decimal separator = '%c'", dec);
+  } else {
+    throw ValueError() << "dec = '" << ch << "' is not allowed";
+  }
+}
+
+void GenericReader::init_quote() {
+  size_t size = 0;
+  const char* ch = freader.attr("quotechar").as_cstring(&size);
+  if (ch == nullptr) {
+    // TODO: switch to auto-detect mode
+    quote = '"';
+  } else if (size == 0) {
+    quote = '\0';
+  } else if (size > 1) {
+    throw ValueError() << "Multi-character quote is not allowed: '"
+                       << ch << "'";
+  } else if (*ch == '"' || *ch == '\'' || *ch == '`') {
+    quote = *ch;
+    trace("Quote char = (%c)", quote);
+  } else {
+    throw ValueError() << "quotechar = (" << ch << ") is not allowed";
+  }
+}
+
+void GenericReader::init_showprogress() {
+  show_progress = freader.attr("show_progress").as_bool();
+  if (show_progress) trace("show_progress = True");
+}
+
+void GenericReader::init_header() {
+  header = freader.attr("header").as_bool();
+  if (header >= 0) trace("header = %s", header? "True" : "False");
+}
+
+void GenericReader::init_nastrings() {
+  na_strings = freader.attr("na_strings").as_cstringlist();
+  blank_is_na = false;
+  number_is_na = false;
+  const char* const* ptr = na_strings;
+  while (*ptr) {
+    if (**ptr == '\0') {
+      blank_is_na = true;
+    } else {
+      const char* ch = *ptr;
+      size_t len = strlen(ch);
+      if (*ch <= ' ' || ch[len-1] <= ' ') {
+        throw ValueError() << "NA string \"" << ch << "\" has whitespace or "
+                           << "control characters at the beginning or end";
+      }
+      if (strcasecmp(ch, "true") == 0 || strcasecmp(ch, "false") == 0) {
+        throw ValueError() << "NA string \"" << ch << "\" looks like a boolean "
+                           << "literal, this is not supported";
+      }
+      char* endptr;
+      errno = 0;
+      double f = strtod(ch, &endptr);
+      if (errno == 0 && static_cast<size_t>(endptr - ch) == len) {
+        (void) f;  // TODO: collect these values into an array?
+        number_is_na = true;
+      }
+    }
+    ptr++;
+  }
+  if (verbose) {
+    if (*na_strings == nullptr) {
+      trace("No na_strings provided");
+    } else {
+      std::string out = "na_strings = [";
+      ptr = na_strings;
+      while (*ptr++) {
+        out += '"';
+        out += ptr[-1];
+        out += '"';
+        if (*ptr) out += ", ";
+      }
+      out += ']';
+      trace("%s", out.c_str());
+      if (number_is_na) trace("  + some na strings look like numbers");
+      if (blank_is_na)  trace("  + empty string is considered an NA");
+    }
+  }
+}
+
+void GenericReader::init_skipstring() {
+  skipstring_arg = freader.attr("skip_to_string");
+  skip_string = skipstring_arg.as_cstring();
+  if (skip_string) trace("skip_to_string = \"%s\"", skip_string);
+}
+
+void GenericReader::init_stripwhite() {
+  strip_white = freader.attr("strip_white").as_bool();
+  trace("strip_whitespace = %s", strip_white? "True" : "False");
+}
+
+void GenericReader::init_skipblanklines() {
+  skip_blank_lines = freader.attr("skip_blank_lines").as_bool();
+  trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
 

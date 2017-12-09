@@ -93,9 +93,11 @@ public:
   char* as_ccstring() const;
 
   /**
-   * If this PyObj is a string, return its first character (or '\0' if the
-   * object is Py_None).
+   * If this PyObj is a string, return its first character. When the python
+   * object is None, the value `ifnone` is returned; and if the string is empty
+   * the value `ifempty`. The no-arguments form uses `ifnone = ifempty = '\0'`.
    */
+  char as_char(char ifnone, char ifempty) const;
   char as_char() const;
 
   PyObject* as_pyobject() const;
