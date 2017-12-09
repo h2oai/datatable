@@ -593,8 +593,8 @@ class TextReader(object):
     @quotechar.setter
     @typed()
     def quotechar(self, v: Optional[str]):
-        if v not in {None, "'", '"', "`"}:
-            raise ValueError("quotechar should be one of [\"'`] or None")
+        if v not in {None, "", "'", '"', "`"}:
+            raise ValueError("quotechar should be one of [\"'`] or '' or None")
         self._quotechar = v
 
     @property

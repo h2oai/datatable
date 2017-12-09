@@ -136,7 +136,7 @@ def test_issue641():
 
 def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
-    # return [767904686]
+    # return [1984115291]
     n = 25
     if os.environ.get(root_env_name, "") != "":
         n = 500
