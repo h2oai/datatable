@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   the column names. If encountered, they will be replaced with a dot `.`.
 - Fread now ignores trailing whitespace on each line, even if ' ' separator is used.
 - Fread on an empty file now produces an empty DataTable, instead of an exception.
+- Fread's parameter `skip_lines` was replaced with `skip_to_line`, so that it's
+  more in sync with the similar argument `skip_to_string`.
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.

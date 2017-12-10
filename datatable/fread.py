@@ -55,7 +55,7 @@ def fread(
         show_progress: bool = None,
         encoding: str = None,
         skip_to_string: str = None,
-        skip_lines: int = None,
+        skip_to_line: int = None,
         skip_blank_lines: bool = True,
         strip_white: bool = True,
         quotechar: Optional[str] = '"',
@@ -79,7 +79,7 @@ class TextReader(object):
                  cmd=None, columns=None, sep=None,
                  max_nrows=None, header=None, na_strings=None, verbose=False,
                  fill=False, show_progress=None, encoding=None, dec=".",
-                 skip_to_string=None, skip_lines=None, save_to=None,
+                 skip_to_string=None, skip_to_line=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_white=True, quotechar='"', **args):
         self._src = None            # type: str
@@ -99,7 +99,7 @@ class TextReader(object):
         self._show_progress = True  # type: bool
         self._encoding = encoding   # type: str
         self._quotechar = None      # type: str
-        self._skip_lines = None
+        self._skip_to_line = None
         self._skip_blank_lines = True
         self._skip_to_string = None
         self._strip_white = True
@@ -132,7 +132,7 @@ class TextReader(object):
         self.fill = fill
         self.show_progress = show_progress
         self.skip_to_string = skip_to_string
-        self.skip_lines = skip_lines
+        self.skip_to_line = skip_to_line
         self.skip_blank_lines = skip_blank_lines
         self.strip_white = strip_white
         self.quotechar = quotechar
@@ -557,13 +557,13 @@ class TextReader(object):
 
 
     @property
-    def skip_lines(self):
-        return self._skip_lines
+    def skip_to_line(self):
+        return self._skip_to_line
 
-    @skip_lines.setter
+    @skip_to_line.setter
     @typed(n=U(int, None))
-    def skip_lines(self, n):
-        self._skip_lines = n
+    def skip_to_line(self, n):
+        self._skip_to_line = n
 
 
     @property
