@@ -429,12 +429,12 @@ static int parse_string_continue(const char **ptr, lenOff *target)
     }
   } else {
     while (!on_eol(ch) && *ch != quote) {
-      ch += 1 + (*ch == '\\' && ch[1] != eol);
+      ch += 1 + (*ch == '\\' && ch[1] != '\n' && ch[1] != '\r');
     }
   }
   if (on_eol(ch)) {
-    target->len += (int32_t)(ch - *ptr + eolLen);
     skip_eol(&ch);
+    target->len += (int32_t)(ch - *ptr);
     *ptr = ch;
     return 2;
   } else {
