@@ -18,9 +18,8 @@
 
 
 // Private globals to save passing all of them through to highly iterated field processors
-static char sep, eol, eol2;
+static char sep;
 static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
-static int eolLen;
 static char quote, dec;
 static const char* eof;
 
@@ -33,7 +32,7 @@ static const char* eof;
 //       not escaped in any way. It is not always possible to parse the file
 //       unambiguously, but we give it a try anyways. A quote will be presumed
 //       to mark the end of the field iff it is followed by the field separator.
-//       Under this rule eol characters cannot appear inside the field.
+//       Under this rule EOL characters cannot appear inside the field.
 //       For example: <<...,"hello "world"",...>>
 //   3 = Fields are not quoted at all. Any quote characters appearing anywhere
 //       inside the field will be treated as any other regular characters.
@@ -79,8 +78,7 @@ static int parse_string_continue(const char **ptr, lenOff *target);
  */
 void FreadReader::freadCleanup(void)
 {
-  sep = whiteChar = eol = eol2 = quote = dec = '\0';
-  eolLen = 0;
+  sep = whiteChar = quote = dec = '\0';
   quoteRule = -1;
   any_number_like_NAstrings = false;
   blank_is_a_NAstring = false;
@@ -314,7 +312,7 @@ static int Field(const char **pch, lenOff *target)
   bool quoted = false;
 
   if (*ch!=quote || quoteRule==3) {
-    // unambiguously not quoted. simply search for sep|eol. If field contains sep|eol then it must be quoted instead.
+    // unambiguously not quoted. simply search for sep|EOL. If field contains sep|EOL then it must be quoted instead.
     while(*ch!=sep && !on_eol(ch)) ch++;
   } else {
     // the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
@@ -960,17 +958,9 @@ int FreadReader::freadMain()
   const char *ch = NULL, *end = NULL;
   int line = 1;
 
-
-  //*********************************************************************************************
-  // [4] Auto detect end-of-line character(s)
-  //
-  //     This section initializes variables `eol`, `eol2` and `eolLen`. If
-  //     `eolLen` is 1, then we set both `eol` and `eol2` to the same
-  //     character, otherwise `eolLen` is 2 and we set `eol` and `eol2` to the
-  //     first and the second line-separator characters respectively.
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[4] Detect end-of-line character(s)");
-
+  // Test whether '\n's are present in the file at all... If not, then standalone '\r's are valid
+  // line endings. However if '\n' exists in the file, then '\r' will be considered as regular
+  // characters instead of a line ending.
   int cnt = 0;
   ch = sof;
   while (ch < eof && *ch != '\n' && cnt < 100) {
@@ -982,76 +972,6 @@ int FreadReader::freadMain()
     g.trace("LF character (\\n) found in input, \\r-only line endings are prohibited");
   } else {
     g.trace("LF character (\\n) not found in input, CR (\\r) will be considered a line ending");
-  }
-
-  // Scan the file until the first newline character is found. By the end of
-  // this loop `ch` will be pointing to such a character, or to eof if there
-  // are no newlines in the file.
-  ch = sof;
-  while (ch<eof && *ch!='\n' && *ch!='\r') {
-    char c = *ch++;
-    // Skip quoted fields, because they may contain different types of
-    // newlines than in the rest of the file.
-    if (c == quote) {
-      const char *ch0 = ch;
-      int nn = 0;
-      while (ch < eof && *ch != quote && nn < 10) {
-        nn += (*ch == '\n') || (*ch == '\r');
-        ch++;
-      }
-      if (*ch == quote) {
-        // Skip over the closing quote
-        ch++;
-      } else {
-        // If we skipped till the end of the file within a quoted field, or
-        // if there were too many lines, then maybe it's not really a quoted
-        // field at all -- jump back to the beginning of the field and re-scan
-        // as if it wasn't quoted.
-        ch = ch0;
-      }
-    }
-  }
-
-  // No newlines were found
-  if (ch==eof) {
-    if (verbose) {
-      DTPRINT("  Input ends before any \\r or \\n observed. It will be "
-              "treated as a single row and copied to temporary buffer.");
-    }
-    eol = eol2 = '\n';
-    eolLen = 1;
-    // Make copy of the input, so that it can have a proper eol character at the end.
-    size_t sz = (size_t)(eof - sof + eolLen);
-    lineCopy = (char*) malloc(sz);
-    if (!lineCopy) STOP("Unable to allocate %zd bytes for temporary copy of the input", sz);
-    memcpy(lineCopy, sof, sz - 1);
-    lineCopy[sz - 1] = '\n';
-    sof = lineCopy;
-    eof = lineCopy + sz;
-  }
-  // Otherwise `ch` is pointing to the first newline character encountered
-  else {
-    eol = eol2 = *ch;
-    eolLen = 1;
-    if (eol=='\r') {
-      if (ch+2<eof && *(ch+1)=='\r' && *(ch+2)=='\n') {
-        if (verbose) DTPRINT("  Detected eol as \\r\\r\\n (CRCRLF).");
-        eol2 = '\r'; eolLen = 3;
-      } else
-      if (ch+1<eof && *(ch+1)=='\n') {
-        if (verbose) DTPRINT("  Detected eol as \\r\\n (CRLF).");
-        eol2 = '\n'; eolLen = 2;
-      } else {
-        if (verbose) DTPRINT("  Detected eol as \\r only.");
-      }
-    } else {
-      if (ch+1<eof && *(ch+1)=='\r') {
-        if (verbose) DTPRINT("  Detected eol as \\n\\r (LFCR).");
-        eol2 = '\r'; eolLen = 2;
-      } else {
-        if (verbose) DTPRINT("  Detected eol as \\n only.");
-      }
-    }
   }
 
 
@@ -1158,7 +1078,6 @@ int FreadReader::freadMain()
   ASSERT(firstJumpEnd);
   // the size in bytes of the first JUMPLINES from the start (jump point 0)
   size_t jump0size = (size_t)(firstJumpEnd - sof);
-  ASSERT(jump0size <= fileSize + (size_t)eolLen);
   quoteRule = topQuoteRule;
   sep = topSep;
   whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
@@ -1662,10 +1581,9 @@ int FreadReader::freadMain()
       if (jump>=nJumps || stopTeam) continue;  // nothing left to do. This jump was the dummy extra one.
 
       const char *tch = sof + (size_t)jump * chunkBytes;
-      const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+eolLen : eof;
-      // +eolLen is for when nextJump happens to fall exactly on a line start (or on eol2 on Windows). The
+      const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : eof;
+      // +1 is for when nextJump happens to fall exactly on a \n. The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
-      // Easier to imagine eolLen==1 and tch<=nextJump in the while() below
       if (jump>0 && !nextGoodLine(&tch, ncol)) {
         stopTeam=true;
         DTPRINT("No good line could be found from jump point %d",jump); // TODO: change to stopErr
