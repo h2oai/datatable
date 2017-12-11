@@ -59,9 +59,22 @@ static float NA_FLOAT32;
 static const double NAND = (double)NAN;
 static const double INFD = (double)INFINITY;
 
+typedef struct FieldParseContext {
+  // Pointer to the current parsing location
+  const char **ch;
+  // Parse target buffers, indexed by size. A parser that reads values of byte
+  // size `sz` will attempt to write that value into `targets[sz]`. Thus,
+  // generally this is an array with elements 0, 1, 4, and 8 defined, while all
+  // other pointers are NULL.
+  void **targets;
+  // String "anchor" for `Field()` parser -- the difference `ch - anchor` will
+  // be written out as the string offset.
+  const char *anchor;
+} FieldParseContext;
+
+
 // Forward declarations
 static int Field(const char **pch, lenOff *target);
-static int parse_string_continue(const char **ptr, lenOff *target);
 
 
 
@@ -246,15 +259,6 @@ static inline int countfields(const char **pch)
   while (1) {
     int res = Field(&ch, &trash);
     if (res == 1) return -1;
-    if (res == 2) {
-      int linesCount = 0;
-      while (res == 2 && linesCount++ < 100) {
-        if (ch == eof) {
-          return -1;
-        }
-        res = parse_string_continue(&ch, &trash);
-      }
-    }
     // Field() leaves *ch resting on sep or EOL. Checked inside Field().
     ncol++;
     if (sep==' ') {
@@ -302,7 +306,7 @@ static inline bool nextGoodLine(const char **pch, int ncol)
 //
 //=================================================================================================
 
-static int Field(const char **pch, lenOff *target)
+static int Field0(const char **pch, lenOff *target)
 {
   const char *ch = *pch;
   if (stripWhite) skip_white(&ch);  // before and after quoted field's quotes too (e.g. test 1609) but never inside quoted fields
@@ -411,7 +415,7 @@ static int Field(const char **pch, lenOff *target)
 }
 
 
-static int parse_string_continue(const char **ptr, lenOff *target)
+static int parse_string_continue(const char** ptr, lenOff* target)
 {
   const char *ch = *ptr;
   ASSERT(quoteRule <= 1);
@@ -445,6 +449,16 @@ static int parse_string_continue(const char **ptr, lenOff *target)
     return 0;
   }
 }
+
+static int Field(const char** pch, lenOff* target) {
+  int ret = Field0(pch, target);
+  while (ret == 2) {
+    ret = parse_string_continue(pch, target);
+  }
+  return ret;
+}
+
+
 
 
 static int StrtoI64(const char **pch, int64_t *target)
@@ -1152,12 +1166,7 @@ int FreadReader::freadMain()
     // StrtoD does not consume quoted fields according to the quote rule, so need to reparse using Field()
     ch = ch0;  // rewind to the start of this field
     int res = Field(&ch, (lenOff *)trash);
-    ASSERT(res != 1);
-    while (res == 2) {
-      ASSERT(ch != end);
-      res = parse_string_continue(&ch, (lenOff *)trash);
-    }
-
+    ASSERT(res == 0);
   }
   if (!on_eol(ch)) {
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
@@ -1192,11 +1201,7 @@ int FreadReader::freadMain()
     for (int i=0; i<ncol; i++) {
       const char *start = ++ch;
       int ret = Field(&ch, colNames + i);
-      ASSERT(ret != 1);
-      while (ret == 2) {
-        line++;
-        ret = parse_string_continue(&ch, colNames + i);
-      }
+      ASSERT(ret == 0);
       colNames[i].off += (size_t)(start-colNamesAnchor);
       if (on_eol(ch)) break;   // already checked number of fields previously above
     }
@@ -1275,16 +1280,8 @@ int FreadReader::freadMain()
       const char *fieldStart = ch;  // Needed outside loop for error messages below
       while (!on_eol(ch) && field<ncol) {
         fieldStart=ch;
-        int res;
-        while (types[field]<=CT_STRING && (res = fun[types[field]](&ch, trash))) {
-          int neols = 0;
-          while (res == 2 && neols++ < 100) {
-            if (ch == end) {
-              res = 1;
-              break;
-            }
-            res = parse_string_continue(&ch, (lenOff*)trash);
-          }
+        while (types[field]<=CT_STRING) {
+          int res = fun[types[field]](&ch, trash);
           if (res == 0) break;
           ch = fieldStart;
           if (types[field] < CT_STRING) {
@@ -1656,13 +1653,6 @@ int FreadReader::freadMain()
             // normally returns success=1, and myBuffPos is assigned inside *fun.
             void *target = thisType > 0? *(allBuffPos[sizes[j]]) : myBuff0;
             int ret = fun[absType](&tch, target);
-            if (ret == 0) break;
-            while (ret == 2) {
-              if (tch == eof) {
-                break;
-              }
-              ret = parse_string_continue(&tch, (lenOff*)target);
-            }
             if (ret == 0) break;
             // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
             // check that the new type is sufficient for the rest of the column to be sure a single re-read will work.
