@@ -125,8 +125,6 @@ static inline void skip_eol(const char** pch) {
     if (ch[1] == '\n') *pch += 2;
     else if (ch[1] == '\r' && ch[2] == '\n') *pch += 3;
     else if (!LFpresent) *pch += 1;
-  } else if (*ch == '\0') {
-    *pch += 1;
   }
 }
 
@@ -1232,6 +1230,7 @@ int FreadReader::freadMain()
   // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
   // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
   int nJumps = 0;
+  ASSERT(sof <= eof);
   size_t sz = (size_t)(eof - sof);
   if (jump0size>0) {
     if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample

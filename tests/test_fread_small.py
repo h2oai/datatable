@@ -41,6 +41,11 @@ def test_html():
     assert "<text> is an HTML file" in str(e)
 
 
+def test_headers_only_input():
+    d0 = dt.fread(text="A,B")
+    assert d0.internal.check()
+    assert d0.shape == (0, 2)
+
 
 # TODO: also test repl=None, which currently gets deserialized into empty
 # strings.
@@ -201,13 +206,18 @@ def test_fread_omnibus(seed):
         # which are read as an empty datatable (nrows = 0).
         nrows = 0
 
-    params["text"] = text
-    d0 = dt.fread(**params)
-    assert d0.internal.check()
-    assert d0.shape == (nrows, ncols)
-    assert d0.names == tuple(colnames)
-    if nrows:
-        assert d0.ltypes == tuple(coltypes)
+    try:
+        params["text"] = text
+        d0 = dt.fread(**params)
+        assert d0.internal.check()
+        assert d0.shape == (nrows, ncols)
+        assert d0.names == tuple(colnames)
+        if nrows:
+            assert d0.ltypes == tuple(coltypes)
+    except:
+        with open("omnibus.csv", "w") as o:
+            o.write(text)
+        raise
 
 
 def is_boollike(x):
