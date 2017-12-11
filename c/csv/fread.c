@@ -1082,7 +1082,7 @@ int FreadReader::freadMain()
 
   int topNumLines=0;        // the most number of lines with the same number of fields, so far
   int topNumFields=1;       // how many fields that was, to resolve ties
-  char topSep=eol;          // which sep that was, by default \n to mean single-column input (1 field)
+  char topSep='\n';          // which sep that was, by default \n to mean single-column input (1 field)
   int topQuoteRule=0;       // which quote rule that was
   int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
@@ -1230,7 +1230,7 @@ int FreadReader::freadMain()
     const char *ch0 = ++ch;
     // DTPRINT("Field %d <<%s>>\n", field, strlim(ch, 20));
     skip_white(&ch);
-    if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to eol here
+    if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to EOL here
     // considered looking for one isalpha present but we want 1E9 to be considered a value not a column name
     // StrtoD does not consume quoted fields according to the quote rule, so need to reparse using Field()
     ch = ch0;  // rewind to the start of this field
@@ -1242,8 +1242,9 @@ int FreadReader::freadMain()
     }
 
   }
-  if (!on_eol(ch))
+  if (!on_eol(ch)) {
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
+  }
   // already checked above that tt==ncol unless fill=TRUE
   // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
   if (g.header==false || (g.header==NA_BOOL8 && !allchar)) {
@@ -1253,18 +1254,16 @@ int FreadReader::freadMain()
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
     // now check previous line which is being discarded and give helpful msg to user ...
     if (ch>headerPtr) {
-      ch -= (eolLen+1);
-      if (ch<headerPtr) ch=headerPtr;  // for when headerPtr[0]=='\n'
-      while (ch>headerPtr && *ch!=eol2) ch--;
+      while (ch > headerPtr && (*ch=='\n' || *ch=='\r')) ch--;
       if (ch>headerPtr) ch++;
       const char *prevStart = ch;
       int tmp = countfields(&ch);
-      if (tmp==ncol) STOP("Internal error: row before first data row has the same number of fields but we're not using it.");
+      ASSERT(tmp!=ncol);
       if (tmp>1) DTWARN("Starting data input on line %d \"%s\" with %d fields and discarding "
                         "line %d \"%s\" before it because it has a different number of fields (%d).",
                         line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), tmp);
     }
-    if (ch!=sof) STOP("Internal error. ch!=sof after prevBlank check");
+    ASSERT(ch==sof);
   } else {
     if (verbose && g.header==NA_BOOL8) {
       DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
