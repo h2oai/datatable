@@ -18,9 +18,8 @@
 
 
 // Private globals to save passing all of them through to highly iterated field processors
-static char sep, eol, eol2;
+static char sep;
 static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
-static int eolLen;
 static char quote, dec;
 static const char* eof;
 
@@ -33,7 +32,7 @@ static const char* eof;
 //       not escaped in any way. It is not always possible to parse the file
 //       unambiguously, but we give it a try anyways. A quote will be presumed
 //       to mark the end of the field iff it is followed by the field separator.
-//       Under this rule eol characters cannot appear inside the field.
+//       Under this rule EOL characters cannot appear inside the field.
 //       For example: <<...,"hello "world"",...>>
 //   3 = Fields are not quoted at all. Any quote characters appearing anywhere
 //       inside the field will be treated as any other regular characters.
@@ -79,8 +78,7 @@ static int parse_string_continue(const char **ptr, lenOff *target);
  */
 void FreadReader::freadCleanup(void)
 {
-  sep = whiteChar = eol = eol2 = quote = dec = '\0';
-  eolLen = 0;
+  sep = whiteChar = quote = dec = '\0';
   quoteRule = -1;
   any_number_like_NAstrings = false;
   blank_is_a_NAstring = false;
@@ -127,8 +125,6 @@ static inline void skip_eol(const char** pch) {
     if (ch[1] == '\n') *pch += 2;
     else if (ch[1] == '\r' && ch[2] == '\n') *pch += 3;
     else if (!LFpresent) *pch += 1;
-  } else if (*ch == '\0') {
-    *pch += 1;
   }
 }
 
@@ -187,16 +183,21 @@ static inline void skip_white(const char **pch) {
 }
 
 
+// TODO: remove
 static inline bool on_sep(const char **pch) {
   const char *ch = *pch;
   if (sep==' ' && *ch==' ') {
-    while (*(ch+1)==' ') ch++;  // move to last of this sequence of spaces
-    if (*(ch+1)==eol) ch++;    // if that's followed by EOL then move over
+    while (ch[1]==' ') ch++;  // move to last of this sequence of spaces
+    // If next character is newline, move onto it (thus, whitespace at the end
+    // of a line is ignored).
+    if (ch[1]=='\n' || ch[1]=='\r') ch++;
+    *pch = ch;
+    return true;
   }
-  *pch = ch;
   return *ch==sep || on_eol(ch);
 }
 
+// TODO: remove
 static inline void next_sep(const char **pch) {
   const char *ch = *pch;
   while (*ch!=sep && !on_eol(ch)) ch++;
@@ -309,7 +310,7 @@ static int Field(const char **pch, lenOff *target)
   bool quoted = false;
 
   if (*ch!=quote || quoteRule==3) {
-    // unambiguously not quoted. simply search for sep|eol. If field contains sep|eol then it must be quoted instead.
+    // unambiguously not quoted. simply search for sep|EOL. If field contains sep|EOL then it must be quoted instead.
     while(*ch!=sep && !on_eol(ch)) ch++;
   } else {
     // the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
@@ -424,12 +425,12 @@ static int parse_string_continue(const char **ptr, lenOff *target)
     }
   } else {
     while (!on_eol(ch) && *ch != quote) {
-      ch += 1 + (*ch == '\\' && ch[1] != eol);
+      ch += 1 + (*ch == '\\' && ch[1] != '\n' && ch[1] != '\r');
     }
   }
   if (on_eol(ch)) {
-    target->len += (int32_t)(ch - *ptr + eolLen);
     skip_eol(&ch);
+    target->len += (int32_t)(ch - *ptr);
     *ptr = ch;
     return 2;
   } else {
@@ -955,17 +956,9 @@ int FreadReader::freadMain()
   const char *ch = NULL, *end = NULL;
   int line = 1;
 
-
-  //*********************************************************************************************
-  // [4] Auto detect end-of-line character(s)
-  //
-  //     This section initializes variables `eol`, `eol2` and `eolLen`. If
-  //     `eolLen` is 1, then we set both `eol` and `eol2` to the same
-  //     character, otherwise `eolLen` is 2 and we set `eol` and `eol2` to the
-  //     first and the second line-separator characters respectively.
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[4] Detect end-of-line character(s)");
-
+  // Test whether '\n's are present in the file at all... If not, then standalone '\r's are valid
+  // line endings. However if '\n' exists in the file, then '\r' will be considered as regular
+  // characters instead of a line ending.
   int cnt = 0;
   ch = sof;
   while (ch < eof && *ch != '\n' && cnt < 100) {
@@ -977,76 +970,6 @@ int FreadReader::freadMain()
     g.trace("LF character (\\n) found in input, \\r-only line endings are prohibited");
   } else {
     g.trace("LF character (\\n) not found in input, CR (\\r) will be considered a line ending");
-  }
-
-  // Scan the file until the first newline character is found. By the end of
-  // this loop `ch` will be pointing to such a character, or to eof if there
-  // are no newlines in the file.
-  ch = sof;
-  while (ch<eof && *ch!='\n' && *ch!='\r') {
-    char c = *ch++;
-    // Skip quoted fields, because they may contain different types of
-    // newlines than in the rest of the file.
-    if (c == quote) {
-      const char *ch0 = ch;
-      int nn = 0;
-      while (ch < eof && *ch != quote && nn < 10) {
-        nn += (*ch == '\n') || (*ch == '\r');
-        ch++;
-      }
-      if (*ch == quote) {
-        // Skip over the closing quote
-        ch++;
-      } else {
-        // If we skipped till the end of the file within a quoted field, or
-        // if there were too many lines, then maybe it's not really a quoted
-        // field at all -- jump back to the beginning of the field and re-scan
-        // as if it wasn't quoted.
-        ch = ch0;
-      }
-    }
-  }
-
-  // No newlines were found
-  if (ch==eof) {
-    if (verbose) {
-      DTPRINT("  Input ends before any \\r or \\n observed. It will be "
-              "treated as a single row and copied to temporary buffer.");
-    }
-    eol = eol2 = '\n';
-    eolLen = 1;
-    // Make copy of the input, so that it can have a proper eol character at the end.
-    size_t sz = (size_t)(eof - sof + eolLen);
-    lineCopy = (char*) malloc(sz);
-    if (!lineCopy) STOP("Unable to allocate %zd bytes for temporary copy of the input", sz);
-    memcpy(lineCopy, sof, sz - 1);
-    lineCopy[sz - 1] = '\n';
-    sof = lineCopy;
-    eof = lineCopy + sz;
-  }
-  // Otherwise `ch` is pointing to the first newline character encountered
-  else {
-    eol = eol2 = *ch;
-    eolLen = 1;
-    if (eol=='\r') {
-      if (ch+2<eof && *(ch+1)=='\r' && *(ch+2)=='\n') {
-        if (verbose) DTPRINT("  Detected eol as \\r\\r\\n (CRCRLF).");
-        eol2 = '\r'; eolLen = 3;
-      } else
-      if (ch+1<eof && *(ch+1)=='\n') {
-        if (verbose) DTPRINT("  Detected eol as \\r\\n (CRLF).");
-        eol2 = '\n'; eolLen = 2;
-      } else {
-        if (verbose) DTPRINT("  Detected eol as \\r only.");
-      }
-    } else {
-      if (ch+1<eof && *(ch+1)=='\r') {
-        if (verbose) DTPRINT("  Detected eol as \\n\\r (LFCR).");
-        eol2 = '\r'; eolLen = 2;
-      } else {
-        if (verbose) DTPRINT("  Detected eol as \\n only.");
-      }
-    }
   }
 
 
@@ -1077,7 +1000,7 @@ int FreadReader::freadMain()
 
   int topNumLines=0;        // the most number of lines with the same number of fields, so far
   int topNumFields=1;       // how many fields that was, to resolve ties
-  char topSep=eol;          // which sep that was, by default \n to mean single-column input (1 field)
+  char topSep='\n';          // which sep that was, by default \n to mean single-column input (1 field)
   int topQuoteRule=0;       // which quote rule that was
   int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
@@ -1153,7 +1076,6 @@ int FreadReader::freadMain()
   ASSERT(firstJumpEnd);
   // the size in bytes of the first JUMPLINES from the start (jump point 0)
   size_t jump0size = (size_t)(firstJumpEnd - sof);
-  ASSERT(jump0size <= fileSize + (size_t)eolLen);
   quoteRule = topQuoteRule;
   sep = topSep;
   whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
@@ -1225,7 +1147,7 @@ int FreadReader::freadMain()
     const char *ch0 = ++ch;
     // DTPRINT("Field %d <<%s>>\n", field, strlim(ch, 20));
     skip_white(&ch);
-    if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to eol here
+    if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to EOL here
     // considered looking for one isalpha present but we want 1E9 to be considered a value not a column name
     // StrtoD does not consume quoted fields according to the quote rule, so need to reparse using Field()
     ch = ch0;  // rewind to the start of this field
@@ -1237,8 +1159,9 @@ int FreadReader::freadMain()
     }
 
   }
-  if (!on_eol(ch))
+  if (!on_eol(ch)) {
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
+  }
   // already checked above that tt==ncol unless fill=TRUE
   // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
   if (g.header==false || (g.header==NA_BOOL8 && !allchar)) {
@@ -1248,18 +1171,16 @@ int FreadReader::freadMain()
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
     // now check previous line which is being discarded and give helpful msg to user ...
     if (ch>headerPtr) {
-      ch -= (eolLen+1);
-      if (ch<headerPtr) ch=headerPtr;  // for when headerPtr[0]=='\n'
-      while (ch>headerPtr && *ch!=eol2) ch--;
+      while (ch > headerPtr && (*ch=='\n' || *ch=='\r')) ch--;
       if (ch>headerPtr) ch++;
       const char *prevStart = ch;
       int tmp = countfields(&ch);
-      if (tmp==ncol) STOP("Internal error: row before first data row has the same number of fields but we're not using it.");
+      ASSERT(tmp!=ncol);
       if (tmp>1) DTWARN("Starting data input on line %d \"%s\" with %d fields and discarding "
                         "line %d \"%s\" before it because it has a different number of fields (%d).",
                         line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), tmp);
     }
-    if (ch!=sof) STOP("Internal error. ch!=sof after prevBlank check");
+    ASSERT(ch==sof);
   } else {
     if (verbose && g.header==NA_BOOL8) {
       DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
@@ -1309,6 +1230,7 @@ int FreadReader::freadMain()
   // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
   // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
   int nJumps = 0;
+  ASSERT(sof <= eof);
   size_t sz = (size_t)(eof - sof);
   if (jump0size>0) {
     if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
@@ -1658,10 +1580,9 @@ int FreadReader::freadMain()
       if (jump>=nJumps || stopTeam) continue;  // nothing left to do. This jump was the dummy extra one.
 
       const char *tch = sof + (size_t)jump * chunkBytes;
-      const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+eolLen : eof;
-      // +eolLen is for when nextJump happens to fall exactly on a line start (or on eol2 on Windows). The
+      const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : eof;
+      // +1 is for when nextJump happens to fall exactly on a \n. The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
-      // Easier to imagine eolLen==1 and tch<=nextJump in the while() below
       if (jump>0 && !nextGoodLine(&tch, ncol)) {
         stopTeam=true;
         DTPRINT("No good line could be found from jump point %d",jump); // TODO: change to stopErr
