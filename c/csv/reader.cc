@@ -34,6 +34,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   mbuf = nullptr;
   offset = 0;
   offend = 0;
+  line = 0;
   freader = pyrdr;
   src_arg = pyrdr.attr("src");
   file_arg = pyrdr.attr("file");
@@ -45,7 +46,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   init_nthreads();
   init_fill();
   init_maxnrows();
-  init_skiplines();
+  init_skiptoline();
   init_sep();
   init_dec();
   init_quote();
@@ -55,6 +56,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   init_skipstring();
   init_stripwhite();
   init_skipblanklines();
+
   warnings_to_errors = 0;
 }
 
@@ -89,12 +91,13 @@ void GenericReader::init_maxnrows() {
   int64_t n = freader.attr("max_nrows").as_int64();
   max_nrows = (n < 0)? LONG_MAX : n;
   if (n >= 0) trace("max_nrows=%lld", static_cast<long long>(n));
+  if (n >= 0) trace("max_nrows=%lld", static_cast<long long>(n));
 }
 
-void GenericReader::init_skiplines() {
-  int64_t n = freader.attr("skip_lines").as_int64();
-  skip_lines = (n < 0)? 0 : n;
-  if (n > 0) trace("skip_lines = %lld", static_cast<long long>(n));
+void GenericReader::init_skiptoline() {
+  int64_t n = freader.attr("skip_to_line").as_int64();
+  skip_to_line = (n < 0)? 0 : n;
+  if (n > 1) trace("skip_to_line = %lld", static_cast<long long>(n));
 }
 
 void GenericReader::init_sep() {
@@ -215,6 +218,11 @@ void GenericReader::init_nastrings() {
 void GenericReader::init_skipstring() {
   skipstring_arg = freader.attr("skip_to_string");
   skip_string = skipstring_arg.as_cstring();
+  if (skip_string && skip_string[0]=='\0') skip_string = nullptr;
+  if (skip_string && skip_to_line) {
+    throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
+                       << "cannot be provided simultaneously";
+  }
   if (skip_string) trace("skip_to_string = \"%s\"", skip_string);
 }
 
@@ -238,6 +246,8 @@ DataTablePtr GenericReader::read()
 {
   open_input();
   detect_and_skip_bom();
+  skip_to_line_number();
+  skip_to_line_with_string();
   skip_initial_whitespace();
   skip_trailing_whitespace();
 
@@ -301,6 +311,7 @@ void GenericReader::trace(const char* format, ...) const {
 void GenericReader::open_input() {
   offset = 0;
   offend = 0;
+  line = 1;
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
     mbuf = new OvermapMemBuf(src, 1, fileno);
@@ -416,6 +427,63 @@ void GenericReader::skip_trailing_whitespace() {
       trace("Skipped %zu trailing whitespace characters", d);
     }
   }
+}
+
+
+void GenericReader::skip_to_line_number() {
+  if (skip_to_line <= line) return;
+  const char* sof = dataptr();
+  const char* eof = sof + datasize();
+  const char* ch = sof;
+  while (ch < eof && line < skip_to_line) {
+    char c = *ch;
+    if (c=='\n' || c=='\r') {
+      ch += 1 + (ch+1 < eof && c + ch[1] == '\n' + '\r');
+      line++;
+      if (line == skip_to_line) break;
+    } else {
+      ch++;
+    }
+  }
+  if (ch > sof) {
+    offset += static_cast<size_t>(ch - sof);
+    trace("Skipped to line %zu in the file", line);
+  }
+}
+
+
+void GenericReader::skip_to_line_with_string() {
+  const char* const ss = skip_string;
+  if (!ss) return;
+  const char* sof = dataptr();
+  const char* eof = sof + datasize();
+  const char* ch = sof;
+  const char* line_start = sof;
+  while (ch < eof) {
+    if (*ch == *ss) {
+      int d = 1;
+      while (ss[d] != '\0' && ch + d < eof && ch[d] == ss[d]) d++;
+      if (ss[d] == '\0') {
+        if (line_start > sof) {
+          offset += static_cast<size_t>(line_start - sof);
+          trace("Skipped to line %zu containing skip_string = \"%s\"",
+                line, ss);
+        }
+        return;
+      } else {
+        ch++;
+      }
+    }
+    if (*ch=='\n' || *ch=='\r') {
+      ch += 1 + (ch+1 < eof && *ch + ch[1] == '\n' + '\r');
+      line_start = ch;
+      line++;
+    } else {
+      ch++;
+    }
+  }
+  throw ValueError() << "skip_string = \"" << skip_string << "\" was not found "
+                     << "in the input";
 }
 
 

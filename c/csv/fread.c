@@ -953,6 +953,7 @@ int FreadReader::freadMain()
 
   // Convenience variables for iteration over the file.
   const char *ch = NULL, *end = NULL;
+  int line = 1;
 
 
   //*********************************************************************************************
@@ -1047,87 +1048,6 @@ int FreadReader::freadMain()
       }
     }
   }
-
-
-  //*********************************************************************************************
-  // [6] Position to line `skipNrow+1` or to line containing `skipString`.
-  //
-  //     This section moves the `sof` pointer passing over the lines that the
-  //     user requested to skip.
-  //
-  //     We also compute the `line` variable, which tracks the current line
-  //     number within the file (similar to __LINE__ macro). Note that `line`
-  //     variable is different from the logical row number: it doesn't attempt
-  //     to skip newlines within quoted fields. Thus this line is similar to
-  //     what text editors report, or bash commands like "wc -l", "head -n"
-  //     or "tail -n".
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[6] Skipping initial rows if needed");
-
-  int line = 1;
-
-  if (g.skip_string) {
-    // TODO: unsafe! there might be no \0 at the end of the file
-    ch = strstr(sof, g.skip_string);
-    if (!ch) {
-      STOP("skip='%s' not found in input (it is case sensitive and literal; "
-           "i.e., no patterns, wildcards or regexps)", g.skip_string);
-    }
-    // Move to beginning of line. We ignore complications arising from
-    // possibility to end up inside a quoted field. Presumably, if the user
-    // supplied explicit option `skipString` he knows what he is doing.
-    {
-      // Scan backwards to find the beginning of the current line
-      while (ch > sof && ch[-1] != eol2) ch--;
-      const char *start = ch;
-      ch = sof;
-      while (ch < start) {
-        line += (*ch++ == eol && (eolLen == 1 || *ch++ == eol2));
-      }
-      if (verbose) {
-        DTPRINT("  Found skip='%s' on line %d. The file will be scanned from "
-                "that line onwards.", g.skip_string, line);
-      }
-      sof = start;
-    }
-  } else
-
-  // Skip the first `skipNrow` lines of input.
-  if (g.skip_lines) {
-    ch = sof;
-    while (ch < eof && line <= g.skip_lines)
-    {
-      line += (*ch++ == eol && (eolLen == 1 || *ch++ == eol2));
-    }
-    if (line > g.skip_lines) {
-      sof = ch;
-      if (verbose) DTPRINT("  Skipped %d line(s) of input.", line);
-    } else {
-      STOP("skip=%d but the input has only %d line(s)", g.skip_lines, line-1);
-    }
-  }
-
-  // Additionally, skip any blank lines at the start
-  const char *lineStart = sof;
-  ch = sof;
-  while (ch < eof && isspace(*ch))  // isspace() matches ' ', \t, \n and \r
-  {
-    if (*ch++ == eol && (eolLen == 1 || *ch++ == eol2)) {
-      lineStart = ch;
-      line++;
-    }
-  }
-  if (ch >= eof) {
-    // return makeEmptyDT();
-  }
-  if (verbose) {
-    if (lineStart != sof) {
-      DTPRINT("  Moved forward to first non-blank line (%d)", line);
-    }
-    DTPRINT("  Positioned on line %d starting: \"%s\"",
-            line, strlim(lineStart, 30));
-  }
-  sof = lineStart;
 
 
   //*********************************************************************************************
@@ -1327,7 +1247,7 @@ int FreadReader::freadMain()
     // colNames was calloc'd so nothing to do; all len=off=0 already
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
     // now check previous line which is being discarded and give helpful msg to user ...
-    if (ch>headerPtr && g.skip_lines==0) {
+    if (ch>headerPtr) {
       ch -= (eolLen+1);
       if (ch<headerPtr) ch=headerPtr;  // for when headerPtr[0]=='\n'
       while (ch>headerPtr && *ch!=eol2) ch--;

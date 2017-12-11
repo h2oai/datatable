@@ -38,9 +38,10 @@ struct OutputColumn;
  */
 class GenericReader
 {
-  //============================================================================
+  //----------------------------------------------------------------------------
   // Input parameters
-  //============================================================================
+  //----------------------------------------------------------------------------
+  //
   // nthreads:
   //   Number of threads to use; 0 means use maximum possible, negative number
   //   means use that many less than the maximum. The default is 0.
@@ -58,6 +59,14 @@ class GenericReader
   // quote:
   //   The quotation mark. Only '"' (default), '\'' and '`' are allowed. In
   //   addition this can also be '\0', which indicates no quoting is allowed.
+  // skip_to_line:
+  //   If greater than 1, indicates that the file should be read from starting
+  //   from the requested line. The notion of a "line" corresponds to that of a
+  //   typical text editor: line counting starts from 1, and a new line starts
+  //   whenever one of '\r\n', '\n\r', '\r' or '\n' are encountered. In
+  //   particular sequence '\r\r\n' contains two line separators, not one. If
+  //   skip_to_line is greater than the available number of lines in the file,
+  //   an empty DataTable will be returned.
   // header:
   //   Is the header present? Possible values are 0 (no), 1 (yes), and -128
   //   (auto-detect, default).
@@ -69,7 +78,7 @@ class GenericReader
     char dec;
     char quote;
     int64_t max_nrows;
-    int64_t skip_lines;
+    int64_t skip_to_line;
     const char* skip_string;
     const char* const* na_strings;
     int8_t header;
@@ -81,7 +90,12 @@ class GenericReader
     bool blank_is_na;
     bool number_is_na;
 
+  //----------------------------------------------------------------------------
   // Runtime parameters
+  //----------------------------------------------------------------------------
+  // line:
+  //   Line number (within the original input) of the `offset` pointer.
+  //
   private:
     PyObj logger;
     PyObj freader;
@@ -93,10 +107,13 @@ class GenericReader
     MemoryBuffer* mbuf;
     size_t offset;
     size_t offend;
+    size_t line;
     int32_t fileno;
     int : 32;
 
+  //----------------------------------------------------------------------------
   // Public API
+  //----------------------------------------------------------------------------
   public:
     GenericReader(const PyObj& pyreader);
     ~GenericReader();
@@ -136,7 +153,7 @@ class GenericReader
     void init_nthreads();
     void init_fill();
     void init_maxnrows();
-    void init_skiplines();
+    void init_skiptoline();
     void init_sep();
     void init_dec();
     void init_quote();
@@ -151,6 +168,8 @@ class GenericReader
     void detect_and_skip_bom();
     void skip_initial_whitespace();
     void skip_trailing_whitespace();
+    void skip_to_line_number();
+    void skip_to_line_with_string();
     void decode_utf16();
 
     DataTablePtr read_empty_input();

@@ -507,6 +507,29 @@ def test_fread_header():
     assert d1.topython() == [["A", "1"], ["B", "2"]]
 
 
+def test_fread_skip_to_line():
+    d0 = dt.fread("a,z\nv,1\nC,D\n1,2\n", skip_to_line=3)
+    assert d0.internal.check()
+    assert d0.names == ("C", "D")
+    assert d0.topython() == [[1], [2]]
+
+
+def test_fread_skip_to_line_large():
+    d0 = dt.fread("a,b\n1,2\n3,4\n5,6\n", skip_to_line=1000)
+    assert d0.internal.check()
+    assert d0.shape == (0, 0)
+
+
+def test_fread_skip_to_string():
+    d0 = dt.fread("I, the Greatest King of All Times, do hereby proclaim\n"
+                  "that, truly, I am infallible\n\n"
+                  "A,B,C\n"
+                  "1,2,3\n", skip_to_string=",B,")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[1], [2], [3]]
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
