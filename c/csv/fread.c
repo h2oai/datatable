@@ -187,16 +187,21 @@ static inline void skip_white(const char **pch) {
 }
 
 
+// TODO: remove
 static inline bool on_sep(const char **pch) {
   const char *ch = *pch;
   if (sep==' ' && *ch==' ') {
-    while (*(ch+1)==' ') ch++;  // move to last of this sequence of spaces
-    if (*(ch+1)==eol) ch++;    // if that's followed by EOL then move over
+    while (ch[1]==' ') ch++;  // move to last of this sequence of spaces
+    // If next character is newline, move onto it (thus, whitespace at the end
+    // of a line is ignored).
+    if (ch[1]=='\n' || ch[1]=='\r') ch++;
+    *pch = ch;
+    return true;
   }
-  *pch = ch;
   return *ch==sep || on_eol(ch);
 }
 
+// TODO: remove
 static inline void next_sep(const char **pch) {
   const char *ch = *pch;
   while (*ch!=sep && !on_eol(ch)) ch++;
