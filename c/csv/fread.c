@@ -131,28 +131,35 @@ static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
  * and returns true. Repeated \\r are considered one. At most one \\n will be moved over.
  * 1. \\n        Unix
  * 2. \\r\\n     Windows
- * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r
+ * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r; also some email programs mangling the attached files
  * 4. \\r        Old MacOS 9 format discontinued in 2002 but then #2347 was raised straight away when I tried not to support it
  * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
- * 6. \\r\\r\\r  Might as well, for completeness
  */
-static inline bool eol(const char **pch) {
-  const char *ch = *pch;
-  // we call eol() when we expect to be on an eol(), so optimize as if we are on an eol
-  while (*ch=='\r') ch++;  // commonly happens once on Windows for type 2
+// TODO: change semantics so that eol() skips over the newline (rather than stumbles upon the last character)
+static inline bool eol(const char** pch) {
+  // we call eol() when we expect to be at a newline, so optimize as if we are at the end of line
+  const char* ch = *pch;
   if (*ch=='\n') {
-    // 1,2,3 and 5 (one \n with any number of \r before and/or after)
-    while (ch[1]=='\r') ch++;  // type 5. Could drop but we're only tepid here so keep for completeness and full generality.
-    *pch = ch;
+    *pch += (ch[1]=='\r');  // 1 & 5
     return true;
   }
-  if (ch>*pch && !LFpresent) {
-    // 4 and 6 (\r only with no \n before or after)
-    // very rare, not recommended and almost did not support
-    // ch>*pch only if we moved over some \r in the first while() above
-    // as long as no \n are present in the file (noLFpresent) we can consider \r-only as line ending, #2371
-    *pch = ch-1;  // move back onto the last \r
-    return true;
+  if (*ch=='\r') {
+    if (LFpresent) {
+      // \n is present in the file, so standalone \r is NOT considered a newline.
+      // Thus, we attempt to match a sequence '\r+\n' here
+      while (*ch=='\r') ch++;  // consume multiple \r
+      if (*ch=='\n') {
+        *pch = ch;
+        return true;
+      } else {
+        // 1 or more \r's were not followed by \n -- do not consider this a newline
+        return false;
+      }
+    } else {
+      // \n does not appear anywhere in the file: \r is a newline
+      *pch = ch;
+      return true;
+    }
   }
   return false;
 }
@@ -1358,7 +1365,7 @@ int FreadReader::freadMain()
         if (sep==' ') while (ch<eof && *ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
         // detect blank lines
         skip_white(&ch);
-        if (eol(&ch) || *ch=='\0') {
+        if (ch==eof || eol(&ch)) {
           if (!skipEmptyLines && !fill && ncol>1) break;
           if (*ch) ch++;
           if (!skipEmptyLines || ncol==1) {

@@ -646,7 +646,7 @@ def test_fread_NUL():
     assert d0.topython() == [[2.3], [5]]
 
 
-def test_fread_1col():
+def test_fread_1col_a():
     """Check that it is possible to read 1-column file witn NAs."""
     # We also check that trailing newlines are not discarded in this case
     # (otherwise round-trip with write_csv wouldn't work).
@@ -654,6 +654,9 @@ def test_fread_1col():
     assert d0.internal.check()
     assert d0.names == ("A",)
     assert d0.topython() == [[1, 2, None, 4, None, 5, None]]
+
+
+def test_fread_1col_b():
     d1 = dt.fread("QUOTE\n"
                   "If you think\n"
                   "you can do it,\n\n"
@@ -662,6 +665,15 @@ def test_fread_1col():
     assert d1.names == ("QUOTE",)
     assert d1.topython() == [["If you think", "you can do it,", "",
                               "you can.", ""]]
+
+
+@pytest.mark.parametrize("eol", ["\n", "\r", "\n\r", "\r\n", "\r\r\n"])
+def test_fread_1col_c(eol):
+    data = ["A", "100", "200", "", "400", "", "600"]
+    d0 = dt.fread(eol.join(data))
+    assert d0.internal.check()
+    assert d0.names == ("A", )
+    assert d0.topython() == [[100, 200, None, 400, None, 600]]
 
 
 def test_fread_line_endings():
