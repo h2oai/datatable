@@ -126,6 +126,38 @@ static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
   return x < lower ? lower : x > upper? upper : x;
 }
 
+/**
+ * eol() accepts a position and, if any of the following line endings, moves to the end of that sequence
+ * and returns true. Repeated \\r are considered one. At most one \\n will be moved over.
+ * 1. \\n        Unix
+ * 2. \\r\\n     Windows
+ * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r
+ * 4. \\r        Old MacOS 9 format discontinued in 2002 but then #2347 was raised straight away when I tried not to support it
+ * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
+ * 6. \\r\\r\\r  Might as well, for completeness
+ */
+static inline bool eol(const char **pch) {
+  const char *ch = *pch;
+  // we call eol() when we expect to be on an eol(), so optimize as if we are on an eol
+  while (*ch=='\r') ch++;  // commonly happens once on Windows for type 2
+  if (*ch=='\n') {
+    // 1,2,3 and 5 (one \n with any number of \r before and/or after)
+    while (ch[1]=='\r') ch++;  // type 5. Could drop but we're only tepid here so keep for completeness and full generality.
+    *pch = ch;
+    return true;
+  }
+  if (ch>*pch && !LFpresent) {
+    // 4 and 6 (\r only with no \n before or after)
+    // very rare, not recommended and almost did not support
+    // ch>*pch only if we moved over some \r in the first while() above
+    // as long as no \n are present in the file (noLFpresent) we can consider \r-only as line ending, #2371
+    *pch = ch-1;  // move back onto the last \r
+    return true;
+  }
+  return false;
+}
+
+
 static inline bool on_eol(const char* ch) {
   if (*ch == '\r') {
     if (LFpresent) {
@@ -463,6 +495,7 @@ static int Field(const char** pch, lenOff* target) {
   while (ret == 2) {
     ret = parse_string_continue(pch, target);
   }
+  if (ret) { target->off = 0; target->len = NA_LENOFF; }
   return ret;
 }
 
@@ -497,7 +530,13 @@ static int StrtoI64(const char **pch, int64_t *target)
     acc += *ch-'0';
     ch++;
   }
-  if (quoted) { if (*ch!=quote) return 1; else ch++; }
+  if (quoted) {
+    if (*ch!=quote) {
+      // *target = NA_INT64;
+      return 1;
+    }
+    else ch++;
+  }
   // TODO: if (!targetCol) return early?  Most of the time, not though.
   *target = sign * acc;
   skip_white(&ch);
@@ -510,7 +549,7 @@ static int StrtoI64(const char **pch, int64_t *target)
   *target = NA_INT64;
   next_sep(&ch);  // TODO: can we delete this? consume the remainder of field, if any
   *pch = ch;
-  return !na;
+  return !na;  // target set to NA_INT64 above
 }
 
 
@@ -518,7 +557,10 @@ static int StrtoI32_bare(const char **pch, int32_t *target)
 {
   const char *ch = *pch;
   if (*ch==sep || on_eol(ch)) { *target = NA_INT32; return 0; }
-  if (sep==' ') return 1;  // bare doesn't do sep=' '. TODO - remove
+  if (sep==' ') {
+    // *target = NA_INT64;
+    return 1;  // bare doesn't do sep=' '. TODO - remove
+  }
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
   const char *start = ch;  // for overflow guard using field width
@@ -1110,8 +1152,6 @@ int FreadReader::freadMain()
     }
   }
   ASSERT(firstJumpEnd);
-  // the size in bytes of the first JUMPLINES from the start (jump point 0)
-  size_t jump0size = (size_t)(firstJumpEnd - sof);
   quoteRule = topQuoteRule;
   sep = topSep;
   whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
@@ -1238,195 +1278,266 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [9] Make best guess at column types using 100 rows at 100 points,
-  //     including the very first, middle and very last row.
+  // [7] Detect column types, good nrow estimate and whether first row is column names.
   //     At the same time, calc mean and sd of row lengths in sample for very
   //     good nrow estimate.
   //*********************************************************************************************
-  if (verbose) DTPRINT("[9] Detect column types");
-  types = new int8_t[ncol];
-  sizes = new int8_t[ncol];
-  tmpTypes = new int8_t[ncol];
+  size_t allocnrow;       // Number of rows in the allocated DataTable
+  double meanLineLen;     // Average length (in bytes) of a single line in the input file
+  int nJumps;             // How many jumps to use when pre-scanning the file
+  size_t sampleLines;     // How many lines were sampled during the initial pre-scan
+  size_t bytesRead;       // Bytes in the whole data section
+  const char *lastRowEnd; // Pointer to the end of the data section
+  {
+    if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
+    types = new int8_t[ncol];
+    sizes = new int8_t[ncol];
+    tmpTypes = new int8_t[ncol];
 
-  for (int j = 0; j < ncol; j++) {
-    // initialize with the first (lowest) type, 1==CT_BOOL8 at the time of writing. If we add CT_BOOL1 or CT_BOOL2 in
-    // future, using 1 here means this line won't need to be changed. CT_DROP is 0 and 1 is the first type.
-    types[j] = 1;
-    tmpTypes[j] = 1;
-    sizes[j] = typeSize[1];
-  }
-  void *targets[9] = {NULL, trash, NULL, NULL, trash, NULL, NULL, NULL, trash};
-  FieldParseContext fctx = {
-    .ch = &ch,
-    .targets = targets,
-    .anchor = NULL,
-  };
+    int8_t type0 = 1;
+    // while (disabled_parsers[type0]) type0++;
+    for (int j = 0; j < ncol; j++) {
+      // initialize with the first (lowest) type
+      types[j] = type0;
+      tmpTypes[j] = type0;
+      sizes[j] = typeSize[type0];
+    }
+    void *targets[9] = {NULL, trash, NULL, NULL, trash, NULL, NULL, NULL, trash};
+    FieldParseContext fctx = {
+      .ch = &ch,
+      .targets = targets,
+      .anchor = NULL,
+    };
 
-  // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
-  // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
-  // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
-  int nJumps = 0;
-  ASSERT(sof <= eof);
-  size_t sz = (size_t)(eof - sof);
-  if (jump0size>0) {
-    if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
-    else if (jump0size*10*2 < sz) nJumps=10;
-    // *2 to get a good spacing. We don't want overlaps resulting in double counting.
-    // nJumps==1 means the whole (small) file will be sampled with one thread
-  }
-  nJumps++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
-  if (verbose) {
-    if (jump0size==0)
-      DTPRINT("  Number of sampling jump points = %d because jump0size==0", nJumps);
-    else
-      DTPRINT("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
-              nJumps, sz, jump0size, sz/(2*jump0size));
-  }
+    // the size in bytes of the first JUMPLINES from the start (jump point 0)
+    size_t jump0size = (size_t)(firstJumpEnd - sof);
+    // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
+    // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
+    // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
+    nJumps = 0;
+    size_t sz = (size_t)(eof - sof);
+    if (jump0size>0) {
+      if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
+      else if (jump0size*10*2 < sz) nJumps=10;
+      // *2 to get a good spacing. We don't want overlaps resulting in double counting.
+      // nJumps==1 means the whole (small) file will be sampled with one thread
+    }
+    nJumps++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
+    if (verbose) {
+      if (jump0size==0)
+        DTPRINT("  Number of sampling jump points = %d because jump0size==0", nJumps);
+      else
+        DTPRINT("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
+                nJumps, sz, jump0size, sz/(2*jump0size));
+    }
 
-  size_t sampleLines=0;
-  double sumLen=0.0, sumLenSq=0.0;
-  int minLen=INT32_MAX, maxLen=-1;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
-  const char *lastRowEnd = sof;
-  for (int j=0; j<nJumps; j++) {
-    ch = (j == 0) ? sof :
-         (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
-                           sof + (size_t)j*(sz/(size_t)(nJumps-1));
-    if (j>0 && !nextGoodLine(&ch, ncol))
-      STOP("Could not find first good line start after jump point %d when sampling.", j);
-    end = eof;
-    bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
-    int jline = 0;  // line from this jump point
-    while (ch < end && (jline<JUMPLINES || j==nJumps-1))
-    {  // nJumps==1 implies sample all of input to eof; last jump to eof too
-      const char *jlineStart = ch;
-      if (sep==' ') while (*ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
-      // detect blank lines
-      skip_white(&ch);
-      if (on_eol(ch)) {
-        if (!skipEmptyLines && !fill) break;
-        jlineStart = ch;  // to avoid 'Line finished early' below and get to the sampleLines++ block at the end of this while
+    sampleLines = 0;
+    double sumLen = 0.0;
+    double sumLenSq = 0.0;
+    int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
+    int maxLen = -1;
+    lastRowEnd = sof;
+    bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
+    bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
+    for (int j=0; j<nJumps; j++) {
+      ch = (j == 0) ? sof :
+           (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
+                             sof + (size_t)j*(sz/(size_t)(nJumps-1));
+      if (ch < lastRowEnd) ch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
+      if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
+      if (j > 0 && !nextGoodLine(&ch, ncol)) {
+        // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
+        continue;
       }
-      jline++;
-      int field=0;
-      const char *fieldStart = ch;  // Needed outside loop for error messages below
-      while (!on_eol(ch) && field<ncol) {
-        fieldStart=ch;
-        while (types[field]<=CT_STRING) {
-          int res = parsers[types[field]](&fctx);
-          if (res == 0) break;
-          ch = fieldStart;
-          if (types[field] < CT_STRING) {
-            types[field]++;
-            bumped = true;
-          } else {
-            // the field could not be read with this quote rule, try again with next one
-            // Trying the next rule will only be successful if the number of fields is consistent with it
-            ASSERT(quoteRule < 3);
-            if (verbose) {
-              DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
-                       quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart, 200));
-            }
-            quoteRule++;
-            bumped=true;
-            ch = jlineStart;  // Try whole line again, in case it's a hangover from previous field
-            field=0;
-            continue;
+      bool bumped = false;  // did this jump find any different types; to reduce verbose output to relevant lines
+      bool skip = false;
+      int jline = 0;  // line from this jump point
+      while (ch < eof && (jline<JUMPLINES || j==nJumps-1))
+      {  // nJumps==1 implies sample all of input to eof; last jump to eof too
+        const char *jlineStart = ch;
+        if (sep==' ') while (ch<eof && *ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
+        // detect blank lines
+        skip_white(&ch);
+        if (eol(&ch) || *ch=='\0') {
+          if (!skipEmptyLines && !fill && ncol>1) break;
+          if (*ch) ch++;
+          if (!skipEmptyLines || ncol==1) {
+            sampleLines++;
+            lastRowEnd = ch;
           }
+          continue;
         }
-        // DTPRINT("%d  (ch = %p)\n", types[field], ch);
-        if (on_eol(ch)) {
-          break;
-        } else {
-          // skip over the field separator
-          ASSERT(*ch==sep);
+        jline++;
+        int field = 0;
+        const char* fieldStart = NULL;  // Needed outside loop for error messages below
+        ch--;
+        int8_t previousLastColType = (sampleLines <= 1 ? 1 : tmpTypes[ncol-1]);  // ???
+        while (field<ncol) {
           ch++;
+          skip_white(&ch);
+          fieldStart = ch;
+          bool thisColumnNameWasString = false;
+          if (firstDataRowAfterPotentialColumnNames) {
+            // 2nd non-blank row is being read now.
+            // 1st row's type is remembered and compared (a little lower down) to second row to decide if 1st row is column names or not
+            thisColumnNameWasString = (tmpTypes[field]==CT_STRING);
+            tmpTypes[field] = type0;  // re-initialize for 2nd row onwards
+          }
+          while (types[field]<=CT_STRING) {
+            // <<< This block checked until this point >>>
+            int res = parsers[types[field]](&fctx);
+            if (res == 0) break;
+            ch = fieldStart;
+            if (types[field] < CT_STRING) {
+              types[field]++;
+              bumped = true;
+            } else {
+              // the field could not be read with this quote rule, try again with next one
+              // Trying the next rule will only be successful if the number of fields is consistent with it
+              ASSERT(quoteRule < 3);
+              if (verbose) {
+                DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
+                         quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart, 200));
+              }
+              quoteRule++;
+              bumped=true;
+              ch = jlineStart;  // Try whole line again, in case it's a hangover from previous field
+              field=0;
+              continue;
+            }
+          }
+          // DTPRINT("%d  (ch = %p)\n", types[field], ch);
+          // if (on_eol(ch)) {
+          //   break;
+          // } else {
+          //   // skip over the field separator
+          //   ASSERT(*ch==sep);
+          //   ch++;
+          //   field++;
+          // }
+          if (*ch!=sep || *ch=='\n' || *ch=='\r') break;
+          if (sep==' ') {
+            while (ch[1]==' ') ch++;
+            if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
+          }
           field++;
         }
-      }
-      if (field<ncol-1 && !fill) {
-        ASSERT(ch==end || on_eol(ch));
-        if (ch>jlineStart) {
-          STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. "
-               "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
+        eol(&ch);
+        if (field<ncol-1 && !fill) {
+          if (*ch!='\n' && *ch!='\r' && *ch!='\0') {
+            STOP("Internal error: line has finished early but not on an '\\n', '\\r' or '\\0' (fill=false). Please report as bug.");
+          } else {
+            STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. Expecting %d fields but found %d: <<%s>>%s",
+                 jline, ncol, field+1, strlim(jlineStart,200),
+                 nrowLimit<=(size_t)jline ? ". You have tried to request fewer rows with the nrows= argument but this will not help because the full sample is still taken for type consistency; set fill=TRUE instead." : "");
+          }
         }
-      }
-      if (ch > end) ch = end;
-      if (!on_eol(ch) || field>=ncol) {
-        ASSERT(field==ncol);
-        STOP("Line %d from sampling jump %d starting \"%s\" has more than the expected %d fields. "
-             "Separator %d occurs at position %d which is character %d of the last field: \"%s\". "
-             "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
-            jline, j, strlim(jlineStart, 10), ncol, ncol, (int)(ch-jlineStart), (int)(ch-fieldStart),
-            strlim(fieldStart, 200));
-      }
-      // if very last field was quoted, check if it was completed with an ending quote ok.
-      // not necessarily a problem (especially if we detected no quoting), but we test it and nice to have
-      // a warning regardless of quoting rule just in case file has been inadvertently truncated.
-      // The warning is only issued if the file didn't have the newline on the last line.
-      // This warning is early at type skipping around stage before reading starts, so user can cancel early
-      // if (types[ncol-1]==CT_STRING && *fieldStart==quote && ch[-1]!=quote) {
-      //   ASSERT(quoteRule>=2);
-      //   DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
-      //           strlim(fieldStart, 200));
-      // }
-      skip_eol(&ch);
-      // Two reasons:  1) to get the end of the very last good row before whitespace or footer before eof
-      //               2) to check sample jumps don't overlap, otherwise double count and bad estimate
-      lastRowEnd = ch;
-      //DTPRINT("\n");
-      int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
-      ASSERT(thisLineLen >= 0);
-      sampleLines++;
-      sumLen += thisLineLen;
-      sumLenSq += thisLineLen*thisLineLen;
-      if (thisLineLen<minLen) minLen=thisLineLen;
-      if (thisLineLen>maxLen) maxLen=thisLineLen;
-    }
-    if (verbose && (bumped || j==0 || j==nJumps-1)) {
-      DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(ncol), quoteRule);
-    }
-  }
-  while (ch < end && isspace(*ch)) ch++;
-  if (ch < end) {
-    DTWARN("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(ch, 200));
-  }
-  eof = lastRowEnd;
+        if (field>=ncol || (*ch!='\n' && *ch!='\r' && *ch!='\0')) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
+          if (j==0) {
+            STOP("Line %d starting <<%s>> has more than the expected %d fields. "
+               "Separator '%c' occurs at position %d which is character %d of the last field: <<%s>>. "
+               "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
+               jline, strlim(jlineStart,10), ncol, *ch, (int)(ch-jlineStart+1), (int)(ch-fieldStart+1), strlim(fieldStart,200));
+          }
+          if (verbose) DTPRINT("  Not using sample from jump %d. Looks like a complicated file where nextGoodLine could not establish the true line start.\n", j);
+          skip = true;
+          break;
+        }
+        if (firstDataRowAfterPotentialColumnNames) {
+          if (fill) for (int jj=field+1; jj<ncol; jj++) tmpTypes[jj] = type0;
+          firstDataRowAfterPotentialColumnNames = false;
+        } else if (sampleLines==0) {
+          // To trigger 2nd row starting from type 1 again to compare to 1st row to decide if column names present
+          firstDataRowAfterPotentialColumnNames = true;
+        }
+        ch += (*ch=='\n' || *ch=='\r');
 
-  size_t estnrow=1, allocnrow=1;
-  size_t bytesRead = (size_t)(eof - sof);
-  size_t bytesToRead = bytesRead;
-  double meanLineLen=0;
-  if (sampleLines == 0) {
-    if (verbose) DTPRINT("  sampleLines=0: only column names are present.");
-  } else {
-    meanLineLen = (double)sumLen/sampleLines;
-    estnrow = CEIL(bytesRead/meanLineLen);  // only used for progress meter and verbose line below
-    double sd = sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
-    allocnrow = clamp_szt((size_t)(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
-                          (size_t)(1.1*estnrow), 2*estnrow);
-    // sd can be very close to 0.0 sometimes, so apply a +10% minimum
-    // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
-    if (verbose) {
-      DTPRINT("  =====");
-      DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nJumps);
-      DTPRINT("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
-      DTPRINT("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
-      DTPRINT("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
-      DTPRINT("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
-               allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+        // if (field<ncol-1 && !fill) {
+        //   ASSERT(ch==eof || on_eol(ch));
+        //   if (ch>jlineStart) {
+        //     STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. "
+        //          "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
+        //   }
+        // }
+        // if (ch > eof) ch = eof;
+        // if (!on_eol(ch) || field>=ncol) {
+        //   ASSERT(field==ncol);
+        //   STOP("Line %d from sampling jump %d starting \"%s\" has more than the expected %d fields. "
+        //        "Separator %d occurs at position %d which is character %d of the last field: \"%s\". "
+        //        "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
+        //       jline, j, strlim(jlineStart, 10), ncol, ncol, (int)(ch-jlineStart), (int)(ch-fieldStart),
+        //       strlim(fieldStart, 200));
+        // }
+        // if very last field was quoted, check if it was completed with an ending quote ok.
+        // not necessarily a problem (especially if we detected no quoting), but we test it and nice to have
+        // a warning regardless of quoting rule just in case file has been inadvertently truncated.
+        // The warning is only issued if the file didn't have the newline on the last line.
+        // This warning is early at type skipping around stage before reading starts, so user can cancel early
+        // if (types[ncol-1]==CT_STRING && *fieldStart==quote && ch[-1]!=quote) {
+        //   ASSERT(quoteRule>=2);
+        //   DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
+        //           strlim(fieldStart, 200));
+        // }
+        // skip_eol(&ch);
+        // Two reasons:  1) to get the end of the very last good row before whitespace or footer before eof
+        //               2) to check sample jumps don't overlap, otherwise double count and bad estimate
+        lastRowEnd = ch;
+        //DTPRINT("\n");
+        int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
+        ASSERT(thisLineLen >= 0);
+        sampleLines++;
+        sumLen += thisLineLen;
+        sumLenSq += thisLineLen*thisLineLen;
+        if (thisLineLen<minLen) minLen=thisLineLen;
+        if (thisLineLen>maxLen) maxLen=thisLineLen;
+      }
+      if (verbose && (bumped || j==0 || j==nJumps-1)) {
+        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(ncol), quoteRule);
+      }
     }
-    if (nJumps==1) {
-      estnrow = allocnrow = sampleLines;
-      if (verbose) DTPRINT("  All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
+    while (ch < eof && isspace(*ch)) ch++;
+    if (ch < eof) {
+      DTWARN("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(ch, 200));
+    }
+    eof = lastRowEnd;
+
+    meanLineLen = 0;
+    allocnrow = 1;
+    bytesRead = (size_t)(eof - sof);
+    size_t bytesToRead = bytesRead;
+    size_t estnrow=1;
+    if (sampleLines == 0) {
+      if (verbose) DTPRINT("  sampleLines=0: only column names are present.");
     } else {
-      if (sampleLines > allocnrow) STOP("Internal error: sampleLines(%zd) > allocnrow(%zd)", sampleLines, allocnrow);
+      meanLineLen = (double)sumLen/sampleLines;
+      estnrow = CEIL(bytesRead/meanLineLen);  // only used for progress meter and verbose line below
+      double sd = sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
+      allocnrow = clamp_szt((size_t)(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
+                            (size_t)(1.1*estnrow), 2*estnrow);
+      // sd can be very close to 0.0 sometimes, so apply a +10% minimum
+      // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
+      if (verbose) {
+        DTPRINT("  =====");
+        DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nJumps);
+        DTPRINT("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
+        DTPRINT("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
+        DTPRINT("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
+        DTPRINT("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
+                 allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+      }
+      if (nJumps==1) {
+        estnrow = allocnrow = sampleLines;
+        if (verbose) DTPRINT("  All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
+      } else {
+        if (sampleLines > allocnrow) STOP("Internal error: sampleLines(%zd) > allocnrow(%zd)", sampleLines, allocnrow);
+      }
+      if (nrowLimit < allocnrow) {
+        if (verbose) DTPRINT("  Alloc limited to lower nrows=%zd passed in.", nrowLimit);
+        bytesToRead = (size_t) (bytesRead * (1.0 * nrowLimit / allocnrow));
+        estnrow = allocnrow = nrowLimit;
+      }
+      if (verbose) DTPRINT("  =====");
     }
-    if (nrowLimit < allocnrow) {
-      if (verbose) DTPRINT("  Alloc limited to lower nrows=%zd passed in.", nrowLimit);
-      bytesToRead = (size_t) (bytesRead * (1.0 * nrowLimit / allocnrow));
-      estnrow = allocnrow = nrowLimit;
-    }
-    if (verbose) DTPRINT("  =====");
   }
 
 
@@ -1517,10 +1628,10 @@ int FreadReader::freadMain()
   if (nJumps/*from sampling*/>1) {
     // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
     // when nth==1 we still split by chunk for consistency (testing) and code sanity
-    nJumps = (int)(bytesToRead/chunkBytes);  // (int) rounds down
+    nJumps = (int)(bytesRead/chunkBytes);  // (int) rounds down
     if (nJumps==0) nJumps=1;
     else if (nJumps>nth) nJumps = nth*(1+(nJumps-1)/nth);
-    chunkBytes = bytesToRead / (size_t)nJumps;
+    chunkBytes = bytesRead / (size_t)nJumps;
   } else {
     nJumps = 1;
   }

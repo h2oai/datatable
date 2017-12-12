@@ -648,6 +648,8 @@ def test_fread_NUL():
 
 def test_fread_1col():
     """Check that it is possible to read 1-column file witn NAs."""
+    # We also check that trailing newlines are not discarded in this case
+    # (otherwise round-trip with write_csv wouldn't work).
     d0 = dt.fread(text="A\n1\n2\n\n4\n\n5\n\n")
     assert d0.internal.check()
     assert d0.names == ("A",)
