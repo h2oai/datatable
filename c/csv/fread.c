@@ -1,3 +1,11 @@
+//------------------------------------------------------------------------------
+// Copyright 2017 data.table authors
+// (https://github.com/Rdatatable/data.table/DESCRIPTION)
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License,
+// v.2.0. If a copy of the MPL was not distributed with this file, You can
+// obtain one at https://mozilla.org/MPL/2.0/.
+//------------------------------------------------------------------------------
 #include "csv/fread.h"
 #include "csv/freadLookups.h"
 #include "csv/reader.h"
@@ -1423,7 +1431,7 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [9] Apply colClasses, select, drop and integer64; then allocate the DataTable
+  // [9] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
   double tColType;    // Timer for applying user column class overrides
   double tAlloc;      // Timer for allocating the DataTable
