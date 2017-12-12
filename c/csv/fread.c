@@ -59,9 +59,22 @@ static float NA_FLOAT32;
 static const double NAND = (double)NAN;
 static const double INFD = (double)INFINITY;
 
+typedef struct FieldParseContext {
+  // Pointer to the current parsing location
+  const char **ch;
+  // Parse target buffers, indexed by size. A parser that reads values of byte
+  // size `sz` will attempt to write that value into `targets[sz]`. Thus,
+  // generally this is an array with elements 0, 1, 4, and 8 defined, while all
+  // other pointers are NULL.
+  void **targets;
+  // String "anchor" for `Field()` parser -- the difference `ch - anchor` will
+  // be written out as the string offset.
+  const char *anchor;
+} FieldParseContext;
+
+
 // Forward declarations
 static int Field(const char **pch, lenOff *target);
-static int parse_string_continue(const char **ptr, lenOff *target);
 
 
 
@@ -246,15 +259,6 @@ static inline int countfields(const char **pch)
   while (1) {
     int res = Field(&ch, &trash);
     if (res == 1) return -1;
-    if (res == 2) {
-      int linesCount = 0;
-      while (res == 2 && linesCount++ < 100) {
-        if (ch == eof) {
-          return -1;
-        }
-        res = parse_string_continue(&ch, &trash);
-      }
-    }
     // Field() leaves *ch resting on sep or EOL. Checked inside Field().
     ncol++;
     if (sep==' ') {
@@ -302,7 +306,7 @@ static inline bool nextGoodLine(const char **pch, int ncol)
 //
 //=================================================================================================
 
-static int Field(const char **pch, lenOff *target)
+static int Field0(const char **pch, lenOff *target)
 {
   const char *ch = *pch;
   if (stripWhite) skip_white(&ch);  // before and after quoted field's quotes too (e.g. test 1609) but never inside quoted fields
@@ -411,7 +415,7 @@ static int Field(const char **pch, lenOff *target)
 }
 
 
-static int parse_string_continue(const char **ptr, lenOff *target)
+static int parse_string_continue(const char** ptr, lenOff* target)
 {
   const char *ch = *ptr;
   ASSERT(quoteRule <= 1);
@@ -445,6 +449,16 @@ static int parse_string_continue(const char **ptr, lenOff *target)
     return 0;
   }
 }
+
+static int Field(const char** pch, lenOff* target) {
+  int ret = Field0(pch, target);
+  while (ret == 2) {
+    ret = parse_string_continue(pch, target);
+  }
+  return ret;
+}
+
+
 
 
 static int StrtoI64(const char **pch, int64_t *target)
@@ -900,18 +914,32 @@ static int StrtoB(const char **pch, int8_t *target)
 //   - add entry to `switch(type[j])` around line 1948
 //   - update `test_fread_fillna` in test_fread.py to include the new column type
 //
-typedef int (*reader_fun_t)(const char **ptr, void *target);
-static reader_fun_t fun[NUMTYPE] = {
-  (reader_fun_t) &Field,   // CT_DROP
-  (reader_fun_t) &StrtoB,
-  (reader_fun_t) &StrtoI32_bare,
-  (reader_fun_t) &StrtoI32_full,
-  (reader_fun_t) &StrtoI64,
-  (reader_fun_t) &parse_float_hexadecimal,
-  (reader_fun_t) &StrtoD,
-  (reader_fun_t) &parse_double_extended,
-  (reader_fun_t) &parse_double_hexadecimal,
-  (reader_fun_t) &Field
+#define DECLARE_CTX_PARSER(BASE, TYPE)  \
+  static bool ctx_##BASE(FieldParseContext* ctx) { \
+    return BASE(ctx->ch, static_cast<TYPE*>(ctx->targets[sizeof(TYPE)])); \
+  }
+DECLARE_CTX_PARSER(Field, lenOff)
+DECLARE_CTX_PARSER(StrtoB, int8_t)
+DECLARE_CTX_PARSER(StrtoI32_bare, int32_t)
+DECLARE_CTX_PARSER(StrtoI32_full, int32_t)
+DECLARE_CTX_PARSER(StrtoI64, int64_t)
+DECLARE_CTX_PARSER(parse_float_hexadecimal, float)
+DECLARE_CTX_PARSER(StrtoD, double)
+DECLARE_CTX_PARSER(parse_double_extended, double)
+DECLARE_CTX_PARSER(parse_double_hexadecimal, double)
+
+typedef int (*reader_fun_t_)(FieldParseContext *ctx);
+static reader_fun_t_ parsers[NUMTYPE] = {
+  (reader_fun_t_) &ctx_Field,   // CT_DROP
+  (reader_fun_t_) &ctx_StrtoB,
+  (reader_fun_t_) &ctx_StrtoI32_bare,
+  (reader_fun_t_) &ctx_StrtoI32_full,
+  (reader_fun_t_) &ctx_StrtoI64,
+  (reader_fun_t_) &ctx_parse_float_hexadecimal,
+  (reader_fun_t_) &ctx_StrtoD,
+  (reader_fun_t_) &ctx_parse_double_extended,
+  (reader_fun_t_) &ctx_parse_double_hexadecimal,
+  (reader_fun_t_) &ctx_Field
 };
 
 
@@ -1087,9 +1115,8 @@ int FreadReader::freadMain()
   // Find the first line with the consistent number of fields.  There might
   // be irregular header lines above it.
   int ncol;
-  // Save the `sof` pointer before moving it. We might need to come back to it
-  // later when reporting an error in next section.
-  const char *headerPtr = sof;
+
+  const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
   if (fill) {
     // start input from first populated line; do not alter sof.
     ncol = topNmax;
@@ -1097,14 +1124,15 @@ int FreadReader::freadMain()
     ncol = topNumFields;
     int thisLine = -1;
     ch = sof;
-    while (ch < eof && ++thisLine < JUMPLINES)
-    {
-      const char *ch2 = ch;   // lineStart
+    while (ch < eof && ++thisLine < JUMPLINES) {
+      const char* lastLineStart = ch;   // lineStart
       int cols = countfields(&ch);  // advances ch to next line
       if (cols == ncol) {
-        sof = ch2;
+        ch = sof = lastLineStart;
         line += thisLine;
         break;
+      } else {
+        prevStart = (cols > 0)? lastLineStart : NULL;
       }
     }
   }
@@ -1113,6 +1141,7 @@ int FreadReader::freadMain()
   ASSERT(ncol >= 1 && line >= 1);
   ch = sof;
   int tt = countfields(&ch);
+  ch = sof;  // move back to start of line since countfields() moved to next
   if (verbose) {
     DTPRINT("  Detected %d columns on line %d. This line is either column "
             "names or first data row. Line starts as: \"%s\"",
@@ -1121,6 +1150,19 @@ int FreadReader::freadMain()
     if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncol);
   }
   ASSERT(fill || tt == ncol);
+
+  // Now check previous line which is being discarded and give helpful message to user
+  if (prevStart) {
+    ch = prevStart;
+    int ttt = countfields(&ch);
+    ASSERT(ttt != ncol);
+    if (ttt > 1) {
+      DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
+             "line %d <<%s>> before it because it has a different number of fields (%d).",
+             line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), ttt);
+    }
+  }
+  ASSERT(ch==sof);
 
 
   //*********************************************************************************************
@@ -1152,12 +1194,7 @@ int FreadReader::freadMain()
     // StrtoD does not consume quoted fields according to the quote rule, so need to reparse using Field()
     ch = ch0;  // rewind to the start of this field
     int res = Field(&ch, (lenOff *)trash);
-    ASSERT(res != 1);
-    while (res == 2) {
-      ASSERT(ch != end);
-      res = parse_string_continue(&ch, (lenOff *)trash);
-    }
-
+    ASSERT(res == 0);
   }
   if (!on_eol(ch)) {
     STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
@@ -1169,18 +1206,6 @@ int FreadReader::freadMain()
       DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.", line);
     // colNames was calloc'd so nothing to do; all len=off=0 already
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
-    // now check previous line which is being discarded and give helpful msg to user ...
-    if (ch>headerPtr) {
-      while (ch > headerPtr && (*ch=='\n' || *ch=='\r')) ch--;
-      if (ch>headerPtr) ch++;
-      const char *prevStart = ch;
-      int tmp = countfields(&ch);
-      ASSERT(tmp!=ncol);
-      if (tmp>1) DTWARN("Starting data input on line %d \"%s\" with %d fields and discarding "
-                        "line %d \"%s\" before it because it has a different number of fields (%d).",
-                        line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), tmp);
-    }
-    ASSERT(ch==sof);
   } else {
     if (verbose && g.header==NA_BOOL8) {
       DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
@@ -1192,11 +1217,7 @@ int FreadReader::freadMain()
     for (int i=0; i<ncol; i++) {
       const char *start = ++ch;
       int ret = Field(&ch, colNames + i);
-      ASSERT(ret != 1);
-      while (ret == 2) {
-        line++;
-        ret = parse_string_continue(&ch, colNames + i);
-      }
+      ASSERT(ret == 0);
       colNames[i].off += (size_t)(start-colNamesAnchor);
       if (on_eol(ch)) break;   // already checked number of fields previously above
     }
@@ -1225,6 +1246,12 @@ int FreadReader::freadMain()
     types[j] = 1;
     sizes[j] = typeSize[types[j]];
   }
+  void *targets[9] = {NULL, trash, NULL, NULL, trash, NULL, NULL, NULL, trash};
+  FieldParseContext fctx = {
+    .ch = &ch,
+    .targets = targets,
+    .anchor = NULL,
+  };
 
   // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
   // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
@@ -1275,16 +1302,8 @@ int FreadReader::freadMain()
       const char *fieldStart = ch;  // Needed outside loop for error messages below
       while (!on_eol(ch) && field<ncol) {
         fieldStart=ch;
-        int res;
-        while (types[field]<=CT_STRING && (res = fun[types[field]](&ch, trash))) {
-          int neols = 0;
-          while (res == 2 && neols++ < 100) {
-            if (ch == end) {
-              res = 1;
-              break;
-            }
-            res = parse_string_continue(&ch, (lenOff*)trash);
-          }
+        while (types[field]<=CT_STRING) {
+          int res = parsers[types[field]](&fctx);
           if (res == 0) break;
           ch = fieldStart;
           if (types[field] < CT_STRING) {
@@ -1516,19 +1535,11 @@ int FreadReader::freadMain()
     // Do not reuse &trash for myBuff0 as that might create write conflicts
     // between threads, causing slowdown of the process.
     size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
-    void *myBuff8 = malloc(rowSize8 * myBuffRows);
-    void *myBuff4 = malloc(rowSize4 * myBuffRows);
-    void *myBuff1 = malloc(rowSize1 * myBuffRows);
-    void *myBuff0 = malloc(8);  // for CT_DROP columns
-    if ((rowSize8 && !myBuff8) ||
-        (rowSize4 && !myBuff4) ||
-        (rowSize1 && !myBuff1) || !myBuff0) stopTeam = true;
-
     ThreadLocalFreadParsingContext ctx = {
       .anchor = NULL,
-      .buff8 = myBuff8,
-      .buff4 = myBuff4,
-      .buff1 = myBuff1,
+      .buff8 = malloc(rowSize8 * myBuffRows + 8),
+      .buff4 = malloc(rowSize4 * myBuffRows + 4),
+      .buff1 = malloc(rowSize1 * myBuffRows + 1),
       .rowSize8 = rowSize8,
       .rowSize4 = rowSize4,
       .rowSize1 = rowSize1,
@@ -1542,6 +1553,9 @@ int FreadReader::freadMain()
       .nNonStringCols = nNonStringCols
       #endif
     };
+    if ((rowSize8 && !ctx.buff8) || (rowSize4 && !ctx.buff4) || (rowSize1 && !ctx.buff1)) {
+      stopTeam = true;
+    }
     prepareThreadContext(&ctx);
 
     #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
@@ -1591,36 +1605,30 @@ int FreadReader::freadMain()
       thisJumpStart=tch;
       if (verbose) { tt1 = wallclock(); thNextGoodLine += tt1 - tt0; tt0 = tt1; }
 
-      void *myBuff1Pos = myBuff1, *myBuff4Pos = myBuff4, *myBuff8Pos = myBuff8;
-      void **allBuffPos[9];
-      allBuffPos[0] = &myBuff0;
-      allBuffPos[1] = &myBuff1Pos;
-      allBuffPos[4] = &myBuff4Pos;
-      allBuffPos[8] = &myBuff8Pos;
+      void *ttargets[9] = {NULL, ctx.buff1, NULL, NULL, ctx.buff4, NULL, NULL, NULL, ctx.buff8};
+      FieldParseContext fctx = {
+        .ch = &tch,
+        .targets = ttargets,
+        .anchor = thisJumpStart,
+      };
 
-      const char *fake_anchor = thisJumpStart;
       while (tch<nextJump && myNrow < nrowLimit - myDTi) {
         if (myNrow == myBuffRows) {
           // buffer full due to unusually short lines in this chunk vs the sample; e.g. #2070
           myBuffRows *= 1.5;
           #pragma omp atomic
           buffGrown++;
-          long diff8 = (char*)myBuff8Pos - (char*)myBuff8;
-          long diff4 = (char*)myBuff4Pos - (char*)myBuff4;
-          long diff1 = (char*)myBuff1Pos - (char*)myBuff1;
-          ctx.buff8 = myBuff8 = realloc(myBuff8, rowSize8 * myBuffRows);
-          ctx.buff4 = myBuff4 = realloc(myBuff4, rowSize4 * myBuffRows);
-          ctx.buff1 = myBuff1 = realloc(myBuff1, rowSize1 * myBuffRows);
-          if ((rowSize8 && !myBuff8) ||
-              (rowSize4 && !myBuff4) ||
-              (rowSize1 && !myBuff1)) {
+          ctx.buff8 = realloc(ctx.buff8, rowSize8 * myBuffRows + 8);
+          ctx.buff4 = realloc(ctx.buff4, rowSize4 * myBuffRows + 4);
+          ctx.buff1 = realloc(ctx.buff1, rowSize1 * myBuffRows + 1);
+          if ((rowSize8 && !ctx.buff8) || (rowSize4 && !ctx.buff4) || (rowSize1 && !ctx.buff1)) {
             stopTeam = true;
             break;
           }
-          // restore myBuffXPos in case myBuffX was moved by realloc
-          myBuff8Pos = (void*)((char*)myBuff8 + diff8);
-          myBuff4Pos = (void*)((char*)myBuff4 + diff4);
-          myBuff1Pos = (void*)((char*)myBuff1 + diff1);
+          // shift current buffer positions, since `myBuffX`s were probably moved by realloc
+          fctx.targets[8] = (void*)((char*)ctx.buff8 + myNrow * rowSize8);
+          fctx.targets[4] = (void*)((char*)ctx.buff4 + myNrow * rowSize4);
+          fctx.targets[1] = (void*)((char*)ctx.buff1 + myNrow * rowSize1);
         }
         const char *tlineStart = tch;  // for error message
         if (sep==' ') while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep(!)
@@ -1654,15 +1662,7 @@ int FreadReader::freadMain()
           // always write to buffPos even when CT_DROP. It'll just overwrite on next non-CT_DROP
           while (absType < NUMTYPE) {
             // normally returns success=1, and myBuffPos is assigned inside *fun.
-            void *target = thisType > 0? *(allBuffPos[sizes[j]]) : myBuff0;
-            int ret = fun[absType](&tch, target);
-            if (ret == 0) break;
-            while (ret == 2) {
-              if (tch == eof) {
-                break;
-              }
-              ret = parse_string_continue(&tch, (lenOff*)target);
-            }
+            int ret = parsers[absType](&fctx);
             if (ret == 0) break;
             // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
             // check that the new type is sufficient for the rest of the column to be sure a single re-read will work.
@@ -1672,7 +1672,7 @@ int FreadReader::freadMain()
           }
 
           if (joldType == CT_STRING) {
-            ((lenOff*) myBuff8Pos)->off += (int32_t)(fieldStart - fake_anchor);
+            ((lenOff*) ttargets[8])->off += (int32_t)(fieldStart - thisJumpStart);
           } else if (thisType != joldType) {  // rare out-of-sample type exception
             #pragma omp critical
             {
@@ -1694,7 +1694,8 @@ int FreadReader::freadMain()
               } // else other thread bumped to a (negative) higher or equal type, so do nothing
             }
           }
-          *((char**) allBuffPos[sizes[j]]) += sizes[j];
+          int8_t thisSize = sizes[j];
+          ((char **) ttargets)[thisSize] += thisSize;
           j++;
           if (on_eol(tch)) {
             skip_eol(&tch);
@@ -1719,32 +1720,22 @@ int FreadReader::freadMain()
           }
           while (j<ncol) {
             switch (types[j]) {
-            case CT_BOOL8:
-              *(int8_t*)myBuff1Pos = NA_BOOL8;
-              break;
+            case CT_BOOL8:       *((int8_t*) ttargets[1]) = NA_BOOL8; break;
             case CT_INT32_BARE:
-            case CT_INT32_FULL:
-              *(int32_t*)myBuff4Pos = NA_INT32;
-              break;
-            case CT_INT64:
-              *(int64_t*)myBuff8Pos = NA_INT64;
-              break;
-            case CT_FLOAT32_HEX:
-              *(float*)myBuff4Pos = NA_FLOAT32;
-              break;
+            case CT_INT32_FULL:  *((int32_t*) ttargets[4]) = NA_INT32; break;
+            case CT_INT64:       *((int64_t*) ttargets[8]) = NA_INT64; break;
+            case CT_FLOAT32_HEX: *((float*) ttargets[4]) = NA_FLOAT32; break;
             case CT_FLOAT64:
             case CT_FLOAT64_EXT:
-            case CT_FLOAT64_HEX:
-              *(double*)myBuff8Pos = NA_FLOAT64;
-              break;
+            case CT_FLOAT64_HEX: *((double*) ttargets[8]) = NA_FLOAT64; break;
             case CT_STRING:
-              ((lenOff*)myBuff8Pos)->len = NA_LENOFF;
-              ((lenOff*)myBuff8Pos)->off = 0;
+              ((lenOff*) ttargets[8])->len = NA_LENOFF;
+              ((lenOff*) ttargets[8])->off = 0;
               break;
             default:
               break;
             }
-            *((char**) allBuffPos[sizes[j]]) += sizes[j];
+            ((char **) ttargets)[sizes[j]] += sizes[j];
             j++;
           }
         }
@@ -1798,16 +1789,17 @@ int FreadReader::freadMain()
     }
     // Push out all buffers one last time.
     if (myNrow) {
+      double tt1 = verbose? wallclock() : 0;
       pushBuffer(&ctx);
+      if (verbose) thRead += wallclock() - tt1;
       if (me == 0 && hasPrinted) {
         progress(100.0);
       }
     }
     // Done reading the file: each thread should now clean up its own buffers.
-    free(myBuff8); myBuff8 = NULL;
-    free(myBuff4); myBuff4 = NULL;
-    free(myBuff1); myBuff1 = NULL;
-    free(myBuff0); myBuff0 = NULL;
+    free(ctx.buff8); ctx.buff8 = NULL;
+    free(ctx.buff4); ctx.buff4 = NULL;
+    free(ctx.buff1); ctx.buff1 = NULL;
     freeThreadContext(&ctx);
   }
   //-- end parallel ------------------
