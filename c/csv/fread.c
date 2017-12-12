@@ -534,6 +534,17 @@ static int Field(const char** pch, lenOff* target) {
   if (ret) { target->off = 0; target->len = NA_LENOFF; }
   return ret;
 }
+static bool ctx_Field(FieldParseContext* ctx) {
+  const char* ch = *(ctx->ch);
+  lenOff* target = static_cast<lenOff*>(ctx->targets[sizeof(lenOff)]);
+  int ret = Field(ctx->ch, target);
+  if (ret == 1) {
+    *(ctx->ch) = ch;
+  } else {
+    target->off += (ch - ctx->anchor);
+  }
+  return ret;
+}
 
 
 
@@ -1007,7 +1018,6 @@ static int StrtoB(const char **pch, int8_t *target)
     if (ret == 1) *(ctx->ch) = ch; \
     return ret; \
   }
-DECLARE_CTX_PARSER(Field, lenOff)
 DECLARE_CTX_PARSER(StrtoB, int8_t)
 DECLARE_CTX_PARSER(StrtoI32_bare, int32_t)
 DECLARE_CTX_PARSER(StrtoI32_full, int32_t)
@@ -1070,8 +1080,8 @@ int FreadReader::freadMain()
   ASSERT(g.extra_byte_accessible() && fileSize > 0);
   *const_cast<char*>(eof) = '\0';
 
-  // Convenience variables for iteration over the file.
-  const char *ch = NULL, *end = NULL;
+  // Convenience variable for iterating over the file.
+  const char *ch = NULL;
   int line = 1;
 
   // Test whether '\n's are present in the file at all... If not, then standalone '\r's are valid
@@ -1254,70 +1264,6 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [8] Detect and assign column names (if present)
-  //
-  //     This section also moves the `sof` pointer to point at the first row
-  //     of data ("removing" the column names).
-  //*********************************************************************************************
-  // if (verbose) DTPRINT("[8] Determine column names");
-  // throw-away storage for processors to write to in this preamble.
-  // Saves deep 'if (target)' inside processors.
-  double trash_val; // double so that this storage is aligned. char trash[8] would not be aligned.
-  void *trash = (void*)&trash_val;
-
-  const char *colNamesAnchor = sof;
-  colNames = (lenOff*) calloc((size_t)ncol, sizeof(lenOff));
-  if (!colNames) STOP("Unable to allocate %d*%d bytes for column name pointers: %s", ncol, sizeof(lenOff), strerror(errno));
-  bool allchar=true;
-  ch = sof; // move back to start of line since countfields() moved to next
-  end = eof;
-  if (sep==' ') while (*ch==' ') ch++;
-  ch--;  // so we can ++ at the beginning inside loop.
-  for (int field=0; field<tt; field++) {
-    const char *ch0 = ++ch;
-    // DTPRINT("Field %d <<%s>>\n", field, strlim(ch, 20));
-    skip_white(&ch);
-    if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to EOL here
-    // considered looking for one isalpha present but we want 1E9 to be considered a value not a column name
-    // StrtoD does not consume quoted fields according to the quote rule, so need to reparse using Field()
-    ch = ch0;  // rewind to the start of this field
-    int res = Field(&ch, (lenOff *)trash);
-    ASSERT(res == 0);
-  }
-  if (!on_eol(ch)) {
-    STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
-  }
-  // already checked above that tt==ncol unless fill=TRUE
-  // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
-  if (header==false || (header==NA_BOOL8 && !allchar)) {
-    if (verbose && header==NA_BOOL8)
-      DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.", line);
-    // colNames was calloc'd so nothing to do; all len=off=0 already
-    ch = sof;  // back to start of first row. Treat as first data row, no column names present.
-  } else {
-    if (verbose && header==NA_BOOL8) {
-      DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
-    }
-    ch = sof;
-    line++;
-    if (sep==' ') while (*ch==' ') ch++;
-    ch--;
-    for (int i=0; i<ncol; i++) {
-      const char *start = ++ch;
-      int ret = Field(&ch, colNames + i);
-      ASSERT(ret == 0);
-      colNames[i].off += (size_t)(start-colNamesAnchor);
-      if (on_eol(ch)) break;   // already checked number of fields previously above
-    }
-    ASSERT(on_eol(ch));
-    skip_eol(&ch);
-    sof = ch;
-  }
-  int row1Line = line;
-  double tLayout = wallclock();
-
-
-  //*********************************************************************************************
   // [7] Detect column types, good nrow estimate and whether first row is column names.
   //     At the same time, calc mean and sd of row lengths in sample for very
   //     good nrow estimate.
@@ -1454,7 +1400,7 @@ int FreadReader::freadMain()
           }
           if (header==NA_BOOL8 && thisColumnNameWasString && tmpTypes[field] < CT_STRING) {
             header = true;
-            g.trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2\n",
+            g.trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2",
                     field + 1, typeName[tmpTypes[field]]);
           }
           if (*ch!=sep || *ch=='\n' || *ch=='\r') break;
@@ -1477,7 +1423,7 @@ int FreadReader::freadMain()
                "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
                jline, strlim(jlineStart,10), ncol, *ch, (int)(ch-jlineStart+1), (int)(ch-fieldStart+1), strlim(fieldStart,200));
           }
-          if (verbose) DTPRINT("  Not using sample from jump %d. Looks like a complicated file where nextGoodLine could not establish the true line start.\n", j);
+          g.trace("  Not using sample from jump %d. Looks like a complicated file where nextGoodLine could not establish the true line start.", j);
           skip = true;
           break;
         }
@@ -1580,6 +1526,58 @@ int FreadReader::freadMain()
       }
       g.trace("=====");
     }
+  }
+
+
+  //*********************************************************************************************
+  // [8] Assign column names (if present)
+  //
+  //     This section also moves the `sof` pointer to point at the first row
+  //     of data ("removing" the column names).
+  //*********************************************************************************************
+  double tLayout;  // Timer for assigning column names
+  const char* colNamesAnchor = sof;
+  {
+    g.trace("[08] Assign column names");
+
+    ch = sof;  // back to start of first row (likely column names)
+    colNames = new lenOff[ncol];
+    for (int i = 0; i < ncol; i++) {
+      colNames[i].len = 0;
+      colNames[i].off = 0;
+    }
+
+    if (header == 1) {
+      line++;
+      if (sep==' ') while (*ch==' ') ch++;
+      void *targets[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, colNames};
+      FieldParseContext fctx = {
+        .ch = &ch,
+        .targets = targets,
+        .anchor = colNamesAnchor,
+      };
+      ch--;
+      for (int i=0; i<ncol; i++) {
+        // Use Field() here as it handles quotes, leading space etc inside it
+        ch++;
+        ctx_Field(&fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
+        ((lenOff**) fctx.targets)[8]++;
+        if (*ch!=sep) break;
+        if (sep==' ') {
+          while (ch[1]==' ') ch++;
+          if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
+        }
+      }
+      if (eol(&ch)) {
+        sof = ++ch;
+      } else {
+        ASSERT(*ch=='\0');
+        sof = ch;
+      }
+      // now on first data row (row after column names)
+      // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
+    }
+    tLayout = wallclock();
   }
 
 
@@ -1838,7 +1836,7 @@ int FreadReader::freadMain()
           }
 
           if (joldType == CT_STRING) {
-            ((lenOff*) ttargets[8])->off += (int32_t)(fieldStart - thisJumpStart);
+            // ((lenOff*) ttargets[8])->off += (int32_t)(fieldStart - thisJumpStart);
           } else if (thisType != joldType) {  // rare out-of-sample type exception
             #pragma omp critical
             {
