@@ -107,6 +107,8 @@ def test_h2o3_smalldata(f):
                          indirect=True)
 def test_h2o3_bigdata(f):
     ignored_files = {
+        # Feather files
+        os.path.join("ipums_feather.gz"),
         # empty files
         os.path.join("mnist", "t10k-images-idx3-ubyte.gz"),
         os.path.join("mnist", "t10k-labels-idx1-ubyte.gz"),
