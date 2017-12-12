@@ -119,7 +119,7 @@ for libname in extra_libs:
     srcfile = os.path.join(libsdir, libname)
     tgtfile = os.path.join("datatable", "lib", libname)
     if not os.path.exists(tgtfile):
-        print("Copying %s to %s" % (srcfile, tgtfile))
+        print("Copying %s to %s" % (srcfile, tgtfile), file=stderr)
         shutil.copy(srcfile, tgtfile)
 
 # Add linker flags: path to system libraries, and the rpath
@@ -133,7 +133,7 @@ os.environ["LLVM_CONFIG"] = llvm_config
 
 print("Setting environment variables:")
 for n in ["CC", "CXX", "LDFLAGS", "ARCHFLAGS", "LLVM_CONFIG"]:
-    print("  %s = %s" % (n, os.environ[n]))
+    print("  %s = %s" % (n, os.environ[n]), file=stderr)
 
 
 #-------------------------------------------------------------------------------
