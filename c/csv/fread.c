@@ -1115,9 +1115,8 @@ int FreadReader::freadMain()
   // Find the first line with the consistent number of fields.  There might
   // be irregular header lines above it.
   int ncol;
-  // Save the `sof` pointer before moving it. We might need to come back to it
-  // later when reporting an error in next section.
-  const char *headerPtr = sof;
+
+  const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
   if (fill) {
     // start input from first populated line; do not alter sof.
     ncol = topNmax;
@@ -1125,14 +1124,15 @@ int FreadReader::freadMain()
     ncol = topNumFields;
     int thisLine = -1;
     ch = sof;
-    while (ch < eof && ++thisLine < JUMPLINES)
-    {
-      const char *ch2 = ch;   // lineStart
+    while (ch < eof && ++thisLine < JUMPLINES) {
+      const char* lastLineStart = ch;   // lineStart
       int cols = countfields(&ch);  // advances ch to next line
       if (cols == ncol) {
-        sof = ch2;
+        ch = sof = lastLineStart;
         line += thisLine;
         break;
+      } else {
+        prevStart = (cols > 0)? lastLineStart : NULL;
       }
     }
   }
@@ -1141,6 +1141,7 @@ int FreadReader::freadMain()
   ASSERT(ncol >= 1 && line >= 1);
   ch = sof;
   int tt = countfields(&ch);
+  ch = sof;  // move back to start of line since countfields() moved to next
   if (verbose) {
     DTPRINT("  Detected %d columns on line %d. This line is either column "
             "names or first data row. Line starts as: \"%s\"",
@@ -1149,6 +1150,19 @@ int FreadReader::freadMain()
     if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncol);
   }
   ASSERT(fill || tt == ncol);
+
+  // Now check previous line which is being discarded and give helpful message to user
+  if (prevStart) {
+    ch = prevStart;
+    int ttt = countfields(&ch);
+    ASSERT(ttt != ncol);
+    if (ttt > 1) {
+      DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
+             "line %d <<%s>> before it because it has a different number of fields (%d).",
+             line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), ttt);
+    }
+  }
+  ASSERT(ch==sof);
 
 
   //*********************************************************************************************
@@ -1192,18 +1206,6 @@ int FreadReader::freadMain()
       DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.", line);
     // colNames was calloc'd so nothing to do; all len=off=0 already
     ch = sof;  // back to start of first row. Treat as first data row, no column names present.
-    // now check previous line which is being discarded and give helpful msg to user ...
-    if (ch>headerPtr) {
-      while (ch > headerPtr && (*ch=='\n' || *ch=='\r')) ch--;
-      if (ch>headerPtr) ch++;
-      const char *prevStart = ch;
-      int tmp = countfields(&ch);
-      ASSERT(tmp!=ncol);
-      if (tmp>1) DTWARN("Starting data input on line %d \"%s\" with %d fields and discarding "
-                        "line %d \"%s\" before it because it has a different number of fields (%d).",
-                        line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), tmp);
-    }
-    ASSERT(ch==sof);
   } else {
     if (verbose && g.header==NA_BOOL8) {
       DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
