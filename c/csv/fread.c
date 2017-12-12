@@ -1236,15 +1236,16 @@ int FreadReader::freadMain()
   //     good nrow estimate.
   //*********************************************************************************************
   if (verbose) DTPRINT("[9] Detect column types");
-  types = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  sizes = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  if (!types || !sizes) STOP("Failed to allocate %d x 2 bytes for type/size: %s", ncol, strerror(errno));
+  types = new int8_t[ncol];
+  sizes = new int8_t[ncol];
+  tmpTypes = new int8_t[ncol];
 
   for (int j = 0; j < ncol; j++) {
     // initialize with the first (lowest) type, 1==CT_BOOL8 at the time of writing. If we add CT_BOOL1 or CT_BOOL2 in
-    /// future, using 1 here means this line won't need to be changed. CT_DROP is 0 and 1 is the first type.
+    // future, using 1 here means this line won't need to be changed. CT_DROP is 0 and 1 is the first type.
     types[j] = 1;
-    sizes[j] = typeSize[types[j]];
+    tmpTypes[j] = 1;
+    sizes[j] = typeSize[1];
   }
   void *targets[9] = {NULL, trash, NULL, NULL, trash, NULL, NULL, NULL, trash};
   FieldParseContext fctx = {
@@ -1422,61 +1423,65 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [10] Apply colClasses, select, drop and integer64
+  // [9] Apply colClasses, select, drop and integer64; then allocate the DataTable
   //*********************************************************************************************
-  if (verbose) DTPRINT("[10] Apply user overrides on column types");
-  ch = sof;
-  old_types = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  if (!old_types) STOP("Unable to allocate %d bytes to check user overrides of column types", ncol);
-  memcpy(old_types, types, (size_t)ncol) ;
-  if (!userOverride(types, colNamesAnchor, ncol)) { // colNames must not be changed but type[] can be
-    if (verbose) DTPRINT("  Cancelled by user: userOverride() returned false.");
-    freadCleanup();
-    return 1;
-  }
-  int ndrop=0, nUserBumped=0;
-  size_t rowSize1 = 0;
-  size_t rowSize4 = 0;
-  size_t rowSize8 = 0;
-  int nStringCols = 0;
-  int nNonStringCols = 0;
-  for (int j=0; j<ncol; j++) {
-    sizes[j] = typeSize[types[j]];
-    rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
-    rowSize4 += (sizes[j] & 4);
-    rowSize8 += (sizes[j] & 8);
-    if (types[j]==CT_DROP) { ndrop++; continue; }
-    if (types[j]<old_types[j]) {
-      STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
-           "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-           j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[old_types[j]], typeName[types[j]]);
+  double tColType;    // Timer for applying user column class overrides
+  double tAlloc;      // Timer for allocating the DataTable
+  int ndrop;          // Number of columns that will be dropped from the file being read
+  int nStringCols;    // Number of string columns in the file
+  int nNonStringCols; // Number of all other columns in the file
+  size_t rowSize1;    // Total bytesize of all fields having sizeof==1
+  size_t rowSize4;    // Total bytesize of all fields having sizeof==4
+  size_t rowSize8;    // Total bytesize of all fields having sizeof==8
+  size_t DTbytes;     // Size of the allocated DataTable, in bytes
+  {
+    if (verbose) DTPRINT("[09] Apply user overrides on column types");
+    ch = sof;
+    memcpy(tmpTypes, types, (size_t)ncol) ;
+    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
+
+    int nUserBumped = 0;
+    ndrop = 0;
+    rowSize1 = 0;
+    rowSize4 = 0;
+    rowSize8 = 0;
+    nStringCols = 0;
+    nNonStringCols = 0;
+    for (int j = 0; j < ncol; j++) {
+      sizes[j] = typeSize[types[j]];
+      rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
+      rowSize4 += (sizes[j] & 4);
+      rowSize8 += (sizes[j] & 8);
+      if (types[j] == CT_DROP) {
+        ndrop++;
+        continue;
+      }
+      if (types[j] < tmpTypes[j]) {
+        // FIXME: if the user wants to override the type, let them
+        STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
+             "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
+             j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[tmpTypes[j]], typeName[types[j]]);
+      }
+      nUserBumped += (types[j] > tmpTypes[j]);
+      if (types[j] == CT_STRING) {
+        nStringCols++;
+      } else {
+        nNonStringCols++;
+      }
     }
-    nUserBumped += types[j]>old_types[j];
-    if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
-  }
-  if (verbose) {
-    DTPRINT("  After %d type and %d drop user overrides : %s",
-            nUserBumped, ndrop, printTypes(ncol));
-  }
-  double tColType = wallclock();
+    if (verbose) {
+      DTPRINT("  After %d type and %d drop user overrides : %s",
+              nUserBumped, ndrop, printTypes(ncol));
+    }
+    tColType = wallclock();
 
-
-  //*********************************************************************************************
-  // [11] Allocate the result columns
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[11] Allocate memory for the datatable");
-  if (verbose) {
-    DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
-            ncol-ndrop, ncol, ndrop, allocnrow);
+    if (verbose) {
+      DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
+              ncol-ndrop, ncol, ndrop, allocnrow);
+    }
+    DTbytes = allocateDT(ncol, ndrop, allocnrow);
+    tAlloc = wallclock();
   }
-  size_t DTbytes = allocateDT(ncol, ndrop, allocnrow);
-  if (DTbytes == 0) {
-    // Failed to allocate: return
-    freadCleanup();
-    return 0;
-  }
-  double tAlloc = wallclock();
-
 
 
   //*********************************************************************************************

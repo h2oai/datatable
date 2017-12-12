@@ -54,7 +54,7 @@ class FreadReader
   int: 32;
   int8_t* types;
   int8_t* sizes;
-  int8_t* old_types;
+  int8_t* tmpTypes;
 
 
 public:
@@ -90,12 +90,8 @@ private:
    * @param ncols
    *    total number of columns. This is the length of arrays `types` and
    *    `colNames`.
-   *
-   * @return
-   *    this function may return `false` to request that fread abort reading
-   *    the CSV file. Normally, this function should return `true`.
    */
-  bool userOverride(int8_t *types, const char* anchor, int ncols);
+  void userOverride(int8_t *types, const char* anchor, int ncols);
 
   /**
    * This function is invoked by `freadMain` right before the main scan of the

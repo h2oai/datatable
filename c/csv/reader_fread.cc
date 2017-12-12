@@ -58,7 +58,7 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   lineCopy = nullptr;
   types = nullptr;
   sizes = nullptr;
-  old_types = nullptr;
+  tmpTypes = nullptr;
   ncols = 0;
   nstrcols = 0;
   ndigits = 0;
@@ -66,12 +66,12 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
 
 FreadReader::~FreadReader() {
   freadCleanup();
-  delete[] strbufs;
+  free(strbufs);
   free(colNames);
   free(lineCopy);
   free(types);
   free(sizes);
-  free(old_types);
+  free(tmpTypes);
 }
 
 
@@ -133,7 +133,7 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-bool FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
+void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
 {
   types = types_;
   PyObject *colNamesList = PyList_New(ncols_);
@@ -172,7 +172,6 @@ bool FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
 
   pyfree(colTypesList);
   pyfree(colNamesList);
-  return 1;  // continue reading the file
 }
 
 
@@ -245,12 +244,11 @@ size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
 
   fail:
     if (columns) {
-        Column **col = columns;
-        while (*col++) delete (*col);
-        dtfree(columns);
+      Column **col = columns;
+      while (*col++) delete (*col);
+      dtfree(columns);
     }
-    delete strbufs;
-    return 0;
+    throw RuntimeError() << "Unable to allocate DataTable";
 }
 
 
