@@ -1,3 +1,11 @@
+//------------------------------------------------------------------------------
+// Copyright 2017 data.table authors
+// (https://github.com/Rdatatable/data.table/DESCRIPTION)
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License,
+// v.2.0. If a copy of the MPL was not distributed with this file, You can
+// obtain one at https://mozilla.org/MPL/2.0/.
+//------------------------------------------------------------------------------
 #include "csv/fread.h"
 #include "csv/freadLookups.h"
 #include "csv/reader.h"
@@ -117,6 +125,74 @@ static inline int imin(int a, int b) { return a < b ? a : b; }
 static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
   return x < lower ? lower : x > upper? upper : x;
 }
+
+/**
+ * eol() accepts a position and, if any of the following line endings, moves to the end of that sequence
+ * and returns true. Repeated \\r are considered one. At most one \\n will be moved over.
+ * 1. \\n        Unix
+ * 2. \\r\\n     Windows
+ * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r; also some email programs mangling the attached files
+ * 4. \\r        Old MacOS 9 format discontinued in 2002 but then #2347 was raised straight away when I tried not to support it
+ * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
+ */
+// TODO: change semantics so that eol() skips over the newline (rather than stumbles upon the last character)
+static inline bool eol(const char** pch) {
+  // we call eol() when we expect to be at a newline, so optimize as if we are at the end of line
+  const char* ch = *pch;
+  if (*ch=='\n') {
+    *pch += (ch[1]=='\r');  // 1 & 5
+    return true;
+  }
+  if (*ch=='\r') {
+    if (LFpresent) {
+      // \n is present in the file, so standalone \r is NOT considered a newline.
+      // Thus, we attempt to match a sequence '\r+\n' here
+      while (*ch=='\r') ch++;  // consume multiple \r
+      if (*ch=='\n') {
+        *pch = ch;
+        return true;
+      } else {
+        // 1 or more \r's were not followed by \n -- do not consider this a newline
+        return false;
+      }
+    } else {
+      // \n does not appear anywhere in the file: \r is a newline
+      *pch = ch;
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/**
+ * Return True iff `ch` is a valid field terminator character: either a field
+ * separator or a newline.
+ */
+static inline bool end_of_field(const char *ch) {
+  // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
+  // fact that the characters in the ASCII range 0..13 are very rare, so a
+  // single check `ch<=13` is almost equivalent to checking whether `ch` is one
+  // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
+  // default, and therefore characters in the range 0x80-0xFF are negative.
+  // We use eol() because that looks at LFpresent inside it w.r.t. \r
+  return *ch==sep || ((uint8_t)*ch<=13 && (*ch=='\0' || eol(&ch)));
+}
+
+
+static inline const char *end_NA_string(const char *fieldStart) {
+  const char* const* nastr = NAstrings;
+  const char *mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
+  while (*nastr) {
+    const char *ch1 = fieldStart;
+    const char *ch2 = *nastr;
+    while (*ch1==*ch2 && *ch2!='\0') { ch1++; ch2++; }
+    if (*ch2=='\0' && ch1>mostConsumed) mostConsumed=ch1;
+    nastr++;
+  }
+  return mostConsumed;
+}
+
 
 static inline bool on_eol(const char* ch) {
   if (*ch == '\r') {
@@ -455,6 +531,18 @@ static int Field(const char** pch, lenOff* target) {
   while (ret == 2) {
     ret = parse_string_continue(pch, target);
   }
+  if (ret) { target->off = 0; target->len = NA_LENOFF; }
+  return ret;
+}
+static bool ctx_Field(FieldParseContext* ctx) {
+  const char* ch = *(ctx->ch);
+  lenOff* target = static_cast<lenOff*>(ctx->targets[sizeof(lenOff)]);
+  int ret = Field(ctx->ch, target);
+  if (ret == 1) {
+    *(ctx->ch) = ch;
+  } else {
+    target->off += (ch - ctx->anchor);
+  }
   return ret;
 }
 
@@ -489,7 +577,13 @@ static int StrtoI64(const char **pch, int64_t *target)
     acc += *ch-'0';
     ch++;
   }
-  if (quoted) { if (*ch!=quote) return 1; else ch++; }
+  if (quoted) {
+    if (*ch!=quote) {
+      // *target = NA_INT64;
+      return 1;
+    }
+    else ch++;
+  }
   // TODO: if (!targetCol) return early?  Most of the time, not though.
   *target = sign * acc;
   skip_white(&ch);
@@ -502,7 +596,7 @@ static int StrtoI64(const char **pch, int64_t *target)
   *target = NA_INT64;
   next_sep(&ch);  // TODO: can we delete this? consume the remainder of field, if any
   *pch = ch;
-  return !na;
+  return !na;  // target set to NA_INT64 above
 }
 
 
@@ -510,7 +604,10 @@ static int StrtoI32_bare(const char **pch, int32_t *target)
 {
   const char *ch = *pch;
   if (*ch==sep || on_eol(ch)) { *target = NA_INT32; return 0; }
-  if (sep==' ') return 1;  // bare doesn't do sep=' '. TODO - remove
+  if (sep==' ') {
+    // *target = NA_INT64;
+    return 1;  // bare doesn't do sep=' '. TODO - remove
+  }
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
   const char *start = ch;  // for overflow guard using field width
@@ -916,9 +1013,11 @@ static int StrtoB(const char **pch, int8_t *target)
 //
 #define DECLARE_CTX_PARSER(BASE, TYPE)  \
   static bool ctx_##BASE(FieldParseContext* ctx) { \
-    return BASE(ctx->ch, static_cast<TYPE*>(ctx->targets[sizeof(TYPE)])); \
+    const char* ch = *(ctx->ch); \
+    int ret = BASE(ctx->ch, static_cast<TYPE*>(ctx->targets[sizeof(TYPE)])); \
+    if (ret == 1) *(ctx->ch) = ch; \
+    return ret; \
   }
-DECLARE_CTX_PARSER(Field, lenOff)
 DECLARE_CTX_PARSER(StrtoB, int8_t)
 DECLARE_CTX_PARSER(StrtoI32_bare, int32_t)
 DECLARE_CTX_PARSER(StrtoI32_full, int32_t)
@@ -928,7 +1027,7 @@ DECLARE_CTX_PARSER(StrtoD, double)
 DECLARE_CTX_PARSER(parse_double_extended, double)
 DECLARE_CTX_PARSER(parse_double_hexadecimal, double)
 
-typedef int (*reader_fun_t_)(FieldParseContext *ctx);
+typedef bool (*reader_fun_t_)(FieldParseContext *ctx);
 static reader_fun_t_ parsers[NUMTYPE] = {
   (reader_fun_t_) &ctx_Field,   // CT_DROP
   (reader_fun_t_) &ctx_StrtoB,
@@ -972,6 +1071,7 @@ int FreadReader::freadMain()
   fill = g.fill;
   dec = g.dec;
   quote = g.quote;
+  int header = g.header;
 
   size_t fileSize = g.datasize();
   const char* sof = g.dataptr();
@@ -980,8 +1080,8 @@ int FreadReader::freadMain()
   ASSERT(g.extra_byte_accessible() && fileSize > 0);
   *const_cast<char*>(eof) = '\0';
 
-  // Convenience variables for iteration over the file.
-  const char *ch = NULL, *end = NULL;
+  // Convenience variable for iterating over the file.
+  const char *ch = NULL;
   int line = 1;
 
   // Test whether '\n's are present in the file at all... If not, then standalone '\r's are valid
@@ -1002,7 +1102,7 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [7] Auto detect separator, quoting rule, first line and ncol, simply,
+  // [6] Auto detect separator, quoting rule, first line and ncol, simply,
   //     using jump 0 only.
   //
   //     Always sample as if nrows= wasn't supplied. That's probably *why*
@@ -1010,479 +1110,544 @@ int FreadReader::freadMain()
   //     actually reading the data yet. Most likely to check consistency
   //     across a set of files.
   //*********************************************************************************************
-  if (verbose) DTPRINT("[7] Detect separator, quoting rule, and ncolumns");
-
-  int nseps;
-  char seps[]=",|;\t ";  // default seps in order of preference. See ?fread.
-  // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
-
-  if (g.sep == '\xFF') {   // '\xFF' means 'auto'
-    if (verbose) DTPRINT("  Detecting sep ...");
-    nseps = (int) strlen(seps);
-  } else {
-    seps[0] = g.sep;
-    seps[1] = '\0';
-    nseps = 1;
-    if (verbose) DTPRINT("  Using supplied sep '%s'", g.sep=='\t' ? "\\t" : seps);
-  }
-
-  int topNumLines=0;        // the most number of lines with the same number of fields, so far
-  int topNumFields=1;       // how many fields that was, to resolve ties
-  char topSep='\n';          // which sep that was, by default \n to mean single-column input (1 field)
-  int topQuoteRule=0;       // which quote rule that was
-  int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
-                            //   (when fill=true, the max is usually the header row and is the longest but there are more
-                            //    lines of fewer)
   const char *firstJumpEnd=NULL; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
+  int ncol;  // Detected number of columns in the file
+  {
+    if (verbose) DTPRINT("[06] Detect separator, quoting rule, and ncolumns");
 
-  // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
-  // covers the header row, at this stage we don't know if it's present), and
-  // detect the number of fields on each line. If several consecutive lines
-  // have the same number of fields, we'll call them a "contiguous group of
-  // lines". Arrays `numFields` and `numLines` contain information about each
-  // contiguous group of lines encountered while scanning the first JUMPLINES
-  // + 1 lines: 'numFields` gives the count of fields in each group, and
-  // `numLines` has the number of lines in each group.
-  int numFields[JUMPLINES+1];
-  int numLines[JUMPLINES+1];
-  for (int s=0; s<nseps; s++) {
-    sep = seps[s];
-    whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
-    for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
-      // if (verbose) DTPRINT("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
-      for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
-      int i=-1; // The slot we're counting the currently contiguous consistent ncol
-      int thisLine=0, lastncol=-1;
+    int nseps;
+    char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
+    // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
+
+    if (g.sep == '\xFF') {   // '\xFF' means 'auto'
+      nseps = (int) strlen(seps);
+    } else {
+      seps[0] = g.sep;
+      seps[1] = '\0';
+      nseps = 1;
+      if (verbose) DTPRINT("  Using supplied sep '%s'", g.sep=='\t' ? "\\t" : seps);
+    }
+
+    int topNumLines=0;        // the most number of lines with the same number of fields, so far
+    int topNumFields=1;       // how many fields that was, to resolve ties
+    char topSep='\n';          // which sep that was, by default \n to mean single-column input (1 field)
+    int topQuoteRule=0;       // which quote rule that was
+    int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
+                              //   (when fill=true, the max is usually the header row and is the longest but there are more
+                              //    lines of fewer)
+
+    // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
+    // covers the header row, at this stage we don't know if it's present), and
+    // detect the number of fields on each line. If several consecutive lines
+    // have the same number of fields, we'll call them a "contiguous group of
+    // lines". Arrays `numFields` and `numLines` contain information about each
+    // contiguous group of lines encountered while scanning the first JUMPLINES
+    // + 1 lines: 'numFields` gives the count of fields in each group, and
+    // `numLines` has the number of lines in each group.
+    int numFields[JUMPLINES+1];
+    int numLines[JUMPLINES+1];
+    for (int s=0; s<nseps; s++) {
+      sep = seps[s];
+      whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
+      for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
+        ch = sof;
+        // if (verbose) DTPRINT("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
+        for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
+        int i=-1; // The slot we're counting the currently contiguous consistent ncol
+        int thisLine=0, lastncol=-1;
+        while (ch < eof && thisLine++ < JUMPLINES) {
+          // Compute num columns and move `ch` to the start of next line
+          int thisncol = countfields(&ch);
+          if (thisncol < 0) {
+            // invalid file with this sep and quote rule; abort
+            numFields[0] = -1;
+            break;
+          }
+          if (thisncol != lastncol) {  // new contiguous consistent ncol started
+            numFields[++i] = thisncol;
+            lastncol = thisncol;
+          }
+          numLines[i]++;
+        }
+        if (numFields[0] == -1) continue;
+        if (firstJumpEnd == NULL) firstJumpEnd = ch;  // if this wins (doesn't get updated), it'll be single column input
+        bool updated = false;
+        int nmax = 0;
+
+        i = -1;
+        while (numLines[++i]) {
+          if (numFields[i] > nmax) {  // for fill=true to know max number of columns
+            nmax = numFields[i];
+          }
+          if ( numFields[i]>1 &&
+              (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
+              ((numLines[i]>topNumLines) ||   // most number of consistent ncol wins
+               (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
+               //                                       ^ ties in numLines resolved by numFields (more fields win)
+               //                                                           ^ but don't resolve a tie with a higher quote
+               //                                                             rule unless the sep is different too: #2404, #2839
+            topNumLines = numLines[i];
+            topNumFields = numFields[i];
+            topSep = sep;
+            topQuoteRule = quoteRule;
+            topNmax = nmax;
+            firstJumpEnd = ch;  // So that after the header we know how many bytes jump point 0 is
+            updated = true;
+            // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
+            // updated flag is just to print once.
+          }
+        }
+        if (verbose && updated) {
+          DTPRINT(sep<' '? "  sep=%#02x with %d lines of %d fields using quote rule %d" :
+                           "  sep='%c' with %d lines of %d fields using quote rule %d",
+                  sep, topNumLines, topNumFields, topQuoteRule);
+        }
+      }
+    }
+    ASSERT(firstJumpEnd);
+    quoteRule = topQuoteRule;
+    sep = topSep;
+    whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
+    if (sep==' ' && !fill) {
+      if (verbose) DTPRINT("  sep=' ' detected, setting fill to True\n");
+      fill = 1;
+    }
+
+    // Find the first line with the consistent number of fields.  There might
+    // be irregular header lines above it.
+    const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
+    if (fill) {
+      // start input from first populated line; do not alter sof.
+      ncol = topNmax;
+    } else {
+      ncol = topNumFields;
+      int thisLine = -1;
       ch = sof;
-      while (ch < eof && thisLine++ < JUMPLINES)
-      {
-        // Compute num columns and move `ch` to the start of next line
-        int thisncol = countfields(&ch);
-        if (thisncol < 0) {
-          // invalid file with this sep and quote rule; abort
-          numFields[0] = -1;
+      while (ch < eof && ++thisLine < JUMPLINES) {
+        const char* lastLineStart = ch;   // lineStart
+        int cols = countfields(&ch);  // advances ch to next line
+        if (cols == ncol) {
+          ch = sof = lastLineStart;
+          line += thisLine;
           break;
+        } else {
+          prevStart = (cols > 0)? lastLineStart : NULL;
         }
-        if (thisncol!=lastncol) { numFields[++i]=thisncol; lastncol=thisncol; } // new contiguous consistent ncol started
-        numLines[i]++;
-      }
-      if (ch > eof) ch = eof;
-      if (numFields[0]==-1) continue;
-      if (firstJumpEnd==NULL) firstJumpEnd=ch;  // if this wins (doesn't get updated), it'll be single column input
-      bool updated=false;
-      int nmax=0;
-
-      i = -1;
-      while (numLines[++i]) {
-        if (numFields[i] > nmax) nmax=numFields[i];  // for fill=true to know max number of columns
-        // if (verbose) DTPRINT("sep='%c', QR=%d, numLines[i]=%d, topNumLines=%d, numFields[i]=%d, topNumFields=%d",
-        //                      sep, quoteRule, numLines[i], topNumLines, numFields[i], topNumFields);
-        if ( numFields[i]>1 &&
-            (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
-            ((numLines[i]>topNumLines) ||   // most number of consistent ncol wins
-             (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
-             //                                       ^ ties in numLines resolved by numFields (more fields win)
-             //                                                           ^ but don't resolve a tie with a higher quote rule unless the sep is different too, #2404 and test 2839
-          topNumLines = numLines[i];
-          topNumFields = numFields[i];
-          topSep = sep;
-          topQuoteRule = quoteRule;
-          topNmax = nmax;
-          firstJumpEnd = ch;  // So that after the header we know how many bytes jump point 0 is
-          updated = true;
-          // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
-          // updated flag is just to print once.
-        }
-      }
-      if (verbose && updated) {
-        DTPRINT(sep<' '? "  sep=%#02x with %d lines of %d fields using quote rule %d" :
-                         "  sep='%c' with %d lines of %d fields using quote rule %d",
-                sep, topNumLines, topNumFields, topQuoteRule);
       }
     }
-  }
-  ASSERT(firstJumpEnd);
-  // the size in bytes of the first JUMPLINES from the start (jump point 0)
-  size_t jump0size = (size_t)(firstJumpEnd - sof);
-  quoteRule = topQuoteRule;
-  sep = topSep;
-  whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
-  if (sep==' ' && !fill) {
-    if (verbose) DTPRINT("  sep=' ' detected, setting fill to True\n");
-    fill = 1;
-  }
+    // For standard regular separated files, we're now on the first byte of the file.
 
-  // Find the first line with the consistent number of fields.  There might
-  // be irregular header lines above it.
-  int ncol;
-
-  const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
-  if (fill) {
-    // start input from first populated line; do not alter sof.
-    ncol = topNmax;
-  } else {
-    ncol = topNumFields;
-    int thisLine = -1;
+    ASSERT(ncol >= 1 && line >= 1);
     ch = sof;
-    while (ch < eof && ++thisLine < JUMPLINES) {
-      const char* lastLineStart = ch;   // lineStart
-      int cols = countfields(&ch);  // advances ch to next line
-      if (cols == ncol) {
-        ch = sof = lastLineStart;
-        line += thisLine;
-        break;
-      } else {
-        prevStart = (cols > 0)? lastLineStart : NULL;
+    int tt = countfields(&ch);
+    ch = sof;  // move back to start of line since countfields() moved to next
+    ASSERT(fill || tt == ncol);
+    if (verbose) {
+      DTPRINT("  Detected %d columns on line %d. This line is either column "
+              "names or first data row. Line starts as: \"%s\"",
+              tt, line, strlim(sof, 30));
+      DTPRINT("  Quote rule picked = %d", quoteRule);
+      if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncol);
+    }
+
+    // Now check previous line which is being discarded and give helpful message to user
+    if (prevStart) {
+      ch = prevStart;
+      int ttt = countfields(&ch);
+      ASSERT(ttt != ncol);
+      if (ttt > 1) {
+        DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
+               "line %d <<%s>> before it because it has a different number of fields (%d).",
+               line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), ttt);
       }
     }
+    ASSERT(ch==sof);
   }
-  // For standard regular separated files, we're now on the first byte of the file.
-
-  ASSERT(ncol >= 1 && line >= 1);
-  ch = sof;
-  int tt = countfields(&ch);
-  ch = sof;  // move back to start of line since countfields() moved to next
-  if (verbose) {
-    DTPRINT("  Detected %d columns on line %d. This line is either column "
-            "names or first data row. Line starts as: \"%s\"",
-            tt, line, strlim(sof, 30));
-    DTPRINT("  Quote rule picked = %d", quoteRule);
-    if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncol);
-  }
-  ASSERT(fill || tt == ncol);
-
-  // Now check previous line which is being discarded and give helpful message to user
-  if (prevStart) {
-    ch = prevStart;
-    int ttt = countfields(&ch);
-    ASSERT(ttt != ncol);
-    if (ttt > 1) {
-      DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
-             "line %d <<%s>> before it because it has a different number of fields (%d).",
-             line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), ttt);
-    }
-  }
-  ASSERT(ch==sof);
 
 
   //*********************************************************************************************
-  // [8] Detect and assign column names (if present)
+  // [7] Detect column types, good nrow estimate and whether first row is column names.
+  //     At the same time, calc mean and sd of row lengths in sample for very
+  //     good nrow estimate.
+  //*********************************************************************************************
+  size_t allocnrow;       // Number of rows in the allocated DataTable
+  double meanLineLen;     // Average length (in bytes) of a single line in the input file
+  int nJumps;             // How many jumps to use when pre-scanning the file
+  size_t sampleLines;     // How many lines were sampled during the initial pre-scan
+  size_t bytesRead;       // Bytes in the whole data section
+  const char *lastRowEnd; // Pointer to the end of the data section
+  {
+    if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
+    types = new int8_t[ncol];
+    sizes = new int8_t[ncol];
+    tmpTypes = new int8_t[ncol];
+
+    int8_t type0 = 1;
+    // while (disabled_parsers[type0]) type0++;
+    for (int j = 0; j < ncol; j++) {
+      // initialize with the first (lowest) type
+      types[j] = type0;
+      tmpTypes[j] = type0;
+    }
+    int64_t trash;
+    void *targets[9] = {NULL, &trash, NULL, NULL, &trash, NULL, NULL, NULL, &trash};
+    FieldParseContext fctx = {
+      .ch = &ch,
+      .targets = targets,
+      .anchor = NULL,
+    };
+
+    // the size in bytes of the first JUMPLINES from the start (jump point 0)
+    size_t jump0size = (size_t)(firstJumpEnd - sof);
+    // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
+    // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
+    // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
+    nJumps = 0;
+    size_t sz = (size_t)(eof - sof);
+    if (jump0size>0) {
+      if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
+      else if (jump0size*10*2 < sz) nJumps=10;
+      // *2 to get a good spacing. We don't want overlaps resulting in double counting.
+      // nJumps==1 means the whole (small) file will be sampled with one thread
+    }
+    nJumps++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
+    if (verbose) {
+      if (jump0size==0)
+        DTPRINT("  Number of sampling jump points = %d because jump0size==0", nJumps);
+      else
+        DTPRINT("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
+                nJumps, sz, jump0size, sz/(2*jump0size));
+    }
+
+    sampleLines = 0;
+    int row1Line = line;
+    double sumLen = 0.0;
+    double sumLenSq = 0.0;
+    int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
+    int maxLen = -1;
+    lastRowEnd = sof;
+    bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
+    bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
+    for (int j=0; j<nJumps; j++) {
+      ch = (j == 0) ? sof :
+           (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
+                             sof + (size_t)j*(sz/(size_t)(nJumps-1));
+      if (ch < lastRowEnd) ch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
+      if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
+      if (j > 0 && !nextGoodLine(&ch, ncol)) {
+        // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
+        continue;
+      }
+      bool bumped = false;  // did this jump find any different types; to reduce verbose output to relevant lines
+      bool skip = false;
+      int jline = 0;  // line from this jump point
+
+      while (ch < eof && (jline<JUMPLINES || j==nJumps-1)) {
+        // nJumps==1 implies sample all of input to eof; last jump to eof too
+        const char* jlineStart = ch;
+        if (sep==' ') while (ch<eof && *ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
+        // detect blank lines
+        skip_white(&ch);
+        if (ch == eof) break;
+        if (ncol > 1 && eol(&ch)) {
+          ch++;
+          if (skipEmptyLines) continue;
+          if (!fill) break;
+          sampleLines++;
+          lastRowEnd = ch;
+          continue;
+        }
+        jline++;
+        int field = 0;
+        const char* fieldStart = NULL;  // Needed outside loop for error messages below
+        ch--;
+        while (field<ncol) {
+          ch++;
+          skip_white(&ch);
+          fieldStart = ch;
+          bool thisColumnNameWasString = false;
+          if (firstDataRowAfterPotentialColumnNames) {
+            // 2nd non-blank row is being read now.
+            // 1st row's type is remembered and compared (a little lower down) to second row to decide if 1st row is column names or not
+            thisColumnNameWasString = (tmpTypes[field]==CT_STRING);
+            tmpTypes[field] = type0;  // re-initialize for 2nd row onwards
+          }
+          while (tmpTypes[field]<=CT_STRING) {
+            parsers[tmpTypes[field]](&fctx);
+            skip_white(&ch);
+            if (end_of_field(ch)) break;
+            ch = end_NA_string(fieldStart);
+            if (end_of_field(ch)) break;
+            if (tmpTypes[field]<CT_STRING) {
+              ch = fieldStart;
+              if (*ch==quote) {
+                ch++;
+                parsers[tmpTypes[field]](&fctx);
+                if (*ch==quote && end_of_field(ch+1)) { ch++; break; }
+              }
+              tmpTypes[field]++;
+              // while (disabled_parsers[tmpTypes[field]]) tmpTypes[field]++;
+            } else {
+              // the field could not be read with this quote rule, try again with next one
+              // Trying the next rule will only be successful if the number of fields is consistent with it
+              ASSERT(quoteRule < 3);
+              if (verbose)
+                DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
+                        quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart,200));
+              quoteRule++;
+            }
+            bumped = true;
+            ch = fieldStart;
+          }
+          if (header==NA_BOOL8 && thisColumnNameWasString && tmpTypes[field] < CT_STRING) {
+            header = true;
+            g.trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2",
+                    field + 1, typeName[tmpTypes[field]]);
+          }
+          if (*ch!=sep || *ch=='\n' || *ch=='\r') break;
+          if (sep==' ') {
+            while (ch[1]==' ') ch++;
+            if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
+          }
+          field++;
+        }
+        eol(&ch);
+        if (field < ncol-1 && !fill) {
+          ASSERT(ch==eof || on_eol(ch));
+          STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
+               "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
+        }
+        if (field>=ncol || (*ch!='\n' && *ch!='\r' && *ch!='\0')) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
+          if (j==0) {
+            STOP("Line %d starting <<%s>> has more than the expected %d fields. "
+               "Separator '%c' occurs at position %d which is character %d of the last field: <<%s>>. "
+               "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
+               jline, strlim(jlineStart,10), ncol, *ch, (int)(ch-jlineStart+1), (int)(ch-fieldStart+1), strlim(fieldStart,200));
+          }
+          g.trace("  Not using sample from jump %d. Looks like a complicated file where nextGoodLine could not establish the true line start.", j);
+          skip = true;
+          break;
+        }
+        if (firstDataRowAfterPotentialColumnNames) {
+          if (fill) {
+            for (int jj=field+1; jj<ncol; jj++) tmpTypes[jj] = type0;
+          }
+          firstDataRowAfterPotentialColumnNames = false;
+        } else if (sampleLines==0) {
+          // To trigger 2nd row starting from type 1 again to compare to 1st row to decide if column names present
+          firstDataRowAfterPotentialColumnNames = true;
+        }
+        ch += (*ch=='\n' || *ch=='\r');
+
+        lastRowEnd = ch;
+        int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
+        ASSERT(thisLineLen >= 0);
+        sampleLines++;
+        sumLen += thisLineLen;
+        sumLenSq += thisLineLen*thisLineLen;
+        if (thisLineLen<minLen) minLen=thisLineLen;
+        if (thisLineLen>maxLen) maxLen=thisLineLen;
+      }
+      if (skip) continue;
+      if (j==nJumps-1) lastSampleJumpOk = true;
+      if (bumped) memcpy(types, tmpTypes, (size_t)ncol);
+      if (verbose && (bumped || j==0 || j==nJumps-1)) {
+        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(ncol), quoteRule);
+      }
+    }
+    if (lastSampleJumpOk) {
+      while (ch < eof && isspace(*ch)) ch++;
+      if (ch < eof) {
+        DTWARN("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(ch, 200));
+      }
+    } else {
+      // nextGoodLine() was false for the last (extra) jump to check the end
+      // must set lastRowEnd to eof accordingly otherwise it'll be left wherever the last good jump finished
+      lastRowEnd = eof;
+    }
+    eof = lastRowEnd;
+
+    size_t estnrow = 1;
+    allocnrow = 1;
+    meanLineLen = 0;
+    bytesRead = 0;
+
+    if (header == NA_BOOL8) {
+      header = true;
+      for (int j=0; j<ncol; j++) {
+        if (types[j] < CT_STRING) {
+          header = false;
+          break;
+        }
+      }
+      if (verbose) {
+        g.trace("header detetected to be %s because %s",
+                header? "True" : "False",
+                sampleLines <= 1 ?
+                  (header? "there are numeric fields in the first and only row" :
+                           "all fields in the first and only row are of string type") :
+                  (header? "all columns are of string type, and a better guess is not possible" :
+                           "there are some columns containing only numeric data (even in the first row)"));
+      }
+    }
+
+    if (sampleLines <= 1) {
+      if (header == 1) {
+        // A single-row input, and that row is the header. Reset all types to
+        // boolean (lowest type possible, a better guess than "string").
+        for (int j=0; j<ncol; j++) types[j] = type0;
+      }
+    } else {
+      bytesRead = (size_t)(lastRowEnd - sof);
+      meanLineLen = (double)sumLen/sampleLines;
+      estnrow = CEIL(bytesRead/meanLineLen);  // only used for progress meter and verbose line below
+      double sd = sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
+      allocnrow = clamp_szt((size_t)(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
+                            (size_t)(1.1*estnrow), 2*estnrow);
+      // sd can be very close to 0.0 sometimes, so apply a +10% minimum
+      // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
+      if (verbose) {
+        DTPRINT("  =====");
+        DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nJumps);
+        DTPRINT("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
+        DTPRINT("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
+        DTPRINT("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
+        DTPRINT("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
+                 allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+      }
+      if (nJumps==1) {
+        estnrow = allocnrow = sampleLines;
+        g.trace("All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
+      } else {
+        ASSERT(sampleLines <= allocnrow);
+      }
+      if (nrowLimit < allocnrow) {
+        g.trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", nrowLimit);
+        estnrow = allocnrow = nrowLimit;
+      }
+      g.trace("=====");
+    }
+  }
+
+
+  //*********************************************************************************************
+  // [8] Assign column names (if present)
   //
   //     This section also moves the `sof` pointer to point at the first row
   //     of data ("removing" the column names).
   //*********************************************************************************************
-  if (verbose) DTPRINT("[8] Determine column names");
-  // throw-away storage for processors to write to in this preamble.
-  // Saves deep 'if (target)' inside processors.
-  double trash_val; // double so that this storage is aligned. char trash[8] would not be aligned.
-  void *trash = (void*)&trash_val;
+  double tLayout;  // Timer for assigning column names
+  const char* colNamesAnchor = sof;
+  {
+    g.trace("[08] Assign column names");
 
-  const char *colNamesAnchor = sof;
-  colNames = (lenOff*) calloc((size_t)ncol, sizeof(lenOff));
-  if (!colNames) STOP("Unable to allocate %d*%d bytes for column name pointers: %s", ncol, sizeof(lenOff), strerror(errno));
-  bool allchar=true;
-  ch = sof; // move back to start of line since countfields() moved to next
-  end = eof;
-  if (sep==' ') while (*ch==' ') ch++;
-  ch--;  // so we can ++ at the beginning inside loop.
-  for (int field=0; field<tt; field++) {
-    const char *ch0 = ++ch;
-    // DTPRINT("Field %d <<%s>>\n", field, strlim(ch, 20));
-    skip_white(&ch);
-    if (allchar && !on_sep(&ch) && !StrtoD(&ch, (double *)trash)) allchar=false;  // don't stop early as we want to check all columns to EOL here
-    // considered looking for one isalpha present but we want 1E9 to be considered a value not a column name
-    // StrtoD does not consume quoted fields according to the quote rule, so need to reparse using Field()
-    ch = ch0;  // rewind to the start of this field
-    int res = Field(&ch, (lenOff *)trash);
-    ASSERT(res == 0);
-  }
-  if (!on_eol(ch)) {
-    STOP("Read %d expected fields in the header row (fill=%d) but finished on \"%s\"", tt, fill, strlim(ch, 30));
-  }
-  // already checked above that tt==ncol unless fill=TRUE
-  // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
-  if (g.header==false || (g.header==NA_BOOL8 && !allchar)) {
-    if (verbose && g.header==NA_BOOL8)
-      DTPRINT("  Some fields on line %d are not type character. Treating as a data row and using default column names.", line);
-    // colNames was calloc'd so nothing to do; all len=off=0 already
-    ch = sof;  // back to start of first row. Treat as first data row, no column names present.
-  } else {
-    if (verbose && g.header==NA_BOOL8) {
-      DTPRINT("  All the fields on line %d are character fields. Treating as the column names.", line);
+    ch = sof;  // back to start of first row (likely column names)
+    colNames = new lenOff[ncol];
+    for (int i = 0; i < ncol; i++) {
+      colNames[i].len = 0;
+      colNames[i].off = 0;
     }
+
+    if (header == 1) {
+      line++;
+      if (sep==' ') while (*ch==' ') ch++;
+      void *targets[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, colNames};
+      FieldParseContext fctx = {
+        .ch = &ch,
+        .targets = targets,
+        .anchor = colNamesAnchor,
+      };
+      ch--;
+      for (int i=0; i<ncol; i++) {
+        // Use Field() here as it handles quotes, leading space etc inside it
+        ch++;
+        ctx_Field(&fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
+        ((lenOff**) fctx.targets)[8]++;
+        if (*ch!=sep) break;
+        if (sep==' ') {
+          while (ch[1]==' ') ch++;
+          if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
+        }
+      }
+      if (eol(&ch)) {
+        sof = ++ch;
+      } else {
+        ASSERT(*ch=='\0');
+        sof = ch;
+      }
+      // now on first data row (row after column names)
+      // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
+    }
+    tLayout = wallclock();
+  }
+
+
+  //*********************************************************************************************
+  // [9] Allow user to override column types; then allocate the DataTable
+  //*********************************************************************************************
+  double tColType;    // Timer for applying user column class overrides
+  double tAlloc;      // Timer for allocating the DataTable
+  int ndrop;          // Number of columns that will be dropped from the file being read
+  int nStringCols;    // Number of string columns in the file
+  int nNonStringCols; // Number of all other columns in the file
+  size_t rowSize1;    // Total bytesize of all fields having sizeof==1
+  size_t rowSize4;    // Total bytesize of all fields having sizeof==4
+  size_t rowSize8;    // Total bytesize of all fields having sizeof==8
+  size_t DTbytes;     // Size of the allocated DataTable, in bytes
+  {
+    if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
-    line++;
-    if (sep==' ') while (*ch==' ') ch++;
-    ch--;
-    for (int i=0; i<ncol; i++) {
-      const char *start = ++ch;
-      int ret = Field(&ch, colNames + i);
-      ASSERT(ret == 0);
-      colNames[i].off += (size_t)(start-colNamesAnchor);
-      if (on_eol(ch)) break;   // already checked number of fields previously above
+    memcpy(tmpTypes, types, (size_t)ncol);      // copy types => tmpTypes
+    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
+
+    int nUserBumped = 0;
+    ndrop = 0;
+    rowSize1 = 0;
+    rowSize4 = 0;
+    rowSize8 = 0;
+    nStringCols = 0;
+    nNonStringCols = 0;
+    for (int j = 0; j < ncol; j++) {
+      sizes[j] = typeSize[types[j]];
+      rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
+      rowSize4 += (sizes[j] & 4);
+      rowSize8 += (sizes[j] & 8);
+      if (types[j] == CT_DROP) {
+        ndrop++;
+        continue;
+      }
+      if (types[j] < tmpTypes[j]) {
+        // FIXME: if the user wants to override the type, let them
+        STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
+             "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
+             j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[tmpTypes[j]], typeName[types[j]]);
+      }
+      nUserBumped += (types[j] > tmpTypes[j]);
+      if (types[j] == CT_STRING) {
+        nStringCols++;
+      } else {
+        nNonStringCols++;
+      }
     }
-    ASSERT(on_eol(ch));
-    skip_eol(&ch);
-    sof = ch;
-  }
-  int row1Line = line;
-  double tLayout = wallclock();
-
-
-  //*********************************************************************************************
-  // [9] Make best guess at column types using 100 rows at 100 points,
-  //     including the very first, middle and very last row.
-  //     At the same time, calc mean and sd of row lengths in sample for very
-  //     good nrow estimate.
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[9] Detect column types");
-  types = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  sizes = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  if (!types || !sizes) STOP("Failed to allocate %d x 2 bytes for type/size: %s", ncol, strerror(errno));
-
-  for (int j = 0; j < ncol; j++) {
-    // initialize with the first (lowest) type, 1==CT_BOOL8 at the time of writing. If we add CT_BOOL1 or CT_BOOL2 in
-    /// future, using 1 here means this line won't need to be changed. CT_DROP is 0 and 1 is the first type.
-    types[j] = 1;
-    sizes[j] = typeSize[types[j]];
-  }
-  void *targets[9] = {NULL, trash, NULL, NULL, trash, NULL, NULL, NULL, trash};
-  FieldParseContext fctx = {
-    .ch = &ch,
-    .targets = targets,
-    .anchor = NULL,
-  };
-
-  // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
-  // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
-  // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
-  int nJumps = 0;
-  ASSERT(sof <= eof);
-  size_t sz = (size_t)(eof - sof);
-  if (jump0size>0) {
-    if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
-    else if (jump0size*10*2 < sz) nJumps=10;
-    // *2 to get a good spacing. We don't want overlaps resulting in double counting.
-    // nJumps==1 means the whole (small) file will be sampled with one thread
-  }
-  nJumps++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
-  if (verbose) {
-    if (jump0size==0)
-      DTPRINT("  Number of sampling jump points = %d because jump0size==0", nJumps);
-    else
-      DTPRINT("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
-              nJumps, sz, jump0size, sz/(2*jump0size));
-  }
-
-  size_t sampleLines=0;
-  double sumLen=0.0, sumLenSq=0.0;
-  int minLen=INT32_MAX, maxLen=-1;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
-  const char *lastRowEnd = sof;
-  for (int j=0; j<nJumps; j++) {
-    ch = (j == 0) ? sof :
-         (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
-                           sof + (size_t)j*(sz/(size_t)(nJumps-1));
-    if (j>0 && !nextGoodLine(&ch, ncol))
-      STOP("Could not find first good line start after jump point %d when sampling.", j);
-    end = eof;
-    bool bumped = 0;  // did this jump find any different types; to reduce verbose output to relevant lines
-    int jline = 0;  // line from this jump point
-    while (ch < end && (jline<JUMPLINES || j==nJumps-1))
-    {  // nJumps==1 implies sample all of input to eof; last jump to eof too
-      const char *jlineStart = ch;
-      if (sep==' ') while (*ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
-      // detect blank lines
-      skip_white(&ch);
-      if (on_eol(ch)) {
-        if (!skipEmptyLines && !fill) break;
-        jlineStart = ch;  // to avoid 'Line finished early' below and get to the sampleLines++ block at the end of this while
-      }
-      jline++;
-      int field=0;
-      const char *fieldStart = ch;  // Needed outside loop for error messages below
-      while (!on_eol(ch) && field<ncol) {
-        fieldStart=ch;
-        while (types[field]<=CT_STRING) {
-          int res = parsers[types[field]](&fctx);
-          if (res == 0) break;
-          ch = fieldStart;
-          if (types[field] < CT_STRING) {
-            types[field]++;
-            bumped = true;
-          } else {
-            // the field could not be read with this quote rule, try again with next one
-            // Trying the next rule will only be successful if the number of fields is consistent with it
-            ASSERT(quoteRule < 3);
-            if (verbose) {
-              DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
-                       quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart, 200));
-            }
-            quoteRule++;
-            bumped=true;
-            ch = jlineStart;  // Try whole line again, in case it's a hangover from previous field
-            field=0;
-            continue;
-          }
-        }
-        // DTPRINT("%d  (ch = %p)\n", types[field], ch);
-        if (on_eol(ch)) {
-          break;
-        } else {
-          // skip over the field separator
-          ASSERT(*ch==sep);
-          ch++;
-          field++;
-        }
-      }
-      if (field<ncol-1 && !fill) {
-        ASSERT(ch==end || on_eol(ch));
-        if (ch>jlineStart) {
-          STOP("Line %d has too few fields when detecting types. Use fill=TRUE to pad with NA. "
-               "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
-        }
-      }
-      if (ch > end) ch = end;
-      if (!on_eol(ch) || field>=ncol) {
-        ASSERT(field==ncol);
-        STOP("Line %d from sampling jump %d starting \"%s\" has more than the expected %d fields. "
-             "Separator %d occurs at position %d which is character %d of the last field: \"%s\". "
-             "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
-            jline, j, strlim(jlineStart, 10), ncol, ncol, (int)(ch-jlineStart), (int)(ch-fieldStart),
-            strlim(fieldStart, 200));
-      }
-      // if very last field was quoted, check if it was completed with an ending quote ok.
-      // not necessarily a problem (especially if we detected no quoting), but we test it and nice to have
-      // a warning regardless of quoting rule just in case file has been inadvertently truncated.
-      // The warning is only issued if the file didn't have the newline on the last line.
-      // This warning is early at type skipping around stage before reading starts, so user can cancel early
-      // if (types[ncol-1]==CT_STRING && *fieldStart==quote && ch[-1]!=quote) {
-      //   ASSERT(quoteRule>=2);
-      //   DTWARN("Last field of last line starts with a quote but is not finished with a quote before end of file: \"%s\"",
-      //           strlim(fieldStart, 200));
-      // }
-      skip_eol(&ch);
-      // Two reasons:  1) to get the end of the very last good row before whitespace or footer before eof
-      //               2) to check sample jumps don't overlap, otherwise double count and bad estimate
-      lastRowEnd = ch;
-      //DTPRINT("\n");
-      int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
-      ASSERT(thisLineLen >= 0);
-      sampleLines++;
-      sumLen += thisLineLen;
-      sumLenSq += thisLineLen*thisLineLen;
-      if (thisLineLen<minLen) minLen=thisLineLen;
-      if (thisLineLen>maxLen) maxLen=thisLineLen;
-    }
-    if (verbose && (bumped || j==0 || j==nJumps-1)) {
-      DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(ncol), quoteRule);
-    }
-  }
-  while (ch < end && isspace(*ch)) ch++;
-  if (ch < end) {
-    DTWARN("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(ch, 200));
-  }
-  eof = lastRowEnd;
-
-  size_t estnrow=1, allocnrow=1;
-  size_t bytesRead = (size_t)(eof - sof);
-  size_t bytesToRead = bytesRead;
-  double meanLineLen=0;
-  if (sampleLines == 0) {
-    if (verbose) DTPRINT("  sampleLines=0: only column names are present.");
-  } else {
-    meanLineLen = (double)sumLen/sampleLines;
-    estnrow = CEIL(bytesRead/meanLineLen);  // only used for progress meter and verbose line below
-    double sd = sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
-    allocnrow = clamp_szt((size_t)(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
-                          (size_t)(1.1*estnrow), 2*estnrow);
-    // sd can be very close to 0.0 sometimes, so apply a +10% minimum
-    // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
     if (verbose) {
-      DTPRINT("  =====");
-      DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nJumps);
-      DTPRINT("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
-      DTPRINT("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
-      DTPRINT("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
-      DTPRINT("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
-               allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+      DTPRINT("  After %d type and %d drop user overrides : %s",
+              nUserBumped, ndrop, printTypes(ncol));
     }
-    if (nJumps==1) {
-      estnrow = allocnrow = sampleLines;
-      if (verbose) DTPRINT("  All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
-    } else {
-      if (sampleLines > allocnrow) STOP("Internal error: sampleLines(%zd) > allocnrow(%zd)", sampleLines, allocnrow);
+    tColType = wallclock();
+
+    if (verbose) {
+      DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
+              ncol-ndrop, ncol, ndrop, allocnrow);
     }
-    if (nrowLimit < allocnrow) {
-      if (verbose) DTPRINT("  Alloc limited to lower nrows=%zd passed in.", nrowLimit);
-      bytesToRead = (size_t) (bytesRead * (1.0 * nrowLimit / allocnrow));
-      estnrow = allocnrow = nrowLimit;
-    }
-    if (verbose) DTPRINT("  =====");
+    DTbytes = allocateDT(ncol, ndrop, allocnrow);
+    tAlloc = wallclock();
   }
 
 
   //*********************************************************************************************
-  // [10] Apply colClasses, select, drop and integer64
+  // [11] Read the data
   //*********************************************************************************************
-  if (verbose) DTPRINT("[10] Apply user overrides on column types");
-  ch = sof;
-  old_types = (int8_t *)malloc((size_t)ncol * sizeof(int8_t));
-  if (!old_types) STOP("Unable to allocate %d bytes to check user overrides of column types", ncol);
-  memcpy(old_types, types, (size_t)ncol) ;
-  if (!userOverride(types, colNamesAnchor, ncol)) { // colNames must not be changed but type[] can be
-    if (verbose) DTPRINT("  Cancelled by user: userOverride() returned false.");
-    freadCleanup();
-    return 1;
-  }
-  int ndrop=0, nUserBumped=0;
-  size_t rowSize1 = 0;
-  size_t rowSize4 = 0;
-  size_t rowSize8 = 0;
-  int nStringCols = 0;
-  int nNonStringCols = 0;
-  for (int j=0; j<ncol; j++) {
-    sizes[j] = typeSize[types[j]];
-    rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
-    rowSize4 += (sizes[j] & 4);
-    rowSize8 += (sizes[j] & 8);
-    if (types[j]==CT_DROP) { ndrop++; continue; }
-    if (types[j]<old_types[j]) {
-      STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
-           "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-           j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[old_types[j]], typeName[types[j]]);
-    }
-    nUserBumped += types[j]>old_types[j];
-    if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
-  }
-  if (verbose) {
-    DTPRINT("  After %d type and %d drop user overrides : %s",
-            nUserBumped, ndrop, printTypes(ncol));
-  }
-  double tColType = wallclock();
-
-
-  //*********************************************************************************************
-  // [11] Allocate the result columns
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[11] Allocate memory for the datatable");
-  if (verbose) {
-    DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
-            ncol-ndrop, ncol, ndrop, allocnrow);
-  }
-  size_t DTbytes = allocateDT(ncol, ndrop, allocnrow);
-  if (DTbytes == 0) {
-    // Failed to allocate: return
-    freadCleanup();
-    return 0;
-  }
-  double tAlloc = wallclock();
-
-
-
-  //*********************************************************************************************
-  // [12] Read the data
-  //*********************************************************************************************
-  if (verbose) DTPRINT("[12] Read the data");
+  if (verbose) DTPRINT("[11] Read the data");
   ch = sof;   // back to start of first data row
   int hasPrinted=0;  // the percentage last printed so it prints every 2% without many calls to wallclock()
   bool stopTeam=false, firstTime=true;  // bool for MT-safey (cannot ever read half written bool value)
@@ -1504,10 +1669,10 @@ int FreadReader::freadMain()
   if (nJumps/*from sampling*/>1) {
     // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
     // when nth==1 we still split by chunk for consistency (testing) and code sanity
-    nJumps = (int)(bytesToRead/chunkBytes);  // (int) rounds down
+    nJumps = (int)(bytesRead/chunkBytes);  // (int) rounds down
     if (nJumps==0) nJumps=1;
     else if (nJumps>nth) nJumps = nth*(1+(nJumps-1)/nth);
-    chunkBytes = bytesToRead / (size_t)nJumps;
+    chunkBytes = bytesRead / (size_t)nJumps;
   } else {
     nJumps = 1;
   }
@@ -1672,7 +1837,7 @@ int FreadReader::freadMain()
           }
 
           if (joldType == CT_STRING) {
-            ((lenOff*) ttargets[8])->off += (int32_t)(fieldStart - thisJumpStart);
+            // ((lenOff*) ttargets[8])->off += (int32_t)(fieldStart - thisJumpStart);
           } else if (thisType != joldType) {  // rare out-of-sample type exception
             #pragma omp critical
             {

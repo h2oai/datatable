@@ -134,6 +134,48 @@ def test_issue641():
     assert f.topython() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
 
 
+def test_space_separated():
+    # Loosely based on #1113 in R
+    txt = ("ITER    THETA1    THETA2   MCMC\n"
+           "        -11000 -2.50000E+00  2.30000E+00    345678.20255 \n"
+           "        -10999 -2.49853E+01  3.79270E+02    -195780.43911\n"
+           "        -10998 1.95957E-01  4.16522E+00    7937.13048")
+    d0 = dt.fread(txt)
+    assert d0.internal.check()
+    assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
+                         dt.ltype.real)
+    assert d0.topython() == [[-11000, -10999, -10998],
+                             [-2.5, -24.9853, 0.195957],
+                             [2.3, 379.270, 4.16522],
+                             [345678.20255, -195780.43911, 7937.13048]]
+
+
+def test_quoted_comma():
+    # Similar to #2839 in R
+    inp = [["Abc", "def", '"gh,kl"', "mnopqrst"]] * 1000
+    inp[111] = ["ain't", "this", "a", "surprise!"]
+    txt = "A,B,C,D\n" + "\n".join(",".join(row) for row in inp)
+    d0 = dt.fread(txt)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C", "D")
+    assert d0.shape == (1000, 4)
+    # TODO: currently fails because unquoting isn't performed correctly
+    # assert d0.topython() == [[row[0] for row in inp],
+    #                          [row[1] for row in inp],
+    #                          [row[2] for row in inp],
+    #                          [row[3] for row in inp]]
+
+
+def test_1x1_na():
+    d0 = dt.fread("A\n\n")
+    assert d0.internal.check()
+    assert d0.shape == (1, 1)
+    assert d0.names == ("A", )
+    assert d0.ltypes == (dt.ltype.bool, )
+    assert d0.topython() == [[None]]
+
+
 
 #-------------------------------------------------------------------------------
 # Omnibus Test
