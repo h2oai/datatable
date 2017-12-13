@@ -531,7 +531,6 @@ static int Field(const char** pch, lenOff* target) {
   while (ret == 2) {
     ret = parse_string_continue(pch, target);
   }
-  if (ret) { target->off = 0; target->len = NA_LENOFF; }
   return ret;
 }
 static bool ctx_Field(FieldParseContext* ctx) {
@@ -540,6 +539,8 @@ static bool ctx_Field(FieldParseContext* ctx) {
   int ret = Field(ctx->ch, target);
   if (ret == 1) {
     *(ctx->ch) = ch;
+    target->off = 0;
+    target->len = NA_LENOFF;
   } else {
     target->off += (ch - ctx->anchor);
   }
@@ -1011,21 +1012,25 @@ static int StrtoB(const char **pch, int8_t *target)
 //   - add entry to `switch(type[j])` around line 1948
 //   - update `test_fread_fillna` in test_fread.py to include the new column type
 //
-#define DECLARE_CTX_PARSER(BASE, TYPE)  \
+#define DECLARE_CTX_PARSER(BASE, TYPE, NA)  \
   static bool ctx_##BASE(FieldParseContext* ctx) { \
     const char* ch = *(ctx->ch); \
-    int ret = BASE(ctx->ch, static_cast<TYPE*>(ctx->targets[sizeof(TYPE)])); \
-    if (ret == 1) *(ctx->ch) = ch; \
+    TYPE* target = static_cast<TYPE*>(ctx->targets[sizeof(TYPE)]); \
+    int ret = BASE(ctx->ch, target); \
+    if (ret == 1) { \
+      *(ctx->ch) = ch; \
+      *(target) = NA; \
+    } \
     return ret; \
   }
-DECLARE_CTX_PARSER(StrtoB, int8_t)
-DECLARE_CTX_PARSER(StrtoI32_bare, int32_t)
-DECLARE_CTX_PARSER(StrtoI32_full, int32_t)
-DECLARE_CTX_PARSER(StrtoI64, int64_t)
-DECLARE_CTX_PARSER(parse_float_hexadecimal, float)
-DECLARE_CTX_PARSER(StrtoD, double)
-DECLARE_CTX_PARSER(parse_double_extended, double)
-DECLARE_CTX_PARSER(parse_double_hexadecimal, double)
+DECLARE_CTX_PARSER(StrtoB, int8_t, NA_BOOL8)
+DECLARE_CTX_PARSER(StrtoI32_bare, int32_t, NA_INT32)
+DECLARE_CTX_PARSER(StrtoI32_full, int32_t, NA_INT32)
+DECLARE_CTX_PARSER(StrtoI64, int64_t, NA_INT64)
+DECLARE_CTX_PARSER(parse_float_hexadecimal, float, NA_FLOAT32)
+DECLARE_CTX_PARSER(StrtoD, double, NA_FLOAT64)
+DECLARE_CTX_PARSER(parse_double_extended, double, NA_FLOAT64)
+DECLARE_CTX_PARSER(parse_double_hexadecimal, double, NA_FLOAT64)
 
 typedef bool (*reader_fun_t_)(FieldParseContext *ctx);
 static reader_fun_t_ parsers[NUMTYPE] = {
