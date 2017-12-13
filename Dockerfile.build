@@ -3,12 +3,8 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-# Copy this file and Run from one level higher than the git pull directory
-# To build: docker build -t opsh2oai/h2oai-nv -f Dockerfile-nvdocker .
-# To run with docker run -it -p 12345:12345 opsh2oai/h2oai-nv
-
 FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
-MAINTAINER H2o.ai <ops@h2o.ai>
+MAINTAINER H2O.ai <ops@h2o.ai>
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH

@@ -1,11 +1,17 @@
 BUILDDIR := build/fast
-PYTHON ?= python
-OS := $(shell uname | tr A-Z a-z)
-MODULE ?= .
+PYTHON   ?= python
+MODULE   ?= .
 
+# Platform details
+OS       := $(shell uname | tr A-Z a-z)
+ARCH     := $(shell uname -m)
+PLATFORM := $(ARCH)-$(OS)
+
+# Distribution directory
+DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug build_noomp bi coverage fast
+		benchmark debug build_noomp bi coverage fast dist
 .SECONDARY: main-fast
 
 
@@ -53,7 +59,7 @@ test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
 	$(PYTHON) -m pytest -ra \
-		--junit-prefix=$(OS) \
+		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
@@ -97,7 +103,14 @@ coverage:
 	genhtml build/coverage.info --output-directory build/coverage-c
 	mv .coverage build/
 
+dist: build
+	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
 
+dist_noomp: build_noomp
+	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
+
+version:
+	@$(PYTHON) setup.py --version
 
 #-------------------------------------------------------------------------------
 # "Fast" (but fragile) datatable build
