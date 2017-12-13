@@ -167,6 +167,15 @@ def test_quoted_comma():
     #                          [row[3] for row in inp]]
 
 
+def test_1x1_na():
+    d0 = dt.fread("A\n\n")
+    assert d0.internal.check()
+    assert d0.shape == (1, 1)
+    assert d0.names == ("A", )
+    assert d0.ltypes == (dt.ltype.bool, )
+    assert d0.topython() == [[None]]
+
+
 
 #-------------------------------------------------------------------------------
 # Omnibus Test

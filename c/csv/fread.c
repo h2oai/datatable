@@ -1348,14 +1348,13 @@ int FreadReader::freadMain()
         if (sep==' ') while (ch<eof && *ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
         // detect blank lines
         skip_white(&ch);
-        if (ch==eof) break;
-        if (eol(&ch)) {
-          if (!skipEmptyLines && !fill && ncol>1) break;
-          if (*ch) ch++;
-          if (!skipEmptyLines || ncol==1) {
-            sampleLines++;
-            lastRowEnd = ch;
-          }
+        if (ch == eof) break;
+        if (ncol > 1 && eol(&ch)) {
+          ch++;
+          if (skipEmptyLines) continue;
+          if (!fill) break;
+          sampleLines++;
+          lastRowEnd = ch;
           continue;
         }
         jline++;
