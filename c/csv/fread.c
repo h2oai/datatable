@@ -1652,59 +1652,79 @@ int FreadReader::freadMain()
   //*********************************************************************************************
   // [11] Read the data
   //*********************************************************************************************
-  if (verbose) DTPRINT("[11] Read the data");
-  ch = sof;   // back to start of first data row
-  int hasPrinted=0;  // the percentage last printed so it prints every 2% without many calls to wallclock()
-  bool stopTeam=false, firstTime=true;  // bool for MT-safey (cannot ever read half written bool value)
-  int nTypeBump=0, nTypeBumpCols=0;
-  double tRead=0, tReread=0, tTot=0;  // overall timings outside the parallel region
-  double thNextGoodLine=0, thRead=0, thPush=0;  // reductions of timings within the parallel region
-  char *typeBumpMsg=NULL;  size_t typeBumpMsgSize=0;
+  bool stopTeam = false;  // bool for MT-safey (cannot ever read half written bool value)
+  bool firstTime = true;
+  int nTypeBump = 0;
+  int nTypeBumpCols = 0;
+  double tRead = 0.0;
+  double tReread = 0.0;
+  double thNextGoodLine = 0.0;
+  double thRead = 0.0;
+  double thPush = 0.0;  // reductions of timings within the parallel region
+  char* typeBumpMsg = NULL;
+  size_t typeBumpMsgSize = 0;
+  int typeCounts[NUMTYPE];  // used for verbose output; needs populating after first read and before reread (if any) -- see later comment
   #define stopErrSize 1000
-  char stopErr[stopErrSize+1]="";  // must be compile time size: the message is generated and we can't free before STOP
+  char stopErr[stopErrSize+1] = "";  // must be compile time size: the message is generated and we can't free before STOP
   size_t DTi = 0;   // the current row number in DT that we are writing to
-  const char *prevJumpEnd;  // the position after the last line the last thread processed (for checking)
-  int buffGrown=0;
-  size_t chunkBytes = umax((size_t)(1000*meanLineLen), 1ULL/*MB*/ *1024*1024);
+  const char* prevJumpEnd;  // the position after the last line the last thread processed (for checking)
+  int buffGrown = 0;
   // chunkBytes is the distance between each jump point; it decides the number of jumps
   // We may want each chunk to write to its own page of the final column, hence 1000*maxLen
   // For the 44GB file with 12875 columns, the max line len is 108,497. We may want each chunk to write to its
   // own page (4k) of the final column, hence 1000 rows of the smallest type (4 byte int) is just
   // under 4096 to leave space for R's header + malloc's header.
-  if (nJumps/*from sampling*/>1) {
+  size_t chunkBytes = umax((size_t)(1000*meanLineLen), 1ULL/*MB*/ *1024*1024);
+  // Index of the first jump to read. May be modified if we ever need to restart
+  // reading from the middle of the file.
+  int jump0 = 0;
+  // If we need to restart reading the file because we ran out of allocation
+  // space, then this variable will tell how many new rows has to be allocated.
+  size_t extraAllocRows = 0;
+
+  if (nJumps/*from sampling*/ > 1) {
     // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
     // when nth==1 we still split by chunk for consistency (testing) and code sanity
-    nJumps = (int)(bytesRead/chunkBytes);  // (int) rounds down
+    nJumps = (int)(bytesRead/chunkBytes);
     if (nJumps==0) nJumps=1;
     else if (nJumps>nth) nJumps = nth*(1+(nJumps-1)/nth);
     chunkBytes = bytesRead / (size_t)nJumps;
   } else {
     nJumps = 1;
   }
-  if (verbose) {
-    DTPRINT("  njumps=%d and chunkBytes=%zd", nJumps, chunkBytes);
-  }
   size_t initialBuffRows = allocnrow / (size_t)nJumps;
-  if (initialBuffRows < 10) initialBuffRows = 10;
-  if (initialBuffRows > INT32_MAX) STOP("Buffer size %lld is too large", initialBuffRows);
+  if (initialBuffRows < 4) initialBuffRows = 4;
+  ASSERT(initialBuffRows <= INT32_MAX);
   nth = imin(nJumps, nth);
 
-  //-- Start parallel ----------------
+  double tTot = 0.0;  // [remove]
+
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
+  g.trace("[11] Read the data");
+  g.trace("jumps=[%d..%d), chunk_size=%zu, total_size=%zd",
+          jump0, nJumps, chunkBytes, lastRowEnd-sof);
+  ASSERT(allocnrow <= nrowLimit);
   prevJumpEnd = sof;
+
+  //-- Start parallel ----------------
   #pragma omp parallel num_threads(nth)
   {
     int me = omp_get_thread_num();
+    bool myShowProgress = false;
     #pragma omp master
-    nth = omp_get_num_threads();
-    const char *thisJumpStart=NULL;  // The first good start-of-line after the jump point
-    size_t myDTi = 0;  // which row in the final DT result I should start writing my chunk to
+    {
+      nth = omp_get_num_threads();
+      myShowProgress = g.show_progress;  // only call `progress()` within the master thread
+    }
+    const char* thisJumpStart = NULL;  // The first good start-of-line after the jump point
+    const char* nextJump = NULL;
+    const char* tch = NULL;
     size_t myNrow = 0; // the number of rows in my chunk
+    size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
+
+    size_t myDTi = 0;  // [remove]
 
     // Allocate thread-private row-major myBuffs
-    // Do not reuse &trash for myBuff0 as that might create write conflicts
-    // between threads, causing slowdown of the process.
-    size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
     ThreadLocalFreadParsingContext ctx = {
       .anchor = NULL,
       .buff8 = malloc(rowSize8 * myBuffRows + 8),
@@ -1713,7 +1733,7 @@ int FreadReader::freadMain()
       .rowSize8 = rowSize8,
       .rowSize4 = rowSize4,
       .rowSize1 = rowSize1,
-      .DTi = 0,
+      .DTi = 0,  // which row in the final DT result I should start writing my chunk to
       .nRows = allocnrow,
       .threadn = me,
       .quoteRule = quoteRule,
@@ -1728,11 +1748,19 @@ int FreadReader::freadMain()
     }
     prepareThreadContext(&ctx);
 
-    #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
-    for (int jump=0; jump<nJumps; jump++) {
-      double tt0 = 0, tt1 = 0;
-      if (verbose) { tt1 = tt0 = wallclock(); }
+    void *ttargets[9] = {NULL, ctx.buff1, NULL, NULL, ctx.buff4, NULL, NULL, NULL, ctx.buff8};
+    FieldParseContext fctx = {
+      .ch = &tch,
+      .targets = ttargets,
+      .anchor = thisJumpStart,
+    };
 
+    #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
+    for (int jump = jump0; jump < nJumps; jump++) {
+      double tt0 = 0, tt1 = 0;  // [remove]
+      if (stopTeam) continue;
+      double tLast = 0.0;
+      if (verbose) tLast = wallclock();
       if (myNrow) {
         // On the 2nd iteration onwards for this thread, push the data from the previous jump
         // Convoluted because the ordered section has to be last in some OpenMP implementations :
@@ -1746,41 +1774,41 @@ int FreadReader::freadMain()
         //      as we know the previous jump's number of rows.
         //  iv) so that myBuff can be small
         pushBuffer(&ctx);
-        if (verbose) { tt1 = wallclock(); thPush += tt1 - tt0; tt0 = tt1; }
-
-        if (me==0 && (hasPrinted || (g.show_progress && jump/nth==4  &&
-                                    ((double)nJumps/(nth*3)-1.0)*(wallclock()-tAlloc)>1.0 ))) {
-          // Important for thread safety inside progess() that this is called not just from critical but that
-          // it's the master thread too, hence me==0.
-          // Jump 0 might not be assigned to thread 0; jump/nth==4 to wait for 4 waves to complete then decide once.
-          double p = 100.0*jump/nJumps;
-          if (p >= hasPrinted) {
-            progress(p);
-            hasPrinted = (int)p + 1;  // update every 1%
+        myNrow = 0;
+        if (verbose || myShowProgress) {
+          double now = wallclock();
+          thPush += now - tLast;
+          tLast = now;
+          if (myShowProgress && thPush>=0.25) {
+            // Important for thread safety inside progess() that this is called not just from critical but that
+            // it's the master thread too, hence me==0. OpenMP doesn't allow '#pragma omp master' here, but we
+            // did check above that master's me==0.
+            // int ETA = (int)(((now-tAlloc)/jump) * (nJumps-jump));
+            progress(100.0*jump/nJumps);
           }
         }
-        myNrow = 0;
       }
-      if (jump>=nJumps || stopTeam) continue;  // nothing left to do. This jump was the dummy extra one.
 
-      const char *tch = sof + (size_t)jump * chunkBytes;
-      const char *nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : eof;
+      tch = sof + (size_t)jump * chunkBytes;
+      nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
       // +1 is for when nextJump happens to fall exactly on a \n. The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
       if (jump>0 && !nextGoodLine(&tch, ncol)) {
-        stopTeam=true;
-        DTPRINT("No good line could be found from jump point %d",jump); // TODO: change to stopErr
+        #pragma omp critical
+        if (!stopTeam) {
+          stopTeam = true;
+          snprintf(stopErr, stopErrSize, "No good line could be found from jump point %d\n",jump);
+        }
         continue;
       }
-      thisJumpStart=tch;
-      if (verbose) { tt1 = wallclock(); thNextGoodLine += tt1 - tt0; tt0 = tt1; }
+      thisJumpStart = tch;
+      fctx.anchor = tch;
 
-      void *ttargets[9] = {NULL, ctx.buff1, NULL, NULL, ctx.buff4, NULL, NULL, NULL, ctx.buff8};
-      FieldParseContext fctx = {
-        .ch = &tch,
-        .targets = ttargets,
-        .anchor = thisJumpStart,
-      };
+      if (verbose) {
+        double now = wallclock();
+        thNextGoodLine += now - tLast;
+        tLast = now;
+      }
 
       while (tch<nextJump && myNrow < nrowLimit - myDTi) {
         if (myNrow == myBuffRows) {
@@ -1962,7 +1990,7 @@ int FreadReader::freadMain()
       double tt1 = verbose? wallclock() : 0;
       pushBuffer(&ctx);
       if (verbose) thRead += wallclock() - tt1;
-      if (me == 0 && hasPrinted) {
+      if (myShowProgress) {
         progress(100.0);
       }
     }
@@ -1978,12 +2006,11 @@ int FreadReader::freadMain()
   //*********************************************************************************************
   // [13] Finalize the datatable
   //*********************************************************************************************
-  if (hasPrinted && verbose) DTPRINT("");
   if (verbose) DTPRINT("[13] Finalizing the datatable");
   if (firstTime) {
     tReread = tRead = wallclock();
     tTot = tRead-t0;
-    if (hasPrinted || verbose) {
+    if (verbose) {
       DTPRINT("  Read %zd rows x %d columns from %s file in %02d:%06.3f wall clock time",
               DTi, ncol-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
       // since parallel, clock() cycles is parallel too: so wall clock will have to do
@@ -1992,14 +2019,13 @@ int FreadReader::freadMain()
     if (verbose) {
       DTPRINT("  Thread buffers were grown %d times (if all %d threads each grew once, this figure would be %d)",
                buffGrown, nth, nth);
-      int typeCounts[NUMTYPE];
       for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
       for (int i=0; i<ncol; i++) typeCounts[ (int)abs(types[i]) ]++;
       DTPRINT("  Final type counts:");
       for (int i=0; i<NUMTYPE; i++) DTPRINT("  %10d : %-9s", typeCounts[i], typeName[i]);
     }
     if (nTypeBump) {
-      if (hasPrinted || verbose) DTPRINT("  Rereading %d columns due to out-of-sample type exceptions.", nTypeBumpCols);
+      if (verbose) DTPRINT("  Rereading %d columns due to out-of-sample type exceptions.", nTypeBumpCols);
       if (verbose) DTPRINT("%s", typeBumpMsg);
       // TODO - construct and output the copy and pastable colClasses argument so user can avoid the reread time in future.
       free(typeBumpMsg);
@@ -2007,7 +2033,7 @@ int FreadReader::freadMain()
   } else {
     tReread = wallclock();
     tTot = tReread-t0;
-    if (hasPrinted || verbose) {
+    if (verbose) {
       DTPRINT("Reread %zd rows x %d columns in %02d:%06.3f",
               DTi, nTypeBumpCols, (int)(tReread-tRead)/60, fmod(tReread-tRead,60.0));
     }
