@@ -134,6 +134,14 @@ def test_issue641():
     assert f.topython() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
 
 
+def test_issue643():
+    d0 = dt.fread("A B\n1 2\n3 4 \n5 6\n6   7   ")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3, 5, 6], [2, 4, 6, 7]]
+
+
 def test_space_separated():
     # Loosely based on #1113 in R
     txt = ("ITER    THETA1    THETA2   MCMC\n"
