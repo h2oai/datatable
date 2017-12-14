@@ -82,7 +82,7 @@ typedef struct FieldParseContext {
 
 
 // Forward declarations
-static int Field(const char **pch, lenOff *target);
+static void ctx_Field(FieldParseContext*);
 
 
 
@@ -319,33 +319,45 @@ static inline bool is_NAstring(const char *fieldStart) {
  * Returns the number of fields on the current line, or -1 if the line cannot
  * be parsed using current settings.
  */
-static inline int countfields(const char **pch)
+static inline int countfields(const char** pch)
 {
-  static lenOff trash;  // target for writing out parsed fields
-  const char *ch = *pch;
+  void* targets[9];
+  targets[8] = (void*) targets;  // the beginning of `targets` array can be reused as trash
+  const char* ch = *pch;
+  FieldParseContext ctx = {
+    .ch = &ch,
+    .targets = targets,
+    .anchor = NULL,
+  };
+
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_white(&ch);
-
-  int ncol = 0;
-  if (on_eol(ch)) {
-    skip_eol(&ch);
-    *pch = ch;
+  if (eol(&ch)) {
+    *pch = ch + 1;
     return 0;
   }
-  while (1) {
-    int res = Field(&ch, &trash);
-    if (res == 1) return -1;
-    // Field() leaves *ch resting on sep or EOL. Checked inside Field().
-    ncol++;
-    if (sep==' ') {
-      // If separator is ' ', then skip multiple spaces. Also, spaces at the
-      // end of the line are ignored.
-      while (*ch==' ') ch++;
-      if (on_eol(ch)) { skip_eol(&ch); break; }
-    } else {
-      if (on_eol(ch)) { skip_eol(&ch); break; }
-      ch++;  // move over sep (which will already be last ' ' if sep=' ').
+  int ncol = 1;
+  while (ch < eof) {
+    ctx_Field(&ctx);
+    // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
+    if (sep==' ' && *ch==sep) {
+      while (ch[1]==' ') ch++;
+      if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') {
+        // reached end of line. Ignore padding spaces at the end of line.
+        ch++;  // Move onto end of line character
+      }
     }
+    if (*ch==sep && sep!='\n') {
+      ch++;
+      ncol++;
+      continue;
+    }
+    if (eol(&ch)) {
+      *pch = ch + 1;
+      return ncol;
+    }
+    if (*ch!='\0') return -1;  // -1 means this line not valid for this sep and quote rule
+    break;
   }
   *pch = ch;
   return ncol;
@@ -382,171 +394,7 @@ static inline bool nextGoodLine(const char **pch, int ncol)
 //
 //=================================================================================================
 
-static int Field0(const char **pch, lenOff *target)
-{
-  const char *ch = *pch;
-  if (stripWhite) skip_white(&ch);  // before and after quoted field's quotes too (e.g. test 1609) but never inside quoted fields
-  const char *fieldStart=ch;
-  bool quoted = false;
-
-  if (*ch!=quote || quoteRule==3) {
-    // unambiguously not quoted. simply search for sep|EOL. If field contains sep|EOL then it must be quoted instead.
-    while(*ch!=sep && !on_eol(ch)) ch++;
-  } else {
-    // the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
-    // or the field is quoted but quotes are not escaped (quoteRule 2)
-    // or the field is not quoted but the data contains a quote at the start (quoteRule 2 too)
-    quoted = true;
-    fieldStart = ch+1; // step over opening quote
-    switch(quoteRule) {
-      case 0: {
-        // Rule 0: the field is quoted and all internal quotes are doubled.
-        // The field may have embedded newlines. The field ends when the first
-        // undoubled quote character is encountered.
-        ch = fieldStart;
-        while (!on_eol(ch)) {
-          if (*ch==quote) {
-            if (ch[1] == quote) ch++;
-            else break;
-          }
-          ch++;
-        }
-        if (on_eol(ch)) {
-          skip_eol(&ch);
-          target->len = (int32_t)(ch - fieldStart);
-          target->off = (int32_t)(fieldStart - *pch);
-          *pch = ch;
-          return 2;
-        }
-        break;
-      }
-      case 1: {
-        // Rule 1: the field is quoted and all internal quotes are escaped with
-        // the backslash character. The field is allowed to have embedded
-        // newlines. The field ends when the first unescaped quote is found.
-        ch = fieldStart;
-        while (!on_eol(ch) && *ch!=quote) {
-          ch += 1 + (*ch == '\\');
-        }
-        if (on_eol(ch)) {
-          skip_eol(&ch);
-          target->len = (int32_t)(ch - fieldStart);
-          target->off = (int32_t)(fieldStart - *pch);
-          *pch = ch;
-          return 2;
-        }
-        break;
-      }
-      case 2: {
-        // Rule 2: the field is either unquoted (no quotes inside are allowed), or
-        // it was quoted but any internal quotation marks were not escaped. This
-        // is a "sloppy" rule: it does not allow to parse input unambiguously. We
-        // will assume that a quoted field ends when we see a quote character
-        // followed by a separator. This rule doesn't allow embedded newlines
-        // inside fields.
-        const char *ch2 = ch;
-        ch = fieldStart;
-        while (!on_eol(++ch)) {
-          if (*ch==quote && (*(ch+1)==sep || on_eol(ch+1))) {ch2=ch; break;}   // (*1) regular ", ending
-          if (*ch==sep) {
-            // first sep in this field
-            // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
-            // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
-            ch2 = ch;
-            while (!on_eol(++ch2)) {
-              if (*ch2==quote && (*(ch2+1)==sep || on_eol(ch2+1))) {
-                ch = ch2; // (*2) move on to that first ", -- that's this field's ending
-                break;
-              }
-            }
-            break;
-          }
-        }
-        if (ch!=ch2) { fieldStart--; quoted=false; } // field ending is this sep (neither (*1) or (*2) happened)
-        break;
-      }
-    }
-  }
-  int fieldLen = (int)(ch-fieldStart);
-  if (quoted) {
-    ch++;
-    if (stripWhite) skip_white(&ch);
-  } else if (stripWhite) {
-    // Remove trailing whitespace: note that we don't move ch pointer, merely
-    // adjust the field length.
-    // This white space (' ' or '\t') can't be sep otherwise it would have
-    // stopped the field earlier at the first sep.
-    while(fieldLen>0 && (fieldStart[fieldLen-1]==' ' || fieldStart[fieldLen-1]=='\t')) fieldLen--;
-  }
-  if (!on_sep(&ch)) return 1;  // Field ended unexpectedly: cannot happen under quoteRule 3
-  if (fieldLen==0) {
-    if (blank_is_a_NAstring) fieldLen=INT32_MIN;
-  } else {
-    if (is_NAstring(fieldStart)) fieldLen=INT32_MIN;
-  }
-  target->len = fieldLen;
-  target->off = (int32_t)(fieldStart - *pch);
-  *pch = ch; // Update caller's ch. This may be after fieldStart+fieldLen due to quotes and/or whitespace
-  return 0;
-}
-
-
-static int parse_string_continue(const char** ptr, lenOff* target)
-{
-  const char *ch = *ptr;
-  ASSERT(quoteRule <= 1);
-  if (quoteRule == 0) {
-    while (!on_eol(ch)) {
-      if (*ch == quote) {
-        if (ch[1] == quote) ch++;
-        else break;
-      }
-      ch++;
-    }
-  } else {
-    while (!on_eol(ch) && *ch != quote) {
-      ch += 1 + (*ch == '\\' && ch[1] != '\n' && ch[1] != '\r');
-    }
-  }
-  if (on_eol(ch)) {
-    skip_eol(&ch);
-    target->len += (int32_t)(ch - *ptr);
-    *ptr = ch;
-    return 2;
-  } else {
-    ASSERT(*ch == quote);
-    ch++;
-    if (stripWhite) skip_white(&ch);
-    if (!on_sep(&ch)) {
-      return 1;
-    }
-    target->len += (int32_t)(ch - *ptr - 1);  // -1 removes closing quote
-    *ptr = ch;
-    return 0;
-  }
-}
-
-static int Field(const char** pch, lenOff* target) {
-  int ret = Field0(pch, target);
-  while (ret == 2) {
-    ret = parse_string_continue(pch, target);
-  }
-  return ret;
-}
-// static void ctx_Field(FieldParseContext* ctx) {
-//   const char* ch = *(ctx->ch);
-//   lenOff* target = static_cast<lenOff*>(ctx->targets[sizeof(lenOff)]);
-//   int ret = Field(ctx->ch, target);
-//   if (ret == 1) {
-//     *(ctx->ch) = ch;
-//     target->off = 0;
-//     target->len = NA_LENOFF;
-//   } else {
-//     target->off += (ch - ctx->anchor);
-//   }
-// }
-
-static void ctx_Field(FieldParseContext *ctx)
+static void ctx_Field(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   lenOff *target = (lenOff*) ctx->targets[sizeof(lenOff)];
@@ -641,7 +489,7 @@ static void ctx_Field(FieldParseContext *ctx)
 
 
 
-static void ctx_StrtoI32(FieldParseContext *ctx)
+static void ctx_StrtoI32(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   int32_t *target = (int32_t*) ctx->targets[sizeof(int32_t)];
@@ -679,7 +527,7 @@ static void ctx_StrtoI32(FieldParseContext *ctx)
   }
 }
 
-static void ctx_StrtoI64(FieldParseContext *ctx)
+static void ctx_StrtoI64(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   int64_t *target = (int64_t*) ctx->targets[sizeof(int64_t)];
