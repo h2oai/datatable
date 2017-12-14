@@ -209,7 +209,7 @@ def test_numbers_with_quotes2():
 
 def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
-    # return [52875760]
+    # return [1434889084]
     n = 25
     if os.environ.get(root_env_name, "") != "":
         n = 500
@@ -249,7 +249,7 @@ def test_fread_omnibus(seed):
         else:
             assert False, "Unknown coltype: %r" % coltype
         assert len(coldata) == nrows
-        if coltype != dt.ltype.bool and all(is_boollike(x) for x in coldata):
+        if coltype != dt.ltype.bool and all_boollike(coldata):
             coltype = dt.ltype.bool
         if coltype != dt.ltype.int and all(is_intlike(x) for x in coldata):
             coltype = dt.ltype.int
@@ -288,11 +288,17 @@ def test_fread_omnibus(seed):
         raise
 
 
-def is_boollike(x):
-    return (x == "" or x == '""' or x == "''" or
-            (len(x) <= 5 and x.lower() in ["true", "false"]))
+def all_boollike(coldata):
+    for x in coldata:
+        x = x.strip()
+        if len(x) >= 2 and x[0] == x[-1] and x[0] in "'\"`":
+            x = x[1:-1]
+        if len(x) > 5 or x.lower() not in {"true", "false", "0", "1"}:
+            return False
+    return True
 
 def is_intlike(x):
+    x = x.strip()
     return x.isdigit() or (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
                            x[1:-1].isdigit())
 

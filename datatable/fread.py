@@ -910,16 +910,16 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 _coltypes_strs = [
     "drop",      # 0
     "bool8n",    # 1
-    "bool8u",    # 1
-    "bool8t",    # 1
-    "bool8l",    # 1
-    "int32",     # 2
-    "int64",     # 4
-    "float32x",  # 5
-    "float64",   # 6
-    "float64e",  # 7
-    "float64x",  # 8
-    "str",       # 9
+    "bool8u",    # 2
+    "bool8t",    # 3
+    "bool8l",    # 4
+    "int32",     # 5
+    "int64",     # 6
+    "float32x",  # 7
+    "float64",   # 8
+    "float64e",  # 9
+    "float64x",  # 10
+    "str",       # 11
 ]
 
 _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
