@@ -255,7 +255,6 @@ private:
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
-  friend void setFinalNrow(size_t nrows);
 };
 
 

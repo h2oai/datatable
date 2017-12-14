@@ -107,7 +107,7 @@ class GenericReader
     MemoryBuffer* mbuf;
     size_t offset;
     size_t offend;
-    size_t line;
+    int64_t line;
     int32_t fileno;
     int : 32;
 

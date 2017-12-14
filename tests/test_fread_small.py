@@ -88,7 +88,7 @@ def test_fread2():
     f = dt.fread("""
         A,B,C,D
         1,2,3,4
-        0,0,,7.2
+        10,0,,7.2
         ,1,12,3.3333333333
         """)
     assert f.shape == (3, 4)
@@ -134,6 +134,14 @@ def test_issue641():
     assert f.topython() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
 
 
+def test_issue643():
+    d0 = dt.fread("A B\n1 2\n3 4 \n5 6\n6   7   ")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3, 5, 6], [2, 4, 6, 7]]
+
+
 def test_space_separated():
     # Loosely based on #1113 in R
     txt = ("ITER    THETA1    THETA2   MCMC\n"
@@ -176,6 +184,32 @@ def test_1x1_na():
     assert d0.topython() == [[None]]
 
 
+def test_last_quoted_field():
+    d0 = dt.fread('A,B,C\n1,5,17\n3,9,"1000"')
+    assert d0.internal.check()
+    assert d0.shape == (2, 3)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3], [5, 9], [17, 1000]]
+
+
+def test_numbers_with_quotes1():
+    d0 = dt.fread('B,C\n"12"  ,15\n"13"  ,18\n"14"  ,3')
+    assert d0.internal.check()
+    assert d0.shape == (3, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.names == ("B", "C")
+    assert d0.topython() == [[12, 13, 14], [15, 18, 3]]
+
+
+def test_numbers_with_quotes2():
+    d0 = dt.fread('A,B\n83  ,"23948"\n55  ,"20487203497"')
+    assert d0.internal.check()
+    assert d0.shape == (2, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.names == ("A", "B")
+    assert d0.topython() == [[83, 55], [23948, 20487203497]]
+
+
 
 #-------------------------------------------------------------------------------
 # Omnibus Test
@@ -183,7 +217,7 @@ def test_1x1_na():
 
 def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
-    # return [1984115291]
+    # return [398276719]
     n = 25
     if os.environ.get(root_env_name, "") != "":
         n = 500
@@ -223,10 +257,11 @@ def test_fread_omnibus(seed):
         else:
             assert False, "Unknown coltype: %r" % coltype
         assert len(coldata) == nrows
-        if coltype != dt.ltype.bool and all(is_boollike(x) for x in coldata):
-            coltype = dt.ltype.bool
         if coltype != dt.ltype.int and all(is_intlike(x) for x in coldata):
             coltype = dt.ltype.int
+        # Check 'bool' last, since ['0', '1'] is both int-like and bool-like
+        if coltype != dt.ltype.bool and all_boollike(coldata):
+            coltype = dt.ltype.bool
         prepared_data[i] = coldata
         colnames[i] = "x%d" % i
         coltypes[i] = coltype
@@ -262,11 +297,17 @@ def test_fread_omnibus(seed):
         raise
 
 
-def is_boollike(x):
-    return (x == "" or x == '""' or x == "''" or
-            (len(x) <= 5 and x.lower() in ["true", "false"]))
+def all_boollike(coldata):
+    for x in coldata:
+        x = x.strip()
+        if len(x) >= 2 and x[0] == x[-1] and x[0] in "'\"`":
+            x = x[1:-1]
+        if len(x) > 5 or x.lower() not in {"true", "false", "0", "1", ""}:
+            return False
+    return True
 
 def is_intlike(x):
+    x = x.strip()
     return x.isdigit() or (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
                            x[1:-1].isdigit())
 

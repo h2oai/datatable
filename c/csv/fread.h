@@ -24,18 +24,20 @@
 
 // Ordered hierarchy of types
 typedef enum {
-  NEG            = -1, // dummy to force signed type; sign bit used for out-of-sample type bump management
-  CT_DROP        = 0,  // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
-  CT_BOOL8       = 1,  // int8_t; first type enum value must be 1 not 0 so that it can be negated to -1.
-  CT_INT32_BARE  = 2,  // int32_t bare bones fast
-  CT_INT32_FULL  = 3,  // int32_t if spaces or quotes can surround the value
-  CT_INT64       = 4,  // int64_t
-  CT_FLOAT32_HEX = 5,  // float, in hexadecimal format
-  CT_FLOAT64     = 6,  // double (64-bit IEEE 754 float)
-  CT_FLOAT64_EXT = 7,  // double, with various "NaN" literals
-  CT_FLOAT64_HEX = 8,  // double, in hexadecimal format
-  CT_STRING      = 9,  // lenOff struct below
-  NUMTYPE        = 10  // placeholder for the number of types including drop
+  NEG            = -1,  // dummy to force signed type; sign bit used for out-of-sample type bump management
+  CT_DROP        = 0,   // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
+  CT_BOOL8_N     = 1,   // int8_t; first enum value must be 1 not 0(=CT_DROP) so that it can be negated to -1.
+  CT_BOOL8_U     = 2,
+  CT_BOOL8_T     = 3,
+  CT_BOOL8_L     = 4,
+  CT_INT32       = 5,   // int32_t
+  CT_INT64       = 6,   // int64_t
+  CT_FLOAT32_HEX = 7,    // float, in hexadecimal format
+  CT_FLOAT64     = 8,   // double (64-bit IEEE 754 float)
+  CT_FLOAT64_EXT = 9,   // double, with various "NaN" literals
+  CT_FLOAT64_HEX = 10,  // double, in hexadecimal format
+  CT_STRING      = 11,  // lenOff struct below
+  NUMTYPE        = 12   // placeholder for the number of types including drop
 } colType;
 
 extern int8_t typeSize[NUMTYPE];
