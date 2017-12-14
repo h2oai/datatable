@@ -418,8 +418,8 @@ def test_fread_skip_blank_lines():
         d1 = dt.fread(text=inp, skip_blank_lines=False)
         assert d1.internal.check()
         assert d1.shape == (1, 2)
-        assert d1.ltypes == (dt.ltype.int, dt.ltype.int)
-        assert d1.topython() == [[1], [2]]
+        assert d1.ltypes == (dt.ltype.bool, dt.ltype.int)
+        assert d1.topython() == [[True], [2]]
     assert len(ws) == 1
     assert ("Found the last consistent line but text exists afterwards"
             in ws[0].message.args[0])
@@ -639,11 +639,11 @@ def test_fread_fillna1():
 
 def test_fread_CtrlZ():
     """Check that Ctrl+Z characters at the end of the file are removed"""
-    src = b"A,B,C\n1,2,3\x1A\x1A"
+    src = b"A,B,C\n-1,2,3\x1A\x1A"
     d0 = dt.fread(text=src)
     assert d0.internal.check()
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
-    assert d0.topython() == [[1], [2], [3]]
+    assert d0.topython() == [[-1], [2], [3]]
 
 
 def test_fread_NUL():

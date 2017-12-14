@@ -57,9 +57,9 @@ static bool LFpresent = false;
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
-const char typeSymbols[NUMTYPE]  = {'x',    'b',     'i',     'j',     'I',     'h',       'd',       'D',       'H',       's'};
-const char typeName[NUMTYPE][10] = {"drop", "bool8", "int32", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
-int8_t     typeSize[NUMTYPE]     = { 0,      1,       4,       4,       8,      4,         8,         8,         8,         8       };
+const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     'i',     'I',     'h',       'd',       'D',       'H',       's'};
+const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
+int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
 
 // NAN and INFINITY constants are float, so cast to double once up front.
 static double NA_FLOAT64;  // takes fread.h:NA_FLOAT64_VALUE
@@ -572,7 +572,7 @@ static void ctx_StrtoI64(FieldParseContext* ctx)
  * of precision, for example `1.2439827340958723094785103` will not be parsed
  * as a double.
  */
-static void ctx_parse_double_regular(FieldParseContext *ctx)
+static void ctx_parse_double_regular(FieldParseContext* ctx)
 {
   //
   const char *ch = *(ctx->ch);
@@ -645,7 +645,7 @@ static void ctx_parse_double_regular(FieldParseContext *ctx)
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-static void ctx_parse_double_extended(FieldParseContext *ctx)
+static void ctx_parse_double_extended(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
@@ -729,7 +729,7 @@ static void ctx_parse_double_extended(FieldParseContext *ctx)
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-static void ctx_parse_double_hexadecimal(FieldParseContext *ctx)
+static void ctx_parse_double_hexadecimal(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
@@ -848,65 +848,85 @@ static void ctx_parse_float_hexadecimal(FieldParseContext* ctx)
 }
 
 
-static int StrtoB(const char **pch, int8_t *target)
+/* Parse numbers 0 | 1 as boolean. */
+static void parse_bool_numeric(FieldParseContext* ctx)
 {
-  // These usually come from R when it writes out.
-  const char *ch = *pch;
-  skip_white(&ch);
-  *target = NA_BOOL8;
-  if (on_sep(&ch)) { *pch=ch; return 0; }  // empty field ',,'
-  const char *start=ch;
-  bool quoted = false;
-  if (*ch==quote) { quoted=true; ch++; }
-  if (quoted && *ch==quote) { ch++; if (on_sep(&ch)) {*pch=ch; return 0;} else return 1; }  // empty quoted field ',"",'
-  bool logical01 = false;  // expose to user and should default be true?
-  if ( ((*ch=='0' || *ch=='1') && logical01) || (*ch=='N' && *(ch+1)=='A' && ch++)) {
-    *target = (*ch=='1' ? 1 : (*ch=='0' ? 0 : NA_BOOL8));
-    ch++;
-  } else if (*ch=='T' || *ch=='t') {
-    *target = 1;
-    if ((ch[1]=='R' && ch[2]=='U' && ch[3]=='E') ||
-        (ch[1]=='r' && ch[2]=='u' && ch[3]=='e')) ch += 4;
-  } else if (*ch=='F' || *ch=='f') {
-    *target = 0;
-    if ((ch[1] == 'A' && ch[2] == 'L' && ch[3] == 'S' && ch[4] == 'E') ||
-        (ch[1] == 'a' && ch[2] == 'l' && ch[3] == 's' && ch[4] == 'e')) ch += 5;
+  const char *ch = *(ctx->ch);
+  int8_t *target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  uint8_t d = (uint8_t)(*ch - '0');  // '0'=>0, '1'=>1, everything else > 1
+  if (d <= 1) {
+    *target = (int8_t) d;
+    *(ctx->ch) = ch + 1;
+  } else {
+    *target = NA_BOOL8;
   }
-  if (quoted) { if (*ch!=quote) return 1; else ch++; }
-  if (on_sep(&ch)) { *pch=ch; return 0; }
-  *target = NA_BOOL8;
-  next_sep(&ch);
-  *pch=ch;
-  return !is_NAstring(start);
+}
+
+/* Parse uppercase TRUE | FALSE as boolean. */
+static void parse_bool_uppercase(FieldParseContext* ctx)
+{
+  const char *ch = *(ctx->ch);
+  int8_t *target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  if (ch[0]=='T' && ch[1]=='R' && ch[2]=='U' && ch[3]=='E') {
+    *target = 1;
+    *(ctx->ch) = ch + 4;
+  } else if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
+    *target = 0;
+    *(ctx->ch) = ch + 5;
+  } else {
+    *target = NA_BOOL8;
+  }
+}
+
+/* Parse camelcase True | False as boolean. */
+static void parse_bool_titlecase(FieldParseContext* ctx)
+{
+  const char *ch = *(ctx->ch);
+  int8_t *target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  if (ch[0]=='T' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
+    *target = 1;
+    *(ctx->ch) = ch + 4;
+  } else if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
+    *target = 0;
+    *(ctx->ch) = ch + 5;
+  } else {
+    *target = NA_BOOL8;
+  }
+}
+
+/* Parse lowercase true | false as boolean. */
+static void parse_bool_lowercase(FieldParseContext* ctx)
+{
+  const char *ch = *(ctx->ch);
+  int8_t *target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  if (ch[0]=='t' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
+    *target = 1;
+    *(ctx->ch) = ch + 4;
+  } else if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
+    *target = 0;
+    *(ctx->ch) = ch + 5;
+  } else {
+    *target = NA_BOOL8;
+  }
 }
 
 
 // In order to add a new type:
-//   - register new parser in this `fun` array
-//   - add entries in arrays `typeName` / `typeSize` at the top of this file
+//   - register new parser in this `parsers` array
+//   - add entries in arrays `typeName` / `typeSize` / `typeSymbols` at the top of this file
 //   - add entry in array `colType` in "fread.h" and increase NUMTYPE
-//   - add record in array `colType_to_stype` in "py_fread.c"
+//   - add record in array `colType_to_stype` in "reader_fread.cc"
 //   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
-//   - add entry to `switch(type[j])` around line 1948
-//   - update `test_fread_fillna` in test_fread.py to include the new column type
+//   - update `test_fread_fillna1` in test_fread.py to include the new column type
 //
-#define DECLARE_CTX_PARSER(BASE, TYPE, NA)  \
-  static void ctx_##BASE(FieldParseContext* ctx) { \
-    const char* ch = *(ctx->ch); \
-    TYPE* target = static_cast<TYPE*>(ctx->targets[sizeof(TYPE)]); \
-    int ret = BASE(ctx->ch, target); \
-    if (ret == 1) { \
-      *(ctx->ch) = ch; \
-      *(target) = NA; \
-    } \
-  }
-DECLARE_CTX_PARSER(StrtoB, int8_t, NA_BOOL8)
 
-typedef void (*reader_fun_t_)(FieldParseContext *ctx);
+typedef void (*reader_fun_t_)(FieldParseContext* ctx);
 static reader_fun_t_ parsers[NUMTYPE] = {
   (reader_fun_t_) &ctx_Field,   // CT_DROP
-  (reader_fun_t_) &ctx_StrtoB,
-  (reader_fun_t_) &ctx_StrtoI32,
+  (reader_fun_t_) &parse_bool_numeric,
+  (reader_fun_t_) &parse_bool_uppercase,
+  (reader_fun_t_) &parse_bool_titlecase,
+  (reader_fun_t_) &parse_bool_lowercase,
   (reader_fun_t_) &ctx_StrtoI32,
   (reader_fun_t_) &ctx_StrtoI64,
   (reader_fun_t_) &ctx_parse_float_hexadecimal,

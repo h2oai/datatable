@@ -96,9 +96,9 @@ def test_create_from_string():
     """)
     assert d0.internal.check()
     assert d0.names == ("A", "B", "C", "D")
-    assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.int,
+    assert d0.ltypes == (dt.ltype.bool, dt.ltype.real, dt.ltype.int,
                          dt.ltype.str)
-    assert d0.topython() == [[1, 0, None], [2.0, 5.5, None],
+    assert d0.topython() == [[True, False, None], [2.0, 5.5, None],
                              [3, None, 1000], ["boo", "bar", ""]]
 
 

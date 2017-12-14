@@ -909,9 +909,11 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 # Directly corresponds to `colType` enum in "fread.h"
 _coltypes_strs = [
     "drop",      # 0
-    "bool8",     # 1
+    "bool8n",    # 1
+    "bool8u",    # 1
+    "bool8t",    # 1
+    "bool8l",    # 1
     "int32",     # 2
-    "int32x",    # 3
     "int64",     # 4
     "float32x",  # 5
     "float64",   # 6
@@ -921,16 +923,18 @@ _coltypes_strs = [
 ]
 
 _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
-    (bool,       "bool8"),
+    (bool,       "bool8n"),
     (int,        "int32"),
     (float,      "float64"),
     (str,        "str"),
-    ("bool",     "bool8"),
-    ("bool8",    "bool8"),
+    ("bool",     "bool8n"),
+    ("bool8",    "bool8n"),
+    ("bool8n",   "bool8n"),
+    ("bool8u",   "bool8u"),
+    ("bool8t",   "bool8t"),
+    ("bool8l",   "bool8l"),
     ("int",      "int32"),
     ("int32",    "int32"),
-    ("int32a",   "int32"),
-    ("int32b",   "int32x"),
     ("int64",    "int64"),
     ("float32x", "float32x"),
     ("float",    "float64"),
