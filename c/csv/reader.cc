@@ -447,7 +447,7 @@ void GenericReader::skip_to_line_number() {
   }
   if (ch > sof) {
     offset += static_cast<size_t>(ch - sof);
-    trace("Skipped to line %zu in the file", line);
+    trace("Skipped to line %zd in the file", line);
   }
 }
 
@@ -466,7 +466,7 @@ void GenericReader::skip_to_line_with_string() {
       if (ss[d] == '\0') {
         if (line_start > sof) {
           offset += static_cast<size_t>(line_start - sof);
-          trace("Skipped to line %zu containing skip_string = \"%s\"",
+          trace("Skipped to line %zd containing skip_string = \"%s\"",
                 line, ss);
         }
         return;
@@ -547,7 +547,7 @@ template <typename TThreadContext> class ChunkedDataReader
   // the data is read from here:
   const char* inputptr;
   size_t inputsize;
-  size_t inputline;
+  int64_t inputline;
   // and saved into here:
   std::vector<OutputColumn> outcols;
   // via the intermediate buffers TThreadContext, that are instantiated within
@@ -571,7 +571,7 @@ public:
   virtual const char* read_chunk(const char* start, const char* end,
                                  TThreadContext&);
 
-  void set_input(const char* ptr, size_t size, size_t line);
+  void set_input(const char* ptr, size_t size, int64_t line);
 };
 
 
@@ -703,7 +703,7 @@ void ChunkedDataReader<TThreadContext>::adjust_chunk_start(const char** pch) {
 
 template <typename TThreadContext>
 void ChunkedDataReader<TThreadContext>::set_input(
-    const char* input, size_t size, size_t line
+    const char* input, size_t size, int64_t line
 ) {
   inputptr = input;
   inputsize = size;

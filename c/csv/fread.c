@@ -118,7 +118,6 @@ void FreadReader::freadCleanup(void)
 
 #define CEIL(x)  ((size_t)(double)ceil(x))
 static inline size_t umax(size_t a, size_t b) { return a > b ? a : b; }
-static inline size_t umin(size_t a, size_t b) { return a < b ? a : b; }
 static inline int imin(int a, int b) { return a < b ? a : b; }
 
 /** Return value of `x` clamped to the range [upper, lower] */
@@ -1779,7 +1778,7 @@ int FreadReader::freadMain()
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
               if (joldType == CT_STRING && sizes[j-1] == 8) {
-                lenOff* lastValue = (lenOff*)(((char**)ttargets)[8] - 8);
+                lenOff* lastValue = ((lenOff**)ttargets)[8] - 1;
                 if (lastValue->len == 0) lastValue->len = INT32_MIN;
               }
               continue;

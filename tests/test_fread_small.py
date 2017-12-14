@@ -209,7 +209,7 @@ def test_numbers_with_quotes2():
 
 def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
-    # return [1434889084]
+    # return [79973046]
     n = 25
     if os.environ.get(root_env_name, "") != "":
         n = 500
@@ -293,7 +293,7 @@ def all_boollike(coldata):
         x = x.strip()
         if len(x) >= 2 and x[0] == x[-1] and x[0] in "'\"`":
             x = x[1:-1]
-        if len(x) > 5 or x.lower() not in {"true", "false", "0", "1"}:
+        if len(x) > 5 or x.lower() not in {"true", "false", "0", "1", ""}:
             return False
     return True
 
