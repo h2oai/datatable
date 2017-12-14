@@ -176,6 +176,32 @@ def test_1x1_na():
     assert d0.topython() == [[None]]
 
 
+def test_last_quoted_field():
+    d0 = dt.fread('A,B,C\n1,5,17\n3,9,"1000"')
+    assert d0.internal.check()
+    assert d0.shape == (2, 3)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3], [5, 9], [17, 1000]]
+
+
+def test_numbers_with_quotes1():
+    d0 = dt.fread('B,C\n"12"  ,15\n"13"  ,18\n"14"  ,3')
+    assert d0.internal.check()
+    assert d0.shape == (3, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.names == ("B", "C")
+    assert d0.topython() == [[12, 13, 14], [15, 18, 3]]
+
+
+def test_numbers_with_quotes2():
+    d0 = dt.fread('A,B\n83  ,"23948"\n55  ,"20487203497"')
+    assert d0.internal.check()
+    assert d0.shape == (2, 2)
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.names == ("A", "B")
+    assert d0.topython() == [[83, 55], [23948, 20487203497]]
+
+
 
 #-------------------------------------------------------------------------------
 # Omnibus Test
@@ -183,7 +209,7 @@ def test_1x1_na():
 
 def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
-    # return [1984115291]
+    # return [52875760]
     n = 25
     if os.environ.get(root_env_name, "") != "":
         n = 500

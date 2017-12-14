@@ -615,7 +615,15 @@ def test_fread_nthreads(capsys):
     assert "Using 1 thread" in out
 
 
-def test_fread_fillna():
+def test_fread_fillna0():
+    d0 = dt.fread("A,B,C\n1,foo,bar\n2,baz\n3", fill=True)
+    assert d0.internal.check()
+    assert d0.topython() == [[1, 2, 3],
+                             ['foo', 'baz', None],
+                             ['bar', None, None]]
+
+
+def test_fread_fillna1():
     src = ("Row,bool8,int32,int64,float32x,float64,float64+,float64x,str\n"
            "1,True,1234,1234567890987654321,0x1.123p-03,2.3,-inf,"
            "0x1.123456789abp+100,the end\n"
