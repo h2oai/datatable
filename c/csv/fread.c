@@ -527,6 +527,7 @@ static void ctx_StrtoI32(FieldParseContext* ctx)
   }
 }
 
+
 static void ctx_StrtoI64(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
@@ -559,68 +560,79 @@ static void ctx_StrtoI64(FieldParseContext* ctx)
 }
 
 
-static int StrtoD(const char **pch, double *target)
+/**
+ * Parse "usual" double literals, in the form
+ *
+ *   [+|-] (NNN|NNN.|.MMM|NNN.MMM) [(E|e) [+|-] EEE]
+ *
+ * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
+ * whole part, fractional part, and the exponent respectively.
+ *
+ * Right now we do not parse floating numbers that would incur significant loss
+ * of precision, for example `1.2439827340958723094785103` will not be parsed
+ * as a double.
+ */
+static void ctx_parse_double_regular(FieldParseContext *ctx)
 {
-  // [+|-]N.M[E|e][+|-]E or Inf or NAN
+  //
+  const char *ch = *(ctx->ch);
+  double *target = (double*) ctx->targets[sizeof(double)];
 
-  const char *ch = *pch;
-  skip_white(&ch);
-  if (on_sep(&ch)) {
+  bool neg, Eneg;
+  ch += (neg = *ch=='-') + (*ch=='+');
+
+  const char *start = ch;
+  uint_fast64_t acc = 0;  // holds NNN.MMM as NNNMMM
+  int_fast32_t e = 0;     // width of MMM to adjust NNNMMM by dec location
+  uint_fast8_t digit;
+  while (*ch=='0') ch++;
+
+  uint_fast32_t sf = 0;
+  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
+    acc = 10*acc + digit;
+    sf++;
+  }
+  ch += sf;
+  if (*ch==dec) {
+    ch++;
+    // Numbers like 0.00000000000000000000000000000000004 can be read without
+    // loss of precision as 4e-35  (test 1817)
+    if (sf==0 && *ch=='0') {
+      while (ch[e]=='0') e++;
+      ch += e;
+      e = -e;
+    }
+    uint_fast32_t k = 0;
+    while ( (digit=(uint_fast8_t)(ch[k]-'0'))<10 ) {
+      acc = 10*acc + digit;
+      k++;
+    }
+    ch += k;
+    sf += k;
+    e -= k;
+  }
+  if (sf>18) goto fail;  // Too much precision for double. TODO: reduce to 15(?) and discard trailing 0's.
+  if (*ch=='E' || *ch=='e') {
+    if (ch==start) goto fail;  // something valid must be between [+|-] and E, character E alone is invalid.
+    ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    int E=0, max_digits=3;
+    while ( max_digits && (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
+      E = 10*E + digit;
+      ch++;
+      max_digits--;
+    }
+    e += Eneg? -E : E;
+  }
+  e += 350; // lookup table is arranged from -350 (0) to +350 (700)
+  if (e<0 || e>700 || ch==start) goto fail;
+
+  *target = (double)((long double)acc * pow10lookup[e]);
+  if (neg) *target = -*target;
+  *(ctx->ch) = ch;
+  return;
+
+  fail:
     *target = NA_FLOAT64;
-    *pch = ch;
-    return 0;
-  }
-  bool quoted = false;
-  if (*ch==quote) { quoted=true; ch++; }
-  int sign=1;
-  double d = NAND;
-  const char *start=ch;
-  if (*ch=='-' || *ch=='+') sign -= 2*(*ch++=='-');
-  bool ok = ('0'<=*ch && *ch<='9') || *ch==dec;  // a single - or + with no [0-9] is !ok and considered type character
-  if (ok) {
-    uint64_t acc = 0;
-    while ('0'<=*ch && *ch<='9' && acc<(UINT64_MAX-10)/10) { // compiler should optimize last constant expression
-      // UNIT64_MAX == 18446744073709551615
-      acc *= 10;
-      acc += (uint64_t)(*ch - '0');
-      ch++;
-    }
-    const char *decCh = (*ch==dec) ? ++ch : NULL;
-    while ('0'<=*ch && *ch<='9' && acc<(UINT64_MAX-10)/10) {
-      acc *= 10;
-      acc += (uint64_t)(*ch - '0');
-      ch++;
-    }
-    int e = decCh ? -(int)(ch-decCh) : 0;
-    if (decCh) while ('0'<=*ch && *ch<='9') ch++; // lose precision
-    else       while ('0'<=*ch && *ch<='9') { e--; ch++; }  // lose precision but retain scale
-    if (*ch=='E' || *ch=='e') {
-      ch++;
-      int esign=1;
-      if (*ch=='-' || *ch=='+') esign -= 2*(*ch++=='-');
-      int eacc = 0;
-      while ('0'<=*ch && *ch<='9' && eacc<(INT32_MAX-10)/10) {
-        eacc *= 10;
-        eacc += *ch-'0';
-        ch++;
-      }
-      e += esign * eacc;
-    }
-    d = (unsigned)(e + 350) <= 700 ? (double)(sign * (long double)acc * pow10lookup[350+e])
-        : e < -350 ? 0 : sign * INFD;
-  }
-  if (quoted) { if (*ch!=quote) return 1; else ch++; }
-  *target = d;
-  skip_white(&ch);
-  ok = ok && on_sep(&ch);
-  *pch = ch;
-  if (ok && !any_number_like_NAstrings) return 0;
-  bool na = is_NAstring(start);
-  if (ok && !na) return 0;
-  *target = NA_FLOAT64;
-  next_sep(&ch);
-  *pch = ch;
-  return !na;
 }
 
 
@@ -633,17 +645,12 @@ static int StrtoD(const char **pch, double *target)
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-static int parse_double_extended(const char **pch, double *target)
+static void ctx_parse_double_extended(FieldParseContext *ctx)
 {
-  const char *ch = *pch;
-  skip_white(&ch);
-  if (on_sep(&ch)) {
-    *target = NA_FLOAT64;
-    *pch = ch;
-    return 0;
-  }
+  const char *ch = *(ctx->ch);
+  double *target = (double*) ctx->targets[sizeof(double)];
   bool neg, quoted;
-  ch += (quoted = (*ch=='"'));
+  ch += (quoted = (*ch==quote));
   ch += (neg = (*ch=='-')) + (*ch=='+');
 
   if (ch[0]=='n' && ch[1]=='a' && ch[2]=='n' && (ch += 3)) goto return_nan;
@@ -655,11 +662,11 @@ static int parse_double_extended(const char **pch, double *target)
   }
   if (ch[0]=='N' && (ch[1]=='A' || ch[1]=='a') && ch[2]=='N' && (ch += 3)) {
     if (ch[-2]=='a' && (*ch=='%' || *ch=='Q' || *ch=='S')) ch++;
-    while (static_cast<uint_fast8_t>(*ch-'0') < 10) ch++;
+    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
     goto return_nan;
   }
   if ((ch[0]=='q' || ch[0]=='s') && ch[1]=='N' && ch[2]=='a' && ch[3]=='N' && (ch += 4)) {
-    while (static_cast<uint_fast8_t>(*ch-'0') < 10) ch++;
+    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
     goto return_nan;
   }
   if (ch[0]=='1' && ch[1]=='.' && ch[2]=='#') {
@@ -676,7 +683,8 @@ static int parse_double_extended(const char **pch, double *target)
     if (ch[1]=='R' && ch[2]=='E' && ch[3]=='F' && ch[4]=='!' && (ch += 5)) goto return_na;
     if (ch[1]=='N' && ch[2]=='/' && ch[3]=='A' && (ch += 4)) goto return_na;
   }
-  return StrtoD(pch, target);
+  ctx_parse_double_regular(ctx);
+  return;
 
   return_inf:
     *target = neg? -INFD : INFD;
@@ -686,18 +694,13 @@ static int parse_double_extended(const char **pch, double *target)
     goto ok;
   return_na:
     *target = NA_FLOAT64;
-    goto ok;
   ok:
-    if (quoted && *ch!='"') {
-      // *target = NA_FLOAT64;
-      return 1;
+    if (quoted && *ch!=quote) {
+      *target = NA_FLOAT64;
+    } else {
+      *(ctx->ch) = ch + quoted;
     }
-    ch += quoted;
-    if (!on_sep(&ch)) return 1;
-    *pch = ch;
-    return 0;
 }
-
 
 
 /**
@@ -726,9 +729,10 @@ static int parse_double_extended(const char **pch, double *target)
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-static int parse_double_hexadecimal(const char **pch, double *target)
+static void ctx_parse_double_hexadecimal(FieldParseContext *ctx)
 {
-  const char *ch = *pch;
+  const char *ch = *(ctx->ch);
+  double *target = (double*) ctx->targets[sizeof(double)];
   uint64_t neg;
   uint8_t digit;
   bool Eneg, subnormal = 0;
@@ -764,33 +768,30 @@ static int parse_double_hexadecimal(const char **pch, double *target)
       if (E < 1 || E > 2046) goto fail;
     }
     *(reinterpret_cast<uint64_t*>(target)) = (neg << 63) | (E << 52) | (acc);
-    if (!on_sep(&ch)) goto fail;
-    *pch = ch;
-    return 0;
+    *(ctx->ch) = ch;
+    return;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
     *target = NA_FLOAT64;
-    if (!on_sep(&ch)) goto fail;
-    *pch = ch + 3;
-    return 0;
+    *(ctx->ch) = ch + 3;
+    return;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
     *target = neg ? -INFD : INFD;
-    if (!on_sep(&ch)) goto fail;
-    *pch = ch + 8;
-    return 0;
+    *(ctx->ch) = ch + 8;
+    return;
   }
 
   fail:
     *target = NA_FLOAT64;
-    return 1;
 }
 
 
-static int parse_float_hexadecimal(const char **pch, float *target)
+static void ctx_parse_float_hexadecimal(FieldParseContext* ctx)
 {
-  const char *ch = *pch;
+  const char* ch = *(ctx->ch);
+  float* target = (float*) ctx->targets[sizeof(float)];
   uint32_t neg;
   uint8_t digit;
   bool Eneg, subnormal = 0;
@@ -827,27 +828,23 @@ static int parse_float_hexadecimal(const char **pch, float *target)
       if (E < 1 || E > 254) goto fail;
     }
     *(reinterpret_cast<uint32_t*>(target)) = (neg << 31) | (E << 23) | (acc);
-    if (!on_sep(&ch)) goto fail;
-    *pch = ch;
-    return 0;
+    *(ctx->ch) = ch;
+    return;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
     *target = NA_FLOAT32;
-    if (!on_sep(&ch)) goto fail;
-    *pch = ch + 3;
-    return 0;
+    *(ctx->ch) = ch + 3;
+    return;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
     *target = neg ? -INFINITY : INFINITY;
-    if (!on_sep(&ch)) goto fail;
-    *pch = ch + 8;
-    return 0;
+    *(ctx->ch) = ch + 8;
+    return;
   }
 
   fail:
     *target = NA_FLOAT32;
-    return 1;
 }
 
 
@@ -904,12 +901,6 @@ static int StrtoB(const char **pch, int8_t *target)
     } \
   }
 DECLARE_CTX_PARSER(StrtoB, int8_t, NA_BOOL8)
-// DECLARE_CTX_PARSER(StrtoI32_full, int32_t, NA_INT32)
-// DECLARE_CTX_PARSER(StrtoI64, int64_t, NA_INT64)
-DECLARE_CTX_PARSER(parse_float_hexadecimal, float, NA_FLOAT32)
-DECLARE_CTX_PARSER(StrtoD, double, NA_FLOAT64)
-DECLARE_CTX_PARSER(parse_double_extended, double, NA_FLOAT64)
-DECLARE_CTX_PARSER(parse_double_hexadecimal, double, NA_FLOAT64)
 
 typedef void (*reader_fun_t_)(FieldParseContext *ctx);
 static reader_fun_t_ parsers[NUMTYPE] = {
@@ -919,7 +910,7 @@ static reader_fun_t_ parsers[NUMTYPE] = {
   (reader_fun_t_) &ctx_StrtoI32,
   (reader_fun_t_) &ctx_StrtoI64,
   (reader_fun_t_) &ctx_parse_float_hexadecimal,
-  (reader_fun_t_) &ctx_StrtoD,
+  (reader_fun_t_) &ctx_parse_double_regular,
   (reader_fun_t_) &ctx_parse_double_extended,
   (reader_fun_t_) &ctx_parse_double_hexadecimal,
   (reader_fun_t_) &ctx_Field
