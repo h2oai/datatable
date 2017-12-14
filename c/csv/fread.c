@@ -82,7 +82,7 @@ typedef struct FieldParseContext {
 
 
 // Forward declarations
-static void ctx_Field(FieldParseContext*);
+static void parse_string(FieldParseContext*);
 
 
 
@@ -338,7 +338,7 @@ static inline int countfields(const char** pch)
   }
   int ncol = 1;
   while (ch < eof) {
-    ctx_Field(&ctx);
+    parse_string(&ctx);
     // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
     if (sep==' ' && *ch==sep) {
       while (ch[1]==' ') ch++;
@@ -394,7 +394,7 @@ static inline bool nextGoodLine(const char **pch, int ncol)
 //
 //=================================================================================================
 
-static void ctx_Field(FieldParseContext* ctx)
+static void parse_string(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   lenOff *target = (lenOff*) ctx->targets[sizeof(lenOff)];
@@ -487,9 +487,7 @@ static void ctx_Field(FieldParseContext* ctx)
 }
 
 
-
-
-static void ctx_StrtoI32(FieldParseContext* ctx)
+static void parse_int32(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   int32_t *target = (int32_t*) ctx->targets[sizeof(int32_t)];
@@ -528,7 +526,7 @@ static void ctx_StrtoI32(FieldParseContext* ctx)
 }
 
 
-static void ctx_StrtoI64(FieldParseContext* ctx)
+static void parse_int64(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   int64_t *target = (int64_t*) ctx->targets[sizeof(int64_t)];
@@ -572,7 +570,7 @@ static void ctx_StrtoI64(FieldParseContext* ctx)
  * of precision, for example `1.2439827340958723094785103` will not be parsed
  * as a double.
  */
-static void ctx_parse_double_regular(FieldParseContext* ctx)
+static void parse_double_regular(FieldParseContext* ctx)
 {
   //
   const char *ch = *(ctx->ch);
@@ -645,7 +643,7 @@ static void ctx_parse_double_regular(FieldParseContext* ctx)
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-static void ctx_parse_double_extended(FieldParseContext* ctx)
+static void parse_double_extended(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
@@ -683,7 +681,7 @@ static void ctx_parse_double_extended(FieldParseContext* ctx)
     if (ch[1]=='R' && ch[2]=='E' && ch[3]=='F' && ch[4]=='!' && (ch += 5)) goto return_na;
     if (ch[1]=='N' && ch[2]=='/' && ch[3]=='A' && (ch += 4)) goto return_na;
   }
-  ctx_parse_double_regular(ctx);
+  parse_double_regular(ctx);
   return;
 
   return_inf:
@@ -729,7 +727,7 @@ static void ctx_parse_double_extended(FieldParseContext* ctx)
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-static void ctx_parse_double_hexadecimal(FieldParseContext* ctx)
+static void parse_double_hexadecimal(FieldParseContext* ctx)
 {
   const char *ch = *(ctx->ch);
   double *target = (double*) ctx->targets[sizeof(double)];
@@ -788,7 +786,7 @@ static void ctx_parse_double_hexadecimal(FieldParseContext* ctx)
 }
 
 
-static void ctx_parse_float_hexadecimal(FieldParseContext* ctx)
+static void parse_float_hexadecimal(FieldParseContext* ctx)
 {
   const char* ch = *(ctx->ch);
   float* target = (float*) ctx->targets[sizeof(float)];
@@ -862,6 +860,7 @@ static void parse_bool_numeric(FieldParseContext* ctx)
   }
 }
 
+
 /* Parse uppercase TRUE | FALSE as boolean. */
 static void parse_bool_uppercase(FieldParseContext* ctx)
 {
@@ -878,6 +877,7 @@ static void parse_bool_uppercase(FieldParseContext* ctx)
   }
 }
 
+
 /* Parse camelcase True | False as boolean. */
 static void parse_bool_titlecase(FieldParseContext* ctx)
 {
@@ -893,6 +893,7 @@ static void parse_bool_titlecase(FieldParseContext* ctx)
     *target = NA_BOOL8;
   }
 }
+
 
 /* Parse lowercase true | false as boolean. */
 static void parse_bool_lowercase(FieldParseContext* ctx)
@@ -919,21 +920,20 @@ static void parse_bool_lowercase(FieldParseContext* ctx)
 //   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
 //   - update `test_fread_fillna1` in test_fread.py to include the new column type
 //
-
-typedef void (*reader_fun_t_)(FieldParseContext* ctx);
-static reader_fun_t_ parsers[NUMTYPE] = {
-  (reader_fun_t_) &ctx_Field,   // CT_DROP
-  (reader_fun_t_) &parse_bool_numeric,
-  (reader_fun_t_) &parse_bool_uppercase,
-  (reader_fun_t_) &parse_bool_titlecase,
-  (reader_fun_t_) &parse_bool_lowercase,
-  (reader_fun_t_) &ctx_StrtoI32,
-  (reader_fun_t_) &ctx_StrtoI64,
-  (reader_fun_t_) &ctx_parse_float_hexadecimal,
-  (reader_fun_t_) &ctx_parse_double_regular,
-  (reader_fun_t_) &ctx_parse_double_extended,
-  (reader_fun_t_) &ctx_parse_double_hexadecimal,
-  (reader_fun_t_) &ctx_Field
+typedef void (*reader_fun_t)(FieldParseContext* ctx);
+static reader_fun_t parsers[NUMTYPE] = {
+  (reader_fun_t) &parse_string,   // CT_DROP
+  (reader_fun_t) &parse_bool_numeric,
+  (reader_fun_t) &parse_bool_uppercase,
+  (reader_fun_t) &parse_bool_titlecase,
+  (reader_fun_t) &parse_bool_lowercase,
+  (reader_fun_t) &parse_int32,
+  (reader_fun_t) &parse_int64,
+  (reader_fun_t) &parse_float_hexadecimal,
+  (reader_fun_t) &parse_double_regular,
+  (reader_fun_t) &parse_double_extended,
+  (reader_fun_t) &parse_double_hexadecimal,
+  (reader_fun_t) &parse_string
 };
 
 
@@ -1461,7 +1461,7 @@ int FreadReader::freadMain()
       for (int i=0; i<ncol; i++) {
         // Use Field() here as it handles quotes, leading space etc inside it
         ch++;
-        ctx_Field(&fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
+        parse_string(&fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
         ((lenOff**) fctx.targets)[8]++;
         if (*ch!=sep) break;
         if (sep==' ') {
