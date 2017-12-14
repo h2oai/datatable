@@ -530,6 +530,20 @@ def test_fread_skip_to_string():
     assert d0.topython() == [[1], [2], [3]]
 
 
+def test_fread_max_nrows():
+    d0 = dt.fread("A,B\n1,2\n3,4\n5,6\n7,8\n", max_nrows=2)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.topython() == [[1, 3], [2, 4]]
+
+
+def test_fread_max_nrows_0rows():
+    d0 = dt.fread("A\n", max_nrows=0)
+    assert d0.internal.check()
+    assert d0.names == ("A", )
+    assert d0.shape == (0, 1)
+
+
 
 #-------------------------------------------------------------------------------
 # Misc

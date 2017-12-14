@@ -1329,7 +1329,10 @@ int FreadReader::freadMain()
       if (header == 1) {
         // A single-row input, and that row is the header. Reset all types to
         // boolean (lowest type possible, a better guess than "string").
-        for (int j=0; j<ncol; j++) types[j] = type0;
+        for (int j = 0; j < ncol; j++) {
+          types[j] = type0;
+        }
+        allocnrow = 0;
       }
     } else {
       bytesRead = (size_t)(lastRowEnd - sof);
