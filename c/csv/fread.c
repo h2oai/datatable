@@ -533,18 +533,111 @@ static int Field(const char** pch, lenOff* target) {
   }
   return ret;
 }
-static void ctx_Field(FieldParseContext* ctx) {
-  const char* ch = *(ctx->ch);
-  lenOff* target = static_cast<lenOff*>(ctx->targets[sizeof(lenOff)]);
-  int ret = Field(ctx->ch, target);
-  if (ret == 1) {
+// static void ctx_Field(FieldParseContext* ctx) {
+//   const char* ch = *(ctx->ch);
+//   lenOff* target = static_cast<lenOff*>(ctx->targets[sizeof(lenOff)]);
+//   int ret = Field(ctx->ch, target);
+//   if (ret == 1) {
+//     *(ctx->ch) = ch;
+//     target->off = 0;
+//     target->len = NA_LENOFF;
+//   } else {
+//     target->off += (ch - ctx->anchor);
+//   }
+// }
+
+static void ctx_Field(FieldParseContext *ctx)
+{
+  const char *ch = *(ctx->ch);
+  lenOff *target = (lenOff*) ctx->targets[sizeof(lenOff)];
+
+  // need to skip_white first for the reason that a quoted field might have space before the
+  // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
+  if (*ch==' ' && stripWhite) while(*++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+  const char *fieldStart=ch;
+  if (*ch!=quote || quoteRule==3) {
+    // Most common case. Unambiguously not quoted. Simply search for sep|eol. If field contains sep|eol then it should have been quoted and we do not try to heal that.
+    while(!end_of_field(ch)) ch++;  // sep, \r, \n or \0 will end
     *(ctx->ch) = ch;
-    target->off = 0;
-    target->len = NA_LENOFF;
+    int fieldLen = (int)(ch-fieldStart);
+    if (stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
+      while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
+      // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
+    }
+    if ((fieldLen==0 && blank_is_a_NAstring) || (fieldLen && end_NA_string(fieldStart)==ch)) fieldLen=INT32_MIN;  // TODO - speed up by avoiding end_NA_string when there are none
+    target->off = (int32_t)(fieldStart - ctx->anchor);
+    target->len = fieldLen;
+    return;
+  }
+  // else *ch==quote (we don't mind that quoted fields are a little slower e.g. no desire to save switch)
+  //    the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
+  // or the field is quoted but quotes are not escaped (quoteRule 2)
+  // or the field is not quoted but the data contains a quote at the start (quoteRule 2 too)
+  int eolCount = 0;
+  fieldStart++;  // step over opening quote
+  switch(quoteRule) {
+  case 0:  // quoted with embedded quotes doubled; the final unescaped " must be followed by sep|eol
+    while (*++ch) {
+      if (*ch=='\n' && ++eolCount==100) return;  // TODO: expose this 100 to user to allow them to control limiting runaway fields
+      if (*ch==quote) {
+        if (ch[1]==quote) { ch++; continue; }
+        break;  // found undoubled closing quote
+      }
+    }
+    break;
+  case 1:  // quoted with embedded quotes escaped; the final unescaped " must be followed by sep|eol
+    while (*++ch) {
+      if (*ch=='\n' && ++eolCount==100) return;
+      if (*ch=='\\' && (ch[1]==quote || ch[1]=='\\')) { ch++; continue; }
+      if (*ch==quote) break;
+    }
+    break;
+  case 2:
+    // (i) quoted (perhaps because the source system knows sep is present) but any quotes were not escaped at all,
+    // so look for ", to define the end.   (There might not be any quotes present to worry about, anyway).
+    // (ii) not-quoted but there is a quote at the beginning so it should have been; look for , at the end
+    // If no eol are present inside quoted fields (i.e. rows are simple rows), then this should work ok e.g. test 1453
+    // since we look for ", and the source system quoted when , is present, looking for ", should work well.
+    // Under this rule, no eol may occur inside fields.
+    {
+      const char *ch2 = ch;
+      while (*++ch && *ch!='\n' && *ch!='\r') {
+        if (*ch==quote && end_of_field(ch+1)) {ch2=ch; break;}  // (*1) regular ", ending; leave *ch on closing quote
+        if (*ch==sep) {
+          // first sep in this field
+          // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
+          // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
+          ch2 = ch;
+          while (*++ch2 && *ch2!='\n' && *ch2!='\r') {
+            if (*ch2==quote && end_of_field(ch2+1)) {
+              ch = ch2;                                          // (*2) move on to that first ", -- that's this field's ending
+              break;
+            }
+          }
+          break;
+        }
+      }
+      if (ch!=ch2) fieldStart--;   // field ending is this sep|eol; neither (*1) or (*2) happened; opening quote wasn't really an opening quote
+    }
+    break;
+  default:
+    return;  // Internal error: undefined quote rule
+  }
+  target->len = (int32_t)(ch - fieldStart);
+  target->off = (int32_t)(fieldStart - ctx->anchor);
+  if (*ch==quote) {
+    ch++;
+    skip_white(&ch);
+    *(ctx->ch) = ch;
   } else {
-    target->off += (ch - ctx->anchor);
+    *(ctx->ch) = ch;
+    if (*ch=='\0') {
+      if (quoteRule!=2) { target->off--; target->len++; }  // test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
+    }
+    if (stripWhite) while(target->len>0 && ch[-1]==' ') { target->len--; ch--; }  // test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
   }
 }
+
 
 
 
