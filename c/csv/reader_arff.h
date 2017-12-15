@@ -16,6 +16,7 @@
 #ifndef dt_CSV_READER_ARFF_H
 #define dt_CSV_READER_ARFF_H
 #include "csv/reader.h"
+#include "csv/worker.h"
 
 
 /**
@@ -33,7 +34,7 @@ class ArffReader
   const char* ch;  // pointer to the current reading location
   int line;        // current line number within the input (1-based)
   int : 32;
-  std::vector<ColumnSpec> columns;
+  std::vector<GReaderOutputColumn> columns;
 
 public:
   ArffReader(GenericReader&);

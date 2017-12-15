@@ -22,13 +22,6 @@
 #include "memorybuf.h"
 #include "utils/pyobj.h"
 
-// Forward declarations
-struct RelStr;
-struct StrBuf2;
-struct ColumnSpec;
-struct OutputColumn;
-
-
 
 //------------------------------------------------------------------------------
 
@@ -182,6 +175,7 @@ class GenericReader
 // Helper classes
 //------------------------------------------------------------------------------
 
+/*
 struct ColumnSpec {
   enum class Type: int8_t {
     Drop,
@@ -197,6 +191,7 @@ struct ColumnSpec {
 
   ColumnSpec(std::string n, Type t): name(n), type(t) {}
 };
+*/
 
 
 /**
@@ -227,35 +222,7 @@ struct StrBuf2 {
 };
 
 
-struct OutputColumn {
-  MemoryMemBuf* data;
-  WritableBuffer* strdata;
 
-  OutputColumn() : data(nullptr), strdata(nullptr) {}
-  ~OutputColumn() {
-    data->release();
-    delete strdata;
-  }
-};
-
-
-struct ThreadContext {
-  void* wbuf;
-  std::vector<StrBuf2> strbufs;
-  size_t rowsize;
-  size_t wbuf_nrows;
-  size_t used_nrows;
-  int ithread;
-  int : 32;
-
-  ThreadContext(int ithread, size_t nrows, size_t ncols);
-  virtual ~ThreadContext();
-  virtual void prepare_strbufs(const std::vector<ColumnSpec>& columns);
-  virtual void* next_row();
-  virtual void push_buffers() = 0;
-  virtual void discard();
-  virtual void order() = 0;
-};
 
 
 /**

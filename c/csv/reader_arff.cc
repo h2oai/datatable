@@ -119,7 +119,7 @@ void ArffReader::read_attributes() {
     }
     std::string attrName = std::string(start, len);
     read_whitespace();
-    ColumnSpec::Type coltype = ColumnSpec::Type::Drop;
+    // ColumnSpec::Type coltype = ColumnSpec::Type::Drop;
     if (*ch == '{') {
       ch++;
       read_whitespace();
@@ -141,15 +141,15 @@ void ArffReader::read_attributes() {
               line << " of the ARFF file: expected a closing brace '}'";
         }
       }
-      coltype = ColumnSpec::Type::String;
+      // coltype = ColumnSpec::Type::String;
     } else if (read_keyword("numeric") || read_keyword("real")) {
-      coltype = ColumnSpec::Type::Real;
+      // coltype = ColumnSpec::Type::Real;
     } else if (read_keyword("integer")) {
-      coltype = ColumnSpec::Type::Integer;
+      // coltype = ColumnSpec::Type::Integer;
     } else if (read_keyword("string")) {
-      coltype = ColumnSpec::Type::String;
+      // coltype = ColumnSpec::Type::String;
     }
-    columns.push_back(ColumnSpec(attrName, coltype));
+    // columns.push_back(ColumnSpec(attrName, coltype));
     skip_ext_whitespace();
   }
   if (columns.empty()) {
