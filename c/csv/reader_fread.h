@@ -25,7 +25,10 @@
 //------------------------------------------------------------------------------
 
 /**
- * Wrapper class around `freadMain` function.
+ * Fast parallel reading of CSV files with intelligent guessing of parse
+ * parameters.
+ *
+ * This is a wrapper around freadMain function from R's data.table.
  */
 class FreadReader
 {

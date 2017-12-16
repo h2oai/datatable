@@ -1566,9 +1566,10 @@ int FreadReader::freadMain()
       .rowSize1 = rowSize1,
       .DTi = 0,  // which row in the final DT result I should start writing my chunk to
       .nRows = allocnrow,
+      .stopTeam = &stopTeam,
       .threadn = me,
       .quoteRule = quoteRule,
-      .stopTeam = &stopTeam,
+      .quote = quote,
       #ifndef DTPY
       .nStringCols = nStringCols,
       .nNonStringCols = nNonStringCols

@@ -168,11 +168,10 @@ def test_quoted_comma():
     assert d0.internal.check()
     assert d0.names == ("A", "B", "C", "D")
     assert d0.shape == (1000, 4)
-    # TODO: currently fails because unquoting isn't performed correctly
-    # assert d0.topython() == [[row[0] for row in inp],
-    #                          [row[1] for row in inp],
-    #                          [row[2] for row in inp],
-    #                          [row[3] for row in inp]]
+    assert d0.topython() == [[row[0] for row in inp],
+                             [row[1] for row in inp],
+                             [row[2] for row in inp],
+                             [row[3] for row in inp]]
 
 
 def test_1x1_na():

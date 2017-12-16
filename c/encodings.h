@@ -3,7 +3,11 @@
 #include <stdint.h>
 
 
-int is_valid_utf8(const unsigned char *__restrict__ src, size_t len);
+int is_valid_utf8(const uint8_t* src, size_t len);
+
+int check_escaped_string(const uint8_t* src, size_t len, uint8_t escape_char);
+
+int decode_escaped_csv_string(const uint8_t* src, int len, uint8_t* dest, uint8_t quote);
 
 int decode_sbcs(const unsigned char *__restrict__ src, int len,
                 unsigned char *__restrict__ dest, uint32_t *map);
