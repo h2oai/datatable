@@ -6,20 +6,24 @@ import re
 import datatable.lib._datatable as _datatable
 from datatable.dt import DataTable
 from datatable.fread import fread
-from datatable.utils.typechecks import typed
+from datatable.utils.typechecks import typed, TValueError
 
 _builtin_open = open
 
 
 
-@typed(dt=DataTable, dest=str)
-def save(dt, dest):
+@typed(dt=DataTable, dest=str, _strategy=str)
+def save(dt, dest, _strategy="auto"):
     """
     Save datatable in binary NFF format.
 
     :param dt: DataTable to be saved
     :param dest: destination where the datatable should be saved.
+    :param _strategy: one of "mmap", "write" or "auto"
     """
+    if _strategy not in ("auto", "write", "mmap"):
+        raise TValueError("Invalid parameter _strategy: only 'write' / 'mmap' "
+                          "/ 'auto' are allowed")
     dest = os.path.expanduser(dest)
     if os.path.exists(dest):
         # raise ValueError("Path %s already exists" % dest)
@@ -42,7 +46,7 @@ def save(dt, dest):
                 meta = ""
             out.write('%s,%s,%s,"%s"\n' % (filename, stype, meta, colname))
             filename = os.path.join(dest, filename)
-            _col.save_to_disk(filename)
+            _col.save_to_disk(filename, _strategy)
 
 
 
