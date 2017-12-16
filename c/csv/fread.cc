@@ -1436,7 +1436,7 @@ int FreadReader::freadMain()
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
     memcpy(tmpTypes, types, (size_t)ncol);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
+    userOverride(types, colNamesAnchor, ncol, quoteRule, quote);  // colNames must not be changed but types[] can be
 
     int nUserBumped = 0;
     ndrop = 0;

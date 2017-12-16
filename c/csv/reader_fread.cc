@@ -135,11 +135,14 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
+void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_,
+                               int quoteRule, char quote)
 {
   types = types_;
   PyObject *colNamesList = PyList_New(ncols_);
   PyObject *colTypesList = PyList_New(ncols_);
+  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
+                  quoteRule == 1? '\\' : 0xFF;
   for (int i = 0; i < ncols_; i++) {
     lenOff ocol = colNames[i];
     PyObject* pycol = NULL;
@@ -147,12 +150,19 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
       const char* src = anchor + ocol.off;
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(src);
       size_t zlen = static_cast<size_t>(ocol.len);
-      if (is_valid_utf8(usrc, zlen)) {
+      int res = check_escaped_string(usrc, zlen, echar);
+      if (res == 0) {
         pycol = PyUnicode_FromStringAndSize(src, ocol.len);
       } else {
         char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
-        int newlen = decode_win1252(usrc, ocol.len, unewsrc);
+        int newlen;
+        if (res == 1) {
+          newlen = decode_escaped_csv_string(usrc, ocol.len, unewsrc, echar);
+        } else {
+          newlen = decode_win1252(usrc, ocol.len, unewsrc);
+          newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
+        }
         assert(newlen > 0);
         pycol = PyUnicode_FromStringAndSize(newsrc, newlen);
         delete[] newsrc;

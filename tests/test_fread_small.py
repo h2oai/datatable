@@ -45,6 +45,9 @@ def test_headers_only_input():
     d0 = dt.fread(text="A,B")
     assert d0.internal.check()
     assert d0.shape == (0, 2)
+    d1 = dt.fread(text="AB\n")
+    assert d1.internal.check()
+    assert d1.shape == (0, 1)
 
 
 # TODO: also test repl=None, which currently gets deserialized into empty
@@ -168,9 +171,10 @@ def test_quoted_comma():
     assert d0.internal.check()
     assert d0.names == ("A", "B", "C", "D")
     assert d0.shape == (1000, 4)
+    inp[111][2] = '"a"'
     assert d0.topython() == [[row[0] for row in inp],
                              [row[1] for row in inp],
-                             [row[2] for row in inp],
+                             [row[2][1:-1] for row in inp],  # unescape
                              [row[3] for row in inp]]
 
 
@@ -207,6 +211,33 @@ def test_numbers_with_quotes2():
     assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
     assert d0.names == ("A", "B")
     assert d0.topython() == [[83, 55], [23948, 20487203497]]
+
+
+def test_unquoting1():
+    d0 = dt.fread('"""A"""\n"hello, ""world"""\n""""\n"goodbye"\n')
+    assert d0.internal.check()
+    assert d0.names == ('"A"',)
+    assert d0.topython() == [['hello, "world"', '"', 'goodbye']]
+
+
+def test_unquoting2():
+    d0 = dt.fread("B\nmorning\n'''night'''\n'day'\n'even''ing'\n",
+                  quotechar="'")
+    assert d0.internal.check()
+    assert d0.names == ("B",)
+    assert d0.topython() == [["morning", "'night'", "day", "even'ing"]]
+
+
+def test_unescaping1():
+    d0 = dt.fread('"C\\\\D"\n'
+                  'AB\\x20CD\\n\n'
+                  '"\\"one\\", \\\'two\\\', three"\n'
+                  '"\\r\\t\\v\\a\\b\\071\\uABCD"\n')
+    assert d0.internal.check()
+    assert d0.names == ("C\\D",)
+    assert d0.topython() == [["AB CD\n",
+                              "\"one\", 'two', three",
+                              "\r\t\v\a\b\071\uABCD"]]
 
 
 
