@@ -128,11 +128,12 @@ void StringColumn<T>::init_xbuf(Py_buffer*) {
 //==============================================================================
 
 template <typename T>
-void StringColumn<T>::save_to_disk(const std::string& filename) {
+void StringColumn<T>::save_to_disk(const std::string& filename,
+                                   WritableBuffer::Strategy strategy) {
   assert(mbuf != nullptr);
   assert(strbuf != nullptr);
-  mbuf->save_to_disk(filename);
-  strbuf->save_to_disk(path_str(filename));
+  mbuf->save_to_disk(filename, strategy);
+  strbuf->save_to_disk(path_str(filename), strategy);
 }
 
 template <typename T>

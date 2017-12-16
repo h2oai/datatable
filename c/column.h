@@ -169,7 +169,7 @@ public:
    */
   virtual void reify() = 0;
 
-  virtual void save_to_disk(const std::string&);
+  virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
   RowIndex* sort() const;
 
@@ -490,7 +490,8 @@ public:
   StringColumn(int64_t nrows,
       MemoryBuffer* offbuf = nullptr, MemoryBuffer* strbuf = nullptr);
   virtual ~StringColumn();
-  void save_to_disk(const std::string& filename) override;
+  void save_to_disk(const std::string& filename,
+                    WritableBuffer::Strategy strategy) override;
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
 
   SType stype() const override;

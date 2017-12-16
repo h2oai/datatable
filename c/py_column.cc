@@ -17,6 +17,8 @@
 #include "py_column.h"
 #include "sort.h"
 #include "py_types.h"
+#include "writebuf.h"
+#include "utils/pyobj.h"
 
 namespace pycolumn
 {
@@ -91,10 +93,21 @@ PyObject* get_refcount(pycolumn::obj* self) {
 //==============================================================================
 
 PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
-  const char* filename = NULL;
-  if (!PyArg_ParseTuple(args, "s:save_to_disk", &filename)) return NULL;
+  PyObject* arg1 = NULL;
+  PyObject* arg2 = NULL;
+  if (!PyArg_ParseTuple(args, "OO:save_to_disk", &arg1, &arg2))
+    return NULL;
+  PyObj pyfilename(arg1);
+  PyObj pystrategy(arg2);
+
   Column* col = self->ref;
-  col->save_to_disk(filename);
+  const char* filename = pyfilename.as_cstring();
+  std::string strategy = pystrategy.as_string();
+  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
+                   (strategy == "write") ? WritableBuffer::Strategy::Write :
+                                           WritableBuffer::Strategy::Auto;
+
+  col->save_to_disk(filename, sstrategy);
   Py_RETURN_NONE;
 }
 

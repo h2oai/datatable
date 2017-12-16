@@ -91,8 +91,9 @@ DECLARE_GETTER(
 
 DECLARE_METHOD(
   save_to_disk,
-  "save_to_disk(filename)\n\n"
-  "Save this column's data into the file `filename`.\n")
+  "save_to_disk(filename, _strategy)\n\n"
+  "Save this column's data into the file `filename`, using the provided\n"
+  "writing strategy.\n")
 
 DECLARE_METHOD(
   hexview,
