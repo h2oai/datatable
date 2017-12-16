@@ -214,11 +214,15 @@ typedef struct ThreadLocalFreadParsingContext
   // Reference to the flag that controls the parser's execution. Setting this
   // flag to true will force parsing of the CSV file to terminate in the near
   // future.
-  bool *stopTeam;
+  bool* stopTeam;
 
   int threadn;
 
   int quoteRule;
+
+  char quote;
+
+  int64_t : 56;
 
   // Any additional implementation-specific parameters.
   FREAD_PUSH_BUFFERS_EXTRA_FIELDS
@@ -228,16 +232,6 @@ typedef struct ThreadLocalFreadParsingContext
 
 
 // *****************************************************************************
-
-/**
- * Fast parallel reading of CSV files with intelligent guessing of parse
- * parameters.
- *
- * It should have been called just "fread", but that name is already defined in
- * the system libraries...
- */
-// int freadMain(const freadMainArgs& args);
-
 
 /**
  * This callback is invoked by `freadMain` after the initial pre-scan of the
@@ -366,21 +360,5 @@ typedef struct ThreadLocalFreadParsingContext
  */
 // void setFinalNrow(size_t nrows);
 
-
-/**
- * Free any srtuctures associated with the thread-local parsing context.
- */
-// void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
-
-
-/**
- * Progress-reporting function.
- */
-// void progress(double percent/*[0, 100]*/);
-
-
-// void freadCleanup(void);
-
-// void decode_utf16(freadMainArgs* args);
 
 #endif

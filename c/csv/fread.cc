@@ -1436,7 +1436,7 @@ int FreadReader::freadMain()
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
     memcpy(tmpTypes, types, (size_t)ncol);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
+    userOverride(types, colNamesAnchor, ncol, quoteRule, quote);  // colNames must not be changed but types[] can be
 
     int nUserBumped = 0;
     ndrop = 0;
@@ -1566,9 +1566,10 @@ int FreadReader::freadMain()
       .rowSize1 = rowSize1,
       .DTi = 0,  // which row in the final DT result I should start writing my chunk to
       .nRows = allocnrow,
+      .stopTeam = &stopTeam,
       .threadn = me,
       .quoteRule = quoteRule,
-      .stopTeam = &stopTeam,
+      .quote = quote,
       #ifndef DTPY
       .nStringCols = nStringCols,
       .nNonStringCols = nNonStringCols

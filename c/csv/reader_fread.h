@@ -25,7 +25,10 @@
 //------------------------------------------------------------------------------
 
 /**
- * Wrapper class around `freadMain` function.
+ * Fast parallel reading of CSV files with intelligent guessing of parse
+ * parameters.
+ *
+ * This is a wrapper around freadMain function from R's data.table.
  */
 class FreadReader
 {
@@ -91,7 +94,8 @@ private:
    *    total number of columns. This is the length of arrays `types` and
    *    `colNames`.
    */
-  void userOverride(int8_t *types, const char* anchor, int ncols);
+  void userOverride(int8_t *types, const char* anchor, int ncols, int quoteRule,
+                    char quote);
 
   /**
    * This function is invoked by `freadMain` right before the main scan of the

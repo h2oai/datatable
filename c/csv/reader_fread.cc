@@ -135,11 +135,14 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
+void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_,
+                               int quoteRule, char quote)
 {
   types = types_;
   PyObject *colNamesList = PyList_New(ncols_);
   PyObject *colTypesList = PyList_New(ncols_);
+  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
+                  quoteRule == 1? '\\' : 0xFF;
   for (int i = 0; i < ncols_; i++) {
     lenOff ocol = colNames[i];
     PyObject* pycol = NULL;
@@ -147,12 +150,19 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
       const char* src = anchor + ocol.off;
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(src);
       size_t zlen = static_cast<size_t>(ocol.len);
-      if (is_valid_utf8(usrc, zlen)) {
+      int res = check_escaped_string(usrc, zlen, echar);
+      if (res == 0) {
         pycol = PyUnicode_FromStringAndSize(src, ocol.len);
       } else {
         char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
-        int newlen = decode_win1252(usrc, ocol.len, unewsrc);
+        int newlen;
+        if (res == 1) {
+          newlen = decode_escaped_csv_string(usrc, ocol.len, unewsrc, echar);
+        } else {
+          newlen = decode_win1252(usrc, ocol.len, unewsrc);
+          newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
+        }
         assert(newlen > 0);
         pycol = PyUnicode_FromStringAndSize(newsrc, newlen);
         delete[] newsrc;
@@ -309,18 +319,19 @@ void FreadReader::prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
 {
   try {
     StrBuf* ctx_strbufs = ctx->strbufs;
-    const unsigned char *anchor = (const unsigned char*) ctx->anchor;
+    const uint8_t *anchor = (const uint8_t*) ctx->anchor;
     size_t nrows = ctx->nRows;
     lenOff* __restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff8;
     int rowCount8 = (int) ctx->rowSize8 / 8;
+    uint8_t echar = ctx->quoteRule == 0? static_cast<uint8_t>(ctx->quote) :
+                    ctx->quoteRule == 1? '\\' : 0xFF;
 
     for (int k = 0; k < nstrcols; k++) {
       assert(ctx_strbufs != NULL);
-
       lenOff *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
       MemoryBuffer* strdest = ctx_strbufs[k].mbuf;
       int32_t off = 1;
@@ -333,16 +344,21 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext *ctx)
             bufsize = bufsize * 2 + zlen * 3;
             strdest->resize(bufsize);
           }
-          const unsigned char *src = anchor + lo->off;
-          unsigned char *dest =
-              static_cast<unsigned char*>(strdest->at(off - 1));
-          if (is_valid_utf8(src, zlen)) {
+          const uint8_t* src = anchor + lo->off;
+          uint8_t* dest = static_cast<uint8_t*>(strdest->at(off - 1));
+          int res = check_escaped_string(src, zlen, echar);
+          if (res == 0) {
             memcpy(dest, src, zlen);
             off += zlen;
+            lo->off = off;
+          } else if (res == 1) {
+            int newlen = decode_escaped_csv_string(src, len, dest, echar);
+            off += (size_t) newlen;
             lo->off = off;
           } else {
             int newlen = decode_win1252(src, len, dest);
             assert(newlen > 0);
+            newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
             off += (size_t) newlen;
             lo->off = off;
           }

@@ -2,6 +2,32 @@
 #include "encodings.h"
 
 
+// characters re-interpreted as hex digits (or 99 for characters that are not
+// valid digits). Thus, this table maps
+//   '0' .. '9'  into  0 .. 9
+//   'a' .. 'f'  into  10 .. 15
+//   'A' .. 'F'  into  10 .. 15
+//   everything else into 99
+static const uint8_t hexdigits[256] = {
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x00 - 0x0F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x10 - 0x1F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x20 - 0x2F
+  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  99, 99, 99, 99, 99, 99,  // 0x30 - 0x3F
+  99, 10, 11, 12, 13, 14, 15, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x40 - 0x4F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x50 - 0x5F
+  99, 10, 11, 12, 13, 14, 15, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x60 - 0x6F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x70 - 0x7F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x80 - 0x8F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x90 - 0x9F
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xA0 - 0xAF
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xB0 - 0xBF
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xC0 - 0xCF
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xD0 - 0xDF
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xE0 - 0xEF
+  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99   // 0xF0 - 0xFF
+};
+
+
 
 /**
  * Decode a string from the provided single-byte character set. On success
@@ -32,68 +58,128 @@ int decode_sbcs(
     const unsigned char *__restrict__ src, int len,
     unsigned char *__restrict__ dest, uint32_t *map
 ) {
-    const unsigned char *end = src + len;
-    unsigned char *d = dest;
-    for (; src < end; src++) {
-        unsigned char ch = *src;
-        if (ch < 0x80) {
-            *d++ = ch;
-        } else {
-            uint32_t m = map[ch];
-            if (m == 0) return -(int)(1 + d - dest);
-            int s = 2 + ((m & 0xFF0000) != 0);
-            memcpy(d, &m, (size_t) s);
-            d += s;
-        }
+  const unsigned char *end = src + len;
+  unsigned char *d = dest;
+  for (; src < end; src++) {
+    unsigned char ch = *src;
+    if (ch < 0x80) {
+      *d++ = ch;
+    } else {
+      uint32_t m = map[ch];
+      if (m == 0) return -(int)(1 + d - dest);
+      int s = 2 + ((m & 0xFF0000) != 0);
+      memcpy(d, &m, (size_t) s);
+      d += s;
     }
-    return (int)(d - dest);
+  }
+  return (int)(d - dest);
 }
 
 
 /**
  * Check whether the memory buffer contains a valid UTF-8 string.
  */
-int is_valid_utf8(const unsigned char *__restrict__ src, size_t len)
+int is_valid_utf8(const uint8_t* src, size_t len)
 {
-    const unsigned char *ch = src;
-    const unsigned char *end = src + len;
-    while (ch < end) {
-        unsigned char c = *ch;
-        if (c < 0x80) {
-            ch++;
-        } else {
-            unsigned char cc = ch[1];
-            if ((c & 0xE0) == 0xC0) {
-                // 110xxxxx 10xxxxxx
-                if ((cc & 0xC0) != 0x80 ||
-                    (c & 0xFE) == 0xC0)
-                    return 0;
-                ch += 2;
-            } else if ((c & 0xF0) == 0xE0) {
-                // 1110xxxx 10xxxxxx 10xxxxxx
-                if ((cc & 0xC0) != 0x80 ||
-                    (ch[2] & 0xC0) != 0x80 ||
-                    (c == 0xE0 && (cc & 0xE0) == 0x80) ||  // overlong
-                    (c == 0xED && (cc & 0xE0) == 0xA0) ||  // surrogate
-                    (c == 0xEF && cc == 0xBF && (ch[2] & 0xFE) == 0xBE))
-                    return 0;
-                ch += 3;
-            } else if ((c & 0xF8) == 0xF0) {
-                // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-                if ((cc & 0xC0) != 0x80 ||
-                    (ch[2] & 0xC0) != 0x80 ||
-                    (ch[3] & 0xC0) != 0x80 ||
-                    (c == 0xF0 && (cc & 0xF0) == 0x80) ||  // overlong
-                    (c == 0xF4 && cc > 0x8F) ||  // unmapped
-                    c > 0xF4)
-                    return 0;
-                ch += 4;
-            } else
-                return 0;
+  const uint8_t* ch = src;
+  const uint8_t* end = src + len;
+  while (ch < end) {
+    uint8_t c = *ch;
+    if (c < 0x80) {
+      ch++;
+    } else {
+      uint8_t cc = ch[1];
+      if ((c & 0xE0) == 0xC0) {
+        // 110xxxxx 10xxxxxx
+        if ((cc & 0xC0) != 0x80 || (c & 0xFE) == 0xC0) {
+          return 0;
         }
+        ch += 2;
+      } else if ((c & 0xF0) == 0xE0) {
+        // 1110xxxx 10xxxxxx 10xxxxxx
+        if ((cc & 0xC0) != 0x80 ||
+            (ch[2] & 0xC0) != 0x80 ||
+            (c == 0xE0 && (cc & 0xE0) == 0x80) ||  // overlong
+            (c == 0xED && (cc & 0xE0) == 0xA0) ||  // surrogate
+            (c == 0xEF && cc == 0xBF && (ch[2] & 0xFE) == 0xBE)) {
+          return 0;
+        }
+        ch += 3;
+      } else if ((c & 0xF8) == 0xF0) {
+        // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        if ((cc & 0xC0) != 0x80 ||
+            (ch[2] & 0xC0) != 0x80 ||
+            (ch[3] & 0xC0) != 0x80 ||
+            (c == 0xF0 && (cc & 0xF0) == 0x80) ||  // overlong
+            (c == 0xF4 && cc > 0x8F) ||  // unmapped
+            c > 0xF4) {
+          return 0;
+        }
+        ch += 4;
+      } else
+        return 0;
     }
-    return (ch == end);
+  }
+  return (ch == end);
 }
+
+
+/**
+ * Check whether the string `src` contains valid UTF-8, or if there are any
+ * escape characters `ech` inside it. The `ech` parameter should be either '\\'
+ * or the quote char '"' / '\'' (any `ech` not in the ASCII range will be
+ * ignored).
+ *
+ * @return 0 if this is a valid UTF-8 string with no escape chars; 1 if the
+ *     string is valid UTF-8 but contains escape chars; and 2 if the string is
+ *     not valid UTF-8.
+ */
+int check_escaped_string(const uint8_t* src, size_t len, uint8_t ech)
+{
+  const uint8_t* ch = src;
+  const uint8_t* end = src + len;
+  int has_escapes = 0;
+  while (ch < end) {
+    uint8_t c = *ch;
+    if (c < 0x80) {
+      has_escapes |= (c == ech);
+      ch++;
+    } else {
+      uint8_t cc = ch[1];
+      if ((c & 0xE0) == 0xC0) {
+        // 110xxxxx 10xxxxxx
+        if ((cc & 0xC0) != 0x80 || (c & 0xFE) == 0xC0) {
+          return 2;
+        }
+        ch += 2;
+      } else if ((c & 0xF0) == 0xE0) {
+        // 1110xxxx 10xxxxxx 10xxxxxx
+        if ((cc & 0xC0) != 0x80 ||
+            (ch[2] & 0xC0) != 0x80 ||
+            (c == 0xE0 && (cc & 0xE0) == 0x80) ||  // overlong
+            (c == 0xED && (cc & 0xE0) == 0xA0) ||  // surrogate
+            (c == 0xEF && cc == 0xBF && (ch[2] & 0xFE) == 0xBE)) {
+          return 2;
+        }
+        ch += 3;
+      } else if ((c & 0xF8) == 0xF0) {
+        // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        if ((cc & 0xC0) != 0x80 ||
+            (ch[2] & 0xC0) != 0x80 ||
+            (ch[3] & 0xC0) != 0x80 ||
+            (c == 0xF0 && (cc & 0xF0) == 0x80) ||  // overlong
+            (c == 0xF4 && cc > 0x8F) ||  // unmapped
+            c > 0xF4) {
+          return 2;
+        }
+        ch += 4;
+      } else
+        return 2;
+    }
+  }
+  return (ch == end)? has_escapes : 2;
+}
+
 
 
 /**
@@ -129,3 +215,136 @@ int64_t utf32_to_utf8(uint32_t* buf, int64_t maxchars, char* ch)
   }
   return static_cast<int64_t>(ch - out0);
 }
+
+
+static void write_utf8_codepoint(int32_t cp, uint8_t** dest) {
+  uint8_t* ch = *dest;
+  if (cp <= 0x7F) {
+    *ch++ = static_cast<uint8_t>(cp);
+  } else if (cp <= 0x7FF) {
+    *ch++ = 0xC0 | (cp >> 6);
+    *ch++ = 0x80 | (cp & 0x3F);
+  } else if (cp <= 0xFFFF) {
+    *ch++ = 0xE0 | (cp >> 12);
+    *ch++ = 0x80 | ((cp >> 6) & 0x3F);
+    *ch++ = 0x80 | (cp & 0x3F);
+  } else {
+    *ch++ = 0xF0 | (cp >> 18);
+    *ch++ = 0x80 | ((cp >> 12) & 0x3F);
+    *ch++ = 0x80 | ((cp >> 6) & 0x3F);
+    *ch++ = 0x80 | (cp & 0x3F);
+  }
+  *dest = ch;
+}
+
+
+
+/**
+ * Decode a csv-encoded string. This function supports 2 encodings: either the
+ * "doubled quotes" encoding, or "escape" encoding.
+ * The first method is more commonly used in CSV: all quote characters within a
+ * quoted string are doubled. For example, a string `he says "hello"!` becomes
+ * `"he says ""hello""!"`. At the same time, the "escape" encoding converts it
+ * into `"he says \"helo\"!"`.
+ *
+ * This method supports decoding both encodings, as determined by the `quote`
+ * parameter. If any invalid sequences are encountered, an attempt is made to
+ * fix them. No exceptions are thrown.
+ *
+ * In these methods `dest` will always be no longer than `src` in length, and
+ * in fact the pointers `src` and `dest` may coincide to decode a string
+ * in-place.
+ *
+ * Parameters
+ * ----------
+ * src, len
+ *   The source string, given as a char pointer and a length. The string may
+ *   contain embedded NUL characters.
+ *
+ * dest
+ *   The destination buffer, where the decoded string will be written. This
+ *   buffer should be at least as large as `len`.
+ *
+ * quote
+ *   The quote character that should be un-doubled, or '\\' character for the
+ *   "escaped" encoding.
+ *
+ * Returns
+ * -------
+ * The length of the decoded string.
+ */
+int decode_escaped_csv_string(
+    const uint8_t* src, int len, uint8_t* dest, uint8_t quote
+) {
+  const uint8_t* ch = src;
+  const uint8_t* end = src + len;
+  uint8_t* d = dest;
+  if (quote == '\\') {
+    while (ch < end) {
+      uint8_t c = *ch;
+      if (c == '\\' && ch + 1 < end) {
+        c = ch[1];
+        ch += 2;
+        switch (c) {
+          case 'a': *d++ = '\a'; break;
+          case 'b': *d++ = '\b'; break;
+          case 'f': *d++ = '\f'; break;
+          case 'n': *d++ = '\n'; break;
+          case 'r': *d++ = '\r'; break;
+          case 't': *d++ = '\t'; break;
+          case 'v': *d++ = '\v'; break;
+          case '0': case '1': case '2': case '3':
+          case '4': case '5': case '6': case '7': {
+            // Octal escape sequence
+            uint8_t chd = c - '0';
+            int32_t v = static_cast<int32_t>(chd);
+            if (ch < end && (chd = *ch-'0') <= 7) {
+              v = v * 8 + chd;
+              ch++;
+            }
+            if (ch < end && (chd = *ch-'0') <= 7) {
+              v = v * 8 + chd;
+              ch++;
+            }
+            write_utf8_codepoint(v, &d);
+            break;
+          }
+          case 'x': case 'u': case 'U': {
+            // Hex-sequence
+            uint8_t chd = 0;
+            int32_t v = 0;
+            int n = (c == 'x')? 2 : (c == 'u')? 4 : 8;
+            for (int i = 0; i < n; i++) {
+              if (ch >= end) break;
+              chd = hexdigits[*ch];
+              if (chd == 99) break;
+              v = v * 16 + chd;
+              ch++;
+            }
+            write_utf8_codepoint(v, &d);
+            break;
+          }
+          case '\\': case '"': case '\'': case '?':
+          default:
+            *d++ = c; break;
+        }
+      } else {
+        *d = c;
+        d++;
+        ch++;
+      }
+    }
+  } else {
+    while (ch < end) {
+      uint8_t c = *ch;
+      if (c == quote) {
+        ch += (ch + 1 < end && ch[1] == quote);
+      }
+      *d = c;
+      ch++;
+      d++;
+    }
+  }
+  return static_cast<int>(d - dest);
+}
+
