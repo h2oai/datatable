@@ -127,7 +127,9 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
         return alloc_column(stype, nrows, j);
     }
 
-    size_t new_alloc_size = stype_info[stype].elemsize * nrows;
+    // Buffer in string's column has nrows + 1 elements
+    size_t xnrows = nrows + (stype_info[stype].ltype == LT_STRING);
+    size_t new_alloc_size = stype_info[stype].elemsize * xnrows;
     col->mbuf->resize(new_alloc_size);
     col->nrows = (int64_t) nrows;
     return col;
@@ -192,7 +194,7 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_,
  */
 size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
 {
-    Column **columns = NULL;
+    Column** columns = NULL;
     nstrcols = 0;
 
     // First we need to estimate the size of the dataset that needs to be

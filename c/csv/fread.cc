@@ -1711,6 +1711,7 @@ int FreadReader::freadMain()
         if (sep==' ') {
           while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
           fieldStart = tch;
+          if (eol(&tch) && skipEmptyLines) { tch++; continue; }
         }
 
         if (fill || ncol==1 || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
@@ -1852,8 +1853,13 @@ int FreadReader::freadMain()
             // remember the position where the previous thread has finished. We
             // will reallocate the DT and restart reading from the same point.
             jump0 = jump;
-            extraAllocRows = (size_t)((double)(DTi+myNrow)*nJumps/(jump+1) * 1.2) - allocnrow;
-            if (extraAllocRows < 1024) extraAllocRows = 1024;
+            if (jump < nJumps - 1) {
+              extraAllocRows = (size_t)((double)(DTi+myNrow)*nJumps/(jump+1) * 1.2) - allocnrow;
+              if (extraAllocRows < 1024) extraAllocRows = 1024;
+            } else {
+              // If we're on the last jump, then we know exactly how many extra rows is needed.
+              extraAllocRows = DTi + myNrow - allocnrow;
+            }
             myNrow = 0;
             stopTeam = true;
           }
@@ -1862,7 +1868,7 @@ int FreadReader::freadMain()
         prevJumpEnd = tch; // i) the \n I finished on so she can check (above) she started exactly on that \n good line start
         DTi += myNrow;     // ii) which row in the final result she should start writing to since now I know myNrow.
         ctx.nRows = myNrow;
-        orderBuffer(&ctx);
+        if (!stopTeam) orderBuffer(&ctx);
       }
       // END ORDERED.
       // Next thread can now start its ordered section and write its results to the final DT at the same time as me.
@@ -1905,6 +1911,7 @@ int FreadReader::freadMain()
     }
     allocateDT(ncol, ncol - nStringCols - nNonStringCols, allocnrow);
     extraAllocRows = 0;
+    stopTeam = false;
     goto read;   // jump0>0 at this point, set above
   }
 
