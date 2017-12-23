@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   on systems where default encoding is not unicode-aware.
 - More robust newline handling in fread (#634, #641, #647).
 - Quoted fields are now correctly unquoted in fread.
+- Fixed a bug in fread which occurred if the number of rows in the CSV file was
+  estimated too low (#664).
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
