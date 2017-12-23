@@ -89,50 +89,50 @@ DataTablePtr FreadReader::read() {
 
 Column* FreadReader::alloc_column(SType stype, size_t nrows, int j)
 {
-    // TODO(pasha): figure out how to use `WritableBuffer`s here
-    Column *col = NULL;
-    if (targetdir) {
-        snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
-        col = Column::new_mmap_column(stype, static_cast<int64_t>(nrows), fname);
-    } else{
-        col = Column::new_data_column(stype, static_cast<int64_t>(nrows));
-    }
-    if (col == NULL) return NULL;
+  // TODO(pasha): figure out how to use `WritableBuffer`s here
+  Column *col = NULL;
+  if (targetdir) {
+    snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
+    col = Column::new_mmap_column(stype, static_cast<int64_t>(nrows), fname);
+  } else{
+    col = Column::new_data_column(stype, static_cast<int64_t>(nrows));
+  }
+  if (col == NULL) return NULL;
 
-    if (stype_info[stype].ltype == LT_STRING) {
-        dtrealloc(strbufs[j], StrBuf, 1);
-        StrBuf* sb = strbufs[j];
-        // Pre-allocate enough memory to hold 5-char strings in the buffer. If
-        // this is not enough, we will always be able to re-allocate during the
-        // run time.
-        size_t alloc_size = nrows * 5;
-        sb->mbuf = static_cast<StringColumn<int32_t>*>(col)->strbuf;
-        sb->mbuf->resize(alloc_size);
-        sb->ptr = 0;
-        sb->idx8 = -1;  // not needed for this structure
-        sb->idxdt = j;
-        sb->numuses = 0;
-    }
-    return col;
+  if (stype_info[stype].ltype == LT_STRING) {
+    dtrealloc(strbufs[j], StrBuf, 1);
+    StrBuf* sb = strbufs[j];
+    // Pre-allocate enough memory to hold 5-char strings in the buffer. If
+    // this is not enough, we will always be able to re-allocate during the
+    // run time.
+    size_t alloc_size = nrows * 5;
+    sb->mbuf = static_cast<StringColumn<int32_t>*>(col)->strbuf;
+    sb->mbuf->resize(alloc_size);
+    sb->ptr = 0;
+    sb->idx8 = -1;  // not needed for this structure
+    sb->idxdt = j;
+    sb->numuses = 0;
+  }
+  return col;
 }
 
 
 Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int j)
 {
-    if (col != NULL && stype != col->stype()) {
-        delete col;
-        return alloc_column(stype, nrows, j);
-    }
-    if (col == NULL) {
-        return alloc_column(stype, nrows, j);
-    }
+  if (col != NULL && stype != col->stype()) {
+    delete col;
+    return alloc_column(stype, nrows, j);
+  }
+  if (col == NULL) {
+    return alloc_column(stype, nrows, j);
+  }
 
-    // Buffer in string's column has nrows + 1 elements
-    size_t xnrows = nrows + (stype_info[stype].ltype == LT_STRING);
-    size_t new_alloc_size = stype_info[stype].elemsize * xnrows;
-    col->mbuf->resize(new_alloc_size);
-    col->nrows = (int64_t) nrows;
-    return col;
+  // Buffer in string's column has nrows + 1 elements
+  size_t xnrows = nrows + (stype_info[stype].ltype == LT_STRING);
+  size_t new_alloc_size = stype_info[stype].elemsize * xnrows;
+  col->mbuf->resize(new_alloc_size);
+  col->nrows = (int64_t) nrows;
+  return col;
 }
 
 
@@ -194,75 +194,75 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_,
  */
 size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
 {
-    Column** columns = NULL;
-    nstrcols = 0;
+  Column** columns = NULL;
+  nstrcols = 0;
 
-    // First we need to estimate the size of the dataset that needs to be
-    // created. However this needs to be done on first run only.
-    // Also in this block we compute: `nstrcols` (will be used later in
-    // `prepareThreadContext` and `postprocessBuffer`), as well as allocating
-    // the `Column**` array.
-    if (ncols == 0) {
-        // DTPRINT("Writing the DataTable into %s", targetdir);
-        assert(!dt);
-        ncols = ncols_;
+  // First we need to estimate the size of the dataset that needs to be
+  // created. However this needs to be done on first run only.
+  // Also in this block we compute: `nstrcols` (will be used later in
+  // `prepareThreadContext` and `postprocessBuffer`), as well as allocating
+  // the `Column**` array.
+  if (ncols == 0) {
+    // DTPRINT("Writing the DataTable into %s", targetdir);
+    assert(!dt);
+    ncols = ncols_;
 
-        size_t alloc_size = 0;
-        int i, j;
-        for (i = j = 0; i < ncols; i++) {
-            if (types[i] == CT_DROP) continue;
-            nstrcols += (types[i] == CT_STRING);
-            SType stype = colType_to_stype[types[i]];
-            alloc_size += stype_info[stype].elemsize * nrows;
-            if (types[i] == CT_STRING) alloc_size += 5 * nrows;
-            j++;
-        }
-        assert(j == ncols_ - ndrop_);
-        dtcalloc_g(columns, Column*, j + 1);
-        dtcalloc_g(strbufs, StrBuf*, j);
-        columns[j] = NULL;
-
-        // Call the Python upstream to determine the strategy where the
-        // DataTable should be created.
-        targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
-                     .as_ccstring();
-    } else {
-        assert(dt && ncols == ncols_);
-        columns = dt->columns;
-        for (int i = 0; i < ncols; i++)
-            nstrcols += (types[i] == CT_STRING);
+    size_t alloc_size = 0;
+    int i, j;
+    for (i = j = 0; i < ncols; i++) {
+      if (types[i] == CT_DROP) continue;
+      nstrcols += (types[i] == CT_STRING);
+      SType stype = colType_to_stype[types[i]];
+      alloc_size += stype_info[stype].elemsize * nrows;
+      if (types[i] == CT_STRING) alloc_size += 5 * nrows;
+      j++;
     }
+    assert(j == ncols_ - ndrop_);
+    dtcalloc_g(columns, Column*, j + 1);
+    dtcalloc_g(strbufs, StrBuf*, j);
+    columns[j] = NULL;
 
-    // Compute number of digits in `ncols` (needed for creating file names).
-    if (targetdir) {
-        ndigits = 0;
-        for (int nc = ncols; nc; nc /= 10) ndigits++;
-    }
+    // Call the Python upstream to determine the strategy where the
+    // DataTable should be created.
+    targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
+                 .as_ccstring();
+  } else {
+    assert(dt && ncols == ncols_);
+    columns = dt->columns;
+    for (int i = 0; i < ncols; i++)
+      nstrcols += (types[i] == CT_STRING);
+  }
 
-    // Create individual columns
-    for (int i = 0, j = 0; i < ncols_; i++) {
-        int8_t type = types[i];
-        if (type == CT_DROP) continue;
-        if (type > 0) {
-            SType stype = colType_to_stype[type];
-            columns[j] = realloc_column(columns[j], stype, nrows, j);
-            if (columns[j] == NULL) goto fail;
-        }
-        j++;
-    }
+  // Compute number of digits in `ncols` (needed for creating file names).
+  if (targetdir) {
+    ndigits = 0;
+    for (int nc = ncols; nc; nc /= 10) ndigits++;
+  }
 
-    if (!dt) {
-      dt.reset(new DataTable(columns));
+  // Create individual columns
+  for (int i = 0, j = 0; i < ncols_; i++) {
+    int8_t type = types[i];
+    if (type == CT_DROP) continue;
+    if (type > 0) {
+      SType stype = colType_to_stype[type];
+      columns[j] = realloc_column(columns[j], stype, nrows, j);
+      if (columns[j] == NULL) goto fail;
     }
-    return 1;
+    j++;
+  }
+
+  if (!dt) {
+    dt.reset(new DataTable(columns));
+  }
+  return 1;
 
   fail:
-    if (columns) {
-      Column **col = columns;
-      while (*col++) delete (*col);
-      dtfree(columns);
-    }
-    throw RuntimeError() << "Unable to allocate DataTable";
+  if (columns) {
+    Column **col = columns;
+    while (*col++) delete (*col);
+    dtfree(columns);
+  }
+  throw RuntimeError() << "Unable to allocate DataTable";
 }
 
 
@@ -295,17 +295,17 @@ void FreadReader::prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
   try {
     ctx->strbufs = new StrBuf[nstrcols]();
     for (int i = 0, j = 0, k = 0, off8 = 0; i < (int)ncols; i++) {
-        if (types[i] == CT_DROP) continue;
-        if (types[i] == CT_STRING) {
-            assert(k < nstrcols);
-            ctx->strbufs[k].mbuf = new MemoryMemBuf(4096);
-            ctx->strbufs[k].ptr = 0;
-            ctx->strbufs[k].idx8 = off8;
-            ctx->strbufs[k].idxdt = j;
-            k++;
-        }
-        off8 += (sizes[i] == 8);
-        j++;
+      if (types[i] == CT_DROP) continue;
+      if (types[i] == CT_STRING) {
+        assert(k < nstrcols);
+        ctx->strbufs[k].mbuf = new MemoryMemBuf(4096);
+        ctx->strbufs[k].ptr = 0;
+        ctx->strbufs[k].idx8 = off8;
+        ctx->strbufs[k].idxdt = j;
+        k++;
+      }
+      off8 += (sizes[i] == 8);
+      j++;
     }
     return;
 
@@ -433,90 +433,90 @@ void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 
 void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
-    StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
-    const void *__restrict__ buff8 = ctx->buff8;
-    const void *__restrict__ buff4 = ctx->buff4;
-    const void *__restrict__ buff1 = ctx->buff1;
-    int nrows = (int) ctx->nRows;
-    size_t row0 = ctx->DTi;
+  StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
+  const void *__restrict__ buff8 = ctx->buff8;
+  const void *__restrict__ buff4 = ctx->buff4;
+  const void *__restrict__ buff1 = ctx->buff1;
+  int nrows = (int) ctx->nRows;
+  size_t row0 = ctx->DTi;
 
-    int i = 0;  // index within the `types` and `sizes`
-    int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
-    int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
-    int rowCount8 = (int) ctx->rowSize8 / 8;
-    int rowCount4 = (int) ctx->rowSize4 / 4;
-    int rowCount1 = (int) ctx->rowSize1;
+  int i = 0;  // index within the `types` and `sizes`
+  int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
+  int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
+  int rowCount8 = (int) ctx->rowSize8 / 8;
+  int rowCount4 = (int) ctx->rowSize4 / 4;
+  int rowCount1 = (int) ctx->rowSize1;
 
-    int k = 0;
-    for (; i < ncols; i++) {
-        if (types[i] == CT_DROP) continue;
-        Column *col = dt->columns[j];
+  int k = 0;
+  for (; i < ncols; i++) {
+    if (types[i] == CT_DROP) continue;
+    Column *col = dt->columns[j];
 
-        if (types[i] == CT_STRING) {
-            StrBuf *sb = strbufs[j];
-            int idx8 = ctx_strbufs[k].idx8;
-            size_t ptr = ctx_strbufs[k].ptr;
-            const lenOff *__restrict__ lo =
-                (const lenOff*) add_constptr(buff8, idx8 * 8);
-            size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
+    if (types[i] == CT_STRING) {
+      StrBuf *sb = strbufs[j];
+      int idx8 = ctx_strbufs[k].idx8;
+      size_t ptr = ctx_strbufs[k].ptr;
+      const lenOff *__restrict__ lo =
+          (const lenOff*) add_constptr(buff8, idx8 * 8);
+      size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
 
-            int done = 0;
-            while (!done) {
-                int old;
-                #pragma omp atomic capture
-                old = sb->numuses++;
-                if (old >= 0) {
-                    memcpy(sb->mbuf->at(ptr), ctx_strbufs[k].mbuf->get(), sz);
-                    done = 1;
-                }
-                #pragma omp atomic update
-                sb->numuses--;
-            }
-
-            int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
-            int32_t iptr = (int32_t) ptr;
-            for (int n = 0; n < nrows; n++) {
-                int32_t off = lo->off;
-                *dest++ = (off < 0)? off - iptr : off + iptr;
-                lo += rowCount8;
-            }
-            k++;
-
-        } else if (types[i] > 0) {
-            int8_t elemsize = sizes[i];
-            if (elemsize == 8) {
-                const uint64_t *src = ((const uint64_t*) buff8) + off8;
-                uint64_t *dest = ((uint64_t*) col->data()) + row0;
-                for (int r = 0; r < nrows; r++) {
-                    *dest = *src;
-                    src += rowCount8;
-                    dest++;
-                }
-            } else
-            if (elemsize == 4) {
-                const uint32_t *src = ((const uint32_t*) buff4) + off4;
-                uint32_t *dest = ((uint32_t*) col->data()) + row0;
-                for (int r = 0; r < nrows; r++) {
-                    *dest = *src;
-                    src += rowCount4;
-                    dest++;
-                }
-            } else
-            if (elemsize == 1) {
-                const uint8_t *src = ((const uint8_t*) buff1) + off1;
-                uint8_t *dest = ((uint8_t*) col->data()) + row0;
-                for (int r = 0; r < nrows; r++) {
-                    *dest = *src;
-                    src += rowCount1;
-                    dest++;
-                }
-            }
+      int done = 0;
+      while (!done) {
+        int old;
+        #pragma omp atomic capture
+        old = sb->numuses++;
+        if (old >= 0) {
+          memcpy(sb->mbuf->at(ptr), ctx_strbufs[k].mbuf->get(), sz);
+          done = 1;
         }
-        off8 += (sizes[i] == 8);
-        off4 += (sizes[i] == 4);
-        off1 += (sizes[i] == 1);
-        j++;
+        #pragma omp atomic update
+        sb->numuses--;
+      }
+
+      int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
+      int32_t iptr = (int32_t) ptr;
+      for (int n = 0; n < nrows; n++) {
+        int32_t off = lo->off;
+        *dest++ = (off < 0)? off - iptr : off + iptr;
+        lo += rowCount8;
+      }
+      k++;
+
+    } else if (types[i] > 0) {
+      int8_t elemsize = sizes[i];
+      if (elemsize == 8) {
+        const uint64_t *src = ((const uint64_t*) buff8) + off8;
+        uint64_t *dest = ((uint64_t*) col->data()) + row0;
+        for (int r = 0; r < nrows; r++) {
+          *dest = *src;
+          src += rowCount8;
+          dest++;
+        }
+      } else
+      if (elemsize == 4) {
+        const uint32_t *src = ((const uint32_t*) buff4) + off4;
+        uint32_t *dest = ((uint32_t*) col->data()) + row0;
+        for (int r = 0; r < nrows; r++) {
+          *dest = *src;
+          src += rowCount4;
+          dest++;
+        }
+      } else
+      if (elemsize == 1) {
+        const uint8_t *src = ((const uint8_t*) buff1) + off1;
+        uint8_t *dest = ((uint8_t*) col->data()) + row0;
+        for (int r = 0; r < nrows; r++) {
+          *dest = *src;
+          src += rowCount1;
+          dest++;
+        }
+      }
     }
+    off8 += (sizes[i] == 8);
+    off4 += (sizes[i] == 4);
+    off1 += (sizes[i] == 1);
+    j++;
+  }
 }
 
 
