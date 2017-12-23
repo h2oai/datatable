@@ -58,6 +58,7 @@ class ThreadContext {
     size_t rowsize;
     size_t wbuf_nrows;
     size_t used_nrows;
+    size_t row0;
     int ithread;
     int : 32;
 
@@ -67,8 +68,9 @@ class ThreadContext {
     virtual void* next_row();
     virtual void push_buffers() = 0;
     virtual const char* read_chunk(const char* start, const char* end) = 0;
-    virtual void discard();
-    virtual void order() = 0;
+    virtual void order(size_t r0) { row0 = r0; }
+    virtual size_t get_nrows() { return used_nrows; }
+    virtual void set_nrows(size_t n) { used_nrows = n; }
 };
 
 typedef std::unique_ptr<ThreadContext> ThreadContextPtr;
@@ -89,6 +91,10 @@ class ChunkedDataReader
     // are instantiated within the read_all() method:
     std::vector<GReaderOutputColumn> cols;
 
+    // Additional parameters
+    size_t max_nrows;
+    size_t alloc_nrows;
+
     // Runtime parameters:
     size_t chunksize;
     size_t nchunks;
@@ -101,9 +107,9 @@ public:
   virtual ~ChunkedDataReader();
   void set_input(const char* ptr, size_t size, int64_t line);
 
-  virtual ThreadContextPtr init_thread_context(int i) = 0;
+  virtual ThreadContextPtr init_thread_context() = 0;
   virtual void compute_chunking_strategy();
-  virtual void adjust_chunk_start(const char*& ch, const char* eof);
+  virtual const char* adjust_chunk_start(const char* ch, const char* eof);
   void read_all();
 };
 
