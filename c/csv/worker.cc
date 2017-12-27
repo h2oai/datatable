@@ -14,6 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "worker.h"
+#include <limits>  // std::numeric_limits
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -52,6 +53,8 @@ ChunkedDataReader::ChunkedDataReader() {
   chunksize = 0;
   nchunks = 0;
   chunks_contiguous = true;
+  max_nrows = std::numeric_limits<size_t>::max();
+  alloc_nrows = 0;
   nthreads = omp_get_max_threads();
 }
 
@@ -75,63 +78,175 @@ void ChunkedDataReader::compute_chunking_strategy() {
 
 // Default implementation merely moves the pointer to the beginning of the
 // next line.
-void ChunkedDataReader::adjust_chunk_start(const char*& ch, const char* eof) {
-  while (ch < eof) {
+const char* ChunkedDataReader::adjust_chunk_start(
+    const char* ch, const char* end
+) {
+  while (ch < end) {
     if (*ch == '\r' || *ch == '\n') {
       ch += 1 + (ch[0] + ch[1] == '\r' + '\n');
       break;
     }
     ch++;
   }
+  return ch;
 }
 
 
 void ChunkedDataReader::read_all()
 {
-  if (!inputptr || !inputsize) return;
-  const char* prev_chunkend = inputptr;
-  bool stopTeam = false;
+  const char* const inputend = inputptr + inputsize;
+  if (!inputptr || !inputend) return;
+  assert(alloc_nrows <= max_nrows);
+  //
+  // Thread-common state
+  // -------------------
+  // last_chunkend
+  //   The position where the last thread finished reading its chunk. This
+  //   variable is only meaningful inside the "ordered" section, where the
+  //   threads are ordered among themselves and the notion of "last thread" is
+  //   well-defined. This variable is also used to ensure that all input content
+  //   was properly read, and nothing was skipped.
+  //
+  //
+  const char* last_chunkend = inputptr;
+  bool stop_team = false;
+  bool stop_soft = false;
   size_t chunkdist = 0;
+  size_t chunk0 = 0;
+  size_t nrows_total = 0;
 
   #pragma omp parallel num_threads(nthreads)
   {
     #pragma omp master
     {
       nthreads = omp_get_num_threads();
-      compute_chunking_strategy();
+      compute_chunking_strategy();  // sets nchunks and possibly chunksize
       assert(nchunks > 0);
-      chunkdist = chunks_contiguous? chunksize : inputsize / nchunks;
-    }
-    int ithread = omp_get_thread_num();
-    ThreadContextPtr ctx = init_thread_context(ithread);
-
-    #pragma omp for ordered schedule(dynamic)
-    for (size_t ichunk = 0; ichunk < nchunks; ++ichunk) {
-      if (stopTeam) continue;
-      ctx->push_buffers();
-
-      const char* chunkstart = inputptr + ichunk * chunkdist;
-      const char* chunkend = chunkstart + chunksize;
-      if (ichunk == nchunks - 1) chunkend = inputptr + inputsize;
-      if (ichunk > 0) adjust_chunk_start(chunkstart, chunkend);
-
-      const char* end = ctx->read_chunk(chunkstart, chunkend);
-
-      #pragma omp ordered
-      {
-        if (chunkstart != prev_chunkend && chunks_contiguous) {
-          // printf("Previous chunk did not finish at the same place: %p vs %p...\n", prev_chunkend, chunkstart);
-          // Re-read the chunk
-          ctx->discard();
-          end = ctx->read_chunk(prev_chunkend, chunkend);
+      if (chunks_contiguous) {
+        chunksize = chunkdist = inputsize / nchunks;
+      } else {
+        assert(chunksize > 0 && chunksize <= inputsize);
+        if (nchunks > 1) {
+          chunkdist = (inputsize - chunksize) / (nchunks - 1);
         }
-        prev_chunkend = end;
-        ctx->order();
       }
     }
-    // Push buffers one last time
-    ctx->push_buffers();
-  }
+    // Wait for chunking calculations, in case ThreadContext needs them...
+    #pragma omp barrier
+
+    ThreadContextPtr tctx = init_thread_context();
+    const char* tend;
+    size_t tnrows;
+
+    start_reading:;
+    #pragma omp for ordered schedule(dynamic) nowait
+    for (size_t i = chunk0; i < nchunks; ++i) {
+      if (stop_team) continue;
+      tctx->push_buffers();
+
+      const char* chunkstart = inputptr + i * chunkdist;
+      const char* chunkend = chunkstart + chunksize;
+      if (i == nchunks - 1) chunkend = inputend;
+      if (i > 0) chunkstart = adjust_chunk_start(chunkstart, chunkend);
+
+      tend = tctx->read_chunk(chunkstart, chunkend);
+      tnrows = tctx->get_nrows();
+      assert(tend >= chunkend);
+
+      // Artificial loop makes it easy to quickly exit the "ordered" section.
+      #pragma omp ordered
+      do {
+        // If "hard stop" was requested by a previous thread while this thread
+        // was waiting in the queue to enter the ordered section, then we
+        // dismiss the current thread's data.
+        if (stop_team && !stop_soft) {
+          tctx->set_nrows(0);
+          break;
+        }
+        // If `adjust_chunk_start()` above did not find the correct starting
+        // point, then the data that was read is incorrect (and if reading
+        // produced any errors, those might also be invalid). In this case we
+        // simply disregard all the data read so far, and re-read the chunk
+        // from the "correct" place. We are forced to do re-reading in a slow
+        // way, blocking all other threads, but this case should really almost
+        // never happen (and if it does, slight slowdown is a small price to
+        // pay).
+        if (chunkstart != last_chunkend && chunks_contiguous) {
+          tctx->set_nrows(0);
+          chunkstart = last_chunkend;
+          tend = tctx->read_chunk(chunkstart, chunkend);
+          tnrows = tctx->get_nrows();
+        }
+        size_t row0 = nrows_total;
+        nrows_total += tnrows;
+        last_chunkend = tend;
+        // Since alloc_nrows never exceeds max_nrows, this if check is same as
+        // ``nrows_total >= max_nrows || nrows_total > alloc_nrows``.
+        if (nrows_total >= alloc_nrows) {
+          // If this thread reaches or exceeds the requested max_nrows, then
+          // no subsequent thread's data is needed: request a "hard stop".
+          // However this thread's data still needs to be ordered and pushed.
+          // Also it could be that `max_nrows > alloc_nrows`, and that case
+          // has to be handled too (then we'll have both `stop_hard = true`
+          // and `stop_soft = true`).
+          if (nrows_total >= max_nrows) {
+            tnrows -= nrows_total - max_nrows;
+            nrows_total = max_nrows;
+            tctx->set_nrows(tnrows);
+            last_chunkend = inputend;
+            stop_team = true;
+          }
+          // If the total number of rows read exceeds the allocated storage
+          // space, then request a "soft stop" so that the current and all
+          // queued threads can safely finish reading their pieces. Note that
+          // as subsequent threads enter the ordered section, all of them will
+          // also reach this if clause, in the end `chunk0` will point to the
+          // first unread chunk.
+          if (nrows_total > alloc_nrows) {
+            chunk0 = i + 1;
+            stop_soft = true;
+            stop_team = true;
+          }
+        }
+        // Allow each thread to perform any ordering it needs.
+        tctx->order(row0);
+      } while (0);  // #omp ordered
+    } // #omp for(i in chunk0..nchunks) nowait
+
+    // Push the remaining data in the buffers
+    if (!stop_team) {
+      tctx->push_buffers();
+    }
+
+    // Make all threads wait at this point. We want to wait after the last
+    // thread has pushed its buffers (hence "nowait" in the omp-for-loop above).
+    // At the same time, the case "nrows_total > alloc_nrows" below requires
+    // that no thread was accessing the global buffer which will be reallocared.
+    #pragma omp barrier
+
+    // When the number of rows read exceeds the amount of allocated rows, then
+    // reallocate the output columns and go back to the top of the reading loop.
+    // The reallocation is done from the master thread, while all other threads
+    // wait until it is complete. However we do not want to leave the parallel
+    // region so as not to lose the data in each thread's buffer.
+    if (nrows_total > alloc_nrows) {
+      #pragma omp master
+      {
+        size_t new_alloc_nrows = nrows_total;
+        if (chunk0 < nchunks) {
+          new_alloc_nrows = static_cast<size_t>(1.2 * nrows_total *
+                                                nchunks / chunk0);
+        }
+        assert(new_alloc_nrows >= nrows_total);
+        realloc_columns(new_alloc_nrows);
+        alloc_nrows = new_alloc_nrows;
+        stop_team = false;
+        stop_soft = false;
+      }
+      #pragma omp barrier
+      goto start_reading;
+    }
+  } // #omp parallel
 }
 
 
@@ -145,6 +260,7 @@ ThreadContext::ThreadContext(int ith, size_t nrows, size_t ncols) {
   wbuf_nrows = nrows;
   wbuf = malloc(rowsize * wbuf_nrows);
   used_nrows = 0;
+  row0 = 0;
 }
 
 
@@ -174,11 +290,6 @@ void* ThreadContext::next_row() {
     }
   }
   return static_cast<void*>(static_cast<char*>(wbuf) + (used_nrows++) * rowsize);
-}
-
-
-void ThreadContext::discard() {
-  used_nrows = 0;
 }
 
 
