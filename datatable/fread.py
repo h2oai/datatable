@@ -56,7 +56,7 @@ def fread(
         encoding: str = None,
         skip_to_string: str = None,
         skip_to_line: int = None,
-        skip_blank_lines: bool = True,
+        skip_blank_lines: bool = False,
         strip_white: bool = True,
         quotechar: Optional[str] = '"',
         save_to: str = None,

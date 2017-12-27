@@ -109,7 +109,7 @@ void ChunkedDataReader::read_all()
   //
   //
   const char* last_chunkend = inputptr;
-  bool stop_hard = false;
+  bool stop_team = false;
   bool stop_soft = false;
   size_t chunkdist = 0;
   size_t chunk0 = 0;
@@ -138,83 +138,115 @@ void ChunkedDataReader::read_all()
     const char* tend;
     size_t tnrows;
 
-    while (last_chunkend < inputend)
-    {
-      #pragma omp for ordered schedule(dynamic) nowait
-      for (size_t i = chunk0; i < nchunks; ++i) {
-        if (stop_hard || stop_soft) continue;
-        tctx->push_buffers();
+    start_reading:;
+    #pragma omp for ordered schedule(dynamic) nowait
+    for (size_t i = chunk0; i < nchunks; ++i) {
+      if (stop_team) continue;
+      tctx->push_buffers();
 
-        const char* chunkstart = inputptr + i * chunkdist;
-        const char* chunkend = chunkstart + chunksize;
-        if (i == nchunks - 1) chunkend = inputend;
-        if (i > 0) chunkstart = adjust_chunk_start(chunkstart, chunkend);
+      const char* chunkstart = inputptr + i * chunkdist;
+      const char* chunkend = chunkstart + chunksize;
+      if (i == nchunks - 1) chunkend = inputend;
+      if (i > 0) chunkstart = adjust_chunk_start(chunkstart, chunkend);
 
-        tend = tctx->read_chunk(chunkstart, chunkend);
-        tnrows = tctx->get_nrows();
-        assert(tend >= chunkend);
+      tend = tctx->read_chunk(chunkstart, chunkend);
+      tnrows = tctx->get_nrows();
+      assert(tend >= chunkend);
 
-        // Artificial loop makes it easy to quickly exit the "ordered" section.
-        #pragma omp ordered
-        do {
-          // If "hard stop" was requested by a previous thread while this thread
-          // was waiting in the queue to enter the ordered section, then we
-          // dismiss the current thread's data.
-          if (stop_hard) {
-            tctx->set_nrows(0);
-            break;
+      // Artificial loop makes it easy to quickly exit the "ordered" section.
+      #pragma omp ordered
+      do {
+        // If "hard stop" was requested by a previous thread while this thread
+        // was waiting in the queue to enter the ordered section, then we
+        // dismiss the current thread's data.
+        if (stop_team && !stop_soft) {
+          tctx->set_nrows(0);
+          break;
+        }
+        // If `adjust_chunk_start()` above did not find the correct starting
+        // point, then the data that was read is incorrect (and if reading
+        // produced any errors, those might also be invalid). In this case we
+        // simply disregard all the data read so far, and re-read the chunk
+        // from the "correct" place. We are forced to do re-reading in a slow
+        // way, blocking all other threads, but this case should really almost
+        // never happen (and if it does, slight slowdown is a small price to
+        // pay).
+        if (chunkstart != last_chunkend && chunks_contiguous) {
+          tctx->set_nrows(0);
+          chunkstart = last_chunkend;
+          tend = tctx->read_chunk(chunkstart, chunkend);
+          tnrows = tctx->get_nrows();
+        }
+        size_t row0 = nrows_total;
+        nrows_total += tnrows;
+        last_chunkend = tend;
+        // Since alloc_nrows never exceeds max_nrows, this if check is same as
+        // ``nrows_total >= max_nrows || nrows_total > alloc_nrows``.
+        if (nrows_total >= alloc_nrows) {
+          // If this thread reaches or exceeds the requested max_nrows, then
+          // no subsequent thread's data is needed: request a "hard stop".
+          // However this thread's data still needs to be ordered and pushed.
+          // Also it could be that `max_nrows > alloc_nrows`, and that case
+          // has to be handled too (then we'll have both `stop_hard = true`
+          // and `stop_soft = true`).
+          if (nrows_total >= max_nrows) {
+            tnrows -= nrows_total - max_nrows;
+            nrows_total = max_nrows;
+            tctx->set_nrows(tnrows);
+            last_chunkend = inputend;
+            stop_team = true;
           }
-          // If `adjust_chunk_start()` above did not find the correct starting
-          // point, then the data that was read is incorrect (and if reading
-          // produced any errors, those might also be invalid). In this case we
-          // simply disregard all the data read so far, and re-read the chunk
-          // from the "correct" place. We are forced to do re-reading in a slow
-          // way, blocking all other threads, but this case should really almost
-          // never happen (and if it does, slight slowdown is a small price to
-          // pay).
-          if (chunkstart != last_chunkend && chunks_contiguous) {
-            tctx->set_nrows(0);
-            chunkstart = last_chunkend;
-            tend = tctx->read_chunk(chunkstart, chunkend);
-            tnrows = tctx->get_nrows();
+          // If the total number of rows read exceeds the allocated storage
+          // space, then request a "soft stop" so that the current and all
+          // queued threads can safely finish reading their pieces. Note that
+          // as subsequent threads enter the ordered section, all of them will
+          // also reach this if clause, in the end `chunk0` will point to the
+          // first unread chunk.
+          if (nrows_total > alloc_nrows) {
+            chunk0 = i + 1;
+            stop_soft = true;
+            stop_team = true;
           }
-          size_t row0 = nrows_total;
-          nrows_total += tnrows;
-          last_chunkend = tend;
-          // Since alloc_nrows never exceeds max_nrows, this if check is same as
-          // ``nrows_total >= max_nrows || nrows_total > alloc_nrows``.
-          if (nrows_total >= alloc_nrows) {
-            // If this thread reaches or exceeds the requested max_nrows, then
-            // no subsequent thread's data is needed: request a "hard stop".
-            // However this thread's data still needs to be ordered and pushed.
-            // Also it could be that `max_nrows > alloc_nrows`, and that case
-            // has to be handled too (then we'll have both `stop_hard = true`
-            // and `stop_soft = true`).
-            if (nrows_total >= max_nrows) {
-              tnrows -= nrows_total - max_nrows;
-              nrows_total = max_nrows;
-              tctx->set_nrows(tnrows);
-              last_chunkend = inputend;
-              stop_hard = true;
-            }
-            // If the total number of rows read exceeds the allocated storage
-            // space, then request a "soft stop" so that the current and all
-            // queued threads can safely finish reading their pieces. Note that
-            // as subsequent threads enter the ordered section, all of them will
-            // also reach this if clause
-            if (nrows_total > alloc_nrows) {
-              stop_soft = true;
-              chunk0 = i + 1;
-            }
-          }
-          // Allow each thread to perform any ordering it needs.
-          tctx->order(row0);
-        } while (0);
-      }
-      // Push buffers one last time
+        }
+        // Allow each thread to perform any ordering it needs.
+        tctx->order(row0);
+      } while (0);  // #omp ordered
+    } // #omp for(i in chunk0..nchunks) nowait
+
+    // Push the remaining data in the buffers
+    if (!stop_team) {
       tctx->push_buffers();
     }
-  }
+
+    // Make all threads wait at this point. We want to wait after the last
+    // thread has pushed its buffers (hence "nowait" in the omp-for-loop above).
+    // At the same time, the case "nrows_total > alloc_nrows" below requires
+    // that no thread was accessing the global buffer which will be reallocared.
+    #pragma omp barrier
+
+    // When the number of rows read exceeds the amount of allocated rows, then
+    // reallocate the output columns and go back to the top of the reading loop.
+    // The reallocation is done from the master thread, while all other threads
+    // wait until it is complete. However we do not want to leave the parallel
+    // region so as not to lose the data in each thread's buffer.
+    if (nrows_total > alloc_nrows) {
+      #pragma omp master
+      {
+        size_t new_alloc_nrows = nrows_total;
+        if (chunk0 < nchunks) {
+          new_alloc_nrows = static_cast<size_t>(1.2 * nrows_total *
+                                                nchunks / chunk0);
+        }
+        assert(new_alloc_nrows >= nrows_total);
+        realloc_columns(new_alloc_nrows);
+        alloc_nrows = new_alloc_nrows;
+        stop_team = false;
+        stop_soft = false;
+      }
+      #pragma omp barrier
+      goto start_reading;
+    }
+  } // #omp parallel
 }
 
 

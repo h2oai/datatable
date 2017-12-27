@@ -34,16 +34,23 @@ def get_file_list(*path):
     rootdir = os.path.join(d, *path)
     if not os.path.isdir(rootdir):
         return [failed("Directory '%s' does not exist" % rootdir, rootdir)]
-    exts = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv", ".psv",
-            ".scsv", ".hive"]
+    good_extensions = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv",
+                       ".psv", ".scsv", ".hive"]
+    bad_extensions = {".gif", ".jpg", ".jpeg", ".pdf", ".svg"}
     out = set()
     for dirname, subdirs, files in os.walk(rootdir):
         for filename in files:
             f = os.path.join(dirname, filename)
+            try:
+                ext = filename[filename.rindex("."):]
+            except ValueError:
+                ext = ""
+            if ext in bad_extensions:
+                continue
             if ("readme" not in filename.lower() and
                     ".svm" not in filename and
                     ".json" not in filename and
-                    any(filename.endswith(ext) for ext in exts)):
+                    ext in good_extensions):
                 if filename.endswith(".zip") and f[:-4] in out:
                     continue
                 if f + ".zip" in out:
