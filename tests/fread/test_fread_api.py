@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Tests in this file are specifically aimed at checking the API of `fread`
+# function / class. This includes: presence of various parameters, checks that
+# the parameters do what they are supposed to do.
+#-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
 import os
@@ -10,8 +15,43 @@ from datatable import stype, ltype
 
 
 #-------------------------------------------------------------------------------
-# Tests for fread "source" arguments
+# Tests for fread "source" arguments:
+# the unnamed first argument, as well as `file`, `text`, `cmd`, `url`.
 #-------------------------------------------------------------------------------
+
+def test_fread_from_file1(tempfile):
+    with open(tempfile, "w") as o:
+        o.write("A,B\n1,2")
+    d0 = dt.fread(tempfile)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.topython() == [[1], [2]]
+
+
+def test_fread_from_file2():
+    with pytest.raises(ValueError):
+        dt.fread(file="a,b\n1,2")
+
+
+def test_fread_from_text1():
+    d0 = dt.fread(text="A")
+    assert d0.internal.check()
+    assert d0.names == ("A",)
+    assert d0.shape == (0, 1)
+
+
+def test_fread_from_cmd():
+    d0 = dt.fread(cmd="ls -l")
+    assert d0.internal.check()
+    # It is difficult to assert anything about the contents or structure
+    # of the resulting dataset...
+
+
+def test_fread_from_url():
+    with pytest.raises(ValueError) as e:
+        dt.fread(url="A")
+    assert "unknown url type" in str(e)
+
 
 def test_fread_from_anysource_as_text1(capsys):
     src = "A\n" + "\n".join(str(i) for i in range(100))
