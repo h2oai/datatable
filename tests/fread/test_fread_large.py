@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Optional tests (enabled only if DT_LARGE_TESTS_ROOT environment variable is
+# defined): read a large number of external files of various sizes, including
+# some very big files.
+#-------------------------------------------------------------------------------
 import os
 import pytest
 import datatable
 
 root_env_name = "DT_LARGE_TESTS_ROOT"
+
+
 
 #-------------------------------------------------------------------------------
 # Helper functions
@@ -64,6 +71,7 @@ def get_file_list(*path):
 @pytest.fixture()
 def f(request):
     return request.param()
+
 
 
 #-------------------------------------------------------------------------------
