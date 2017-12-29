@@ -176,3 +176,15 @@ def test_fread_float():
     assert d0.internal.check()
     assert d0.stypes == (stype.float32, )
     assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
+
+
+def test_issue664(capsys):
+    f = dt.fread("x\nA B 2\n\ny\n", sep=" ", fill=True, verbose=True,
+                 skip_blank_lines=True)
+    out, err = capsys.readouterr()
+    assert "Too few rows allocated" not in out
+    assert f.internal.check()
+    assert f.shape == (3, 3)
+    assert f.topython() == [["x", "A", "y"],
+                            [None, "B", None],
+                            [None, 2, None]]
