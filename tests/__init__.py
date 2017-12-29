@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import random
 import sys
 from math import isnan
 
@@ -102,3 +103,10 @@ def assert_equals(datatable1, datatable2):
     assert same_iterables(datatable1.names, datatable2.names)
     assert same_iterables(datatable1.stypes, datatable2.stypes)
     assert same_iterables(datatable1.topython(), datatable2.topython())
+
+
+
+def random_string(n):
+    """Return random alphanumeric string of `n` characters."""
+    alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return "".join(random.choice(alphabet) for _ in range(n))

@@ -5,14 +5,41 @@
 # on GitHub. The test cases are expected to all be reasonably small.
 #-------------------------------------------------------------------------------
 import datatable as dt
-from datatable import ltype, stype
-import math
-import pytest
-import random
 
 
+def test_issue_R1113():
+    # Loosely based on #1113 in R
+    txt = ("ITER    THETA1    THETA2   MCMC\n"
+           "        -11000 -2.50000E+00  2.30000E+00    345678.20255 \n"
+           "        -10999 -2.49853E+01  3.79270E+02    -195780.43911\n"
+           "        -10998 1.95957E-01  4.16522E+00    7937.13048")
+    d0 = dt.fread(txt)
+    assert d0.internal.check()
+    assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
+                         dt.ltype.real)
+    assert d0.topython() == [[-11000, -10999, -10998],
+                             [-2.5, -24.9853, 0.195957],
+                             [2.3, 379.270, 4.16522],
+                             [345678.20255, -195780.43911, 7937.13048]]
 
-def test_select_some_columns():
+
+def test_issue_R2404():
+    inp = [["Abc", "def", '"gh,kl"', "mnopqrst"]] * 1000
+    inp[111] = ["ain't", "this", "a", "surprise!"]
+    txt = "A,B,C,D\n" + "\n".join(",".join(row) for row in inp)
+    d0 = dt.fread(txt)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C", "D")
+    assert d0.shape == (1000, 4)
+    inp[111][2] = '"a"'
+    assert d0.topython() == [[row[0] for row in inp],
+                             [row[1] for row in inp],
+                             [row[2][1:-1] for row in inp],  # unescape
+                             [row[3] for row in inp]]
+
+
+def test_issue_R2464():
     # * Last field of last line contains separator
     # * The file doesn't end with \n
     # * Only subset of columns is requested
@@ -22,7 +49,7 @@ def test_select_some_columns():
     assert f.topython() == [[1], [2]]
 
 
-def test_fread_issue527():
+def test_issue_527():
     """
     Test handling of invalid UTF-8 characters: right now they are decoded
     using Windows-1252 code page (this is better than throwing an exception).
@@ -34,7 +61,7 @@ def test_fread_issue527():
     assert d0.topython() == [[1], [2], ["3ª"]]
 
 
-def test_fread_issue594():
+def test_issue_594():
     """
     Test handling of characters that are both invalid UTF-8 and invalid
     Win-1252, when they appear as a column header.
@@ -55,85 +82,7 @@ def test_fread_issue594():
     assert d0.names == ("A", bad.decode("windows-1252", "replace"))
 
 
-def test_fread_issue615():
-    d0 = dt.fread("A,B,C,D,E,F,G,H,I\n"
-                  "NaNaNa,Infinity-3,nanny,0x1.5p+12@boo,23ba,2.5e-4q,"
-                  "Truely,Falsely,1\n")
-    assert d0.internal.check()
-    assert d0.topython() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
-                             ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
-                             ["Truely"], ["Falsely"], [1]]
-
-
-def test_fread_issue628():
-    """Similar to #594 but read in verbose mode."""
-    d0 = dt.fread(b"a,\x80\n11,2\n", verbose=True)
-    assert d0.internal.check()
-    assert d0.topython() == [[11], [2]]
-    # The interpretation of byte \x80 as symbol € is not set in stone: we may
-    # alter it in the future, or make it platform-dependent?
-    assert d0.names == ("a", "€")
-
-
-
-def test_fread_CtrlZ():
-    """Check that Ctrl+Z characters at the end of the file are removed"""
-    src = b"A,B,C\n-1,2,3\x1A\x1A"
-    d0 = dt.fread(text=src)
-    assert d0.internal.check()
-    assert d0.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int)
-    assert d0.topython() == [[-1], [2], [3]]
-
-
-def test_fread_NUL():
-    """Check that NUL characters at the end of the file are removed"""
-    d0 = dt.fread(text=b"A,B\n2.3,5\0\0\0\0\0\0\0\0\0\0")
-    assert d0.internal.check()
-    assert d0.ltypes == (dt.ltype.real, dt.ltype.int)
-    assert d0.topython() == [[2.3], [5]]
-
-
-def test_fread_1col_a():
-    """Check that it is possible to read 1-column file witn NAs."""
-    # We also check that trailing newlines are not discarded in this case
-    # (otherwise round-trip with write_csv wouldn't work).
-    d0 = dt.fread(text="A\n1\n2\n\n4\n\n5\n\n")
-    assert d0.internal.check()
-    assert d0.names == ("A",)
-    assert d0.topython() == [[1, 2, None, 4, None, 5, None]]
-
-
-def test_fread_1col_b():
-    d1 = dt.fread("QUOTE\n"
-                  "If you think\n"
-                  "you can do it,\n\n"
-                  "you can.\n\n", sep="\n")
-    assert d1.internal.check()
-    assert d1.names == ("QUOTE",)
-    assert d1.topython() == [["If you think", "you can do it,", "",
-                              "you can.", ""]]
-
-
-@pytest.mark.parametrize("eol", ["\n", "\r", "\n\r", "\r\n", "\r\r\n"])
-def test_fread_1col_c(eol):
-    data = ["A", "100", "200", "", "400", "", "600"]
-    d0 = dt.fread(eol.join(data))
-    assert d0.internal.check()
-    assert d0.names == ("A", )
-    assert d0.topython() == [[100, 200, None, 400, None, 600]]
-
-
-def test_fread_line_endings():
-    entries = ["A", "", "1", "2", "3"]
-    for eol in ["\n", "\r", "\n\r", "\r\n", "\r\r\n"]:
-        text = eol.join(entries)
-        d0 = dt.fread(text=text)
-        assert d0.internal.check()
-        assert d0.names == ("A",)
-        assert d0.topython() == [[None, 1, 2, 3]]
-
-
-def test_fread_with_whitespace():
+def test_issue_606():
     """
     Check that whitespace at the ends of lines is ignored, even if sep=' ' is
     detected. See issue #606
@@ -154,31 +103,46 @@ def test_fread_with_whitespace():
                              ["baz", None,  "l8r"]]  # should this be ""?
 
 
-def test_fread_hex():
-    rnd = random.random
-    arr = [rnd() * 10**(10**rnd()) for i in range(20)]
-    inp = "A\n%s\n" % "\n".join(x.hex() for x in arr)
-    d0 = dt.fread(text=inp)
+def test_issue_615():
+    d0 = dt.fread("A,B,C,D,E,F,G,H,I\n"
+                  "NaNaNa,Infinity-3,nanny,0x1.5p+12@boo,23ba,2.5e-4q,"
+                  "Truely,Falsely,1\n")
     assert d0.internal.check()
-    assert d0.ltypes == (ltype.real, )
-    assert d0.topython() == [arr]
+    assert d0.topython() == [["NaNaNa"], ["Infinity-3"], ["nanny"],
+                             ["0x1.5p+12@boo"], ["23ba"], ["2.5e-4q"],
+                             ["Truely"], ["Falsely"], [1]]
 
 
-def test_fread_hex0():
-    d0 = dt.fread(text="A\n0x0.0p+0\n0x0p0\n-0x0p-0\n")
-    assert d0.topython() == [[0.0] * 3]
-    assert math.copysign(1.0, d0.topython()[0][2]) == -1.0
-
-
-def test_fread_float():
-    inp = "A\n0x0p0\n0x1.5p0\n0x1.5p-1\n0x1.2AAAAAp+22"
-    d0 = dt.fread(text=inp)
+def test_issue_628():
+    """Similar to #594 but read in verbose mode."""
+    d0 = dt.fread(b"a,\x80\n11,2\n", verbose=True)
     assert d0.internal.check()
-    assert d0.stypes == (stype.float32, )
-    assert d0.topython() == [[0, 1.3125, 0.65625, 4893354.5]]
+    assert d0.topython() == [[11], [2]]
+    # The interpretation of byte \x80 as symbol € is not set in stone: we may
+    # alter it in the future, or make it platform-dependent?
+    assert d0.names == ("a", "€")
 
 
-def test_issue664(capsys):
+def test_issue_641():
+    f = dt.fread("A,B,C\n"
+                 "5,,\n"
+                 "6,foo\rbar,z\n"
+                 "7,bah,")
+    assert f.internal.check()
+    assert f.names == ("A", "B", "C")
+    assert f.ltypes == (dt.ltype.int, dt.ltype.str, dt.ltype.str)
+    assert f.topython() == [[5, 6, 7], ["", "foo\rbar", "bah"], ["", "z", ""]]
+
+
+def test_issue_643():
+    d0 = dt.fread("A B\n1 2\n3 4 \n5 6\n6   7   ")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert d0.topython() == [[1, 3, 5, 6], [2, 4, 6, 7]]
+
+
+def test_issue_664(capsys):
     f = dt.fread("x\nA B 2\n\ny\n", sep=" ", fill=True, verbose=True,
                  skip_blank_lines=True)
     out, err = capsys.readouterr()
