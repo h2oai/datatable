@@ -5,7 +5,11 @@
 # on GitHub. The test cases are expected to all be reasonably small.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import pytest
+import re
 
+
+#-------------------------------------------------------------------------------
 
 def test_issue_R1113():
     # Loosely based on #1113 in R
@@ -24,6 +28,40 @@ def test_issue_R1113():
                              [345678.20255, -195780.43911, 7937.13048]]
 
 
+def test_issue_R2196():
+    """
+    Check that column detection heuristic detects 3 not 4 columns here...
+    """
+    d0 = dt.fread('1,2,"3,a"\n4,5,"6,b"')
+    assert d0.internal.check()
+    assert d0.shape == (2, 3)
+    assert d0.topython() == [[1, 4], [2, 5], ["3,a", "6,b"]]
+
+
+@pytest.mark.parametrize("v", ["", "d", "s"])
+def test_issue_R2287(v):
+    """
+    If a line where an error occurs contains %d / %s, then they should not be
+    interpreted as format characters -- this may result in a crash!
+    """
+    field = "bar%" + v
+    with pytest.raises(Exception) as e:
+        dt.fread("A,B\nfoo,1\n" + field)
+    assert ('Expecting 2 fields but found 1: "%s"' % field) in str(e)
+
+
+def test_issue_R2299():
+    """Bad column count on out-of-sample row."""
+    # If this crashes on Windows, it's because of %zd/%zu format strings...
+    src = ("A,B\n" +
+           "1,2\n" * 100 +
+           "999\n" +
+           "3,4\n" * 5000)
+    with pytest.raises(Exception) as e:
+        dt.fread(src)
+    assert re.search("Expecting 2 cols but row .+ contains only 1 cols", str(e))
+
+
 def test_issue_R2404():
     inp = [["Abc", "def", '"gh,kl"', "mnopqrst"]] * 1000
     inp[111] = ["ain't", "this", "a", "surprise!"]
@@ -39,6 +77,20 @@ def test_issue_R2404():
                              [row[3] for row in inp]]
 
 
+@pytest.mark.parametrize("sep", [" ", ",", ";"])
+def test_issue_R2322(sep):
+    """
+    Single-column file where column name has spaces in it. This should be
+    detected correctly (as opposed to guessing sep = ' ').
+    """
+    name = sep.join("abcd")
+    d0 = dt.fread(name + "\n2\n3\n4\n")
+    assert d0.internal.check()
+    assert d0.shape == (3, 1)
+    assert d0.names == (name, )
+    assert d0.topython() == [[2, 3, 4]]
+
+
 def test_issue_R2464():
     # * Last field of last line contains separator
     # * The file doesn't end with \n
@@ -48,6 +100,41 @@ def test_issue_R2464():
     assert f.names == ("A", "B")
     assert f.topython() == [[1], [2]]
 
+
+def test_issue_R2535():
+    # `skip_blank_lines` takes precedence over parameter `fill`
+    src = "a b 2\nc d 3\n\ne f 4\n"
+    d0 = dt.fread(src, skip_blank_lines=True, fill=False)
+    d1 = dt.fread(src, skip_blank_lines=True, fill=True)
+    d2 = dt.fread(src, skip_blank_lines=False, fill=True)
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d0.topython() == [list("ace"), list("bdf"), [2, 3, 4]]
+    assert d1.topython() == [list("ace"), list("bdf"), [2, 3, 4]]
+    assert d2.topython() == [["a", "c", None, "e"],
+                             ["b", "d", None, "f"],
+                             [2, 3, None, 4]]
+
+
+@pytest.mark.xfail()
+def test_issue_R2535x():
+    # Currently we set fill=True when sep=' ' is detected. However fread should
+    # distinguish between the user not passing `fill` parameter at all, or
+    # passing explicitly `fill=False` value.
+    src = "a b 2\nc d 3\n\ne f 4\n"
+    d3 = dt.fread(src, skip_blank_lines=False, fill=False)
+    assert d3.topython() == [list("ac"), list("bd"), [2, 3]]
+
+
+def test_issue_R2542():
+    d0 = dt.fread("A\r1\r\r\r2\r")
+    assert d0.internal.check()
+    assert d0.topython() == [[1, None, None, 2]]
+
+
+
+#-------------------------------------------------------------------------------
 
 def test_issue_527():
     """
@@ -152,3 +239,21 @@ def test_issue_664(capsys):
     assert f.topython() == [["x", "A", "y"],
                             [None, "B", None],
                             [None, 2, None]]
+
+
+
+@pytest.mark.xfail()
+def test_issue_670():
+    d0 = dt.fread("A\n1\n\n\n2\n", skip_blank_lines=True)
+    assert d0.internal.check()
+    assert d0.shape == (2, 1)
+    assert d0.topython() == [[1, 2]]
+
+
+@pytest.mark.xfail()
+def test_issue_671():
+    src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(1000000))
+    d0 = dt.fread(src, max_nrows=5)
+    assert d0.internal.check()
+    assert d0.shape == (5, 3)
+    assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]

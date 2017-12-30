@@ -442,6 +442,15 @@ def test_fread_columns_fn1():
     assert d0.topython() == [[4], [2], [0]]
 
 
+@pytest.mark.parametrize("columns", [None, list(), set(), dict()])
+def test_fread_columns_empty(columns):
+    # empty column selector should select all columns
+    d0 = dt.fread("A,B,C\n1,2,3", columns=columns)
+    assert d0.shape == (1, 3)
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[1], [2], [3]]
+
+
 
 #-------------------------------------------------------------------------------
 # `skip_blank_lines`
@@ -451,6 +460,7 @@ def test_fread_skip_blank_lines_true():
     inp = ("A,B\n"
            "1,2\n"
            "\n"
+           "  \t \n"
            "3,4\n")
     d0 = dt.fread(text=inp, skip_blank_lines=True)
     assert d0.internal.check()
@@ -460,7 +470,7 @@ def test_fread_skip_blank_lines_true():
 
 
 def test_fread_skip_blank_lines_false():
-    inp = "A,B\n1,2\n\n3,4\n"
+    inp = "A,B\n1,2\n  \n\n3,4\n"
     with pytest.warns(RuntimeWarning) as ws:
         d1 = dt.fread(text=inp, skip_blank_lines=False)
         assert d1.internal.check()
@@ -587,6 +597,7 @@ def test_fread_skip_to_line():
 
 
 def test_fread_skip_to_line_large():
+    # Note: exception is not thrown, instead an empty DataTable is returned
     d0 = dt.fread("a,b\n1,2\n3,4\n5,6\n", skip_to_line=1000)
     assert d0.internal.check()
     assert d0.shape == (0, 0)
@@ -600,6 +611,12 @@ def test_fread_skip_to_string():
     assert d0.internal.check()
     assert d0.names == ("A", "B", "C")
     assert d0.topython() == [[1], [2], [3]]
+
+
+def test_skip_to_string_bad():
+    with pytest.raises(Exception) as e:
+        dt.fread("A,B\n1,2", skip_to_string="bazinga!")
+    assert 'skip_string = "bazinga!" was not found in the input' in str(e)
 
 
 
@@ -659,15 +676,18 @@ def test_fread_nthreads(capsys):
 # `fill`
 #-------------------------------------------------------------------------------
 
-def test_fread_fillna0():
-    d0 = dt.fread("A,B,C\n1,foo,bar\n2,baz\n3", fill=True)
+def test_fillna0():
+    d0 = dt.fread("A,B,C\n"
+                  "1,foo,bar\n"
+                  "2,baz\n"
+                  "3", fill=True)
     assert d0.internal.check()
     assert d0.topython() == [[1, 2, 3],
                              ['foo', 'baz', None],
                              ['bar', None, None]]
 
 
-def test_fread_fillna1():
+def test_fillna1():
     src = ("Row,bool8,int32,int64,float32x,float64,float64+,float64x,str\n"
            "1,True,1234,1234567890987654321,0x1.123p-03,2.3,-inf,"
            "0x1.123456789abp+100,the end\n"
@@ -679,3 +699,25 @@ def test_fread_fillna1():
     assert d.internal.check()
     p = d[1:, 1:].topython()
     assert p == [[None] * 4] * 8
+
+
+def test_fillna_and_skipblanklines():
+    d0 = dt.fread("A,B\n"
+                  "foo,2\n"
+                  "\n"
+                  "baz\n"
+                  "bar,3\n", fill=True, skip_blank_lines=True)
+    assert d0.internal.check()
+    assert d0.topython() == [["foo", "baz", "bar"], [2, None, 3]]
+
+
+
+#-------------------------------------------------------------------------------
+# `na_strings`
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("na", [" ", " NA", "A\t", "1\r"])
+def test_nastrings_invalid(na):
+    with pytest.raises(Exception) as e:
+        dt.fread("A\n1", na_strings=[na])
+    assert "has whitespace or control characters" in str(e)
