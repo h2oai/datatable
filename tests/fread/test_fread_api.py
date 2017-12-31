@@ -442,6 +442,21 @@ def test_fread_columns_fn1():
     assert d0.topython() == [[4], [2], [0]]
 
 
+def test_fread_columns_fn3():
+    d0 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, int))
+    d1 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, float))
+    d2 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, str))
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d0.ltypes == (ltype.int, ltype.int)
+    assert d1.ltypes == (ltype.real, ltype.real)
+    assert d2.ltypes == (ltype.str, ltype.str)
+    assert d0.topython() == [[1], [2]]
+    assert d1.topython() == [[1.0], [2.0]]
+    assert d2.topython() == [["1"], ["2"]]
+
+
 @pytest.mark.parametrize("columns", [None, list(), set(), dict()])
 def test_fread_columns_empty(columns):
     # empty column selector should select all columns

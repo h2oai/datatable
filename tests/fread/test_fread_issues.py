@@ -38,16 +38,27 @@ def test_issue_R2196():
     assert d0.topython() == [[1, 4], [2, 5], ["3,a", "6,b"]]
 
 
-@pytest.mark.parametrize("v", ["", "d", "s"])
+def test_issue_R2222():
+    d0 = dt.fread("A,B\n999,1\n999,2\n", na_strings=["999", "NA"])
+    d1 = dt.fread("A,B\n999,1\n4,2\n", na_strings=["999", "NA"])
+    d2 = dt.fread("A,B\n999,5\n999,999\n", na_strings=["999", "NA"])
+    d3 = dt.fread("A,B\n999,1\n999,2\n", na_strings=["99", "NA"])
+    assert d0.internal.check()
+    assert d0.topython() == [[None, None], [1, 2]]
+    assert d1.topython() == [[None, 4], [1, 2]]
+    assert d2.topython() == [[None, None], [5, None]]
+    assert d3.topython() == [[999, 999], [1, 2]]
+
+
+@pytest.mark.parametrize("v", ["%", "%d", "%s", "%.*s"])
 def test_issue_R2287(v):
     """
     If a line where an error occurs contains %d / %s, then they should not be
     interpreted as format characters -- this may result in a crash!
     """
-    field = "bar%" + v
     with pytest.raises(Exception) as e:
-        dt.fread("A,B\nfoo,1\n" + field)
-    assert ('Expecting 2 fields but found 1: "%s"' % field) in str(e)
+        dt.fread("A,B\nfoo,1\nbar" + v)
+    assert ('Expecting 2 fields but found 1: "bar%s"' % v) in str(e)
 
 
 def test_issue_R2299():
@@ -60,6 +71,22 @@ def test_issue_R2299():
     with pytest.raises(Exception) as e:
         dt.fread(src)
     assert re.search("Expecting 2 cols but row .+ contains only 1 cols", str(e))
+
+
+def test_issue_R2351(tempfile):
+    lines = [b"id%d,%d" % (i, (i * 1000001) % 137) for i in range(100000)]
+    text = b"\r".join([b"id,v"] + lines + [b""])
+    with open(tempfile, "wb") as o:
+        o.write(text)
+    d0 = dt.fread(tempfile)
+    assert d0.internal.check()
+    assert d0[:2, :].topython() == [["id0", "id1"], [0, 38]]
+    assert d0[-2:, :].topython() == [["id99998", "id99999"], [92, 130]]
+    with open(tempfile, "ab") as o:
+        o.write(b"foo,1000")
+    d0 = dt.fread(tempfile)
+    assert d0.internal.check()
+    assert d0[-2:, :].topython() == [["id99999", "foo"], [130, 1000]]
 
 
 def test_issue_R2404():
