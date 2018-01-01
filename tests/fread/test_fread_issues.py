@@ -28,6 +28,22 @@ def test_issue_R1113():
                              [345678.20255, -195780.43911, 7937.13048]]
 
 
+@pytest.mark.xfail()
+def test_issue_R2106():
+    """skip_blank_lines and fill parameters in single-column file."""
+    # See also: #R2535
+    src = "A\n1\n5\n\n12\n18\n\n"
+    d0 = dt.fread(src)
+    d1 = dt.fread(src, skip_blank_lines=True)
+    d2 = dt.fread(src, skip_blank_lines=True, fill=True)
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d0.topython() == [[1, 5, None, 12, 18, None]]
+    assert d1.topython() == [[1, 5, 12, 18]]
+    assert d2.topython() == [[1, 5, 12, 18]]
+
+
 def test_issue_R2196():
     """
     Check that column detection heuristic detects 3 not 4 columns here...
@@ -129,7 +145,8 @@ def test_issue_R2464():
 
 
 def test_issue_R2535():
-    # `skip_blank_lines` takes precedence over parameter `fill`
+    """Test that `skip_blank_lines` takes precedence over parameter `fill`."""
+    # See also: #R2106
     src = "a b 2\nc d 3\n\ne f 4\n"
     d0 = dt.fread(src, skip_blank_lines=True, fill=False)
     d1 = dt.fread(src, skip_blank_lines=True, fill=True)
