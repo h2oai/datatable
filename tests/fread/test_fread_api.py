@@ -640,10 +640,14 @@ def test_skip_to_string_bad():
 #-------------------------------------------------------------------------------
 
 def test_fread_max_nrows():
-    d0 = dt.fread("A,B\n1,2\n3,4\n5,6\n7,8\n", max_nrows=2)
+    d0 = dt.fread("A,B,C\n"
+                  "1,foo,1\n"
+                  "3,bar,0\n"
+                  "5,baz,0\n"
+                  "7,meh,1\n", max_nrows=2)
     assert d0.internal.check()
-    assert d0.names == ("A", "B")
-    assert d0.topython() == [[1, 3], [2, 4]]
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[1, 3], ["foo", "bar"], [True, False]]
 
 
 def test_fread_max_nrows_0rows():

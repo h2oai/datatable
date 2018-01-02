@@ -716,3 +716,11 @@ def test_round_filesize(tempfile, mul, eol):
     assert d0.internal.check()
     assert d0.shape == (mul, 7)
     assert d0.topython() == data
+
+
+def test_maxnrows_on_large_dataset():
+    src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(1000000))
+    d0 = dt.fread(src, max_nrows=5)
+    assert d0.internal.check()
+    assert d0.shape == (5, 3)
+    assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]

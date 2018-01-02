@@ -385,11 +385,19 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
 void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 {
   try {
+    size_t nRowItems8 = ctx->rowSize8 / 8;
     StrBuf* ctx_strbufs = ctx->strbufs;
     for (int k = 0; k < nstrcols; ++k) {
       int j = ctx_strbufs[k].idxdt;
+      int j8 = ctx_strbufs[k].idx8;
       StrBuf* sb = strbufs[j];
-      size_t sz = ctx_strbufs[k].ptr;
+      // Compute `sz` (the size of the string content in the buffer) from the
+      // offset of the last element. Typically this would be the same as
+      // `ctx_strbufs[k].ptr`, however in rare cases when `nRows` have changed
+      // from the time the buffer was post-processed, this may be different.
+      lenOff lastElem = static_cast<lenOff*>(ctx->buff8)[
+                            j8 + nRowItems8 * (ctx->nRows - 1)];
+      size_t sz = abs(lastElem.off) - 1;
       size_t ptr = sb->ptr;
       MemoryBuffer* sb_mbuf = sb->mbuf;
       // If we need to write more than the size of the available buffer, the

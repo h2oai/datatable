@@ -92,7 +92,7 @@ typedef struct StrBuf {
     int idx8;
     int idxdt;
     volatile int numuses;
-    int _padding;
+    int : 32;
 } StrBuf;
 
 #define FREAD_PUSH_BUFFERS_EXTRA_FIELDS                                        \
