@@ -844,7 +844,7 @@ class TextReader(object):
                         raise TValueError("Function passed as the `columns` "
                                           "argument was expected to return a "
                                           "`Union[None, bool, str]` but "
-                                          "instead returned value %r" % ret)
+                                          "instead returned value %r" % (ret,))
                 return
 
             if nargs == 2:
@@ -860,7 +860,7 @@ class TextReader(object):
                         raise TValueError("Function passed as the `columns` "
                                           "argument was expected to return a "
                                           "`Union[None, bool, str]` but "
-                                          "instead returned value %r" % ret)
+                                          "instead returned value %r" % (ret,))
                 return
 
             if nargs == 3:

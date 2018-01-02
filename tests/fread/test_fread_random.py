@@ -84,11 +84,17 @@ def test_fread_omnibus(seed):
         # a single-column dataset with last element NA, the trailing newline
         # must be added (otherwise the last NA will not be recognized as data).
         out.append("")  # Ensures trailing newline
+    # Append extra newlines which should be ignored
+    if ncols > 1 and random.random() < 0.4:
+        x = 0
+        while x < 0.8:
+            x = random.random()
+            out.append("" if x < 0.5 else " " * int((x - 0.5) * 100))
     nl = random.choice(["\n", "\n", "\r", "\r\n", "\n\r", "\r\r\n"])
     text = nl.join(out)
+    # A datatable with 0 cols and N rows will serialize into N newlines,
+    # which are read as an empty datatable (nrows = 0).
     if ncols == 0:
-        # A datatable with 0 cols and N rows will serialize into N newlines,
-        # which are read as an empty datatable (nrows = 0).
         nrows = 0
 
     try:
