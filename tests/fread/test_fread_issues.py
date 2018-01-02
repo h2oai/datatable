@@ -28,7 +28,6 @@ def test_issue_R1113():
                              [345678.20255, -195780.43911, 7937.13048]]
 
 
-@pytest.mark.xfail()
 def test_issue_R2106():
     """skip_blank_lines and fill parameters in single-column file."""
     # See also: #R2535
@@ -285,8 +284,6 @@ def test_issue_664(capsys):
                             [None, 2, None]]
 
 
-
-@pytest.mark.xfail()
 def test_issue_670():
     d0 = dt.fread("A\n1\n\n\n2\n", skip_blank_lines=True)
     assert d0.internal.check()

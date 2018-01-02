@@ -1514,6 +1514,7 @@ int FreadReader::freadMain()
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
+  bool fillme = fill || (ncol==1 && !skipEmptyLines);
 
   if (nJumps/*from sampling*/ > 1) {
     // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
@@ -1537,7 +1538,6 @@ int FreadReader::freadMain()
   ASSERT(allocnrow <= nrowLimit);
   prevJumpEnd = sof;
   if (sep == '\n') sep = '\xFF';
-  if (ncol == 1) skipEmptyLines = false;
 
   //-- Start parallel ----------------
   #pragma omp parallel num_threads(nth)
@@ -1714,7 +1714,7 @@ int FreadReader::freadMain()
           if (eol(&tch) && skipEmptyLines) { tch++; continue; }
         }
 
-        if (fill || ncol==1 || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
+        if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
           while (j < ncol) {
             fieldStart = tch;
             int8_t joldType = types[j];
