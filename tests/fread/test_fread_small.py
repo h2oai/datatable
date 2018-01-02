@@ -371,6 +371,14 @@ def test_0x2_na():
     assert d0.topython() == [[], []]
 
 
+def test_0x3_with_whitespace():
+    # see issue #673
+    d0 = dt.fread("A,B,C\n  ")
+    assert d0.internal.check()
+    assert d0.shape == (0, 3)
+    assert d0.names == ("A", "B", "C")
+
+
 def test_1line_not_header():
     d0 = dt.fread(text="C1,C2,3")
     assert d0.internal.check()

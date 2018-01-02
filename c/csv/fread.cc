@@ -252,7 +252,8 @@ static inline void skip_white(const char** pch) {
  * global `sep`, and `quoteRule`), and move the parsing location to the
  * beginning of the next line.
  * Returns the number of fields on the current line, or -1 if the line cannot
- * be parsed using current settings.
+ * be parsed using current settings, or 0 if the line is empty (even though an
+ * empty line may be viewed as a single field).
  */
 static inline int countfields(const char** pch)
 {
@@ -267,7 +268,7 @@ static inline int countfields(const char** pch)
 
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_white(&ch);
-  if (eol(&ch)) {
+  if (eol(&ch) || ch==eof) {
     *pch = ch + 1;
     return 0;
   }
