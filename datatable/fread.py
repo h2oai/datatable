@@ -458,7 +458,9 @@ class TextReader(object):
     @sep.setter
     @typed(sep=U(str, None))
     def sep(self, sep):
-        if not sep:
+        if sep == "":
+            self._sep = "\n"
+        elif not sep:
             self._sep = None
         else:
             if len(sep) > 1:

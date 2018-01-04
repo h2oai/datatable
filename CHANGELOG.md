@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - GenericReader now attempts to detect whether the input file is an HTML, and if so
   raises an exception with the appropriate error message.
 - Datatable can now use either llvm-4.0 or llvm-5.0 depending on what the user has.
+- fread now allows `sep=""`, causing the file to be read line-by-line.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
