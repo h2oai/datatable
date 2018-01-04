@@ -54,6 +54,18 @@ typedef struct {
 } lenOff;
 
 
+union field64 {
+  int8_t   int8;
+  int32_t  int32;
+  int64_t  int64;
+  uint32_t uint32;
+  uint64_t uint64;
+  float    float32;
+  double   float64;
+  lenOff   str32;
+};
+
+
 #define NA_BOOL8         INT8_MIN
 #define NA_INT32         INT32_MIN
 #define NA_INT64         INT64_MIN
@@ -190,7 +202,7 @@ typedef struct ThreadLocalFreadParsingContext
 
   // Output buffer. Within the buffer the data is stored in row-major order,
   // i.e. in the same order as in the original CSV file.
-  void *__restrict__ buff;
+  field64* __restrict__ buff;
 
   // Size (in bytes) for a single row of data within the buffer. This should be
   // equal to `ncol * 8`.

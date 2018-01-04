@@ -389,15 +389,14 @@ void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
     StrBuf* ctx_strbufs = ctx->strbufs;
     for (int k = 0; k < nstrcols; ++k) {
       int j = ctx_strbufs[k].idxdt;
-      int j8 = ctx_strbufs[k].idx8;
+      size_t j8 = static_cast<size_t>(ctx_strbufs[k].idx8);
       StrBuf* sb = strbufs[j];
       // Compute `sz` (the size of the string content in the buffer) from the
       // offset of the last element. Typically this would be the same as
       // `ctx_strbufs[k].ptr`, however in rare cases when `nRows` have changed
       // from the time the buffer was post-processed, this may be different.
-      lenOff lastElem = static_cast<lenOff*>(ctx->buff)[
-                            j8 + colCount * (ctx->nRows - 1)];
-      size_t sz = abs(lastElem.off) - 1;
+      lenOff lastElem = ctx->buff[j8 + colCount * (ctx->nRows - 1)].str32;
+      size_t sz = static_cast<size_t>(abs(lastElem.off) - 1);
       size_t ptr = sb->ptr;
       MemoryBuffer* sb_mbuf = sb->mbuf;
       // If we need to write more than the size of the available buffer, the
@@ -442,7 +441,7 @@ void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
   StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
-  const void *__restrict__ buff = ctx->buff;
+  const field64* __restrict__ buff = ctx->buff;
   int nrows = (int) ctx->nRows;
   size_t row0 = ctx->DTi;
 
@@ -462,8 +461,7 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
       StrBuf *sb = strbufs[j];
       int idx8 = ctx_strbufs[k].idx8;
       size_t ptr = ctx_strbufs[k].ptr;
-      const lenOff *__restrict__ lo =
-          (const lenOff*) add_constptr(buff, idx8 * 8);
+      const lenOff *__restrict__ lo = (const lenOff*)(buff + idx8);
       size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
 
       int done = 0;
@@ -482,8 +480,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
       int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
       int32_t iptr = (int32_t) ptr;
       for (int n = 0; n < nrows; n++) {
-        int32_t off = lo->off;
-        *dest++ = (off < 0)? off - iptr : off + iptr;
+        int32_t soff = lo->off;
+        *dest++ = (soff < 0)? soff - iptr : soff + iptr;
         lo += rowCount8;
       }
       k++;
