@@ -1429,9 +1429,7 @@ int FreadReader::freadMain()
   int ndrop;          // Number of columns that will be dropped from the file being read
   int nStringCols;    // Number of string columns in the file
   int nNonStringCols; // Number of all other columns in the file
-  size_t rowSize1;    // Total bytesize of all fields having sizeof==1
-  size_t rowSize4;    // Total bytesize of all fields having sizeof==4
-  size_t rowSize8;    // Total bytesize of all fields having sizeof==8
+  size_t rowSize;
   size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
@@ -1441,20 +1439,16 @@ int FreadReader::freadMain()
 
     int nUserBumped = 0;
     ndrop = 0;
-    rowSize1 = 0;
-    rowSize4 = 0;
-    rowSize8 = 0;
+    rowSize = 0;
     nStringCols = 0;
     nNonStringCols = 0;
     for (int j = 0; j < ncol; j++) {
       sizes[j] = typeSize[types[j]];
-      rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
-      rowSize4 += (sizes[j] & 4);
-      rowSize8 += (sizes[j] & 8);
       if (types[j] == CT_DROP) {
         ndrop++;
         continue;
       }
+      rowSize += 8;
       if (types[j] < tmpTypes[j]) {
         // FIXME: if the user wants to override the type, let them
         STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
@@ -1559,12 +1553,8 @@ int FreadReader::freadMain()
     // Allocate thread-private row-major myBuffs
     ThreadLocalFreadParsingContext ctx = {
       .anchor = NULL,
-      .buff8 = malloc(rowSize8 * myBuffRows + 8),
-      .buff4 = malloc(rowSize4 * myBuffRows + 4),
-      .buff1 = malloc(rowSize1 * myBuffRows + 1),
-      .rowSize8 = rowSize8,
-      .rowSize4 = rowSize4,
-      .rowSize1 = rowSize1,
+      .buff = malloc(myBuffRows * rowSize + 8),
+      .rowSize = rowSize,
       .DTi = 0,  // which row in the final DT result I should start writing my chunk to
       .nRows = allocnrow,
       .stopTeam = &stopTeam,
@@ -1576,12 +1566,12 @@ int FreadReader::freadMain()
       .nNonStringCols = nNonStringCols
       #endif
     };
-    if ((rowSize8 && !ctx.buff8) || (rowSize4 && !ctx.buff4) || (rowSize1 && !ctx.buff1)) {
+    if (ncol && !ctx.buff) {
       stopTeam = true;
     }
     prepareThreadContext(&ctx);
 
-    void* ttargets[9] = {NULL, ctx.buff1, NULL, NULL, ctx.buff4, NULL, NULL, NULL, ctx.buff8};
+    void* ttargets[9] = {NULL, ctx.buff, NULL, NULL, ctx.buff, NULL, NULL, NULL, ctx.buff};
     FieldParseContext fctx = {
       .ch = &tch,
       .targets = ttargets,
@@ -1621,9 +1611,9 @@ int FreadReader::freadMain()
         }
       }
 
-      ttargets[1] = ctx.buff1;
-      ttargets[4] = ctx.buff4;
-      ttargets[8] = ctx.buff8;
+      ttargets[1] = ctx.buff;
+      ttargets[4] = ctx.buff;
+      ttargets[8] = ctx.buff;
       tch = sof + (size_t)jump * chunkBytes;
       nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
       // +1 is for when nextJump happens to fall exactly on a \n. The
@@ -1651,17 +1641,15 @@ int FreadReader::freadMain()
           myBuffRows *= 1.5;
           #pragma omp atomic
           buffGrown++;
-          ctx.buff8 = realloc(ctx.buff8, rowSize8 * myBuffRows + 8);
-          ctx.buff4 = realloc(ctx.buff4, rowSize4 * myBuffRows + 4);
-          ctx.buff1 = realloc(ctx.buff1, rowSize1 * myBuffRows + 1);
-          if ((rowSize8 && !ctx.buff8) || (rowSize4 && !ctx.buff4) || (rowSize1 && !ctx.buff1)) {
+          ctx.buff = realloc(ctx.buff, rowSize * myBuffRows + 8);
+          if (ncols && !ctx.buff) {
             stopTeam = true;
             break;
           }
           // shift current buffer positions, since `myBuffX`s were probably moved by realloc
-          fctx.targets[8] = (void*)((char*)ctx.buff8 + myNrow * rowSize8);
-          fctx.targets[4] = (void*)((char*)ctx.buff4 + myNrow * rowSize4);
-          fctx.targets[1] = (void*)((char*)ctx.buff1 + myNrow * rowSize1);
+          fctx.targets[8] = (void*)((char*)ctx.buff + myNrow * rowSize);
+          fctx.targets[4] = (void*)((char*)ctx.buff + myNrow * rowSize);
+          fctx.targets[1] = (void*)((char*)ctx.buff + myNrow * rowSize);
         }
         const char* tlineStart = tch;  // for error message
         const char* fieldStart = tch;
@@ -1674,10 +1662,13 @@ int FreadReader::freadMain()
             fieldStart = tch;
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
             int8_t thisType = types[j];
-            int8_t thisSize = sizes[j];
             parsers[abs(thisType)](&fctx);
             if (*tch != sep) break;
-            ((char **) ttargets)[thisSize] += thisSize;
+            if (sizes[j]) {
+              ((char **) ttargets)[1] += 8;
+              ((char **) ttargets)[4] += 8;
+              ((char **) ttargets)[8] += 8;
+            }
             tch++;
             j++;
           }
@@ -1689,8 +1680,11 @@ int FreadReader::freadMain()
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
           else if (eol(&tch)) {
-            int8_t thisSize = sizes[j];
-            ((char **) ttargets)[thisSize] += thisSize;
+            if (sizes[j]) {
+              ((char **) ttargets)[1] += 8;
+              ((char **) ttargets)[4] += 8;
+              ((char **) ttargets)[8] += 8;
+            }
             j++;
             if (j==ncol) { tch++; myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
           }
@@ -1776,7 +1770,11 @@ int FreadReader::freadMain()
                 } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
               }
             }
-            ((char**) ttargets)[sizes[j]] += sizes[j];
+            if (sizes[j]) {
+              ((char**) ttargets)[1] += 8;
+              ((char**) ttargets)[4] += 8;
+              ((char**) ttargets)[8] += 8;
+            }
             j++;
             if (*tch==sep) { tch++; continue; }
             if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncol) {
@@ -1882,9 +1880,7 @@ int FreadReader::freadMain()
       if (verbose) thRead += wallclock() - now;
     }
     // Done reading the file: each thread should now clean up its own buffers.
-    free(ctx.buff8); ctx.buff8 = NULL;
-    free(ctx.buff4); ctx.buff4 = NULL;
-    free(ctx.buff1); ctx.buff1 = NULL;
+    free(ctx.buff); ctx.buff = NULL;
     freeThreadContext(&ctx);
   }
   //-- end parallel ------------------
@@ -1930,7 +1926,7 @@ int FreadReader::freadMain()
     for (int i=0; i<ncol; i++) typeCounts[ abs(types[i]) ]++;
 
     if (nTypeBump) {
-      rowSize1 = rowSize4 = rowSize8 = 0;
+      rowSize = 0;
       nStringCols = 0;
       nNonStringCols = 0;
       for (int j=0, resj=-1; j<ncol; j++) {
@@ -1940,9 +1936,8 @@ int FreadReader::freadMain()
           // column was bumped due to out-of-sample type exception
           types[j] = -types[j];
           sizes[j] = typeSize[types[j]];
-          rowSize1 += (sizes[j] & 1);
-          rowSize4 += (sizes[j] & 4);
-          rowSize8 += (sizes[j] & 8);
+          assert(sizes[j] != 0);
+          rowSize += 8;
           if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
         } else if (types[j]>=1) {
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
