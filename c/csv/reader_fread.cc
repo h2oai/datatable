@@ -304,7 +304,7 @@ void FreadReader::prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
         ctx->strbufs[k].idxdt = j;
         k++;
       }
-      off8 += (sizes[i] == 8);
+      off8 += (sizes[i] > 0);
       j++;
     }
     return;
@@ -327,8 +327,8 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
     StrBuf* ctx_strbufs = ctx->strbufs;
     const uint8_t *anchor = (const uint8_t*) ctx->anchor;
     size_t nrows = ctx->nRows;
-    lenOff* __restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff8;
-    int rowCount8 = (int) ctx->rowSize8 / 8;
+    lenOff* __restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff;
+    int colCount = (int) ctx->rowSize / 8;
     uint8_t echar = ctx->quoteRule == 0? static_cast<uint8_t>(ctx->quote) :
                     ctx->quoteRule == 1? '\\' : 0xFF;
 
@@ -370,7 +370,7 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
           assert(len == NA_LENOFF);
           lo->off = -off;
         }
-        lo += rowCount8;
+        lo += colCount;
       }
       ctx_strbufs[k].ptr = (size_t) (off - 1);
     }
@@ -385,19 +385,18 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
 void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 {
   try {
-    size_t nRowItems8 = ctx->rowSize8 / 8;
+    size_t colCount = ctx->rowSize / 8;
     StrBuf* ctx_strbufs = ctx->strbufs;
     for (int k = 0; k < nstrcols; ++k) {
       int j = ctx_strbufs[k].idxdt;
-      int j8 = ctx_strbufs[k].idx8;
+      size_t j8 = static_cast<size_t>(ctx_strbufs[k].idx8);
       StrBuf* sb = strbufs[j];
       // Compute `sz` (the size of the string content in the buffer) from the
       // offset of the last element. Typically this would be the same as
       // `ctx_strbufs[k].ptr`, however in rare cases when `nRows` have changed
       // from the time the buffer was post-processed, this may be different.
-      lenOff lastElem = static_cast<lenOff*>(ctx->buff8)[
-                            j8 + nRowItems8 * (ctx->nRows - 1)];
-      size_t sz = abs(lastElem.off) - 1;
+      lenOff lastElem = ctx->buff[j8 + colCount * (ctx->nRows - 1)].str32;
+      size_t sz = static_cast<size_t>(abs(lastElem.off) - 1);
       size_t ptr = sb->ptr;
       MemoryBuffer* sb_mbuf = sb->mbuf;
       // If we need to write more than the size of the available buffer, the
@@ -442,18 +441,16 @@ void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
 {
   StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
-  const void *__restrict__ buff8 = ctx->buff8;
-  const void *__restrict__ buff4 = ctx->buff4;
-  const void *__restrict__ buff1 = ctx->buff1;
+  const field64* __restrict__ buff = ctx->buff;
   int nrows = (int) ctx->nRows;
   size_t row0 = ctx->DTi;
 
-  int i = 0;  // index within the `types` and `sizes`
-  int j = 0;  // index within `dt->columns`, `buff` and `strbufs`
-  int off8 = 0, off4 = 0, off1 = 0;  // offsets within the buffers
-  int rowCount8 = (int) ctx->rowSize8 / 8;
-  int rowCount4 = (int) ctx->rowSize4 / 4;
-  int rowCount1 = (int) ctx->rowSize1;
+  int i = 0;    // index within the `types` and `sizes`
+  int j = 0;    // index within `dt->columns`, `buff` and `strbufs`
+  int off = 0;
+  int rowCount8 = (int) ctx->rowSize / 8;
+  int rowCount4 = (int) ctx->rowSize / 4;
+  int rowCount1 = (int) ctx->rowSize / 1;
 
   int k = 0;
   for (; i < ncols; i++) {
@@ -464,8 +461,7 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
       StrBuf *sb = strbufs[j];
       int idx8 = ctx_strbufs[k].idx8;
       size_t ptr = ctx_strbufs[k].ptr;
-      const lenOff *__restrict__ lo =
-          (const lenOff*) add_constptr(buff8, idx8 * 8);
+      const lenOff *__restrict__ lo = (const lenOff*)(buff + idx8);
       size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
 
       int done = 0;
@@ -484,8 +480,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
       int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
       int32_t iptr = (int32_t) ptr;
       for (int n = 0; n < nrows; n++) {
-        int32_t off = lo->off;
-        *dest++ = (off < 0)? off - iptr : off + iptr;
+        int32_t soff = lo->off;
+        *dest++ = (soff < 0)? soff - iptr : soff + iptr;
         lo += rowCount8;
       }
       k++;
@@ -493,8 +489,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
     } else if (types[i] > 0) {
       int8_t elemsize = sizes[i];
       if (elemsize == 8) {
-        const uint64_t *src = ((const uint64_t*) buff8) + off8;
-        uint64_t *dest = ((uint64_t*) col->data()) + row0;
+        const uint64_t* src = ((const uint64_t*) buff) + off;
+        uint64_t* dest = ((uint64_t*) col->data()) + row0;
         for (int r = 0; r < nrows; r++) {
           *dest = *src;
           src += rowCount8;
@@ -502,8 +498,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
         }
       } else
       if (elemsize == 4) {
-        const uint32_t *src = ((const uint32_t*) buff4) + off4;
-        uint32_t *dest = ((uint32_t*) col->data()) + row0;
+        const uint32_t* src = ((const uint32_t*) buff) + off * 2;
+        uint32_t* dest = ((uint32_t*) col->data()) + row0;
         for (int r = 0; r < nrows; r++) {
           *dest = *src;
           src += rowCount4;
@@ -511,8 +507,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
         }
       } else
       if (elemsize == 1) {
-        const uint8_t *src = ((const uint8_t*) buff1) + off1;
-        uint8_t *dest = ((uint8_t*) col->data()) + row0;
+        const uint8_t* src = ((const uint8_t*) buff) + off * 8;
+        uint8_t* dest = ((uint8_t*) col->data()) + row0;
         for (int r = 0; r < nrows; r++) {
           *dest = *src;
           src += rowCount1;
@@ -520,10 +516,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
         }
       }
     }
-    off8 += (sizes[i] == 8);
-    off4 += (sizes[i] == 4);
-    off1 += (sizes[i] == 1);
     j++;
+    off += (sizes[i] > 0);
   }
 }
 

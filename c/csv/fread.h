@@ -54,6 +54,18 @@ typedef struct {
 } lenOff;
 
 
+union field64 {
+  int8_t   int8;
+  int32_t  int32;
+  int64_t  int64;
+  uint32_t uint32;
+  uint64_t uint64;
+  float    float32;
+  double   float64;
+  lenOff   str32;
+};
+
+
 #define NA_BOOL8         INT8_MIN
 #define NA_INT32         INT32_MIN
 #define NA_INT64         INT64_MIN
@@ -188,21 +200,13 @@ typedef struct ThreadLocalFreadParsingContext
   // structs.
   const char *__restrict__ anchor;
 
-  // Output buffers for values with different alignment requirements. For
-  // example all `lenOff` columns, `double` columns and `int64` columns will be
-  // written to buffer `buff8`; at the same time `bool` and `int8` columns will
-  // be stored in memory buffer `buff1`.
-  // Within each buffer the data is stored in row-major order, i.e. in the same
-  // order as in the original CSV file.
-  void *__restrict__ buff8;
-  void *__restrict__ buff4;
-  void *__restrict__ buff1;
+  // Output buffer. Within the buffer the data is stored in row-major order,
+  // i.e. in the same order as in the original CSV file.
+  field64* __restrict__ buff;
 
-  // Size (in bytes) for a single row of data within the buffers `buff8`,
-  // `buff4` and `buff1` correspondingly.
-  size_t rowSize8;
-  size_t rowSize4;
-  size_t rowSize1;
+  // Size (in bytes) for a single row of data within the buffer. This should be
+  // equal to `ncol * 8`.
+  size_t rowSize;
 
   // Starting row index within the output DataTable for the current data chunk.
   size_t DTi;

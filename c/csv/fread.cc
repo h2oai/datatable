@@ -67,14 +67,14 @@ static float NA_FLOAT32;
 static const double NAND = (double)NAN;
 static const double INFD = (double)INFINITY;
 
+
 typedef struct FieldParseContext {
   // Pointer to the current parsing location
-  const char** ch;
-  // Parse target buffers, indexed by size. A parser that reads values of byte
-  // size `sz` will attempt to write that value into `targets[sz]`. Thus,
-  // generally this is an array with elements 0, 1, 4, and 8 defined, while all
-  // other pointers are NULL.
-  void** targets;
+  const char*& ch;
+
+  // Parse target buffer
+  field64* target;
+
   // String "anchor" for `Field()` parser -- the difference `ch - anchor` will
   // be written out as the string offset.
   const char* anchor;
@@ -257,12 +257,11 @@ static inline void skip_white(const char** pch) {
  */
 static inline int countfields(const char** pch)
 {
-  void* targets[9];
-  targets[8] = (void*) targets;  // the beginning of `targets` array can be reused as trash
+  field64 trash;
   const char* ch = *pch;
   FieldParseContext ctx = {
-    .ch = &ch,
-    .targets = targets,
+    .ch = ch,
+    .target = &trash,
     .anchor = NULL,
   };
 
@@ -332,8 +331,7 @@ static inline bool nextGoodLine(const char** pch, int ncol)
 
 static void parse_string(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  lenOff* target = (lenOff*) ctx->targets[sizeof(lenOff)];
+  const char* ch = ctx->ch;
 
   // need to skip_white first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
@@ -342,15 +340,15 @@ static void parse_string(FieldParseContext* ctx)
   if (*ch!=quote || quoteRule==3) {
     // Most common case. Unambiguously not quoted. Simply search for sep|eol. If field contains sep|eol then it should have been quoted and we do not try to heal that.
     while(!end_of_field(ch)) ch++;  // sep, \r, \n or \0 will end
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
     int fieldLen = (int)(ch-fieldStart);
     if (stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
       while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
       // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
     }
     if ((fieldLen==0 && blank_is_a_NAstring) || (fieldLen && end_NA_string(fieldStart)==ch)) fieldLen=INT32_MIN;  // TODO - speed up by avoiding end_NA_string when there are none
-    target->off = (int32_t)(fieldStart - ctx->anchor);
-    target->len = fieldLen;
+    ctx->target->str32.off = (int32_t)(fieldStart - ctx->anchor);
+    ctx->target->str32.len = fieldLen;
     return;
   }
   // else *ch==quote (we don't mind that quoted fields are a little slower e.g. no desire to save switch)
@@ -407,26 +405,33 @@ static void parse_string(FieldParseContext* ctx)
   default:
     return;  // Internal error: undefined quote rule
   }
-  target->len = (int32_t)(ch - fieldStart);
-  target->off = (int32_t)(fieldStart - ctx->anchor);
+  ctx->target->str32.len = (int32_t)(ch - fieldStart);
+  ctx->target->str32.off = (int32_t)(fieldStart - ctx->anchor);
   if (*ch==quote) {
     ch++;
     skip_white(&ch);
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
   } else {
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
     if (*ch=='\0') {
-      if (quoteRule!=2) { target->off--; target->len++; }  // test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
+      if (quoteRule!=2) {  // see test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
+        ctx->target->str32.off--;
+        ctx->target->str32.len++;
+      }
     }
-    if (stripWhite) while(target->len>0 && ch[-1]==' ') { target->len--; ch--; }  // test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
+    if (stripWhite) {  // see test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
+      while (ctx->target->str32.len>0 && ch[-1]==' ') {
+        ctx->target->str32.len--;
+        ch--;
+      }
+    }
   }
 }
 
 
 static void parse_int32(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  int32_t* target = (int32_t*) ctx->targets[sizeof(int32_t)];
+  const char* ch = ctx->ch;
 
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
@@ -454,18 +459,17 @@ static void parse_int32(FieldParseContext* ctx)
   // if ( (acc && *start!='0' && acc<=INT32_MAX && (ch-start)<=10) ||
   //     (acc==0 && ch-start==1) ) {
   if ((sf || ch>start) && sf<=10 && acc<=INT32_MAX) {
-    *target = neg ? -(int32_t)acc : (int32_t)acc;
-    *(ctx->ch) = ch;
+    ctx->target->int32 = neg ? -(int32_t)acc : (int32_t)acc;
+    ctx->ch = ch;
   } else {
-    *target = NA_INT32;  // empty field ideally, contains NA and fall through to check if NA (in which case this write is important), or just plain invalid
+    ctx->target->int32 = NA_INT32;  // empty field ideally, contains NA and fall through to check if NA (in which case this write is important), or just plain invalid
   }
 }
 
 
 static void parse_int64(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  int64_t* target = (int64_t*) ctx->targets[sizeof(int64_t)];
+  const char* ch = ctx->ch;
 
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
@@ -486,10 +490,10 @@ static void parse_int64(FieldParseContext* ctx)
   //if ( (acc && *start!='0' && acc<=INT64_MAX && (ch-start)<=19) ||
   //     (acc==0 && ch-start==1) ) {
   if ((sf || ch>start) && sf<=19 && acc<=INT64_MAX) {
-    *target = neg ? -(int64_t)acc : (int64_t)acc;
-    *(ctx->ch) = ch;
+    ctx->target->int64 = neg ? -(int64_t)acc : (int64_t)acc;
+    ctx->ch = ch;
   } else {
-    *target = NA_INT64;
+    ctx->target->int64 = NA_INT64;
   }
 }
 
@@ -509,10 +513,10 @@ static void parse_int64(FieldParseContext* ctx)
 static void parse_double_regular(FieldParseContext* ctx)
 {
   //
-  const char* ch = *(ctx->ch);
-  double* target = (double*) ctx->targets[sizeof(double)];
+  const char* ch = ctx->ch;
 
   bool neg, Eneg;
+  double r;
   ch += (neg = *ch=='-') + (*ch=='+');
 
   const char* start = ch;
@@ -560,13 +564,13 @@ static void parse_double_regular(FieldParseContext* ctx)
   e += 350; // lookup table is arranged from -350 (0) to +350 (700)
   if (e<0 || e>700 || ch==start) goto fail;
 
-  *target = (double)((long double)acc * pow10lookup[e]);
-  if (neg) *target = -*target;
-  *(ctx->ch) = ch;
+  r = (double)((long double)acc * pow10lookup[e]);
+  ctx->target->float64 = neg? -r : r;
+  ctx->ch = ch;
   return;
 
   fail:
-    *target = NA_FLOAT64;
+    ctx->target->float64 = NA_FLOAT64;
 }
 
 
@@ -581,8 +585,7 @@ static void parse_double_regular(FieldParseContext* ctx)
  */
 static void parse_double_extended(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  double* target = (double*) ctx->targets[sizeof(double)];
+  const char* ch = ctx->ch;
   bool neg, quoted;
   ch += (quoted = (*ch==quote));
   ch += (neg = (*ch=='-')) + (*ch=='+');
@@ -621,18 +624,18 @@ static void parse_double_extended(FieldParseContext* ctx)
   return;
 
   return_inf:
-    *target = neg? -INFD : INFD;
+    ctx->target->float64 = neg? -INFD : INFD;
     goto ok;
   return_nan:
-    *target = NAND;
+    ctx->target->float64 = NAND;
     goto ok;
   return_na:
-    *target = NA_FLOAT64;
+    ctx->target->float64 = NA_FLOAT64;
   ok:
     if (quoted && *ch!=quote) {
-      *target = NA_FLOAT64;
+      ctx->target->float64 = NA_FLOAT64;
     } else {
-      *(ctx->ch) = ch + quoted;
+      ctx->ch = ch + quoted;
     }
 }
 
@@ -665,8 +668,7 @@ static void parse_double_extended(FieldParseContext* ctx)
  */
 static void parse_double_hexadecimal(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  double* target = (double*) ctx->targets[sizeof(double)];
+  const char* ch = ctx->ch;
   uint64_t neg;
   uint8_t digit;
   bool Eneg, subnormal = 0;
@@ -701,31 +703,30 @@ static void parse_double_hexadecimal(FieldParseContext* ctx)
       E = 1023 + (E ^ -Eneg) + Eneg;
       if (E < 1 || E > 2046) goto fail;
     }
-    *(reinterpret_cast<uint64_t*>(target)) = (neg << 63) | (E << 52) | (acc);
-    *(ctx->ch) = ch;
+    ctx->target->uint64 = (neg << 63) | (E << 52) | (acc);
+    ctx->ch = ch;
     return;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
-    *target = NA_FLOAT64;
-    *(ctx->ch) = ch + 3;
+    ctx->target->float64 = NA_FLOAT64;
+    ctx->ch = ch + 3;
     return;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
-    *target = neg ? -INFD : INFD;
-    *(ctx->ch) = ch + 8;
+    ctx->target->float64 = neg ? -INFD : INFD;
+    ctx->ch = ch + 8;
     return;
   }
 
   fail:
-    *target = NA_FLOAT64;
+    ctx->target->float64 = NA_FLOAT64;
 }
 
 
 static void parse_float_hexadecimal(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  float* target = (float*) ctx->targets[sizeof(float)];
+  const char* ch = ctx->ch;
   uint32_t neg;
   uint8_t digit;
   bool Eneg, subnormal = 0;
@@ -761,38 +762,37 @@ static void parse_float_hexadecimal(FieldParseContext* ctx)
       E = 127 + (E ^ -Eneg) + Eneg;
       if (E < 1 || E > 254) goto fail;
     }
-    *(reinterpret_cast<uint32_t*>(target)) = (neg << 31) | (E << 23) | (acc);
-    *(ctx->ch) = ch;
+    ctx->target->uint32 = (neg << 31) | (E << 23) | (acc);
+    ctx->ch = ch;
     return;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
-    *target = NA_FLOAT32;
-    *(ctx->ch) = ch + 3;
+    ctx->target->float32 = NA_FLOAT32;
+    ctx->ch = ch + 3;
     return;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
-    *target = neg ? -INFINITY : INFINITY;
-    *(ctx->ch) = ch + 8;
+    ctx->target->float32 = neg ? -INFINITY : INFINITY;
+    ctx->ch = ch + 8;
     return;
   }
 
   fail:
-    *target = NA_FLOAT32;
+    ctx->target->float32 = NA_FLOAT32;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
 static void parse_bool_numeric(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  int8_t* target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  const char* ch = ctx->ch;
   uint8_t d = (uint8_t)(*ch - '0');  // '0'=>0, '1'=>1, everything else > 1
   if (d <= 1) {
-    *target = (int8_t) d;
-    *(ctx->ch) = ch + 1;
+    ctx->target->int8 = (int8_t) d;
+    ctx->ch = ch + 1;
   } else {
-    *target = NA_BOOL8;
+    ctx->target->int8 = NA_BOOL8;
   }
 }
 
@@ -800,16 +800,15 @@ static void parse_bool_numeric(FieldParseContext* ctx)
 /* Parse uppercase TRUE | FALSE as boolean. */
 static void parse_bool_uppercase(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  int8_t* target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  const char* ch = ctx->ch;
   if (ch[0]=='T' && ch[1]=='R' && ch[2]=='U' && ch[3]=='E') {
-    *target = 1;
-    *(ctx->ch) = ch + 4;
+    ctx->target->int8 = 1;
+    ctx->ch = ch + 4;
   } else if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
-    *target = 0;
-    *(ctx->ch) = ch + 5;
+    ctx->target->int8 = 0;
+    ctx->ch = ch + 5;
   } else {
-    *target = NA_BOOL8;
+    ctx->target->int8 = NA_BOOL8;
   }
 }
 
@@ -817,16 +816,15 @@ static void parse_bool_uppercase(FieldParseContext* ctx)
 /* Parse camelcase True | False as boolean. */
 static void parse_bool_titlecase(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  int8_t* target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  const char* ch = ctx->ch;
   if (ch[0]=='T' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
-    *target = 1;
-    *(ctx->ch) = ch + 4;
+    ctx->target->int8 = 1;
+    ctx->ch = ch + 4;
   } else if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
-    *target = 0;
-    *(ctx->ch) = ch + 5;
+    ctx->target->int8 = 0;
+    ctx->ch = ch + 5;
   } else {
-    *target = NA_BOOL8;
+    ctx->target->int8 = NA_BOOL8;
   }
 }
 
@@ -834,16 +832,15 @@ static void parse_bool_titlecase(FieldParseContext* ctx)
 /* Parse lowercase true | false as boolean. */
 static void parse_bool_lowercase(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
-  int8_t* target = (int8_t*) ctx->targets[sizeof(int8_t)];
+  const char* ch = ctx->ch;
   if (ch[0]=='t' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
-    *target = 1;
-    *(ctx->ch) = ch + 4;
+    ctx->target->int8 = 1;
+    ctx->ch = ch + 4;
   } else if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
-    *target = 0;
-    *(ctx->ch) = ch + 5;
+    ctx->target->int8 = 0;
+    ctx->ch = ch + 5;
   } else {
-    *target = NA_BOOL8;
+    ctx->target->int8 = NA_BOOL8;
   }
 }
 
@@ -893,6 +890,7 @@ int FreadReader::freadMain()
   uint32_t ui32 = NA_FLOAT32_I32;
   memcpy(&NA_FLOAT64, &ui64, 8);
   memcpy(&NA_FLOAT32, &ui32, 4);
+  assert(sizeof(field64) == 8);
 
   NAstrings = g.na_strings;
   blank_is_a_NAstring = g.blank_is_na;
@@ -1120,11 +1118,10 @@ int FreadReader::freadMain()
       types[j] = type0;
       tmpTypes[j] = type0;
     }
-    int64_t trash;
-    void* targets[9] = {NULL, &trash, NULL, NULL, &trash, NULL, NULL, NULL, &trash};
+    field64 trash;
     FieldParseContext fctx = {
-      .ch = &ch,
-      .targets = targets,
+      .ch = ch,
+      .target = &trash,
       .anchor = NULL,
     };
 
@@ -1390,10 +1387,9 @@ int FreadReader::freadMain()
     if (header == 1) {
       line++;
       if (sep==' ') while (*ch==' ') ch++;
-      void* targets[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, colNames};
       FieldParseContext fctx = {
-        .ch = &ch,
-        .targets = targets,
+        .ch = ch,
+        .target = (field64*)colNames,
         .anchor = colNamesAnchor,
       };
       ch--;
@@ -1401,7 +1397,7 @@ int FreadReader::freadMain()
         // Use Field() here as it handles quotes, leading space etc inside it
         ch++;
         parse_string(&fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
-        ((lenOff**) fctx.targets)[8]++;
+        fctx.target++;
         if (*ch!=sep) break;
         if (sep==' ') {
           while (ch[1]==' ') ch++;
@@ -1429,9 +1425,7 @@ int FreadReader::freadMain()
   int ndrop;          // Number of columns that will be dropped from the file being read
   int nStringCols;    // Number of string columns in the file
   int nNonStringCols; // Number of all other columns in the file
-  size_t rowSize1;    // Total bytesize of all fields having sizeof==1
-  size_t rowSize4;    // Total bytesize of all fields having sizeof==4
-  size_t rowSize8;    // Total bytesize of all fields having sizeof==8
+  size_t rowSize;
   size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
@@ -1441,20 +1435,16 @@ int FreadReader::freadMain()
 
     int nUserBumped = 0;
     ndrop = 0;
-    rowSize1 = 0;
-    rowSize4 = 0;
-    rowSize8 = 0;
+    rowSize = 0;
     nStringCols = 0;
     nNonStringCols = 0;
     for (int j = 0; j < ncol; j++) {
       sizes[j] = typeSize[types[j]];
-      rowSize1 += (sizes[j] & 1);  // only works if all sizes are powers of 2
-      rowSize4 += (sizes[j] & 4);
-      rowSize8 += (sizes[j] & 8);
       if (types[j] == CT_DROP) {
         ndrop++;
         continue;
       }
+      rowSize += 8;
       if (types[j] < tmpTypes[j]) {
         // FIXME: if the user wants to override the type, let them
         STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
@@ -1559,12 +1549,8 @@ int FreadReader::freadMain()
     // Allocate thread-private row-major myBuffs
     ThreadLocalFreadParsingContext ctx = {
       .anchor = NULL,
-      .buff8 = malloc(rowSize8 * myBuffRows + 8),
-      .buff4 = malloc(rowSize4 * myBuffRows + 4),
-      .buff1 = malloc(rowSize1 * myBuffRows + 1),
-      .rowSize8 = rowSize8,
-      .rowSize4 = rowSize4,
-      .rowSize1 = rowSize1,
+      .buff = (field64*) malloc(myBuffRows * rowSize + 8),
+      .rowSize = rowSize,
       .DTi = 0,  // which row in the final DT result I should start writing my chunk to
       .nRows = allocnrow,
       .stopTeam = &stopTeam,
@@ -1576,15 +1562,14 @@ int FreadReader::freadMain()
       .nNonStringCols = nNonStringCols
       #endif
     };
-    if ((rowSize8 && !ctx.buff8) || (rowSize4 && !ctx.buff4) || (rowSize1 && !ctx.buff1)) {
+    if (ncol && !ctx.buff) {
       stopTeam = true;
     }
     prepareThreadContext(&ctx);
 
-    void* ttargets[9] = {NULL, ctx.buff1, NULL, NULL, ctx.buff4, NULL, NULL, NULL, ctx.buff8};
     FieldParseContext fctx = {
-      .ch = &tch,
-      .targets = ttargets,
+      .ch = tch,
+      .target = ctx.buff,
       .anchor = thisJumpStart,
     };
 
@@ -1621,9 +1606,7 @@ int FreadReader::freadMain()
         }
       }
 
-      ttargets[1] = ctx.buff1;
-      ttargets[4] = ctx.buff4;
-      ttargets[8] = ctx.buff8;
+      fctx.target = ctx.buff;
       tch = sof + (size_t)jump * chunkBytes;
       nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
       // +1 is for when nextJump happens to fall exactly on a \n. The
@@ -1651,17 +1634,13 @@ int FreadReader::freadMain()
           myBuffRows *= 1.5;
           #pragma omp atomic
           buffGrown++;
-          ctx.buff8 = realloc(ctx.buff8, rowSize8 * myBuffRows + 8);
-          ctx.buff4 = realloc(ctx.buff4, rowSize4 * myBuffRows + 4);
-          ctx.buff1 = realloc(ctx.buff1, rowSize1 * myBuffRows + 1);
-          if ((rowSize8 && !ctx.buff8) || (rowSize4 && !ctx.buff4) || (rowSize1 && !ctx.buff1)) {
+          ctx.buff = (field64*) realloc(ctx.buff, rowSize * myBuffRows + 8);
+          if (ncols && !ctx.buff) {
             stopTeam = true;
             break;
           }
           // shift current buffer positions, since `myBuffX`s were probably moved by realloc
-          fctx.targets[8] = (void*)((char*)ctx.buff8 + myNrow * rowSize8);
-          fctx.targets[4] = (void*)((char*)ctx.buff4 + myNrow * rowSize4);
-          fctx.targets[1] = (void*)((char*)ctx.buff1 + myNrow * rowSize1);
+          fctx.target = ctx.buff + myNrow * (rowSize / 8);
         }
         const char* tlineStart = tch;  // for error message
         const char* fieldStart = tch;
@@ -1674,10 +1653,11 @@ int FreadReader::freadMain()
             fieldStart = tch;
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
             int8_t thisType = types[j];
-            int8_t thisSize = sizes[j];
             parsers[abs(thisType)](&fctx);
             if (*tch != sep) break;
-            ((char **) ttargets)[thisSize] += thisSize;
+            if (sizes[j]) {
+              fctx.target++;
+            }
             tch++;
             j++;
           }
@@ -1689,8 +1669,9 @@ int FreadReader::freadMain()
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
           else if (eol(&tch)) {
-            int8_t thisSize = sizes[j];
-            ((char **) ttargets)[thisSize] += thisSize;
+            if (sizes[j]) {
+              fctx.target++;
+            }
             j++;
             if (j==ncol) { tch++; myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
           }
@@ -1776,16 +1757,17 @@ int FreadReader::freadMain()
                 } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
               }
             }
-            ((char**) ttargets)[sizes[j]] += sizes[j];
+            if (sizes[j]) {
+              fctx.target++;
+            }
             j++;
             if (*tch==sep) { tch++; continue; }
             if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncol) {
               // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
-              if (joldType == CT_STRING && sizes[j-1] == 8) {
-                lenOff* lastValue = ((lenOff**)ttargets)[8] - 1;
-                if (lastValue->len == 0) lastValue->len = INT32_MIN;
+              if (joldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.len == 0) {
+                fctx.target[-1].str32.len = INT32_MIN;
               }
               continue;
             }
@@ -1882,9 +1864,7 @@ int FreadReader::freadMain()
       if (verbose) thRead += wallclock() - now;
     }
     // Done reading the file: each thread should now clean up its own buffers.
-    free(ctx.buff8); ctx.buff8 = NULL;
-    free(ctx.buff4); ctx.buff4 = NULL;
-    free(ctx.buff1); ctx.buff1 = NULL;
+    free(ctx.buff); ctx.buff = NULL;
     freeThreadContext(&ctx);
   }
   //-- end parallel ------------------
@@ -1930,7 +1910,7 @@ int FreadReader::freadMain()
     for (int i=0; i<ncol; i++) typeCounts[ abs(types[i]) ]++;
 
     if (nTypeBump) {
-      rowSize1 = rowSize4 = rowSize8 = 0;
+      rowSize = 0;
       nStringCols = 0;
       nNonStringCols = 0;
       for (int j=0, resj=-1; j<ncol; j++) {
@@ -1940,9 +1920,8 @@ int FreadReader::freadMain()
           // column was bumped due to out-of-sample type exception
           types[j] = -types[j];
           sizes[j] = typeSize[types[j]];
-          rowSize1 += (sizes[j] & 1);
-          rowSize4 += (sizes[j] & 4);
-          rowSize8 += (sizes[j] & 8);
+          assert(sizes[j] != 0);
+          rowSize += 8;
           if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
         } else if (types[j]>=1) {
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
