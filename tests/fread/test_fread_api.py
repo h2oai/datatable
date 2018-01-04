@@ -468,6 +468,43 @@ def test_fread_columns_empty(columns):
 
 
 #-------------------------------------------------------------------------------
+# `sep`
+#-------------------------------------------------------------------------------
+
+def test_sep_comma():
+    d0 = dt.fread("A,B,C\n1,2,3\n", sep=",")
+    d1 = dt.fread("A,B,C\n1,2,3\n", sep=";")
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d0.shape == (1, 3)
+    assert d1.shape == (1, 1)
+
+
+def test_sep_newline():
+    d0 = dt.fread("A,B,C\n1,2;3 ,5\n", sep="\n")
+    d1 = dt.fread("A,B,C\n1,2;3 ,5\n", sep="")
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d0.shape == d1.shape == (1, 1)
+    assert d0.names == d1.names == ("A,B,C",)
+    assert d0.topython() == d1.topython() == [["1,2;3 ,5"]]
+
+
+def test_sep_invalid():
+    with pytest.raises(TypeError) as e:
+        dt.fread("A,,B\n", sep=12)
+    assert ("Parameter `sep` of type `Optional[str]` received value 12 "
+            "of type int" in str(e))
+    with pytest.raises(Exception) as e:
+        dt.fread("A,,B\n", sep=",,")
+    assert "Multi-character separator ',,' not supported" in str(e)
+    with pytest.raises(Exception) as e:
+        dt.fread("A,,B\n", sep="⌘")
+    assert "The separator should be an ASCII character, got '⌘'" in str(e)
+
+
+
+#-------------------------------------------------------------------------------
 # `skip_blank_lines`
 #-------------------------------------------------------------------------------
 
