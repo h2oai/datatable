@@ -70,7 +70,7 @@ static const double INFD = (double)INFINITY;
 
 typedef struct FieldParseContext {
   // Pointer to the current parsing location
-  const char** ch;
+  const char*& ch;
 
   // Parse target buffer
   field64* target;
@@ -260,7 +260,7 @@ static inline int countfields(const char** pch)
   field64 trash;
   const char* ch = *pch;
   FieldParseContext ctx = {
-    .ch = &ch,
+    .ch = ch,
     .target = &trash,
     .anchor = NULL,
   };
@@ -331,7 +331,7 @@ static inline bool nextGoodLine(const char** pch, int ncol)
 
 static void parse_string(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
 
   // need to skip_white first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
@@ -340,7 +340,7 @@ static void parse_string(FieldParseContext* ctx)
   if (*ch!=quote || quoteRule==3) {
     // Most common case. Unambiguously not quoted. Simply search for sep|eol. If field contains sep|eol then it should have been quoted and we do not try to heal that.
     while(!end_of_field(ch)) ch++;  // sep, \r, \n or \0 will end
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
     int fieldLen = (int)(ch-fieldStart);
     if (stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
       while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
@@ -410,9 +410,9 @@ static void parse_string(FieldParseContext* ctx)
   if (*ch==quote) {
     ch++;
     skip_white(&ch);
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
   } else {
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
     if (*ch=='\0') {
       if (quoteRule!=2) {  // see test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
         ctx->target->str32.off--;
@@ -431,7 +431,7 @@ static void parse_string(FieldParseContext* ctx)
 
 static void parse_int32(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
 
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
@@ -460,7 +460,7 @@ static void parse_int32(FieldParseContext* ctx)
   //     (acc==0 && ch-start==1) ) {
   if ((sf || ch>start) && sf<=10 && acc<=INT32_MAX) {
     ctx->target->int32 = neg ? -(int32_t)acc : (int32_t)acc;
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
   } else {
     ctx->target->int32 = NA_INT32;  // empty field ideally, contains NA and fall through to check if NA (in which case this write is important), or just plain invalid
   }
@@ -469,7 +469,7 @@ static void parse_int32(FieldParseContext* ctx)
 
 static void parse_int64(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
 
   bool neg = *ch=='-';
   ch += (neg || *ch=='+');
@@ -491,7 +491,7 @@ static void parse_int64(FieldParseContext* ctx)
   //     (acc==0 && ch-start==1) ) {
   if ((sf || ch>start) && sf<=19 && acc<=INT64_MAX) {
     ctx->target->int64 = neg ? -(int64_t)acc : (int64_t)acc;
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
   } else {
     ctx->target->int64 = NA_INT64;
   }
@@ -513,7 +513,7 @@ static void parse_int64(FieldParseContext* ctx)
 static void parse_double_regular(FieldParseContext* ctx)
 {
   //
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
 
   bool neg, Eneg;
   double r;
@@ -566,7 +566,7 @@ static void parse_double_regular(FieldParseContext* ctx)
 
   r = (double)((long double)acc * pow10lookup[e]);
   ctx->target->float64 = neg? -r : r;
-  *(ctx->ch) = ch;
+  ctx->ch = ch;
   return;
 
   fail:
@@ -585,7 +585,7 @@ static void parse_double_regular(FieldParseContext* ctx)
  */
 static void parse_double_extended(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   bool neg, quoted;
   ch += (quoted = (*ch==quote));
   ch += (neg = (*ch=='-')) + (*ch=='+');
@@ -635,7 +635,7 @@ static void parse_double_extended(FieldParseContext* ctx)
     if (quoted && *ch!=quote) {
       ctx->target->float64 = NA_FLOAT64;
     } else {
-      *(ctx->ch) = ch + quoted;
+      ctx->ch = ch + quoted;
     }
 }
 
@@ -668,7 +668,7 @@ static void parse_double_extended(FieldParseContext* ctx)
  */
 static void parse_double_hexadecimal(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   uint64_t neg;
   uint8_t digit;
   bool Eneg, subnormal = 0;
@@ -704,18 +704,18 @@ static void parse_double_hexadecimal(FieldParseContext* ctx)
       if (E < 1 || E > 2046) goto fail;
     }
     ctx->target->uint64 = (neg << 63) | (E << 52) | (acc);
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
     return;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
     ctx->target->float64 = NA_FLOAT64;
-    *(ctx->ch) = ch + 3;
+    ctx->ch = ch + 3;
     return;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
     ctx->target->float64 = neg ? -INFD : INFD;
-    *(ctx->ch) = ch + 8;
+    ctx->ch = ch + 8;
     return;
   }
 
@@ -726,7 +726,7 @@ static void parse_double_hexadecimal(FieldParseContext* ctx)
 
 static void parse_float_hexadecimal(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   uint32_t neg;
   uint8_t digit;
   bool Eneg, subnormal = 0;
@@ -763,18 +763,18 @@ static void parse_float_hexadecimal(FieldParseContext* ctx)
       if (E < 1 || E > 254) goto fail;
     }
     ctx->target->uint32 = (neg << 31) | (E << 23) | (acc);
-    *(ctx->ch) = ch;
+    ctx->ch = ch;
     return;
   }
   if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
     ctx->target->float32 = NA_FLOAT32;
-    *(ctx->ch) = ch + 3;
+    ctx->ch = ch + 3;
     return;
   }
   if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
       ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
     ctx->target->float32 = neg ? -INFINITY : INFINITY;
-    *(ctx->ch) = ch + 8;
+    ctx->ch = ch + 8;
     return;
   }
 
@@ -786,11 +786,11 @@ static void parse_float_hexadecimal(FieldParseContext* ctx)
 /* Parse numbers 0 | 1 as boolean. */
 static void parse_bool_numeric(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   uint8_t d = (uint8_t)(*ch - '0');  // '0'=>0, '1'=>1, everything else > 1
   if (d <= 1) {
     ctx->target->int8 = (int8_t) d;
-    *(ctx->ch) = ch + 1;
+    ctx->ch = ch + 1;
   } else {
     ctx->target->int8 = NA_BOOL8;
   }
@@ -800,13 +800,13 @@ static void parse_bool_numeric(FieldParseContext* ctx)
 /* Parse uppercase TRUE | FALSE as boolean. */
 static void parse_bool_uppercase(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   if (ch[0]=='T' && ch[1]=='R' && ch[2]=='U' && ch[3]=='E') {
     ctx->target->int8 = 1;
-    *(ctx->ch) = ch + 4;
+    ctx->ch = ch + 4;
   } else if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx->target->int8 = 0;
-    *(ctx->ch) = ch + 5;
+    ctx->ch = ch + 5;
   } else {
     ctx->target->int8 = NA_BOOL8;
   }
@@ -816,13 +816,13 @@ static void parse_bool_uppercase(FieldParseContext* ctx)
 /* Parse camelcase True | False as boolean. */
 static void parse_bool_titlecase(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   if (ch[0]=='T' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
     ctx->target->int8 = 1;
-    *(ctx->ch) = ch + 4;
+    ctx->ch = ch + 4;
   } else if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx->target->int8 = 0;
-    *(ctx->ch) = ch + 5;
+    ctx->ch = ch + 5;
   } else {
     ctx->target->int8 = NA_BOOL8;
   }
@@ -832,13 +832,13 @@ static void parse_bool_titlecase(FieldParseContext* ctx)
 /* Parse lowercase true | false as boolean. */
 static void parse_bool_lowercase(FieldParseContext* ctx)
 {
-  const char* ch = *(ctx->ch);
+  const char* ch = ctx->ch;
   if (ch[0]=='t' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
     ctx->target->int8 = 1;
-    *(ctx->ch) = ch + 4;
+    ctx->ch = ch + 4;
   } else if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx->target->int8 = 0;
-    *(ctx->ch) = ch + 5;
+    ctx->ch = ch + 5;
   } else {
     ctx->target->int8 = NA_BOOL8;
   }
@@ -1120,7 +1120,7 @@ int FreadReader::freadMain()
     }
     field64 trash;
     FieldParseContext fctx = {
-      .ch = &ch,
+      .ch = ch,
       .target = &trash,
       .anchor = NULL,
     };
@@ -1388,7 +1388,7 @@ int FreadReader::freadMain()
       line++;
       if (sep==' ') while (*ch==' ') ch++;
       FieldParseContext fctx = {
-        .ch = &ch,
+        .ch = ch,
         .target = (field64*)colNames,
         .anchor = colNamesAnchor,
       };
@@ -1568,7 +1568,7 @@ int FreadReader::freadMain()
     prepareThreadContext(&ctx);
 
     FieldParseContext fctx = {
-      .ch = &tch,
+      .ch = tch,
       .target = ctx.buff,
       .anchor = thisJumpStart,
     };
