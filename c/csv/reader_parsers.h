@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_READER_PARSERS_H
 #define dt_CSV_READER_PARSERS_H
+#include <stdint.h>
 
 
 struct RelStr {
@@ -33,6 +34,7 @@ struct FieldParseContext {
     int8_t  int8;
     int32_t int32;
     int64_t int64;
+    uint8_t uint8;
     float   float32;
     double  float64;
     RelStr  str32;
@@ -44,7 +46,13 @@ struct FieldParseContext {
 };
 
 
-typedef void (*parser_fn)(FieldParseContext& ctx);
+typedef void (*ParserFnPtr)(FieldParseContext& ctx);
+
+void parser_Bool01(FieldParseContext& ctx);
+void parser_BoolU(FieldParseContext& ctx);
+void parser_BoolL(FieldParseContext& ctx);
+void parser_BoolT(FieldParseContext& ctx);
+
 
 
 //------------------------------------------------------------------------------
@@ -67,4 +75,4 @@ enum class PT : uint8_t {
 };
 
 
-#undef
+#endif
