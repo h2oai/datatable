@@ -129,6 +129,7 @@ def test_float_precision():
     # This is a collection of numbers that fread is known to read incorrectly
     src = [3.656561722844758,  # reads as 3.6565617228447582 (+1 ulp)
            7.304360333549758,  # reads as 7.3043603335497576 (-1 ulp)
+           4.018175023192327,  # reads as 4.0181750231923274 (+1 ulp)
            ]
     text = "A\n" + "\n".join(str(x) for x in src)
     d0 = dt.fread(text)
