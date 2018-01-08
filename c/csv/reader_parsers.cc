@@ -14,11 +14,6 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/reader_parsers.h"
-#include <limits>
-
-static const int8_t  NA_BOOL8 = -128;
-static const int32_t NA_INT32 = std::numeric_limits<int32_t>::min();
-static const int64_t NA_INT64 = std::numeric_limits<int64_t>::min();
 
 
 
@@ -35,13 +30,13 @@ static const int64_t NA_INT64 = std::numeric_limits<int64_t>::min();
  * and there is nothing to read nor parsing pointer to advance in an empty
  * column.
  */
-void parser_Mu(FieldParseContext& ctx) {
+void parse_mu(FieldParseContext& ctx) {
   ctx.target->int8 = NA_BOOL8;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
-void parser_Bool01(FieldParseContext& ctx) {
+void parse_bool8_numeric(FieldParseContext& ctx) {
   const char* ch = ctx.ch;
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
@@ -57,7 +52,7 @@ void parser_Bool01(FieldParseContext& ctx) {
 
 
 /* Parse lowercase true | false as boolean. */
-void parser_BoolL(FieldParseContext& ctx) {
+void parse_bool8_lowercase(FieldParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -72,7 +67,7 @@ void parser_BoolL(FieldParseContext& ctx) {
 
 
 /* Parse titlecase True | False as boolean. */
-void parser_BoolT(FieldParseContext& ctx) {
+void parse_bool8_titlecase(FieldParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -87,7 +82,7 @@ void parser_BoolT(FieldParseContext& ctx) {
 
 
 /* Parse uppercase TRUE | FALSE as boolean. */
-void parser_BoolU(FieldParseContext& ctx) {
+void parse_bool8_uppercase(FieldParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx.target->int8 = 0;
@@ -110,7 +105,7 @@ void parser_BoolU(FieldParseContext& ctx) {
 // would occur)!
 // See microbench/fread/int32.cpp for performance tests
 //
-void parser_Int32Plain(FieldParseContext& ctx) {
+void parse_int32_simple(FieldParseContext& ctx) {
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
@@ -143,7 +138,7 @@ void parser_Int32Plain(FieldParseContext& ctx) {
 // Int64
 //------------------------------------------------------------------------------
 
-void parser_Int64Plain(FieldParseContext& ctx) {
+void parse_int64_simple(FieldParseContext& ctx) {
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
@@ -166,6 +161,406 @@ void parser_Int64Plain(FieldParseContext& ctx) {
     ctx.ch = ch;
   } else {
     ctx.target->int64 = NA_INT64;
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
+// Float32
+//------------------------------------------------------------------------------
+
+void parse_float32_hex(FieldParseContext& ctx) {
+  const char* ch = ctx.ch;
+  uint32_t neg;
+  uint8_t digit;
+  bool Eneg, subnormal = 0;
+  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
+      (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
+    ch += 3;
+    uint32_t acc = 0;
+    if (*ch == '.') {
+      ch++;
+      int ndigits = 0;
+      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+        acc = (acc << 4) + digit;
+        ch++;
+        ndigits++;
+      }
+      if (ndigits > 6) goto fail;
+      acc <<= 24 - ndigits * 4;
+      acc >>= 1;
+    }
+    if (*ch!='p' && *ch!='P') goto fail;
+    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    uint32_t E = 0;
+    while ( (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
+      E = 10*E + digit;
+      ch++;
+    }
+    if (subnormal) {
+      if (E == 0 && acc == 0) /* zero */;
+      else if (E == 126 && Eneg && acc) /* subnormal */ E = 0;
+      else goto fail;
+    } else {
+      E = 127 + (E ^ -Eneg) + Eneg;
+      if (E < 1 || E > 254) goto fail;
+    }
+    ctx.target->uint32 = (neg << 31) | (E << 23) | (acc);
+    ctx.ch = ch;
+    return;
+  }
+  if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
+    ctx.target->uint32 = NA_FLOAT32_I32;
+    ctx.ch = ch + 3;
+    return;
+  }
+  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
+      ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
+    ctx.target->uint32 = (neg << 31) | INF_FLOAT32_I32;
+    ctx.ch = ch + 8;
+    return;
+  }
+
+  fail:
+    ctx.target->uint32 = NA_FLOAT32_I32;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Float64
+//------------------------------------------------------------------------------
+
+/**
+ * Parse "usual" double literals, in the form
+ *
+ *   [+|-] (NNN|NNN.|.MMM|NNN.MMM) [(E|e) [+|-] EEE]
+ *
+ * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
+ * whole part, fractional part, and the exponent respectively.
+ *
+ * Right now we do not parse floating numbers that would incur significant loss
+ * of precision, for example `1.2439827340958723094785103` will not be parsed
+ * as a double.
+ */
+void parse_float64_simple(FieldParseContext& ctx) {
+  const char* ch = ctx.ch;
+
+  bool neg, Eneg;
+  double r;
+  ch += (neg = *ch=='-') + (*ch=='+');
+
+  const char* start = ch;
+  uint_fast64_t acc = 0;  // holds NNN.MMM as NNNMMM
+  int_fast32_t e = 0;     // width of MMM to adjust NNNMMM by dec location
+  uint_fast8_t digit;
+  while (*ch=='0') ch++;
+
+  uint_fast32_t sf = 0;
+  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
+    acc = 10*acc + digit;
+    sf++;
+  }
+  ch += sf;
+  if (*ch==ctx.dec) {
+    ch++;
+    // Numbers like 0.00000000000000000000000000000000004 can be read without
+    // loss of precision as 4e-35  (test 1817)
+    if (sf==0 && *ch=='0') {
+      while (ch[e]=='0') e++;
+      ch += e;
+      e = -e;
+    }
+    uint_fast32_t k = 0;
+    while ( (digit=(uint_fast8_t)(ch[k]-'0'))<10 ) {
+      acc = 10*acc + digit;
+      k++;
+    }
+    ch += k;
+    sf += k;
+    e -= k;
+  }
+  if (sf>18) goto fail;  // Too much precision for double. TODO: reduce to 15(?) and discard trailing 0's.
+  if (*ch=='E' || *ch=='e') {
+    if (ch==start) goto fail;  // something valid must be between [+|-] and E, character E alone is invalid.
+    ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    int E=0, max_digits=3;
+    while ( max_digits && (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
+      E = 10*E + digit;
+      ch++;
+      max_digits--;
+    }
+    e += Eneg? -E : E;
+  }
+  e += 350; // lookup table is arranged from -350 (0) to +350 (700)
+  if (e<0 || e>700 || ch==start) goto fail;
+
+  r = (double)((long double)acc * pow10lookup[e]);
+  ctx.target->float64 = neg? -r : r;
+  ctx.ch = ch;
+  return;
+
+  fail:
+    ctx.target->uint64 = NA_FLOAT64_I64;
+}
+
+
+/**
+ * Parses double values, but also understands various forms of NAN literals
+ * (each can possibly be preceded with a `+` or `-` sign):
+ *
+ *   nan, inf, NaN, NAN, NaN%, NaNQ, NaNS, qNaN, sNaN, NaN12345, sNaN54321,
+ *   1.#SNAN, 1.#QNAN, 1.#IND, 1.#INF, INF, Inf, Infinity,
+ *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
+ *
+ */
+void parse_float64_extended(FieldParseContext& ctx) {
+  const char* ch = ctx.ch;
+  uint64_t neg;
+  bool quoted;
+  ch += (quoted = (*ch==ctx.quote));
+  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch[0]=='n' && ch[1]=='a' && ch[2]=='n' && (ch += 3)) goto return_nan;
+  if (ch[0]=='i' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) goto return_inf;
+  if (ch[0]=='I' && ch[1]=='N' && ch[2]=='F' && (ch += 3)) goto return_inf;
+  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) {
+    if (ch[0]=='i' && ch[1]=='n' && ch[2]=='i' && ch[3]=='t' && ch[4]=='y') ch += 5;
+    goto return_inf;
+  }
+  if (ch[0]=='N' && (ch[1]=='A' || ch[1]=='a') && ch[2]=='N' && (ch += 3)) {
+    if (ch[-2]=='a' && (*ch=='%' || *ch=='Q' || *ch=='S')) ch++;
+    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
+    goto return_nan;
+  }
+  if ((ch[0]=='q' || ch[0]=='s') && ch[1]=='N' && ch[2]=='a' && ch[3]=='N' && (ch += 4)) {
+    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
+    goto return_nan;
+  }
+  if (ch[0]=='1' && ch[1]=='.' && ch[2]=='#') {
+    if ((ch[3]=='S' || ch[3]=='Q') && ch[4]=='N' && ch[5]=='A' && ch[6]=='N' && (ch += 7)) goto return_nan;
+    if (ch[3]=='I' && ch[4]=='N' && ch[5]=='D' && (ch += 6)) goto return_nan;
+    if (ch[3]=='I' && ch[4]=='N' && ch[5]=='F' && (ch += 6)) goto return_inf;
+  }
+  if (ch[0]=='#') {  // Excel-specific "numbers"
+    if (ch[1]=='D' && ch[2]=='I' && ch[3]=='V' && ch[4]=='/' && ch[5]=='0' && ch[6]=='!' && (ch += 7)) goto return_nan;
+    if (ch[1]=='V' && ch[2]=='A' && ch[3]=='L' && ch[4]=='U' && ch[5]=='E' && ch[6]=='!' && (ch += 7)) goto return_nan;
+    if (ch[1]=='N' && ch[2]=='U' && ch[3]=='L' && ch[4]=='L' && ch[5]=='!' && (ch += 6)) goto return_na;
+    if (ch[1]=='N' && ch[2]=='A' && ch[3]=='M' && ch[4]=='E' && ch[5]=='?' && (ch += 6)) goto return_na;
+    if (ch[1]=='N' && ch[2]=='U' && ch[3]=='M' && ch[4]=='!' && (ch += 5)) goto return_na;
+    if (ch[1]=='R' && ch[2]=='E' && ch[3]=='F' && ch[4]=='!' && (ch += 5)) goto return_na;
+    if (ch[1]=='N' && ch[2]=='/' && ch[3]=='A' && (ch += 4)) goto return_na;
+  }
+  parse_float64_simple(ctx);
+  return;
+
+  return_inf:
+    ctx.target->uint64 = (neg << 63) | INF_FLOAT64_I64;
+    goto ok;
+  return_nan:
+  return_na:
+    ctx.target->uint64 = NA_FLOAT64_I64;
+  ok:
+    if (quoted && *ch!=ctx.quote) {
+      ctx.target->uint64 = NA_FLOAT64_I64;
+    } else {
+      ctx.ch = ch + quoted;
+    }
+}
+
+
+/**
+ * Parser for hexadecimal doubles. This format is used in Java (via
+ * `Double.toHexString(x)`), in C (`printf("%a", x)`), and in Python
+ * (`x.hex()`).
+ *
+ * The numbers are in the following format:
+ *
+ *   [+|-] (0x|0X) (0.|1.) HexDigits (p|P) [+|-] DecExponent
+ *
+ * Thus the number has optional sign; followed by hex prefix `0x` or `0X`;
+ * followed by hex significand which may be in the form of either `0.HHHHH...`
+ * or `1.HHHHH...` where `H` are hex-digits (there can be no more than 13
+ * digits; first form is used for subnormal numbers, second for normal ones);
+ * followed by exponent indicator `p` or `P`; followed by optional exponent
+ * sign; and lastly followed by the exponent which is a decimal number.
+ *
+ * This can be directly converted into IEEE-754 double representation:
+ *
+ *   <1 bit: sign> <11 bits: exp+1022> <52 bits: significand>
+ *
+ * This parser also recognizes literals "NaN" and "Infinity" which can be
+ * produced by Java.
+ *
+ * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
+ * @see https://en.wikipedia.org/wiki/IEEE_754-1985
+ */
+void parse_float64_hex(FieldParseContext& ctx) {
+  const char* ch = ctx.ch;
+  uint64_t neg;
+  uint8_t digit;
+  bool Eneg, subnormal = 0;
+  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') && (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
+    ch += 3;
+    uint64_t acc = 0;
+    if (*ch == '.') {
+      ch++;
+      int ndigits = 0;
+      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
+        acc = (acc << 4) + digit;
+        ch++;
+        ndigits++;
+      }
+      if (ndigits > 13) goto fail;
+      acc <<= (13 - ndigits) * 4;
+    }
+    if (*ch!='p' && *ch!='P') goto fail;
+    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    uint64_t E = 0;
+    while ( (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
+      E = 10*E + digit;
+      ch++;
+    }
+    if (subnormal) {
+      if (E == 0 && acc == 0) /* zero */;
+      else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
+      else goto fail;
+    } else {
+      E = 1023 + (E ^ -Eneg) + Eneg;
+      if (E < 1 || E > 2046) goto fail;
+    }
+    ctx.target->uint64 = (neg << 63) | (E << 52) | (acc);
+    ctx.ch = ch;
+    return;
+  }
+  if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
+    ctx.target->uint64 = NA_FLOAT64_I64;
+    ctx.ch = ch + 3;
+    return;
+  }
+  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
+      ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
+    ctx.target->uint64 = (neg << 63) | INF_FLOAT64_I64;
+    ctx.ch = ch + 8;
+    return;
+  }
+
+  fail:
+    ctx.target->uint64 = NA_FLOAT64_I64;
+}
+
+
+
+//------------------------------------------------------------------------------
+// String
+//------------------------------------------------------------------------------
+
+// TODO: refactor into smaller pieces
+void parse_string(FieldParseContext& ctx) {
+  const char* ch = ctx.ch;
+  const char quote = ctx.quote;
+  const char sep = ctx.sep;
+
+  // need to skip_white first for the reason that a quoted field might have space before the
+  // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
+  if (*ch==' ' && ctx.stripWhite) while(*++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+  const char* fieldStart = ch;
+  if (*ch!=quote || ctx.quoteRule==3) {
+    // Most common case: unambiguously not quoted. Simply search for sep|eol.
+    // If field contains sep|eol then it should have been quoted and we do not
+    // try to heal that.
+    while(!ctx.end_of_field(ch)) ch++;  // sep, \r, \n or \0 will end
+    ctx.ch = ch;
+    int fieldLen = (int)(ch-fieldStart);
+    if (ctx.stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
+      while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
+      // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
+    }
+    if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_a_NAstring) {
+      fieldLen = INT32_MIN;  // TODO - speed up by avoiding end_NA_string when there are none
+    }
+    ctx.target->str32.off = (int32_t)(fieldStart - ctx.anchor);
+    ctx.target->str32.len = fieldLen;
+    return;
+  }
+  // else *ch==quote (we don't mind that quoted fields are a little slower e.g. no desire to save switch)
+  //    the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
+  // or the field is quoted but quotes are not escaped (quoteRule 2)
+  // or the field is not quoted but the data contains a quote at the start (quoteRule 2 too)
+  int eolCount = 0;
+  fieldStart++;  // step over opening quote
+  switch(ctx.quoteRule) {
+  case 0:  // quoted with embedded quotes doubled; the final unescaped " must be followed by sep|eol
+    while (*++ch) {
+      if (*ch=='\n' && ++eolCount==100) return;  // TODO: expose this 100 to user to allow them to control limiting runaway fields
+      if (*ch==quote) {
+        if (ch[1]==quote) { ch++; continue; }
+        break;  // found undoubled closing quote
+      }
+    }
+    break;
+  case 1:  // quoted with embedded quotes escaped; the final unescaped " must be followed by sep|eol
+    while (*++ch) {
+      if (*ch=='\n' && ++eolCount==100) return;
+      if (*ch=='\\' && (ch[1]==quote || ch[1]=='\\')) { ch++; continue; }
+      if (*ch==quote) break;
+    }
+    break;
+  case 2:
+    // (i) quoted (perhaps because the source system knows sep is present) but any quotes were not escaped at all,
+    // so look for ", to define the end.   (There might not be any quotes present to worry about, anyway).
+    // (ii) not-quoted but there is a quote at the beginning so it should have been; look for , at the end
+    // If no eol are present inside quoted fields (i.e. rows are simple rows), then this should work ok e.g. test 1453
+    // since we look for ", and the source system quoted when , is present, looking for ", should work well.
+    // Under this rule, no eol may occur inside fields.
+    {
+      const char* ch2 = ch;
+      while (*++ch && *ch!='\n' && *ch!='\r') {
+        if (*ch==quote && ctx.end_of_field(ch+1)) {ch2=ch; break;}  // (*1) regular ", ending; leave *ch on closing quote
+        if (*ch==sep) {
+          // first sep in this field
+          // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
+          // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
+          ch2 = ch;
+          while (*++ch2 && *ch2!='\n' && *ch2!='\r') {
+            if (*ch2==quote && ctx.end_of_field(ch2+1)) {
+              ch = ch2;                                          // (*2) move on to that first ", -- that's this field's ending
+              break;
+            }
+          }
+          break;
+        }
+      }
+      if (ch!=ch2) fieldStart--;   // field ending is this sep|eol; neither (*1) or (*2) happened; opening quote wasn't really an opening quote
+    }
+    break;
+  default:
+    return;  // Internal error: undefined quote rule
+  }
+  ctx.target->str32.len = (int32_t)(ch - fieldStart);
+  ctx.target->str32.off = (int32_t)(fieldStart - ctx.anchor);
+  if (*ch==quote) {
+    ctx.ch = ch + 1;
+    ctx.skip_white();
+  } else {
+    ctx.ch = ch;
+    if (*ch=='\0') {
+      if (ctx.quoteRule!=2) {  // see test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
+        ctx.target->str32.off--;
+        ctx.target->str32.len++;
+      }
+    }
+    if (ctx.stripWhite) {  // see test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
+      while (ctx.target->str32.len>0 && ch[-1]==' ') {
+        ctx.target->str32.len--;
+        ch--;
+      }
+    }
   }
 }
 
@@ -223,9 +618,9 @@ ParserLibrary& ParserLibrary::get() {
 
 ParserLibrary::ParserLibrary() {
   add(ParserInfo(PT::Drop, "Drop", '-', nullptr));
-  add(ParserInfo(PT::Mu, "Mu", '?', parser_Mu));
-  // {parser_BoolL, parser_BoolT, parser_BoolU, parser_Bool01,
-  //  parser_Int32Plain, parser_Int64Plain};
+  add(ParserInfo(PT::Mu, "Mu", '?', parse_mu));
+  // {parse_bool8_lowercase, parse_bool8_titlecase, parse_bool8_uppercase, parse_bool8_numeric,
+  //  parse_int32_simple, parse_int64_simple};
 }
 
 void ParserLibrary::add(ParserInfo&& p) {

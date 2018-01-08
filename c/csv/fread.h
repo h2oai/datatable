@@ -66,12 +66,60 @@ union field64 {
 };
 
 
+struct FieldParseContext {
+  // Pointer to the current parsing location
+  const char*& ch;
+
+  // Where to write the parsed value. The pointer will be incremented after
+  // each successful read.
+  field64* target;
+
+  // Anchor pointer for string parser, this pointer is the starting point
+  // relative to which `str32.offset` is defined.
+  const char* anchor;
+
+  char whiteChar;
+
+  // Decimal separator for parsing floats. The default value is '.', but
+  // in some cases ',' may also be used.
+  char dec;
+
+  // Field separator
+  char sep;
+
+  // Character used for field quoting.
+  char quote;
+
+  // How the fields are quoted.
+  // TODO: split quoteRule differences into separate parsers.
+  int8_t quoteRule;
+
+  // Should white space be removed?
+  bool stripWhite;
+
+  // Do we consider blank as NA string?
+  bool blank_is_a_NAstring;
+
+  int8_t : 8;
+
+  void skip_white();
+  bool end_of_field(const char* ch);
+  bool end_of_field() { return end_of_field(ch); }
+  const char* end_NA_string(const char*);
+};
+
+typedef void (*ParserFnPtr)(FieldParseContext& ctx);
+
+
 #define NA_BOOL8         INT8_MIN
 #define NA_INT32         INT32_MIN
 #define NA_INT64         INT64_MIN
 #define NA_FLOAT64_I64   0x7FF00000000007A2
 #define NA_FLOAT32_I32   0x7F8007A2
 #define NA_LENOFF        INT32_MIN  // lenOff.len only; lenOff.off undefined for NA
+#define INF_FLOAT32_I32  0x7F800000
+#define INF_FLOAT64_I64   0x7FF0000000000000
+
 
 
 // Per-column per-thread temporary string buffers used to assemble processed

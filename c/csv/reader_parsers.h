@@ -18,46 +18,21 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include "csv/fread.h"
 
 
-struct RelStr {
-  int32_t length;
-  int32_t offset;
-};
-
-
-struct FieldParseContext {
-  // Pointer to the current parsing location
-  const char*& ch;
-
-  // Where to write the parsed value. The pointer will be incremented after
-  // each successful read.
-  union {
-    int8_t  int8;
-    int32_t int32;
-    int64_t int64;
-    uint8_t uint8;
-    float   float32;
-    double  float64;
-    RelStr  str32;
-  }* target;
-
-  // Anchor pointer for string parser, this pointer is the starting point
-  // relative to which `str32.offset` is defined.
-  const char* anchor;
-};
-
-
-typedef void (*ParserFnPtr)(FieldParseContext& ctx);
-
-void parser_Mu(FieldParseContext&);
-void parser_Bool01(FieldParseContext&);
-void parser_BoolU(FieldParseContext&);
-void parser_BoolL(FieldParseContext&);
-void parser_BoolT(FieldParseContext&);
-void parser_Int32Plain(FieldParseContext&);
-void parser_Int64Plain(FieldParseContext&);
-
+void parse_mu(FieldParseContext&);
+void parse_bool8_numeric(FieldParseContext&);
+void parse_bool8_uppercase(FieldParseContext&);
+void parse_bool8_lowercase(FieldParseContext&);
+void parse_bool8_titlecase(FieldParseContext&);
+void parse_int32_simple(FieldParseContext&);
+void parse_int64_simple(FieldParseContext&);
+void parse_float32_hex(FieldParseContext&);
+void parse_float64_simple(FieldParseContext& ctx);
+void parse_float64_extended(FieldParseContext& ctx);
+void parse_float64_hex(FieldParseContext&);
+void parse_string(FieldParseContext&);
 
 
 //------------------------------------------------------------------------------
@@ -111,8 +86,6 @@ class ParserLibrary {
     ParserInfo& operator[](size_t i) { return parsers[i]; }
     ~ParserLibrary() {}
 };
-
-
 
 
 #endif
