@@ -16,6 +16,8 @@
 #ifndef dt_CSV_READER_PARSERS_H
 #define dt_CSV_READER_PARSERS_H
 #include <stdint.h>
+#include <string>
+#include <vector>
 
 
 struct RelStr {
@@ -48,10 +50,13 @@ struct FieldParseContext {
 
 typedef void (*ParserFnPtr)(FieldParseContext& ctx);
 
-void parser_Bool01(FieldParseContext& ctx);
-void parser_BoolU(FieldParseContext& ctx);
-void parser_BoolL(FieldParseContext& ctx);
-void parser_BoolT(FieldParseContext& ctx);
+void parser_Mu(FieldParseContext&);
+void parser_Bool01(FieldParseContext&);
+void parser_BoolU(FieldParseContext&);
+void parser_BoolL(FieldParseContext&);
+void parser_BoolT(FieldParseContext&);
+void parser_Int32Plain(FieldParseContext&);
+void parser_Int64Plain(FieldParseContext&);
 
 
 
@@ -73,6 +78,41 @@ enum class PT : uint8_t {
   Float64Hex,
   Str32,
 };
+
+
+class ParserInfo {
+  public:
+    ParserFnPtr fn;
+    std::vector<PT> next_parsers;
+    std::string name;
+    char code;
+    bool enabled;
+    PT id;
+    int64_t : 40;
+
+    ParserInfo(PT id_, const char* name_, char code_, ParserFnPtr ptr)
+        : fn(ptr), name(name_), code(code_), enabled(true), id(id_) {}
+};
+
+
+// Singleton class with information about various parsers
+class ParserLibrary {
+  private:
+    std::vector<ParserInfo> parsers;
+
+    ParserLibrary();
+    void add(ParserInfo&& p);
+
+  public:
+    static ParserLibrary& get();
+    ParserLibrary(const ParserLibrary&) = delete;
+    void operator=(const ParserLibrary&) = delete;
+
+    ParserInfo& operator[](size_t i) { return parsers[i]; }
+    ~ParserLibrary() {}
+};
+
+
 
 
 #endif

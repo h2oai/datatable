@@ -87,6 +87,8 @@ void parser_Bool01(FieldParseContext&);
 void parser_BoolU(FieldParseContext&);
 void parser_BoolL(FieldParseContext&);
 void parser_BoolT(FieldParseContext&);
+void parser_Int32Plain(FieldParseContext& ctx);
+void parser_Int64Plain(FieldParseContext& ctx);
 
 
 
@@ -433,75 +435,6 @@ static void parse_string(FieldParseContext& ctx)
 }
 
 
-static void parse_int32(FieldParseContext& ctx)
-{
-  const char* ch = ctx.ch;
-
-  bool neg = *ch=='-';
-  ch += (neg || *ch=='+');
-  const char* start = ch;  // to know if at least one digit is present
-  // acc needs to be 64bit so that 5bn (still 10 digits but greater than 4bn) does not overflow. It could be
-  //   signed but we use unsigned to be clear it will never be negative
-  uint_fast64_t acc = 0;
-  uint_fast8_t digit;
-  // sep, \r, \n and *eof=='\0' all serve as valid terminators here by dint of being !=[0-9]
-  // see init.c for checks of unsigned uint_fast8_t cast
-  // optimizer should implement 10* as ((x<<2 + x)<<1) or (x<<3 + x<<1)
-
-  /*if (loseLeadingZeroOption)*/ while (*ch=='0') ch++;
-  // number significant figures = digits from the first non-zero onwards including trailing zeros
-  uint_fast32_t sf = 0;
-  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
-    acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  // INT32 range is NA==-2147483648(INT32_MIN) then symmetric [-2147483647,+2147483647] so we can just test INT32_MAX
-  // The max (2147483647) happens to be 10 digits long, hence <=10.
-  // Leading 0 (such as 001 and 099 but not 0, +0 or -0) will cause type bump to _full which has the
-  // option to treat as integer or string with further cost.
-  // if ( (acc && *start!='0' && acc<=INT32_MAX && (ch-start)<=10) ||
-  //     (acc==0 && ch-start==1) ) {
-  if ((sf || ch>start) && sf<=10 && acc<=INT32_MAX) {
-    ctx.target->int32 = neg ? -(int32_t)acc : (int32_t)acc;
-    ctx.ch = ch;
-  } else {
-    ctx.target->int32 = NA_INT32;  // empty field ideally, contains NA and fall through to check if NA (in which case this write is important), or just plain invalid
-  }
-}
-
-
-static void parse_int64(FieldParseContext& ctx)
-{
-  const char* ch = ctx.ch;
-
-  bool neg = *ch=='-';
-  ch += (neg || *ch=='+');
-  const char* start = ch;
-  while (*ch=='0') ch++;
-  uint_fast64_t acc = 0;  // important unsigned not signed here; we now need the full unsigned range
-  uint_fast8_t digit;
-  uint_fast32_t sf = 0;
-  while ( (digit=(uint_fast8_t)(ch[sf]-'0')) < 10 ) {
-    acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  // INT64 range is NA==-9223372036854775808(INT64_MIN) then symmetric [-9223372036854775807,+9223372036854775807].
-  // A 20+ digit number is caught as too large via the field width check <=19, since leading zeros trigger character type not numeric
-  // TODO Check tests exist that +9223372036854775808 and +9999999999999999999 are caught as too large. They are stll 19 wide
-  //   and, fortunately, uint64 can hold 9999999999999999999 (19 9's) so that doesn't overflow uint64.
-  //if ( (acc && *start!='0' && acc<=INT64_MAX && (ch-start)<=19) ||
-  //     (acc==0 && ch-start==1) ) {
-  if ((sf || ch>start) && sf<=19 && acc<=INT64_MAX) {
-    ctx.target->int64 = neg ? -(int64_t)acc : (int64_t)acc;
-    ctx.ch = ch;
-  } else {
-    ctx.target->int64 = NA_INT64;
-  }
-}
-
-
 /**
  * Parse "usual" double literals, in the form
  *
@@ -804,8 +737,8 @@ static reader_fun_t parsers[NUMTYPE] = {
   parser_BoolU,
   parser_BoolT,
   parser_BoolL,
-  (reader_fun_t) &parse_int32,
-  (reader_fun_t) &parse_int64,
+  parser_Int32Plain,
+  parser_Int64Plain,
   (reader_fun_t) &parse_float_hexadecimal,
   (reader_fun_t) &parse_double_regular,
   (reader_fun_t) &parse_double_extended,
