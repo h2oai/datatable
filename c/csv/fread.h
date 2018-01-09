@@ -115,6 +115,12 @@ struct FieldParseContext {
   const char* end_NA_string(const char*);
   int countfields();
   bool nextGoodLine(int ncol);
+  bool consume_eol() {
+    if (eol(&ch)) {
+      ch++; return true;
+    }
+    return false;
+  }
 };
 
 typedef void (*ParserFnPtr)(FieldParseContext& ctx);

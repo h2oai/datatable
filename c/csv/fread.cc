@@ -25,87 +25,11 @@ const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
 int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
 
-
-
-//=================================================================================================
-//
-//   Utility functions
-//
-//=================================================================================================
-
 #define ASSERT(test) do { \
   if (!(test)) \
-    STOP("Assertion violation at line %d, please report at " \
-         "https://github.com/h2oai/datatable", __LINE__); \
+    STOP("Assertion violation at line %d, please report", __LINE__); \
 } while(0)
 
-
-/**
- * eol() accepts a position and, if any of the following line endings, moves to the end of that sequence
- * and returns true. Repeated \\r are considered one. At most one \\n will be moved over.
- * 1. \\n        Unix
- * 2. \\r\\n     Windows
- * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r; also some email programs mangling the attached files
- * 4. \\r        Old MacOS 9 format discontinued in 2002 but then #2347 was raised straight away when I tried not to support it
- * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
- */
-// TODO: change semantics so that eol() skips over the newline (rather than stumbles upon the last character)
-bool FieldParseContext::eol(const char** pch) {
-  // we call eol() when we expect to be at a newline, so optimize as if we are at the end of line
-  const char* ch = *pch;
-  if (*ch=='\n') {
-    *pch += (ch[1]=='\r');  // 1 & 5
-    return true;
-  }
-  if (*ch=='\r') {
-    if (LFpresent) {
-      // \n is present in the file, so standalone \r is NOT considered a newline.
-      // Thus, we attempt to match a sequence '\r+\n' here
-      while (*ch=='\r') ch++;  // consume multiple \r
-      if (*ch=='\n') {
-        *pch = ch;
-        return true;
-      } else {
-        // 1 or more \r's were not followed by \n -- do not consider this a newline
-        return false;
-      }
-    } else {
-      // \n does not appear anywhere in the file: \r is a newline
-      *pch = ch;
-      return true;
-    }
-  }
-  return false;
-}
-
-
-/**
- * Return True iff `ch` is a valid field terminator character: either a field
- * separator or a newline.
- */
-bool FieldParseContext::end_of_field(const char* tch) {
-  // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
-  // fact that the characters in the ASCII range 0..13 are very rare, so a
-  // single check `tch<=13` is almost equivalent to checking whether `tch` is one
-  // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
-  // default, and therefore characters in the range 0x80-0xFF are negative.
-  // We use eol() because that looks at LFpresent inside it w.r.t. \r
-  return *tch==sep || ((uint8_t)*tch<=13 && (*tch=='\0' || eol(&tch)));
-}
-
-
-const char* FieldParseContext::end_NA_string(const char* fieldStart) {
-  const char* const* nastr = NAstrings;
-  const char* mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
-  while (*nastr) {
-    const char* ch1 = fieldStart;
-    const char* ch2 = *nastr;
-    while (*ch1==*ch2 && *ch2!='\0') { ch1++; ch2++; }
-    if (*ch2=='\0' && ch1>mostConsumed) mostConsumed=ch1;
-    nastr++;
-  }
-  return mostConsumed;
-}
 
 
 /**
@@ -147,87 +71,6 @@ const char* FreadReader::printTypes(int ncol) const {
   }
   *ch = '\0';
   return out;
-}
-
-
-void FieldParseContext::skip_white() {
-  // skip space so long as sep isn't space and skip tab so long as sep isn't tab
-  if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
-    while (*ch == ' ' || *ch == '\t') ch++;
-  } else {
-    while (*ch == whiteChar) ch++;  // sep is ' ' or '\t' so just skip the other one.
-  }
-}
-
-
-/**
- * Compute the number of fields on the current line (taking into account the
- * global `sep`, and `quoteRule`), and move the parsing location to the
- * beginning of the next line.
- * Returns the number of fields on the current line, or -1 if the line cannot
- * be parsed using current settings, or 0 if the line is empty (even though an
- * empty line may be viewed as a single field).
- */
-int FieldParseContext::countfields()
-{
-  const char* ch0 = ch;
-  if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
-  skip_white();
-  if (eol(&ch) || ch==eof) {
-    ch++;
-    return 0;
-  }
-  int ncol = 1;
-  while (ch < eof) {
-    parse_string(*this);
-    // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
-    if (sep==' ' && *ch==sep) {
-      while (ch[1]==' ') ch++;
-      if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') {
-        // reached end of line. Ignore padding spaces at the end of line.
-        ch++;  // Move onto end of line character
-      }
-    }
-    if (*ch==sep && sep!='\n') {
-      ch++;
-      ncol++;
-      continue;
-    }
-    if (eol(&ch)) {
-      ch++;
-      return ncol;
-    }
-    if (*ch!='\0') {
-      ch = ch0;
-      return -1;  // -1 means this line not valid for this sep and quote rule
-    }
-    break;
-  }
-  return ncol;
-}
-
-
-bool FieldParseContext::nextGoodLine(int ncol) {
-  const char* ch0 = ch;
-  // we may have landed inside quoted field containing embedded sep and/or embedded \n
-  // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
-  // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
-  // the line number and error message to be worked out up there.
-  int attempts = 0;
-  while (ch < eof && attempts++<30) {
-    while (*ch!='\0' && *ch!='\n' && *ch!='\r') ch++;
-    if (*ch=='\0') return false;
-    eol(&ch);  // move to last byte of the line ending sequence
-    ch++;      // move to first byte of next line
-    int i = 0;
-    const char* ch1 = ch;
-    while (i<5 && countfields()==ncol) i++;
-    ch = ch1;
-    if (i==5) break;
-  }
-  if (*ch!='\0' && attempts<30) return true;
-  ch = ch0;
-  return false;
 }
 
 
