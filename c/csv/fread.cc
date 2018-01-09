@@ -400,8 +400,7 @@ int FreadReader::freadMain()
         // detect blank lines
         fctx.skip_white();
         if (ch == eof) break;
-        if (ncol > 1 && fctx.eol(&ch)) {
-          ch++;
+        if (ncol > 1 && fctx.skip_eol()) {
           if (skipEmptyLines) continue;
           if (!fill) break;
           sampleLines++;
@@ -467,13 +466,13 @@ int FreadReader::freadMain()
           }
           field++;
         }
-        fctx.eol(&ch);
+        bool eol_found = fctx.skip_eol();
         if (field < ncol-1 && !fill) {
-          ASSERT(ch==eof || *ch=='\n' || *ch=='\r');
+          ASSERT(ch==eof || eol_found);
           STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
                "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
         }
-        if (field>=ncol || (*ch!='\n' && *ch!='\r' && *ch!='\0')) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
+        if (field>=ncol || !(eol_found || ch==eof)) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
           if (j==0) {
             STOP("Line %d starting <<%s>> has more than the expected %d fields. "
                "Separator '%c' occurs at position %d which is character %d of the last field: <<%s>>. "
@@ -493,7 +492,6 @@ int FreadReader::freadMain()
           // To trigger 2nd row starting from type 1 again to compare to 1st row to decide if column names present
           firstDataRowAfterPotentialColumnNames = true;
         }
-        ch += (*ch=='\n' || *ch=='\r');
 
         lastRowEnd = ch;
         int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
@@ -625,8 +623,8 @@ int FreadReader::freadMain()
           if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
         }
       }
-      if (fctx.eol(&ch)) {
-        sof = ++ch;
+      if (fctx.skip_eol()) {
+        sof = ch;
       } else {
         ASSERT(*ch=='\0');
         sof = ch;
@@ -882,15 +880,16 @@ int FreadReader::freadMain()
           if (tch == tlineStart) {
             fctx.skip_white();
             if (*tch=='\0') break;  // empty last line
-            if (fctx.eol(&tch) && skipEmptyLines) { tch++; continue; }
+            if (skipEmptyLines && fctx.skip_eol()) continue;
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
-          else if (fctx.eol(&tch)) {
+          else if (fctx.skip_eol()) {
             if (sizes[j]) {
               fctx.target++;
             }
             j++;
-            if (j==ncol) { tch++; myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
+            if (j==ncol) { myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
+            tch--;
           }
           else {
             tch = fieldStart; // restart field as int processor could have moved to A in ",123A,"
@@ -910,7 +909,7 @@ int FreadReader::freadMain()
         if (sep==' ') {
           while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
           fieldStart = tch;
-          if (fctx.eol(&tch) && skipEmptyLines) { tch++; continue; }
+          if (skipEmptyLines && fctx.skip_eol()) continue;
         }
 
         if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
@@ -934,7 +933,7 @@ int FreadReader::freadMain()
               parsers[absType](fctx);
               if (quoted && *tch==quote) tch++;
               fctx.skip_white();
-              if (fctx.end_of_field(tch)) {
+              if (fctx.end_of_field()) {
                 if (sep==' ' && *tch==' ') {
                   while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
                   if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;
@@ -1004,7 +1003,7 @@ int FreadReader::freadMain()
           }
           break;
         }
-        if (!fctx.eol(&tch) && *tch!='\0') {
+        if (!(fctx.skip_eol() || *tch=='\0')) {
           #pragma omp critical
           if (!stopTeam) {
             stopTeam = true;
@@ -1015,7 +1014,6 @@ int FreadReader::freadMain()
           }
           break;
         }
-        if (*tch!='\0') tch++;
         myNrow++;
       }
       if (verbose) {

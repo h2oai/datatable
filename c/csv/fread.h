@@ -109,18 +109,12 @@ struct FieldParseContext {
   bool LFpresent;
 
   void skip_white();
-  bool eol(const char**);
-  bool end_of_field(const char* ch);
-  bool end_of_field() { return end_of_field(ch); }
+  // bool eol(const char**);
+  bool end_of_field();
   const char* end_NA_string(const char*);
   int countfields();
   bool nextGoodLine(int ncol);
-  bool consume_eol() {
-    if (eol(&ch)) {
-      ch++; return true;
-    }
-    return false;
-  }
+  bool skip_eol();
 };
 
 typedef void (*ParserFnPtr)(FieldParseContext& ctx);

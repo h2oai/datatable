@@ -579,37 +579,46 @@ void parse_string(FieldParseContext&);
 
 
 /**
- * eol() accepts a position and, if any of the following line endings, moves to the end of that sequence
- * and returns true. Repeated \\r are considered one. At most one \\n will be moved over.
- * 1. \\n        Unix
- * 2. \\r\\n     Windows
- * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r; also some email programs mangling the attached files
- * 4. \\r        Old MacOS 9 format discontinued in 2002 but then #2347 was raised straight away when I tried not to support it
- * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
+ * skip_eol() looks at the current parsing position `ch`, and
+ *   (1) if there is a newline character/sequence at this position, it moves
+ *       the parsing position to the next character after the newline and
+ *       returns true;
+ *   (2) otherwise it returns false and `ch` remains unmodified.
+ *
+ * The following sequences are recognized as newlines when `LFpresent` parameter
+ * is true: '0x0A' (\\n), '0x0A 0x0D' (\\n\\r), and '0x0D+ 0x0A' (\\r+\\n).
+ * When `LFpresent` is false, only '0x0D' (\\r) is considered a newline, and
+ * the it is assumed that \\n character never occurs. Notably, standalone
+ * '0x0D' (\\r) is *not* considered a newline when `LFpresent` is true.
+ *
  */
-// TODO: change semantics so that eol() skips over the newline (rather than stumbles upon the last character)
-bool FieldParseContext::eol(const char** pch) {
-  // we call eol() when we expect to be at a newline, so optimize as if we are at the end of line
-  const char* ch = *pch;
-  if (*ch=='\n') {
-    *pch += (ch[1]=='\r');  // 1 & 5
+bool FieldParseContext::skip_eol() {
+  // we call eol() when we expect to be at a newline, so optimize as if we are
+  // at the end of line.
+  if (*ch == '\n') {
+    // Handle cases '\n\r' or '\n'
+    ch += 1 + (ch[1] == '\r');
     return true;
   }
   if (*ch=='\r') {
     if (LFpresent) {
-      // \n is present in the file, so standalone \r is NOT considered a newline.
-      // Thus, we attempt to match a sequence '\r+\n' here
-      while (*ch=='\r') ch++;  // consume multiple \r
-      if (*ch=='\n') {
-        *pch = ch;
+      // '\n' is present in the file, so standalone '\r' is NOT considered a
+      // newline. Thus, we attempt to match /\r+\n/.
+      const char* ch0 = ch;
+      while (*ch == '\r') ch++;  // consume multiple '\r's.
+      if (*ch == '\n') {
+        ch++;
         return true;
       } else {
-        // 1 or more \r's were not followed by \n -- do not consider this a newline
+        // 1 or more '\r's were not followed by '\n' -- do not consider this
+        // a newline. Since `ch` was incremented above, restore its original
+        // value.
+        ch = ch0;
         return false;
       }
     } else {
-      // \n does not appear anywhere in the file: \r is a newline
-      *pch = ch;
+      // '\n' does not appear anywhere in the file: single '\r' is a newline
+      ch++;
       return true;
     }
   }
@@ -621,14 +630,27 @@ bool FieldParseContext::eol(const char** pch) {
  * Return True iff `ch` is a valid field terminator character: either a field
  * separator or a newline.
  */
-bool FieldParseContext::end_of_field(const char* tch) {
+bool FieldParseContext::end_of_field() {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
   // single check `tch<=13` is almost equivalent to checking whether `tch` is one
   // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
   // default, and therefore characters in the range 0x80-0xFF are negative.
   // We use eol() because that looks at LFpresent inside it w.r.t. \r
-  return *tch==sep || ((uint8_t)*tch<=13 && (*tch=='\0' || eol(&tch)));
+  char c = *ch;
+  if (c == sep) return true;
+  if (static_cast<uint8_t>(c) > 13) return false;
+  if (c == '\n' || c == '\0') return true;
+  if (c == '\r') {
+    if (LFpresent) {
+      const char* tch = ch + 1;
+      while (*tch == '\r') tch++;
+      if (*tch == '\n') return true;
+    } else {
+      return true;
+    }
+  }
+  return false;
 }
 
 
@@ -669,8 +691,7 @@ int FieldParseContext::countfields()
   const char* ch0 = ch;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_white();
-  if (eol(&ch) || ch==eof) {
-    ch++;
+  if (skip_eol() || ch==eof) {
     return 0;
   }
   int ncol = 1;
@@ -689,8 +710,7 @@ int FieldParseContext::countfields()
       ncol++;
       continue;
     }
-    if (eol(&ch)) {
-      ch++;
+    if (skip_eol()) {
       return ncol;
     }
     if (*ch!='\0') {
@@ -713,8 +733,7 @@ bool FieldParseContext::nextGoodLine(int ncol) {
   while (ch < eof && attempts++<30) {
     while (*ch!='\0' && *ch!='\n' && *ch!='\r') ch++;
     if (*ch=='\0') return false;
-    eol(&ch);  // move to last byte of the line ending sequence
-    ch++;      // move to first byte of next line
+    skip_eol();  // move to the first byte of the next line
     int i = 0;
     const char* ch1 = ch;
     while (i<5 && countfields()==ncol) i++;

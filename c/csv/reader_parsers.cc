@@ -474,7 +474,19 @@ void parse_string(FieldParseContext& ctx) {
     // Most common case: unambiguously not quoted. Simply search for sep|eol.
     // If field contains sep|eol then it should have been quoted and we do not
     // try to heal that.
-    while(!ctx.end_of_field(ch)) ch++;  // sep, \r, \n or \0 will end
+    while (1) {
+      if (*ch == sep) break;
+      if (static_cast<uint8_t>(*ch) <= 13) {
+        if (*ch == '\0' || *ch == '\n') break;
+        if (*ch == '\r') {
+          if (!ctx.LFpresent || ch[1] == '\n') break;
+          const char *tch = ch + 1;
+          while (*tch == '\r') tch++;
+          if (*tch == '\n') break;
+        }
+      }
+      ch++;  // sep, \r, \n or \0 will end
+    }
     ctx.ch = ch;
     int fieldLen = (int)(ch-fieldStart);
     if (ctx.stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
@@ -521,15 +533,20 @@ void parse_string(FieldParseContext& ctx) {
     {
       const char* ch2 = ch;
       while (*++ch && *ch!='\n' && *ch!='\r') {
-        if (*ch==quote && ctx.end_of_field(ch+1)) {ch2=ch; break;}  // (*1) regular ", ending; leave *ch on closing quote
+        if (*ch==quote && (ch[1]==sep || ch[1]=='\r' || ch[1]=='\n')) {
+          // (*1) regular ", ending; leave *ch on closing quote
+          ch2 = ch;
+          break;
+        }
         if (*ch==sep) {
           // first sep in this field
           // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
           // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
           ch2 = ch;
           while (*++ch2 && *ch2!='\n' && *ch2!='\r') {
-            if (*ch2==quote && ctx.end_of_field(ch2+1)) {
-              ch = ch2;                                          // (*2) move on to that first ", -- that's this field's ending
+            if (*ch2==quote && (ch2[1]==sep || ch2[1]=='\r' || ch2[1]=='\n')) {
+              // (*2) move on to that first ", -- that's this field's ending
+              ch = ch2;
               break;
             }
           }
