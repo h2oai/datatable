@@ -10,70 +10,20 @@
 #include "csv/freadLookups.h"
 #include "csv/reader.h"
 #include "csv/reader_fread.h"
-#ifdef WIN32             // means WIN64, too, oddly
-  #include <windows.h>
-#else
-  #include <ctype.h>     // isspace
-  #include <errno.h>     // errno
-  #include <string.h>    // strerror
-  #include <stdarg.h>    // va_list, va_start
-  #include <stdio.h>     // vsnprintf
-  #include <math.h>      // ceil, sqrt, isfinite
-#endif
-#include <stdbool.h>     // bool, true, false
-#include <string>        // std::string
-#include "utils/file.h"
+#include "csv/reader_parsers.h"
+#include <ctype.h>     // isspace
+#include <stdarg.h>    // va_list, va_start
+#include <stdio.h>     // vsnprintf
+#include <algorithm>
+#include <cmath>       // std::sqrt, std::ceil
+#include <string>      // std::string
 
-
-// Private globals to save passing all of them through to highly iterated field processors
-static char sep;
-static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
-static char quote, dec;
-static const char* eof;
-
-// Quote rule:
-//   0 = Fields may be quoted, any quote inside the field is doubled. This is
-//       the CSV standard. For example: <<...,"hello ""world""",...>>
-//   1 = Fields may be quoted, any quotes inside are escaped with a backslash.
-//       For example: <<...,"hello \"world\"",...>>
-//   2 = Fields may be quoted, but any quotes inside will appear verbatim and
-//       not escaped in any way. It is not always possible to parse the file
-//       unambiguously, but we give it a try anyways. A quote will be presumed
-//       to mark the end of the field iff it is followed by the field separator.
-//       Under this rule EOL characters cannot appear inside the field.
-//       For example: <<...,"hello "world"",...>>
-//   3 = Fields are not quoted at all. Any quote characters appearing anywhere
-//       inside the field will be treated as any other regular characters.
-//       Example: <<...,hello "world",...>>
-//
-static int8_t quoteRule;
-static const char* const* NAstrings;
-static bool any_number_like_NAstrings = false;
-static bool blank_is_a_NAstring = false;
-static bool stripWhite = true;  // only applies to character columns; numeric fields always stripped
-static bool skipEmptyLines = false;
-static bool fill = false;
-static bool LFpresent = false;
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
 const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     'i',     'I',     'h',       'd',       'D',       'H',       's'};
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
 int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
-
-
-// Forward declarations
-void parse_bool8_numeric(FieldParseContext&);
-void parse_bool8_uppercase(FieldParseContext&);
-void parse_bool8_lowercase(FieldParseContext&);
-void parse_bool8_titlecase(FieldParseContext&);
-void parse_int32_simple(FieldParseContext&);
-void parse_int64_simple(FieldParseContext&);
-void parse_float32_hex(FieldParseContext&);
-void parse_float64_simple(FieldParseContext&);
-void parse_float64_extended(FieldParseContext&);
-void parse_float64_hex(FieldParseContext&);
-void parse_string(FieldParseContext&);
 
 
 
@@ -83,38 +33,12 @@ void parse_string(FieldParseContext&);
 //
 //=================================================================================================
 
-/**
- * Free any resources / memory buffers allocated by the fread() function, and
- * bring all global variables to a "clean slate". This function must always be
- * executed when fread() exits, either successfully or not.
- */
-void FreadReader::freadCleanup(void)
-{
-  sep = whiteChar = quote = dec = '\0';
-  quoteRule = -1;
-  any_number_like_NAstrings = false;
-  blank_is_a_NAstring = false;
-  stripWhite = true;
-  skipEmptyLines = false;
-  fill = false;
-  // following are borrowed references: do not free
-  NAstrings = NULL;
-}
-
 #define ASSERT(test) do { \
   if (!(test)) \
     STOP("Assertion violation at line %d, please report at " \
          "https://github.com/h2oai/datatable", __LINE__); \
 } while(0)
 
-#define CEIL(x)  ((size_t)(double)ceil(x))
-static inline size_t umax(size_t a, size_t b) { return a > b ? a : b; }
-static inline int imin(int a, int b) { return a < b ? a : b; }
-
-/** Return value of `x` clamped to the range [upper, lower] */
-static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
-  return x < lower ? lower : x > upper? upper : x;
-}
 
 /**
  * eol() accepts a position and, if any of the following line endings, moves to the end of that sequence
@@ -126,7 +50,7 @@ static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
  * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
  */
 // TODO: change semantics so that eol() skips over the newline (rather than stumbles upon the last character)
-static inline bool eol(const char** pch) {
+bool FieldParseContext::eol(const char** pch) {
   // we call eol() when we expect to be at a newline, so optimize as if we are at the end of line
   const char* ch = *pch;
   if (*ch=='\n') {
@@ -244,32 +168,18 @@ void FieldParseContext::skip_white() {
  * be parsed using current settings, or 0 if the line is empty (even though an
  * empty line may be viewed as a single field).
  */
-static inline int countfields(const char** pch)
+int FieldParseContext::countfields()
 {
-  field64 trash;
-  const char* ch = *pch;
-  FieldParseContext ctx = {
-    .ch = ch,
-    .target = &trash,
-    .anchor = NULL,
-    .whiteChar = whiteChar,
-    .dec = dec,
-    .sep = sep,
-    .quote = quote,
-    .quoteRule = quoteRule,
-    .stripWhite = stripWhite,
-    .blank_is_a_NAstring = blank_is_a_NAstring,
-  };
-
+  const char* ch0 = ch;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
-  ctx.skip_white();
+  skip_white();
   if (eol(&ch) || ch==eof) {
-    *pch = ch + 1;
+    ch++;
     return 0;
   }
   int ncol = 1;
   while (ch < eof) {
-    parse_string(ctx);
+    parse_string(*this);
     // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
     if (sep==' ' && *ch==sep) {
       while (ch[1]==' ') ch++;
@@ -284,36 +194,39 @@ static inline int countfields(const char** pch)
       continue;
     }
     if (eol(&ch)) {
-      *pch = ch + 1;
+      ch++;
       return ncol;
     }
-    if (*ch!='\0') return -1;  // -1 means this line not valid for this sep and quote rule
+    if (*ch!='\0') {
+      ch = ch0;
+      return -1;  // -1 means this line not valid for this sep and quote rule
+    }
     break;
   }
-  *pch = ch;
   return ncol;
 }
 
 
-static inline bool nextGoodLine(const char** pch, int ncol)
-{
-  const char* ch = *pch;
+bool FieldParseContext::nextGoodLine(int ncol) {
+  const char* ch0 = ch;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
   // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
   // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
   // the line number and error message to be worked out up there.
   int attempts = 0;
-  while (ch<eof && attempts++<30) {
+  while (ch < eof && attempts++<30) {
     while (*ch!='\0' && *ch!='\n' && *ch!='\r') ch++;
     if (*ch=='\0') return false;
     eol(&ch);  // move to last byte of the line ending sequence
     ch++;      // move to first byte of next line
     int i = 0;
-    const char* ch2 = ch;
-    while (i<5 && countfields(&ch2)==ncol) i++;
+    const char* ch1 = ch;
+    while (i<5 && countfields()==ncol) i++;
+    ch = ch1;
     if (i==5) break;
   }
-  if (*ch!='\0' && attempts<30) { *pch = ch; return true; }
+  if (*ch!='\0' && attempts<30) return true;
+  ch = ch0;
   return false;
 }
 
@@ -358,12 +271,11 @@ int FreadReader::freadMain()
   int nth = g.nthreads;
   size_t nrowLimit = (size_t) g.max_nrows;
 
-  NAstrings = g.na_strings;
   blank_is_a_NAstring = g.blank_is_na;
-  any_number_like_NAstrings = g.number_is_na;
+  bool any_number_like_NAstrings = g.number_is_na;
   stripWhite = g.strip_white;
-  skipEmptyLines = g.skip_blank_lines;
-  fill = g.fill;
+  bool skipEmptyLines = g.skip_blank_lines;
+  bool fill = g.fill;
   dec = g.dec;
   quote = g.quote;
   int header = g.header;
@@ -431,6 +343,9 @@ int FreadReader::freadMain()
                               //   (when fill=true, the max is usually the header row and is the longest but there are more
                               //    lines of fewer)
 
+    field64 trash;
+    FieldParseContext ctx = makeFieldParseContext(ch, &trash, nullptr);
+
     // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
     // covers the header row, at this stage we don't know if it's present), and
     // detect the number of fields on each line. If several consecutive lines
@@ -446,13 +361,16 @@ int FreadReader::freadMain()
       whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
       for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
         ch = sof;
+        ctx.sep = sep;
+        ctx.whiteChar = whiteChar;
+        ctx.quoteRule = quoteRule;
         // if (verbose) DTPRINT("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
         for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
         int i=-1; // The slot we're counting the currently contiguous consistent ncol
         int thisLine=0, lastncol=-1;
         while (ch < eof && thisLine++ < JUMPLINES) {
           // Compute num columns and move `ch` to the start of next line
-          int thisncol = countfields(&ch);
+          int thisncol = ctx.countfields();
           if (thisncol < 0) {
             // invalid file with this sep and quote rule; abort
             numFields[0] = -1;
@@ -500,9 +418,9 @@ int FreadReader::freadMain()
       }
     }
     ASSERT(firstJumpEnd);
-    quoteRule = topQuoteRule;
-    sep = topSep;
-    whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
+    quoteRule = ctx.quoteRule = topQuoteRule;
+    sep = ctx.sep = topSep;
+    whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
     if (sep==' ' && !fill) {
       if (verbose) DTPRINT("  sep=' ' detected, setting fill to True\n");
       fill = 1;
@@ -520,7 +438,7 @@ int FreadReader::freadMain()
       ch = sof;
       while (ch < eof && ++thisLine < JUMPLINES) {
         const char* lastLineStart = ch;   // lineStart
-        int cols = countfields(&ch);  // advances ch to next line
+        int cols = ctx.countfields();  // advances ch to next line
         if (cols == ncol) {
           ch = sof = lastLineStart;
           line += thisLine;
@@ -534,7 +452,7 @@ int FreadReader::freadMain()
 
     ASSERT(ncol >= 1 && line >= 1);
     ch = sof;
-    int tt = countfields(&ch);
+    int tt = ctx.countfields();
     ch = sof;  // move back to start of line since countfields() moved to next
     ASSERT(fill || tt == ncol);
     if (verbose) {
@@ -548,7 +466,7 @@ int FreadReader::freadMain()
     // Now check previous line which is being discarded and give helpful message to user
     if (prevStart) {
       ch = prevStart;
-      int ttt = countfields(&ch);
+      int ttt = ctx.countfields();
       ASSERT(ttt != ncol);
       if (ttt > 1) {
         DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
@@ -585,18 +503,7 @@ int FreadReader::freadMain()
       tmpTypes[j] = type0;
     }
     field64 trash;
-    FieldParseContext fctx = {
-      .ch = ch,
-      .target = &trash,
-      .anchor = NULL,
-      .whiteChar = whiteChar,
-      .dec = dec,
-      .sep = sep,
-      .quote = quote,
-      .quoteRule = quoteRule,
-      .stripWhite = stripWhite,
-      .blank_is_a_NAstring = blank_is_a_NAstring,
-    };
+    FieldParseContext fctx = makeFieldParseContext(ch, &trash, nullptr);
 
     // the size in bytes of the first JUMPLINES from the start (jump point 0)
     size_t jump0size = (size_t)(firstJumpEnd - sof);
@@ -635,7 +542,7 @@ int FreadReader::freadMain()
                              sof + (size_t)j*(sz/(size_t)(nJumps-1));
       if (ch < lastRowEnd) ch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
       if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
-      if (j > 0 && !nextGoodLine(&ch, ncol)) {
+      if (j > 0 && !fctx.nextGoodLine(ncol)) {
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
         continue;
       }
@@ -650,7 +557,7 @@ int FreadReader::freadMain()
         // detect blank lines
         fctx.skip_white();
         if (ch == eof) break;
-        if (ncol > 1 && eol(&ch)) {
+        if (ncol > 1 && fctx.eol(&ch)) {
           ch++;
           if (skipEmptyLines) continue;
           if (!fill) break;
@@ -717,7 +624,7 @@ int FreadReader::freadMain()
           }
           field++;
         }
-        eol(&ch);
+        fctx.eol(&ch);
         if (field < ncol-1 && !fill) {
           ASSERT(ch==eof || *ch=='\n' || *ch=='\r');
           STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
@@ -809,10 +716,11 @@ int FreadReader::freadMain()
     } else {
       bytesRead = (size_t)(lastRowEnd - sof);
       meanLineLen = (double)sumLen/sampleLines;
-      estnrow = CEIL(bytesRead/meanLineLen);  // only used for progress meter and verbose line below
-      double sd = sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
-      allocnrow = clamp_szt((size_t)(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
-                            (size_t)(1.1*estnrow), 2*estnrow);
+      estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
+      double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
+      allocnrow = std::max(static_cast<size_t>(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
+                           static_cast<size_t>(1.1*estnrow));
+      allocnrow = std::min(allocnrow, 2*estnrow);
       // sd can be very close to 0.0 sometimes, so apply a +10% minimum
       // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
       if (verbose) {
@@ -861,18 +769,7 @@ int FreadReader::freadMain()
     if (header == 1) {
       line++;
       if (sep==' ') while (*ch==' ') ch++;
-      FieldParseContext fctx = {
-        .ch = ch,
-        .target = (field64*)colNames,
-        .anchor = colNamesAnchor,
-        .whiteChar = whiteChar,
-        .dec = dec,
-        .sep = sep,
-        .quote = quote,
-        .quoteRule = quoteRule,
-        .stripWhite = stripWhite,
-        .blank_is_a_NAstring = blank_is_a_NAstring,
-      };
+      FieldParseContext fctx = makeFieldParseContext(ch, (field64*)colNames, colNamesAnchor);
       ch--;
       for (int i=0; i<ncol; i++) {
         // Use Field() here as it handles quotes, leading space etc inside it
@@ -885,7 +782,7 @@ int FreadReader::freadMain()
           if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
         }
       }
-      if (eol(&ch)) {
+      if (fctx.eol(&ch)) {
         sof = ++ch;
       } else {
         ASSERT(*ch=='\0');
@@ -912,7 +809,7 @@ int FreadReader::freadMain()
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
     memcpy(tmpTypes, types, (size_t)ncol);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor, ncol, quoteRule, quote);  // colNames must not be changed but types[] can be
+    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
 
     int nUserBumped = 0;
     ndrop = 0;
@@ -979,7 +876,8 @@ int FreadReader::freadMain()
   // For the 44GB file with 12875 columns, the max line len is 108,497. We may want each chunk to write to its
   // own page (4k) of the final column, hence 1000 rows of the smallest type (4 byte int) is just
   // under 4096 to leave space for R's header + malloc's header.
-  size_t chunkBytes = umax((size_t)(1000*meanLineLen), 1ULL/*MB*/ *1024*1024);
+  size_t chunkBytes = std::max(static_cast<size_t>(1000*meanLineLen),
+                               static_cast<size_t>(1024*1024));
   // Index of the first jump to read. May be modified if we ever need to restart
   // reading from the middle of the file.
   int jump0 = 0;
@@ -1001,7 +899,7 @@ int FreadReader::freadMain()
   size_t initialBuffRows = allocnrow / (size_t)nJumps;
   if (initialBuffRows < 4) initialBuffRows = 4;
   ASSERT(initialBuffRows <= INT32_MAX);
-  nth = imin(nJumps, nth);
+  nth = std::min(nJumps, nth);
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");
@@ -1047,19 +945,7 @@ int FreadReader::freadMain()
       stopTeam = true;
     }
     prepareThreadContext(&ctx);
-
-    FieldParseContext fctx = {
-      .ch = tch,
-      .target = ctx.buff,
-      .anchor = thisJumpStart,
-      .whiteChar = whiteChar,
-      .dec = dec,
-      .sep = sep,
-      .quote = quote,
-      .quoteRule = quoteRule,
-      .stripWhite = stripWhite,
-      .blank_is_a_NAstring = blank_is_a_NAstring,
-    };
+    FieldParseContext fctx = makeFieldParseContext(tch, ctx.buff, thisJumpStart);
 
     #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
     for (int jump = jump0; jump < nJumps; jump++) {
@@ -1099,7 +985,7 @@ int FreadReader::freadMain()
       nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
       // +1 is for when nextJump happens to fall exactly on a \n. The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
-      if (jump>0 && !nextGoodLine(&tch, ncol)) {
+      if (jump>0 && !fctx.nextGoodLine(ncol)) {
         #pragma omp critical
         if (!stopTeam) {
           stopTeam = true;
@@ -1153,10 +1039,10 @@ int FreadReader::freadMain()
           if (tch == tlineStart) {
             fctx.skip_white();
             if (*tch=='\0') break;  // empty last line
-            if (eol(&tch) && skipEmptyLines) { tch++; continue; }
+            if (fctx.eol(&tch) && skipEmptyLines) { tch++; continue; }
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
-          else if (eol(&tch)) {
+          else if (fctx.eol(&tch)) {
             if (sizes[j]) {
               fctx.target++;
             }
@@ -1181,7 +1067,7 @@ int FreadReader::freadMain()
         if (sep==' ') {
           while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
           fieldStart = tch;
-          if (eol(&tch) && skipEmptyLines) { tch++; continue; }
+          if (fctx.eol(&tch) && skipEmptyLines) { tch++; continue; }
         }
 
         if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
@@ -1275,7 +1161,7 @@ int FreadReader::freadMain()
           }
           break;
         }
-        if (!eol(&tch) && *tch!='\0') {
+        if (!fctx.eol(&tch) && *tch!='\0') {
           #pragma omp critical
           if (!stopTeam) {
             stopTeam = true;
@@ -1476,6 +1362,5 @@ int FreadReader::freadMain()
       free(typeBumpMsg);  // local scope and only populated in verbose mode
     }
   }
-  freadCleanup();
   return 1;
 }

@@ -78,6 +78,12 @@ struct FieldParseContext {
   // relative to which `str32.offset` is defined.
   const char* anchor;
 
+  const char* eof;
+
+  const char* const* NAstrings;
+
+  // what to consider as whitespace to skip: ' ', '\t' or 0 means both
+  // (when sep!=' ' && sep!='\t')
   char whiteChar;
 
   // Decimal separator for parsing floats. The default value is '.', but
@@ -100,12 +106,15 @@ struct FieldParseContext {
   // Do we consider blank as NA string?
   bool blank_is_a_NAstring;
 
-  int8_t : 8;
+  bool LFpresent;
 
   void skip_white();
+  bool eol(const char**);
   bool end_of_field(const char* ch);
   bool end_of_field() { return end_of_field(ch); }
   const char* end_NA_string(const char*);
+  int countfields();
+  bool nextGoodLine(int ncol);
 };
 
 typedef void (*ParserFnPtr)(FieldParseContext& ctx);
@@ -242,7 +251,7 @@ typedef struct freadMainArgs
 
 // *****************************************************************************
 
-typedef struct ThreadLocalFreadParsingContext
+struct ThreadLocalFreadParsingContext
 {
   // Pointer that serves as a starting point for all offsets within the `lenOff`
   // structs.
@@ -279,7 +288,7 @@ typedef struct ThreadLocalFreadParsingContext
   // Any additional implementation-specific parameters.
   FREAD_PUSH_BUFFERS_EXTRA_FIELDS
 
-} ThreadLocalFreadParsingContext;
+};
 
 
 

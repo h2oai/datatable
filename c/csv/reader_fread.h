@@ -58,7 +58,32 @@ class FreadReader
   int8_t* types;
   int8_t* sizes;
   int8_t* tmpTypes;
+  const char* eof;
 
+  //----- Parse parameters -----------------------------------------------------
+  // quoteRule:
+  //   0 = Fields may be quoted, any quote inside the field is doubled. This is
+  //       the CSV standard. For example: <<...,"hello ""world""",...>>
+  //   1 = Fields may be quoted, any quotes inside are escaped with a backslash.
+  //       For example: <<...,"hello \"world\"",...>>
+  //   2 = Fields may be quoted, but any quotes inside will appear verbatim and
+  //       not escaped in any way. It is not always possible to parse the file
+  //       unambiguously, but we give it a try anyways. A quote will be presumed
+  //       to mark the end of the field iff it is followed by the field
+  //       separator. Under this rule EOL characters cannot appear inside the
+  //       field. For example: <<...,"hello "world"",...>>
+  //   3 = Fields are not quoted at all. Any quote characters appearing anywhere
+  //       inside the field will be treated as any other regular characters.
+  //       Example: <<...,hello "world",...>>
+  //
+  char whiteChar;
+  char dec;
+  char sep;
+  char quote;
+  int8_t quoteRule;
+  bool stripWhite;
+  bool blank_is_a_NAstring;
+  bool LFpresent;
 
 public:
   FreadReader(GenericReader&);
@@ -67,7 +92,8 @@ public:
 
 private:
   int freadMain();
-  void freadCleanup();
+  FieldParseContext makeFieldParseContext(
+      const char*& ch, field64* target, const char* anchor);
 
   /**
    * This callback is invoked by `freadMain` after the initial pre-scan of the
@@ -94,8 +120,7 @@ private:
    *    total number of columns. This is the length of arrays `types` and
    *    `colNames`.
    */
-  void userOverride(int8_t *types, const char* anchor, int ncols, int quoteRule,
-                    char quote);
+  void userOverride(int8_t *types, const char* anchor, int ncols);
 
   /**
    * This function is invoked by `freadMain` right before the main scan of the
@@ -180,7 +205,6 @@ private:
     do {                                                                       \
         PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__);                \
         if (warningsAreErrors) {                                               \
-            freadCleanup();                                                    \
             return 0;                                                          \
         }                                                                      \
     } while(0)
