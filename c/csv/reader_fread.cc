@@ -61,19 +61,45 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   types = nullptr;
   sizes = nullptr;
   tmpTypes = nullptr;
+  eof = nullptr;
   ncols = 0;
   nstrcols = 0;
   ndigits = 0;
+  whiteChar = dec = sep = quote = '\0';
+  quoteRule = -1;
+  stripWhite = false;
+  blank_is_a_NAstring = false;
+  LFpresent = false;
 }
 
 FreadReader::~FreadReader() {
-  freadCleanup();
   free(strbufs);
   free(colNames);
   free(lineCopy);
   free(types);
   free(sizes);
   free(tmpTypes);
+}
+
+
+FieldParseContext FreadReader::makeFieldParseContext(
+    const char*& ch, field64* target, const char* anchor
+) {
+  return {
+    .ch = ch,
+    .target = target,
+    .anchor = anchor,
+    .eof = eof,
+    .NAstrings = g.na_strings,
+    .whiteChar = whiteChar,
+    .dec = dec,
+    .sep = sep,
+    .quote = quote,
+    .quoteRule = quoteRule,
+    .stripWhite = stripWhite,
+    .blank_is_a_NAstring = blank_is_a_NAstring,
+    .LFpresent = LFpresent,
+  };
 }
 
 
@@ -137,8 +163,7 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_,
-                               int quoteRule, char quote)
+void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
 {
   types = types_;
   PyObject *colNamesList = PyList_New(ncols_);

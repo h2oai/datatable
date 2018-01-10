@@ -10,50 +10,14 @@
 #include "csv/freadLookups.h"
 #include "csv/reader.h"
 #include "csv/reader_fread.h"
-#ifdef WIN32             // means WIN64, too, oddly
-  #include <windows.h>
-#else
-  #include <ctype.h>     // isspace
-  #include <errno.h>     // errno
-  #include <string.h>    // strerror
-  #include <stdarg.h>    // va_list, va_start
-  #include <stdio.h>     // vsnprintf
-  #include <math.h>      // ceil, sqrt, isfinite
-#endif
-#include <stdbool.h>     // bool, true, false
-#include <string>        // std::string
-#include "utils/file.h"
+#include "csv/reader_parsers.h"
+#include <ctype.h>     // isspace
+#include <stdarg.h>    // va_list, va_start
+#include <stdio.h>     // vsnprintf
+#include <algorithm>
+#include <cmath>       // std::sqrt, std::ceil
+#include <string>      // std::string
 
-
-// Private globals to save passing all of them through to highly iterated field processors
-static char sep;
-static char whiteChar; // what to consider as whitespace to skip: ' ', '\t' or 0 means both (when sep!=' ' && sep!='\t')
-static char quote, dec;
-static const char* eof;
-
-// Quote rule:
-//   0 = Fields may be quoted, any quote inside the field is doubled. This is
-//       the CSV standard. For example: <<...,"hello ""world""",...>>
-//   1 = Fields may be quoted, any quotes inside are escaped with a backslash.
-//       For example: <<...,"hello \"world\"",...>>
-//   2 = Fields may be quoted, but any quotes inside will appear verbatim and
-//       not escaped in any way. It is not always possible to parse the file
-//       unambiguously, but we give it a try anyways. A quote will be presumed
-//       to mark the end of the field iff it is followed by the field separator.
-//       Under this rule EOL characters cannot appear inside the field.
-//       For example: <<...,"hello "world"",...>>
-//   3 = Fields are not quoted at all. Any quote characters appearing anywhere
-//       inside the field will be treated as any other regular characters.
-//       Example: <<...,hello "world",...>>
-//
-static int quoteRule;
-static const char* const* NAstrings;
-static bool any_number_like_NAstrings = false;
-static bool blank_is_a_NAstring = false;
-static bool stripWhite = true;  // only applies to character columns; numeric fields always stripped
-static bool skipEmptyLines = false;
-static bool fill = false;
-static bool LFpresent = false;
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
@@ -61,136 +25,11 @@ const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
 int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
 
-// NAN and INFINITY constants are float, so cast to double once up front.
-static double NA_FLOAT64;  // takes fread.h:NA_FLOAT64_VALUE
-static float NA_FLOAT32;
-static const double NAND = (double)NAN;
-static const double INFD = (double)INFINITY;
-
-
-typedef struct FieldParseContext {
-  // Pointer to the current parsing location
-  const char*& ch;
-
-  // Parse target buffer
-  field64* target;
-
-  // String "anchor" for `Field()` parser -- the difference `ch - anchor` will
-  // be written out as the string offset.
-  const char* anchor;
-} FieldParseContext;
-
-
-// Forward declarations
-static void parse_string(FieldParseContext*);
-
-
-
-//=================================================================================================
-//
-//   Utility functions
-//
-//=================================================================================================
-
-/**
- * Free any resources / memory buffers allocated by the fread() function, and
- * bring all global variables to a "clean slate". This function must always be
- * executed when fread() exits, either successfully or not.
- */
-void FreadReader::freadCleanup(void)
-{
-  sep = whiteChar = quote = dec = '\0';
-  quoteRule = -1;
-  any_number_like_NAstrings = false;
-  blank_is_a_NAstring = false;
-  stripWhite = true;
-  skipEmptyLines = false;
-  fill = false;
-  // following are borrowed references: do not free
-  NAstrings = NULL;
-}
-
 #define ASSERT(test) do { \
   if (!(test)) \
-    STOP("Assertion violation at line %d, please report at " \
-         "https://github.com/h2oai/datatable", __LINE__); \
+    STOP("Assertion violation at line %d, please report", __LINE__); \
 } while(0)
 
-#define CEIL(x)  ((size_t)(double)ceil(x))
-static inline size_t umax(size_t a, size_t b) { return a > b ? a : b; }
-static inline int imin(int a, int b) { return a < b ? a : b; }
-
-/** Return value of `x` clamped to the range [upper, lower] */
-static inline size_t clamp_szt(size_t x, size_t lower, size_t upper) {
-  return x < lower ? lower : x > upper? upper : x;
-}
-
-/**
- * eol() accepts a position and, if any of the following line endings, moves to the end of that sequence
- * and returns true. Repeated \\r are considered one. At most one \\n will be moved over.
- * 1. \\n        Unix
- * 2. \\r\\n     Windows
- * 3. \\r\\r\\n  R's download.file() in text mode doubling up \\r; also some email programs mangling the attached files
- * 4. \\r        Old MacOS 9 format discontinued in 2002 but then #2347 was raised straight away when I tried not to support it
- * 5. \\n\\r     Acorn BBC (!) and RISC OS according to Wikipedia.
- */
-// TODO: change semantics so that eol() skips over the newline (rather than stumbles upon the last character)
-static inline bool eol(const char** pch) {
-  // we call eol() when we expect to be at a newline, so optimize as if we are at the end of line
-  const char* ch = *pch;
-  if (*ch=='\n') {
-    *pch += (ch[1]=='\r');  // 1 & 5
-    return true;
-  }
-  if (*ch=='\r') {
-    if (LFpresent) {
-      // \n is present in the file, so standalone \r is NOT considered a newline.
-      // Thus, we attempt to match a sequence '\r+\n' here
-      while (*ch=='\r') ch++;  // consume multiple \r
-      if (*ch=='\n') {
-        *pch = ch;
-        return true;
-      } else {
-        // 1 or more \r's were not followed by \n -- do not consider this a newline
-        return false;
-      }
-    } else {
-      // \n does not appear anywhere in the file: \r is a newline
-      *pch = ch;
-      return true;
-    }
-  }
-  return false;
-}
-
-
-/**
- * Return True iff `ch` is a valid field terminator character: either a field
- * separator or a newline.
- */
-static inline bool end_of_field(const char* ch) {
-  // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
-  // fact that the characters in the ASCII range 0..13 are very rare, so a
-  // single check `ch<=13` is almost equivalent to checking whether `ch` is one
-  // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
-  // default, and therefore characters in the range 0x80-0xFF are negative.
-  // We use eol() because that looks at LFpresent inside it w.r.t. \r
-  return *ch==sep || ((uint8_t)*ch<=13 && (*ch=='\0' || eol(&ch)));
-}
-
-
-static inline const char* end_NA_string(const char* fieldStart) {
-  const char* const* nastr = NAstrings;
-  const char* mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
-  while (*nastr) {
-    const char* ch1 = fieldStart;
-    const char* ch2 = *nastr;
-    while (*ch1==*ch2 && *ch2!='\0') { ch1++; ch2++; }
-    if (*ch2=='\0' && ch1>mostConsumed) mostConsumed=ch1;
-    nastr++;
-  }
-  return mostConsumed;
-}
 
 
 /**
@@ -235,616 +74,6 @@ const char* FreadReader::printTypes(int ncol) const {
 }
 
 
-static inline void skip_white(const char** pch) {
-  // skip space so long as sep isn't space and skip tab so long as sep isn't tab
-  const char* ch = *pch;
-  if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
-    while (*ch == ' ' || *ch == '\t') ch++;
-  } else {
-    while (*ch == whiteChar) ch++;  // sep is ' ' or '\t' so just skip the other one.
-  }
-  *pch = ch;
-}
-
-
-/**
- * Compute the number of fields on the current line (taking into account the
- * global `sep`, and `quoteRule`), and move the parsing location to the
- * beginning of the next line.
- * Returns the number of fields on the current line, or -1 if the line cannot
- * be parsed using current settings, or 0 if the line is empty (even though an
- * empty line may be viewed as a single field).
- */
-static inline int countfields(const char** pch)
-{
-  field64 trash;
-  const char* ch = *pch;
-  FieldParseContext ctx = {
-    .ch = ch,
-    .target = &trash,
-    .anchor = NULL,
-  };
-
-  if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
-  skip_white(&ch);
-  if (eol(&ch) || ch==eof) {
-    *pch = ch + 1;
-    return 0;
-  }
-  int ncol = 1;
-  while (ch < eof) {
-    parse_string(&ctx);
-    // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
-    if (sep==' ' && *ch==sep) {
-      while (ch[1]==' ') ch++;
-      if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') {
-        // reached end of line. Ignore padding spaces at the end of line.
-        ch++;  // Move onto end of line character
-      }
-    }
-    if (*ch==sep && sep!='\n') {
-      ch++;
-      ncol++;
-      continue;
-    }
-    if (eol(&ch)) {
-      *pch = ch + 1;
-      return ncol;
-    }
-    if (*ch!='\0') return -1;  // -1 means this line not valid for this sep and quote rule
-    break;
-  }
-  *pch = ch;
-  return ncol;
-}
-
-
-static inline bool nextGoodLine(const char** pch, int ncol)
-{
-  const char* ch = *pch;
-  // we may have landed inside quoted field containing embedded sep and/or embedded \n
-  // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
-  // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
-  // the line number and error message to be worked out up there.
-  int attempts = 0;
-  while (ch<eof && attempts++<30) {
-    while (*ch!='\0' && *ch!='\n' && *ch!='\r') ch++;
-    if (*ch=='\0') return false;
-    eol(&ch);  // move to last byte of the line ending sequence
-    ch++;      // move to first byte of next line
-    int i = 0;
-    const char* ch2 = ch;
-    while (i<5 && countfields(&ch2)==ncol) i++;
-    if (i==5) break;
-  }
-  if (*ch!='\0' && attempts<30) { *pch = ch; return true; }
-  return false;
-}
-
-
-
-//=================================================================================================
-//
-//   Field parsers
-//
-//=================================================================================================
-
-static void parse_string(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-
-  // need to skip_white first for the reason that a quoted field might have space before the
-  // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
-  if (*ch==' ' && stripWhite) while(*++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
-  const char* fieldStart = ch;
-  if (*ch!=quote || quoteRule==3) {
-    // Most common case. Unambiguously not quoted. Simply search for sep|eol. If field contains sep|eol then it should have been quoted and we do not try to heal that.
-    while(!end_of_field(ch)) ch++;  // sep, \r, \n or \0 will end
-    ctx->ch = ch;
-    int fieldLen = (int)(ch-fieldStart);
-    if (stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
-      while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
-      // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
-    }
-    if ((fieldLen==0 && blank_is_a_NAstring) || (fieldLen && end_NA_string(fieldStart)==ch)) fieldLen=INT32_MIN;  // TODO - speed up by avoiding end_NA_string when there are none
-    ctx->target->str32.off = (int32_t)(fieldStart - ctx->anchor);
-    ctx->target->str32.len = fieldLen;
-    return;
-  }
-  // else *ch==quote (we don't mind that quoted fields are a little slower e.g. no desire to save switch)
-  //    the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
-  // or the field is quoted but quotes are not escaped (quoteRule 2)
-  // or the field is not quoted but the data contains a quote at the start (quoteRule 2 too)
-  int eolCount = 0;
-  fieldStart++;  // step over opening quote
-  switch(quoteRule) {
-  case 0:  // quoted with embedded quotes doubled; the final unescaped " must be followed by sep|eol
-    while (*++ch) {
-      if (*ch=='\n' && ++eolCount==100) return;  // TODO: expose this 100 to user to allow them to control limiting runaway fields
-      if (*ch==quote) {
-        if (ch[1]==quote) { ch++; continue; }
-        break;  // found undoubled closing quote
-      }
-    }
-    break;
-  case 1:  // quoted with embedded quotes escaped; the final unescaped " must be followed by sep|eol
-    while (*++ch) {
-      if (*ch=='\n' && ++eolCount==100) return;
-      if (*ch=='\\' && (ch[1]==quote || ch[1]=='\\')) { ch++; continue; }
-      if (*ch==quote) break;
-    }
-    break;
-  case 2:
-    // (i) quoted (perhaps because the source system knows sep is present) but any quotes were not escaped at all,
-    // so look for ", to define the end.   (There might not be any quotes present to worry about, anyway).
-    // (ii) not-quoted but there is a quote at the beginning so it should have been; look for , at the end
-    // If no eol are present inside quoted fields (i.e. rows are simple rows), then this should work ok e.g. test 1453
-    // since we look for ", and the source system quoted when , is present, looking for ", should work well.
-    // Under this rule, no eol may occur inside fields.
-    {
-      const char* ch2 = ch;
-      while (*++ch && *ch!='\n' && *ch!='\r') {
-        if (*ch==quote && end_of_field(ch+1)) {ch2=ch; break;}  // (*1) regular ", ending; leave *ch on closing quote
-        if (*ch==sep) {
-          // first sep in this field
-          // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
-          // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
-          ch2 = ch;
-          while (*++ch2 && *ch2!='\n' && *ch2!='\r') {
-            if (*ch2==quote && end_of_field(ch2+1)) {
-              ch = ch2;                                          // (*2) move on to that first ", -- that's this field's ending
-              break;
-            }
-          }
-          break;
-        }
-      }
-      if (ch!=ch2) fieldStart--;   // field ending is this sep|eol; neither (*1) or (*2) happened; opening quote wasn't really an opening quote
-    }
-    break;
-  default:
-    return;  // Internal error: undefined quote rule
-  }
-  ctx->target->str32.len = (int32_t)(ch - fieldStart);
-  ctx->target->str32.off = (int32_t)(fieldStart - ctx->anchor);
-  if (*ch==quote) {
-    ch++;
-    skip_white(&ch);
-    ctx->ch = ch;
-  } else {
-    ctx->ch = ch;
-    if (*ch=='\0') {
-      if (quoteRule!=2) {  // see test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
-        ctx->target->str32.off--;
-        ctx->target->str32.len++;
-      }
-    }
-    if (stripWhite) {  // see test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
-      while (ctx->target->str32.len>0 && ch[-1]==' ') {
-        ctx->target->str32.len--;
-        ch--;
-      }
-    }
-  }
-}
-
-
-static void parse_int32(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-
-  bool neg = *ch=='-';
-  ch += (neg || *ch=='+');
-  const char* start = ch;  // to know if at least one digit is present
-  // acc needs to be 64bit so that 5bn (still 10 digits but greater than 4bn) does not overflow. It could be
-  //   signed but we use unsigned to be clear it will never be negative
-  uint_fast64_t acc = 0;
-  uint_fast8_t digit;
-  // sep, \r, \n and *eof=='\0' all serve as valid terminators here by dint of being !=[0-9]
-  // see init.c for checks of unsigned uint_fast8_t cast
-  // optimizer should implement 10* as ((x<<2 + x)<<1) or (x<<3 + x<<1)
-
-  /*if (loseLeadingZeroOption)*/ while (*ch=='0') ch++;
-  // number significant figures = digits from the first non-zero onwards including trailing zeros
-  uint_fast32_t sf = 0;
-  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
-    acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  // INT32 range is NA==-2147483648(INT32_MIN) then symmetric [-2147483647,+2147483647] so we can just test INT32_MAX
-  // The max (2147483647) happens to be 10 digits long, hence <=10.
-  // Leading 0 (such as 001 and 099 but not 0, +0 or -0) will cause type bump to _full which has the
-  // option to treat as integer or string with further cost.
-  // if ( (acc && *start!='0' && acc<=INT32_MAX && (ch-start)<=10) ||
-  //     (acc==0 && ch-start==1) ) {
-  if ((sf || ch>start) && sf<=10 && acc<=INT32_MAX) {
-    ctx->target->int32 = neg ? -(int32_t)acc : (int32_t)acc;
-    ctx->ch = ch;
-  } else {
-    ctx->target->int32 = NA_INT32;  // empty field ideally, contains NA and fall through to check if NA (in which case this write is important), or just plain invalid
-  }
-}
-
-
-static void parse_int64(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-
-  bool neg = *ch=='-';
-  ch += (neg || *ch=='+');
-  const char* start = ch;
-  while (*ch=='0') ch++;
-  uint_fast64_t acc = 0;  // important unsigned not signed here; we now need the full unsigned range
-  uint_fast8_t digit;
-  uint_fast32_t sf = 0;
-  while ( (digit=(uint_fast8_t)(ch[sf]-'0')) < 10 ) {
-    acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  // INT64 range is NA==-9223372036854775808(INT64_MIN) then symmetric [-9223372036854775807,+9223372036854775807].
-  // A 20+ digit number is caught as too large via the field width check <=19, since leading zeros trigger character type not numeric
-  // TODO Check tests exist that +9223372036854775808 and +9999999999999999999 are caught as too large. They are stll 19 wide
-  //   and, fortunately, uint64 can hold 9999999999999999999 (19 9's) so that doesn't overflow uint64.
-  //if ( (acc && *start!='0' && acc<=INT64_MAX && (ch-start)<=19) ||
-  //     (acc==0 && ch-start==1) ) {
-  if ((sf || ch>start) && sf<=19 && acc<=INT64_MAX) {
-    ctx->target->int64 = neg ? -(int64_t)acc : (int64_t)acc;
-    ctx->ch = ch;
-  } else {
-    ctx->target->int64 = NA_INT64;
-  }
-}
-
-
-/**
- * Parse "usual" double literals, in the form
- *
- *   [+|-] (NNN|NNN.|.MMM|NNN.MMM) [(E|e) [+|-] EEE]
- *
- * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
- * whole part, fractional part, and the exponent respectively.
- *
- * Right now we do not parse floating numbers that would incur significant loss
- * of precision, for example `1.2439827340958723094785103` will not be parsed
- * as a double.
- */
-static void parse_double_regular(FieldParseContext* ctx)
-{
-  //
-  const char* ch = ctx->ch;
-
-  bool neg, Eneg;
-  double r;
-  ch += (neg = *ch=='-') + (*ch=='+');
-
-  const char* start = ch;
-  uint_fast64_t acc = 0;  // holds NNN.MMM as NNNMMM
-  int_fast32_t e = 0;     // width of MMM to adjust NNNMMM by dec location
-  uint_fast8_t digit;
-  while (*ch=='0') ch++;
-
-  uint_fast32_t sf = 0;
-  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
-    acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  if (*ch==dec) {
-    ch++;
-    // Numbers like 0.00000000000000000000000000000000004 can be read without
-    // loss of precision as 4e-35  (test 1817)
-    if (sf==0 && *ch=='0') {
-      while (ch[e]=='0') e++;
-      ch += e;
-      e = -e;
-    }
-    uint_fast32_t k = 0;
-    while ( (digit=(uint_fast8_t)(ch[k]-'0'))<10 ) {
-      acc = 10*acc + digit;
-      k++;
-    }
-    ch += k;
-    sf += k;
-    e -= k;
-  }
-  if (sf>18) goto fail;  // Too much precision for double. TODO: reduce to 15(?) and discard trailing 0's.
-  if (*ch=='E' || *ch=='e') {
-    if (ch==start) goto fail;  // something valid must be between [+|-] and E, character E alone is invalid.
-    ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
-    int E=0, max_digits=3;
-    while ( max_digits && (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
-      E = 10*E + digit;
-      ch++;
-      max_digits--;
-    }
-    e += Eneg? -E : E;
-  }
-  e += 350; // lookup table is arranged from -350 (0) to +350 (700)
-  if (e<0 || e>700 || ch==start) goto fail;
-
-  r = (double)((long double)acc * pow10lookup[e]);
-  ctx->target->float64 = neg? -r : r;
-  ctx->ch = ch;
-  return;
-
-  fail:
-    ctx->target->float64 = NA_FLOAT64;
-}
-
-
-/**
- * Parses double values, but also understands various forms of NAN literals
- * (each can possibly be preceded with a `+` or `-` sign):
- *
- *   nan, inf, NaN, NAN, NaN%, NaNQ, NaNS, qNaN, sNaN, NaN12345, sNaN54321,
- *   1.#SNAN, 1.#QNAN, 1.#IND, 1.#INF, INF, Inf, Infinity,
- *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
- *
- */
-static void parse_double_extended(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  bool neg, quoted;
-  ch += (quoted = (*ch==quote));
-  ch += (neg = (*ch=='-')) + (*ch=='+');
-
-  if (ch[0]=='n' && ch[1]=='a' && ch[2]=='n' && (ch += 3)) goto return_nan;
-  if (ch[0]=='i' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) goto return_inf;
-  if (ch[0]=='I' && ch[1]=='N' && ch[2]=='F' && (ch += 3)) goto return_inf;
-  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) {
-    if (ch[0]=='i' && ch[1]=='n' && ch[2]=='i' && ch[3]=='t' && ch[4]=='y') ch += 5;
-    goto return_inf;
-  }
-  if (ch[0]=='N' && (ch[1]=='A' || ch[1]=='a') && ch[2]=='N' && (ch += 3)) {
-    if (ch[-2]=='a' && (*ch=='%' || *ch=='Q' || *ch=='S')) ch++;
-    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
-    goto return_nan;
-  }
-  if ((ch[0]=='q' || ch[0]=='s') && ch[1]=='N' && ch[2]=='a' && ch[3]=='N' && (ch += 4)) {
-    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
-    goto return_nan;
-  }
-  if (ch[0]=='1' && ch[1]=='.' && ch[2]=='#') {
-    if ((ch[3]=='S' || ch[3]=='Q') && ch[4]=='N' && ch[5]=='A' && ch[6]=='N' && (ch += 7)) goto return_nan;
-    if (ch[3]=='I' && ch[4]=='N' && ch[5]=='D' && (ch += 6)) goto return_nan;
-    if (ch[3]=='I' && ch[4]=='N' && ch[5]=='F' && (ch += 6)) goto return_inf;
-  }
-  if (ch[0]=='#') {  // Excel-specific "numbers"
-    if (ch[1]=='D' && ch[2]=='I' && ch[3]=='V' && ch[4]=='/' && ch[5]=='0' && ch[6]=='!' && (ch += 7)) goto return_nan;
-    if (ch[1]=='V' && ch[2]=='A' && ch[3]=='L' && ch[4]=='U' && ch[5]=='E' && ch[6]=='!' && (ch += 7)) goto return_nan;
-    if (ch[1]=='N' && ch[2]=='U' && ch[3]=='L' && ch[4]=='L' && ch[5]=='!' && (ch += 6)) goto return_na;
-    if (ch[1]=='N' && ch[2]=='A' && ch[3]=='M' && ch[4]=='E' && ch[5]=='?' && (ch += 6)) goto return_na;
-    if (ch[1]=='N' && ch[2]=='U' && ch[3]=='M' && ch[4]=='!' && (ch += 5)) goto return_na;
-    if (ch[1]=='R' && ch[2]=='E' && ch[3]=='F' && ch[4]=='!' && (ch += 5)) goto return_na;
-    if (ch[1]=='N' && ch[2]=='/' && ch[3]=='A' && (ch += 4)) goto return_na;
-  }
-  parse_double_regular(ctx);
-  return;
-
-  return_inf:
-    ctx->target->float64 = neg? -INFD : INFD;
-    goto ok;
-  return_nan:
-    ctx->target->float64 = NAND;
-    goto ok;
-  return_na:
-    ctx->target->float64 = NA_FLOAT64;
-  ok:
-    if (quoted && *ch!=quote) {
-      ctx->target->float64 = NA_FLOAT64;
-    } else {
-      ctx->ch = ch + quoted;
-    }
-}
-
-
-/**
- * Parser for hexadecimal doubles. This format is used in Java (via
- * `Double.toHexString(x)`), in C (`printf("%a", x)`), and in Python
- * (`x.hex()`).
- *
- * The numbers are in the following format:
- *
- *   [+|-] (0x|0X) (0.|1.) HexDigits (p|P) [+|-] DecExponent
- *
- * Thus the number has optional sign; followed by hex prefix `0x` or `0X`;
- * followed by hex significand which may be in the form of either `0.HHHHH...`
- * or `1.HHHHH...` where `H` are hex-digits (there can be no more than 13
- * digits; first form is used for subnormal numbers, second for normal ones);
- * followed by exponent indicator `p` or `P`; followed by optional exponent
- * sign; and lastly followed by the exponent which is a decimal number.
- *
- * This can be directly converted into IEEE-754 double representation:
- *
- *   <1 bit: sign> <11 bits: exp+1022> <52 bits: significand>
- *
- * This parser also recognizes literals "NaN" and "Infinity" which can be
- * produced by Java.
- *
- * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
- * @see https://en.wikipedia.org/wiki/IEEE_754-1985
- */
-static void parse_double_hexadecimal(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  uint64_t neg;
-  uint8_t digit;
-  bool Eneg, subnormal = 0;
-  ch += (neg = (*ch=='-')) + (*ch=='+');
-
-  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') && (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
-    ch += 3;
-    uint64_t acc = 0;
-    if (*ch == '.') {
-      ch++;
-      int ndigits = 0;
-      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
-        acc = (acc << 4) + digit;
-        ch++;
-        ndigits++;
-      }
-      if (ndigits > 13) goto fail;
-      acc <<= (13 - ndigits) * 4;
-    }
-    if (*ch!='p' && *ch!='P') goto fail;
-    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
-    uint64_t E = 0;
-    while ( (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
-      E = 10*E + digit;
-      ch++;
-    }
-    if (subnormal) {
-      if (E == 0 && acc == 0) /* zero */;
-      else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
-      else goto fail;
-    } else {
-      E = 1023 + (E ^ -Eneg) + Eneg;
-      if (E < 1 || E > 2046) goto fail;
-    }
-    ctx->target->uint64 = (neg << 63) | (E << 52) | (acc);
-    ctx->ch = ch;
-    return;
-  }
-  if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
-    ctx->target->float64 = NA_FLOAT64;
-    ctx->ch = ch + 3;
-    return;
-  }
-  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
-      ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
-    ctx->target->float64 = neg ? -INFD : INFD;
-    ctx->ch = ch + 8;
-    return;
-  }
-
-  fail:
-    ctx->target->float64 = NA_FLOAT64;
-}
-
-
-static void parse_float_hexadecimal(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  uint32_t neg;
-  uint8_t digit;
-  bool Eneg, subnormal = 0;
-  ch += (neg = (*ch=='-')) + (*ch=='+');
-
-  if (ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') && (ch[2]=='1' || (subnormal = ch[2]=='0'))) {
-    ch += 3;
-    uint32_t acc = 0;
-    if (*ch == '.') {
-      ch++;
-      int ndigits = 0;
-      while ((digit = hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
-        acc = (acc << 4) + digit;
-        ch++;
-        ndigits++;
-      }
-      if (ndigits > 6) goto fail;
-      acc <<= 24 - ndigits * 4;
-      acc >>= 1;
-    }
-    if (*ch!='p' && *ch!='P') goto fail;
-    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
-    uint32_t E = 0;
-    while ( (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
-      E = 10*E + digit;
-      ch++;
-    }
-    if (subnormal) {
-      if (E == 0 && acc == 0) /* zero */;
-      else if (E == 126 && Eneg && acc) /* subnormal */ E = 0;
-      else goto fail;
-    } else {
-      E = 127 + (E ^ -Eneg) + Eneg;
-      if (E < 1 || E > 254) goto fail;
-    }
-    ctx->target->uint32 = (neg << 31) | (E << 23) | (acc);
-    ctx->ch = ch;
-    return;
-  }
-  if (ch[0]=='N' && ch[1]=='a' && ch[2]=='N') {
-    ctx->target->float32 = NA_FLOAT32;
-    ctx->ch = ch + 3;
-    return;
-  }
-  if (ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && ch[3]=='i' &&
-      ch[4]=='n' && ch[5]=='i' && ch[6]=='t' && ch[7]=='y') {
-    ctx->target->float32 = neg ? -INFINITY : INFINITY;
-    ctx->ch = ch + 8;
-    return;
-  }
-
-  fail:
-    ctx->target->float32 = NA_FLOAT32;
-}
-
-
-/* Parse numbers 0 | 1 as boolean. */
-static void parse_bool_numeric(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  uint8_t d = (uint8_t)(*ch - '0');  // '0'=>0, '1'=>1, everything else > 1
-  if (d <= 1) {
-    ctx->target->int8 = (int8_t) d;
-    ctx->ch = ch + 1;
-  } else {
-    ctx->target->int8 = NA_BOOL8;
-  }
-}
-
-
-/* Parse uppercase TRUE | FALSE as boolean. */
-static void parse_bool_uppercase(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  if (ch[0]=='T' && ch[1]=='R' && ch[2]=='U' && ch[3]=='E') {
-    ctx->target->int8 = 1;
-    ctx->ch = ch + 4;
-  } else if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
-    ctx->target->int8 = 0;
-    ctx->ch = ch + 5;
-  } else {
-    ctx->target->int8 = NA_BOOL8;
-  }
-}
-
-
-/* Parse camelcase True | False as boolean. */
-static void parse_bool_titlecase(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  if (ch[0]=='T' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
-    ctx->target->int8 = 1;
-    ctx->ch = ch + 4;
-  } else if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
-    ctx->target->int8 = 0;
-    ctx->ch = ch + 5;
-  } else {
-    ctx->target->int8 = NA_BOOL8;
-  }
-}
-
-
-/* Parse lowercase true | false as boolean. */
-static void parse_bool_lowercase(FieldParseContext* ctx)
-{
-  const char* ch = ctx->ch;
-  if (ch[0]=='t' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
-    ctx->target->int8 = 1;
-    ctx->ch = ch + 4;
-  } else if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
-    ctx->target->int8 = 0;
-    ctx->ch = ch + 5;
-  } else {
-    ctx->target->int8 = NA_BOOL8;
-  }
-}
-
-
 // In order to add a new type:
 //   - register new parser in this `parsers` array
 //   - add entries in arrays `typeName` / `typeSize` / `typeSymbols` at the top of this file
@@ -853,20 +82,19 @@ static void parse_bool_lowercase(FieldParseContext* ctx)
 //   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
 //   - update `test_fread_fillna1` in test_fread.py to include the new column type
 //
-typedef void (*reader_fun_t)(FieldParseContext* ctx);
-static reader_fun_t parsers[NUMTYPE] = {
-  (reader_fun_t) &parse_string,   // CT_DROP
-  (reader_fun_t) &parse_bool_numeric,
-  (reader_fun_t) &parse_bool_uppercase,
-  (reader_fun_t) &parse_bool_titlecase,
-  (reader_fun_t) &parse_bool_lowercase,
-  (reader_fun_t) &parse_int32,
-  (reader_fun_t) &parse_int64,
-  (reader_fun_t) &parse_float_hexadecimal,
-  (reader_fun_t) &parse_double_regular,
-  (reader_fun_t) &parse_double_extended,
-  (reader_fun_t) &parse_double_hexadecimal,
-  (reader_fun_t) &parse_string
+static ParserFnPtr parsers[NUMTYPE] = {
+  parse_string,   // CT_DROP
+  parse_bool8_numeric,
+  parse_bool8_uppercase,
+  parse_bool8_titlecase,
+  parse_bool8_lowercase,
+  parse_int32_simple,
+  parse_int64_simple,
+  parse_float32_hex,
+  parse_float64_simple,
+  parse_float64_extended,
+  parse_float64_hex,
+  parse_string
 };
 
 
@@ -886,18 +114,11 @@ int FreadReader::freadMain()
   int nth = g.nthreads;
   size_t nrowLimit = (size_t) g.max_nrows;
 
-  uint64_t ui64 = NA_FLOAT64_I64;
-  uint32_t ui32 = NA_FLOAT32_I32;
-  memcpy(&NA_FLOAT64, &ui64, 8);
-  memcpy(&NA_FLOAT32, &ui32, 4);
-  assert(sizeof(field64) == 8);
-
-  NAstrings = g.na_strings;
   blank_is_a_NAstring = g.blank_is_na;
-  any_number_like_NAstrings = g.number_is_na;
+  bool any_number_like_NAstrings = g.number_is_na;
   stripWhite = g.strip_white;
-  skipEmptyLines = g.skip_blank_lines;
-  fill = g.fill;
+  bool skipEmptyLines = g.skip_blank_lines;
+  bool fill = g.fill;
   dec = g.dec;
   quote = g.quote;
   int header = g.header;
@@ -959,11 +180,14 @@ int FreadReader::freadMain()
 
     int topNumLines=0;        // the most number of lines with the same number of fields, so far
     int topNumFields=1;       // how many fields that was, to resolve ties
-    char topSep='\n';          // which sep that was, by default \n to mean single-column input (1 field)
-    int topQuoteRule=0;       // which quote rule that was
+    char topSep='\n';         // which sep that was, by default \n to mean single-column input (1 field)
+    int8_t topQuoteRule=0;    // which quote rule that was
     int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                               //   (when fill=true, the max is usually the header row and is the longest but there are more
                               //    lines of fewer)
+
+    field64 trash;
+    FieldParseContext ctx = makeFieldParseContext(ch, &trash, nullptr);
 
     // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
     // covers the header row, at this stage we don't know if it's present), and
@@ -980,13 +204,16 @@ int FreadReader::freadMain()
       whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
       for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
         ch = sof;
+        ctx.sep = sep;
+        ctx.whiteChar = whiteChar;
+        ctx.quoteRule = quoteRule;
         // if (verbose) DTPRINT("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
         for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
         int i=-1; // The slot we're counting the currently contiguous consistent ncol
         int thisLine=0, lastncol=-1;
         while (ch < eof && thisLine++ < JUMPLINES) {
           // Compute num columns and move `ch` to the start of next line
-          int thisncol = countfields(&ch);
+          int thisncol = ctx.countfields();
           if (thisncol < 0) {
             // invalid file with this sep and quote rule; abort
             numFields[0] = -1;
@@ -1034,9 +261,9 @@ int FreadReader::freadMain()
       }
     }
     ASSERT(firstJumpEnd);
-    quoteRule = topQuoteRule;
-    sep = topSep;
-    whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
+    quoteRule = ctx.quoteRule = topQuoteRule;
+    sep = ctx.sep = topSep;
+    whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
     if (sep==' ' && !fill) {
       if (verbose) DTPRINT("  sep=' ' detected, setting fill to True\n");
       fill = 1;
@@ -1054,7 +281,7 @@ int FreadReader::freadMain()
       ch = sof;
       while (ch < eof && ++thisLine < JUMPLINES) {
         const char* lastLineStart = ch;   // lineStart
-        int cols = countfields(&ch);  // advances ch to next line
+        int cols = ctx.countfields();  // advances ch to next line
         if (cols == ncol) {
           ch = sof = lastLineStart;
           line += thisLine;
@@ -1068,7 +295,7 @@ int FreadReader::freadMain()
 
     ASSERT(ncol >= 1 && line >= 1);
     ch = sof;
-    int tt = countfields(&ch);
+    int tt = ctx.countfields();
     ch = sof;  // move back to start of line since countfields() moved to next
     ASSERT(fill || tt == ncol);
     if (verbose) {
@@ -1082,7 +309,7 @@ int FreadReader::freadMain()
     // Now check previous line which is being discarded and give helpful message to user
     if (prevStart) {
       ch = prevStart;
-      int ttt = countfields(&ch);
+      int ttt = ctx.countfields();
       ASSERT(ttt != ncol);
       if (ttt > 1) {
         DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
@@ -1119,11 +346,7 @@ int FreadReader::freadMain()
       tmpTypes[j] = type0;
     }
     field64 trash;
-    FieldParseContext fctx = {
-      .ch = ch,
-      .target = &trash,
-      .anchor = NULL,
-    };
+    FieldParseContext fctx = makeFieldParseContext(ch, &trash, nullptr);
 
     // the size in bytes of the first JUMPLINES from the start (jump point 0)
     size_t jump0size = (size_t)(firstJumpEnd - sof);
@@ -1162,7 +385,7 @@ int FreadReader::freadMain()
                              sof + (size_t)j*(sz/(size_t)(nJumps-1));
       if (ch < lastRowEnd) ch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
       if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
-      if (j > 0 && !nextGoodLine(&ch, ncol)) {
+      if (j > 0 && !fctx.nextGoodLine(ncol)) {
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
         continue;
       }
@@ -1175,10 +398,9 @@ int FreadReader::freadMain()
         const char* jlineStart = ch;
         if (sep==' ') while (ch<eof && *ch==' ') ch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
         // detect blank lines
-        skip_white(&ch);
+        fctx.skip_white();
         if (ch == eof) break;
-        if (ncol > 1 && eol(&ch)) {
-          ch++;
+        if (ncol > 1 && fctx.skip_eol()) {
           if (skipEmptyLines) continue;
           if (!fill) break;
           sampleLines++;
@@ -1191,7 +413,7 @@ int FreadReader::freadMain()
         ch--;
         while (field<ncol) {
           ch++;
-          skip_white(&ch);
+          fctx.skip_white();
           fieldStart = ch;
           bool thisColumnNameWasString = false;
           if (firstDataRowAfterPotentialColumnNames) {
@@ -1201,20 +423,20 @@ int FreadReader::freadMain()
             tmpTypes[field] = type0;  // re-initialize for 2nd row onwards
           }
           while (tmpTypes[field]<=CT_STRING) {
-            parsers[tmpTypes[field]](&fctx);
-            skip_white(&ch);
-            if (end_of_field(ch)) break;
-            ch = end_NA_string(fieldStart);
-            if (end_of_field(ch)) break;
+            parsers[tmpTypes[field]](fctx);
+            fctx.skip_white();
+            if (fctx.end_of_field()) break;
+            ch = fctx.end_NA_string(fieldStart);
+            if (fctx.end_of_field()) break;
             if (tmpTypes[field]<CT_STRING) {
               ch = fieldStart;
               if (*ch==quote) {
                 ch++;
-                parsers[tmpTypes[field]](&fctx);
+                parsers[tmpTypes[field]](fctx);
                 if (*ch==quote) {
                   ch++;
-                  skip_white(&ch);
-                  if (end_of_field(ch)) break;
+                  fctx.skip_white();
+                  if (fctx.end_of_field()) break;
                 }
               }
               tmpTypes[field]++;
@@ -1227,6 +449,7 @@ int FreadReader::freadMain()
                 DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
                         quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart,200));
               quoteRule++;
+              fctx.quoteRule++;
             }
             bumped = true;
             ch = fieldStart;
@@ -1243,13 +466,13 @@ int FreadReader::freadMain()
           }
           field++;
         }
-        eol(&ch);
+        bool eol_found = fctx.skip_eol();
         if (field < ncol-1 && !fill) {
-          ASSERT(ch==eof || *ch=='\n' || *ch=='\r');
+          ASSERT(ch==eof || eol_found);
           STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
                "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
         }
-        if (field>=ncol || (*ch!='\n' && *ch!='\r' && *ch!='\0')) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
+        if (field>=ncol || !(eol_found || ch==eof)) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
           if (j==0) {
             STOP("Line %d starting <<%s>> has more than the expected %d fields. "
                "Separator '%c' occurs at position %d which is character %d of the last field: <<%s>>. "
@@ -1269,7 +492,6 @@ int FreadReader::freadMain()
           // To trigger 2nd row starting from type 1 again to compare to 1st row to decide if column names present
           firstDataRowAfterPotentialColumnNames = true;
         }
-        ch += (*ch=='\n' || *ch=='\r');
 
         lastRowEnd = ch;
         int thisLineLen = (int)(ch-jlineStart);  // ch is now on start of next line so this includes EOLLEN already
@@ -1335,10 +557,11 @@ int FreadReader::freadMain()
     } else {
       bytesRead = (size_t)(lastRowEnd - sof);
       meanLineLen = (double)sumLen/sampleLines;
-      estnrow = CEIL(bytesRead/meanLineLen);  // only used for progress meter and verbose line below
-      double sd = sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
-      allocnrow = clamp_szt((size_t)(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
-                            (size_t)(1.1*estnrow), 2*estnrow);
+      estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
+      double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
+      allocnrow = std::max(static_cast<size_t>(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
+                           static_cast<size_t>(1.1*estnrow));
+      allocnrow = std::min(allocnrow, 2*estnrow);
       // sd can be very close to 0.0 sometimes, so apply a +10% minimum
       // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
       if (verbose) {
@@ -1387,16 +610,12 @@ int FreadReader::freadMain()
     if (header == 1) {
       line++;
       if (sep==' ') while (*ch==' ') ch++;
-      FieldParseContext fctx = {
-        .ch = ch,
-        .target = (field64*)colNames,
-        .anchor = colNamesAnchor,
-      };
+      FieldParseContext fctx = makeFieldParseContext(ch, (field64*)colNames, colNamesAnchor);
       ch--;
       for (int i=0; i<ncol; i++) {
         // Use Field() here as it handles quotes, leading space etc inside it
         ch++;
-        parse_string(&fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
+        parse_string(fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
         fctx.target++;
         if (*ch!=sep) break;
         if (sep==' ') {
@@ -1404,8 +623,8 @@ int FreadReader::freadMain()
           if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
         }
       }
-      if (eol(&ch)) {
-        sof = ++ch;
+      if (fctx.skip_eol()) {
+        sof = ch;
       } else {
         ASSERT(*ch=='\0');
         sof = ch;
@@ -1431,7 +650,7 @@ int FreadReader::freadMain()
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
     memcpy(tmpTypes, types, (size_t)ncol);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor, ncol, quoteRule, quote);  // colNames must not be changed but types[] can be
+    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
 
     int nUserBumped = 0;
     ndrop = 0;
@@ -1498,7 +717,8 @@ int FreadReader::freadMain()
   // For the 44GB file with 12875 columns, the max line len is 108,497. We may want each chunk to write to its
   // own page (4k) of the final column, hence 1000 rows of the smallest type (4 byte int) is just
   // under 4096 to leave space for R's header + malloc's header.
-  size_t chunkBytes = umax((size_t)(1000*meanLineLen), 1ULL/*MB*/ *1024*1024);
+  size_t chunkBytes = std::max(static_cast<size_t>(1000*meanLineLen),
+                               static_cast<size_t>(1024*1024));
   // Index of the first jump to read. May be modified if we ever need to restart
   // reading from the middle of the file.
   int jump0 = 0;
@@ -1520,7 +740,7 @@ int FreadReader::freadMain()
   size_t initialBuffRows = allocnrow / (size_t)nJumps;
   if (initialBuffRows < 4) initialBuffRows = 4;
   ASSERT(initialBuffRows <= INT32_MAX);
-  nth = imin(nJumps, nth);
+  nth = std::min(nJumps, nth);
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");
@@ -1566,12 +786,7 @@ int FreadReader::freadMain()
       stopTeam = true;
     }
     prepareThreadContext(&ctx);
-
-    FieldParseContext fctx = {
-      .ch = tch,
-      .target = ctx.buff,
-      .anchor = thisJumpStart,
-    };
+    FieldParseContext fctx = makeFieldParseContext(tch, ctx.buff, thisJumpStart);
 
     #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
     for (int jump = jump0; jump < nJumps; jump++) {
@@ -1611,7 +826,7 @@ int FreadReader::freadMain()
       nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
       // +1 is for when nextJump happens to fall exactly on a \n. The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
-      if (jump>0 && !nextGoodLine(&tch, ncol)) {
+      if (jump>0 && !fctx.nextGoodLine(ncol)) {
         #pragma omp critical
         if (!stopTeam) {
           stopTeam = true;
@@ -1653,7 +868,7 @@ int FreadReader::freadMain()
             fieldStart = tch;
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
             int8_t thisType = types[j];
-            parsers[abs(thisType)](&fctx);
+            parsers[abs(thisType)](fctx);
             if (*tch != sep) break;
             if (sizes[j]) {
               fctx.target++;
@@ -1663,17 +878,18 @@ int FreadReader::freadMain()
           }
           //*** END HOT. START TEPID ***//
           if (tch == tlineStart) {
-            skip_white(&tch);
+            fctx.skip_white();
             if (*tch=='\0') break;  // empty last line
-            if (eol(&tch) && skipEmptyLines) { tch++; continue; }
+            if (skipEmptyLines && fctx.skip_eol()) continue;
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
-          else if (eol(&tch)) {
+          else if (fctx.skip_eol()) {
             if (sizes[j]) {
               fctx.target++;
             }
             j++;
-            if (j==ncol) { tch++; myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
+            if (j==ncol) { myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
+            tch--;
           }
           else {
             tch = fieldStart; // restart field as int processor could have moved to A in ",123A,"
@@ -1693,7 +909,7 @@ int FreadReader::freadMain()
         if (sep==' ') {
           while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
           fieldStart = tch;
-          if (eol(&tch) && skipEmptyLines) { tch++; continue; }
+          if (skipEmptyLines && fctx.skip_eol()) continue;
         }
 
         if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
@@ -1707,17 +923,17 @@ int FreadReader::freadMain()
               tch = fieldStart;
               bool quoted = false;
               if (absType < CT_STRING && absType > CT_DROP) {
-                skip_white(&tch);
+                fctx.skip_white();
                 const char* afterSpace = tch;
-                tch = end_NA_string(fieldStart);
-                skip_white(&tch);
-                if (!end_of_field(tch)) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
+                tch = fctx.end_NA_string(fieldStart);
+                fctx.skip_white();
+                if (!fctx.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
                 if (*tch==quote) { quoted=true; tch++; }
               } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
-              parsers[absType](&fctx);
+              parsers[absType](fctx);
               if (quoted && *tch==quote) tch++;
-              skip_white(&tch);
-              if (end_of_field(tch)) {
+              fctx.skip_white();
+              if (fctx.end_of_field()) {
                 if (sep==' ' && *tch==' ') {
                   while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
                   if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;
@@ -1787,7 +1003,7 @@ int FreadReader::freadMain()
           }
           break;
         }
-        if (!eol(&tch) && *tch!='\0') {
+        if (!(fctx.skip_eol() || *tch=='\0')) {
           #pragma omp critical
           if (!stopTeam) {
             stopTeam = true;
@@ -1798,7 +1014,6 @@ int FreadReader::freadMain()
           }
           break;
         }
-        if (*tch!='\0') tch++;
         myNrow++;
       }
       if (verbose) {
@@ -1988,6 +1203,5 @@ int FreadReader::freadMain()
       free(typeBumpMsg);  // local scope and only populated in verbose mode
     }
   }
-  freadCleanup();
   return 1;
 }

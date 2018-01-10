@@ -66,12 +66,69 @@ union field64 {
 };
 
 
+struct FieldParseContext {
+  // Pointer to the current parsing location
+  const char*& ch;
+
+  // Where to write the parsed value. The pointer will be incremented after
+  // each successful read.
+  field64* target;
+
+  // Anchor pointer for string parser, this pointer is the starting point
+  // relative to which `str32.offset` is defined.
+  const char* anchor;
+
+  const char* eof;
+
+  const char* const* NAstrings;
+
+  // what to consider as whitespace to skip: ' ', '\t' or 0 means both
+  // (when sep!=' ' && sep!='\t')
+  char whiteChar;
+
+  // Decimal separator for parsing floats. The default value is '.', but
+  // in some cases ',' may also be used.
+  char dec;
+
+  // Field separator
+  char sep;
+
+  // Character used for field quoting.
+  char quote;
+
+  // How the fields are quoted.
+  // TODO: split quoteRule differences into separate parsers.
+  int8_t quoteRule;
+
+  // Should white space be removed?
+  bool stripWhite;
+
+  // Do we consider blank as NA string?
+  bool blank_is_a_NAstring;
+
+  bool LFpresent;
+
+  void skip_white();
+  // bool eol(const char**);
+  bool end_of_field();
+  const char* end_NA_string(const char*);
+  int countfields();
+  bool nextGoodLine(int ncol);
+  bool skip_eol();
+};
+
+typedef void (*ParserFnPtr)(FieldParseContext& ctx);
+
+
 #define NA_BOOL8         INT8_MIN
 #define NA_INT32         INT32_MIN
 #define NA_INT64         INT64_MIN
 #define NA_FLOAT64_I64   0x7FF00000000007A2
 #define NA_FLOAT32_I32   0x7F8007A2
 #define NA_LENOFF        INT32_MIN  // lenOff.len only; lenOff.off undefined for NA
+#define INF_FLOAT32_I32  0x7F800000
+#define INF_FLOAT64_I64   0x7FF0000000000000
+
 
 
 // Per-column per-thread temporary string buffers used to assemble processed
@@ -194,7 +251,7 @@ typedef struct freadMainArgs
 
 // *****************************************************************************
 
-typedef struct ThreadLocalFreadParsingContext
+struct ThreadLocalFreadParsingContext
 {
   // Pointer that serves as a starting point for all offsets within the `lenOff`
   // structs.
@@ -231,7 +288,7 @@ typedef struct ThreadLocalFreadParsingContext
   // Any additional implementation-specific parameters.
   FREAD_PUSH_BUFFERS_EXTRA_FIELDS
 
-} ThreadLocalFreadParsingContext;
+};
 
 
 
