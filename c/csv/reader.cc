@@ -579,45 +579,55 @@ void parse_string(FieldParseContext&);
 
 
 /**
- * skip_eol() looks at the current parsing position `ch`, and
- *   (1) if there is a newline character/sequence at this position, it moves
- *       the parsing position to the next character after the newline and
- *       returns true;
- *   (2) otherwise it returns false and `ch` remains unmodified.
+ * skip_eol() is used to consume a "newline" token from the current parsing
+ * location (`ch`). Specifically,
+ *   (1) if there is a newline sequence at the current parsing position, this
+ *       function advances the parsing position past the newline and returns
+ *       true;
+ *   (2) otherwise it returns false and the current parsing location remains
+ *       unchanged.
  *
- * The following sequences are recognized as newlines when `LFpresent` parameter
- * is true: '0x0A' (\\n), '0x0A 0x0D' (\\n\\r), and '0x0D+ 0x0A' (\\r+\\n).
- * When `LFpresent` is false, only '0x0D' (\\r) is considered a newline, and
- * the it is assumed that \\n character never occurs. Notably, standalone
- * '0x0D' (\\r) is *not* considered a newline when `LFpresent` is true.
+ * We recognize the following sequences as newlines (where "LF" is byte 0x0A
+ * or '\\n', and "CR" is 0x0D or '\\r'):
+ *     CR CR LF
+ *     CR LF
+ *     LF CR
+ *     LF
+ *     CR  (only if `LFpresent` is false)
  *
+ * Here LF and CR-LF are the most commonly used line endings, while LF-CR and
+ * CR are encountered much less frequently. The sequence CR-CR-LF is not
+ * usually recognized as a single newline by most text editors. However we find
+ * that occasionally a file with CR-LF endings gets recoded into CR-CR-LF line
+ * endings by buggy software.
+ *
+ * In addition, CR (\\r) is treated specially: it is considered a newline only
+ * when `LFpresent` is false. This is because it is common to find files created
+ * by programs that don't account for '\\r's and fail to quote fields containing
+ * these characters. If we were to treat these '\\r's as newlines, the data
+ * would be parsed incorrectly. On the other hand, there are files where '\\r's
+ * are used as valid newlines. In order to handle both of these cases, we
+ * introduce parameter `LFpresent` which is set to true if there is any '\\n'
+ * found in the file, in which case a standalone '\\r' will not be considered a
+ * newline.
  */
 bool FieldParseContext::skip_eol() {
   // we call eol() when we expect to be at a newline, so optimize as if we are
   // at the end of line.
-  if (*ch == '\n') {
-    // Handle cases '\n\r' or '\n'
+  if (*ch == '\n') {       // '\n\r' or '\n'
     ch += 1 + (ch[1] == '\r');
     return true;
   }
-  if (*ch=='\r') {
-    if (LFpresent) {
-      // '\n' is present in the file, so standalone '\r' is NOT considered a
-      // newline. Thus, we attempt to match /\r+\n/.
-      const char* ch0 = ch;
-      while (*ch == '\r') ch++;  // consume multiple '\r's.
-      if (*ch == '\n') {
-        ch++;
-        return true;
-      } else {
-        // 1 or more '\r's were not followed by '\n' -- do not consider this
-        // a newline. Since `ch` was incremented above, restore its original
-        // value.
-        ch = ch0;
-        return false;
-      }
-    } else {
-      // '\n' does not appear anywhere in the file: single '\r' is a newline
+  if (*ch == '\r') {
+    if (ch[1] == '\n') {   // '\r\n'
+      ch += 2;
+      return true;
+    }
+    if (ch[1] == '\r' && ch[2] == '\n') {  // '\r\r\n'
+      ch += 3;
+      return true;
+    }
+    if (!LFpresent) {      // '\r'
       ch++;
       return true;
     }
