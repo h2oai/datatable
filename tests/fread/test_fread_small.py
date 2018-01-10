@@ -735,3 +735,16 @@ def test_maxnrows_on_large_dataset():
     assert d0.internal.check()
     assert d0.shape == (5, 3)
     assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
+
+
+@pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
+def test_jump_into_quotes(seed):
+    random.seed(seed)
+    n = 100000
+    src = [str(random.randint(0, 30)) for _ in range(n)]
+    src[0] = "A"
+    txt = "\n\r".join(src)
+    d0 = dt.fread(txt, verbose=True)
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.int,)
+    assert d0.shape == (n - 1, 1)

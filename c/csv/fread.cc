@@ -384,6 +384,12 @@ int FreadReader::freadMain()
            (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
                              sof + (size_t)j*(sz/(size_t)(nJumps-1));
       if (ch < lastRowEnd) ch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
+      // Skip any potential newlines, in case we jumped in the middle of one.
+      // In particular, it could be problematic if the file had '\n\r' newlines
+      // and we jumped onto the second '\r' (which wouldn't be considered a
+      // newline by `skip_eol()`s rules, which would then become a part of the
+      // following field).
+      while (*ch == '\n' || *ch == '\r') ch++;
       if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
       if (j > 0 && !fctx.nextGoodLine(ncol)) {
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
@@ -822,11 +828,11 @@ int FreadReader::freadMain()
       }
 
       fctx.target = ctx.buff;
-      tch = sof + (size_t)jump * chunkBytes;
+      tch = nth > 1 ? sof + (size_t)jump * chunkBytes : prevJumpEnd;
       nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
       // +1 is for when nextJump happens to fall exactly on a \n. The
       // next thread will start one line later because nextGoodLine() starts by finding next EOL
-      if (jump>0 && !fctx.nextGoodLine(ncol)) {
+      if (jump>0 && nth > 1 && !fctx.nextGoodLine(ncol)) {
         #pragma omp critical
         if (!stopTeam) {
           stopTeam = true;
