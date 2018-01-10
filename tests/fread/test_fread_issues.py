@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
+import random
 import re
 
 
@@ -289,3 +290,46 @@ def test_issue_670():
     assert d0.internal.check()
     assert d0.shape == (2, 1)
     assert d0.topython() == [[1, 2]]
+
+
+@pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
+def test_issue682(seed):
+    """
+    Make sure that `nextGoodLine()` considers blank line as valid whenever
+    the main data loop does.
+    """
+    random.seed(seed)
+    n = 100000
+    src = [None] * n
+    src[0] = "A"
+    for i in range(1, n):
+        x = random.randint(0, 300000000)
+        if x > 230000000:
+            src[i] = ""
+        else:
+            src[i] = str(x)
+    src[-1] = "1"  # Last entry cannot be "", since there is no final newline
+    txt = "\n".join(src)
+    d0 = dt.fread(txt, verbose=True)
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.int, )
+    assert d0.names == ("A", )
+    assert d0.shape == (n - 1, 1)
+
+
+@pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
+def test_issue684(seed):
+    """
+    The issue was caused by jumping inside a '\\n\\r' newline sequence, when
+    the single '\\r' was not considered a newline and was treated as part of
+    the data.
+    """
+    random.seed(seed)
+    n = 100000
+    src = [str(random.randint(0, 30)) for _ in range(n)]
+    src[0] = "A"
+    txt = "\n\r".join(src)
+    d0 = dt.fread(txt, verbose=True)
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.int,)
+    assert d0.shape == (n - 1, 1)
