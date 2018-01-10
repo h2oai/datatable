@@ -733,7 +733,7 @@ int FieldParseContext::countfields()
 }
 
 
-bool FieldParseContext::nextGoodLine(int ncol) {
+bool FieldParseContext::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
   const char* ch0 = ch;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
   // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
@@ -745,10 +745,19 @@ bool FieldParseContext::nextGoodLine(int ncol) {
     if (*ch=='\0') return false;
     skip_eol();  // move to the first byte of the next line
     int i = 0;
+    // countfields() below moves the parse location, so store it in `ch1` in
+    // order to revert to the current parsing location later.
     const char* ch1 = ch;
-    while (i<5 && countfields()==ncol) i++;
+    for (; i < 5; ++i) {
+      int n = countfields();  // advances `ch` to the beginning of the next line
+      if (n != ncol &&
+          !(ncol == 1 && n == 0) &&
+          !(skip_blank_lines && n == 0) &&
+          !(fill && n < ncol)) break;
+    }
     ch = ch1;
-    if (i==5) break;
+    // `i` is the count of consecutive consistent rows
+    if (i == 5) break;
   }
   if (*ch!='\0' && attempts<30) return true;
   ch = ch0;

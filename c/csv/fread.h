@@ -113,7 +113,7 @@ struct FieldParseContext {
   bool end_of_field();
   const char* end_NA_string(const char*);
   int countfields();
-  bool nextGoodLine(int ncol);
+  bool nextGoodLine(int ncol, bool fill, bool skipBlankLines);
   bool skip_eol();
 };
 

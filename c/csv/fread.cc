@@ -391,7 +391,7 @@ int FreadReader::freadMain()
       // following field).
       while (*ch == '\n' || *ch == '\r') ch++;
       if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
-      if (j > 0 && !fctx.nextGoodLine(ncol)) {
+      if (j > 0 && !fctx.nextGoodLine(ncol, fill, skipEmptyLines)) {
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
         continue;
       }
@@ -724,7 +724,7 @@ int FreadReader::freadMain()
   // own page (4k) of the final column, hence 1000 rows of the smallest type (4 byte int) is just
   // under 4096 to leave space for R's header + malloc's header.
   size_t chunkBytes = std::max(static_cast<size_t>(1000*meanLineLen),
-                               static_cast<size_t>(1024*1024));
+                               static_cast<size_t>(64*1024));
   // Index of the first jump to read. May be modified if we ever need to restart
   // reading from the middle of the file.
   int jump0 = 0;
@@ -829,10 +829,18 @@ int FreadReader::freadMain()
 
       fctx.target = ctx.buff;
       tch = nth > 1 ? sof + (size_t)jump * chunkBytes : prevJumpEnd;
-      nextJump = jump<nJumps-1 ? tch+chunkBytes+1 : lastRowEnd;
-      // +1 is for when nextJump happens to fall exactly on a \n. The
-      // next thread will start one line later because nextGoodLine() starts by finding next EOL
-      if (jump>0 && nth > 1 && !fctx.nextGoodLine(ncol)) {
+      nextJump = jump<nJumps-1 ? tch + chunkBytes : lastRowEnd;
+      if (jump > 0 && nth > 1) {
+        // skip over all newline characters at the beginning of the string
+        while (*tch=='\n' || *tch=='\r') tch++;
+      }
+      if (jump < nJumps - 1) {
+        while (*nextJump=='\n' || *nextJump=='\r') nextJump++;
+        // skip 1 more character so that the entire next line would also belong
+        // to the current chunk
+        nextJump++;
+      }
+      if (jump > 0 && nth > 1 && !fctx.nextGoodLine(ncol, fill, skipEmptyLines)) {
         #pragma omp critical
         if (!stopTeam) {
           stopTeam = true;
