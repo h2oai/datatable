@@ -16,6 +16,7 @@
 #ifndef dt_CSV_READER_H
 #define dt_CSV_READER_H
 #include <Python.h>
+#include <limits>        // std::numeric_limits
 #include <memory>        // std::unique_ptr
 #include "column.h"
 #include "datatable.h"
@@ -168,7 +169,6 @@ class GenericReader
 // Helper classes
 //------------------------------------------------------------------------------
 
-
 /**
  * Per-column per-thread temporary string buffers used to assemble processed
  * string data. This buffer is used as a "staging ground" where the string data
@@ -206,7 +206,11 @@ struct StrBuf2 {
 struct RelStr {
   int32_t offset;
   int32_t length;
+
+  bool isna() { return length == std::numeric_limits<int32_t>::min(); }
+  void setna() { length = std::numeric_limits<int32_t>::min(); }
 };
+
 
 
 union field64 {
@@ -228,10 +232,10 @@ union field64 {
 
 class ThreadContext {
   public:
-    void* wbuf;
+    field64* obuf;
     // std::vector<StrBuf2> strbufs;
-    size_t rowsize;
-    size_t wbuf_nrows;
+    size_t obuf_ncols;
+    size_t obuf_nrows;
     size_t used_nrows;
     size_t row0;
     int ithread;
@@ -240,7 +244,7 @@ class ThreadContext {
   public:
     ThreadContext(int ithread, size_t nrows, size_t ncols);
     virtual ~ThreadContext();
-    virtual void* next_row();
+    virtual field64* next_row();
     virtual void push_buffers() = 0;
     virtual const char* read_chunk(const char* start, const char* end) = 0;
     virtual void order(size_t r0) { row0 = r0; }
@@ -249,8 +253,6 @@ class ThreadContext {
 };
 
 typedef std::unique_ptr<ThreadContext> ThreadContextPtr;
-
-
 
 
 

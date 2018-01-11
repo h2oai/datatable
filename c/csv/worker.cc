@@ -256,17 +256,23 @@ void ChunkedDataReader::read_all()
 
 ThreadContext::ThreadContext(int ith, size_t nrows, size_t ncols) {
   ithread = ith;
-  rowsize = 8 * ncols;
-  wbuf_nrows = nrows;
-  wbuf = malloc(rowsize * wbuf_nrows);
+  obuf_ncols = ncols;
+  obuf_nrows = nrows;
   used_nrows = 0;
   row0 = 0;
+  size_t obuf_size = ncols * nrows * sizeof(field64);
+  void* obuf_raw = malloc(obuf_size);
+  if (!obuf_raw) {
+    throw MemoryError() << "Cannot allocate " << obuf_size
+                        << " for a temporary buffer";
+  }
+  obuf = static_cast<field64*>(obuf_raw);
 }
 
 
 ThreadContext::~ThreadContext() {
   assert(used_nrows == 0);
-  if (wbuf) free(wbuf);
+  if (obuf) free(obuf);
 }
 
 
@@ -280,16 +286,18 @@ ThreadContext::~ThreadContext() {
 // }
 
 
-void* ThreadContext::next_row() {
-  if (used_nrows == wbuf_nrows) {
-    wbuf_nrows += (wbuf_nrows + 1) / 2;
-    wbuf = realloc(wbuf, wbuf_nrows * rowsize);
-    if (!wbuf) {
-      throw RuntimeError() << "Unable to allocate " << wbuf_nrows * rowsize
-                           << " bytes for the temporary buffers";
+field64* ThreadContext::next_row() {
+  if (used_nrows == obuf_nrows) {
+    obuf_nrows += (obuf_nrows + 1) / 2;
+    size_t obuf_size = obuf_ncols * obuf_nrows * sizeof(field64);
+    void* obuf_raw = realloc(obuf, obuf_size);
+    if (!obuf_raw) {
+      throw RuntimeError() << "Unable to reallocate temporary buffer to size "
+                           << obuf_size;
     }
+    obuf = static_cast<field64*>(obuf_raw);
   }
-  return static_cast<void*>(static_cast<char*>(wbuf) + (used_nrows++) * rowsize);
+  return obuf + (used_nrows++) * obuf_ncols;
 }
 
 
@@ -309,7 +317,7 @@ void ThreadContext::push_buffers()
       sb.usedsize = 0;
 
       int32_t* dest = static_cast<int32_t*>(outcols[j].data);
-      RelStr* src = static_cast<RelStr*>(ctx.wbuf);
+      RelStr* src = static_cast<RelStr*>(ctx.obuf);
       int32_t offset = abs(dest[-1]);
       for (int64_t row = 0; row < ctx.used_nrows; ++row) {
         int32_t o = src->offset;

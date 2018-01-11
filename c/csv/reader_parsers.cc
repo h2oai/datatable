@@ -494,10 +494,12 @@ void parse_string(FieldParseContext& ctx) {
       // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
     }
     if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_a_NAstring) {
-      fieldLen = INT32_MIN;  // TODO - speed up by avoiding end_NA_string when there are none
+      // TODO - speed up by avoiding end_NA_string when there are none
+      ctx.target->str32.setna();
+    } else {
+      ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
+      ctx.target->str32.length = fieldLen;
     }
-    ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
-    ctx.target->str32.length = fieldLen;
     return;
   }
   // else *ch==quote (we don't mind that quoted fields are a little slower e.g. no desire to save switch)

@@ -773,7 +773,7 @@ int FreadReader::freadMain()
     size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
 
     // Allocate thread-private row-major myBuffs
-    ThreadLocalFreadParsingContext ctx = {
+    FreadLocalParseContext ctx = {
       .anchor = NULL,
       .buff = (field64*) malloc(myBuffRows * rowSize + 8),
       .rowSize = rowSize,
@@ -997,7 +997,7 @@ int FreadReader::freadMain()
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
               if (joldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.length == 0) {
-                fctx.target[-1].str32.length = INT32_MIN;
+                fctx.target[-1].str32.setna();
               }
               continue;
             }

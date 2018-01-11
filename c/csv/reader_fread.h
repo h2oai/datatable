@@ -21,6 +21,9 @@
 #include "csv/fread.h"
 #include "memorybuf.h"
 
+struct FreadLocalParseContext;
+
+
 
 //------------------------------------------------------------------------------
 
@@ -176,15 +179,58 @@ private:
    */
   void progress(double percent);
 
-  void prepareThreadContext(ThreadLocalFreadParsingContext *ctx);
-  void postprocessBuffer(ThreadLocalFreadParsingContext *ctx);
-  void orderBuffer(ThreadLocalFreadParsingContext *ctx);
-  void pushBuffer(ThreadLocalFreadParsingContext *ctx);
-  void freeThreadContext(ThreadLocalFreadParsingContext *ctx);
+  void prepareThreadContext(FreadLocalParseContext *ctx);
+  void postprocessBuffer(FreadLocalParseContext *ctx);
+  void orderBuffer(FreadLocalParseContext *ctx);
+  void pushBuffer(FreadLocalParseContext *ctx);
+  void freeThreadContext(FreadLocalParseContext *ctx);
 
   const char* printTypes(int ncol) const;
 };
 
+
+
+//------------------------------------------------------------------------------
+// FreadLocalParseContext
+//------------------------------------------------------------------------------
+
+struct FreadLocalParseContext
+{
+  // Pointer that serves as a starting point for all offsets within the `RelStr`
+  // structs.
+  const char* anchor;
+
+  // Output buffer. Within the buffer the data is stored in row-major order,
+  // i.e. in the same order as in the original CSV file.
+  field64*  buff;
+
+  // Size (in bytes) for a single row of data within the buffer. This should be
+  // equal to `ncol * 8`.
+  size_t rowSize;
+
+  // Starting row index within the output DataTable for the current data chunk.
+  size_t DTi;
+
+  // Number of rows currently being stored within the buffers. The allocation
+  // size of each `buffX` is thus at least `nRows * rowSizeX`.
+  size_t nRows;
+
+  // Reference to the flag that controls the parser's execution. Setting this
+  // flag to true will force parsing of the CSV file to terminate in the near
+  // future.
+  bool* stopTeam;
+
+  int threadn;
+
+  int quoteRule;
+
+  char quote;
+
+  int64_t : 56;
+
+  // Any additional implementation-specific parameters.
+  StrBuf* strbufs;
+};
 
 
 

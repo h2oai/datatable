@@ -315,7 +315,7 @@ void FreadReader::setFinalNrow(size_t nrows) {
 }
 
 
-void FreadReader::prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::prepareThreadContext(FreadLocalParseContext *ctx)
 {
   try {
     ctx->strbufs = new StrBuf[nstrcols]();
@@ -346,7 +346,7 @@ void FreadReader::prepareThreadContext(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
+void FreadReader::postprocessBuffer(FreadLocalParseContext* ctx)
 {
   try {
     StrBuf* ctx_strbufs = ctx->strbufs;
@@ -407,7 +407,7 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
 }
 
 
-void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
 {
   try {
     size_t colCount = ctx->rowSize / 8;
@@ -463,7 +463,7 @@ void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
 }
 
 
-void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
 {
   StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
   const field64* __restrict__ buff = ctx->buff;
@@ -552,7 +552,7 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 }
 
 
-void FreadReader::freeThreadContext(ThreadLocalFreadParsingContext *ctx)
+void FreadReader::freeThreadContext(FreadLocalParseContext *ctx)
 {
   if (ctx->strbufs) {
     for (int k = 0; k < nstrcols; k++) {
