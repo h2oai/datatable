@@ -31,10 +31,7 @@
  */
 class GenericReader
 {
-  //----------------------------------------------------------------------------
-  // Input parameters
-  //----------------------------------------------------------------------------
-  //
+  //---- Input parameters ----
   // nthreads:
   //   Number of threads to use; 0 means use maximum possible, negative number
   //   means use that many less than the maximum. The default is 0.
@@ -83,9 +80,7 @@ class GenericReader
     bool blank_is_na;
     bool number_is_na;
 
-  //----------------------------------------------------------------------------
-  // Runtime parameters
-  //----------------------------------------------------------------------------
+  //---- Runtime parameters ----
   // line:
   //   Line number (within the original input) of the `offset` pointer.
   //
@@ -104,9 +99,7 @@ class GenericReader
     int32_t fileno;
     int : 32;
 
-  //----------------------------------------------------------------------------
-  // Public API
-  //----------------------------------------------------------------------------
+  //---- Public API ----
   public:
     GenericReader(const PyObj& pyreader);
     ~GenericReader();
@@ -175,24 +168,6 @@ class GenericReader
 // Helper classes
 //------------------------------------------------------------------------------
 
-/*
-struct ColumnSpec {
-  enum class Type: int8_t {
-    Drop,
-    Bool,
-    Integer,
-    Real,
-    String
-  };
-
-  std::string name;
-  Type type;
-  int64_t : 56;
-
-  ColumnSpec(std::string n, Type t): name(n), type(t) {}
-};
-*/
-
 
 /**
  * Per-column per-thread temporary string buffers used to assemble processed
@@ -223,8 +198,6 @@ struct StrBuf2 {
 
 
 
-
-
 /**
  * "Relative string": a string defined as an offset+length relative to some
  * anchor point (which has to be provided separately). This is the internal data
@@ -234,6 +207,50 @@ struct RelStr {
   int32_t offset;
   int32_t length;
 };
+
+
+union field64 {
+  int8_t   int8;
+  int32_t  int32;
+  int64_t  int64;
+  uint32_t uint32;
+  uint64_t uint64;
+  float    float32;
+  double   float64;
+  RelStr   str32;
+};
+
+
+
+//------------------------------------------------------------------------------
+// ThreadContext
+//------------------------------------------------------------------------------
+
+class ThreadContext {
+  public:
+    void* wbuf;
+    // std::vector<StrBuf2> strbufs;
+    size_t rowsize;
+    size_t wbuf_nrows;
+    size_t used_nrows;
+    size_t row0;
+    int ithread;
+    int : 32;
+
+  public:
+    ThreadContext(int ithread, size_t nrows, size_t ncols);
+    virtual ~ThreadContext();
+    virtual void* next_row();
+    virtual void push_buffers() = 0;
+    virtual const char* read_chunk(const char* start, const char* end) = 0;
+    virtual void order(size_t r0) { row0 = r0; }
+    virtual size_t get_nrows() { return used_nrows; }
+    virtual void set_nrows(size_t n) { used_nrows = n; }
+};
+
+typedef std::unique_ptr<ThreadContext> ThreadContextPtr;
+
+
 
 
 

@@ -496,8 +496,8 @@ void parse_string(FieldParseContext& ctx) {
     if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_a_NAstring) {
       fieldLen = INT32_MIN;  // TODO - speed up by avoiding end_NA_string when there are none
     }
-    ctx.target->str32.off = (int32_t)(fieldStart - ctx.anchor);
-    ctx.target->str32.len = fieldLen;
+    ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
+    ctx.target->str32.length = fieldLen;
     return;
   }
   // else *ch==quote (we don't mind that quoted fields are a little slower e.g. no desire to save switch)
@@ -559,8 +559,8 @@ void parse_string(FieldParseContext& ctx) {
   default:
     return;  // Internal error: undefined quote rule
   }
-  ctx.target->str32.len = (int32_t)(ch - fieldStart);
-  ctx.target->str32.off = (int32_t)(fieldStart - ctx.anchor);
+  ctx.target->str32.length = (int32_t)(ch - fieldStart);
+  ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
   if (*ch==quote) {
     ctx.ch = ch + 1;
     ctx.skip_white();
@@ -568,13 +568,13 @@ void parse_string(FieldParseContext& ctx) {
     ctx.ch = ch;
     if (*ch=='\0') {
       if (ctx.quoteRule!=2) {  // see test 1324 where final field has open quote but not ending quote; include the open quote like quote rule 2
-        ctx.target->str32.off--;
-        ctx.target->str32.len++;
+        ctx.target->str32.offset--;
+        ctx.target->str32.length++;
       }
     }
     if (ctx.stripWhite) {  // see test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
-      while (ctx.target->str32.len>0 && ch[-1]==' ') {
-        ctx.target->str32.len--;
+      while (ctx.target->str32.length>0 && ch[-1]==' ') {
+        ctx.target->str32.length--;
         ch--;
       }
     }

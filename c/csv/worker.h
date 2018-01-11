@@ -15,11 +15,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_WORKER_H
 #define dt_CSV_WORKER_H
-#include <memory>       // std::unique_ptr
-#include <string>       // std::string
-#include <vector>       // std::vector
-#include "memorybuf.h"  // MemoryBuffer
-#include "writebuf.h"   // WritableBuffer
+#include <memory>        // std::unique_ptr
+#include <string>        // std::string
+#include <vector>        // std::vector
+#include "memorybuf.h"   // MemoryBuffer
+#include "writebuf.h"    // WritableBuffer
+#include "csv/reader.h"  // ThreadContextPtr
 
 
 //------------------------------------------------------------------------------
@@ -46,34 +47,6 @@ class GReaderOutputStringColumn : public GReaderOutputColumn {
     GReaderOutputStringColumn();
     virtual ~GReaderOutputStringColumn();
 };
-
-
-
-//------------------------------------------------------------------------------
-
-class ThreadContext {
-  public:
-    void* wbuf;
-    // std::vector<StrBuf2> strbufs;
-    size_t rowsize;
-    size_t wbuf_nrows;
-    size_t used_nrows;
-    size_t row0;
-    int ithread;
-    int : 32;
-
-  public:
-    ThreadContext(int ithread, size_t nrows, size_t ncols);
-    virtual ~ThreadContext();
-    virtual void* next_row();
-    virtual void push_buffers() = 0;
-    virtual const char* read_chunk(const char* start, const char* end) = 0;
-    virtual void order(size_t r0) { row0 = r0; }
-    virtual size_t get_nrows() { return used_nrows; }
-    virtual void set_nrows(size_t n) { used_nrows = n; }
-};
-
-typedef std::unique_ptr<ThreadContext> ThreadContextPtr;
 
 
 

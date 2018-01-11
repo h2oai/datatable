@@ -607,10 +607,10 @@ int FreadReader::freadMain()
     g.trace("[08] Assign column names");
 
     ch = sof;  // back to start of first row (likely column names)
-    colNames = new lenOff[ncol];
+    colNames = new RelStr[ncol];
     for (int i = 0; i < ncol; i++) {
-      colNames[i].len = 0;
-      colNames[i].off = 0;
+      colNames[i].length = 0;
+      colNames[i].offset = 0;
     }
 
     if (header == 1) {
@@ -636,7 +636,7 @@ int FreadReader::freadMain()
         sof = ch;
       }
       // now on first data row (row after column names)
-      // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized lenOff.len==0
+      // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized RelStr.len==0
     }
     tLayout = wallclock();
   }
@@ -674,7 +674,7 @@ int FreadReader::freadMain()
         // FIXME: if the user wants to override the type, let them
         STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
              "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-             j+1, colNames[j].len, colNamesAnchor+colNames[j].off, typeName[tmpTypes[j]], typeName[types[j]]);
+             j+1, colNames[j].length, colNamesAnchor+colNames[j].offset, typeName[tmpTypes[j]], typeName[types[j]]);
       }
       nUserBumped += (types[j] > tmpTypes[j]);
       if (types[j] == CT_STRING) {
@@ -974,7 +974,7 @@ int FreadReader::freadMain()
                     char temp[1001];
                     int len = snprintf(temp, 1000,
                       "Column %d (\"%.*s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                      j+1, colNames[j].len, colNamesAnchor + colNames[j].off,
+                      j+1, colNames[j].length, colNamesAnchor + colNames[j].offset,
                       typeName[abs(joldType)], typeName[abs(thisType)],
                       (int)(tch-fieldStart), fieldStart, (llu)(ctx.DTi+myNrow));
                     typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
@@ -996,8 +996,8 @@ int FreadReader::freadMain()
               // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
-              if (joldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.len == 0) {
-                fctx.target[-1].str32.len = INT32_MIN;
+              if (joldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.length == 0) {
+                fctx.target[-1].str32.length = INT32_MIN;
               }
               continue;
             }

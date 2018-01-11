@@ -33,7 +33,7 @@
 class FreadReader
 {
   GenericReader& g;
-  lenOff* colNames;
+  RelStr* colNames;
   char* lineCopy;
 
   //----- Runtime parameters ---------------------------------------------------

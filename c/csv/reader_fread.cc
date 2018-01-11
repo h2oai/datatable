@@ -171,23 +171,23 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
   for (int i = 0; i < ncols_; i++) {
-    lenOff ocol = colNames[i];
+    RelStr ocol = colNames[i];
     PyObject* pycol = NULL;
-    if (ocol.len > 0) {
-      const char* src = anchor + ocol.off;
+    if (ocol.length > 0) {
+      const char* src = anchor + ocol.offset;
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(src);
-      size_t zlen = static_cast<size_t>(ocol.len);
+      size_t zlen = static_cast<size_t>(ocol.length);
       int res = check_escaped_string(usrc, zlen, echar);
       if (res == 0) {
-        pycol = PyUnicode_FromStringAndSize(src, ocol.len);
+        pycol = PyUnicode_FromStringAndSize(src, ocol.length);
       } else {
         char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
         int newlen;
         if (res == 1) {
-          newlen = decode_escaped_csv_string(usrc, ocol.len, unewsrc, echar);
+          newlen = decode_escaped_csv_string(usrc, ocol.length, unewsrc, echar);
         } else {
-          newlen = decode_win1252(usrc, ocol.len, unewsrc);
+          newlen = decode_win1252(usrc, ocol.length, unewsrc);
           newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
         }
         assert(newlen > 0);
@@ -352,48 +352,48 @@ void FreadReader::postprocessBuffer(ThreadLocalFreadParsingContext* ctx)
     StrBuf* ctx_strbufs = ctx->strbufs;
     const uint8_t *anchor = (const uint8_t*) ctx->anchor;
     size_t nrows = ctx->nRows;
-    lenOff* __restrict__ const lenoffs = (lenOff *__restrict__) ctx->buff;
+    RelStr* __restrict__ const lenoffs = (RelStr *__restrict__) ctx->buff;
     int colCount = (int) ctx->rowSize / 8;
     uint8_t echar = ctx->quoteRule == 0? static_cast<uint8_t>(ctx->quote) :
                     ctx->quoteRule == 1? '\\' : 0xFF;
 
     for (int k = 0; k < nstrcols; k++) {
       assert(ctx_strbufs != NULL);
-      lenOff *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
+      RelStr *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
       MemoryBuffer* strdest = ctx_strbufs[k].mbuf;
       int32_t off = 1;
       size_t bufsize = ctx_strbufs[k].mbuf->size();
       for (size_t n = 0; n < nrows; n++) {
-        int32_t len = lo->len;
+        int32_t len = lo->length;
         if (len > 0) {
           size_t zlen = (size_t) len;
           if (bufsize < zlen * 3 + (size_t) off) {
             bufsize = bufsize * 2 + zlen * 3;
             strdest->resize(bufsize);
           }
-          const uint8_t* src = anchor + lo->off;
+          const uint8_t* src = anchor + lo->offset;
           uint8_t* dest = static_cast<uint8_t*>(strdest->at(off - 1));
           int res = check_escaped_string(src, zlen, echar);
           if (res == 0) {
             memcpy(dest, src, zlen);
             off += zlen;
-            lo->off = off;
+            lo->offset = off;
           } else if (res == 1) {
             int newlen = decode_escaped_csv_string(src, len, dest, echar);
             off += (size_t) newlen;
-            lo->off = off;
+            lo->offset = off;
           } else {
             int newlen = decode_win1252(src, len, dest);
             assert(newlen > 0);
             newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
             off += (size_t) newlen;
-            lo->off = off;
+            lo->offset = off;
           }
         } else if (len == 0) {
-          lo->off = off;
+          lo->offset = off;
         } else {
           assert(len == NA_LENOFF);
-          lo->off = -off;
+          lo->offset = -off;
         }
         lo += colCount;
       }
@@ -420,8 +420,8 @@ void FreadReader::orderBuffer(ThreadLocalFreadParsingContext *ctx)
       // offset of the last element. Typically this would be the same as
       // `ctx_strbufs[k].ptr`, however in rare cases when `nRows` have changed
       // from the time the buffer was post-processed, this may be different.
-      lenOff lastElem = ctx->buff[j8 + colCount * (ctx->nRows - 1)].str32;
-      size_t sz = static_cast<size_t>(abs(lastElem.off) - 1);
+      RelStr lastElem = ctx->buff[j8 + colCount * (ctx->nRows - 1)].str32;
+      size_t sz = static_cast<size_t>(abs(lastElem.offset) - 1);
       size_t ptr = sb->ptr;
       MemoryBuffer* sb_mbuf = sb->mbuf;
       // If we need to write more than the size of the available buffer, the
@@ -486,8 +486,8 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
       StrBuf *sb = strbufs[j];
       int idx8 = ctx_strbufs[k].idx8;
       size_t ptr = ctx_strbufs[k].ptr;
-      const lenOff *__restrict__ lo = (const lenOff*)(buff + idx8);
-      size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].off) - 1;
+      const RelStr *__restrict__ lo = (const RelStr*)(buff + idx8);
+      size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].offset) - 1;
 
       int done = 0;
       while (!done) {
@@ -505,7 +505,7 @@ void FreadReader::pushBuffer(ThreadLocalFreadParsingContext *ctx)
       int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
       int32_t iptr = (int32_t) ptr;
       for (int n = 0; n < nrows; n++) {
-        int32_t soff = lo->off;
+        int32_t soff = lo->offset;
         *dest++ = (soff < 0)? soff - iptr : soff + iptr;
         lo += rowCount8;
       }
