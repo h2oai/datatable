@@ -13,8 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "worker.h"
-#include <limits>  // std::numeric_limits
+#include "csv/reader.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -250,6 +249,7 @@ void ChunkedDataReader::read_all()
 }
 
 
+
 //------------------------------------------------------------------------------
 // LocalParseContext
 //------------------------------------------------------------------------------
@@ -333,3 +333,37 @@ void LocalParseContext::push_buffers()
   */
   used_nrows = 0;
 }
+
+
+
+
+
+//------------------------------------------------------------------------------
+// StrBuf2
+//------------------------------------------------------------------------------
+
+StrBuf2::StrBuf2(int64_t i) {
+  colidx = i;
+  writepos = 0;
+  usedsize = 0;
+  allocsize = 1024;
+  strdata = static_cast<char*>(malloc(allocsize));
+  if (!strdata) {
+    throw RuntimeError()
+          << "Unable to allocate 1024 bytes for a temporary buffer";
+  }
+}
+
+StrBuf2::~StrBuf2() {
+  free(strdata);
+}
+
+void StrBuf2::resize(size_t newsize) {
+  strdata = static_cast<char*>(realloc(strdata, newsize));
+  allocsize = newsize;
+  if (!strdata) {
+    throw RuntimeError() << "Unable to allocate " << newsize
+                         << " bytes for a temporary buffer";
+  }
+}
+

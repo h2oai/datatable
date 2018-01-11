@@ -586,3 +586,197 @@ FreadLocalParseContext::~FreadLocalParseContext() {
     free(strbufs);
   }
 }
+
+
+
+//------------------------------------------------------------------------------
+// FieldParseContext
+//------------------------------------------------------------------------------
+void parse_string(FieldParseContext&);
+
+
+/**
+ * skip_eol() is used to consume a "newline" token from the current parsing
+ * location (`ch`). Specifically,
+ *   (1) if there is a newline sequence at the current parsing position, this
+ *       function advances the parsing position past the newline and returns
+ *       true;
+ *   (2) otherwise it returns false and the current parsing location remains
+ *       unchanged.
+ *
+ * We recognize the following sequences as newlines (where "LF" is byte 0x0A
+ * or '\\n', and "CR" is 0x0D or '\\r'):
+ *     CR CR LF
+ *     CR LF
+ *     LF CR
+ *     LF
+ *     CR  (only if `LFpresent` is false)
+ *
+ * Here LF and CR-LF are the most commonly used line endings, while LF-CR and
+ * CR are encountered much less frequently. The sequence CR-CR-LF is not
+ * usually recognized as a single newline by most text editors. However we find
+ * that occasionally a file with CR-LF endings gets recoded into CR-CR-LF line
+ * endings by buggy software.
+ *
+ * In addition, CR (\\r) is treated specially: it is considered a newline only
+ * when `LFpresent` is false. This is because it is common to find files created
+ * by programs that don't account for '\\r's and fail to quote fields containing
+ * these characters. If we were to treat these '\\r's as newlines, the data
+ * would be parsed incorrectly. On the other hand, there are files where '\\r's
+ * are used as valid newlines. In order to handle both of these cases, we
+ * introduce parameter `LFpresent` which is set to true if there is any '\\n'
+ * found in the file, in which case a standalone '\\r' will not be considered a
+ * newline.
+ */
+bool FieldParseContext::skip_eol() {
+  // we call eol() when we expect to be at a newline, so optimize as if we are
+  // at the end of line.
+  if (*ch == '\n') {       // '\n\r' or '\n'
+    ch += 1 + (ch[1] == '\r');
+    return true;
+  }
+  if (*ch == '\r') {
+    if (ch[1] == '\n') {   // '\r\n'
+      ch += 2;
+      return true;
+    }
+    if (ch[1] == '\r' && ch[2] == '\n') {  // '\r\r\n'
+      ch += 3;
+      return true;
+    }
+    if (!LFpresent) {      // '\r'
+      ch++;
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/**
+ * Return True iff `ch` is a valid field terminator character: either a field
+ * separator or a newline.
+ */
+bool FieldParseContext::end_of_field() {
+  // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
+  // fact that the characters in the ASCII range 0..13 are very rare, so a
+  // single check `tch<=13` is almost equivalent to checking whether `tch` is one
+  // of \r, \n, \0. We cast to unsigned first because `char` type is signed by
+  // default, and therefore characters in the range 0x80-0xFF are negative.
+  // We use eol() because that looks at LFpresent inside it w.r.t. \r
+  char c = *ch;
+  if (c == sep) return true;
+  if (static_cast<uint8_t>(c) > 13) return false;
+  if (c == '\n' || c == '\0') return true;
+  if (c == '\r') {
+    if (LFpresent) {
+      const char* tch = ch + 1;
+      while (*tch == '\r') tch++;
+      if (*tch == '\n') return true;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+const char* FieldParseContext::end_NA_string(const char* fieldStart) {
+  const char* const* nastr = NAstrings;
+  const char* mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
+  while (*nastr) {
+    const char* ch1 = fieldStart;
+    const char* ch2 = *nastr;
+    while (*ch1==*ch2 && *ch2!='\0') { ch1++; ch2++; }
+    if (*ch2=='\0' && ch1>mostConsumed) mostConsumed=ch1;
+    nastr++;
+  }
+  return mostConsumed;
+}
+
+
+void FieldParseContext::skip_white() {
+  // skip space so long as sep isn't space and skip tab so long as sep isn't tab
+  if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
+    while (*ch == ' ' || *ch == '\t') ch++;
+  } else {
+    while (*ch == whiteChar) ch++;  // sep is ' ' or '\t' so just skip the other one.
+  }
+}
+
+
+/**
+ * Compute the number of fields on the current line (taking into account the
+ * global `sep`, and `quoteRule`), and move the parsing location to the
+ * beginning of the next line.
+ * Returns the number of fields on the current line, or -1 if the line cannot
+ * be parsed using current settings, or 0 if the line is empty (even though an
+ * empty line may be viewed as a single field).
+ */
+int FieldParseContext::countfields()
+{
+  const char* ch0 = ch;
+  if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
+  skip_white();
+  if (skip_eol() || ch==eof) {
+    return 0;
+  }
+  int ncol = 1;
+  while (ch < eof) {
+    parse_string(*this);
+    // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
+    if (sep==' ' && *ch==sep) {
+      while (ch[1]==' ') ch++;
+      if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') {
+        // reached end of line. Ignore padding spaces at the end of line.
+        ch++;  // Move onto end of line character
+      }
+    }
+    if (*ch==sep && sep!='\n') {
+      ch++;
+      ncol++;
+      continue;
+    }
+    if (skip_eol()) {
+      return ncol;
+    }
+    if (*ch!='\0') {
+      ch = ch0;
+      return -1;  // -1 means this line not valid for this sep and quote rule
+    }
+    break;
+  }
+  return ncol;
+}
+
+
+bool FieldParseContext::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
+  const char* ch0 = ch;
+  // we may have landed inside quoted field containing embedded sep and/or embedded \n
+  // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
+  // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
+  // the line number and error message to be worked out up there.
+  int attempts = 0;
+  while (ch < eof && attempts++<30) {
+    while (*ch!='\0' && *ch!='\n' && *ch!='\r') ch++;
+    if (*ch=='\0') return false;
+    skip_eol();  // move to the first byte of the next line
+    int i = 0;
+    // countfields() below moves the parse location, so store it in `ch1` in
+    // order to revert to the current parsing location later.
+    const char* ch1 = ch;
+    for (; i < 5; ++i) {
+      int n = countfields();  // advances `ch` to the beginning of the next line
+      if (n != ncol &&
+          !(ncol == 1 && n == 0) &&
+          !(skip_blank_lines && n == 0) &&
+          !(fill && n < ncol)) break;
+    }
+    ch = ch1;
+    // `i` is the count of consecutive consistent rows
+    if (i == 5) break;
+  }
+  if (*ch!='\0' && attempts<30) return true;
+  ch = ch0;
+  return false;
+}

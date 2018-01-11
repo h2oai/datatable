@@ -16,12 +16,16 @@
 #ifndef dt_CSV_READER_H
 #define dt_CSV_READER_H
 #include <Python.h>
-#include <limits>        // std::numeric_limits
-#include <memory>        // std::unique_ptr
-#include "column.h"
-#include "datatable.h"
-#include "memorybuf.h"
+#include <limits>         // std::numeric_limits
+#include <memory>         // std::unique_ptr
+#include <string>         // std::string
+#include <vector>         // std::vector
+#include "column.h"       // Column
+#include "datatable.h"    // DataTable
+#include "memorybuf.h"    // MemoryBuffer
+#include "writebuf.h"     // WritableBuffer
 #include "utils/pyobj.h"
+
 
 
 //------------------------------------------------------------------------------
@@ -255,6 +259,75 @@ class LocalParseContext {
 
 typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
 
+
+
+//------------------------------------------------------------------------------
+// GReaderOutputColumn
+//------------------------------------------------------------------------------
+
+class GReaderOutputColumn {
+  public:
+    std::string name;
+    MemoryBuffer* data;
+    int64_t valid_from_row;
+    int8_t type;
+    int64_t : 56;
+
+  public:
+    GReaderOutputColumn();
+    virtual ~GReaderOutputColumn();
+};
+
+
+class GReaderOutputStringColumn : public GReaderOutputColumn {
+  public:
+    WritableBuffer* strdata;
+
+  public:
+    GReaderOutputStringColumn();
+    virtual ~GReaderOutputStringColumn();
+};
+
+
+
+//------------------------------------------------------------------------------
+// ChunkedDataReader
+//------------------------------------------------------------------------------
+
+class ChunkedDataReader
+{
+  private:
+    // the data is read from here:
+    const char* inputptr;
+    size_t inputsize;
+    int64_t inputline;
+
+    // and saved into here, via the intermediate buffers TLocalParseContext, that
+    // are instantiated within the read_all() method:
+    std::vector<GReaderOutputColumn> cols;
+
+    // Additional parameters
+    size_t max_nrows;
+    size_t alloc_nrows;
+
+    // Runtime parameters:
+    size_t chunksize;
+    size_t nchunks;
+    int nthreads;
+    bool chunks_contiguous;
+    int : 24;
+
+public:
+  ChunkedDataReader();
+  virtual ~ChunkedDataReader();
+  void set_input(const char* ptr, size_t size, int64_t line);
+
+  virtual LocalParseContextPtr init_thread_context() = 0;
+  virtual void realloc_columns(size_t n) = 0;
+  virtual void compute_chunking_strategy();
+  virtual const char* adjust_chunk_start(const char* ch, const char* eof);
+  void read_all();
+};
 
 
 #endif

@@ -16,7 +16,6 @@
 #ifndef dt_CSV_READER_ARFF_H
 #define dt_CSV_READER_ARFF_H
 #include "csv/reader.h"
-#include "csv/worker.h"
 
 
 /**
