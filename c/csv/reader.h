@@ -227,23 +227,24 @@ union field64 {
 
 
 //------------------------------------------------------------------------------
-// ThreadContext
+// LocalParseContext
 //------------------------------------------------------------------------------
 
-class ThreadContext {
+/**
+ *
+ */
+class LocalParseContext {
   public:
     field64* obuf;
-    // std::vector<StrBuf2> strbufs;
     size_t obuf_ncols;
     size_t obuf_nrows;
     size_t used_nrows;
     size_t row0;
-    int ithread;
-    int : 32;
+    // std::vector<StrBuf2> strbufs;
 
   public:
-    ThreadContext(int ithread, size_t nrows, size_t ncols);
-    virtual ~ThreadContext();
+    LocalParseContext(size_t nrows, size_t ncols);
+    virtual ~LocalParseContext();
     virtual field64* next_row();
     virtual void push_buffers() = 0;
     virtual const char* read_chunk(const char* start, const char* end) = 0;
@@ -252,7 +253,7 @@ class ThreadContext {
     virtual void set_nrows(size_t n) { used_nrows = n; }
 };
 
-typedef std::unique_ptr<ThreadContext> ThreadContextPtr;
+typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
 
 
 

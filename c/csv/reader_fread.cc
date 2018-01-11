@@ -225,7 +225,7 @@ size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
   // First we need to estimate the size of the dataset that needs to be
   // created. However this needs to be done on first run only.
   // Also in this block we compute: `nstrcols` (will be used later in
-  // `prepareThreadContext` and `postprocessBuffer`), as well as allocating
+  // `prepareLocalParseContext` and `postprocessBuffer`), as well as allocating
   // the `Column**` array.
   if (ncols == 0) {
     // DTPRINT("Writing the DataTable into %s", targetdir);
@@ -315,9 +315,10 @@ void FreadReader::setFinalNrow(size_t nrows) {
 }
 
 
-void FreadReader::prepareThreadContext(FreadLocalParseContext *ctx)
+void FreadReader::prepareLocalParseContext(FreadLocalParseContext *ctx)
 {
   try {
+    ctx->nstrcols = nstrcols;
     ctx->strbufs = new StrBuf[nstrcols]();
     for (int i = 0, j = 0, k = 0, off8 = 0; i < (int)ncols; i++) {
       if (types[i] == CT_DROP) continue;
@@ -335,7 +336,7 @@ void FreadReader::prepareThreadContext(FreadLocalParseContext *ctx)
     return;
 
   } catch (std::exception&) {
-    printf("prepareThreadContext() failed\n");
+    printf("prepareLocalParseContext() failed\n");
     for (int k = 0; k < nstrcols; k++) {
       if (ctx->strbufs[k].mbuf)
         ctx->strbufs[k].mbuf->release();
@@ -351,9 +352,9 @@ void FreadReader::postprocessBuffer(FreadLocalParseContext* ctx)
   try {
     StrBuf* ctx_strbufs = ctx->strbufs;
     const uint8_t *anchor = (const uint8_t*) ctx->anchor;
-    size_t nrows = ctx->nRows;
-    RelStr* __restrict__ const lenoffs = (RelStr *__restrict__) ctx->buff;
-    int colCount = (int) ctx->rowSize / 8;
+    size_t nrows = ctx->used_nrows;
+    RelStr* __restrict__ const lenoffs = (RelStr *__restrict__) ctx->obuf;
+    int colCount = (int) ctx->obuf_ncols;
     uint8_t echar = ctx->quoteRule == 0? static_cast<uint8_t>(ctx->quote) :
                     ctx->quoteRule == 1? '\\' : 0xFF;
 
@@ -410,7 +411,7 @@ void FreadReader::postprocessBuffer(FreadLocalParseContext* ctx)
 void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
 {
   try {
-    size_t colCount = ctx->rowSize / 8;
+    size_t colCount = ctx->obuf_ncols;
     StrBuf* ctx_strbufs = ctx->strbufs;
     for (int k = 0; k < nstrcols; ++k) {
       int j = ctx_strbufs[k].idxdt;
@@ -418,9 +419,9 @@ void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
       StrBuf* sb = strbufs[j];
       // Compute `sz` (the size of the string content in the buffer) from the
       // offset of the last element. Typically this would be the same as
-      // `ctx_strbufs[k].ptr`, however in rare cases when `nRows` have changed
+      // `ctx_strbufs[k].ptr`, however in rare cases when `used_nrows` have changed
       // from the time the buffer was post-processed, this may be different.
-      RelStr lastElem = ctx->buff[j8 + colCount * (ctx->nRows - 1)].str32;
+      RelStr lastElem = ctx->obuf[j8 + colCount * (ctx->used_nrows - 1)].str32;
       size_t sz = static_cast<size_t>(abs(lastElem.offset) - 1);
       size_t ptr = sb->ptr;
       MemoryBuffer* sb_mbuf = sb->mbuf;
@@ -466,16 +467,16 @@ void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
 void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
 {
   StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
-  const field64* __restrict__ buff = ctx->buff;
-  int nrows = (int) ctx->nRows;
-  size_t row0 = ctx->DTi;
+  const field64* __restrict__ obuf = ctx->obuf;
+  int nrows = (int) ctx->used_nrows;
+  size_t row0 = ctx->row0;
 
   int i = 0;    // index within the `types` and `sizes`
-  int j = 0;    // index within `dt->columns`, `buff` and `strbufs`
+  int j = 0;    // index within `dt->columns`, `obuf` and `strbufs`
   int off = 0;
-  int rowCount8 = (int) ctx->rowSize / 8;
-  int rowCount4 = (int) ctx->rowSize / 4;
-  int rowCount1 = (int) ctx->rowSize / 1;
+  int rowCount8 = (int) ctx->obuf_ncols;
+  int rowCount4 = (int) ctx->obuf_ncols * 2;
+  int rowCount1 = (int) ctx->obuf_ncols * 8;
 
   int k = 0;
   for (; i < ncols; i++) {
@@ -486,7 +487,7 @@ void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
       StrBuf *sb = strbufs[j];
       int idx8 = ctx_strbufs[k].idx8;
       size_t ptr = ctx_strbufs[k].ptr;
-      const RelStr *__restrict__ lo = (const RelStr*)(buff + idx8);
+      const RelStr *__restrict__ lo = (const RelStr*)(obuf + idx8);
       size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].offset) - 1;
 
       int done = 0;
@@ -514,7 +515,7 @@ void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
     } else if (types[i] > 0) {
       int8_t elemsize = sizes[i];
       if (elemsize == 8) {
-        const uint64_t* src = ((const uint64_t*) buff) + off;
+        const uint64_t* src = ((const uint64_t*) obuf) + off;
         uint64_t* dest = ((uint64_t*) col->data()) + row0;
         for (int r = 0; r < nrows; r++) {
           *dest = *src;
@@ -523,7 +524,7 @@ void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
         }
       } else
       if (elemsize == 4) {
-        const uint32_t* src = ((const uint32_t*) buff) + off * 2;
+        const uint32_t* src = ((const uint32_t*) obuf) + off * 2;
         uint32_t* dest = ((uint32_t*) col->data()) + row0;
         for (int r = 0; r < nrows; r++) {
           *dest = *src;
@@ -532,7 +533,7 @@ void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
         }
       } else
       if (elemsize == 1) {
-        const uint8_t* src = ((const uint8_t*) buff) + off * 8;
+        const uint8_t* src = ((const uint8_t*) obuf) + off * 8;
         uint8_t* dest = ((uint8_t*) col->data()) + row0;
         for (int r = 0; r < nrows; r++) {
           *dest = *src;
@@ -552,13 +553,36 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 }
 
 
-void FreadReader::freeThreadContext(FreadLocalParseContext *ctx)
+
+//------------------------------------------------------------------------------
+// FreadLocalParseContext
+//------------------------------------------------------------------------------
+
+FreadLocalParseContext::FreadLocalParseContext(
+    size_t brows, size_t bcols, FreadReader& f, bool* stopTeam_)
 {
-  if (ctx->strbufs) {
+  anchor = nullptr;
+  obuf = nullptr;
+  obuf_nrows = brows;
+  obuf_ncols = bcols;
+  used_nrows = 0;
+  row0 = 0;
+
+  stopTeam = stopTeam_;
+  quote = f.quote;
+  quoteRule = f.quoteRule;
+  obuf = (field64*) malloc((brows * bcols + 1) * 8);
+  if (!obuf) *stopTeam = true;
+}
+
+
+FreadLocalParseContext::~FreadLocalParseContext() {
+  free(obuf);
+  if (strbufs) {
     for (int k = 0; k < nstrcols; k++) {
-      if (ctx->strbufs[k].mbuf)
-        ctx->strbufs[k].mbuf->release();
+      if (strbufs[k].mbuf)
+        strbufs[k].mbuf->release();
     }
-    dtfree(ctx->strbufs);
+    free(strbufs);
   }
 }

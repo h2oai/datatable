@@ -131,10 +131,10 @@ void ChunkedDataReader::read_all()
         }
       }
     }
-    // Wait for chunking calculations, in case ThreadContext needs them...
+    // Wait for chunking calculations, in case LocalParseContext needs them...
     #pragma omp barrier
 
-    ThreadContextPtr tctx = init_thread_context();
+    LocalParseContextPtr tctx = init_thread_context();
     const char* tend;
     size_t tnrows;
 
@@ -251,16 +251,16 @@ void ChunkedDataReader::read_all()
 
 
 //------------------------------------------------------------------------------
-// ThreadContext
+// LocalParseContext
 //------------------------------------------------------------------------------
 
-ThreadContext::ThreadContext(int ith, size_t nrows, size_t ncols) {
-  ithread = ith;
+LocalParseContext::LocalParseContext(size_t nrows, size_t ncols) {
+  obuf = nullptr;
   obuf_ncols = ncols;
   obuf_nrows = nrows;
   used_nrows = 0;
   row0 = 0;
-  size_t obuf_size = ncols * nrows * sizeof(field64);
+  size_t obuf_size = (ncols * nrows + 1) * sizeof(field64);
   void* obuf_raw = malloc(obuf_size);
   if (!obuf_raw) {
     throw MemoryError() << "Cannot allocate " << obuf_size
@@ -270,13 +270,13 @@ ThreadContext::ThreadContext(int ith, size_t nrows, size_t ncols) {
 }
 
 
-ThreadContext::~ThreadContext() {
+LocalParseContext::~LocalParseContext() {
   assert(used_nrows == 0);
-  if (obuf) free(obuf);
+  free(obuf);
 }
 
 
-// void ThreadContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
+// void LocalParseContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
 //   size_t ncols = columns.size();
 //   for (size_t i = 0; i < ncols; ++i) {
 //     if (columns[i].type == ColumnSpec::Type::String) {
@@ -286,7 +286,7 @@ ThreadContext::~ThreadContext() {
 // }
 
 
-field64* ThreadContext::next_row() {
+field64* LocalParseContext::next_row() {
   if (used_nrows == obuf_nrows) {
     obuf_nrows += (obuf_nrows + 1) / 2;
     size_t obuf_size = obuf_ncols * obuf_nrows * sizeof(field64);
@@ -301,7 +301,7 @@ field64* ThreadContext::next_row() {
 }
 
 
-void ThreadContext::push_buffers()
+void LocalParseContext::push_buffers()
 {
   if (used_nrows == 0) return;
   /*

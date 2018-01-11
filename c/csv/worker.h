@@ -20,7 +20,7 @@
 #include <vector>        // std::vector
 #include "memorybuf.h"   // MemoryBuffer
 #include "writebuf.h"    // WritableBuffer
-#include "csv/reader.h"  // ThreadContextPtr
+#include "csv/reader.h"  // LocalParseContextPtr
 
 
 //------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ class ChunkedDataReader
     size_t inputsize;
     int64_t inputline;
 
-    // and saved into here, via the intermediate buffers TThreadContext, that
+    // and saved into here, via the intermediate buffers TLocalParseContext, that
     // are instantiated within the read_all() method:
     std::vector<GReaderOutputColumn> cols;
 
@@ -80,7 +80,7 @@ public:
   virtual ~ChunkedDataReader();
   void set_input(const char* ptr, size_t size, int64_t line);
 
-  virtual ThreadContextPtr init_thread_context() = 0;
+  virtual LocalParseContextPtr init_thread_context() = 0;
   virtual void realloc_columns(size_t n) = 0;
   virtual void compute_chunking_strategy();
   virtual const char* adjust_chunk_start(const char* ch, const char* eof);

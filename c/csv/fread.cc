@@ -326,8 +326,6 @@ int FreadReader::freadMain()
   //     At the same time, calc mean and sd of row lengths in sample for very
   //     good nrow estimate.
   //*********************************************************************************************
-  size_t allocnrow;       // Number of rows in the allocated DataTable
-  double meanLineLen;     // Average length (in bytes) of a single line in the input file
   int nJumps;             // How many jumps to use when pre-scanning the file
   size_t sampleLines;     // How many lines were sampled during the initial pre-scan
   size_t bytesRead;       // Bytes in the whole data section
@@ -715,7 +713,7 @@ int FreadReader::freadMain()
   int typeCounts[NUMTYPE];  // used for verbose output; needs populating after first read and before reread (if any) -- see later comment
   #define stopErrSize 1000
   char stopErr[stopErrSize+1] = "";  // must be compile time size: the message is generated and we can't free before STOP
-  size_t DTi = 0;   // the current row number in DT that we are writing to
+  size_t row0 = 0;   // the current row number in DT that we are writing to
   const char* prevJumpEnd;  // the position after the last line the last thread processed (for checking)
   int buffGrown = 0;
   // chunkBytes is the distance between each jump point; it decides the number of jumps
@@ -759,7 +757,6 @@ int FreadReader::freadMain()
   //-- Start parallel ----------------
   #pragma omp parallel num_threads(nth)
   {
-    int me = omp_get_thread_num();
     bool myShowProgress = false;
     #pragma omp master
     {
@@ -773,26 +770,9 @@ int FreadReader::freadMain()
     size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
 
     // Allocate thread-private row-major myBuffs
-    FreadLocalParseContext ctx = {
-      .anchor = NULL,
-      .buff = (field64*) malloc(myBuffRows * rowSize + 8),
-      .rowSize = rowSize,
-      .DTi = 0,  // which row in the final DT result I should start writing my chunk to
-      .nRows = allocnrow,
-      .stopTeam = &stopTeam,
-      .threadn = me,
-      .quoteRule = quoteRule,
-      .quote = quote,
-      #ifndef DTPY
-      .nStringCols = nStringCols,
-      .nNonStringCols = nNonStringCols
-      #endif
-    };
-    if (ncol && !ctx.buff) {
-      stopTeam = true;
-    }
-    prepareThreadContext(&ctx);
-    FieldParseContext fctx = makeFieldParseContext(tch, ctx.buff, thisJumpStart);
+    FreadLocalParseContext ctx(myBuffRows, rowSize/8, *this, &stopTeam);
+    prepareLocalParseContext(&ctx);
+    FieldParseContext fctx = makeFieldParseContext(tch, ctx.obuf, thisJumpStart);
 
     #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
     for (int jump = jump0; jump < nJumps; jump++) {
@@ -827,7 +807,7 @@ int FreadReader::freadMain()
         }
       }
 
-      fctx.target = ctx.buff;
+      fctx.target = ctx.obuf;
       tch = nth > 1 ? sof + (size_t)jump * chunkBytes : prevJumpEnd;
       nextJump = jump<nJumps-1 ? tch + chunkBytes : lastRowEnd;
       if (jump > 0 && nth > 1) {
@@ -863,13 +843,13 @@ int FreadReader::freadMain()
           myBuffRows *= 1.5;
           #pragma omp atomic
           buffGrown++;
-          ctx.buff = (field64*) realloc(ctx.buff, rowSize * myBuffRows + 8);
-          if (ncols && !ctx.buff) {
+          ctx.obuf = (field64*) realloc(ctx.obuf, rowSize * myBuffRows + 8);
+          if (ncols && !ctx.obuf) {
             stopTeam = true;
             break;
           }
           // shift current buffer positions, since `myBuffX`s were probably moved by realloc
-          fctx.target = ctx.buff + myNrow * (rowSize / 8);
+          fctx.target = ctx.obuf + myNrow * (rowSize / 8);
         }
         const char* tlineStart = tch;  // for error message
         const char* fieldStart = tch;
@@ -976,7 +956,7 @@ int FreadReader::freadMain()
                       "Column %d (\"%.*s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
                       j+1, colNames[j].length, colNamesAnchor + colNames[j].offset,
                       typeName[abs(joldType)], typeName[abs(thisType)],
-                      (int)(tch-fieldStart), fieldStart, (llu)(ctx.DTi+myNrow));
+                      (int)(tch-fieldStart), fieldStart, (llu)(ctx.row0+myNrow));
                     typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
                     strcpy(typeBumpMsg+typeBumpMsgSize, temp);
                     typeBumpMsgSize += (size_t)len;
@@ -1013,7 +993,7 @@ int FreadReader::freadMain()
             snprintf(stopErr, stopErrSize,
               "Expecting %d cols but row %zu contains only %d cols (sep='%c'). "
               "Consider fill=true. \"%s\"",
-              ncol, ctx.DTi, j, sep, strlim(tlineStart, 500));
+              ncol, ctx.row0, j, sep, strlim(tlineStart, 500));
           }
           break;
         }
@@ -1024,7 +1004,7 @@ int FreadReader::freadMain()
             snprintf(stopErr, stopErrSize,
               "Too many fields on out-of-sample row %zu from jump %d. Read all %d "
               "expected columns but more are present. \"%s\"",
-              ctx.DTi, jump, ncol, strlim(tlineStart, 500));
+              ctx.row0, jump, ncol, strlim(tlineStart, 500));
           }
           break;
         }
@@ -1036,7 +1016,7 @@ int FreadReader::freadMain()
         tLast = now;
       }
       ctx.anchor = thisJumpStart;
-      ctx.nRows = myNrow;
+      ctx.used_nrows = myNrow;
       postprocessBuffer(&ctx);
 
       #pragma omp ordered
@@ -1050,15 +1030,15 @@ int FreadReader::freadMain()
             (int)(thisJumpStart-prevJumpEnd), strlim(thisJumpStart, 50));
           stopTeam = true;
         }
-        ctx.DTi = DTi;  // fetch shared DTi (where to write my results to the answer). The previous thread just told me.
-        if (ctx.DTi >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
+        ctx.row0 = row0;  // fetch shared row0 (where to write my results to the answer). The previous thread just told me.
+        if (ctx.row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
           stopTeam = true;
           myNrow = 0;
-        } else if (myNrow + ctx.DTi > allocnrow) {  // current thread has reached `allocnrow` limit
+        } else if (myNrow + ctx.row0 > allocnrow) {  // current thread has reached `allocnrow` limit
           if (allocnrow == nrowLimit) {
             // allocnrow is the same as nrowLimit, no need to reallocate the DT,
             // just truncate the rows in the current chunk.
-            myNrow = nrowLimit - ctx.DTi;
+            myNrow = nrowLimit - ctx.row0;
           } else {
             // We reached `allocnrow` limit, but there are more data to read
             // left. In this case we arrange to terminate all threads but
@@ -1066,11 +1046,11 @@ int FreadReader::freadMain()
             // will reallocate the DT and restart reading from the same point.
             jump0 = jump;
             if (jump < nJumps - 1) {
-              extraAllocRows = (size_t)((double)(DTi+myNrow)*nJumps/(jump+1) * 1.2) - allocnrow;
+              extraAllocRows = (size_t)((double)(row0+myNrow)*nJumps/(jump+1) * 1.2) - allocnrow;
               if (extraAllocRows < 1024) extraAllocRows = 1024;
             } else {
               // If we're on the last jump, then we know exactly how many extra rows is needed.
-              extraAllocRows = DTi + myNrow - allocnrow;
+              extraAllocRows = row0 + myNrow - allocnrow;
             }
             myNrow = 0;
             stopTeam = true;
@@ -1078,8 +1058,8 @@ int FreadReader::freadMain()
         }
                            // tell next thread (she not me) 2 things :
         prevJumpEnd = tch; // i) the \n I finished on so she can check (above) she started exactly on that \n good line start
-        DTi += myNrow;     // ii) which row in the final result she should start writing to since now I know myNrow.
-        ctx.nRows = myNrow;
+        row0 += myNrow;     // ii) which row in the final result she should start writing to since now I know myNrow.
+        ctx.used_nrows = myNrow;
         if (!stopTeam) orderBuffer(&ctx);
       }
       // END ORDERED.
@@ -1092,9 +1072,6 @@ int FreadReader::freadMain()
       pushBuffer(&ctx);
       if (verbose) thRead += wallclock() - now;
     }
-    // Done reading the file: each thread should now clean up its own buffers.
-    free(ctx.buff); ctx.buff = NULL;
-    freeThreadContext(&ctx);
   }
   //-- end parallel ------------------
 
@@ -1105,9 +1082,9 @@ int FreadReader::freadMain()
     // nrowLimit applied and stopped early normally
     stopTeam = false;
   }
-  if (DTi>allocnrow && nrowLimit>allocnrow) {
-    STOP("Internal error: DTi(%llu) > allocnrow(%llu) but nrows=%llu (not limited)",
-         (llu)DTi, (llu)allocnrow, (llu)nrowLimit);
+  if (row0>allocnrow && nrowLimit>allocnrow) {
+    STOP("Internal error: row0(%llu) > allocnrow(%llu) but nrows=%llu (not limited)",
+         (llu)row0, (llu)allocnrow, (llu)nrowLimit);
     // for the last jump that fills nrow limit, then ansi is +=buffi which is >allocnrow and correct
   }
 
@@ -1128,7 +1105,7 @@ int FreadReader::freadMain()
   // tell progress meter to finish up; e.g. write final newline
   // if there's a reread, the progress meter will start again from 0
   if (g.show_progress && thPush >= 0.75) progress(100.0);
-  setFinalNrow(DTi);
+  setFinalNrow(row0);
 
   if (firstTime) {
     tReread = tRead = wallclock();
@@ -1159,9 +1136,9 @@ int FreadReader::freadMain()
           sizes[j] = 0;
         }
       }
-      allocateDT(ncol, ncol - nStringCols - nNonStringCols, DTi);
+      allocateDT(ncol, ncol - nStringCols - nNonStringCols, row0);
       // reread from the beginning
-      DTi = 0;
+      row0 = 0;
       prevJumpEnd = sof;
       firstTime = false;
       nTypeBump = 0;   // for test 1328.1. Otherwise the last field would get shifted forwards again.
@@ -1174,7 +1151,7 @@ int FreadReader::freadMain()
 
   double tTot = tReread-t0;  // tReread==tRead when there was no reread
   g.trace("Read %zu rows x %d columns from %s file in %02d:%06.3f wall clock time",
-          DTi, ncol-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
+          row0, ncol-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
 
 
 
@@ -1182,7 +1159,7 @@ int FreadReader::freadMain()
   // [12] Finalize the datatable
   //*********************************************************************************************
   g.trace("[12] Finalizing the datatable");
-  // setFinalNrow(DTi);
+  // setFinalNrow(row0);
 
   if (verbose) {
     DTPRINT("=============================");
@@ -1192,7 +1169,7 @@ int FreadReader::freadMain()
             tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
     DTPRINT("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
             tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, ncol,
-            DTbytes/(1024.0*1024*1024), (llu)DTi, 100.0*DTi/allocnrow);
+            DTbytes/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
     thNextGoodLine /= nth;
     thRead /= nth;
     thPush /= nth;
