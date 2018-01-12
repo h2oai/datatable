@@ -1058,7 +1058,7 @@ int FreadReader::freadMain()
         prevJumpEnd = tch; // i) the \n I finished on so she can check (above) she started exactly on that \n good line start
         row0 += myNrow;     // ii) which row in the final result she should start writing to since now I know myNrow.
         ctx.used_nrows = myNrow;
-        if (!stopTeam) orderBuffer(&ctx);
+        if (!stopTeam) ctx.orderBuffer();
       }
       // END ORDERED.
       // Next thread can now start its ordered section and write its results to the final DT at the same time as me.

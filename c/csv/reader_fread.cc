@@ -309,55 +309,6 @@ void FreadReader::setFinalNrow(size_t nrows) {
 }
 
 
-void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
-{
-    size_t colCount = ctx->obuf_ncols;
-    StrBuf* ctx_strbufs = ctx->strbufs;
-    for (int k = 0; k < nstrcols; ++k) {
-      int j = ctx_strbufs[k].idxdt;
-      size_t j8 = static_cast<size_t>(ctx_strbufs[k].idx8);
-      StrBuf* sb = strbufs[j];
-      // Compute `sz` (the size of the string content in the buffer) from the
-      // offset of the last element. Typically this would be the same as
-      // `ctx_strbufs[k].ptr`, however in rare cases when `used_nrows` have changed
-      // from the time the buffer was post-processed, this may be different.
-      RelStr lastElem = ctx->obuf[j8 + colCount * (ctx->used_nrows - 1)].str32;
-      size_t sz = static_cast<size_t>(abs(lastElem.offset) - 1);
-      size_t ptr = sb->ptr;
-      MemoryBuffer* sb_mbuf = sb->mbuf;
-      // If we need to write more than the size of the available buffer, the
-      // buffer has to grow. Check documentation for `StrBuf.numuses` in
-      // `py_fread.h`.
-      while (ptr + sz > sb_mbuf->size()) {
-        size_t newsize = (ptr + sz) * 2;
-        int old = 0;
-        // (1) wait until no other process is writing into the buffer
-        while (sb->numuses > 0)
-          /* wait until .numuses == 0 (all threads finished writing) */;
-        // (2) make `numuses` negative, indicating that no other thread may
-        // initiate a memcopy operation for now.
-        #pragma omp atomic capture
-        {
-          old = sb->numuses;
-          sb->numuses -= 1000000;
-        }
-        // (3) The only case when `old != 0` is if another thread started
-        // memcopy operation in-between statements (1) and (2) above. In
-        // that case we restore the previous value of `numuses` and repeat
-        // the loop.
-        // Otherwise (and it is the most common case) we reallocate the
-        // buffer and only then restore the `numuses` variable.
-        if (old == 0) {
-          sb_mbuf->resize(newsize);
-        }
-        #pragma omp atomic update
-        sb->numuses += 1000000;
-      }
-      ctx_strbufs[k].ptr = ptr;
-      sb->ptr = ptr + sz;
-    }
-}
-
 
 void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
 {
@@ -455,7 +406,7 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
-  ) : LocalParseContext(bcols, brows)
+  ) : LocalParseContext(bcols, brows), ostrbufs(f.strbufs)
 {
   anchor = nullptr;
   strbufs = nullptr;
@@ -540,6 +491,55 @@ void FreadLocalParseContext::postprocess()
       lo += obuf_ncols;
     }
     strbufs[k].ptr = static_cast<size_t>(off - 1);
+  }
+}
+
+
+void FreadLocalParseContext::orderBuffer()
+{
+  StrBuf* strbufs = this->strbufs;
+  for (int k = 0; k < nstrcols; ++k) {
+    int j = strbufs[k].idxdt;
+    size_t j8 = static_cast<size_t>(strbufs[k].idx8);
+    StrBuf* sb = ostrbufs[j];
+    // Compute `sz` (the size of the string content in the buffer) from the
+    // offset of the last element. Typically this would be the same as
+    // `strbufs[k].ptr`, however in rare cases when `used_nrows` have changed
+    // from the time the buffer was post-processed, this may be different.
+    int32_t lastOffset = obuf[j8 + obuf_ncols * (used_nrows - 1)].str32.offset;
+    size_t sz = static_cast<size_t>(abs(lastOffset) - 1);
+    size_t ptr = sb->ptr;
+    MemoryBuffer* sb_mbuf = sb->mbuf;
+    // If we need to write more than the size of the available buffer, the
+    // buffer has to grow. Check documentation for `StrBuf.numuses` in
+    // `py_fread.h`.
+    while (ptr + sz > sb_mbuf->size()) {
+      size_t newsize = (ptr + sz) * 2;
+      int old = 0;
+      // (1) wait until no other process is writing into the buffer
+      while (sb->numuses > 0)
+        /* wait until .numuses == 0 (all threads finished writing) */;
+      // (2) make `numuses` negative, indicating that no other thread may
+      // initiate a memcopy operation for now.
+      #pragma omp atomic capture
+      {
+        old = sb->numuses;
+        sb->numuses -= 1000000;
+      }
+      // (3) The only case when `old != 0` is if another thread started
+      // memcopy operation in-between statements (1) and (2) above. In
+      // that case we restore the previous value of `numuses` and repeat
+      // the loop.
+      // Otherwise (and it is the most common case) we reallocate the
+      // buffer and only then restore the `numuses` variable.
+      if (old == 0) {
+        sb_mbuf->resize(newsize);
+      }
+      #pragma omp atomic update
+      sb->numuses += 1000000;
+    }
+    strbufs[k].ptr = ptr;
+    sb->ptr = ptr + sz;
   }
 }
 

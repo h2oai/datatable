@@ -150,7 +150,6 @@ private:
    */
   void progress(double percent);
 
-  void orderBuffer(FreadLocalParseContext *ctx);
   void pushBuffer(FreadLocalParseContext *ctx);
 
   const char* printTypes() const;
@@ -188,20 +187,12 @@ class FreadLocalParseContext : public LocalParseContext
 {
   public:
     const char* anchor;
-
-    // Reference to the flag that controls the parser's execution. Setting this
-    // flag to true will force parsing of the CSV file to terminate in the near
-    // future.
-    // bool* stopTeam;
-
     int quoteRule;
-
     char quote;
-
     int : 24;
 
-    // Any additional implementation-specific parameters.
     StrBuf* strbufs;
+    StrBuf**& ostrbufs;
     int nstrcols;
     int : 32;
 
@@ -211,6 +202,7 @@ class FreadLocalParseContext : public LocalParseContext
     virtual void push_buffers() override;
     virtual const char* read_chunk(const char* start, const char* end) override;
     void postprocess();
+    void orderBuffer();
 };
 
 
