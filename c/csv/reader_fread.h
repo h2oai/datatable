@@ -21,7 +21,7 @@
 #include "csv/fread.h"
 #include "memorybuf.h"
 
-struct FreadLocalParseContext;
+class FreadLocalParseContext;
 
 
 
@@ -40,8 +40,8 @@ class FreadReader
   char* lineCopy;
 
   //----- Runtime parameters ---------------------------------------------------
-  // ncols: number of fields in the CSV file. This field first becomes available
-  //     in the `userOverride()` callback, and doesn't change after that.
+  // ncols
+  //   Detected number of fields in the CSV file.
   // nstrcols: number of string columns in the output DataTable. This will be
   //     computed within `allocateDT()` callback, and used for allocation of
   //     string buffers. If the file is re-read (due to type bumps), this
@@ -113,21 +113,6 @@ private:
    * detected column names are; and secondly what is the expected type of each
    * column. The upstream code then has an opportunity to upcast the column types
    * if requested by the user, or mark some columns as skipped.
-   *
-   * @param types
-   *    type codes of each column in the CSV file. Possible type codes are
-   *    described by the `colType` enum. The function may modify this array
-   *    setting some types to 0 (CT_DROP), or upcasting the types. Downcasting is
-   *    not allowed and will trigger an error from `freadMain` later on.
-   *
-   * @param anchor
-   *    pointer to a string buffer (usually somewhere inside the memory-mapped
-   *    file) within which the column names are located, as described by the
-   *    `colNames` array.
-   *
-   * @param ncols
-   *    total number of columns. This is the length of arrays `types` and
-   *    `colNames`.
    */
   void userOverride(int8_t *types, const char* anchor, int ncols);
 
@@ -140,28 +125,8 @@ private:
    * then this function will be called second time with updated `types` array.
    * Then this function's responsibility is to update the allocation of those
    * columns properly.
-   *
-   * @param ncols
-   *    number of columns in the CSV file. This is the size of arrays `types` and
-   *    `sizes`.
-   *
-   * @param ndrop
-   *    count of columns with type CT_DROP. This parameter is provided for
-   *    convenience, since it can always be computed from `types`. The resulting
-   *    datatable will have `ncols - ndrop` columns.
-   *
-   * @param nrows
-   *    the number of rows to allocate for the datatable. This number of rows is
-   *    estimated during the initial pre-scan, and then adjusted upwards to
-   *    account for possible variation. It is very unlikely that this number
-   *    underestimates the final row count.
-   *
-   * @return
-   *    this function should return the total size of the Datatable created (for
-   *    reporting purposes). If the return value is 0, then it indicates an error
-   *    and `fread` will abort.
    */
-  size_t allocateDT(int ncols, int ndrop, size_t nrows);
+  size_t allocateDT();
 
   /**
    * Called at the end to specify what the actual number of rows in the datatable
@@ -189,7 +154,7 @@ private:
   void orderBuffer(FreadLocalParseContext *ctx);
   void pushBuffer(FreadLocalParseContext *ctx);
 
-  const char* printTypes(int ncol) const;
+  const char* printTypes() const;
 
   friend FreadLocalParseContext;
 };
@@ -220,7 +185,6 @@ private:
  *   Pointer that serves as a starting point for all offsets in "RelStr" fields.
  *
  */
-// TODO: derive from LocalParseContext
 class FreadLocalParseContext : public LocalParseContext
 {
   public:
@@ -250,6 +214,11 @@ class FreadLocalParseContext : public LocalParseContext
 };
 
 
+
+
+//------------------------------------------------------------------------------
+// Old helper macros
+//------------------------------------------------------------------------------
 
 // Exception-raising macro for `fread()`, which renames it into "STOP". Usage:
 //     if (cond) STOP("Bad things happened: %s", smth_bad);

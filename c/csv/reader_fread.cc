@@ -217,7 +217,7 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
 /**
  * Allocate memory for the DataTable that is being constructed.
  */
-size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
+size_t FreadReader::allocateDT()
 {
   Column** columns = NULL;
   nstrcols = 0;
@@ -227,22 +227,17 @@ size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
   // Also in this block we compute: `nstrcols` (will be used later in
   // `prepareLocalParseContext` and `postprocessBuffer`), as well as allocating
   // the `Column**` array.
-  if (ncols == 0) {
-    // DTPRINT("Writing the DataTable into %s", targetdir);
-    assert(!dt);
-    ncols = ncols_;
-
+  if (!dt) {
     size_t alloc_size = 0;
     int i, j;
     for (i = j = 0; i < ncols; i++) {
       if (types[i] == CT_DROP) continue;
       nstrcols += (types[i] == CT_STRING);
       SType stype = colType_to_stype[types[i]];
-      alloc_size += stype_info[stype].elemsize * nrows;
-      if (types[i] == CT_STRING) alloc_size += 5 * nrows;
+      alloc_size += stype_info[stype].elemsize * allocnrow;
+      if (types[i] == CT_STRING) alloc_size += 5 * allocnrow;
       j++;
     }
-    assert(j == ncols_ - ndrop_);
     dtcalloc_g(columns, Column*, j + 1);
     dtcalloc_g(strbufs, StrBuf*, j);
     columns[j] = NULL;
@@ -252,7 +247,6 @@ size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
     targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
                  .as_ccstring();
   } else {
-    assert(dt && ncols == ncols_);
     columns = dt->columns;
     for (int i = 0; i < ncols; i++)
       nstrcols += (types[i] == CT_STRING);
@@ -265,12 +259,12 @@ size_t FreadReader::allocateDT(int ncols_, int ndrop_, size_t nrows)
   }
 
   // Create individual columns
-  for (int i = 0, j = 0; i < ncols_; i++) {
+  for (int i = 0, j = 0; i < ncols; i++) {
     int8_t type = types[i];
     if (type == CT_DROP) continue;
     if (type > 0) {
       SType stype = colType_to_stype[type];
-      columns[j] = realloc_column(columns[j], stype, nrows, j);
+      columns[j] = realloc_column(columns[j], stype, allocnrow, j);
       if (columns[j] == NULL) goto fail;
     }
     j++;

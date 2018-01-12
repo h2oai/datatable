@@ -52,20 +52,20 @@ static const char* strlim(const char* ch, size_t limit) {
 }
 
 
-const char* FreadReader::printTypes(int ncol) const {
+const char* FreadReader::printTypes() const {
   // e.g. files with 10,000 columns, don't print all of it to verbose output.
   static char out[111];
   char* ch = out;
   if (types) {
-    int tt = ncol<=110? ncol : 90;
+    int tt = ncols<=110? ncols : 90;
     for (int i=0; i<tt; i++) {
       *ch++ = typeSymbols[types[i]];
     }
-    if (ncol>110) {
+    if (ncols>110) {
       *ch++ = '.';
       *ch++ = '.';
       *ch++ = '.';
-      for (int i=ncol-10; i<ncol; i++)
+      for (int i=ncols-10; i<ncols; i++)
         *ch++ = typeSymbols[types[i]];
     }
   }
@@ -152,7 +152,7 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [6] Auto detect separator, quoting rule, first line and ncol, simply,
+  // [6] Auto detect separator, quoting rule, first line and ncols, simply,
   //     using jump 0 only.
   //
   //     Always sample as if nrows= wasn't supplied. That's probably *why*
@@ -161,7 +161,6 @@ int FreadReader::freadMain()
   //     across a set of files.
   //*********************************************************************************************
   const char* firstJumpEnd = NULL; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
-  int ncol;  // Detected number of columns in the file
   {
     if (verbose) DTPRINT("[06] Detect separator, quoting rule, and ncolumns");
 
@@ -209,7 +208,7 @@ int FreadReader::freadMain()
         ctx.quoteRule = quoteRule;
         // if (verbose) DTPRINT("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
         for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
-        int i=-1; // The slot we're counting the currently contiguous consistent ncol
+        int i=-1; // The slot we're counting the currently contiguous consistent ncols
         int thisLine=0, lastncol=-1;
         while (ch < eof && thisLine++ < JUMPLINES) {
           // Compute num columns and move `ch` to the start of next line
@@ -219,7 +218,7 @@ int FreadReader::freadMain()
             numFields[0] = -1;
             break;
           }
-          if (thisncol != lastncol) {  // new contiguous consistent ncol started
+          if (thisncol != lastncol) {  // new contiguous consistent ncols started
             numFields[++i] = thisncol;
             lastncol = thisncol;
           }
@@ -237,7 +236,7 @@ int FreadReader::freadMain()
           }
           if ( numFields[i]>1 &&
               (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
-              ((numLines[i]>topNumLines) ||   // most number of consistent ncol wins
+              ((numLines[i]>topNumLines) ||   // most number of consistent ncols wins
                (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
                //                                       ^ ties in numLines resolved by numFields (more fields win)
                //                                                           ^ but don't resolve a tie with a higher quote
@@ -274,15 +273,15 @@ int FreadReader::freadMain()
     const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
     if (fill) {
       // start input from first populated line; do not alter sof.
-      ncol = topNmax;
+      ncols = topNmax;
     } else {
-      ncol = topNumFields;
+      ncols = topNumFields;
       int thisLine = -1;
       ch = sof;
       while (ch < eof && ++thisLine < JUMPLINES) {
         const char* lastLineStart = ch;   // lineStart
         int cols = ctx.countfields();  // advances ch to next line
-        if (cols == ncol) {
+        if (cols == ncols) {
           ch = sof = lastLineStart;
           line += thisLine;
           break;
@@ -293,28 +292,28 @@ int FreadReader::freadMain()
     }
     // For standard regular separated files, we're now on the first byte of the file.
 
-    ASSERT(ncol >= 1 && line >= 1);
+    ASSERT(ncols >= 1 && line >= 1);
     ch = sof;
     int tt = ctx.countfields();
     ch = sof;  // move back to start of line since countfields() moved to next
-    ASSERT(fill || tt == ncol);
+    ASSERT(fill || tt == ncols);
     if (verbose) {
       DTPRINT("  Detected %d columns on line %d. This line is either column "
               "names or first data row. Line starts as: \"%s\"",
               tt, line, strlim(sof, 30));
       DTPRINT("  Quote rule picked = %d", quoteRule);
-      if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncol);
+      if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncols);
     }
 
     // Now check previous line which is being discarded and give helpful message to user
     if (prevStart) {
       ch = prevStart;
       int ttt = ctx.countfields();
-      ASSERT(ttt != ncol);
+      ASSERT(ttt != ncols);
       if (ttt > 1) {
         DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
                "line %d <<%s>> before it because it has a different number of fields (%d).",
-               line, strlim(sof, 30), ncol, line-1, strlim(prevStart, 30), ttt);
+               line, strlim(sof, 30), ncols, line-1, strlim(prevStart, 30), ttt);
       }
     }
     ASSERT(ch==sof);
@@ -332,13 +331,13 @@ int FreadReader::freadMain()
   const char* lastRowEnd; // Pointer to the end of the data section
   {
     if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
-    types = new int8_t[ncol];
-    sizes = new int8_t[ncol];
-    tmpTypes = new int8_t[ncol];
+    types = new int8_t[ncols];
+    sizes = new int8_t[ncols];
+    tmpTypes = new int8_t[ncols];
 
     int8_t type0 = 1;
     // while (disabled_parsers[type0]) type0++;
-    for (int j = 0; j < ncol; j++) {
+    for (int j = 0; j < ncols; j++) {
       // initialize with the first (lowest) type
       types[j] = type0;
       tmpTypes[j] = type0;
@@ -389,7 +388,7 @@ int FreadReader::freadMain()
       // following field).
       while (*ch == '\n' || *ch == '\r') ch++;
       if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
-      if (j > 0 && !fctx.nextGoodLine(ncol, fill, skipEmptyLines)) {
+      if (j > 0 && !fctx.nextGoodLine(ncols, fill, skipEmptyLines)) {
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
         continue;
       }
@@ -404,7 +403,7 @@ int FreadReader::freadMain()
         // detect blank lines
         fctx.skip_white();
         if (ch == eof) break;
-        if (ncol > 1 && fctx.skip_eol()) {
+        if (ncols > 1 && fctx.skip_eol()) {
           if (skipEmptyLines) continue;
           if (!fill) break;
           sampleLines++;
@@ -415,7 +414,7 @@ int FreadReader::freadMain()
         int field = 0;
         const char* fieldStart = NULL;  // Needed outside loop for error messages below
         ch--;
-        while (field<ncol) {
+        while (field<ncols) {
           ch++;
           fctx.skip_white();
           fieldStart = ch;
@@ -471,17 +470,17 @@ int FreadReader::freadMain()
           field++;
         }
         bool eol_found = fctx.skip_eol();
-        if (field < ncol-1 && !fill) {
+        if (field < ncols-1 && !fill) {
           ASSERT(ch==eof || eol_found);
           STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
-               "Expecting %d fields but found %d: \"%s\"", jline, ncol, field+1, strlim(jlineStart, 200));
+               "Expecting %d fields but found %d: \"%s\"", jline, ncols, field+1, strlim(jlineStart, 200));
         }
-        if (field>=ncol || !(eol_found || ch==eof)) {   // >=ncol covers ==ncol. We do not expect >ncol to ever happen.
+        if (field>=ncols || !(eol_found || ch==eof)) {   // >=ncols covers ==ncols. We do not expect >ncols to ever happen.
           if (j==0) {
             STOP("Line %d starting <<%s>> has more than the expected %d fields. "
                "Separator '%c' occurs at position %d which is character %d of the last field: <<%s>>. "
                "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
-               jline, strlim(jlineStart,10), ncol, *ch, (int)(ch-jlineStart+1), (int)(ch-fieldStart+1), strlim(fieldStart,200));
+               jline, strlim(jlineStart,10), ncols, *ch, (int)(ch-jlineStart+1), (int)(ch-fieldStart+1), strlim(fieldStart,200));
           }
           g.trace("  Not using sample from jump %d. Looks like a complicated file where nextGoodLine could not establish the true line start.", j);
           skip = true;
@@ -489,7 +488,7 @@ int FreadReader::freadMain()
         }
         if (firstDataRowAfterPotentialColumnNames) {
           if (fill) {
-            for (int jj=field+1; jj<ncol; jj++) tmpTypes[jj] = type0;
+            for (int jj=field+1; jj<ncols; jj++) tmpTypes[jj] = type0;
           }
           firstDataRowAfterPotentialColumnNames = false;
         } else if (sampleLines==0) {
@@ -508,9 +507,9 @@ int FreadReader::freadMain()
       }
       if (skip) continue;
       if (j==nJumps-1) lastSampleJumpOk = true;
-      if (bumped) memcpy(types, tmpTypes, (size_t)ncol);
+      if (bumped) memcpy(types, tmpTypes, (size_t)ncols);
       if (verbose && (bumped || j==0 || j==nJumps-1)) {
-        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(ncol), quoteRule);
+        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(), quoteRule);
       }
     }
     if (lastSampleJumpOk) {
@@ -532,7 +531,7 @@ int FreadReader::freadMain()
 
     if (header == NA_BOOL8) {
       header = true;
-      for (int j=0; j<ncol; j++) {
+      for (int j=0; j<ncols; j++) {
         if (types[j] < CT_STRING) {
           header = false;
           break;
@@ -553,7 +552,7 @@ int FreadReader::freadMain()
       if (header == 1) {
         // A single-row input, and that row is the header. Reset all types to
         // boolean (lowest type possible, a better guess than "string").
-        for (int j = 0; j < ncol; j++) {
+        for (int j = 0; j < ncols; j++) {
           types[j] = type0;
         }
         allocnrow = 0;
@@ -605,8 +604,8 @@ int FreadReader::freadMain()
     g.trace("[08] Assign column names");
 
     ch = sof;  // back to start of first row (likely column names)
-    colNames = new RelStr[ncol];
-    for (int i = 0; i < ncol; i++) {
+    colNames = new RelStr[ncols];
+    for (int i = 0; i < ncols; i++) {
       colNames[i].length = 0;
       colNames[i].offset = 0;
     }
@@ -616,7 +615,7 @@ int FreadReader::freadMain()
       if (sep==' ') while (*ch==' ') ch++;
       FieldParseContext fctx = makeFieldParseContext(ch, (field64*)colNames, colNamesAnchor);
       ch--;
-      for (int i=0; i<ncol; i++) {
+      for (int i=0; i<ncols; i++) {
         // Use Field() here as it handles quotes, leading space etc inside it
         ch++;
         parse_string(fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
@@ -653,15 +652,15 @@ int FreadReader::freadMain()
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
-    memcpy(tmpTypes, types, (size_t)ncol);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor, ncol);  // colNames must not be changed but types[] can be
+    memcpy(tmpTypes, types, (size_t)ncols);      // copy types => tmpTypes
+    userOverride(types, colNamesAnchor, ncols);  // colNames must not be changed but types[] can be
 
     int nUserBumped = 0;
     ndrop = 0;
     rowSize = 0;
     nStringCols = 0;
     nNonStringCols = 0;
-    for (int j = 0; j < ncol; j++) {
+    for (int j = 0; j < ncols; j++) {
       sizes[j] = typeSize[types[j]];
       if (types[j] == CT_DROP) {
         ndrop++;
@@ -683,15 +682,15 @@ int FreadReader::freadMain()
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",
-              nUserBumped, ndrop, printTypes(ncol));
+              nUserBumped, ndrop, printTypes());
     }
     tColType = wallclock();
 
     if (verbose) {
       DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
-              ncol-ndrop, ncol, ndrop, allocnrow);
+              ncols-ndrop, ncols, ndrop, allocnrow);
     }
-    DTbytes = allocateDT(ncol, ndrop, allocnrow);
+    DTbytes = allocateDT();
     tAlloc = wallclock();
   }
 
@@ -729,7 +728,7 @@ int FreadReader::freadMain()
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
-  bool fillme = fill || (ncol==1 && !skipEmptyLines);
+  bool fillme = fill || (ncols==1 && !skipEmptyLines);
 
   if (nJumps/*from sampling*/ > 1) {
     // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
@@ -819,7 +818,7 @@ int FreadReader::freadMain()
         // to the current chunk
         nextJump++;
       }
-      if (jump > 0 && nth > 1 && !fctx.nextGoodLine(ncol, fill, skipEmptyLines)) {
+      if (jump > 0 && nth > 1 && !fctx.nextGoodLine(ncols, fill, skipEmptyLines)) {
         #pragma omp critical
         if (!stopTeam) {
           stopTeam = true;
@@ -857,7 +856,7 @@ int FreadReader::freadMain()
         //*** START HOT ***//
         if (sep!=' ' && !any_number_like_NAstrings) {  // TODO:  can this 'if' be dropped somehow? Can numeric NAstrings be dealt with afterwards in one go as numeric comparison?
           // Try most common and fastest branch first: no whitespace, no quoted numeric, ",," means NA
-          while (j < ncol) {
+          while (j < ncols) {
             fieldStart = tch;
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
             int8_t thisType = types[j];
@@ -881,7 +880,7 @@ int FreadReader::freadMain()
               fctx.target++;
             }
             j++;
-            if (j==ncol) { myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
+            if (j==ncols) { myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
             tch--;
           }
           else {
@@ -906,7 +905,7 @@ int FreadReader::freadMain()
         }
 
         if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
-          while (j < ncol) {
+          while (j < ncols) {
             fieldStart = tch;
             int8_t joldType = types[j];
             int8_t thisType = joldType;  // to know if it was bumped in (rare) out-of-sample type exceptions
@@ -971,7 +970,7 @@ int FreadReader::freadMain()
             }
             j++;
             if (*tch==sep) { tch++; continue; }
-            if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncol) {
+            if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
               // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
@@ -984,15 +983,15 @@ int FreadReader::freadMain()
           }
         }
 
-        if (j < ncol)  {
-          // not enough columns observed (including empty line). If fill==true, fields should already have been filled above due to continue inside while(j<ncol)
+        if (j < ncols)  {
+          // not enough columns observed (including empty line). If fill==true, fields should already have been filled above due to continue inside while(j<ncols)
           #pragma omp critical
           if (!stopTeam) {
             stopTeam = true;
             snprintf(stopErr, stopErrSize,
               "Expecting %d cols but row %zu contains only %d cols (sep='%c'). "
               "Consider fill=true. \"%s\"",
-              ncol, ctx.row0, j, sep, strlim(tlineStart, 500));
+              ncols, ctx.row0, j, sep, strlim(tlineStart, 500));
           }
           break;
         }
@@ -1003,7 +1002,7 @@ int FreadReader::freadMain()
             snprintf(stopErr, stopErrSize,
               "Too many fields on out-of-sample row %zu from jump %d. Read all %d "
               "expected columns but more are present. \"%s\"",
-              ctx.row0, jump, ncol, strlim(tlineStart, 500));
+              ctx.row0, jump, ncols, strlim(tlineStart, 500));
           }
           break;
         }
@@ -1095,7 +1094,7 @@ int FreadReader::freadMain()
               "(now nrows=%llu) and continue reading from jump point %d",
               (llu)extraAllocRows, (llu)allocnrow, jump0);
     }
-    allocateDT(ncol, ncol - nStringCols - nNonStringCols, allocnrow);
+    allocateDT();
     extraAllocRows = 0;
     stopTeam = false;
     goto read;   // jump0>0 at this point, set above
@@ -1112,13 +1111,13 @@ int FreadReader::freadMain()
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
     for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
-    for (int i=0; i<ncol; i++) typeCounts[ abs(types[i]) ]++;
+    for (int i=0; i<ncols; i++) typeCounts[ abs(types[i]) ]++;
 
     if (nTypeBump) {
       rowSize = 0;
       nStringCols = 0;
       nNonStringCols = 0;
-      for (int j=0, resj=-1; j<ncol; j++) {
+      for (int j=0, resj=-1; j<ncols; j++) {
         if (types[j] == CT_DROP) continue;
         resj++;
         if (types[j]<0) {
@@ -1135,7 +1134,8 @@ int FreadReader::freadMain()
           sizes[j] = 0;
         }
       }
-      allocateDT(ncol, ncol - nStringCols - nNonStringCols, row0);
+      allocnrow = row0;
+      allocateDT();
       // reread from the beginning
       row0 = 0;
       prevJumpEnd = sof;
@@ -1150,7 +1150,7 @@ int FreadReader::freadMain()
 
   double tTot = tReread-t0;  // tReread==tRead when there was no reread
   g.trace("Read %zu rows x %d columns from %s file in %02d:%06.3f wall clock time",
-          row0, ncol-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
+          row0, ncols-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
 
 
 
@@ -1163,11 +1163,11 @@ int FreadReader::freadMain()
   if (verbose) {
     DTPRINT("=============================");
     if (tTot < 0.000001) tTot = 0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
-    DTPRINT("%8.3fs (%3.0f%%) sep, ncol and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
+    DTPRINT("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
     DTPRINT("%8.3fs (%3.0f%%) Column type detection using %zd sample rows",
             tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
     DTPRINT("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
-            tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, ncol,
+            tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, ncols,
             DTbytes/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
     thNextGoodLine /= nth;
     thRead /= nth;
