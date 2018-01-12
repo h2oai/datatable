@@ -770,7 +770,7 @@ int FreadReader::freadMain()
 
     // Allocate thread-private row-major myBuffs
     FreadLocalParseContext ctx(rowSize/8, myBuffRows, *this);
-    FieldParseContext fctx = makeFieldParseContext(tch, ctx.obuf, thisJumpStart);
+    FieldParseContext fctx = makeFieldParseContext(tch, ctx.tbuf, thisJumpStart);
 
     #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)
     for (int jump = jump0; jump < nJumps; jump++) {
@@ -789,7 +789,7 @@ int FreadReader::freadMain()
         // iii) myBuff is hot, so this is the best time to transpose it to result, and first time possible as soon
         //      as we know the previous jump's number of rows.
         //  iv) so that myBuff can be small
-        pushBuffer(&ctx);
+        ctx.pushBuffer();
         myNrow = 0;
         if (verbose || myShowProgress) {
           double now = wallclock();
@@ -805,7 +805,7 @@ int FreadReader::freadMain()
         }
       }
 
-      fctx.target = ctx.obuf;
+      fctx.target = ctx.tbuf;
       tch = nth > 1 ? sof + (size_t)jump * chunkBytes : prevJumpEnd;
       nextJump = jump<nJumps-1 ? tch + chunkBytes : lastRowEnd;
       if (jump > 0 && nth > 1) {
@@ -841,13 +841,13 @@ int FreadReader::freadMain()
           myBuffRows *= 1.5;
           #pragma omp atomic
           buffGrown++;
-          ctx.obuf = (field64*) realloc(ctx.obuf, rowSize * myBuffRows + 8);
-          if (ncols && !ctx.obuf) {
+          ctx.tbuf = (field64*) realloc(ctx.tbuf, rowSize * myBuffRows + 8);
+          if (ncols && !ctx.tbuf) {
             stopTeam = true;
             break;
           }
           // shift current buffer positions, since `myBuffX`s were probably moved by realloc
-          fctx.target = ctx.obuf + myNrow * (rowSize / 8);
+          fctx.target = ctx.tbuf + myNrow * (rowSize / 8);
         }
         const char* tlineStart = tch;  // for error message
         const char* fieldStart = tch;
@@ -1067,7 +1067,7 @@ int FreadReader::freadMain()
     // Push out all buffers one last time.
     if (myNrow) {
       double now = verbose? wallclock() : 0;
-      pushBuffer(&ctx);
+      ctx.pushBuffer();
       if (verbose) thRead += wallclock() - now;
     }
   }

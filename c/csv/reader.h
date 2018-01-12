@@ -221,6 +221,7 @@ union field64 {
   int8_t   int8;
   int32_t  int32;
   int64_t  int64;
+  uint8_t  uint8;
   uint32_t uint32;
   uint64_t uint64;
   float    float32;
@@ -239,9 +240,9 @@ union field64 {
  */
 class LocalParseContext {
   public:
-    field64* obuf;
-    size_t obuf_ncols;
-    size_t obuf_nrows;
+    field64* tbuf;
+    size_t tbuf_ncols;
+    size_t tbuf_nrows;
     size_t used_nrows;
     size_t row0;
     // std::vector<StrBuf2> strbufs;
@@ -257,7 +258,7 @@ class LocalParseContext {
     virtual void set_nrows(size_t n) { used_nrows = n; }
 
   private:
-    void allocate_obuf(size_t ncols, size_t nrows);
+    void allocate_tbuf(size_t ncols, size_t nrows);
 };
 
 typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;

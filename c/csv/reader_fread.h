@@ -150,8 +150,6 @@ private:
    */
   void progress(double percent);
 
-  void pushBuffer(FreadLocalParseContext *ctx);
-
   const char* printTypes() const;
 
   friend FreadLocalParseContext;
@@ -164,17 +162,17 @@ private:
 //------------------------------------------------------------------------------
 
 /**
- * obuf
+ * tbuf
  *   Output buffer. Within the buffer the data is stored in row-major order,
  *   i.e. in the same order as in the original CSV file. We view the buffer as
- *   a rectangular grid having `obuf_ncols * obuf_nrows` elements (+1 extra).
+ *   a rectangular grid having `tbuf_ncols * tbuf_nrows` elements (+1 extra).
  *
- * obuf_ncols, obuf_nrows
+ * tbuf_ncols, tbuf_nrows
  *   Dimensions of the output buffer.
  *
  * used_nrows
- *   Number of rows of data currently stored in `obuf`. This can never exceed
- *   `obuf_nrows`.
+ *   Number of rows of data currently stored in `tbuf`. This can never exceed
+ *   `tbuf_nrows`.
  *
  * row0
  *   Starting row index within the output DataTable for the current data chunk.
@@ -192,9 +190,16 @@ class FreadLocalParseContext : public LocalParseContext
     int : 24;
 
     StrBuf* strbufs;
-    StrBuf**& ostrbufs;
     int nstrcols;
     int : 32;
+
+    // TODO: these should be replaced with a single reference to
+    //       std::vector<GReaderOutputColumn>
+    int& ncols;
+    StrBuf**& ostrbufs;
+    int8_t*& types;
+    int8_t*& sizes;
+    DataTablePtr& dt;
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&);
@@ -203,6 +208,7 @@ class FreadLocalParseContext : public LocalParseContext
     virtual const char* read_chunk(const char* start, const char* end) override;
     void postprocess();
     void orderBuffer();
+    void pushBuffer();
 };
 
 

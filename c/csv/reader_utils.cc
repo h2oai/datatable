@@ -255,34 +255,34 @@ void ChunkedDataReader::read_all()
 //------------------------------------------------------------------------------
 
 LocalParseContext::LocalParseContext(size_t ncols, size_t nrows) {
-  obuf = nullptr;
-  obuf_ncols = 0;
-  obuf_nrows = 0;
+  tbuf = nullptr;
+  tbuf_ncols = 0;
+  tbuf_nrows = 0;
   used_nrows = 0;
   row0 = 0;
-  allocate_obuf(ncols, nrows);
+  allocate_tbuf(ncols, nrows);
 }
 
 
-void LocalParseContext::allocate_obuf(size_t ncols, size_t nrows) {
-  size_t old_size = obuf? (obuf_ncols * obuf_nrows + 1) * sizeof(field64) : 0;
+void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
+  size_t old_size = tbuf? (tbuf_ncols * tbuf_nrows + 1) * sizeof(field64) : 0;
   size_t new_size = (ncols * nrows + 1) * sizeof(field64);
   if (new_size > old_size) {
-    void* obuf_raw = realloc(obuf, new_size);
-    if (!obuf_raw) {
+    void* tbuf_raw = realloc(tbuf, new_size);
+    if (!tbuf_raw) {
       throw MemoryError() << "Cannot allocate " << new_size
                           << " bytes for a temporary buffer";
     }
-    obuf = static_cast<field64*>(obuf_raw);
+    tbuf = static_cast<field64*>(tbuf_raw);
   }
-  obuf_ncols = ncols;
-  obuf_nrows = nrows;
+  tbuf_ncols = ncols;
+  tbuf_nrows = nrows;
 }
 
 
 LocalParseContext::~LocalParseContext() {
   assert(used_nrows == 0);
-  free(obuf);
+  free(tbuf);
 }
 
 
@@ -297,10 +297,10 @@ LocalParseContext::~LocalParseContext() {
 
 
 field64* LocalParseContext::next_row() {
-  if (used_nrows == obuf_nrows) {
-    allocate_obuf(obuf_ncols, obuf_nrows * 3 / 2);
+  if (used_nrows == tbuf_nrows) {
+    allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
   }
-  return obuf + (used_nrows++) * obuf_ncols;
+  return tbuf + (used_nrows++) * tbuf_ncols;
 }
 
 
@@ -320,7 +320,7 @@ void LocalParseContext::push_buffers()
       sb.usedsize = 0;
 
       int32_t* dest = static_cast<int32_t*>(outcols[j].data);
-      RelStr* src = static_cast<RelStr*>(ctx.obuf);
+      RelStr* src = static_cast<RelStr*>(ctx.tbuf);
       int32_t offset = abs(dest[-1]);
       for (int64_t row = 0; row < ctx.used_nrows; ++row) {
         int32_t o = src->offset;

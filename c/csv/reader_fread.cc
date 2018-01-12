@@ -310,90 +310,6 @@ void FreadReader::setFinalNrow(size_t nrows) {
 
 
 
-void FreadReader::pushBuffer(FreadLocalParseContext *ctx)
-{
-  StrBuf *__restrict__ ctx_strbufs = ctx->strbufs;
-  const field64* __restrict__ obuf = ctx->obuf;
-  int nrows = (int) ctx->used_nrows;
-  size_t row0 = ctx->row0;
-
-  int i = 0;    // index within the `types` and `sizes`
-  int j = 0;    // index within `dt->columns`, `obuf` and `strbufs`
-  int off = 0;
-  int rowCount8 = (int) ctx->obuf_ncols;
-  int rowCount4 = (int) ctx->obuf_ncols * 2;
-  int rowCount1 = (int) ctx->obuf_ncols * 8;
-
-  int k = 0;
-  for (; i < ncols; i++) {
-    if (types[i] == CT_DROP) continue;
-    Column *col = dt->columns[j];
-
-    if (types[i] == CT_STRING) {
-      StrBuf *sb = strbufs[j];
-      int idx8 = ctx_strbufs[k].idx8;
-      size_t ptr = ctx_strbufs[k].ptr;
-      const RelStr *__restrict__ lo = (const RelStr*)(obuf + idx8);
-      size_t sz = (size_t) abs(lo[(nrows - 1)*rowCount8].offset) - 1;
-
-      int done = 0;
-      while (!done) {
-        int old;
-        #pragma omp atomic capture
-        old = sb->numuses++;
-        if (old >= 0) {
-          memcpy(sb->mbuf->at(ptr), ctx_strbufs[k].mbuf->get(), sz);
-          done = 1;
-        }
-        #pragma omp atomic update
-        sb->numuses--;
-      }
-
-      int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
-      int32_t iptr = (int32_t) ptr;
-      for (int n = 0; n < nrows; n++) {
-        int32_t soff = lo->offset;
-        *dest++ = (soff < 0)? soff - iptr : soff + iptr;
-        lo += rowCount8;
-      }
-      k++;
-
-    } else if (types[i] > 0) {
-      int8_t elemsize = sizes[i];
-      if (elemsize == 8) {
-        const uint64_t* src = ((const uint64_t*) obuf) + off;
-        uint64_t* dest = ((uint64_t*) col->data()) + row0;
-        for (int r = 0; r < nrows; r++) {
-          *dest = *src;
-          src += rowCount8;
-          dest++;
-        }
-      } else
-      if (elemsize == 4) {
-        const uint32_t* src = ((const uint32_t*) obuf) + off * 2;
-        uint32_t* dest = ((uint32_t*) col->data()) + row0;
-        for (int r = 0; r < nrows; r++) {
-          *dest = *src;
-          src += rowCount4;
-          dest++;
-        }
-      } else
-      if (elemsize == 1) {
-        const uint8_t* src = ((const uint8_t*) obuf) + off * 8;
-        uint8_t* dest = ((uint8_t*) col->data()) + row0;
-        for (int r = 0; r < nrows; r++) {
-          *dest = *src;
-          src += rowCount1;
-          dest++;
-        }
-      }
-    }
-    j++;
-    off += (sizes[i] > 0);
-  }
-}
-
-
 void FreadReader::progress(double percent/*[0,100]*/) {
   g.pyreader().invoke("_progress", "(d)", percent);
 }
@@ -406,7 +322,8 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
-  ) : LocalParseContext(bcols, brows), ostrbufs(f.strbufs)
+  ) : LocalParseContext(bcols, brows), ncols(f.ncols),
+      ostrbufs(f.strbufs), types(f.types), sizes(f.sizes), dt(f.dt)
 {
   anchor = nullptr;
   strbufs = nullptr;
@@ -445,14 +362,13 @@ void FreadLocalParseContext::push_buffers() {}
 const char* FreadLocalParseContext::read_chunk(const char* start, const char* end) {}
 
 
-void FreadLocalParseContext::postprocess()
-{
+void FreadLocalParseContext::postprocess() {
   const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
   for (int k = 0; k < nstrcols; ++k) {
     MemoryBuffer* strdest = strbufs[k].mbuf;
-    field64* lo = obuf + strbufs[k].idx8;
+    field64* lo = tbuf + strbufs[k].idx8;
     int32_t off = 1;
     size_t bufsize = strbufs[k].mbuf->size();
     for (size_t n = 0; n < used_nrows; n++) {
@@ -488,16 +404,14 @@ void FreadLocalParseContext::postprocess()
         assert(lo->str32.isna());
         lo->str32.offset = -off;
       }
-      lo += obuf_ncols;
+      lo += tbuf_ncols;
     }
     strbufs[k].ptr = static_cast<size_t>(off - 1);
   }
 }
 
 
-void FreadLocalParseContext::orderBuffer()
-{
-  StrBuf* strbufs = this->strbufs;
+void FreadLocalParseContext::orderBuffer() {
   for (int k = 0; k < nstrcols; ++k) {
     int j = strbufs[k].idxdt;
     size_t j8 = static_cast<size_t>(strbufs[k].idx8);
@@ -506,7 +420,7 @@ void FreadLocalParseContext::orderBuffer()
     // offset of the last element. Typically this would be the same as
     // `strbufs[k].ptr`, however in rare cases when `used_nrows` have changed
     // from the time the buffer was post-processed, this may be different.
-    int32_t lastOffset = obuf[j8 + obuf_ncols * (used_nrows - 1)].str32.offset;
+    int32_t lastOffset = tbuf[j8 + tbuf_ncols * (used_nrows - 1)].str32.offset;
     size_t sz = static_cast<size_t>(abs(lastOffset) - 1);
     size_t ptr = sb->ptr;
     MemoryBuffer* sb_mbuf = sb->mbuf;
@@ -540,6 +454,79 @@ void FreadLocalParseContext::orderBuffer()
     }
     strbufs[k].ptr = ptr;
     sb->ptr = ptr + sz;
+  }
+}
+
+
+
+void FreadLocalParseContext::pushBuffer() {
+  int i = 0;    // index within the `types` and `sizes`
+  int j = 0;    // index within `dt->columns`, `tbuf` and `strbufs`
+  int k = 0;
+  int off = 0;
+  for (; i < ncols; i++) {
+    if (types[i] == CT_DROP) continue;
+    Column* col = dt->columns[j];
+
+    if (types[i] == CT_STRING) {
+      StrBuf* sb = ostrbufs[j];
+      size_t ptr = strbufs[k].ptr;
+      field64* lo = tbuf + strbufs[k].idx8;
+      int32_t lastOffset = lo[(used_nrows - 1) * tbuf_ncols].str32.offset;
+      size_t sz = static_cast<size_t>(abs(lastOffset)) - 1;
+
+      int done = 0;
+      while (!done) {
+        int old;
+        #pragma omp atomic capture
+        old = sb->numuses++;
+        if (old >= 0) {
+          memcpy(sb->mbuf->at(ptr), strbufs[k].mbuf->get(), sz);
+          done = 1;
+        }
+        #pragma omp atomic update
+        sb->numuses--;
+      }
+
+      int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
+      int32_t iptr = (int32_t) ptr;
+      for (size_t n = 0; n < used_nrows; n++) {
+        int32_t soff = lo->str32.offset;
+        *dest++ = (soff < 0)? soff - iptr : soff + iptr;
+        lo += tbuf_ncols;
+      }
+      k++;
+
+    } else if (types[i] > 0) {
+      int8_t elemsize = sizes[i];
+      const field64* src = tbuf + off;
+      if (elemsize == 8) {
+        uint64_t* dest = static_cast<uint64_t*>(col->data()) + row0;
+        for (size_t r = 0; r < used_nrows; r++) {
+          *dest = src->uint64;
+          src += tbuf_ncols;
+          dest++;
+        }
+      } else
+      if (elemsize == 4) {
+        uint32_t* dest = static_cast<uint32_t*>(col->data()) + row0;
+        for (size_t r = 0; r < used_nrows; r++) {
+          *dest = src->uint32;
+          src += tbuf_ncols;
+          dest++;
+        }
+      } else
+      if (elemsize == 1) {
+        uint8_t* dest = static_cast<uint8_t*>(col->data()) + row0;
+        for (size_t r = 0; r < used_nrows; r++) {
+          *dest = src->uint8;
+          src += tbuf_ncols;
+          dest++;
+        }
+      }
+    }
+    j++;
+    off += (sizes[i] > 0);
   }
 }
 
