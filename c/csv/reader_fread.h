@@ -114,7 +114,7 @@ private:
    * column. The upstream code then has an opportunity to upcast the column types
    * if requested by the user, or mark some columns as skipped.
    */
-  void userOverride(int8_t *types, const char* anchor, int ncols);
+  void userOverride(int8_t *types, const char* anchor);
 
   /**
    * This function is invoked by `freadMain` right before the main scan of the
@@ -150,7 +150,6 @@ private:
    */
   void progress(double percent);
 
-  void postprocessBuffer(FreadLocalParseContext *ctx);
   void orderBuffer(FreadLocalParseContext *ctx);
   void pushBuffer(FreadLocalParseContext *ctx);
 
@@ -211,6 +210,7 @@ class FreadLocalParseContext : public LocalParseContext
     virtual ~FreadLocalParseContext();
     virtual void push_buffers() override;
     virtual const char* read_chunk(const char* start, const char* end) override;
+    void postprocess();
 };
 
 

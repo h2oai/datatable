@@ -653,7 +653,7 @@ int FreadReader::freadMain()
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     ch = sof;
     memcpy(tmpTypes, types, (size_t)ncols);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor, ncols);  // colNames must not be changed but types[] can be
+    userOverride(types, colNamesAnchor);  // colNames must not be changed but types[] can be
 
     int nUserBumped = 0;
     ndrop = 0;
@@ -1015,7 +1015,7 @@ int FreadReader::freadMain()
       }
       ctx.anchor = thisJumpStart;
       ctx.used_nrows = myNrow;
-      postprocessBuffer(&ctx);
+      ctx.postprocess();
 
       #pragma omp ordered
       {

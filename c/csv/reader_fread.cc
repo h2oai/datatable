@@ -163,14 +163,14 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
+void FreadReader::userOverride(int8_t *types_, const char *anchor)
 {
   types = types_;
-  PyObject *colNamesList = PyList_New(ncols_);
-  PyObject *colTypesList = PyList_New(ncols_);
+  PyObject *colNamesList = PyList_New(ncols);
+  PyObject *colTypesList = PyList_New(ncols);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
-  for (int i = 0; i < ncols_; i++) {
+  for (int i = 0; i < ncols; i++) {
     RelStr ocol = colNames[i];
     PyObject* pycol = NULL;
     if (ocol.length > 0) {
@@ -204,7 +204,7 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor, int ncols_)
 
   g.pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
 
-  for (int i = 0; i < ncols_; i++) {
+  for (int i = 0; i < ncols; i++) {
     PyObject *t = PyList_GET_ITEM(colTypesList, i);
     types[i] = (int8_t) PyLong_AsUnsignedLongMask(t);
   }
@@ -306,62 +306,6 @@ void FreadReader::setFinalNrow(size_t nrows) {
     j++;
   }
   dt->nrows = (int64_t) nrows;
-}
-
-
-
-void FreadReader::postprocessBuffer(FreadLocalParseContext* ctx)
-{
-    StrBuf* ctx_strbufs = ctx->strbufs;
-    const uint8_t *anchor = (const uint8_t*) ctx->anchor;
-    size_t nrows = ctx->used_nrows;
-    RelStr* __restrict__ const lenoffs = (RelStr *__restrict__) ctx->obuf;
-    int colCount = (int) ctx->obuf_ncols;
-    uint8_t echar = ctx->quoteRule == 0? static_cast<uint8_t>(ctx->quote) :
-                    ctx->quoteRule == 1? '\\' : 0xFF;
-
-    for (int k = 0; k < nstrcols; k++) {
-      assert(ctx_strbufs != NULL);
-      RelStr *__restrict__ lo = lenoffs + ctx_strbufs[k].idx8;
-      MemoryBuffer* strdest = ctx_strbufs[k].mbuf;
-      int32_t off = 1;
-      size_t bufsize = ctx_strbufs[k].mbuf->size();
-      for (size_t n = 0; n < nrows; n++) {
-        int32_t len = lo->length;
-        if (len > 0) {
-          size_t zlen = (size_t) len;
-          if (bufsize < zlen * 3 + (size_t) off) {
-            bufsize = bufsize * 2 + zlen * 3;
-            strdest->resize(bufsize);
-          }
-          const uint8_t* src = anchor + lo->offset;
-          uint8_t* dest = static_cast<uint8_t*>(strdest->at(off - 1));
-          int res = check_escaped_string(src, zlen, echar);
-          if (res == 0) {
-            memcpy(dest, src, zlen);
-            off += zlen;
-            lo->offset = off;
-          } else if (res == 1) {
-            int newlen = decode_escaped_csv_string(src, len, dest, echar);
-            off += (size_t) newlen;
-            lo->offset = off;
-          } else {
-            int newlen = decode_win1252(src, len, dest);
-            assert(newlen > 0);
-            newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
-            off += (size_t) newlen;
-            lo->offset = off;
-          }
-        } else if (len == 0) {
-          lo->offset = off;
-        } else {
-          assert(len == NA_LENOFF);
-          lo->offset = -off;
-        }
-        lo += colCount;
-      }
-      ctx_strbufs[k].ptr = (size_t) (off - 1);
-    }
 }
 
 
@@ -548,6 +492,56 @@ FreadLocalParseContext::~FreadLocalParseContext() {
 
 void FreadLocalParseContext::push_buffers() {}
 const char* FreadLocalParseContext::read_chunk(const char* start, const char* end) {}
+
+
+void FreadLocalParseContext::postprocess()
+{
+  const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
+  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
+                  quoteRule == 1? '\\' : 0xFF;
+  for (int k = 0; k < nstrcols; ++k) {
+    MemoryBuffer* strdest = strbufs[k].mbuf;
+    field64* lo = obuf + strbufs[k].idx8;
+    int32_t off = 1;
+    size_t bufsize = strbufs[k].mbuf->size();
+    for (size_t n = 0; n < used_nrows; n++) {
+      int32_t len = lo->str32.length;
+      if (len > 0) {
+        size_t zlen = static_cast<size_t>(len);
+        size_t zoff = static_cast<size_t>(off);
+        if (bufsize < zlen * 3 + zoff) {
+          bufsize = bufsize * 2 + zlen * 3;
+          strdest->resize(bufsize);
+        }
+        const uint8_t* src = zanchor + lo->str32.offset;
+        uint8_t* dest = static_cast<uint8_t*>(strdest->at(off - 1));
+        int res = check_escaped_string(src, zlen, echar);
+        if (res == 0) {
+          memcpy(dest, src, zlen);
+          off += zlen;
+          lo->str32.offset = off;
+        } else if (res == 1) {
+          int newlen = decode_escaped_csv_string(src, len, dest, echar);
+          off += static_cast<size_t>(newlen);
+          lo->str32.offset = off;
+        } else {
+          int newlen = decode_win1252(src, len, dest);
+          assert(newlen > 0);
+          newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
+          off += static_cast<size_t>(newlen);
+          lo->str32.offset = off;
+        }
+      } else if (len == 0) {
+        lo->str32.offset = off;
+      } else {
+        assert(lo->str32.isna());
+        lo->str32.offset = -off;
+      }
+      lo += obuf_ncols;
+    }
+    strbufs[k].ptr = static_cast<size_t>(off - 1);
+  }
+}
 
 
 
