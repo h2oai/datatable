@@ -254,19 +254,29 @@ void ChunkedDataReader::read_all()
 // LocalParseContext
 //------------------------------------------------------------------------------
 
-LocalParseContext::LocalParseContext(size_t nrows, size_t ncols) {
+LocalParseContext::LocalParseContext(size_t ncols, size_t nrows) {
   obuf = nullptr;
-  obuf_ncols = ncols;
-  obuf_nrows = nrows;
+  obuf_ncols = 0;
+  obuf_nrows = 0;
   used_nrows = 0;
   row0 = 0;
-  size_t obuf_size = (ncols * nrows + 1) * sizeof(field64);
-  void* obuf_raw = malloc(obuf_size);
-  if (!obuf_raw) {
-    throw MemoryError() << "Cannot allocate " << obuf_size
-                        << " for a temporary buffer";
+  allocate_obuf(ncols, nrows);
+}
+
+
+void LocalParseContext::allocate_obuf(size_t ncols, size_t nrows) {
+  size_t old_size = obuf? (obuf_ncols * obuf_nrows + 1) * sizeof(field64) : 0;
+  size_t new_size = (ncols * nrows + 1) * sizeof(field64);
+  if (new_size > old_size) {
+    void* obuf_raw = realloc(obuf, new_size);
+    if (!obuf_raw) {
+      throw MemoryError() << "Cannot allocate " << new_size
+                          << " bytes for a temporary buffer";
+    }
+    obuf = static_cast<field64*>(obuf_raw);
   }
-  obuf = static_cast<field64*>(obuf_raw);
+  obuf_ncols = ncols;
+  obuf_nrows = nrows;
 }
 
 
@@ -288,14 +298,7 @@ LocalParseContext::~LocalParseContext() {
 
 field64* LocalParseContext::next_row() {
   if (used_nrows == obuf_nrows) {
-    obuf_nrows += (obuf_nrows + 1) / 2;
-    size_t obuf_size = obuf_ncols * obuf_nrows * sizeof(field64);
-    void* obuf_raw = realloc(obuf, obuf_size);
-    if (!obuf_raw) {
-      throw RuntimeError() << "Unable to reallocate temporary buffer to size "
-                           << obuf_size;
-    }
-    obuf = static_cast<field64*>(obuf_raw);
+    allocate_obuf(obuf_ncols, obuf_nrows * 3 / 2);
   }
   return obuf + (used_nrows++) * obuf_ncols;
 }

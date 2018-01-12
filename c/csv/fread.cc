@@ -770,8 +770,7 @@ int FreadReader::freadMain()
     size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
 
     // Allocate thread-private row-major myBuffs
-    FreadLocalParseContext ctx(myBuffRows, rowSize/8, *this, &stopTeam);
-    prepareLocalParseContext(&ctx);
+    FreadLocalParseContext ctx(rowSize/8, myBuffRows, *this);
     FieldParseContext fctx = makeFieldParseContext(tch, ctx.obuf, thisJumpStart);
 
     #pragma omp for ordered schedule(dynamic) reduction(+:thNextGoodLine,thRead,thPush)

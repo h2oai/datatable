@@ -247,7 +247,7 @@ class LocalParseContext {
     // std::vector<StrBuf2> strbufs;
 
   public:
-    LocalParseContext(size_t nrows, size_t ncols);
+    LocalParseContext(size_t ncols, size_t nrows);
     virtual ~LocalParseContext();
     virtual field64* next_row();
     virtual void push_buffers() = 0;
@@ -255,6 +255,9 @@ class LocalParseContext {
     virtual void order(size_t r0) { row0 = r0; }
     virtual size_t get_nrows() { return used_nrows; }
     virtual void set_nrows(size_t n) { used_nrows = n; }
+
+  private:
+    void allocate_obuf(size_t ncols, size_t nrows);
 };
 
 typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;

@@ -185,7 +185,6 @@ private:
    */
   void progress(double percent);
 
-  void prepareLocalParseContext(FreadLocalParseContext *ctx);
   void postprocessBuffer(FreadLocalParseContext *ctx);
   void orderBuffer(FreadLocalParseContext *ctx);
   void pushBuffer(FreadLocalParseContext *ctx);
@@ -222,38 +221,32 @@ private:
  *
  */
 // TODO: derive from LocalParseContext
-struct FreadLocalParseContext
+class FreadLocalParseContext : public LocalParseContext
 {
-  field64* obuf;
-  size_t   obuf_ncols;
-  size_t   obuf_nrows;
-  size_t   used_nrows;
-  size_t row0;
+  public:
+    const char* anchor;
 
-  const char* anchor;
+    // Reference to the flag that controls the parser's execution. Setting this
+    // flag to true will force parsing of the CSV file to terminate in the near
+    // future.
+    // bool* stopTeam;
 
-  // Reference to the flag that controls the parser's execution. Setting this
-  // flag to true will force parsing of the CSV file to terminate in the near
-  // future.
-  bool* stopTeam;
+    int quoteRule;
 
-  int threadn;
+    char quote;
 
-  int quoteRule;
+    int : 24;
 
-  char quote;
-
-  int64_t : 56;
-
-  // Any additional implementation-specific parameters.
-  StrBuf* strbufs;
-  int nstrcols;
-  int : 32;
+    // Any additional implementation-specific parameters.
+    StrBuf* strbufs;
+    int nstrcols;
+    int : 32;
 
   public:
-    FreadLocalParseContext(size_t brows, size_t bcols, FreadReader&,
-                           bool* stopTeam);
+    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&);
     virtual ~FreadLocalParseContext();
+    virtual void push_buffers() override;
+    virtual const char* read_chunk(const char* start, const char* end) override;
 };
 
 

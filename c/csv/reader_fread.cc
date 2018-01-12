@@ -315,41 +315,9 @@ void FreadReader::setFinalNrow(size_t nrows) {
 }
 
 
-void FreadReader::prepareLocalParseContext(FreadLocalParseContext *ctx)
-{
-  try {
-    ctx->nstrcols = nstrcols;
-    ctx->strbufs = new StrBuf[nstrcols]();
-    for (int i = 0, j = 0, k = 0, off8 = 0; i < (int)ncols; i++) {
-      if (types[i] == CT_DROP) continue;
-      if (types[i] == CT_STRING) {
-        assert(k < nstrcols);
-        ctx->strbufs[k].mbuf = new MemoryMemBuf(4096);
-        ctx->strbufs[k].ptr = 0;
-        ctx->strbufs[k].idx8 = off8;
-        ctx->strbufs[k].idxdt = j;
-        k++;
-      }
-      off8 += (sizes[i] > 0);
-      j++;
-    }
-    return;
-
-  } catch (std::exception&) {
-    printf("prepareLocalParseContext() failed\n");
-    for (int k = 0; k < nstrcols; k++) {
-      if (ctx->strbufs[k].mbuf)
-        ctx->strbufs[k].mbuf->release();
-    }
-    dtfree(ctx->strbufs);
-    *(ctx->stopTeam) = 1;
-  }
-}
-
 
 void FreadReader::postprocessBuffer(FreadLocalParseContext* ctx)
 {
-  try {
     StrBuf* ctx_strbufs = ctx->strbufs;
     const uint8_t *anchor = (const uint8_t*) ctx->anchor;
     size_t nrows = ctx->used_nrows;
@@ -400,17 +368,11 @@ void FreadReader::postprocessBuffer(FreadLocalParseContext* ctx)
       }
       ctx_strbufs[k].ptr = (size_t) (off - 1);
     }
-    return;
-  } catch (std::exception&) {
-    printf("postprocessBuffer() failed\n");
-    *(ctx->stopTeam) = 1;
-  }
 }
 
 
 void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
 {
-  try {
     size_t colCount = ctx->obuf_ncols;
     StrBuf* ctx_strbufs = ctx->strbufs;
     for (int k = 0; k < nstrcols; ++k) {
@@ -456,11 +418,6 @@ void FreadReader::orderBuffer(FreadLocalParseContext *ctx)
       ctx_strbufs[k].ptr = ptr;
       sb->ptr = ptr + sz;
     }
-    return;
-  } catch (std::exception&) {
-    printf("orderBuffer() failed");
-    *(ctx->stopTeam) = 1;
-  }
 }
 
 
@@ -559,25 +516,32 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t brows, size_t bcols, FreadReader& f, bool* stopTeam_)
+    size_t bcols, size_t brows, FreadReader& f
+  ) : LocalParseContext(bcols, brows)
 {
   anchor = nullptr;
-  obuf = nullptr;
-  obuf_nrows = brows;
-  obuf_ncols = bcols;
-  used_nrows = 0;
-  row0 = 0;
-
-  stopTeam = stopTeam_;
+  strbufs = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
-  obuf = (field64*) malloc((brows * bcols + 1) * 8);
-  if (!obuf) *stopTeam = true;
+  nstrcols = f.nstrcols;
+  strbufs = new StrBuf[nstrcols]();
+  for (int i = 0, j = 0, k = 0, off8 = 0; i < f.ncols; i++) {
+    if (f.types[i] == CT_DROP) continue;
+    if (f.types[i] == CT_STRING) {
+      assert(k < nstrcols);
+      strbufs[k].mbuf = new MemoryMemBuf(4096);
+      strbufs[k].ptr = 0;
+      strbufs[k].idx8 = off8;
+      strbufs[k].idxdt = j;
+      k++;
+    }
+    off8 += (f.sizes[i] > 0);
+    j++;
+  }
 }
 
 
 FreadLocalParseContext::~FreadLocalParseContext() {
-  free(obuf);
   if (strbufs) {
     for (int k = 0; k < nstrcols; k++) {
       if (strbufs[k].mbuf)
@@ -588,10 +552,14 @@ FreadLocalParseContext::~FreadLocalParseContext() {
 }
 
 
+void FreadLocalParseContext::push_buffers() {}
+const char* FreadLocalParseContext::read_chunk(const char* start, const char* end) {}
 
-//------------------------------------------------------------------------------
+
+
+//==============================================================================
 // FieldParseContext
-//------------------------------------------------------------------------------
+//==============================================================================
 void parse_string(FieldParseContext&);
 
 
