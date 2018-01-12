@@ -16,11 +16,16 @@
 #ifndef dt_CSV_READER_H
 #define dt_CSV_READER_H
 #include <Python.h>
-#include <memory>        // std::unique_ptr
-#include "column.h"
-#include "datatable.h"
-#include "memorybuf.h"
+#include <limits>         // std::numeric_limits
+#include <memory>         // std::unique_ptr
+#include <string>         // std::string
+#include <vector>         // std::vector
+#include "column.h"       // Column
+#include "datatable.h"    // DataTable
+#include "memorybuf.h"    // MemoryBuffer
+#include "writebuf.h"     // WritableBuffer
 #include "utils/pyobj.h"
+
 
 
 //------------------------------------------------------------------------------
@@ -31,10 +36,7 @@
  */
 class GenericReader
 {
-  //----------------------------------------------------------------------------
-  // Input parameters
-  //----------------------------------------------------------------------------
-  //
+  //---- Input parameters ----
   // nthreads:
   //   Number of threads to use; 0 means use maximum possible, negative number
   //   means use that many less than the maximum. The default is 0.
@@ -83,9 +85,7 @@ class GenericReader
     bool blank_is_na;
     bool number_is_na;
 
-  //----------------------------------------------------------------------------
-  // Runtime parameters
-  //----------------------------------------------------------------------------
+  //---- Runtime parameters ----
   // line:
   //   Line number (within the original input) of the `offset` pointer.
   //
@@ -104,9 +104,7 @@ class GenericReader
     int32_t fileno;
     int : 32;
 
-  //----------------------------------------------------------------------------
-  // Public API
-  //----------------------------------------------------------------------------
+  //---- Public API ----
   public:
     GenericReader(const PyObj& pyreader);
     ~GenericReader();
@@ -175,25 +173,6 @@ class GenericReader
 // Helper classes
 //------------------------------------------------------------------------------
 
-/*
-struct ColumnSpec {
-  enum class Type: int8_t {
-    Drop,
-    Bool,
-    Integer,
-    Real,
-    String
-  };
-
-  std::string name;
-  Type type;
-  int64_t : 56;
-
-  ColumnSpec(std::string n, Type t): name(n), type(t) {}
-};
-*/
-
-
 /**
  * Per-column per-thread temporary string buffers used to assemble processed
  * string data. This buffer is used as a "staging ground" where the string data
@@ -223,8 +202,6 @@ struct StrBuf2 {
 
 
 
-
-
 /**
  * "Relative string": a string defined as an offset+length relative to some
  * anchor point (which has to be provided separately). This is the internal data
@@ -233,8 +210,128 @@ struct StrBuf2 {
 struct RelStr {
   int32_t offset;
   int32_t length;
+
+  bool isna() { return length == std::numeric_limits<int32_t>::min(); }
+  void setna() { length = std::numeric_limits<int32_t>::min(); }
 };
 
+
+
+union field64 {
+  int8_t   int8;
+  int32_t  int32;
+  int64_t  int64;
+  uint8_t  uint8;
+  uint32_t uint32;
+  uint64_t uint64;
+  float    float32;
+  double   float64;
+  RelStr   str32;
+};
+
+
+
+//------------------------------------------------------------------------------
+// LocalParseContext
+//------------------------------------------------------------------------------
+
+/**
+ *
+ */
+class LocalParseContext {
+  public:
+    field64* tbuf;
+    size_t tbuf_ncols;
+    size_t tbuf_nrows;
+    size_t used_nrows;
+    size_t row0;
+    // std::vector<StrBuf2> strbufs;
+
+  public:
+    LocalParseContext(size_t ncols, size_t nrows);
+    virtual ~LocalParseContext();
+    virtual field64* next_row();
+    virtual void push_buffers() = 0;
+    virtual const char* read_chunk(const char* start, const char* end) = 0;
+    virtual void order(size_t r0) { row0 = r0; }
+    virtual size_t get_nrows() { return used_nrows; }
+    virtual void set_nrows(size_t n) { used_nrows = n; }
+
+  private:
+    void allocate_tbuf(size_t ncols, size_t nrows);
+};
+
+typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
+
+
+
+//------------------------------------------------------------------------------
+// GReaderOutputColumn
+//------------------------------------------------------------------------------
+
+class GReaderOutputColumn {
+  public:
+    std::string name;
+    MemoryBuffer* data;
+    int64_t valid_from_row;
+    int8_t type;
+    int64_t : 56;
+
+  public:
+    GReaderOutputColumn();
+    virtual ~GReaderOutputColumn();
+};
+
+
+class GReaderOutputStringColumn : public GReaderOutputColumn {
+  public:
+    WritableBuffer* strdata;
+
+  public:
+    GReaderOutputStringColumn();
+    virtual ~GReaderOutputStringColumn();
+};
+
+
+
+//------------------------------------------------------------------------------
+// ChunkedDataReader
+//------------------------------------------------------------------------------
+
+class ChunkedDataReader
+{
+  private:
+    // the data is read from here:
+    const char* inputptr;
+    size_t inputsize;
+    int64_t inputline;
+
+    // and saved into here, via the intermediate buffers TLocalParseContext, that
+    // are instantiated within the read_all() method:
+    std::vector<GReaderOutputColumn> cols;
+
+    // Additional parameters
+    size_t max_nrows;
+    size_t alloc_nrows;
+
+    // Runtime parameters:
+    size_t chunksize;
+    size_t nchunks;
+    int nthreads;
+    bool chunks_contiguous;
+    int : 24;
+
+public:
+  ChunkedDataReader();
+  virtual ~ChunkedDataReader();
+  void set_input(const char* ptr, size_t size, int64_t line);
+
+  virtual LocalParseContextPtr init_thread_context() = 0;
+  virtual void realloc_columns(size_t n) = 0;
+  virtual void compute_chunking_strategy();
+  virtual const char* adjust_chunk_start(const char* ch, const char* eof);
+  void read_all();
+};
 
 
 #endif

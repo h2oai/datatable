@@ -20,6 +20,7 @@
 #include "utils.h"
 #include "utils/omp.h"
 #include "memorybuf.h"
+#include "csv/reader.h"
 
 
 // Ordered hierarchy of types
@@ -36,7 +37,7 @@ typedef enum {
   CT_FLOAT64     = 8,   // double (64-bit IEEE 754 float)
   CT_FLOAT64_EXT = 9,   // double, with various "NaN" literals
   CT_FLOAT64_HEX = 10,  // double, in hexadecimal format
-  CT_STRING      = 11,  // lenOff struct below
+  CT_STRING      = 11,  // RelStr struct below
   NUMTYPE        = 12   // placeholder for the number of types including drop
 } colType;
 
@@ -46,24 +47,6 @@ extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
 
 
-// Strings are pushed by fread_main using an offset from an anchor address plus
-// string length; fread_impl.c then manages strings appropriately
-struct lenOff {
-  int32_t len;  // signed to distinguish NA vs empty ""
-  int32_t off;
-};
-
-
-union field64 {
-  int8_t   int8;
-  int32_t  int32;
-  int64_t  int64;
-  uint32_t uint32;
-  uint64_t uint64;
-  float    float32;
-  double   float64;
-  lenOff   str32;
-};
 
 
 struct FieldParseContext {
@@ -125,7 +108,7 @@ typedef void (*ParserFnPtr)(FieldParseContext& ctx);
 #define NA_INT64         INT64_MIN
 #define NA_FLOAT64_I64   0x7FF00000000007A2
 #define NA_FLOAT32_I32   0x7F8007A2
-#define NA_LENOFF        INT32_MIN  // lenOff.len only; lenOff.off undefined for NA
+#define NA_LENOFF        INT32_MIN  // RelStr.len only; RelStr.off undefined for NA
 #define INF_FLOAT32_I32  0x7F800000
 #define INF_FLOAT64_I64   0x7FF0000000000000
 
@@ -162,48 +145,6 @@ struct StrBuf {
   int : 32;
 };
 
-
-
-
-// *****************************************************************************
-
-struct ThreadLocalFreadParsingContext
-{
-  // Pointer that serves as a starting point for all offsets within the `lenOff`
-  // structs.
-  const char *__restrict__ anchor;
-
-  // Output buffer. Within the buffer the data is stored in row-major order,
-  // i.e. in the same order as in the original CSV file.
-  field64* __restrict__ buff;
-
-  // Size (in bytes) for a single row of data within the buffer. This should be
-  // equal to `ncol * 8`.
-  size_t rowSize;
-
-  // Starting row index within the output DataTable for the current data chunk.
-  size_t DTi;
-
-  // Number of rows currently being stored within the buffers. The allocation
-  // size of each `buffX` is thus at least `nRows * rowSizeX`.
-  size_t nRows;
-
-  // Reference to the flag that controls the parser's execution. Setting this
-  // flag to true will force parsing of the CSV file to terminate in the near
-  // future.
-  bool* stopTeam;
-
-  int threadn;
-
-  int quoteRule;
-
-  char quote;
-
-  int64_t : 56;
-
-  // Any additional implementation-specific parameters.
-  StrBuf* strbufs;
-};
 
 
 #endif

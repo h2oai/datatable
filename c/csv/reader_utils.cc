@@ -13,8 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#include "worker.h"
-#include <limits>  // std::numeric_limits
+#include "csv/reader.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -131,10 +130,10 @@ void ChunkedDataReader::read_all()
         }
       }
     }
-    // Wait for chunking calculations, in case ThreadContext needs them...
+    // Wait for chunking calculations, in case LocalParseContext needs them...
     #pragma omp barrier
 
-    ThreadContextPtr tctx = init_thread_context();
+    LocalParseContextPtr tctx = init_thread_context();
     const char* tend;
     size_t tnrows;
 
@@ -250,27 +249,44 @@ void ChunkedDataReader::read_all()
 }
 
 
+
 //------------------------------------------------------------------------------
-// ThreadContext
+// LocalParseContext
 //------------------------------------------------------------------------------
 
-ThreadContext::ThreadContext(int ith, size_t nrows, size_t ncols) {
-  ithread = ith;
-  rowsize = 8 * ncols;
-  wbuf_nrows = nrows;
-  wbuf = malloc(rowsize * wbuf_nrows);
+LocalParseContext::LocalParseContext(size_t ncols, size_t nrows) {
+  tbuf = nullptr;
+  tbuf_ncols = 0;
+  tbuf_nrows = 0;
   used_nrows = 0;
   row0 = 0;
+  allocate_tbuf(ncols, nrows);
 }
 
 
-ThreadContext::~ThreadContext() {
+void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
+  size_t old_size = tbuf? (tbuf_ncols * tbuf_nrows + 1) * sizeof(field64) : 0;
+  size_t new_size = (ncols * nrows + 1) * sizeof(field64);
+  if (new_size > old_size) {
+    void* tbuf_raw = realloc(tbuf, new_size);
+    if (!tbuf_raw) {
+      throw MemoryError() << "Cannot allocate " << new_size
+                          << " bytes for a temporary buffer";
+    }
+    tbuf = static_cast<field64*>(tbuf_raw);
+  }
+  tbuf_ncols = ncols;
+  tbuf_nrows = nrows;
+}
+
+
+LocalParseContext::~LocalParseContext() {
   assert(used_nrows == 0);
-  if (wbuf) free(wbuf);
+  free(tbuf);
 }
 
 
-// void ThreadContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
+// void LocalParseContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
 //   size_t ncols = columns.size();
 //   for (size_t i = 0; i < ncols; ++i) {
 //     if (columns[i].type == ColumnSpec::Type::String) {
@@ -280,20 +296,15 @@ ThreadContext::~ThreadContext() {
 // }
 
 
-void* ThreadContext::next_row() {
-  if (used_nrows == wbuf_nrows) {
-    wbuf_nrows += (wbuf_nrows + 1) / 2;
-    wbuf = realloc(wbuf, wbuf_nrows * rowsize);
-    if (!wbuf) {
-      throw RuntimeError() << "Unable to allocate " << wbuf_nrows * rowsize
-                           << " bytes for the temporary buffers";
-    }
+field64* LocalParseContext::next_row() {
+  if (used_nrows == tbuf_nrows) {
+    allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
   }
-  return static_cast<void*>(static_cast<char*>(wbuf) + (used_nrows++) * rowsize);
+  return tbuf + (used_nrows++) * tbuf_ncols;
 }
 
 
-void ThreadContext::push_buffers()
+void LocalParseContext::push_buffers()
 {
   if (used_nrows == 0) return;
   /*
@@ -309,7 +320,7 @@ void ThreadContext::push_buffers()
       sb.usedsize = 0;
 
       int32_t* dest = static_cast<int32_t*>(outcols[j].data);
-      RelStr* src = static_cast<RelStr*>(ctx.wbuf);
+      RelStr* src = static_cast<RelStr*>(ctx.tbuf);
       int32_t offset = abs(dest[-1]);
       for (int64_t row = 0; row < ctx.used_nrows; ++row) {
         int32_t o = src->offset;
@@ -325,3 +336,37 @@ void ThreadContext::push_buffers()
   */
   used_nrows = 0;
 }
+
+
+
+
+
+//------------------------------------------------------------------------------
+// StrBuf2
+//------------------------------------------------------------------------------
+
+StrBuf2::StrBuf2(int64_t i) {
+  colidx = i;
+  writepos = 0;
+  usedsize = 0;
+  allocsize = 1024;
+  strdata = static_cast<char*>(malloc(allocsize));
+  if (!strdata) {
+    throw RuntimeError()
+          << "Unable to allocate 1024 bytes for a temporary buffer";
+  }
+}
+
+StrBuf2::~StrBuf2() {
+  free(strdata);
+}
+
+void StrBuf2::resize(size_t newsize) {
+  strdata = static_cast<char*>(realloc(strdata, newsize));
+  allocsize = newsize;
+  if (!strdata) {
+    throw RuntimeError() << "Unable to allocate " << newsize
+                         << " bytes for a temporary buffer";
+  }
+}
+
