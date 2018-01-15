@@ -15,10 +15,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_FREAD_IMPL_H
 #define dt_FREAD_IMPL_H
-#include "csv/reader.h"
 #include <Python.h>
-#include "csv/py_csv.h"
+#include <vector>        // std::vector
 #include "csv/fread.h"
+#include "csv/reader.h"
+#include "csv/py_csv.h"
 #include "memorybuf.h"
 
 class FreadLocalParseContext;
@@ -36,8 +37,6 @@ class FreadLocalParseContext;
 class FreadReader
 {
   GenericReader& g;
-  RelStr* colNames;
-  char* lineCopy;
 
   //----- Runtime parameters ---------------------------------------------------
   // ncols
@@ -55,13 +54,12 @@ class FreadReader
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
+  std::vector<GReaderOutputColumn> columns;
   char* targetdir;
   StrBuf** strbufs;
   DataTablePtr dt;
-  int ncols;
   int nstrcols;
   int ndigits;
-  int: 32;
   int8_t* types;
   int8_t* sizes;
   int8_t* tmpTypes;
@@ -104,6 +102,8 @@ private:
   FieldParseContext makeFieldParseContext(
       const char*& ch, field64* target, const char* anchor);
 
+  void parse_column_names(FieldParseContext& ctx);
+
   /**
    * This callback is invoked by `freadMain` after the initial pre-scan of the
    * file, when all parsing parameters have been determined; most importantly the
@@ -114,7 +114,7 @@ private:
    * column. The upstream code then has an opportunity to upcast the column types
    * if requested by the user, or mark some columns as skipped.
    */
-  void userOverride(int8_t *types, const char* anchor);
+  void userOverride();
 
   /**
    * This function is invoked by `freadMain` right before the main scan of the
@@ -162,21 +162,6 @@ private:
 //------------------------------------------------------------------------------
 
 /**
- * tbuf
- *   Output buffer. Within the buffer the data is stored in row-major order,
- *   i.e. in the same order as in the original CSV file. We view the buffer as
- *   a rectangular grid having `tbuf_ncols * tbuf_nrows` elements (+1 extra).
- *
- * tbuf_ncols, tbuf_nrows
- *   Dimensions of the output buffer.
- *
- * used_nrows
- *   Number of rows of data currently stored in `tbuf`. This can never exceed
- *   `tbuf_nrows`.
- *
- * row0
- *   Starting row index within the output DataTable for the current data chunk.
- *
  * anchor
  *   Pointer that serves as a starting point for all offsets in "RelStr" fields.
  *
@@ -195,7 +180,7 @@ class FreadLocalParseContext : public LocalParseContext
 
     // TODO: these should be replaced with a single reference to
     //       std::vector<GReaderOutputColumn>
-    int& ncols;
+    int ncols;
     StrBuf**& ostrbufs;
     int8_t*& types;
     int8_t*& sizes;
@@ -241,5 +226,12 @@ class FreadLocalParseContext : public LocalParseContext
 
 
 #define DTPRINT(...) g.trace(__VA_ARGS__)
+
+
+#define ASSERT(test) do { \
+  if (!(test)) \
+    STOP("Assertion violation at line %d, please report", __LINE__); \
+} while(0)
+
 
 #endif

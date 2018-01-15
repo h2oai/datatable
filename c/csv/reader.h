@@ -236,7 +236,20 @@ union field64 {
 //------------------------------------------------------------------------------
 
 /**
+ * tbuf
+ *   Output buffer. Within the buffer the data is stored in row-major order,
+ *   i.e. in the same order as in the original CSV file. We view the buffer as
+ *   a rectangular grid having `tbuf_ncols * tbuf_nrows` elements (+1 extra).
  *
+ * tbuf_ncols, tbuf_nrows
+ *   Dimensions of the output buffer.
+ *
+ * used_nrows
+ *   Number of rows of data currently stored in `tbuf`. This can never exceed
+ *   `tbuf_nrows`.
+ *
+ * row0
+ *   Starting row index within the output DataTable for the current data chunk.
  */
 class LocalParseContext {
   public:

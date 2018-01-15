@@ -24,6 +24,7 @@
 
 GReaderOutputColumn::GReaderOutputColumn() {
   data = nullptr;
+  valid_from_row = 0;
   type = 0;
 }
 

@@ -25,11 +25,6 @@ const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
 int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
 
-#define ASSERT(test) do { \
-  if (!(test)) \
-    STOP("Assertion violation at line %d, please report", __LINE__); \
-} while(0)
-
 
 
 /**
@@ -52,11 +47,13 @@ static const char* strlim(const char* ch, size_t limit) {
 }
 
 
+// TODO: make static member of GReaderOutputColumn
 const char* FreadReader::printTypes() const {
   // e.g. files with 10,000 columns, don't print all of it to verbose output.
   static char out[111];
   char* ch = out;
   if (types) {
+    int ncols = columns.size();
     int tt = ncols<=110? ncols : 90;
     for (int i=0; i<tt; i++) {
       *ch++ = typeSymbols[types[i]];
@@ -271,6 +268,7 @@ int FreadReader::freadMain()
     // Find the first line with the consistent number of fields.  There might
     // be irregular header lines above it.
     const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
+    int ncols;
     if (fill) {
       // start input from first populated line; do not alter sof.
       ncols = topNmax;
@@ -290,9 +288,15 @@ int FreadReader::freadMain()
         }
       }
     }
-    // For standard regular separated files, we're now on the first byte of the file.
-
     ASSERT(ncols >= 1 && line >= 1);
+
+    // Create vector of Column objects
+    columns.reserve(ncols);
+    for (int i = 0; i < ncols; i++) {
+      columns.push_back(GReaderOutputColumn());
+    }
+
+    // For standard regular separated files, we're now on the first byte of the file.
     ch = sof;
     int tt = ctx.countfields();
     ch = sof;  // move back to start of line since countfields() moved to next
@@ -310,13 +314,13 @@ int FreadReader::freadMain()
       ch = prevStart;
       int ttt = ctx.countfields();
       ASSERT(ttt != ncols);
+      ASSERT(ch==sof);
       if (ttt > 1) {
         DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
                "line %d <<%s>> before it because it has a different number of fields (%d).",
                line, strlim(sof, 30), ncols, line-1, strlim(prevStart, 30), ttt);
       }
     }
-    ASSERT(ch==sof);
   }
 
 
@@ -331,6 +335,7 @@ int FreadReader::freadMain()
   const char* lastRowEnd; // Pointer to the end of the data section
   {
     if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
+    int ncols = columns.size();
     types = new int8_t[ncols];
     sizes = new int8_t[ncols];
     tmpTypes = new int8_t[ncols];
@@ -593,74 +598,41 @@ int FreadReader::freadMain()
 
 
   //*********************************************************************************************
-  // [8] Assign column names (if present)
+  // [8] Parse column names (if present)
   //
   //     This section also moves the `sof` pointer to point at the first row
   //     of data ("removing" the column names).
   //*********************************************************************************************
-  double tLayout;  // Timer for assigning column names
-  const char* colNamesAnchor = sof;
-  {
+  if (header == 1) {
     g.trace("[08] Assign column names");
-
-    ch = sof;  // back to start of first row (likely column names)
-    colNames = new RelStr[ncols];
-    for (int i = 0; i < ncols; i++) {
-      colNames[i].length = 0;
-      colNames[i].offset = 0;
-    }
-
-    if (header == 1) {
-      line++;
-      if (sep==' ') while (*ch==' ') ch++;
-      FieldParseContext fctx = makeFieldParseContext(ch, (field64*)colNames, colNamesAnchor);
-      ch--;
-      for (int i=0; i<ncols; i++) {
-        // Use Field() here as it handles quotes, leading space etc inside it
-        ch++;
-        parse_string(fctx);  // stores the string length and offset as <uint,uint> in colNames[i]
-        fctx.target++;
-        if (*ch!=sep) break;
-        if (sep==' ') {
-          while (ch[1]==' ') ch++;
-          if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') { ch++; break; }
-        }
-      }
-      if (fctx.skip_eol()) {
-        sof = ch;
-      } else {
-        ASSERT(*ch=='\0');
-        sof = ch;
-      }
-      // now on first data row (row after column names)
-      // when fill=TRUE and column names shorter (test 1635.2), leave calloc initialized RelStr.len==0
-    }
-    tLayout = wallclock();
+    field64 tmp;
+    FieldParseContext fctx = makeFieldParseContext(ch, &tmp, /* anchor= */ sof);
+    ch = sof;
+    parse_column_names(fctx);
+    sof = ch;  // Update sof to point to the first line after the columns
   }
 
 
   //*********************************************************************************************
   // [9] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
+  double tLayout = wallclock();
   double tColType;    // Timer for applying user column class overrides
   double tAlloc;      // Timer for allocating the DataTable
   int ndrop;          // Number of columns that will be dropped from the file being read
-  int nStringCols;    // Number of string columns in the file
-  int nNonStringCols; // Number of all other columns in the file
   size_t rowSize;
   size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
+    size_t ncols = columns.size();
     ch = sof;
-    memcpy(tmpTypes, types, (size_t)ncols);      // copy types => tmpTypes
-    userOverride(types, colNamesAnchor);  // colNames must not be changed but types[] can be
+    memcpy(tmpTypes, types, ncols);      // copy types => tmpTypes
+    userOverride();
 
     int nUserBumped = 0;
     ndrop = 0;
     rowSize = 0;
-    nStringCols = 0;
-    nNonStringCols = 0;
-    for (int j = 0; j < ncols; j++) {
+    for (size_t j = 0; j < ncols; j++) {
       sizes[j] = typeSize[types[j]];
       if (types[j] == CT_DROP) {
         ndrop++;
@@ -669,16 +641,11 @@ int FreadReader::freadMain()
       rowSize += 8;
       if (types[j] < tmpTypes[j]) {
         // FIXME: if the user wants to override the type, let them
-        STOP("Attempt to override column %d \"%.*s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
+        STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
              "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-             j+1, colNames[j].length, colNamesAnchor+colNames[j].offset, typeName[tmpTypes[j]], typeName[types[j]]);
+             j+1, columns[j].name.data(), typeName[tmpTypes[j]], typeName[types[j]]);
       }
       nUserBumped += (types[j] > tmpTypes[j]);
-      if (types[j] == CT_STRING) {
-        nStringCols++;
-      } else {
-        nNonStringCols++;
-      }
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",
@@ -728,6 +695,7 @@ int FreadReader::freadMain()
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
+  int ncols = (int) columns.size();
   bool fillme = fill || (ncols==1 && !skipEmptyLines);
 
   if (nJumps/*from sampling*/ > 1) {
@@ -951,9 +919,8 @@ int FreadReader::freadMain()
                   if (verbose) {
                     char temp[1001];
                     int len = snprintf(temp, 1000,
-                      "Column %d (\"%.*s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                      j+1, colNames[j].length, colNamesAnchor + colNames[j].offset,
-                      typeName[abs(joldType)], typeName[abs(thisType)],
+                      "Column %d (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
+                      j+1, columns[j].name.data(), typeName[abs(joldType)], typeName[abs(thisType)],
                       (int)(tch-fieldStart), fieldStart, (llu)(ctx.row0+myNrow));
                     typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
                     strcpy(typeBumpMsg+typeBumpMsgSize, temp);
@@ -1115,8 +1082,6 @@ int FreadReader::freadMain()
 
     if (nTypeBump) {
       rowSize = 0;
-      nStringCols = 0;
-      nNonStringCols = 0;
       for (int j=0, resj=-1; j<ncols; j++) {
         if (types[j] == CT_DROP) continue;
         resj++;
@@ -1126,7 +1091,6 @@ int FreadReader::freadMain()
           sizes[j] = typeSize[types[j]];
           assert(sizes[j] != 0);
           rowSize += 8;
-          if (types[j] == CT_STRING) nStringCols++; else nNonStringCols++;
         } else if (types[j]>=1) {
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
           // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
