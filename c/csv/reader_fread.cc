@@ -14,12 +14,13 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"
-#include "csv/reader.h"
-#include "csv/fread.h"
 #include <Python.h>
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
+#include "csv/reader.h"
+#include "csv/reader_parsers.h"
+#include "csv/fread.h"
 #include "memorybuf.h"
 #include "datatable.h"
 #include "column.h"
@@ -52,17 +53,16 @@ static char fname[1000];
 
 
 //------------------------------------------------------------------------------
+// Initialization
+//------------------------------------------------------------------------------
 
 FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   targetdir = nullptr;
   strbufs = nullptr;
-  colNames = nullptr;
-  lineCopy = nullptr;
   types = nullptr;
   sizes = nullptr;
   tmpTypes = nullptr;
   eof = nullptr;
-  ncols = 0;
   nstrcols = 0;
   ndigits = 0;
   whiteChar = dec = sep = quote = '\0';
@@ -74,8 +74,6 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
 
 FreadReader::~FreadReader() {
   free(strbufs);
-  free(colNames);
-  free(lineCopy);
   free(types);
   free(sizes);
   free(tmpTypes);
@@ -112,6 +110,95 @@ DataTablePtr FreadReader::read() {
 
 
 //------------------------------------------------------------------------------
+// Parsing steps
+//------------------------------------------------------------------------------
+
+/**
+ * Parse a single line of input starting from location `ctx.ch` as strings,
+ * and interpret them as column names. At the end of this function the parsing
+ * location `ctx.ch` will be moved to the beginning of the next line.
+ *
+ * The column names will be stored in `columns[i].name` fields. If the number
+ * of column names on the input line is greater than the number of `columns`,
+ * then the `columns` array will be extended to accomodate extra columns. If
+ * the number of column names is less than the number of allocated columns,
+ * then the missing columns will retain their default empty names.
+ *
+ * This function assumes that the `quoteRule` and `quote` were already detected
+ * correctly, so that `parse_string()` can parse each field without error. If
+ * not, a `RuntimeError` will be thrown.
+ */
+void FreadReader::parse_column_names(FieldParseContext& ctx) {
+  const char*& ch = ctx.ch;
+
+  // Skip whitespace at the beginning of a line.
+  if (stripWhite && (*ch == ' ' || (*ch == '\t' && sep != '\t'))) {
+    while (*ch == ' ' || *ch == '\t') ch++;
+  }
+
+  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
+                  quoteRule == 1? '\\' : 0xFF;
+
+  size_t ncols = columns.size();
+  size_t ncols_found;
+  for (size_t i = 0; ; ++i) {
+    // Parse string field, but do not advance `ctx.target`: on the next
+    // iteration we will write into the same place.
+    parse_string(ctx);
+    const char* start = ctx.anchor + ctx.target->str32.offset;
+    size_t length = static_cast<size_t>(ctx.target->str32.length);
+
+    if (i >= ncols) {
+      columns.push_back(GReaderOutputColumn());
+    }
+    if (length > 0) {
+      const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
+      int res = check_escaped_string(usrc, length, echar);
+      if (res == 0) {
+        columns[i].name = std::string(start, length);
+      } else {
+        char* newsrc = new char[length * 4];
+        uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
+        int newlen;
+        if (res == 1) {
+          newlen = decode_escaped_csv_string(usrc, length, unewsrc, echar);
+        } else {
+          newlen = decode_win1252(usrc, length, unewsrc);
+          newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
+        }
+        assert(newlen > 0);
+        columns[i].name = std::string(newsrc, newlen);
+        delete[] newsrc;
+      }
+    }
+    // Skip the separator, handling special case of sep=' ' (multiple spaces are
+    // treated as a single separator, and spaces at the beginning/end of line
+    // are ignored).
+    if (ch < eof && sep == ' ' && *ch == ' ') {
+      while (ch < eof && *ch == ' ') ch++;
+      if (ch == eof || ctx.skip_eol()) {
+        ncols_found = i + 1;
+        break;
+      }
+    } else if (ch < eof && *ch == sep && sep != '\n') {
+      ch++;
+    } else if (ch == eof || ctx.skip_eol()) {
+      ncols_found = i + 1;
+      break;
+    } else {
+      throw RuntimeError() << "Internal error: cannot parse column names";
+    }
+  }
+
+  if (sep == ' ' && ncols_found == ncols - 1) {
+    for (size_t j = ncols - 1; j > 0; j--){
+      columns[j].name.swap(columns[j-1].name);
+    }
+    columns[0].name = "index";
+  }
+}
+
+
 
 Column* FreadReader::alloc_column(SType stype, size_t nrows, int j)
 {
@@ -163,41 +250,17 @@ Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int 
 
 
 
-void FreadReader::userOverride(int8_t *types_, const char *anchor)
+void FreadReader::userOverride()
 {
-  types = types_;
-  PyObject *colNamesList = PyList_New(ncols);
-  PyObject *colTypesList = PyList_New(ncols);
-  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
-                  quoteRule == 1? '\\' : 0xFF;
+  int ncols = columns.size();
+  PyObject* colNamesList = PyList_New(ncols);
+  PyObject* colTypesList = PyList_New(ncols);
   for (int i = 0; i < ncols; i++) {
-    RelStr ocol = colNames[i];
-    PyObject* pycol = NULL;
-    if (ocol.length > 0) {
-      const char* src = anchor + ocol.offset;
-      const uint8_t* usrc = reinterpret_cast<const uint8_t*>(src);
-      size_t zlen = static_cast<size_t>(ocol.length);
-      int res = check_escaped_string(usrc, zlen, echar);
-      if (res == 0) {
-        pycol = PyUnicode_FromStringAndSize(src, ocol.length);
-      } else {
-        char* newsrc = new char[zlen * 4];
-        uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
-        int newlen;
-        if (res == 1) {
-          newlen = decode_escaped_csv_string(usrc, ocol.length, unewsrc, echar);
-        } else {
-          newlen = decode_win1252(usrc, ocol.length, unewsrc);
-          newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
-        }
-        assert(newlen > 0);
-        pycol = PyUnicode_FromStringAndSize(newsrc, newlen);
-        delete[] newsrc;
-      }
-    } else {
-      pycol = PyUnicode_FromFormat("V%d", i);
-    }
-    PyObject *pytype = PyLong_FromLong(types[i]);
+    const char* src = columns[i].name.data();
+    size_t len = columns[i].name.size();
+    PyObject* pycol = len > 0? PyUnicode_FromStringAndSize(src, len)
+                             : PyUnicode_FromFormat("V%d", i);
+    PyObject* pytype = PyLong_FromLong(types[i]);
     PyList_SET_ITEM(colNamesList, i, pycol);
     PyList_SET_ITEM(colTypesList, i, pytype);
   }
@@ -205,10 +268,9 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor)
   g.pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
 
   for (int i = 0; i < ncols; i++) {
-    PyObject *t = PyList_GET_ITEM(colTypesList, i);
+    PyObject* t = PyList_GET_ITEM(colTypesList, i);
     types[i] = (int8_t) PyLong_AsUnsignedLongMask(t);
   }
-
   pyfree(colTypesList);
   pyfree(colNamesList);
 }
@@ -219,8 +281,9 @@ void FreadReader::userOverride(int8_t *types_, const char *anchor)
  */
 size_t FreadReader::allocateDT()
 {
-  Column** columns = NULL;
+  Column** ccolumns = NULL;
   nstrcols = 0;
+  int ncols = (int) columns.size();
 
   // First we need to estimate the size of the dataset that needs to be
   // created. However this needs to be done on first run only.
@@ -238,16 +301,16 @@ size_t FreadReader::allocateDT()
       if (types[i] == CT_STRING) alloc_size += 5 * allocnrow;
       j++;
     }
-    dtcalloc_g(columns, Column*, j + 1);
+    dtcalloc_g(ccolumns, Column*, j + 1);
     dtcalloc_g(strbufs, StrBuf*, j);
-    columns[j] = NULL;
+    ccolumns[j] = NULL;
 
     // Call the Python upstream to determine the strategy where the
     // DataTable should be created.
     targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
                  .as_ccstring();
   } else {
-    columns = dt->columns;
+    ccolumns = dt->columns;
     for (int i = 0; i < ncols; i++)
       nstrcols += (types[i] == CT_STRING);
   }
@@ -264,22 +327,22 @@ size_t FreadReader::allocateDT()
     if (type == CT_DROP) continue;
     if (type > 0) {
       SType stype = colType_to_stype[type];
-      columns[j] = realloc_column(columns[j], stype, allocnrow, j);
-      if (columns[j] == NULL) goto fail;
+      ccolumns[j] = realloc_column(ccolumns[j], stype, allocnrow, j);
+      if (ccolumns[j] == NULL) goto fail;
     }
     j++;
   }
 
   if (!dt) {
-    dt.reset(new DataTable(columns));
+    dt.reset(new DataTable(ccolumns));
   }
   return 1;
 
   fail:
-  if (columns) {
-    Column **col = columns;
+  if (ccolumns) {
+    Column **col = ccolumns;
     while (*col++) delete (*col);
-    dtfree(columns);
+    dtfree(ccolumns);
   }
   throw RuntimeError() << "Unable to allocate DataTable";
 }
@@ -288,6 +351,7 @@ size_t FreadReader::allocateDT()
 
 void FreadReader::setFinalNrow(size_t nrows) {
   int i, j;
+  int ncols = columns.size();
   for (i = j = 0; i < ncols; i++) {
     int type = types[i];
     if (type == CT_DROP) continue;
@@ -322,7 +386,7 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
-  ) : LocalParseContext(bcols, brows), ncols(f.ncols),
+  ) : LocalParseContext(bcols, brows), ncols(f.columns.size()),
       ostrbufs(f.strbufs), types(f.types), sizes(f.sizes), dt(f.dt)
 {
   anchor = nullptr;
@@ -331,7 +395,7 @@ FreadLocalParseContext::FreadLocalParseContext(
   quoteRule = f.quoteRule;
   nstrcols = f.nstrcols;
   strbufs = new StrBuf[nstrcols]();
-  for (int i = 0, j = 0, k = 0, off8 = 0; i < f.ncols; i++) {
+  for (int i = 0, j = 0, k = 0, off8 = 0; i < ncols; i++) {
     if (f.types[i] == CT_DROP) continue;
     if (f.types[i] == CT_STRING) {
       assert(k < nstrcols);
@@ -667,27 +731,24 @@ int FieldParseContext::countfields()
   int ncol = 1;
   while (ch < eof) {
     parse_string(*this);
-    // Field() leaves *ch resting on sep, \r, \n or *eof=='\0'
-    if (sep==' ' && *ch==sep) {
-      while (ch[1]==' ') ch++;
-      if (ch[1]=='\r' || ch[1]=='\n' || ch[1]=='\0') {
-        // reached end of line. Ignore padding spaces at the end of line.
-        ch++;  // Move onto end of line character
+    // Field() leaves *ch resting on sep, eol or eof
+    if (*ch == sep) {
+      if (sep == ' ') {
+        while (*ch == ' ') ch++;
+        if (ch == eof || skip_eol()) break;
+        ncol++;
+        continue;
+      } else if (sep != '\n') {
+        ch++;
+        ncol++;
+        continue;
       }
     }
-    if (*ch==sep && sep!='\n') {
-      ch++;
-      ncol++;
-      continue;
+    if (ch == eof || skip_eol()) {
+      break;
     }
-    if (skip_eol()) {
-      return ncol;
-    }
-    if (*ch!='\0') {
-      ch = ch0;
-      return -1;  // -1 means this line not valid for this sep and quote rule
-    }
-    break;
+    ch = ch0;
+    return -1;  // -1 means this line not valid for this sep and quote rule
   }
   return ncol;
 }
