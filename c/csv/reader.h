@@ -303,7 +303,7 @@ class GReaderOutputColumn {
 
 class GReaderOutputColumns : public std::vector<GReaderOutputColumn> {
   public:
-    int8_t* getTypes() const;
+    std::unique_ptr<int8_t[]> getTypes() const;
     void setType(int8_t type);
     const char* printTypes() const;
 };

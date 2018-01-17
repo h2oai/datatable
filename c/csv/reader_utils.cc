@@ -36,13 +36,13 @@ GReaderOutputColumn::~GReaderOutputColumn() {
 }
 
 
-int8_t* GReaderOutputColumns::getTypes() const {
+std::unique_ptr<int8_t[]> GReaderOutputColumns::getTypes() const {
   size_t n = size();
   std::unique_ptr<int8_t[]> res(new int8_t[n]);
   for (size_t i = 0; i < n; ++i) {
     res[i] = (*this)[i].type;
   }
-  return res.release();
+  return res;
 }
 
 void GReaderOutputColumns::setType(int8_t type) {

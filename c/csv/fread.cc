@@ -47,30 +47,6 @@ static const char* strlim(const char* ch, size_t limit) {
 }
 
 
-// TODO: make static member of GReaderOutputColumn
-const char* FreadReader::printTypes() const {
-  // e.g. files with 10,000 columns, don't print all of it to verbose output.
-  static char out[111];
-  char* ch = out;
-  if (types) {
-    int ncols = columns.size();
-    int tt = ncols<=110? ncols : 90;
-    for (int i=0; i<tt; i++) {
-      *ch++ = typeSymbols[types[i]];
-    }
-    if (ncols>110) {
-      *ch++ = '.';
-      *ch++ = '.';
-      *ch++ = '.';
-      for (int i=ncols-10; i<ncols; i++)
-        *ch++ = typeSymbols[types[i]];
-    }
-  }
-  *ch = '\0';
-  return out;
-}
-
-
 // In order to add a new type:
 //   - register new parser in this `parsers` array
 //   - add entries in arrays `typeName` / `typeSize` / `typeSymbols` at the top of this file
@@ -518,7 +494,6 @@ int FreadReader::freadMain()
       lastRowEnd = eof;
     }
     eof = lastRowEnd;
-    types = columns.getTypes();
 
     size_t estnrow = 1;
     allocnrow = 1;
@@ -528,7 +503,7 @@ int FreadReader::freadMain()
     if (header == NA_BOOL8) {
       header = true;
       for (int j=0; j<ncols; j++) {
-        if (types[j] < CT_STRING) {
+        if (columns[j].type < CT_STRING) {
           header = false;
           break;
         }
@@ -549,7 +524,7 @@ int FreadReader::freadMain()
         // A single-row input, and that row is the header. Reset all types to
         // boolean (lowest type possible, a better guess than "string").
         for (int j = 0; j < ncols; j++) {
-          types[j] = type0;
+          columns[j].type = type0;
         }
         allocnrow = 0;
       }
@@ -618,8 +593,7 @@ int FreadReader::freadMain()
     size_t ncols = columns.size();
     ch = sof;
     sizes = new int8_t[ncols];
-    int8_t* tmpTypes = new int8_t[ncols];
-    memcpy(tmpTypes, types, ncols);      // copy types => tmpTypes
+    std::unique_ptr<int8_t[]> types = columns.getTypes();
 
     userOverride();
 
@@ -627,23 +601,23 @@ int FreadReader::freadMain()
     ndrop = 0;
     rowSize = 0;
     for (size_t j = 0; j < ncols; j++) {
-      sizes[j] = typeSize[types[j]];
-      if (types[j] == CT_DROP) {
+      sizes[j] = typeSize[columns[j].type];
+      if (columns[j].type == CT_DROP) {
         ndrop++;
         continue;
       }
       rowSize += 8;
-      if (types[j] < tmpTypes[j]) {
+      if (columns[j].type < types[j]) {
         // FIXME: if the user wants to override the type, let them
         STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
              "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-             j+1, columns[j].name.data(), typeName[tmpTypes[j]], typeName[types[j]]);
+             j+1, columns[j].name.data(), typeName[types[j]], typeName[columns[j].type]);
       }
-      nUserBumped += (types[j] != tmpTypes[j]);
+      nUserBumped += (columns[j].type != types[j]);
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",
-              nUserBumped, ndrop, printTypes());
+              nUserBumped, ndrop, columns.printTypes());
     }
     tColType = wallclock();
 
@@ -651,7 +625,9 @@ int FreadReader::freadMain()
       DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
               ncols-ndrop, ncols, ndrop, allocnrow);
     }
+
     DTbytes = allocateDT();
+
     tAlloc = wallclock();
   }
 
@@ -706,6 +682,8 @@ int FreadReader::freadMain()
   if (initialBuffRows < 4) initialBuffRows = 4;
   ASSERT(initialBuffRows <= INT32_MAX);
   nth = std::min(nJumps, nth);
+  std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
+  int8_t* types = typesPtr.get();  // This pointer is valid untile `typesPtr` goes out of scope
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");
@@ -923,6 +901,8 @@ int FreadReader::freadMain()
                   nTypeBump++;
                   if (joldType>0) nTypeBumpCols++;
                   types[j] = thisType;
+                  columns[j].type = abs(thisType);
+                  columns[j].typeBumped = true;
                 } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
               }
             }
@@ -1072,23 +1052,31 @@ int FreadReader::freadMain()
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
     for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
-    for (int i=0; i<ncols; i++) typeCounts[ abs(types[i]) ]++;
+    for (int i = 0; i < ncols; i++) {
+      assert(columns[i].typeBumped == (types[i] < 0));
+      assert(columns[i].type == abs(types[i]));
+      typeCounts[ columns[i].type ]++;
+    }
 
     if (nTypeBump) {
       rowSize = 0;
-      for (int j=0, resj=-1; j<ncols; j++) {
-        if (types[j] == CT_DROP) continue;
+      for (int j = 0, resj=-1; j < ncols; j++) {
+        GReaderOutputColumn& col = columns[j];
+        if (col.type == CT_DROP) continue;
         resj++;
-        if (types[j]<0) {
+        if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
-          types[j] = -types[j];
-          sizes[j] = typeSize[types[j]];
+          types[j] = col.type;
+          sizes[j] = typeSize[col.type];
           assert(sizes[j] != 0);
+          col.typeBumped = false;
           rowSize += 8;
-        } else if (types[j]>=1) {
+        } else {
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
           // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
           types[j] = -CT_STRING;
+          col.type = CT_STRING;
+          col.typeBumped = true;
           sizes[j] = 0;
         }
       }

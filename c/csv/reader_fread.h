@@ -41,15 +41,11 @@ class FreadReader
   GenericReader& g;
 
   //----- Runtime parameters ---------------------------------------------------
-  // ncols
-  //   Detected number of fields in the CSV file.
   // nstrcols: number of string columns in the output DataTable. This will be
   //     computed within `allocateDT()` callback, and used for allocation of
   //     string buffers. If the file is re-read (due to type bumps), this
   //     variable will only count those string columns that need to be re-read.
   // ndigits: len(str(ncols))
-  // types: array of types for each field in the input file, length `ncols`.
-  //     Borrowed ref, do not free.
   // sizes: array of byte sizes for each field, length `ncols`.
   //     Borrowed ref, do not free.
   // allocnrow:
@@ -62,7 +58,6 @@ class FreadReader
   DataTablePtr dt;
   int nstrcols;
   int ndigits;
-  int8_t* types;
   int8_t* sizes;
   const char* eof;
   size_t allocnrow;
@@ -151,8 +146,6 @@ private:
    */
   void progress(double percent);
 
-  const char* printTypes() const;
-
   friend FreadLocalParseContext;
 };
 
@@ -180,10 +173,9 @@ class FreadLocalParseContext : public LocalParseContext
     int : 32;
 
     // TODO: these should be replaced with a single reference to
-    //       std::vector<GReaderOutputColumn>
+    //       GReaderOutputColumns
     int ncols;
     StrBuf**& ostrbufs;
-    int8_t*& types;
     int8_t*& sizes;
     DataTablePtr& dt;
     GReaderOutputColumns& columns;
