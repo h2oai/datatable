@@ -27,6 +27,8 @@ class FreadLocalParseContext;
 
 
 //------------------------------------------------------------------------------
+// FreadReader
+//------------------------------------------------------------------------------
 
 /**
  * Fast parallel reading of CSV files with intelligent guessing of parse
@@ -54,7 +56,7 @@ class FreadReader
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
-  std::vector<GReaderOutputColumn> columns;
+  GReaderOutputColumns columns;
   char* targetdir;
   StrBuf** strbufs;
   DataTablePtr dt;

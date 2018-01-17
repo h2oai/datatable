@@ -282,13 +282,18 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
 // GReaderOutputColumn
 //------------------------------------------------------------------------------
 
+/**
+ * Implemented in "csv/reader_utils.cc".
+ */
 class GReaderOutputColumn {
   public:
     std::string name;
     MemoryBuffer* data;
+    WritableBuffer* strdata;
     int64_t valid_from_row;
     int8_t type;
-    int64_t : 56;
+    bool typeBumped;
+    int64_t : 48;
 
   public:
     GReaderOutputColumn();
@@ -296,13 +301,11 @@ class GReaderOutputColumn {
 };
 
 
-class GReaderOutputStringColumn : public GReaderOutputColumn {
+class GReaderOutputColumns : public std::vector<GReaderOutputColumn> {
   public:
-    WritableBuffer* strdata;
-
-  public:
-    GReaderOutputStringColumn();
-    virtual ~GReaderOutputStringColumn();
+    int8_t* getTypes() const;
+    void setType(int8_t type);
+    const char* printTypes() const;
 };
 
 

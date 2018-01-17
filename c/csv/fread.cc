@@ -341,6 +341,7 @@ int FreadReader::freadMain()
     tmpTypes = new int8_t[ncols];
 
     int8_t type0 = 1;
+    columns.setType(type0);
     // while (disabled_parsers[type0]) type0++;
     for (int j = 0; j < ncols; j++) {
       // initialize with the first (lowest) type
@@ -512,9 +513,9 @@ int FreadReader::freadMain()
       }
       if (skip) continue;
       if (j==nJumps-1) lastSampleJumpOk = true;
-      if (bumped) memcpy(types, tmpTypes, (size_t)ncols);
+      // if (bumped) memcpy(types, tmpTypes, (size_t)ncols);
       if (verbose && (bumped || j==0 || j==nJumps-1)) {
-        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(), quoteRule);
+        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
       }
     }
     if (lastSampleJumpOk) {
@@ -528,6 +529,7 @@ int FreadReader::freadMain()
       lastRowEnd = eof;
     }
     eof = lastRowEnd;
+    memcpy(types, tmpTypes, (size_t)ncols);
 
     size_t estnrow = 1;
     allocnrow = 1;
