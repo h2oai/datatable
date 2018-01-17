@@ -799,8 +799,7 @@ int FreadReader::freadMain()
           while (j < ncols) {
             fieldStart = tch;
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
-            int8_t thisType = types[j];
-            parsers[abs(thisType)](fctx);
+            parsers[types[j]](fctx);
             if (*tch != sep) break;
             if (sizes[j]) {
               fctx.target++;
@@ -816,6 +815,9 @@ int FreadReader::freadMain()
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
           else if (fctx.skip_eol()) {
+            // if ((sizes[j] > 0) != (types[j] != CT_DROP)) {
+            //   printf("j=%d, sizes[j]=%d, types[j]=%d\n", j, sizes[j], types[j]);
+            // }
             if (sizes[j]) {
               fctx.target++;
             }
@@ -847,14 +849,13 @@ int FreadReader::freadMain()
         if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
           while (j < ncols) {
             fieldStart = tch;
-            int8_t joldType = types[j];
-            int8_t thisType = joldType;  // to know if it was bumped in (rare) out-of-sample type exceptions
-            int8_t absType = (int8_t)abs(thisType);
+            int8_t oldType = types[j];
+            int8_t newType = oldType;
 
-            while (absType < NUMTYPE) {
+            while (newType < NUMTYPE) {
               tch = fieldStart;
               bool quoted = false;
-              if (absType < CT_STRING && absType > CT_DROP) {
+              if (newType < CT_STRING && newType > CT_DROP) {
                 fctx.skip_white();
                 const char* afterSpace = tch;
                 tch = fctx.end_NA_string(fieldStart);
@@ -862,7 +863,7 @@ int FreadReader::freadMain()
                 if (!fctx.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
                 if (*tch==quote) { quoted=true; tch++; }
               } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
-              parsers[absType](fctx);
+              parsers[newType](fctx);
               if (quoted && *tch==quote) tch++;
               fctx.skip_white();
               if (fctx.end_of_field()) {
@@ -876,32 +877,30 @@ int FreadReader::freadMain()
               // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
               // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
               // sure a single re-read will definitely work.
-              absType++;
-              // while (disabled_parsers[absType]) absType++;
-              thisType = -absType;
+              newType++;
               tch = fieldStart;
             }
 
-            if (thisType != joldType) {          // rare out-of-sample type exception.
+            if (newType != oldType) {          // rare out-of-sample type exception.
               #pragma omp critical
               {
-                joldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
+                oldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
                 // Can't print because we're likely not master. So accumulate message and print afterwards.
-                if (thisType < joldType) {   // thisType<0 (type-exception)
+                if (newType != oldType) {
                   if (verbose) {
                     char temp[1001];
                     int len = snprintf(temp, 1000,
                       "Column %d (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                      j+1, columns[j].name.data(), typeName[abs(joldType)], typeName[abs(thisType)],
+                      j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
                       (int)(tch-fieldStart), fieldStart, (llu)(ctx.row0+myNrow));
                     typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
-                    strcpy(typeBumpMsg+typeBumpMsgSize, temp);
+                    strcpy(typeBumpMsg + typeBumpMsgSize, temp);
                     typeBumpMsgSize += (size_t)len;
                   }
                   nTypeBump++;
-                  if (joldType>0) nTypeBumpCols++;
-                  types[j] = thisType;
-                  columns[j].type = abs(thisType);
+                  if (!columns[j].typeBumped) nTypeBumpCols++;
+                  types[j] = newType;
+                  columns[j].type = newType;
                   columns[j].typeBumped = true;
                 } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
               }
@@ -915,7 +914,7 @@ int FreadReader::freadMain()
               // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
-              if (joldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.length == 0) {
+              if (oldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.length == 0) {
                 fctx.target[-1].str32.setna();
               }
               continue;
@@ -1053,9 +1052,7 @@ int FreadReader::freadMain()
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
     for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
     for (int i = 0; i < ncols; i++) {
-      assert(columns[i].typeBumped == (types[i] < 0));
-      assert(columns[i].type == abs(types[i]));
-      typeCounts[ columns[i].type ]++;
+      typeCounts[columns[i].type]++;
     }
 
     if (nTypeBump) {
@@ -1066,7 +1063,6 @@ int FreadReader::freadMain()
         resj++;
         if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
-          types[j] = col.type;
           sizes[j] = typeSize[col.type];
           assert(sizes[j] != 0);
           col.typeBumped = false;
@@ -1074,9 +1070,9 @@ int FreadReader::freadMain()
         } else {
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
           // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
-          types[j] = -CT_STRING;
           col.type = CT_STRING;
           col.typeBumped = true;
+          types[j] = col.type;
           sizes[j] = 0;
         }
       }
