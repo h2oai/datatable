@@ -336,18 +336,9 @@ int FreadReader::freadMain()
   {
     if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
     int ncols = columns.size();
-    types = new int8_t[ncols];
-    sizes = new int8_t[ncols];
-    tmpTypes = new int8_t[ncols];
 
     int8_t type0 = 1;
     columns.setType(type0);
-    // while (disabled_parsers[type0]) type0++;
-    for (int j = 0; j < ncols; j++) {
-      // initialize with the first (lowest) type
-      types[j] = type0;
-      tmpTypes[j] = type0;
-    }
     field64 trash;
     FieldParseContext fctx = makeFieldParseContext(ch, &trash, nullptr);
 
@@ -428,28 +419,27 @@ int FreadReader::freadMain()
           if (firstDataRowAfterPotentialColumnNames) {
             // 2nd non-blank row is being read now.
             // 1st row's type is remembered and compared (a little lower down) to second row to decide if 1st row is column names or not
-            thisColumnNameWasString = (tmpTypes[field]==CT_STRING);
-            tmpTypes[field] = type0;  // re-initialize for 2nd row onwards
+            thisColumnNameWasString = (columns[field].type == CT_STRING);
+            columns[field].type = type0;  // re-initialize for 2nd row onwards
           }
-          while (tmpTypes[field]<=CT_STRING) {
-            parsers[tmpTypes[field]](fctx);
+          while (columns[field].type <= CT_STRING) {
+            parsers[columns[field].type](fctx);
             fctx.skip_white();
             if (fctx.end_of_field()) break;
             ch = fctx.end_NA_string(fieldStart);
             if (fctx.end_of_field()) break;
-            if (tmpTypes[field]<CT_STRING) {
+            if (columns[field].type<CT_STRING) {
               ch = fieldStart;
               if (*ch==quote) {
                 ch++;
-                parsers[tmpTypes[field]](fctx);
+                parsers[columns[field].type](fctx);
                 if (*ch==quote) {
                   ch++;
                   fctx.skip_white();
                   if (fctx.end_of_field()) break;
                 }
               }
-              tmpTypes[field]++;
-              // while (disabled_parsers[tmpTypes[field]]) tmpTypes[field]++;
+              columns[field].type++;
             } else {
               // the field could not be read with this quote rule, try again with next one
               // Trying the next rule will only be successful if the number of fields is consistent with it
@@ -463,10 +453,10 @@ int FreadReader::freadMain()
             bumped = true;
             ch = fieldStart;
           }
-          if (header==NA_BOOL8 && thisColumnNameWasString && tmpTypes[field] < CT_STRING) {
+          if (header==NA_BOOL8 && thisColumnNameWasString && columns[field].type < CT_STRING) {
             header = true;
             g.trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2",
-                    field + 1, typeName[tmpTypes[field]]);
+                    field + 1, typeName[columns[field].type]);
           }
           if (*ch!=sep || *ch=='\n' || *ch=='\r') break;
           if (sep==' ') {
@@ -494,7 +484,7 @@ int FreadReader::freadMain()
         }
         if (firstDataRowAfterPotentialColumnNames) {
           if (fill) {
-            for (int jj=field+1; jj<ncols; jj++) tmpTypes[jj] = type0;
+            for (int jj=field+1; jj<ncols; jj++) columns[jj].type = type0;
           }
           firstDataRowAfterPotentialColumnNames = false;
         } else if (sampleLines==0) {
@@ -513,7 +503,6 @@ int FreadReader::freadMain()
       }
       if (skip) continue;
       if (j==nJumps-1) lastSampleJumpOk = true;
-      // if (bumped) memcpy(types, tmpTypes, (size_t)ncols);
       if (verbose && (bumped || j==0 || j==nJumps-1)) {
         DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
       }
@@ -529,7 +518,7 @@ int FreadReader::freadMain()
       lastRowEnd = eof;
     }
     eof = lastRowEnd;
-    memcpy(types, tmpTypes, (size_t)ncols);
+    types = columns.getTypes();
 
     size_t estnrow = 1;
     allocnrow = 1;
@@ -628,7 +617,10 @@ int FreadReader::freadMain()
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     size_t ncols = columns.size();
     ch = sof;
+    sizes = new int8_t[ncols];
+    int8_t* tmpTypes = new int8_t[ncols];
     memcpy(tmpTypes, types, ncols);      // copy types => tmpTypes
+
     userOverride();
 
     int nUserBumped = 0;
@@ -647,7 +639,7 @@ int FreadReader::freadMain()
              "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
              j+1, columns[j].name.data(), typeName[tmpTypes[j]], typeName[types[j]]);
       }
-      nUserBumped += (types[j] > tmpTypes[j]);
+      nUserBumped += (types[j] != tmpTypes[j]);
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",

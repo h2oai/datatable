@@ -133,6 +133,7 @@ def test_float_precision():
            0.2396234748320447,  # reads as 0.23962347483204471 (+1 ulp)
            2.543666492383583,   # reads as 2.5436664923835828 (-1 ulp)
            4.909681284908054,   # reads as 4.9096812849080536 (-1 ulp)
+           20.77288912176836,   # reads as 20.772889121768358 (-1 ulp)
            ]
     text = "A\n" + "\n".join(str(x) for x in src)
     d0 = dt.fread(text)
@@ -663,7 +664,13 @@ def test_random_data(seed, tempfile):
     src[2][2] = None
     src[3][3] = ""    # FIXME
     src[4][4] = None  # .topython() below converts `nan`s into None
-    assert d1.topython() == src
+    res = d1.topython()
+    assert res[0] == src[0]
+    assert res[1] == src[1]
+    assert res[2] == src[2]
+    assert res[3] == src[3]
+    assert res[4] == src[4]
+    assert res[5] == src[5]
 
 
 def test_almost_nodata(capsys):

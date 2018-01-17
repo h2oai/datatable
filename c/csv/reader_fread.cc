@@ -61,7 +61,6 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   strbufs = nullptr;
   types = nullptr;
   sizes = nullptr;
-  tmpTypes = nullptr;
   eof = nullptr;
   nstrcols = 0;
   ndigits = 0;
@@ -76,7 +75,6 @@ FreadReader::~FreadReader() {
   free(strbufs);
   free(types);
   free(sizes);
-  free(tmpTypes);
 }
 
 
@@ -387,7 +385,8 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
   ) : LocalParseContext(bcols, brows), ncols(f.columns.size()),
-      ostrbufs(f.strbufs), types(f.types), sizes(f.sizes), dt(f.dt)
+      ostrbufs(f.strbufs), types(f.types), sizes(f.sizes), dt(f.dt),
+      columns(f.columns)
 {
   anchor = nullptr;
   strbufs = nullptr;
