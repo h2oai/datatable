@@ -420,3 +420,16 @@ def test_rows_bad_arguments(dt0):
                      "Boolean value cannot be used as a `rows` selector")
     assert_typeerror(dt0, False,
                      "Boolean value cannot be used as a `rows` selector")
+
+
+def test_issue689(tempdir):
+    N = 300000  # Must be > 65536
+    data = [i % 8 for i in range(N)]
+    d0 = dt.DataTable(data, names=["A"])
+    dt.save(d0, tempdir)
+    del d0
+    d1 = dt.open(tempdir)
+    # Do not check d1! we want it to be lazy at this point
+    d2 = d1(rows=lambda f: f[0] == 1)
+    assert d2.internal.check()
+    assert d2.shape == (N / 8, 1)
