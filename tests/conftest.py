@@ -7,6 +7,7 @@
 import os
 import sys
 import pytest
+import shutil
 import tempfile as mod_tempfile
 
 
@@ -64,3 +65,13 @@ def tempfile():
     os.close(fd)
     yield fname
     os.unlink(fname)
+
+
+@pytest.fixture(scope="function")
+def tempdir():
+    dirname = mod_tempfile.mkdtemp()
+    yield dirname
+    try:
+        shutil.rmtree(dirname)
+    except:
+        pass

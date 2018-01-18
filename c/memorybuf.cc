@@ -18,12 +18,14 @@
 #include <string.h>    // strlen, strerror
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // sysconf
-#include <algorithm>   // min
+#include <algorithm>   // std::min
+#include <mutex>       // std::mutex, std::lock_guard
 #include "datatable_check.h"
 #include "utils/file.h"
 #include "utils/assert.h"
 #include "py_utils.h"
 #include "utils.h"
+
 
 
 
@@ -316,8 +318,15 @@ MemmapMemBuf::~MemmapMemBuf() {
 
 void MemmapMemBuf::memmap()
 {
-  assert(!mapped && mmp == nullptr);
-  mapped = true;
+  // Place a mutex lock to prevent multiple threads from trying to perform
+  // memory-mapping of different files (or same file) in parallel. If multiple
+  // threads called this method at the same time, then only one will proceed,
+  // while all others will wait until the lock is released, and then exit
+  // because flag `mapped` will now be true.
+  static std::mutex mmp_mutex;
+  std::lock_guard<std::mutex> lock(mmp_mutex);
+  if (mapped) return;
+
   bool create = !readonly;
   size_t n = mmpsize;
 
@@ -332,6 +341,7 @@ void MemmapMemBuf::memmap()
     // if memory size is 0 then mmp can be NULL as nobody is going to read
     // from it anyways.
     mmpsize = 0;
+    mapped = true;
     return;
   }
   mmpsize = filesize + (create? 0 : n);
@@ -380,6 +390,7 @@ void MemmapMemBuf::memmap()
       break;
     }
   }
+  mapped = true;
 }
 
 
@@ -392,6 +403,7 @@ void MemmapMemBuf::memunmap() {
            "have not been freed properly.", errno, strerror(errno));
   }
   mmp = nullptr;
+  mapped = false;
   mmpsize = 0;
   if (mmm_index) {
     MemoryMapManager::get()->del_entry(mmm_index);
