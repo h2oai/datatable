@@ -108,6 +108,18 @@ def test_fread_omnibus(seed):
     except:
         with open("omnibus.csv", "w") as o:
             o.write(text)
+        with open("omnibus.params", "w") as o:
+            del params["text"]
+            o.write("params = %r\n"
+                    "exp.shape = (%d, %d)\n"
+                    "exp.names = %r\n"
+                    "exp.types = %r\n"
+                    % (params, nrows, ncols, colnames, coltypes))
+            if d0:
+                o.write("act.shape = %r\n"
+                        "act.names = %r\n"
+                        "act.types = %r\n"
+                        % (d0.shape, d0.names, d0.ltypes))
         raise
 
 
@@ -129,7 +141,7 @@ def all_boollike(coldata):
 def is_intlike(x):
     x = x.strip()
     return x.isdigit() or (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
-                           x[1:-1].isdigit())
+                           x[1:-1].isdigit()) or x == ""
 
 
 def generate_int_column(allparams):
