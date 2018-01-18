@@ -420,7 +420,6 @@ FreadLocalParseContext::~FreadLocalParseContext() {
 }
 
 
-void FreadLocalParseContext::push_buffers() {}
 const char* FreadLocalParseContext::read_chunk(const char* start, const char* end) {}
 
 
@@ -521,7 +520,7 @@ void FreadLocalParseContext::orderBuffer() {
 
 
 
-void FreadLocalParseContext::pushBuffer() {
+void FreadLocalParseContext::push_buffers() {
   int k = 0;
   int off = 0;
   for (size_t i = 0, j = 0; i < ncols; i++) {

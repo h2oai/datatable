@@ -46,8 +46,6 @@ class FreadReader
   //     string buffers. If the file is re-read (due to type bumps), this
   //     variable will only count those string columns that need to be re-read.
   // ndigits: len(str(ncols))
-  // sizes: array of byte sizes for each field, length `ncols`.
-  //     Borrowed ref, do not free.
   // allocnrow:
   //     Number of rows in the allocated DataTable
   // meanLineLen:
@@ -185,7 +183,6 @@ class FreadLocalParseContext : public LocalParseContext
     virtual const char* read_chunk(const char* start, const char* end) override;
     void postprocess();
     void orderBuffer();
-    void pushBuffer();
 };
 
 

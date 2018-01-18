@@ -729,7 +729,7 @@ int FreadReader::freadMain()
         // iii) myBuff is hot, so this is the best time to transpose it to result, and first time possible as soon
         //      as we know the previous jump's number of rows.
         //  iv) so that myBuff can be small
-        ctx.pushBuffer();
+        ctx.push_buffers();
         myNrow = 0;
         if (verbose || myShowProgress) {
           double now = wallclock();
@@ -993,12 +993,12 @@ int FreadReader::freadMain()
       }
       // END ORDERED.
       // Next thread can now start its ordered section and write its results to the final DT at the same time as me.
-      // Ordered has to be last in some OpenMP implementations currently. Logically though, pushBuffer happens now.
+      // Ordered has to be last in some OpenMP implementations currently. Logically though, push_buffers happens now.
     }
     // Push out all buffers one last time.
     if (myNrow) {
       double now = verbose? wallclock() : 0;
-      ctx.pushBuffer();
+      ctx.push_buffers();
       if (verbose) thRead += wallclock() - now;
     }
   }
