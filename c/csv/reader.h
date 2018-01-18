@@ -290,10 +290,11 @@ class GReaderColumn {
     std::string name;
     MemoryBuffer* data;
     WritableBuffer* strdata;
-    size_t resindex;
     int64_t valid_from_row;
     int8_t type;
     bool typeBumped;
+    bool presentInOutput;
+    bool presentInBuffer;
     int64_t : 48;
 
   public:
@@ -307,6 +308,7 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     std::unique_ptr<int8_t[]> getTypes() const;
     void setType(int8_t type);
     const char* printTypes() const;
+    size_t nOutputs() const;
 };
 
 

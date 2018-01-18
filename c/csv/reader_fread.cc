@@ -59,7 +59,6 @@ static char fname[1000];
 FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   targetdir = nullptr;
   strbufs = nullptr;
-  sizes = nullptr;
   eof = nullptr;
   nstrcols = 0;
   ndigits = 0;
@@ -72,7 +71,6 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
 
 FreadReader::~FreadReader() {
   free(strbufs);
-  free(sizes);
 }
 
 
@@ -387,7 +385,7 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
   ) : LocalParseContext(bcols, brows), ncols(f.columns.size()),
-      ostrbufs(f.strbufs), sizes(f.sizes), dt(f.dt), columns(f.columns)
+      ostrbufs(f.strbufs), dt(f.dt), columns(f.columns)
 {
   anchor = nullptr;
   strbufs = nullptr;
@@ -405,7 +403,7 @@ FreadLocalParseContext::FreadLocalParseContext(
       strbufs[k].idxdt = j;
       k++;
     }
-    off8 += (f.sizes[i] > 0);
+    off8 += columns[i].presentInBuffer;
     j++;
   }
 }
@@ -524,11 +522,9 @@ void FreadLocalParseContext::orderBuffer() {
 
 
 void FreadLocalParseContext::pushBuffer() {
-  int i = 0;    // index within the `types` and `sizes`
-  int j = 0;    // index within `dt->columns`, `tbuf` and `strbufs`
   int k = 0;
   int off = 0;
-  for (; i < ncols; i++) {
+  for (size_t i = 0, j = 0; i < ncols; i++) {
     if (columns[i].type == CT_DROP) continue;
     Column* col = dt->columns[j];
 
@@ -564,7 +560,7 @@ void FreadLocalParseContext::pushBuffer() {
       k++;
 
     } else {
-      int8_t elemsize = sizes[i];
+      int8_t elemsize = typeSize[columns[i].type];
       const field64* src = tbuf + off;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(col->data()) + row0;
@@ -592,7 +588,7 @@ void FreadLocalParseContext::pushBuffer() {
       }
     }
     j++;
-    off += (sizes[i] > 0);
+    off += columns[i].presentInBuffer;
   }
 }
 

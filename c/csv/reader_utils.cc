@@ -16,11 +16,10 @@
 #include "csv/reader.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
-#include <limits>
 
 
 //------------------------------------------------------------------------------
-// GReaderColumn
+// GReaderColumn(s)
 //------------------------------------------------------------------------------
 
 GReaderColumn::GReaderColumn() {
@@ -29,7 +28,8 @@ GReaderColumn::GReaderColumn() {
   valid_from_row = 0;
   type = 0;
   typeBumped = false;
-  resindex = std::numeric_limits<size_t>::max();
+  presentInOutput = true;
+  presentInBuffer = true;
 }
 
 GReaderColumn::~GReaderColumn() {
@@ -76,6 +76,14 @@ const char* GReaderColumns::printTypes() const {
   return out;
 }
 
+size_t GReaderColumns::nOutputs() const {
+  size_t nouts = 0;
+  size_t ncols = size();
+  for (size_t i = 0; i < ncols; ++i) {
+    nouts += (*this)[i].presentInOutput;
+  }
+  return nouts;
+}
 
 
 

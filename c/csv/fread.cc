@@ -585,7 +585,6 @@ int FreadReader::freadMain()
   double tLayout = wallclock();
   double tColType;    // Timer for applying user column class overrides
   double tAlloc;      // Timer for allocating the DataTable
-  int ndrop;          // Number of columns that will be dropped from the file being read
   size_t rowSize;
   size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
@@ -595,34 +594,36 @@ int FreadReader::freadMain()
     userOverride();
 
     size_t ncols = columns.size();
+    size_t ndropped = 0;
     int nUserBumped = 0;
-    ndrop = 0;
     rowSize = 0;
-    for (size_t j = 0, k = 0; j < ncols; j++) {
-      if (columns[j].type == CT_DROP) {
-        ndrop++;
+    for (size_t i = 0; i < ncols; i++) {
+      GReaderColumn& col = columns[i];
+      if (col.type == CT_DROP) {
+        ndropped++;
+        col.presentInOutput = false;
+        col.presentInBuffer = false;
         continue;
+      } else {
+        rowSize += 8;
+        if (col.type < oldtypes[i]) {
+          // FIXME: if the user wants to override the type, let them
+          STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
+               "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
+               i+1, col.name.data(), typeName[oldtypes[i]], typeName[col.type]);
+        }
+        nUserBumped += (col.type != oldtypes[i]);
       }
-      columns[j].resindex = k;
-      rowSize += 8;
-      if (columns[j].type < oldtypes[j]) {
-        // FIXME: if the user wants to override the type, let them
-        STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
-             "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-             j+1, columns[j].name.data(), typeName[oldtypes[j]], typeName[columns[j].type]);
-      }
-      nUserBumped += (columns[j].type != oldtypes[j]);
-      k++;
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",
-              nUserBumped, ndrop, columns.printTypes());
+              nUserBumped, ndropped, columns.printTypes());
     }
     tColType = wallclock();
 
     if (verbose) {
       DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
-              ncols-ndrop, ncols, ndrop, allocnrow);
+              ncols-ndropped, ncols, ndropped, allocnrow);
     }
 
     DTbytes = allocateDT();
@@ -683,10 +684,6 @@ int FreadReader::freadMain()
   nth = std::min(nJumps, nth);
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid untile `typesPtr` goes out of scope
-  sizes = new int8_t[ncols];
-  for (size_t j = 0; j < ncols; j++) {
-    sizes[j] = typeSize[columns[j].type];
-  }
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");
@@ -804,9 +801,7 @@ int FreadReader::freadMain()
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
             parsers[types[j]](fctx);
             if (*tch != sep) break;
-            if (sizes[j]) {
-              fctx.target++;
-            }
+            fctx.target += columns[j].presentInBuffer;
             tch++;
             j++;
           }
@@ -817,13 +812,8 @@ int FreadReader::freadMain()
             if (skipEmptyLines && fctx.skip_eol()) continue;
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
-          else if (fctx.skip_eol()) {
-            // if ((sizes[j] > 0) != (types[j] != CT_DROP)) {
-            //   printf("j=%d, sizes[j]=%d, types[j]=%d\n", j, sizes[j], types[j]);
-            // }
-            if (sizes[j]) {
-              fctx.target++;
-            }
+          else if (fctx.skip_eol() && j < ncols) {
+            fctx.target += columns[j].presentInBuffer;
             j++;
             if (j==ncols) { myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
             tch--;
@@ -908,16 +898,14 @@ int FreadReader::freadMain()
                 } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
               }
             }
-            if (sizes[j]) {
-              fctx.target++;
-            }
+            fctx.target += columns[j].presentInBuffer;
             j++;
             if (*tch==sep) { tch++; continue; }
             if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
               // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
-              if (oldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.length == 0) {
+              if (oldType == CT_STRING && columns[j-1].presentInBuffer && fctx.target[-1].str32.length == 0) {
                 fctx.target[-1].str32.setna();
               }
               continue;
@@ -1062,12 +1050,10 @@ int FreadReader::freadMain()
       rowSize = 0;
       for (int j = 0, resj=-1; j < ncols; j++) {
         GReaderColumn& col = columns[j];
-        if (col.type == CT_DROP) continue;
+        if (!col.presentInOutput) continue;
         resj++;
         if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
-          sizes[j] = typeSize[col.type];
-          assert(sizes[j] != 0);
           col.typeBumped = false;
           rowSize += 8;
         } else {
@@ -1075,8 +1061,8 @@ int FreadReader::freadMain()
           // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
           col.type = CT_STRING;
           col.typeBumped = true;
+          col.presentInBuffer = false;
           types[j] = col.type;
-          sizes[j] = 0;
         }
       }
       allocnrow = row0;
@@ -1095,7 +1081,7 @@ int FreadReader::freadMain()
 
   double tTot = tReread-t0;  // tReread==tRead when there was no reread
   g.trace("Read %zu rows x %d columns from %s file in %02d:%06.3f wall clock time",
-          row0, ncols-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
+          row0, columns.nOutputs(), filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
 
 
 

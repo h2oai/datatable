@@ -58,7 +58,6 @@ class FreadReader
   DataTablePtr dt;
   int nstrcols;
   int ndigits;
-  int8_t* sizes;
   const char* eof;
   size_t allocnrow;
   double meanLineLen;
@@ -174,9 +173,8 @@ class FreadLocalParseContext : public LocalParseContext
 
     // TODO: these should be replaced with a single reference to
     //       GReaderColumns
-    int ncols;
+    size_t ncols;
     StrBuf**& ostrbufs;
-    int8_t*& sizes;
     DataTablePtr& dt;
     GReaderColumns& columns;
 
