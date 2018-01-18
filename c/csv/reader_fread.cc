@@ -59,9 +59,6 @@ static char fname[1000];
 FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   targetdir = nullptr;
   strbufs = nullptr;
-  types = nullptr;
-  sizes = nullptr;
-  tmpTypes = nullptr;
   eof = nullptr;
   nstrcols = 0;
   ndigits = 0;
@@ -74,9 +71,6 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
 
 FreadReader::~FreadReader() {
   free(strbufs);
-  free(types);
-  free(sizes);
-  free(tmpTypes);
 }
 
 
@@ -149,7 +143,7 @@ void FreadReader::parse_column_names(FieldParseContext& ctx) {
     size_t length = static_cast<size_t>(ctx.target->str32.length);
 
     if (i >= ncols) {
-      columns.push_back(GReaderOutputColumn());
+      columns.push_back(GReaderColumn());
     }
     if (length > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
@@ -260,7 +254,7 @@ void FreadReader::userOverride()
     size_t len = columns[i].name.size();
     PyObject* pycol = len > 0? PyUnicode_FromStringAndSize(src, len)
                              : PyUnicode_FromFormat("V%d", i);
-    PyObject* pytype = PyLong_FromLong(types[i]);
+    PyObject* pytype = PyLong_FromLong(columns[i].type);
     PyList_SET_ITEM(colNamesList, i, pycol);
     PyList_SET_ITEM(colTypesList, i, pytype);
   }
@@ -269,7 +263,7 @@ void FreadReader::userOverride()
 
   for (int i = 0; i < ncols; i++) {
     PyObject* t = PyList_GET_ITEM(colTypesList, i);
-    types[i] = (int8_t) PyLong_AsUnsignedLongMask(t);
+    columns[i].type = (int8_t) PyLong_AsUnsignedLongMask(t);
   }
   pyfree(colTypesList);
   pyfree(colNamesList);
@@ -294,11 +288,11 @@ size_t FreadReader::allocateDT()
     size_t alloc_size = 0;
     int i, j;
     for (i = j = 0; i < ncols; i++) {
-      if (types[i] == CT_DROP) continue;
-      nstrcols += (types[i] == CT_STRING);
-      SType stype = colType_to_stype[types[i]];
+      if (columns[i].type == CT_DROP) continue;
+      nstrcols += (columns[i].type == CT_STRING);
+      SType stype = colType_to_stype[columns[i].type];
       alloc_size += stype_info[stype].elemsize * allocnrow;
-      if (types[i] == CT_STRING) alloc_size += 5 * allocnrow;
+      if (columns[i].type == CT_STRING) alloc_size += 5 * allocnrow;
       j++;
     }
     dtcalloc_g(ccolumns, Column*, j + 1);
@@ -311,8 +305,10 @@ size_t FreadReader::allocateDT()
                  .as_ccstring();
   } else {
     ccolumns = dt->columns;
-    for (int i = 0; i < ncols; i++)
-      nstrcols += (types[i] == CT_STRING);
+    for (int i = 0; i < ncols; i++) {
+      if (columns[i].typeBumped) continue;
+      nstrcols += (columns[i].type == CT_STRING);
+    }
   }
 
   // Compute number of digits in `ncols` (needed for creating file names).
@@ -323,9 +319,9 @@ size_t FreadReader::allocateDT()
 
   // Create individual columns
   for (int i = 0, j = 0; i < ncols; i++) {
-    int8_t type = types[i];
+    int8_t type = columns[i].type;
     if (type == CT_DROP) continue;
-    if (type > 0) {
+    if (!columns[i].typeBumped) {
       SType stype = colType_to_stype[type];
       ccolumns[j] = realloc_column(ccolumns[j], stype, allocnrow, j);
       if (ccolumns[j] == NULL) goto fail;
@@ -353,17 +349,19 @@ void FreadReader::setFinalNrow(size_t nrows) {
   int i, j;
   int ncols = columns.size();
   for (i = j = 0; i < ncols; i++) {
-    int type = types[i];
+    int type = columns[i].type;
     if (type == CT_DROP) continue;
-    Column *col = dt->columns[j];
-    if (type == CT_STRING) {
+    Column* col = dt->columns[j];
+    if (columns[i].typeBumped) {
+      // do nothing
+    } else if (type == CT_STRING) {
       StrBuf* sb = strbufs[j];
       assert(sb->numuses == 0);
       sb->mbuf->resize(sb->ptr);
       sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
       col->mbuf->resize(sizeof(int32_t) * (nrows + 1));
       col->nrows = static_cast<int64_t>(nrows);
-    } else if (type > 0) {
+    } else {
       Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
       if (c == nullptr) throw Error() << "Could not reallocate column";
     }
@@ -387,7 +385,7 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
   ) : LocalParseContext(bcols, brows), ncols(f.columns.size()),
-      ostrbufs(f.strbufs), types(f.types), sizes(f.sizes), dt(f.dt)
+      ostrbufs(f.strbufs), dt(f.dt), columns(f.columns)
 {
   anchor = nullptr;
   strbufs = nullptr;
@@ -396,8 +394,8 @@ FreadLocalParseContext::FreadLocalParseContext(
   nstrcols = f.nstrcols;
   strbufs = new StrBuf[nstrcols]();
   for (int i = 0, j = 0, k = 0, off8 = 0; i < ncols; i++) {
-    if (f.types[i] == CT_DROP) continue;
-    if (f.types[i] == CT_STRING) {
+    if (columns[i].type == CT_DROP) continue;
+    if (columns[i].type == CT_STRING && !columns[i].typeBumped) {
       assert(k < nstrcols);
       strbufs[k].mbuf = new MemoryMemBuf(4096);
       strbufs[k].ptr = 0;
@@ -405,7 +403,7 @@ FreadLocalParseContext::FreadLocalParseContext(
       strbufs[k].idxdt = j;
       k++;
     }
-    off8 += (f.sizes[i] > 0);
+    off8 += columns[i].presentInBuffer;
     j++;
   }
 }
@@ -422,7 +420,6 @@ FreadLocalParseContext::~FreadLocalParseContext() {
 }
 
 
-void FreadLocalParseContext::push_buffers() {}
 const char* FreadLocalParseContext::read_chunk(const char* start, const char* end) {}
 
 
@@ -523,16 +520,16 @@ void FreadLocalParseContext::orderBuffer() {
 
 
 
-void FreadLocalParseContext::pushBuffer() {
-  int i = 0;    // index within the `types` and `sizes`
-  int j = 0;    // index within `dt->columns`, `tbuf` and `strbufs`
+void FreadLocalParseContext::push_buffers() {
   int k = 0;
   int off = 0;
-  for (; i < ncols; i++) {
-    if (types[i] == CT_DROP) continue;
+  for (size_t i = 0, j = 0; i < ncols; i++) {
+    if (columns[i].type == CT_DROP) continue;
     Column* col = dt->columns[j];
 
-    if (types[i] == CT_STRING) {
+    if (columns[i].typeBumped) {
+      // do nothing
+    } else if (columns[i].type == CT_STRING) {
       StrBuf* sb = ostrbufs[j];
       size_t ptr = strbufs[k].ptr;
       field64* lo = tbuf + strbufs[k].idx8;
@@ -561,8 +558,8 @@ void FreadLocalParseContext::pushBuffer() {
       }
       k++;
 
-    } else if (types[i] > 0) {
-      int8_t elemsize = sizes[i];
+    } else {
+      int8_t elemsize = typeSize[columns[i].type];
       const field64* src = tbuf + off;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(col->data()) + row0;
@@ -590,7 +587,7 @@ void FreadLocalParseContext::pushBuffer() {
       }
     }
     j++;
-    off += (sizes[i] > 0);
+    off += columns[i].presentInBuffer;
   }
 }
 

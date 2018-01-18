@@ -19,25 +19,70 @@
 
 
 //------------------------------------------------------------------------------
-// GReaderOutputColumn
+// GReaderColumn(s)
 //------------------------------------------------------------------------------
 
-GReaderOutputColumn::GReaderOutputColumn() {
+GReaderColumn::GReaderColumn() {
   data = nullptr;
+  strdata = nullptr;
   valid_from_row = 0;
   type = 0;
+  typeBumped = false;
+  presentInOutput = true;
+  presentInBuffer = true;
 }
 
-GReaderOutputColumn::~GReaderOutputColumn() {
+GReaderColumn::~GReaderColumn() {
   if (data) data->release();
-}
-
-GReaderOutputStringColumn::GReaderOutputStringColumn() {
-  strdata = nullptr;
-}
-
-GReaderOutputStringColumn::~GReaderOutputStringColumn() {
   delete strdata;
+}
+
+
+std::unique_ptr<int8_t[]> GReaderColumns::getTypes() const {
+  size_t n = size();
+  std::unique_ptr<int8_t[]> res(new int8_t[n]);
+  for (size_t i = 0; i < n; ++i) {
+    res[i] = (*this)[i].type;
+  }
+  return res;
+}
+
+void GReaderColumns::setType(int8_t type) {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    (*this)[i].type = type;
+  }
+}
+
+const char* GReaderColumns::printTypes() const {
+  static const size_t N = 100;
+  static char out[N + 1];
+  char* ch = out;
+  size_t ncols = size();
+  size_t tcols = ncols <= N? ncols : N - 20;
+  for (size_t i = 0; i < tcols; ++i) {
+    *ch++ = '0' + (*this)[i].type;  // typeSymbols[types[i]];
+  }
+  if (tcols != ncols) {
+    *ch++ = ' ';
+    *ch++ = '.';
+    *ch++ = '.';
+    *ch++ = '.';
+    *ch++ = ' ';
+    for (size_t i = ncols - 15; i < ncols; ++i)
+      *ch++ = '0' + (*this)[i].type;  // typeSymbols[types[i]];
+  }
+  *ch = '\0';
+  return out;
+}
+
+size_t GReaderColumns::nOutputs() const {
+  size_t nouts = 0;
+  size_t ncols = size();
+  for (size_t i = 0; i < ncols; ++i) {
+    nouts += (*this)[i].presentInOutput;
+  }
+  return nouts;
 }
 
 

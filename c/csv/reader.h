@@ -279,30 +279,36 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
 
 
 //------------------------------------------------------------------------------
-// GReaderOutputColumn
+// GReaderColumn
 //------------------------------------------------------------------------------
 
-class GReaderOutputColumn {
+/**
+ * Implemented in "csv/reader_utils.cc".
+ */
+class GReaderColumn {
   public:
     std::string name;
     MemoryBuffer* data;
+    WritableBuffer* strdata;
     int64_t valid_from_row;
     int8_t type;
-    int64_t : 56;
+    bool typeBumped;
+    bool presentInOutput;
+    bool presentInBuffer;
+    int64_t : 48;
 
   public:
-    GReaderOutputColumn();
-    virtual ~GReaderOutputColumn();
+    GReaderColumn();
+    virtual ~GReaderColumn();
 };
 
 
-class GReaderOutputStringColumn : public GReaderOutputColumn {
+class GReaderColumns : public std::vector<GReaderColumn> {
   public:
-    WritableBuffer* strdata;
-
-  public:
-    GReaderOutputStringColumn();
-    virtual ~GReaderOutputStringColumn();
+    std::unique_ptr<int8_t[]> getTypes() const;
+    void setType(int8_t type);
+    const char* printTypes() const;
+    size_t nOutputs() const;
 };
 
 
@@ -321,7 +327,7 @@ class ChunkedDataReader
 
     // and saved into here, via the intermediate buffers TLocalParseContext, that
     // are instantiated within the read_all() method:
-    std::vector<GReaderOutputColumn> cols;
+    std::vector<GReaderColumn> cols;
 
     // Additional parameters
     size_t max_nrows;

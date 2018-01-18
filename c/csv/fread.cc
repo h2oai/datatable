@@ -47,30 +47,6 @@ static const char* strlim(const char* ch, size_t limit) {
 }
 
 
-// TODO: make static member of GReaderOutputColumn
-const char* FreadReader::printTypes() const {
-  // e.g. files with 10,000 columns, don't print all of it to verbose output.
-  static char out[111];
-  char* ch = out;
-  if (types) {
-    int ncols = columns.size();
-    int tt = ncols<=110? ncols : 90;
-    for (int i=0; i<tt; i++) {
-      *ch++ = typeSymbols[types[i]];
-    }
-    if (ncols>110) {
-      *ch++ = '.';
-      *ch++ = '.';
-      *ch++ = '.';
-      for (int i=ncols-10; i<ncols; i++)
-        *ch++ = typeSymbols[types[i]];
-    }
-  }
-  *ch = '\0';
-  return out;
-}
-
-
 // In order to add a new type:
 //   - register new parser in this `parsers` array
 //   - add entries in arrays `typeName` / `typeSize` / `typeSymbols` at the top of this file
@@ -293,7 +269,7 @@ int FreadReader::freadMain()
     // Create vector of Column objects
     columns.reserve(ncols);
     for (int i = 0; i < ncols; i++) {
-      columns.push_back(GReaderOutputColumn());
+      columns.push_back(GReaderColumn());
     }
 
     // For standard regular separated files, we're now on the first byte of the file.
@@ -336,17 +312,9 @@ int FreadReader::freadMain()
   {
     if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
     int ncols = columns.size();
-    types = new int8_t[ncols];
-    sizes = new int8_t[ncols];
-    tmpTypes = new int8_t[ncols];
 
     int8_t type0 = 1;
-    // while (disabled_parsers[type0]) type0++;
-    for (int j = 0; j < ncols; j++) {
-      // initialize with the first (lowest) type
-      types[j] = type0;
-      tmpTypes[j] = type0;
-    }
+    columns.setType(type0);
     field64 trash;
     FieldParseContext fctx = makeFieldParseContext(ch, &trash, nullptr);
 
@@ -427,28 +395,27 @@ int FreadReader::freadMain()
           if (firstDataRowAfterPotentialColumnNames) {
             // 2nd non-blank row is being read now.
             // 1st row's type is remembered and compared (a little lower down) to second row to decide if 1st row is column names or not
-            thisColumnNameWasString = (tmpTypes[field]==CT_STRING);
-            tmpTypes[field] = type0;  // re-initialize for 2nd row onwards
+            thisColumnNameWasString = (columns[field].type == CT_STRING);
+            columns[field].type = type0;  // re-initialize for 2nd row onwards
           }
-          while (tmpTypes[field]<=CT_STRING) {
-            parsers[tmpTypes[field]](fctx);
+          while (columns[field].type <= CT_STRING) {
+            parsers[columns[field].type](fctx);
             fctx.skip_white();
             if (fctx.end_of_field()) break;
             ch = fctx.end_NA_string(fieldStart);
             if (fctx.end_of_field()) break;
-            if (tmpTypes[field]<CT_STRING) {
+            if (columns[field].type<CT_STRING) {
               ch = fieldStart;
               if (*ch==quote) {
                 ch++;
-                parsers[tmpTypes[field]](fctx);
+                parsers[columns[field].type](fctx);
                 if (*ch==quote) {
                   ch++;
                   fctx.skip_white();
                   if (fctx.end_of_field()) break;
                 }
               }
-              tmpTypes[field]++;
-              // while (disabled_parsers[tmpTypes[field]]) tmpTypes[field]++;
+              columns[field].type++;
             } else {
               // the field could not be read with this quote rule, try again with next one
               // Trying the next rule will only be successful if the number of fields is consistent with it
@@ -462,10 +429,10 @@ int FreadReader::freadMain()
             bumped = true;
             ch = fieldStart;
           }
-          if (header==NA_BOOL8 && thisColumnNameWasString && tmpTypes[field] < CT_STRING) {
+          if (header==NA_BOOL8 && thisColumnNameWasString && columns[field].type < CT_STRING) {
             header = true;
             g.trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2",
-                    field + 1, typeName[tmpTypes[field]]);
+                    field + 1, typeName[columns[field].type]);
           }
           if (*ch!=sep || *ch=='\n' || *ch=='\r') break;
           if (sep==' ') {
@@ -493,7 +460,7 @@ int FreadReader::freadMain()
         }
         if (firstDataRowAfterPotentialColumnNames) {
           if (fill) {
-            for (int jj=field+1; jj<ncols; jj++) tmpTypes[jj] = type0;
+            for (int jj=field+1; jj<ncols; jj++) columns[jj].type = type0;
           }
           firstDataRowAfterPotentialColumnNames = false;
         } else if (sampleLines==0) {
@@ -512,9 +479,8 @@ int FreadReader::freadMain()
       }
       if (skip) continue;
       if (j==nJumps-1) lastSampleJumpOk = true;
-      if (bumped) memcpy(types, tmpTypes, (size_t)ncols);
       if (verbose && (bumped || j==0 || j==nJumps-1)) {
-        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, printTypes(), quoteRule);
+        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
       }
     }
     if (lastSampleJumpOk) {
@@ -537,7 +503,7 @@ int FreadReader::freadMain()
     if (header == NA_BOOL8) {
       header = true;
       for (int j=0; j<ncols; j++) {
-        if (types[j] < CT_STRING) {
+        if (columns[j].type < CT_STRING) {
           header = false;
           break;
         }
@@ -558,7 +524,7 @@ int FreadReader::freadMain()
         // A single-row input, and that row is the header. Reset all types to
         // boolean (lowest type possible, a better guess than "string").
         for (int j = 0; j < ncols; j++) {
-          types[j] = type0;
+          columns[j].type = type0;
         }
         allocnrow = 0;
       }
@@ -619,45 +585,49 @@ int FreadReader::freadMain()
   double tLayout = wallclock();
   double tColType;    // Timer for applying user column class overrides
   double tAlloc;      // Timer for allocating the DataTable
-  int ndrop;          // Number of columns that will be dropped from the file being read
   size_t rowSize;
   size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
-    size_t ncols = columns.size();
-    ch = sof;
-    memcpy(tmpTypes, types, ncols);      // copy types => tmpTypes
+    std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
+
     userOverride();
 
+    size_t ncols = columns.size();
+    size_t ndropped = 0;
     int nUserBumped = 0;
-    ndrop = 0;
     rowSize = 0;
-    for (size_t j = 0; j < ncols; j++) {
-      sizes[j] = typeSize[types[j]];
-      if (types[j] == CT_DROP) {
-        ndrop++;
+    for (size_t i = 0; i < ncols; i++) {
+      GReaderColumn& col = columns[i];
+      if (col.type == CT_DROP) {
+        ndropped++;
+        col.presentInOutput = false;
+        col.presentInBuffer = false;
         continue;
+      } else {
+        rowSize += 8;
+        if (col.type < oldtypes[i]) {
+          // FIXME: if the user wants to override the type, let them
+          STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
+               "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
+               i+1, col.name.data(), typeName[oldtypes[i]], typeName[col.type]);
+        }
+        nUserBumped += (col.type != oldtypes[i]);
       }
-      rowSize += 8;
-      if (types[j] < tmpTypes[j]) {
-        // FIXME: if the user wants to override the type, let them
-        STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
-             "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-             j+1, columns[j].name.data(), typeName[tmpTypes[j]], typeName[types[j]]);
-      }
-      nUserBumped += (types[j] > tmpTypes[j]);
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",
-              nUserBumped, ndrop, printTypes());
+              nUserBumped, ndropped, columns.printTypes());
     }
     tColType = wallclock();
 
     if (verbose) {
       DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
-              ncols-ndrop, ncols, ndrop, allocnrow);
+              ncols-ndropped, ncols, ndropped, allocnrow);
     }
+
     DTbytes = allocateDT();
+
     tAlloc = wallclock();
   }
 
@@ -712,6 +682,8 @@ int FreadReader::freadMain()
   if (initialBuffRows < 4) initialBuffRows = 4;
   ASSERT(initialBuffRows <= INT32_MAX);
   nth = std::min(nJumps, nth);
+  std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
+  int8_t* types = typesPtr.get();  // This pointer is valid untile `typesPtr` goes out of scope
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");
@@ -757,7 +729,7 @@ int FreadReader::freadMain()
         // iii) myBuff is hot, so this is the best time to transpose it to result, and first time possible as soon
         //      as we know the previous jump's number of rows.
         //  iv) so that myBuff can be small
-        ctx.pushBuffer();
+        ctx.push_buffers();
         myNrow = 0;
         if (verbose || myShowProgress) {
           double now = wallclock();
@@ -827,12 +799,9 @@ int FreadReader::freadMain()
           while (j < ncols) {
             fieldStart = tch;
             // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
-            int8_t thisType = types[j];
-            parsers[abs(thisType)](fctx);
+            parsers[types[j]](fctx);
             if (*tch != sep) break;
-            if (sizes[j]) {
-              fctx.target++;
-            }
+            fctx.target += columns[j].presentInBuffer;
             tch++;
             j++;
           }
@@ -843,10 +812,8 @@ int FreadReader::freadMain()
             if (skipEmptyLines && fctx.skip_eol()) continue;
             tch = tlineStart;  // in case white space at the beginning may need to be included in field
           }
-          else if (fctx.skip_eol()) {
-            if (sizes[j]) {
-              fctx.target++;
-            }
+          else if (fctx.skip_eol() && j < ncols) {
+            fctx.target += columns[j].presentInBuffer;
             j++;
             if (j==ncols) { myNrow++; continue; }  // next line. Back up to while (tch<nextJump). Usually happens, fastest path
             tch--;
@@ -875,14 +842,13 @@ int FreadReader::freadMain()
         if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
           while (j < ncols) {
             fieldStart = tch;
-            int8_t joldType = types[j];
-            int8_t thisType = joldType;  // to know if it was bumped in (rare) out-of-sample type exceptions
-            int8_t absType = (int8_t)abs(thisType);
+            int8_t oldType = types[j];
+            int8_t newType = oldType;
 
-            while (absType < NUMTYPE) {
+            while (newType < NUMTYPE) {
               tch = fieldStart;
               bool quoted = false;
-              if (absType < CT_STRING && absType > CT_DROP) {
+              if (newType < CT_STRING && newType > CT_DROP) {
                 fctx.skip_white();
                 const char* afterSpace = tch;
                 tch = fctx.end_NA_string(fieldStart);
@@ -890,7 +856,7 @@ int FreadReader::freadMain()
                 if (!fctx.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
                 if (*tch==quote) { quoted=true; tch++; }
               } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
-              parsers[absType](fctx);
+              parsers[newType](fctx);
               if (quoted && *tch==quote) tch++;
               fctx.skip_white();
               if (fctx.end_of_field()) {
@@ -904,44 +870,42 @@ int FreadReader::freadMain()
               // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
               // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
               // sure a single re-read will definitely work.
-              absType++;
-              // while (disabled_parsers[absType]) absType++;
-              thisType = -absType;
+              newType++;
               tch = fieldStart;
             }
 
-            if (thisType != joldType) {          // rare out-of-sample type exception.
+            if (newType != oldType) {          // rare out-of-sample type exception.
               #pragma omp critical
               {
-                joldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
+                oldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
                 // Can't print because we're likely not master. So accumulate message and print afterwards.
-                if (thisType < joldType) {   // thisType<0 (type-exception)
+                if (newType != oldType) {
                   if (verbose) {
                     char temp[1001];
                     int len = snprintf(temp, 1000,
                       "Column %d (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                      j+1, columns[j].name.data(), typeName[abs(joldType)], typeName[abs(thisType)],
+                      j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
                       (int)(tch-fieldStart), fieldStart, (llu)(ctx.row0+myNrow));
                     typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
-                    strcpy(typeBumpMsg+typeBumpMsgSize, temp);
+                    strcpy(typeBumpMsg + typeBumpMsgSize, temp);
                     typeBumpMsgSize += (size_t)len;
                   }
                   nTypeBump++;
-                  if (joldType>0) nTypeBumpCols++;
-                  types[j] = thisType;
+                  if (!columns[j].typeBumped) nTypeBumpCols++;
+                  types[j] = newType;
+                  columns[j].type = newType;
+                  columns[j].typeBumped = true;
                 } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
               }
             }
-            if (sizes[j]) {
-              fctx.target++;
-            }
+            fctx.target += columns[j].presentInBuffer;
             j++;
             if (*tch==sep) { tch++; continue; }
             if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
               // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
               // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
               // case should be handled explicitly.
-              if (joldType == CT_STRING && sizes[j-1] == 8 && fctx.target[-1].str32.length == 0) {
+              if (oldType == CT_STRING && columns[j-1].presentInBuffer && fctx.target[-1].str32.length == 0) {
                 fctx.target[-1].str32.setna();
               }
               continue;
@@ -1029,12 +993,12 @@ int FreadReader::freadMain()
       }
       // END ORDERED.
       // Next thread can now start its ordered section and write its results to the final DT at the same time as me.
-      // Ordered has to be last in some OpenMP implementations currently. Logically though, pushBuffer happens now.
+      // Ordered has to be last in some OpenMP implementations currently. Logically though, push_buffers happens now.
     }
     // Push out all buffers one last time.
     if (myNrow) {
       double now = verbose? wallclock() : 0;
-      ctx.pushBuffer();
+      ctx.push_buffers();
       if (verbose) thRead += wallclock() - now;
     }
   }
@@ -1078,24 +1042,27 @@ int FreadReader::freadMain()
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
     for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
-    for (int i=0; i<ncols; i++) typeCounts[ abs(types[i]) ]++;
+    for (int i = 0; i < ncols; i++) {
+      typeCounts[columns[i].type]++;
+    }
 
     if (nTypeBump) {
       rowSize = 0;
-      for (int j=0, resj=-1; j<ncols; j++) {
-        if (types[j] == CT_DROP) continue;
+      for (int j = 0, resj=-1; j < ncols; j++) {
+        GReaderColumn& col = columns[j];
+        if (!col.presentInOutput) continue;
         resj++;
-        if (types[j]<0) {
+        if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
-          types[j] = -types[j];
-          sizes[j] = typeSize[types[j]];
-          assert(sizes[j] != 0);
+          col.typeBumped = false;
           rowSize += 8;
-        } else if (types[j]>=1) {
+        } else {
           // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
           // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
-          types[j] = -CT_STRING;
-          sizes[j] = 0;
+          col.type = CT_STRING;
+          col.typeBumped = true;
+          col.presentInBuffer = false;
+          types[j] = col.type;
         }
       }
       allocnrow = row0;
@@ -1114,7 +1081,7 @@ int FreadReader::freadMain()
 
   double tTot = tReread-t0;  // tReread==tRead when there was no reread
   g.trace("Read %zu rows x %d columns from %s file in %02d:%06.3f wall clock time",
-          row0, ncols-ndrop, filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
+          row0, columns.nOutputs(), filesize_to_str(fileSize), (int)tTot/60, fmod(tTot,60.0));
 
 
 
