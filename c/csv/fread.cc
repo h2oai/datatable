@@ -590,30 +590,29 @@ int FreadReader::freadMain()
   size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
-    size_t ncols = columns.size();
-    ch = sof;
-    sizes = new int8_t[ncols];
-    std::unique_ptr<int8_t[]> types = columns.getTypes();
+    std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
 
     userOverride();
 
+    size_t ncols = columns.size();
     int nUserBumped = 0;
     ndrop = 0;
     rowSize = 0;
-    for (size_t j = 0; j < ncols; j++) {
-      sizes[j] = typeSize[columns[j].type];
+    for (size_t j = 0, k = 0; j < ncols; j++) {
       if (columns[j].type == CT_DROP) {
         ndrop++;
         continue;
       }
+      columns[j].resindex = k;
       rowSize += 8;
-      if (columns[j].type < types[j]) {
+      if (columns[j].type < oldtypes[j]) {
         // FIXME: if the user wants to override the type, let them
         STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
              "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-             j+1, columns[j].name.data(), typeName[types[j]], typeName[columns[j].type]);
+             j+1, columns[j].name.data(), typeName[oldtypes[j]], typeName[columns[j].type]);
       }
-      nUserBumped += (columns[j].type != types[j]);
+      nUserBumped += (columns[j].type != oldtypes[j]);
+      k++;
     }
     if (verbose) {
       DTPRINT("  After %d type and %d drop user overrides : %s",
@@ -684,6 +683,10 @@ int FreadReader::freadMain()
   nth = std::min(nJumps, nth);
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid untile `typesPtr` goes out of scope
+  sizes = new int8_t[ncols];
+  for (size_t j = 0; j < ncols; j++) {
+    sizes[j] = typeSize[columns[j].type];
+  }
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");

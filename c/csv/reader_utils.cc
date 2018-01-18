@@ -16,6 +16,7 @@
 #include "csv/reader.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
+#include <limits>
 
 
 //------------------------------------------------------------------------------
@@ -28,6 +29,7 @@ GReaderColumn::GReaderColumn() {
   valid_from_row = 0;
   type = 0;
   typeBumped = false;
+  resindex = std::numeric_limits<size_t>::max();
 }
 
 GReaderColumn::~GReaderColumn() {

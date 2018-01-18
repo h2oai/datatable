@@ -290,6 +290,7 @@ class GReaderColumn {
     std::string name;
     MemoryBuffer* data;
     WritableBuffer* strdata;
+    size_t resindex;
     int64_t valid_from_row;
     int8_t type;
     bool typeBumped;
