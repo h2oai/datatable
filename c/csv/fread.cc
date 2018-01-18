@@ -269,7 +269,7 @@ int FreadReader::freadMain()
     // Create vector of Column objects
     columns.reserve(ncols);
     for (int i = 0; i < ncols; i++) {
-      columns.push_back(GReaderOutputColumn());
+      columns.push_back(GReaderColumn());
     }
 
     // For standard regular separated files, we're now on the first byte of the file.
@@ -1058,7 +1058,7 @@ int FreadReader::freadMain()
     if (nTypeBump) {
       rowSize = 0;
       for (int j = 0, resj=-1; j < ncols; j++) {
-        GReaderOutputColumn& col = columns[j];
+        GReaderColumn& col = columns[j];
         if (col.type == CT_DROP) continue;
         resj++;
         if (col.typeBumped) {

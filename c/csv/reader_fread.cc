@@ -145,7 +145,7 @@ void FreadReader::parse_column_names(FieldParseContext& ctx) {
     size_t length = static_cast<size_t>(ctx.target->str32.length);
 
     if (i >= ncols) {
-      columns.push_back(GReaderOutputColumn());
+      columns.push_back(GReaderColumn());
     }
     if (length > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);

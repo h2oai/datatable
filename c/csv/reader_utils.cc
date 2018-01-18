@@ -19,10 +19,10 @@
 
 
 //------------------------------------------------------------------------------
-// GReaderOutputColumn
+// GReaderColumn
 //------------------------------------------------------------------------------
 
-GReaderOutputColumn::GReaderOutputColumn() {
+GReaderColumn::GReaderColumn() {
   data = nullptr;
   strdata = nullptr;
   valid_from_row = 0;
@@ -30,13 +30,13 @@ GReaderOutputColumn::GReaderOutputColumn() {
   typeBumped = false;
 }
 
-GReaderOutputColumn::~GReaderOutputColumn() {
+GReaderColumn::~GReaderColumn() {
   if (data) data->release();
   delete strdata;
 }
 
 
-std::unique_ptr<int8_t[]> GReaderOutputColumns::getTypes() const {
+std::unique_ptr<int8_t[]> GReaderColumns::getTypes() const {
   size_t n = size();
   std::unique_ptr<int8_t[]> res(new int8_t[n]);
   for (size_t i = 0; i < n; ++i) {
@@ -45,14 +45,14 @@ std::unique_ptr<int8_t[]> GReaderOutputColumns::getTypes() const {
   return res;
 }
 
-void GReaderOutputColumns::setType(int8_t type) {
+void GReaderColumns::setType(int8_t type) {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
     (*this)[i].type = type;
   }
 }
 
-const char* GReaderOutputColumns::printTypes() const {
+const char* GReaderColumns::printTypes() const {
   static const size_t N = 100;
   static char out[N + 1];
   char* ch = out;

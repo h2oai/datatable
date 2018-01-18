@@ -52,7 +52,7 @@ class FreadReader
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
-  GReaderOutputColumns columns;
+  GReaderColumns columns;
   char* targetdir;
   StrBuf** strbufs;
   DataTablePtr dt;
@@ -173,12 +173,12 @@ class FreadLocalParseContext : public LocalParseContext
     int : 32;
 
     // TODO: these should be replaced with a single reference to
-    //       GReaderOutputColumns
+    //       GReaderColumns
     int ncols;
     StrBuf**& ostrbufs;
     int8_t*& sizes;
     DataTablePtr& dt;
-    GReaderOutputColumns& columns;
+    GReaderColumns& columns;
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&);
