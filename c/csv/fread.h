@@ -42,6 +42,7 @@ typedef enum {
 } colType;
 
 extern int8_t typeSize[NUMTYPE];
+extern const char typeSymbols[NUMTYPE];
 extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
@@ -139,10 +140,32 @@ typedef void (*ParserFnPtr)(FieldParseContext& ctx);
 struct StrBuf {
   MemoryBuffer* mbuf;
   size_t ptr;
-  int idx8;
-  int idxdt;
-  volatile int numuses;
-  int : 32;
+  size_t idx8;
+  size_t idxdt;
+
+  StrBuf(size_t allocsize, size_t i8, size_t idt) {
+    mbuf = new MemoryMemBuf(allocsize);
+    ptr = 0;
+    idx8 = i8;
+    idxdt = idt;
+  }
+
+  StrBuf(StrBuf&& other) {
+    mbuf = other.mbuf;
+    ptr = other.ptr;
+    idx8 = other.idx8;
+    idxdt = other.idxdt;
+    other.mbuf = nullptr;
+  }
+
+  StrBuf(const StrBuf&) = delete;
+
+  ~StrBuf() {
+    if (mbuf) {
+      mbuf->release();
+      mbuf = nullptr;
+    }
+  }
 };
 
 

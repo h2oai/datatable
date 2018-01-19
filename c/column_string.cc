@@ -186,7 +186,6 @@ void StringColumn<T>::replace_buffer(MemoryBuffer* new_offbuf,
   nrows = new_nrows;
   mbuf = new_offbuf;
   strbuf = new_strbuf;
-
 }
 
 

@@ -23,7 +23,7 @@
 
 const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     'i',     'I',     'h',       'd',       'D',       'H',       's'};
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
-int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
+int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         4       };
 
 
 
@@ -79,7 +79,7 @@ static ParserFnPtr parsers[NUMTYPE] = {
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-int FreadReader::freadMain()
+DataTablePtr FreadReader::read()
 {
   double t0 = wallclock();
   bool verbose = g.verbose;
@@ -267,7 +267,7 @@ int FreadReader::freadMain()
     ASSERT(ncols >= 1 && line >= 1);
 
     // Create vector of Column objects
-    columns.reserve(ncols);
+    columns.reserve(static_cast<size_t>(ncols));
     for (int i = 0; i < ncols; i++) {
       columns.push_back(GReaderColumn());
     }
@@ -311,7 +311,7 @@ int FreadReader::freadMain()
   const char* lastRowEnd; // Pointer to the end of the data section
   {
     if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
-    int ncols = columns.size();
+    size_t ncols = columns.size();
 
     int8_t type0 = 1;
     columns.setType(type0);
@@ -384,10 +384,10 @@ int FreadReader::freadMain()
           continue;
         }
         jline++;
-        int field = 0;
+        size_t field = 0;
         const char* fieldStart = NULL;  // Needed outside loop for error messages below
         ch--;
-        while (field<ncols) {
+        while (field < ncols) {
           ch++;
           fctx.skip_white();
           fieldStart = ch;
@@ -460,7 +460,9 @@ int FreadReader::freadMain()
         }
         if (firstDataRowAfterPotentialColumnNames) {
           if (fill) {
-            for (int jj=field+1; jj<ncols; jj++) columns[jj].type = type0;
+            for (size_t jj = field+1; jj < ncols; jj++) {
+              columns[jj].type = type0;
+            }
           }
           firstDataRowAfterPotentialColumnNames = false;
         } else if (sampleLines==0) {
@@ -502,7 +504,7 @@ int FreadReader::freadMain()
 
     if (header == NA_BOOL8) {
       header = true;
-      for (int j=0; j<ncols; j++) {
+      for (size_t j = 0; j < ncols; j++) {
         if (columns[j].type < CT_STRING) {
           header = false;
           break;
@@ -523,7 +525,7 @@ int FreadReader::freadMain()
       if (header == 1) {
         // A single-row input, and that row is the header. Reset all types to
         // boolean (lowest type possible, a better guess than "string").
-        for (int j = 0; j < ncols; j++) {
+        for (size_t j = 0; j < ncols; j++) {
           columns[j].type = type0;
         }
         allocnrow = 0;
@@ -586,7 +588,6 @@ int FreadReader::freadMain()
   double tColType;    // Timer for applying user column class overrides
   double tAlloc;      // Timer for allocating the DataTable
   size_t rowSize;
-  size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
@@ -626,7 +627,7 @@ int FreadReader::freadMain()
               ncols-ndropped, ncols, ndropped, allocnrow);
     }
 
-    DTbytes = allocateDT();
+    columns.allocate(allocnrow);
 
     tAlloc = wallclock();
   }
@@ -665,7 +666,7 @@ int FreadReader::freadMain()
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
-  int ncols = (int) columns.size();
+  size_t ncols = columns.size();
   bool fillme = fill || (ncols==1 && !skipEmptyLines);
 
   if (nJumps/*from sampling*/ > 1) {
@@ -791,7 +792,7 @@ int FreadReader::freadMain()
         }
         const char* tlineStart = tch;  // for error message
         const char* fieldStart = tch;
-        int j = 0;
+        size_t j = 0;
 
         //*** START HOT ***//
         if (sep!=' ' && !any_number_like_NAstrings) {  // TODO:  can this 'if' be dropped somehow? Can numeric NAstrings be dealt with afterwards in one go as numeric comparison?
@@ -1025,7 +1026,7 @@ int FreadReader::freadMain()
               "(now nrows=%llu) and continue reading from jump point %d",
               (llu)extraAllocRows, (llu)allocnrow, jump0);
     }
-    allocateDT();
+    columns.allocate(allocnrow);
     extraAllocRows = 0;
     stopTeam = false;
     goto read;   // jump0>0 at this point, set above
@@ -1034,14 +1035,14 @@ int FreadReader::freadMain()
   // tell progress meter to finish up; e.g. write final newline
   // if there's a reread, the progress meter will start again from 0
   if (g.show_progress && thPush >= 0.75) progress(100.0);
-  setFinalNrow(row0);
+  columns.allocate(row0);
 
   if (firstTime) {
     tReread = tRead = wallclock();
 
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
-    for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
+    for (int i = 0; i < NUMTYPE; i++) typeCounts[i] = 0;
     for (int i = 0; i < ncols; i++) {
       typeCounts[columns[i].type]++;
     }
@@ -1055,18 +1056,15 @@ int FreadReader::freadMain()
         if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
           col.typeBumped = false;
+          col.presentInBuffer = true;
           rowSize += 8;
         } else {
-          // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
-          // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
-          col.type = CT_STRING;
-          col.typeBumped = true;
+          types[j] = CT_DROP;
           col.presentInBuffer = false;
-          types[j] = col.type;
         }
       }
       allocnrow = row0;
-      allocateDT();
+      columns.allocate(allocnrow);
       // reread from the beginning
       row0 = 0;
       prevJumpEnd = sof;
@@ -1089,9 +1087,9 @@ int FreadReader::freadMain()
   // [12] Finalize the datatable
   //*********************************************************************************************
   g.trace("[12] Finalizing the datatable");
-  // setFinalNrow(row0);
 
   if (verbose) {
+    size_t totalAllocSize = columns.totalAllocSize();
     DTPRINT("=============================");
     if (tTot < 0.000001) tTot = 0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
     DTPRINT("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
@@ -1099,7 +1097,7 @@ int FreadReader::freadMain()
             tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
     DTPRINT("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
             tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, ncols,
-            DTbytes/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
+            totalAllocSize/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
     thNextGoodLine /= nth;
     thRead /= nth;
     thPush /= nth;
@@ -1124,5 +1122,6 @@ int FreadReader::freadMain()
       free(typeBumpMsg);  // local scope and only populated in verbose mode
     }
   }
-  return 1;
+
+  return makeDatatable();
 }

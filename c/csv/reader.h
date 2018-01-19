@@ -283,32 +283,61 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
 //------------------------------------------------------------------------------
 
 /**
+ * Information about a single input column in a GenericReader. An "input column"
+ * means a collection of fields at the same index on every line in the input.
+ * All these fields are assumed to have a common underlying type.
+ *
+ * An input column usually translates into an output column in a DataTable
+ * returned to the user. The exception to this are "dropped" columns. They are
+ * marked with `presentInOutput = false` flag (and have type CT_DROP).
+ *
  * Implemented in "csv/reader_utils.cc".
  */
 class GReaderColumn {
+  private:
+    MemoryBuffer* mbuf;
+
   public:
     std::string name;
-    MemoryBuffer* data;
-    WritableBuffer* strdata;
-    int64_t valid_from_row;
+    MemoryWritableBuffer* strdata;
     int8_t type;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
-    int64_t : 48;
+    int32_t : 32;
 
   public:
     GReaderColumn();
+    GReaderColumn(const GReaderColumn&) = delete;
+    GReaderColumn(GReaderColumn&&);
     virtual ~GReaderColumn();
+    size_t elemsize() const;
+    size_t getAllocSize() const;
+    void* data() const { return mbuf->get(); }
+    void allocate(size_t nrows);
+    MemoryBuffer* extract_databuf();
+    MemoryBuffer* extract_strbuf();
 };
 
 
+
+//------------------------------------------------------------------------------
+// GReaderColumns
+//------------------------------------------------------------------------------
+
 class GReaderColumns : public std::vector<GReaderColumn> {
+  private:
+    size_t allocnrows;
+
   public:
+    GReaderColumns() noexcept;
+    void allocate(size_t nrows);
     std::unique_ptr<int8_t[]> getTypes() const;
     void setType(int8_t type);
     const char* printTypes() const;
     size_t nOutputs() const;
+    size_t nStringColumns() const;
+    size_t totalAllocSize() const;
 };
 
 

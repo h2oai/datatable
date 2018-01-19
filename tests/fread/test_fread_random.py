@@ -97,6 +97,7 @@ def test_fread_omnibus(seed):
     if ncols == 0:
         nrows = 0
 
+    d0 = None
     try:
         params["text"] = text
         d0 = dt.fread(**params)

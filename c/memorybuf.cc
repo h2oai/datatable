@@ -435,6 +435,7 @@ void MemmapMemBuf::evict() {
 
 
 void MemmapMemBuf::resize(size_t n) {
+  if (n == mmpsize) return;
   if (is_readonly()) throw RuntimeError() << "Cannot resize a readonly buffer";
   memunmap();
 
