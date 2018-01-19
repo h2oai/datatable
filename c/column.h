@@ -77,6 +77,7 @@ public:
   static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
+  static Column* new_mbuf_column(SType, MemoryBuffer*, MemoryBuffer*);
   static Column* from_pylist(PyObject* list, int stype0 = 0, int ltype0 = 0);
 
   Column(const Column&) = delete;

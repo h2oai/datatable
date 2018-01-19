@@ -120,6 +120,17 @@ Column* Column::new_xbuf_column(SType stype,
 }
 
 
+/**
+ * Construct a column using existing MemoryBuffers.
+ */
+Column* Column::new_mbuf_column(SType stype, MemoryBuffer* mbuf,
+                                MemoryBuffer* strbuf)
+{
+  Column* col = new_column(stype);
+  col->replace_buffer(mbuf, strbuf);
+  return col;
+}
+
 
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.

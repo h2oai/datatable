@@ -14,14 +14,12 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"
-#include <Python.h>
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
 #include <exception>
 #include "csv/reader.h"
 #include "csv/reader_parsers.h"
 #include "csv/fread.h"
-#include "memorybuf.h"
 #include "datatable.h"
 #include "column.h"
 #include "py_datatable.h"
