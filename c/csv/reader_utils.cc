@@ -14,27 +14,89 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
+#include "csv/fread.h"   // temporary
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
 
+
 //------------------------------------------------------------------------------
-// GReaderColumn(s)
+// GReaderColumn
 //------------------------------------------------------------------------------
 
 GReaderColumn::GReaderColumn() {
-  data = nullptr;
+  mbuf = nullptr;
   strdata = nullptr;
-  valid_from_row = 0;
   type = 0;
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;
 }
 
+GReaderColumn::GReaderColumn(GReaderColumn&& o)
+  : mbuf(o.mbuf), name(std::move(o.name)), strdata(o.strdata), type(o.type),
+    typeBumped(o.typeBumped), presentInOutput(o.presentInOutput),
+    presentInBuffer(o.presentInBuffer) {
+  o.mbuf = nullptr;
+  o.strdata = nullptr;
+}
+
 GReaderColumn::~GReaderColumn() {
-  if (data) data->release();
+  if (mbuf) mbuf->release();
   delete strdata;
+}
+
+
+void GReaderColumn::allocate(size_t nrows) {
+  if (!presentInOutput) return;
+  bool isstring = (type == CT_STRING);
+  size_t allocsize = (nrows + isstring) * elemsize();
+  if (mbuf) {
+    mbuf->resize(allocsize);
+  } else {
+    mbuf = new MemoryMemBuf(allocsize);
+  }
+  if (isstring) {
+    mbuf->set_elem<int32_t>(0, -1);
+    if (!strdata) {
+      strdata = new MemoryWritableBuffer(allocsize);
+    }
+  }
+}
+
+size_t GReaderColumn::elemsize() const {
+  return typeSize[type];
+}
+
+MemoryBuffer* GReaderColumn::extract_databuf() {
+  MemoryBuffer* r = mbuf;
+  mbuf = nullptr;
+  return r;
+}
+
+MemoryBuffer* GReaderColumn::extract_strbuf() {
+  if (!(strdata && type == CT_STRING)) return nullptr;
+  // TODO: make get_mbuf() method available on WritableBuffer itself
+  strdata->finalize();
+  return strdata->get_mbuf();
+}
+
+
+
+//------------------------------------------------------------------------------
+// GReaderColumns
+//------------------------------------------------------------------------------
+
+GReaderColumns::GReaderColumns() noexcept
+    : std::vector<GReaderColumn>(), allocnrows(0) {}
+
+
+void GReaderColumns::allocate(size_t nrows) {
+  size_t ncols = size();
+  for (size_t i = 0; i < ncols; ++i) {
+    (*this)[i].allocate(nrows);
+  }
+  allocnrows = nrows;
 }
 
 
@@ -61,7 +123,7 @@ const char* GReaderColumns::printTypes() const {
   size_t ncols = size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = '0' + (*this)[i].type;  // typeSymbols[types[i]];
+    *ch++ = typeSymbols[(*this)[i].type];
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -70,7 +132,7 @@ const char* GReaderColumns::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = '0' + (*this)[i].type;  // typeSymbols[types[i]];
+      *ch++ = typeSymbols[(*this)[i].type];
   }
   *ch = '\0';
   return out;
@@ -83,6 +145,15 @@ size_t GReaderColumns::nOutputs() const {
     nouts += (*this)[i].presentInOutput;
   }
   return nouts;
+}
+
+size_t GReaderColumns::nStringColumns() const {
+  size_t nstrs = 0;
+  size_t ncols = size();
+  for (size_t i = 0; i < ncols; ++i) {
+    nstrs += ((*this)[i].type == CT_STRING);
+  }
+  return nstrs;
 }
 
 

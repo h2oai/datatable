@@ -56,10 +56,10 @@ static char fname[1000];
 
 FreadReader::FreadReader(GenericReader& greader) : g(greader) {
   targetdir = nullptr;
-  strbufs = nullptr;
+  // strbufs = nullptr;
   eof = nullptr;
-  nstrcols = 0;
-  ndigits = 0;
+  // nstrcols = 0;
+  // ndigits = 0;
   whiteChar = dec = sep = quote = '\0';
   quoteRule = -1;
   stripWhite = false;
@@ -68,7 +68,7 @@ FreadReader::FreadReader(GenericReader& greader) : g(greader) {
 }
 
 FreadReader::~FreadReader() {
-  free(strbufs);
+  // free(strbufs);
 }
 
 
@@ -96,7 +96,8 @@ FieldParseContext FreadReader::makeFieldParseContext(
 DataTablePtr FreadReader::read() {
   int retval = freadMain();
   if (!retval) throw PyError();
-  return std::move(dt);
+  // return std::move(dt);
+  return makeDatatable();
 }
 
 
@@ -191,57 +192,6 @@ void FreadReader::parse_column_names(FieldParseContext& ctx) {
 }
 
 
-
-Column* FreadReader::alloc_column(SType stype, size_t nrows, int j)
-{
-  // TODO(pasha): figure out how to use `WritableBuffer`s here
-  Column *col = NULL;
-  if (targetdir) {
-    snprintf(fname, 1000, "%s/col%0*d", targetdir, ndigits, j);
-    col = Column::new_mmap_column(stype, static_cast<int64_t>(nrows), fname);
-  } else{
-    col = Column::new_data_column(stype, static_cast<int64_t>(nrows));
-  }
-  if (col == NULL) return NULL;
-
-  if (stype_info[stype].ltype == LT_STRING) {
-    dtrealloc(strbufs[j], StrBuf, 1);
-    StrBuf* sb = strbufs[j];
-    // Pre-allocate enough memory to hold 5-char strings in the buffer. If
-    // this is not enough, we will always be able to re-allocate during the
-    // run time.
-    size_t alloc_size = nrows * 5;
-    sb->mbuf = static_cast<StringColumn<int32_t>*>(col)->strbuf;
-    sb->mbuf->resize(alloc_size);
-    sb->ptr = 0;
-    sb->idx8 = -1;  // not needed for this structure
-    sb->idxdt = j;
-    sb->numuses = 0;
-  }
-  return col;
-}
-
-
-Column* FreadReader::realloc_column(Column *col, SType stype, size_t nrows, int j)
-{
-  if (col != NULL && stype != col->stype()) {
-    delete col;
-    return alloc_column(stype, nrows, j);
-  }
-  if (col == NULL) {
-    return alloc_column(stype, nrows, j);
-  }
-
-  // Buffer in string's column has nrows + 1 elements
-  size_t xnrows = nrows + (stype_info[stype].ltype == LT_STRING);
-  size_t new_alloc_size = stype_info[stype].elemsize * xnrows;
-  col->mbuf->resize(new_alloc_size);
-  col->nrows = (int64_t) nrows;
-  return col;
-}
-
-
-
 void FreadReader::userOverride()
 {
   int ncols = columns.size();
@@ -268,110 +218,136 @@ void FreadReader::userOverride()
 }
 
 
-/**
- * Allocate memory for the DataTable that is being constructed.
- */
+// TODO: remove
 size_t FreadReader::allocateDT()
 {
-  Column** ccolumns = NULL;
-  nstrcols = 0;
-  int ncols = (int) columns.size();
-
-  // First we need to estimate the size of the dataset that needs to be
-  // created. However this needs to be done on first run only.
-  // Also in this block we compute: `nstrcols` (will be used later in
-  // `prepareLocalParseContext` and `postprocessBuffer`), as well as allocating
-  // the `Column**` array.
-  if (!dt) {
-    size_t alloc_size = 0;
-    int i, j;
-    for (i = j = 0; i < ncols; i++) {
-      if (columns[i].type == CT_DROP) continue;
-      nstrcols += (columns[i].type == CT_STRING);
-      SType stype = colType_to_stype[columns[i].type];
-      alloc_size += stype_info[stype].elemsize * allocnrow;
-      if (columns[i].type == CT_STRING) alloc_size += 5 * allocnrow;
-      j++;
-    }
-    dtcalloc_g(ccolumns, Column*, j + 1);
-    dtcalloc_g(strbufs, StrBuf*, j);
-    ccolumns[j] = NULL;
-
-    // Call the Python upstream to determine the strategy where the
-    // DataTable should be created.
-    targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
-                 .as_ccstring();
-  } else {
-    ccolumns = dt->columns;
-    for (int i = 0; i < ncols; i++) {
-      if (columns[i].typeBumped) continue;
-      nstrcols += (columns[i].type == CT_STRING);
-    }
-  }
-
-  // Compute number of digits in `ncols` (needed for creating file names).
-  if (targetdir) {
-    ndigits = 0;
-    for (int nc = ncols; nc; nc /= 10) ndigits++;
-  }
-
-  // Create individual columns
-  for (int i = 0, j = 0; i < ncols; i++) {
-    int8_t type = columns[i].type;
-    if (type == CT_DROP) continue;
-    if (!columns[i].typeBumped) {
-      SType stype = colType_to_stype[type];
-      ccolumns[j] = realloc_column(ccolumns[j], stype, allocnrow, j);
-      if (ccolumns[j] == NULL) goto fail;
-    }
-    j++;
-  }
-
-  if (!dt) {
-    dt.reset(new DataTable(ccolumns));
-  }
+  columns.allocate(allocnrow);
   return 1;
+  // In theory, everything below is not needed...
 
-  fail:
-  if (ccolumns) {
-    Column **col = ccolumns;
-    while (*col++) delete (*col);
-    dtfree(ccolumns);
-  }
-  throw RuntimeError() << "Unable to allocate DataTable";
+  // Column** ccolumns = NULL;
+  // nstrcols = 0;
+  // size_t ncols = columns.size();
+
+  // // First we need to estimate the size of the dataset that needs to be
+  // // created. However this needs to be done on first run only.
+  // // Also in this block we compute: `nstrcols` (will be used later in
+  // // `prepareLocalParseContext` and `postprocessBuffer`), as well as allocating
+  // // the `Column**` array.
+  // if (!dt) {
+  //   size_t alloc_size = 0;
+  //   size_t i, j;
+  //   for (i = j = 0; i < ncols; i++) {
+  //     if (!columns[i].presentInOutput) continue;
+  //     nstrcols += (columns[i].type == CT_STRING);
+  //     SType stype = colType_to_stype[columns[i].type];
+  //     alloc_size += stype_info[stype].elemsize * allocnrow;
+  //     if (columns[i].type == CT_STRING) alloc_size += 5 * allocnrow;
+  //     j++;
+  //   }
+  //   dtcalloc_g(ccolumns, Column*, j + 1);
+  //   dtcalloc_g(strbufs, StrBuf*, j);
+  //   ccolumns[j] = NULL;
+
+  //   // Call the Python upstream to determine the strategy where the
+  //   // DataTable should be created.
+  //   targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
+  //                .as_ccstring();
+  // } else {
+  //   ccolumns = dt->columns;
+  //   for (int i = 0; i < ncols; i++) {
+  //     if (columns[i].typeBumped) continue;
+  //     nstrcols += (columns[i].type == CT_STRING);
+  //   }
+  // }
+
+  // // Compute number of digits in `ncols` (needed for creating file names).
+  // if (targetdir) {
+  //   ndigits = 0;
+  //   for (int nc = ncols; nc; nc /= 10) ndigits++;
+  // }
+
+  // // Create individual columns
+  // for (size_t i = 0, j = 0; i < ncols; i++) {
+  //   int8_t type = columns[i].type;
+  //   if (type == CT_DROP) continue;
+  //   if (!columns[i].typeBumped) {
+  //     SType stype = colType_to_stype[type];
+  //     ccolumns[j] = realloc_column(ccolumns[j], stype, allocnrow, j);
+  //     if (ccolumns[j] == NULL) goto fail;
+  //     if (columns[i].mbuf) columns[i].mbuf->release();
+  //     columns[i].mbuf = ccolumns[j]->mbuf_shallowcopy();
+  //   }
+  //   j++;
+  // }
+
+  // if (!dt) {
+  //   dt.reset(new DataTable(ccolumns));
+  // }
+  // return 1;
+
+  // fail:
+  // if (ccolumns) {
+  //   Column **col = ccolumns;
+  //   while (*col++) delete (*col);
+  //   dtfree(ccolumns);
+  // }
+  // throw RuntimeError() << "Unable to allocate DataTable";
 }
 
 
-
+// TODO: remove
 void FreadReader::setFinalNrow(size_t nrows) {
-  int i, j;
-  int ncols = columns.size();
-  for (i = j = 0; i < ncols; i++) {
-    int type = columns[i].type;
-    if (type == CT_DROP) continue;
-    Column* col = dt->columns[j];
-    if (columns[i].typeBumped) {
-      // do nothing
-    } else if (type == CT_STRING) {
-      StrBuf* sb = strbufs[j];
-      assert(sb->numuses == 0);
-      sb->mbuf->resize(sb->ptr);
-      sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
-      col->mbuf->resize(sizeof(int32_t) * (nrows + 1));
-      col->nrows = static_cast<int64_t>(nrows);
-    } else {
-      Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
-      if (c == nullptr) throw Error() << "Could not reallocate column";
-    }
-    j++;
-  }
-  dt->nrows = (int64_t) nrows;
+  columns.allocate(nrows);
+  // everything below not needed...
+
+  // int i, j;
+  // int ncols = columns.size();
+  // for (i = j = 0; i < ncols; i++) {
+  //   int type = columns[i].type;
+  //   if (type == CT_DROP) continue;
+  //   Column* col = dt->columns[j];
+  //   if (columns[i].typeBumped) {
+  //     // do nothing
+  //   } else if (type == CT_STRING) {
+  //     StrBuf* sb = strbufs[j];
+  //     assert(sb->numuses == 0);
+  //     sb->mbuf->resize(sb->ptr);
+  //     sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
+  //     col->mbuf->resize(sizeof(int32_t) * (nrows + 1));
+  //     col->nrows = static_cast<int64_t>(nrows);
+  //   } else {
+  //     Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
+  //     if (c == nullptr) throw Error() << "Could not reallocate column";
+  //   }
+  //   j++;
+  // }
+  // dt->nrows = (int64_t) nrows;
 }
 
 
 
 void FreadReader::progress(double percent/*[0,100]*/) {
   g.pyreader().invoke("_progress", "(d)", percent);
+}
+
+
+DataTablePtr FreadReader::makeDatatable() {
+  Column** ccols = NULL;
+  size_t ncols = columns.size();
+  size_t ocols = columns.nOutputs();
+  ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
+  ccols[ocols] = NULL;
+  for (size_t i = 0, j = 0; i < ncols; ++i) {
+    GReaderColumn& col = columns[i];
+    if (!col.presentInOutput) continue;
+    SType stype = colType_to_stype[col.type];
+    MemoryBuffer* databuf = col.extract_databuf();
+    MemoryBuffer* strbuf = col.extract_strbuf();
+    ccols[j] = Column::new_mbuf_column(stype, databuf, strbuf);
+    j++;
+  }
+  return DataTablePtr(new DataTable(ccols));
 }
 
 
@@ -382,50 +358,36 @@ void FreadReader::progress(double percent/*[0,100]*/) {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
-  ) : LocalParseContext(bcols, brows), ncols(f.columns.size()),
-      ostrbufs(f.strbufs), dt(f.dt), columns(f.columns)
+  ) : LocalParseContext(bcols, brows), columns(f.columns)
 {
   anchor = nullptr;
-  strbufs = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
-  nstrcols = f.nstrcols;
-  strbufs = new StrBuf[nstrcols]();
-  for (int i = 0, j = 0, k = 0, off8 = 0; i < ncols; i++) {
-    if (columns[i].type == CT_DROP) continue;
-    if (columns[i].type == CT_STRING && !columns[i].typeBumped) {
-      assert(k < nstrcols);
-      strbufs[k].mbuf = new MemoryMemBuf(4096);
-      strbufs[k].ptr = 0;
-      strbufs[k].idx8 = off8;
-      strbufs[k].idxdt = j;
-      k++;
+  size_t ncols = columns.size();
+  for (size_t i = 0, j = 0; i < ncols; ++i) {
+    GReaderColumn& col = columns[i];
+    if (!col.presentInBuffer) continue;
+    if (col.type == CT_STRING && !col.typeBumped) {
+      strbufs.push_back(StrBuf(4096, j, i));
     }
-    off8 += columns[i].presentInBuffer;
-    j++;
+    ++j;
   }
 }
 
+FreadLocalParseContext::~FreadLocalParseContext() {}
 
-FreadLocalParseContext::~FreadLocalParseContext() {
-  if (strbufs) {
-    for (int k = 0; k < nstrcols; k++) {
-      if (strbufs[k].mbuf)
-        strbufs[k].mbuf->release();
-    }
-    free(strbufs);
-  }
+
+const char* FreadLocalParseContext::read_chunk(const char*, const char*) {
+  return nullptr;
 }
-
-
-const char* FreadLocalParseContext::read_chunk(const char* start, const char* end) {}
 
 
 void FreadLocalParseContext::postprocess() {
   const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
-  for (int k = 0; k < nstrcols; ++k) {
+  size_t nstrcols = strbufs.size();
+  for (size_t k = 0; k < nstrcols; ++k) {
     MemoryBuffer* strdest = strbufs[k].mbuf;
     field64* lo = tbuf + strbufs[k].idx8;
     int32_t off = 1;
@@ -471,83 +433,44 @@ void FreadLocalParseContext::postprocess() {
 
 
 void FreadLocalParseContext::orderBuffer() {
-  for (int k = 0; k < nstrcols; ++k) {
-    int j = strbufs[k].idxdt;
-    size_t j8 = static_cast<size_t>(strbufs[k].idx8);
-    StrBuf* sb = ostrbufs[j];
+  size_t nstrcols = strbufs.size();
+  for (size_t k = 0; k < nstrcols; ++k) {
+    size_t i = strbufs[k].idxdt;
+    size_t j8 = strbufs[k].idx8;
     // Compute `sz` (the size of the string content in the buffer) from the
     // offset of the last element. Typically this would be the same as
     // `strbufs[k].ptr`, however in rare cases when `used_nrows` have changed
     // from the time the buffer was post-processed, this may be different.
     int32_t lastOffset = tbuf[j8 + tbuf_ncols * (used_nrows - 1)].str32.offset;
     size_t sz = static_cast<size_t>(abs(lastOffset) - 1);
-    size_t ptr = sb->ptr;
-    MemoryBuffer* sb_mbuf = sb->mbuf;
-    // If we need to write more than the size of the available buffer, the
-    // buffer has to grow. Check documentation for `StrBuf.numuses` in
-    // `py_fread.h`.
-    while (ptr + sz > sb_mbuf->size()) {
-      size_t newsize = (ptr + sz) * 2;
-      int old = 0;
-      // (1) wait until no other process is writing into the buffer
-      while (sb->numuses > 0)
-        /* wait until .numuses == 0 (all threads finished writing) */;
-      // (2) make `numuses` negative, indicating that no other thread may
-      // initiate a memcopy operation for now.
-      #pragma omp atomic capture
-      {
-        old = sb->numuses;
-        sb->numuses -= 1000000;
-      }
-      // (3) The only case when `old != 0` is if another thread started
-      // memcopy operation in-between statements (1) and (2) above. In
-      // that case we restore the previous value of `numuses` and repeat
-      // the loop.
-      // Otherwise (and it is the most common case) we reallocate the
-      // buffer and only then restore the `numuses` variable.
-      if (old == 0) {
-        sb_mbuf->resize(newsize);
-      }
-      #pragma omp atomic update
-      sb->numuses += 1000000;
-    }
-    strbufs[k].ptr = ptr;
-    sb->ptr = ptr + sz;
+
+    WritableBuffer* wb = columns[i].strdata;
+    size_t write_at = wb->prep_write(sz, strbufs[k].mbuf->get());
+    strbufs[k].ptr = write_at;
   }
 }
 
 
-
 void FreadLocalParseContext::push_buffers() {
-  int k = 0;
-  int off = 0;
-  for (size_t i = 0, j = 0; i < ncols; i++) {
-    if (columns[i].type == CT_DROP) continue;
-    Column* col = dt->columns[j];
+  size_t ncols = columns.size();
+  for (size_t i = 0, j = 0, k = 0; i < ncols; i++) {
+    const GReaderColumn& col = columns[i];
+    if (!col.presentInBuffer) continue;
+    void* data = col.data();
 
-    if (columns[i].typeBumped) {
-      // do nothing
-    } else if (columns[i].type == CT_STRING) {
-      StrBuf* sb = ostrbufs[j];
+    if (col.typeBumped) {
+      // do nothing: the column was not properly allocated for its type, so
+      // any attempt to write the data may fail with data corruption
+    } else if (col.type == CT_STRING) {
+      WritableBuffer* wb = col.strdata;
       size_t ptr = strbufs[k].ptr;
       field64* lo = tbuf + strbufs[k].idx8;
       int32_t lastOffset = lo[(used_nrows - 1) * tbuf_ncols].str32.offset;
       size_t sz = static_cast<size_t>(abs(lastOffset)) - 1;
 
-      int done = 0;
-      while (!done) {
-        int old;
-        #pragma omp atomic capture
-        old = sb->numuses++;
-        if (old >= 0) {
-          memcpy(sb->mbuf->at(ptr), strbufs[k].mbuf->get(), sz);
-          done = 1;
-        }
-        #pragma omp atomic update
-        sb->numuses--;
-      }
+      wb->write_at(ptr, sz, strbufs[k].mbuf->get());
 
-      int32_t* dest = ((int32_t*) col->data()) + row0 + 1;
+      int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
       int32_t iptr = (int32_t) ptr;
       for (size_t n = 0; n < used_nrows; n++) {
         int32_t soff = lo->str32.offset;
@@ -557,10 +480,10 @@ void FreadLocalParseContext::push_buffers() {
       k++;
 
     } else {
-      int8_t elemsize = typeSize[columns[i].type];
-      const field64* src = tbuf + off;
+      int8_t elemsize = typeSize[col.type];
+      const field64* src = tbuf + j;
       if (elemsize == 8) {
-        uint64_t* dest = static_cast<uint64_t*>(col->data()) + row0;
+        uint64_t* dest = static_cast<uint64_t*>(data) + row0;
         for (size_t r = 0; r < used_nrows; r++) {
           *dest = src->uint64;
           src += tbuf_ncols;
@@ -568,7 +491,7 @@ void FreadLocalParseContext::push_buffers() {
         }
       } else
       if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(col->data()) + row0;
+        uint32_t* dest = static_cast<uint32_t*>(data) + row0;
         for (size_t r = 0; r < used_nrows; r++) {
           *dest = src->uint32;
           src += tbuf_ncols;
@@ -576,7 +499,7 @@ void FreadLocalParseContext::push_buffers() {
         }
       } else
       if (elemsize == 1) {
-        uint8_t* dest = static_cast<uint8_t*>(col->data()) + row0;
+        uint8_t* dest = static_cast<uint8_t*>(data) + row0;
         for (size_t r = 0; r < used_nrows; r++) {
           *dest = src->uint8;
           src += tbuf_ncols;
@@ -585,7 +508,6 @@ void FreadLocalParseContext::push_buffers() {
       }
     }
     j++;
-    off += columns[i].presentInBuffer;
   }
 }
 

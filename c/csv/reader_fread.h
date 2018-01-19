@@ -52,10 +52,10 @@ class FreadReader
   //     Average length (in bytes) of a single line in the input file
   GReaderColumns columns;
   char* targetdir;
-  StrBuf** strbufs;
-  DataTablePtr dt;
-  int nstrcols;
-  int ndigits;
+  // StrBuf** strbufs;
+  // DataTablePtr dt;
+  // int nstrcols;
+  // int ndigits;
   const char* eof;
   size_t allocnrow;
   double meanLineLen;
@@ -132,9 +132,6 @@ private:
    */
   void setFinalNrow(size_t nrows);
 
-  Column* alloc_column(SType stype, size_t nrows, int j);
-  Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
-
   /**
    * Progress-reporting function.
    *
@@ -142,6 +139,8 @@ private:
    *    A number from 0 to 100
    */
   void progress(double percent);
+
+  DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;
 };
@@ -165,16 +164,8 @@ class FreadLocalParseContext : public LocalParseContext
     char quote;
     int : 24;
 
-    StrBuf* strbufs;
-    int nstrcols;
-    int : 32;
-
-    // TODO: these should be replaced with a single reference to
-    //       GReaderColumns
-    size_t ncols;
-    StrBuf**& ostrbufs;
-    DataTablePtr& dt;
     GReaderColumns& columns;
+    std::vector<StrBuf> strbufs;
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&);

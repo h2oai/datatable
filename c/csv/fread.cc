@@ -23,7 +23,7 @@
 
 const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     'i',     'I',     'h',       'd',       'D',       'H',       's'};
 const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
-int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         8       };
+int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         4       };
 
 
 
@@ -267,7 +267,7 @@ int FreadReader::freadMain()
     ASSERT(ncols >= 1 && line >= 1);
 
     // Create vector of Column objects
-    columns.reserve(ncols);
+    columns.reserve(static_cast<size_t>(ncols));
     for (int i = 0; i < ncols; i++) {
       columns.push_back(GReaderColumn());
     }
@@ -311,7 +311,7 @@ int FreadReader::freadMain()
   const char* lastRowEnd; // Pointer to the end of the data section
   {
     if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
-    int ncols = columns.size();
+    size_t ncols = columns.size();
 
     int8_t type0 = 1;
     columns.setType(type0);
@@ -384,10 +384,10 @@ int FreadReader::freadMain()
           continue;
         }
         jline++;
-        int field = 0;
+        size_t field = 0;
         const char* fieldStart = NULL;  // Needed outside loop for error messages below
         ch--;
-        while (field<ncols) {
+        while (field < ncols) {
           ch++;
           fctx.skip_white();
           fieldStart = ch;
@@ -1041,7 +1041,7 @@ int FreadReader::freadMain()
 
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
-    for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
+    for (int i = 0; i < NUMTYPE; i++) typeCounts[i] = 0;
     for (int i = 0; i < ncols; i++) {
       typeCounts[columns[i].type]++;
     }
@@ -1055,14 +1055,11 @@ int FreadReader::freadMain()
         if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
           col.typeBumped = false;
+          col.presentInBuffer = true;
           rowSize += 8;
         } else {
-          // we'll skip over non-bumped columns in the rerun, whilst still incrementing resi (hence not CT_DROP)
-          // not -type[i] either because that would reprocess the contents of not-bumped columns wastefully
-          col.type = CT_STRING;
-          col.typeBumped = true;
+          types[j] = CT_DROP;
           col.presentInBuffer = false;
-          types[j] = col.type;
         }
       }
       allocnrow = row0;
