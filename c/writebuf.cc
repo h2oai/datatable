@@ -123,8 +123,8 @@ void FileWritableBuffer::finalize()
 // ThreadsafeWritableBuffer
 //==============================================================================
 
-ThreadsafeWritableBuffer::ThreadsafeWritableBuffer(size_t size)
-  : buffer(nullptr), allocsize(size), nlocks(0) {}
+ThreadsafeWritableBuffer::ThreadsafeWritableBuffer()
+  : buffer(nullptr), allocsize(0), nlocks(0) {}
 
 
 ThreadsafeWritableBuffer::~ThreadsafeWritableBuffer() {}
@@ -206,11 +206,14 @@ void ThreadsafeWritableBuffer::finalize()
 //==============================================================================
 
 MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
-  : ThreadsafeWritableBuffer(size)
+  : ThreadsafeWritableBuffer()
 {
-  buffer = malloc(size);
-  if (!buffer) {
-    throw MemoryError() << "Unable to allocate memory buffer of size " << size;
+  if (size) {
+    buffer = malloc(size);
+    allocsize = size;
+    if (!buffer) {
+      throw MemoryError() << "Unable to allocate memory of size " << size;
+    }
   }
 }
 
@@ -223,11 +226,17 @@ MemoryWritableBuffer::~MemoryWritableBuffer()
 
 void MemoryWritableBuffer::realloc(size_t newsize)
 {
-  buffer = ::realloc(buffer, newsize);
-  if (!buffer) {
-    throw MemoryError() << "Unable to allocate memory of size " << newsize;
+  if (newsize) {
+    buffer = ::realloc(buffer, newsize);
+    allocsize = newsize;
+    if (!buffer) {
+      throw MemoryError() << "Unable to allocate memory of size " << newsize;
+    }
+  } else {
+    free(buffer);
+    buffer = nullptr;
+    allocsize = 0;
   }
-  allocsize = newsize;
 }
 
 
@@ -260,11 +269,14 @@ std::string MemoryWritableBuffer::get_string() {
 //==============================================================================
 
 MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
-  : ThreadsafeWritableBuffer(size), filename(path)
+  : ThreadsafeWritableBuffer(), filename(path)
 {
   File file(path, File::CREATE);
-  if (size) file.resize(size);
-  map(file.descriptor(), size);
+  if (size) {
+    file.resize(size);
+    allocsize = size;
+    map(file.descriptor(), size);
+  }
 }
 
 

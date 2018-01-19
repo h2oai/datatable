@@ -141,7 +141,7 @@ protected:
   virtual void realloc(size_t newsize) = 0;
 
 public:
-  ThreadsafeWritableBuffer(size_t size);
+  ThreadsafeWritableBuffer();
   virtual ~ThreadsafeWritableBuffer();
 
   virtual size_t prep_write(size_t n, const void *src);
