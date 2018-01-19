@@ -65,7 +65,7 @@ void GReaderColumn::allocate(size_t nrows) {
 }
 
 size_t GReaderColumn::elemsize() const {
-  return typeSize[type];
+  return static_cast<size_t>(typeSize[type]);
 }
 
 MemoryBuffer* GReaderColumn::extract_databuf() {
@@ -79,6 +79,12 @@ MemoryBuffer* GReaderColumn::extract_strbuf() {
   // TODO: make get_mbuf() method available on WritableBuffer itself
   strdata->finalize();
   return strdata->get_mbuf();
+}
+
+size_t GReaderColumn::getAllocSize() const {
+  return (mbuf? mbuf->size() : 0) +
+         (strdata? strdata->size() : 0) +
+         name.size() + sizeof(*this);
 }
 
 
@@ -154,6 +160,15 @@ size_t GReaderColumns::nStringColumns() const {
     nstrs += ((*this)[i].type == CT_STRING);
   }
   return nstrs;
+}
+
+size_t GReaderColumns::totalAllocSize() const {
+  size_t allocsize = sizeof(*this);
+  size_t ncols = size();
+  for (size_t i = 0; i < ncols; ++i) {
+    allocsize += (*this)[i].getAllocSize();
+  }
+  return allocsize;
 }
 
 

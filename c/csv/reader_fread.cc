@@ -45,9 +45,6 @@ static const SType colType_to_stype[NUMTYPE] = {
   ST_STRING_I4_VCHAR,
 };
 
-// For temporary printing file names.
-static char fname[1000];
-
 
 
 //------------------------------------------------------------------------------
@@ -90,14 +87,6 @@ FieldParseContext FreadReader::makeFieldParseContext(
     .blank_is_a_NAstring = blank_is_a_NAstring,
     .LFpresent = LFpresent,
   };
-}
-
-
-DataTablePtr FreadReader::read() {
-  int retval = freadMain();
-  if (!retval) throw PyError();
-  // return std::move(dt);
-  return makeDatatable();
 }
 
 
@@ -160,7 +149,7 @@ void FreadReader::parse_column_names(FieldParseContext& ctx) {
           newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
         }
         assert(newlen > 0);
-        columns[i].name = std::string(newsrc, newlen);
+        columns[i].name = std::string(newsrc, static_cast<size_t>(newlen));
         delete[] newsrc;
       }
     }
@@ -194,14 +183,16 @@ void FreadReader::parse_column_names(FieldParseContext& ctx) {
 
 void FreadReader::userOverride()
 {
-  int ncols = columns.size();
-  PyObject* colNamesList = PyList_New(ncols);
-  PyObject* colTypesList = PyList_New(ncols);
-  for (int i = 0; i < ncols; i++) {
+  size_t ncols = columns.size();
+  Py_ssize_t sncols = static_cast<Py_ssize_t>(ncols);
+  PyObject* colNamesList = PyList_New(sncols);
+  PyObject* colTypesList = PyList_New(sncols);
+  for (size_t i = 0; i < ncols; i++) {
     const char* src = columns[i].name.data();
     size_t len = columns[i].name.size();
-    PyObject* pycol = len > 0? PyUnicode_FromStringAndSize(src, len)
-                             : PyUnicode_FromFormat("V%d", i);
+    Py_ssize_t slen = static_cast<Py_ssize_t>(len);
+    PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
+                              : PyUnicode_FromFormat("V%d", i);
     PyObject* pytype = PyLong_FromLong(columns[i].type);
     PyList_SET_ITEM(colNamesList, i, pycol);
     PyList_SET_ITEM(colTypesList, i, pytype);
@@ -209,122 +200,13 @@ void FreadReader::userOverride()
 
   g.pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
 
-  for (int i = 0; i < ncols; i++) {
+  for (size_t i = 0; i < ncols; i++) {
     PyObject* t = PyList_GET_ITEM(colTypesList, i);
     columns[i].type = (int8_t) PyLong_AsUnsignedLongMask(t);
   }
   pyfree(colTypesList);
   pyfree(colNamesList);
 }
-
-
-// TODO: remove
-size_t FreadReader::allocateDT()
-{
-  columns.allocate(allocnrow);
-  return 1;
-  // In theory, everything below is not needed...
-
-  // Column** ccolumns = NULL;
-  // nstrcols = 0;
-  // size_t ncols = columns.size();
-
-  // // First we need to estimate the size of the dataset that needs to be
-  // // created. However this needs to be done on first run only.
-  // // Also in this block we compute: `nstrcols` (will be used later in
-  // // `prepareLocalParseContext` and `postprocessBuffer`), as well as allocating
-  // // the `Column**` array.
-  // if (!dt) {
-  //   size_t alloc_size = 0;
-  //   size_t i, j;
-  //   for (i = j = 0; i < ncols; i++) {
-  //     if (!columns[i].presentInOutput) continue;
-  //     nstrcols += (columns[i].type == CT_STRING);
-  //     SType stype = colType_to_stype[columns[i].type];
-  //     alloc_size += stype_info[stype].elemsize * allocnrow;
-  //     if (columns[i].type == CT_STRING) alloc_size += 5 * allocnrow;
-  //     j++;
-  //   }
-  //   dtcalloc_g(ccolumns, Column*, j + 1);
-  //   dtcalloc_g(strbufs, StrBuf*, j);
-  //   ccolumns[j] = NULL;
-
-  //   // Call the Python upstream to determine the strategy where the
-  //   // DataTable should be created.
-  //   targetdir = g.pyreader().invoke("_get_destination", "(n)", alloc_size)
-  //                .as_ccstring();
-  // } else {
-  //   ccolumns = dt->columns;
-  //   for (int i = 0; i < ncols; i++) {
-  //     if (columns[i].typeBumped) continue;
-  //     nstrcols += (columns[i].type == CT_STRING);
-  //   }
-  // }
-
-  // // Compute number of digits in `ncols` (needed for creating file names).
-  // if (targetdir) {
-  //   ndigits = 0;
-  //   for (int nc = ncols; nc; nc /= 10) ndigits++;
-  // }
-
-  // // Create individual columns
-  // for (size_t i = 0, j = 0; i < ncols; i++) {
-  //   int8_t type = columns[i].type;
-  //   if (type == CT_DROP) continue;
-  //   if (!columns[i].typeBumped) {
-  //     SType stype = colType_to_stype[type];
-  //     ccolumns[j] = realloc_column(ccolumns[j], stype, allocnrow, j);
-  //     if (ccolumns[j] == NULL) goto fail;
-  //     if (columns[i].mbuf) columns[i].mbuf->release();
-  //     columns[i].mbuf = ccolumns[j]->mbuf_shallowcopy();
-  //   }
-  //   j++;
-  // }
-
-  // if (!dt) {
-  //   dt.reset(new DataTable(ccolumns));
-  // }
-  // return 1;
-
-  // fail:
-  // if (ccolumns) {
-  //   Column **col = ccolumns;
-  //   while (*col++) delete (*col);
-  //   dtfree(ccolumns);
-  // }
-  // throw RuntimeError() << "Unable to allocate DataTable";
-}
-
-
-// TODO: remove
-void FreadReader::setFinalNrow(size_t nrows) {
-  columns.allocate(nrows);
-  // everything below not needed...
-
-  // int i, j;
-  // int ncols = columns.size();
-  // for (i = j = 0; i < ncols; i++) {
-  //   int type = columns[i].type;
-  //   if (type == CT_DROP) continue;
-  //   Column* col = dt->columns[j];
-  //   if (columns[i].typeBumped) {
-  //     // do nothing
-  //   } else if (type == CT_STRING) {
-  //     StrBuf* sb = strbufs[j];
-  //     assert(sb->numuses == 0);
-  //     sb->mbuf->resize(sb->ptr);
-  //     sb->mbuf = nullptr; // MemoryBuffer is also pointed to by the column
-  //     col->mbuf->resize(sizeof(int32_t) * (nrows + 1));
-  //     col->nrows = static_cast<int64_t>(nrows);
-  //   } else {
-  //     Column *c = realloc_column(col, colType_to_stype[type], nrows, j);
-  //     if (c == nullptr) throw Error() << "Could not reallocate column";
-  //   }
-  //   j++;
-  // }
-  // dt->nrows = (int64_t) nrows;
-}
-
 
 
 void FreadReader::progress(double percent/*[0,100]*/) {

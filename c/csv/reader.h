@@ -312,6 +312,7 @@ class GReaderColumn {
     GReaderColumn(GReaderColumn&&);
     virtual ~GReaderColumn();
     size_t elemsize() const;
+    size_t getAllocSize() const;
     void* data() const { return mbuf->get(); }
     void allocate(size_t nrows);
     MemoryBuffer* extract_databuf();
@@ -336,6 +337,7 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     const char* printTypes() const;
     size_t nOutputs() const;
     size_t nStringColumns() const;
+    size_t totalAllocSize() const;
 };
 
 

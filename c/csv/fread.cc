@@ -79,7 +79,7 @@ static ParserFnPtr parsers[NUMTYPE] = {
 // Returns 1 if it finishes successfully, and 0 otherwise.
 //
 //=================================================================================================
-int FreadReader::freadMain()
+DataTablePtr FreadReader::read()
 {
   double t0 = wallclock();
   bool verbose = g.verbose;
@@ -460,7 +460,9 @@ int FreadReader::freadMain()
         }
         if (firstDataRowAfterPotentialColumnNames) {
           if (fill) {
-            for (int jj=field+1; jj<ncols; jj++) columns[jj].type = type0;
+            for (size_t jj = field+1; jj < ncols; jj++) {
+              columns[jj].type = type0;
+            }
           }
           firstDataRowAfterPotentialColumnNames = false;
         } else if (sampleLines==0) {
@@ -502,7 +504,7 @@ int FreadReader::freadMain()
 
     if (header == NA_BOOL8) {
       header = true;
-      for (int j=0; j<ncols; j++) {
+      for (size_t j = 0; j < ncols; j++) {
         if (columns[j].type < CT_STRING) {
           header = false;
           break;
@@ -523,7 +525,7 @@ int FreadReader::freadMain()
       if (header == 1) {
         // A single-row input, and that row is the header. Reset all types to
         // boolean (lowest type possible, a better guess than "string").
-        for (int j = 0; j < ncols; j++) {
+        for (size_t j = 0; j < ncols; j++) {
           columns[j].type = type0;
         }
         allocnrow = 0;
@@ -586,7 +588,6 @@ int FreadReader::freadMain()
   double tColType;    // Timer for applying user column class overrides
   double tAlloc;      // Timer for allocating the DataTable
   size_t rowSize;
-  size_t DTbytes;     // Size of the allocated DataTable, in bytes
   {
     if (verbose) DTPRINT("[09] Apply user overrides on column types");
     std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
@@ -626,7 +627,7 @@ int FreadReader::freadMain()
               ncols-ndropped, ncols, ndropped, allocnrow);
     }
 
-    DTbytes = allocateDT();
+    columns.allocate(allocnrow);
 
     tAlloc = wallclock();
   }
@@ -665,7 +666,7 @@ int FreadReader::freadMain()
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
-  int ncols = (int) columns.size();
+  size_t ncols = columns.size();
   bool fillme = fill || (ncols==1 && !skipEmptyLines);
 
   if (nJumps/*from sampling*/ > 1) {
@@ -791,7 +792,7 @@ int FreadReader::freadMain()
         }
         const char* tlineStart = tch;  // for error message
         const char* fieldStart = tch;
-        int j = 0;
+        size_t j = 0;
 
         //*** START HOT ***//
         if (sep!=' ' && !any_number_like_NAstrings) {  // TODO:  can this 'if' be dropped somehow? Can numeric NAstrings be dealt with afterwards in one go as numeric comparison?
@@ -1025,7 +1026,7 @@ int FreadReader::freadMain()
               "(now nrows=%llu) and continue reading from jump point %d",
               (llu)extraAllocRows, (llu)allocnrow, jump0);
     }
-    allocateDT();
+    columns.allocate(allocnrow);
     extraAllocRows = 0;
     stopTeam = false;
     goto read;   // jump0>0 at this point, set above
@@ -1034,7 +1035,7 @@ int FreadReader::freadMain()
   // tell progress meter to finish up; e.g. write final newline
   // if there's a reread, the progress meter will start again from 0
   if (g.show_progress && thPush >= 0.75) progress(100.0);
-  setFinalNrow(row0);
+  columns.allocate(row0);
 
   if (firstTime) {
     tReread = tRead = wallclock();
@@ -1063,7 +1064,7 @@ int FreadReader::freadMain()
         }
       }
       allocnrow = row0;
-      allocateDT();
+      columns.allocate(allocnrow);
       // reread from the beginning
       row0 = 0;
       prevJumpEnd = sof;
@@ -1086,9 +1087,9 @@ int FreadReader::freadMain()
   // [12] Finalize the datatable
   //*********************************************************************************************
   g.trace("[12] Finalizing the datatable");
-  // setFinalNrow(row0);
 
   if (verbose) {
+    size_t totalAllocSize = columns.totalAllocSize();
     DTPRINT("=============================");
     if (tTot < 0.000001) tTot = 0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
     DTPRINT("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
@@ -1096,7 +1097,7 @@ int FreadReader::freadMain()
             tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
     DTPRINT("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
             tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, ncols,
-            DTbytes/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
+            totalAllocSize/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
     thNextGoodLine /= nth;
     thRead /= nth;
     thPush /= nth;
@@ -1121,5 +1122,6 @@ int FreadReader::freadMain()
       free(typeBumpMsg);  // local scope and only populated in verbose mode
     }
   }
-  return 1;
+
+  return makeDatatable();
 }
