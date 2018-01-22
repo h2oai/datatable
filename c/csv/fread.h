@@ -46,6 +46,7 @@ extern const char typeSymbols[NUMTYPE];
 extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
+extern const uint8_t allowedseps[128];
 
 
 

@@ -91,6 +91,7 @@ private:
   FieldParseContext makeFieldParseContext(
       const char*& ch, field64* target, const char* anchor);
   void parse_column_names(FieldParseContext& ctx);
+  void detect_sep(FieldParseContext& ctx);
   void userOverride();
   void progress(double percent);
   DataTablePtr makeDatatable();
