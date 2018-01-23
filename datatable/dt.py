@@ -475,7 +475,7 @@ class DataTable(object):
 
         Example:
             del dt["colA"]
-            del dt[:, ("A", "B")]
+            del dt[:, ("A", "B")]  # not yet implemented
             del dt[::2]
             del dt["col5":"col9"]
             del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
@@ -486,24 +486,28 @@ class DataTable(object):
                 return self._delete_columns([pcol])
             if isinstance(pcol, tuple):
                 start, count, step = pcol
-                r = range(start, start + count * step, step)
-                return self._delete_columns(list(r))
+                if step < 0:
+                    start = start + step * (count - 1)
+                    step = -step
+                r = list(range(start, start + count * step, step))
+                return self._delete_columns(r)
 
         elif isinstance(item, (GeneratorType, list, set)):
-            cols = []
+            cols = set()
             for it in item:
                 pcol = datatable.graph.cols_node.process_column(it, self)
                 if isinstance(pcol, int):
-                    cols.append(pcol)
+                    cols.add(pcol)
                 else:
-                    raise TTypeError("Invalid column specifier %r" % it)
-            return self._delete_columns(cols)
+                    raise TTypeError("Invalid column specifier %r" % (it,))
+            cols_list = sorted(cols)
+            return self._delete_columns(cols_list)
 
-        raise TTypeError("Cannot delete %r from the datatable" % item)
+        raise TTypeError("Cannot delete %r from the datatable" % (item,))
 
 
     def _delete_columns(self, cols):
-        cols = sorted(list(set(cols)))
+        # `cols` must be a sorted list of positive integer indices
         self._dt.delete_columns(cols)
         assert self._ncols - len(cols) == self._dt.ncols
         newnames = self.names[:cols[0]]

@@ -132,51 +132,98 @@ def test_dt_getitem(dt0):
 
 
 
-@pytest.mark.run(order=6)
-def test_dt_delitem():
-    """
-    Test deleting columns from a datatable.
-    Note: don't use dt0 here, because this test will modify it, potentially
-    invalidating other tests.
-    """
-    def smalldt():
-        return dt.DataTable([[i] for i in range(16)],
-                            names="ABCDEFGHIJKLMNOP")
+#-------------------------------------------------------------------------------
+# __delitem__
+#-------------------------------------------------------------------------------
 
+# Not a fixture: create a new datatable each time this function is called
+def smalldt():
+    return dt.DataTable([[i] for i in range(16)],
+                        names="ABCDEFGHIJKLMNOP")
+
+def test_del_1col_str_1():
     d0 = smalldt()
     del d0["A"]
     assert d0.internal.check()
     assert d0.shape == (1, 15)
+    assert d0.topython() == [[i] for i in range(1, 16)]
     assert d0.names == tuple("BCDEFGHIJKLMNOP")
+
+def test_del_1col_str_2():
     d0 = smalldt()
     del d0["B"]
     assert d0.internal.check()
     assert d0.shape == (1, 15)
+    assert d0.topython() == [[i] for i in range(16) if i != 1]
     assert d0.names == tuple("ACDEFGHIJKLMNOP")
+
+def test_del_1col_str_3():
+    d0 = smalldt()
+    del d0["P"]
+    assert d0.internal.check()
+    assert d0.shape == (1, 15)
+    assert d0.topython() == [[i] for i in range(16) if i != 15]
+    assert d0.names == tuple("ABCDEFGHIJKLMNO")
+
+def test_del_1col_int():
     d0 = smalldt()
     del d0[-1]
     assert d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.names == tuple("ABCDEFGHIJKLMNO")
-    del d0["E":"J"]
+
+def test_del_cols_strslice():
+    d0 = smalldt()
+    del d0["E":"K"]
     assert d0.internal.check()
     assert d0.shape == (1, 9)
-    assert d0.names == tuple("ABCDKLMNO")
-    assert as_list(d0) == [[0], [1], [2], [3], [10], [11], [12], [13], [14]]
+    assert d0.names == tuple("ABCDLMNOP")
+    assert d0.topython() == [[0], [1], [2], [3], [11], [12], [13], [14], [15]]
+
+def test_del_cols_intslice1():
+    d0 = smalldt()
     del d0[::2]
-    assert d0.names == tuple("BDLN")
-    assert as_list(d0) == [[1], [3], [11], [13]]
-    del d0[0]
-    assert d0.names == tuple("DLN")
-    assert as_list(d0) == [[3], [11], [13]]
+    assert d0.internal.check()
+    assert d0.shape == (1, 8)
+    assert d0.names == tuple("BDFHJLNP")
+    assert as_list(d0) == [[i] for i in range(1, 16, 2)]
+
+def test_del_cols_intslice2():
+    d0 = smalldt()
+    del d0[::-2]
+    assert d0.internal.check()
+    assert d0.shape == (1, 8)
+    assert d0.names == tuple("ACEGIKMO")
+    assert as_list(d0) == [[i] for i in range(0, 16, 2)]
+
+def test_del_cols_all():
+    d0 = smalldt()
     del d0[:]
+    assert d0.internal.check()
     assert d0.names == tuple()
+    # Not sure whether it should retain nrows > 0 ...
     assert d0.shape == (1, 0)
+
+def test_del_cols_list():
     d0 = smalldt()
     del d0[[0, 3, 0, 5, 0, 9]]
     assert d0.internal.check()
     assert d0.names == tuple("BCEGHIKLMNOP")
     assert d0.shape == (1, 12)
+
+def test_del_cols_generator():
+    d0 = smalldt()
+    del d0[(i**2 for i in range(4))]
+    assert d0.internal.check()
+    assert d0.names == tuple("CDFGHIKLMNOP")
+
+def test_delitem_invalid_selectors():
+    """
+    Test deleting columns from a datatable.
+    Note: don't use dt0 here, because this test will modify it, potentially
+    invalidating other tests.
+    """
+    d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[0.5]
     assert "Cannot delete 0.5 from the datatable" in str(e.value)
@@ -188,6 +235,10 @@ def test_dt_delitem():
         del d0[[slice(10), 2, 0]]
 
 
+
+#-------------------------------------------------------------------------------
+# ...
+#-------------------------------------------------------------------------------
 
 @pytest.mark.run(order=7)
 def test_column_hexview(dt0, patched_terminal, capsys):
