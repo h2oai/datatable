@@ -475,35 +475,66 @@ class DataTable(object):
 
         Example:
             del dt["colA"]
-            del dt[:, ("A", "B")]
+            del dt[:, ["A", "B"]]
             del dt[::2]
             del dt["col5":"col9"]
             del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
         """
-        if isinstance(item, (str, int, slice)):
-            pcol = datatable.graph.cols_node.process_column(item, self)
+        # TODO: should this all be implemented via __call__ ?
+        if isinstance(item, tuple) and len(item) == 2:
+            drows = item[0]
+            dcols = item[1]
+        else:
+            drows = None
+            dcols = item
+
+        if isinstance(drows, (slice)):
+            if (drows.start is None and drows.step is None and
+                    drows.stop is None):
+                drows = None
+
+        if isinstance(dcols, (str, int, slice)):
+            pcol = datatable.graph.cols_node.process_column(dcols, self)
             if isinstance(pcol, int):
-                return self._delete_columns([pcol])
+                dcols = [pcol]
             if isinstance(pcol, tuple):
                 start, count, step = pcol
-                r = range(start, start + count * step, step)
-                return self._delete_columns(list(r))
+                if step < 0:
+                    start = start + step * (count - 1)
+                    step = -step
+                if start == 0 and count == self.ncols and step == 1:
+                    dcols = None
+                else:
+                    dcols = list(range(start, start + count * step, step))
 
-        elif isinstance(item, (GeneratorType, list, set)):
-            cols = []
-            for it in item:
+        elif isinstance(dcols, (GeneratorType, list, set)):
+            cols = set()
+            for it in dcols:
                 pcol = datatable.graph.cols_node.process_column(it, self)
                 if isinstance(pcol, int):
-                    cols.append(pcol)
+                    cols.add(pcol)
                 else:
-                    raise TTypeError("Invalid column specifier %r" % it)
-            return self._delete_columns(cols)
+                    raise TTypeError("Invalid column specifier %r" % (it,))
+            dcols = sorted(cols)
 
-        raise TTypeError("Cannot delete %r from the datatable" % item)
+        if drows is None:
+            if isinstance(dcols, list):
+                return self._delete_columns(dcols)
+            if dcols is None:
+                self._fill_from_dt(DataTable().internal)
+                return
+        elif dcols is None:
+            raise NotImplementedError("Deleting rows from datatable is not "
+                                      "supported yet")
+        else:
+            raise NotImplementedError("Deleting rows + columns from datatable "
+                                      "is not supported yet")
+
+        raise TTypeError("Cannot delete %r from the datatable" % (item,))
 
 
     def _delete_columns(self, cols):
-        cols = sorted(list(set(cols)))
+        # `cols` must be a sorted list of positive integer indices
         self._dt.delete_columns(cols)
         assert self._ncols - len(cols) == self._dt.ncols
         newnames = self.names[:cols[0]]
