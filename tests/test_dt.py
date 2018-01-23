@@ -201,8 +201,7 @@ def test_del_cols_all():
     del d0[:]
     assert d0.internal.check()
     assert d0.names == tuple()
-    # Not sure whether it should retain nrows > 0 ...
-    assert d0.shape == (1, 0)
+    assert d0.shape == (0, 0)
 
 def test_del_cols_list():
     d0 = smalldt()
@@ -216,6 +215,13 @@ def test_del_cols_generator():
     del d0[(i**2 for i in range(4))]
     assert d0.internal.check()
     assert d0.names == tuple("CDFGHIKLMNOP")
+
+def test_del_cols_with_allrows():
+    d0 = smalldt()
+    del d0[:, ["A", "B", "C"]]
+    assert d0.internal.check()
+    assert d0.shape == (1, 13)
+    assert d0.names == tuple("DEFGHIJKLMNOP")
 
 def test_delitem_invalid_selectors():
     """
