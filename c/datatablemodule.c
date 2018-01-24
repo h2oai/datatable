@@ -104,9 +104,9 @@ static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
 #define METHOD1_(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
-    METHOD0_(columns_from_mixed),
-    METHOD0_(columns_from_slice),
-    METHOD0_(columns_from_array),
+    METHODv(pycolumnset::columns_from_mixed),
+    METHODv(pycolumnset::columns_from_slice),
+    METHODv(pycolumnset::columns_from_array),
     METHOD0_(rowindex_from_slice),
     METHOD0_(rowindex_from_slicelist),
     METHOD0_(rowindex_from_array),
@@ -149,7 +149,7 @@ PyInit__datatable(void) {
     init_csvwrite_constants();
 
     // Instantiate module object
-    PyObject *m = PyModule_Create(&datatablemodule);
+    PyObject* m = PyModule_Create(&datatablemodule);
     if (m == NULL) return NULL;
 
     // Initialize submodules
@@ -158,7 +158,7 @@ PyInit__datatable(void) {
     if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!pycolumn::static_init(m)) return NULL;
-    if (!init_py_columnset(m)) return NULL;
+    if (!pycolumnset::static_init(m)) return NULL;
     if (!init_py_encodings(m)) return NULL;
 
     return m;

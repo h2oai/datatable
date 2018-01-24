@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#define PY_COLUMN_cc
+#define dt_PY_COLUMN_cc
 #include "py_column.h"
 #include "sort.h"
 #include "py_types.h"
@@ -141,7 +141,7 @@ PyObject* hexview(pycolumn::obj* self, PyObject*)
 }
 
 
-static void pycolumn_dealloc(pycolumn::obj* self)
+static void dealloc(pycolumn::obj* self)
 {
   delete self->ref;
   Py_XDECREF(self->pydt);
@@ -179,7 +179,7 @@ PyTypeObject type = {
   cls_name,                           /* tp_name */
   sizeof(pycolumn::obj),              /* tp_basicsize */
   0,                                  /* tp_itemsize */
-  (destructor)pycolumn_dealloc,       /* tp_dealloc */
+  (destructor) dealloc,               /* tp_dealloc */
   0,                                  /* tp_print */
   0,                                  /* tp_getattr */
   0,                                  /* tp_setattr */

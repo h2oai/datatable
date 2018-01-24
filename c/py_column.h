@@ -13,18 +13,18 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PYCOLUMN_H
-#define dt_PYCOLUMN_H
+#ifndef dt_PY_COLUMN_h
+#define dt_PY_COLUMN_h
+#define BASECLS pycolumn::obj
+#define HOMEFLAG dt_PY_COLUMN_cc
 #include <Python.h>
 #include "column.h"
 #include "py_datatable.h"
 #include "py_utils.h"
 
+
 namespace pycolumn
 {
-#define BASECLS pycolumn::obj
-#define HOMEFLAG PY_COLUMN_cc
-
 
 struct obj : public PyObject {
   // PyObject_HEAD
