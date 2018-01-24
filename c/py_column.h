@@ -26,12 +26,12 @@ namespace pycolumn
 #define HOMEFLAG PY_COLUMN_cc
 
 
-typedef struct obj {
-    PyObject_HEAD
-    Column *ref;
-    DataTable_PyObject *pydt;
-    int64_t colidx;
-} obj;
+struct obj : public PyObject {
+  // PyObject_HEAD
+  Column* ref;
+  DataTable_PyObject* pydt;
+  int64_t colidx;
+};
 
 
 extern PyTypeObject type;
@@ -40,6 +40,7 @@ extern PyObject* fn_hexview;
 
 
 pycolumn::obj* from_column(Column*, DataTable_PyObject*, int64_t);
+int unwrap(PyObject* source, Column** target);
 int static_init(PyObject* module);
 
 
@@ -85,6 +86,9 @@ DECLARE_GETTER(
   meta,
   "String representation of the column's `meta` struct")
 
+DECLARE_GETTER(
+  nrows,
+  "Return the number of rows in this column")
 
 
 //---- Methods -----------------------------------------------------------------

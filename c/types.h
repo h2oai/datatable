@@ -469,6 +469,20 @@ template<> inline bool ISNA(uint32_t x) { return ISNA_U4(x); }
 template<> inline bool ISNA(float x)    { return isnan(x); }
 template<> inline bool ISNA(double x)   { return isnan(x); }
 
+/**
+ * Similar to ISNA<T>(x) template, except it returns true only for integer-
+ * valued types which are NAs.
+ * In certain circumstances this could be useful to avoid unnecessary NA checks,
+ * since <float> and <double> are represented as NaNs, and using them in any
+ * arithmetic expressions will automatically create NaN values as the result
+ * without the need for explicit checks.
+ */
+template<typename T> inline bool IsIntNA(T) { return false; }
+template<> inline bool IsIntNA(int8_t x)    { return x == NA_I1; }
+template<> inline bool IsIntNA(int16_t x)   { return x == NA_I2; }
+template<> inline bool IsIntNA(int32_t x)   { return x == NA_I4; }
+template<> inline bool IsIntNA(int64_t x)   { return x == NA_I8; }
+
 //==============================================================================
 
 // Initializer function

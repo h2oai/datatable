@@ -14,6 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "utils/pyobj.h"
+#include "py_column.h"
 #include "py_datatable.h"
 #include "py_types.h"
 #include "utils/exceptions.h"
@@ -211,6 +212,14 @@ DataTable* PyObj::as_datatable() const {
   int ret = dt_unwrap(obj, &dt);
   if (!ret) throw Error();
   return dt;
+}
+
+
+Column* PyObj::as_column() const {
+  Column* col = nullptr;
+  int ret = pycolumn::unwrap(obj, &col);
+  if (!ret) throw Error();
+  return col;
 }
 
 

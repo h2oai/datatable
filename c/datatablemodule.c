@@ -2,6 +2,7 @@
 #include "capi.h"
 #include "csv/py_csv.h"
 #include "csv/writer.h"
+#include "expr/py_expr.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -125,6 +126,8 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0_(install_buffer_hooks),
     METHOD1_(get_internal_function_ptrs),
     METHOD1_(get_integer_sizes),
+    METHODv(expr_binaryop),
+    METHODv(expr_column),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };

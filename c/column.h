@@ -42,34 +42,34 @@ template <typename T> class StringColumn;
  *
  * Parameters
  * ----------
- * data
- *     Raw data buffer in NFF format, depending on the column's `stype` (see
- *     specification in "types.h"). This may be NULL if column has 0 rows.
+ * mbuf
+ *     Raw data buffer in NFF format, its interpretation depends on the subclass
+ *     of the current class, but generally it's a plain array of primitive C
+ *     types (such as int32_t or double).
  *
- * stype
- *     Type of data within the column (the enum is defined in types.h). This is
- *     the "storage" type, i.e. how the data is actually stored in memory. The
- *     logical type can be derived from `stype` via `stype_info[stype].ltype`.
+ * ri
+ *     RowIndex applied to the column's data. All access to the contents of the
+ *     Column should go through the rowindex. For example, the `i`-th element
+ *     in the column can be found as `mbuf->get_elem<T>(ri[i])`.
+ *     This may also be NULL, which is equivalent to being an identity rowindex.
  *
  * nrows
- *     Number of elements in this column. For fixed-size stypes, this should be
- *     equal to `alloc_size / stype_info[stype].elemsize`.
+ *     Number of elements in this column. If the Column has a rowindex, then
+ *     this number will be the same as the number of elements in the rowindex.
  *
- * meta
- *     Metadata associated with the column, if any, otherwise NULL. This is one
- *     of the *Meta structs defined in "types.h". The actual struct used
- *     depends on the `stype`.
- *
+ * stats
+ *     Auxiliary structure that contains stat values about this column, if
+ *     they were computed.
  */
 class Column
 {
 protected:
-  MemoryBuffer *mbuf;
-  RowIndex *ri;
-  mutable Stats  *stats;
+  MemoryBuffer* mbuf;
+  RowIndex* ri;
+  mutable Stats* stats;
 
-public:  // TODO: convert these into private
-  int64_t nrows;       // 8
+public:  // TODO: convert this into private
+  int64_t nrows;
 
 public:
   static Column* new_data_column(SType, int64_t nrows);

@@ -38,6 +38,7 @@ class BaseExpr(object):
 
     This class is abstract and should not be instantiated explicitly.
     """
+    __slots__ = ("_stype", )
 
     def __init__(self):
         self._stype = None
@@ -102,10 +103,13 @@ class BaseExpr(object):
         return datatable.expr.BinaryOpExpr(self, "**", other)
 
     def __and__(self, other):
-        return datatable.expr.BinaryOpExpr(self, "&&", other)
+        return datatable.expr.BinaryOpExpr(self, "&", other)
+
+    def __xor__(self, other):
+        return datatable.expr.BinaryOpExpr(self, "^", other)
 
     def __or__(self, other):
-        return datatable.expr.BinaryOpExpr(self, "||", other)
+        return datatable.expr.BinaryOpExpr(self, "|", other)
 
     def __lshift__(self, other):
         return datatable.expr.BinaryOpExpr(self, "<<", other)
@@ -136,10 +140,13 @@ class BaseExpr(object):
         return datatable.expr.BinaryOpExpr(other, "**", self)
 
     def __rand__(self, other):
-        return datatable.expr.BinaryOpExpr(other, "&&", self)
+        return datatable.expr.BinaryOpExpr(other, "&", self)
+
+    def __rxor__(self, other):
+        return datatable.expr.BinaryOpExpr(other, "^", self)
 
     def __ror__(self, other):
-        return datatable.expr.BinaryOpExpr(other, "||", self)
+        return datatable.expr.BinaryOpExpr(other, "|", self)
 
     def __rlshift__(self, other):
         return datatable.expr.BinaryOpExpr(other, "<<", self)
