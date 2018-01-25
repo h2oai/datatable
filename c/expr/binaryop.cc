@@ -112,6 +112,7 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
         case ST_INTEGER_I8: return resolve0<int8_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
         case ST_REAL_F4:    return resolve0<int8_t, float, float>(opcode, ST_REAL_F4, params);
         case ST_REAL_F8:    return resolve0<int8_t, double, double>(opcode, ST_REAL_F8, params);
+        default: break;
       }
       break;
 
@@ -124,6 +125,7 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
         case ST_INTEGER_I8: return resolve0<int16_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
         case ST_REAL_F4:    return resolve0<int16_t, float, float>(opcode, ST_REAL_F4, params);
         case ST_REAL_F8:    return resolve0<int16_t, double, double>(opcode, ST_REAL_F8, params);
+        default: break;
       }
       break;
 
@@ -136,6 +138,7 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
         case ST_INTEGER_I8: return resolve0<int32_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
         case ST_REAL_F4:    return resolve0<int32_t, float, float>(opcode, ST_REAL_F4, params);
         case ST_REAL_F8:    return resolve0<int32_t, double, double>(opcode, ST_REAL_F8, params);
+        default: break;
       }
       break;
 
@@ -148,6 +151,7 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
         case ST_INTEGER_I8: return resolve0<int64_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
         case ST_REAL_F4:    return resolve0<int64_t, float, float>(opcode, ST_REAL_F4, params);
         case ST_REAL_F8:    return resolve0<int64_t, double, double>(opcode, ST_REAL_F8, params);
+        default: break;
       }
       break;
 
@@ -160,6 +164,7 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
         case ST_INTEGER_I8: return resolve0<float, int64_t, float>(opcode, ST_REAL_F4, params);
         case ST_REAL_F4:    return resolve0<float, float, float>(opcode, ST_REAL_F4, params);
         case ST_REAL_F8:    return resolve0<float, double, double>(opcode, ST_REAL_F8, params);
+        default: break;
       }
       break;
 
@@ -172,7 +177,11 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
         case ST_INTEGER_I8: return resolve0<double, int64_t, double>(opcode, ST_REAL_F8, params);
         case ST_REAL_F4:    return resolve0<double, float, double>(opcode, ST_REAL_F8, params);
         case ST_REAL_F8:    return resolve0<double, double, double>(opcode, ST_REAL_F8, params);
+        default: break;
       }
+      break;
+
+    default:
       break;
   }
   return nullptr;
