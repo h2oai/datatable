@@ -32,6 +32,8 @@
 // heavily in this source file.
 //------------------------------------------------------------------------------
 #include "expr/py_expr.h"
+#include <cmath>               // std::fmod
+#include <type_traits>         // std::is_integral
 #include "types.h"
 #include "utils/exceptions.h"
 
@@ -67,18 +69,14 @@ static void resolve2(int64_t row0, int64_t row1, void** params) {
 }
 
 
-template<typename LT, typename RT, typename VT> inline static VT op_add(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) + y; }
-template<typename LT, typename RT, typename VT> inline static VT op_sub(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) - y; }
-template<typename LT, typename RT, typename VT> inline static VT op_mul(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) * y; }
-template<typename LT, typename RT, typename VT> inline static VT op_div(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / y; }
+template<typename LT, typename RT, typename VT> inline static VT op_add(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) + static_cast<VT>(y); }
+template<typename LT, typename RT, typename VT> inline static VT op_sub(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) - static_cast<VT>(y); }
+template<typename LT, typename RT, typename VT> inline static VT op_mul(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) * static_cast<VT>(y); }
+template<typename LT, typename RT, typename VT> inline static VT op_div(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / static_cast<VT>(y); }
 
-
-// template<typename LT, typename RT, typename VT, OpCode OP>        inline static mapperfn resolve1() { return nullptr; }
-// template<typename LT, typename RT, typename VT, OpCode::Divide>   inline static mapperfn resolve1() { return resolve2<LT, RT, VT, op_div<LT, RT, VT>>; }
-// template<typename LT, typename RT, int8_t,      OpCode::Divide>   inline static mapperfn resolve1() { return resolve2<LT, RT, double, op_div<LT, RT, double>>; }
-// template<typename LT, typename RT, int16_t,     OpCode::Divide>   inline static mapperfn resolve1() { return resolve2<LT, RT, double, op_div<LT, RT, double>>; }
-// template<typename LT, typename RT, int32_t,     OpCode::Divide>   inline static mapperfn resolve1() { return resolve2<LT, RT, double, op_div<LT, RT, double>>; }
-// template<typename LT, typename RT, int64_t,     OpCode::Divide>   inline static mapperfn resolve1() { return resolve2<LT, RT, double, op_div<LT, RT, double>>; }
+template<typename LT, typename RT, typename VT> struct Mod { inline static VT impl(LT x, RT y)  { return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) % static_cast<VT>(y); } };
+template<typename LT, typename RT> struct Mod<LT, RT, float> { inline static float impl(LT x, RT y) { return y == 0? GETNA<float>() : std::fmod(static_cast<float>(x), static_cast<float>(y)); } };
+template<typename LT, typename RT> struct Mod<LT, RT, double> { inline static double impl(LT x, RT y) { return y == 0? GETNA<double>() : std::fmod(static_cast<double>(x), static_cast<double>(y)); } };
 
 
 
@@ -87,10 +85,16 @@ inline static mapperfn resolve0(int opcode, SType stype, void** params) {
   int64_t nrows = static_cast<Column*>(params[0])->nrows;
   params[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {
-    case OpCode::Plus:     return resolve2<LT, RT, VT, op_add<LT, RT, VT>>;
-    case OpCode::Minus:    return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>;
-    case OpCode::Multiply: return resolve2<LT, RT, VT, op_mul<LT, RT, VT>>;
-    // case OpCode::Divide:   return resolve1<LT, RT, VT, OpCode::Divide>();
+    case OpCode::Plus:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>;
+    case OpCode::Minus:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>;
+    case OpCode::Multiply:  return resolve2<LT, RT, VT, op_mul<LT, RT, VT>>;
+    case OpCode::IntDivide: return resolve2<LT, RT, VT, op_div<LT, RT, VT>>;
+    case OpCode::Modulo:    return resolve2<LT, RT, VT, Mod<LT, RT, VT>::impl>;
+    case OpCode::Divide:
+      if (std::is_integral<VT>::value)
+        return resolve2<LT, RT, double, op_div<LT, RT, double>>;
+      else
+        return resolve2<LT, RT, VT, op_div<LT, RT, VT>>;
   }
   return nullptr;
 }
