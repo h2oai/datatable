@@ -16,7 +16,9 @@
 #include "csv/reader_fread.h"
 #include <string.h>    // memcpy
 #include <sys/mman.h>  // mmap
+#include <cmath>       // std::exp
 #include <exception>
+#include <map>         // std::map
 #include "csv/reader.h"
 #include "csv/reader_parsers.h"
 #include "csv/fread.h"
@@ -92,8 +94,151 @@ FieldParseContext FreadReader::makeFieldParseContext(
 
 
 //------------------------------------------------------------------------------
-// Parsing steps
+// Detect the separator / quoting rule
 //------------------------------------------------------------------------------
+class HypothesisNoQC;
+class HypothesisQC;
+class HypothesisPool;
+
+class Hypothesis {
+  protected:
+    FieldParseContext& ctx;
+    size_t nlines;
+    bool invalid;
+    int64_t : 56;
+
+  public:
+    Hypothesis(FieldParseContext& c) : ctx(c), nlines(0), invalid(false) {}
+    virtual ~Hypothesis() {}
+    virtual void parse_next_line(HypothesisPool&) = 0;
+    virtual double score() = 0;
+    friend HypothesisPool;
+};
+
+class HypothesisPool : public std::vector<Hypothesis*> {
+  public:
+    static const size_t MaxLines = 100;
+
+    void parse_next_line() {
+      // Dynamic `size()`: in case any new hypotheses are inserted, they are
+      // checked too.
+      for (size_t i = 0; i < size(); ++i) {
+        Hypothesis* h = (*this)[i];
+        if (h->invalid) continue;
+        h->parse_next_line(*this);
+      }
+    }
+};
+
+class HypothesisQC : public Hypothesis {
+  private:
+    HypothesisNoQC* parent;
+    char qc;
+    int64_t : 56;
+  public:
+    HypothesisQC(FieldParseContext& c, char q, HypothesisNoQC* p)
+      : Hypothesis(c), parent(p), qc(q) {}
+    void parse_next_line(HypothesisPool&) override {
+
+    }
+    double score() override { return 0.5; }
+};
+
+class HypothesisNoQC : public Hypothesis {
+  private:
+    static const size_t MaxSeps = 128;
+    std::vector<size_t> chcounts;
+    std::map<size_t, size_t> metacounts;  // used for scoring
+    bool doubleQuoteSeen;
+    bool singleQuoteSeen;
+    int64_t : 48;
+  public:
+    HypothesisNoQC(FieldParseContext& ctx)
+      : Hypothesis(ctx), chcounts(MaxSeps * HypothesisPool::MaxLines),
+        doubleQuoteSeen(false), singleQuoteSeen(false) {}
+
+    void parse_next_line(HypothesisPool& hp) override {
+      const char*& ch = ctx.ch;
+      const char* eof = ctx.eof;
+      size_t* chfreq = &(chcounts[nlines * MaxSeps]);
+      while (ch < eof && *ch == ' ') ch++;
+      size_t nspaces = 0; // the number of contiguous spaces seen before now
+      while (ch < eof) {
+        signed char c = *ch;
+        if (c >= 0) {  // non-ASCII range will have `c < 0`
+          chfreq[c]++;
+          chfreq['s'] += (c == ' ' && nspaces == 0) - (c == 's');
+          if (c == '\n' || c == '\r') {
+            if (ctx.skip_eol()) {
+              chfreq[' '] -= nspaces;
+              chfreq['s'] -= (nspaces > 0);
+              break;
+            }
+          }
+        }
+        nspaces = (c == ' ')? nspaces + 1 : 0;
+        ch++;
+      }
+      if (!doubleQuoteSeen && chfreq['"']) {
+        hp.push_back(new HypothesisQC(ctx, '"', this));
+        doubleQuoteSeen = true;
+      }
+      if (!singleQuoteSeen && chfreq['\'']) {
+        hp.push_back(new HypothesisQC(ctx, '\'', this));
+        singleQuoteSeen = true;
+      }
+      nlines++;
+    }
+    double score() override {
+      if (invalid) return 0;
+      for (size_t i = 0; i < MaxSeps; ++i) {
+        if (!allowedseps[i]) continue;
+        score_sep(i);
+        if (i == ' ' || !(allowedseps[i] || i == 's')) continue;
+      }
+      return 0;
+    }
+    double score_sep(size_t sep) {
+      metacounts.clear();
+      size_t off = sep;
+      double sep_weight = static_cast<double>(allowedseps[sep]);
+      if (sep == ' ') {
+        off = 's';
+        size_t cnt_space = 0, cnt_multispace = 0;
+        for (size_t l = 0; l < nlines; l++) {
+          cnt_space += chcounts[' ' + l * MaxSeps];
+          cnt_multispace += chcounts['s' + l * MaxSeps];
+        }
+        double avg_len = static_cast<double>(cnt_space) / cnt_multispace;
+        sep_weight *= 2.0 / (1 + std::exp(2 - avg_len));
+      }
+      for (size_t l = 0; l < nlines; l++) {
+        metacounts[chcounts[off + l * MaxSeps]]++;
+      }
+      size_t max_count_of_counts = 0, best_count = 0;
+      for (auto m : metacounts) {
+        if (m.second > max_count_of_counts) {
+          max_count_of_counts = m.second;
+          best_count = m.first;
+        }
+      }
+      return sep_weight;
+    }
+};
+
+/**
+ * QR = 0: no embedded quote chars allowed
+ * QR = 1: embedded quote characters are doubled
+ * QR = 2: embedded quote characters are escaped with '\'
+ *
+ * Consider 3 hypothesis:
+ * H0: QC = ø
+ * H1: QC = «"», starting with QR1 = 0
+ * H2: QC = «'», starting with QR2 = 0
+ */
+void FreadReader::detect_sep(FieldParseContext&) {
+}
+
 
 /**
  * Parse a single line of input starting from location `ctx.ch` as strings,
