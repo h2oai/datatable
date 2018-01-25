@@ -192,11 +192,11 @@ PyObject* pydatatable_assemble(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     PyObject *arg1;
-    ColumnSet_PyObject *pycols;
+    pycolumnset::obj* pycols;
     if (!PyArg_ParseTuple(args, "OO!:datatable_assemble_view",
-                          &arg1, &ColumnSet_PyType, &pycols))
+                          &arg1, &pycolumnset::type, &pycols))
         return nullptr;
-    Column **columns = pycols->columns;
+    Column** columns = pycols->columns;
     pycols->columns = nullptr;
     RowIndex *rowindex = nullptr;
     if (arg1 == Py_None) {

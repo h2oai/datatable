@@ -1,25 +1,78 @@
-#ifndef dt_PY_COLUMNSET_H
-#define dt_PY_COLUMNSET_H
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
+#ifndef dt_PY_COLUMNSET_h
+#define dt_PY_COLUMNSET_h
+#define BASECLS pycolumnset::obj
+#define HOMEFLAG dt_PY_COLUMNSET_cc
 #include <Python.h>
 #include "datatable.h"
 #include "rowindex.h"
-
-typedef struct ColumnSet_PyObject {
-    PyObject_HEAD
-    Column **columns;
-} ColumnSet_PyObject;
+#include "py_utils.h"
 
 
-extern PyTypeObject ColumnSet_PyType;
+namespace pycolumnset
+{
+
+struct obj : public PyObject {
+  // PyObject_HEAD
+  Column** columns;
+  int64_t ncols;
+};
+
+extern PyTypeObject type;
 
 
-int columnset_unwrap(PyObject *object, void *address);
+//---- Generic info ------------------------------------------------------------
 
-PyObject* pycolumns_from_slice(PyObject *self, PyObject *args);
-PyObject* pycolumns_from_array(PyObject *self, PyObject *args);
-PyObject* pycolumns_from_mixed(PyObject *self, PyObject *args);
+DECLARE_INFO(
+  "_datatable.ColumnSet",
+  "Array of columns that can be used to construct a DataTable.")
 
 
-int init_py_columnset(PyObject *module);
 
+//---- External API ------------------------------------------------------------
+
+DECLARE_FUNCTION(
+  columns_from_slice,
+  "columns_from_slice(dt, start, count, step)\n\n"
+  "Retrieve set of columns as a slice of columns in DataTable `dt`.\n",
+  HOMEFLAG)
+
+DECLARE_FUNCTION(
+  columns_from_array,
+  "columns_from_array(dt, indices)\n\n"
+  "Extract an array of columns at given indices from DataTable `dt`.\n",
+  HOMEFLAG)
+
+DECLARE_FUNCTION(
+  columns_from_mixed,
+  "columns_from_mixed()\n\n",
+  HOMEFLAG)
+
+DECLARE_FUNCTION(
+  columns_from_columns,
+  "columns_from_columns(cols)\n\n"
+  "Create a ColumnSet from a Python list of columns.",
+  HOMEFLAG)
+
+
+int unwrap(PyObject* source, void* target);
+int static_init(PyObject* module);
+
+};
+#undef BASECLS
+#undef HOMEFLAG
 #endif

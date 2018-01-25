@@ -13,7 +13,7 @@ __all__ = ("make_datatable", )
 
 
 
-def make_datatable(dt, rows, select, sort):
+def make_datatable(dt, rows, select, sort, engine):
     """
     Implementation of the `DataTable.__call__()` method.
 
@@ -21,6 +21,9 @@ def make_datatable(dt, rows, select, sort):
     evaluating various transformations when they are applied to a target
     DataTable.
     """
+    if engine is None:
+        engine = "llvm"
+
     cmodule = CModuleNode()
     rows_node = make_rowfilter(rows, dt, cmodule)
     cols_node = make_columnset(select, dt)
@@ -41,7 +44,7 @@ def make_datatable(dt, rows, select, sort):
     # datatable is not a view, or a "view" datatable otherwise.
     if isinstance(cols_node, (SliceCSNode, ArrayCSNode)):
         rowindex = rows_node.get_final_rowindex()
-        columns = cols_node.get_result()
+        columns = cols_node.evaluate_eager()
         res_dt = _datatable.datatable_assemble(rowindex, columns)
         return datatable.DataTable(res_dt, names=cols_node.column_names)
 
@@ -50,7 +53,10 @@ def make_datatable(dt, rows, select, sort):
     # by reference, while computed columns can be created without the need to
     # apply a RowIndex object. The DataTable created will be a "data" table.
     if isinstance(rows_node, AllRFNode) and not dt.internal.isview:
-        columns = cols_node.get_result()
+        if engine == "llvm":
+            columns = cols_node.evaluate_llvm()
+        else:
+            columns = cols_node.evaluate_eager()
         res_dt = _datatable.datatable_assemble(None, columns)
         return datatable.DataTable(res_dt, names=cols_node.column_names)
 

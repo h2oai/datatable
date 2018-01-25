@@ -21,6 +21,7 @@
 #include <vector>
 
 class DataTable;
+class Column;
 
 
 /**
@@ -102,6 +103,7 @@ public:
 
   PyObject* as_pyobject() const;
   DataTable* as_datatable() const;
+  Column* as_column() const;
 
   /**
    * Convert the object to a list of strings. The object must be of python type

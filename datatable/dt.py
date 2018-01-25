@@ -290,7 +290,7 @@ class DataTable(object):
     #---------------------------------------------------------------------------
 
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
-                 sort=None
+                 sort=None, engine=None
                  #update=None, groupby=None, join=None, limit=None
                  ):
         """
@@ -440,7 +440,7 @@ class DataTable(object):
             applies that slice to the resulting datatable.
         """
         time0 = time.time() if timeit else 0
-        res = make_datatable(self, rows, select, sort)
+        res = make_datatable(self, rows, select, sort, engine)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res

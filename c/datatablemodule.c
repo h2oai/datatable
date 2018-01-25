@@ -2,6 +2,7 @@
 #include "capi.h"
 #include "csv/py_csv.h"
 #include "csv/writer.h"
+#include "expr/py_expr.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datatable.h"
@@ -103,9 +104,10 @@ static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
 #define METHOD1_(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
-    METHOD0_(columns_from_mixed),
-    METHOD0_(columns_from_slice),
-    METHOD0_(columns_from_array),
+    METHODv(pycolumnset::columns_from_mixed),
+    METHODv(pycolumnset::columns_from_slice),
+    METHODv(pycolumnset::columns_from_array),
+    METHODv(pycolumnset::columns_from_columns),
     METHOD0_(rowindex_from_slice),
     METHOD0_(rowindex_from_slicelist),
     METHOD0_(rowindex_from_array),
@@ -125,6 +127,8 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0_(install_buffer_hooks),
     METHOD1_(get_internal_function_ptrs),
     METHOD1_(get_integer_sizes),
+    METHODv(expr_binaryop),
+    METHODv(expr_column),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -146,7 +150,7 @@ PyInit__datatable(void) {
     init_csvwrite_constants();
 
     // Instantiate module object
-    PyObject *m = PyModule_Create(&datatablemodule);
+    PyObject* m = PyModule_Create(&datatablemodule);
     if (m == NULL) return NULL;
 
     // Initialize submodules
@@ -155,7 +159,7 @@ PyInit__datatable(void) {
     if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!pycolumn::static_init(m)) return NULL;
-    if (!init_py_columnset(m)) return NULL;
+    if (!pycolumnset::static_init(m)) return NULL;
     if (!init_py_encodings(m)) return NULL;
 
     return m;

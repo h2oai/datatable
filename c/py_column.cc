@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#define PY_COLUMN_cc
+#define dt_PY_COLUMN_cc
 #include "py_column.h"
 #include "sort.h"
 #include "py_types.h"
@@ -30,12 +30,23 @@ pycolumn::obj* from_column(Column* col, DataTable_PyObject* pydt, int64_t idx)
   PyObject* coltype = reinterpret_cast<PyObject*>(&pycolumn::type);
   PyObject* pyobj = PyObject_CallObject(coltype, NULL);
   auto pycol = reinterpret_cast<pycolumn::obj*>(pyobj);
-  if (!pycol) throw PyError();
+  if (!pycol || !col) throw PyError();
   pycol->ref = col->shallowcopy();
   pycol->pydt = pydt;
   pycol->colidx = idx;
   Py_XINCREF(pydt);
   return pycol;
+}
+
+
+int unwrap(PyObject* object, Column** address) {
+  if (!object) return 0;
+  if (!PyObject_TypeCheck(object, &pycolumn::type)) {
+    PyErr_SetString(PyExc_TypeError, "Expected object of type Column");
+    return 0;
+  }
+  *address = ((pycolumn::obj*)object)->ref;
+  return 1;
 }
 
 
@@ -87,6 +98,12 @@ PyObject* get_refcount(pycolumn::obj* self) {
 }
 
 
+PyObject* get_nrows(pycolumn::obj* self) {
+  Column*& col = self->ref;
+  return PyLong_FromLong(col->nrows);
+}
+
+
 
 //==============================================================================
 // Column methods
@@ -124,7 +141,7 @@ PyObject* hexview(pycolumn::obj* self, PyObject*)
 }
 
 
-static void pycolumn_dealloc(pycolumn::obj* self)
+static void dealloc(pycolumn::obj* self)
 {
   delete self->ref;
   Py_XDECREF(self->pydt);
@@ -147,6 +164,7 @@ static PyGetSetDef column_getseters[] = {
   GETTER(data_pointer),
   GETTER(meta),
   GETTER(refcount),
+  GETTER(nrows),
   {NULL, NULL, NULL, NULL, NULL}
 };
 
@@ -161,7 +179,7 @@ PyTypeObject type = {
   cls_name,                           /* tp_name */
   sizeof(pycolumn::obj),              /* tp_basicsize */
   0,                                  /* tp_itemsize */
-  (destructor)pycolumn_dealloc,       /* tp_dealloc */
+  (destructor) dealloc,               /* tp_dealloc */
   0,                                  /* tp_print */
   0,                                  /* tp_getattr */
   0,                                  /* tp_setattr */

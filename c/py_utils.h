@@ -32,14 +32,14 @@
 
 #define DECLARE_METHOD4(fn, docstring, basecls, homeflag)                      \
   PyObject* fn(basecls* self, PyObject* args);                                 \
-  PyObject* safe_##fn(basecls*, PyObject*);                                    \
-  extern char doc_##fn[];                                                      \
-  extern char name_##fn[];                                                     \
+  PyObject* fn##_safe(basecls*, PyObject*);                                    \
+  extern char fn##_doc[];                                                      \
+  extern char fn##_name[];                                                     \
   WHEN(homeflag,                                                               \
-    char doc_##fn[] = docstring;                                               \
-    char name_##fn[] = #fn;                                                    \
+    char fn##_doc[] = docstring;                                               \
+    char fn##_name[] = #fn;                                                    \
     ES_FUNCTION(                                                               \
-      PyObject* safe_##fn(basecls* self, PyObject* args),                      \
+      PyObject* fn##_safe(basecls* self, PyObject* args),                      \
       fn(self, args))                                                          \
   )                                                                            \
 
@@ -60,11 +60,11 @@
 
 
 #define METHOD0(fn)                                                            \
-  {name_##fn, (PyCFunction)safe_##fn, METH_NOARGS, doc_##fn}
+  {fn##_name, (PyCFunction)fn##_safe, METH_NOARGS, fn##_doc}
 #define METHODv(fn)                                                            \
-  {name_##fn, (PyCFunction)safe_##fn, METH_VARARGS, doc_##fn}
+  {fn##_name, (PyCFunction)fn##_safe, METH_VARARGS, fn##_doc}
 #define METHODo(fn)                                                            \
-  {name_##fn, (PyCFunction)safe_##fn, METH_O, doc_##fn}
+  {fn##_name, (PyCFunction)fn##_safe, METH_O, fn##_doc}
 #define GETTER(fn)                                                             \
   {name_get_##fn, (getter)safe_get_##fn, NULL, doc_get_##fn, NULL}
 #define GETSET(fn)                                                             \
