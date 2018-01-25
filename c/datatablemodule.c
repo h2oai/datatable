@@ -107,6 +107,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pycolumnset::columns_from_mixed),
     METHODv(pycolumnset::columns_from_slice),
     METHODv(pycolumnset::columns_from_array),
+    METHODv(pycolumnset::columns_from_columns),
     METHOD0_(rowindex_from_slice),
     METHOD0_(rowindex_from_slicelist),
     METHOD0_(rowindex_from_array),

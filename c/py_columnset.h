@@ -53,7 +53,7 @@ DECLARE_FUNCTION(
 
 DECLARE_FUNCTION(
   columns_from_array,
-  "columns_from_array(dt, collist)\n\n"
+  "columns_from_array(dt, indices)\n\n"
   "Extract an array of columns at given indices from DataTable `dt`.\n",
   HOMEFLAG)
 
@@ -62,6 +62,11 @@ DECLARE_FUNCTION(
   "columns_from_mixed()\n\n",
   HOMEFLAG)
 
+DECLARE_FUNCTION(
+  columns_from_columns,
+  "columns_from_columns(cols)\n\n"
+  "Create a ColumnSet from a Python list of columns.",
+  HOMEFLAG)
 
 
 int unwrap(PyObject* source, void* target);

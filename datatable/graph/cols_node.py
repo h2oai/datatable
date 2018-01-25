@@ -72,10 +72,12 @@ class SliceCSNode(ColumnSetNode):
             return self._dt.names[self._start:end:self._step]
 
 
-    def get_result(self):
+    def evaluate_eager(self):
         res = _datatable.columns_from_slice(self._dt.internal, self._start,
                                             self._count, self._step)
         return res
+
+    evaluate_llvm = evaluate_eager
 
 
 
@@ -88,8 +90,10 @@ class ArrayCSNode(ColumnSetNode):
         self._elems = elems
         self._column_names = colnames
 
-    def get_result(self):
+    def evaluate_eager(self):
         return _datatable.columns_from_array(self._dt.internal, self._elems)
+
+    evaluate_llvm = evaluate_eager
 
 
 
@@ -105,7 +109,7 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
         self._mapnode = MapNode(dt, [elem for elem in self._elems
                                      if isinstance(elem, BaseExpr)])
 
-    def get_result(self):
+    def evaluate_llvm(self):
         fnptr = self._mapnode.get_result()
         if self._rowindex:
             rowindex = self._rowindex.get_result()
@@ -114,6 +118,10 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
             nrows = self._dt.nrows
         return _datatable.columns_from_mixed(self._elems, self._dt.internal,
                                              nrows, fnptr)
+
+    def evaluate_eager(self):
+        columns = [e.evaluate() for e in self._elems]
+        return _datatable.columns_from_columns(columns)
 
     def use_cmodule(self, cmod):
         self._mapnode.use_cmodule(cmod)

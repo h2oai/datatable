@@ -16,6 +16,7 @@
 #define dt_PY_COLUMNSET_cc
 #include "py_columnset.h"
 #include "columnset.h"
+#include "py_column.h"
 #include "py_datatable.h"
 #include "py_rowindex.h"
 #include "py_types.h"
@@ -78,7 +79,7 @@ PyObject* columns_from_array(PyObject*, PyObject *args)
 {
   DataTable* dt;
   PyObject* elems;
-  if (!PyArg_ParseTuple(args, "O&O!:columns_from_slice",
+  if (!PyArg_ParseTuple(args, "O&O!:columns_from_array",
                         &dt_unwrap, &dt, &PyList_Type, &elems))
     return NULL;
 
@@ -120,6 +121,32 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
     }
   }
   return wrap(columns_from_mixed(spec, ncols, nrows, dt, fnptr), ncols);
+}
+
+
+PyObject* columns_from_columns(PyObject*, PyObject* args)
+{
+  PyObject* col_list;
+  if (!PyArg_ParseTuple(args, "O!:columns_from_columns",
+                        &PyList_Type, &col_list))
+    return nullptr;
+
+  int64_t ncols = PyList_Size(col_list);
+  Column** columns;
+  dtmalloc(columns, Column*, ncols + 1);
+  for (int64_t i = 0; i < ncols; ++i) {
+    PyObject* elem = PyList_GET_ITEM(col_list, i);
+    int ret = pycolumn::unwrap(elem, columns + i);
+    if (!ret) {
+      for (int64_t j = 0; j < i; ++j) delete columns[j];
+      dtfree(columns);
+      return nullptr;
+    }
+    reinterpret_cast<pycolumn::obj*>(elem)->ref = nullptr;
+  }
+  columns[ncols] = nullptr;
+
+  return wrap(columns, ncols);
 }
 
 
