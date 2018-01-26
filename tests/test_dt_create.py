@@ -41,6 +41,20 @@ def test_create_from_set():
     assert d3.internal.check()
 
 
+def test_create_from_range():
+    d0 = dt.DataTable(range(8))
+    assert d0.internal.check()
+    assert d0.shape == (8, 1)
+    assert d0.topython() == [list(range(8))]
+
+
+def test_create_from_list_of_ranges():
+    d0 = dt.DataTable([range(6), range(0, 12, 2)])
+    assert d0.internal.check()
+    assert d0.shape == (6, 2)
+    assert d0.topython() == [list(range(6)), list(range(0, 12, 2))]
+
+
 def test_create_from_nothing():
     d4 = dt.DataTable()
     assert d4.shape == (0, 0)
