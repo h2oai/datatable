@@ -8,7 +8,7 @@ import warnings
 from types import GeneratorType
 from typing import Tuple, Dict, List, Union
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyProtectedMember
 import datatable.lib._datatable as _datatable
 import datatable
 from .widget import DataFrameWidget
@@ -21,7 +21,7 @@ from datatable.utils.typechecks import (
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 from datatable.csv import write_csv
-from datatable.types import stype
+from datatable.types import stype, ltype
 
 __all__ = ("DataTable", )
 
@@ -59,9 +59,8 @@ class DataTable(object):
         self._names = None   # type: Tuple[str]
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
-        self._dt = None      # type: c.DataTable
+        self._dt = None      # type: _datatable.DataTable
         self._fill_from_source(src, names=names)
-
 
 
     #---------------------------------------------------------------------------
@@ -160,11 +159,10 @@ class DataTable(object):
 
     def _fill_from_source(self, src, names):
         if isinstance(src, list):
-            if src and isinstance(src[0], list):
-                self._fill_from_list(src, names=names)
-            else:
-                self._fill_from_list([src], names=names)
-        elif isinstance(src, (tuple, set)):
+            if len(src) == 0:
+                src = [src]
+            self._fill_from_list(src, names=names)
+        elif isinstance(src, (tuple, set, range)):
             self._fill_from_list([list(src)], names=names)
         elif isinstance(src, dict):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
@@ -190,6 +188,16 @@ class DataTable(object):
 
 
     def _fill_from_list(self, src, names=None):
+        for i in range(len(src)):
+            e = src[i]
+            if isinstance(e, range):
+                src[i] = list(e)
+            elif isinstance(e, list):
+                pass
+            else:
+                if i == 0:
+                    src = [src]
+                break
         self._fill_from_dt(_datatable.datatable_from_list(src), names=names)
 
 
