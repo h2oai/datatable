@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import os
-import datatable.lib._datatable as _datatable
+from datatable.lib import core
 from datatable.utils.terminal import term
 _log_color = term.bright_black
 
@@ -15,6 +15,9 @@ def write_csv(dt, path="", nthreads=0, hex=False, verbose=False, **kwargs):
 
     Parameters
     ----------
+    dt: DataTable
+        DataTable object to write into CSV.
+
     path: str
         Path to the output CSV file that will be created. If the file already
         exists, it will be overwritten. If path is not given, then the DataTable
@@ -56,7 +59,7 @@ class CsvWriter(object):
         self._log_newline = False
 
     def write(self):
-        return _datatable.write_csv(self)
+        return core.write_csv(self)
 
     def _vlog(self, message):
         if self._log_newline:

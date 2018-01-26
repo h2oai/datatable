@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# noinspection PyUnresolvedReferences,PyProtectedMember
-import datatable.lib._datatable as _datatable
 import datatable
+from datatable.lib import core as core
 from .rows_node import make_rowfilter, AllRFNode, SortedRFNode
 from .cols_node import make_columnset, SliceCSNode, ArrayCSNode
 from .sort_node import make_sort
-from .context import CModuleNode
+from .context import make_engine
 from .dtproxy import f
 
 __all__ = ("make_datatable", )
@@ -22,13 +21,10 @@ def make_datatable(dt, rows, select, sort, engine):
     evaluating various transformations when they are applied to a target
     DataTable.
     """
-    if engine is None:
-        engine = "llvm"
-
     with f.bind_datatable(dt):
-        cmodule = CModuleNode()
-        rows_node = make_rowfilter(rows, dt, cmodule)
-        cols_node = make_columnset(select, dt, cmodule)
+        engine = make_engine(engine, dt)
+        rows_node = make_rowfilter(rows, dt, engine)
+        cols_node = make_columnset(select, dt, engine)
         sort_node = make_sort(sort, dt)
 
         if sort_node:
@@ -46,7 +42,7 @@ def make_datatable(dt, rows, select, sort, engine):
         if isinstance(cols_node, (SliceCSNode, ArrayCSNode)):
             rowindex = rows_node.get_final_rowindex()
             columns = cols_node.evaluate_eager()
-            res_dt = _datatable.datatable_assemble(rowindex, columns)
+            res_dt = core.datatable_assemble(rowindex, columns)
             return datatable.DataTable(res_dt, names=cols_node.column_names)
 
         # Select computed columns + all rows from datatable which is not a view --
@@ -58,7 +54,7 @@ def make_datatable(dt, rows, select, sort, engine):
                 columns = cols_node.evaluate_llvm()
             else:
                 columns = cols_node.evaluate_eager()
-            res_dt = _datatable.datatable_assemble(None, columns)
+            res_dt = core.datatable_assemble(None, columns)
             return datatable.DataTable(res_dt, names=cols_node.column_names)
 
     raise RuntimeError(  # pragma: no cover

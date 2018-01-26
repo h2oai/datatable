@@ -5,8 +5,7 @@ from .base_expr import BaseExpr
 from .literal_expr import LiteralExpr
 from .consts import ops_rules, division_ops
 from datatable.utils.typechecks import TTypeError, TValueError
-# noinspection PyProtectedMember,PyUnresolvedReferences
-import datatable.lib._datatable as core
+from datatable.lib import core
 
 
 class BinaryOpExpr(BaseExpr):

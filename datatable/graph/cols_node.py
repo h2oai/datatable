@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import types
 
-import datatable.lib._datatable as _datatable
+from datatable.lib import core
 from .iterator_node import MapNode
 from datatable.expr import BaseExpr, ColSelectorExpr
 from datatable.graph.dtproxy import f
@@ -73,8 +73,8 @@ class SliceCSNode(ColumnSetNode):
 
 
     def evaluate_eager(self):
-        res = _datatable.columns_from_slice(self._dt.internal, self._start,
-                                            self._count, self._step)
+        res = core.columns_from_slice(self._dt.internal, self._start,
+                                      self._count, self._step)
         return res
 
     evaluate_llvm = evaluate_eager
@@ -91,7 +91,7 @@ class ArrayCSNode(ColumnSetNode):
         self._column_names = colnames
 
     def evaluate_eager(self):
-        return _datatable.columns_from_array(self._dt.internal, self._elems)
+        return core.columns_from_array(self._dt.internal, self._elems)
 
     evaluate_llvm = evaluate_eager
 
@@ -121,12 +121,12 @@ class MixedCSNode(ColumnSetNode):
             nrows = rowindex.length
         else:
             nrows = self._dt.nrows
-        return _datatable.columns_from_mixed(self._elems, self._dt.internal,
-                                             nrows, fnptr)
+        return core.columns_from_mixed(self._elems, self._dt.internal,
+                                       nrows, fnptr)
 
     def evaluate_eager(self):
         columns = [e.evaluate() for e in self._elems]
-        return _datatable.columns_from_columns(columns)
+        return core.columns_from_columns(columns)
 
     def use_rowindex(self, ri):
         self._rowindex = ri

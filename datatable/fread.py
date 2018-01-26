@@ -9,8 +9,7 @@ import urllib.request
 import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
-# noinspection PyUnresolvedReferences,PyProtectedMember
-import datatable.lib._datatable as c
+from datatable.lib import core
 from datatable.dt import DataTable
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term
@@ -635,7 +634,7 @@ class TextReader(object):
 
 
     def read(self):
-        _dt = c.gread(self)
+        _dt = core.gread(self)
         dt = DataTable(_dt, names=self._colnames)
         if self._tempfile:
             if self._verbose:
@@ -830,7 +829,7 @@ class TextReader(object):
                         raise TValueError("Unknown type %r used as an override "
                                           "for column %r" % (newtype, newname))
 
-        if callable(colspec):
+        if callable(colspec) and hasattr(colspec, "__code__"):
             nargs = colspec.__code__.co_argcount
 
             if nargs == 1:

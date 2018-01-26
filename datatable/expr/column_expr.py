@@ -3,7 +3,7 @@
 
 from .base_expr import BaseExpr
 from .consts import nas_map
-import datatable.lib._datatable as core
+from datatable.lib import core
 
 
 

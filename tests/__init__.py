@@ -8,7 +8,7 @@ from math import isnan
 # run any tests (which will all fail anyways). Additionally, we attempt to
 # resolve any obfuscated C++ names, for convenience.
 try:
-    import datatable.lib._datatable as c
+    from datatable.lib import core as c
     assert c
 except ImportError as e:
     import re
@@ -96,7 +96,6 @@ def assert_equals(datatable1, datatable2):
     """
     Helper function to assert that 2 datatables are equal to each other.
     """
-    nrows, ncols = datatable1.shape
     assert datatable1.internal.check()
     assert datatable2.internal.check()
     assert datatable1.shape == datatable2.shape

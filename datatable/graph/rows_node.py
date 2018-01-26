@@ -3,7 +3,7 @@
 import types
 
 import datatable
-import datatable.lib._datatable as _datatable
+from datatable.lib import core
 from .iterator_node import IteratorNode
 from datatable.expr import BaseExpr
 from datatable.graph.dtproxy import f
@@ -56,7 +56,7 @@ class RFNode(object):
         self._rifinal = None
 
 
-    def get_final_rowindex(self) -> Optional[_datatable.RowIndex]:
+    def get_final_rowindex(self) -> Optional[core.RowIndex]:
         """
         Return the final RowIndex object.
 
@@ -69,12 +69,12 @@ class RFNode(object):
             _dt = self._dt.internal
             _ri = self.get_target_rowindex()
             if _dt.isview:
-                _ri = _datatable.rowindex_uplift(_ri, _dt)
+                _ri = core.rowindex_uplift(_ri, _dt)
             self._rifinal = _ri
         return self._rifinal
 
 
-    def get_target_rowindex(self) -> Optional[_datatable.RowIndex]:
+    def get_target_rowindex(self) -> Optional[core.RowIndex]:
         """
         Return the target RowIndex object.
 
@@ -149,7 +149,7 @@ class SliceRFNode(RFNode):
         self._triple = (start, count, step)
 
     def get_target_rowindex(self):
-        return _datatable.rowindex_from_slice(*self._triple)
+        return core.rowindex_from_slice(*self._triple)
 
 
 
@@ -176,7 +176,7 @@ class ArrayRFNode(RFNode):
         self._array = array
 
     def get_target_rowindex(self):
-        return _datatable.rowindex_from_array(self._array)
+        return core.rowindex_from_array(self._array)
 
 
 
@@ -210,7 +210,7 @@ class MultiSliceRFNode(RFNode):
         self._steps = steps
 
     def get_target_rowindex(self):
-        return _datatable.rowindex_from_slicelist(
+        return core.rowindex_from_slicelist(
             self._bases, self._counts, self._steps
         )
 
@@ -240,7 +240,7 @@ class BooleanColumnRFNode(RFNode):
         self._coldt = col
 
     def get_target_rowindex(self):
-        return _datatable.rowindex_from_boolcolumn(self._coldt.internal)
+        return core.rowindex_from_boolcolumn(self._coldt.internal)
 
 
 
@@ -266,8 +266,8 @@ class IntegerColumnRFNode(RFNode):
         self._coldt = col
 
     def get_target_rowindex(self):
-        return _datatable.rowindex_from_intcolumn(self._coldt.internal,
-                                                  self._dt.nrows)
+        return core.rowindex_from_intcolumn(self._coldt.internal,
+                                            self._dt.nrows)
 
 
 
@@ -311,7 +311,7 @@ class FilterExprRFNode(RFNode):
 
     def get_final_rowindex(self):
         ptr = self._cmodule.get_result(self._fnname)
-        return _datatable.rowindex_from_function(ptr)
+        return core.rowindex_from_function(ptr)
 
     def var_final_rowindex(self):
         return self._fnname + "()"
