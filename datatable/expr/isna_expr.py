@@ -9,10 +9,14 @@ __all__ = ("isna", )
 
 
 class Isna(BaseExpr):
+    __slots__ = ["_arg"]
 
     def __init__(self, arg):
         super().__init__()
         self._arg = arg
+
+    def resolve(self):
+        self._arg.resolve()
         self._stype = stype.bool8
 
 
@@ -31,6 +35,7 @@ class Isna(BaseExpr):
 
     def __str__(self):
         return "isna(%s)" % self._arg
+
 
 
 def isna(x):

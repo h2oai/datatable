@@ -5,7 +5,8 @@ import types
 import datatable
 import datatable.lib._datatable as _datatable
 from .iterator_node import IteratorNode
-from datatable.expr import DatatableExpr, BaseExpr
+from datatable.expr import BaseExpr
+from datatable.graph.dtproxy import f
 from datatable.types import stype, ltype
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
@@ -297,10 +298,11 @@ class FilterExprRFNode(RFNode):
     cmod: CModule
         The context for evaluating the expression.
     """
-    __slots__ = ("_cmodule", "_fnname", "_expr")
+    __slots__ = ["_cmodule", "_fnname", "_expr"]
 
     def __init__(self, dt, expr, cmod):
         super().__init__(dt)
+        expr.resolve()
         assert expr.stype == stype.bool8
         self._cmodule = cmod
         self._expr = expr
@@ -511,8 +513,7 @@ def make_rowfilter(rows, dt, cmod, _nested=False):
                              % col0type)
 
     if isinstance(rows, types.FunctionType):
-        lazydt = DatatableExpr(dt)
-        return make_rowfilter(rows(lazydt), dt, cmod, _nested=True)
+        return make_rowfilter(rows(f), dt, cmod, _nested=True)
 
     if isinstance(rows, BaseExpr):
         return FilterExprRFNode(dt, rows, cmod)

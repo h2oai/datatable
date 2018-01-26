@@ -7,7 +7,7 @@ from .consts import ctypes_map, nas_map
 
 
 
-class BaseExpr(object):
+class BaseExpr:
     """
     This class represents a function applied to a single datatable row.
 
@@ -38,10 +38,20 @@ class BaseExpr(object):
 
     This class is abstract and should not be instantiated explicitly.
     """
-    __slots__ = ("_stype", )
+    __slots__ = "_stype"
+
 
     def __init__(self):
         self._stype = None
+
+    def resolve(self):
+        """
+        Part of initialization process: this method will be called once it is
+        known which DataTable this expression should bind to. Derived classes
+        are expected to override this method and perform `_stype` resolution /
+        error checking.
+        """
+        raise NotImplementedError
 
 
     @property

@@ -2,8 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 import pytest
 import datatable as dt
-from math import isnan
-from datatable import stype, ltype
+from datatable import stype, ltype, f
 
 
 #-------------------------------------------------------------------------------
@@ -318,32 +317,47 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
             "the allowed range [0 .. 10)" in str(e.value))
 
 
-def test_rows_function(dt0):
+def test_rows_function1(dt0):
     """
     Test that it is possible to use a lambda-expression as a filter:
         dt(lambda f: f.colA < f.colB)
     """
-    dt1 = dt0(lambda f: f.colA)
+    dt1 = dt0(lambda g: g.colA)
+    dt2 = dt0(f.colA)
     assert dt1.internal.check()
-    assert dt1.shape == (5, 3)
+    assert dt2.internal.check()
+    assert dt1.shape == dt2.shape == (5, 3)
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [-11, 9, 0, 1, None]
+    assert dt1.topython() == dt2.topython()
 
-    dt2 = dt0(lambda f: [5, 7, 9])
+
+def test_rows_function2(dt0):
+    dt1 = dt0(lambda f: [5, 7, 9])
+    assert dt1.internal.check()
+    assert dt1.shape == (3, 3)
+    assert as_list(dt1)[1] == [0, -1, None]
+
+
+def test_rows_function3(dt0):
+    dt1 = dt0(lambda g: g.colA < g.colB)
+    dt2 = dt0[f.colA < f.colB, :]
+    assert dt1.internal.check()
     assert dt2.internal.check()
-    assert dt2.shape == (3, 3)
-    assert as_list(dt2)[1] == [0, -1, None]
+    assert dt1.shape == dt2.shape == (2, 3)
+    assert dt1.topython() == dt2.topython() == [[0, 1], [7, 9], [5, 1.3]]
 
-    dt3 = dt0(lambda f: f.colA < f.colB)
-    assert dt3.internal.check()
-    assert dt3.shape == (2, 3)
-    assert as_list(dt3) == [[0, 1], [7, 9], [5, 1.3]]
 
-    dt4 = dt0(lambda f: f.colB == 0)
-    assert dt4.internal.check()
-    assert dt4.shape == (2, 3)
-    assert as_list(dt4) == [[0, 1], [0, 0], [0, -2.6]]
+def test_rows_function4(dt0):
+    dt1 = dt0(lambda g: g.colB == 0)
+    dt2 = dt0(f.colB == 0)
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.shape == dt2.shape == (2, 3)
+    assert dt1.topython() == dt2.topython() == [[0, 1], [0, 0], [0, -2.6]]
 
+
+def test_rows_function_invalid(dt0):
     assert_typeerror(dt0, lambda f: "boooo!",
                      "Unexpected result produced by the `rows` function")
 

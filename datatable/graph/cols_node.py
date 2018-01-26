@@ -5,7 +5,8 @@ import types
 import datatable.lib._datatable as _datatable
 from .context import RequiresCModule
 from .iterator_node import MapNode
-from datatable.expr import DatatableExpr, BaseExpr, ColSelectorExpr
+from datatable.expr import BaseExpr, ColSelectorExpr
+from datatable.graph.dtproxy import f
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
 from datatable.utils.typechecks import TValueError, TTypeError
@@ -106,8 +107,12 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
         self._elems = elems
         self._column_names = names
         self._rowindex = None
-        self._mapnode = MapNode(dt, [elem for elem in self._elems
-                                     if isinstance(elem, BaseExpr)])
+        expr_elems = []
+        for elem in elems:
+            if isinstance(elem, BaseExpr):
+                elem.resolve()
+                expr_elems.append(elem)
+        self._mapnode = MapNode(dt, expr_elems)
 
     def evaluate_llvm(self):
         fnptr = self._mapnode.get_result()
@@ -151,7 +156,7 @@ def make_columnset(cols, dt, _nested=False):
         elif isinstance(pcol, tuple):
             return SliceCSNode(dt, *pcol)
         else:
-            assert isinstance(pcol, BaseExpr)
+            assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
             return MixedCSNode(dt, [pcol], names=["V0"])
 
     if isinstance(cols, (list, tuple)):
@@ -170,6 +175,8 @@ def make_columnset(cols, dt, _nested=False):
                     outcols.append(j)
                     colnames.append(dt.names[j])
             else:
+                assert isinstance(pcol, BaseExpr)
+                pcol.resolve()
                 isarray = False
                 outcols.append(pcol)
                 colnames.append(str(col))
@@ -203,7 +210,7 @@ def make_columnset(cols, dt, _nested=False):
             return MixedCSNode(dt, outcols, colnames)
 
     if isinstance(cols, types.FunctionType) and not _nested:
-        res = cols(DatatableExpr(dt))
+        res = cols(f)
         return make_columnset(res, dt, _nested=True)
 
     raise TValueError("Unknown `select` argument: %r" % cols)
@@ -260,6 +267,7 @@ def process_column(col, dt):
             raise TValueError("%r is not integer-valued" % col)
 
     if isinstance(col, ColSelectorExpr):
+        col.resolve()
         return col.col_index
 
     if isinstance(col, BaseExpr):

@@ -3,7 +3,7 @@
 import pytest
 import datatable as dt
 from tests import same_iterables
-from datatable import stype, ltype
+from datatable import ltype, f
 
 
 #-------------------------------------------------------------------------------
@@ -211,12 +211,12 @@ def test_cols_expression(dt0, tbl0):
     Check that it is possible to select computed columns:
         dt[lambda f: [f.A + f.B]]
     """
-    dt1 = dt0[lambda f: f.A + f.B]
+    dt1 = dt0[:, f.A + f.B]
     assert dt1.internal.check()
     assert dt1.shape == (6, 1)
     assert dt1.ltypes == (ltype.int, )
     assert as_list(dt1) == [[tbl0[0][i] + tbl0[1][i] for i in range(6)]]
-    dt2 = dt0[lambda f: [f.A + f.B, f.C - f.D, f.A / f.C, f.B * f.D]]
+    dt2 = dt0[:, [f.A + f.B, f.C - f.D, f.A / f.C, f.B * f.D]]
     assert dt2.internal.check()
     assert dt2.shape == (6, 4)
     assert dt2.ltypes == (ltype.int, ltype.real, ltype.real, ltype.int)
@@ -224,7 +224,7 @@ def test_cols_expression(dt0, tbl0):
                             [tbl0[2][i] - tbl0[3][i] for i in range(6)],
                             [tbl0[0][i] / tbl0[2][i] for i in range(6)],
                             [tbl0[1][i] * tbl0[3][i] for i in range(6)]]
-    dt3 = dt0[lambda f: {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": 1, "c": 2}]
+    dt3 = dt0[:, {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": 1, "c": 2}]
     assert dt3.internal.check()
     assert dt3.shape == (6, 4)
     assert same_iterables(dt3.names, ("foo", "a", "b", "c"))

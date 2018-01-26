@@ -7,6 +7,7 @@ from ..types import stype
 
 
 class LiteralExpr(BaseExpr):
+    __slots__ = ["arg"]
 
     def __init__(self, arg):
         super().__init__()
@@ -52,6 +53,9 @@ class LiteralExpr(BaseExpr):
                 self._stype = stype.float64
         else:
             raise TypeError("Cannot use value %r in the expression" % arg)
+
+    def resolve(self):
+        pass
 
 
     def _isna(self, key, block):
