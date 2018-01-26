@@ -9,7 +9,7 @@ from types import GeneratorType
 from typing import Tuple, Dict, List, Union
 
 # noinspection PyUnresolvedReferences
-import datatable.lib._datatable as c
+import datatable.lib._datatable as _datatable
 import datatable
 from .widget import DataFrameWidget
 
@@ -168,7 +168,7 @@ class DataTable(object):
             self._fill_from_list([list(src)], names=names)
         elif isinstance(src, dict):
             self._fill_from_list(list(src.values()), names=tuple(src.keys()))
-        elif isinstance(src, c.DataTable):
+        elif isinstance(src, _datatable.DataTable):
             self._fill_from_dt(src, names=names)
         elif isinstance(src, str):
             srcdt = datatable.fread(src)
@@ -190,7 +190,7 @@ class DataTable(object):
 
 
     def _fill_from_list(self, src, names=None):
-        self._fill_from_dt(c.datatable_from_list(src), names=names)
+        self._fill_from_dt(_datatable.datatable_from_list(src), names=names)
 
 
     def _fill_from_dt(self, _dt, names=None):
@@ -221,7 +221,7 @@ class DataTable(object):
                 # Array has wrong endianness -- coerce into native byte-order
                 colarrays[i] = colarrays[i].byteswap().newbyteorder()
                 assert colarrays[i].dtype.isnative
-        dt = c.datatable_from_buffers(colarrays)
+        dt = _datatable.datatable_from_buffers(colarrays)
         self._fill_from_dt(dt, names=names)
 
 
@@ -239,13 +239,13 @@ class DataTable(object):
 
         ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
-            dt = c.datatable_from_buffers([arr.data[:, i]
-                                           for i in range(ncols)])
-            mask = c.datatable_from_buffers([arr.mask[:, i]
-                                             for i in range(ncols)])
+            dt = _datatable.datatable_from_buffers([arr.data[:, i]
+                                                    for i in range(ncols)])
+            mask = _datatable.datatable_from_buffers([arr.mask[:, i]
+                                                      for i in range(ncols)])
             dt.apply_na_mask(mask)
         else:
-            dt = c.datatable_from_buffers([arr[:, i] for i in range(ncols)])
+            dt = _datatable.datatable_from_buffers([arr[:, i] for i in range(ncols)])
 
         if names is None:
             names = ["C%d" % i for i in range(1, ncols + 1)]
@@ -598,8 +598,8 @@ class DataTable(object):
         """
         idx = self.colindex(by)
         ri = self._dt.sort(idx)
-        cs = c.columns_from_slice(self._dt, 0, self._ncols, 1)
-        dt = c.datatable_assemble(ri, cs)
+        cs = _datatable.columns_from_slice(self._dt, 0, self._ncols, 1)
+        dt = _datatable.datatable_assemble(ri, cs)
         return DataTable(dt, names=self.names)
 
 
@@ -823,7 +823,7 @@ def column_hexview(col, dt, colidx):
     hexdigits = ["%02X" % i for i in range(16)] + [""]
 
     def data_viewer(row0, row1, col0, col1):
-        view = c.DataWindow(dt, row0, row1, col0, col1, colidx)
+        view = _datatable.DataWindow(dt, row0, row1, col0, col1, colidx)
         l = len(hex(row1))
         return {
             "names": hexdigits[col0:col1],
@@ -844,5 +844,5 @@ def column_hexview(col, dt, colidx):
     widget.render()
 
 
-c.register_function(1, column_hexview)
-c.install_buffer_hooks(DataTable())
+_datatable.register_function(1, column_hexview)
+_datatable.install_buffer_hooks(DataTable())

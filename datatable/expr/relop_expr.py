@@ -8,6 +8,7 @@ from ..types import stype
 
 
 class RelationalOpExpr(BaseExpr):
+    __slots__ = ["_op", "_lhs", "_rhs"]
 
     def __init__(self, lhs, op, rhs):
         super().__init__()
@@ -17,6 +18,10 @@ class RelationalOpExpr(BaseExpr):
         self._op = op
         self._lhs = lhs
         self._rhs = rhs
+
+    def resolve(self):
+        self._lhs.resolve()
+        self._rhs.resolve()
         self._stype = stype.bool8
 
 

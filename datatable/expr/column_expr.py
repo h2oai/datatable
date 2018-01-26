@@ -16,13 +16,18 @@ class ColSelectorExpr(BaseExpr):
         f[3]
         f["any name"]
     """
-    __slots__ = ("_dtexpr", "_colid")
+    __slots__ = ["_dtexpr", "_colid"]
 
-    def __init__(self, dtexpr, colindex):
+    def __init__(self, dtexpr, selector):
         super().__init__()
-        self._dtexpr = dtexpr    # type: DatatableExpr
-        self._colid = colindex   # type: int
-        self._stype = dtexpr.stypes[colindex]
+        self._dtexpr = dtexpr
+        self._colid = selector
+
+    def resolve(self):
+        if not self._stype:
+            dt = self._dtexpr.get_datatable()
+            self._colid = dt.colindex(self._colid)
+            self._stype = self._dtexpr.stypes[self._colid]
 
     @property
     def col_index(self):
@@ -49,6 +54,7 @@ class ColSelectorExpr(BaseExpr):
     #---------------------------------------------------------------------------
 
     def _value(self, key, inode):
+        self.resolve()
         v = inode.make_keyvar(key, key, exact=True)
         inode.check_num_rows(self._dtexpr.nrows)
         assert v == key
@@ -64,6 +70,7 @@ class ColSelectorExpr(BaseExpr):
         return v
 
     def _isna(self, key, inode):
+        self.resolve()
         # TODO: use rollup stats to determine if some variable is never NA
         v = inode.make_keyvar(key, str(self) + "_isna", exact=True)
         isna_fn = "IS" + nas_map[self.stype]
@@ -76,6 +83,9 @@ class ColSelectorExpr(BaseExpr):
     def notna(self, inode):
         return self.value(inode)
 
+    def _notna(self, key, inode):
+        pass
+
     def _get_dtvar(self, inode):
         dt = self._dtexpr.get_datatable()
         return inode.get_dtvar(dt)
@@ -86,5 +96,6 @@ class ColSelectorExpr(BaseExpr):
     #---------------------------------------------------------------------------
 
     def evaluate(self):
+        self.resolve()
         dt = self._dtexpr.get_datatable()
         return core.expr_column(dt.internal, self._colid)
