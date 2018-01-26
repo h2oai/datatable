@@ -3,8 +3,8 @@
 #-------------------------------------------------------------------------------
 import datatable
 from datatable.lib import core as core
-from .rows_node import make_rowfilter, AllRFNode, SortedRFNode
-from .cols_node import make_columnset, SliceCSNode, ArrayCSNode
+from .rows_node import AllRFNode, SortedRFNode
+from .cols_node import SliceCSNode, ArrayCSNode
 from .sort_node import make_sort
 from .context import make_engine
 from .dtproxy import f
@@ -22,40 +22,38 @@ def make_datatable(dt, rows, select, sort, engine):
     DataTable.
     """
     with f.bind_datatable(dt):
-        engine = make_engine(engine, dt)
-        rows_node = make_rowfilter(rows, dt, engine)
-        cols_node = make_columnset(select, dt, engine)
-        sort_node = make_sort(sort, dt)
+        ee = make_engine(engine, dt)
+        rowsnode = ee.make_rowfilter(rows)
+        colsnode = ee.make_columnset(select)
+        sortnode = make_sort(sort, dt)
 
-        if sort_node:
-            if isinstance(rows_node, AllRFNode):
-                rows_node = SortedRFNode(sort_node)
+        if sortnode:
+            if isinstance(rowsnode, AllRFNode):
+                rowsnode = SortedRFNode(sortnode)
             else:  # pragma: no cover
                 raise NotImplementedError(
                     "Cannot yet apply sort argument to a view datatable or "
                     "combine with rows argument.")
 
-        # Select subset of rows + subset of columns. In this case columns
-        # can be simply copied by reference, and then the resulting datatable will
-        # be either a plain "data" table if rowindex selects all rows and the target
-        # datatable is not a view, or a "view" datatable otherwise.
-        if isinstance(cols_node, (SliceCSNode, ArrayCSNode)):
-            rowindex = rows_node.get_final_rowindex()
-            columns = cols_node.evaluate_eager()
+        # Select subset of rows + subset of columns. In this case columns can
+        # be simply copied by reference, and then the resulting datatable will
+        # be either a plain "data" table if rowindex selects all rows and the
+        # target datatable is not a view, or a "view" datatable otherwise.
+        if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
+            rowindex = rowsnode.get_final_rowindex()
+            columns = colsnode.evaluate_eager()
             res_dt = core.datatable_assemble(rowindex, columns)
-            return datatable.DataTable(res_dt, names=cols_node.column_names)
+            return datatable.DataTable(res_dt, names=colsnode.column_names)
 
-        # Select computed columns + all rows from datatable which is not a view --
-        # in this case the rowindex is None, and the selected columns can be copied
-        # by reference, while computed columns can be created without the need to
-        # apply a RowIndex object. The DataTable created will be a "data" table.
-        if isinstance(rows_node, AllRFNode) and not dt.internal.isview:
-            if engine == "llvm":
-                columns = cols_node.evaluate_llvm()
-            else:
-                columns = cols_node.evaluate_eager()
+        # Select computed columns + all rows from datatable which is not a
+        # view -- in this case the rowindex is None, and the selected columns
+        # can be copied by reference, while computed columns can be created
+        # without the need to apply a RowIndex object. The DataTable created
+        # will be a "data" table.
+        if isinstance(rowsnode, AllRFNode) and not dt.internal.isview:
+            columns = ee.execute(colsnode)
             res_dt = core.datatable_assemble(None, columns)
-            return datatable.DataTable(res_dt, names=cols_node.column_names)
+            return datatable.DataTable(res_dt, names=colsnode.column_names)
 
     raise RuntimeError(  # pragma: no cover
         "Unable to handle input (rows=%r, select=%r)"

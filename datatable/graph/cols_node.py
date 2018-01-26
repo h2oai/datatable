@@ -14,7 +14,7 @@ from datatable.utils.typechecks import TValueError, TTypeError
 
 #===============================================================================
 
-class ColumnSetNode(object):
+class ColumnSetNode:
     """
     Base class for nodes that create columns of a datatable.
 
@@ -24,13 +24,10 @@ class ColumnSetNode(object):
     """
 
     def __init__(self, dt):
-        super().__init__()
         self._dt = dt
         self._rowindex = None
         self._rowindexdt = None
         self._cname = None
-        self._n_columns = 0
-        self._n_view_columns = 0
         self._column_names = tuple()
 
     @property
@@ -125,7 +122,7 @@ class MixedCSNode(ColumnSetNode):
                                        nrows, fnptr)
 
     def evaluate_eager(self):
-        columns = [e.evaluate() for e in self._elems]
+        columns = [e.evaluate_eager() for e in self._elems]
         return core.columns_from_columns(columns)
 
     def use_rowindex(self, ri):

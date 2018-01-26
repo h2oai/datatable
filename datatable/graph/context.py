@@ -2,6 +2,8 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 from datatable.lib import core
 from .llvm import inject_c_code
+from .cols_node import make_columnset
+from .rows_node import make_rowfilter
 
 
 #===============================================================================
@@ -9,19 +11,31 @@ from .llvm import inject_c_code
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = []
+    __slots__ = ["_dt"]
+
+    def __init__(self, dt):
+        self._dt = dt
+
+    def execute(self, node):
+        raise NotImplementedError
+
+    def make_rowfilter(self, rows):
+        return make_rowfilter(rows, self._dt, self)
+
+    def make_columnset(self, cols):
+        return make_columnset(cols, self._dt, self)
 
 
 def make_engine(engine, dt):
     if engine == "eager":
-        return EagerEvaluationEngine()
+        return EagerEvaluationEngine(dt)
     if engine == "llvm":
-        return LlvmEvaluationEngine()
+        return LlvmEvaluationEngine(dt)
     if engine is None:
         if dt.nrows < 0:
-            return EagerEvaluationEngine()
+            return EagerEvaluationEngine(dt)
         else:
-            return LlvmEvaluationEngine()
+            return LlvmEvaluationEngine(dt)
     raise ValueError("Unknown value for parameter `engine`: %r" % (engine,))
 
 
@@ -41,6 +55,10 @@ class EagerEvaluationEngine(EvaluationEngine):
     """
     __slots__ = []
 
+    def execute(self, node):
+        return node.evaluate_eager()
+
+
 
 
 #===============================================================================
@@ -58,8 +76,8 @@ class LlvmEvaluationEngine(EvaluationEngine):
     requires access to Clang+LLVM runtime.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dt):
+        super().__init__(dt)
         self._result = None
         self._var_counter = 0
         self._functions = {}
@@ -70,6 +88,8 @@ class LlvmEvaluationEngine(EvaluationEngine):
         self._function_pointers = None
         self._nodes = []
 
+    def execute(self, node):
+        return node.evaluate_llvm()
 
     def get_result(self, n) -> int:
         assert n is not None
