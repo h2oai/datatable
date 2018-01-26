@@ -6,15 +6,6 @@ import datatable.lib._datatable as _datatable
 
 
 
-class RequiresCModule:
-    """
-    Marker class to indicate a Node that needs a CModule for evaluation.
-    """
-    def use_cmodule(self, cmod):
-        pass
-
-
-
 class CModuleNode(object):
     """
     Replacement for :class:`EvaluationModule`.

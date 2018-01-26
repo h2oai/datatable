@@ -7,7 +7,7 @@ import datatable
 from .rows_node import make_rowfilter, AllRFNode, SortedRFNode
 from .cols_node import make_columnset, SliceCSNode, ArrayCSNode
 from .sort_node import make_sort
-from .context import CModuleNode, RequiresCModule
+from .context import CModuleNode
 from .dtproxy import f
 
 __all__ = ("make_datatable", )
@@ -28,11 +28,9 @@ def make_datatable(dt, rows, select, sort, engine):
     with f.bind_datatable(dt):
         cmodule = CModuleNode()
         rows_node = make_rowfilter(rows, dt, cmodule)
-        cols_node = make_columnset(select, dt)
+        cols_node = make_columnset(select, dt, cmodule)
         sort_node = make_sort(sort, dt)
 
-        if isinstance(cols_node, RequiresCModule):
-            cols_node.use_cmodule(cmodule)
         if sort_node:
             if isinstance(rows_node, AllRFNode):
                 rows_node = SortedRFNode(sort_node)
@@ -41,7 +39,7 @@ def make_datatable(dt, rows, select, sort, engine):
                     "Cannot yet apply sort argument to a view datatable or "
                     "combine with rows argument.")
 
-        # Select some (or all) rows + some (or all) columns. In this case columns
+        # Select subset of rows + subset of columns. In this case columns
         # can be simply copied by reference, and then the resulting datatable will
         # be either a plain "data" table if rowindex selects all rows and the target
         # datatable is not a view, or a "view" datatable otherwise.

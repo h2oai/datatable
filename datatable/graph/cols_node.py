@@ -3,7 +3,6 @@
 import types
 
 import datatable.lib._datatable as _datatable
-from .context import RequiresCModule
 from .iterator_node import MapNode
 from datatable.expr import BaseExpr, ColSelectorExpr
 from datatable.graph.dtproxy import f
@@ -100,9 +99,9 @@ class ArrayCSNode(ColumnSetNode):
 
 #===============================================================================
 
-class MixedCSNode(ColumnSetNode, RequiresCModule):
+class MixedCSNode(ColumnSetNode):
 
-    def __init__(self, dt, elems, names):
+    def __init__(self, dt, elems, names, cmodule=None):
         super().__init__(dt)
         self._elems = elems
         self._column_names = names
@@ -113,6 +112,7 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
                 elem.resolve()
                 expr_elems.append(elem)
         self._mapnode = MapNode(dt, expr_elems)
+        self._mapnode.use_cmodule(cmodule)
 
     def evaluate_llvm(self):
         fnptr = self._mapnode.get_result()
@@ -128,9 +128,6 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
         columns = [e.evaluate() for e in self._elems]
         return _datatable.columns_from_columns(columns)
 
-    def use_cmodule(self, cmod):
-        self._mapnode.use_cmodule(cmod)
-
     def use_rowindex(self, ri):
         self._rowindex = ri
         self._mapnode.use_rowindex(ri)
@@ -139,7 +136,25 @@ class MixedCSNode(ColumnSetNode, RequiresCModule):
 
 #===============================================================================
 
-def make_columnset(cols, dt, _nested=False):
+def make_columnset(cols, dt, cmod, _nested=False):
+    """
+    Create a :class:`CSNode` object from the provided expression.
+
+    This is a factory function that instantiates an appropriate subclass of
+    :class:`CSNode`, depending on the parameter ``cols`` and provided that it
+    is applied to a DataTable ``dt``.
+
+    Parameters
+    ----------
+    cols:
+        An expression that will be converted into one of the ``CSNode``s.
+
+    dt: DataTable
+        The DataTable to which ``cols`` selector applies.
+
+    cmod: CModule
+        Expression evaluation engine.
+    """
     if cols is None or cols is Ellipsis:
         return SliceCSNode(dt, 0, dt.ncols, 1)
 
@@ -157,7 +172,7 @@ def make_columnset(cols, dt, _nested=False):
             return SliceCSNode(dt, *pcol)
         else:
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
-            return MixedCSNode(dt, [pcol], names=["V0"])
+            return MixedCSNode(dt, [pcol], names=["V0"], cmodule=cmod)
 
     if isinstance(cols, (list, tuple)):
         isarray = True
@@ -183,7 +198,7 @@ def make_columnset(cols, dt, _nested=False):
         if isarray:
             return ArrayCSNode(dt, outcols, colnames)
         else:
-            return MixedCSNode(dt, outcols, colnames)
+            return MixedCSNode(dt, outcols, colnames, cmodule=cmod)
 
     if isinstance(cols, dict):
         isarray = True
@@ -207,11 +222,11 @@ def make_columnset(cols, dt, _nested=False):
         if isarray:
             return ArrayCSNode(dt, outcols, colnames)
         else:
-            return MixedCSNode(dt, outcols, colnames)
+            return MixedCSNode(dt, outcols, colnames, cmodule=cmod)
 
     if isinstance(cols, types.FunctionType) and not _nested:
         res = cols(f)
-        return make_columnset(res, dt, _nested=True)
+        return make_columnset(res, dt, cmod=cmod, _nested=True)
 
     raise TValueError("Unknown `select` argument: %r" % cols)
 
