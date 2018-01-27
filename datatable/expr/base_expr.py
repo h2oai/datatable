@@ -38,7 +38,7 @@ class BaseExpr:
 
     This class is abstract and should not be instantiated explicitly.
     """
-    __slots__ = "_stype"
+    __slots__ = ["_stype"]
 
 
     def __init__(self):

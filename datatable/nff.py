@@ -3,7 +3,7 @@
 import os
 import re
 
-import datatable.lib._datatable as _datatable
+from datatable.lib import core
 from datatable.dt import DataTable
 from datatable.fread import fread
 from datatable.utils.typechecks import typed, TValueError
@@ -85,7 +85,7 @@ def open(path):
                    columns=lambda i, name, type: (name, str))
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
-        _dt = _datatable.datatable_load(f1.internal, nrows, path)
+        _dt = core.datatable_load(f1.internal, nrows, path)
         dt = DataTable(_dt, names=colnames)
         assert dt.nrows == nrows, "Wrong number of rows read: %d" % dt.nrows
         return dt

@@ -1,27 +1,83 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-
+from datatable.lib import core
 from .llvm import inject_c_code
-import datatable.lib._datatable as _datatable
+from .cols_node import make_columnset
+from .rows_node import make_rowfilter
+
+
+#===============================================================================
+# Base Evaluation Engine class
+#===============================================================================
+
+class EvaluationEngine:
+    __slots__ = ["_dt"]
+
+    def __init__(self, dt):
+        self._dt = dt
+
+    def execute(self, node):
+        raise NotImplementedError
+
+    def make_rowfilter(self, rows):
+        return make_rowfilter(rows, self._dt, self)
+
+    def make_columnset(self, cols):
+        return make_columnset(cols, self._dt, self)
+
+
+def make_engine(engine, dt):
+    if engine == "eager":
+        return EagerEvaluationEngine(dt)
+    if engine == "llvm":
+        return LlvmEvaluationEngine(dt)
+    if engine is None:
+        if dt.nrows < 0:
+            return EagerEvaluationEngine(dt)
+        else:
+            return LlvmEvaluationEngine(dt)
+    raise ValueError("Unknown value for parameter `engine`: %r" % (engine,))
 
 
 
-class RequiresCModule:
+#===============================================================================
+# "Eager" Evaluation Engine
+#===============================================================================
+
+class EagerEvaluationEngine(EvaluationEngine):
     """
-    Marker class to indicate a Node that needs a CModule for evaluation.
+    This engine evaluates all expressions "eagerly", i.e. all operations are
+    done sequentially, through predefined C functions. For example,
+    `f.A + f.B * 2` will be computed in 2 steps: first, column "B" will be
+    multiplied by 2 to produce a new temporary column; then column "A" will be
+    added with that temporary column; finally the resulting column will be
+    converted into a DataTable and returned.
     """
-    def use_cmodule(self, cmod):
-        pass
+    __slots__ = []
+
+    def execute(self, node):
+        return node.evaluate_eager()
 
 
 
-class CModuleNode(object):
+
+#===============================================================================
+# LLVM Evaluation Engine
+#===============================================================================
+
+class LlvmEvaluationEngine(EvaluationEngine):
     """
-    Replacement for :class:`EvaluationModule`.
+    This engine evaluates all expressions through LLVM. What this means is that
+    in order to evaluate expression such as `f.A + f.B * 2` it writes a C
+    program for its computation, then compiles that C program with Clang/LLVM,
+    then executes it and returns the DataTable produced by the program.
+
+    This engine is more efficient than "Eager" for large datasets, however it
+    requires access to Clang+LLVM runtime.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dt):
+        super().__init__(dt)
         self._result = None
         self._var_counter = 0
         self._functions = {}
@@ -32,6 +88,8 @@ class CModuleNode(object):
         self._function_pointers = None
         self._nodes = []
 
+    def execute(self, node):
+        return node.evaluate_llvm()
 
     def get_result(self, n) -> int:
         assert n is not None
@@ -76,7 +134,7 @@ class CModuleNode(object):
         return prefix + str(self._var_counter)
 
     def get_dtvar(self, dt):
-        varname = "dt" + str(dt._id)
+        varname = "dt" + str(getattr(dt, "_id"))
         if varname not in self._global_names:
             ptr = dt.internal.datatable_ptr
             self.add_global(varname, "void*", "(void*) %dL" % ptr)
@@ -100,7 +158,7 @@ class CModuleNode(object):
         return out
 
 
-sz_sint, sz_int, sz_lint, sz_llint, sz_sizet = _datatable.get_integer_sizes()
+sz_sint, sz_int, sz_lint, sz_llint, sz_sizet = core.get_integer_sizes()
 t16 = ("int" if sz_int == 2 else
        "short int" if sz_sint == 2 else "")
 t32 = ("int" if sz_int == 4 else
@@ -124,6 +182,15 @@ decl_sizes = "\n".join(["typedef signed char int8_t;",
                         "typedef unsigned %s uint32_t;" % t32,
                         "typedef unsigned %s uint64_t;" % t64,
                         "typedef unsigned %s size_t;" % tsz])
+
+(ptr_dt_malloc,
+ ptr_dt_realloc,
+ ptr_dt_free,
+ ptr_rowindex_from_filterfn32,
+ ptr_dt_column_data,
+ ptr_dt_unpack_slicerowindex,
+ ptr_dt_unpack_arrayrowindex) = core.get_internal_function_ptrs()
+
 
 _header = """
 /**
@@ -168,7 +235,13 @@ static inline double _nand_(void) { double_repr x = { BIN_NAF8 }; return x.d; }
 #define NA_F8  _nand_()
 
 """ % (decl_sizes,
-       *_datatable.get_internal_function_ptrs())
+       ptr_dt_malloc,
+       ptr_dt_realloc,
+       ptr_dt_free,
+       ptr_rowindex_from_filterfn32,
+       ptr_dt_column_data,
+       ptr_dt_unpack_slicerowindex,
+       ptr_dt_unpack_arrayrowindex)
 
 
 _externs = {

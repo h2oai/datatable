@@ -16,7 +16,7 @@
 #-------------------------------------------------------------------------------
 import ctypes
 import enum
-import datatable.lib._datatable as _datatable
+from datatable.lib import core
 from datatable.utils.typechecks import TValueError
 
 __all__ = ("stype", "ltype")
@@ -38,6 +38,7 @@ class stype(enum.Enum):
 
     Examples
     --------
+    >>> import datatable as dt
     >>> dt.stype.int16
     stype.int16
 
@@ -315,5 +316,5 @@ for k, st in _additional_stype_members():
     stype._value2member_map_[k] = st
     ltype._value2member_map_[k] = st.ltype
 
-_datatable.register_function(2, stype)
-_datatable.register_function(3, ltype)
+core.register_function(2, stype)
+core.register_function(3, ltype)

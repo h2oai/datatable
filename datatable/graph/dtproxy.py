@@ -3,6 +3,8 @@
 
 from datatable.expr.column_expr import ColSelectorExpr
 
+__all__ = ("f", )
+
 
 
 class DatatableProxy(object):
@@ -51,7 +53,7 @@ class DatatableProxy(object):
     >>> d3 = d0[:, expr]
     >>> d4 = d0[expr > 0, expr]
     """
-    __slots__ = ("_datatable", )
+    __slots__ = ["_datatable"]
 
     # Developer notes:
     # This class uses dynamic name resolution to convert arbitrary attribute
