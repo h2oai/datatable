@@ -2,7 +2,6 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 #-------------------------------------------------------------------------------
 import datatable
-from datatable.lib import core as core
 from .rows_node import AllRFNode, SortedRFNode
 from .cols_node import SliceCSNode, ArrayCSNode
 from .sort_node import make_sort

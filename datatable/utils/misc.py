@@ -3,8 +3,8 @@
 import importlib
 from .typechecks import TImportError
 
-__all__ = ("clamp", "normalize_slice", "plural_form", "load_module",
-           "humanize_bytes")
+__all__ = ("clamp", "normalize_slice", "normalize_range", "plural_form",
+           "load_module", "humanize_bytes")
 
 
 def plural_form(n, singular=None, plural=None):

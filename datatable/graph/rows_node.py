@@ -16,11 +16,12 @@ from datatable.utils.typechecks import (
 from typing import Optional
 
 
+
 #===============================================================================
 
-class RFNode(object):
+class RFNode:
     """
-    Internal abstract class, base for all "row filter" nodes.
+    Base class for all "Row Filter" nodes (internal).
 
     A row filter node represents a `rows` argument in the generic datatable
     call, and its primary function is to compute and return a
@@ -42,15 +43,15 @@ class RFNode(object):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable to which the row filter applies.
+    ee: EvaluationEngine
+        The context for the current evaluation.
     ...:
         (Derived classes will typically add their own constructor parameters).
     """
-    __slots__ = ["_dt", "_rifinal"]
+    __slots__ = ["_engine", "_rifinal"]
 
-    def __init__(self, dt):
-        self._dt = dt
+    def __init__(self, ee):
+        self._engine = ee
         self._rifinal = None
 
 
@@ -64,7 +65,7 @@ class RFNode(object):
         None indicating absense of any RowIndex.
         """
         if self._rifinal is None:
-            _dt = self._dt.internal
+            _dt = self._engine.dt.internal
             _ri = self.get_target_rowindex()
             if _dt.isview:
                 _ri = core.rowindex_uplift(_ri, _dt)
@@ -80,7 +81,13 @@ class RFNode(object):
         RowIndex object as applied to the target DataTable, or None if no index
         is necessary.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
+
+    def evaluate_llvm(self):
+        return self.get_final_rowindex()
+
+    def evaluate_eager(self):
+        return self.get_final_rowindex()
 
 
 
@@ -101,8 +108,6 @@ class AllRFNode(RFNode):
     def get_target_rowindex(self):
         return None
 
-    evaluate_llvm = get_target_rowindex
-    evaluate_eager = get_target_rowindex
 
 
 
@@ -114,8 +119,8 @@ class SliceRFNode(RFNode):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable.
+    ee: EvaluationEngine
+        Current evaluation context.
 
     start, count, step: int
         The parameters of the slice. The slice represents a list of integers
@@ -125,16 +130,15 @@ class SliceRFNode(RFNode):
     """
     __slots__ = ["_triple"]
 
-    def __init__(self, dt, start: int, count: int, step: int):
-        super().__init__(dt)
-        assert start >= 0 and count >= 0 and start + (count - 1) * step >= 0
+    def __init__(self, ee, start, count, step):
+        super().__init__(ee)
+        assert start >= 0
+        assert count >= 0
+        assert start + (count - 1) * step >= 0
         self._triple = (start, count, step)
 
     def get_target_rowindex(self):
         return core.rowindex_from_slice(*self._triple)
-
-    evaluate_llvm = get_target_rowindex
-    evaluate_eager = get_target_rowindex
 
 
 
@@ -146,25 +150,23 @@ class ArrayRFNode(RFNode):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable.
+    ee: EvaluationEngine
+        Current evaluation context.
 
     array: List[int]
         The list of row indices that should be selected from the target
         DataTable. The indices must be in the `range(dt.nrows)` (however this
         constraint is not verified here).
     """
-    __slots__ = ("_array", )
+    __slots__ = ["_array"]
 
-    def __init__(self, dt, array):
-        super().__init__(dt)
+    def __init__(self, ee, array):
+        super().__init__(ee)
         self._array = array
 
     def get_target_rowindex(self):
         return core.rowindex_from_array(self._array)
 
-    evaluate_llvm = get_target_rowindex
-    evaluate_eager = get_target_rowindex
 
 
 
@@ -179,8 +181,8 @@ class MultiSliceRFNode(RFNode):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable.
+    ee: EvaluationEngine
+        Current evaluation context.
 
     bases, counts, steps: List[int]
         Three lists describing the row slices to be selected. In particular,
@@ -189,10 +191,10 @@ class MultiSliceRFNode(RFNode):
         `bases` (in which case it is assumed that missing elements in `counts`
         and `steps` are equal to 1).
     """
-    __slots__ = ("_bases", "_counts", "_steps")
+    __slots__ = ["_bases", "_counts", "_steps"]
 
-    def __init__(self, dt, bases, counts, steps):
-        super().__init__(dt)
+    def __init__(self, ee, bases, counts, steps):
+        super().__init__(ee)
         self._bases = bases
         self._counts = counts
         self._steps = steps
@@ -202,8 +204,6 @@ class MultiSliceRFNode(RFNode):
             self._bases, self._counts, self._steps
         )
 
-    evaluate_llvm = get_target_rowindex
-    evaluate_eager = get_target_rowindex
 
 
 
@@ -215,26 +215,24 @@ class BooleanColumnRFNode(RFNode):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable.
+    ee: EvaluationEngine
+        Current evaluation context.
 
     col: DataTable
         The "mask" DataTable containing a single boolean column of the same
         length as the target DataTable. Only rows corresponding to the `True`
         values in the mask will be selected.
     """
-    __slots__ = ("_coldt", )
+    __slots__ = ["_coldt"]
 
-    def __init__(self, dt, col):
-        super().__init__(dt)
-        assert col.shape == (dt.nrows, 1)
+    def __init__(self, ee, col):
+        super().__init__(ee)
+        assert col.shape == (ee.dt.nrows, 1)
         self._coldt = col
 
     def get_target_rowindex(self):
         return core.rowindex_from_boolcolumn(self._coldt.internal)
 
-    evaluate_llvm = get_target_rowindex
-    evaluate_eager = get_target_rowindex
 
 
 
@@ -246,25 +244,24 @@ class IntegerColumnRFNode(RFNode):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable.
+    ee: EvaluationEngine
+        Current evaluation context.
 
-    col: DataTable
+    coldt: DataTable
         DataTable containing a single integer column, the values in this column
         will be treated as row indices to select.
     """
-    __slots__ = ("_coldt", )
+    __slots__ = ["_coldt"]
 
-    def __init__(self, dt, col):
-        super().__init__(dt)
-        self._coldt = col
+    def __init__(self, ee, coldt):
+        super().__init__(ee)
+        assert coldt.ncols == 1
+        self._coldt = coldt
 
     def get_target_rowindex(self):
         return core.rowindex_from_intcolumn(self._coldt.internal,
-                                            self._dt.nrows)
+                                            self._engine.dt.nrows)
 
-    evaluate_llvm = get_target_rowindex
-    evaluate_eager = get_target_rowindex
 
 
 
@@ -281,37 +278,38 @@ class FilterExprRFNode(RFNode):
 
     Parameters
     ----------
-    dt: DataTable
-        The target DataTable.
+    ee: EvaluationEngine
+        Current evaluation context.
 
     expr: BaseExpr
         Expression (yielding a boolean column) that will be evaluated in order
         to construct the RowIndex.
-
-    cmod: CModule
-        The context for evaluating the expression.
     """
-    __slots__ = ["_cmodule", "_fnname", "_expr"]
+    __slots__ = ["_fnname", "_expr"]
 
-    def __init__(self, dt, expr, cmod):
-        super().__init__(dt)
+    def __init__(self, ee, expr):
+        super().__init__(ee)
         expr.resolve()
         assert expr.stype == stype.bool8
-        self._cmodule = cmod
         self._expr = expr
-        self._fnname = cmod.make_variable_name("make_rowindex")
-        cmod.add_node(self)
+        if ee.is_compiled():
+            self._fnname = ee.make_variable_name("make_rowindex")
+            ee.add_node(self)
 
     def get_final_rowindex(self):
-        ptr = self._cmodule.get_result(self._fnname)
+        ptr = self._engine.get_result(self._fnname)
         return core.rowindex_from_function(ptr)
+
+    def get_target_rowindex(self):
+        return NotImplemented
 
     def generate_c(self) -> None:
         """
         This method will be invoked by CModule during code generation.
         """
-        cmod = self._cmodule
-        inode = IteratorNode(self._dt, cmod, name="filter")
+        dt = self._engine.dt
+        ee = self._engine
+        inode = IteratorNode(dt, ee, name="filter")
         v = self._expr.value_or_0(inode=inode)
         inode.addto_preamble("int64_t j = 0;")
         inode.addto_mainloop("if (%s) {" % v)
@@ -321,9 +319,9 @@ class FilterExprRFNode(RFNode):
         inode.set_extra_args("int32_t *out, int32_t *n_outs")
         inode.generate_c()
 
-        rowindex_name = cmod.make_variable_name("rowindex")
-        cmod.add_global(rowindex_name, "void*", "NULL")
-        cmod.add_function(
+        rowindex_name = ee.make_variable_name("rowindex")
+        ee.add_global(rowindex_name, "void*", "NULL")
+        ee.add_function(
             self._fnname,
             "void* {fnname}(void) {{\n"
             "    if (!{riname})\n"
@@ -333,11 +331,9 @@ class FilterExprRFNode(RFNode):
             "}}".format(fnname=self._fnname,
                         riname=rowindex_name,
                         filter=inode.fnname,
-                        sorted=int(not self._dt.internal.isview),
-                        nrows=self._dt.nrows))
+                        sorted=int(not dt.internal.isview),
+                        nrows=dt.nrows))
 
-    evaluate_llvm = get_final_rowindex
-    evaluate_eager = get_final_rowindex
 
 
 
@@ -346,14 +342,16 @@ class FilterExprRFNode(RFNode):
 class SortedRFNode(RFNode):
 
     def __init__(self, sort_node):
-        super().__init__(sort_node._dt)
+        super().__init__(getattr(sort_node, "_dt"))
         self._sortnode = sort_node
 
     def get_final_rowindex(self):
         return self._sortnode.make_rowindex()
 
-    evaluate_llvm = get_final_rowindex
-    evaluate_eager = get_final_rowindex
+    def get_target_rowindex(self):
+        return NotImplemented
+
+
 
 
 
@@ -361,13 +359,12 @@ class SortedRFNode(RFNode):
 # Factory function
 #===============================================================================
 
-def make_rowfilter(rows, dt, ee, _nested=False):
+def make_rowfilter(rows, ee, _nested=False):
     """
     Create an :class:`RFNode` from the provided expression.
 
     This is a factory function that instantiates an appropriate subclass of
-    :class:`RFNode`, depending on the provided argument `rows`, assuming it is
-    applied to the datatable `dt`.
+    :class:`RFNode`, depending on the provided argument `rows`.
 
     Parameters
     ----------
@@ -376,21 +373,17 @@ def make_rowfilter(rows, dt, ee, _nested=False):
         have a variety of different types, see `help(DataTable.__call__)` for
         more information.
 
-    dt: DataTable
-        The target DataTable.
-
     ee: EvaluationEngine
         The evaluation context within which the expression should be computed.
-        Applicable only when `rows` is a `BaseExpr` object.
 
     _nested: bool, default False
         Internal attribute, used to avoid deep recursion when `make_rowfilter()`
         calls itself. When this attribute is False recursion is allowed,
         otherwise not.
     """
-    nrows = dt.nrows
+    nrows = ee.dt.nrows
     if rows is Ellipsis or rows is None:
-        return AllRFNode(dt)
+        return AllRFNode(ee)
 
     if rows is True or rows is False:
         # Note: True/False are integer objects in Python
@@ -459,16 +452,16 @@ def make_rowfilter(rows, dt, ee, _nested=False):
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
-                return SliceRFNode(dt, bases[0], 1, 1)
+                return SliceRFNode(ee, bases[0], 1, 1)
             else:
-                return ArrayRFNode(dt, bases)
+                return ArrayRFNode(ee, bases)
         elif len(bases) == 1:
             if bases[0] == 0 and counts[0] == nrows and steps[0] == 1:
-                return AllRFNode(dt)
+                return AllRFNode(ee)
             else:
-                return SliceRFNode(dt, bases[0], counts[0], steps[0])
+                return SliceRFNode(ee, bases[0], counts[0], steps[0])
         else:
-            return MultiSliceRFNode(dt, bases, counts, steps)
+            return MultiSliceRFNode(ee, bases, counts, steps)
 
     if is_type(rows, NumpyArray_t):
         arr = rows
@@ -481,10 +474,10 @@ def make_rowfilter(rows, dt, ee, _nested=False):
         if not (str(arr.dtype) == "bool" or str(arr.dtype).startswith("int")):
             raise TValueError("Either a boolean or an integer numpy.array is "
                               "expected for `rows` argument, got %r" % arr)
-        if str(arr.dtype) == "bool" and arr.shape[-1] != dt.nrows:
+        if str(arr.dtype) == "bool" and arr.shape[-1] != nrows:
             raise TValueError("Cannot apply a boolean numpy array of length "
                               "%d to a datatable with %s"
-                              % (arr.shape[-1], plural(dt.nrows, "row")))
+                              % (arr.shape[-1], plural(nrows, "row")))
         rows = datatable.DataTable(arr)
         assert rows.ncols == 1
         assert rows.ltypes[0] == ltype.bool or rows.ltypes[0] == ltype.int
@@ -495,27 +488,27 @@ def make_rowfilter(rows, dt, ee, _nested=False):
                               "datatable, got %r" % rows)
         col0type = rows.ltypes[0]
         if col0type == ltype.bool:
-            if rows.nrows != dt.nrows:
+            if rows.nrows != nrows:
                 s1rows = plural(rows.nrows, "row")
-                s2rows = plural(dt.nrows, "row")
+                s2rows = plural(nrows, "row")
                 raise TValueError("`rows` datatable has %s, but applied to a "
                                   "datatable with %s" % (s1rows, s2rows))
-            return BooleanColumnRFNode(dt, rows)
+            return BooleanColumnRFNode(ee, rows)
         elif col0type == ltype.int:
-            return IntegerColumnRFNode(dt, rows)
+            return IntegerColumnRFNode(ee, rows)
         else:
             raise TTypeError("`rows` datatable should be either a boolean or "
                              "an integer column, however it has type %s"
                              % col0type)
 
     if isinstance(rows, types.FunctionType):
-        return make_rowfilter(rows(f), dt, ee, _nested=True)
+        return make_rowfilter(rows(f), ee, _nested=True)
 
     if isinstance(rows, BaseExpr):
-        return FilterExprRFNode(dt, rows, ee)
+        return FilterExprRFNode(ee, rows)
 
     if _nested:
         raise TTypeError("Unexpected result produced by the `rows` "
-                         "function: %r" % rows)
+                         "function: %r" % (rows, ))
     else:
-        raise TTypeError("Unexpected `rows` argument: %r" % rows)
+        raise TTypeError("Unexpected `rows` argument: %r" % (rows, ))
