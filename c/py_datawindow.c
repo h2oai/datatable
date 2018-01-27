@@ -62,7 +62,7 @@ int init_py_datawindow(PyObject *module)
  */
 static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
 {
-    DataTable_PyObject *pydt;
+    pydatatable::obj *pydt;
     DataTable *dt;
     PyObject *stypes = NULL, *ltypes = NULL, *view = NULL;
     int n_init_cols = 0;
@@ -74,7 +74,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
         {"dt", "row0", "row1", "col0", "col1", "column", NULL};
     int ret = PyArg_ParseTupleAndKeywords(
         args, kwds, "O!nnnn|n:DataWindow.__init__", const_cast<char **>(kwlist),
-        &DataTable_PyType, &pydt, &row0, &row1, &col0, &col1, &column
+        &pydatatable::type, &pydt, &row0, &row1, &col0, &col1, &column
     );
     if (!ret) return -1;
 

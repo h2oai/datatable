@@ -67,7 +67,7 @@ PyObject* columns_from_slice(PyObject*, PyObject *args)
   DataTable *dt;
   int64_t start, count, step;
   if (!PyArg_ParseTuple(args, "O&LLL:columns_from_slice",
-                        &dt_unwrap, &dt, &start, &count, &step))
+                        &pydatatable::unwrap, &dt, &start, &count, &step))
     return NULL;
 
   PyObject* res = wrap(columns_from_slice(dt, start, count, step), count);
@@ -80,7 +80,7 @@ PyObject* columns_from_array(PyObject*, PyObject *args)
   DataTable* dt;
   PyObject* elems;
   if (!PyArg_ParseTuple(args, "O&O!:columns_from_array",
-                        &dt_unwrap, &dt, &PyList_Type, &elems))
+                        &pydatatable::unwrap, &dt, &PyList_Type, &elems))
     return NULL;
 
   int64_t ncols = PyList_Size(elems);
@@ -103,7 +103,7 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
   long int nrows;
   long long rawptr;
   if (!PyArg_ParseTuple(args, "O!O&lL:columns_from_mixed",
-                        &PyList_Type, &pyspec, &dt_unwrap, &dt,
+                        &PyList_Type, &pyspec, &pydatatable::unwrap, &dt,
                         &nrows, &rawptr))
     return NULL;
 

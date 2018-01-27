@@ -15,19 +15,18 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PY_COLUMNSET_h
 #define dt_PY_COLUMNSET_h
-#define BASECLS pycolumnset::obj
-#define HOMEFLAG dt_PY_COLUMNSET_cc
 #include <Python.h>
 #include "datatable.h"
 #include "rowindex.h"
 #include "py_utils.h"
 
 
+#define BASECLS pycolumnset::obj
+#define HOMEFLAG dt_PY_COLUMNSET_cc
 namespace pycolumnset
 {
 
 struct obj : public PyObject {
-  // PyObject_HEAD
   Column** columns;
   int64_t ncols;
 };
@@ -38,7 +37,7 @@ extern PyTypeObject type;
 //---- Generic info ------------------------------------------------------------
 
 DECLARE_INFO(
-  "_datatable.ColumnSet",
+  datatable.core.ColumnSet,
   "Array of columns that can be used to construct a DataTable.")
 
 

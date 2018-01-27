@@ -25,7 +25,7 @@ namespace pycolumn
 PyObject* fn_hexview = NULL;  // see datatablemodule.c/pyregister_function
 
 
-pycolumn::obj* from_column(Column* col, DataTable_PyObject* pydt, int64_t idx)
+pycolumn::obj* from_column(Column* col, pydatatable::obj* pydt, int64_t idx)
 {
   PyObject* coltype = reinterpret_cast<PyObject*>(&pycolumn::type);
   PyObject* pyobj = PyObject_CallObject(coltype, NULL);

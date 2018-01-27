@@ -43,10 +43,11 @@ static Column* convert_fwchararray_to_column(Py_buffer* view);
 
 static char strB[] = "B";
 
+
 //------------------------------------------------------------------------------
 
 // Declared in py_datatable.h
-PyObject* datatable_from_buffers(PyObject*, PyObject* args)
+PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
 {
   PyObject* list = nullptr;
   if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
@@ -126,7 +127,7 @@ PyObject* datatable_from_buffers(PyObject*, PyObject* args)
   }
 
   DataTable *dt = new DataTable(columns);
-  return pydt_from_dt(dt);
+  return pydatatable::wrap(dt);
 }
 
 
@@ -330,10 +331,10 @@ PyBufferProcs pycolumn::as_buffer = {
 
 
 //==============================================================================
-// Buffers interface for DataTable_PyObject
+// Buffers interface for pydatatable::obj
 //==============================================================================
 
-static int dt_getbuffer_no_cols(DataTable_PyObject *self, Py_buffer *view,
+static int dt_getbuffer_no_cols(pydatatable::obj *self, Py_buffer *view,
                                 int flags)
 {
   XInfo* xinfo = nullptr;
@@ -367,7 +368,7 @@ static int dt_getbuffer_no_cols(DataTable_PyObject *self, Py_buffer *view,
 }
 
 
-static int dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view,
+static int dt_getbuffer_1_col(pydatatable::obj *self, Py_buffer *view,
                               int flags)
 {
   XInfo* xinfo = nullptr;
@@ -407,7 +408,7 @@ static int dt_getbuffer_1_col(DataTable_PyObject *self, Py_buffer *view,
 }
 
 
-static int dt_getbuffer(DataTable_PyObject* self, Py_buffer* view, int flags)
+static int dt_getbuffer(pydatatable::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
   MemoryBuffer* mbuf = nullptr;
@@ -556,7 +557,7 @@ static int dt_getbuffer(DataTable_PyObject* self, Py_buffer* view, int flags)
     }
 */
 
-static void dt_releasebuffer(DataTable_PyObject*, Py_buffer *view)
+static void dt_releasebuffer(pydatatable::obj*, Py_buffer *view)
 {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   if (xinfo->mbuf) xinfo->mbuf->release();
@@ -564,7 +565,7 @@ static void dt_releasebuffer(DataTable_PyObject*, Py_buffer *view)
 }
 
 
-PyBufferProcs datatable_as_buffer = {
+PyBufferProcs pydatatable::as_buffer = {
   (getbufferproc) dt_getbuffer,
   (releasebufferproc) dt_releasebuffer,
 };
@@ -572,7 +573,7 @@ PyBufferProcs datatable_as_buffer = {
 
 
 //==============================================================================
-// Buffers protocol for Python-side DataTable object
+// Buffers protocol for Python-side Frame object
 //
 // These methods are needed to support the buffers protocol for the Python-side
 // `DataTable` object. We define these methods here, and then use
@@ -590,7 +591,7 @@ PyBufferProcs datatable_as_buffer = {
 //
 //==============================================================================
 
-static int pydatatable_getbuffer(PyObject* self, Py_buffer* view, int flags)
+static int python_frame_getbuffer(PyObject* self, Py_buffer* view, int flags)
 {
   PyObject* pydt = PyObject_GetAttrString(self, "internal");
   if (pydt == nullptr) {
@@ -598,24 +599,24 @@ static int pydatatable_getbuffer(PyObject* self, Py_buffer* view, int flags)
                  "Cannot retrieve attribute internal");
     return -1;
   }
-  return dt_getbuffer(reinterpret_cast<DataTable_PyObject*>(pydt), view, flags);
+  return dt_getbuffer(reinterpret_cast<pydatatable::obj*>(pydt), view, flags);
 }
 
-static void pydatatable_releasebuffer(PyObject*, Py_buffer* view)
+static void python_frame_releasebuffer(PyObject*, Py_buffer* view)
 {
   dt_releasebuffer(nullptr, view);
 }
 
-static PyBufferProcs pydatatable_as_buffer = {
-  (getbufferproc) pydatatable_getbuffer,
-  (releasebufferproc) pydatatable_releasebuffer,
+static PyBufferProcs python_frame_as_buffer = {
+  (getbufferproc) python_frame_getbuffer,
+  (releasebufferproc) python_frame_releasebuffer,
 };
 
-PyObject* pyinstall_buffer_hooks(PyObject*, PyObject* args)
+PyObject* pydatatable::install_buffer_hooks(PyObject*, PyObject* args)
 {
   PyObject* obj = nullptr;
   if (!PyArg_ParseTuple(args, "O", &obj)) return nullptr;
-  obj->ob_type->tp_as_buffer = &pydatatable_as_buffer;
+  obj->ob_type->tp_as_buffer = &python_frame_as_buffer;
   return none();
 }
 

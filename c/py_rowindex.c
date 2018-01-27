@@ -195,7 +195,7 @@ PyObject* pyrowindex_from_boolcolumn(PyObject*, PyObject *args)
 {
   CATCH_EXCEPTIONS(
     DataTable *dt = NULL;
-    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_boolcolumn", &dt_unwrap, &dt))
+    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_boolcolumn", &pydatatable::unwrap, &dt))
         return NULL;
 
     if (dt->ncols != 1) {
@@ -228,7 +228,7 @@ PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args)
     DataTable *dt = NULL;
     long target_nrows = 0;
     if (!PyArg_ParseTuple(args, "O&l:RowIndex.from_intcolumn",
-                          &dt_unwrap, &dt, &target_nrows))
+                          &pydatatable::unwrap, &dt, &target_nrows))
         return NULL;
 
     if (dt->ncols != 1) {
@@ -307,7 +307,7 @@ PyObject* pyrowindex_uplift(PyObject*, PyObject *args)
     RowIndex *ri;
     DataTable *dt;
     if (!PyArg_ParseTuple(args, "O&O&:RowIndex.uplift",
-                          &rowindex_unwrap, &ri, &dt_unwrap, &dt))
+                          &rowindex_unwrap, &ri, &pydatatable::unwrap, &dt))
         return NULL;
     return py(RowIndex::merge(dt->rowindex, ri));
   );

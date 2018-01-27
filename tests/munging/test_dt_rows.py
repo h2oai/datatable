@@ -63,7 +63,7 @@ def test_dt0_properties(dt0):
     assert dt0.names == ("colA", "colB", "colC")
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
-    assert str(dt0.internal.__class__) == "<class '_datatable.DataTable'>"
+    assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
     assert dt0.internal.isview is False
     assert dt0.internal.rowindex_type is None
     assert dt0.internal.check()

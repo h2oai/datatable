@@ -116,15 +116,15 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD0_(rowindex_from_filterfn),
     METHOD0_(rowindex_from_function),
     METHOD0_(rowindex_uplift),
-    METHOD0_(datatable_assemble),
-    METHOD0_(datatable_from_list),
-    METHOD0_(datatable_load),
-    METHODv(datatable_from_buffers),
+    METHODv(pydatatable::datatable_assemble),
+    METHODv(pydatatable::datatable_from_list),
+    METHODv(pydatatable::datatable_load),
+    METHODv(pydatatable::datatable_from_buffers),
+    METHODv(pydatatable::install_buffer_hooks),
     METHODv(gread),
     METHOD0_(write_csv),
     METHOD0_(exec_function),
     METHOD0_(register_function),
-    METHOD0_(install_buffer_hooks),
     METHOD1_(get_internal_function_ptrs),
     METHOD1_(get_integer_sizes),
     METHODv(expr_binaryop),
@@ -154,7 +154,7 @@ PyInit__datatable(void) {
     if (m == NULL) return NULL;
 
     // Initialize submodules
-    if (!init_py_datatable(m)) return NULL;
+    if (!pydatatable::static_init(m)) return NULL;
     if (!init_py_datawindow(m)) return NULL;
     if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
