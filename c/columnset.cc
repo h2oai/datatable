@@ -17,22 +17,30 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
+#include "utils/exceptions.h"
 
 
 /**
  * Create an array of columns by taking a slice from columns of DataTable `dt`.
  */
-Column** columns_from_slice(DataTable* dt, int64_t start, int64_t count,
-                            int64_t step)
+Column** columns_from_slice(DataTable* dt, RowIndex* rowindex,
+                            int64_t start, int64_t count, int64_t step)
 {
   if (dt == nullptr) return nullptr;
+  if (count < 0 || start < 0 || start >= dt->ncols ||
+      start + step < 0 || start + step * (count - 1) >= dt->ncols) {
+    throw ValueError() << "Invalid slice " << start << ":" << count << ":"
+                       << step << " for a DataTable with " << dt->ncols
+                       << " columns";
+  }
+
   Column** srccols = dt->columns;
   Column** columns = nullptr;
   dtmalloc(columns, Column*, count + 1);
   columns[count] = nullptr;
 
   for (int64_t i = 0, j = start; i < count; i++, j += step) {
-    columns[i] = srccols[j]->shallowcopy();
+    columns[i] = srccols[j]->shallowcopy(rowindex);
   }
   return columns;
 }
@@ -43,7 +51,9 @@ Column** columns_from_slice(DataTable* dt, int64_t start, int64_t count,
  * Create a list of columns by extracting columns at the given indices from
  * datatable `dt`.
  */
-Column** columns_from_array(DataTable* dt, int64_t* indices, int64_t ncols) {
+Column** columns_from_array(DataTable* dt, RowIndex* rowindex,
+                            int64_t* indices, int64_t ncols)
+{
   if (dt == nullptr || indices == nullptr) return nullptr;
   Column** srccols = dt->columns;
   Column** columns = nullptr;
@@ -51,7 +61,7 @@ Column** columns_from_array(DataTable* dt, int64_t* indices, int64_t ncols) {
   columns[ncols] = nullptr;
 
   for (int64_t i = 0; i < ncols; i++) {
-    columns[i] = srccols[indices[i]]->shallowcopy();
+    columns[i] = srccols[indices[i]]->shallowcopy(rowindex);
   }
   return columns;
 }

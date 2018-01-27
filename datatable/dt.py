@@ -605,9 +605,9 @@ class DataTable(object):
         """
         idx = self.colindex(by)
         ri = self._dt.sort(idx)
-        cs = core.columns_from_slice(self._dt, 0, self._ncols, 1)
-        dt = core.datatable_assemble(ri, cs)
-        return DataTable(dt, names=self.names)
+        cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
+        _dt = cs.to_datatable()
+        return DataTable(_dt, names=self.names)
 
 
     def min(self):

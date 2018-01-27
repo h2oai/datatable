@@ -62,15 +62,17 @@ int unwrap(PyObject* object, void* address) {
 
 //==============================================================================
 
-PyObject* columns_from_slice(PyObject*, PyObject *args)
-{
-  DataTable *dt;
+PyObject* columns_from_slice(PyObject*, PyObject *args) {
+  DataTable* dt;
+  RowIndex* rowindex;
   int64_t start, count, step;
-  if (!PyArg_ParseTuple(args, "O&LLL:columns_from_slice",
-                        &pydatatable::unwrap, &dt, &start, &count, &step))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "O&O&LLL:columns_from_slice",
+                        &pydatatable::unwrap, &dt,
+                        &rowindex_unwrap, &rowindex, &start, &count, &step))
+    return nullptr;
 
-  PyObject* res = wrap(columns_from_slice(dt, start, count, step), count);
+  Column** columns = columns_from_slice(dt, rowindex, start, count, step);
+  PyObject* res = wrap(columns, count);
   return res;
 }
 
@@ -78,20 +80,23 @@ PyObject* columns_from_slice(PyObject*, PyObject *args)
 PyObject* columns_from_array(PyObject*, PyObject *args)
 {
   DataTable* dt;
+  RowIndex* rowindex;
   PyObject* elems;
-  if (!PyArg_ParseTuple(args, "O&O!:columns_from_array",
-                        &pydatatable::unwrap, &dt, &PyList_Type, &elems))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "O&O&O!:columns_from_array",
+                        &pydatatable::unwrap, &dt,
+                        &rowindex_unwrap, &rowindex, &PyList_Type, &elems))
+    return nullptr;
 
   int64_t ncols = PyList_Size(elems);
-  int64_t* indices = NULL;
+  int64_t* indices = nullptr;
   dtmalloc(indices, int64_t, ncols);
   for (int64_t i = 0; i < ncols; i++) {
     PyObject* elem = PyList_GET_ITEM(elems, i);
     indices[i] = (int64_t) PyLong_AsSize_t(elem);
   }
 
-  PyObject* res = wrap(columns_from_array(dt, indices, ncols), ncols);
+  Column** columns = columns_from_array(dt, rowindex, indices, ncols);
+  PyObject* res = wrap(columns, ncols);
   return res;
 }
 
@@ -105,11 +110,11 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
   if (!PyArg_ParseTuple(args, "O!O&lL:columns_from_mixed",
                         &PyList_Type, &pyspec, &pydatatable::unwrap, &dt,
                         &nrows, &rawptr))
-    return NULL;
+    return nullptr;
 
   columnset_mapfn* fnptr = (columnset_mapfn*) rawptr;
   int64_t ncols = PyList_Size(pyspec);
-  int64_t* spec = NULL;
+  int64_t* spec = nullptr;
 
   dtmalloc(spec, int64_t, ncols);
   for (int64_t i = 0; i < ncols; i++) {
@@ -150,9 +155,21 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
 }
 
 
+
+//==============================================================================
+// Methods
+//==============================================================================
+
+PyObject* to_datatable(obj* self, PyObject*) {
+  Column** columns = self->columns;
+  self->columns = nullptr;
+  return pydatatable::wrap(new DataTable(columns));
+}
+
+
 static void dealloc(obj* self)
 {
-  Column **ptr = self->columns;
+  Column** ptr = self->columns;
   if (ptr) {
     while (*ptr) {
       free(*ptr);
@@ -179,6 +196,11 @@ static PyObject* repr(obj* self)
 //==============================================================================
 // ColumnSet type definition
 //==============================================================================
+
+static PyMethodDef methods[] = {
+  METHOD0(to_datatable),
+  {nullptr, nullptr, 0, nullptr}           /* sentinel */
+};
 
 PyTypeObject type = {
   PyVarObject_HEAD_INIT(NULL, 0)
@@ -208,7 +230,7 @@ PyTypeObject type = {
   0,                                  /* tp_weaklistoffset */
   0,                                  /* tp_iter */
   0,                                  /* tp_iternext */
-  0,                                  /* tp_methods */
+  methods,                            /* tp_methods */
   0,                                  /* tp_members */
   0,                                  /* tp_getset */
   0,                                  /* tp_base */

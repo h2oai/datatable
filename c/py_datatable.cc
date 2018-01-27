@@ -76,34 +76,6 @@ int unwrap(PyObject* object, DataTable** address) {
 // Generic Python API
 //==============================================================================
 
-PyObject* datatable_assemble(PyObject*, PyObject* args) {
-  PyObject* arg1;
-  pycolumnset::obj* pycols;
-  if (!PyArg_ParseTuple(args, "OO!:datatable_assemble_view",
-                        &arg1, &pycolumnset::type, &pycols))
-    return nullptr;
-  Column** columns = pycols->columns;
-  pycols->columns = nullptr;
-  RowIndex *rowindex = nullptr;
-  if (arg1 == Py_None) {
-    /* Don't do anything: rowindex should be nullptr */
-  } else {
-    if (!PyObject_TypeCheck(arg1, &RowIndex_PyType)) {
-      PyErr_Format(PyExc_TypeError, "Expected object of type RowIndex");
-      return nullptr;
-    }
-    RowIndex_PyObject* pyri = reinterpret_cast<RowIndex_PyObject*>(arg1);
-    rowindex = pyri->ref;
-    for (int64_t i = 0; columns[i] != nullptr; ++i) {
-      Column* tmp = columns[i]->shallowcopy(rowindex);
-      delete columns[i];
-      columns[i] = tmp;
-    }
-  }
-  return wrap(new DataTable(columns));
-}
-
-
 PyObject* datatable_load(PyObject*, PyObject* args) {
   DataTable* colspec;
   int64_t nrows;

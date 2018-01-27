@@ -41,18 +41,25 @@ DECLARE_INFO(
   "Array of columns that can be used to construct a DataTable.")
 
 
+//---- Methods -----------------------------------------------------------------
+
+DECLARE_METHOD(
+  to_datatable,
+  "Convert this ColumnSet into a DataTable.")
+
+
 
 //---- External API ------------------------------------------------------------
 
 DECLARE_FUNCTION(
   columns_from_slice,
-  "columns_from_slice(dt, start, count, step)\n\n"
+  "columns_from_slice(dt, rowindex, start, count, step)\n\n"
   "Retrieve set of columns as a slice of columns in DataTable `dt`.\n",
   HOMEFLAG)
 
 DECLARE_FUNCTION(
   columns_from_array,
-  "columns_from_array(dt, indices)\n\n"
+  "columns_from_array(dt, rowindex, indices)\n\n"
   "Extract an array of columns at given indices from DataTable `dt`.\n",
   HOMEFLAG)
 
@@ -66,7 +73,6 @@ DECLARE_FUNCTION(
   "columns_from_columns(cols)\n\n"
   "Create a ColumnSet from a Python list of columns.",
   HOMEFLAG)
-
 
 int unwrap(PyObject* source, void* target);
 int static_init(PyObject* module);
