@@ -42,7 +42,7 @@ def make_datatable(dt, rows, select, sort, engine):
         if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
             rowindex = rowsnode.get_final_rowindex()
             colsnode._rowindex = rowindex
-            columns = colsnode.evaluate_eager()
+            columns = ee.execute(colsnode)
             res_dt = columns.to_datatable()
             return datatable.DataTable(res_dt, names=colsnode.column_names)
 

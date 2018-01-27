@@ -36,8 +36,6 @@ class RFNode(object):
     API:
       - get_final_rowindex(): return the final RowIndex object
       - get_target_rowindex(): return the RowIndex as applied to the target DT
-      - var_final_rowindex(): return string expression which can be evaluated
-        in the context of a C module to produce the final RowIndex object.
 
     The primary way of constructing instances of this class is through the
     factory function :func:`make_rowfilter`.
@@ -85,24 +83,6 @@ class RFNode(object):
         raise NotImplementedError
 
 
-    def var_final_rowindex(self) -> str:
-        """
-        Return string expression that evaluates to the final RowIndex in C.
-
-        The purpose of this function is to facilitate C module construction at
-        runtime. The returned string will be used as follows:
-
-            "RowIndex *ri = %s;" % rfnode.var_final_rowindex()
-
-        and this should produce a valid C code.
-
-        The default implementation first creates the final rowindex, and then
-        passes it as a numeric pointer. Children classes may override this
-        method to provide a different approach.
-        """
-        ri = self.get_final_rowindex()
-        # TODO: ensure that the pointer survives
-        return "((void*) %d)" % (ri.getptr() if ri else 0)
 
 
 #===============================================================================
@@ -299,10 +279,6 @@ class FilterExprRFNode(RFNode):
     expression as a boolean column, and then passing it to a
     :class:`BooleanColumnRFNode`.
 
-    This class overrides :meth:`var_final_rowindex` so that it behaves lazily:
-    calling this method will not cause the underlying CModule to be compiled,
-    whereas calling :meth:`get_final_rowindex` will.
-
     Parameters
     ----------
     dt: DataTable
@@ -329,9 +305,6 @@ class FilterExprRFNode(RFNode):
     def get_final_rowindex(self):
         ptr = self._cmodule.get_result(self._fnname)
         return core.rowindex_from_function(ptr)
-
-    def var_final_rowindex(self):
-        return self._fnname + "()"
 
     def generate_c(self) -> None:
         """
