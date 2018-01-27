@@ -69,7 +69,7 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
   if (!PyArg_ParseTuple(args, "O&O&LLL:columns_from_slice",
                         &pydatatable::unwrap, &dt,
                         &rowindex_unwrap, &rowindex, &start, &count, &step))
-    return NULL;
+    return nullptr;
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
   PyObject* res = wrap(columns, count);
@@ -80,20 +80,23 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 PyObject* columns_from_array(PyObject*, PyObject *args)
 {
   DataTable* dt;
+  RowIndex* rowindex;
   PyObject* elems;
-  if (!PyArg_ParseTuple(args, "O&O!:columns_from_array",
-                        &pydatatable::unwrap, &dt, &PyList_Type, &elems))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "O&O&O!:columns_from_array",
+                        &pydatatable::unwrap, &dt,
+                        &rowindex_unwrap, &rowindex, &PyList_Type, &elems))
+    return nullptr;
 
   int64_t ncols = PyList_Size(elems);
-  int64_t* indices = NULL;
+  int64_t* indices = nullptr;
   dtmalloc(indices, int64_t, ncols);
   for (int64_t i = 0; i < ncols; i++) {
     PyObject* elem = PyList_GET_ITEM(elems, i);
     indices[i] = (int64_t) PyLong_AsSize_t(elem);
   }
 
-  PyObject* res = wrap(columns_from_array(dt, indices, ncols), ncols);
+  Column** columns = columns_from_array(dt, rowindex, indices, ncols);
+  PyObject* res = wrap(columns, ncols);
   return res;
 }
 
@@ -107,11 +110,11 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
   if (!PyArg_ParseTuple(args, "O!O&lL:columns_from_mixed",
                         &PyList_Type, &pyspec, &pydatatable::unwrap, &dt,
                         &nrows, &rawptr))
-    return NULL;
+    return nullptr;
 
   columnset_mapfn* fnptr = (columnset_mapfn*) rawptr;
   int64_t ncols = PyList_Size(pyspec);
-  int64_t* spec = NULL;
+  int64_t* spec = nullptr;
 
   dtmalloc(spec, int64_t, ncols);
   for (int64_t i = 0; i < ncols; i++) {

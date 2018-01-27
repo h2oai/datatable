@@ -88,7 +88,8 @@ class ArrayCSNode(ColumnSetNode):
         self._column_names = colnames
 
     def evaluate_eager(self):
-        return core.columns_from_array(self._dt.internal, self._elems)
+        return core.columns_from_array(self._dt.internal, self._rowindex,
+                                       self._elems)
 
     evaluate_llvm = evaluate_eager
 

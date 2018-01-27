@@ -52,7 +52,7 @@ DECLARE_FUNCTION(
 
 DECLARE_FUNCTION(
   columns_from_array,
-  "columns_from_array(dt, indices)\n\n"
+  "columns_from_array(dt, rowindex, indices)\n\n"
   "Extract an array of columns at given indices from DataTable `dt`.\n",
   HOMEFLAG)
 

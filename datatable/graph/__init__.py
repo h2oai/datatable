@@ -43,10 +43,7 @@ def make_datatable(dt, rows, select, sort, engine):
             rowindex = rowsnode.get_final_rowindex()
             colsnode._rowindex = rowindex
             columns = colsnode.evaluate_eager()
-            if isinstance(colsnode, SliceCSNode):
-                res_dt = core.datatable_assemble(None, columns)
-            else:
-                res_dt = core.datatable_assemble(rowindex, columns)
+            res_dt = core.datatable_assemble(None, columns)
             return datatable.DataTable(res_dt, names=colsnode.column_names)
 
         # Select computed columns + all rows from datatable which is not a

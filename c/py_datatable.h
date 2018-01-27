@@ -185,7 +185,7 @@ DECLARE_METHOD(
 
 DECLARE_FUNCTION(
   datatable_assemble,
-  "datatable_assemble(...)\n\n",
+  "datatable_assemble(columns)\n\n",
   HOMEFLAG)
 
 DECLARE_FUNCTION(
