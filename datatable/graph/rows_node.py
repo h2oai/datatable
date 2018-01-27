@@ -24,19 +24,17 @@ class RFNode:
     Base class for all "Row Filter" nodes (internal).
 
     A row filter node represents a `rows` argument in the generic datatable
-    call, and its primary function is to compute and return a
-    :class:`core.RowIndex` object. It also provides an interface for
-    accessing the RowIndex from a C module if needed.
+    call, and its primary function is to compute a :class:`core.RowIndex`
+    object and place it into the EvaluationEngine.
 
-    A row filter is always applied to some DataTable, called "target". Sometimes
-    the target is a view, in which case the rowindex must be "uplifted" to the
-    parent DataTable. The RowIndex returned by this node will be the "final"
-    one, i.e. it will be indexing the actual data columns of the target
+    A row filter is always applied to some DataTable, called "source". Sometimes
+    the source is a view, in which case the rowindex must be "uplifted" to the
+    parent DataTable. The RowIndex created by this node will be the "final"
+    one, i.e. it will be indexing the data within the columns of the source
     DataTable.
 
     API:
       - get_final_rowindex(): return the final RowIndex object
-      - get_target_rowindex(): return the RowIndex as applied to the target DT
 
     The primary way of constructing instances of this class is through the
     factory function :func:`make_rowfilter`.
@@ -48,46 +46,45 @@ class RFNode:
     ...:
         (Derived classes will typically add their own constructor parameters).
     """
-    __slots__ = ["_engine", "_rifinal"]
+    __slots__ = ["_engine"]
 
     def __init__(self, ee):
+        from .context import EvaluationEngine
+        assert isinstance(ee, EvaluationEngine)
         self._engine = ee
-        self._rifinal = None
 
 
-    def get_final_rowindex(self) -> Optional[core.RowIndex]:
+    def execute(self):
+        rowindex = self._make_final_rowindex()
+        self._engine.rowindex = rowindex
+
+
+    def _make_source_rowindex(self) -> Optional[core.RowIndex]:
         """
-        Return the final RowIndex object.
-
-        If the target DataTable is a view, then the returned RowIndex is an
-        uplifted version of the target RowIndex. Otherwise the final RowIndex is
-        the same object as the target RowIndex. The returned value may also be
-        None indicating absense of any RowIndex.
-        """
-        if self._rifinal is None:
-            _dt = self._engine.dt.internal
-            _ri = self.get_target_rowindex()
-            if _dt.isview:
-                _ri = core.rowindex_uplift(_ri, _dt)
-            self._rifinal = _ri
-        return self._rifinal
-
-
-    def get_target_rowindex(self) -> Optional[core.RowIndex]:
-        """
-        Return the target RowIndex object.
+        Construct the "source" RowIndex object.
 
         This method must be implemented in all subclasses. It should return a
-        RowIndex object as applied to the target DataTable, or None if no index
-        is necessary.
+        core.RowIndex object as applied to the source DataTable, or None if no
+        index is necessary.
         """
         raise NotImplementedError  # pragma: no cover
 
-    def evaluate_llvm(self):
-        return self.get_final_rowindex()
 
-    def evaluate_eager(self):
-        return self.get_final_rowindex()
+    def _make_final_rowindex(self) -> Optional[core.RowIndex]:
+        """
+        Construct the "final" RowIndex object.
+
+        If the source DataTable is a view, then the returned RowIndex is an
+        uplifted version of the "source" RowIndex. Otherwise the final RowIndex
+        is the same object as the source RowIndex. The returned value may also
+        be None indicating absense of any RowIndex.
+        """
+        rowindex = self._make_source_rowindex()
+        _dt = self._engine.dt.internal
+        if _dt.isview:
+            return core.rowindex_uplift(rowindex, _dt)
+        else:
+            return rowindex
 
 
 
@@ -105,7 +102,7 @@ class AllRFNode(RFNode):
     """
     __slots__ = []
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return None
 
 
@@ -137,7 +134,7 @@ class SliceRFNode(RFNode):
         assert start + (count - 1) * step >= 0
         self._triple = (start, count, step)
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return core.rowindex_from_slice(*self._triple)
 
 
@@ -164,7 +161,7 @@ class ArrayRFNode(RFNode):
         super().__init__(ee)
         self._array = array
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return core.rowindex_from_array(self._array)
 
 
@@ -199,7 +196,7 @@ class MultiSliceRFNode(RFNode):
         self._counts = counts
         self._steps = steps
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return core.rowindex_from_slicelist(
             self._bases, self._counts, self._steps
         )
@@ -230,7 +227,7 @@ class BooleanColumnRFNode(RFNode):
         assert col.shape == (ee.dt.nrows, 1)
         self._coldt = col
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return core.rowindex_from_boolcolumn(self._coldt.internal)
 
 
@@ -258,7 +255,7 @@ class IntegerColumnRFNode(RFNode):
         assert coldt.ncols == 1
         self._coldt = coldt
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return core.rowindex_from_intcolumn(self._coldt.internal,
                                             self._engine.dt.nrows)
 
@@ -296,11 +293,11 @@ class FilterExprRFNode(RFNode):
             self._fnname = ee.make_variable_name("make_rowindex")
             ee.add_node(self)
 
-    def get_final_rowindex(self):
+    def _make_final_rowindex(self):
         ptr = self._engine.get_result(self._fnname)
         return core.rowindex_from_function(ptr)
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return NotImplemented
 
     def generate_c(self) -> None:
@@ -342,13 +339,13 @@ class FilterExprRFNode(RFNode):
 class SortedRFNode(RFNode):
 
     def __init__(self, sort_node):
-        super().__init__(getattr(sort_node, "_dt"))
+        super().__init__(sort_node.engine)
         self._sortnode = sort_node
 
-    def get_final_rowindex(self):
+    def _make_final_rowindex(self):
         return self._sortnode.make_rowindex()
 
-    def get_target_rowindex(self):
+    def _make_source_rowindex(self):
         return NotImplemented
 
 
@@ -359,7 +356,7 @@ class SortedRFNode(RFNode):
 # Factory function
 #===============================================================================
 
-def make_rowfilter(rows, ee, _nested=False):
+def make_rowfilter(rows, ee, _nested=False) -> RFNode:
     """
     Create an :class:`RFNode` from the provided expression.
 
@@ -389,9 +386,7 @@ def make_rowfilter(rows, ee, _nested=False):
         # Note: True/False are integer objects in Python
         raise TTypeError("Boolean value cannot be used as a `rows` selector")
 
-    # from_scalar = False
     if isinstance(rows, (int, slice, range)):
-        # from_scalar = True
         rows = [rows]
 
     from_generator = False

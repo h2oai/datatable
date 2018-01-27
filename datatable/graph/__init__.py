@@ -24,7 +24,7 @@ def make_datatable(dt, rows, select, sort, engine):
         ee = make_engine(engine, dt)
         rowsnode = ee.make_rowfilter(rows)
         colsnode = ee.make_columnset(select)
-        sortnode = make_sort(sort, dt)
+        sortnode = ee.make_sort(sort)
 
         if sortnode:
             if isinstance(rowsnode, AllRFNode):
@@ -39,8 +39,8 @@ def make_datatable(dt, rows, select, sort, engine):
         # be either a plain "data" table if rowindex selects all rows and the
         # target datatable is not a view, or a "view" datatable otherwise.
         if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-            rowindex = rowsnode.get_final_rowindex()
-            colsnode._rowindex = rowindex
+            rowsnode.execute()
+            colsnode._rowindex = ee.rowindex
             columns = ee.execute(colsnode)
             res_dt = columns.to_datatable()
             return datatable.DataTable(res_dt, names=colsnode.column_names)

@@ -4,6 +4,8 @@ from datatable.lib import core
 from .llvm import inject_c_code
 from .cols_node import make_columnset
 from .rows_node import make_rowfilter
+from .sort_node import make_sort
+
 
 
 #===============================================================================
@@ -11,10 +13,11 @@ from .rows_node import make_rowfilter
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt"]
+    __slots__ = ["dt", "rowindex"]
 
     def __init__(self, dt):
         self.dt = dt
+        self.rowindex = None
 
     def is_compiled(self):
         """Return True iff the engine requires code compilation step."""
@@ -28,6 +31,10 @@ class EvaluationEngine:
 
     def make_columnset(self, cols):
         return make_columnset(cols, self.dt, self)
+
+    def make_sort(self, sort):
+        return make_sort(sort, self)
+
 
 
 def make_engine(engine, dt):
