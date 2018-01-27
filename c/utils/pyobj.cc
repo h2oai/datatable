@@ -209,7 +209,7 @@ PyObject* PyObj::as_pyobject() const {
 
 DataTable* PyObj::as_datatable() const {
   DataTable* dt = nullptr;
-  int ret = dt_unwrap(obj, &dt);
+  int ret = pydatatable::unwrap(obj, &dt);
   if (!ret) throw Error();
   return dt;
 }

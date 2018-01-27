@@ -15,21 +15,21 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PY_COLUMN_h
 #define dt_PY_COLUMN_h
-#define BASECLS pycolumn::obj
-#define HOMEFLAG dt_PY_COLUMN_cc
 #include <Python.h>
 #include "column.h"
 #include "py_datatable.h"
 #include "py_utils.h"
 
 
+#define BASECLS pycolumn::obj
+#define HOMEFLAG dt_PY_COLUMN_cc
 namespace pycolumn
 {
 
 struct obj : public PyObject {
   // PyObject_HEAD
   Column* ref;
-  DataTable_PyObject* pydt;
+  pydatatable::obj* pydt;
   int64_t colidx;
 };
 
@@ -39,7 +39,7 @@ extern PyBufferProcs as_buffer;
 extern PyObject* fn_hexview;
 
 
-pycolumn::obj* from_column(Column*, DataTable_PyObject*, int64_t);
+pycolumn::obj* from_column(Column*, pydatatable::obj*, int64_t);
 int unwrap(PyObject* source, Column** target);
 int static_init(PyObject* module);
 
@@ -48,7 +48,7 @@ int static_init(PyObject* module);
 //---- Generic info ------------------------------------------------------------
 
 DECLARE_INFO(
-  "_datatable.Column",
+  datatable.core.Column,
   "Single Column within a DataTable.")
 
 

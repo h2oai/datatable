@@ -139,6 +139,7 @@ def test_float_precision():
            7.58971840634146,    # reads as 7.5897184063414596 (-1 ulp)
            4.04715454502159,    # reads as 4.0471545450215896 (-1 ulp)
            10.48519326055973,   # reads as 10.485193260559729 (-1 ulp)
+           4.413672796373175,   # reads as 4.4136727963731754 (+1 ulp)
            ]
     text = "A\n" + "\n".join(str(x) for x in src)
     d0 = dt.fread(text)

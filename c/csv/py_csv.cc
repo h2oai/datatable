@@ -100,7 +100,7 @@ PyObject* gread(PyObject*, PyObject* args)
 
   GenericReader rdr(pyreader);
   std::unique_ptr<DataTable> dtptr = rdr.read();
-  return pydt_from_dt(dtptr.release());
+  return pydatatable::wrap(dtptr.release());
 }
 
 

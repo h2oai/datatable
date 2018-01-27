@@ -20,57 +20,55 @@
  * Otherwise, we assume that the list represents a single data column, and
  * build the datatable appropriately.
  */
-PyObject* pydatatable_from_list(PyObject*, PyObject *args)
+PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
 {
-  CATCH_EXCEPTIONS(
-    Column **cols = NULL;
-    PyObject *list;
+  Column **cols = NULL;
+  PyObject *list;
 
-    if (!PyArg_ParseTuple(args, "O!:from_list", &PyList_Type, &list))
-        return NULL;
+  if (!PyArg_ParseTuple(args, "O!:from_list", &PyList_Type, &list))
+    return NULL;
 
 
-    // If the supplied list is empty, return the empty Datatable object
-    int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
-    if (listsize == 0) {
-        dtmalloc(cols, Column*, 1);
-        cols[0] = NULL;
-        return pydt_from_dt(new DataTable(cols));
+  // If the supplied list is empty, return the empty Datatable object
+  int64_t listsize = Py_SIZE(list);  // works both for lists and tuples
+  if (listsize == 0) {
+    dtmalloc(cols, Column*, 1);
+    cols[0] = NULL;
+    return pydatatable::wrap(new DataTable(cols));
+  }
+
+  // Basic check validity of the provided data.
+  int64_t item0size = Py_SIZE(PyList_GET_ITEM(list, 0));
+  for (int64_t i = 0; i < listsize; ++i) {
+    PyObject *item = PyList_GET_ITEM(list, i);
+    if (!PyList_Check(item)) {
+      PyErr_SetString(PyExc_ValueError,
+                      "Source list is not list-of-lists");
+      goto fail;
     }
-
-    // Basic check validity of the provided data.
-    int64_t item0size = Py_SIZE(PyList_GET_ITEM(list, 0));
-    for (int64_t i = 0; i < listsize; ++i) {
-        PyObject *item = PyList_GET_ITEM(list, i);
-        if (!PyList_Check(item)) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Source list is not list-of-lists");
-            goto fail;
-        }
-        if (Py_SIZE(item) != item0size) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Source lists have variable number of rows");
-            goto fail;
-        }
+    if (Py_SIZE(item) != item0size) {
+      PyErr_SetString(PyExc_ValueError,
+                      "Source lists have variable number of rows");
+      goto fail;
     }
+  }
 
-    dtcalloc(cols, Column*, listsize + 1);
+  dtcalloc(cols, Column*, listsize + 1);
 
-    // Fill the data
-    for (int64_t i = 0; i < listsize; i++) {
-        PyObject *src = PyList_GET_ITEM(list, i);
-        cols[i] = Column::from_pylist(src);
-    }
+  // Fill the data
+  for (int64_t i = 0; i < listsize; i++) {
+    PyObject *src = PyList_GET_ITEM(list, i);
+    cols[i] = Column::from_pylist(src);
+  }
 
-    return pydt_from_dt(new DataTable(cols));
+  return pydatatable::wrap(new DataTable(cols));
 
   fail:
-    if (cols) {
-        for (int i = 0; cols[i] != NULL; ++i) {
-            delete cols[i];
-        }
-        dtfree(cols);
+  if (cols) {
+    for (int i = 0; cols[i] != NULL; ++i) {
+        delete cols[i];
     }
-    return NULL;
-  )
+    dtfree(cols);
+  }
+  return NULL;
 }

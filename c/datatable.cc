@@ -82,7 +82,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 
 /**
  * Free memory occupied by the :class:`DataTable` object. This function should
- * be called from `DataTable_PyObject`s deallocator only.
+ * be called from `pydatatable::obj`s deallocator only.
  */
 DataTable::~DataTable()
 {
