@@ -155,9 +155,21 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
 }
 
 
+
+//==============================================================================
+// Methods
+//==============================================================================
+
+PyObject* to_datatable(obj* self, PyObject*) {
+  Column** columns = self->columns;
+  self->columns = nullptr;
+  return pydatatable::wrap(new DataTable(columns));
+}
+
+
 static void dealloc(obj* self)
 {
-  Column **ptr = self->columns;
+  Column** ptr = self->columns;
   if (ptr) {
     while (*ptr) {
       free(*ptr);
@@ -184,6 +196,11 @@ static PyObject* repr(obj* self)
 //==============================================================================
 // ColumnSet type definition
 //==============================================================================
+
+static PyMethodDef methods[] = {
+  METHOD0(to_datatable),
+  {nullptr, nullptr, 0, nullptr}           /* sentinel */
+};
 
 PyTypeObject type = {
   PyVarObject_HEAD_INIT(NULL, 0)
@@ -213,7 +230,7 @@ PyTypeObject type = {
   0,                                  /* tp_weaklistoffset */
   0,                                  /* tp_iter */
   0,                                  /* tp_iternext */
-  0,                                  /* tp_methods */
+  methods,                            /* tp_methods */
   0,                                  /* tp_members */
   0,                                  /* tp_getset */
   0,                                  /* tp_base */

@@ -43,7 +43,7 @@ def make_datatable(dt, rows, select, sort, engine):
             rowindex = rowsnode.get_final_rowindex()
             colsnode._rowindex = rowindex
             columns = colsnode.evaluate_eager()
-            res_dt = core.datatable_assemble(None, columns)
+            res_dt = columns.to_datatable()
             return datatable.DataTable(res_dt, names=colsnode.column_names)
 
         # Select computed columns + all rows from datatable which is not a
@@ -53,7 +53,7 @@ def make_datatable(dt, rows, select, sort, engine):
         # will be a "data" table.
         if isinstance(rowsnode, AllRFNode) and not dt.internal.isview:
             columns = ee.execute(colsnode)
-            res_dt = core.datatable_assemble(None, columns)
+            res_dt = columns.to_datatable()
             return datatable.DataTable(res_dt, names=colsnode.column_names)
 
     raise RuntimeError(  # pragma: no cover

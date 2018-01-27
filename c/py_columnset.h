@@ -41,6 +41,13 @@ DECLARE_INFO(
   "Array of columns that can be used to construct a DataTable.")
 
 
+//---- Methods -----------------------------------------------------------------
+
+DECLARE_METHOD(
+  to_datatable,
+  "Convert this ColumnSet into a DataTable.")
+
+
 
 //---- External API ------------------------------------------------------------
 
@@ -66,7 +73,6 @@ DECLARE_FUNCTION(
   "columns_from_columns(cols)\n\n"
   "Create a ColumnSet from a Python list of columns.",
   HOMEFLAG)
-
 
 int unwrap(PyObject* source, void* target);
 int static_init(PyObject* module);

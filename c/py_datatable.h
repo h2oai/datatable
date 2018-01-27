@@ -184,11 +184,6 @@ DECLARE_METHOD(
 //---- Python API --------------------------------------------------------------
 
 DECLARE_FUNCTION(
-  datatable_assemble,
-  "datatable_assemble(columns)\n\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
   datatable_from_list,
   "datatable_from_list(...)\n\n"
   "Create a DataTable from ...",
