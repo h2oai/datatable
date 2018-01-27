@@ -7,6 +7,7 @@ from datatable.lib import core
 from .iterator_node import IteratorNode
 from datatable.expr import BaseExpr
 from datatable.graph.dtproxy import f
+from .context import EvaluationEngine, LlvmEvaluationEngine
 from datatable.types import stype, ltype
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
@@ -34,7 +35,8 @@ class RFNode:
     DataTable.
 
     API:
-      - get_final_rowindex(): return the final RowIndex object
+      - execute(): construct the final RowIndex and store it in the
+            EvaluationEngine context.
 
     The primary way of constructing instances of this class is through the
     factory function :func:`make_rowfilter`.
@@ -49,9 +51,7 @@ class RFNode:
     __slots__ = ["_engine"]
 
     def __init__(self, ee):
-        from .context import EvaluationEngine
-        assert isinstance(ee, EvaluationEngine)
-        self._engine = ee
+        self._engine = ee  # type: EvaluationEngine
 
 
     def execute(self):
@@ -289,23 +289,29 @@ class FilterExprRFNode(RFNode):
         expr.resolve()
         assert expr.stype == stype.bool8
         self._expr = expr
-        if ee.is_compiled():
+        self._fnname = None
+        if isinstance(ee, LlvmEvaluationEngine):
             self._fnname = ee.make_variable_name("make_rowindex")
             ee.add_node(self)
 
     def _make_final_rowindex(self):
-        ptr = self._engine.get_result(self._fnname)
-        return core.rowindex_from_function(ptr)
+        if isinstance(self._engine, LlvmEvaluationEngine):
+            ptr = self._engine.get_result(self._fnname)
+            return core.rowindex_from_function(ptr)
+        else:
+            raise NotImplementedError
 
     def _make_source_rowindex(self):
         return NotImplemented
 
     def generate_c(self) -> None:
         """
-        This method will be invoked by CModule during code generation.
+        This method will be invoked by LlvmEvaluationEngine during code
+        generation.
         """
         dt = self._engine.dt
         ee = self._engine
+        assert isinstance(ee, LlvmEvaluationEngine)
         inode = IteratorNode(dt, ee, name="filter")
         v = self._expr.value_or_0(inode=inode)
         inode.addto_preamble("int64_t j = 0;")

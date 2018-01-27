@@ -4,7 +4,7 @@
 import datatable
 from .rows_node import AllRFNode, SortedRFNode
 from .cols_node import SliceCSNode, ArrayCSNode
-from .sort_node import make_sort
+from .sort_node import SortNode
 from .context import make_engine
 from .dtproxy import f
 

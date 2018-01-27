@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import datatable
 from datatable.lib import core
 from .llvm import inject_c_code
-from .cols_node import make_columnset
-from .rows_node import make_rowfilter
-from .sort_node import make_sort
 
 
 
@@ -27,13 +25,13 @@ class EvaluationEngine:
         raise NotImplementedError
 
     def make_rowfilter(self, rows):
-        return make_rowfilter(rows, self)
+        return datatable.graph.rows_node.make_rowfilter(rows, self)
 
     def make_columnset(self, cols):
-        return make_columnset(cols, self.dt, self)
+        return datatable.graph.cols_node.make_columnset(cols, self.dt, self)
 
     def make_sort(self, sort):
-        return make_sort(sort, self)
+        return datatable.graph.sort_node.make_sort(sort, self)
 
 
 
