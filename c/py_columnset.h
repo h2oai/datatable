@@ -46,7 +46,7 @@ DECLARE_INFO(
 
 DECLARE_FUNCTION(
   columns_from_slice,
-  "columns_from_slice(dt, start, count, step)\n\n"
+  "columns_from_slice(dt, rowindex, start, count, step)\n\n"
   "Retrieve set of columns as a slice of columns in DataTable `dt`.\n",
   HOMEFLAG)
 

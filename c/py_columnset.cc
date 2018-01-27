@@ -62,15 +62,17 @@ int unwrap(PyObject* object, void* address) {
 
 //==============================================================================
 
-PyObject* columns_from_slice(PyObject*, PyObject *args)
-{
-  DataTable *dt;
+PyObject* columns_from_slice(PyObject*, PyObject *args) {
+  DataTable* dt;
+  RowIndex* rowindex;
   int64_t start, count, step;
-  if (!PyArg_ParseTuple(args, "O&LLL:columns_from_slice",
-                        &pydatatable::unwrap, &dt, &start, &count, &step))
+  if (!PyArg_ParseTuple(args, "O&O&LLL:columns_from_slice",
+                        &pydatatable::unwrap, &dt,
+                        &rowindex_unwrap, &rowindex, &start, &count, &step))
     return NULL;
 
-  PyObject* res = wrap(columns_from_slice(dt, start, count, step), count);
+  Column** columns = columns_from_slice(dt, rowindex, start, count, step);
+  PyObject* res = wrap(columns, count);
   return res;
 }
 

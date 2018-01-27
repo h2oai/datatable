@@ -22,8 +22,8 @@
 /**
  * Create an array of columns by taking a slice from columns of DataTable `dt`.
  */
-Column** columns_from_slice(DataTable* dt, int64_t start, int64_t count,
-                            int64_t step)
+Column** columns_from_slice(DataTable* dt, RowIndex* rowindex,
+                            int64_t start, int64_t count, int64_t step)
 {
   if (dt == nullptr) return nullptr;
   Column** srccols = dt->columns;
@@ -32,7 +32,7 @@ Column** columns_from_slice(DataTable* dt, int64_t start, int64_t count,
   columns[count] = nullptr;
 
   for (int64_t i = 0, j = start; i < count; i++, j += step) {
-    columns[i] = srccols[j]->shallowcopy();
+    columns[i] = srccols[j]->shallowcopy(rowindex);
   }
   return columns;
 }

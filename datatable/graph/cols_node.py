@@ -70,8 +70,8 @@ class SliceCSNode(ColumnSetNode):
 
 
     def evaluate_eager(self):
-        res = core.columns_from_slice(self._dt.internal, self._start,
-                                      self._count, self._step)
+        res = core.columns_from_slice(self._dt.internal, self._rowindex,
+                                      self._start, self._count, self._step)
         return res
 
     evaluate_llvm = evaluate_eager

@@ -605,8 +605,8 @@ class DataTable(object):
         """
         idx = self.colindex(by)
         ri = self._dt.sort(idx)
-        cs = core.columns_from_slice(self._dt, 0, self._ncols, 1)
-        dt = core.datatable_assemble(ri, cs)
+        cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
+        dt = core.datatable_assemble(None, cs)
         return DataTable(dt, names=self.names)
 
 
