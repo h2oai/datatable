@@ -40,17 +40,23 @@
 
 // Should be in sync with a map in binary_expr.py
 enum OpCode {
-  Plus       = 1,
-  Minus      = 2,
-  Multiply   = 3,
-  Divide     = 4,
-  IntDivide  = 5,
-  Power      = 6,
-  Modulo     = 7,
-  LogicalAnd = 8,
-  LogicalOr  = 9,
-  LeftShift  = 10,
-  RightShift = 11,
+  Plus           = 1,
+  Minus          = 2,
+  Multiply       = 3,
+  Divide         = 4,
+  IntDivide      = 5,
+  Power          = 6,
+  Modulo         = 7,
+  LogicalAnd     = 8,
+  LogicalOr      = 9,
+  LeftShift      = 10,
+  RightShift     = 11,
+  Equal          = 12,  // ==
+  NotEqual       = 13,  // !=
+  Greater        = 14,  // >
+  Less           = 15,  // <
+  GreaterOrEqual = 16,  // >=
+  LessOrEqual    = 17,  // <=
 };
 
 typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
@@ -74,14 +80,81 @@ template<typename LT, typename RT, typename VT> inline static VT op_sub(LT x, RT
 template<typename LT, typename RT, typename VT> inline static VT op_mul(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) * static_cast<VT>(y); }
 template<typename LT, typename RT, typename VT> inline static VT op_div(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / static_cast<VT>(y); }
 
-template<typename LT, typename RT, typename VT> struct Mod { inline static VT impl(LT x, RT y)  { return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) % static_cast<VT>(y); } };
-template<typename LT, typename RT> struct Mod<LT, RT, float> { inline static float impl(LT x, RT y) { return y == 0? GETNA<float>() : std::fmod(static_cast<float>(x), static_cast<float>(y)); } };
-template<typename LT, typename RT> struct Mod<LT, RT, double> { inline static double impl(LT x, RT y) { return y == 0? GETNA<double>() : std::fmod(static_cast<double>(x), static_cast<double>(y)); } };
+template<typename LT, typename RT, typename VT>
+struct Mod {
+  inline static VT impl(LT x, RT y)  {
+    return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) % static_cast<VT>(y);
+  }
+};
+template<typename LT, typename RT>
+struct Mod<LT, RT, float> {
+  inline static float impl(LT x, RT y) {
+    return y == 0? GETNA<float>() : std::fmod(static_cast<float>(x), static_cast<float>(y));
+  }
+};
+template<typename LT, typename RT>
+struct Mod<LT, RT, double> {
+  inline static double impl(LT x, RT y) {
+    return y == 0? GETNA<double>() : std::fmod(static_cast<double>(x), static_cast<double>(y));
+  }
+};
+
+
+//------------------------------------------------------------------------------
+// Relational operators
+//------------------------------------------------------------------------------
+
+template<typename LT, typename RT>
+inline static int8_t op_eq(LT x, RT y) {  // x == y
+  bool x_isna = ISNA<LT>(x);
+  bool y_isna = ISNA<RT>(y);
+  return (!x_isna && !y_isna && x == y) || (x_isna && y_isna);
+}
+
+template<typename LT, typename RT>
+inline static int8_t op_ne(LT x, RT y) {  // x != y
+  bool x_isna = ISNA<LT>(x);
+  bool y_isna = ISNA<RT>(y);
+  return (x_isna || y_isna || x != y) && !(x_isna && y_isna);
+}
+
+template<typename LT, typename RT>
+inline static int8_t op_gt(LT x, RT y) {  // x > y
+  bool x_isna = ISNA<LT>(x);
+  bool y_isna = ISNA<RT>(y);
+  return (!x_isna && !y_isna && x > y);
+}
+
+template<typename LT, typename RT>
+inline static int8_t op_lt(LT x, RT y) {  // x < y
+  bool x_isna = ISNA<LT>(x);
+  bool y_isna = ISNA<RT>(y);
+  return (!x_isna && !y_isna && x < y);
+}
+
+template<typename LT, typename RT>
+inline static int8_t op_ge(LT x, RT y) {  // x >= y
+  bool x_isna = ISNA<LT>(x);
+  bool y_isna = ISNA<RT>(y);
+  return (!x_isna && !y_isna && x >= y) || (x_isna && y_isna);
+}
+
+template<typename LT, typename RT>
+inline static int8_t op_le(LT x, RT y) {  // x <= y
+  bool x_isna = ISNA<LT>(x);
+  bool y_isna = ISNA<RT>(y);
+  return (!x_isna && !y_isna && x <= y) || (x_isna && y_isna);
+}
+
 
 
 
 template<typename LT, typename RT, typename VT>
 inline static mapperfn resolve0(int opcode, SType stype, void** params) {
+  if (opcode >= OpCode::Equal) {
+    // override stype for relational operators
+    stype = ST_BOOLEAN_I1;
+  }
   int64_t nrows = static_cast<Column*>(params[0])->nrows;
   params[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {
@@ -95,6 +168,14 @@ inline static mapperfn resolve0(int opcode, SType stype, void** params) {
         return resolve2<LT, RT, double, op_div<LT, RT, double>>;
       else
         return resolve2<LT, RT, VT, op_div<LT, RT, VT>>;
+
+    // Relational operators
+    case OpCode::Equal:          return resolve2<LT, RT, int8_t, op_eq<LT, RT>>;
+    case OpCode::NotEqual:       return resolve2<LT, RT, int8_t, op_ne<LT, RT>>;
+    case OpCode::Greater:        return resolve2<LT, RT, int8_t, op_gt<LT, RT>>;
+    case OpCode::Less:           return resolve2<LT, RT, int8_t, op_lt<LT, RT>>;
+    case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT>>;
+    case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT>>;
   }
   return nullptr;
 }

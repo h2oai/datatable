@@ -2,8 +2,11 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
+from .binary_expr import _binary_op_codes
 from .literal_expr import LiteralExpr
 from ..types import stype
+from datatable.utils.typechecks import TValueError
+from datatable.lib import core
 
 
 
@@ -19,11 +22,18 @@ class RelationalOpExpr(BaseExpr):
         self._lhs = lhs
         self._rhs = rhs
 
+    def __str__(self):
+        return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
+
     def resolve(self):
         self._lhs.resolve()
         self._rhs.resolve()
         self._stype = stype.bool8
 
+
+    #---------------------------------------------------------------------------
+    # LLVM evaluation
+    #---------------------------------------------------------------------------
 
     def _isna(self, key, inode):
         return False
@@ -46,5 +56,18 @@ class RelationalOpExpr(BaseExpr):
         return "(" + " && ".join(conditions) + ")"
 
 
-    def __str__(self):
-        return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
+    #---------------------------------------------------------------------------
+    # Eager evaluation
+    #---------------------------------------------------------------------------
+
+    def evaluate(self):
+        lhs = self._lhs.evaluate()
+        rhs = self._rhs.evaluate()
+        nl = lhs.nrows
+        nr = rhs.nrows
+        if nl == nr or nl == 1 or nr == 1:
+            opcode = _binary_op_codes[self._op]
+            return core.expr_binaryop(opcode, lhs, rhs)
+        else:
+            raise TValueError("Cannot apply op '%s' on incompatible columns "
+                              "of sizes %d and %d" % (self._op, nl, nr))

@@ -10,8 +10,8 @@ from datatable import stype, ltype, f
 # Prepare fixtures & helper functions
 #-------------------------------------------------------------------------------
 
-@pytest.fixture()
-def dt0():
+@pytest.fixture(name="dt0")
+def _dt0():
     nan = float("nan")
     return dt.DataTable([
         [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
@@ -376,11 +376,15 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
             "the allowed range [0 .. 10)" in str(e.value))
 
 
+
+#-------------------------------------------------------------------------------
+# Expression-based selectors
+#
+# Test that it is possible to use a lambda-expression as a filter:
+#     dt(lambda f: f.colA < f.colB)
+#-------------------------------------------------------------------------------
+
 def test_rows_function1(dt0):
-    """
-    Test that it is possible to use a lambda-expression as a filter:
-        dt(lambda f: f.colA < f.colB)
-    """
     dt1 = dt0(lambda g: g.colA)
     dt2 = dt0(f.colA)
     assert dt1.internal.check()
@@ -420,6 +424,11 @@ def test_rows_function_invalid(dt0):
     assert_typeerror(dt0, lambda g: "boooo!",
                      "Unexpected result produced by the `rows` function")
 
+
+
+#-------------------------------------------------------------------------------
+# Selectors applied to view DataTables
+#-------------------------------------------------------------------------------
 
 def test_filter_on_view1():
     dt0 = dt.DataTable({"A": list(range(50))})
@@ -482,6 +491,11 @@ def test_chained_array(dt0):
     assert dt4.shape == (3, 3)
     assert as_list(dt4) == [[1, 1, 1], [-11, -11, 9], [1, 1, 1.3]]
 
+
+
+#-------------------------------------------------------------------------------
+# Others
+#-------------------------------------------------------------------------------
 
 def test_rows_bad_arguments(dt0):
     """

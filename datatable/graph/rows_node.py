@@ -228,7 +228,8 @@ class BooleanColumnRFNode(RFNode):
         self._coldt = col
 
     def _make_source_rowindex(self):
-        return core.rowindex_from_boolcolumn(self._coldt.internal)
+        col = self._coldt.internal.column(0)
+        return core.rowindex_from_boolcolumn(col)
 
 
 
@@ -294,15 +295,19 @@ class FilterExprRFNode(RFNode):
             self._fnname = ee.make_variable_name("make_rowindex")
             ee.add_node(self)
 
+
     def _make_final_rowindex(self):
         if isinstance(self._engine, LlvmEvaluationEngine):
             ptr = self._engine.get_result(self._fnname)
             return core.rowindex_from_function(ptr)
         else:
-            raise NotImplementedError
+            col = self._expr.evaluate()
+            return core.rowindex_from_boolcolumn(col)
+
 
     def _make_source_rowindex(self):
         return NotImplemented
+
 
     def generate_c(self) -> None:
         """
