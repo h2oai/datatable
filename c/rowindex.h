@@ -88,7 +88,7 @@ public:
 
   static RowIndex* merge(RowIndex*, RowIndex*);
   static RowIndex* from_intcolumn(Column*, int);
-  static RowIndex* from_boolcolumn(Column*, int64_t);
+  static RowIndex* from_boolcolumn(Column*);
   static RowIndex* from_column(Column*);
   static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
   static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);

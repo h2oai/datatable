@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
 from datatable import stype, ltype, f
@@ -9,8 +10,8 @@ from datatable import stype, ltype, f
 # Prepare fixtures & helper functions
 #-------------------------------------------------------------------------------
 
-@pytest.fixture()
-def dt0():
+@pytest.fixture(name="dt0")
+def _dt0():
     nan = float("nan")
     return dt.DataTable([
         [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
@@ -37,21 +38,17 @@ def as_list(datatable):
     return datatable.topython()
 
 
-def is_slice(dt, cols=range(3)):
-    return dt.internal.isview and dt.internal.rowindex_type == "slice"
+def is_slice(df):
+    return df.internal.isview and df.internal.rowindex_type == "slice"
 
 
-def is_arr(dt, cols=range(3)):
-    return dt.internal.isview and dt.internal.rowindex_type == "arr32"
+def is_arr(df):
+    return df.internal.isview and df.internal.rowindex_type == "arr32"
 
-
-def is_slice_or_arr(dt, nrows):
-    return (nrows == 0 or
-            dt.internal.isview and dt.internal.rowindex_type == "slice")
 
 
 #-------------------------------------------------------------------------------
-# Run the tests
+# Basic tests
 #-------------------------------------------------------------------------------
 
 def test_dt0_properties(dt0):
@@ -81,58 +78,91 @@ def test_rows_ellipsis(dt0):
     assert not dt1.internal.isview
 
 
-def test_rows_integer(dt0):
-    """
-    Test row selectors which are simple integers, such as:
-        dt(5)
-    should select the 6-th row of the datatable. Negative integers are also
-    allowed, and should count from the end of the datatable.
-    """
-    for i in range(-10, 10):
-        dt1 = dt0(i)
-        assert dt1.internal.check()
-        assert dt1.shape == (1, 3)
-        assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
-        assert is_slice(dt1)
-    assert as_list(dt0(0)) == [[0], [7], [5]]
-    assert as_list(dt0(-2))[:2] == [[1], [1]]
-    assert as_list(dt0(-2))[2][0] is None  # nan turns into None
-    assert as_list(dt0(2)) == [[1], [9], [1.3]]
-    assert as_list(dt0(4)) == [[0], [None], [100000]]
-    assert as_list(dt0[1, :]) == [[1], [-11], [1]]
-    assert_valueerror(dt0, 10, "Row `10` is invalid for datatable with 10 rows")
-    assert_valueerror(dt0, -11, "Row `-11` is invalid for datatable with 10")
-    assert_valueerror(dt0, -20, "Row `-20` is invalid for datatable with 10")
-    assert_valueerror(dt0, 10**19, "Row `10000000000000000000` is invalid")
+
+#-------------------------------------------------------------------------------
+# Integer selector tests
+#
+# Test row selectors which are simple integers, e.g.:
+#     dt(5)
+# should select the 6-th row of the datatable. Negative integers are also
+# allowed, and should count from the end of the datatable.
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("i", range(-10, 10))
+def test_rows_integer1(dt0, i):
+    dt1 = dt0(i)
+    assert dt1.internal.check()
+    assert dt1.shape == (1, 3)
+    assert dt1.names == dt0.names
+    assert dt1.ltypes == dt0.ltypes
+    assert is_slice(dt1)
+    assert dt1.topython() == [[col[i]] for col in dt0.topython()]
 
 
-def test_rows_slice(dt0):
-    """
-    Test row selectors which are slices, such as:
-        dt[:5, :]
-        dt[3:-2, :]
-        dt[::-1, :]
-        dt(rows=slice(None, None, -1))
-    """
-    for sliceobj, nrows in [(slice(None, -2), 8),
-                            (slice(0, 7), 7),
-                            (slice(5, 9), 4),
-                            (slice(9, 5), 0),
-                            (slice(None, None, 100), 1),
-                            (slice(None, None, -1), 10)]:
-        dt1 = dt0(sliceobj)
-        assert dt1.internal.check()
-        assert dt1.shape == (nrows, 3)
-        assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
-        assert is_slice_or_arr(dt1, nrows)
-    assert as_list(dt0[:5, :])[0] == [0, 1, 1, None, 0]
-    assert as_list(dt0[::-1, :])[1] == [None, 1, -1, 0, 0, None, 1e4, 9, -11, 7]
-    assert as_list(dt0[::3, :])[1] == [7, 10000, 0, None]
-    assert as_list(dt0[:3:2, :])[1] == [7, 9]
-    assert as_list(dt0[4:-2, :])[1] == [None, 0, 0, -1]
-    assert as_list(dt0[20:, :])[2] == []
+def test_rows_integer2(dt0):
+    assert dt0(0).topython() == [[0], [7], [5]]
+    assert dt0(-2).topython()[:2] == [[1], [1]]
+    assert dt0(-2).topython()[2][0] is None  # nan turns into None
+    assert dt0(2).topython() == [[1], [9], [1.3]]
+    assert dt0(4).topython() == [[0], [None], [100000]]
+    assert dt0[1, :].topython() == [[1], [-11], [1]]
+
+
+def test_rows_integer3(dt0):
+    assert_valueerror(dt0, 10,
+                      "Row `10` is invalid for datatable with 10 rows")
+    assert_valueerror(dt0, -11,
+                      "Row `-11` is invalid for datatable with 10 rows")
+    assert_valueerror(dt0, -20,
+                      "Row `-20` is invalid for datatable with 10 rows")
+    assert_valueerror(dt0, 10**19,
+                      "Row `10000000000000000000` is invalid for datatable "
+                      "with 10 rows")
+
+
+def test_rows_integer_empty_dt():
+    df = dt.DataTable()
+    assert_valueerror(df, 0, "Row `0` is invalid for datatable with 0 rows")
+    assert_valueerror(df, -1, "Row `-1` is invalid for datatable with 0 rows")
+
+
+
+#-------------------------------------------------------------------------------
+# Slice selector tests
+#
+# Test row selectors which are slices, such as:
+#     dt[:5, :]
+#     dt[3:-2, :]
+#     dt[::-1, :]
+#     dt(rows=slice(None, None, -1))
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("sliceobj, nrows", [(slice(None, -2), 8),
+                                             (slice(0, 7), 7),
+                                             (slice(5, 9), 4),
+                                             (slice(9, 5), 0),
+                                             (slice(None, None, 100), 1),
+                                             (slice(None, None, -1), 10)])
+def test_rows_slice1(dt0, sliceobj, nrows):
+    dt1 = dt0(sliceobj)
+    assert dt1.internal.check()
+    assert dt1.names == dt0.names
+    assert dt1.ltypes == dt0.ltypes
+    assert nrows == 0 or is_slice(dt1)
+    assert dt1.topython() == [col[sliceobj] for col in dt0.topython()]
+
+
+def test_rows_slice2(dt0):
+    assert dt0[:5, :].topython()[0] == [0, 1, 1, None, 0]
+    assert dt0[::-1, :].topython()[1] == \
+        [None, 1, -1, 0, 0, None, 1e4, 9, -11, 7]
+    assert dt0[::3, :].topython()[1] == [7, 10000, 0, None]
+    assert dt0[:3:2, :].topython()[1] == [7, 9]
+    assert dt0[4:-2, :].topython()[1] == [None, 0, 0, -1]
+    assert dt0[20:, :].topython()[2] == []
+
+
+def test_rows_slice3(dt0):
     assert_valueerror(dt0, slice(0, 10, 0), "step must not be 0")
     # noinspection PyTypeChecker
     assert_valueerror(dt0, slice(3, 5.7),
@@ -142,36 +172,47 @@ def test_rows_slice(dt0):
                       "slice('colA', 'colC', None) is not integer-valued")
 
 
-def test_rows_range(dt0):
-    """
-    Test that a range object can be used as a row selector, for example:
-        dt(range(5))
-        dt(range(3, -1, -1))
-    """
-    for rangeobj in [range(5),
-                     range(2, 3),
-                     range(-5, -2),
-                     range(7, -1),
-                     range(9, -1, -1)]:
-        dt1 = dt0(rangeobj)
-        nrows = len(rangeobj)
-        assert dt1.internal.check()
-        assert isinstance(rangeobj, range)
-        assert dt1.shape == (nrows, 3)
-        assert dt1.names == ("colA", "colB", "colC")
-        assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
-        assert is_slice_or_arr(dt1, nrows)
+
+#-------------------------------------------------------------------------------
+# Range selector
+#
+# Test that a range object can be used as a row selector, for example:
+#     dt(range(5))
+#     dt(range(3, -1, -1))
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("rangeobj", [range(5),
+                                      range(2, 3),
+                                      range(-5, -2),
+                                      range(7, -1),
+                                      range(9, -1, -1)])
+def test_rows_range1(dt0, rangeobj):
+    dt1 = dt0(rangeobj)
+    assert dt1.internal.check()
+    assert dt1.shape == (len(rangeobj), 3)
+    assert dt1.names == dt0.names
+    assert dt1.ltypes == dt0.ltypes
+    assert len(rangeobj) == 0 or is_slice(dt1)
+    assert dt1.topython() == [[col[i] for i in rangeobj]
+                              for col in dt0.topython()]
+
+
+def test_rows_range2(dt0):
     assert_valueerror(dt0, range(15),
                       "Invalid range(0, 15) for a datatable with 10 rows")
     assert_valueerror(dt0, range(-5, 5),
                       "Invalid range(-5, 5) for a datatable with 10 rows")
 
 
+
+#-------------------------------------------------------------------------------
+# Generator selector
+#
+# Test the use of a generator object as a row selector:
+#     dt(i for i in range(dt.nrows) if i % 3 <= 1)
+#-------------------------------------------------------------------------------
+
 def test_rows_generator(dt0):
-    """
-    Test the use of a generator object as a row selector:
-        dt(i for i in range(dt.nrows) if i % 3 <= 1)
-    """
     g = (i * 2 for i in range(4))
     assert type(g).__name__ == "generator"
     dt1 = dt0(g)
@@ -182,6 +223,16 @@ def test_rows_generator(dt0):
                       "Invalid row selector '-2' generated at position 2")
 
 
+
+#-------------------------------------------------------------------------------
+# "Multi-slice" selectors
+#
+# Test that it is possible to combine multiple row-selectors in an array:
+#     dt([0, 5, 2, 1])
+#     dt([slice(None, None, 2), slice(1, None, 2)])
+#     dt([0, 1] * 100)
+#-------------------------------------------------------------------------------
+
 @pytest.mark.parametrize("selector, nrows",
                          [([2, 7, 0, 9], 4),
                           ({1, -1, 0}, 3),
@@ -190,12 +241,6 @@ def test_rows_generator(dt0):
                           ([0, 2, range(4), -1], 7),
                           ([4, 9, 3, slice(7), range(10)], 20)])
 def test_rows_multislice(dt0, selector, nrows):
-    """
-    Test that it is possible to combine multiple row-selectors in an array:
-        dt([0, 5, 2, 1])
-        dt([slice(None, None, 2), slice(1, None, 2)])
-        dt([0, 1] * 100)
-    """
     dt1 = dt0(selector)
     assert dt1.internal.check()
     assert dt1.shape == (nrows, 3)
@@ -220,11 +265,18 @@ def test_rows_multislice3(dt0):
     assert_valueerror(dt0, [1, -1, 5, -11], "Row `-11` is invalid")
 
 
+
+#-------------------------------------------------------------------------------
+# Boolean column selector
+#
+# Test the use of a boolean column as a filter:
+#     dt(rows=dt2[0])
+#
+# The boolean column can be either a 1-column DataTable, or a 1-dimensional
+# numpy array.
+#-------------------------------------------------------------------------------
+
 def test_rows_bool_column(dt0):
-    """
-    Test the use of a boolean column as a filter:
-        dt(rows=dt2[0])
-    """
     col = dt.DataTable([1, 0, 1, 1, None, 0, None, 1, 1, 0])
     dt1 = dt0(col)
     assert dt1.internal.check()
@@ -266,13 +318,20 @@ def test_rows_bad_column(dt0):
                      "integer column")
 
 
-def tes_rows_int_column(dt0):
-    """
-    Test the use of an integer column as a filter:
-        dt(rows=dt.DataTable([0, 5, 10]))
-    which should produce the same result as
-        dt(rows=[0, 5, 10])
-    """
+
+#-------------------------------------------------------------------------------
+# Integer column selector
+#
+# Test the use of an integer column as a filter:
+#     dt(rows=dt.DataTable([0, 5, 10]))
+#
+# which should produce the same result as
+#     dt(rows=[0, 5, 10])
+#-------------------------------------------------------------------------------
+
+@pytest.mark.skip
+def test_rows_int_column(dt0):
+    # FIXME: this currently seg.faults
     col = dt.DataTable([0, 3, 0, 1])
     dt1 = dt0(rows=col)
     assert dt1.internal.check()
@@ -317,11 +376,15 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
             "the allowed range [0 .. 10)" in str(e.value))
 
 
+
+#-------------------------------------------------------------------------------
+# Expression-based selectors
+#
+# Test that it is possible to use a lambda-expression as a filter:
+#     dt(lambda f: f.colA < f.colB)
+#-------------------------------------------------------------------------------
+
 def test_rows_function1(dt0):
-    """
-    Test that it is possible to use a lambda-expression as a filter:
-        dt(lambda f: f.colA < f.colB)
-    """
     dt1 = dt0(lambda g: g.colA)
     dt2 = dt0(f.colA)
     assert dt1.internal.check()
@@ -333,7 +396,7 @@ def test_rows_function1(dt0):
 
 
 def test_rows_function2(dt0):
-    dt1 = dt0(lambda f: [5, 7, 9])
+    dt1 = dt0(lambda g: [5, 7, 9])
     assert dt1.internal.check()
     assert dt1.shape == (3, 3)
     assert as_list(dt1)[1] == [0, -1, None]
@@ -358,15 +421,95 @@ def test_rows_function4(dt0):
 
 
 def test_rows_function_invalid(dt0):
-    assert_typeerror(dt0, lambda f: "boooo!",
+    assert_typeerror(dt0, lambda g: "boooo!",
                      "Unexpected result produced by the `rows` function")
 
+
+
+#-------------------------------------------------------------------------------
+# Test eager selectors
+#-------------------------------------------------------------------------------
+
+@pytest.fixture(name="df1")
+def _fixture2():
+    df1 = dt.DataTable([[0, 1, 2, 3, 4, 5, 6, None, 7, None, 9],
+                        [3, 2, 1, 3, 4, 0, 2, None, None, 8, 9.0]],
+                       names=["A", "B"])
+    assert df1.internal.check()
+    assert df1.ltypes == (ltype.int, ltype.real)
+    assert df1.names == ("A", "B")
+    return df1
+
+
+def test_rows_equal(df1):
+    dt1 = df1(f.A == f.B, engine="eager")
+    dt2 = df1(f.A == f.B, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[3, 4, None, 9],
+                                                [3, 4, None, 9]]
+
+
+def test_rows_not_equal(df1):
+    dt1 = df1(f.A != f.B, engine="eager")
+    dt2 = df1(f.A != f.B, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[0, 1, 2, 5, 6, 7, None],
+                                                [3, 2, 1, 0, 2, None, 8]]
+
+
+def test_rows_less_than(df1):
+    dt1 = df1(f.A < f.B, engine="eager")
+    dt2 = df1(f.A < f.B, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[0, 1],
+                                                [3, 2]]
+
+
+def test_rows_greater_than(df1):
+    dt1 = df1(f.A > f.B, engine="eager")
+    dt2 = df1(f.A > f.B, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[2, 5, 6],
+                                                [1, 0, 2]]
+
+
+def test_rows_less_than_or_equal(df1):
+    dt1 = df1(f.A <= f.B, engine="eager")
+    dt2 = df1(f.A <= f.B, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[0, 1, 3, 4, None, 9],
+                                                [3, 2, 3, 4, None, 9]]
+
+def test_rows_greater_than_or_equal(df1):
+    dt1 = df1(f.A >= f.B, engine="eager")
+    dt2 = df1(f.A >= f.B, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[2, 3, 4, 5, 6, None, 9],
+                                                [1, 3, 4, 0, 2, None, 9]]
+
+
+
+#-------------------------------------------------------------------------------
+# Selectors applied to view DataTables
+#-------------------------------------------------------------------------------
 
 def test_filter_on_view1():
     dt0 = dt.DataTable({"A": list(range(50))})
     dt1 = dt0[::2, :]
     assert dt1.shape == (25, 1)
-    dt2 = dt1(rows=lambda f: f.A < 10)
+    dt2 = dt1(rows=lambda g: g.A < 10)
     assert dt2.internal.check()
     assert dt2.internal.isview
     assert dt2.topython() == [[0, 2, 4, 6, 8]]
@@ -375,7 +518,7 @@ def test_filter_on_view1():
 def test_filter_on_view2():
     dt0 = dt.DataTable({"A": list(range(50))})
     dt1 = dt0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
-    dt2 = dt1(rows=lambda f: f.A < 10)
+    dt2 = dt1(rows=lambda g: g.A < 10)
     assert dt2.internal.check()
     assert dt2.internal.isview
     assert dt2.topython() == [[5, 7, 9, 3, 1, 4, 8]]
@@ -424,6 +567,11 @@ def test_chained_array(dt0):
     assert as_list(dt4) == [[1, 1, 1], [-11, -11, 9], [1, 1, 1.3]]
 
 
+
+#-------------------------------------------------------------------------------
+# Others
+#-------------------------------------------------------------------------------
+
 def test_rows_bad_arguments(dt0):
     """
     Test row selectors that are invalid (i.e. not of the types listed above).
@@ -437,13 +585,13 @@ def test_rows_bad_arguments(dt0):
 
 
 def test_issue689(tempdir):
-    N = 300000  # Must be > 65536
-    data = [i % 8 for i in range(N)]
+    n = 300000  # Must be > 65536
+    data = [i % 8 for i in range(n)]
     d0 = dt.DataTable(data, names=["A"])
     dt.save(d0, tempdir)
     del d0
     d1 = dt.open(tempdir)
     # Do not check d1! we want it to be lazy at this point
-    d2 = d1(rows=lambda f: f[0] == 1)
+    d2 = d1(rows=lambda g: g[0] == 1)
     assert d2.internal.check()
-    assert d2.shape == (N / 8, 1)
+    assert d2.shape == (n / 8, 1)

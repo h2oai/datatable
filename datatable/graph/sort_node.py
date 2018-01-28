@@ -5,32 +5,38 @@ from datatable.utils.typechecks import TTypeError
 
 
 
-class SortNode(object):
+class SortNode:
+    __slots__ = ["_engine"]
 
-    def __init__(self, dt):
+    def __init__(self, ee):
         super().__init__()
-        self._dt = dt
+        self._engine = ee
+
+    @property
+    def engine(self):
+        return self._engine
 
 
 
-class SingleColumn_SNode(SortNode):
+class SingleColumnSortNode(SortNode):
 
-    def __init__(self, dt, colidx):
-        super().__init__(dt)
+    def __init__(self, ee, colidx):
+        super().__init__(ee)
         self._colidx = colidx
 
     def make_rowindex(self):
-        ri = self._dt.internal.sort(self._colidx)
-        return ri
+        _dt = self.engine.dt.internal
+        rowindex = _dt.sort(self._colidx)
+        return rowindex
 
 
 
-def make_sort(sort, dt):
+def make_sort(sort, ee):
     if sort is None:
         return None
 
     if isinstance(sort, (int, str)):
-        colidx = dt.colindex(sort)
-        return SingleColumn_SNode(dt, colidx)
+        colidx = ee.dt.colindex(sort)
+        return SingleColumnSortNode(ee, colidx)
 
     raise TTypeError("Invalid parameter %r for argument `rows`" % sort)

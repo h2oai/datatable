@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+import datatable
 from datatable.lib import core
 from .llvm import inject_c_code
-from .cols_node import make_columnset
-from .rows_node import make_rowfilter
+
 
 
 #===============================================================================
@@ -11,19 +11,28 @@ from .rows_node import make_rowfilter
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["_dt"]
+    __slots__ = ["dt", "rowindex"]
 
     def __init__(self, dt):
-        self._dt = dt
+        self.dt = dt
+        self.rowindex = None
+
+    def is_compiled(self):
+        """Return True iff the engine requires code compilation step."""
+        return False
 
     def execute(self, node):
         raise NotImplementedError
 
     def make_rowfilter(self, rows):
-        return make_rowfilter(rows, self._dt, self)
+        return datatable.graph.rows_node.make_rowfilter(rows, self)
 
     def make_columnset(self, cols):
-        return make_columnset(cols, self._dt, self)
+        return datatable.graph.cols_node.make_columnset(cols, self.dt, self)
+
+    def make_sort(self, sort):
+        return datatable.graph.sort_node.make_sort(sort, self)
+
 
 
 def make_engine(engine, dt):
@@ -87,6 +96,9 @@ class LlvmEvaluationEngine(EvaluationEngine):
         self._exported_functions = []
         self._function_pointers = None
         self._nodes = []
+
+    def is_compiled(self):
+        return True
 
     def execute(self, node):
         return node.evaluate_llvm()

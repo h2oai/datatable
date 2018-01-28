@@ -2,10 +2,9 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 #-------------------------------------------------------------------------------
 import datatable
-from datatable.lib import core as core
 from .rows_node import AllRFNode, SortedRFNode
 from .cols_node import SliceCSNode, ArrayCSNode
-from .sort_node import make_sort
+from .sort_node import SortNode
 from .context import make_engine
 from .dtproxy import f
 
@@ -25,7 +24,7 @@ def make_datatable(dt, rows, select, sort, engine):
         ee = make_engine(engine, dt)
         rowsnode = ee.make_rowfilter(rows)
         colsnode = ee.make_columnset(select)
-        sortnode = make_sort(sort, dt)
+        sortnode = ee.make_sort(sort)
 
         if sortnode:
             if isinstance(rowsnode, AllRFNode):
@@ -40,9 +39,9 @@ def make_datatable(dt, rows, select, sort, engine):
         # be either a plain "data" table if rowindex selects all rows and the
         # target datatable is not a view, or a "view" datatable otherwise.
         if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-            rowindex = rowsnode.get_final_rowindex()
-            colsnode._rowindex = rowindex
-            columns = colsnode.evaluate_eager()
+            rowsnode.execute()
+            colsnode._rowindex = ee.rowindex
+            columns = ee.execute(colsnode)
             res_dt = columns.to_datatable()
             return datatable.DataTable(res_dt, names=colsnode.column_names)
 

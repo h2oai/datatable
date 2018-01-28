@@ -1,3 +1,18 @@
+//------------------------------------------------------------------------------
+//  Copyright 2017 H2O.ai
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//------------------------------------------------------------------------------
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -257,13 +272,14 @@ RowIndex::RowIndex(int64_t *array, int64_t n, int issorted) :
  * This function will create an RI_ARR32/64 RowIndex, depending on what is
  * minimally required.
  */
-RowIndex* RowIndex::from_boolcolumn(Column *col, int64_t nrows)
+RowIndex* RowIndex::from_boolcolumn(Column* col)
 {
     if (stype_info[col->stype()].ltype != LT_BOOLEAN)
         throw ValueError() << "Column is not of boolean type";
     int8_t *data = (int8_t*) col->data();
     int64_t nout = 0;
     int64_t maxrow = 0;
+    int64_t nrows = col->nrows;
     for (int64_t i = 0; i < nrows; i++)
         if (data[i] == 1) {
             ++nout;
