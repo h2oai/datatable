@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
-
 from .base_expr import BaseExpr
 from .consts import nas_map
 from ..types import stype
+from datatable.lib import core
 
 
 class LiteralExpr(BaseExpr):
@@ -29,24 +29,6 @@ class LiteralExpr(BaseExpr):
                 self._stype = stype.float64
         elif isinstance(arg, float):
             aarg = abs(arg)
-            # sarg = str(aarg)
-            # ndec = len(sarg) - sarg.find(".") - 1
-            # if ndec <= 6:
-            #     tenp = 10**ndec
-            #     self.arg = int(arg * tenp + 0.001)
-            #     self.scale = ndec
-            #     assert self.arg / tenp == arg
-            #     aarg = abs(self.arg)
-            #     if aarg < 32768:
-            #         self._stype = stype.dec16
-            #     elif aarg < 1 << 31:
-            #         self._stype = stype.dec32
-            #     elif aarg < 1 << 63:
-            #         self._stype = stype.dec64
-            #     else:
-            #         self.arg = arg
-            #         self._stype = stype.float64
-            #         self.scale = 0
             if aarg < 3.4e38:
                 self._stype = stype.float32
             else:
@@ -57,6 +39,8 @@ class LiteralExpr(BaseExpr):
     def resolve(self):
         pass
 
+    def evaluate(self):
+        return core.column_from_list([self.arg])
 
     def _isna(self, key, block):
         return self.arg is None

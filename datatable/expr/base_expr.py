@@ -53,6 +53,8 @@ class BaseExpr:
         """
         raise NotImplementedError
 
+    def evaluate(self):
+        raise NotImplementedError
 
     @property
     def stype(self):

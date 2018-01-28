@@ -105,6 +105,14 @@ DECLARE_METHOD(
   "View column's internal data as hex bytes.\n")
 
 
+//---- Python API --------------------------------------------------------------
+
+DECLARE_FUNCTION(
+  column_from_list,
+  "column_from_list(list)\n\n"
+  "Convert a Python list into a Column object.",
+  HOMEFLAG)
+
 
 };  // namespace pycolumn
 #undef BASECLS
