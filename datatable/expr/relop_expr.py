@@ -40,20 +40,25 @@ class RelationalOpExpr(BaseExpr):
 
 
     def _notna(self, key, inode):
+        lhs_notna = self._lhs.notna(inode)
+        rhs_notna = self._rhs.notna(inode)
         lhs_isna = self._lhs.isna(inode)
         rhs_isna = self._rhs.isna(inode)
-        if lhs_isna is True or rhs_isna is True:
-            return "0"
-        conditions = []
-        if lhs_isna is not False:
-            conditions.append("!" + lhs_isna)
-        if rhs_isna is not False:
-            conditions.append("!" + rhs_isna)
-        conditions.append("({lhs} {op} {rhs})"
-                          .format(lhs=self._lhs.notna(inode),
-                                  rhs=self._rhs.notna(inode),
-                                  op=self._op))
-        return "(" + " && ".join(conditions) + ")"
+        if isinstance(lhs_isna, bool):
+            lhs_isna = int(lhs_isna)
+        if isinstance(rhs_isna, bool):
+            rhs_isna = int(rhs_isna)
+
+        if self._op == "!=":
+            teststr = ("({lhsna} || {rhsna} || ({lhs} != {rhs})) && "
+                       "!({lhsna} && {rhsna})")
+        else:
+            teststr = "(!{lhsna} && !{rhsna} && ({lhs} {op} {rhs}))"
+            if self._op[-1] == "=":
+                teststr += " || ({lhsna} && {rhsna})"
+        return teststr.format(lhsna=lhs_isna, rhsna=rhs_isna,
+                              lhs=lhs_notna, rhs=rhs_notna, op=self._op)
+
 
 
     #---------------------------------------------------------------------------
