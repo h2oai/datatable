@@ -37,6 +37,16 @@ def test_sort_len2():
     assert d1.topython() == d2.topython()
 
 
+def test_sort_with_engine():
+    d0 = datatable.DataTable([random.randint(0, 20) for _ in range(100)])
+    d1 = d0(sort=0, engine="llvm")
+    d2 = d0(sort=0, engine="eager")
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d1.shape == d2.shape == d0.shape
+    assert d1.topython() == d2.topython() == [sorted(d0.topython()[0])]
+
+
 
 #-------------------------------------------------------------------------------
 

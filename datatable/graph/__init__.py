@@ -22,6 +22,7 @@ def make_datatable(dt, rows, select, sort, engine):
     """
     with f.bind_datatable(dt):
         ee = make_engine(engine, dt)
+        ee.rowindex = dt.internal.rowindex
         rowsnode = ee.make_rowfilter(rows)
         colsnode = ee.make_columnset(select)
         sortnode = ee.make_sort(sort)
