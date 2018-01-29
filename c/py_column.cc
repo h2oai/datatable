@@ -50,6 +50,14 @@ int unwrap(PyObject* object, Column** address) {
 }
 
 
+PyObject* column_from_list(PyObject*, PyObject* args) {
+  PyObject* list;
+  if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &list)) return nullptr;
+  Column* col = Column::from_pylist(list);
+  return from_column(col, nullptr, 0);
+}
+
+
 
 //==============================================================================
 // Column getters/setters

@@ -48,6 +48,10 @@ class RelationalOpExpr(BaseExpr):
             lhs_isna = int(lhs_isna)
         if isinstance(rhs_isna, bool):
             rhs_isna = int(rhs_isna)
+        if lhs_notna == "None":
+            lhs_notna = "0"
+        if rhs_notna == "None":
+            rhs_notna = "0"
 
         if self._op == "!=":
             teststr = ("({lhsna} || {rhsna} || ({lhs} != {rhs})) && "
