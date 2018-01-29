@@ -72,13 +72,13 @@ class BinaryOpExpr(BaseExpr):
     # Eager evaluation
     #---------------------------------------------------------------------------
 
-    def evaluate(self):
-        lhs = self._lhs.evaluate()
-        rhs = self._rhs.evaluate()
+    def evaluate_eager(self):
+        lhs = self._lhs.evaluate_eager()
+        rhs = self._rhs.evaluate_eager()
         nl = lhs.nrows
         nr = rhs.nrows
         if nl == nr or nl == 1 or nr == 1:
-            opcode = _binary_op_codes[self._op]
+            opcode = binary_op_codes[self._op]
             return core.expr_binaryop(opcode, lhs, rhs)
         else:
             raise TValueError("Cannot apply op '%s' on incompatible columns "
@@ -87,7 +87,7 @@ class BinaryOpExpr(BaseExpr):
 
 #-------------------------------------------------------------------------------
 # Should be in sync with enum in "expr/binaryop.cc"
-_binary_op_codes = {
+binary_op_codes = {
     "+": 1, "-": 2, "*": 3, "/": 4, "//": 5, "**": 6, "%": 7,
     "&&": 8, "||": 9, "<<": 10, ">>": 11,
     "==": 12, "!=": 13, ">": 14, "<": 15, ">=": 16, "<=": 17

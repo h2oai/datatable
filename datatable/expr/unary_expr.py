@@ -4,6 +4,7 @@
 from .base_expr import BaseExpr
 from .consts import unary_ops_rules
 from ..types import stype
+from datatable.lib import core
 
 
 class UnaryOpExpr(BaseExpr):
@@ -23,6 +24,10 @@ class UnaryOpExpr(BaseExpr):
         if self._op == "~" and self._stype == stype.bool8:
             self._op = "!"
 
+    def evaluate_eager(self):
+        arg = self._arg.evaluate_eager()
+        opcode = unary_op_codes[self._op]
+        return core.expr_unaryop(opcode, arg)
 
 
     def _isna(self, key, block):
@@ -35,3 +40,12 @@ class UnaryOpExpr(BaseExpr):
 
     def __str__(self):
         return "(%s %s)" % (self._op, self._arg)
+
+
+
+unary_op_codes = {
+    "isna": 1,
+    "-": 2,
+    "+": 3,
+    "~": 4,
+}

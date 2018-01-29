@@ -32,10 +32,17 @@ DECLARE_FUNCTION(
   "\n",
   dt_EXPR_PY_EXPR_CC)
 
+DECLARE_FUNCTION(
+  expr_unaryop,
+  "expr_unaryop(op, col)\n\n"
+  "Apply unary operator `op` to the column `col` and return the resulting \n"
+  "column.\n",
+  dt_EXPR_PY_EXPR_CC)
 
 
 namespace expr {
 
+Column* unaryop(int opcode, Column* arg);
 Column* binaryop(int opcode, Column* lhs, Column* rhs);
 
 };

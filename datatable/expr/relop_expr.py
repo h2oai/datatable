@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .binary_expr import _binary_op_codes
+from .binary_expr import binary_op_codes
 from .literal_expr import LiteralExpr
 from ..types import stype
 from datatable.utils.typechecks import TValueError
@@ -69,13 +69,13 @@ class RelationalOpExpr(BaseExpr):
     # Eager evaluation
     #---------------------------------------------------------------------------
 
-    def evaluate(self):
-        lhs = self._lhs.evaluate()
-        rhs = self._rhs.evaluate()
+    def evaluate_eager(self):
+        lhs = self._lhs.evaluate_eager()
+        rhs = self._rhs.evaluate_eager()
         nl = lhs.nrows
         nr = rhs.nrows
         if nl == nr or nl == 1 or nr == 1:
-            opcode = _binary_op_codes[self._op]
+            opcode = binary_op_codes[self._op]
             return core.expr_binaryop(opcode, lhs, rhs)
         else:
             raise TValueError("Cannot apply op '%s' on incompatible columns "

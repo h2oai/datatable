@@ -301,7 +301,7 @@ class FilterExprRFNode(RFNode):
             ptr = self._engine.get_result(self._fnname)
             return core.rowindex_from_function(ptr)
         else:
-            col = self._expr.evaluate()
+            col = self._expr.evaluate_eager()
             return core.rowindex_from_boolcolumn(col)
 
 
