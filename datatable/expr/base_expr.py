@@ -53,7 +53,7 @@ class BaseExpr:
         """
         raise NotImplementedError
 
-    def evaluate(self):
+    def evaluate_eager(self):
         raise NotImplementedError
 
     @property

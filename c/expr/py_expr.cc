@@ -53,3 +53,17 @@ PyObject* expr_column(PyObject*, PyObject* args)
   col->reify();
   return pycolumn::from_column(col, NULL, 0);
 }
+
+
+PyObject* expr_unaryop(PyObject*, PyObject* args)
+{
+  int opcode;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "iO:expr_isna", &opcode, &arg1))
+    return nullptr;
+  PyObj pyarg1(arg1);
+
+  Column* col = pyarg1.as_column();
+  Column* res = expr::unaryop(opcode, col);
+  return pycolumn::from_column(res, nullptr, 0);
+}

@@ -519,6 +519,8 @@ def test_rows_compare_to_scalar_lt(df1):
     assert dt1.topython() == dt2.topython() == [[0, 1, 2],
                                                 [3, 2, 1]]
 
+
+# noinspection PyComparisonWithNone
 def test_rows_compare_to_scalar_eq(df1):
     dt1 = df1(f.A == None, engine="eager")
     dt2 = df1(f.A == None, engine="llvm")
@@ -527,6 +529,27 @@ def test_rows_compare_to_scalar_eq(df1):
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[None, None],
                                                 [None, 8]]
+
+def test_rows_unary_minus(df1):
+    dt1 = df1(-f.A < -3, engine="eager")
+    dt2 = df1(-f.A < -3, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[4, 5, 6, 7, 9],
+                                                [4, 0, 2, None, 9]]
+
+
+def test_rows_isna(df1):
+    from datatable import isna
+    dt1 = df1(isna(f.A), engine="eager")
+    dt2 = df1(isna(f.A), engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[None, None],
+                                                [None, 8]]
+
 
 
 

@@ -39,7 +39,7 @@ class LiteralExpr(BaseExpr):
     def resolve(self):
         pass
 
-    def evaluate(self):
+    def evaluate_eager(self):
         return core.column_from_list([self.arg])
 
     def _isna(self, key, block):
