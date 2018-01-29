@@ -432,8 +432,8 @@ def test_rows_function_invalid(dt0):
 
 @pytest.fixture(name="df1")
 def _fixture2():
-    df1 = dt.DataTable([[0, 1, 2, 3, 4, 5, 6, None, 7, None, 9],
-                        [3, 2, 1, 3, 4, 0, 2, None, None, 8, 9.0]],
+    df1 = dt.DataTable([[0, 1, 2, 3, 4, 5, 6, None, 7,    None, 9],
+                        [3, 2, 1, 3, 4, 0, 2, None, None, 8,    9.0]],
                        names=["A", "B"])
     assert df1.internal.check()
     assert df1.ltypes == (ltype.int, ltype.real)
@@ -490,6 +490,7 @@ def test_rows_less_than_or_equal(df1):
     assert dt1.topython() == dt2.topython() == [[0, 1, 3, 4, None, 9],
                                                 [3, 2, 3, 4, None, 9]]
 
+
 def test_rows_greater_than_or_equal(df1):
     dt1 = df1(f.A >= f.B, engine="eager")
     dt2 = df1(f.A >= f.B, engine="llvm")
@@ -498,6 +499,34 @@ def test_rows_greater_than_or_equal(df1):
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[2, 3, 4, 5, 6, None, 9],
                                                 [1, 3, 4, 0, 2, None, 9]]
+
+def test_rows_compare_to_scalar_gt(df1):
+    dt1 = df1(f.A > 3, engine="eager")
+    dt2 = df1(f.A > 3, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[4, 5, 6, 7, 9],
+                                                [4, 0, 2, None, 9]]
+
+
+def test_rows_compare_to_scalar_lt(df1):
+    dt1 = df1(f.A < 3, engine="eager")
+    dt2 = df1(f.A < 3, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[0, 1, 2],
+                                                [3, 2, 1]]
+
+def test_rows_compare_to_scalar_eq(df1):
+    dt1 = df1(f.A == None, engine="eager")
+    dt2 = df1(f.A == None, engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.names == dt2.names == df1.names
+    assert dt1.topython() == dt2.topython() == [[None, None],
+                                                [None, 8]]
 
 
 

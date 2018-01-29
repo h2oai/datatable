@@ -59,13 +59,21 @@ enum OpCode {
   LessOrEqual    = 17,  // <=
 };
 
+enum OpMode {
+  N_to_N = 1,
+  N_to_One = 2,
+  One_to_N = 3
+};
+
 typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
 
 
-
+//------------------------------------------------------------------------------
+// Final mapper functions
+//------------------------------------------------------------------------------
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
-static void resolve2(int64_t row0, int64_t row1, void** params) {
+static void map_n_to_n(int64_t row0, int64_t row1, void** params) {
   LT* lhs_data = static_cast<LT*>(static_cast<Column*>(params[0])->data());
   RT* rhs_data = static_cast<RT*>(static_cast<Column*>(params[1])->data());
   VT* res_data = static_cast<VT*>(static_cast<Column*>(params[2])->data());
@@ -74,11 +82,51 @@ static void resolve2(int64_t row0, int64_t row1, void** params) {
   }
 }
 
+template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
+static void map_n_to_1(int64_t row0, int64_t row1, void** params) {
+  LT* lhs_data = static_cast<LT*>(static_cast<Column*>(params[0])->data());
+  RT rhs_value = static_cast<RT*>(static_cast<Column*>(params[1])->data())[0];
+  VT* res_data = static_cast<VT*>(static_cast<Column*>(params[2])->data());
+  for (int64_t i = row0; i < row1; ++i) {
+    res_data[i] = OP(lhs_data[i], rhs_value);
+  }
+}
 
-template<typename LT, typename RT, typename VT> inline static VT op_add(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) + static_cast<VT>(y); }
-template<typename LT, typename RT, typename VT> inline static VT op_sub(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) - static_cast<VT>(y); }
-template<typename LT, typename RT, typename VT> inline static VT op_mul(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) * static_cast<VT>(y); }
-template<typename LT, typename RT, typename VT> inline static VT op_div(LT x, RT y) { return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / static_cast<VT>(y); }
+template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
+static void map_1_to_n(int64_t row0, int64_t row1, void** params) {
+  LT lhs_value = static_cast<LT*>(static_cast<Column*>(params[0])->data())[0];
+  RT* rhs_data = static_cast<RT*>(static_cast<Column*>(params[1])->data());
+  VT* res_data = static_cast<VT*>(static_cast<Column*>(params[2])->data());
+  for (int64_t i = row0; i < row1; ++i) {
+    res_data[i] = OP(lhs_value, rhs_data[i]);
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
+// Arithmetic operators
+//------------------------------------------------------------------------------
+
+template<typename LT, typename RT, typename VT>
+inline static VT op_add(LT x, RT y) {
+  return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) + static_cast<VT>(y);
+}
+
+template<typename LT, typename RT, typename VT>
+inline static VT op_sub(LT x, RT y) {
+  return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) - static_cast<VT>(y);
+}
+
+template<typename LT, typename RT, typename VT>
+inline static VT op_mul(LT x, RT y) {
+  return IsIntNA<LT>(x) || IsIntNA<RT>(y)? GETNA<VT>() : static_cast<VT>(x) * static_cast<VT>(y);
+}
+
+template<typename LT, typename RT, typename VT>
+inline static VT op_div(LT x, RT y) {
+  return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) / static_cast<VT>(y);
+}
 
 template<typename LT, typename RT, typename VT>
 struct Mod {
@@ -86,12 +134,14 @@ struct Mod {
     return IsIntNA<LT>(x) || IsIntNA<RT>(y) || y == 0? GETNA<VT>() : static_cast<VT>(x) % static_cast<VT>(y);
   }
 };
+
 template<typename LT, typename RT>
 struct Mod<LT, RT, float> {
   inline static float impl(LT x, RT y) {
     return y == 0? GETNA<float>() : std::fmod(static_cast<float>(x), static_cast<float>(y));
   }
 };
+
 template<typename LT, typename RT>
 struct Mod<LT, RT, double> {
   inline static double impl(LT x, RT y) {
@@ -148,51 +198,63 @@ inline static int8_t op_le(LT x, RT y) {  // x <= y
 
 
 
+//------------------------------------------------------------------------------
+// Resolve the right mapping function
+//------------------------------------------------------------------------------
+
+template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
+static mapperfn resolve2(OpMode mode) {
+  switch (mode) {
+    case N_to_N:   return map_n_to_n<LT, RT, VT, OP>;
+    case N_to_One: return map_n_to_1<LT, RT, VT, OP>;
+    case One_to_N: return map_1_to_n<LT, RT, VT, OP>;
+  }
+}
+
 
 template<typename LT, typename RT, typename VT>
-inline static mapperfn resolve0(int opcode, SType stype, void** params) {
+static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, OpMode mode) {
   if (opcode >= OpCode::Equal) {
     // override stype for relational operators
     stype = ST_BOOLEAN_I1;
   }
-  int64_t nrows = static_cast<Column*>(params[0])->nrows;
   params[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {
-    case OpCode::Plus:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>;
-    case OpCode::Minus:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>;
-    case OpCode::Multiply:  return resolve2<LT, RT, VT, op_mul<LT, RT, VT>>;
-    case OpCode::IntDivide: return resolve2<LT, RT, VT, op_div<LT, RT, VT>>;
-    case OpCode::Modulo:    return resolve2<LT, RT, VT, Mod<LT, RT, VT>::impl>;
+    case OpCode::Plus:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>(mode);
+    case OpCode::Minus:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>(mode);
+    case OpCode::Multiply:  return resolve2<LT, RT, VT, op_mul<LT, RT, VT>>(mode);
+    case OpCode::IntDivide: return resolve2<LT, RT, VT, op_div<LT, RT, VT>>(mode);
+    case OpCode::Modulo:    return resolve2<LT, RT, VT, Mod<LT, RT, VT>::impl>(mode);
     case OpCode::Divide:
       if (std::is_integral<VT>::value)
-        return resolve2<LT, RT, double, op_div<LT, RT, double>>;
+        return resolve2<LT, RT, double, op_div<LT, RT, double>>(mode);
       else
-        return resolve2<LT, RT, VT, op_div<LT, RT, VT>>;
+        return resolve2<LT, RT, VT, op_div<LT, RT, VT>>(mode);
 
     // Relational operators
-    case OpCode::Equal:          return resolve2<LT, RT, int8_t, op_eq<LT, RT>>;
-    case OpCode::NotEqual:       return resolve2<LT, RT, int8_t, op_ne<LT, RT>>;
-    case OpCode::Greater:        return resolve2<LT, RT, int8_t, op_gt<LT, RT>>;
-    case OpCode::Less:           return resolve2<LT, RT, int8_t, op_lt<LT, RT>>;
-    case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT>>;
-    case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT>>;
+    case OpCode::Equal:          return resolve2<LT, RT, int8_t, op_eq<LT, RT>>(mode);
+    case OpCode::NotEqual:       return resolve2<LT, RT, int8_t, op_ne<LT, RT>>(mode);
+    case OpCode::Greater:        return resolve2<LT, RT, int8_t, op_gt<LT, RT>>(mode);
+    case OpCode::Less:           return resolve2<LT, RT, int8_t, op_lt<LT, RT>>(mode);
+    case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT>>(mode);
+    case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT>>(mode);
   }
   return nullptr;
 }
 
 
-static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void** params) {
+static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, int64_t nrows, OpMode mode) {
   switch (lhs_type) {
     case ST_BOOLEAN_I1:
     case ST_INTEGER_I1:
       switch (rhs_type) {
         case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve0<int8_t, int8_t, int8_t>(opcode, ST_INTEGER_I1, params);
-        case ST_INTEGER_I2: return resolve0<int8_t, int16_t, int16_t>(opcode, ST_INTEGER_I2, params);
-        case ST_INTEGER_I4: return resolve0<int8_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params);
-        case ST_INTEGER_I8: return resolve0<int8_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_REAL_F4:    return resolve0<int8_t, float, float>(opcode, ST_REAL_F4, params);
-        case ST_REAL_F8:    return resolve0<int8_t, double, double>(opcode, ST_REAL_F8, params);
+        case ST_INTEGER_I1: return resolve1<int8_t, int8_t, int8_t>(opcode, ST_INTEGER_I1, params, nrows, mode);
+        case ST_INTEGER_I2: return resolve1<int8_t, int16_t, int16_t>(opcode, ST_INTEGER_I2, params, nrows, mode);
+        case ST_INTEGER_I4: return resolve1<int8_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
+        case ST_INTEGER_I8: return resolve1<int8_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_REAL_F4:    return resolve1<int8_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_REAL_F8:    return resolve1<int8_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
         default: break;
       }
       break;
@@ -200,12 +262,12 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
     case ST_INTEGER_I2:
       switch (rhs_type) {
         case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve0<int16_t, int8_t, int16_t>(opcode, ST_INTEGER_I2, params);
-        case ST_INTEGER_I2: return resolve0<int16_t, int16_t, int16_t>(opcode, ST_INTEGER_I2, params);
-        case ST_INTEGER_I4: return resolve0<int16_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params);
-        case ST_INTEGER_I8: return resolve0<int16_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_REAL_F4:    return resolve0<int16_t, float, float>(opcode, ST_REAL_F4, params);
-        case ST_REAL_F8:    return resolve0<int16_t, double, double>(opcode, ST_REAL_F8, params);
+        case ST_INTEGER_I1: return resolve1<int16_t, int8_t, int16_t>(opcode, ST_INTEGER_I2, params, nrows, mode);
+        case ST_INTEGER_I2: return resolve1<int16_t, int16_t, int16_t>(opcode, ST_INTEGER_I2, params, nrows, mode);
+        case ST_INTEGER_I4: return resolve1<int16_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
+        case ST_INTEGER_I8: return resolve1<int16_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_REAL_F4:    return resolve1<int16_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_REAL_F8:    return resolve1<int16_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
         default: break;
       }
       break;
@@ -213,12 +275,12 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
     case ST_INTEGER_I4:
       switch (rhs_type) {
         case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve0<int32_t, int8_t, int32_t>(opcode, ST_INTEGER_I4, params);
-        case ST_INTEGER_I2: return resolve0<int32_t, int16_t, int32_t>(opcode, ST_INTEGER_I4, params);
-        case ST_INTEGER_I4: return resolve0<int32_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params);
-        case ST_INTEGER_I8: return resolve0<int32_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_REAL_F4:    return resolve0<int32_t, float, float>(opcode, ST_REAL_F4, params);
-        case ST_REAL_F8:    return resolve0<int32_t, double, double>(opcode, ST_REAL_F8, params);
+        case ST_INTEGER_I1: return resolve1<int32_t, int8_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
+        case ST_INTEGER_I2: return resolve1<int32_t, int16_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
+        case ST_INTEGER_I4: return resolve1<int32_t, int32_t, int32_t>(opcode, ST_INTEGER_I4, params, nrows, mode);
+        case ST_INTEGER_I8: return resolve1<int32_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_REAL_F4:    return resolve1<int32_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_REAL_F8:    return resolve1<int32_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
         default: break;
       }
       break;
@@ -226,12 +288,12 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
     case ST_INTEGER_I8:
       switch (rhs_type) {
         case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve0<int64_t, int8_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_INTEGER_I2: return resolve0<int64_t, int16_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_INTEGER_I4: return resolve0<int64_t, int32_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_INTEGER_I8: return resolve0<int64_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params);
-        case ST_REAL_F4:    return resolve0<int64_t, float, float>(opcode, ST_REAL_F4, params);
-        case ST_REAL_F8:    return resolve0<int64_t, double, double>(opcode, ST_REAL_F8, params);
+        case ST_INTEGER_I1: return resolve1<int64_t, int8_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_INTEGER_I2: return resolve1<int64_t, int16_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_INTEGER_I4: return resolve1<int64_t, int32_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_INTEGER_I8: return resolve1<int64_t, int64_t, int64_t>(opcode, ST_INTEGER_I8, params, nrows, mode);
+        case ST_REAL_F4:    return resolve1<int64_t, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_REAL_F8:    return resolve1<int64_t, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
         default: break;
       }
       break;
@@ -239,12 +301,12 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
     case ST_REAL_F4:
       switch (rhs_type) {
         case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve0<float, int8_t, float>(opcode, ST_REAL_F4, params);
-        case ST_INTEGER_I2: return resolve0<float, int16_t, float>(opcode, ST_REAL_F4, params);
-        case ST_INTEGER_I4: return resolve0<float, int32_t, float>(opcode, ST_REAL_F4, params);
-        case ST_INTEGER_I8: return resolve0<float, int64_t, float>(opcode, ST_REAL_F4, params);
-        case ST_REAL_F4:    return resolve0<float, float, float>(opcode, ST_REAL_F4, params);
-        case ST_REAL_F8:    return resolve0<float, double, double>(opcode, ST_REAL_F8, params);
+        case ST_INTEGER_I1: return resolve1<float, int8_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_INTEGER_I2: return resolve1<float, int16_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_INTEGER_I4: return resolve1<float, int32_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_INTEGER_I8: return resolve1<float, int64_t, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_REAL_F4:    return resolve1<float, float, float>(opcode, ST_REAL_F4, params, nrows, mode);
+        case ST_REAL_F8:    return resolve1<float, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
         default: break;
       }
       break;
@@ -252,12 +314,12 @@ static mapperfn resolve_n_to_n(SType lhs_type, SType rhs_type, int opcode, void*
     case ST_REAL_F8:
       switch (rhs_type) {
         case ST_BOOLEAN_I1:
-        case ST_INTEGER_I1: return resolve0<double, int8_t, double>(opcode, ST_REAL_F8, params);
-        case ST_INTEGER_I2: return resolve0<double, int16_t, double>(opcode, ST_REAL_F8, params);
-        case ST_INTEGER_I4: return resolve0<double, int32_t, double>(opcode, ST_REAL_F8, params);
-        case ST_INTEGER_I8: return resolve0<double, int64_t, double>(opcode, ST_REAL_F8, params);
-        case ST_REAL_F4:    return resolve0<double, float, double>(opcode, ST_REAL_F8, params);
-        case ST_REAL_F8:    return resolve0<double, double, double>(opcode, ST_REAL_F8, params);
+        case ST_INTEGER_I1: return resolve1<double, int8_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case ST_INTEGER_I2: return resolve1<double, int16_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case ST_INTEGER_I4: return resolve1<double, int32_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case ST_INTEGER_I8: return resolve1<double, int64_t, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case ST_REAL_F4:    return resolve1<double, float, double>(opcode, ST_REAL_F8, params, nrows, mode);
+        case ST_REAL_F8:    return resolve1<double, double, double>(opcode, ST_REAL_F8, params, nrows, mode);
         default: break;
       }
       break;
@@ -286,7 +348,13 @@ Column* expr::binaryop(int opcode, Column* lhs, Column* rhs)
 
   mapperfn mapfn = nullptr;
   if (lhs_nrows == rhs_nrows) {
-    mapfn = resolve_n_to_n(lhs_type, rhs_type, opcode, params);
+    mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows, OpMode::N_to_N);
+  }
+  else if (rhs_nrows == 1) {
+    mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows, OpMode::N_to_One);
+  }
+  else if (lhs_nrows == 1) {
+    mapfn = resolve0(lhs_type, rhs_type, opcode, params, rhs_nrows, OpMode::One_to_N);
   }
   if (!mapfn) {
     throw RuntimeError()
