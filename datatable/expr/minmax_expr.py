@@ -2,9 +2,10 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .consts import ctypes_map, nas_map
+from .consts import ctypes_map, nas_map, reduce_opcodes
 from ..utils.typechecks import DataTable_t, is_type
 from ..types import stype
+from datatable.lib import core
 
 __all__ = ("min", "max", "MinMaxReducer")
 
@@ -44,6 +45,12 @@ class MinMaxReducer(BaseExpr):
         self._op = "<" if ismin else ">"
         self._name = "min" if ismin else "max"
         self._stype = expr.stype
+
+
+    def evaluate_eager(self):
+        col = self.expr.evaluate_eager()
+        opcode = reduce_opcodes[self._name]
+        return core.expr_reduceop(opcode, col)
 
 
     def __str__(self):
