@@ -219,6 +219,8 @@ static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, 
   if (opcode >= OpCode::Equal) {
     // override stype for relational operators
     stype = ST_BOOLEAN_I1;
+  } else if (opcode == OpCode::Divide && std::is_integral<VT>::value) {
+    stype = ST_REAL_F8;
   }
   params[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {

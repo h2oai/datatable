@@ -2,9 +2,10 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .consts import ctypes_map, nas_map
+from .consts import ctypes_map, nas_map, reduce_opcodes
 from ..utils.typechecks import DataTable_t, is_type
 from ..types import stype
+from datatable.lib import core
 
 __all__ = ("min", "max", "MinMaxReducer")
 
@@ -43,19 +44,28 @@ class MinMaxReducer(BaseExpr):
         self._skipna = skipna
         self._op = "<" if ismin else ">"
         self._name = "min" if ismin else "max"
-        self._stype = expr.stype
+
+    def resolve(self):
+        self._arg.resolve()
+        self._stype = self._arg.stype
+
+
+    def evaluate_eager(self):
+        col = self._arg.evaluate_eager()
+        opcode = reduce_opcodes[self._name]
+        return core.expr_reduceop(opcode, col)
 
 
     def __str__(self):
         return "%s%d(%s)" % (self._name, self._skipna, self._arg)
 
 
-    def _value(self, block):
-        pf = block.previous_function
+    def _value(self, key, inode):
+        pf = inode.previous_function
         curr = pf.make_variable("run%s" % self._name)
         curr_isna = pf.make_variable("run%s_isna" % self._name)
-        res = block.make_variable(self._name)
-        i = block.add_stack_variable(str(self))
+        res = inode.make_variable(self._name)
+        i = inode.add_stack_variable(str(self))
         arg_isna = self._arg.isna(pf)
         arg_value = self._arg.value(pf)
         ctype = ctypes_map[self.stype]
@@ -75,19 +85,19 @@ class MinMaxReducer(BaseExpr):
         pf.add_mainloop_expr("}")
         pf.add_epilogue_expr("stack[%d].%s = %s? %s : %s;"
                              % (i, self.stype[:2], curr_isna, na, curr))
-        block.add_prologue_expr("%s %s = stack[%d].%s;"
+        inode.add_prologue_expr("%s %s = stack[%d].%s;"
                                 % (ctype, res, i, self.stype[:2]))
         return res
 
 
-    def _isna(self, block):
+    def _isna(self, key, inode):
         if self.stype == stype.float64:
-            return "ISNA_F8(%s)" % self.value(block)
+            return "ISNA_F8(%s)" % self.value(inode)
         elif self.stype == stype.float32:
-            return "ISNA_F4(%s)" % self.value(block)
+            return "ISNA_F4(%s)" % self.value(inode)
         else:
-            return "(%s == %s)" % (self.value(block), nas_map[self.stype])
+            return "(%s == %s)" % (self.value(inode), nas_map[self.stype])
 
 
-    def _notna(self, block):
-        return self.value(block)
+    def _notna(self, key, inode):
+        return self.value(inode)

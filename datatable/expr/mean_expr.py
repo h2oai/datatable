@@ -2,7 +2,7 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .consts import ops_rules, ctypes_map, nas_map
+from .consts import ops_rules, ctypes_map, nas_map, reduce_opcodes
 from datatable.lib import core
 
 
@@ -30,7 +30,8 @@ class MeanReducer(BaseExpr):
 
     def evaluate_eager(self):
         col = self.expr.evaluate_eager()
-        return core.expr_mean(col)
+        opcode = reduce_opcodes["mean"]
+        return core.expr_reduceop(opcode, col)
 
 
     def __str__(self):

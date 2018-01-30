@@ -40,9 +40,9 @@ DECLARE_FUNCTION(
   dt_EXPR_PY_EXPR_CC)
 
 DECLARE_FUNCTION(
-  expr_mean,
-  "expr_mean(col)\n\n"
-  "Compute mean value of provided column.\n",
+  expr_reduceop,
+  "expr_reduceop(op, col)\n\n"
+  "Compute a reduction over the provided column.\n",
   dt_EXPR_PY_EXPR_CC)
 
 
@@ -52,7 +52,7 @@ typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
 
 Column* unaryop(int opcode, Column* arg);
 Column* binaryop(int opcode, Column* lhs, Column* rhs);
-Column* mean(Column* arg);
+Column* reduceop(int opcode, Column* arg);
 
 };
 

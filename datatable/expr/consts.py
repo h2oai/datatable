@@ -111,3 +111,12 @@ for st in stype_bool | stype_int:
 for st in stype_int | stype_float:
     unary_ops_rules[("-", st)] = st
     unary_ops_rules[("+", st)] = st
+
+
+# Synchronize with reduceop.cc
+reduce_opcodes = {
+    "mean": 1,
+    "min": 2,
+    "max": 3,
+    "stdev": 4,
+}
