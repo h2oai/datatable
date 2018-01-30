@@ -130,6 +130,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(expr_binaryop),
     METHODv(expr_unaryop),
     METHODv(expr_column),
+    METHODv(expr_mean),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };

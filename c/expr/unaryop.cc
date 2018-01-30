@@ -16,6 +16,8 @@
 #include "expr/py_expr.h"
 #include "types.h"
 
+namespace expr
+{
 
 enum OpCode {
   IsNa   = 1,
@@ -24,11 +26,9 @@ enum OpCode {
   Invert = 4,
 };
 
-typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
-
 
 //------------------------------------------------------------------------------
-// Finall mapper function
+// Final mapper function
 //------------------------------------------------------------------------------
 
 template<typename IT, typename OT, OT (*OP)(IT)>
@@ -105,7 +105,7 @@ static mapperfn resolve0(SType stype, int opcode) {
 }
 
 
-Column* expr::unaryop(int opcode, Column* arg)
+Column* unaryop(int opcode, Column* arg)
 {
   if (opcode == OpCode::Plus) return arg->shallowcopy();
 
@@ -128,3 +128,6 @@ Column* expr::unaryop(int opcode, Column* arg)
 
   return static_cast<Column*>(params[1]);
 }
+
+
+};  // namespace expr
