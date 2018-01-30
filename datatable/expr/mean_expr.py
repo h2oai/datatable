@@ -2,7 +2,8 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .consts import ops_rules, stype_decimal, ctypes_map, nas_map
+from .consts import ops_rules, ctypes_map, nas_map
+from datatable.lib import core
 
 
 def mean(expr, skipna=True):
@@ -10,30 +11,38 @@ def mean(expr, skipna=True):
 
 
 class MeanReducer(BaseExpr):
+    __slots__ = ["expr", "skipna"]
 
     def __init__(self, expr, skipna=True):
         super().__init__()
         self.expr = expr
         self.skipna = skipna
-        self._stype = ops_rules.get(("mean", expr.stype), None)
+
+
+    def resolve(self):
+        self.expr.resolve()
+        expr_stype = self.expr.stype
+        self._stype = ops_rules.get(("mean", expr_stype), None)
         if self._stype is None:
             raise ValueError(
-                "Cannot compute mean of a variable of type %s" % expr.stype)
-        self.scale = 0
-        if self._stype in stype_decimal:
-            self.scale = expr.scale
+                "Cannot compute mean of a variable of type %s" % expr_stype)
+
+
+    def evaluate_eager(self):
+        col = self.expr.evaluate_eager()
+        return core.expr_mean(col)
 
 
     def __str__(self):
         return "mean%d(%s)" % (self.skipna, self.expr)
 
 
-    def _value(self, block):
-        pf = block.previous_function
+    def _value(self, key, inode):
+        pf = inode.previous_function
         vsum, vcnt, vres = pf.make_variable("sum", "cnt", "res")
         visna = vsum + "_isna"
-        v = block.make_variable("mean")
-        i = block.add_stack_variable(str(self))
+        v = inode.make_variable("mean")
+        i = inode.add_stack_variable(str(self))
         arg_isna = self.expr.isna(pf)
         arg_notna = self.expr.notna(pf)
         res_ctype = ctypes_map[self.stype]
@@ -55,17 +64,17 @@ class MeanReducer(BaseExpr):
                                  % (res_ctype, vres, visna,
                                     nas_map[self.stype], vsum))
         pf.add_epilogue_expr("stack[%d].f8 = %s;" % (i, vres))
-        block.add_prologue_expr("%s %s = stack[%d].f8;"
+        inode.add_prologue_expr("%s %s = stack[%d].f8;"
                                 % (res_ctype, v, i))
         return v
 
 
-    def _isna(self, block):
+    def _isna(self, key, inode):
         if self.skipna:
             return "0"
         else:
-            return "ISNA_F8(%s)" % self.value(block)
+            return "ISNA_F8(%s)" % self.value(inode)
 
 
-    def _notna(self, block):
-        return self.value(block)
+    def _notna(self, key, inode):
+        return self.value(inode)

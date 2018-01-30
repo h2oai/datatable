@@ -530,6 +530,7 @@ def test_rows_compare_to_scalar_eq(df1):
     assert dt1.topython() == dt2.topython() == [[None, None],
                                                 [None, 8]]
 
+
 def test_rows_unary_minus(df1):
     dt1 = df1(-f.A < -3, engine="eager")
     dt2 = df1(-f.A < -3, engine="llvm")
@@ -550,6 +551,13 @@ def test_rows_isna(df1):
     assert dt1.topython() == dt2.topython() == [[None, None],
                                                 [None, 8]]
 
+
+def test_rows_mean(df1):
+    from datatable import mean
+    df0 = dt.DataTable(range(10), names=["A"])
+    df1 = df0(f.A > mean(f.A), engine="eager")
+    assert df1.internal.check()
+    assert df1.topython() == [[5, 6, 7, 8, 9]]
 
 
 

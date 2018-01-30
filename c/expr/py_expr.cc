@@ -67,3 +67,16 @@ PyObject* expr_unaryop(PyObject*, PyObject* args)
   Column* res = expr::unaryop(opcode, col);
   return pycolumn::from_column(res, nullptr, 0);
 }
+
+
+PyObject* expr_mean(PyObject*, PyObject* args)
+{
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:expr_mean", &arg1))
+    return nullptr;
+  PyObj pyarg1(arg1);
+
+  Column* col = pyarg1.as_column();
+  Column* res = expr::mean(col);
+  return pycolumn::from_column(res, nullptr, 0);
+}

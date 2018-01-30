@@ -13,8 +13,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_PY_EXPR_H
-#define dt_EXPR_PY_EXPR_H
+#ifndef dt_EXPR_PY_EXPR_h
+#define dt_EXPR_PY_EXPR_h
 #include "py_utils.h"
 #include "column.h"
 
@@ -39,11 +39,20 @@ DECLARE_FUNCTION(
   "column.\n",
   dt_EXPR_PY_EXPR_CC)
 
+DECLARE_FUNCTION(
+  expr_mean,
+  "expr_mean(col)\n\n"
+  "Compute mean value of provided column.\n",
+  dt_EXPR_PY_EXPR_CC)
+
 
 namespace expr {
 
+typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
+
 Column* unaryop(int opcode, Column* arg);
 Column* binaryop(int opcode, Column* lhs, Column* rhs);
+Column* mean(Column* arg);
 
 };
 

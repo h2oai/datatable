@@ -38,6 +38,9 @@
 #include "utils/exceptions.h"
 
 
+namespace expr
+{
+
 // Should be in sync with a map in binary_expr.py
 enum OpCode {
   Plus           = 1,
@@ -65,7 +68,6 @@ enum OpMode {
   One_to_N = 3
 };
 
-typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
 
 
 //------------------------------------------------------------------------------
@@ -335,7 +337,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
 // Exported binaryop function
 //------------------------------------------------------------------------------
 
-Column* expr::binaryop(int opcode, Column* lhs, Column* rhs)
+Column* binaryop(int opcode, Column* lhs, Column* rhs)
 {
   int64_t lhs_nrows = lhs->nrows;
   int64_t rhs_nrows = rhs->nrows;
@@ -368,3 +370,5 @@ Column* expr::binaryop(int opcode, Column* lhs, Column* rhs)
 
   return static_cast<Column*>(params[2]);
 }
+
+};  // namespace expr
