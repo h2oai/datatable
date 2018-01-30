@@ -552,10 +552,19 @@ def test_rows_isna(df1):
                                                 [None, 8]]
 
 
-def test_rows_mean(df1):
+def test_rows_mean():
     from datatable import mean
     df0 = dt.DataTable(range(10), names=["A"])
     df1 = df0(f.A > mean(f.A), engine="eager")
+    assert df1.internal.check()
+    assert df1.topython() == [[5, 6, 7, 8, 9]]
+
+
+def test_rows_min_max():
+    from datatable import min, max
+    df0 = dt.DataTable(range(10), names=["A"])
+    # min = 0, max = 9
+    df1 = df0(f.A > (min(f.A) + max(f.A))/2, engine="eager")
     assert df1.internal.check()
     assert df1.topython() == [[5, 6, 7, 8, 9]]
 

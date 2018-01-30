@@ -100,7 +100,7 @@ static mapperfn resolve1(int opcode) {
   switch (opcode) {
     case OpCode::Mean:  return mean_skipna<T1, T2>;
     case OpCode::Min:   return min_skipna<T1>;
-    case OpCode::Max:   return min_skipna<T1>;
+    case OpCode::Max:   return max_skipna<T1>;
     // case OpCode::Stdev: return stdev_skipna<T1, T2>;
     default:            return nullptr;
   }
