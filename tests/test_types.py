@@ -50,7 +50,7 @@ def c_stypes():
 
     # Load info from types.c file
     file2 = os.path.join(os.path.dirname(__file__), "..", "c", "types.c")
-    with open(file2, "r") as f:
+    with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
     mm = re.findall(r"STI\((\w+),\s*"
                     r'"(...)",\s*'
