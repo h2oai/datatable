@@ -128,6 +128,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHOD1_(get_internal_function_ptrs),
     METHOD1_(get_integer_sizes),
     METHODv(expr_binaryop),
+    METHODv(expr_cast),
     METHODv(expr_column),
     METHODv(expr_reduceop),
     METHODv(expr_unaryop),

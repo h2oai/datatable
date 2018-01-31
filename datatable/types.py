@@ -16,6 +16,7 @@
 #-------------------------------------------------------------------------------
 import ctypes
 import enum
+import datatable
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
 
@@ -80,6 +81,9 @@ class stype(enum.Enum):
 
     def __repr__(self):
         return str(self)
+
+    def __call__(self, arg):
+        return datatable.expr.cast_expr.CastExpr(arg, self)
 
     @property
     def code(self):

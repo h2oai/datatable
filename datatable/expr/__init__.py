@@ -4,6 +4,7 @@
 from datatable.graph.dtproxy import f
 from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
+from .cast_expr import CastExpr
 from .column_expr import ColSelectorExpr
 from .isna_expr import isna
 from .literal_expr import LiteralExpr
@@ -20,6 +21,7 @@ __all__ = (
     "sd",
     "isna",
     "BinaryOpExpr",
+    "CastExpr",
     "ColSelectorExpr",
     "f",
     "BaseExpr",

@@ -86,6 +86,15 @@ Column* BoolColumn::sd_column() const {
 
 //----- Type casts -------------------------------------------------------------
 
+template<typename T>
+inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < nrows; ++i) {
+    int8_t x = src[i];
+    trg[i] = ISNA<int8_t>(x)? GETNA<T>() : static_cast<T>(x);
+  }
+}
+
 void BoolColumn::cast_into(BoolColumn* target) const {
   memcpy(target->data(), data(), alloc_size());
 }
@@ -95,58 +104,23 @@ void BoolColumn::cast_into(IntColumn<int8_t>* target) const {
 }
 
 void BoolColumn::cast_into(IntColumn<int16_t>* target) const {
-  const int8_t na = GETNA<int8_t>();
-  int8_t*  src_data = this->elements();
-  int16_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src_data[i];
-    trg_data[i] = x == na? GETNA<int16_t>() : x;
-  }
+  cast_helper<int16_t>(nrows, this->elements(), target->elements());
 }
 
 void BoolColumn::cast_into(IntColumn<int32_t>* target) const {
-  const int8_t na = GETNA<int8_t>();
-  int8_t*  src_data = this->elements();
-  int32_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src_data[i];
-    trg_data[i] = x == na? GETNA<int32_t>() : x;
-  }
+  cast_helper<int32_t>(nrows, this->elements(), target->elements());
 }
 
 void BoolColumn::cast_into(IntColumn<int64_t>* target) const {
-  const int8_t na = GETNA<int8_t>();
-  int8_t*  src_data = this->elements();
-  int64_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src_data[i];
-    trg_data[i] = x == na? GETNA<int64_t>() : x;
-  }
+  cast_helper<int64_t>(nrows, this->elements(), target->elements());
 }
 
 void BoolColumn::cast_into(RealColumn<float>* target) const {
-  const int8_t na = GETNA<int8_t>();
-  int8_t* src_data = this->elements();
-  float*  trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src_data[i];
-    trg_data[i] = x == na? GETNA<float>() : x;
-  }
+  cast_helper<float>(nrows, this->elements(), target->elements());
 }
 
 void BoolColumn::cast_into(RealColumn<double>* target) const {
-  const int8_t na = GETNA<int8_t>();
-  int8_t* src_data = this->elements();
-  double* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src_data[i];
-    trg_data[i] = x == na? GETNA<double>() : x;
-  }
+  cast_helper<double>(nrows, this->elements(), target->elements());
 }
 
 void BoolColumn::cast_into(PyObjectColumn* target) const {
