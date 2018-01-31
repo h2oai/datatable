@@ -1,3 +1,8 @@
+#-------------------------------------------------------------------------------
+#  This Source Code Form is subject to the terms of the Mozilla Public
+#  License, v. 2.0. If a copy of the MPL was not distributed with this
+#  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#-------------------------------------------------------------------------------
 # Copy this file and Run from one level higher than the git pull directory
 # To build: docker build -t opsh2oai/h2oai-nv -f Dockerfile-nvdocker .
 # To run with docker run -it -p 12345:12345 opsh2oai/h2oai-nv

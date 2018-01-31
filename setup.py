@@ -1,5 +1,9 @@
-#!/usr/bin/env python
-# Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#!/usr/bin/env python3
+# © H2O.ai 2018; -*- encoding: utf-8 -*-
+#   This Source Code Form is subject to the terms of the Mozilla Public
+#   License, v. 2.0. If a copy of the MPL was not distributed with this
+#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#-------------------------------------------------------------------------------
 """
 Build script for the `datatable` module.
 
@@ -240,17 +244,19 @@ setup(
     author="Pasha Stetsenko",
     author_email="pasha@h2o.ai",
 
-    license="Apache v2.0",
+    license="Mozilla Public License v2.0",
 
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: Apache Software License",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Topic :: Scientific/Engineering :: Information Analysis",
     ],
-    keywords=["datatable", "data", "dataframe", "munging", "numpy", "pandas",
-              "data processing", "ETL"],
+    keywords=["datatable", "data", "dataframe", "frame", "data.table",
+              "munging", "numpy", "pandas", "data processing", "ETL"],
 
     packages=packages,
 
