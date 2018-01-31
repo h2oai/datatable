@@ -37,6 +37,20 @@ PyObject* expr_binaryop(PyObject*, PyObject* args)
 }
 
 
+PyObject* expr_cast(PyObject*, PyObject* args)
+{
+  int stype;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "Oi:expr_cast", &arg1, &stype))
+    return nullptr;
+  PyObj pyarg(arg1);
+
+  Column* col = pyarg.as_column();
+  Column* res = col->cast(static_cast<SType>(stype));
+  return pycolumn::from_column(res, nullptr, 0);
+}
+
+
 PyObject* expr_column(PyObject*, PyObject* args)
 {
   int64_t index;
@@ -55,6 +69,20 @@ PyObject* expr_column(PyObject*, PyObject* args)
 }
 
 
+PyObject* expr_reduceop(PyObject*, PyObject* args)
+{
+  int opcode;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "iO:expr_reduceop", &opcode, &arg1))
+    return nullptr;
+  PyObj pyarg1(arg1);
+
+  Column* col = pyarg1.as_column();
+  Column* res = expr::reduceop(opcode, col);
+  return pycolumn::from_column(res, nullptr, 0);
+}
+
+
 PyObject* expr_unaryop(PyObject*, PyObject* args)
 {
   int opcode;
@@ -69,15 +97,3 @@ PyObject* expr_unaryop(PyObject*, PyObject* args)
 }
 
 
-PyObject* expr_reduceop(PyObject*, PyObject* args)
-{
-  int opcode;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "iO:expr_reduceop", &opcode, &arg1))
-    return nullptr;
-  PyObj pyarg1(arg1);
-
-  Column* col = pyarg1.as_column();
-  Column* res = expr::reduceop(opcode, col);
-  return pycolumn::from_column(res, nullptr, 0);
-}

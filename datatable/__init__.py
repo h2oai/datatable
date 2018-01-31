@@ -13,6 +13,19 @@ from .utils.typechecks import TValueError as ValueError
 
 __all__ = ("__version__", "DataTable", "max", "mean", "min", "open", "sd",
            "isna", "fread", "TextReader", "save", "stype", "ltype", "f",
-           "TypeError", "ValueError")
+           "TypeError", "ValueError",
+           "bool8", "int8", "int16", "int32", "int64",
+           "float32", "float64", "str32", "str64", "obj64")
+
+bool8 = stype.bool8
+int8 = stype.int8
+int16 = stype.int16
+int32 = stype.int32
+int64 = stype.int64
+float32 = stype.float32
+float64 = stype.float64
+str32 = stype.str32
+str64 = stype.str64
+obj64 = stype.obj64
 
 DataTable.__module__ = "datatable"
