@@ -14,6 +14,7 @@
 //  limitations under the License.
 //------------------------------------------------------------------------------
 #include "expr/py_expr.h"
+#include <cmath>      // std::sqrt
 #include <limits>     // std::numeric_limits<?>::max, ::infinity
 #include "types.h"
 
@@ -61,6 +62,26 @@ static void mean_skipna(int64_t row0, int64_t row1, void** params) {
   output[0] = cnt == 0? GETNA<OT>() : sum / cnt;
 }
 
+// Welford algorithm
+template<typename IT, typename OT>
+static void stdev_skipna(int64_t row0, int64_t row1, void** params) {
+  IT* inputs = static_cast<IT*>(static_cast<Column*>(params[0])->data());
+  OT* output = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  OT mean = 0;
+  OT m2 = 0;
+  int64_t cnt = 0;
+  for (int64_t i = row0; i < row1; ++i) {
+    IT x = inputs[i];
+    if (ISNA<IT>(x)) continue;
+    cnt++;
+    OT t1 = x - mean;
+    mean += t1 / cnt;
+    OT t2 = x - mean;
+    m2 += t1 * t2;
+  }
+  output[0] = cnt <= 1? GETNA<OT>() : std::sqrt(m2 / (cnt - 1));
+}
+
 template<typename T>
 static void min_skipna(int64_t row0, int64_t row1, void** params) {
   T* inputs = static_cast<T*>(static_cast<Column*>(params[0])->data());
@@ -101,7 +122,7 @@ static mapperfn resolve1(int opcode) {
     case OpCode::Mean:  return mean_skipna<T1, T2>;
     case OpCode::Min:   return min_skipna<T1>;
     case OpCode::Max:   return max_skipna<T1>;
-    // case OpCode::Stdev: return stdev_skipna<T1, T2>;
+    case OpCode::Stdev: return stdev_skipna<T1, T2>;
     default:            return nullptr;
   }
 }

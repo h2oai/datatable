@@ -564,9 +564,18 @@ def test_rows_min_max():
     from datatable import min, max
     df0 = dt.DataTable(range(10), names=["A"])
     # min = 0, max = 9
-    df1 = df0(f.A > (min(f.A) + max(f.A))/2, engine="eager")
+    df1 = df0(f.A > (min(f.A) + max(f.A)) / 2, engine="eager")
     assert df1.internal.check()
     assert df1.topython() == [[5, 6, 7, 8, 9]]
+
+
+def test_rows_stdev():
+    from datatable import sd
+    df0 = dt.DataTable(range(10), names=["A"])
+    # stdev = 3.0276
+    df1 = df0(f.A > sd(f.A), engine="eager")
+    assert df1.internal.check()
+    assert df1.topython() == [[4, 5, 6, 7, 8, 9]]
 
 
 

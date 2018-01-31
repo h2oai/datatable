@@ -2,8 +2,8 @@
 # Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
 
 from .base_expr import BaseExpr
-from .consts import ops_rules, stype_decimal, ctypes_map
-
+from .consts import ops_rules, ctypes_map, reduce_opcodes
+from datatable.lib import core
 
 def sd(expr, skipna=True):
     return StdevReducer(expr, skipna)
@@ -15,14 +15,19 @@ class StdevReducer(BaseExpr):
         super().__init__()
         self.expr = expr
         self.skipna = skipna
-        self._stype = ops_rules.get(("sd", expr.stype), None)
+
+    def resolve(self):
+        self.expr.resolve()
+        self._stype = ops_rules.get(("sd", self.expr.stype), None)
         if self.stype is None:
             raise ValueError(
                 "Cannot compute standard deviation of a variable of type %s"
-                % expr.stype)
-        self.scale = 0
-        if self._stype in stype_decimal:
-            self.scale = expr.scale
+                % self.expr.stype)
+
+    def evaluate_eager(self):
+        col = self.expr.evaluate_eager()
+        opcode = reduce_opcodes["stdev"]
+        return core.expr_reduceop(opcode, col)
 
 
     def __str__(self):
