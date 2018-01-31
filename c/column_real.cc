@@ -118,6 +118,15 @@ Column* RealColumn<T>::sd_column() const {
 
 //----- Type casts -------------------------------------------------------------
 
+template<typename IT, typename OT>
+inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < nrows; ++i) {
+    IT x = src[i];
+    trg[i] = ISNA<IT>(x)? GETNA<OT>() : static_cast<OT>(x);
+  }
+}
+
 template <typename T>
 void RealColumn<T>::cast_into(BoolColumn* target) const {
   constexpr int8_t na_trg = GETNA<int8_t>();
@@ -132,50 +141,22 @@ void RealColumn<T>::cast_into(BoolColumn* target) const {
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int8_t>* target) const {
-  constexpr int8_t na_trg = GETNA<int8_t>();
-  T* src_data = this->elements();
-  int8_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x)? na_trg : static_cast<int8_t>(x);
-  }
+  cast_helper<T, int8_t>(this->nrows, this->elements(), target->elements());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int16_t>* target) const {
-  constexpr int16_t na_trg = GETNA<int16_t>();
-  T* src_data = this->elements();
-  int16_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x)? na_trg : static_cast<int16_t>(x);
-  }
+  cast_helper<T, int16_t>(this->nrows, this->elements(), target->elements());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int32_t>* target) const {
-  constexpr int32_t na_trg = GETNA<int32_t>();
-  T* src_data = this->elements();
-  int32_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x)? na_trg : static_cast<int32_t>(x);
-  }
+  cast_helper<T, int32_t>(this->nrows, this->elements(), target->elements());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int64_t>* target) const {
-  constexpr int64_t na_trg = GETNA<int64_t>();
-  T* src_data = this->elements();
-  int64_t* trg_data = target->elements();
-  #pragma omp parallel for schedule(static)
-  for (int64_t i = 0; i < this->nrows; ++i) {
-    T x = src_data[i];
-    trg_data[i] = ISNA<T>(x)? na_trg : static_cast<int64_t>(x);
-  }
+  cast_helper<T, int64_t>(this->nrows, this->elements(), target->elements());
 }
 
 template <>
