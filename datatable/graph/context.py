@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import datatable
 from datatable.lib import core
-from .llvm import inject_c_code
+from .llvm import llvm
 
 
 
@@ -45,7 +45,7 @@ def make_engine(engine, dt):
     if engine == "llvm":
         return LlvmEvaluationEngine(dt)
     if engine is None:
-        if dt.nrows < 0:
+        if dt.nrows < 0 or not llvm.available:
             return EagerEvaluationEngine(dt)
         else:
             return LlvmEvaluationEngine(dt)
@@ -111,8 +111,7 @@ class LlvmEvaluationEngine(EvaluationEngine):
         assert n is not None
         if not self._function_pointers:
             cc = self._gen_module()
-            self._function_pointers = \
-                inject_c_code(cc, self._exported_functions)
+            self._function_pointers = llvm.jit(cc, self._exported_functions)
         if isinstance(n, str):
             n = self._exported_functions.index(n)
         assert n < len(self._function_pointers)
