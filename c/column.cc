@@ -224,20 +224,6 @@ Column::~Column() {
 
 
 /**
- * Compute the amount of padding between the data and offset section for an
- * ST_STRING_I4_VCHAR column. The formula ensures that datasize + padding are
- * always 8-byte aligned, and that the amount of padding is at least 4 bytes.
- */
-size_t Column::i4s_padding(size_t datasize) {
-  return ((8 - ((datasize + 4) & 7)) & 7) + 4;
-}
-size_t Column::i8s_padding(size_t datasize) {
-  return ((8 - (datasize & 7)) & 7) + 8;
-}
-
-
-
-/**
  * Get the total size of the memory occupied by this Column. This is different
  * from `column->alloc_size`, which in general reports byte size of the `data`
  * portion of the column.

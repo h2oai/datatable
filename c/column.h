@@ -166,9 +166,6 @@ public:
 
   RowIndex* sort() const;
 
-  static size_t i4s_padding(size_t datasize);
-  static size_t i8s_padding(size_t datasize);
-
   int64_t countna() const;
   /**
    * Methods for retrieving statistics in the form of a Column. The resulting
