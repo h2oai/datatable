@@ -116,6 +116,15 @@ for st in stype_int | stype_float:
     unary_ops_rules[("-", st)] = st
     unary_ops_rules[("+", st)] = st
 
+# Synchronize with OpCode in c/expr/unaryop.cc
+unary_op_codes = {
+    "isna": 1,
+    "-": 2,
+    "+": 3,
+    "~": 4,
+    "!": 4,  # same as '~'
+}
+
 
 # Synchronize with reduceop.cc
 reduce_opcodes = {

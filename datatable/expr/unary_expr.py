@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 
 from .base_expr import BaseExpr
-from .consts import unary_ops_rules
+from .consts import unary_ops_rules, unary_op_codes
 from ..types import stype
 from datatable.lib import core
 
@@ -44,12 +44,3 @@ class UnaryOpExpr(BaseExpr):
 
     def __str__(self):
         return "(%s %s)" % (self._op, self._arg)
-
-
-
-unary_op_codes = {
-    "isna": 1,
-    "-": 2,
-    "+": 3,
-    "~": 4,
-}

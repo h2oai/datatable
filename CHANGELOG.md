@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Datatable can now use either llvm-4.0 or llvm-5.0 depending on what the user has.
 - fread now allows `sep=""`, causing the file to be read line-by-line.
 - `range` arguments can now be passed to a DataTable constructor.
+- datatable will now fall back to eager execution if it cannot detect LLVM runtime.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
