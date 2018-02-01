@@ -84,6 +84,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   was used and there were any string columns (#671).
 - Fixed a rare bug in fread which produced error message "Jump X did not finish
   reading where jump X+1 started" (#682).
+- Prevented memory leak when using "PyObject" columns in conjunction with numpy.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18

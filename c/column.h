@@ -29,8 +29,23 @@ template <typename T> class StringColumn;
 //==============================================================================
 
 /**
- * This class represents a single column within a DataTable.
+ * A single column within a DataTable.
  *
+ * A Column is a self-sufficient object, i.e. it may exist outside of a
+ * DataTable too. This usually happens when a DataTable is being transformed,
+ * then new Column objects will be created, manipulated, and eventually bundled
+ * into a new DataTable object.
+ *
+ * The main "payload" of this class is the data buffer `mbuf`, which contains
+ * a contiguous memory region with the column's data in NFF format. Columns
+ * of "string" type carry an additional buffer `strbuf` that stores the column's
+ * character data (while `mbuf` stores the offsets).
+ *
+ * The data buffer `mbuf` may be shared across multiple columns: this enables
+ * light-weight "shallow" copying of Column objects. A Column may also reference
+ * another Column's `mbuf` applying a RowIndex `ri` to it. When a RowIndex is
+ * present, it selects a subset of elements from `mbuf`, and only those
+ * sub-elements are considered to be the actual values in the Column.
  *
  * Parameters
  * ----------
@@ -130,7 +145,8 @@ public:
    * converted data into it.
    *
    * If the MemoryBuffer is provided, then that buffer will be used in the
-   * creation of the resulting column.
+   * creation of the resulting column (the Column will assume ownership of the
+   * provided MemoryBuffer).
    */
   Column* cast(SType, MemoryBuffer* mb = nullptr) const;
 
@@ -441,6 +457,26 @@ extern template class RealColumn<double>;
 
 //==============================================================================
 
+/**
+ * Column containing `PyObject*`s.
+ *
+ * This column is a fall-back for implementing types that cannot be normally
+ * supported by other columns. Manipulations with this column almost invariably
+ * go through Python runtime, and hence are single-threaded and slow.
+ *
+ * When any `PyObject*` value is stored in this column's `mbuf`, its reference
+ * count should be incremented (via `Py_INCREF`). When a value is removed or
+ * replaced in `mbuf`, it should be decref'd. However! we do not increase
+ * ref-count of each element when making a shallow copy of the column (this
+ * would be too expensive). Consequently, the Column's destructor should
+ * decref elements in `mbuf` if and only if that `mbuf` is not shared with any
+ * other column (and when it is the last owner of `mbuf`, it should decref all
+ * its elements, regardless of the current RowIndex). Also, we do not decref
+ * the pointers when `mbuf` is "ExternalMemoryBuffer", under the presumption
+ * that this external buffer must be managed by the external owner of that
+ * buffer (hopefully the owner recognizes that the buffer contains `PyObject*`s,
+ * otherwise a memory leak would occur...)
+ */
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:

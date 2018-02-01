@@ -37,6 +37,8 @@ static char strB[] = "B";
 
 
 //------------------------------------------------------------------------------
+// Construct a DataTable from a list of objects implementing Buffers protocol
+//------------------------------------------------------------------------------
 
 // Declared in py_datatable.h
 PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
@@ -223,7 +225,7 @@ Column* try_to_resolve_object_column(Column* col)
 // Buffers interface for pycolumn::obj
 //==============================================================================
 
-typedef struct XInfo {
+struct XInfo {
   // Shallow copy of the exported MemoryBuffer.
   MemoryBuffer* mbuf;
 
@@ -236,7 +238,32 @@ typedef struct XInfo {
   // to get to a new element in each dimension.
   // Must be provided iff PyBUF_STRIDES is set.
   Py_ssize_t strides[2];
-} XInfo;
+
+  // Stype of the exported data
+  SType stype;
+
+  int64_t : 56;
+
+  XInfo() {
+    mbuf = nullptr;
+    shape[0] = shape[1] = 0;
+    strides[0] = strides[1] = 0;
+    stype = ST_VOID;
+  }
+
+  ~XInfo() {
+    if (mbuf) {
+      if (mbuf->get_refcount() == 1 && stype == ST_OBJECT_PYPTR) {
+        PyObject** elems = static_cast<PyObject**>(mbuf->get());
+        size_t nelems = mbuf->size() / sizeof(PyObject*);
+        for (size_t i = 0; i < nelems; ++i) {
+          Py_DECREF(elems[i]);
+        }
+      }
+      mbuf->release();
+    }
+  }
+};
 
 
 /**
@@ -252,10 +279,8 @@ typedef struct XInfo {
 static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
-  MemoryBuffer* mbuf = nullptr;
   try {
     Column* col = self->ref;
-    mbuf = col->mbuf_shallowcopy();
 
     if (REQ_WRITABLE(flags)) {
       // Do not provide a writable array (this may violate all kinds of internal
@@ -268,13 +293,14 @@ static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
     }
 
     xinfo = new XInfo();
-    xinfo->mbuf = mbuf;
+    xinfo->mbuf = col->mbuf_shallowcopy();
     xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
     xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
+    xinfo->stype = col->stype();
 
-    view->buf = mbuf->get();
+    view->buf = xinfo->mbuf->get();
     view->obj = reinterpret_cast<PyObject*>(self);
-    view->len = static_cast<Py_ssize_t>(mbuf->size());
+    view->len = static_cast<Py_ssize_t>(xinfo->mbuf->size());
     view->itemsize = xinfo->strides[0];
     view->readonly = 1;
     view->ndim = 1;
@@ -293,7 +319,6 @@ static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
     view->obj = nullptr;
     view->internal = nullptr;
     delete xinfo;
-    if (mbuf) mbuf->release();
     return -1;
   }
 }
@@ -308,7 +333,6 @@ static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
 static void column_releasebuffer(pycolumn::obj*, Py_buffer* view)
 {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
-  xinfo->mbuf->release();
   delete xinfo;
   view->internal = nullptr;
 }
@@ -326,18 +350,12 @@ PyBufferProcs pycolumn::as_buffer = {
 // Buffers interface for pydatatable::obj
 //==============================================================================
 
-static int dt_getbuffer_no_cols(pydatatable::obj *self, Py_buffer *view,
+static int dt_getbuffer_no_cols(pydatatable::obj* self, Py_buffer* view,
                                 int flags)
 {
   XInfo* xinfo = nullptr;
   try {
     xinfo = new XInfo();
-    xinfo->mbuf = nullptr;
-    xinfo->shape[0] = 0;
-    xinfo->shape[1] = 0;
-    xinfo->strides[0] = 0;
-    xinfo->strides[1] = 0;
-
     view->buf = NULL;
     view->obj = incref(reinterpret_cast<PyObject*>(self));
     view->len = 0;
@@ -360,24 +378,23 @@ static int dt_getbuffer_no_cols(pydatatable::obj *self, Py_buffer *view,
 }
 
 
-static int dt_getbuffer_1_col(pydatatable::obj *self, Py_buffer *view,
+static int dt_getbuffer_1_col(pydatatable::obj* self, Py_buffer* view,
                               int flags)
 {
   XInfo* xinfo = nullptr;
-  MemoryBuffer* mbuf = nullptr;
   try {
     Column* col = self->ref->columns[0];
-    mbuf = col->mbuf_shallowcopy();
     const char* fmt = format_from_stype(col->stype());
 
     xinfo = new XInfo();
-    xinfo->mbuf = mbuf;
+    xinfo->mbuf = col->mbuf_shallowcopy();
     xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
     xinfo->shape[1] = 1;
     xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
-    xinfo->strides[1] = static_cast<Py_ssize_t>(mbuf->size());
+    xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf->size());
+    xinfo->stype = col->stype();
 
-    view->buf = mbuf->get();
+    view->buf = xinfo->mbuf->get();
     view->obj = incref(reinterpret_cast<PyObject*>(self));
     view->len = xinfo->strides[1];
     view->readonly = 1;
@@ -393,7 +410,6 @@ static int dt_getbuffer_1_col(pydatatable::obj *self, Py_buffer *view,
   } catch (const std::exception& e) {
     exception_to_python(e);
     view->obj = nullptr;
-    if (mbuf) mbuf->release();
     delete xinfo;
     return -1;
   }
@@ -484,11 +500,13 @@ static int dt_getbuffer(pydatatable::obj* self, Py_buffer* view, int flags)
     xinfo->shape[1] = static_cast<Py_ssize_t>(ncols);
     xinfo->strides[0] = static_cast<Py_ssize_t>(elemsize);
     xinfo->strides[1] = static_cast<Py_ssize_t>(colsize);
+    xinfo->stype = stype;
+    mbuf = nullptr;
 
     // Fill in the `view` struct
-    view->buf = mbuf->get();
+    view->buf = xinfo->mbuf->get();
     view->obj = incref(reinterpret_cast<PyObject*>(self));
-    view->len = static_cast<Py_ssize_t>(mbuf->size());
+    view->len = static_cast<Py_ssize_t>(xinfo->mbuf->size());
     view->readonly = 0;
     view->itemsize = static_cast<Py_ssize_t>(elemsize);
     view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
@@ -549,10 +567,8 @@ static int dt_getbuffer(pydatatable::obj* self, Py_buffer* view, int flags)
     }
 */
 
-static void dt_releasebuffer(pydatatable::obj*, Py_buffer *view)
-{
+static void dt_releasebuffer(pydatatable::obj*, Py_buffer *view) {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
-  if (xinfo->mbuf) xinfo->mbuf->release();
   delete xinfo;
 }
 

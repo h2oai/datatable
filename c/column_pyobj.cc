@@ -7,6 +7,8 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 
+
+
 PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {}
 
 PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryBuffer* mb) :
@@ -14,12 +16,24 @@ PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryBuffer* mb) :
 
 
 PyObjectColumn::~PyObjectColumn() {
-  // PyObject** elems = elements();
-  // for (int64_t i = 0; i < nrows; i++) {
-  //   Py_DECREF(elems[i]);
-  // }
-  // delete mbuf;
+  // If mbuf is either an instance of ExternalMemBuf (owned externally), or
+  // shared with some other user (refcount > 1) then we don't want to decref
+  // the objects in the buffer.
+  ExternalMemBuf* xbuf = dynamic_cast<ExternalMemBuf*>(mbuf);
+  if (mbuf->get_refcount() == 1 && !xbuf) {
+    PyObject** elems = elements();
+    // The number of elements in the buffer may be different from `nrows` if
+    // there is a RowIndex applied.
+    size_t nelems = mbuf->size() / sizeof(PyObject*);
+    for (size_t i = 0; i < nelems; ++i) {
+      Py_DECREF(elems[i]);
+    }
+  }
+  mbuf->release();
+  // make sure mbuf doesn't get released second time in upstream destructor
+  mbuf = nullptr;
 }
+
 
 SType PyObjectColumn::stype() const {
   return ST_OBJECT_PYPTR;
