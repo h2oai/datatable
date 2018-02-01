@@ -1,5 +1,9 @@
-#!/usr/bin/env python3
-# Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#!/usr/bin/env python
+# © H2O.ai 2018; -*- encoding: utf-8 -*-
+#   This Source Code Form is subject to the terms of the Mozilla Public
+#   License, v. 2.0. If a copy of the MPL was not distributed with this
+#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#-------------------------------------------------------------------------------
 import os
 import re
 
@@ -46,7 +50,7 @@ def c_stypes():
 
     # Load info from types.c file
     file2 = os.path.join(os.path.dirname(__file__), "..", "c", "types.c")
-    with open(file2, "r") as f:
+    with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
     mm = re.findall(r"STI\((\w+),\s*"
                     r'"(...)",\s*'

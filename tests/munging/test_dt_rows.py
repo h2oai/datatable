@@ -1,5 +1,8 @@
-#!/usr/bin/env python3
-# Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#!/usr/bin/env python
+# © H2O.ai 2018; -*- encoding: utf-8 -*-
+#   This Source Code Form is subject to the terms of the Mozilla Public
+#   License, v. 2.0. If a copy of the MPL was not distributed with this
+#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt

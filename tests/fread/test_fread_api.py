@@ -1,5 +1,8 @@
-#!/usr/bin/env python3
-# Copyright 2017 H2O.ai; Apache License Version 2.0;  -*- encoding: utf-8 -*-
+#!/usr/bin/env python
+# © H2O.ai 2018; -*- encoding: utf-8 -*-
+#   This Source Code Form is subject to the terms of the Mozilla Public
+#   License, v. 2.0. If a copy of the MPL was not distributed with this
+#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 # Tests in this file are specifically aimed at checking the API of `fread`
 # function / class. This includes: presence of various parameters, checks that
@@ -52,7 +55,7 @@ def test_fread_from_cmd2():
     assert d0.nrows >= 15
     d1 = dt.fread(cmd="cat LICENSE", sep="\n")
     assert d1.internal.check()
-    assert d1.nrows == 200
+    assert d1.nrows == 372
 
 
 def test_fread_from_url1():
@@ -65,7 +68,7 @@ def test_fread_from_url2():
     path = os.path.abspath("LICENSE")
     d0 = dt.fread("file://" + path, sep="\n")
     assert d0.internal.check()
-    assert d0.shape == (200, 1)
+    assert d0.shape == (372, 1)
 
 
 def test_fread_from_anysource_as_text1(capsys):
