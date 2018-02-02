@@ -6,10 +6,12 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "stats.h"
-#include <cmath>     // std::isinf
+#include <cmath>     // std::isinf, std::sqrt
+#include <limits>    // std::numeric_limits
 #include "column.h"
 #include "rowindex.h"
 #include "utils.h"
+#include "utils/omp.h"
 
 
 /**
@@ -25,6 +27,40 @@ enum Mask : uint64_t {
   SD       = ((uint64_t) 1 << 4),
   COUNTNA  = ((uint64_t) 1 << 5),
 };
+
+template<typename T>
+constexpr T infinity() {
+  return std::numeric_limits<T>::has_infinity
+         ? std::numeric_limits<T>::infinity()
+         : std::numeric_limits<T>::max();
+}
+
+template<typename F>
+void strided_rowindex_loop(RowIndex* ri, int64_t i0, int64_t istep,
+                           int64_t nrows, F f) {
+  if (!ri) {
+    for (int64_t i = i0; i < nrows; i += istep) {
+      f(i);
+    }
+  } else if (ri->type == RI_ARR32) {
+    int32_t* ridata = ri->ind32;
+    for (int64_t i = i0; i < nrows; i += istep) {
+      f(static_cast<int64_t>(ridata[i]));
+    }
+  } else if (ri->type == RI_ARR64) {
+    int64_t* ridata = ri->ind64;
+    for (int64_t i = i0; i < nrows; i += istep) {
+      f(ridata[i]);
+    }
+  } else if (ri->type == RI_SLICE) {
+    int64_t step = ri->slice.step * istep;
+    int64_t start = ri->slice.start + i0 * ri->slice.step;
+    int64_t end = ri->slice.start + nrows * ri->slice.step;
+    for (int64_t i = start; i < end; i += step) {
+      f(i);
+    }
+  }
+}
 
 
 
@@ -101,38 +137,69 @@ template<typename T, typename A> bool NumericalStats<T, A>::sum_computed() const
  */
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
-  T t_min = GETNA<T>();
-  T t_max = GETNA<T>();
-  A t_sum = 0;
-  double t_mean = GETNA<double>();
-  double t_var  = 0;
-  int64_t t_count_notna = 0;
-  int64_t t_nrows = col->nrows;
+  int64_t nrows = col->nrows;
+  RowIndex* rowindex = col->rowindex();
   T* data = static_cast<T*>(col->data());
-  DT_LOOP_OVER_ROWINDEX(i, t_nrows, col->rowindex(),
-    T val = data[i];
-    if (ISNA<T>(val)) continue;
-    ++t_count_notna;
-    t_sum += (A) val;
-    if (ISNA<T>(t_min)) {
-      t_min = t_max = val;
-      t_mean = (double) val;
-      continue;
+  size_t count_notna = 0;
+  double mean = 0;
+  double m2 = 0;
+  A sum = 0;
+  T min = infinity<T>();
+  T max = -infinity<T>();
+
+  #pragma omp parallel
+  {
+    int ith = omp_get_thread_num();  // current thread index
+    int nth = omp_get_num_threads(); // total number of threads
+    size_t t_count_notna = 0;
+    double t_mean = 0;
+    double t_m2 = 0;
+    A t_sum = 0;
+    T t_min = infinity<T>();
+    T t_max = -infinity<T>();
+
+    strided_rowindex_loop(
+      rowindex, ith, nth, nrows,
+      [&](int64_t i) {
+        T x = data[i];
+        if (ISNA<T>(x)) return;
+        ++t_count_notna;
+        t_sum += static_cast<A>(x);
+        if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
+        if (x > t_max) t_max = x;
+        double delta = static_cast<double>(x) - t_mean;
+        t_mean += delta / t_count_notna;
+        double delta2 = static_cast<double>(x) - t_mean;
+        t_m2 += delta * delta2;
+      });
+
+    #pragma omp critical
+    {
+      if (t_count_notna > 0) {
+        double nold = static_cast<double>(count_notna);
+        count_notna += t_count_notna;
+        sum += t_sum;
+        if (t_min < min) min = t_min;
+        if (t_max > max) max = t_max;
+        double delta = mean - t_mean;
+        m2 += t_m2 + delta * delta * (nold / count_notna * t_count_notna);
+        mean = static_cast<double>(sum) / count_notna;
+      }
     }
-    if (t_min > val) t_min = val;
-    else if (t_max < val) t_max = val;
-    double delta = ((double) val) - t_mean;
-    t_mean += delta / t_count_notna;
-    double delta2 = ((double) val) - t_mean;
-    t_var += delta * delta2;
-  )
-  _min = t_min;
-  _max = t_max;
-  _sum = t_sum;
-  _mean = t_mean;
-  _sd = t_count_notna > 1 ? sqrt(t_var / (t_count_notna - 1)) :
-        t_count_notna == 1 ? 0 : GETNA<double>();
-  _countna = t_nrows - t_count_notna;
+  }
+
+  _countna = nrows - count_notna;
+  if (count_notna == 0) {
+    _min = _max = GETNA<T>();
+    _mean = _sd = GETNA<double>();
+    _sum = 0;
+  } else {
+    _min = min;
+    _max = max;
+    _sum = sum;
+    _mean = mean;
+    _sd = count_notna > 1 ? std::sqrt(m2 / (count_notna - 1)) : 0;
+  }
   compute_mask |= Mask::MIN | Mask::MAX | Mask::SUM |
                   Mask::MEAN | Mask::SD | Mask::COUNTNA;
 }
@@ -194,33 +261,42 @@ template class IntegerStats<int64_t>;
  *            \ (count0 + count1 - 1)(count0 + count1) /
  */
 void BooleanStats::compute_numerical_stats(const Column *col) {
-  int64_t t_count0 = 0,
-          t_count1 = 0;
-  int8_t* data = (int8_t*) col->data();
+  int64_t count0 = 0, count1 = 0;
+  int8_t* data = static_cast<int8_t*>(col->data());
   int64_t nrows = col->nrows;
-  DT_LOOP_OVER_ROWINDEX(i, nrows, col->rowindex(),
-    switch (data[i]) {
-      case 0 :
-        ++t_count0;
-        break;
-      case 1 :
-        ++t_count1;
-        break;
-      default :
-        break;
-    };
-  )
-  int64_t t_count = t_count0 + t_count1;
-  _mean = t_count > 0 ? ((double) t_count1) / t_count : GETNA<double>();
-  _sd = t_count > 1 ? sqrt((double)t_count0/t_count * t_count1/(t_count - 1))
+  RowIndex* rowindex = col->rowindex();
+  #pragma omp parallel
+  {
+    int ith = omp_get_thread_num();  // current thread index
+    int nth = omp_get_num_threads(); // total number of threads
+    size_t tcount0 = 0, tcount1 = 0;
+
+    strided_rowindex_loop(
+      rowindex, ith, nth, nrows,
+      [&](int64_t i) {
+        int8_t x = data[i];
+        tcount0 += (x == 0);
+        tcount1 += (x == 1);
+      });
+
+    #pragma omp critical
+    {
+      count0 += tcount0;
+      count1 += tcount1;
+    }
+  }
+  int64_t t_count = count0 + count1;
+  double dcount0 = static_cast<double>(count0);
+  double dcount1 = static_cast<double>(count1);
+  _mean = t_count > 0 ? dcount1 / t_count : GETNA<double>();
+  _sd = t_count > 1 ? std::sqrt(dcount0/t_count * dcount1/(t_count - 1))
                     : t_count == 1 ? 0 : GETNA<double>();
-  _min = GETNA<int8_t>();
-  if (t_count0 > 0) _min = 0;
-  else if (t_count1 > 0) _min = 1;
-  _max = !ISNA<int8_t>(_min) ? t_count1 > 0 : GETNA<int8_t>();
-  _sum = t_count1;
+  _min = count0 ? 0 : count1 ? 1 : GETNA<int8_t>();
+  _max = count1 ? 1 : count0 ? 0 : GETNA<int8_t>();
+  _sum = count1;
   _countna = nrows - t_count;
-  compute_mask |= Mask::MIN | Mask::MAX | Mask::SUM | Mask::MEAN | Mask::SD | Mask::COUNTNA;
+  compute_mask |= Mask::MIN | Mask::MAX | Mask::SUM |
+                  Mask::MEAN | Mask::SD | Mask::COUNTNA;
 }
 
 

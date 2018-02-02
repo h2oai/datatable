@@ -7,53 +7,33 @@
 import pytest
 import datatable as dt
 import statistics
-from datatable import stype
+from datatable import stype, ltype
 from math import inf, nan, isnan
 from tests import list_equals
 
 
-# Sets of tuples containing test columns of each type
-dt_bool = {(False, True, False, False, True),
-           (True, None, None, True, False)}
-
-dt_int = {(5, -3, 6, 3, 0),
-          (None, -1, 0, 26, -3),
-          (129, 38, 27, -127, 8),
-          (385, None, None, -3, -89),
-          (-192, 32769, 683, 94, 0),
-          (None, -32788, -4, -44444, 5),
-          (30, -284928, 59, 3, 2147483649),
-          (2147483648, None, None, None, None)
-          }
-
-dt_float = {(9.5, 0.2, 5.4857301, -3.14159265358979),
-            (1.1, 2.3e12, -.5, None, inf, 0.0),
-            (3.5, 2.36, nan, 696.9, 4097)}
-
-dt_all = dt_bool | dt_int | dt_float
-
-@pytest.fixture(params=dt_all)
-def src_all(request):
+@pytest.fixture(name="src", params=[
+    # Boolean
+    (False, True, False, False, True),
+    (True, None, None, True, False),
+    # Integer
+    (5, -3, 6, 3, 0),
+    (None, -1, 0, 26, -3),
+    (129, 38, 27, -127, 8),
+    (385, None, None, -3, -89),
+    (-192, 32769, 683, 94, 0),
+    (None, -32788, -4, -44444, 5),
+    (30, -284928, 59, 3, 2147483649),
+    (2147483648, None, None, None, None),
+    # Real
+    (9.5, 0.2, 5.4857301, -3.14159265358979),
+    (1.1, 2.3e12, -.5, None, inf, 0.0),
+    (3.5, 2.36, nan, 696.9, 4097)
+])
+def src_fixture(request):
     src = request.param
     return src
 
-# Helper function that provides the resulting stype after `min()` or `max()` is
-# called
-def min_max_stype(st):
-    return st
-
-# Helper function that provides the resulting stype after `mean()` or `sd()` is
-# called
-def mean_sd_stype(st):
-    return stype.float64
-
-# Helper function that provides the result stype after `sum()` is called
-def sum_stype(st):
-    if st in [stype.bool8, stype.int8, stype.int16, stype.int32, stype.int64]:
-        return stype.int64
-    if st in [stype.float32, stype.float64]:
-        return stype.float64
-    return st
 
 
 #-------------------------------------------------------------------------------
@@ -63,20 +43,19 @@ def sum_stype(st):
 def t_min(t):
     t = [i for i in t if i is not None and not isnan(i)]
     if len(t) == 0:
-        return [None]
+        return None
     else:
-        return [min(t)]
+        return min(t)
 
 
-def test_dt_min(src_all):
-    dt0 = dt.DataTable(src_all)
+def test_min(src):
+    dt0 = dt.DataTable(src)
     dtr = dt0.min()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == [min_max_stype(s) for s in dt0.stypes]
-    assert dtr.shape == (1, dt0.ncols)
-    for i in range(dt0.ncols):
-        assert dt0.names[i] == dtr.names[i]
-    assert dtr.topython() == [t_min(src_all)]
+    assert dtr.names == dt0.names
+    assert dtr.stypes == dt0.stypes
+    assert dtr.shape == (1, 1)
+    assert dtr.topython() == [[t_min(src)]]
 
 
 def test_dt_str():
@@ -94,20 +73,20 @@ def test_dt_str():
 def t_max(t):
     t = [i for i in t if i is not None and not isnan(i)]
     if len(t) == 0:
-        return [None]
+        return None
     else:
-        return [max(t)]
+        return max(t)
 
 
-def test_dt_max(src_all):
-    dt0 = dt.DataTable(src_all)
+def test_max(src):
+    dt0 = dt.DataTable(src)
     dtr = dt0.max()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == [min_max_stype(s) for s in dt0.stypes]
-    assert dtr.shape == (1, dt0.ncols)
-    for i in range(dt0.ncols):
-        assert dt0.names[i] == dtr.names[i]
-    assert dtr.topython() == [t_max(src_all)]
+    assert dtr.names == dt0.names
+    assert dtr.stypes == dt0.stypes
+    assert dtr.shape == (1, 1)
+    assert dtr.topython() == [[t_max(src)]]
+
 
 
 #-------------------------------------------------------------------------------
@@ -117,18 +96,24 @@ def test_dt_max(src_all):
 def t_sum(t):
     t = [i for i in t if i is not None and not isnan(i)]
     if len(t) == 0:
-        return [0]
+        return 0
     else:
-        return [sum(t)]
+        return sum(t)
 
-def test_dt_sum(src_all):
-    dt0 = dt.DataTable(src_all)
+# Helper function that provides the result stype after `sum()` is called
+def sum_stype(st):
+    return stype.float64 if st.ltype == ltype.real else stype.int64
+
+
+def test_sum(src):
+    dt0 = dt.DataTable(src)
     dtr = dt0.sum()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == [sum_stype(s) for s in dt0.stypes]
+    assert dtr.stypes == (sum_stype(dt0.stypes[0]), )
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [t_sum(src_all)])
+    assert list_equals(dtr.topython(), [[t_sum(src)]])
+
 
 
 #-------------------------------------------------------------------------------
@@ -136,21 +121,20 @@ def test_dt_sum(src_all):
 #-------------------------------------------------------------------------------
 
 def t_mean(t):
-    t = [i for i in t
-         if i is not None and not isnan(i)]
+    t = [i for i in t if i is not None and not isnan(i)]
     if len(t) == 0:
-        return [None]
+        return None
     else:
-        return [statistics.mean(t)]
+        return statistics.mean(t)
 
-def test_dt_mean(src_all):
-    dt0 = dt.DataTable(src_all)
+def test_dt_mean(src):
+    dt0 = dt.DataTable(src)
     dtr = dt0.mean()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == [mean_sd_stype(s) for s in dt0.stypes]
-    assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [t_mean(src_all)])
+    assert dtr.stypes == (stype.float64,)
+    assert dtr.shape == (1, 1)
+    assert list_equals(dtr.topython(), [[t_mean(src)]])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 3),
@@ -170,6 +154,9 @@ def test_dt_mean_special_cases(src, res):
     dt0 = dt.DataTable(src)
     dtr = dt0.mean()
     assert dtr.internal.check()
+    assert dt0.names == dtr.names
+    assert dtr.stypes == (stype.float64,)
+    assert dtr.shape == (1, 1)
     assert list_equals(dtr.topython(), [[res]])
 
 
@@ -182,21 +169,21 @@ def t_sd(t):
     t = [i for i in t
          if i is not None and not isnan(i)]
     if len(t) == 0:
-        return [None]
+        return None
     elif len(t) == 1:
-        return [0.0]
+        return 0
     else:
         res = statistics.stdev(t)
-        return [res if not isnan(res) else None]
+        return res if not isnan(res) else None
 
-def test_dt_sd(src_all):
-    dt0 = dt.DataTable(src_all)
+def test_dt_sd(src):
+    dt0 = dt.DataTable(src)
     dtr = dt0.sd()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == [mean_sd_stype(s) for s in dt0.stypes]
-    assert dtr.shape == (1, dt0.ncols)
+    assert dtr.stypes == (stype.float64, )
+    assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [t_sd(src_all)])
+    assert list_equals(dtr.topython(), [[t_sd(src)]])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 2.0),
@@ -210,7 +197,11 @@ def test_dt_sd_special_cases(src, res):
     dt0 = dt.DataTable(src)
     dtr = dt0.sd()
     assert dtr.internal.check()
+    assert dtr.stypes == (stype.float64, )
+    assert dtr.shape == (1, 1)
+    assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [[res]])
+
 
 
 #-------------------------------------------------------------------------------
@@ -218,31 +209,73 @@ def test_dt_sd_special_cases(src, res):
 #-------------------------------------------------------------------------------
 
 def t_count_na(t):
-    return [len([i for i in t if i is None or isnan(i)])]
+    return sum(i is None or isnan(i) for i in t)
 
-def test_dt_count_na(src_all):
-    dt0 = dt.DataTable(src_all)
+
+def test_dt_count_na(src):
+    dt0 = dt.DataTable(src)
     dtr = dt0.countna()
     assert dtr.internal.check()
-    assert list(dtr.stypes) == [stype.int64] * dt0.ncols
-    assert dtr.shape == (1, dt0.ncols)
+    assert dtr.stypes == (stype.int64, )
+    assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
-    assert list_equals(dtr.topython(), [t_count_na(src_all)])
+    assert dtr.topython() == [[t_count_na(src)]]
+
 
 
 #-------------------------------------------------------------------------------
 # RowIndex compatability
 #-------------------------------------------------------------------------------
-ridx_param = [([-3, 6, 1, 0, 4], slice(2, 5), 0),
-              ([-3, 6, 1, 0, 4], [1, 4], 4),
-              ([3.5, -182, None, 2, 3], slice(2, None, 2), 3),
-              ([3.5, -182, None, 2, 3], [0, 2, 4], 3),
-              ([True, True, True, None, False], slice(4), True),
-              ([True, True, True, None, False], [0, 3], True)]
 
-@pytest.mark.parametrize("src,view,exp", ridx_param)
+@pytest.mark.parametrize(
+    "src, view, exp",
+    [([-3, 6, 1, 0, 4], slice(2, 5), 0),
+     ([-3, 6, 1, 0, 4], [1, 4], 4),
+     ([3.5, -182, None, 2, 3], slice(2, None, 2), 3),
+     ([3.5, -182, None, 2, 3], [0, 2, 4], 3),
+     ([True, True, True, None, False], slice(4), True),
+     ([True, True, True, None, False], [0, 3], True)])
 def test_dt_ridx(src, view, exp):
     dt0 = dt.DataTable(src)
     dt_view = dt0(view)
     res = dt_view.min()
     assert res.topython()[0][0] == exp
+
+
+
+#-------------------------------------------------------------------------------
+# Statistics on large arrays
+#-------------------------------------------------------------------------------
+
+def test_stats_bool_large(numpy):
+    n = 12345678
+    a = numpy.random.randint(2, size=n, dtype=numpy.bool8)
+    dt0 = dt.DataTable(a)
+    assert dt0.sum().topython() == [[a.sum()]]
+    assert dt0.countna().topython() == [[0]]
+    assert list_equals(dt0.mean().topython(), [[a.mean()]])
+    assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
+
+
+def test_stats_int_large(numpy):
+    n = 12345678
+    a = numpy.random.randint(2**20, size=n, dtype=numpy.int32)
+    dt0 = dt.DataTable(a)
+    assert dt0.min().topython() == [[a.min()]]
+    assert dt0.max().topython() == [[a.max()]]
+    assert dt0.sum().topython() == [[a.sum()]]
+    assert dt0.countna().topython() == [[0]]
+    assert list_equals(dt0.mean().topython(), [[a.mean()]])
+    assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
+
+
+def test_stats_float_large(numpy):
+    n = 12345678
+    a = numpy.random.random(size=n) * 1e6
+    dt0 = dt.DataTable(a)
+    assert dt0.min().topython() == [[a.min()]]
+    assert dt0.max().topython() == [[a.max()]]
+    assert dt0.countna().topython() == [[0]]
+    assert list_equals(dt0.sum().topython(), [[a.sum()]])
+    assert list_equals(dt0.mean().topython(), [[a.mean()]])
+    assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
