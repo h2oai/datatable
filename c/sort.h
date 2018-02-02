@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_SORT_H
-#define dt_SORT_H
+#ifndef dt_SORT_h
+#define dt_SORT_h
 #include <stddef.h>
 #include <stdint.h>
 
