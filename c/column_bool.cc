@@ -32,8 +32,8 @@ BooleanStats* BoolColumn::get_stats() const {
 # define DEF_STAT_GET(STAT, RET_TYPE)                                           \
   RET_TYPE BoolColumn:: STAT () const {                                         \
     BooleanStats *s = get_stats();                                              \
-    if (!s-> STAT ## _computed()) s->compute_ ## STAT(this);                    \
-    return s->_ ## STAT;                                                        \
+    if (!s-> STAT ## _computed()) s->STAT ## _compute(this);                    \
+    return s->STAT ## _get();                                                   \
 }
 
 DEF_STAT_GET(mean, double)

@@ -5,97 +5,141 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-
-#ifndef dt_STATS_H
-#define dt_STATS_H
+#ifndef dt_STATS_h
+#define dt_STATS_h
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
-#include "types.h"
 #include "datatable_check.h"
+#include "types.h"
 
 class Column;
 
+
+//------------------------------------------------------------------------------
+// Stats class
+//------------------------------------------------------------------------------
+
 /**
- * Statistics Container
- * Gone is the era of CStats. The Stats class contains a method for each
- * retrievable statistic. To be more specific, every available stat must have
- * the public methods `stat()` and `stat_datatable()`. In the case for a stat
- * whose type may vary by column, it is the user's responsibility to determine
- * what is the appropriate return type.
+ * Base class in the hierarchy of Statistics Containers:
  *
- * A Stats class is associated with a Column and Rowindex (the latter may be
- * NULL). This class does NOT contain a reference counter. Create a copy
- * of the class instead of having more than one reference to it (Not currently
- * available).
+ *                                +-------+
+ *                                | Stats |
+ *                                +-------+
+ *                                 /     \
+ *                 +----------------+   +-------------+
+ *                 | NumericalStats |   | StringStats |
+ *                 +----------------+   +-------------+
+ *                   /           \
+ *         +--------------+   +-----------+
+ *         | IntegerStats |   | RealStats |
+ *         +--------------+   +-----------+
+ *              /
+ *     +--------------+
+ *     | BooleanStats |
+ *     +--------------+
  *
- * A reference to Stats should never be NULL; it should instead point to the
- * Stats instance returned by `void_ptr()`. This is to prevent the need for NULL
- * checks before calling a method. A "void" Stats will return a NA value for any
- * statistic.
+ * `NumericalStats` acts as a base class for all numeric STypes.
+ * `IntegerStats` are used with `IntegerColumn<T>`s.
+ * `BooleanStats` are used for `BooleanColumn`.
+ * `RealStats` are used for `RealColumn<T>` classes.
+ * `StringStats` are used with `StringColumn<T>`s.
+ *
+ * Each class supports methods to compute/retrieve statistics supported by its
+ * corresponding column. To be more specific, every available stat <S> must have
+ * public methods
+ *   <S>_computed() - check whether the statistic was already computed
+ *   <S>_compute(Column*) - force calculation of the statistic base on the data
+ *       from the provided column.
+ *   <S>_get() - retrieve the value of computed statistic (but the user should
+ *       check its availability first).
+ *
  */
 class Stats {
-protected:
-  uint64_t compute_mask;
-public:
-  int64_t _countna;
+  protected:
+    uint64_t compute_mask;
+    int64_t _countna;
 
-  Stats();
-  virtual ~Stats();
-  virtual void compute_countna(const Column*) = 0;
-  bool countna_computed() const;
+  public:
+    Stats();
+    virtual ~Stats() {}
+    Stats(const Stats&) = delete;
+    void operator=(const Stats&) = delete;
+    virtual size_t memory_footprint() const { return sizeof(*this); }
 
-  virtual void reset();
-  size_t alloc_size() const;
-  void merge_stats(const Stats*); // TODO: virtual when implemented
+    virtual void countna_compute(const Column*) = 0;
+    bool         countna_computed() const;
+    int64_t      countna_get() const { return _countna; }
 
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& name = "Stats") const;
+    virtual void reset();
+    virtual void merge_stats(const Stats*);
+
+    bool verify_integrity(IntegrityCheckContext&,
+                          const std::string& name = "Stats") const;
 };
 
 
+
+//------------------------------------------------------------------------------
+// NumericalStats class
+//------------------------------------------------------------------------------
+
 /**
- * Base class for all numerical STypes. Two template types are used:
- *     T - The type for all statistics containing a value from `_ref_col`
- *         (e.g. min, max). Naturally, `T` should be compatible with `_ref_col`s
- *         SType.
- *     A - The type for all aggregate statistics whose type is dependent on `T`
- *         (e.g. sum). `T` should be able to cast into `A`
+ * Base class for all numerical STypes. The class is parametrized by:
+ *   T - The type of "min"/"max" statistics. This is should be the same as the
+ *       type of a column's element.
+ *   A - The type "sum" statistic. This is either `int64_t` for integral types,
+ *       or `double` for real-valued columns.
+ *
  * This class itself is not compatible with any SType; one of its children
- * should be used instead.
+ * should be used instead (see the inheritance diagram above).
  */
 template <typename T, typename A>
 class NumericalStats : public Stats {
-public:
-  double _mean;
-  double _sd;
-  A _sum;
-  T _min;
-  T _max;
-  int64_t : ((sizeof(A) + (sizeof(T) * 2) * 7) % 8) * 8;
-  NumericalStats();
-  void reset() override;
+  protected:
+    double _mean;
+    double _sd;
+    A _sum;
+    T _min;
+    T _max;
+    int64_t : (sizeof(A) + sizeof(T) + sizeof(T)) * 56 % 64;
 
-  /**
-   * The `compute_stat` methods will compute the value of a statistic
-   * regardless if it has been flagged as computed or not.
-   */
-  void compute_mean(const Column*);
-  void compute_sd(const Column*);
-  void compute_min(const Column*);
-  void compute_max(const Column*);
-  void compute_sum(const Column*);
-  void compute_countna(const Column*) override;
+  public:
+    NumericalStats();
+    void reset() override;
+    size_t memory_footprint() const override { return sizeof(*this); }
 
-  bool mean_computed() const;
-  bool sd_computed() const;
-  bool min_computed() const;
-  bool max_computed() const;
-  bool sum_computed() const;
+    // Mean value
+    void   mean_compute(const Column*);
+    bool   mean_computed() const;
+    double mean_get() const { return _mean; }
 
-protected:
-  // Helper method that computes min, max, sum, mean, sd, and countna
-  virtual void compute_numerical_stats(const Column*);
+    // Standard deviation
+    void   sd_compute(const Column*);
+    bool   sd_computed() const;
+    double sd_get() const { return _sd; }
+
+    // Minimum
+    void min_compute(const Column*);
+    bool min_computed() const;
+    T    min_get() const { return _min; }
+
+    // Maximum
+    void max_compute(const Column*);
+    bool max_computed() const;
+    T    max_get() const { return _max; }
+
+    // Sum
+    void sum_compute(const Column*);
+    bool sum_computed() const;
+    A    sum_get() const { return _sum; }
+
+    // Count NA
+    void countna_compute(const Column*) override;
+
+  protected:
+    // Helper method that computes min, max, sum, mean, sd, and countna
+    virtual void compute_numerical_stats(const Column*);
 };
 
 extern template class NumericalStats<int8_t, int64_t>;
@@ -105,15 +149,18 @@ extern template class NumericalStats<int64_t, int64_t>;
 extern template class NumericalStats<float, double>;
 extern template class NumericalStats<double, double>;
 
+
+
+//------------------------------------------------------------------------------
+// RealStats class
+//------------------------------------------------------------------------------
+
 /**
- * Child of NumericalStats that defaults `A` to a double. `T` should be a float
- * or double.
+ * Child of NumericalStats that represents real-valued columns.
  */
 template <typename T>
 class RealStats : public NumericalStats<T, double> {
-public:
-    RealStats() : NumericalStats<T, double>() {}
-protected:
+  protected:
     void compute_numerical_stats(const Column*) override;
 };
 
@@ -121,14 +168,16 @@ extern template class RealStats<float>;
 extern template class RealStats<double>;
 
 
+
+//------------------------------------------------------------------------------
+// IntegerStats class
+//------------------------------------------------------------------------------
+
 /**
- * Child of NumericalStats that defaults `A` to int64_t. `T` should be an
- * integer type.
+ * Child of NumericalStats that represents integer-valued columns.
  */
 template <typename T>
 class IntegerStats : public NumericalStats<T, int64_t> {
-public:
-  IntegerStats() : NumericalStats<T, int64_t>() {}
 };
 
 extern template class IntegerStats<int8_t>;
@@ -136,18 +185,27 @@ extern template class IntegerStats<int16_t>;
 extern template class IntegerStats<int32_t>;
 extern template class IntegerStats<int64_t>;
 
+
+
+//------------------------------------------------------------------------------
+// BooleanStats class
+//------------------------------------------------------------------------------
+
 /**
- * Child of NumericalStats that defaults `T` to int8_t and `A` to int64_t.
- * `compute_numerical_stats()` is optimized since a boolean SType should only
- * have 3 values (true, false, NA).
+ * Child of IntegerStats that represents boolean columns. Although Boolean
+ * stype is treated as if it was `int8_t`, some optimizations can be achieved
+ * if we know that the set of possible element values is {0, 1, NA}.
  */
 class BooleanStats : public NumericalStats<int8_t, int64_t> {
-public:
-  BooleanStats() : NumericalStats<int8_t, int64_t>() {}
-protected:
-  void compute_numerical_stats(const Column *col) override;
+  protected:
+    void compute_numerical_stats(const Column *col) override;
 };
 
+
+
+//------------------------------------------------------------------------------
+// StringStats class
+//------------------------------------------------------------------------------
 
 /**
  * Stats for variable string columns. Uses a template type `T` to define the
@@ -155,16 +213,14 @@ protected:
  */
 template <typename T>
 class StringStats : public Stats {
-public:
-  StringStats();
-  void reset() override;
-  void compute_countna(const Column*) override;
+  public:
+    void countna_compute(const Column*) override;
+    virtual size_t memory_footprint() const override { return sizeof(*this); }
 };
 
 extern template class StringStats<int32_t>;
 extern template class StringStats<int64_t>;
 
-void init_stats(void);
 
-#endif /* STATS_H */
 
+#endif /* dt_STATS_h */
