@@ -232,15 +232,16 @@ size_t Column::memory_footprint() const
 {
   size_t sz = sizeof(*this);
   sz += mbuf->memory_footprint();
-  if (rowindex() != nullptr) sz += ri->alloc_size();
+  if (ri) sz += ri->alloc_size();
+  if (stats) sz += stats->memory_footprint();
   return sz;
 }
 
 
 int64_t Column::countna() const {
   Stats* s = get_stats();
-  if (!s->countna_computed()) s->compute_countna(this);
-  return s->_countna;
+  if (!s->countna_computed()) s->countna_compute(this);
+  return s->countna_get();
 }
 /**
  * Methods for retrieving stats but in column form. These should be populated

@@ -477,8 +477,6 @@ PyTypeObject type = {
 
 
 int static_init(PyObject* module) {
-  init_stats();
-
   // Register type on the module
   pydatatable::type.tp_new = PyType_GenericNew;
   if (PyType_Ready(&pydatatable::type) < 0) return 0;

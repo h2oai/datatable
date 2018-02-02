@@ -38,36 +38,36 @@ RealStats<T>* RealColumn<T>::get_stats() const {
 template <typename T>
 double RealColumn<T>::mean() const {
   RealStats<T> *s = get_stats();
-  if (!s->mean_computed()) s->compute_mean(this);
-  return s->_mean;
+  if (!s->mean_computed()) s->mean_compute(this);
+  return s->mean_get();
 }
 
 template <typename T>
 double RealColumn<T>::sd() const {
   RealStats<T> *s = get_stats();
-  if (!s->sd_computed()) s->compute_sd(this);
-  return s->_sd;
+  if (!s->sd_computed()) s->sd_compute(this);
+  return s->sd_get();
 }
 
 template <typename T>
 T RealColumn<T>::min() const {
   RealStats<T> *s = get_stats();
-  if (!s->min_computed()) s->compute_min(this);
-  return s->_min;
+  if (!s->min_computed()) s->min_compute(this);
+  return s->min_get();
 }
 
 template <typename T>
 T RealColumn<T>::max() const {
   RealStats<T> *s = get_stats();
-  if (!s->max_computed()) s->compute_max(this);
-  return s->_max;
+  if (!s->max_computed()) s->max_compute(this);
+  return s->max_get();
 }
 
 template <typename T>
 double RealColumn<T>::sum() const {
   RealStats<T> *s = get_stats();
-  if (!s->sum_computed()) s->compute_sum(this);
-  return s->_sum;
+  if (!s->sum_computed()) s->sum_compute(this);
+  return s->sum_get();
 }
 
 
