@@ -274,8 +274,6 @@ static int32_t* insert_sort_s4_noo(const unsigned char*, const int32_t*,
                                    int32_t, int32_t*, int32_t);
 static int32_t* insert_sort_s4_o(const unsigned char*, const int32_t*,
                                  int32_t, int32_t*, int32_t*, int32_t);
-template <typename T>
-static int32_t* insert_sort0(const void*, int32_t*, int32_t*, int32_t);
 
 #define INSERT_SORT_THRESHOLD 64
 
@@ -1256,10 +1254,10 @@ static void radix_psort(SortContext *sc)
         insert_sort_s4_o(sc->strdata, sc->stroffs, ss, o, oo, n);
       } else {
         switch (next_elemsize) {
-          case 1: insert_sort0<uint8_t>(x, o, oo, n); break;
-          case 2: insert_sort0<uint16_t>(x, o, oo, n); break;
-          case 4: insert_sort0<uint32_t>(x, o, oo, n); break;
-          case 8: insert_sort0<uint64_t>(x, o, oo, n); break;
+          case 1: insert_sort_fw<>(static_cast<uint8_t*>(x), o, oo, n); break;
+          case 2: insert_sort_fw<>(static_cast<uint16_t*>(x), o, oo, n); break;
+          case 4: insert_sort_fw<>(static_cast<uint32_t*>(x), o, oo, n); break;
+          case 8: insert_sort_fw<>(static_cast<uint64_t*>(x), o, oo, n); break;
         }
       }
     }
@@ -1284,62 +1282,7 @@ static void radix_psort(SortContext *sc)
 
 //==============================================================================
 // Insertion sort functions
-//
-// All functions here provide the same functionality and have a similar
-// signature. Each of these function sorts array `o` according to the values of
-// array `x`. Both arrays must have the same length `n`. The caller may also
-// provide a temporary buffer `oo` of size at least `4*n` bytes. The contents
-// of this array will be overwritten. Returns the pointer `o`.
-//
-// For example, if `x` is {5, 2, -1, 7, 2}, then this function will leave `x`
-// unmodified but reorder the elements of `o` into {o[2], o[1], o[4], o[0],
-// o[3]}.
-//
-// Pointer `o` can be nullptr, in which case it will be assumed that `o[i] == i`.
-// Similarly, `oo` can be nullptr too, in which case it will be allocated inside
-// the function.
-//
-// This procedure uses Insert Sort algorithm, which has O(n²) complexity.
-// Therefore, it should only be used for small arrays (in particular `n` is
-// assumed to fit into an integer.
-//
-// For the string sorting procedure `insert_sort_s4` the argument `x` is
-// replaced with a triple `strdata`, `offs`, `skip`. The first is a pointer to
-// a memory buffer containing the string data. The `offs` is an array of offsets
-// within `strdata` (each `offs[i]` gives the end of string `i`; the beginning
-// of the first string is at offset `offs[-1]`). Finally, parameter `skip`
-// instructs to compare the strings starting from that byte.
-//
-// See also:
-//   - https://en.wikipedia.org/wiki/Insertion_sort
-//   - datatable/microbench/insertsort
 //==============================================================================
-template <typename T>
-static int32_t* insert_sort0(const void* x, int32_t* o, int32_t* oo, int32_t n) {
-  const T* xi = static_cast<const T*>(x);
-  int own_oo = 0;
-  if (oo == nullptr) {
-    dtmalloc(oo, int32_t, n);
-    own_oo = 1;
-  }
-  oo[0] = 0;
-  for (int i = 1; i < n; i++) {
-    T xival = xi[i];
-    int j = i;
-    while (j && xival < xi[oo[j - 1]]) {
-      oo[j] = oo[j - 1];
-      j--;
-    }
-    oo[j] = i;
-  }
-  if (!o) return oo;
-  for (int i = 0; i < n; i++) {
-    oo[i] = o[oo[i]];
-  }
-  memcpy(o, oo, (size_t)n * sizeof(int32_t));
-  if (own_oo) dtfree(oo);
-  return o;
-}
 
 static int32_t* insert_sort_s4_o(
     const unsigned char *__restrict__ strdata,
@@ -1421,11 +1364,12 @@ static void insert_sort(SortContext* sc)
                                  ss, (int32_t*)sc->next_x, n);
     return;
   }
+  int32_t* oo = (int32_t*)(sc->next_x);
   switch (sc->elemsize) {
-    case 1: sc->o = insert_sort0<uint8_t>(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
-    case 2: sc->o = insert_sort0<uint16_t>(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
-    case 4: sc->o = insert_sort0<uint32_t>(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
-    case 8: sc->o = insert_sort0<uint64_t>(sc->x, sc->o, (int32_t*)sc->next_x, n); break;
+    case 1: sc->o = insert_sort_fw<>(static_cast<uint8_t*>(sc->x), sc->o, oo, n); break;
+    case 2: sc->o = insert_sort_fw<>(static_cast<uint16_t*>(sc->x), sc->o, oo, n); break;
+    case 4: sc->o = insert_sort_fw<>(static_cast<uint32_t*>(sc->x), sc->o, oo, n); break;
+    case 8: sc->o = insert_sort_fw<>(static_cast<uint64_t*>(sc->x), sc->o, oo, n); break;
   }
 }
 
@@ -1450,11 +1394,11 @@ void init_sort_functions(void)
   prepare_inp_fns[ST_REAL_F8]    = (prepare_inp_fn) &prepare_input_f8;
   prepare_inp_fns[ST_STRING_I4_VCHAR] = (prepare_inp_fn) &prepare_input_s4;
 
-  insert_sort_fns[ST_BOOLEAN_I1] = &insert_sort0<int8_t>;
-  insert_sort_fns[ST_INTEGER_I1] = &insert_sort0<int8_t>;
-  insert_sort_fns[ST_INTEGER_I2] = &insert_sort0<int16_t>;
-  insert_sort_fns[ST_INTEGER_I4] = &insert_sort0<int32_t>;
-  insert_sort_fns[ST_INTEGER_I8] = &insert_sort0<int64_t>;
-  insert_sort_fns[ST_REAL_F4]    = &insert_sort0<uint32_t>;
-  insert_sort_fns[ST_REAL_F8]    = &insert_sort0<uint64_t>;
+  insert_sort_fns[ST_BOOLEAN_I1] = (insert_sort_fn) &insert_sort_fw<int8_t, int32_t>;
+  insert_sort_fns[ST_INTEGER_I1] = (insert_sort_fn) &insert_sort_fw<int8_t, int32_t>;
+  insert_sort_fns[ST_INTEGER_I2] = (insert_sort_fn) &insert_sort_fw<int16_t, int32_t>;
+  insert_sort_fns[ST_INTEGER_I4] = (insert_sort_fn) &insert_sort_fw<int32_t, int32_t>;
+  insert_sort_fns[ST_INTEGER_I8] = (insert_sort_fn) &insert_sort_fw<int64_t, int32_t>;
+  insert_sort_fns[ST_REAL_F4]    = (insert_sort_fn) &insert_sort_fw<uint32_t, int32_t>;
+  insert_sort_fns[ST_REAL_F8]    = (insert_sort_fn) &insert_sort_fw<uint64_t, int32_t>;
 }
