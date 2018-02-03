@@ -67,41 +67,43 @@ typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
  */
 class RowIndex
 {
-public:
-  int64_t length;
-  int64_t min;
-  int64_t max;
-  union {
-    int32_t *ind32;
-    int64_t *ind64;
-    struct { int64_t start, step; } slice;
-  };
-  RowIndexType type;
-  int32_t refcount;
-  RowIndex(int64_t, int64_t, int64_t); // from slice
-  RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
-  RowIndex(int64_t*, int64_t, int);
-  RowIndex(int32_t*, int64_t, int);
-  RowIndex(const RowIndex&);
-  RowIndex(RowIndex*);
-  RowIndex* expand();
-  void compactify();
-  size_t alloc_size();
-  RowIndex* shallowcopy();
-  void release();
+  public:
+    int64_t length;
+    int64_t min;
+    int64_t max;
+    union {
+      int32_t* ind32;
+      int64_t* ind64;
+      struct { int64_t start, step; } slice;
+    };
+    RowIndexType type;
+    int32_t refcount;
 
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& name = "RowIndex") const;
+  public:
+    RowIndex(int64_t, int64_t, int64_t); // from slice
+    RowIndex(int64_t*, int64_t*, int64_t*, int64_t); // from list of slices
+    RowIndex(int64_t*, int64_t, int);
+    RowIndex(int32_t*, int64_t, int);
+    RowIndex(const RowIndex&);
+    RowIndex(RowIndex*);
+    RowIndex* expand();
+    void compactify();
+    size_t alloc_size();
+    RowIndex* shallowcopy();
+    void release();
 
-  static RowIndex* merge(RowIndex*, RowIndex*);
-  static RowIndex* from_intcolumn(Column*, int);
-  static RowIndex* from_boolcolumn(Column*);
-  static RowIndex* from_column(Column*);
-  static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
-  static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);
+    bool verify_integrity(IntegrityCheckContext&,
+                          const std::string& name = "RowIndex") const;
 
-private:
-  ~RowIndex();
+    static RowIndex* merge(RowIndex*, RowIndex*);
+    static RowIndex* from_intcolumn(Column*, int);
+    static RowIndex* from_boolcolumn(Column*);
+    static RowIndex* from_column(Column*);
+    static RowIndex* from_filterfn32(rowindex_filterfn32*, int64_t, int);
+    static RowIndex* from_filterfn64(rowindex_filterfn64*, int64_t, int);
+
+  private:
+    ~RowIndex();
 };
 
 
@@ -129,28 +131,28 @@ typedef RowIndex* (rowindex_getterfn)(void);
  * resulting type and value is undefined.
  */
 #define DT_LOOP_OVER_ROWINDEX(I, NROWS, RI, CODE)                              \
-    if (RI == nullptr) {                                                       \
-        for (int64_t I = 0; I < NROWS; ++I) {                                  \
-            CODE                                                               \
-        }                                                                      \
-    } else if (RI->type == RI_SLICE) {                                         \
-        int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;            \
-        for (; L_j < NROWS; ++L_j, I += L_s) {                                 \
-            CODE                                                               \
-        }                                                                      \
-    } else if (RI->type == RI_ARR32) {                                         \
-       int32_t *L_s = RI->ind32;                                               \
-       for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                             \
-           int64_t I = (int64_t) L_s[L_j];                                     \
-           CODE                                                                \
-       }                                                                       \
-    } else if (RI->type == RI_ARR64) {                                         \
-        int64_t *L_s = RI->ind64;                                              \
-        for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                            \
-           int64_t I = L_s[L_j];                                               \
-           CODE                                                                \
-       }                                                                       \
-    }
+  if (RI == nullptr) {                                                         \
+    for (int64_t I = 0; I < NROWS; ++I) {                                      \
+      CODE                                                                     \
+    }                                                                          \
+  } else if (RI->type == RI_SLICE) {                                           \
+    int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;                \
+    for (; L_j < NROWS; ++L_j, I += L_s) {                                     \
+      CODE                                                                     \
+    }                                                                          \
+  } else if (RI->type == RI_ARR32) {                                           \
+    int32_t* L_s = RI->ind32;                                                  \
+    for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                                \
+      int64_t I = (int64_t) L_s[L_j];                                          \
+      CODE                                                                     \
+    }                                                                          \
+  } else if (RI->type == RI_ARR64) {                                           \
+    int64_t* L_s = RI->ind64;                                                  \
+    for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                                \
+      int64_t I = L_s[L_j];                                                    \
+      CODE                                                                     \
+    }                                                                          \
+  }
 
 
 #endif
