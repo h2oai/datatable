@@ -528,6 +528,7 @@ void FreadLocalParseContext::push_buffers() {
     }
     j++;
   }
+  used_nrows = 0;
 }
 
 
