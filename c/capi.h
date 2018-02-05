@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_CAPI_H
 #define dt_CAPI_H
-#include "stdint.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
