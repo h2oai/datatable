@@ -178,203 +178,242 @@ $(BUILDDIR)/_datatable.so: $(fast_objects)
 	@$(CC) $(LDFLAGS) -o $@ $+
 	@$(MAKE) --no-print-directory post-fast
 
-$(BUILDDIR)/capi.o : c/capi.cc c/rowindex.h c/capi.h c/datatable.h
+capi_h: c/capi.h
+column_h: c/column.h memorybuf_h rowindex_h stats_h types_h
+columnset_h: c/columnset.h column_h datatable_h rowindex_h types_h
+csv_dtoa_h: c/csv/dtoa.h
+csv_fread_h: c/csv/fread.h csv_reader_h memorybuf_h utils_h utils_omp_h
+csv_freadLookups_h: c/csv/freadLookups.h
+csv_itoa_h: c/csv/itoa.h
+csv_py_csv_h: c/csv/py_csv.h py_utils_h
+csv_reader_arff_h: c/csv/reader_arff.h csv_reader_h
+csv_reader_fread_h: c/csv/reader_fread.h csv_fread_h csv_py_csv_h csv_reader_h memorybuf_h
+csv_reader_h: c/csv/reader.h column_h datatable_h memorybuf_h utils_pyobj_h writebuf_h
+csv_reader_parsers_h: c/csv/reader_parsers.h csv_fread_h
+csv_writer_h: c/csv/writer.h datatable_h utils_h writebuf_h
+datatable_check_h: c/datatable_check.h
+datatable_h: c/datatable.h column_h datatable_check_h types_h
+encodings_h: c/encodings.h
+expr_py_expr_h: c/expr/py_expr.h column_h py_utils_h
+memorybuf_h: c/memorybuf.h datatable_check_h mmm_h writebuf_h
+mmm_h: c/mmm.h
+py_column_h: c/py_column.h column_h py_datatable_h py_utils_h
+py_columnset_h: c/py_columnset.h datatable_h py_utils_h rowindex_h
+py_datatable_h: c/py_datatable.h datatable_h py_utils_h
+py_datawindow_h: c/py_datawindow.h
+py_encodings_h: c/py_encodings.h encodings_h
+py_rowindex_h: c/py_rowindex.h rowindex_h
+py_types_h: c/py_types.h datatable_h types_h utils_assert_h
+py_utils_h: c/py_utils.h utils_h utils_exceptions_h
+rowindex_h: c/rowindex.h column_h datatable_h
+sort_h: c/sort.h
+stats_h: c/stats.h datatable_check_h types_h
+types_h: c/types.h
+utils_assert_h: c/utils/assert.h
+utils_exceptions_h: c/utils/exceptions.h types_h
+utils_file_h: c/utils/file.h
+utils_h: c/utils.h utils_exceptions_h
+utils_omp_h: c/utils/omp.h
+utils_pyobj_h: c/utils/pyobj.h
+writebuf_h: c/writebuf.h utils_file_h
+
+
+$(BUILDDIR)/capi.o : c/capi.cc capi_h datatable_h rowindex_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column.o : c/column.cc c/rowindex.h c/py_utils.h c/utils/file.h c/datatable_check.h c/column.h c/utils.h c/utils/assert.h c/sort.h
+$(BUILDDIR)/column.o : c/column.cc column_h datatable_check_h py_utils_h rowindex_h sort_h utils_h utils_assert_h utils_file_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_bool.o : c/column_bool.cc c/column.h c/utils/omp.h
+$(BUILDDIR)/column_bool.o : c/column_bool.cc column_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_from_pylist.o : c/column_from_pylist.cc c/py_types.h c/column.h c/utils.h
+$(BUILDDIR)/column_from_pylist.o : c/column_from_pylist.cc column_h py_types_h utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_fw.o : c/column_fw.cc c/column.h c/utils.h c/utils/omp.h c/utils/assert.h
+$(BUILDDIR)/column_fw.o : c/column_fw.cc column_h utils_h utils_assert_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_int.o : c/column_int.cc c/column.h c/py_types.h c/py_utils.h c/utils/omp.h
+$(BUILDDIR)/column_int.o : c/column_int.cc column_h py_types_h py_utils_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc c/column.h
+$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc column_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_real.o : c/column_real.cc c/column.h c/py_utils.h c/utils/omp.h
+$(BUILDDIR)/column_real.o : c/column_real.cc column_h py_utils_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_string.o : c/column_string.cc c/column.h c/datatable_check.h c/encodings.h c/py_utils.h c/utils.h c/utils/assert.h
+$(BUILDDIR)/column_string.o : c/column_string.cc column_h datatable_check_h encodings_h py_utils_h utils_h utils_assert_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/columnset.o : c/columnset.cc c/columnset.h c/utils.h c/utils/exceptions.h
+$(BUILDDIR)/columnset.o : c/columnset.cc columnset_h utils_h utils_exceptions_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/fread.o : c/csv/fread.cc c/csv/fread.h c/csv/freadLookups.h c/csv/reader.h c/csv/reader_fread.h c/csv/reader_parsers.h
+$(BUILDDIR)/csv/fread.o : c/csv/fread.cc csv_fread_h csv_freadLookups_h csv_reader_h csv_reader_fread_h csv_reader_parsers_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc c/csv/py_csv.h c/csv/reader.h c/csv/writer.h c/py_datatable.h c/py_utils.h c/utils.h c/utils/omp.h c/utils/pyobj.h
+$(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc csv_py_csv_h csv_reader_h csv_writer_h py_datatable_h py_utils_h utils_h utils_omp_h utils_pyobj_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader.o : c/csv/reader.cc c/csv/reader.h c/csv/reader_arff.h c/csv/reader_fread.h c/utils/exceptions.h c/utils/omp.h
+$(BUILDDIR)/csv/reader.o : c/csv/reader.cc csv_reader_h csv_reader_arff_h csv_reader_fread_h utils_exceptions_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_arff.o : c/csv/reader_arff.cc c/csv/reader_arff.h c/utils/exceptions.h
+$(BUILDDIR)/csv/reader_arff.o : c/csv/reader_arff.cc csv_reader_arff_h utils_exceptions_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_fread.o : c/csv/reader_fread.cc c/column.h c/csv/fread.h c/csv/reader.h c/csv/reader_fread.h c/csv/reader_parsers.h c/datatable.h c/py_datatable.h c/py_encodings.h c/py_utils.h c/utils.h c/utils/assert.h c/utils/file.h c/utils/pyobj.h
+$(BUILDDIR)/csv/reader_fread.o : c/csv/reader_fread.cc column_h csv_fread_h csv_reader_h csv_reader_fread_h csv_reader_parsers_h datatable_h py_datatable_h py_encodings_h py_utils_h utils_h utils_assert_h utils_file_h utils_pyobj_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc c/csv/reader_parsers.h
+$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc csv_reader_parsers_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc c/csv/fread.h c/csv/reader.h c/utils/exceptions.h c/utils/omp.h
+$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc csv_fread_h csv_reader_h utils_exceptions_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/writer.o : c/csv/writer.cc c/column.h c/csv/dtoa.h c/csv/itoa.h c/csv/writer.h c/datatable.h c/memorybuf.h c/types.h c/utils.h c/utils/omp.h
+$(BUILDDIR)/csv/writer.o : c/csv/writer.cc column_h csv_dtoa_h csv_itoa_h csv_writer_h datatable_h memorybuf_h types_h utils_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable.o : c/datatable.cc c/datatable.h c/datatable_check.h c/py_utils.h c/rowindex.h c/types.h c/utils/omp.h
+$(BUILDDIR)/datatable.o : c/datatable.cc datatable_h datatable_check_h py_utils_h rowindex_h types_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable_cbind.o : c/datatable_cbind.cc c/datatable.h c/rowindex.h c/utils.h c/utils/assert.h
+$(BUILDDIR)/datatable_cbind.o : c/datatable_cbind.cc datatable_h rowindex_h utils_h utils_assert_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable_check.o : c/datatable_check.cc c/datatable_check.h c/utils.h
+$(BUILDDIR)/datatable_check.o : c/datatable_check.cc datatable_check_h utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable_load.o : c/datatable_load.cc c/datatable.h c/utils.h c/utils/assert.h
+$(BUILDDIR)/datatable_load.o : c/datatable_load.cc datatable_h utils_h utils_assert_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc c/column.h c/datatable.h c/utils.h c/utils/assert.h
+$(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc column_h datatable_h utils_h utils_assert_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c c/capi.h c/csv/py_csv.h c/csv/writer.h c/expr/py_expr.h c/py_column.h c/py_columnset.h c/py_datatable.h c/py_datawindow.h c/py_encodings.h c/py_rowindex.h c/py_types.h c/py_utils.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c capi_h csv_py_csv_h csv_writer_h expr_py_expr_h py_column_h py_columnset_h py_datatable_h py_datawindow_h py_encodings_h py_rowindex_h py_types_h py_utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/encodings.o : c/encodings.c c/encodings.h
+$(BUILDDIR)/encodings.o : c/encodings.c encodings_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/expr/binaryop.o : c/expr/binaryop.cc c/expr/py_expr.h c/types.h c/utils/exceptions.h
+$(BUILDDIR)/expr/binaryop.o : c/expr/binaryop.cc expr_py_expr_h types_h utils_exceptions_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/expr/py_expr.o : c/expr/py_expr.cc c/expr/py_expr.h c/py_column.h c/utils/pyobj.h
+$(BUILDDIR)/expr/py_expr.o : c/expr/py_expr.cc expr_py_expr_h py_column_h utils_pyobj_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/expr/reduceop.o : c/expr/reduceop.cc c/expr/py_expr.h c/types.h
+$(BUILDDIR)/expr/reduceop.o : c/expr/reduceop.cc expr_py_expr_h types_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc c/expr/py_expr.h c/types.h
+$(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc expr_py_expr_h types_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memorybuf.o : c/memorybuf.cc c/datatable_check.h c/memorybuf.h c/py_utils.h c/utils.h c/utils/assert.h c/utils/file.h
+$(BUILDDIR)/memorybuf.o : c/memorybuf.cc datatable_check_h memorybuf_h py_utils_h utils_h utils_assert_h utils_file_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/mmm.o : c/mmm.cc c/mmm.h
+$(BUILDDIR)/mmm.o : c/mmm.cc mmm_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_buffers.o : c/py_buffers.cc c/column.h c/encodings.h c/py_column.h c/py_datatable.h c/py_types.h c/py_utils.h c/utils/exceptions.h
+$(BUILDDIR)/py_buffers.o : c/py_buffers.cc column_h encodings_h py_column_h py_datatable_h py_types_h py_utils_h utils_exceptions_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_column.o : c/py_column.cc c/py_column.h c/sort.h c/py_types.h c/writebuf.h c/utils/pyobj.h
+$(BUILDDIR)/py_column.o : c/py_column.cc py_column_h py_types_h sort_h utils_pyobj_h writebuf_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_columnset.o : c/py_columnset.cc c/columnset.h c/py_column.h c/py_columnset.h c/py_datatable.h c/py_rowindex.h c/py_types.h c/py_utils.h c/utils.h c/utils/pyobj.h
+$(BUILDDIR)/py_columnset.o : c/py_columnset.cc columnset_h py_column_h py_columnset_h py_datatable_h py_rowindex_h py_types_h py_utils_h utils_h utils_pyobj_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable.o : c/py_datatable.cc c/datatable.h c/datatable_check.h c/py_column.h c/py_columnset.h c/py_datatable.h c/py_datawindow.h c/py_rowindex.h c/py_types.h c/py_utils.h
+$(BUILDDIR)/py_datatable.o : c/py_datatable.cc datatable_h datatable_check_h py_column_h py_columnset_h py_datatable_h py_datawindow_h py_rowindex_h py_types_h py_utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c c/column.h c/memorybuf.h c/py_datatable.h c/py_types.h c/py_utils.h
+$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c column_h memorybuf_h py_datatable_h py_types_h py_utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datawindow.o : c/py_datawindow.c c/datatable.h c/py_datatable.h c/py_datawindow.h c/py_types.h c/py_utils.h c/rowindex.h
+$(BUILDDIR)/py_datawindow.o : c/py_datawindow.c datatable_h py_datatable_h py_datawindow_h py_types_h py_utils_h rowindex_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_encodings.o : c/py_encodings.c c/py_encodings.h c/py_utils.h c/utils/assert.h
+$(BUILDDIR)/py_encodings.o : c/py_encodings.c py_encodings_h py_utils_h utils_assert_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_rowindex.o : c/py_rowindex.c c/py_column.h c/py_datatable.h c/py_rowindex.h c/py_utils.h
+$(BUILDDIR)/py_rowindex.o : c/py_rowindex.c py_column_h py_datatable_h py_rowindex_h py_utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_types.o : c/py_types.c c/py_types.h c/py_utils.h
+$(BUILDDIR)/py_types.o : c/py_types.c py_types_h py_utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_utils.o : c/py_utils.c c/py_datatable.h c/py_utils.h
+$(BUILDDIR)/py_utils.o : c/py_utils.c py_datatable_h py_utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex.o : c/rowindex.cc c/datatable_check.h c/rowindex.h c/types.h c/utils.h c/utils/assert.h c/utils/omp.h
+$(BUILDDIR)/rowindex.o : c/rowindex.cc datatable_check_h rowindex_h types_h utils_h utils_assert_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/sort.o : c/sort.cc c/column.h c/rowindex.h c/sort.h c/types.h c/utils.h c/utils/assert.h c/utils/omp.h
+$(BUILDDIR)/sort.o : c/sort.cc column_h rowindex_h sort_h types_h utils_h utils_assert_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/stats.o : c/stats.cc c/column.h c/rowindex.h c/stats.h c/utils.h c/utils/omp.h
+$(BUILDDIR)/stats.o : c/stats.cc column_h rowindex_h stats_h utils_h utils_omp_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/types.o : c/types.c c/types.h c/utils.h c/utils/assert.h
+$(BUILDDIR)/types.o : c/types.c types_h utils_h utils_assert_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils.o : c/utils.c c/utils.h
+$(BUILDDIR)/utils.o : c/utils.c utils_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/exceptions.o : c/utils/exceptions.cc c/utils/exceptions.h
+$(BUILDDIR)/utils/exceptions.o : c/utils/exceptions.cc utils_exceptions_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/file.o : c/utils/file.cc c/utils.h c/utils/file.h
+$(BUILDDIR)/utils/file.o : c/utils/file.cc utils_h utils_file_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc c/py_column.h c/py_datatable.h c/py_types.h c/utils/exceptions.h c/utils/pyobj.h
+$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc py_column_h py_datatable_h py_types_h utils_exceptions_h utils_pyobj_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/writebuf.o : c/writebuf.cc c/memorybuf.h c/utils.h c/utils/omp.h c/writebuf.h
+$(BUILDDIR)/writebuf.o : c/writebuf.cc memorybuf_h utils_h utils_omp_h writebuf_h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
-
