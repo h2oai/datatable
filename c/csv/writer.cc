@@ -8,13 +8,13 @@
 #include "csv/writer.h"
 #include <new>          // placement new
 #include <stdexcept>    // std::runtime_error
+#include <math.h>
 #include <stdint.h>     // int32_t, etc
 #include <stdio.h>      // printf
 #include "column.h"
 #include "csv/dtoa.h"
 #include "csv/itoa.h"
 #include "datatable.h"
-#include "math.h"
 #include "memorybuf.h"
 #include "utils/omp.h"
 #include "types.h"

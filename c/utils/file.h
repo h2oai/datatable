@@ -5,9 +5,9 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_FILE_H
-#define dt_UTILS_FILE_H
-#include "sys/stat.h"  // fstat
+#ifndef dt_UTILS_FILE_h
+#define dt_UTILS_FILE_h
+#include <sys/stat.h>  // fstat
 #include <string>      // std::string
 
 

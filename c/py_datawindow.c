@@ -5,12 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "py_datawindow.h"
 #include <Python.h>
+#include <structmember.h>
 #include "datatable.h"
 #include "py_utils.h"
-#include "structmember.h"
 #include "rowindex.h"
-#include "py_datawindow.h"
 #include "py_datatable.h"
 #include "py_types.h"
 
