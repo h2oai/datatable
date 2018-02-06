@@ -9,9 +9,16 @@ import re
 import sys
 
 rx_include = re.compile(r'#include\s+"(.*?)"')
+rx_targeth = re.compile(r'^(\w+_h)\s*:\s*(.*)')
 
 
 def get_files():
+    """
+    Return the list of all source/header files in `c/` directory.
+
+    The files will have pathnames relative to the current folder, for example
+    "c/csv/reader_utils.cc".
+    """
     sources = []
     headers = []
     for dirpath, _, filenames in os.walk("c"):
@@ -25,6 +32,12 @@ def get_files():
 
 
 def find_includes(filename):
+    """
+    Find user includes (no system includes) requested from given source file.
+
+    All .h files will be given relative to the current folder, e.g.
+    ["c/rowindex.h", "c/column.h"].
+    """
     includes = []
     with open(filename, "r", encoding="utf-8") as inp:
         for line in inp:
@@ -40,6 +53,13 @@ def find_includes(filename):
 
 
 def build_headermap(headers):
+    """
+    Construct dictionary {header_file : set_of_included_files}.
+
+    This function operates on "real" set of includes, in the sense that it
+    parses each header file to check which files are included from there.
+    """
+    # TODO: what happens if some headers are circularly dependent?
     headermap = {}
     for hfile in headers:
         headermap[hfile] = None
@@ -51,38 +71,28 @@ def build_headermap(headers):
                 raise ValueError("Unknown header \"%s\" included from %s"
                                  % (f, hfile))
         headermap[hfile] = set(inc)
-    transitively_extend(headermap)
     return headermap
 
 
-def build_sourcemap(sources, headermap):
+def build_sourcemap(sources):
+    """
+    Similar to build_headermap(), but builds a dictionary of includes from
+    the "source" files (i.e. ".c/.cc" files).
+    """
     sourcemap = {}
     for sfile in sources:
         inc = find_includes(sfile)
-        for f in inc:
-            if f not in headermap:
-                raise ValueError("Unknown header \"%s\" included from %s"
-                                 % (f, sfile))
         sourcemap[sfile] = set(inc)
     return sourcemap
 
 
-def transitively_extend(nodemap):
-    modified = True
-    while modified:
-        modified = False
-        for node in nodemap:
-            values = nodemap[node]
-            len0 = len(values)
-            for n in list(values):
-                values |= nodemap[n]
-            if len(values) > len0:
-                modified = True
-            nodemap[node] = values
-
-
 def parse_makefile():
+    """
+    Parse Makefile in order to detect all declarations related to "fast"
+    compilation.
+    """
     objects_map = {}
+    headers_map = {}
     with open("Makefile", "r", encoding="utf-8") as inp:
         read_objects = False
         for iline, line in enumerate(inp):
@@ -92,11 +102,9 @@ def parse_makefile():
                     read_objects = False
                 else:
                     objects_map[line] = None
-                continue
-            if line.startswith("fast_objects"):
+            elif line.startswith("fast_objects"):
                 read_objects = True
-                continue
-            if line.startswith("$(BUILDDIR)/"):
+            elif line.startswith("$(BUILDDIR)/"):
                 sline = line.strip()
                 sline = sline[len("$(BUILDDIR)/"):]
                 obj, deps = sline.split(":")
@@ -111,6 +119,10 @@ def parse_makefile():
                 deps = deps.strip()
                 depslist = deps.split(" ")
                 objects_map[obj] = depslist
+            else:
+                mm = rx_targeth.match(line)
+                if mm:
+                    headers_map[mm.group(1)] = mm.group(2).split(" ")
         for obj, deps in objects_map.items():
             if deps is None:
                 raise ValueError("Object file `%s` is present in "
@@ -120,55 +132,81 @@ def parse_makefile():
             if not deps:
                 raise ValueError("Dependencies for object file `%s` are "
                                  "missing" % obj)
-    return objects_map
+    return objects_map, headers_map
 
 
-def verify_dependencies(sourcemap, objmap):
-    # `sourcemap`:
-    #     dict where keys are all .c/.cc filenames in the project, and values
-    #     are sets of includes in each of those files.
-    # `headermap`:
-    #     same as `sourcemap`, but keys are .h files.
-    # `objmap`:
-    #     dictionary where the keys are all object files that are declared in
-    #     the Makefile, and values are all declared dependencies of those
-    #     object files.
-    for srcfile in sourcemap:
-        assert srcfile.startswith("c/")
-        f = srcfile[len("c/"):]
-        if f.endswith(".c"):
-            f = f[:-len(".c")] + ".o"
-        elif f.endswith(".cc"):
-            f = f[:-len(".cc")] + ".o"
-        else:
-            raise ValueError("Unexpected source file name: %s" % srcfile)
-        if f not in objmap:
+def headerfile_to_key(hdrfile):
+    assert hdrfile.startswith("c/")
+    return hdrfile[2:].replace(".", "_").replace("/", "_")
+
+
+def sourcefile_to_obj(srcfile):
+    assert srcfile.startswith("c/")
+    if srcfile.endswith(".c"):
+        return srcfile[2:-len(".c")] + ".o"
+    elif srcfile.endswith(".cc"):
+        return srcfile[2:-len(".cc")] + ".o"
+    else:
+        raise ValueError("Unexpected source file name: %s" % srcfile)
+
+
+def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
+    """
+    realsrcs:
+        dict where keys are names of all .c/.cc files in the project, and values
+        are sets of includes in each of those files.
+    realhdrs:
+        same as `realsrcs`, but keys are .h files.
+    makeobjs:
+        dictionary where the keys are all object files that are declared in
+        the Makefile, and values are all declared dependencies of those
+        object files.
+    makehdrs:
+        dictionary where keys are target names corresponding to each header
+        file, and values are sets of dependencies for those targets
+    """
+    for hdrfile in realhdrs:
+        hdrkey = headerfile_to_key(hdrfile)
+        actual_deps = sorted(realhdrs[hdrfile])
+        expect_deps = [hdrfile] + [headerfile_to_key(k) for k in actual_deps]
+        if hdrkey not in makehdrs:
+            raise ValueError("Missing target '%s' in header file. Include "
+                             "the following line in Makefile:\n"
+                             "%s: %s"
+                             % (hdrkey, hdrkey, " ".join(expect_deps)))
+        make_deps = makehdrs[hdrkey]
+        del makehdrs[hdrkey]
+        if set(make_deps) != set(expect_deps):
+            raise ValueError("Invalid dependencies for target '%s'. Include "
+                             "the following line in Makefile:\n"
+                             "%s: %s"
+                             % (hdrkey, hdrkey, " ".join(expect_deps)))
+    if makehdrs:
+        raise ValueError("Makefile has targets %r which do not correspond to "
+                         "any existing header files." % list(makehdrs.keys()))
+
+    for srcfile in sorted(realsrcs):
+        objkey = sourcefile_to_obj(srcfile)
+        if objkey not in makeobjs:
             raise ValueError("Source file `%s` has no corresponding "
                              "`$(BUILDDIR)/%s` target in the Makefile."
-                             % (srcfile, f))
-    for objfile in objmap:
-        deps = objmap[objfile]
-        srcfile = deps[0]
-        makefile_deps = set(deps[1:])
-        if srcfile not in sourcemap:
-            raise ValueError("Unknown dependency `%s` stated for object file "
-                             "`%s` in the Makefile" % (srcfile, objfile))
-        actual_deps = sourcemap[srcfile]
-        if makefile_deps != actual_deps:
-            diff1 = makefile_deps - actual_deps
-            diff2 = actual_deps - makefile_deps
-            if diff1:
-                raise ValueError("Source file `%s` is declared in the Makefile "
-                                 "to depend on %r, while in reality it doesn't "
-                                 "depend on them." % (srcfile, diff1))
-            if diff2:
-                raise ValueError("Source file `%s` depends on %r, however these"
-                                 " dependencies were not declared in the "
-                                 "Makefile.\n"
-                                 "Include the following line in the Makefile:\n"
-                                 "$(BUILDDIR)/%s : %s %s"
-                                 % (srcfile, diff2, objfile, srcfile,
-                                    " ".join(sorted(actual_deps))))
+                             % (srcfile, objkey))
+        actual_deps = sorted(realsrcs[srcfile])
+        expect_deps = [srcfile] + [headerfile_to_key(h) for h in actual_deps]
+        make_deps = makeobjs[objkey]
+        del makeobjs[objkey]
+        if set(make_deps) != set(expect_deps):
+            # print("$(BUILDDIR)/%s : %s" % (objkey, " ".join(expect_deps)))
+            # print("\t@echo • Compiling $<")
+            # print("\t@$(CC) -c $< $(CCFLAGS) -o $@\n")
+            # continue
+            raise ValueError("Invalid dependencies for object file '%s'. "
+                             "Please include the following line in Makefile:\n"
+                             "$(BUILDDIR)/%s : %s"
+                             % (objkey, objkey, " ".join(expect_deps)))
+    if makeobjs:
+        raise ValueError("Makefile has targets %r which do not correspond to "
+                         "any existing source files." % list(makeobjs.keys()))
 
 
 def create_build_directories(objmap):
@@ -180,11 +218,12 @@ def create_build_directories(objmap):
 
 def main():
     sources, headers = get_files()
-    headermap = build_headermap(headers)
-    sourcemap = build_sourcemap(sources, headermap)
-    objmap = parse_makefile()
-    verify_dependencies(sourcemap, objmap)
-    create_build_directories(objmap)
+    realhdrs = build_headermap(headers)
+    realsrcs = build_sourcemap(sources)
+    objmap, makehdrs = parse_makefile()
+    objs = list(objmap.keys())
+    verify_dependencies(realsrcs, realhdrs, objmap, makehdrs)
+    create_build_directories(objs)
 
 
 if __name__ == "__main__":

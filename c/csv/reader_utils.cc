@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
 #include "csv/fread.h"   // temporary
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
