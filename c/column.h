@@ -99,6 +99,7 @@ public:
   inline void* data() const { return mbuf->get(); }
   inline void* data_at(size_t i) const { return mbuf->at(i); }
   inline RowIndex* rowindex() const { return ri; }
+  inline RowIndeZ  rowindez() const { return RowIndeZ(ri); }
   size_t alloc_size() const;
   virtual int64_t data_nrows() const = 0;
   PyObject* mbuf_repr() const;

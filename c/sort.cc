@@ -305,36 +305,22 @@ RowIndex* Column::sort() const
   if (nrows > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable with " << nrows << " rows";
   }
-  if (ri != nullptr && (ri->type == RI_ARR64 ||
-                        ri->length > INT32_MAX ||
-                        ri->max > INT32_MAX)) {
+  RowIndeZ rz(ri);
+  if (rz.isarr64() || rz.length() > INT32_MAX || rz.max() > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable which is based on a "
                           "datatable with >2**31 rows";
   }
   int32_t nrows_ = (int32_t) nrows;
-  int32_t *ordering = nullptr;
   if (nrows_ <= 1) {  // no need to sort
     return new RowIndex((int64_t)0, nrows_, 1);
   }
-  if (ri != nullptr) {
-    if (ri->type == RI_ARR32) {
-      dtmalloc(ordering, int32_t, nrows_);
-      memcpy(ordering, ri->ind32, (size_t) nrows_ * sizeof(int32_t));
-    }
-    else if (ri->type == RI_SLICE) {
-      RowIndex *ri_ = ri->expand();
-      if (ri_ == nullptr || ri_->type != RI_ARR32) return nullptr;
-      ordering = ri_->ind32;
-      ri_->ind32 = nullptr;
-      ri_->release();
-    }
-  }
+  int32_t* ordering = rz.extract_as_array32();
   SType stype_ = stype();
   prepare_inp_fn prepfn = prepare_inp_fns[stype_];
   SortContext* sc = new SortContext();
 
   if (nrows_ <= INSERT_SORT_THRESHOLD) {
-    if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || ri != nullptr) {
+    if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || !rz.isabsent()) {
       prepfn(this, ordering, (size_t)nrows_, sc);
       insert_sort(sc);
       ordering = sc->o;

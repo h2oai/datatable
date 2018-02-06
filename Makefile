@@ -342,7 +342,7 @@ $(BUILDDIR)/py_utils.o : c/py_utils.c c/py_datatable.h c/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex.o : c/rowindex.cc c/datatable_check.h c/rowindex.h c/types.h c/utils.h c/utils/assert.h c/utils/omp.h
+$(BUILDDIR)/rowindex.o : c/rowindex.cc c/column.h c/datatable.h c/datatable_check.h c/rowindex.h c/types.h c/utils.h c/utils/assert.h c/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

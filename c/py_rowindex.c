@@ -249,7 +249,7 @@ PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args)
         ? RowIndex::from_column(col)
         : RowIndex::from_intcolumn(col, 0);
 
-    if (rowindex->min < 0 || rowindex->max >= target_nrows) {
+    if (rowindex->min() < 0 || rowindex->max() >= target_nrows) {
         PyErr_Format(PyExc_ValueError,
             "The data column contains NAs or indices that are outside of the "
             "allowed range [0 .. %lld)", target_nrows);
@@ -337,14 +337,14 @@ static PyObject* repr(RowIndex_PyObject *self)
     if (ri == NULL)
         return PyUnicode_FromString("_RowIndex(NULL)");
     if (ri->type == RI_ARR32) {
-        return PyUnicode_FromFormat("_RowIndex(int32[%ld])", ri->length);
+        return PyUnicode_FromFormat("_RowIndex(int32[%ld])", ri->length());
     }
     if (ri->type == RI_ARR64) {
-        return PyUnicode_FromFormat("_RowIndex(int64[%ld])", ri->length);
+        return PyUnicode_FromFormat("_RowIndex(int64[%ld])", ri->length());
     }
     if (ri->type == RI_SLICE) {
         return PyUnicode_FromFormat("_RowIndex(%ld:%ld:%ld)",
-            ri->slice.start, ri->length, ri->slice.step);
+            ri->slice.start, ri->length(), ri->slice.step);
     }
     return NULL;
   );
@@ -357,24 +357,24 @@ static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
   RowIndex *ri = self->ref;
 
   CATCH_EXCEPTIONS(
-    PyObject *list = PyList_New((Py_ssize_t) ri->length);
+    PyObject *list = PyList_New((Py_ssize_t) ri->length());
     switch (ri->type) {
         case RI_ARR32: {
-            int32_t n = (int32_t) ri->length;
+            int32_t n = (int32_t) ri->length();
             int32_t *a = ri->ind32;
             for (int32_t i = 0; i < n; i++) {
                 PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
             }
         } break;
         case RI_ARR64: {
-            int64_t n = ri->length;
+            int64_t n = ri->length();
             int64_t *a = ri->ind64;
             for (int64_t i = 0; i < n; i++) {
                 PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
             }
         } break;
         case RI_SLICE: {
-            int64_t n = ri->length;
+            int64_t n = ri->length();
             int64_t start = ri->slice.start;
             int64_t step = ri->slice.step;
             for (int64_t i = 0; i < n; i++) {

@@ -135,7 +135,7 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) const {
 
   if (new_rowindex) {
     col->ri = new_rowindex->shallowcopy();
-    col->nrows = new_rowindex->length;
+    col->nrows = new_rowindex->length();
   } else if (ri) {
     col->ri = ri->shallowcopy();
   }
@@ -361,18 +361,18 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
     if (!ok) return false;
 
     // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != col_ri->length) {
+    if (nrows != col_ri->length()) {
       icc << "Mismatch in reported number of rows: " << name << " has "
           << "nrows=" << nrows << ", while its rowindex.length="
-          << col_ri->length << end;
+          << col_ri->length() << end;
     }
 
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (col_ri->max >= mbuf_nrows && col_ri->max > 0) {
+    if (col_ri->max() >= mbuf_nrows && col_ri->max() > 0) {
       icc << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
-          << col_ri->max << ", and nrows(membuf)=" << mbuf_nrows << end;
+          << col_ri->max() << ", and nrows(membuf)=" << mbuf_nrows << end;
     }
   }
   else {

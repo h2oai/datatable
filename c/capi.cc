@@ -21,17 +21,17 @@ void* datatable_get_column_data(void* dt_, int64_t column)
 void datatable_unpack_slicerowindex(void *dt_, int64_t *start, int64_t *step)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
-  RowIndex *ri = dt->rowindex;
-  *start = ri->slice.start;
-  *step = ri->slice.step;
+  RowIndeZ ri(dt->rowindex);
+  *start = ri.slice_start();
+  *step  = ri.slice_step();
 }
 
 
 void datatable_unpack_arrayrowindex(void *dt_, void **indices)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
-  RowIndex *ri = dt->rowindex;
-  *indices = (void*) ri->ind32;
+  RowIndeZ ri(dt->rowindex);
+  *indices = ri.indices32();
 }
 
 

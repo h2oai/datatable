@@ -239,7 +239,7 @@ void StringColumn<T>::reify() {
   if (ri == nullptr) return;
 
   //size_t new_offoff = static_cast<size_t>(offoff);
-  size_t new_mbuf_size = (static_cast<size_t>(ri->length) + 1) * sizeof(T);
+  size_t new_mbuf_size = (static_cast<size_t>(ri->length()) + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
   MemoryBuffer* new_mbuf = mbuf;
   MemoryBuffer* new_strbuf = strbuf;

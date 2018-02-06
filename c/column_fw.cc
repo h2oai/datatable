@@ -128,8 +128,9 @@ void FwColumn<T>::set_elem(int64_t i, T value) {
 
 template <typename T>
 void FwColumn<T>::reify() {
+  RowIndeZ rz(ri);
   // If our rowindex is null, then we're already done
-  if (ri == nullptr) return;
+  if (rz.isabsent()) return;
 
   size_t elemsize = sizeof(T);
   size_t nrows_cast = static_cast<size_t>(nrows);
@@ -143,27 +144,29 @@ void FwColumn<T>::reify() {
   // this must be taken into consideration.
   auto new_mbuf = mbuf->is_readonly()? new MemoryMemBuf(newsize) : mbuf;
 
-  if (ri->type == RI_SLICE && ri->slice.step == 1) {
+  if (rz.isslice() && rz.slice_step() == 1) {
     // Slice with step 1: a portion of the buffer can be simply mem-moved onto
     // the new buffer (use memmove because the old and the new buffer can be
     // the same).
-    assert(newsize + static_cast<size_t>(ri->slice.start) * elemsize <= mbuf->size());
-    memmove(new_mbuf->get(), elements() + ri->slice.start, newsize);
+    size_t start = static_cast<size_t>(rz.slice_start());
+    assert(newsize + start * elemsize <= mbuf->size());
+    memmove(new_mbuf->get(), elements() + start, newsize);
 
   } else {
     // In all other cases we have to manually loop over the rowindex and
     // copy array elements onto the new positions. This can be done in-place
     // only if we know that the indices are monotonically increasing (otherwise
     // there is a risk of scrambling the data).
-    if (mbuf == new_mbuf && !(ri->type == RI_SLICE && ri->slice.step > 0)) {
+    if (mbuf == new_mbuf && !(rz.isslice() && rz.slice_step() > 0)) {
       new_mbuf = new MemoryMemBuf(newsize);
     }
     T* data_src = elements();
     T* data_dest = static_cast<T*>(new_mbuf->get());
-    DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
-      *data_dest = data_src[i];
-      ++data_dest;
-    )
+    rz.strided_loop(0, nrows, 1,
+      [&](int64_t i) {
+        *data_dest = data_src[i];
+        ++data_dest;
+      });
   }
 
   if (mbuf == new_mbuf) {

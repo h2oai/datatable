@@ -35,33 +35,6 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
-template<typename F>
-void strided_rowindex_loop(RowIndex* ri, int64_t i0, int64_t istep,
-                           int64_t nrows, F f) {
-  if (!ri) {
-    for (int64_t i = i0; i < nrows; i += istep) {
-      f(i);
-    }
-  } else if (ri->type == RI_ARR32) {
-    int32_t* ridata = ri->ind32;
-    for (int64_t i = i0; i < nrows; i += istep) {
-      f(static_cast<int64_t>(ridata[i]));
-    }
-  } else if (ri->type == RI_ARR64) {
-    int64_t* ridata = ri->ind64;
-    for (int64_t i = i0; i < nrows; i += istep) {
-      f(ridata[i]);
-    }
-  } else if (ri->type == RI_SLICE) {
-    int64_t step = ri->slice.step * istep;
-    int64_t start = ri->slice.start + i0 * ri->slice.step;
-    int64_t end = ri->slice.start + nrows * ri->slice.step;
-    for (int64_t i = start; i < end; i += step) {
-      f(i);
-    }
-  }
-}
-
 
 
 //==============================================================================
@@ -138,9 +111,10 @@ template<typename T, typename A> bool NumericalStats<T, A>::sum_computed() const
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   int64_t nrows = col->nrows;
-  RowIndex* rowindex = col->rowindex();
+  // RowIndex* rowindex = col->rowindex();
+  RowIndeZ rowindex = col->rowindez();
   T* data = static_cast<T*>(col->data());
-  size_t count_notna = 0;
+  int64_t count_notna = 0;
   double mean = 0;
   double m2 = 0;
   A sum = 0;
@@ -151,15 +125,14 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   {
     int ith = omp_get_thread_num();  // current thread index
     int nth = omp_get_num_threads(); // total number of threads
-    size_t t_count_notna = 0;
+    int64_t t_count_notna = 0;
     double t_mean = 0;
     double t_m2 = 0;
     A t_sum = 0;
     T t_min = infinity<T>();
     T t_max = -infinity<T>();
 
-    strided_rowindex_loop(
-      rowindex, ith, nth, nrows,
+    rowindex.strided_loop(ith, nrows, nth,
       [&](int64_t i) {
         T x = data[i];
         if (ISNA<T>(x)) return;
@@ -264,15 +237,15 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   int64_t count0 = 0, count1 = 0;
   int8_t* data = static_cast<int8_t*>(col->data());
   int64_t nrows = col->nrows;
-  RowIndex* rowindex = col->rowindex();
+  // RowIndex* rowindex = col->rowindex();
+  RowIndeZ rowindex = col->rowindez();
   #pragma omp parallel
   {
     int ith = omp_get_thread_num();  // current thread index
     int nth = omp_get_num_threads(); // total number of threads
     size_t tcount0 = 0, tcount1 = 0;
 
-    strided_rowindex_loop(
-      rowindex, ith, nth, nrows,
+    rowindex.strided_loop(ith, nrows, nth,
       [&](int64_t i) {
         int8_t x = data[i];
         tcount0 += (x == 0);

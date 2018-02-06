@@ -9,12 +9,322 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <algorithm> // min
-#include "utils/assert.h"
-#include "utils/omp.h"
+#include <algorithm>   // std::min
+#include "column.h"
+#include "datatable.h"
+#include "datatable_check.h"
 #include "types.h"
 #include "utils.h"
-#include "datatable_check.h"
+#include "utils/assert.h"
+#include "utils/omp.h"
+
+
+//==============================================================================
+// Base RowIndeZ class
+//==============================================================================
+
+// copy-constructor, performs shallow copying
+RowIndeZ::RowIndeZ(const RowIndeZ& other) {
+  impl = other.impl;
+  if (impl) impl->acquire();
+}
+
+// assignment operator, performs shallow copying
+RowIndeZ& RowIndeZ::operator=(const RowIndeZ& other) {
+  if (impl) impl->release();
+  impl = other.impl;
+  if (impl) impl->acquire();
+  return *this;
+}
+
+RowIndeZ::~RowIndeZ() {
+  if (impl) impl->release();
+}
+
+
+/**
+ * Construct a RowIndex object from triple `(start, count, step)`. The new
+ * object will have type `RI_SLICE`.
+ *
+ * Note that we depart from Python's standard of using `(start, end, step)` to
+ * denote a slice -- having a `count` gives several advantages:
+ *   - computing the "end" is easy and unambiguous: `start + count * step`;
+ *     whereas computing "count" from `end` is harder: `(end - start) / step`.
+ *   - with explicit `count` the `step` may safely be 0.
+ *   - there is no difference in handling positive/negative steps.
+ */
+RowIndeZ RowIndeZ::from_slice(int64_t start, int64_t count, int64_t step) {
+  return RowIndeZ(new SliceRowIndexImpl(start, count, step));
+}
+
+
+/**
+ * Construct an "array" `RowIndex` object from a series of triples
+ * `(start, count, step)`. The triples are given as 3 separate arrays of starts,
+ * of counts and of steps.
+ *
+ * This will create either an RI_ARR32 or RI_ARR64 object, depending on which
+ * one is sufficient to hold all the indices.
+ */
+RowIndeZ RowIndeZ::from_slices(int64_t* starts, int64_t* counts,
+                               int64_t* steps, int64_t n) {
+  return RowIndeZ(new ArrayRowIndexImpl(starts, counts, steps, n));
+}
+
+
+RowIndeZ RowIndeZ::from_array32(int32_t* arr, int64_t n, bool sorted) {
+  return RowIndeZ(new ArrayRowIndexImpl(arr, n, sorted));
+}
+
+
+
+int32_t* RowIndeZ::extract_as_array32() const {
+  if (!impl) return nullptr;
+  size_t szlen = static_cast<size_t>(length());
+  switch (impl->type) {
+    case RI_ARR32: {
+      int32_t* res = new int32_t[szlen];
+      std::memcpy(res, indices32(), szlen * sizeof(int32_t));
+      return res;
+    }
+    case RI_SLICE: {
+      if (szlen <= INT32_MAX && max() <= INT32_MAX) {
+        int32_t n = static_cast<int32_t>(szlen);
+        int32_t start = static_cast<int32_t>(slice_start());
+        int32_t step = static_cast<int32_t>(slice_step());
+        int32_t* out = new int32_t[szlen];
+        #pragma omp parallel for schedule(static)
+        for (int32_t i = 0; i < n; ++i) {
+          out[i] = start + i*step;
+        }
+        return out;
+      }
+      break;
+    }
+    default:
+      break;
+  }
+  return nullptr;
+}
+
+// temporary
+RowIndeZ::RowIndeZ(RowIndex* o) {
+  impl = nullptr;
+  if (o) {
+    switch (o->type) {
+      case RowIndexType::RI_UNKNOWN:
+        break;
+      case RowIndexType::RI_SLICE:
+        impl = new SliceRowIndexImpl(o->slice_start(), o->length(), o->slice_step());
+        break;
+      case RowIndexType::RI_ARR32:
+        impl = new ArrayRowIndexImpl(o->indices32(), o->length(), false);
+        break;
+      case RowIndexType::RI_ARR64:
+        impl = new ArrayRowIndexImpl(o->indices64(), o->length(), false);
+        break;
+    }
+  }
+  if (impl) impl->acquire();
+}
+
+
+//==============================================================================
+// RowIndexImpl
+//==============================================================================
+
+RowIndexImpl::RowIndexImpl()
+  : refcount(1), type(RowIndexType::RI_UNKNOWN), length(0), min(0), max(0) {}
+
+void RowIndexImpl::release() {
+  refcount--;
+  if (refcount <= 0) {
+    delete this;
+  }
+}
+
+
+//==============================================================================
+// SliceRowIndexImpl
+//==============================================================================
+
+SliceRowIndexImpl::SliceRowIndexImpl(
+    int64_t start_, int64_t count_, int64_t step_)
+{
+  SliceRowIndexImpl::check_triple(start_, count_, step_);
+  type = RowIndexType::RI_SLICE;
+  start = start_;
+  length = count_;
+  step = step_;
+  if (length == 0) {
+    min = max = 0;
+  } else if (step >= 0) {
+    min = start;
+    max = start + step * (length - 1);
+  } else {
+    min = start + step * (length - 1);
+    max = start;
+  }
+}
+
+
+/**
+ * Helper function to verify that
+ *     0 <= start, count, start + (count-1)*step <= INT64_MAX
+ *
+ * If one of these conditions fails, throws an exception, otherwise does
+ * nothing.
+ */
+void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
+{
+  if (start < 0 || count < 0 ||
+      (count > 1 && step < -(start/(count - 1))) ||
+      (count > 1 && step > (INT64_MAX - start)/(count - 1))) {
+    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
+                       << count << "/" << step << "]";
+  }
+}
+
+
+
+//==============================================================================
+// ArrayRowIndexImpl
+//==============================================================================
+
+ArrayRowIndexImpl::~ArrayRowIndexImpl() {
+  // pointers are shared, only one of them has to be deleted
+  if (ind32) delete[] ind32;
+}
+
+/**
+ * Construct a `RowIndex` object from a plain list of int64_t/int32_t indices.
+ * These functions steal ownership of the `array` -- the caller should not
+ * attempt to free it afterwards.
+ * The RowIndex constructed is always of the type corresponding to the array
+ * passed, in particular we do not attempt to compactify an int64_t[] array into
+ * int32_t[] even if it were possible.
+ */
+ArrayRowIndexImpl::ArrayRowIndexImpl(int32_t* array, int64_t n, bool sorted) {
+  if (n < 0 || n > INT32_MAX) {
+    throw ValueError() << "Invalid int32 array length: " << n;
+  }
+  length = n;
+  ind32 = array;
+  type = RowIndexType::RI_ARR32;
+  if (n == 0) {
+    min = 0;
+    max = 0;
+  } else if (sorted) {
+    min = (int64_t) array[0];
+    max = (int64_t) array[n - 1];
+  } else {
+    int32_t tmin = INT32_MAX;
+    int32_t tmax = -INT32_MAX;
+    #pragma omp parallel for schedule(static) \
+        reduction(min:tmin) reduction(max:tmax)
+    for (int64_t j = 0; j < n; j++) {
+      int32_t t = array[j];
+      if (t < tmin) tmin = t;
+      if (t > tmax) tmax = t;
+    }
+    min = (int64_t) tmin;
+    max = (int64_t) tmax;
+  }
+}
+
+
+ArrayRowIndexImpl::ArrayRowIndexImpl(int64_t* array, int64_t n, bool sorted) {
+  if (n < 0) throw ValueError() << "Invalid array length: " << n;
+  length = n;
+  ind64 = array;
+  type = RowIndexType::RI_ARR64;
+  if (n == 0) {
+    min = 0;
+    max = 0;
+  } else if (sorted) {
+    min = array[0];
+    max = array[n - 1];
+  } else {
+    int64_t tmin = INT64_MAX;
+    int64_t tmax = -INT64_MAX;
+    #pragma omp parallel for schedule(static) \
+        reduction(min:tmin) reduction(max:tmax)
+    for (int64_t j = 0; j < n; j++) {
+      int64_t t = array[j];
+      if (t < tmin) tmin = t;
+      if (t > tmax) tmax = t;
+    }
+    min = tmin;
+    max = tmax;
+  }
+}
+
+
+ArrayRowIndexImpl::ArrayRowIndexImpl(
+    int64_t* starts, int64_t* counts, int64_t* steps, int64_t n)
+{
+  if (n < 0) {
+    throw ValueError() << "Invalid slice array length: " << n;
+  }
+
+  // Compute the total number of elements, and the largest index that needs
+  // to be stored. Also check for potential overflows / invalid values.
+  int64_t count = 0;
+  int64_t minidx = INT64_MAX, maxidx = 0;
+  for (int64_t i = 0; i < n; ++i) {
+    int64_t start = starts[i];
+    int64_t step = steps[i];
+    int64_t len = counts[i];
+    SliceRowIndexImpl::check_triple(start, len, step);
+    if (len == 0) continue;
+    int64_t end = start + step * (len - 1);
+    if (start < minidx) minidx = start;
+    if (start > maxidx) maxidx = start;
+    if (end < minidx) minidx = end;
+    if (end > maxidx) maxidx = end;
+    count += len;
+  }
+  if (maxidx == 0) minidx = 0;
+  assert(minidx >= 0 && minidx <= maxidx);
+
+  length = count;
+  min = minidx;
+  max = maxidx;
+
+  if (count <= INT32_MAX && maxidx <= INT32_MAX) {
+    type = RowIndexType::RI_ARR32;
+    ind32 = new int32_t[count];
+    int32_t* rowsptr = ind32;
+    for (int64_t i = 0; i < n; ++i) {
+      int32_t j = static_cast<int32_t>(starts[i]);
+      int32_t icount = static_cast<int32_t>(counts[i]);
+      int32_t istep = static_cast<int32_t>(steps[i]);
+      for (int32_t k = 0; k < icount; ++k) {
+        *rowsptr++ = j;
+        j += istep;
+      }
+    }
+    assert(rowsptr - ind32 == count);
+  } else {
+    type = RowIndexType::RI_ARR64;
+    ind64 = new int64_t[count];
+    int64_t* rowsptr = ind64;
+    for (int64_t i = 0; i < n; ++i) {
+      int64_t j = starts[i];
+      int64_t icount = counts[i];
+      int64_t istep = steps[i];
+      for (int64_t k = 0; k < icount; ++k) {
+        *rowsptr++ = j;
+        j += istep;
+      }
+    }
+    assert(rowsptr - ind64 == count);
+  }
+}
+
+
+
+//============================================================================
 
 dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
          "Addresses of RowIndex->ind32 and RowIndex->ind64 must "
@@ -29,7 +339,7 @@ dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
  */
 #define ITER_ALL {                                                             \
   RowIndexType ritype = rowindex->type;                                        \
-  int64_t nrows = rowindex->length;                                            \
+  int64_t nrows = rowindex->_length;                                            \
   if (ritype == RI_SLICE) {                                                    \
     int64_t start = rowindex->slice.start;                                     \
     int64_t step = rowindex->slice.step;                                       \
@@ -63,11 +373,11 @@ dt_static_assert(offsetof(RowIndex, ind32) == offsetof(RowIndex, ind64),
  */
 void RowIndex::compactify()
 {
-  if (type != RI_ARR64 || max > INT32_MAX || length > INT32_MAX) return;
+  if (type != RI_ARR64 || _max > INT32_MAX || _length > INT32_MAX) return;
 
   int64_t* src = ind64;
   int32_t* res = (int32_t*) src;  // Note: res writes on top of src!
-  int32_t len = (int32_t) length;
+  int32_t len = (int32_t) _length;
   for (int32_t i = 0; i < len; i++) {
     res[i] = (int32_t) src[i];
   }
@@ -94,7 +404,7 @@ void RowIndex::compactify()
  * Returns a new `RowIndex` object, or NULL if such object cannot be created.
  */
 RowIndex::RowIndex(int64_t start, int64_t count, int64_t step) :
-  length(count),
+  _length(count),
   type(RI_SLICE),
   refcount(1)
 {
@@ -107,8 +417,8 @@ RowIndex::RowIndex(int64_t start, int64_t count, int64_t step) :
   }
   slice.start = start;
   slice.step = step;
-  min = !count? 0 : step >= 0? start : start + step * (count - 1);
-  max = !count? 0 : step >= 0? start + step * (count - 1) : start;
+  _min = !count? 0 : step >= 0? start : start + step * (count - 1);
+  _max = !count? 0 : step >= 0? start + step * (count - 1) : start;
 }
 
 
@@ -153,9 +463,9 @@ RowIndex::RowIndex(int64_t* starts, int64_t* counts, int64_t* steps, int64_t n)
   if (maxidx == 0) minidx = 0;
   assert(minidx >= 0 && minidx <= maxidx);
 
-  length = count;
-  min = minidx;
-  max = maxidx;
+  _length = count;
+  _min = minidx;
+  _max = maxidx;
 
   if (count <= INT32_MAX && maxidx <= INT32_MAX) {
     int32_t* rows = (int32_t*) malloc(sizeof(int32_t) * (size_t) count);
@@ -198,7 +508,7 @@ RowIndex::RowIndex(int64_t* starts, int64_t* counts, int64_t* steps, int64_t n)
  * int32_t[] even if it were possible.
  */
 RowIndex::RowIndex(int32_t* array, int64_t n, int issorted) :
-  length(n),
+  _length(n),
   ind32(array),
   type(RI_ARR32),
   refcount(1)
@@ -207,11 +517,11 @@ RowIndex::RowIndex(int32_t* array, int64_t n, int issorted) :
     throw ValueError() << "Invalid int32 array length: " << n;
   }
   if (n == 0) {
-    min = 0;
-    max = 0;
+    _min = 0;
+    _max = 0;
   } else if (issorted) {
-    min = (int64_t) array[0];
-    max = (int64_t) array[n - 1];
+    _min = (int64_t) array[0];
+    _max = (int64_t) array[n - 1];
   } else {
     int32_t tmin = INT32_MAX;
     int32_t tmax = -INT32_MAX;
@@ -222,13 +532,13 @@ RowIndex::RowIndex(int32_t* array, int64_t n, int issorted) :
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
-    min = (int64_t) tmin;
-    max = (int64_t) tmax;
+    _min = (int64_t) tmin;
+    _max = (int64_t) tmax;
   }
 }
 
 RowIndex::RowIndex(int64_t* array, int64_t n, int issorted) :
-  length(n),
+  _length(n),
   ind64(array),
   type(RI_ARR64),
   refcount(1)
@@ -237,11 +547,11 @@ RowIndex::RowIndex(int64_t* array, int64_t n, int issorted) :
     throw ValueError() << "Invalid int64 array length: " << n;
   }
   if (n == 0) {
-    min = 0;
-    max = 0;
+    _min = 0;
+    _max = 0;
   } else if (issorted) {
-    min = array[0];
-    max = array[n - 1];
+    _min = array[0];
+    _max = array[n - 1];
   } else {
     int64_t tmin = INT64_MAX;
     int64_t tmax = -INT64_MAX;
@@ -252,8 +562,8 @@ RowIndex::RowIndex(int64_t* array, int64_t n, int issorted) :
       if (t < tmin) tmin = t;
       if (t > tmax) tmax = t;
     }
-    min = tmin;
-    max = tmax;
+    _min = tmin;
+    _max = tmax;
   }
 }
 
@@ -425,25 +735,27 @@ RowIndex* RowIndex::from_intcolumn(Column* col, int is_temp_column)
  * `rowindex_incref()`.
  */
 RowIndex::RowIndex(const RowIndex &other)
-  : length(other.length),
-    min(other.min),
-    max(other.max),
+  : _length(other._length),
+    _min(other._min),
+    _max(other._max),
     type(other.type),
     refcount(1)
 {
-  switch(type) {
+  switch (type) {
     case RI_SLICE: {
       slice.start = other.slice.start;
       slice.step = other.slice.step;
     } break;
     case RI_ARR32: {
-      ind32 = (int32_t*) malloc(sizeof(int32_t) * (size_t) length);
-      memcpy(ind32, other.ind32, sizeof(int32_t) * (size_t) length);
+      ind32 = (int32_t*) malloc(sizeof(int32_t) * (size_t) _length);
+      memcpy(ind32, other.ind32, sizeof(int32_t) * (size_t) _length);
     } break;
     case RI_ARR64: {
-      ind64 = (int64_t*) malloc(sizeof(int64_t) * (size_t) length);
-      memcpy(ind64, other.ind64, sizeof(int64_t) * (size_t) length);
+      ind64 = (int64_t*) malloc(sizeof(int64_t) * (size_t) _length);
+      memcpy(ind64, other.ind64, sizeof(int64_t) * (size_t) _length);
     } break;
+    case RI_UNKNOWN:
+      break;
   }
 }
 
@@ -468,7 +780,7 @@ RowIndex* RowIndex::merge(RowIndex *ri_ab, RowIndex *ri_bc)
   if (ri_ab == nullptr) return new RowIndex(ri_bc);
   if (ri_bc == nullptr) return new RowIndex(ri_ab);
 
-  int64_t n = ri_bc->length;
+  int64_t n = ri_bc->_length;
   RowIndexType type_bc = ri_bc->type;
   RowIndexType type_ab = ri_ab->type;
 
@@ -721,8 +1033,8 @@ RowIndex* RowIndex::expand()
 {
   if (type != RI_SLICE) return new RowIndex(this);
 
-  if (length <= INT32_MAX && max <= INT32_MAX) {
-    int32_t n = (int32_t) length;
+  if (_length <= INT32_MAX && _max <= INT32_MAX) {
+    int32_t n = (int32_t) _length;
     int32_t start = (int32_t) slice.start;
     int32_t step = (int32_t) slice.step;
     int32_t* out = (int32_t*) malloc(sizeof(int32_t) * (size_t) n);
@@ -732,7 +1044,7 @@ RowIndex* RowIndex::expand()
     }
     return new RowIndex(out, n, 1);
   } else {
-    int64_t n = length;
+    int64_t n = _length;
     int64_t start = slice.start;
     int64_t step = slice.step;
     dtdeclmalloc(out, int64_t, n);
@@ -749,8 +1061,8 @@ size_t RowIndex::alloc_size()
 {
   size_t sz = sizeof(*this);
   switch (type) {
-    case RI_ARR32: sz += (size_t)length * sizeof(int32_t); break;
-    case RI_ARR64: sz += (size_t)length * sizeof(int64_t); break;
+    case RI_ARR32: sz += (size_t)_length * sizeof(int32_t); break;
+    case RI_ARR64: sz += (size_t)_length * sizeof(int64_t); break;
     default: /* do nothing */ break;
   }
   return sz;
@@ -791,8 +1103,8 @@ bool RowIndex::verify_integrity(IntegrityCheckContext& icc,
   auto end = icc.end();
 
   // Check that rowindex length is valid
-  if (length < 0) {
-    icc << name << ".length is negative: " << length << end;
+  if (_length < 0) {
+    icc << name << ".length is negative: " << _length << end;
     return false;
   }
   // Check for a positive refcount
@@ -814,41 +1126,41 @@ bool RowIndex::verify_integrity(IntegrityCheckContext& icc,
       }
       int64_t step = slice.step;
       // Ensure that the last index won't lead to an overflow or a negative value
-      if (length > 1) {
-        if (step > (INT64_MAX - start) / (length - 1)) {
+      if (_length > 1) {
+        if (step > (INT64_MAX - start) / (_length - 1)) {
         icc << "Slice in " << name << " leads to integer overflow: start = "
-          << start << ", step = " << step << ", length = " << length << end;
+          << start << ", step = " << step << ", length = " << _length << end;
         return false;
         }
-        if (step < -start / (length - 1)) {
+        if (step < -start / (_length - 1)) {
         icc << "Slice in " << name << " has negative indices: start = " << start
-          << ", step = " << step << ", length = " << length << end;
+          << ", step = " << step << ", length = " << _length << end;
         return false;
         }
       }
-      int64_t sliceend = start + step * (length - 1);
+      int64_t sliceend = start + step * (_length - 1);
       maxrow = step > 0 ? sliceend : start;
       minrow = step > 0 ? start : sliceend;
       break;
     }
     case RI_ARR32: {
       // Check that the rowindex length can be represented as an int32
-      if (length > INT32_MAX) {
+      if (_length > INT32_MAX) {
         icc << name << " with type `RI_ARR32` cannot have a length greater than "
-          << "INT32_MAX: length = " << length << end;
+          << "INT32_MAX: length = " << _length << end;
       }
 
       // Check that allocation size is valid
       size_t n_allocd = array_size(ind32, sizeof(int32_t));
-      if (n_allocd < static_cast<size_t>(length)) {
-        icc << name << " requires a minimum array length of " << length
+      if (n_allocd < static_cast<size_t>(_length)) {
+        icc << name << " requires a minimum array length of " << _length
           << " elements, but only allocated enough space for " << n_allocd
           << end;
         return false;
       }
 
       // Check that every item in the array is a valid value
-      for (int32_t i = 0; i < length; ++i) {
+      for (int32_t i = 0; i < _length; ++i) {
         if (ind32[i] < 0) {
         icc << "Item " << i << " in " << name << " is negative: " << ind32[i]
           << end;
@@ -861,15 +1173,15 @@ bool RowIndex::verify_integrity(IntegrityCheckContext& icc,
     case RI_ARR64: {
       // Check that the rowindex length can be represented as an int64
       size_t n_allocd = array_size(ind64, sizeof(int64_t));
-      if (n_allocd < static_cast<size_t>(length)) {
-        icc << name << " requires a minimum array length of " << length
+      if (n_allocd < static_cast<size_t>(_length)) {
+        icc << name << " requires a minimum array length of " << _length
           << " elements, but only allocated enough space for " << n_allocd
           << end;
         return false;
       }
 
       // Check that every item in the array is a valid value
-      for (int64_t i = 0; i < length; ++i) {
+      for (int64_t i = 0; i < _length; ++i) {
         if (ind64[i] < 0) {
         icc << "Item " << i << " in " << name << " is negative: " << ind64[i]
           << end;
@@ -886,16 +1198,16 @@ bool RowIndex::verify_integrity(IntegrityCheckContext& icc,
   };
 
   // Check that the found extrema coincides with the reported extrema
-  if (length == 0) minrow = maxrow = 0;
-  if (this->min != minrow) {
+  if (_length == 0) minrow = maxrow = 0;
+  if (this->_min != minrow) {
     icc << "Mistmatch between minimum value reported by " << name << " and "
       << "computed minimum: computed minimum is " << minrow << ", whereas "
-      << "RowIndex.min = " << this->min << end;
+      << "RowIndex.min = " << this->_min << end;
   }
-  if (this->max != maxrow) {
+  if (this->_max != maxrow) {
     icc << "Mistmatch between maximum value reported by " << name << " and "
       << "computed maximum: computed maximum is " << maxrow << ", whereas "
-      << "RowIndex.max = " << this->max << end;
+      << "RowIndex.max = " << this->_max << end;
   }
 
   return !icc.has_errors(nerrors);
