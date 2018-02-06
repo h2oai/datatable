@@ -26,6 +26,7 @@ enum RowIndexType {
 
 typedef int (rowindex_filterfn32)(int64_t, int64_t, int32_t*, int32_t*);
 typedef int (rowindex_filterfn64)(int64_t, int64_t, int64_t*, int32_t*);
+typedef RowIndex* (rowindex_getterfn)(void);
 
 
 
@@ -107,6 +108,7 @@ class RowIndeZ {
     inline bool isarray() const { return isarr32() || isarr64(); }
 
     inline int64_t length() const { return impl? impl->length : 0; }
+    inline size_t zlength() const { return static_cast<size_t>(length()); }
     inline int64_t min() const { return impl? impl->min : 0; }
     inline int64_t max() const { return impl? impl->max : 0; }
     inline int32_t* indices32() const { return impl_asarray()->ind32; }
@@ -157,6 +159,9 @@ class RowIndeZ {
         }
       }
     }
+
+    bool verify_integrity(IntegrityCheckContext&,
+                          const std::string& = "RowIndex") const { return true; }
 
   private:
     RowIndeZ(RowIndexImpl* rii) : impl(rii) {}
@@ -221,15 +226,14 @@ class RowIndex
     int64_t _length;
     int64_t _min;
     int64_t _max;
-  public:
     union {
       int32_t* ind32;
       int64_t* ind64;
       struct { int64_t start, step; } slice;
     };
+    RowIndexType type;
 
   public:
-    RowIndexType type;
     int32_t refcount;
 
   public:
@@ -246,13 +250,7 @@ class RowIndex
     void release();
 
     // Properties accessors
-    int64_t length() const { return _length; }
-    int64_t min() const { return _min; }
-    int64_t max() const { return _max; }
-    int64_t slice_start() const { return slice.start; }
-    int64_t slice_step() const { return slice.step; }
-    int32_t* indices32() const { return ind32; }
-    int64_t* indices64() const { return ind64; }
+    // int64_t length() const { return _length; }
 
     bool verify_integrity(IntegrityCheckContext&,
                           const std::string& name = "RowIndex") const;
@@ -266,55 +264,8 @@ class RowIndex
 
   private:
     ~RowIndex();
+    friend RowIndeZ;
 };
-
-
-
-//==============================================================================
-// Public API
-//==============================================================================
-typedef RowIndex* (rowindex_getterfn)(void);
-
-
-/**
- * Macro to get column indices based on a RowIndex `RI`.
- * Creates a for loop with from the following parameters:
- *
- *     `RI`:    A RowIndex pointer.
- *
- *     `NROWS`: The length of the target column (`Column::nrows`).
- *
- *     `I`:     A variable name that will be initialized as an `int64_t` and
- *              used to store the resulting index during each pass.
- *
- *     `CODE`:  The code to be placed in the body of the for loop.
- *
- * Two variables named `L_j` and `L_s` will also be created; Their
- * resulting type and value is undefined.
- */
-#define DT_LOOP_OVER_ROWINDEX(I, NROWS, RI, CODE)                              \
-  if (RI == nullptr) {                                                         \
-    for (int64_t I = 0; I < NROWS; ++I) {                                      \
-      CODE                                                                     \
-    }                                                                          \
-  } else if (RI->type == RI_SLICE) {                                           \
-    int64_t I = RI->slice.start, L_s = RI->slice.step, L_j = 0;                \
-    for (; L_j < NROWS; ++L_j, I += L_s) {                                     \
-      CODE                                                                     \
-    }                                                                          \
-  } else if (RI->type == RI_ARR32) {                                           \
-    int32_t* L_s = RI->ind32;                                                  \
-    for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                                \
-      int64_t I = (int64_t) L_s[L_j];                                          \
-      CODE                                                                     \
-    }                                                                          \
-  } else if (RI->type == RI_ARR64) {                                           \
-    int64_t* L_s = RI->ind64;                                                  \
-    for (int64_t L_j = 0; L_j < NROWS; ++L_j) {                                \
-      int64_t I = L_s[L_j];                                                    \
-      CODE                                                                     \
-    }                                                                          \
-  }
 
 
 #endif

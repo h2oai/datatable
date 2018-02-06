@@ -235,18 +235,18 @@ T* StringColumn<T>::offsets() const {
 
 template <typename T>
 void StringColumn<T>::reify() {
+  RowIndeZ rz(ri);
   // If our rowindex is null, then we're already done
-  if (ri == nullptr) return;
+  if (rz.isabsent()) return;
 
   //size_t new_offoff = static_cast<size_t>(offoff);
-  size_t new_mbuf_size = (static_cast<size_t>(ri->length()) + 1) * sizeof(T);
+  size_t new_mbuf_size = (rz.zlength() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
   MemoryBuffer* new_mbuf = mbuf;
   MemoryBuffer* new_strbuf = strbuf;
 
-  if (ri->type == RI_SLICE && ri->slice.step == 1) {
-    size_t start = static_cast<size_t>(ri->slice.start);
-    T* data_src = offsets() + start;
+  if (rz.isslice() && rz.slice_step() == 1) {
+    T* data_src = offsets() + rz.slice_start();
     T off0 = abs(data_src[-1]);
     T off1 = abs(data_src[nrows - 1]);
     new_strbuf_size = static_cast<size_t>(off1 - off0);
@@ -266,7 +266,7 @@ void StringColumn<T>::reify() {
     for (int64_t i = 0; i < nrows; ++i) {
       data_dest[i] = data_src[i] > 0 ? data_src[i] - off0 : data_src[i] + off0;
     }
-  } else if (ri->type == RI_SLICE && ri->slice.step > 0) {
+  } else if (rz.isslice() && rz.slice_step() > 0) {
     // Special case: We can still do this in-place
     // (assuming the buffers are not read-only)
     if (mbuf->is_readonly())
@@ -274,8 +274,8 @@ void StringColumn<T>::reify() {
     if (strbuf->is_readonly())
       new_strbuf = new MemoryMemBuf(strbuf->size()); // We don't know the actual size yet
                                                      // but it can't be larger than this
-    T step = static_cast<T>(ri->slice.step);
-    T start = static_cast<T>(ri->slice.start);
+    T step = static_cast<T>(rz.slice_step());
+    T start = static_cast<T>(rz.slice_start());
     T* offs1 = offsets();
     T* offs0 = offs1 - 1;
     T* off_dest = static_cast<T*>(new_mbuf->get());
@@ -308,14 +308,15 @@ void StringColumn<T>::reify() {
     // We have to make a copy otherwise :(
     new_mbuf = new MemoryMemBuf(new_mbuf_size);
 
-    T *offs1 = offsets();
-    T *offs0 = offs1 - 1;
+    T* offs1 = offsets();
+    T* offs0 = offs1 - 1;
     T strs_size = 0;
-    DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
-      if (offs1[i] > 0) {
-        strs_size += offs1[i] - abs(offs0[i]);
-      }
-    )
+    rz.strided_loop(0, nrows, 1,
+      [&](int64_t i) {
+        if (offs1[i] > 0) {
+          strs_size += offs1[i] - abs(offs0[i]);
+        }
+      });
     new_strbuf_size = static_cast<size_t>(strs_size);
     new_strbuf = new MemoryMemBuf(new_strbuf_size);
     T* offs_dest = static_cast<T*>(new_mbuf->get());
@@ -324,22 +325,23 @@ void StringColumn<T>::reify() {
     char *strs_src = strdata();
     char *strs_dest = static_cast<char*>(new_strbuf->get());
     T prev_off = 1;
-    DT_LOOP_OVER_ROWINDEX(i, nrows, ri,
-      if (offs1[i] > 0) {
-        T off0 = abs(offs0[i]);
-        T str_len = offs1[i] - off0;
-        if (str_len != 0) {
-          memcpy(strs_dest, strs_src + off0, static_cast<size_t>(str_len));
-          strs_dest += str_len;
-          prev_off += str_len;
+    rz.strided_loop(0, nrows, 1,
+      [&](int64_t i) {
+        if (offs1[i] > 0) {
+          T off0 = abs(offs0[i]);
+          T str_len = offs1[i] - off0;
+          if (str_len != 0) {
+            memcpy(strs_dest, strs_src + off0, static_cast<size_t>(str_len));
+            strs_dest += str_len;
+            prev_off += str_len;
+          }
+          *offs_dest = prev_off;
+          ++offs_dest;
+        } else {
+          *offs_dest = -prev_off;
+          ++offs_dest;
         }
-        *offs_dest = prev_off;
-        ++offs_dest;
-      } else {
-        *offs_dest = -prev_off;
-        ++offs_dest;
-      }
-    )
+      });
   }
   if (new_mbuf == mbuf) {
     mbuf->resize(new_mbuf_size);
@@ -353,6 +355,7 @@ void StringColumn<T>::reify() {
     strbuf->release();
     strbuf = new_strbuf;
   }
+  rz = RowIndeZ();
   ri->release();
   ri = nullptr;
 }

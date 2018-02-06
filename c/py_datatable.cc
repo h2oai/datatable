@@ -125,12 +125,11 @@ PyObject* get_stypes(obj* self) {
 
 
 PyObject* get_rowindex_type(obj* self) {
-  if (self->ref->rowindex == nullptr)
-    return none();
-  RowIndexType rit = self->ref->rowindex->type;
-  return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
-         rit == RI_ARR32? incref(strRowIndexTypeArr32) :
-         rit == RI_ARR64? incref(strRowIndexTypeArr64) : none();
+  RowIndeZ rz(self->ref->rowindex);
+  return rz.isabsent()? none() :
+         rz.isslice()? incref(strRowIndexTypeSlice) :
+         rz.isarr32()? incref(strRowIndexTypeArr32) :
+         rz.isarr64()? incref(strRowIndexTypeArr64) : none();
 }
 
 

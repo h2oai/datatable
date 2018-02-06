@@ -115,13 +115,13 @@ RowIndeZ::RowIndeZ(RowIndex* o) {
       case RowIndexType::RI_UNKNOWN:
         break;
       case RowIndexType::RI_SLICE:
-        impl = new SliceRowIndexImpl(o->slice_start(), o->length(), o->slice_step());
+        impl = new SliceRowIndexImpl(o->slice.start, o->_length, o->slice.step);
         break;
       case RowIndexType::RI_ARR32:
-        impl = new ArrayRowIndexImpl(o->indices32(), o->length(), false);
+        impl = new ArrayRowIndexImpl(o->ind32, o->_length, false);
         break;
       case RowIndexType::RI_ARR64:
-        impl = new ArrayRowIndexImpl(o->indices64(), o->length(), false);
+        impl = new ArrayRowIndexImpl(o->ind64, o->_length, false);
         break;
     }
   }

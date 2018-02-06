@@ -281,13 +281,29 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
 template <typename T>
 void StringStats<T>::countna_compute(const Column *col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
+  RowIndeZ rowindex = col->rowindez();
   int64_t nrows = scol->nrows;
-  int64_t t_countna = 0;
-  T *data = scol->offsets();
-  DT_LOOP_OVER_ROWINDEX(i, nrows, scol->rowindex(),
-    t_countna += data[i] < 0;
-  )
-  _countna = t_countna;
+  int64_t countna = 0;
+  T* data = scol->offsets();
+
+  #pragma omp parallel
+  {
+    int ith = omp_get_thread_num();  // current thread index
+    int nth = omp_get_num_threads(); // total number of threads
+    size_t tcountna = 0;
+
+    rowindex.strided_loop(ith, nrows, nth,
+      [&](int64_t i) {
+        tcountna += data[i] < 0;
+      });
+
+    #pragma omp critical
+    {
+      countna += tcountna;
+    }
+  }
+
+  _countna = countna;
   compute_mask |= Mask::COUNTNA;
 }
 

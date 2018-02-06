@@ -135,7 +135,7 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) const {
 
   if (new_rowindex) {
     col->ri = new_rowindex->shallowcopy();
-    col->nrows = new_rowindex->length();
+    col->nrows = RowIndeZ(new_rowindex).length();
   } else if (ri) {
     col->ri = ri->shallowcopy();
   }
@@ -354,33 +354,33 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   int64_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
-  RowIndex* col_ri = rowindex();
-  if (col_ri != nullptr) { // rowindexes are allowed to be null
-    // RowIndex check
-    bool ok = col_ri->verify_integrity(icc);
-    if (!ok) return false;
-
-    // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != col_ri->length()) {
-      icc << "Mismatch in reported number of rows: " << name << " has "
-          << "nrows=" << nrows << ", while its rowindex.length="
-          << col_ri->length() << end;
-    }
-
-    // Check that the maximum value of the RowIndex does not exceed the maximum
-    // row number in the memory buffer
-    if (col_ri->max() >= mbuf_nrows && col_ri->max() > 0) {
-      icc << "Maximum row number in the rowindex of " << name << " exceeds the "
-          << "number of rows in the underlying memory buffer: max(rowindex)="
-          << col_ri->max() << ", and nrows(membuf)=" << mbuf_nrows << end;
-    }
-  }
-  else {
+  RowIndeZ col_rz(rowindex());
+  if (col_rz.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
       icc << "Mismatch between reported number of rows: " << name
           << " has nrows=" << nrows << " but MemoryBuffer has data for "
           << mbuf_nrows << " rows" << end;
+    }
+  }
+  else {
+    // RowIndex check
+    bool ok = col_rz.verify_integrity(icc);
+    if (!ok) return false;
+
+    // Check that the length of the RowIndex corresponds to `nrows`
+    if (nrows != col_rz.length()) {
+      icc << "Mismatch in reported number of rows: " << name << " has "
+          << "nrows=" << nrows << ", while its rowindex.length="
+          << col_rz.length() << end;
+    }
+
+    // Check that the maximum value of the RowIndex does not exceed the maximum
+    // row number in the memory buffer
+    if (col_rz.max() >= mbuf_nrows && col_rz.max() > 0) {
+      icc << "Maximum row number in the rowindex of " << name << " exceeds the "
+          << "number of rows in the underlying memory buffer: max(rowindex)="
+          << col_rz.max() << ", and nrows(membuf)=" << mbuf_nrows << end;
     }
   }
   if (icc.has_errors(nerrors)) return false;
