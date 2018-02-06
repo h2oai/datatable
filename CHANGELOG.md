@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread now allows `sep=""`, causing the file to be read line-by-line.
 - `range` arguments can now be passed to a DataTable constructor.
 - datatable will now fall back to eager execution if it cannot detect LLVM runtime.
+- simple Excel file reader.
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.

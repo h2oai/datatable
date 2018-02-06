@@ -9,14 +9,14 @@ from datatable.graph.dtproxy import f
 from .__version__ import version as __version__
 from .dt import DataTable
 from .expr import mean, min, max, sd, isna
-from .fread import fread, TextReader
+from .fread import fread, GenericReader
 from .nff import save, open
 from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
 
 __all__ = ("__version__", "DataTable", "max", "mean", "min", "open", "sd",
-           "isna", "fread", "TextReader", "save", "stype", "ltype", "f",
+           "isna", "fread", "GenericReader", "save", "stype", "ltype", "f",
            "TypeError", "ValueError",
            "bool8", "int8", "int16", "int32", "int64",
            "float32", "float64", "str32", "str64", "obj64")
