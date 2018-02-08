@@ -57,9 +57,7 @@ StringColumn<T>::StringColumn(int64_t nrows_,
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
-  assert(strbuf == nullptr);
+  assert(!ri && !mbuf && !strbuf);
   strbuf = new MemoryMemBuf(0);
   mbuf = new MemoryMemBuf((static_cast<size_t>(nrows) + 1) * sizeof(T));
   mbuf->set_elem<T>(0, -1);
@@ -67,9 +65,7 @@ void StringColumn<T>::init_data() {
 
 template <typename T>
 void StringColumn<T>::init_mmap(const std::string& filename) {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
-  assert(strbuf == nullptr);
+  assert(!ri && !mbuf && !strbuf);
   strbuf = new MemmapMemBuf(path_str(filename), 0);
   mbuf = new MemmapMemBuf(filename, (static_cast<size_t>(nrows) + 1) * sizeof(T));
   mbuf->set_elem<T>(0, -1);
@@ -77,9 +73,7 @@ void StringColumn<T>::init_mmap(const std::string& filename) {
 
 template <typename T>
 void StringColumn<T>::open_mmap(const std::string& filename) {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
-  assert(strbuf == nullptr);
+  assert(!ri && !mbuf && !strbuf);
 
   mbuf = new MemmapMemBuf(filename);
   size_t exp_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
@@ -129,8 +123,9 @@ void StringColumn<T>::save_to_disk(const std::string& filename,
 }
 
 template <typename T>
-Column* StringColumn<T>::shallowcopy(RowIndex* new_rowindex) const {
-  StringColumn<T>* col = static_cast<StringColumn<T>*>(Column::shallowcopy(new_rowindex));
+Column* StringColumn<T>::shallowcopy(const RowIndeZ& new_rowindex) const {
+  Column* newcol = Column::shallowcopy(new_rowindex);
+  StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf->shallowcopy();
   return col;
 }
@@ -235,18 +230,17 @@ T* StringColumn<T>::offsets() const {
 
 template <typename T>
 void StringColumn<T>::reify() {
-  RowIndeZ rz(ri);
   // If our rowindex is null, then we're already done
-  if (rz.isabsent()) return;
+  if (ri.isabsent()) return;
 
   //size_t new_offoff = static_cast<size_t>(offoff);
-  size_t new_mbuf_size = (rz.zlength() + 1) * sizeof(T);
+  size_t new_mbuf_size = (ri.zlength() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
   MemoryBuffer* new_mbuf = mbuf;
   MemoryBuffer* new_strbuf = strbuf;
 
-  if (rz.isslice() && rz.slice_step() == 1) {
-    T* data_src = offsets() + rz.slice_start();
+  if (ri.isslice() && ri.slice_step() == 1) {
+    T* data_src = offsets() + ri.slice_start();
     T off0 = abs(data_src[-1]);
     T off1 = abs(data_src[nrows - 1]);
     new_strbuf_size = static_cast<size_t>(off1 - off0);
@@ -266,7 +260,7 @@ void StringColumn<T>::reify() {
     for (int64_t i = 0; i < nrows; ++i) {
       data_dest[i] = data_src[i] > 0 ? data_src[i] - off0 : data_src[i] + off0;
     }
-  } else if (rz.isslice() && rz.slice_step() > 0) {
+  } else if (ri.isslice() && ri.slice_step() > 0) {
     // Special case: We can still do this in-place
     // (assuming the buffers are not read-only)
     if (mbuf->is_readonly())
@@ -274,8 +268,8 @@ void StringColumn<T>::reify() {
     if (strbuf->is_readonly())
       new_strbuf = new MemoryMemBuf(strbuf->size()); // We don't know the actual size yet
                                                      // but it can't be larger than this
-    T step = static_cast<T>(rz.slice_step());
-    T start = static_cast<T>(rz.slice_start());
+    T step = static_cast<T>(ri.slice_step());
+    T start = static_cast<T>(ri.slice_start());
     T* offs1 = offsets();
     T* offs0 = offs1 - 1;
     T* off_dest = static_cast<T*>(new_mbuf->get());
@@ -311,7 +305,7 @@ void StringColumn<T>::reify() {
     T* offs1 = offsets();
     T* offs0 = offs1 - 1;
     T strs_size = 0;
-    rz.strided_loop(0, nrows, 1,
+    ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
         if (offs1[i] > 0) {
           strs_size += offs1[i] - abs(offs0[i]);
@@ -325,7 +319,7 @@ void StringColumn<T>::reify() {
     char *strs_src = strdata();
     char *strs_dest = static_cast<char*>(new_strbuf->get());
     T prev_off = 1;
-    rz.strided_loop(0, nrows, 1,
+    ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
         if (offs1[i] > 0) {
           T off0 = abs(offs0[i]);
@@ -355,9 +349,7 @@ void StringColumn<T>::reify() {
     strbuf->release();
     strbuf = new_strbuf;
   }
-  rz = RowIndeZ();
-  ri->release();
-  ri = nullptr;
+  ri.clear();
 }
 
 
@@ -542,11 +534,10 @@ void StringColumn<T>::fill_na() {
   for (int64_t i = -1; i < nrows; ++i) {
     off_data[i] = -1;
   }
-  if (ri != nullptr) {
-    ri->release();
-    ri = nullptr;
-  }
+  ri.clear();
 }
+
+
 
 //---- Stats -------------------------------------------------------------------
 
@@ -555,6 +546,8 @@ StringStats<T>* StringColumn<T>::get_stats() const {
   if (stats == nullptr) stats = new StringStats<T>();
   return static_cast<StringStats<T>*>(stats);
 }
+
+
 
 //----- Type casts -------------------------------------------------------------
 

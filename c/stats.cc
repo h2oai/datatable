@@ -111,8 +111,7 @@ template<typename T, typename A> bool NumericalStats<T, A>::sum_computed() const
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   int64_t nrows = col->nrows;
-  // RowIndex* rowindex = col->rowindex();
-  RowIndeZ rowindex = col->rowindez();
+  const RowIndeZ& rowindex = col->rowindex();
   T* data = static_cast<T*>(col->data());
   int64_t count_notna = 0;
   double mean = 0;
@@ -237,8 +236,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   int64_t count0 = 0, count1 = 0;
   int8_t* data = static_cast<int8_t*>(col->data());
   int64_t nrows = col->nrows;
-  // RowIndex* rowindex = col->rowindex();
-  RowIndeZ rowindex = col->rowindez();
+  const RowIndeZ& rowindex = col->rowindex();
   #pragma omp parallel
   {
     int ith = omp_get_thread_num();  // current thread index
@@ -281,7 +279,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
 template <typename T>
 void StringStats<T>::countna_compute(const Column *col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
-  RowIndeZ rowindex = col->rowindez();
+  const RowIndeZ& rowindex = col->rowindex();
   int64_t nrows = scol->nrows;
   int64_t countna = 0;
   T* data = scol->offsets();

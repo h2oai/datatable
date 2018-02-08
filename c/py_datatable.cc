@@ -94,7 +94,7 @@ PyObject* get_ncols(obj* self) {
 }
 
 PyObject* get_isview(obj* self) {
-  return incref(self->ref->rowindex == nullptr? Py_False : Py_True);
+  return incref(self->ref->rowindex.isabsent()? Py_False : Py_True);
 }
 
 
@@ -125,17 +125,16 @@ PyObject* get_stypes(obj* self) {
 
 
 PyObject* get_rowindex_type(obj* self) {
-  RowIndeZ rz(self->ref->rowindex);
-  return rz.isabsent()? none() :
-         rz.isslice()? incref(strRowIndexTypeSlice) :
-         rz.isarr32()? incref(strRowIndexTypeArr32) :
-         rz.isarr64()? incref(strRowIndexTypeArr64) : none();
+  RowIndeZ& ri = self->ref->rowindex;
+  return ri.isabsent()? none() :
+         ri.isslice()? incref(strRowIndexTypeSlice) :
+         ri.isarr32()? incref(strRowIndexTypeArr32) :
+         ri.isarr64()? incref(strRowIndexTypeArr64) : none();
 }
 
 
 PyObject* get_rowindex(obj* self) {
-  RowIndex* ri = self->ref->rowindex;
-  return ri? pyrowindex(self->ref->rowindex) : none();
+  return pyrowindex(self->ref->rowindex);
 }
 
 
@@ -318,7 +317,7 @@ PyObject* sort(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "i:sort", &idx)) return nullptr;
 
   Column* col = dt->columns[idx];
-  RowIndex* ri = col->sort();
+  RowIndeZ ri = col->sort();
   return pyrowindex(ri);
 }
 
@@ -341,7 +340,7 @@ DT_METH_GET_STAT(countna)
 
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-  if (dt->rowindex == nullptr) {
+  if (dt->rowindex.isabsent()) {
     PyErr_Format(PyExc_ValueError, "Only a view can be materialized");
     return nullptr;
   }

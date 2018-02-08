@@ -18,7 +18,6 @@
 
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
-      ri(nullptr),
       stats(nullptr),
       nrows(nrows_) {}
 
@@ -127,17 +126,17 @@ Column* Column::new_mbuf_column(SType stype, MemoryBuffer* mbuf,
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(RowIndex* new_rowindex) const {
+Column* Column::shallowcopy(const RowIndeZ& new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
   // TODO: also copy Stats object
 
   if (new_rowindex) {
-    col->ri = new_rowindex->shallowcopy();
-    col->nrows = RowIndeZ(new_rowindex).length();
+    col->ri = new_rowindex;
+    col->nrows = new_rowindex.length();
   } else if (ri) {
-    col->ri = ri->shallowcopy();
+    col->ri = ri;
   }
   return col;
 }
@@ -150,11 +149,12 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) const {
  */
 Column* Column::deepcopy() const
 {
+  // TODO: it appears this method is not used anywhere...
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->deepcopy();
+  col->ri = rowindex();  // this is shallow copy. Do we need deep?
   // TODO: deep copy stats when implemented
-  col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
   return col;
 }
 
@@ -219,7 +219,6 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
 Column::~Column() {
   delete stats;
   if (mbuf) mbuf->release();
-  if (ri) ri->release();
 }
 
 
@@ -232,7 +231,7 @@ size_t Column::memory_footprint() const
 {
   size_t sz = sizeof(*this);
   sz += mbuf->memory_footprint();
-  if (ri) sz += ri->alloc_size();
+  // sz += ri.memory_footprint();
   if (stats) sz += stats->memory_footprint();
   return sz;
 }

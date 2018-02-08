@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#define dt_PY_ROWINDEX_cc
 #include "py_rowindex.h"
 #include "py_datatable.h"
 #include "py_column.h"
@@ -12,19 +13,13 @@
 
 
 /**
- * Create a new RowIndex_PyObject by wrapping the provided RowIndex `src`.
- * The returned py-object will hold a durable reference to `src`; for example
- * if `src` is a RowIndex within a DataTable, there is no danger of having the
- * reference become invalid if the DataTable is garbage-collected.
- *
- * If `src` is NULL then this function also returns NULL.
+ * Create a new RowIndex_PyObject by wrapping the provided RowIndex.
+ * The returned py-object will hold a shallow copy of `src`.
  */
-PyObject* pyrowindex(RowIndex *rowindex)
-{
-    if (rowindex == NULL) return NULL;
-    PyObject *res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
-    ((RowIndex_PyObject*) res)->ref = rowindex->shallowcopy();
-    return res;
+PyObject* pyrowindex(const RowIndeZ& rowindex) {
+  PyObject* res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
+  static_cast<RowIndex_PyObject*>(res)->ref = new RowIndeZ(rowindex);
+  return res;
 }
 #define py pyrowindex
 
@@ -33,233 +28,126 @@ PyObject* pyrowindex(RowIndex *rowindex)
  * Helper function to be used with `PyArg_ParseTuple()` in order to extract
  * a `RowIndex` object out of the arguments tuple. Usage:
  *
- *     RowIndex *ri;
+ *     RowIndeZ* ri;
  *     if (!PyArg_ParseTuple(args, "O&", &rowindex_unwrap, &ri))
  *         return NULL;
  *
  * The returned reference is *borrowed*, i.e. the caller is not expected to
  * decref it.
  */
-int rowindex_unwrap(PyObject *object, void *address) {
-    RowIndex **ans = (RowIndex**) address;
-    if (object == Py_None) {
-        *ans = NULL;
-        return 1;
-    }
-    if (!PyObject_TypeCheck(object, &RowIndex_PyType)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "Expected argument of type RowIndex");
-        return 0;
-    }
-    *ans = ((RowIndex_PyObject*)object)->ref;
+int rowindex_unwrap(PyObject* object, void* address) {
+  RowIndeZ** ans = static_cast<RowIndeZ**>(address);
+  if (object == Py_None) {
+    *ans = nullptr;
     return 1;
+  }
+  if (!PyObject_TypeCheck(object, &RowIndex_PyType)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected argument of type RowIndex");
+    return 0;
+  }
+  *ans = static_cast<RowIndex_PyObject*>(object)->ref;
+  return 1;
 }
 
 
 
 
 //==============================================================================
+// Constructors
+//==============================================================================
 
-/**
- * Construct a (py)RowIndex "slice" object given a tuple (start, count, step).
- * This is a Python wrapper for :func:`rowindex_from_slice`.
- */
-PyObject* pyrowindex_from_slice(PyObject*, PyObject *args)
-{
-  CATCH_EXCEPTIONS(
-    int64_t start;
-    int64_t count;
-    int64_t step;
-    if (!PyArg_ParseTuple(args, "LLL:RowIndex.from_slice",
-                          &start, &count, &step))
-        return NULL;
-    return py(new RowIndex(start, count, step));
-  );
+PyObject* rowindex_from_slice(PyObject*, PyObject* args) {
+  int64_t start, count, step;
+  if (!PyArg_ParseTuple(args, "LLL:rowindex_from_slice",
+                        &start, &count, &step)) return nullptr;
+  return py(RowIndeZ::from_slice(start, count, step));
 }
 
 
+PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
+  PyObject* pystarts;
+  PyObject* pycounts;
+  PyObject* pysteps;
+  if (!PyArg_ParseTuple(args, "O!O!O!:rowindex_from_slicelist",
+                        &PyList_Type, &pystarts,
+                        &PyList_Type, &pycounts,
+                        &PyList_Type, &pysteps)) return nullptr;
 
-/**
- * Construct a RowIndex object from a list of tuples (start, count, step)
- * that are given in the form of 3 arrays start[], count[], step[].
- * This is a Python wrapper for :func:`rowindex_from_slicelist`.
- */
-PyObject* pyrowindex_from_slicelist(PyObject*, PyObject *args)
-{
-  int64_t* starts = NULL;
-  int64_t* counts = NULL;
-  int64_t* steps = NULL;
+  int64_t n1 = PyList_Size(pystarts);
+  int64_t n2 = PyList_Size(pycounts);
+  int64_t n3 = PyList_Size(pysteps);
+  if (n1 < n2 || n1 < n3) {
+    throw ValueError() << "`starts` array cannot be shorter than `counts` or "
+                          "`steps` arrays";
+  }
+  size_t n = static_cast<size_t>(n1);
+  dt::array<int64_t> starts(n);
+  dt::array<int64_t> counts(n);
+  dt::array<int64_t> steps(n);
 
-  CATCH_EXCEPTIONS(
-    PyObject* pystarts;
-    PyObject* pycounts;
-    PyObject* pysteps;
-    if (!PyArg_ParseTuple(args, "O!O!O!:RowIndex.from_slicelist",
-                          &PyList_Type, &pystarts,
-                          &PyList_Type, &pycounts,
-                          &PyList_Type, &pysteps))
-        return NULL;
-
-    int64_t n1 = PyList_Size(pystarts);
-    int64_t n2 = PyList_Size(pycounts);
-    int64_t n3 = PyList_Size(pysteps);
-    if (n1 < n2) {
-        throw ValueError() << "counts array cannot be longer than the "
-                              "starts array";
-    }
-    if (n1 < n3) {
-        throw ValueError() << "steps array cannot be longer than the "
-                              "starts array";
-    }
-    starts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
-    counts = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
-    steps  = (int64_t*) malloc(sizeof(int64_t) * (size_t)n1);
-    if (!starts || !counts || !steps) goto fail;
-
-    // Convert Pythonic lists into regular C arrays of longs
-    int64_t start;
-    int64_t count;
-    int64_t step;
-    for (int64_t i = 0; i < n1; i++) {
-        start = PyLong_AsSsize_t(PyList_GET_ITEM(pystarts, i));
-        count = i < n2? PyLong_AsSsize_t(PyList_GET_ITEM(pycounts, i)) : 1;
-        step  = i < n3? PyLong_AsSsize_t(PyList_GET_ITEM(pysteps, i)) : 1;
-        if ((start == -1 || count  == -1 || step == -1) &&
-            PyErr_Occurred()) goto fail;
-        starts[i] = start;
-        counts[i] = count;
-        steps[i] = step;
-    }
-
-    return py(new RowIndex(starts, counts, steps, n1));
-  );
-
-  fail:
-    free(starts);
-    free(counts);
-    free(steps);
-    return NULL;
+  // Convert Pythonic lists into regular C arrays of longs
+  for (int64_t i = 0; i < n1; ++i) {
+    int64_t start = PyLong_AsSsize_t(PyList_GET_ITEM(pystarts, i));
+    int64_t count = i < n2? PyLong_AsSsize_t(PyList_GET_ITEM(pycounts, i)) : 1;
+    int64_t step  = i < n3? PyLong_AsSsize_t(PyList_GET_ITEM(pysteps, i)) : 1;
+    if ((start == -1 || count  == -1 || step == -1) &&
+        PyErr_Occurred()) return nullptr;
+    size_t ii = static_cast<size_t>(i);
+    starts[ii] = start;
+    counts[ii] = count;
+    steps[ii] = step;
+  }
+  return py(RowIndeZ::from_slices(starts, counts, steps));
 }
 
 
+PyObject* rowindex_from_array(PyObject*, PyObject* args) {
+  dt::array<int32_t> data32;
+  dt::array<int64_t> data64;
+  PyObject* list;
+  if (!PyArg_ParseTuple(args, "O!:rowindex_from_array",
+                        &PyList_Type, &list)) return NULL;
 
-/**
- * Construct RowIndex object from an array of indices. This is a wrapper
- * for :func:`rowindex_from_i32_array` / :func:`rowindex_from_i64_array`.
- */
-PyObject* pyrowindex_from_array(PyObject*, PyObject *args)
-{
-  int32_t *data32 = NULL;
-  int64_t *data64 = NULL;
-
-  CATCH_EXCEPTIONS(
-    PyObject *list;
-    if (!PyArg_ParseTuple(args, "O!:RowIndex.from_array",
-                          &PyList_Type, &list)) return NULL;
-
-    // Convert Pythonic List into a regular C array of int32's/int64's
-    int64_t len = PyList_Size(list);
-    dtmalloc(data32, int32_t, len);
-    for (int64_t i = 0; i < len; i++) {
-        int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
-        if (x == -1 && PyErr_Occurred()) goto fail;
-        if (x < 0) {
-            throw ValueError() << "Negative indices not allowed: " << x;
-        }
-        if (data64) {
-            data64[i] = x;
-        } else if (x <= INT32_MAX) {
-            data32[i] = (int32_t) x;
-        } else {
-            dtmalloc(data64, int64_t, len);
-            for (int64_t j = 0; j < i; j++)
-                data64[j] = (int64_t) data32[j];
-            free(data32);
-            data32 = NULL;
-            data64[i] = x;
-        }
+  // Convert Pythonic List into a regular C array of int32's/int64's
+  int64_t len = PyList_Size(list);
+  size_t zlen = static_cast<size_t>(len);
+  if (len <= INT32_MAX) {
+    data32.resize(zlen);
+  } else {
+    data64.resize(zlen);
+  }
+  for (size_t i = 0; i < zlen; ++i) {
+    int64_t x = PyLong_AsSsize_t(PyList_GET_ITEM(list, i));
+    if (x == -1 && PyErr_Occurred()) return nullptr;
+    if (x < 0) {
+      throw ValueError() << "Negative indices not allowed: " << x;
     }
-
-    // Construct and return the RowIndex object
-    return data32? py(new RowIndex(data32, len, 0))
-                 : py(new RowIndex(data64, len, 0));
-  );
-
-  fail:
-    dtfree(data32);
-    dtfree(data64);
-    return NULL;
+    if (data64) {
+      data64[i] = x;
+    } else if (x <= INT32_MAX) {
+      data32[i] = static_cast<int32_t>(x);
+    } else {
+      data64.resize(zlen);
+      for (size_t j = 0; j < i; ++j) {
+        data64[j] = static_cast<int64_t>(data32[j]);
+      }
+      data32.resize(0);
+      data64[i] = x;
+    }
+  }
+  // Construct and return the RowIndex object
+  return data32? py(RowIndeZ::from_array32(std::move(data32)))
+               : py(RowIndeZ::from_array64(std::move(data64)));
 }
 
 
-
-/**
- * Construct a RowIndex object given a DataTable with a single boolean column.
- * This column is then treated as a filter, and the RowIndex is constructed
- * with the indices that corresponds to the rows where the boolean column has
- * true values (all false / NA columns are skipped).
- */
-PyObject* pyrowindex_from_boolcolumn(PyObject*, PyObject *args)
-{
-  CATCH_EXCEPTIONS(
-    Column* col;
-    if (!PyArg_ParseTuple(args, "O&:RowIndex.from_boolcolumn",
-                          &pycolumn::unwrap, &col))
-        return NULL;
-
-    if (col->stype() != ST_BOOLEAN_I1) {
-        PyErr_SetString(PyExc_ValueError, "A boolean column is required");
-        return NULL;
-    }
-
-    RowIndex* rowindex = col->rowindex()
-        ? RowIndex::from_column(col)
-        : RowIndex::from_boolcolumn(col);
-
-    return py(rowindex);
-  );
+PyObject* rowindex_from_column(PyObject*, PyObject* args) {
+  Column* col;
+  if (!PyArg_ParseTuple(args, "O&:rowindex_from_column",
+                        &pycolumn::unwrap, &col)) return nullptr;
+  return py(RowIndeZ::from_column(col));
 }
-
-
-
-/**
- * Construct a RowIndex object from a DataTable having a single integer column.
- * This column will be converted into a RowIndex directly.
- */
-PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args)
-{
-  CATCH_EXCEPTIONS(
-    DataTable *dt = NULL;
-    long target_nrows = 0;
-    if (!PyArg_ParseTuple(args, "O&l:RowIndex.from_intcolumn",
-                          &pydatatable::unwrap, &dt, &target_nrows))
-        return NULL;
-
-    if (dt->ncols != 1) {
-        PyErr_SetString(PyExc_ValueError, "Expected a single-column datatable");
-        return NULL;
-    }
-    Column *col = dt->columns[0];
-    if (stype_info[col->stype()].ltype != LT_INTEGER) {
-        PyErr_SetString(PyExc_ValueError, "An integer column is required");
-        return NULL;
-    }
-
-    RowIndex *rowindex = dt->rowindex
-        ? RowIndex::from_column(col)
-        : RowIndex::from_intcolumn(col, 0);
-    RowIndeZ rz(rowindex);
-
-    if (rz.min() < 0 || rz.max() >= target_nrows) {
-        PyErr_Format(PyExc_ValueError,
-            "The data column contains NAs or indices that are outside of the "
-            "allowed range [0 .. %lld)", target_nrows);
-        return NULL;
-    }
-    return py(rowindex);
-  );
-}
-
 
 
 /**
@@ -267,7 +155,7 @@ PyObject* pyrowindex_from_intcolumn(PyObject*, PyObject *args)
  * the number of rows that has to be filtered. This is a wrapper around
  * `rowindex_from_filterfn[32|64]`.
  */
-PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args)
+PyObject* pyrowindex_from_filterfn(PyObject*, PyObject* args)
 {
   CATCH_EXCEPTIONS(
     long long _fnptr;
@@ -278,11 +166,11 @@ PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args)
 
     int64_t nrows = (int64_t) _nrows;
     if (nrows <= INT32_MAX) {
-        rowindex_filterfn32 *fnptr = (rowindex_filterfn32*)_fnptr;
-        return py(RowIndex::from_filterfn32(fnptr, nrows, 0));
+      filterfn32 *fnptr = (filterfn32*)_fnptr;
+      return py(RowIndeZ::from_filterfn32(fnptr, nrows, 0));
     } else {
-        rowindex_filterfn64 *fnptr = (rowindex_filterfn64*)_fnptr;
-        return py(RowIndex::from_filterfn64(fnptr, nrows, 0));
+      filterfn64 *fnptr = (filterfn64*)_fnptr;
+      return py(RowIndeZ::from_filterfn64(fnptr, nrows, 0));
     }
   );
 }
@@ -293,28 +181,28 @@ PyObject* pyrowindex_from_filterfn(PyObject*, PyObject *args)
  * Construct a rowindex object given a pointer to a function that returns a
  * `RowIndex*` value.
  */
-PyObject* pyrowindex_from_function(PyObject*, PyObject *args)
+// PyObject* pyrowindex_from_function(PyObject*, PyObject* args)
+// {
+//   CATCH_EXCEPTIONS(
+//     long long _fnptr;
+//     if (!PyArg_ParseTuple(args, "L:RowIndex.from_function", &_fnptr))
+//         return NULL;
+//     rowindex_getterfn *fnptr = (rowindex_getterfn*) _fnptr;
+//     return py(fnptr());
+//   );
+// }
+
+
+
+PyObject* pyrowindex_uplift(PyObject*, PyObject* args)
 {
   CATCH_EXCEPTIONS(
-    long long _fnptr;
-    if (!PyArg_ParseTuple(args, "L:RowIndex.from_function", &_fnptr))
-        return NULL;
-    rowindex_getterfn *fnptr = (rowindex_getterfn*) _fnptr;
-    return py(fnptr());
-  );
-}
-
-
-
-PyObject* pyrowindex_uplift(PyObject*, PyObject *args)
-{
-  CATCH_EXCEPTIONS(
-    RowIndex *ri;
-    DataTable *dt;
+    RowIndeZ* ri;
+    DataTable* dt;
     if (!PyArg_ParseTuple(args, "O&O&:RowIndex.uplift",
                           &rowindex_unwrap, &ri, &pydatatable::unwrap, &dt))
-        return NULL;
-    return py(RowIndex::merge(dt->rowindex, ri));
+        return nullptr;
+    return py(dt->rowindex.merged_with(*ri));
   );
 }
 
@@ -326,50 +214,50 @@ PyObject* pyrowindex_uplift(PyObject*, PyObject *args)
 
 static void dealloc(RowIndex_PyObject *self)
 {
-    if (self->ref) self->ref->release();
-    Py_TYPE(self)->tp_free((PyObject*)self);
+  delete self->ref;
+  self->ref = nullptr;
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
 static PyObject* repr(RowIndex_PyObject *self)
 {
   CATCH_EXCEPTIONS(
-    RowIndeZ rz(self->ref);
+    RowIndeZ& rz = *(self->ref);
     if (rz.isabsent())
-        return PyUnicode_FromString("_RowIndex(NULL)");
+      return PyUnicode_FromString("_RowIndex(NULL)");
     if (rz.isarr32()) {
-        return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.length());
+      return PyUnicode_FromFormat("_RowIndex(int32[%ld])", rz.length());
     }
     if (rz.isarr64()) {
-        return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.length());
+      return PyUnicode_FromFormat("_RowIndex(int64[%ld])", rz.length());
     }
     if (rz.isslice()) {
-        return PyUnicode_FromFormat("_RowIndex(%ld:%ld:%ld)",
-            rz.slice_start(), rz.length(), rz.slice_step());
+      return PyUnicode_FromFormat("_RowIndex(%ld:%ld:%ld)",
+          rz.slice_start(), rz.length(), rz.slice_step());
     }
-    return NULL;
+    return nullptr;
   );
 }
 
 
-static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
+static PyObject* tolist(RowIndex_PyObject *self, PyObject* args)
 {
   if (!PyArg_ParseTuple(args, "")) return NULL;
-  // RowIndex *ri = self->ref;
-  RowIndeZ rz(self->ref);
+  RowIndeZ& rz = *(self->ref);
 
   CATCH_EXCEPTIONS(
     PyObject *list = PyList_New((Py_ssize_t) rz.length());
     if (rz.isarr32()) {
       int32_t n = static_cast<int32_t>(rz.length());
-      int32_t* a = rz.indices32();
+      const int32_t* a = rz.indices32();
       for (int32_t i = 0; i < n; ++i) {
         PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
       }
     }
     if (rz.isarr64()) {
       int64_t n = rz.length();
-      int64_t* a = rz.indices64();
+      const int64_t* a = rz.indices64();
       for (int64_t i = 0; i < n; ++i) {
         PyList_SET_ITEM(list, i, PyLong_FromLong(a[i]));
       }
@@ -387,11 +275,10 @@ static PyObject* tolist(RowIndex_PyObject *self, PyObject *args)
 }
 
 
-static PyObject *getptr(RowIndex_PyObject *self, PyObject*)
-{
+static PyObject *getptr(RowIndex_PyObject *self, PyObject*) {
   CATCH_EXCEPTIONS(
-    RowIndex *ri = self->ref;
-    return PyLong_FromSize_t((size_t) ri);
+    RowIndeZ* ri = self->ref;
+    return PyLong_FromSize_t(reinterpret_cast<size_t>(ri));
   );
 }
 

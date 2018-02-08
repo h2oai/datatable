@@ -38,22 +38,19 @@ FwColumn<T>::FwColumn(int64_t nrows_, MemoryBuffer* mb) : Column(nrows_) {
 
 template <typename T>
 void FwColumn<T>::init_data() {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
+  assert(!ri && !mbuf);
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::init_mmap(const std::string& filename) {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
+  assert(!ri && !mbuf);
   mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::open_mmap(const std::string& filename) {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
+  assert(!ri && !mbuf);
   mbuf = new MemmapMemBuf(filename);
   if (mbuf->size() != static_cast<size_t>(nrows) * sizeof(T)) {
     size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
@@ -66,8 +63,7 @@ void FwColumn<T>::open_mmap(const std::string& filename) {
 
 template <typename T>
 void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
-  assert(ri == nullptr);
-  assert(mbuf == nullptr);
+  assert(!ri && !mbuf);
   size_t exp_buf_len = static_cast<size_t>(nrows) * elemsize();
   if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
     throw Error() << "PyBuffer cannot be used to create a column of " << nrows
@@ -128,9 +124,8 @@ void FwColumn<T>::set_elem(int64_t i, T value) {
 
 template <typename T>
 void FwColumn<T>::reify() {
-  RowIndeZ rz(ri);
   // If our rowindex is null, then we're already done
-  if (rz.isabsent()) return;
+  if (ri.isabsent()) return;
 
   size_t elemsize = sizeof(T);
   size_t nrows_cast = static_cast<size_t>(nrows);
@@ -144,11 +139,11 @@ void FwColumn<T>::reify() {
   // this must be taken into consideration.
   auto new_mbuf = mbuf->is_readonly()? new MemoryMemBuf(newsize) : mbuf;
 
-  if (rz.isslice() && rz.slice_step() == 1) {
+  if (ri.isslice() && ri.slice_step() == 1) {
     // Slice with step 1: a portion of the buffer can be simply mem-moved onto
     // the new buffer (use memmove because the old and the new buffer can be
     // the same).
-    size_t start = static_cast<size_t>(rz.slice_start());
+    size_t start = static_cast<size_t>(ri.slice_start());
     assert(newsize + start * elemsize <= mbuf->size());
     memmove(new_mbuf->get(), elements() + start, newsize);
 
@@ -157,12 +152,12 @@ void FwColumn<T>::reify() {
     // copy array elements onto the new positions. This can be done in-place
     // only if we know that the indices are monotonically increasing (otherwise
     // there is a risk of scrambling the data).
-    if (mbuf == new_mbuf && !(rz.isslice() && rz.slice_step() > 0)) {
+    if (mbuf == new_mbuf && !(ri.isslice() && ri.slice_step() > 0)) {
       new_mbuf = new MemoryMemBuf(newsize);
     }
     T* data_src = elements();
     T* data_dest = static_cast<T*>(new_mbuf->get());
-    rz.strided_loop(0, nrows, 1,
+    ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
         *data_dest = data_src[i];
         ++data_dest;
@@ -175,8 +170,7 @@ void FwColumn<T>::reify() {
     mbuf->release();
     mbuf = new_mbuf;
   }
-  ri->release();
-  ri = nullptr;
+  ri.clear();
 }
 
 
@@ -290,10 +284,7 @@ void FwColumn<T>::fill_na() {
   for (int64_t i = 0; i < nrows; ++i) {
     vals[i] = na;
   }
-  if (ri != nullptr) {
-    ri->release();
-    ri = nullptr;
-  }
+  ri.clear();
 }
 
 

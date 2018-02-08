@@ -300,7 +300,7 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex* Column::sort() const
+RowIndeZ Column::sort() const
 {
   if (nrows > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable with " << nrows << " rows";
@@ -312,9 +312,10 @@ RowIndex* Column::sort() const
   }
   int32_t nrows_ = (int32_t) nrows;
   if (nrows_ <= 1) {  // no need to sort
-    return new RowIndex((int64_t)0, nrows_, 1);
+    return RowIndeZ::from_slice(0, nrows_, 1);
   }
-  int32_t* ordering = rz.extract_as_array32();
+  dt::array<int32_t> ordering_array = rz.extract_as_array32();
+  int32_t* ordering = ordering_array.data(); // borrowed ref
   SType stype_ = stype();
   prepare_inp_fn prepfn = prepare_inp_fns[stype_];
   SortContext* sc = new SortContext();
@@ -326,9 +327,9 @@ RowIndex* Column::sort() const
       ordering = sc->o;
       dtfree(sc->x);
     } else if (stype_ == ST_STRING_I4_VCHAR) {
-      const unsigned char *strdata =
-          (const unsigned char*) static_cast<const StringColumn<int32_t>*>(this)->strdata() + 1;
-      const int32_t *offs = static_cast<const StringColumn<int32_t>*>(this)->offsets();
+      auto scol = static_cast<const StringColumn<int32_t>*>(this);
+      const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata()) + 1;
+      const int32_t* offs = scol->offsets();
       ordering = insert_sort_s4_noo(strdata, offs, 0, nullptr, nrows_);
     } else {
       insert_sort_fn sortfn = insert_sort_fns[stype_];
@@ -343,7 +344,7 @@ RowIndex* Column::sort() const
     if (prepfn) {
       prepfn(this, ordering, (size_t)nrows_, sc);
       if (sc->issorted) {
-        return new RowIndex((int64_t) 0, nrows_, 1);
+        return RowIndeZ::from_slice(0, nrows_, 1);
       }
       if (sc->x != nullptr) {
         radix_psort(sc);
@@ -367,9 +368,10 @@ RowIndex* Column::sort() const
     }
   }
   delete sc;
-  if (!ordering) return nullptr;
-  return new RowIndex(ordering, nrows_, 0);
+  if (!ordering) return RowIndeZ();
+  return RowIndeZ::from_array32(std::move(ordering_array));
 }
+
 
 
 //==============================================================================

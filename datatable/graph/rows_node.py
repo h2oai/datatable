@@ -303,7 +303,8 @@ class FilterExprRFNode(RFNode):
     def _make_final_rowindex(self):
         if isinstance(self._engine, LlvmEvaluationEngine):
             ptr = self._engine.get_result(self._fnname)
-            return core.rowindex_from_function(ptr)
+            # return core.rowindex_from_function(ptr)
+            return core.rowindex_from_filterfn(ptr)
         else:
             col = self._expr.evaluate_eager()
             return core.rowindex_from_boolcolumn(col)
@@ -330,21 +331,22 @@ class FilterExprRFNode(RFNode):
         inode.addto_epilogue("*n_outs = j;")
         inode.set_extra_args("int32_t *out, int32_t *n_outs")
         inode.generate_c()
+        self._fnname = inode.fnname
 
-        rowindex_name = ee.make_variable_name("rowindex")
-        ee.add_global(rowindex_name, "void*", "NULL")
-        ee.add_function(
-            self._fnname,
-            "void* {fnname}(void) {{\n"
-            "    if (!{riname})\n"
-            "        {riname} = rowindex_from_filterfn32(\n"
-            "                       (void*) {filter}, {nrows}, {sorted});\n"
-            "    return {riname};\n"
-            "}}".format(fnname=self._fnname,
-                        riname=rowindex_name,
-                        filter=inode.fnname,
-                        sorted=int(not dt.internal.isview),
-                        nrows=dt.nrows))
+        # rowindex_name = ee.make_variable_name("rowindex")
+        # ee.add_global(rowindex_name, "void*", "NULL")
+        # ee.add_function(
+        #     self._fnname,
+        #     "void* {fnname}(void) {{\n"
+        #     "    if (!{riname})\n"
+        #     "        {riname} = rowindex_from_filterfn32(\n"
+        #     "                       (void*) {filter}, {nrows}, {sorted});\n"
+        #     "    return {riname};\n"
+        #     "}}".format(fnname=self._fnname,
+        #                 riname=rowindex_name,
+        #                 filter=inode.fnname,
+        #                 sorted=int(not dt.internal.isview),
+        #                 nrows=dt.nrows))
 
 
 

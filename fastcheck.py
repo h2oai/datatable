@@ -9,7 +9,7 @@ import re
 import sys
 
 rx_include = re.compile(r'#include\s+"(.*?)"')
-rx_targeth = re.compile(r'^(\w+_h)\s*:\s*(.*)')
+rx_targeth = re.compile(r'^([/\w]+\.h)\s*:\s*(.*)')
 
 
 def get_files():
@@ -135,11 +135,6 @@ def parse_makefile():
     return objects_map, headers_map
 
 
-def headerfile_to_key(hdrfile):
-    assert hdrfile.startswith("c/")
-    return hdrfile[2:].replace(".", "_").replace("/", "_")
-
-
 def sourcefile_to_obj(srcfile):
     assert srcfile.startswith("c/")
     if srcfile.endswith(".c"):
@@ -166,21 +161,26 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
         file, and values are sets of dependencies for those targets
     """
     for hdrfile in realhdrs:
-        hdrkey = headerfile_to_key(hdrfile)
         actual_deps = sorted(realhdrs[hdrfile])
-        expect_deps = [hdrfile] + [headerfile_to_key(k) for k in actual_deps]
-        if hdrkey not in makehdrs:
+        expect_deps = actual_deps
+        if not expect_deps:
+            if hdrfile in makehdrs:
+                raise ValueError("Target '%s' has no dependencies, and "
+                                 "shouldn't be present in Makefile"
+                                 % (hdrfile, ))
+            continue
+        if hdrfile not in makehdrs:
             raise ValueError("Missing target '%s' in header file. Include "
                              "the following line in Makefile:\n"
                              "%s: %s"
-                             % (hdrkey, hdrkey, " ".join(expect_deps)))
-        make_deps = makehdrs[hdrkey]
-        del makehdrs[hdrkey]
+                             % (hdrfile, hdrfile, " ".join(expect_deps)))
+        make_deps = makehdrs[hdrfile]
+        del makehdrs[hdrfile]
         if set(make_deps) != set(expect_deps):
             raise ValueError("Invalid dependencies for target '%s'. Include "
                              "the following line in Makefile:\n"
                              "%s: %s"
-                             % (hdrkey, hdrkey, " ".join(expect_deps)))
+                             % (hdrfile, hdrfile, " ".join(expect_deps)))
     if makehdrs:
         raise ValueError("Makefile has targets %r which do not correspond to "
                          "any existing header files." % list(makehdrs.keys()))
@@ -192,7 +192,7 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
                              "`$(BUILDDIR)/%s` target in the Makefile."
                              % (srcfile, objkey))
         actual_deps = sorted(realsrcs[srcfile])
-        expect_deps = [srcfile] + [headerfile_to_key(h) for h in actual_deps]
+        expect_deps = [srcfile] + actual_deps
         make_deps = makeobjs[objkey]
         del makeobjs[objkey]
         if set(make_deps) != set(expect_deps):

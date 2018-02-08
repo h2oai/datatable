@@ -31,7 +31,7 @@ void datatable_unpack_arrayrowindex(void *dt_, void **indices)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
   RowIndeZ ri(dt->rowindex);
-  *indices = ri.indices32();
+  *indices = const_cast<int32_t*>(ri.indices32());
 }
 
 

@@ -131,7 +131,8 @@ class HypothesisQC : public Hypothesis {
     HypothesisQC(FieldParseContext& c, char q, HypothesisNoQC* p)
       : Hypothesis(c), parent(p), qc(q) {}
     void parse_next_line(HypothesisPool&) override {
-
+      (void) parent;
+      (void) qc;
     }
     double score() override { return 0.5; }
 };
@@ -159,11 +160,11 @@ class HypothesisNoQC : public Hypothesis {
         signed char c = *ch;
         if (c >= 0) {  // non-ASCII range will have `c < 0`
           chfreq[c]++;
-          chfreq['s'] += (c == ' ' && nspaces == 0) - (c == 's');
+          chfreq[+'s'] += (c == ' ' && nspaces == 0) - (c == 's');
           if (c == '\n' || c == '\r') {
             if (ctx.skip_eol()) {
-              chfreq[' '] -= nspaces;
-              chfreq['s'] -= (nspaces > 0);
+              chfreq[+' '] -= nspaces;
+              chfreq[+'s'] -= (nspaces > 0);
               break;
             }
           }
@@ -171,11 +172,11 @@ class HypothesisNoQC : public Hypothesis {
         nspaces = (c == ' ')? nspaces + 1 : 0;
         ch++;
       }
-      if (!doubleQuoteSeen && chfreq['"']) {
+      if (!doubleQuoteSeen && chfreq[+'"']) {
         hp.push_back(new HypothesisQC(ctx, '"', this));
         doubleQuoteSeen = true;
       }
-      if (!singleQuoteSeen && chfreq['\'']) {
+      if (!singleQuoteSeen && chfreq[+'\'']) {
         hp.push_back(new HypothesisQC(ctx, '\'', this));
         singleQuoteSeen = true;
       }
@@ -265,24 +266,25 @@ void FreadReader::parse_column_names(FieldParseContext& ctx) {
     // iteration we will write into the same place.
     parse_string(ctx);
     const char* start = ctx.anchor + ctx.target->str32.offset;
-    size_t length = static_cast<size_t>(ctx.target->str32.length);
+    int32_t ilen = ctx.target->str32.length;
+    size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
       columns.push_back(GReaderColumn());
     }
-    if (length > 0) {
+    if (zlen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
-      int res = check_escaped_string(usrc, length, echar);
+      int res = check_escaped_string(usrc, zlen, echar);
       if (res == 0) {
-        columns[i].name = std::string(start, length);
+        columns[i].name = std::string(start, zlen);
       } else {
-        char* newsrc = new char[length * 4];
+        char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
         int newlen;
         if (res == 1) {
-          newlen = decode_escaped_csv_string(usrc, length, unewsrc, echar);
+          newlen = decode_escaped_csv_string(usrc, ilen, unewsrc, echar);
         } else {
-          newlen = decode_win1252(usrc, length, unewsrc);
+          newlen = decode_win1252(usrc, ilen, unewsrc);
           newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
         }
         assert(newlen > 0);

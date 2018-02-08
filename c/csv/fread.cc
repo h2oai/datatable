@@ -361,7 +361,7 @@ DataTablePtr FreadReader::read()
       // following field).
       while (*ch == '\n' || *ch == '\r') ch++;
       if (ch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
-      if (j > 0 && !fctx.nextGoodLine(ncols, fill, skipEmptyLines)) {
+      if (j > 0 && !fctx.nextGoodLine((int)ncols, fill, skipEmptyLines)) {
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
         continue;
       }
@@ -759,7 +759,7 @@ DataTablePtr FreadReader::read()
         // to the current chunk
         nextJump++;
       }
-      if (jump > 0 && nth > 1 && !fctx.nextGoodLine(ncols, fill, skipEmptyLines)) {
+      if (jump > 0 && nth > 1 && !fctx.nextGoodLine((int)ncols, fill, skipEmptyLines)) {
         #pragma omp critical
         if (!stopTeam) {
           stopTeam = true;
@@ -884,7 +884,7 @@ DataTablePtr FreadReader::read()
                   if (verbose) {
                     char temp[1001];
                     int len = snprintf(temp, 1000,
-                      "Column %d (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
+                      "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
                       j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
                       (int)(tch-fieldStart), fieldStart, (llu)(ctx.row0+myNrow));
                     typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
@@ -921,7 +921,7 @@ DataTablePtr FreadReader::read()
           if (!stopTeam) {
             stopTeam = true;
             snprintf(stopErr, stopErrSize,
-              "Expecting %d cols but row %zu contains only %d cols (sep='%c'). "
+              "Expecting %zu cols but row %zu contains only %zu cols (sep='%c'). "
               "Consider fill=true. \"%s\"",
               ncols, ctx.row0, j, sep, strlim(tlineStart, 500));
           }
@@ -932,7 +932,7 @@ DataTablePtr FreadReader::read()
           if (!stopTeam) {
             stopTeam = true;
             snprintf(stopErr, stopErrSize,
-              "Too many fields on out-of-sample row %zu from jump %d. Read all %d "
+              "Too many fields on out-of-sample row %zu from jump %d. Read all %zu "
               "expected columns but more are present. \"%s\"",
               ctx.row0, jump, ncols, strlim(tlineStart, 500));
           }
@@ -1043,16 +1043,15 @@ DataTablePtr FreadReader::read()
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
     for (int i = 0; i < NUMTYPE; i++) typeCounts[i] = 0;
-    for (int i = 0; i < ncols; i++) {
+    for (size_t i = 0; i < ncols; i++) {
       typeCounts[columns[i].type]++;
     }
 
     if (nTypeBump) {
       rowSize = 0;
-      for (int j = 0, resj=-1; j < ncols; j++) {
+      for (size_t j = 0; j < ncols; j++) {
         GReaderColumn& col = columns[j];
         if (!col.presentInOutput) continue;
-        resj++;
         if (col.typeBumped) {
           // column was bumped due to out-of-sample type exception
           col.typeBumped = false;

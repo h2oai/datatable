@@ -103,8 +103,8 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     int rindex_is_arr32 = rindex.isarr32();
     int rindex_is_arr64 = rindex.isarr64();
     int rindex_is_slice = rindex.isslice();
-    int32_t* rindexarr32 = rindex_is_arr32? rindex.indices32() : NULL;
-    int64_t* rindexarr64 = rindex_is_arr64? rindex.indices64() : NULL;
+    const int32_t* rindexarr32 = rindex_is_arr32? rindex.indices32() : NULL;
+    const int64_t* rindexarr64 = rindex_is_arr64? rindex.indices64() : NULL;
     int64_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
     int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 

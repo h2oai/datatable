@@ -36,7 +36,7 @@ static PyObject* wrap(Column** columns, int64_t ncols)
  * Helper function to be used with `PyArg_ParseTuple()` in order to extract
  * a `Column**` pointer out of the arguments tuple. Usage:
  *
- *     Column **columns;
+ *     Column** columns;
  *     if (!PyArg_ParseTuple(args, "O&", &columnset_unwrap, &columns))
  *         return NULL;
  */
@@ -56,14 +56,14 @@ int unwrap(PyObject* object, void* address) {
 
 PyObject* columns_from_slice(PyObject*, PyObject *args) {
   DataTable* dt;
-  RowIndex* rowindex;
+  RowIndeZ* rowindex;
   int64_t start, count, step;
   if (!PyArg_ParseTuple(args, "O&O&LLL:columns_from_slice",
                         &pydatatable::unwrap, &dt,
                         &rowindex_unwrap, &rowindex, &start, &count, &step))
     return nullptr;
 
-  Column** columns = columns_from_slice(dt, rowindex, start, count, step);
+  Column** columns = columns_from_slice(dt, *rowindex, start, count, step);
   PyObject* res = wrap(columns, count);
   return res;
 }
@@ -72,7 +72,7 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 PyObject* columns_from_array(PyObject*, PyObject *args)
 {
   DataTable* dt;
-  RowIndex* rowindex;
+  RowIndeZ* rowindex;
   PyObject* elems;
   if (!PyArg_ParseTuple(args, "O&O&O!:columns_from_array",
                         &pydatatable::unwrap, &dt,
@@ -87,7 +87,7 @@ PyObject* columns_from_array(PyObject*, PyObject *args)
     indices[i] = (int64_t) PyLong_AsSize_t(elem);
   }
 
-  Column** columns = columns_from_array(dt, rowindex, indices, ncols);
+  Column** columns = columns_from_array(dt, *rowindex, indices, ncols);
   PyObject* res = wrap(columns, ncols);
   return res;
 }
