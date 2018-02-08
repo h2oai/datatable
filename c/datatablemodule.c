@@ -74,7 +74,6 @@ static PyObject* pyget_internal_function_ptrs(PyObject*, PyObject*)
     ADD(_dt_malloc);
     ADD(_dt_realloc);
     ADD(_dt_free);
-    // ADD(RowIndex::from_filterfn32);
     ADD(datatable_get_column_data);
     ADD(datatable_unpack_slicerowindex);
     ADD(datatable_unpack_arrayrowindex);
@@ -125,8 +124,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(rowindex_from_array),
     METHODv(rowindex_from_column),
     METHOD0_(rowindex_from_filterfn),
-    // METHOD0_(rowindex_from_function),
-    METHOD0_(rowindex_uplift),
+    METHODv(rowindex_uplift),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
     METHODv(pydatatable::datatable_from_buffers),

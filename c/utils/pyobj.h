@@ -14,6 +14,7 @@
 
 class DataTable;
 class Column;
+class RowIndeZ;
 
 
 /**
@@ -36,6 +37,12 @@ public:
   PyObj& operator=(const PyObj& other);
   ~PyObj();
   static PyObj fromPyObjectNewRef(PyObject*);
+
+  friend void swap(PyObj& first, PyObj& second) noexcept {
+    using std::swap;
+    swap(first.obj, second.obj);
+    swap(first.tmp, second.tmp);
+  }
 
   /**
    * Retrieve attribute `a` from this python object. This is equivalent to
@@ -93,9 +100,21 @@ public:
   char as_char(char ifnone, char ifempty) const;
   char as_char() const;
 
+  /**
+   * Return the underlying PyObject* object, as a new reference. The caller will
+   * own the returned reference.
+   */
   PyObject* as_pyobject() const;
+
   DataTable* as_datatable() const;
   Column* as_column() const;
+
+  /**
+   * Assuming the underlying object is pyrowindex::obj, return its RowIndeZ
+   * content object. An empty RowIndeZ will also be returned if the underlying
+   * object is None. In all other cases an exception will be thrown.
+   */
+  RowIndeZ as_rowindex() const;
 
   /**
    * Convert the object to a list of strings. The object must be of python type

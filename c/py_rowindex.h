@@ -59,13 +59,15 @@ DECLARE_FUNCTION(
   "the RowIndex directly.",
   HOMEFLAG)
 
+DECLARE_FUNCTION(
+  rowindex_uplift,
+  "rowindex_uplift(rowindex, frame)\n\n"
+  "",
+  HOMEFLAG)
 
 PyObject* pyrowindex(const RowIndeZ& src);
 
-int rowindex_unwrap(PyObject* object, void* address);
 PyObject* pyrowindex_from_filterfn(PyObject*, PyObject* args);
-// PyObject* pyrowindex_from_function(PyObject*, PyObject* args);
-PyObject* pyrowindex_uplift(PyObject*, PyObject* args);
 
 int init_py_rowindex(PyObject* module);
 

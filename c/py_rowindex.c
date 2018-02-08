@@ -10,6 +10,7 @@
 #include "py_datatable.h"
 #include "py_column.h"
 #include "py_utils.h"
+#include "utils/pyobj.h"
 
 
 /**
@@ -22,34 +23,6 @@ PyObject* pyrowindex(const RowIndeZ& rowindex) {
   return res;
 }
 #define py pyrowindex
-
-
-/**
- * Helper function to be used with `PyArg_ParseTuple()` in order to extract
- * a `RowIndex` object out of the arguments tuple. Usage:
- *
- *     RowIndeZ* ri;
- *     if (!PyArg_ParseTuple(args, "O&", &rowindex_unwrap, &ri))
- *         return NULL;
- *
- * The returned reference is *borrowed*, i.e. the caller is not expected to
- * decref it.
- */
-int rowindex_unwrap(PyObject* object, void* address) {
-  RowIndeZ** ans = static_cast<RowIndeZ**>(address);
-  if (object == Py_None) {
-    *ans = nullptr;
-    return 1;
-  }
-  if (!PyObject_TypeCheck(object, &RowIndex_PyType)) {
-    PyErr_SetString(PyExc_TypeError,
-                    "Expected argument of type RowIndex");
-    return 0;
-  }
-  *ans = static_cast<RowIndex_PyObject*>(object)->ref;
-  return 1;
-}
-
 
 
 
@@ -160,7 +133,7 @@ PyObject* pyrowindex_from_filterfn(PyObject*, PyObject* args)
   CATCH_EXCEPTIONS(
     long long _fnptr;
     long long _nrows;
-    if (!PyArg_ParseTuple(args, "LL:RowIndex.from_filterfn",
+    if (!PyArg_ParseTuple(args, "LL:rowindex_from_filterfn",
                           &_fnptr, &_nrows))
         return NULL;
 
@@ -177,33 +150,14 @@ PyObject* pyrowindex_from_filterfn(PyObject*, PyObject* args)
 
 
 
-/**
- * Construct a rowindex object given a pointer to a function that returns a
- * `RowIndex*` value.
- */
-// PyObject* pyrowindex_from_function(PyObject*, PyObject* args)
-// {
-//   CATCH_EXCEPTIONS(
-//     long long _fnptr;
-//     if (!PyArg_ParseTuple(args, "L:RowIndex.from_function", &_fnptr))
-//         return NULL;
-//     rowindex_getterfn *fnptr = (rowindex_getterfn*) _fnptr;
-//     return py(fnptr());
-//   );
-// }
+PyObject* rowindex_uplift(PyObject*, PyObject* args) {
+  PyObject *arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "OO:rowindex_uplift", &arg1, &arg2))
+    return nullptr;
+  RowIndeZ ri = PyObj(arg1).as_rowindex();
+  DataTable* dt = PyObj(arg2).as_datatable();
 
-
-
-PyObject* pyrowindex_uplift(PyObject*, PyObject* args)
-{
-  CATCH_EXCEPTIONS(
-    RowIndeZ* ri;
-    DataTable* dt;
-    if (!PyArg_ParseTuple(args, "O&O&:RowIndex.uplift",
-                          &rowindex_unwrap, &ri, &pydatatable::unwrap, &dt))
-        return nullptr;
-    return py(dt->rowindex.merged_with(*ri));
-  );
+  return py(dt->rowindex.merged_with(ri));
 }
 
 

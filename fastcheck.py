@@ -109,20 +109,20 @@ def parse_makefile():
                 sline = sline[len("$(BUILDDIR)/"):]
                 obj, deps = sline.split(":")
                 obj = obj.strip()
-                if obj == "_datatable.so":
-                    continue
-                if obj not in objects_map:
-                    raise ValueError("Object file `%s` was not declared in "
-                                     "$(fast_objects), however a build target "
-                                     "for it exists (line %d in Makefile):\n%s"
-                                     % (obj, iline + 1, "  " + line))
                 deps = deps.strip()
                 depslist = deps.split(" ")
-                objects_map[obj] = depslist
-            else:
-                mm = rx_targeth.match(line)
-                if mm:
-                    headers_map[mm.group(1)] = mm.group(2).split(" ")
+                if obj.endswith(".so"):
+                    continue
+                elif obj.endswith(".o"):
+                    if obj not in objects_map:
+                        raise ValueError("Object file `%s` was not declared in "
+                                         "$(fast_objects), however a build "
+                                         " targetfor it exists (line %d in "
+                                         "Makefile):\n%s"
+                                         % (obj, iline + 1, "  " + line))
+                    objects_map[obj] = depslist
+                elif obj.endswith(".h"):
+                    headers_map["$(BUILDDIR)/" + obj] = depslist
         for obj, deps in objects_map.items():
             if deps is None:
                 raise ValueError("Object file `%s` is present in "
@@ -145,6 +145,12 @@ def sourcefile_to_obj(srcfile):
         raise ValueError("Unexpected source file name: %s" % srcfile)
 
 
+def headerfile_to_obj(hdrfile):
+    assert hdrfile.startswith("c/")
+    assert hdrfile.endswith(".h")
+    return "$(BUILDDIR)/" + hdrfile[2:]
+
+
 def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
     """
     realsrcs:
@@ -161,26 +167,26 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
         file, and values are sets of dependencies for those targets
     """
     for hdrfile in realhdrs:
+        hdrkey = headerfile_to_obj(hdrfile)
         actual_deps = sorted(realhdrs[hdrfile])
-        expect_deps = actual_deps
+        expect_deps = [hdrfile] + [headerfile_to_obj(k) for k in actual_deps]
         if not expect_deps:
-            if hdrfile in makehdrs:
+            if hdrkey in makehdrs:
                 raise ValueError("Target '%s' has no dependencies, and "
                                  "shouldn't be present in Makefile"
                                  % (hdrfile, ))
             continue
-        if hdrfile not in makehdrs:
-            raise ValueError("Missing target '%s' in header file. Include "
-                             "the following line in Makefile:\n"
-                             "%s: %s"
-                             % (hdrfile, hdrfile, " ".join(expect_deps)))
-        make_deps = makehdrs[hdrfile]
-        del makehdrs[hdrfile]
+        if hdrkey not in makehdrs:
+            raise ValueError("Missing target '%s' in Makefile. Add the "
+                             "following line:\n%s: %s"
+                             % (hdrkey, hdrkey, " ".join(expect_deps)))
+        make_deps = makehdrs[hdrkey]
+        del makehdrs[hdrkey]
         if set(make_deps) != set(expect_deps):
             raise ValueError("Invalid dependencies for target '%s'. Include "
                              "the following line in Makefile:\n"
                              "%s: %s"
-                             % (hdrfile, hdrfile, " ".join(expect_deps)))
+                             % (hdrkey, hdrkey, " ".join(expect_deps)))
     if makehdrs:
         raise ValueError("Makefile has targets %r which do not correspond to "
                          "any existing header files." % list(makehdrs.keys()))
@@ -192,7 +198,7 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
                              "`$(BUILDDIR)/%s` target in the Makefile."
                              % (srcfile, objkey))
         actual_deps = sorted(realsrcs[srcfile])
-        expect_deps = [srcfile] + actual_deps
+        expect_deps = [srcfile] + [headerfile_to_obj(k) for k in actual_deps]
         make_deps = makeobjs[objkey]
         del makeobjs[objkey]
         if set(make_deps) != set(expect_deps):

@@ -8,6 +8,7 @@
 #include "utils/pyobj.h"
 #include "py_column.h"
 #include "py_datatable.h"
+#include "py_rowindex.h"
 #include "py_types.h"
 #include "utils/exceptions.h"
 
@@ -37,12 +38,10 @@ PyObj::PyObj(const PyObj& other) {
   Py_INCREF(obj);
 }
 
-PyObj::PyObj(PyObj&& other) {
-  obj = other.obj;
-  tmp = other.tmp;
-  other.obj = nullptr;
-  other.tmp = nullptr;
+PyObj::PyObj(PyObj&& other) : PyObj() {
+  swap(*this, other);
 }
+
 
 PyObj& PyObj::operator=(const PyObj& other) {
   if (obj || tmp) {
@@ -212,6 +211,18 @@ Column* PyObj::as_column() const {
   int ret = pycolumn::unwrap(obj, &col);
   if (!ret) throw Error();
   return col;
+}
+
+
+RowIndeZ PyObj::as_rowindex() const {
+  if (obj == Py_None) {
+    return RowIndeZ();
+  }
+  if (!PyObject_TypeCheck(obj, &RowIndex_PyType)) {
+    throw TypeError() << "Expected argument of type RowIndex";
+  }
+  RowIndeZ* ref = static_cast<RowIndex_PyObject*>(obj)->ref;
+  return ref ? RowIndeZ(*ref) : RowIndeZ();  // copy-constructor is called here
 }
 
 

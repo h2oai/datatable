@@ -58,7 +58,7 @@ template <typename T> class array
     array<T>& operator=(const array<T>&) = delete;
 
     // see https://stackoverflow.com/questions/5695548
-    friend void swap(array<T> first, array<T> second) noexcept {
+    friend void swap(array<T>& first, array<T>& second) noexcept {
       using std::swap;
       swap(first.x, second.x);
       swap(first.n, second.n);
