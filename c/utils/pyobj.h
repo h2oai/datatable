@@ -14,7 +14,7 @@
 
 class DataTable;
 class Column;
-class RowIndeZ;
+class RowIndex;
 
 
 /**
@@ -110,11 +110,16 @@ public:
   Column* as_column() const;
 
   /**
-   * Assuming the underlying object is pyrowindex::obj, return its RowIndeZ
-   * content object. An empty RowIndeZ will also be returned if the underlying
+   * Assuming the underlying object is pyrowindex::obj, return its RowIndex
+   * content object. An empty RowIndex will also be returned if the underlying
    * object is None. In all other cases an exception will be thrown.
+   *
+   * Example:
+   *   PyObject* arg1;
+   *   if (!PyArg_ParseTuple("O", &arg1)) return NULL;
+   *   RowIndex ri = PyObj(arg1).as_rowindex();
    */
-  RowIndeZ as_rowindex() const;
+  RowIndex as_rowindex() const;
 
   /**
    * Convert the object to a list of strings. The object must be of python type

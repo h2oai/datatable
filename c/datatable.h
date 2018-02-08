@@ -54,7 +54,7 @@ class DataTable {
   public:
     int64_t  nrows;
     int64_t  ncols;
-    RowIndeZ rowindex;
+    RowIndex rowindex;
     Column** columns;
 
   public:

@@ -123,7 +123,7 @@ void StringColumn<T>::save_to_disk(const std::string& filename,
 }
 
 template <typename T>
-Column* StringColumn<T>::shallowcopy(const RowIndeZ& new_rowindex) const {
+Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
   Column* newcol = Column::shallowcopy(new_rowindex);
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf->shallowcopy();

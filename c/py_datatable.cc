@@ -125,7 +125,7 @@ PyObject* get_stypes(obj* self) {
 
 
 PyObject* get_rowindex_type(obj* self) {
-  RowIndeZ& ri = self->ref->rowindex;
+  RowIndex& ri = self->ref->rowindex;
   return ri.isabsent()? none() :
          ri.isslice()? incref(strRowIndexTypeSlice) :
          ri.isarr32()? incref(strRowIndexTypeArr32) :
@@ -317,7 +317,7 @@ PyObject* sort(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "i:sort", &idx)) return nullptr;
 
   Column* col = dt->columns[idx];
-  RowIndeZ ri = col->sort();
+  RowIndex ri = col->sort();
   return pyrowindex(ri);
 }
 

@@ -98,7 +98,7 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     int64_t ncols = col1 - col0;
     int64_t nrows = row1 - row0;
 
-    RowIndeZ rindex(dt->rowindex);
+    RowIndex rindex(dt->rowindex);
     int no_rindex = rindex.isabsent();
     int rindex_is_arr32 = rindex.isarr32();
     int rindex_is_arr64 = rindex.isarr64();

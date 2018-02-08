@@ -19,7 +19,7 @@
  * Pythonic reference to a `RowIndex` object.
  */
 struct RowIndex_PyObject : public PyObject {
-  RowIndeZ* ref;
+  RowIndex* ref;
 };
 
 extern PyTypeObject RowIndex_PyType;
@@ -60,14 +60,20 @@ DECLARE_FUNCTION(
   HOMEFLAG)
 
 DECLARE_FUNCTION(
+  rowindex_from_filterfn,
+  "rowindex_from_filterfn(fptr, nrows)\n\n"
+  "Construct a RowIndex object given a pointer to a filtering function and\n"
+  "the number of rows that has to be filtered. ",
+  HOMEFLAG)
+
+DECLARE_FUNCTION(
   rowindex_uplift,
   "rowindex_uplift(rowindex, frame)\n\n"
   "",
   HOMEFLAG)
 
-PyObject* pyrowindex(const RowIndeZ& src);
 
-PyObject* pyrowindex_from_filterfn(PyObject*, PyObject* args);
+PyObject* pyrowindex(const RowIndex& src);
 
 int init_py_rowindex(PyObject* module);
 

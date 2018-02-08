@@ -300,19 +300,19 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndeZ Column::sort() const
+RowIndex Column::sort() const
 {
   if (nrows > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable with " << nrows << " rows";
   }
-  RowIndeZ rz(ri);
+  RowIndex rz(ri);
   if (rz.isarr64() || rz.length() > INT32_MAX || rz.max() > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable which is based on a "
                           "datatable with >2**31 rows";
   }
   int32_t nrows_ = (int32_t) nrows;
   if (nrows_ <= 1) {  // no need to sort
-    return RowIndeZ::from_slice(0, nrows_, 1);
+    return RowIndex::from_slice(0, nrows_, 1);
   }
   dt::array<int32_t> ordering_array = rz.extract_as_array32();
   int32_t* ordering = ordering_array.data(); // borrowed ref
@@ -344,7 +344,7 @@ RowIndeZ Column::sort() const
     if (prepfn) {
       prepfn(this, ordering, (size_t)nrows_, sc);
       if (sc->issorted) {
-        return RowIndeZ::from_slice(0, nrows_, 1);
+        return RowIndex::from_slice(0, nrows_, 1);
       }
       if (sc->x != nullptr) {
         radix_psort(sc);
@@ -368,8 +368,8 @@ RowIndeZ Column::sort() const
     }
   }
   delete sc;
-  if (!ordering) return RowIndeZ();
-  return RowIndeZ::from_array32(std::move(ordering_array));
+  if (!ordering) return RowIndex();
+  return RowIndex::from_array32(std::move(ordering_array));
 }
 
 

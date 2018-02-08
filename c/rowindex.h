@@ -13,7 +13,6 @@
 class Column;
 class BoolColumn;
 class RowIndex;
-class RowIndeZ;
 class IntegrityCheckContext;
 
 
@@ -105,7 +104,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     static void check_triple(int64_t start, int64_t count, int64_t step);
 
   protected:
-    friend RowIndeZ;
+    friend RowIndex;
 };
 
 
@@ -114,26 +113,26 @@ class SliceRowIndexImpl : public RowIndexImpl {
 // Main RowIndex class
 //==============================================================================
 
-class RowIndeZ {
+class RowIndex {
   private:
     RowIndexImpl* impl;
 
   public:
-    RowIndeZ() : impl(nullptr) {}
-    RowIndeZ(const RowIndeZ&);
-    RowIndeZ& operator=(const RowIndeZ&);
-    ~RowIndeZ();
+    RowIndex() : impl(nullptr) {}
+    RowIndex(const RowIndex&);
+    RowIndex& operator=(const RowIndex&);
+    ~RowIndex();
 
     /**
      * Construct a RowIndex object from an array of int32/int64 indices.
      * Optional `sorted` flag tells the constructor whether the arrays are
      * sorted or not.
      */
-    static RowIndeZ from_array32(dt::array<int32_t>&& arr, bool sorted = false);
-    static RowIndeZ from_array64(dt::array<int64_t>&& arr, bool sorted = false);
+    static RowIndex from_array32(dt::array<int32_t>&& arr, bool sorted = false);
+    static RowIndex from_array64(dt::array<int64_t>&& arr, bool sorted = false);
 
-    static RowIndeZ from_slice(int64_t start, int64_t count, int64_t step);
-    static RowIndeZ from_slices(const dt::array<int64_t>& starts,
+    static RowIndex from_slice(int64_t start, int64_t count, int64_t step);
+    static RowIndex from_slices(const dt::array<int64_t>& starts,
                                 const dt::array<int64_t>& counts,
                                 const dt::array<int64_t>& steps);
 
@@ -159,13 +158,13 @@ class RowIndeZ {
      *     When True indicates that the filter function is guaranteed to produce
      *     row index in sorted order.
      */
-    static RowIndeZ from_filterfn32(filterfn32* f, int64_t n, bool sorted);
-    static RowIndeZ from_filterfn64(filterfn64* f, int64_t n, bool sorted);
+    static RowIndex from_filterfn32(filterfn32* f, int64_t n, bool sorted);
+    static RowIndex from_filterfn64(filterfn64* f, int64_t n, bool sorted);
 
-    static RowIndeZ from_column(Column* col);
+    static RowIndex from_column(Column* col);
 
 
-    bool operator==(const RowIndeZ& other) { return impl == other.impl; }
+    bool operator==(const RowIndex& other) { return impl == other.impl; }
     operator bool() const { return impl != nullptr; }
 
     bool isabsent() const { return impl == nullptr; }
@@ -185,7 +184,7 @@ class RowIndeZ {
 
     dt::array<int32_t> extract_as_array32() const;
 
-    RowIndeZ merged_with(const RowIndeZ&) const;
+    RowIndex merged_with(const RowIndex&) const;
 
     void clear();
     size_t memory_footprint() const { return 0; } // TODO
@@ -200,7 +199,7 @@ class RowIndeZ {
                           const std::string& = "RowIndex") const { return true; }
 
   private:
-    RowIndeZ(RowIndexImpl* rii) : impl(rii) {}
+    RowIndex(RowIndexImpl* rii) : impl(rii) {}
     ArrayRowIndexImpl* impl_asarray() const {
       return static_cast<ArrayRowIndexImpl*>(impl);
     }
@@ -213,7 +212,7 @@ class RowIndeZ {
 //==============================================================================
 
 template<typename F>
-void RowIndeZ::strided_loop(
+void RowIndex::strided_loop(
     int64_t istart, int64_t iend, int64_t istep, F f) const
 {
   switch (impl? impl->type : RowIndexType::RI_UNKNOWN) {

@@ -27,11 +27,11 @@ DataTable::DataTable(Column** cols)
     throw ValueError() << "Column array cannot be null";
   }
   if (cols[0] == nullptr) return;
-  rowindex = RowIndeZ(cols[0]->rowindex());
+  rowindex = RowIndex(cols[0]->rowindex());
   nrows = cols[0]->nrows;
 
   for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
-    // TODO: restore, once Column also uses RowIndeZ
+    // TODO: restore, once Column also uses RowIndex
     // if (rowindex != col->rowindex()) {
     //   throw ValueError() << "Mismatched RowIndex in Column " << ncols;
     // }

@@ -126,7 +126,7 @@ Column* Column::new_mbuf_column(SType stype, MemoryBuffer* mbuf,
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(const RowIndeZ& new_rowindex) const {
+Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
@@ -353,7 +353,7 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   int64_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
-  RowIndeZ col_rz(rowindex());
+  RowIndex col_rz(rowindex());
   if (col_rz.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {

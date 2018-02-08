@@ -61,7 +61,7 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
                         &arg1, &arg2, &start, &count, &step))
     return nullptr;
   DataTable* dt = PyObj(arg1).as_datatable();
-  RowIndeZ rowindex = PyObj(arg2).as_rowindex();
+  RowIndex rowindex = PyObj(arg2).as_rowindex();
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
   PyObject* res = wrap(columns, count);
@@ -77,7 +77,7 @@ PyObject* columns_from_array(PyObject*, PyObject *args)
                         &arg1, &arg2, &PyList_Type, &elems))
     return nullptr;
   DataTable* dt = PyObj(arg1).as_datatable();
-  RowIndeZ rowindex = PyObj(arg2).as_rowindex();
+  RowIndex rowindex = PyObj(arg2).as_rowindex();
 
   int64_t ncols = PyList_Size(elems);
   int64_t* indices = nullptr;

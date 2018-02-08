@@ -22,28 +22,28 @@
 
 
 //==============================================================================
-// Base RowIndeZ class
+// Base RowIndex class
 //==============================================================================
 
 // copy-constructor, performs shallow copying
-RowIndeZ::RowIndeZ(const RowIndeZ& other) {
+RowIndex::RowIndex(const RowIndex& other) {
   impl = other.impl;
   if (impl) impl->acquire();
 }
 
 // assignment operator, performs shallow copying
-RowIndeZ& RowIndeZ::operator=(const RowIndeZ& other) {
+RowIndex& RowIndex::operator=(const RowIndex& other) {
   clear();
   impl = other.impl;
   if (impl) impl->acquire();
   return *this;
 }
 
-RowIndeZ::~RowIndeZ() {
+RowIndex::~RowIndex() {
   if (impl) impl->release();
 }
 
-void RowIndeZ::clear() {
+void RowIndex::clear() {
   if (impl) impl->release();
   impl = nullptr;
 }
@@ -59,8 +59,8 @@ void RowIndeZ::clear() {
  *   - with explicit `count` the `step` may safely be 0.
  *   - there is no difference in handling positive/negative steps.
  */
-RowIndeZ RowIndeZ::from_slice(int64_t start, int64_t count, int64_t step) {
-  return RowIndeZ(new SliceRowIndexImpl(start, count, step));
+RowIndex RowIndex::from_slice(int64_t start, int64_t count, int64_t step) {
+  return RowIndex(new SliceRowIndexImpl(start, count, step));
 }
 
 
@@ -72,39 +72,39 @@ RowIndeZ RowIndeZ::from_slice(int64_t start, int64_t count, int64_t step) {
  * This will create either an RI_ARR32 or RI_ARR64 object, depending on which
  * one is sufficient to hold all the indices.
  */
-RowIndeZ RowIndeZ::from_slices(const dt::array<int64_t>& starts,
+RowIndex RowIndex::from_slices(const dt::array<int64_t>& starts,
                                const dt::array<int64_t>& counts,
                                const dt::array<int64_t>& steps) {
-  return RowIndeZ(new ArrayRowIndexImpl(starts, counts, steps));
+  return RowIndex(new ArrayRowIndexImpl(starts, counts, steps));
 }
 
 
-RowIndeZ RowIndeZ::from_array32(dt::array<int32_t>&& arr, bool sorted) {
-  return RowIndeZ(new ArrayRowIndexImpl(std::move(arr), sorted));
+RowIndex RowIndex::from_array32(dt::array<int32_t>&& arr, bool sorted) {
+  return RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted));
 }
 
 
-RowIndeZ RowIndeZ::from_array64(dt::array<int64_t>&& arr, bool sorted) {
-  return RowIndeZ(new ArrayRowIndexImpl(std::move(arr), sorted));
+RowIndex RowIndex::from_array64(dt::array<int64_t>&& arr, bool sorted) {
+  return RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted));
 }
 
 
-RowIndeZ RowIndeZ::from_filterfn32(filterfn32* f, int64_t n, bool sorted) {
-  return RowIndeZ(new ArrayRowIndexImpl(f, n, sorted));
+RowIndex RowIndex::from_filterfn32(filterfn32* f, int64_t n, bool sorted) {
+  return RowIndex(new ArrayRowIndexImpl(f, n, sorted));
 }
 
 
-RowIndeZ RowIndeZ::from_filterfn64(filterfn64* f, int64_t n, bool sorted) {
-  return RowIndeZ(new ArrayRowIndexImpl(f, n, sorted));
+RowIndex RowIndex::from_filterfn64(filterfn64* f, int64_t n, bool sorted) {
+  return RowIndex(new ArrayRowIndexImpl(f, n, sorted));
 }
 
 
-RowIndeZ RowIndeZ::from_column(Column* col) {
-  return RowIndeZ(new ArrayRowIndexImpl(col));
+RowIndex RowIndex::from_column(Column* col) {
+  return RowIndex(new ArrayRowIndexImpl(col));
 }
 
 
-dt::array<int32_t> RowIndeZ::extract_as_array32() const
+dt::array<int32_t> RowIndex::extract_as_array32() const
 {
   dt::array<int32_t> res;
   if (!impl) return res;
@@ -501,10 +501,10 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
  * Rowindex `ri_ab` may also be NULL, in which case a clone of `ri_bc` is
  * returned.
  */
-RowIndeZ RowIndeZ::merged_with(const RowIndeZ& ri2) const {
-  if (!impl && !ri2.impl) return RowIndeZ();
-  if (!impl) return RowIndeZ(ri2);
-  if (!ri2.impl) return RowIndeZ(*this);
+RowIndex RowIndex::merged_with(const RowIndex& ri2) const {
+  if (!impl && !ri2.impl) return RowIndex();
+  if (!impl) return RowIndex(ri2);
+  if (!ri2.impl) return RowIndex(*this);
 
 
 
@@ -635,7 +635,7 @@ RowIndeZ RowIndeZ::merged_with(const RowIndeZ& ri2) const {
   }
   return res;
   */
-  return RowIndeZ();
+  return RowIndex();
 }
 
 

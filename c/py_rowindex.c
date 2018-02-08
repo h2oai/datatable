@@ -17,9 +17,9 @@
  * Create a new RowIndex_PyObject by wrapping the provided RowIndex.
  * The returned py-object will hold a shallow copy of `src`.
  */
-PyObject* pyrowindex(const RowIndeZ& rowindex) {
+PyObject* pyrowindex(const RowIndex& rowindex) {
   PyObject* res = PyObject_CallObject((PyObject*) &RowIndex_PyType, NULL);
-  static_cast<RowIndex_PyObject*>(res)->ref = new RowIndeZ(rowindex);
+  static_cast<RowIndex_PyObject*>(res)->ref = new RowIndex(rowindex);
   return res;
 }
 #define py pyrowindex
@@ -34,7 +34,7 @@ PyObject* rowindex_from_slice(PyObject*, PyObject* args) {
   int64_t start, count, step;
   if (!PyArg_ParseTuple(args, "LLL:rowindex_from_slice",
                         &start, &count, &step)) return nullptr;
-  return py(RowIndeZ::from_slice(start, count, step));
+  return py(RowIndex::from_slice(start, count, step));
 }
 
 
@@ -71,7 +71,7 @@ PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
     counts[ii] = count;
     steps[ii] = step;
   }
-  return py(RowIndeZ::from_slices(starts, counts, steps));
+  return py(RowIndex::from_slices(starts, counts, steps));
 }
 
 
@@ -110,8 +110,8 @@ PyObject* rowindex_from_array(PyObject*, PyObject* args) {
     }
   }
   // Construct and return the RowIndex object
-  return data32? py(RowIndeZ::from_array32(std::move(data32)))
-               : py(RowIndeZ::from_array64(std::move(data64)));
+  return data32? py(RowIndex::from_array32(std::move(data32)))
+               : py(RowIndex::from_array64(std::move(data64)));
 }
 
 
@@ -119,33 +119,26 @@ PyObject* rowindex_from_column(PyObject*, PyObject* args) {
   Column* col;
   if (!PyArg_ParseTuple(args, "O&:rowindex_from_column",
                         &pycolumn::unwrap, &col)) return nullptr;
-  return py(RowIndeZ::from_column(col));
+  return py(RowIndex::from_column(col));
 }
 
 
-/**
- * Construct a rowindex object given a pointer to a filtering function and
- * the number of rows that has to be filtered. This is a wrapper around
- * `rowindex_from_filterfn[32|64]`.
- */
-PyObject* pyrowindex_from_filterfn(PyObject*, PyObject* args)
+PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 {
-  CATCH_EXCEPTIONS(
-    long long _fnptr;
-    long long _nrows;
-    if (!PyArg_ParseTuple(args, "LL:rowindex_from_filterfn",
-                          &_fnptr, &_nrows))
-        return NULL;
+  long long _fnptr;
+  long long _nrows;
+  if (!PyArg_ParseTuple(args, "LL:rowindex_from_filterfn",
+                        &_fnptr, &_nrows))
+      return nullptr;
 
-    int64_t nrows = (int64_t) _nrows;
-    if (nrows <= INT32_MAX) {
-      filterfn32 *fnptr = (filterfn32*)_fnptr;
-      return py(RowIndeZ::from_filterfn32(fnptr, nrows, 0));
-    } else {
-      filterfn64 *fnptr = (filterfn64*)_fnptr;
-      return py(RowIndeZ::from_filterfn64(fnptr, nrows, 0));
-    }
-  );
+  int64_t nrows = (int64_t) _nrows;
+  if (nrows <= INT32_MAX) {
+    filterfn32 *fnptr = (filterfn32*)_fnptr;
+    return py(RowIndex::from_filterfn32(fnptr, nrows, 0));
+  } else {
+    filterfn64 *fnptr = (filterfn64*)_fnptr;
+    return py(RowIndex::from_filterfn64(fnptr, nrows, 0));
+  }
 }
 
 
@@ -154,7 +147,7 @@ PyObject* rowindex_uplift(PyObject*, PyObject* args) {
   PyObject *arg1, *arg2;
   if (!PyArg_ParseTuple(args, "OO:rowindex_uplift", &arg1, &arg2))
     return nullptr;
-  RowIndeZ ri = PyObj(arg1).as_rowindex();
+  RowIndex ri = PyObj(arg1).as_rowindex();
   DataTable* dt = PyObj(arg2).as_datatable();
 
   return py(dt->rowindex.merged_with(ri));
@@ -177,7 +170,7 @@ static void dealloc(RowIndex_PyObject *self)
 static PyObject* repr(RowIndex_PyObject *self)
 {
   CATCH_EXCEPTIONS(
-    RowIndeZ& rz = *(self->ref);
+    RowIndex& rz = *(self->ref);
     if (rz.isabsent())
       return PyUnicode_FromString("_RowIndex(NULL)");
     if (rz.isarr32()) {
@@ -198,7 +191,7 @@ static PyObject* repr(RowIndex_PyObject *self)
 static PyObject* tolist(RowIndex_PyObject *self, PyObject* args)
 {
   if (!PyArg_ParseTuple(args, "")) return NULL;
-  RowIndeZ& rz = *(self->ref);
+  RowIndex& rz = *(self->ref);
 
   CATCH_EXCEPTIONS(
     PyObject *list = PyList_New((Py_ssize_t) rz.length());
@@ -231,7 +224,7 @@ static PyObject* tolist(RowIndex_PyObject *self, PyObject* args)
 
 static PyObject *getptr(RowIndex_PyObject *self, PyObject*) {
   CATCH_EXCEPTIONS(
-    RowIndeZ* ri = self->ref;
+    RowIndex* ri = self->ref;
     return PyLong_FromSize_t(reinterpret_cast<size_t>(ri));
   );
 }

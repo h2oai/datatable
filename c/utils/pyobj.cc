@@ -214,15 +214,15 @@ Column* PyObj::as_column() const {
 }
 
 
-RowIndeZ PyObj::as_rowindex() const {
+RowIndex PyObj::as_rowindex() const {
   if (obj == Py_None) {
-    return RowIndeZ();
+    return RowIndex();
   }
   if (!PyObject_TypeCheck(obj, &RowIndex_PyType)) {
     throw TypeError() << "Expected argument of type RowIndex";
   }
-  RowIndeZ* ref = static_cast<RowIndex_PyObject*>(obj)->ref;
-  return ref ? RowIndeZ(*ref) : RowIndeZ();  // copy-constructor is called here
+  RowIndex* ref = static_cast<RowIndex_PyObject*>(obj)->ref;
+  return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
 }
 
 

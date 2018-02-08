@@ -21,7 +21,7 @@ void* datatable_get_column_data(void* dt_, int64_t column)
 void datatable_unpack_slicerowindex(void *dt_, int64_t *start, int64_t *step)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
-  RowIndeZ ri(dt->rowindex);
+  RowIndex ri(dt->rowindex);
   *start = ri.slice_start();
   *step  = ri.slice_step();
 }
@@ -30,7 +30,7 @@ void datatable_unpack_slicerowindex(void *dt_, int64_t *start, int64_t *step)
 void datatable_unpack_arrayrowindex(void *dt_, void **indices)
 {
   DataTable *dt = static_cast<DataTable*>(dt_);
-  RowIndeZ ri(dt->rowindex);
+  RowIndex ri(dt->rowindex);
   *indices = const_cast<int32_t*>(ri.indices32());
 }
 

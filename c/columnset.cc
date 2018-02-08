@@ -15,7 +15,7 @@
 /**
  * Create an array of columns by taking a slice from columns of DataTable `dt`.
  */
-Column** columns_from_slice(DataTable* dt, const RowIndeZ& rowindex,
+Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
                             int64_t start, int64_t count, int64_t step)
 {
   if (dt == nullptr) return nullptr;
@@ -43,7 +43,7 @@ Column** columns_from_slice(DataTable* dt, const RowIndeZ& rowindex,
  * Create a list of columns by extracting columns at the given indices from
  * datatable `dt`.
  */
-Column** columns_from_array(DataTable* dt, const RowIndeZ& rowindex,
+Column** columns_from_array(DataTable* dt, const RowIndex& rowindex,
                             int64_t* indices, int64_t ncols)
 {
   if (dt == nullptr || indices == nullptr) return nullptr;

@@ -123,7 +123,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(rowindex_from_slicelist),
     METHODv(rowindex_from_array),
     METHODv(rowindex_from_column),
-    METHOD0_(rowindex_from_filterfn),
+    METHODv(rowindex_from_filterfn),
     METHODv(rowindex_uplift),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
