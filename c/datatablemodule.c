@@ -119,12 +119,12 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pycolumnset::columns_from_array),
     METHODv(pycolumnset::columns_from_columns),
     METHODv(pycolumn::column_from_list),
-    METHODv(rowindex_from_slice),
-    METHODv(rowindex_from_slicelist),
-    METHODv(rowindex_from_array),
-    METHODv(rowindex_from_column),
-    METHODv(rowindex_from_filterfn),
-    METHODv(rowindex_uplift),
+    METHODv(pyrowindex::rowindex_from_slice),
+    METHODv(pyrowindex::rowindex_from_slicelist),
+    METHODv(pyrowindex::rowindex_from_array),
+    METHODv(pyrowindex::rowindex_from_column),
+    METHODv(pyrowindex::rowindex_from_filterfn),
+    METHODv(pyrowindex::rowindex_uplift),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
     METHODv(pydatatable::datatable_from_buffers),
@@ -165,12 +165,12 @@ PyInit__datatable(void) {
     if (m == NULL) return NULL;
 
     // Initialize submodules
-    if (!pydatatable::static_init(m)) return NULL;
     if (!init_py_datawindow(m)) return NULL;
-    if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!pycolumn::static_init(m)) return NULL;
     if (!pycolumnset::static_init(m)) return NULL;
+    if (!pydatatable::static_init(m)) return NULL;
+    if (!pyrowindex::static_init(m)) return NULL;
     if (!init_py_encodings(m)) return NULL;
 
     return m;

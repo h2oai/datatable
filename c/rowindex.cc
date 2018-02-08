@@ -48,6 +48,7 @@ void RowIndex::clear() {
   impl = nullptr;
 }
 
+
 /**
  * Construct a RowIndex object from triple `(start, count, step)`. The new
  * object will have type `RI_SLICE`.

@@ -5,25 +5,59 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_PY_ROWINDEX_H
-#define dt_PY_ROWINDEX_H
+#ifndef dt_PY_ROWINDEX_h
+#define dt_PY_ROWINDEX_h
 #include <Python.h>
 #include "rowindex.h"
 #include "py_utils.h"
 
 
+#define BASECLS pyrowindex::obj
 #define HOMEFLAG dt_PY_ROWINDEX_cc
-
+namespace pyrowindex
+{
 
 /**
- * Pythonic reference to a `RowIndex` object.
+ * Pythonic handle to a `RowIndex` object.
+ *
+ * The payload RowIndex is stored as a pointer rather than by value - only
+ * because `pyrowindex::obj` is created/managed/destroyed from Python C,
+ * circumventing traditional object construction/destruction.
  */
-struct RowIndex_PyObject : public PyObject {
+struct obj : public PyObject {
   RowIndex* ref;
 };
 
-extern PyTypeObject RowIndex_PyType;
+extern PyTypeObject type;
 
+// Internal helper functions
+int static_init(PyObject* module);
+PyObject* wrap(const RowIndex& src);
+
+
+
+//---- Generic info ------------------------------------------------------------
+
+DECLARE_INFO(
+  datatable.core.RowIndex,
+  "C-side RowIndex object.")
+
+
+
+//---- Getters/setters ---------------------------------------------------------
+
+
+
+//---- Methods -----------------------------------------------------------------
+
+DECLARE_METHOD(
+  tolist,
+  "tolist()\n\n"
+  "Return RowIndex's indices as a list of integers.")
+
+
+
+//---- Python API --------------------------------------------------------------
 
 DECLARE_FUNCTION(
   rowindex_from_slice,
@@ -73,9 +107,7 @@ DECLARE_FUNCTION(
   HOMEFLAG)
 
 
-PyObject* pyrowindex(const RowIndex& src);
-
-int init_py_rowindex(PyObject* module);
-
+};  // namespace pyrowindex
 #undef HOMEFLAG
+#undef BASECLS
 #endif

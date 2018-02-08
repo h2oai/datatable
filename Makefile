@@ -491,7 +491,7 @@ $(BUILDDIR)/py_encodings.o : c/py_encodings.c $(BUILDDIR)/py_encodings.h $(BUILD
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_rowindex.o : c/py_rowindex.c $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/py_rowindex.o : c/py_rowindex.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

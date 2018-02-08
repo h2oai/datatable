@@ -218,10 +218,10 @@ RowIndex PyObj::as_rowindex() const {
   if (obj == Py_None) {
     return RowIndex();
   }
-  if (!PyObject_TypeCheck(obj, &RowIndex_PyType)) {
+  if (!PyObject_TypeCheck(obj, &pyrowindex::type)) {
     throw TypeError() << "Expected argument of type RowIndex";
   }
-  RowIndex* ref = static_cast<RowIndex_PyObject*>(obj)->ref;
+  RowIndex* ref = static_cast<pyrowindex::obj*>(obj)->ref;
   return ref ? RowIndex(*ref) : RowIndex();  // copy-constructor is called here
 }
 

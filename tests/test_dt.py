@@ -329,7 +329,7 @@ def test_internal_rowindex():
     d0 = dt.DataTable(list(range(100)))
     d1 = d0[:20, :]
     assert d0.internal.rowindex is None
-    assert repr(d1.internal.rowindex) == "_RowIndex(0:20:1)"
+    assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
 
 
 

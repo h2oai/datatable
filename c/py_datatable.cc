@@ -134,7 +134,8 @@ PyObject* get_rowindex_type(obj* self) {
 
 
 PyObject* get_rowindex(obj* self) {
-  return pyrowindex(self->ref->rowindex);
+  RowIndex& ri = self->ref->rowindex;
+  return ri.isabsent()? none() : pyrowindex::wrap(ri);
 }
 
 
@@ -318,7 +319,7 @@ PyObject* sort(obj* self, PyObject* args) {
 
   Column* col = dt->columns[idx];
   RowIndex ri = col->sort();
-  return pyrowindex(ri);
+  return pyrowindex::wrap(ri);
 }
 
 
