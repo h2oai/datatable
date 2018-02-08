@@ -858,7 +858,10 @@ DataTablePtr FreadReader::read()
                 if (*tch==quote) { quoted=true; tch++; }
               } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
               parsers[newType](fctx);
-              if (quoted && *tch==quote) tch++;
+              if (quoted) {
+                if (*tch==quote) tch++;
+                else goto typebump;
+              }
               fctx.skip_white();
               if (fctx.end_of_field()) {
                 if (sep==' ' && *tch==' ') {
@@ -871,6 +874,7 @@ DataTablePtr FreadReader::read()
               // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
               // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
               // sure a single re-read will definitely work.
+              typebump:
               newType++;
               tch = fieldStart;
             }
