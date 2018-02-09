@@ -46,6 +46,10 @@ DECLARE_INFO(
 
 //---- Getters/setters ---------------------------------------------------------
 
+DECLARE_GETTER(
+  nrows,
+  "Number of rows in the rowindex")
+
 
 
 //---- Methods -----------------------------------------------------------------

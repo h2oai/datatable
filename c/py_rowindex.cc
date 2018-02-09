@@ -150,6 +150,16 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 
 
 //==============================================================================
+// Getters/setters
+//==============================================================================
+
+PyObject* get_nrows(obj* self) {
+  return PyLong_FromLongLong(self->ref->length());
+}
+
+
+
+//==============================================================================
 // Methods
 //==============================================================================
 
@@ -225,6 +235,11 @@ PyObject* uplift(obj* self, PyObject* args) {
 // DataTable type definition
 //==============================================================================
 
+static PyGetSetDef rowindex_getsetters[] = {
+  GETTER(nrows),
+  {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
+};
+
 static PyMethodDef rowindex_methods[] = {
   METHOD0(tolist),
   METHODv(uplift),
@@ -262,7 +277,7 @@ PyTypeObject type = {
   0,                                  /* tp_iternext */
   rowindex_methods,                   /* tp_methods */
   0,                                  /* tp_members */
-  0,                                  /* tp_getset */
+  rowindex_getsetters,                /* tp_getset */
   0,                                  /* tp_base */
   0,                                  /* tp_dict */
   0,                                  /* tp_descr_get */

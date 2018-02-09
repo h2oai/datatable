@@ -272,16 +272,17 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr, bool sorted) {
 
 void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
   int8_t* data = col->elements();
-  int64_t nouts = col->sum();  // total # of 1s in the column
-  size_t zn = static_cast<size_t>(nouts);
-  if (nouts == 0) {
+  length = col->sum();  // total # of 1s in the column
+  size_t zlen = static_cast<size_t>(length);
+
+  if (length == 0) {
     // no need to do anything: the data arrays already have 0 length
     type = RowIndexType::RI_ARR32;
     return;
   }
-  if (nouts <= INT32_MAX && col->nrows <= INT32_MAX) {
+  if (length <= INT32_MAX && col->nrows <= INT32_MAX) {
     type = RowIndexType::RI_ARR32;
-    ind32.resize(zn);
+    ind32.resize(zlen);
     size_t k = 0;
     col->rowindex().strided_loop(0, col->nrows, 1,
       [&](int64_t i) {
@@ -291,7 +292,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
     set_min_max(ind32, true);
   } else {
     type = RowIndexType::RI_ARR64;
-    ind64.resize(zn);
+    ind64.resize(zlen);
     size_t k = 0;
     col->rowindex().strided_loop(0, col->nrows, 1,
       [&](int64_t i) {
