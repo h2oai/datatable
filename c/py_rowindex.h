@@ -55,6 +55,11 @@ DECLARE_METHOD(
   "tolist()\n\n"
   "Return RowIndex's indices as a list of integers.")
 
+DECLARE_METHOD(
+  uplift,
+  "uplift(parent_rowindex)\n\n"
+  "Returns a new RowIndex which is a result of applying this rowindex to the\n"
+  "parent rowindex.")
 
 
 //---- Python API --------------------------------------------------------------
@@ -98,12 +103,6 @@ DECLARE_FUNCTION(
   "rowindex_from_filterfn(fptr, nrows)\n\n"
   "Construct a RowIndex object given a pointer to a filtering function and\n"
   "the number of rows that has to be filtered. ",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  rowindex_uplift,
-  "rowindex_uplift(rowindex, frame)\n\n"
-  "",
   HOMEFLAG)
 
 

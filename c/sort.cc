@@ -369,6 +369,11 @@ RowIndex Column::sort() const
   }
   delete sc;
   if (!ordering) return RowIndex();
+  if (!ordering_array) {
+    // TODO: avoid this copy...
+    ordering_array.resize((size_t)nrows_);
+    std::memcpy(ordering_array.data(), ordering, (size_t)nrows_ * 4);
+  }
   return RowIndex::from_array32(std::move(ordering_array));
 }
 

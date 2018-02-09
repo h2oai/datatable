@@ -137,7 +137,7 @@ dt::array<int32_t> RowIndex::extract_as_array32() const
 RowIndex RowIndex::uplift(const RowIndex& ri2) const {
   if (isabsent()) return RowIndex(ri2);
   if (ri2.isabsent()) return RowIndex(*this);
-  return RowIndex(ri2.impl->uplift_from(impl));
+  return RowIndex(impl->uplift_from(ri2.impl));
 }
 
 
@@ -567,65 +567,45 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
     // res->compactify();
     return new ArrayRowIndexImpl(std::move(rowsres), false);
   }
+  if (uptype == RowIndexType::RI_ARR32 && type == RowIndexType::RI_ARR32) {
+    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+    dt::array<int32_t> rowsres(zlen);
+    int32_t* rows_ab = arii->ind32.data();
+    int32_t* rows_bc = ind32.data();
+    for (size_t i = 0; i < zlen; ++i) {
+      rowsres[i] = rows_ab[rows_bc[i]];
+    }
+    return new ArrayRowIndexImpl(std::move(rowsres), false);
+  }
+  if (uptype == RowIndexType::RI_ARR32 || uptype == RowIndexType::RI_ARR64) {
+    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+    dt::array<int64_t> rowsres(zlen);
+    if (uptype == RowIndexType::RI_ARR32 && type == RowIndexType::RI_ARR64) {
+      int32_t* rows_ab = arii->ind32.data();
+      int64_t* rows_bc = ind64.data();
+      for (size_t i = 0; i < zlen; ++i) {
+        rowsres[i] = rows_ab[rows_bc[i]];
+      }
+    }
+    if (uptype == RowIndexType::RI_ARR64 && type == RowIndexType::RI_ARR32) {
+      int64_t* rows_ab = arii->ind64.data();
+      int32_t* rows_bc = ind32.data();
+      for (size_t i = 0; i < zlen; ++i) {
+        rowsres[i] = rows_ab[rows_bc[i]];
+      }
+    }
+    if (uptype == RowIndexType::RI_ARR64 && type == RowIndexType::RI_ARR64) {
+      int64_t* rows_ab = arii->ind64.data();
+      int64_t* rows_bc = ind64.data();
+      for (size_t i = 0; i < zlen; ++i) {
+        rowsres[i] = rows_ab[rows_bc[i]];
+      }
+    }
+    // res->compactify();
+    return new ArrayRowIndexImpl(std::move(rowsres), false);
+  }
   throw RuntimeError() << "Unknown RowIndexType " << uptype;
 }
-
-
-/*
-  switch (type_bc) {
-    case RI_ARR32:
-    case RI_ARR64: {
-      if (type_ab == RI_SLICE) {
-      }
-      else if (type_ab == RI_ARR32 && type_bc == RI_ARR32) {
-        int32_t* rows_ac = (int32_t*) malloc(sizeof(int32_t) * (size_t) n);
-        int32_t* rows_ab = ri_ab->ind32;
-        int32_t* rows_bc = ri_bc->ind32;
-        int32_t min = INT32_MAX, max = 0;
-        for (int64_t i = 0; i < n; i++) {
-          int32_t x = rows_ab[rows_bc[i]];
-          rows_ac[i] = x;
-          if (x < min) min = x;
-          if (x > max) max = x;
-        }
-        res = new RowIndex(rows_ac, n, 0);
-      }
-      else {
-        int64_t* rows_ac = (int64_t*) malloc(sizeof(int64_t) * (size_t) n);
-        if (type_ab == RI_ARR32 && type_bc == RI_ARR64) {
-          int32_t* rows_ab = ri_ab->ind32;
-          int64_t* rows_bc = ri_bc->ind64;
-          for (int64_t i = 0; i < n; i++) {
-            int64_t x = rows_ab[rows_bc[i]];
-            rows_ac[i] = x;
-          }
-        } else
-        if (type_ab == RI_ARR64 && type_bc == RI_ARR32) {
-          int64_t* rows_ab = ri_ab->ind64;
-          int32_t* rows_bc = ri_bc->ind32;
-          for (int64_t i = 0; i < n; i++) {
-            int64_t x = rows_ab[rows_bc[i]];
-            rows_ac[i] = x;
-          }
-        } else
-        if (type_ab == RI_ARR64 && type_bc == RI_ARR64) {
-          int64_t* rows_ab = ri_ab->ind64;
-          int64_t* rows_bc = ri_bc->ind64;
-          for (int64_t i = 0; i < n; i++) {
-            int64_t x = rows_ab[rows_bc[i]];
-            rows_ac[i] = x;
-          }
-        }
-        res = new RowIndex(rows_ac, n, 0);
-        res->compactify();
-      }
-    } break;  // case RM_ARRXX
-
-    default: assert(0);
-  }
-  return res;
-  */
-
 
 
 
@@ -680,41 +660,6 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
 //============================================================================
 
 
-/**
- * Internal macro to help iterate over a rowindex. Assumes that macro `CODE`
- * is defined in scope, and substitutes it into the body of each loop. Within
- * the macro, variable `int64_t j` can be used to refer to the source row that
- * was mapped, and `int64_t i` is the "destination" index.
- */
-/*
-#define ITER_ALL {                                                             \
-  RowIndexType ritype = rowindex->type;                                        \
-  int64_t nrows = rowindex->_length;                                            \
-  if (ritype == RI_SLICE) {                                                    \
-    int64_t start = rowindex->slice.start;                                     \
-    int64_t step = rowindex->slice.step;                                       \
-    for (int64_t i = 0, j = start; i < nrows; i++, j+= step) {                 \
-      CODE                                                                     \
-    }                                                                          \
-  }                                                                            \
-  else if (ritype == RI_ARR32) {                                               \
-    int32_t* indices = rowindex->ind32;                                        \
-    for (int64_t i = 0; i < nrows; i++) {                                      \
-      int64_t j = (int64_t) indices[i];                                        \
-      CODE                                                                     \
-    }                                                                          \
-  }                                                                            \
-  else if (ritype == RI_ARR64) {                                               \
-    int64_t* indices = rowindex->ind64;                                        \
-    for (int64_t i = 0; i < nrows; i++) {                                      \
-      int64_t j = indices[i];                                                  \
-      CODE                                                                     \
-    }                                                                          \
-  }                                                                            \
-  else assert(0);                                                              \
-}
-*/
-
 
 /**
  * Attempt to convert an ARR64 RowIndex object into the ARR32 format. If such
@@ -739,248 +684,6 @@ void RowIndex::compactify()
 }
 */
 
-
-/**
- * Merge two `RowIndex`es, and return the combined rowindex.
- *
- * Specifically, suppose there are data tables A, B, C such that rows of B are
- * a subset of rows of A, and rows of C are a subset of B's. Let `ri_ab`
- * describe the mapping of A's rows onto B's, and `ri_bc` the mapping from
- * B's rows onto C's. Then the "merged" RowIndex shall describe how the rows of
- * A are mapped onto the rows of C.
- * Rowindex `ri_ab` may also be NULL, in which case a clone of `ri_bc` is
- * returned.
- */
-/*
-RowIndex* RowIndex::merge(RowIndex *ri_ab, RowIndex *ri_bc)
-{
-  if (ri_ab == nullptr && ri_bc == nullptr) return nullptr;
-  if (ri_ab == nullptr) return new RowIndex(ri_bc);
-  if (ri_bc == nullptr) return new RowIndex(ri_ab);
-
-  int64_t n = ri_bc->_length;
-  RowIndexType type_bc = ri_bc->type;
-  RowIndexType type_ab = ri_ab->type;
-
-  if (n == 0) {
-    return new RowIndex((int64_t) 0, n, 1);
-  }
-  RowIndex* res = NULL;
-  switch (type_bc) {
-    case RI_SLICE: {
-      int64_t start_bc = ri_bc->slice.start;
-      int64_t step_bc = ri_bc->slice.step;
-      if (type_ab == RI_SLICE) {
-        // Product of 2 slices is again a slice.
-        int64_t start_ab = ri_ab->slice.start;
-        int64_t step_ab = ri_ab->slice.step;
-        int64_t start = start_ab + step_ab * start_bc;
-        int64_t step = step_ab * step_bc;
-        res = new RowIndex(start, n, step);
-      }
-      else if (step_bc == 0) {
-        // Special case: if `step_bc` is 0, then C just contains the
-        // same value repeated `n` times, and hence can be created as
-        // a slice even if `ri_ab` is an "array" rowindex.
-        int64_t start = (type_ab == RI_ARR32)
-                ? (int64_t) ri_ab->ind32[start_bc]
-                : (int64_t) ri_ab->ind64[start_bc];
-        res =  new RowIndex(start, n, 0);
-      }
-      else if (type_ab == RI_ARR32) {
-        // if A->B is ARR32, then all indices in B are int32, and thus
-        // any valid slice over B will also be ARR32 (except possibly
-        // a slice with step_bc = 0 and n > INT32_MAX).
-        int32_t* rowsres; dtmalloc(rowsres, int32_t, n);
-        int32_t* rowssrc = ri_ab->ind32;
-        for (int64_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
-          int32_t x = rowssrc[ic];
-          rowsres[i] = x;
-        }
-        res = new RowIndex(rowsres, n, 0);
-      }
-      else if (type_ab == RI_ARR64) {
-        // if A->B is ARR64, then a slice of B may be either ARR64 or
-        // ARR32. We'll create the result as ARR64 first, and then
-        // attempt to compactify later.
-        int64_t* rowsres; dtmalloc(rowsres, int64_t, n);
-        int64_t* rowssrc = ri_ab->ind64;
-        for (int64_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
-          int64_t x = rowssrc[ic];
-          rowsres[i] = x;
-        }
-        res = new RowIndex(rowsres, n, 0);
-        res->compactify();
-      }
-      else assert(0);
-    } break;  // case RI_SLICE
-
-    case RI_ARR32:
-    case RI_ARR64: {
-      if (type_ab == RI_SLICE) {
-        int64_t start_ab = ri_ab->slice.start;
-        int64_t step_ab = ri_ab->slice.step;
-        int64_t* rowsres = (int64_t*) malloc(sizeof(int64_t) * (size_t) n);
-        if (type_bc == RI_ARR32) {
-          int32_t* rows_bc = ri_bc->ind32;
-          for (int64_t i = 0; i < n; i++) {
-            rowsres[i] = start_ab + rows_bc[i] * step_ab;
-          }
-        } else {
-          int64_t* rows_bc = ri_bc->ind64;
-          for (int64_t i = 0; i < n; i++) {
-            rowsres[i] = start_ab + rows_bc[i] * step_ab;
-          }
-        }
-        res = new RowIndex(rowsres, n, 0);
-        res->compactify();
-      }
-      else if (type_ab == RI_ARR32 && type_bc == RI_ARR32) {
-        int32_t* rows_ac = (int32_t*) malloc(sizeof(int32_t) * (size_t) n);
-        int32_t* rows_ab = ri_ab->ind32;
-        int32_t* rows_bc = ri_bc->ind32;
-        int32_t min = INT32_MAX, max = 0;
-        for (int64_t i = 0; i < n; i++) {
-          int32_t x = rows_ab[rows_bc[i]];
-          rows_ac[i] = x;
-          if (x < min) min = x;
-          if (x > max) max = x;
-        }
-        res = new RowIndex(rows_ac, n, 0);
-      }
-      else {
-        int64_t* rows_ac = (int64_t*) malloc(sizeof(int64_t) * (size_t) n);
-        if (type_ab == RI_ARR32 && type_bc == RI_ARR64) {
-          int32_t* rows_ab = ri_ab->ind32;
-          int64_t* rows_bc = ri_bc->ind64;
-          for (int64_t i = 0; i < n; i++) {
-            int64_t x = rows_ab[rows_bc[i]];
-            rows_ac[i] = x;
-          }
-        } else
-        if (type_ab == RI_ARR64 && type_bc == RI_ARR32) {
-          int64_t* rows_ab = ri_ab->ind64;
-          int32_t* rows_bc = ri_bc->ind32;
-          for (int64_t i = 0; i < n; i++) {
-            int64_t x = rows_ab[rows_bc[i]];
-            rows_ac[i] = x;
-          }
-        } else
-        if (type_ab == RI_ARR64 && type_bc == RI_ARR64) {
-          int64_t* rows_ab = ri_ab->ind64;
-          int64_t* rows_bc = ri_bc->ind64;
-          for (int64_t i = 0; i < n; i++) {
-            int64_t x = rows_ab[rows_bc[i]];
-            rows_ac[i] = x;
-          }
-        }
-        res = new RowIndex(rows_ac, n, 0);
-        res->compactify();
-      }
-    } break;  // case RM_ARRXX
-
-    default: assert(0);
-  }
-  return res;
-}
-*/
-
-/*
-RowIndex* RowIndex::from_filterfn32(filterfn32 *filterfn, int64_t nrows,
-                                    int issorted)
-{
-  if (nrows > INT32_MAX) {
-    throw ValueError() << "nrows = " << nrows << " exceeds range of int32";
-  }
-
-  // Output buffer, where we will write the indices of selected rows. This
-  // buffer is preallocated to the length of the original dataset, and it will
-  // be re-alloced to the proper length in the end. The reason we don't want
-  // to scale this array dynamically is because it reduces performance (at
-  // least some of the reallocs will have to memmove the data, and moreover
-  // the realloc has to occur within a critical section, slowing down the
-  // team of threads).
-  int32_t* out = (int32_t*) malloc(sizeof(int32_t) * (size_t) nrows);
-  // Number of elements that were written (or tentatively written) so far
-  // into the array `out`.
-  size_t out_length = 0;
-  // We divide the range of rows [0:nrows] into `num_chunks` pieces, each
-  // (except the very last one) having `rows_per_chunk` rows. Each such piece
-  // is a fundamental unit of work for this function: every thread in the team
-  // works on a single chunk at a time, and then moves on to the next chunk
-  // in the queue.
-  int64_t rows_per_chunk = 65536;
-  int64_t num_chunks = (nrows + rows_per_chunk - 1) / rows_per_chunk;
-
-  #pragma omp parallel
-  {
-    // Intermediate buffer where each thread stores the row numbers it found
-    // before they are consolidated into the final output buffer.
-    int32_t* buf = (int32_t*) malloc((size_t)rows_per_chunk * sizeof(int32_t));
-
-    // Number of elements that are currently being held in `buf`.
-    int32_t buf_length = 0;
-    // Offset (within the output buffer) where this thread needs to save the
-    // contents of its temporary buffer `buf`.
-    // The algorithm works as follows: first, the thread calls `filterfn` to
-    // fill up its buffer `buf`. After `filterfn` finishes, the variable
-    // `buf_length` will contain the number of rows that were selected from
-    // the current (`i`th) chunk. Those row numbers are stored in `buf`.
-    // Then the thread enters the "ordered" section, where it stores the
-    // current length of the output buffer into the `out_offset` variable,
-    // and increases the `out_offset` as if it already copied the result
-    // there. However the actual copying is done outside the "ordered"
-    // section so as to block all other threads as little as possible.
-    size_t out_offset = 0;
-
-    #pragma omp for ordered schedule(dynamic, 1)
-    for (int64_t i = 0; i < num_chunks; ++i) {
-      if (buf_length) {
-        // This clause is conceptually located after the "ordered"
-        // section -- however due to a bug in libgOMP the "ordered"
-        // section must come last in the loop. So in order to circumvent
-        // the bug, this block had to be moved to the front of the loop.
-        size_t bufsize = (size_t)buf_length * sizeof(int32_t);
-        memcpy(out + out_offset, buf, bufsize);
-        buf_length = 0;
-      }
-
-      int64_t row0 = i * rows_per_chunk;
-      int64_t row1 = std::min(row0 + rows_per_chunk, nrows);
-      (*filterfn)(row0, row1, buf, &buf_length);
-
-      #pragma omp ordered
-      {
-        out_offset = out_length;
-        out_length += (size_t) buf_length;
-      }
-    }
-    // Note: if the underlying array is small, then some threads may have
-    // done nothing at all, and their buffers would be empty.
-    if (buf_length) {
-      size_t bufsize = (size_t)buf_length * sizeof(int32_t);
-      memcpy(out + out_offset, buf, bufsize);
-    }
-    // End of #pragma omp parallel: clean up any temporary variables.
-    free(buf);
-  }
-
-  // In the end we shrink the output buffer to the size corresponding to the
-  // actual number of elements written.
-  out = (int32_t*) realloc(out, sizeof(int32_t) * out_length);
-
-  // Create and return the final rowindex object from the array of int32
-  // indices `out`.
-  return new RowIndex(out, (int64_t) out_length, issorted);
-}
-
-
-
-RowIndex* RowIndex::from_filterfn64(filterfn64*, int64_t, int)
-{
-  throw NotImplError();
-}
-*/
 
 
 /**

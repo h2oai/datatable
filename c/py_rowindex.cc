@@ -149,18 +149,6 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
 
 
 
-PyObject* rowindex_uplift(PyObject*, PyObject* args) {
-  PyObject *arg1, *arg2;
-  if (!PyArg_ParseTuple(args, "OO:rowindex_uplift", &arg1, &arg2))
-    return nullptr;
-  RowIndex ri = PyObj(arg1).as_rowindex();
-  DataTable* dt = PyObj(arg2).as_datatable();
-
-  return wrap(ri.uplift(dt->rowindex));
-}
-
-
-
 //==============================================================================
 // Methods
 //==============================================================================
@@ -222,6 +210,15 @@ PyObject* tolist(obj* self, PyObject*)
 }
 
 
+PyObject* uplift(obj* self, PyObject* args) {
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:RowIndex.uplift", &arg1)) return nullptr;
+  RowIndex& r1 = *(self->ref);
+  RowIndex  r2 = PyObj(arg1).as_rowindex();
+  RowIndex res = r1.uplift(r2);
+  return wrap(res);
+}
+
 
 
 //==============================================================================
@@ -230,6 +227,7 @@ PyObject* tolist(obj* self, PyObject*)
 
 static PyMethodDef rowindex_methods[] = {
   METHOD0(tolist),
+  METHODv(uplift),
   {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

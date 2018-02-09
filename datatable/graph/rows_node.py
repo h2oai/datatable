@@ -86,7 +86,7 @@ class RFNode:
         rowindex = self._make_source_rowindex()
         _dt = self._engine.dt.internal
         if _dt.isview:
-            return core.rowindex_uplift(rowindex, _dt)
+            return rowindex.uplift(_dt.rowindex)
         else:
             return rowindex
 
