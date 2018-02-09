@@ -336,3 +336,15 @@ def test_issue684(seed):
     assert d0.internal.check()
     assert d0.ltypes == (dt.ltype.int,)
     assert d0.shape == (n - 1, 1)
+
+
+def test_issue735():
+    """
+    Integer column turns into a string consisting of 2 comma-separated
+    integers on an out-of-sample line...
+    """
+    lines = ["1,2"] * 2199
+    lines[111] = '5,"7,60000"'
+    src = "A,B\n" + "\n".join(lines)
+    d0 = dt.fread(src)
+    assert d0.internal.check()
