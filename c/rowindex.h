@@ -48,7 +48,9 @@ class RowIndexImpl {
         length(0), min(0), max(0) {}
     void acquire() { refcount++; }
     void release() { if (!--refcount) delete this; }
-    virtual RowIndexImpl* uplift_from(RowIndexImpl*) { return nullptr; }
+    virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
+    virtual size_t memory_footprint() const = 0;
+    virtual bool verify_integrity(IntegrityCheckContext&) const;
 
   protected:
     virtual ~RowIndexImpl() {}
@@ -78,6 +80,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
+    size_t memory_footprint() const override;
+    bool verify_integrity(IntegrityCheckContext&) const override;
 
   private:
     // Helper function that computes and sets proper `min` / `max` fields for
@@ -88,7 +92,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     // Helpers for `ArrayRowIndexImpl(Column*)`
     void init_from_boolean_column(BoolColumn* col);
     void init_from_integer_column(Column* col);
-
+    void compactify();
 };
 
 
@@ -106,6 +110,8 @@ class SliceRowIndexImpl : public RowIndexImpl {
     SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
     static void check_triple(int64_t start, int64_t count, int64_t step);
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
+    size_t memory_footprint() const override;
+    bool verify_integrity(IntegrityCheckContext&) const override;
 
   protected:
     friend RowIndex;
@@ -135,7 +141,27 @@ class RowIndex {
     static RowIndex from_array32(dt::array<int32_t>&& arr, bool sorted = false);
     static RowIndex from_array64(dt::array<int64_t>&& arr, bool sorted = false);
 
+    /**
+     * Construct a RowIndex object from triple `(start, count, step)`. The new
+     * object will have type `RI_SLICE`.
+     *
+     * Note that we depart from Python's standard of using `(start, end, step)`
+     * to denote a slice -- having a `count` gives several advantages:
+     *   - computing the "end" is easy and unambiguous: `start + count * step`;
+     *     whereas computing "count" from `end` is harder.
+     *   - with explicit `count` the `step` may safely be 0.
+     *   - there is no difference in handling positive/negative steps.
+     */
     static RowIndex from_slice(int64_t start, int64_t count, int64_t step);
+
+    /**
+     * Construct an "array" `RowIndex` object from a series of triples
+     * `(start, count, step)`. The triples are given as 3 separate arrays of
+     * starts, of counts and of steps.
+     *
+     * This will create either an RI_ARR32 or RI_ARR64 object, depending on
+     * which one is sufficient to hold all the indices.
+     */
     static RowIndex from_slices(const dt::array<int64_t>& starts,
                                 const dt::array<int64_t>& counts,
                                 const dt::array<int64_t>& steps);
@@ -200,7 +226,7 @@ class RowIndex {
     RowIndex uplift(const RowIndex& other) const;
 
     void clear();
-    size_t memory_footprint() const { return 0; } // TODO
+    size_t memory_footprint() const;
 
     /**
      * Template function that facilitates looping through a RowIndex.
@@ -208,8 +234,7 @@ class RowIndex {
     template<typename F> void strided_loop(
         int64_t istart, int64_t iend, int64_t istep, F f) const;
 
-    bool verify_integrity(IntegrityCheckContext&,
-                          const std::string& = "RowIndex") const { return true; }
+    bool verify_integrity(IntegrityCheckContext&) const;
 
   private:
     RowIndex(RowIndexImpl* rii) : impl(rii) {}

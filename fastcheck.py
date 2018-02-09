@@ -193,12 +193,13 @@ def verify_dependencies(realsrcs, realhdrs, makeobjs, makehdrs):
 
     for srcfile in sorted(realsrcs):
         objkey = sourcefile_to_obj(srcfile)
-        if objkey not in makeobjs:
-            raise ValueError("Source file `%s` has no corresponding "
-                             "`$(BUILDDIR)/%s` target in the Makefile."
-                             % (srcfile, objkey))
         actual_deps = sorted(realsrcs[srcfile])
         expect_deps = [srcfile] + [headerfile_to_obj(k) for k in actual_deps]
+        if objkey not in makeobjs:
+            raise ValueError("Source file `%s` has no corresponding "
+                             "`$(BUILDDIR)/%s` target in the Makefile. "
+                             "Add the following line:\n$(BUILDDIR)/%s : %s"
+                             % (srcfile, objkey, objkey, " ".join(expect_deps)))
         make_deps = makeobjs[objkey]
         del makeobjs[objkey]
         if set(make_deps) != set(expect_deps):

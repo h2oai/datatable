@@ -261,8 +261,7 @@ class IntegerColumnRFNode(RFNode):
         self._coldt = coldt
 
     def _make_source_rowindex(self):
-        return core.rowindex_from_column(self._coldt.internal,
-                                         self._engine.dt.nrows)
+        return core.rowindex_from_column(self._coldt.internal)
 
 
 

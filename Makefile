@@ -146,6 +146,8 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	py_types.o                \
 	py_utils.o                \
 	rowindex.o                \
+	rowindex_array.o          \
+	rowindex_slice.o          \
 	sort.o                    \
 	stats.o                   \
 	types.o                   \
@@ -503,7 +505,15 @@ $(BUILDDIR)/py_utils.o : c/py_utils.c $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
