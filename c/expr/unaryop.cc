@@ -80,6 +80,7 @@ static mapperfn resolve1(int opcode) {
       if (std::is_floating_point<IT>::value) return nullptr;
       return map_n<IT, IT, Inverse<IT>::impl>;
   }
+  return nullptr;
 }
 
 
@@ -92,8 +93,9 @@ static mapperfn resolve0(SType stype, int opcode) {
     case ST_INTEGER_I8: return resolve1<int64_t>(opcode);
     case ST_REAL_F4:    return resolve1<float>(opcode);
     case ST_REAL_F8:    return resolve1<double>(opcode);
-    default:            return nullptr;
+    default: break;
   }
+  return nullptr;
 }
 
 

@@ -109,6 +109,20 @@ Column* IntColumn<T>::sd_column() const {
 }
 
 
+template <typename T>
+int64_t IntColumn<T>::min_int64() const {
+  T x = min();
+  return ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
+}
+
+template <typename T>
+int64_t IntColumn<T>::max_int64() const {
+  T x = max();
+  return ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
+}
+
+
+
 //----- Type casts -------------------------------------------------------------
 
 template<typename IT, typename OT>

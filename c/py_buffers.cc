@@ -432,7 +432,7 @@ static int dt_getbuffer(pydatatable::obj* self, Py_buffer* view, int flags)
     // Check whether we have a single-column DataTable that doesn't need to be
     // copied -- in which case it should be possible to return the buffer
     // by-reference instead of copying the data into an intermediate buffer.
-    if (ncols == 1 && !dt->rowindex && !REQ_WRITABLE(flags) &&
+    if (ncols == 1 && dt->rowindex.isabsent() && !REQ_WRITABLE(flags) &&
         dt->columns[0]->is_fixedwidth()) {
       return dt_getbuffer_1_col(self, view, flags);
     }

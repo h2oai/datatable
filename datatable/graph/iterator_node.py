@@ -39,12 +39,14 @@ class IteratorNode(object):
     DataTable, and `i` is the index within the parent.
     """
 
-    def __init__(self, dt, cmod=None, name="iter"):
+    def __init__(self, dt, cmod=None, name=None):
         self._dt = dt
         self._preamble = []
         self._mainloop = []
         self._epilogue = []
-        self._fnname = cmod.make_variable_name(name) if cmod else None
+        self._fnname = name
+        if cmod and not name:
+            self._fnname = cmod.make_variable_name("iter")
         self._extraargs = None
         self._keyvars = {}
         self._var_counter = 0

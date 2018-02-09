@@ -201,7 +201,7 @@ decl_sizes = "\n".join(["typedef signed char int8_t;",
 (ptr_dt_malloc,
  ptr_dt_realloc,
  ptr_dt_free,
- ptr_rowindex_from_filterfn32,
+ # ptr_rowindex_from_filterfn32,
  ptr_dt_column_data,
  ptr_dt_unpack_slicerowindex,
  ptr_dt_unpack_arrayrowindex) = core.get_internal_function_ptrs()
@@ -226,7 +226,7 @@ typedef void (*ptr_6)(void*, void**);
 static ptr_0 dt_malloc = (ptr_0) %dL;
 static ptr_1 dt_realloc = (ptr_1) %dL;
 static ptr_2 dt_free = (ptr_2) %dL;
-static ptr_3 rowindex_from_filterfn32 = (ptr_3) %dL;
+// static ptr_3 rowindex_from_filterfn32 = (ptr_3) %%dL;
 static ptr_4 dt_column_data = (ptr_4) %dL;
 static ptr_5 dt_unpack_slicerowindex = (ptr_5) %dL;
 static ptr_6 dt_unpack_arrayrowindex = (ptr_6) %dL;
@@ -253,7 +253,7 @@ static inline double _nand_(void) { double_repr x = { BIN_NAF8 }; return x.d; }
        ptr_dt_malloc,
        ptr_dt_realloc,
        ptr_dt_free,
-       ptr_rowindex_from_filterfn32,
+       # ptr_rowindex_from_filterfn32,
        ptr_dt_column_data,
        ptr_dt_unpack_slicerowindex,
        ptr_dt_unpack_arrayrowindex)

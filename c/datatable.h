@@ -11,12 +11,11 @@
 #include <vector>
 #include <string>
 #include "datatable_check.h"
+#include "rowindex.h"
 #include "types.h"
 #include "column.h"
 
 // avoid circular dependency between .h files
-class RowIndex;
-typedef struct ColMapping ColMapping;
 class Column;
 class Stats;
 class DataTable;
@@ -29,7 +28,7 @@ typedef std::unique_ptr<DataTable> DataTablePtr;
 /**
  * The DataTable
  *
- * Parameters
+ * Properties
  * ----------
  * nrows
  * ncols
@@ -52,12 +51,13 @@ typedef std::unique_ptr<DataTable> DataTablePtr;
  *     `rowindex` should be used to access values in each column.
  */
 class DataTable {
-public:
-    int64_t     nrows;
-    int64_t     ncols;
-    RowIndex   *rowindex;
-    Column    **columns;
+  public:
+    int64_t  nrows;
+    int64_t  ncols;
+    RowIndex rowindex;
+    Column** columns;
 
+  public:
     DataTable(Column**);
     ~DataTable();
     DataTable* delete_columns(int*, int);

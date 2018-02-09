@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "utils/exceptions.h"
+#include <algorithm>
 #include <errno.h>
 #include <string.h>
 
@@ -46,9 +47,23 @@ void exception_to_python(const std::exception& e) {
 
 //==============================================================================
 
+Error::Error(PyObject* _pycls) : pycls(_pycls) {}
+
 Error::Error(const Error& other) {
   error << other.error.str();
+  pycls = other.pycls;
 }
+
+Error::Error(Error&& other) : Error() {
+  swap(*this, other);
+}
+
+void swap(Error& first, Error& second) noexcept {
+  using std::swap;
+  swap(first.error, second.error);
+  swap(first.pycls, second.pycls);
+}
+
 
 Error& Error::operator<<(const std::string& v) { error << v; return *this; }
 Error& Error::operator<<(const char* v)        { error << v; return *this; }
@@ -92,11 +107,7 @@ void Error::topython() const {
   // which usually works but sometimes doesn't...
   // See https://stackoverflow.com/questions/1374468
   const std::string& errstr = error.str();
-  PyErr_SetString(pyclass(), errstr.c_str());
-}
-
-PyObject* Error::pyclass() const {
-  return PyExc_Exception;
+  PyErr_SetString(pycls, errstr.c_str());
 }
 
 
@@ -120,9 +131,16 @@ void PyError::topython() const {
   exc_traceback = nullptr;
 }
 
-PyObject* PyError::pyclass() const {
-  return exc_type;
-}
+
+
+//==============================================================================
+
+Error RuntimeError() { return Error(PyExc_RuntimeError); }
+Error TypeError()    { return Error(PyExc_TypeError); }
+Error ValueError()   { return Error(PyExc_ValueError); }
+Error MemoryError()  { return Error(PyExc_MemoryError); }
+Error NotImplError() { return Error(PyExc_NotImplementedError); }
+Error IOError()      { return Error(PyExc_IOError); }
 
 
 

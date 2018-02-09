@@ -36,7 +36,7 @@ static PyObject* wrap(Column** columns, int64_t ncols)
  * Helper function to be used with `PyArg_ParseTuple()` in order to extract
  * a `Column**` pointer out of the arguments tuple. Usage:
  *
- *     Column **columns;
+ *     Column** columns;
  *     if (!PyArg_ParseTuple(args, "O&", &columnset_unwrap, &columns))
  *         return NULL;
  */
@@ -55,13 +55,13 @@ int unwrap(PyObject* object, void* address) {
 //==============================================================================
 
 PyObject* columns_from_slice(PyObject*, PyObject *args) {
-  DataTable* dt;
-  RowIndex* rowindex;
+  PyObject *arg1, *arg2;
   int64_t start, count, step;
-  if (!PyArg_ParseTuple(args, "O&O&LLL:columns_from_slice",
-                        &pydatatable::unwrap, &dt,
-                        &rowindex_unwrap, &rowindex, &start, &count, &step))
+  if (!PyArg_ParseTuple(args, "OOLLL:columns_from_slice",
+                        &arg1, &arg2, &start, &count, &step))
     return nullptr;
+  DataTable* dt = PyObj(arg1).as_datatable();
+  RowIndex rowindex = PyObj(arg2).as_rowindex();
 
   Column** columns = columns_from_slice(dt, rowindex, start, count, step);
   PyObject* res = wrap(columns, count);
@@ -71,13 +71,13 @@ PyObject* columns_from_slice(PyObject*, PyObject *args) {
 
 PyObject* columns_from_array(PyObject*, PyObject *args)
 {
-  DataTable* dt;
-  RowIndex* rowindex;
+  PyObject *arg1, *arg2;
   PyObject* elems;
-  if (!PyArg_ParseTuple(args, "O&O&O!:columns_from_array",
-                        &pydatatable::unwrap, &dt,
-                        &rowindex_unwrap, &rowindex, &PyList_Type, &elems))
+  if (!PyArg_ParseTuple(args, "OOO!:columns_from_array",
+                        &arg1, &arg2, &PyList_Type, &elems))
     return nullptr;
+  DataTable* dt = PyObj(arg1).as_datatable();
+  RowIndex rowindex = PyObj(arg2).as_rowindex();
 
   int64_t ncols = PyList_Size(elems);
   int64_t* indices = nullptr;

@@ -18,23 +18,23 @@ static int _compare_ints(const void *a, const void *b);
 
 
 
-DataTable::DataTable(Column **cols)
+DataTable::DataTable(Column** cols)
   : nrows(0),
     ncols(0),
-    rowindex(nullptr),
     columns(cols)
 {
   if (cols == nullptr) {
     throw ValueError() << "Column array cannot be null";
   }
   if (cols[0] == nullptr) return;
-  rowindex = cols[0]->rowindex();
+  rowindex = RowIndex(cols[0]->rowindex());
   nrows = cols[0]->nrows;
 
   for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
-    if (rowindex != col->rowindex()) {
-      throw ValueError() << "Mismatched RowIndex in Column " << ncols;
-    }
+    // TODO: restore, once Column also uses RowIndex
+    // if (rowindex != col->rowindex()) {
+    //   throw ValueError() << "Mismatched RowIndex in Column " << ncols;
+    // }
     if (nrows != col->nrows) {
       throw ValueError() << "Mismatched length in Column " << ncols << ": "
                          << "found " << col->nrows << ", expected " << nrows;
@@ -78,7 +78,6 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
  */
 DataTable::~DataTable()
 {
-  if (rowindex) rowindex->release();
   for (int64_t i = 0; i < ncols; ++i) {
     delete columns[i];
   }
@@ -107,7 +106,7 @@ void DataTable::apply_na_mask(DataTable* maskdt)
   if (ncols != maskdt->ncols || nrows != maskdt->nrows) {
     throw ValueError() << "Target datatable and mask have different shapes";
   }
-  if (rowindex || maskdt->rowindex) {
+  if (!(rowindex.isabsent() || maskdt->rowindex.isabsent())) {
     throw ValueError() << "Neither target DataTable nor the mask can be views";
   }
 
@@ -128,12 +127,11 @@ void DataTable::apply_na_mask(DataTable* maskdt)
  * Do nothing if the DataTable is not a view.
  */
 void DataTable::reify() {
-  if (rowindex == nullptr) return;
+  if (rowindex.isabsent()) return;
   for (int64_t i = 0; i < ncols; ++i) {
     columns[i]->reify();
   }
-  rowindex->release();
-  rowindex = nullptr;
+  rowindex.clear();
 }
 
 
@@ -143,13 +141,13 @@ size_t DataTable::memory_footprint()
   size_t sz = 0;
   sz += sizeof(*this);
   sz += (size_t)(ncols + 1) * sizeof(Column*);
-  if (rowindex) {
-    // If table is a view, then ignore sizes of each individual column.
-    sz += rowindex->alloc_size();
-  } else {
+  if (rowindex.isabsent()) {
     for (int i = 0; i < ncols; ++i) {
       sz += columns[i]->memory_footprint();
     }
+  } else {
+    // If table is a view, then ignore sizes of each individual column.
+    sz += rowindex.memory_footprint();
   }
   return sz;
 }
@@ -233,11 +231,12 @@ bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
           << ", while the DataTable has nrows=" << nrows << end;
     }
     // Make sure the column and the datatable point to the same rowindex object
-    if (rowindex != col->rowindex()) {
-      icc << "Mismatch in `rowindex`: " << col_name << ".rowindex = "
-          << col->rowindex() << ", while DataTable.rowindex=" << (rowindex)
-          << end;
-    }
+    // TODO: restore
+    // if (rowindex != col->rowindex()) {
+    //   icc << "Mismatch in `rowindex`: " << col_name << ".rowindex = "
+    //       << col->rowindex() << ", while DataTable.rowindex=" << (rowindex)
+    //       << end;
+    // }
     // Column check
     col->verify_integrity(icc, col_name);
   }
