@@ -201,6 +201,8 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
   // In the end we shrink the output buffer to the size corresponding to the
   // actual number of elements written.
   ind32.resize(out_length);
+  length = static_cast<int64_t>(out_length);
+  type = RowIndexType::RI_ARR32;
   set_min_max(ind32, sorted);
 }
 
@@ -241,6 +243,8 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn64* ff, int64_t n, bool sorted) {
     }
   }
   ind64.resize(out_length);
+  length = static_cast<int64_t>(out_length);
+  type = RowIndexType::RI_ARR64;
   set_min_max(ind64, sorted);
 }
 

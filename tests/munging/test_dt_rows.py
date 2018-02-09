@@ -332,9 +332,7 @@ def test_rows_bad_column(dt0):
 #     dt(rows=[0, 5, 10])
 #-------------------------------------------------------------------------------
 
-@pytest.mark.skip
 def test_rows_int_column(dt0):
-    # FIXME: this currently seg.faults
     col = dt.DataTable([0, 3, 0, 1])
     dt1 = dt0(rows=col)
     assert dt1.internal.check()
@@ -375,8 +373,11 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
                       "`rows` argument")
     with pytest.raises(ValueError) as e:
         dt0(rows=numpy.array([5, 11, 3]))
-    assert ("The data column contains NAs or indices that are outside of "
-            "the allowed range [0 .. 10)" in str(e.value))
+    assert ("The data column contains index 11 which is not allowed for a "
+            "DataTable with 10 rows" in str(e.value))
+
+# todo: check columns with NAs
+# todo: check columns with negative indices
 
 
 

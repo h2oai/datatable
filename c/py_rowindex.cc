@@ -157,6 +157,14 @@ PyObject* get_nrows(obj* self) {
   return PyLong_FromLongLong(self->ref->length());
 }
 
+PyObject* get_min(obj* self) {
+  return PyLong_FromLongLong(self->ref->min());
+}
+
+PyObject* get_max(obj* self) {
+  return PyLong_FromLongLong(self->ref->max());
+}
+
 
 
 //==============================================================================
@@ -237,6 +245,8 @@ PyObject* uplift(obj* self, PyObject* args) {
 
 static PyGetSetDef rowindex_getsetters[] = {
   GETTER(nrows),
+  GETTER(min),
+  GETTER(max),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
 };
 

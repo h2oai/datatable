@@ -50,6 +50,14 @@ DECLARE_GETTER(
   nrows,
   "Number of rows in the rowindex")
 
+DECLARE_GETTER(
+  min,
+  "Smallest value in the rowindex")
+
+DECLARE_GETTER(
+  max,
+  "Largest value in the rowindex")
+
 
 
 //---- Methods -----------------------------------------------------------------
