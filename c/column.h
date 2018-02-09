@@ -375,8 +375,8 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
-  int64_t min_int64() const override { return static_cast<int64_t>(min()); }
-  int64_t max_int64() const override { return static_cast<int64_t>(max()); }
+  int64_t min_int64() const override;
+  int64_t max_int64() const override;
 
   Column* min_column() const override;
   Column* max_column() const override;

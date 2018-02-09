@@ -309,6 +309,9 @@ void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
 
 
 void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
+  if (col->countna()) {
+    throw ValueError() << "RowIndex source column contains NA values.";
+  }
   min = col->min_int64();
   max = col->max_int64();
   if (min < 0) {

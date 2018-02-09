@@ -377,13 +377,18 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
             "DataTable with 10 rows" in str(e.value))
 
 
-def test_rows_int_column_errors1(dt0):
+def test_rows_int_column_negative(dt0):
     col = dt.DataTable([3, 7, -1, 4])
     with pytest.raises(ValueError) as e:
         dt0(rows=col)
     assert "Row indices in integer column cannot be negative" in str(e.value)
 
-# todo: check columns with NAs
+
+def test_rows_int_column_nas(dt0):
+    col = dt.DataTable([3, None, 2, 4])
+    with pytest.raises(ValueError) as e:
+        dt0(rows=col)
+    assert "RowIndex source column contains NA values" in str(e.value)
 
 
 
