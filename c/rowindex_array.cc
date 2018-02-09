@@ -435,10 +435,76 @@ size_t ArrayRowIndexImpl::memory_footprint() const {
 bool ArrayRowIndexImpl::verify_integrity(IntegrityCheckContext& icc) const {
   if (!RowIndexImpl::verify_integrity(icc)) return false;
   auto end = icc.end();
+  size_t zlen = static_cast<size_t>(length);
 
   if (type != RowIndexType::RI_ARR32 && type != RowIndexType::RI_ARR64) {
     icc << "Invalid type = " << type << " in ArrayRowIndex" << end;
     return false;
+  }
+
+  if (type == RowIndexType::RI_ARR32) {
+    if (ind64) {
+      icc << "ind64 array has size " << ind64.size() << " in Array32 RowIndex"
+          << end;
+      return false;
+    }
+    if (ind32.size() != zlen) {
+      icc << "length of ind32 array (" << ind32.size() << ") does not match "
+          << "the length of the rowindex (" << zlen << ")" << end;
+      return false;
+    }
+    int32_t tmin = std::numeric_limits<int32_t>::max();
+    int32_t tmax = 0;
+    for (size_t i = 0; i < zlen; ++i) {
+      int32_t x = ind32[i];
+      if (ISNA<int32_t>(x)) {
+        icc << "Element " << i << " in the ArrayRowIndex is NA" << end;
+      }
+      if (x < 0) {
+        icc << "Element " << i << " in the ArrayRowIndex is negative: "
+            << x << end;
+      }
+      if (x < tmin) tmin = x;
+      if (x > tmax) tmax = x;
+    }
+    if (tmin != min || tmax != max) {
+      icc << "Mismatching min/max values in the ArrayRowIndex (" << min
+          << "/" << max << ") compared to the computed ones (" << tmin
+          << "/" << tmax << ")" << end;
+    }
+  }
+
+  if (type == RowIndexType::RI_ARR64) {
+    if (ind32) {
+      icc << "ind32 array has size " << ind32.size() << " in Array64 RowIndex"
+          << end;
+      return false;
+    }
+    if (ind64.size() != zlen) {
+      icc << "length of ind64 array (" << ind64.size() << ") does not match "
+          << "the length of the rowindex (" << zlen << ")" << end;
+      return false;
+    }
+    int64_t tmin = std::numeric_limits<int64_t>::max();
+    int64_t tmax = 0;
+    if (zlen == 0) tmin = tmax = 0;
+    for (size_t i = 0; i < zlen; ++i) {
+      int64_t x = ind64[i];
+      if (ISNA<int64_t>(x)) {
+        icc << "Element " << i << " in the ArrayRowIndex is NA" << end;
+      }
+      if (x < 0) {
+        icc << "Element " << i << " in the ArrayRowIndex is negative: "
+            << x << end;
+      }
+      if (x < tmin) tmin = x;
+      if (x > tmax) tmax = x;
+    }
+    if (tmin != min || tmax != max) {
+      icc << "Mismatching min/max values in the ArrayRowIndex (" << min
+          << "/" << max << ") compared to the computed ones (" << tmin
+          << "/" << tmax << ")" << end;
+    }
   }
 
   return true;
