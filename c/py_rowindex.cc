@@ -156,7 +156,7 @@ PyObject* rowindex_uplift(PyObject*, PyObject* args) {
   RowIndex ri = PyObj(arg1).as_rowindex();
   DataTable* dt = PyObj(arg2).as_datatable();
 
-  return wrap(dt->rowindex.merged_with(ri));
+  return wrap(ri.uplift(dt->rowindex));
 }
 
 

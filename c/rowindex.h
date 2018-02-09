@@ -48,6 +48,7 @@ class RowIndexImpl {
         length(0), min(0), max(0) {}
     void acquire() { refcount++; }
     void release() { if (!--refcount) delete this; }
+    virtual RowIndexImpl* uplift_from(RowIndexImpl*) { return nullptr; }
 
   protected:
     virtual ~RowIndexImpl() {}
@@ -76,6 +77,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
 
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
+    RowIndexImpl* uplift_from(RowIndexImpl*) override;
 
   private:
     // Helper function that computes and sets proper `min` / `max` fields for
@@ -86,6 +88,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     // Helpers for `ArrayRowIndexImpl(Column*)`
     void init_from_boolean_column(BoolColumn* col);
     void init_from_integer_column(Column* col);
+
 };
 
 
@@ -95,13 +98,14 @@ class ArrayRowIndexImpl : public RowIndexImpl {
 //==============================================================================
 
 class SliceRowIndexImpl : public RowIndexImpl {
-  protected:
+  public:
     int64_t start;
     int64_t step;
 
   public:
     SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
     static void check_triple(int64_t start, int64_t count, int64_t step);
+    RowIndexImpl* uplift_from(RowIndexImpl*) override;
 
   protected:
     friend RowIndex;
@@ -184,7 +188,16 @@ class RowIndex {
 
     dt::array<int32_t> extract_as_array32() const;
 
-    RowIndex merged_with(const RowIndex&) const;
+    /**
+     * Return the RowIndex which is the result of applying current RowIndex to
+     * the provided one. More specifically, suppose there are 2 frames A and B,
+     * with A being a subset of B, and that `this` RowIndex describes which
+     * rows in B are selected into A. Furthermore, suppose B itself is a
+     * subframe of C, and RowIndex `other` describes which rows from C are
+     * selected into B. Then `this->uplift(other)` will return a new RowIndex
+     * object describing how the rows of A can be obtained from C.
+     */
+    RowIndex uplift(const RowIndex& other) const;
 
     void clear();
     size_t memory_footprint() const { return 0; } // TODO

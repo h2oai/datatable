@@ -134,6 +134,13 @@ dt::array<int32_t> RowIndex::extract_as_array32() const
 }
 
 
+RowIndex RowIndex::uplift(const RowIndex& ri2) const {
+  if (isabsent()) return RowIndex(ri2);
+  if (ri2.isabsent()) return RowIndex(*this);
+  return RowIndex(ri2.impl->uplift_from(impl));
+}
+
+
 
 //==============================================================================
 // SliceRowIndexImpl
@@ -170,6 +177,55 @@ void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
     throw ValueError() << "Invalid RowIndex slice [" << start << "/"
                        << count << "/" << step << "]";
   }
+}
+
+
+RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
+  RowIndexType uptype = rii->type;
+  size_t zlen = static_cast<size_t>(length);
+  if (uptype == RI_SLICE) {
+    // Product of 2 slices is again a slice.
+    SliceRowIndexImpl* uprii = static_cast<SliceRowIndexImpl*>(rii);
+    int64_t start_new = uprii->start + uprii->step * start;
+    int64_t step_new = uprii->step * step;
+    return new SliceRowIndexImpl(start_new, length, step_new);
+  }
+  if (step == 0) {
+    // Special case: if `step` is 0, then A just contains the same row
+    // repeated `length` times, and hence can be created as a slice even
+    // if `rii` is an ArrayRowIndex.
+    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+    int64_t start_new =
+      (uptype == RI_ARR32)? static_cast<int64_t>(arii->indices32()[start]) :
+      (uptype == RI_ARR64)? arii->indices64()[start] : -1;
+    return new SliceRowIndexImpl(start_new, length, 0);
+  }
+  if (uptype == RI_ARR32) {
+    // if C->B is ARR32, then all row indices in C are int32, and thus any
+    // valid slice over B will also be ARR32 (except possibly a slice with
+    // step = 0 and n > INT32_MAX, which case we handled above).
+    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+    dt::array<int32_t> res(zlen);
+    const int32_t* srcrows = arii->indices32();
+    int64_t j = start;
+    for (size_t i = 0; i < zlen; ++i) {
+      res[i] = srcrows[j];
+      j += step;
+    }
+    return new ArrayRowIndexImpl(std::move(res), false);
+  }
+  if (uptype == RI_ARR64) {
+    ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
+    dt::array<int64_t> res(zlen);
+    const int64_t* srcrows = arii->indices64();
+    int64_t j = start;
+    for (size_t i = 0; i < zlen; ++i) {
+      res[i] = srcrows[j];
+      j += step;
+    }
+    return new ArrayRowIndexImpl(std::move(res), false);
+  }
+  throw RuntimeError() << "Unknown RowIndexType " << uptype;
 }
 
 
@@ -491,102 +547,35 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
 }
 
 
-/**
- * Merge two `RowIndex`es, and return the combined rowindex.
- *
- * Specifically, suppose there are data tables A, B, C such that rows of B are
- * a subset of rows of A, and rows of C are a subset of B's. Let `ri_ab`
- * describe the mapping of A's rows onto B's, and `ri_bc` the mapping from
- * B's rows onto C's. Then the "merged" RowIndex shall describe how the rows of
- * A are mapped onto the rows of C.
- * Rowindex `ri_ab` may also be NULL, in which case a clone of `ri_bc` is
- * returned.
- */
-RowIndex RowIndex::merged_with(const RowIndex& ri2) const {
-  if (!impl && !ri2.impl) return RowIndex();
-  if (!impl) return RowIndex(ri2);
-  if (!ri2.impl) return RowIndex(*this);
+RowIndexImpl* ArrayRowIndexImpl::uplift_from(RowIndexImpl* rii) {
+  RowIndexType uptype = rii->type;
+  size_t zlen = static_cast<size_t>(length);
+  if (uptype == RowIndexType::RI_SLICE) {
+    SliceRowIndexImpl* srii = static_cast<SliceRowIndexImpl*>(rii);
+    int64_t start = srii->start;
+    int64_t step  = srii->step;
+    dt::array<int64_t> rowsres(zlen);
+    if (type == RowIndexType::RI_ARR32) {
+      for (size_t i = 0; i < zlen; ++i) {
+        rowsres[i] = start + static_cast<int64_t>(ind32[i]) * step;
+      }
+    } else {
+      for (size_t i = 0; i < zlen; ++i) {
+        rowsres[i] = start + ind64[i] * step;
+      }
+    }
+    // res->compactify();
+    return new ArrayRowIndexImpl(std::move(rowsres), false);
+  }
+  throw RuntimeError() << "Unknown RowIndexType " << uptype;
+}
 
-
-
-
-  int64_t n = ri2.length();
-  RowIndexType type_bc = ri2.impl->type;
-  RowIndexType type_ab = impl->type;
 
 /*
-  if (n == 0) {
-    return new RowIndex((int64_t) 0, n, 1);
-  }
-  RowIndex* res = NULL;
   switch (type_bc) {
-    case RI_SLICE: {
-      int64_t start_bc = ri2.slice_start();
-      int64_t step_bc = ri2.slice_step();
-      if (type_ab == RI_SLICE) {
-        // Product of 2 slices is again a slice.
-        int64_t start_ab = ri_ab->slice.start;
-        int64_t step_ab = ri_ab->slice.step;
-        int64_t start = start_ab + step_ab * start_bc;
-        int64_t step = step_ab * step_bc;
-        res = new RowIndex(start, n, step);
-      }
-      else if (step_bc == 0) {
-        // Special case: if `step_bc` is 0, then C just contains the
-        // same value repeated `n` times, and hence can be created as
-        // a slice even if `ri_ab` is an "array" rowindex.
-        int64_t start = (type_ab == RI_ARR32)
-                ? (int64_t) ri_ab->ind32[start_bc]
-                : (int64_t) ri_ab->ind64[start_bc];
-        res =  new RowIndex(start, n, 0);
-      }
-      else if (type_ab == RI_ARR32) {
-        // if A->B is ARR32, then all indices in B are int32, and thus
-        // any valid slice over B will also be ARR32 (except possibly
-        // a slice with step_bc = 0 and n > INT32_MAX).
-        int32_t* rowsres; dtmalloc(rowsres, int32_t, n);
-        int32_t* rowssrc = ri_ab->ind32;
-        for (int64_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
-          int32_t x = rowssrc[ic];
-          rowsres[i] = x;
-        }
-        res = new RowIndex(rowsres, n, 0);
-      }
-      else if (type_ab == RI_ARR64) {
-        // if A->B is ARR64, then a slice of B may be either ARR64 or
-        // ARR32. We'll create the result as ARR64 first, and then
-        // attempt to compactify later.
-        int64_t* rowsres; dtmalloc(rowsres, int64_t, n);
-        int64_t* rowssrc = ri_ab->ind64;
-        for (int64_t i = 0, ic = start_bc; i < n; i++, ic += step_bc) {
-          int64_t x = rowssrc[ic];
-          rowsres[i] = x;
-        }
-        res = new RowIndex(rowsres, n, 0);
-        res->compactify();
-      }
-      else assert(0);
-    } break;  // case RI_SLICE
-
     case RI_ARR32:
     case RI_ARR64: {
       if (type_ab == RI_SLICE) {
-        int64_t start_ab = ri_ab->slice.start;
-        int64_t step_ab = ri_ab->slice.step;
-        int64_t* rowsres = (int64_t*) malloc(sizeof(int64_t) * (size_t) n);
-        if (type_bc == RI_ARR32) {
-          int32_t* rows_bc = ri_bc->ind32;
-          for (int64_t i = 0; i < n; i++) {
-            rowsres[i] = start_ab + rows_bc[i] * step_ab;
-          }
-        } else {
-          int64_t* rows_bc = ri_bc->ind64;
-          for (int64_t i = 0; i < n; i++) {
-            rowsres[i] = start_ab + rows_bc[i] * step_ab;
-          }
-        }
-        res = new RowIndex(rowsres, n, 0);
-        res->compactify();
       }
       else if (type_ab == RI_ARR32 && type_bc == RI_ARR32) {
         int32_t* rows_ac = (int32_t*) malloc(sizeof(int32_t) * (size_t) n);
@@ -636,9 +625,6 @@ RowIndex RowIndex::merged_with(const RowIndex& ri2) const {
   }
   return res;
   */
-  return RowIndex();
-}
-
 
 
 

@@ -233,7 +233,7 @@ class BooleanColumnRFNode(RFNode):
 
     def _make_source_rowindex(self):
         col = self._coldt.internal.column(0)
-        return core.rowindex_from_boolcolumn(col)
+        return core.rowindex_from_column(col)
 
 
 
@@ -261,8 +261,8 @@ class IntegerColumnRFNode(RFNode):
         self._coldt = coldt
 
     def _make_source_rowindex(self):
-        return core.rowindex_from_intcolumn(self._coldt.internal,
-                                            self._engine.dt.nrows)
+        return core.rowindex_from_column(self._coldt.internal,
+                                         self._engine.dt.nrows)
 
 
 
@@ -307,7 +307,7 @@ class FilterExprRFNode(RFNode):
             return core.rowindex_from_filterfn(ptr)
         else:
             col = self._expr.evaluate_eager()
-            return core.rowindex_from_boolcolumn(col)
+            return core.rowindex_from_column(col)
 
 
     def _make_source_rowindex(self):
