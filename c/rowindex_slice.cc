@@ -124,7 +124,7 @@ bool SliceRowIndexImpl::verify_integrity(IntegrityCheckContext& icc) const {
 
   try {
     check_triple(start, length, step);
-  } catch (ValueError&) {
+  } catch (const Error&) {
     icc << "Invalid slice rowindex: " << start << "/" << length << "/"
         << step << end;
     return false;

@@ -5,9 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_ROWINDEX_H
-#define dt_ROWINDEX_H
-#include <string>   // std::string
+#ifndef dt_ROWINDEX_h
+#define dt_ROWINDEX_h
 #include "utils/array.h"
 
 class Column;

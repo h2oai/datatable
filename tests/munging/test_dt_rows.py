@@ -376,8 +376,14 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
     assert ("The data column contains index 11 which is not allowed for a "
             "DataTable with 10 rows" in str(e.value))
 
+
+def test_rows_int_column_errors1(dt0):
+    col = dt.DataTable([3, 7, -1, 4])
+    with pytest.raises(ValueError) as e:
+        dt0(rows=col)
+    assert "Row indices in integer column cannot be negative" in str(e.value)
+
 # todo: check columns with NAs
-# todo: check columns with negative indices
 
 
 
