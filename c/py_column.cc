@@ -62,13 +62,13 @@ PyObject* get_mtype(pycolumn::obj* self) {
 
 PyObject* get_stype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
-  return incref(py_stype_names[stype]);
+  return incref(py_stype_objs[stype]);
 }
 
 
 PyObject* get_ltype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
-  return incref(py_ltype_names[stype_info[stype].ltype]);
+  return incref(py_ltype_objs[stype_info[stype].ltype]);
 }
 
 

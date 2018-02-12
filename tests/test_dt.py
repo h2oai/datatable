@@ -257,7 +257,7 @@ def test_column_hexview(dt0, patched_terminal, capsys):
     out, err = capsys.readouterr()
     print(out)
     assert ("Column 6\n"
-            "Ltype: str, Stype: i4s, Mtype: data\n"
+            "Ltype: str, Stype: str32, Mtype: data\n"
             "Bytes: 20\n"
             "Meta: None\n"
             "Refcnt: 1\n"
@@ -275,7 +275,7 @@ def test_column_hexview(dt0, patched_terminal, capsys):
     out, err = capsys.readouterr()
     print(out)
     assert ("Column 1\n"
-            "Ltype: bool, Stype: i1b, Mtype: data\n"
+            "Ltype: bool, Stype: bool8, Mtype: data\n"
             "Bytes: 4\n"
             "Meta: None\n"
             "Refcnt: 2\n"

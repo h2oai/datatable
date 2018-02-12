@@ -61,6 +61,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fread on an empty file now produces an empty DataTable, instead of an exception.
 - Fread's parameter `skip_lines` was replaced with `skip_to_line`, so that it's
   more in sync with the similar argument `skip_to_string`.
+- When saving datatable containing "obj64" columns, they will no longer be saved,
+  and user warning will be shown (previously saving this column would eventually
+  lead to a segfault).
+
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.

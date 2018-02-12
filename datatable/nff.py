@@ -6,7 +6,9 @@
 #-------------------------------------------------------------------------------
 import os
 import re
+import warnings
 
+import datatable as dt
 from datatable.lib import core
 from datatable.dt import DataTable
 from datatable.fread import fread
@@ -16,12 +18,12 @@ _builtin_open = open
 
 
 
-@typed(dt=DataTable, dest=str, _strategy=str)
-def save(dt, dest, _strategy="auto"):
+@typed(df=DataTable, dest=str, _strategy=str)
+def save(df, dest, _strategy="auto"):
     """
     Save datatable in binary NFF format.
 
-    :param dt: DataTable to be saved
+    :param df: DataTable to be saved
     :param dest: destination where the datatable should be saved.
     :param _strategy: one of "mmap", "write" or "auto"
     """
@@ -37,18 +39,22 @@ def save(dt, dest, _strategy="auto"):
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w", encoding="utf-8") as out:
         out.write("# NFF1\n")
-        out.write("# nrows = %d\n" % dt.nrows)
+        out.write("# nrows = %d\n" % df.nrows)
         out.write('filename,stype,meta,colname\n')
-        l = len(str(dt.ncols))
-        for i in range(dt.ncols):
+        l = len(str(df.ncols))
+        for i in range(df.ncols):
             filename = "c%0*d" % (l, i + 1)
-            colname = dt.names[i].replace('"', '""')
-            _col = dt.internal.column(i)
+            colname = df.names[i].replace('"', '""')
+            _col = df.internal.column(i)
             stype = _col.stype
             meta = _col.meta
+            if stype == dt.stype.obj64:
+                warnings.warn("Column %r of type obj64 was not saved"
+                              % df.names[i])
+                continue
             if meta is None:
                 meta = ""
-            out.write('%s,%s,%s,"%s"\n' % (filename, stype, meta, colname))
+            out.write('%s,%s,%s,"%s"\n' % (filename, stype.code, meta, colname))
             filename = os.path.join(dest, filename)
             _col.save_to_disk(filename, _strategy)
 
@@ -90,8 +96,8 @@ def open(path):
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
         _dt = core.datatable_load(f1.internal, nrows, path)
-        dt = DataTable(_dt, names=colnames)
-        assert dt.nrows == nrows, "Wrong number of rows read: %d" % dt.nrows
-        return dt
+        df = DataTable(_dt, names=colnames)
+        assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
+        return df
     finally:
         os.chdir(cwd)
