@@ -5,6 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import shutil
+import pytest
 import tempfile
 import datatable as dt
 from tests import assert_equals
@@ -48,3 +49,23 @@ def test_issue627():
     dt1 = dt.open(dir1)
     assert_equals(dt0, dt1)
     shutil.rmtree(dir1)
+
+
+def test_obj_columns(tempdir):
+    src1 = [1, 2, 3, 4]
+    src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}]
+    d0 = dt.DataTable([src1, src2], names=["A", "B"])
+    print("Saved to %s" % tempdir)
+    assert d0.internal.check()
+    assert d0.ltypes == (dt.ltype.int, dt.ltype.obj)
+    assert d0.shape == (4, 2)
+    with pytest.warns(UserWarning) as ws:
+        dt.save(d0, tempdir)
+    assert len(ws) == 1
+    assert "Column 'B' of type obj64 was not saved" in ws[0].message.args[0]
+    del d0
+    d1 = dt.open(tempdir)
+    assert d1.internal.check()
+    assert d1.shape == (4, 1)
+    assert d1.names == ("A", )
+    assert d1.topython() == [src1]

@@ -846,7 +846,7 @@ def column_hexview(col, dt, colidx):
 
     print("Column %d" % colidx)
     print("Ltype: %s, Stype: %s, Mtype: %s"
-          % (col.ltype, col.stype, col.mtype))
+          % (col.ltype.name, col.stype.name, col.mtype))
     datasize = col.data_size
     print("Bytes: %d" % datasize)
     print("Meta: %s" % col.meta)

@@ -52,8 +52,8 @@ template <typename T>
 void FwColumn<T>::open_mmap(const std::string& filename) {
   assert(!ri && !mbuf);
   mbuf = new MemmapMemBuf(filename);
-  if (mbuf->size() != static_cast<size_t>(nrows) * sizeof(T)) {
-    size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
+  size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
+  if (mbuf->size() != exp_size) {
     throw Error() << "File \"" << filename <<
         "\" cannot be used to create a column with " << nrows <<
         " rows. Expected file size of " << exp_size <<
@@ -72,6 +72,7 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
   }
   mbuf = new ExternalMemBuf(pybuffer->buf, pybuffer, exp_buf_len);
 }
+
 
 
 //==============================================================================
