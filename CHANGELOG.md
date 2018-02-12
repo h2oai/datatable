@@ -44,6 +44,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `range` arguments can now be passed to a DataTable constructor.
 - datatable will now fall back to eager execution if it cannot detect LLVM runtime.
 - simple Excel file reader.
+- It is now possible to select columns from DataTable by type: `df[int]` selects
+  all integer columns from `df`.
+
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
