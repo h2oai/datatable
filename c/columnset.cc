@@ -46,7 +46,8 @@ Column** columns_from_slice(DataTable* dt, const RowIndex& rowindex,
 Column** columns_from_array(DataTable* dt, const RowIndex& rowindex,
                             int64_t* indices, int64_t ncols)
 {
-  if (dt == nullptr || indices == nullptr) return nullptr;
+  if (!dt) return nullptr;
+  if (!indices && ncols) return nullptr;
   Column** srccols = dt->columns;
   Column** columns = nullptr;
   dtmalloc(columns, Column*, ncols + 1);

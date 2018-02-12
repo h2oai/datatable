@@ -166,6 +166,24 @@ def test_cols_list(dt0, tbl0):
     assert as_list(dt3) == [tbl0[0], tbl0[2], tbl0[1], tbl0[3]]
 
 
+def test_cols_select_by_type(dt0):
+    dt1 = dt0[int]
+    assert dt1.shape == (6, 2)
+    assert dt1.ltypes == (dt.ltype.int, dt.ltype.int)
+    assert dt1.names == ("A", "B")
+    dt2 = dt0[float]
+    assert dt2.shape == (6, 1)
+    assert dt2.stypes == (dt.stype.float64, )
+    assert dt2.names == ("C", )
+    dt3 = dt0[dt.ltype.str]
+    assert dt3.shape == (0, 0)
+    assert dt3.topython() == []
+    dt4 = dt0[dt.stype.bool8]
+    assert dt4.shape == (6, 1)
+    assert dt4.stypes == (dt.stype.bool8, )
+    assert dt4.names == ("D", )
+
+
 def test_cols_dict(dt0, tbl0):
     """
     Test selecting multiple columns using a dictionary:
