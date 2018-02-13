@@ -2,9 +2,13 @@
 #include <string.h>
 #include <time.h>
 #include <assert.h>
+#include <cfenv>
+#include <cmath>
 #include <stdexcept>
+#include <iostream>
 #include "main.h"
 #include "int32.h"
+#include "float64.h"
 #include "utils.h"
 
 
@@ -25,6 +29,7 @@ BenchmarkSuite::~BenchmarkSuite() {
 BenchmarkSuite* BenchmarkSuite::create(int A) {
   switch (A) {
     case 1: return new Int32BenchmarkSuite();
+    case 2: return new Float64BenchmarkSuite();
   }
   throw std::runtime_error("Unknown benchmark");
 }
