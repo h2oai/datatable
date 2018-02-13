@@ -339,66 +339,7 @@ void parse_float64_simple(FieldParseContext& ctx) {
     ctx.target->uint64 = NA_FLOAT64_I64;
   }
 }
-// void parse_float64_simple(FieldParseContext& ctx) {
-//   const char* ch = ctx.ch;
 
-//   bool neg, Eneg;
-//   double r;
-//   ch += (neg = *ch=='-') + (*ch=='+');
-
-//   const char* start = ch;
-//   uint_fast64_t acc = 0;  // holds NNN.MMM as NNNMMM
-//   int_fast32_t e = 0;     // width of MMM to adjust NNNMMM by dec location
-//   uint_fast8_t digit;
-//   while (*ch=='0') ch++;
-
-//   uint_fast32_t sf = 0;
-//   while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
-//     acc = 10*acc + digit;
-//     sf++;
-//   }
-//   ch += sf;
-//   if (*ch==ctx.dec) {
-//     ch++;
-//     // Numbers like 0.00000000000000000000000000000000004 can be read without
-//     // loss of precision as 4e-35  (test 1817)
-//     if (sf==0 && *ch=='0') {
-//       while (ch[e]=='0') e++;
-//       ch += e;
-//       e = -e;
-//     }
-//     uint_fast32_t k = 0;
-//     while ( (digit=(uint_fast8_t)(ch[k]-'0'))<10 ) {
-//       acc = 10*acc + digit;
-//       k++;
-//     }
-//     ch += k;
-//     sf += k;
-//     e -= k;
-//   }
-//   if (sf>18) goto fail;  // Too much precision for double. TODO: reduce to 15(?) and discard trailing 0's.
-//   if (*ch=='E' || *ch=='e') {
-//     if (ch==start) goto fail;  // something valid must be between [+|-] and E, character E alone is invalid.
-//     ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
-//     int E=0, max_digits=3;
-//     while ( max_digits && (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
-//       E = 10*E + digit;
-//       ch++;
-//       max_digits--;
-//     }
-//     e += Eneg? -E : E;
-//   }
-//   e += 350; // lookup table is arranged from -350 (0) to +350 (700)
-//   if (e<0 || e>700 || ch==start) goto fail;
-
-//   r = (double)((long double)acc * pow10lookup[e]);
-//   ctx.target->float64 = neg? -r : r;
-//   ctx.ch = ch;
-//   return;
-
-//   fail:
-//     ctx.target->uint64 = NA_FLOAT64_I64;
-// }
 
 
 /**
