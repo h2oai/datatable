@@ -3,7 +3,7 @@
 
 CC = ${LLVM4}/bin/clang++
 INCLUDES ?= -I..
-CCFLAGS += -std=gnu++11 -stdlib=libc++ -fopenmp
+CCFLAGS += -std=gnu++11 -stdlib=libc++ -fopenmp -Wno-literal-range
 LDFLAGS += -fopenmp -L${LLVM4}/lib -Wl,-rpath,${LLVM4}/lib
 
 ifdef parser
@@ -29,7 +29,10 @@ main.o: main.cpp
 int32.o: int32.cpp
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-fread: main.o int32.o
+float64.o: float64.cc
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+fread: main.o int32.o float64.o
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:
