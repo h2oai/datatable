@@ -1,0 +1,26 @@
+FROM FROM_SUBST
+ 
+MAINTAINER H2o.ai <ops@h2o.ai>
+
+RUN \
+    yum groupinstall -y "Development Tools"
+
+RUN \
+    yum install -y \
+        ncurses-devel \
+	zlib-devel \
+	wget \
+	bzip2 && \
+    wget https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
+    bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
+    wget https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps-llvm/1.0-master-21/ARCH_SUBST-centos7/llvm.tar.bz2 && \
+    tar xvf llvm.tar.bz2 && \
+    cp -r llvm/* /opt/h2oai/dai/ && \
+    rm -rf llvm*
+
+ENV LLVM4=/opt/h2oai/dai
+ENV PATH=/opt/h2oai/dai/python/bin:$PATH
+ENV PATH=/usr/local/bin:$PATH
+ENV PATH=$LLVM4/bin:$PATH
+
+RUN pip install llvmlite==0.20.0 wheel
