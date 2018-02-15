@@ -42,7 +42,7 @@ pipeline {
         stage('Build on Linux') {
             agent {
                 dockerfile {
-                    label "docker"
+                    label "docker && linux"
                     filename "Dockerfile"
                 }
             }
@@ -87,7 +87,7 @@ pipeline {
         stage('Coverage on Linux') {
             agent {
                 dockerfile {
-                    label "docker"
+                    label "docker && linux"
                     filename "Dockerfile"
                     args dockerArgs
                 }
@@ -108,7 +108,7 @@ pipeline {
         stage('Test on Linux') {
             agent {
                 dockerfile {
-                    label "docker"
+                    label "docker && linux"
                     filename "Dockerfile"
                     args "-v /tmp/pydatatable_large_data:/tmp/pydatatable_large_data -v /home/0xdiag"
                 }

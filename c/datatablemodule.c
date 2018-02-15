@@ -21,6 +21,11 @@
 
 
 PyMODINIT_FUNC PyInit__datatable(void);
+extern PyObject* Py_One, *Py_Zero;
+
+PyObject* Py_One;
+PyObject* Py_Zero;
+
 
 
 static PyObject* pyexec_function(PyObject *self, PyObject *args)
@@ -158,6 +163,9 @@ static PyModuleDef datatablemodule = {
 PyMODINIT_FUNC
 PyInit__datatable(void) {
     init_csvwrite_constants();
+
+    Py_One = PyLong_FromLong(1);
+    Py_Zero = PyLong_FromLong(0);
 
     // Instantiate module object
     PyObject* m = PyModule_Create(&datatablemodule);

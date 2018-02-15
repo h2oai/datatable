@@ -24,7 +24,7 @@ from datatable.utils.typechecks import (
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable
 from datatable.csv import write_csv
-from datatable.types import stype, ltype
+from datatable.types import stype
 
 __all__ = ("DataTable", )
 
