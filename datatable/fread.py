@@ -20,7 +20,7 @@ from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
-
+from datatable.types import stype
 
 _log_color = term.bright_black
 
@@ -919,9 +919,11 @@ class GenericReader(object):
                 continue
             # Assume first row contains headers
             colnames = ws.row_values(0)
-            columns = [ws.col_values(i, start_rowx=1)
-                       for i in range(ws.ncols)]
-            res = DataTable(columns, names=colnames)
+            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
+                                           -stype.str32.value)
+                     for i in range(ws.ncols)]
+            colset = core.columns_from_columns(cols0)
+            res = DataTable(colset.to_datatable(), names=colnames)
             self._result.append(res)
         if len(self._result) == 0:
             self._result = 0

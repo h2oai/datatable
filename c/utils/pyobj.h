@@ -15,6 +15,7 @@
 class DataTable;
 class Column;
 class RowIndex;
+class PyyList;
 
 
 /**
@@ -34,7 +35,7 @@ public:
   PyObj(PyObject*, const char* attr);
   PyObj(const PyObj&);
   PyObj(PyObj&&);
-  PyObj& operator=(const PyObj& other);
+  PyObj& operator=(PyObj other);
   ~PyObj();
   static PyObj fromPyObjectNewRef(PyObject*);
 
@@ -135,6 +136,13 @@ public:
   char** as_cstringlist() const;
 
   void print();
+  PyObj __str__() const;
+
+  bool is_none() const { return obj == Py_None; }
+  bool is_list() const { return PyList_Check(obj); }
+  bool is_string() const { return PyUnicode_Check(obj); }
+
+  PyyList to_list();
 };
 
 

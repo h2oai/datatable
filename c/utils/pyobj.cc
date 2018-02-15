@@ -43,16 +43,9 @@ PyObj::PyObj(PyObj&& other) : PyObj() {
 }
 
 
-PyObj& PyObj::operator=(const PyObj& other) {
-  if (obj || tmp) {
-    throw RuntimeError()
-      << "Cannot assign to PyObj: it already contains a PyObject " << obj
-      << " [tmp=" << tmp << "]";
-  }
-  obj = other.obj;
-  tmp = other.tmp;
-  Py_XINCREF(obj);
-  Py_XINCREF(tmp);
+PyObj& PyObj::operator=(PyObj other) {
+  std::swap(obj, other.obj);
+  std::swap(tmp, other.tmp);
   return *this;
 }
 
@@ -304,4 +297,9 @@ void PyObj::print() {
   PyObject* s = PyObject_Repr(obj);
   printf("%s\n", PyUnicode_AsUTF8(s));
   Py_XDECREF(s);
+}
+
+
+PyObj PyObj::__str__() const {
+  return PyObj::fromPyObjectNewRef(PyObject_Str(obj));
 }
