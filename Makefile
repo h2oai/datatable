@@ -145,6 +145,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	py_rowindex.o             \
 	py_types.o                \
 	py_utils.o                \
+	python/list.o             \
 	rowindex.o                \
 	rowindex_array.o          \
 	rowindex_slice.o          \
@@ -275,6 +276,10 @@ $(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/py
 	@echo • Refreshing c/expr/py_expr.h
 	@cp c/expr/py_expr.h $@
 
+$(BUILDDIR)/python/list.h: c/python/list.h $(BUILDDIR)/utils/pyobj.h
+	@echo • Refreshing c/python/list.h
+	@cp c/python/list.h $@
+
 $(BUILDDIR)/utils/file.h: c/utils/file.h
 	@echo • Refreshing c/utils/file.h
 	@cp c/utils/file.h $@
@@ -353,7 +358,7 @@ $(BUILDDIR)/column_bool.o : c/column_bool.cc $(BUILDDIR)/column.h $(BUILDDIR)/ut
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_from_pylist.o : c/column_from_pylist.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/utils.h
+$(BUILDDIR)/column_from_pylist.o : c/column_from_pylist.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -502,6 +507,10 @@ $(BUILDDIR)/py_types.o : c/py_types.c $(BUILDDIR)/py_types.h $(BUILDDIR)/py_util
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/py_utils.o : c/py_utils.c $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/list.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
