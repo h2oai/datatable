@@ -102,3 +102,9 @@ PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
 PyyListEntry::operator PyObj() const {
   return PyObj(PyList_GET_ITEM(list, i));
 }
+
+PyObject* PyyListEntry::as_new_ref() const {
+  PyObject* res = PyList_GET_ITEM(list, i);
+  Py_XINCREF(res);
+  return res;
+}

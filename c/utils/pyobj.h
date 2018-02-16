@@ -16,6 +16,10 @@ class DataTable;
 class Column;
 class RowIndex;
 class PyyList;
+class PyyLong;
+class PyyFloat;
+extern PyObject* Py_One;
+extern PyObject* Py_Zero;
 
 
 /**
@@ -138,11 +142,35 @@ public:
   void print();
   PyObj __str__() const;
 
-  bool is_none() const { return obj == Py_None; }
-  bool is_list() const { return PyList_Check(obj); }
+  /**
+   * Cast PyObject into boolean (using python's `bool(x)`), and return 1, 0 or
+   * NA depending on whether the value was truthy, falsy, or non-convertible.
+   */
+  int8_t __bool__() const;
+
+  /**
+   * Cast into a PyyLong, using python call `int(x)`. If the conversion fails,
+   * an "empty" PyyLong object is returned.
+   */
+  PyyLong __int__() const;
+
+  /**
+   * Cast into a PyyFloat, using python call `float(x)`. If the conversion
+   * fails, an "empty" PyyFloat object is returned.
+   */
+  PyyFloat __float__() const;
+
+  bool is_none() const   { return obj == Py_None; }
+  bool is_true() const   { return obj == Py_True || obj == Py_One; }
+  bool is_false() const  { return obj == Py_False || obj == Py_Zero; }
+  bool is_long() const   { return PyLong_Check(obj); }
+  bool is_float() const  { return PyFloat_Check(obj); }
+  bool is_list() const   { return PyList_Check(obj); }
   bool is_string() const { return PyUnicode_Check(obj); }
 
-  PyyList to_list();
+  operator PyyList() const;
+  operator PyyLong() const;
+  operator PyyFloat() const;
 };
 
 

@@ -10,12 +10,15 @@
 #include <limits>         // std::numeric_limits
 #include <type_traits>    // std::is_same
 #include "py_types.h"     // PyLong_AsInt64AndOverflow
+#include "python/float.h" // PyyFloat
 #include "python/list.h"  // PyyList
+#include "python/long.h"  // PyyLong
 #include "utils.h"
 #include "utils/exceptions.h"
 
 extern PyObject* Py_One;
 extern PyObject* Py_Zero;
+
 
 
 //------------------------------------------------------------------------------
@@ -27,35 +30,29 @@ extern PyObject* Py_Zero;
  * The converted values will be written into the provided `membuf` (which will
  * be reallocated to proper size).
  *
- * Return True if conversion successful, and False if it failed. Upon failure
- * variable `from` will be set to the index of the variable that was not
- * parsed successfully.
+ * Return true if conversion was successful, and false if it failed. Upon
+ * failure, variable `from` will be set to the index of the variable that was
+ * not parsed successfully.
  *
  * This converter recognizes pythonic `True` or number 1 as "true" values,
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(PyObject* list, MemoryBuffer* membuf, int64_t& from)
+static bool parse_as_bool(PyyList& list, MemoryBuffer* membuf, size_t& from)
 {
-  int64_t nrows = Py_SIZE(list);
-  membuf->resize(static_cast<size_t>(nrows));
+  size_t nrows = list.size();
+  membuf->resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf->get());
 
   // Use the fact that Python stores small integers as singletons, and thus
   // in order to check whether a PyObject* is integer 0 or 1 it's enough to
   // check whether the objects are the same.
-  for (int64_t i = 0; i < nrows; ++i) {
-    PyObject* item = PyList_GET_ITEM(list, i);
+  for (size_t i = 0; i < nrows; ++i) {
+    PyObj item = list[i];
 
-    if (item == Py_None) {
-      outdata[i] = GETNA<int8_t>();
-    }
-    else if (item == Py_True || item == Py_One) {
-      outdata[i] = 1;
-    }
-    else if (item == Py_False || item == Py_Zero) {
-      outdata[i] = 0;
-    }
+    if (item.is_none()) outdata[i] = GETNA<int8_t>();
+    else if (item.is_true()) outdata[i] = 1;
+    else if (item.is_false()) outdata[i] = 0;
     else {
       from = i;
       return false;
@@ -76,22 +73,15 @@ static bool parse_as_bool(PyObject* list, MemoryBuffer* membuf, int64_t& from)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(PyObject* list, MemoryBuffer* membuf)
+static void force_as_bool(PyyList& list, MemoryBuffer* membuf)
 {
-  int64_t nrows = Py_SIZE(list);
-  membuf->resize(static_cast<size_t>(nrows));
+  size_t nrows = list.size();
+  membuf->resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf->get());
 
-  for (int64_t i = 0; i < nrows; ++i) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    // PyObject_IsTrue(x) returns 1, 0, or -1
-    int8_t r = (item == Py_None)? GETNA<int8_t>()
-                                : static_cast<int8_t>(PyObject_IsTrue(item));
-    if (r == -1) {
-      r = GETNA<int8_t>();
-      PyErr_Clear();
-    }
-    outdata[i] = r;
+  for (size_t i = 0; i < nrows; ++i) {
+    PyObj item = list[i];
+    outdata[i] = item.__bool__();
   }
 }
 
@@ -101,33 +91,40 @@ static void force_as_bool(PyObject* list, MemoryBuffer* membuf)
 // Integer
 //------------------------------------------------------------------------------
 
+/**
+ * Convert Python list of objects into a column of integer<T> type, if possible.
+ * The converted values will be written into the provided `membuf` (which will
+ * be reallocated to proper size). Returns true if conversion was successful,
+ * otherwise returns false and sets `from` to the index within the source list
+ * of the element that could not be parsed.
+ *
+ * This converter recognizes either python `None`, or pythonic `int` object.
+ * Any other pythonic object will cause the parser to fail. Likewise, the
+ * parser will fail if the `int` value does not fit into the range of type `T`.
+ */
 template <typename T>
-static bool parse_as_int(PyObject* list, MemoryBuffer* membuf, int64_t& from)
+static bool parse_as_int(PyyList& list, MemoryBuffer* membuf, size_t& from)
 {
-  int64_t nrows = Py_SIZE(list);
-  membuf->resize(static_cast<size_t>(nrows) * sizeof(T));
+  size_t nrows = list.size();
+  membuf->resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf->get());
-  constexpr int64_t max = static_cast<int64_t>(std::numeric_limits<T>::max());
-  constexpr int64_t min = -max;
 
-  int overflow;
+  int overflow = 0;
   for (int j = 0; j < 2; ++j) {
-    int64_t ifrom = j ? 0 : from;
-    int64_t ito   = j ? from : nrows;
-    for (int64_t i = ifrom; i < ito; ++i) {
-      PyObject* item = PyList_GET_ITEM(list, i);
-      PyTypeObject *itemtype = Py_TYPE(item);     // borrowed ref
+    size_t ifrom = j ? 0 : from;
+    size_t ito   = j ? from : nrows;
 
-      if (item == Py_None) {
+    for (size_t i = ifrom; i < ito; ++i) {
+      PyObj item = list[i];
+
+      if (item.is_none()) {
         outdata[i] = GETNA<T>();
         continue;
       }
-      else if (itemtype == &PyLong_Type || PyLong_Check(item)) {
-        int64_t val = PyLong_AsInt64AndOverflow(item, &overflow);
-        if (val <= max && val >= min && !overflow) {
-          outdata[i] = static_cast<T>(val);
-          continue;
-        }
+      if (item.is_long()) {
+        PyyLong litem = item;
+        outdata[i] = litem.value<T>(&overflow);
+        if (!overflow) continue;
       }
       from = i;
       return false;
@@ -137,10 +134,31 @@ static bool parse_as_int(PyObject* list, MemoryBuffer* membuf, int64_t& from)
 }
 
 
+/**
+ * Force-convert python list into an integer column of type <T> (the data will
+ * be written into the provided buffer).
+ *
+ * Each element will be converted into an integer using python `int(x)` call.
+ * If the call fails, that element will become an NA. If an integer value is
+ * outside of the range of `T`, it will be reduced modulo `MAX<T> + 1` (same
+ * as C++'s `static_cast<T>`).
+ */
 template <typename T>
-static void force_as_int(PyObject* list, MemoryBuffer* membuf)
+static void force_as_int(PyyList& list, MemoryBuffer* membuf)
 {
-  throw NotImplError();
+  size_t nrows = list.size();
+  membuf->resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(membuf->get());
+
+  for (size_t i = 0; i < nrows; ++i) {
+    PyObj item = list[i];
+    if (item.is_none()) {
+      outdata[i] = GETNA<T>();
+      continue;
+    }
+    PyyLong litem = item.is_long()? item : item.__int__();
+    outdata[i] = litem.masked_value<T>();
+  }
 }
 
 
@@ -154,58 +172,64 @@ static void force_as_int(PyObject* list, MemoryBuffer* membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(PyObject* list, MemoryBuffer* membuf, int64_t& from)
+static bool parse_as_double(PyyList& list, MemoryBuffer* membuf, size_t& from)
 {
-  int64_t nrows = Py_SIZE(list);
-  membuf->resize(static_cast<size_t>(nrows) * sizeof(double));
+  size_t nrows = list.size();
+  membuf->resize(nrows * sizeof(double));
   double* outdata = static_cast<double*>(membuf->get());
-  constexpr double na = GETNA<double>();
-  constexpr double inf = std::numeric_limits<double>::infinity();
-  // Largest integer that can still be represented as double without loss of
-  // precision. Thus, (2^53 + 1) is the first integer that cannot be stored in
-  // a double and retrieved back: `(long)((double)(maxlong + 1)) != maxlong`.
-  // constexpr double maxlong = 9007199254740992;  // = 2^53
 
+  int overflow = 0;
   for (int j = 0; j < 2; ++j) {
-    int64_t ifrom = j ? 0 : from;
-    int64_t ito   = j ? from : nrows;
-    for (int64_t i = ifrom; i < ito; ++i) {
-      PyObject* item = PyList_GET_ITEM(list, i);
-      PyTypeObject *itemtype = Py_TYPE(item);     // borrowed ref
+    size_t ifrom = j ? 0 : from;
+    size_t ito   = j ? from : nrows;
+    for (size_t i = ifrom; i < ito; ++i) {
+      PyObj item = list[i];
 
-      if (item == Py_None) {
-        outdata[i] = na;
+      if (item.is_none()) {
+        outdata[i] = GETNA<double>();
         continue;
       }
-      else if (itemtype == &PyLong_Type || PyLong_Check(item)) {
-        double val = PyLong_AsDouble(item);
-        if (val == -1 && PyErr_Occurred()) {
-          PyErr_Clear();
-          // TODO: only do this under "force" mode
-          int sign = _PyLong_Sign(item);
-          outdata[i] = sign > 0? inf : -inf;
-          continue;
-        }
-        // else if (val <= maxlong && val >= -maxlong) {
-          outdata[i] = val;
-          continue;
-        // }
+      if (item.is_long()) {
+        PyyLong litem = item;
+        outdata[i] = litem.value<double>(&overflow);
+        continue;
       }
-      else if (itemtype == &PyFloat_Type || PyFloat_Check(item)) {
-        outdata[i] = PyFloat_AS_DOUBLE(item);
+      if (item.is_float()) {
+        outdata[i] = item.as_double();
         continue;
       }
       from = i;
       return false;
     }
   }
+  PyErr_Clear();  // in case an overflow occurred
   return true;
 }
 
 
-static void force_as_double(PyObject* list, MemoryBuffer* membuf)
+static void force_as_double(PyyList& list, MemoryBuffer* membuf)
 {
-  throw NotImplError();
+  size_t nrows = list.size();
+  membuf->resize(nrows * sizeof(double));
+  double* outdata = static_cast<double*>(membuf->get());
+
+  int overflow = 0;
+  for (size_t i = 0; i < nrows; ++i) {
+    PyObj item = list[i];
+
+    if (item.is_none()) {
+      outdata[i] = GETNA<double>();
+      continue;
+    }
+    if (item.is_long()) {
+      PyyLong litem = item;
+      outdata[i] = litem.value<double>(&overflow);
+      continue;
+    }
+    PyyFloat fitem = item.is_float()? item : item.__float__();
+    outdata[i] = fitem.value();
+  }
+  PyErr_Clear();  // in case an overflow occurred
 }
 
 
@@ -215,50 +239,47 @@ static void force_as_double(PyObject* list, MemoryBuffer* membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(PyObject* list, MemoryBuffer* offbuf,
+static bool parse_as_str(PyyList& list, MemoryBuffer* offbuf,
                          MemoryBuffer*& strbuf)
 {
-  int64_t nrows = Py_SIZE(list);
-  size_t zrows = static_cast<size_t>(nrows);
-  offbuf->resize((zrows + 1) * sizeof(T));
+  size_t nrows = list.size();
+  offbuf->resize((nrows + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf->get()) + 1;
   offsets[-1] = -1;
   if (strbuf == nullptr) {
-    strbuf = new MemoryMemBuf(zrows * 4);  // arbitrarily 4 chars per element
+    strbuf = new MemoryMemBuf(nrows * 4);  // arbitrarily 4 chars per element
   }
 
   T curr_offset = 1;
-  int64_t i;
+  size_t i = 0;
   for (i = 0; i < nrows; ++i) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    PyTypeObject *itemtype = Py_TYPE(item);
+    PyObj item = list[i];
 
-    if (item == Py_None) {
+    if (item.is_none()) {
       offsets[i] = -curr_offset;
       continue;
     }
-    if (itemtype == &PyUnicode_Type) {
-      PyObject* pybytes = PyUnicode_AsEncodedString(item, "utf-8", "strict");
-      if (!pybytes) break;
-      const char* cstr = PyBytes_AsString(pybytes);
-      const Py_ssize_t len = Py_SIZE(pybytes);
+    if (item.is_string()) {
+      size_t len = 0;
+      const char* cstr = item.as_cstring(&len);
       if (len) {
         T tlen = static_cast<T>(len);
         T next_offset = curr_offset + tlen;
         // Check that length or offset of the string doesn't overflow int32_t
         if (std::is_same<T, int32_t>::value &&
-            (tlen != len || next_offset < curr_offset)) break;
+            (static_cast<size_t>(tlen) != len || next_offset < curr_offset)) {
+          break;
+        }
         // Resize the strbuf if necessary
         if (strbuf->size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
           strbuf->resize(static_cast<size_t>(newsize));
         }
-        memcpy(strbuf->at(curr_offset - 1), cstr, static_cast<size_t>(len));
+        memcpy(strbuf->at(curr_offset - 1), cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
-      Py_DECREF(pybytes);
       continue;
     }
     break;
@@ -289,10 +310,9 @@ static bool parse_as_str(PyObject* list, MemoryBuffer* offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(PyObject* pylist, MemoryBuffer* offbuf,
+static void force_as_str(PyyList& list, MemoryBuffer* offbuf,
                          MemoryBuffer*& strbuf)
 {
-  PyyList list(pylist);
   size_t nrows = list.size();
   if (nrows > std::numeric_limits<T>::max()) {
     throw ValueError()
@@ -350,23 +370,21 @@ static void force_as_str(PyObject* pylist, MemoryBuffer* offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(PyObject* list, MemoryBuffer* membuf)
+static bool parse_as_pyobj(PyyList& list, MemoryBuffer* membuf)
 {
-  int64_t nrows = Py_SIZE(list);
-  membuf->resize(static_cast<size_t>(nrows) * sizeof(PyObject*));
+  size_t nrows = list.size();
+  membuf->resize(nrows * sizeof(PyObject*));
   PyObject** outdata = static_cast<PyObject**>(membuf->get());
 
-  for (int64_t i = 0; i < nrows; ++i) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    outdata[i] = item;
-    Py_INCREF(item);
+  for (size_t i = 0; i < nrows; ++i) {
+    outdata[i] = list[i].as_new_ref();
   }
   return true;
 }
 
 
 // No "force" method, because `parse_as_pyobj()` is already capable of
-// "parsing" any pylist.
+// processing any pylist.
 
 
 
@@ -403,19 +421,17 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
 
 
 
-Column* Column::from_pylist(PyObject* list, int stype0, int ltype0)
+Column* Column::from_pylist(PyObject* pylist, int stype0, int ltype0)
 {
   if (stype0 && ltype0) {
     throw ValueError() << "Cannot fix both stype and ltype";
   }
-  if (list == NULL || !PyList_Check(list)) {
-    throw ValueError() << "Python list is expected";
-  }
+  PyyList list(pylist);
 
   MemoryBuffer* membuf = new MemoryMemBuf(0);
   MemoryBuffer* strbuf = nullptr;
   int stype = find_next_stype(0, stype0, ltype0);
-  int64_t i = 0;
+  size_t i = 0;
   while (stype) {
     int next_stype = find_next_stype(stype, stype0, ltype0);
     if (stype == next_stype) {

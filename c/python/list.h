@@ -24,6 +24,8 @@ class PyyListEntry {
     operator PyObj() const;
     PyyListEntry& operator=(PyObject*);
     PyyListEntry& operator=(const PyObj&);
+
+    PyObject* as_new_ref() const;
 };
 
 

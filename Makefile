@@ -145,7 +145,9 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	py_rowindex.o             \
 	py_types.o                \
 	py_utils.o                \
+	python/float.o            \
 	python/list.o             \
+	python/long.o             \
 	rowindex.o                \
 	rowindex_array.o          \
 	rowindex_slice.o          \
@@ -183,6 +185,10 @@ $(BUILDDIR)/_datatable.so: $(fast_objects)
 	@$(MAKE) --no-print-directory post-fast
 
 
+
+#-------------------------------------------------------------------------------
+# Header files
+#-------------------------------------------------------------------------------
 
 $(BUILDDIR)/datatable.h: c/datatable.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/datatable.h
@@ -276,9 +282,17 @@ $(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/py
 	@echo • Refreshing c/expr/py_expr.h
 	@cp c/expr/py_expr.h $@
 
+$(BUILDDIR)/python/float.h: c/python/float.h $(BUILDDIR)/utils/pyobj.h
+	@echo • Refreshing c/python/float.h
+	@cp c/python/float.h $@
+
 $(BUILDDIR)/python/list.h: c/python/list.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/list.h
 	@cp c/python/list.h $@
+
+$(BUILDDIR)/python/long.h: c/python/long.h $(BUILDDIR)/utils/pyobj.h
+	@echo • Refreshing c/python/long.h
+	@cp c/python/long.h $@
 
 $(BUILDDIR)/utils/file.h: c/utils/file.h
 	@echo • Refreshing c/utils/file.h
@@ -346,6 +360,10 @@ $(BUILDDIR)/csv/freadLookups.h: c/csv/freadLookups.h
 
 
 
+#-------------------------------------------------------------------------------
+# Object files
+#-------------------------------------------------------------------------------
+
 $(BUILDDIR)/capi.o : c/capi.cc $(BUILDDIR)/capi.h $(BUILDDIR)/datatable.h $(BUILDDIR)/rowindex.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
@@ -358,7 +376,7 @@ $(BUILDDIR)/column_bool.o : c/column_bool.cc $(BUILDDIR)/column.h $(BUILDDIR)/ut
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_from_pylist.o : c/column_from_pylist.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/column_from_pylist.o : c/column_from_pylist.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -510,7 +528,15 @@ $(BUILDDIR)/py_utils.o : c/py_utils.c $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
+$(BUILDDIR)/python/float.o : c/python/float.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
 $(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/list.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/python/long.o : c/python/long.cc $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -550,7 +576,7 @@ $(BUILDDIR)/utils/file.o : c/utils/file.cc $(BUILDDIR)/utils.h $(BUILDDIR)/utils
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
