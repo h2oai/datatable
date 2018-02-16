@@ -143,7 +143,7 @@ template<typename T> T PyyLong::value() const {
 }
 
 
-template<> long long PyyLong::masked_value() const {
+template<> long long int PyyLong::masked_value() const {
   unsigned long long x = PyLong_AsUnsignedLongLongMask(obj);
   if (x == static_cast<unsigned long long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();
@@ -172,10 +172,14 @@ template int8_t  PyyLong::value() const;
 template int16_t PyyLong::value() const;
 template int32_t PyyLong::value() const;
 template int64_t PyyLong::value() const;
+template float   PyyLong::value() const;
 template double  PyyLong::value() const;
-template int8_t  PyyLong::value(int*) const;
-template int16_t PyyLong::value(int*) const;
-template int32_t PyyLong::value(int*) const;
-template int8_t  PyyLong::masked_value() const;
-template int16_t PyyLong::masked_value() const;
-template int32_t PyyLong::masked_value() const;
+
+template signed char  PyyLong::value(int*) const;
+template short int    PyyLong::value(int*) const;
+template int          PyyLong::value(int*) const;
+
+template signed char   PyyLong::masked_value() const;
+template short int     PyyLong::masked_value() const;
+template int           PyyLong::masked_value() const;
+template long int      PyyLong::masked_value() const;

@@ -64,10 +64,14 @@ extern template int8_t  PyyLong::value() const;
 extern template int16_t PyyLong::value() const;
 extern template int32_t PyyLong::value() const;
 extern template int64_t PyyLong::value() const;
+extern template float   PyyLong::value() const;
+extern template double  PyyLong::value() const;
+
 extern template int8_t  PyyLong::value(int*) const;
 extern template int16_t PyyLong::value(int*) const;
 extern template int32_t PyyLong::value(int*) const;
 extern template int64_t PyyLong::value(int*) const;
+
 extern template int8_t  PyyLong::masked_value() const;
 extern template int16_t PyyLong::masked_value() const;
 extern template int32_t PyyLong::masked_value() const;
