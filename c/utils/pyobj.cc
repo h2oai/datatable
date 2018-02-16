@@ -10,6 +10,9 @@
 #include "py_datatable.h"
 #include "py_rowindex.h"
 #include "py_types.h"
+#include "python/float.h"
+#include "python/list.h"
+#include "python/long.h"
 #include "utils/exceptions.h"
 
 
@@ -302,4 +305,45 @@ void PyObj::print() {
 
 PyObj PyObj::__str__() const {
   return PyObj::fromPyObjectNewRef(PyObject_Str(obj));
+}
+
+
+int8_t PyObj::__bool__() const {
+  if (obj == Py_None) return GETNA<int8_t>();
+  int r = PyObject_IsTrue(obj);
+  if (r == -1) {
+    PyErr_Clear();
+    return GETNA<int8_t>();
+  }
+  return static_cast<int8_t>(r);
+}
+
+
+
+//------------------------------------------------------------------------------
+// Type-casts
+//------------------------------------------------------------------------------
+
+PyObj::operator PyyList() const {
+  return is_list()? PyyList(obj) : PyyList();
+}
+
+
+PyObj::operator PyyLong() const {
+  return is_long()? PyyLong(obj) : PyyLong();
+}
+
+
+PyObj::operator PyyFloat() const {
+  return is_float()? PyyFloat(obj) : PyyFloat();
+}
+
+
+PyyLong PyObj::__int__() const {
+  return PyyLong::fromAnyObject(obj);
+}
+
+
+PyyFloat PyObj::__float__() const {
+  return PyyFloat::fromAnyObject(obj);
 }

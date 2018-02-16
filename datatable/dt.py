@@ -46,11 +46,13 @@ class DataTable(object):
     __slots__ = ("_id", "_ncols", "_nrows", "_ltypes", "_stypes", "_names",
                  "_inames", "_dt")
 
-    def __init__(self, src=None, names=None, **kwargs):
+    def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "colnames" in kwargs and names is None:
             names = kwargs.pop("colnames")
             warnings.warn("Parameter `colnames` in DataTable constructor is "
                           "deprecated. Use `names` instead.")
+        if "stype" in kwargs:
+            stypes = [kwargs.pop("stype")]
         if kwargs:
             warnings.warn("Unknown options %r to DataTable()" % kwargs)
         DataTable._id_counter_ += 1
@@ -63,7 +65,7 @@ class DataTable(object):
         # Mapping of column names to their indices
         self._inames = None  # type: Dict[str, int]
         self._dt = None      # type: core.DataTable
-        self._fill_from_source(src, names=names)
+        self._fill_from_source(src, names=names, stypes=stypes)
 
 
     #---------------------------------------------------------------------------
@@ -160,15 +162,16 @@ class DataTable(object):
     # Initialization helpers
     #---------------------------------------------------------------------------
 
-    def _fill_from_source(self, src, names):
+    def _fill_from_source(self, src, names, stypes):
         if isinstance(src, list):
             if len(src) == 0:
                 src = [src]
-            self._fill_from_list(src, names=names)
+            self._fill_from_list(src, names=names, stypes=stypes)
         elif isinstance(src, (tuple, set, range)):
-            self._fill_from_list([list(src)], names=names)
+            self._fill_from_list([list(src)], names=names, stypes=stypes)
         elif isinstance(src, dict):
-            self._fill_from_list(list(src.values()), names=tuple(src.keys()))
+            self._fill_from_list(list(src.values()), names=tuple(src.keys()),
+                                 stypes=stypes)
         elif isinstance(src, core.DataTable):
             self._fill_from_dt(src, names=names)
         elif isinstance(src, str):
@@ -177,7 +180,7 @@ class DataTable(object):
                 names = srcdt.names
             self._fill_from_dt(srcdt.internal, names=names)
         elif src is None:
-            self._fill_from_list([])
+            self._fill_from_list([], names=None, stypes=None)
         elif is_type(src, DataTable_t):
             if names is None:
                 names = src.names
@@ -190,7 +193,7 @@ class DataTable(object):
             raise TTypeError("Cannot create DataTable from %r" % src)
 
 
-    def _fill_from_list(self, src, names=None):
+    def _fill_from_list(self, src, names, stypes):
         for i in range(len(src)):
             e = src[i]
             if isinstance(e, range):
@@ -201,7 +204,18 @@ class DataTable(object):
                 if i == 0:
                     src = [src]
                 break
-        self._fill_from_dt(core.datatable_from_list(src), names=names)
+        types = None
+        if stypes:
+            if len(stypes) == 1:
+                types = [stype(stypes[0]).value] * len(src)
+            elif len(stypes) == len(src):
+                types = [stype(s).value for s in stypes]
+            else:
+                raise TValueError("Number of stypes (%d) is different from "
+                                  "the number of source columns (%d)"
+                                  % (len(stypes), len(src)))
+        _dt = core.datatable_from_list(src, types)
+        self._fill_from_dt(_dt, names=names)
 
 
     def _fill_from_dt(self, _dt, names=None):

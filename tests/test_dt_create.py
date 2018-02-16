@@ -8,6 +8,7 @@
 # Test creating a datatable from various sources
 #
 #-------------------------------------------------------------------------------
+import math
 import pytest
 import datatable as dt
 from datatable import ltype, stype
@@ -117,6 +118,81 @@ def test_create_from_string():
                          dt.ltype.str)
     assert d0.topython() == [[True, False, None], [2.0, 5.5, None],
                              [3, None, 1000], ["boo", "bar", ""]]
+
+
+
+#-------------------------------------------------------------------------------
+# Create specific stypes
+#-------------------------------------------------------------------------------
+
+def test_create_from_nones():
+    d0 = dt.DataTable([None, None, None])
+    assert d0.internal.check()
+    assert d0.stypes == (stype.bool8, )
+    assert d0.shape == (3, 1)
+
+
+def test_create_as_int8():
+    d0 = dt.DataTable([1, None, -1, 1000, 2.7, "123", "boo"], stype=stype.int8)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.int8, )
+    assert d0.shape == (7, 1)
+    assert d0.topython() == [[1, None, -1, -24, 2, 123, None]]
+
+
+def test_create_as_int16():
+    d0 = dt.DataTable([1e50, 1000, None, "27", "?", True], stype=stype.int16)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.int16, )
+    assert d0.shape == (6, 1)
+    # int(1e50) = 2407412430484045 * 2**115, which is ≡0 (mod 2**16)
+    assert d0.topython() == [[0, 1000, None, 27, None, 1]]
+
+
+def test_create_as_int32():
+    d0 = dt.DataTable([1, 2, 5, 3.14, (1, 2)], stype=stype.int32)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.int32, )
+    assert d0.shape == (5, 1)
+    assert d0.topython() == [[1, 2, 5, 3, None]]
+
+
+def test_create_as_float32():
+    d0 = dt.DataTable([1, 5, 2.6, "7.7777", -1.2e+50, 1.3e-50],
+                      stype=stype.float32)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.float32, )
+    assert d0.shape == (6, 1)
+    # Apparently, float "inf" converts into double "inf" when cast. Good!
+    assert list_equals(d0.topython(), [[1, 5, 2.6, 7.7777, -math.inf, 0]])
+
+
+def test_create_as_float64():
+    d0 = dt.DataTable([[1, 2, 3, 4, 5, None],
+                       [2.7, "3.1", False, "foo", 10**1000, -12**321]],
+                      stype=float)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.float64, stype.float64)
+    assert d0.shape == (6, 2)
+    assert d0.topython() == [[1.0, 2.0, 3.0, 4.0, 5.0, None],
+                             [2.7, 3.1, 0, None, math.inf, -math.inf]]
+
+
+def test_create_as_str32():
+    d0 = dt.DataTable([1, 2.7, "foo", None, (3, 4)], stype=stype.str32)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.str32, )
+    assert d0.shape == (5, 1)
+    assert d0.topython() == [["1", "2.7", "foo", None, "(3, 4)"]]
+
+
+def test_create_as_str64():
+    d0 = dt.DataTable(range(10), stype=stype.str64)
+    assert d0.internal.check()
+    assert d0.stypes == (stype.str64, )
+    assert d0.shape == (10, 1)
+    assert d0.topython() == [[str(n) for n in range(10)]]
+
 
 
 #-------------------------------------------------------------------------------
@@ -270,7 +346,7 @@ def test_create_from_numpy_array_with_names(numpy):
 
 
 #-------------------------------------------------------------------------------
-# Others
+# Issues
 #-------------------------------------------------------------------------------
 
 def test_bad():
