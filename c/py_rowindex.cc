@@ -238,6 +238,16 @@ PyObject* uplift(obj* self, PyObject* args) {
 }
 
 
+PyObject* inverse(obj* self, PyObject* args) {
+  RowIndex& ri = *(self->ref);
+  int64_t nrows;
+  if (!PyArg_ParseTuple(args, "L:RowIndex.inverse", &nrows))
+    return nullptr;
+  RowIndex res = ri.inverse(nrows);
+  return wrap(res);
+}
+
+
 
 //==============================================================================
 // DataTable type definition
@@ -253,6 +263,7 @@ static PyGetSetDef rowindex_getsetters[] = {
 static PyMethodDef rowindex_methods[] = {
   METHOD0(tolist),
   METHODv(uplift),
+  METHODv(inverse),
   {NULL, NULL, 0, NULL}           /* sentinel */
 };
 

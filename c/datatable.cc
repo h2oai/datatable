@@ -72,6 +72,16 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 
 
 
+void DataTable::replace_rowindex(const RowIndex& newri) {
+  rowindex = newri;
+  nrows = rowindex.length();
+  for (int i = 0; i < ncols; ++i) {
+    columns[i]->replace_rowindex(rowindex);
+  }
+}
+
+
+
 /**
  * Free memory occupied by the :class:`DataTable` object. This function should
  * be called from `pydatatable::obj`s deallocator only.

@@ -96,9 +96,10 @@ public:
   virtual size_t elemsize() const = 0;
   virtual bool is_fixedwidth() const = 0;
 
-  inline void* data() const { return mbuf->get(); }
-  inline void* data_at(size_t i) const { return mbuf->at(i); }
-  inline const RowIndex& rowindex() const { return ri; }
+  void replace_rowindex(const RowIndex& newri);
+  void* data() const { return mbuf->get(); }
+  void* data_at(size_t i) const { return mbuf->at(i); }
+  const RowIndex& rowindex() const { return ri; }
   size_t alloc_size() const;
   virtual int64_t data_nrows() const = 0;
   PyObject* mbuf_repr() const;
