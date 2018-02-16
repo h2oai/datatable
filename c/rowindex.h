@@ -14,6 +14,10 @@ class BoolColumn;
 class RowIndex;
 class IntegrityCheckContext;
 
+typedef dt::array<int32_t> arr32_t;
+typedef dt::array<int64_t> arr64_t;
+
+
 
 //==============================================================================
 
@@ -48,6 +52,7 @@ class RowIndexImpl {
     void acquire() { refcount++; }
     void release() { if (!--refcount) delete this; }
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
+    virtual RowIndexImpl* inverse(int64_t nrows) const = 0;
     virtual size_t memory_footprint() const = 0;
     virtual bool verify_integrity(IntegrityCheckContext&) const;
 
@@ -79,6 +84,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
+    RowIndexImpl* inverse(int64_t nrows) const override;
     size_t memory_footprint() const override;
     bool verify_integrity(IntegrityCheckContext&) const override;
 
@@ -92,6 +98,10 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     void init_from_boolean_column(BoolColumn* col);
     void init_from_integer_column(Column* col);
     void compactify();
+
+    // Helper for `inverse()`
+    template <typename TI, typename TO>
+    RowIndexImpl* inverse_impl(const dt::array<TI>& inp, int64_t nrows) const;
 };
 
 
@@ -109,6 +119,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
     static void check_triple(int64_t start, int64_t count, int64_t step);
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
+    RowIndexImpl* inverse(int64_t nrows) const override;
     size_t memory_footprint() const override;
     bool verify_integrity(IntegrityCheckContext&) const override;
 
@@ -212,6 +223,7 @@ class RowIndex {
     int64_t slice_step() const { return impl_asslice()->step; }
 
     dt::array<int32_t> extract_as_array32() const;
+    RowIndex inverse(int64_t nrows) const;
 
     /**
      * Return the RowIndex which is the result of applying current RowIndex to

@@ -470,6 +470,8 @@ def make_rowfilter(rows, ee, _nested=False) -> RFNode:
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
+                if bases[0] == 0 and nrows == 1:
+                    return AllRFNode(ee)
                 return SliceRFNode(ee, bases[0], 1, 1)
             else:
                 return ArrayRFNode(ee, bases)

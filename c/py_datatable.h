@@ -123,6 +123,11 @@ DECLARE_METHOD(
   "Remove the specified list of columns from the datatable")
 
 DECLARE_METHOD(
+  replace_rowindex,
+  "replace_rowindex(rowindex)\n\n"
+  "Replace the current rowindex on the datatable with the new one.")
+
+DECLARE_METHOD(
   rbind,
   "Append rows of other datatables to the current")
 

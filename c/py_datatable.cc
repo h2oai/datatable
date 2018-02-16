@@ -236,6 +236,19 @@ PyObject* delete_columns(obj* self, PyObject* args) {
 
 
 
+PyObject* replace_rowindex(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
+    return nullptr;
+  RowIndex newri = PyObj(arg1).as_rowindex();
+
+  dt->replace_rowindex(newri);
+  return none();
+}
+
+
+
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   int final_ncols;
@@ -395,6 +408,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(check),
   METHODv(column),
   METHODv(delete_columns),
+  METHODv(replace_rowindex),
   METHODv(rbind),
   METHODv(cbind),
   METHODv(sort),
