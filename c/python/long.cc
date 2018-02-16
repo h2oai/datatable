@@ -101,6 +101,23 @@ template<> double PyyLong::value<double>(int* overflow) const {
 }
 
 
+template<> float PyyLong::value<float>(int* overflow) const {
+  static constexpr double max_float =
+    static_cast<double>(std::numeric_limits<float>::max());
+  double value = PyLong_AsDouble(obj);
+  if (value == -1 && PyErr_Occurred()) {
+    int sign = _PyLong_Sign(obj);
+    *overflow = 1;
+    return sign > 0 ? std::numeric_limits<float>::infinity()
+                    : -std::numeric_limits<float>::infinity();
+  } else {
+    *overflow = (value > max_float || value < -max_float);
+    // If value is greater than float_max, this cast should convert it to inf
+    return static_cast<float>(value);
+  }
+}
+
+
 template<typename T> T PyyLong::value(int* overflow) const {
   constexpr T MAX = std::numeric_limits<T>::max();
   long x = value<long>(overflow);
@@ -151,14 +168,14 @@ template<typename T> T PyyLong::masked_value() const {
 // Explicit instantiations
 //------------------------------------------------------------------------------
 
-template int8_t  PyyLong::value<int8_t >() const;
-template int16_t PyyLong::value<int16_t>() const;
-template int32_t PyyLong::value<int32_t>() const;
-template int64_t PyyLong::value<int64_t>() const;
-template double  PyyLong::value<double >() const;
-template int8_t  PyyLong::value<int8_t >(int*) const;
-template int16_t PyyLong::value<int16_t>(int*) const;
-template int32_t PyyLong::value<int32_t>(int*) const;
+template int8_t  PyyLong::value() const;
+template int16_t PyyLong::value() const;
+template int32_t PyyLong::value() const;
+template int64_t PyyLong::value() const;
+template double  PyyLong::value() const;
+template int8_t  PyyLong::value(int*) const;
+template int16_t PyyLong::value(int*) const;
+template int32_t PyyLong::value(int*) const;
 template int8_t  PyyLong::masked_value() const;
 template int16_t PyyLong::masked_value() const;
 template int32_t PyyLong::masked_value() const;

@@ -72,7 +72,12 @@ PyyFloat PyyFloat::fromAnyObject(PyObject* obj) {
 // Public API
 //------------------------------------------------------------------------------
 
-double PyyFloat::value() const {
-  return obj? PyFloat_AS_DOUBLE(obj) : GETNA<double>();
+template<typename T>
+T PyyFloat::value() const {
+  return obj? static_cast<T>(PyFloat_AS_DOUBLE(obj)) : GETNA<T>();
 }
 
+
+
+template float  PyyFloat::value() const;
+template double PyyFloat::value() const;

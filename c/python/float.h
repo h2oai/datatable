@@ -24,11 +24,15 @@ class PyyFloat {
     PyyFloat(PyyFloat&&);
     ~PyyFloat();
 
-    double value() const;
+    template <typename T> T value() const;
 
     static PyyFloat fromAnyObject(PyObject*);
     friend void swap(PyyFloat& first, PyyFloat& second) noexcept;
 };
 
+
+// Explicit instantiation
+extern template float  PyyFloat::value() const;
+extern template double PyyFloat::value() const;
 
 #endif

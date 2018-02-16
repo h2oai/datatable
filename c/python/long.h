@@ -53,12 +53,17 @@ class PyyLong {
 
 
 // Explicit specializations
+template<> float     PyyLong::value<float>(int*) const;
 template<> double    PyyLong::value<double>(int*) const;
 template<> long      PyyLong::value<long>(int*) const;
 template<> long long PyyLong::value<long long>(int*) const;
 template<> long long PyyLong::masked_value<long long>() const;
 
 // Forward-declare explicit instantiations
+extern template int8_t  PyyLong::value() const;
+extern template int16_t PyyLong::value() const;
+extern template int32_t PyyLong::value() const;
+extern template int64_t PyyLong::value() const;
 extern template int8_t  PyyLong::value(int*) const;
 extern template int16_t PyyLong::value(int*) const;
 extern template int32_t PyyLong::value(int*) const;

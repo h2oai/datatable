@@ -190,97 +190,140 @@ $(BUILDDIR)/_datatable.so: $(fast_objects)
 # Header files
 #-------------------------------------------------------------------------------
 
-$(BUILDDIR)/datatable.h: c/datatable.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
-	@echo • Refreshing c/datatable.h
-	@cp c/datatable.h $@
+$(BUILDDIR)/capi.h: c/capi.h
+	@echo • Refreshing c/capi.h
+	@cp c/capi.h $@
 
-$(BUILDDIR)/utils.h: c/utils.h $(BUILDDIR)/utils/exceptions.h
-	@echo • Refreshing c/utils.h
-	@cp c/utils.h $@
-
-$(BUILDDIR)/types.h: c/types.h
-	@echo • Refreshing c/types.h
-	@cp c/types.h $@
-
-$(BUILDDIR)/mmm.h: c/mmm.h
-	@echo • Refreshing c/mmm.h
-	@cp c/mmm.h $@
-
-$(BUILDDIR)/py_datawindow.h: c/py_datawindow.h
-	@echo • Refreshing c/py_datawindow.h
-	@cp c/py_datawindow.h $@
-
-$(BUILDDIR)/rowindex.h: c/rowindex.h $(BUILDDIR)/utils/array.h
-	@echo • Refreshing c/rowindex.h
-	@cp c/rowindex.h $@
-
-$(BUILDDIR)/py_rowindex.h: c/py_rowindex.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
-	@echo • Refreshing c/py_rowindex.h
-	@cp c/py_rowindex.h $@
-
-$(BUILDDIR)/encodings.h: c/encodings.h
-	@echo • Refreshing c/encodings.h
-	@cp c/encodings.h $@
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+	@echo • Refreshing c/column.h
+	@cp c/column.h $@
 
 $(BUILDDIR)/columnset.h: c/columnset.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/columnset.h
 	@cp c/columnset.h $@
 
-$(BUILDDIR)/py_column.h: c/py_column.h $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
-	@echo • Refreshing c/py_column.h
-	@cp c/py_column.h $@
-
-$(BUILDDIR)/py_types.h: c/py_types.h $(BUILDDIR)/datatable.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/assert.h
-	@echo • Refreshing c/py_types.h
-	@cp c/py_types.h $@
-
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
-	@echo • Refreshing c/column.h
-	@cp c/column.h $@
-
-$(BUILDDIR)/py_utils.h: c/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
-	@echo • Refreshing c/py_utils.h
-	@cp c/py_utils.h $@
-
-$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
-	@echo • Refreshing c/writebuf.h
-	@cp c/writebuf.h $@
-
-$(BUILDDIR)/capi.h: c/capi.h
-	@echo • Refreshing c/capi.h
-	@cp c/capi.h $@
-
-$(BUILDDIR)/py_encodings.h: c/py_encodings.h $(BUILDDIR)/encodings.h
-	@echo • Refreshing c/py_encodings.h
-	@cp c/py_encodings.h $@
-
-$(BUILDDIR)/py_columnset.h: c/py_columnset.h $(BUILDDIR)/datatable.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
-	@echo • Refreshing c/py_columnset.h
-	@cp c/py_columnset.h $@
-
-$(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/mmm.h $(BUILDDIR)/writebuf.h
-	@echo • Refreshing c/memorybuf.h
-	@cp c/memorybuf.h $@
-
-$(BUILDDIR)/sort.h: c/sort.h
-	@echo • Refreshing c/sort.h
-	@cp c/sort.h $@
-
-$(BUILDDIR)/py_datatable.h: c/py_datatable.h $(BUILDDIR)/datatable.h $(BUILDDIR)/py_utils.h
-	@echo • Refreshing c/py_datatable.h
-	@cp c/py_datatable.h $@
-
-$(BUILDDIR)/stats.h: c/stats.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/types.h
-	@echo • Refreshing c/stats.h
-	@cp c/stats.h $@
+$(BUILDDIR)/datatable.h: c/datatable.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
+	@echo • Refreshing c/datatable.h
+	@cp c/datatable.h $@
 
 $(BUILDDIR)/datatable_check.h: c/datatable_check.h
 	@echo • Refreshing c/datatable_check.h
 	@cp c/datatable_check.h $@
 
+$(BUILDDIR)/encodings.h: c/encodings.h
+	@echo • Refreshing c/encodings.h
+	@cp c/encodings.h $@
+
+$(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/mmm.h $(BUILDDIR)/writebuf.h
+	@echo • Refreshing c/memorybuf.h
+	@cp c/memorybuf.h $@
+
+$(BUILDDIR)/mmm.h: c/mmm.h
+	@echo • Refreshing c/mmm.h
+	@cp c/mmm.h $@
+
+$(BUILDDIR)/py_column.h: c/py_column.h $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
+	@echo • Refreshing c/py_column.h
+	@cp c/py_column.h $@
+
+$(BUILDDIR)/py_columnset.h: c/py_columnset.h $(BUILDDIR)/datatable.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
+	@echo • Refreshing c/py_columnset.h
+	@cp c/py_columnset.h $@
+
+$(BUILDDIR)/py_datatable.h: c/py_datatable.h $(BUILDDIR)/datatable.h $(BUILDDIR)/py_utils.h
+	@echo • Refreshing c/py_datatable.h
+	@cp c/py_datatable.h $@
+
+$(BUILDDIR)/py_datawindow.h: c/py_datawindow.h
+	@echo • Refreshing c/py_datawindow.h
+	@cp c/py_datawindow.h $@
+
+$(BUILDDIR)/py_encodings.h: c/py_encodings.h $(BUILDDIR)/encodings.h
+	@echo • Refreshing c/py_encodings.h
+	@cp c/py_encodings.h $@
+
+$(BUILDDIR)/py_rowindex.h: c/py_rowindex.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
+	@echo • Refreshing c/py_rowindex.h
+	@cp c/py_rowindex.h $@
+
+$(BUILDDIR)/py_types.h: c/py_types.h $(BUILDDIR)/datatable.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/assert.h
+	@echo • Refreshing c/py_types.h
+	@cp c/py_types.h $@
+
+$(BUILDDIR)/py_utils.h: c/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Refreshing c/py_utils.h
+	@cp c/py_utils.h $@
+
+$(BUILDDIR)/rowindex.h: c/rowindex.h $(BUILDDIR)/utils/array.h
+	@echo • Refreshing c/rowindex.h
+	@cp c/rowindex.h $@
+
+$(BUILDDIR)/sort.h: c/sort.h
+	@echo • Refreshing c/sort.h
+	@cp c/sort.h $@
+
+$(BUILDDIR)/stats.h: c/stats.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/types.h
+	@echo • Refreshing c/stats.h
+	@cp c/stats.h $@
+
+$(BUILDDIR)/types.h: c/types.h
+	@echo • Refreshing c/types.h
+	@cp c/types.h $@
+
+$(BUILDDIR)/utils.h: c/utils.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Refreshing c/utils.h
+	@cp c/utils.h $@
+
+$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
+	@echo • Refreshing c/writebuf.h
+	@cp c/writebuf.h $@
+
+
+$(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
+	@echo • Refreshing c/csv/dtoa.h
+	@cp c/csv/dtoa.h $@
+
+$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+	@echo • Refreshing c/csv/fread.h
+	@cp c/csv/fread.h $@
+
+$(BUILDDIR)/csv/freadLookups.h: c/csv/freadLookups.h
+	@echo • Refreshing c/csv/freadLookups.h
+	@cp c/csv/freadLookups.h $@
+
+$(BUILDDIR)/csv/itoa.h: c/csv/itoa.h
+	@echo • Refreshing c/csv/itoa.h
+	@cp c/csv/itoa.h $@
+
+$(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
+	@echo • Refreshing c/csv/py_csv.h
+	@cp c/csv/py_csv.h $@
+
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
+	@echo • Refreshing c/csv/reader.h
+	@cp c/csv/reader.h $@
+
+$(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h
+	@echo • Refreshing c/csv/reader_arff.h
+	@cp c/csv/reader_arff.h $@
+
+$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h
+	@echo • Refreshing c/csv/reader_fread.h
+	@cp c/csv/reader_fread.h $@
+
+$(BUILDDIR)/csv/reader_parsers.h: c/csv/reader_parsers.h $(BUILDDIR)/csv/fread.h
+	@echo • Refreshing c/csv/reader_parsers.h
+	@cp c/csv/reader_parsers.h $@
+
+$(BUILDDIR)/csv/writer.h: c/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/utils.h $(BUILDDIR)/writebuf.h
+	@echo • Refreshing c/csv/writer.h
+	@cp c/csv/writer.h $@
+
+
 $(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/expr/py_expr.h
 	@cp c/expr/py_expr.h $@
+
 
 $(BUILDDIR)/python/float.h: c/python/float.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/float.h
@@ -294,17 +337,22 @@ $(BUILDDIR)/python/long.h: c/python/long.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/long.h
 	@cp c/python/long.h $@
 
-$(BUILDDIR)/utils/file.h: c/utils/file.h
-	@echo • Refreshing c/utils/file.h
-	@cp c/utils/file.h $@
+
+$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Refreshing c/utils/array.h
+	@cp c/utils/array.h $@
+
+$(BUILDDIR)/utils/assert.h: c/utils/assert.h
+	@echo • Refreshing c/utils/assert.h
+	@cp c/utils/assert.h $@
 
 $(BUILDDIR)/utils/exceptions.h: c/utils/exceptions.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/utils/exceptions.h
 	@cp c/utils/exceptions.h $@
 
-$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
-	@echo • Refreshing c/utils/array.h
-	@cp c/utils/array.h $@
+$(BUILDDIR)/utils/file.h: c/utils/file.h
+	@echo • Refreshing c/utils/file.h
+	@cp c/utils/file.h $@
 
 $(BUILDDIR)/utils/omp.h: c/utils/omp.h
 	@echo • Refreshing c/utils/omp.h
@@ -314,49 +362,6 @@ $(BUILDDIR)/utils/pyobj.h: c/utils/pyobj.h
 	@echo • Refreshing c/utils/pyobj.h
 	@cp c/utils/pyobj.h $@
 
-$(BUILDDIR)/utils/assert.h: c/utils/assert.h
-	@echo • Refreshing c/utils/assert.h
-	@cp c/utils/assert.h $@
-
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
-	@echo • Refreshing c/csv/reader.h
-	@cp c/csv/reader.h $@
-
-$(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h
-	@echo • Refreshing c/csv/reader_arff.h
-	@cp c/csv/reader_arff.h $@
-
-$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
-	@echo • Refreshing c/csv/fread.h
-	@cp c/csv/fread.h $@
-
-$(BUILDDIR)/csv/reader_parsers.h: c/csv/reader_parsers.h $(BUILDDIR)/csv/fread.h
-	@echo • Refreshing c/csv/reader_parsers.h
-	@cp c/csv/reader_parsers.h $@
-
-$(BUILDDIR)/csv/itoa.h: c/csv/itoa.h
-	@echo • Refreshing c/csv/itoa.h
-	@cp c/csv/itoa.h $@
-
-$(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
-	@echo • Refreshing c/csv/py_csv.h
-	@cp c/csv/py_csv.h $@
-
-$(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
-	@echo • Refreshing c/csv/dtoa.h
-	@cp c/csv/dtoa.h $@
-
-$(BUILDDIR)/csv/writer.h: c/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/utils.h $(BUILDDIR)/writebuf.h
-	@echo • Refreshing c/csv/writer.h
-	@cp c/csv/writer.h $@
-
-$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h
-	@echo • Refreshing c/csv/reader_fread.h
-	@cp c/csv/reader_fread.h $@
-
-$(BUILDDIR)/csv/freadLookups.h: c/csv/freadLookups.h
-	@echo • Refreshing c/csv/freadLookups.h
-	@cp c/csv/freadLookups.h $@
 
 
 
@@ -504,7 +509,7 @@ $(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -532,7 +537,7 @@ $(BUILDDIR)/python/float.o : c/python/float.cc $(BUILDDIR)/python/float.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/list.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

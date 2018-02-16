@@ -6,6 +6,8 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/list.h"
+#include "python/long.h"
+#include "python/float.h"
 #include "utils/exceptions.h"
 
 
@@ -99,9 +101,16 @@ PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
 }
 
 
-PyyListEntry::operator PyObj() const {
-  return PyObj(PyList_GET_ITEM(list, i));
+PyObject* PyyListEntry::get() const {
+  return PyList_GET_ITEM(list, i);
 }
+
+
+PyyListEntry::operator PyObj() const { return PyObj(get()); }
+PyyListEntry::operator PyyList() const { return PyyList(get()); }
+PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
+PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }
+
 
 PyObject* PyyListEntry::as_new_ref() const {
   PyObject* res = PyList_GET_ITEM(list, i);

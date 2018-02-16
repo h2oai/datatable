@@ -207,27 +207,28 @@ static bool parse_as_double(PyyList& list, MemoryBuffer* membuf, size_t& from)
 }
 
 
-static void force_as_double(PyyList& list, MemoryBuffer* membuf)
+template <typename T>
+static void force_as_real(PyyList& list, MemoryBuffer* membuf)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows * sizeof(double));
-  double* outdata = static_cast<double*>(membuf->get());
+  membuf->resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(membuf->get());
 
   int overflow = 0;
   for (size_t i = 0; i < nrows; ++i) {
     PyObj item = list[i];
 
     if (item.is_none()) {
-      outdata[i] = GETNA<double>();
+      outdata[i] = GETNA<T>();
       continue;
     }
     if (item.is_long()) {
       PyyLong litem = item;
-      outdata[i] = litem.value<double>(&overflow);
+      outdata[i] = litem.value<T>(&overflow);
       continue;
     }
     PyyFloat fitem = item.is_float()? item : item.__float__();
-    outdata[i] = fitem.value();
+    outdata[i] = fitem.value<T>();
   }
   PyErr_Clear();  // in case an overflow occurred
 }
@@ -421,12 +422,11 @@ static int find_next_stype(int curr_stype, int stype0, int ltype0) {
 
 
 
-Column* Column::from_pylist(PyObject* pylist, int stype0, int ltype0)
+Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
 {
   if (stype0 && ltype0) {
     throw ValueError() << "Cannot fix both stype and ltype";
   }
-  PyyList list(pylist);
 
   MemoryBuffer* membuf = new MemoryMemBuf(0);
   MemoryBuffer* strbuf = nullptr;
@@ -441,7 +441,8 @@ Column* Column::from_pylist(PyObject* pylist, int stype0, int ltype0)
         case ST_INTEGER_I2:      force_as_int<int16_t>(list, membuf); break;
         case ST_INTEGER_I4:      force_as_int<int32_t>(list, membuf); break;
         case ST_INTEGER_I8:      force_as_int<int64_t>(list, membuf); break;
-        case ST_REAL_F8:         force_as_double(list, membuf); break;
+        case ST_REAL_F4:         force_as_real<float>(list, membuf); break;
+        case ST_REAL_F8:         force_as_real<double>(list, membuf); break;
         case ST_STRING_I4_VCHAR: force_as_str<int32_t>(list, membuf, strbuf); break;
         case ST_STRING_I8_VCHAR: force_as_str<int64_t>(list, membuf, strbuf); break;
         case ST_OBJECT_PYPTR:    parse_as_pyobj(list, membuf); break;

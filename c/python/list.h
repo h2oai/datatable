@@ -11,6 +11,8 @@
 #include "utils/pyobj.h"
 
 class PyyList;
+class PyyLong;
+class PyyFloat;
 
 
 class PyyListEntry {
@@ -22,10 +24,16 @@ class PyyListEntry {
     PyyListEntry(PyObject* list, Py_ssize_t i);
 
     operator PyObj() const;
+    operator PyyList() const;
+    operator PyyLong() const;
+    operator PyyFloat() const;
     PyyListEntry& operator=(PyObject*);
     PyyListEntry& operator=(const PyObj&);
 
     PyObject* as_new_ref() const;
+
+  private:
+    PyObject* get() const;
 };
 
 
