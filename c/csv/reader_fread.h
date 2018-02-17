@@ -15,7 +15,7 @@
 #include "memorybuf.h"
 
 class FreadLocalParseContext;
-
+class SimpleChunkedReader;
 
 
 //------------------------------------------------------------------------------
@@ -80,8 +80,7 @@ public:
   DataTablePtr read();
 
 private:
-  FieldParseContext makeFieldParseContext(
-      const char*& ch, field64* target, const char* anchor);
+  FieldParseContext makeFieldParseContext(field64* target, const char* anchor);
   void parse_column_names(FieldParseContext& ctx);
   void detect_sep(FieldParseContext& ctx);
   void userOverride();
@@ -89,6 +88,7 @@ private:
   DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;
+  friend SimpleChunkedReader;
 };
 
 

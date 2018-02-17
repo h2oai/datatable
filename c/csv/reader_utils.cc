@@ -334,8 +334,8 @@ void ChunkedDataReader::read_all()
         }
         // Allow each thread to perform any ordering it needs.
         tctx->order(row0);
-      } while (0);  // #omp ordered
-    } // #omp for(i in chunk0..nchunks) nowait
+      } while (0);  // #pragma omp ordered
+    } // #pragma omp ordered for nowait
 
     // Push the remaining data in the buffers
     if (!stop_team) {

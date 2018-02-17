@@ -64,10 +64,10 @@ FreadReader::~FreadReader() {
 
 
 FieldParseContext FreadReader::makeFieldParseContext(
-    const char*& ch, field64* target, const char* anchor
-) {
+    field64* target, const char* anchor)
+{
   return {
-    .ch = ch,
+    .ch = NULL,
     .target = target,
     .anchor = anchor,
     .eof = eof,

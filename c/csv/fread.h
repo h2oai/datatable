@@ -45,7 +45,7 @@ extern const uint8_t allowedseps[128];
 
 struct FieldParseContext {
   // Pointer to the current parsing location
-  const char*& ch;
+  const char* ch;
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
