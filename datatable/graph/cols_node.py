@@ -82,22 +82,6 @@ class SliceCSNode(ColumnSetNode):
     evaluate_llvm = evaluate_eager
 
 
-    def get_list(self):
-        start, count, step = self._start, self._count, self._step
-        if step > 0:
-            return list(range(start, start + count * step, step))
-        elif step < 0:
-            return list(range(start + (count - 1) * step, start - step, -step))
-        else:
-            return [start] * count
-
-
-    def is_all(self):
-        return (self._start == 0 and
-                self._step == 1 and
-                self._count == self._dt.ncols)
-
-
 
 #===============================================================================
 
@@ -113,9 +97,6 @@ class ArrayCSNode(ColumnSetNode):
                                        self._elems)
 
     evaluate_llvm = evaluate_eager
-
-    def get_list(self):
-        return self._elems
 
 
 
@@ -196,7 +177,7 @@ def make_columnset(arg, dt, cmod, _nested=False):
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
             return MixedCSNode(dt, [pcol], names=["V0"], cmodule=cmod)
 
-    if isinstance(arg, (types.GeneratorType, list, tuple)):
+    if isinstance(arg, (list, tuple)):
         isarray = True
         outcols = []
         colnames = []

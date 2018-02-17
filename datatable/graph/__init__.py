@@ -10,13 +10,12 @@ from .cols_node import SliceCSNode, ArrayCSNode
 from .sort_node import SortNode
 from .context import make_engine
 from .dtproxy import f
-from datatable.utils.typechecks import TValueError
 
-__all__ = ("make_datatable", "resolve_selector")
-
+__all__ = ("make_datatable", )
 
 
-def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
+
+def make_datatable(dt, rows, select, sort, engine):
     """
     Implementation of the `DataTable.__call__()` method.
 
@@ -39,28 +38,6 @@ def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
                     "Cannot yet apply sort argument to a view datatable or "
                     "combine with rows argument.")
 
-        if mode == "delete":
-            allcols = isinstance(colsnode, SliceCSNode) and colsnode.is_all()
-            allrows = isinstance(rowsnode, AllRFNode)
-            if allrows:
-                if allcols:
-                    dt._fill_from_dt(dt.__class__().internal)
-                    return
-                if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-                    colslist = sorted(set(colsnode.get_list()))
-                    dt._delete_columns(colslist)
-                    return
-                raise TValueError("Cannot delete non-existing columns")
-            elif allcols:
-                rowsnode.execute()
-                new_ri = ee.rowindex.inverse(dt.nrows)
-                dt.internal.replace_rowindex(new_ri)
-                dt._nrows = dt.internal.nrows
-                return
-            else:
-                raise NotImplementedError("Deleting rows + columns from a Frame"
-                                          " is not supported yet")
-
         # Select subset of rows + subset of columns. In this case columns can
         # be simply copied by reference, and then the resulting datatable will
         # be either a plain "data" table if rowindex selects all rows and the
@@ -82,21 +59,6 @@ def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
             res_dt = columns.to_datatable()
             return datatable.DataTable(res_dt, names=colsnode.column_names)
 
-    raise TValueError(  # pragma: no cover
+    raise RuntimeError(  # pragma: no cover
         "Unable to handle input (rows=%r, select=%r)"
         % (rows, select))
-
-
-
-def resolve_selector(item):
-    rows = None
-    if isinstance(item, tuple):
-        if len(item) == 1:
-            cols = item[0]
-        elif len(item) == 2:
-            rows, cols = item
-        else:
-            raise TValueError("Selector %r is not supported" % (item, ))
-    else:
-        cols = item
-    return (rows, cols)
