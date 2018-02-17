@@ -100,6 +100,7 @@ public:
 Error RuntimeError();
 Error TypeError();
 Error ValueError();
+Error OverflowError();
 Error MemoryError();
 Error NotImplError();
 Error IOError();

@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - simple Excel file reader.
 - It is now possible to select columns from DataTable by type: `df[int]` selects
   all integer columns from `df`.
+- Allow creating DataTable from list, while forcing a specific stype(s).
+- Added ability to delete rows from a DataTable: `del df[rows, :]`
 
 
 #### Changed

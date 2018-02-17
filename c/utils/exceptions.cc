@@ -135,12 +135,13 @@ void PyError::topython() const {
 
 //==============================================================================
 
-Error RuntimeError() { return Error(PyExc_RuntimeError); }
-Error TypeError()    { return Error(PyExc_TypeError); }
-Error ValueError()   { return Error(PyExc_ValueError); }
-Error MemoryError()  { return Error(PyExc_MemoryError); }
-Error NotImplError() { return Error(PyExc_NotImplementedError); }
-Error IOError()      { return Error(PyExc_IOError); }
+Error RuntimeError()  { return Error(PyExc_RuntimeError); }
+Error TypeError()     { return Error(PyExc_TypeError); }
+Error ValueError()    { return Error(PyExc_ValueError); }
+Error OverflowError() { return Error(PyExc_OverflowError); }
+Error MemoryError()   { return Error(PyExc_MemoryError); }
+Error NotImplError()  { return Error(PyExc_NotImplementedError); }
+Error IOError()       { return Error(PyExc_IOError); }
 
 
 

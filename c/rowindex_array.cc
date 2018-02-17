@@ -16,9 +16,6 @@
 #include "utils/assert.h"
 #include "utils/omp.h"
 
-typedef dt::array<int32_t> arr32_t;
-typedef dt::array<int64_t> arr64_t;
-
 
 
 //------------------------------------------------------------------------------
@@ -425,6 +422,50 @@ void ArrayRowIndexImpl::compactify()
   }
   ind64.resize(0);
   type = RowIndexType::RI_ARR32;
+}
+
+
+template <typename TI, typename TO>
+RowIndexImpl* ArrayRowIndexImpl::inverse_impl(
+    const dt::array<TI>& inputs, int64_t nrows) const
+{
+  size_t newsize = static_cast<size_t>(nrows - length);
+  size_t inpsize = inputs.size();
+  dt::array<TO> outputs(newsize);
+  TO orows = static_cast<TO>(nrows);
+
+  TO next_index_to_skip = static_cast<TO>(inputs[0]);
+  size_t j = 1;  // next index to read from the `inputs` array
+  size_t k = 0;  // next index to write into the `outputs` array
+  for (TO i = 0; i < orows; ++i) {
+    if (i == next_index_to_skip) {
+      next_index_to_skip =
+        j < inpsize? static_cast<TO>(inputs[j++]) : orows;
+      if (next_index_to_skip <= i) {
+        throw ValueError() << "Cannot invert RowIndex which is not sorted";
+      }
+    } else {
+      outputs[k++] = i;
+    }
+  }
+
+  return new ArrayRowIndexImpl(std::move(outputs), true);
+}
+
+
+RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
+  assert(nrows >= length);
+  if (type == RowIndexType::RI_ARR32) {
+    if (nrows <= INT32_MAX)
+      return inverse_impl<int32_t, int32_t>(ind32, nrows);
+    else
+      return inverse_impl<int32_t, int64_t>(ind32, nrows);
+  } else {
+    if (nrows <= INT32_MAX)
+      return inverse_impl<int64_t, int32_t>(ind64, nrows);
+    else
+      return inverse_impl<int64_t, int64_t>(ind64, nrows);
+  }
 }
 
 
