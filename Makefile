@@ -215,7 +215,6 @@ Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
 	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
 
 centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
-	mkdir -p $(DIST_DIR)/$(PLATFORM)
 	docker build \
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
@@ -228,8 +227,9 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-w /dot \
 		--entrypoint /bin/bash \
 		$(CONTAINER_NAME_TAG) \
-		-c 'python3.6 setup.py bdist_wheel && \
-		    mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)'
+		-c 'python3.6 setup.py bdist_wheel'
+	mkdir -p $(DIST_DIR)/$(PLATFORM)
+	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(CONTAINER_TAG) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
 mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
