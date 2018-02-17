@@ -208,9 +208,9 @@ CONTAINER_NAME ?= opsh2oai/dai-datatable$(CONTAINER_NAME_SUFFIX)
 
 PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
-BRANCH_NAME_SUFFIX = -$(BRANCH_NAME)
+BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
 BUILD_NUM ?= local
-BUILD_NUM_SUFFIX = -$(BUILD_NUM)
+BUILD_NUM_SUFFIX = .$(BUILD_NUM)
 CONTAINER_TAG = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
