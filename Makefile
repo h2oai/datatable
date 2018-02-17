@@ -179,7 +179,7 @@ main-fast: $(BUILDDIR)/_datatable.so
 # ------------------------------------------------------------
 #
 # New targets used in Jenkinsfile for DAI datatable build
-#    mrproper
+#    mrproper_in_docker
 #    centos7_in_docker
 #
 
@@ -230,12 +230,12 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-c 'python3.6 setup.py bdist_wheel'
 	echo $(CONTAINER_TAG) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
-rm_rf_dist_in_docker: Dockerfile-centos7.$(PLATFORM)
+mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
 	docker build \
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
 		.
-	docker run --rm --init -v `pwd`:/dot -w /dot --entrypoint /bin/bash $(CONTAINER_NAME_TAG) -c "rm -rf $(DIST_DIR)"
+	docker run --rm --init -v `pwd`:/dot -w /dot --entrypoint /bin/bash $(CONTAINER_NAME_TAG) -c "make mrproper"
 
 printvars:
 	@echo $(PLATFORM)
