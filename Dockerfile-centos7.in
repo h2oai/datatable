@@ -24,5 +24,6 @@ ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM4/bin:$PATH
 
 RUN pip install llvmlite==0.20.0 wheel
+RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
 COPY clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
 

@@ -155,6 +155,7 @@ def get_extra_compile_flags():
 
     # Include path to C++ header files
     flags += ["-I" + get_llvm() + "/include/c++/v1",
+	      "-I" + get_llvm() + "/include",
               "-isystem " + get_llvm() + "/include/c++/v1"]
 
     # This macro is needed to combat "-DNDEBUG" flag in default Python. This
