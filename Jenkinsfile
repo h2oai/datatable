@@ -306,7 +306,7 @@ pipeline {
                 unstash 'ppc64le-centos7'
                 sh 'echo "Stashed files:" && ls -l dist'
                 script {
-                    docker.withRegistry("https://${params.dockerRegistry}", "${params.dockerRegistry}") {
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
                         docker.image('s3cmd').inside {
                             def _version = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
                             s3up {
