@@ -211,7 +211,8 @@ BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
 BUILD_NUM ?= local
 BUILD_NUM_SUFFIX = .$(BUILD_NUM)
-CONTAINER_TAG = $(shell echo $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX) | sed 's/+/-/g')
+VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
+CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/+/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
@@ -245,7 +246,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-c 'python3.6 setup.py bdist_wheel'
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
 	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
-	echo $(CONTAINER_TAG) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
+	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
 mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
 	docker build \
@@ -257,6 +258,8 @@ mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
 printvars:
 	@echo $(PLATFORM)
 	@echo $(PROJECT_VERSION)
+	@echo $(VERSION)
+	@echo $(CONTAINER_TAG)
 
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
