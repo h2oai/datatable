@@ -73,6 +73,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 
 
 void DataTable::replace_rowindex(const RowIndex& newri) {
+  if (newri.isabsent() && rowindex.isabsent()) return;
   rowindex = newri;
   nrows = rowindex.length();
   for (int i = 0; i < ncols; ++i) {

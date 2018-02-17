@@ -7,7 +7,7 @@
 import pytest
 import sys
 import datatable as dt
-from datatable import stype, ltype
+from datatable import stype, ltype, f, isna
 from tests import same_iterables, list_equals
 
 
@@ -137,7 +137,7 @@ def test_dt_getitem(dt0):
 
 
 #-------------------------------------------------------------------------------
-# __delitem__
+# Delete columns
 #-------------------------------------------------------------------------------
 
 # Not a fixture: create a new datatable each time this function is called
@@ -248,6 +248,109 @@ def test_delitem_invalid_selectors():
         del d0[d0]
     with pytest.raises(TypeError):
         del d0[[1, 2, 1, 0.7]]
+
+
+
+#-------------------------------------------------------------------------------
+# Delete rows
+#-------------------------------------------------------------------------------
+
+def test_del_rows_single():
+    d0 = dt.DataTable(range(10))
+    del d0[3, :]
+    assert d0.internal.check()
+    assert d0.topython() == [[0, 1, 2, 4, 5, 6, 7, 8, 9]]
+
+
+def test_del_rows_slice0():
+    d0 = dt.DataTable(range(10))
+    del d0[:3, :]
+    assert d0.internal.check()
+    assert d0.shape == (7, 1)
+    assert d0.topython() == [list(range(3, 10))]
+
+
+def test_del_rows_slice1():
+    d0 = dt.DataTable(range(10))
+    del d0[-4:, :]
+    assert d0.internal.check()
+    assert d0.shape == (6, 1)
+    assert d0.topython() == [list(range(10 - 4))]
+
+
+def test_del_rows_slice2():
+    d0 = dt.DataTable(range(10))
+    del d0[2:6, :]
+    assert d0.internal.check()
+    assert d0.shape == (6, 1)
+    assert d0.topython() == [[0, 1, 6, 7, 8, 9]]
+
+
+def test_del_rows_slice_empty():
+    d0 = dt.DataTable(range(10))
+    del d0[4:4, :]
+    assert d0.internal.check()
+    assert d0.shape == (10, 1)
+    assert d0.topython() == [list(range(10))]
+
+
+def test_del_rows_slice_reverse():
+    d0 = dt.DataTable(range(10))
+    s0 = list(range(10))
+    del d0[:4:-1, :]
+    del s0[:4:-1]
+    assert d0.internal.check()
+    assert d0.topython() == [s0]
+
+
+def test_del_rows_slice_all():
+    d0 = dt.DataTable(range(10))
+    del d0[::-1, :]
+    assert d0.internal.check()
+    assert d0.shape == (0, 1)
+
+
+def test_del_all():
+    d0 = dt.DataTable(range(10))
+    del d0[:, :]
+    assert d0.internal.check()
+    assert d0.shape == (0, 0)
+
+
+def test_del_rows_slice_step():
+    d0 = dt.DataTable(range(10))
+    del d0[::3, :]
+    assert d0.internal.check()
+    assert d0.topython() == [[1, 2, 4, 5, 7, 8]]
+
+
+def test_del_rows_array():
+    d0 = dt.DataTable(range(10))
+    del d0[[0, 7, 8], :]
+    assert d0.internal.check()
+    assert d0.topython() == [[1, 2, 3, 4, 5, 6, 9]]
+
+
+@pytest.mark.skip("Not implemented")
+def test_del_rows_array_unordered():
+    d0 = dt.DataTable(range(10))
+    del d0[[3, 1, 5, 2, 2, 0, -1], :]
+    assert d0.internal.check()
+    assert d0.topython() == [[4, 6, 7, 8]]
+
+
+def test_del_rows_filter():
+    d0 = dt.DataTable(range(10), names=["A"], stype="int32")
+    del d0[f.A < 4, :]
+    assert d0.internal.check()
+    assert d0.topython() == [[4, 5, 6, 7, 8, 9]]
+
+
+def test_del_rows_nas():
+    d0 = dt.DataTable({"A": [1, 5, None, 12, 7, None, -3]})
+    del d0[isna(f.A), :]
+    assert d0.internal.check()
+    assert d0.topython() == [[1, 5, 12, 7, -3]]
 
 
 

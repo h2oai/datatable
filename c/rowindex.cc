@@ -117,8 +117,13 @@ RowIndex RowIndex::uplift(const RowIndex& ri2) const {
 RowIndex RowIndex::inverse(int64_t nrows) const {
   if (isabsent()) {
     // No RowIndex is equivalent to having RowIndex over all rows. The inverse
-    // of that is a RowIndex over no rows
+    // of that is a 0-length RowIndex.
     return RowIndex(new SliceRowIndexImpl(0, 0, 0));
+  }
+  if (length() == 0) {
+    // An inverse of a 0-length RowIndex is a RowIndex over all rows, which we
+    // return as an empty RowIndex object.
+    return RowIndex();
   }
   if (nrows < max()) {
     throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
