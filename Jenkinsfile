@@ -244,26 +244,24 @@ pipeline {
 
         stage('Publish centos7 snapshot to S3') {
             when {
-                // branch 'master'
-                branch 'tomk-centos7'
+                branch 'master'
             }
             agent {
                 label "linux && docker"
             }
             steps {
-                deleteDir()
+                sh "make mrproper"
                 unstash 'x86_64-centos7'
                 unstash 'ppc64le-centos7'
                 sh 'echo "Stashed files:" && find dist'
                 script {
                     docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
                         docker.image('s3cmd').inside {
-                            def _version = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
+                            def versionText = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
                             s3up {
                                 localArtifact = 'dist/*'
-                                // artifactId = "pydatatable"
-                                artifactId = "tomk-centos7-datatable-test"
-                                version = _version
+                                artifactId = "pydatatable"
+                                version = versionText
                                 keepPrivate = false
                             }
                         }
