@@ -48,9 +48,9 @@ def targetDir = "/tmp/pydatatable_large_data"
 // Data map for linking into container
 def linkMap = [ 
         "Data"      : "h2oai-benchmarks/Data",
-		"smalldata" : "h2o-3/smalldata",
-		"bigdata"   : "h2o-3/bigdata",
-		"fread"     : "h2o-3/fread",
+        "smalldata" : "h2o-3/smalldata",
+        "bigdata"   : "h2o-3/bigdata",
+        "fread"     : "h2o-3/fread",
     ]
 
 def dockerArgs = createDockerArgs(linkMap, sourceDir, targetDir)
@@ -72,7 +72,7 @@ pipeline {
             agent { label 'linux' }
             steps {
                 script {
-	                buildInfo(env.BRANCH_NAME, false)
+                    buildInfo(env.BRANCH_NAME, false)
                     project = load 'ci/default.groovy'
                     needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
                     if (needsLargerTest) {
@@ -232,7 +232,7 @@ pipeline {
 }
 
 def isModified(pattern) {
-	def fList = buildInfo.get().getChangedFiles().join('\n')
+    def fList = buildInfo.get().getChangedFiles().join('\n')
     out = sh(script: "echo '${fList}' | xargs basename | egrep -e '${pattern}' | wc -l", returnStdout: true).trim()
     return !(out.isEmpty() || out == "0")
 }
