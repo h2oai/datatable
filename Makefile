@@ -230,7 +230,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-c 'python3.6 setup.py bdist_wheel'
 	echo $(CONTAINER_TAG) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
-rm_rf_dist_in_docker:
+rm_rf_dist_in_docker: Dockerfile-centos7.$(PLATFORM)
 	docker build \
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
