@@ -22,7 +22,7 @@ from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
     TTypeError, TValueError, typed, U, is_type, DataTable_t,
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
-from datatable.graph import make_datatable
+from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
 from datatable.types import stype
 
@@ -482,16 +482,8 @@ class DataTable(object):
             dt[::-1]     # all rows of the datatable in reverse order
         etc.
         """
-        if isinstance(item, tuple):
-            if len(item) == 1:
-                return self(select=item[0])
-            if len(item) == 2:
-                return self(rows=item[0], select=item[1])
-            # if len(item) == 3:
-            #     return self(rows=item[0], select=item[1], groupby=item[2])
-            raise TValueError("Selector %r is not supported" % (item, ))
-        else:
-            return self(select=item)
+        rows, cols = resolve_selector(item)
+        return make_datatable(self, rows, cols)
 
 
     def __delitem__(self, item):
@@ -505,57 +497,8 @@ class DataTable(object):
             del dt["col5":"col9"]
             del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
         """
-        # TODO: should this all be implemented via __call__ ?
-        if isinstance(item, tuple) and len(item) == 2:
-            drows = item[0]
-            dcols = item[1]
-        else:
-            drows = None
-            dcols = item
-
-        if isinstance(drows, slice):
-            if (drows.start is None and drows.step is None and
-                    drows.stop is None):
-                drows = None
-
-        if isinstance(dcols, (str, int, slice)):
-            pcol = datatable.graph.cols_node.process_column(dcols, self)
-            if isinstance(pcol, int):
-                dcols = [pcol]
-            if isinstance(pcol, tuple):
-                start, count, step = pcol
-                if step < 0:
-                    start = start + step * (count - 1)
-                    step = -step
-                if start == 0 and count == self.ncols and step == 1:
-                    dcols = None
-                else:
-                    dcols = list(range(start, start + count * step, step))
-
-        elif isinstance(dcols, (GeneratorType, list, set)):
-            cols = set()
-            for it in dcols:
-                pcol = datatable.graph.cols_node.process_column(it, self)
-                if isinstance(pcol, int):
-                    cols.add(pcol)
-                else:
-                    raise TTypeError("Invalid column specifier %r" % (it,))
-            dcols = sorted(cols)
-
-        if drows is None:
-            if isinstance(dcols, list):
-                return self._delete_columns(dcols)
-            if dcols is None:
-                self._fill_from_dt(DataTable().internal)
-                return
-        elif dcols is None:
-            raise NotImplementedError("Deleting rows from datatable is not "
-                                      "supported yet")
-        else:
-            raise NotImplementedError("Deleting rows + columns from datatable "
-                                      "is not supported yet")
-
-        raise TTypeError("Cannot delete %r from the datatable" % (item,))
+        drows, dcols = resolve_selector(item)
+        return make_datatable(self, drows, dcols, mode="delete")
 
 
     def _delete_columns(self, cols):

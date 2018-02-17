@@ -216,6 +216,13 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
 }
 
 
+void Column::replace_rowindex(const RowIndex& newri) {
+  ri = newri;
+  nrows = ri.length();
+}
+
+
+
 Column::~Column() {
   delete stats;
   if (mbuf) mbuf->release();
@@ -257,6 +264,8 @@ Column* Column::countna_column() const {
   col->set_elem(0, countna());
   return col;
 }
+
+
 
 //------------------------------------------------------------------------------
 // Casting
