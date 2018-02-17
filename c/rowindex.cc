@@ -114,20 +114,6 @@ RowIndex RowIndex::uplift(const RowIndex& ri2) const {
 }
 
 
-RowIndex RowIndex::inverse(int64_t nrows) const {
-  if (isabsent()) {
-    // No RowIndex is equivalent to having RowIndex over all rows. The inverse
-    // of that is a RowIndex over no rows
-    return RowIndex(new SliceRowIndexImpl(0, 0, 0));
-  }
-  if (nrows < max()) {
-    throw ValueError() << "Invalid nrows=" << nrows << " for a RowIndex with "
-                          "largest index " << max();
-  }
-  return RowIndex(impl->inverse(nrows));
-}
-
-
 size_t RowIndex::memory_footprint() const {
   return sizeof(this) + (impl? impl->memory_footprint() : 0);
 }

@@ -214,13 +214,6 @@ def test_del_cols_list():
     assert d0.names == tuple("BCEGHIKLMNOP")
     assert d0.shape == (1, 12)
 
-def test_del_cols_multislice():
-    d0 = smalldt()
-    del d0[[slice(10), 12, -1]]
-    assert d0.internal.check()
-    assert d0.names == tuple("KLNO")
-    assert d0.shape == (1, 4)
-
 def test_del_cols_generator():
     d0 = smalldt()
     del d0[(i**2 for i in range(4))]
@@ -241,13 +234,15 @@ def test_delitem_invalid_selectors():
     invalidating other tests.
     """
     d0 = smalldt()
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         del d0[0.5]
-    assert "Unknown `select` argument: 0.5" in str(e.value)
-    with pytest.raises(ValueError):
+    assert "Cannot delete 0.5 from the datatable" in str(e.value)
+    with pytest.raises(TypeError):
         del d0[d0]
     with pytest.raises(TypeError):
         del d0[[1, 2, 1, 0.7]]
+    with pytest.raises(TypeError):
+        del d0[[slice(10), 2, 0]]
 
 
 
