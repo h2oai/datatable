@@ -231,8 +231,7 @@ pipeline {
                         script {
                             def ciVersionSuffix = utilsLib.getCiVersionSuffix()
                             sh """
-                                make rm_rf_dist_in_docker
-                                make mrproper
+                                make mrproper_in_docker
                                 make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
                             """
                         }
@@ -249,8 +248,7 @@ pipeline {
                         script {
                             def ciVersionSuffix = utilsLib.getCiVersionSuffix()
                             sh """
-                                make rm_rf_dist_in_docker
-                                make mrproper
+                                make mrproper_in_docker
                                 make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
                             """
                         }
