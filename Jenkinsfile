@@ -220,6 +220,46 @@ pipeline {
             }
         }
 
+        stage('Build all centos7') {
+            parallel {
+                stage('Build on x86_64-centos7') {
+                    agent {
+                        label "docker"
+                    }
+                    steps {
+                        dumpInfo 'x86_64-centos7 Build Info'
+                        script {
+                            def ciVersionSuffix = utilsLib.getCiVersionSuffix()
+                            sh """
+                                make rm_rf_dist_in_docker
+                                make mrproper
+                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                            """
+                        }
+                        stash includes: 'dist/**/*', name: 'x86_64-centos7'
+                    }
+                }
+
+                stage('Build on ppc64le-centos7') {
+                    agent {
+                        label "ibm-power"
+                    }
+                    steps {
+                        dumpInfo 'ppc64le-centos7 Build Info'
+                        script {
+                            def ciVersionSuffix = utilsLib.getCiVersionSuffix()
+                            sh """
+                                make rm_rf_dist_in_docker
+                                make mrproper
+                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                            """
+                        }
+                        stash includes: 'dist/**/*', name: 'ppc64le-centos7'
+                    }
+                }
+            }
+        }
+
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
@@ -247,6 +287,36 @@ pipeline {
                         majorVersion = _majorVersion
                         buildVersion = _buildVersion
                         keepPrivate = true
+                    }
+                }
+            }
+        }
+
+        stage('Publish centos7 snapshot to S3') {
+            when {
+                // branch 'master'
+                branch 'tomk-centos7'
+            }
+            agent {
+                label "linux && docker"
+            }
+            steps {
+                deleteDir()
+                unstash 'x86_64-centos7'
+                unstash 'ppc64le-centos7'
+                sh 'echo "Stashed files:" && ls -l dist'
+                script {
+                    docker.withRegistry("https://${params.dockerRegistry}", "${params.dockerRegistry}") {
+                        docker.image('s3cmd').inside {
+                            def _version = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
+                            s3up {
+                                localArtifact = 'dist/*'
+                                // artifactId = "pydatatable"
+                                artifactId = "tomk-centos7-datatable-test"
+                                version = _version
+                                keepPrivate = false
+                            }
+                        }
                     }
                 }
             }
