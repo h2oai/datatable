@@ -108,22 +108,36 @@ pipeline {
                         }
                     }
                 }
-/*
-                stage('Build on PPC64le') {
+                stage('Build on x86_64-centos7') {
                     agent {
-                        dockerfile {
-                            label "ibm-power"
-                            filename "Dockerfile.build"
-                        }
+                        label "docker"
                     }
                     steps {
+                        dumpInfo 'x86_64-centos7 Build Info'
                         script {
-                            def p = 'ppc64le_linux'
-                            project.build(p, CI_VERSION_SUFFIX, BUILD_MATRIX[p]['pythonBin'], BUILD_MATRIX[p]['env'])
+                            sh """
+                                make mrproper_in_docker
+                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                            """
                         }
+                        stash includes: 'dist/**/*', name: 'x86_64-centos7'
                     }
                 }
-                */
+                stage('Build on ppc64le-centos7') {
+                    agent {
+                        label "ibm-power"
+                    }
+                    steps {
+                        dumpInfo 'ppc64le-centos7 Build Info'
+                        script {
+                            sh """
+                                make mrproper_in_docker
+                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                            """
+                        }
+                        stash includes: 'dist/**/*', name: 'ppc64le-centos7'
+                    }
+                }
             }
         }
 
@@ -193,7 +207,6 @@ pipeline {
             }
         }
 
-       
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
@@ -222,6 +235,34 @@ pipeline {
                                 artifactId = "pydatatable"
                                 version = versionText
                                 keepPrivate = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Publish centos7 snapshot to S3') {
+            when {
+                branch 'master'
+            }
+            agent {
+                label "linux && docker"
+            }
+            steps {
+                sh "make mrproper"
+                unstash 'x86_64-centos7'
+                unstash 'ppc64le-centos7'
+                sh 'echo "Stashed files:" && find dist'
+                script {
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                        docker.image('s3cmd').inside {
+                            def versionText = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
+                            s3up {
+                                localArtifact = 'dist/*'
+                                artifactId = "pydatatable"
+                                version = versionText
+                                keepPrivate = false
                             }
                         }
                     }

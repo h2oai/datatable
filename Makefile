@@ -22,7 +22,7 @@ all:
 	$(MAKE) test
 
 
-clean:
+clean::
 	rm -rf .cache
 	rm -rf .eggs
 	rm -rf build
@@ -191,6 +191,77 @@ post-fast:
 main-fast: $(BUILDDIR)/_datatable.so
 	@echo • Done.
 
+# ------------------------------------------------------------
+#
+# New targets used in Jenkinsfile for DAI datatable build
+#    mrproper_in_docker
+#    centos7_in_docker
+#
+
+DIST_DIR = dist
+
+ARCH := $(shell arch)
+PLATFORM := $(ARCH)-centos7
+
+CONTAINER_NAME_SUFFIX ?= -$(USER)
+CONTAINER_NAME ?= opsh2oai/dai-datatable$(CONTAINER_NAME_SUFFIX)
+
+PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
+BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
+BRANCH_NAME_SUFFIX = -$(BRANCH_NAME)
+BUILD_NUM ?= local
+BUILD_NUM_SUFFIX = -$(BUILD_NUM)
+CONTAINER_TAG = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
+
+CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
+
+ARCH_SUBST = undefined
+FROM_SUBST = undefined
+ifeq ($(ARCH),x86_64)
+    FROM_SUBST = centos:7
+    ARCH_SUBST = $(ARCH)
+endif
+ifeq ($(ARCH),ppc64le)
+    FROM_SUBST = ibmcom\/centos-ppc64le
+    ARCH_SUBST = $(ARCH)
+endif
+
+Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
+	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
+
+centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
+	docker build \
+		-t $(CONTAINER_NAME_TAG) \
+		-f Dockerfile-centos7.$(PLATFORM) \
+		.
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		$(CONTAINER_NAME_TAG) \
+		-c 'python3.6 setup.py bdist_wheel'
+	mkdir -p $(DIST_DIR)/$(PLATFORM)
+	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
+	echo $(CONTAINER_TAG) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
+
+mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
+	docker build \
+		-t $(CONTAINER_NAME_TAG) \
+		-f Dockerfile-centos7.$(PLATFORM) \
+		.
+	docker run --rm --init -v `pwd`:/dot -w /dot --entrypoint /bin/bash $(CONTAINER_NAME_TAG) -c "make mrproper"
+
+printvars:
+	@echo $(PLATFORM)
+	@echo $(PROJECT_VERSION)
+
+clean::
+	rm -f Dockerfile-centos7.$(PLATFORM)
+
+# ------------------------------------------------------------
 
 $(BUILDDIR)/_datatable.so: $(fast_objects)
 	@echo • Linking object files into _datatable.so
