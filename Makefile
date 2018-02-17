@@ -223,11 +223,13 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 	docker run \
 		--rm \
 		--init \
+		-u `id -u`:`id -g` \
 		-v `pwd`:/dot \
 		-w /dot \
 		--entrypoint /bin/bash \
 		$(CONTAINER_NAME_TAG) \
-		-c 'python3.6 setup.py bdist_wheel'
+		-c 'python3.6 setup.py bdist_wheel && \
+		    mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)'
 	echo $(CONTAINER_TAG) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
 mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
