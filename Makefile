@@ -248,12 +248,9 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
-mrproper_in_docker: Dockerfile-centos7.$(PLATFORM)
-	docker build \
-		-t $(CONTAINER_NAME_TAG) \
-		-f Dockerfile-centos7.$(PLATFORM) \
-		.
-	docker run --rm --init -v `pwd`:/dot -w /dot --entrypoint /bin/bash $(CONTAINER_NAME_TAG) -c "make mrproper"
+# Note:  We don't actually need to run mrproper in docker (as root) because 
+#        the build step runs as the user.  But keep the API for consistency.
+mrproper_in_docker: mrproper
 
 printvars:
 	@echo $(PLATFORM)
