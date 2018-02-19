@@ -381,9 +381,11 @@ FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
   ) : LocalParseContext(bcols, brows), columns(f.columns)
 {
+  thPush = 0;
   anchor = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
+  verbose = f.g.verbose;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
@@ -473,6 +475,10 @@ void FreadLocalParseContext::orderBuffer() {
 
 
 void FreadLocalParseContext::push_buffers() {
+  // If the buffer is empty, then there's nothing to do...
+  if (!used_nrows) return;
+
+  double now = verbose? wallclock() : 0;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0, k = 0; i < ncols; i++) {
     const GReaderColumn& col = columns[i];
@@ -531,6 +537,7 @@ void FreadLocalParseContext::push_buffers() {
     j++;
   }
   used_nrows = 0;
+  if (verbose) thPush += wallclock() - now;
 }
 
 

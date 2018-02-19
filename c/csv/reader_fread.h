@@ -15,7 +15,7 @@
 #include "memorybuf.h"
 
 class FreadLocalParseContext;
-class SimpleChunkedReader;
+class FreadChunkedReader;
 
 
 //------------------------------------------------------------------------------
@@ -88,7 +88,7 @@ private:
   DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;
-  friend SimpleChunkedReader;
+  friend FreadChunkedReader;
 };
 
 
@@ -108,7 +108,9 @@ class FreadLocalParseContext : public LocalParseContext
     const char* anchor;
     int quoteRule;
     char quote;
-    int : 24;
+    bool verbose;
+    int : 16;
+    double thPush;
 
     GReaderColumns& columns;
     std::vector<StrBuf> strbufs;

@@ -202,18 +202,18 @@ void ChunkedDataReader::compute_chunking_strategy() {
 
 // Default implementation merely moves the pointer to the beginning of the
 // next line.
-const char* ChunkedDataReader::adjust_chunk_start(
-    const char* ch, const char* end
-) {
-  while (ch < end) {
-    if (*ch == '\r' || *ch == '\n') {
-      ch += 1 + (ch[0] + ch[1] == '\r' + '\n');
-      break;
-    }
-    ch++;
-  }
-  return ch;
-}
+// const char* ChunkedDataReader::adjust_chunk_start(
+//     const char* ch, const char* end
+// ) {
+//   while (ch < end) {
+//     if (*ch == '\r' || *ch == '\n') {
+//       ch += 1 + (ch[0] + ch[1] == '\r' + '\n');
+//       break;
+//     }
+//     ch++;
+//   }
+//   return ch;
+// }
 
 
 void ChunkedDataReader::read_all()
@@ -268,10 +268,14 @@ void ChunkedDataReader::read_all()
       if (stop_team) continue;
       tctx->push_buffers();
 
-      const char* chunkstart = inputptr + i * chunkdist;
-      const char* chunkend = chunkstart + chunksize;
-      if (i == nchunks - 1) chunkend = inputend;
-      if (i > 0) chunkstart = adjust_chunk_start(chunkstart, chunkend);
+      // Determine chunkstart & chunkend
+      const char* chunkstart = nthreads > 1 ? inputptr + i * chunkdist
+                                            : last_chunkend;
+      const char* chunkend = i < nchunks - 1 ? chunkstart + chunksize
+                                             : inputend;
+      if (nthreads > 1) {
+        adjust_chunk_boundaries(chunkstart, chunkend, i);
+      }
 
       tend = tctx->read_chunk(chunkstart, chunkend);
       tnrows = tctx->get_nrows();
