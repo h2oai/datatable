@@ -36,6 +36,11 @@ def save(df, dest, _strategy="auto"):
         pass
     else:
         os.makedirs(dest)
+
+    if df.internal.isview:
+        # Materialize before saving
+        df._dt = df.internal.materialize()
+
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w", encoding="utf-8") as out:
         out.write("# NFF1\n")
