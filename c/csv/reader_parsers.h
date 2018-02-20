@@ -13,18 +13,18 @@
 #include "csv/fread.h"
 
 
-void parse_mu(FieldParseContext&);
-void parse_bool8_numeric(FieldParseContext&);
-void parse_bool8_uppercase(FieldParseContext&);
-void parse_bool8_lowercase(FieldParseContext&);
-void parse_bool8_titlecase(FieldParseContext&);
-void parse_int32_simple(FieldParseContext&);
-void parse_int64_simple(FieldParseContext&);
-void parse_float32_hex(FieldParseContext&);
-void parse_float64_simple(FieldParseContext& ctx);
-void parse_float64_extended(FieldParseContext& ctx);
-void parse_float64_hex(FieldParseContext&);
-void parse_string(FieldParseContext&);
+void parse_mu(FreadTokenizer&);
+void parse_bool8_numeric(FreadTokenizer&);
+void parse_bool8_uppercase(FreadTokenizer&);
+void parse_bool8_lowercase(FreadTokenizer&);
+void parse_bool8_titlecase(FreadTokenizer&);
+void parse_int32_simple(FreadTokenizer&);
+void parse_int64_simple(FreadTokenizer&);
+void parse_float32_hex(FreadTokenizer&);
+void parse_float64_simple(FreadTokenizer& ctx);
+void parse_float64_extended(FreadTokenizer& ctx);
+void parse_float64_hex(FreadTokenizer&);
+void parse_string(FreadTokenizer&);
 
 
 //------------------------------------------------------------------------------

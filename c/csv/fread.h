@@ -43,7 +43,7 @@ extern const uint8_t allowedseps[128];
 
 
 
-struct FieldParseContext {
+struct FreadTokenizer {
   // Pointer to the current parsing location
   const char* ch;
 
@@ -94,7 +94,7 @@ struct FieldParseContext {
   bool skip_eol();
 };
 
-typedef void (*ParserFnPtr)(FieldParseContext& ctx);
+typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 
 
 #define NA_BOOL8         INT8_MIN

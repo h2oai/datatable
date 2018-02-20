@@ -63,7 +63,7 @@ FreadReader::~FreadReader() {
 }
 
 
-FieldParseContext FreadReader::makeFieldParseContext(
+FreadTokenizer FreadReader::makeTokenizer(
     field64* target, const char* anchor)
 {
   return {
@@ -94,13 +94,13 @@ class HypothesisPool;
 
 class Hypothesis {
   protected:
-    FieldParseContext& ctx;
+    FreadTokenizer& ctx;
     size_t nlines;
     bool invalid;
     int64_t : 56;
 
   public:
-    Hypothesis(FieldParseContext& c) : ctx(c), nlines(0), invalid(false) {}
+    Hypothesis(FreadTokenizer& c) : ctx(c), nlines(0), invalid(false) {}
     virtual ~Hypothesis() {}
     virtual void parse_next_line(HypothesisPool&) = 0;
     virtual double score() = 0;
@@ -128,7 +128,7 @@ class HypothesisQC : public Hypothesis {
     char qc;
     int64_t : 56;
   public:
-    HypothesisQC(FieldParseContext& c, char q, HypothesisNoQC* p)
+    HypothesisQC(FreadTokenizer& c, char q, HypothesisNoQC* p)
       : Hypothesis(c), parent(p), qc(q) {}
     void parse_next_line(HypothesisPool&) override {
       (void) parent;
@@ -146,7 +146,7 @@ class HypothesisNoQC : public Hypothesis {
     bool singleQuoteSeen;
     int64_t : 48;
   public:
-    HypothesisNoQC(FieldParseContext& ctx)
+    HypothesisNoQC(FreadTokenizer& ctx)
       : Hypothesis(ctx), chcounts(MaxSeps * HypothesisPool::MaxLines),
         doubleQuoteSeen(false), singleQuoteSeen(false) {}
 
@@ -229,7 +229,7 @@ class HypothesisNoQC : public Hypothesis {
  * H1: QC = «"», starting with QR1 = 0
  * H2: QC = «'», starting with QR2 = 0
  */
-void FreadReader::detect_sep(FieldParseContext&) {
+void FreadReader::detect_sep(FreadTokenizer&) {
 }
 
 
@@ -248,7 +248,7 @@ void FreadReader::detect_sep(FieldParseContext&) {
  * correctly, so that `parse_string()` can parse each field without error. If
  * not, a `RuntimeError` will be thrown.
  */
-void FreadReader::parse_column_names(FieldParseContext& ctx) {
+void FreadReader::parse_column_names(FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
   // Skip whitespace at the beginning of a line.
@@ -543,9 +543,9 @@ void FreadLocalParseContext::push_buffers() {
 
 
 //==============================================================================
-// FieldParseContext
+// FreadTokenizer
 //==============================================================================
-void parse_string(FieldParseContext&);
+void parse_string(FreadTokenizer&);
 
 
 /**
@@ -581,7 +581,7 @@ void parse_string(FieldParseContext&);
  * found in the file, in which case a standalone '\\r' will not be considered a
  * newline.
  */
-bool FieldParseContext::skip_eol() {
+bool FreadTokenizer::skip_eol() {
   // we call eol() when we expect to be at a newline, so optimize as if we are
   // at the end of line.
   if (*ch == '\n') {       // '\n\r' or '\n'
@@ -610,7 +610,7 @@ bool FieldParseContext::skip_eol() {
  * Return True iff `ch` is a valid field terminator character: either a field
  * separator or a newline.
  */
-bool FieldParseContext::end_of_field() {
+bool FreadTokenizer::end_of_field() {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
   // single check `tch<=13` is almost equivalent to checking whether `tch` is one
@@ -634,7 +634,7 @@ bool FieldParseContext::end_of_field() {
 }
 
 
-const char* FieldParseContext::end_NA_string(const char* fieldStart) {
+const char* FreadTokenizer::end_NA_string(const char* fieldStart) {
   const char* const* nastr = NAstrings;
   const char* mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
   while (*nastr) {
@@ -648,7 +648,7 @@ const char* FieldParseContext::end_NA_string(const char* fieldStart) {
 }
 
 
-void FieldParseContext::skip_white() {
+void FreadTokenizer::skip_white() {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
   if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
     while (*ch == ' ' || *ch == '\t') ch++;
@@ -666,7 +666,7 @@ void FieldParseContext::skip_white() {
  * be parsed using current settings, or 0 if the line is empty (even though an
  * empty line may be viewed as a single field).
  */
-int FieldParseContext::countfields()
+int FreadTokenizer::countfields()
 {
   const char* ch0 = ch;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
@@ -700,7 +700,7 @@ int FieldParseContext::countfields()
 }
 
 
-bool FieldParseContext::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
+bool FreadTokenizer::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
   const char* ch0 = ch;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
   // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n

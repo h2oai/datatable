@@ -22,13 +22,13 @@
  * and there is nothing to read nor parsing pointer to advance in an empty
  * column.
  */
-void parse_mu(FieldParseContext& ctx) {
+void parse_mu(FreadTokenizer& ctx) {
   ctx.target->int8 = NA_BOOL8;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
-void parse_bool8_numeric(FieldParseContext& ctx) {
+void parse_bool8_numeric(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
@@ -44,7 +44,7 @@ void parse_bool8_numeric(FieldParseContext& ctx) {
 
 
 /* Parse lowercase true | false as boolean. */
-void parse_bool8_lowercase(FieldParseContext& ctx) {
+void parse_bool8_lowercase(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -59,7 +59,7 @@ void parse_bool8_lowercase(FieldParseContext& ctx) {
 
 
 /* Parse titlecase True | False as boolean. */
-void parse_bool8_titlecase(FieldParseContext& ctx) {
+void parse_bool8_titlecase(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -74,7 +74,7 @@ void parse_bool8_titlecase(FieldParseContext& ctx) {
 
 
 /* Parse uppercase TRUE | FALSE as boolean. */
-void parse_bool8_uppercase(FieldParseContext& ctx) {
+void parse_bool8_uppercase(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx.target->int8 = 0;
@@ -97,7 +97,7 @@ void parse_bool8_uppercase(FieldParseContext& ctx) {
 // would occur)!
 // See microbench/fread/int32.cpp for performance tests
 //
-void parse_int32_simple(FieldParseContext& ctx) {
+void parse_int32_simple(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
@@ -130,7 +130,7 @@ void parse_int32_simple(FieldParseContext& ctx) {
 // Int64
 //------------------------------------------------------------------------------
 
-void parse_int64_simple(FieldParseContext& ctx) {
+void parse_int64_simple(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
@@ -162,7 +162,7 @@ void parse_int64_simple(FieldParseContext& ctx) {
 // Float32
 //------------------------------------------------------------------------------
 
-void parse_float32_hex(FieldParseContext& ctx) {
+void parse_float32_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint32_t neg;
   uint8_t digit;
@@ -234,7 +234,7 @@ void parse_float32_hex(FieldParseContext& ctx) {
  * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
  * whole part, fractional part, and the exponent respectively.
  */
-void parse_float64_simple(FieldParseContext& ctx) {
+void parse_float64_simple(FreadTokenizer& ctx) {
   constexpr int MAX_DIGITS = 18;
   const char* ch = ctx.ch;
 
@@ -351,7 +351,7 @@ void parse_float64_simple(FieldParseContext& ctx) {
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-void parse_float64_extended(FieldParseContext& ctx) {
+void parse_float64_extended(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg;
   bool quoted;
@@ -432,7 +432,7 @@ void parse_float64_extended(FieldParseContext& ctx) {
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-void parse_float64_hex(FieldParseContext& ctx) {
+void parse_float64_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg;
   uint8_t digit;
@@ -495,7 +495,7 @@ void parse_float64_hex(FieldParseContext& ctx) {
 //------------------------------------------------------------------------------
 
 // TODO: refactor into smaller pieces
-void parse_string(FieldParseContext& ctx) {
+void parse_string(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   const char quote = ctx.quote;
   const char sep = ctx.sep;

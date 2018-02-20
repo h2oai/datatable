@@ -138,7 +138,7 @@ class FreadChunkedReader {
     }
 
     void compute_chunk_boundaries(
-        size_t chunkIndex, FieldParseContext& fctx,
+        size_t chunkIndex, FreadTokenizer& fctx,
         const char* lastChunkEnd, const char*& start, const char*& end)
     {
       bool isFirstChunk = (chunkIndex == 0);
@@ -198,7 +198,7 @@ class FreadChunkedReader {
         const char* tChunkEnd;
 
         FLPCPtr ctx = init_thread_context();
-        FieldParseContext fctx = reader.makeFieldParseContext(ctx->tbuf, NULL);
+        FreadTokenizer fctx = reader.makeTokenizer(ctx->tbuf, NULL);
         size_t& myNrow = ctx->used_nrows;
         size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
 
@@ -549,7 +549,7 @@ DataTablePtr FreadReader::read()
                               //    lines of fewer)
 
     field64 trash;
-    FieldParseContext ctx = makeFieldParseContext(&trash, nullptr);
+    FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
     const char*& tch = ctx.ch;
 
     // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -708,7 +708,7 @@ DataTablePtr FreadReader::read()
     int8_t type0 = 1;
     columns.setType(type0);
     field64 trash;
-    FieldParseContext fctx = makeFieldParseContext(&trash, nullptr);
+    FreadTokenizer fctx = makeTokenizer(&trash, nullptr);
     const char*& tch = fctx.ch;
 
     // the size in bytes of the first JUMPLINES from the start (jump point 0)
@@ -968,7 +968,7 @@ DataTablePtr FreadReader::read()
   if (header == 1) {
     g.trace("[08] Assign column names");
     field64 tmp;
-    FieldParseContext fctx = makeFieldParseContext(&tmp, /* anchor= */ sof);
+    FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
     parse_column_names(fctx);
     sof = fctx.ch;  // Update sof to point to the first line after the columns
