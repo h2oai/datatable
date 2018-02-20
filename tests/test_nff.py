@@ -69,3 +69,14 @@ def test_obj_columns(tempdir):
     assert d1.shape == (4, 1)
     assert d1.names == ("A", )
     assert d1.topython() == [src1]
+
+
+def test_save_view(tempdir):
+    dt0 = dt.DataTable([4, 0, -2, 3, 17, 2, 0, 1, 5], names=["fancy"])
+    dt1 = dt0.sort(0)
+    assert dt1.internal.isview
+    dt.save(dt1, tempdir)
+    dt2 = dt.open(tempdir)
+    assert not dt2.internal.isview
+    assert dt2.names == dt1.names
+    assert dt2.topython() == dt1.topython()
