@@ -75,80 +75,54 @@ static ParserFnPtr parsers[NUMTYPE] = {
 
 typedef std::unique_ptr<FreadLocalParseContext> FLPCPtr;
 
-class FreadChunkedReader {
-  public:
-    int nth;
-    bool stopTeam;
-    bool showProgress;
-    bool verbose;
-    bool fill;
-    size_t initialBuffRows;
-    size_t rowSize;
-    FreadReader& reader;
-    size_t chunk0;
-    size_t nchunks;
-    double thRead, thPush;
+
+//------------------------------------------------------------------------------
+
+class ChunkOrganizer {
+  private:
+    size_t chunkCount;
     size_t chunkSize;
     size_t chunkDistance;
     const char* inputStart;
     const char* inputEnd;
-    size_t ncols;
-    int buffGrown;
-    bool skipEmptyLines;
-    bool any_number_like_NAstrings;
-    char sep;
-    char quote;
-    bool fillme;
-    bool chunksContiguous;
-    int64_t : 48;
-    char* stopErr;
-    size_t stopErrSize;
-    char* typeBumpMsg;
-    size_t typeBumpMsgSize;
-    int8_t* types;
-    int nTypeBump;
-    int nTypeBumpCols;
-    size_t row0;
-    size_t allocnrow;
-    size_t nrowLimit;
-    size_t extraAllocRows;
+    const char* lastChunkEnd;
+    double lineLength;
+    size_t nThreads;
 
   public:
-    // The abominable constructor
-    FreadChunkedReader(
-        int nthreads, bool stopTeam_, bool showProgress_, bool verbose_, bool fill_,
-        size_t buffNRows, size_t rowSize_, FreadReader& reader_, size_t jump0_, size_t nJumps_,
-        size_t chunkBytes_, const char* sof_, size_t ncols_, const char* lastRowEnd_,
-        bool skipEmptyLines_, bool anyNum, char sep_, char quote_, bool fillme_,
-        char* stopErr_, size_t stopErrSize_, char* typeBumpMsg_, size_t typeBumpMsgSize_,
-        int8_t* types_, size_t allocnrow_, size_t nrowLimit_
-    ) : nth(nthreads), stopTeam(stopTeam_), showProgress(showProgress_), verbose(verbose_),
-        fill(fill_), initialBuffRows(buffNRows), rowSize(rowSize_), reader(reader_),
-        chunk0(jump0_), nchunks(nJumps_), thRead(0), thPush(0), chunkSize(chunkBytes_),
-        chunkDistance(chunkBytes_), inputStart(sof_), inputEnd(lastRowEnd_), ncols(ncols_),
-        buffGrown(0), skipEmptyLines(skipEmptyLines_), any_number_like_NAstrings(anyNum),
-        sep(sep_), quote(quote_), fillme(fillme_), chunksContiguous(true), stopErr(stopErr_),
-        stopErrSize(stopErrSize_), typeBumpMsg(typeBumpMsg_), typeBumpMsgSize(typeBumpMsgSize_),
-        types(types_), nTypeBump(0), nTypeBumpCols(0), row0(0), allocnrow(allocnrow_),
-        nrowLimit(nrowLimit_), extraAllocRows(0) {}
-    ~FreadChunkedReader() {}
-
-    FLPCPtr init_thread_context() {
-      return FLPCPtr(new FreadLocalParseContext(rowSize/8, initialBuffRows, reader));
+    ChunkOrganizer(const char* start, const char* end, int nth, double len)
+      : chunkCount(0), chunkSize(0), chunkDistance(0),
+        inputStart(start), inputEnd(end), lastChunkEnd(start),
+        lineLength(len), nThreads(static_cast<size_t>(nth))
+    {
+      determine_chunking_strategy();
     }
 
-    void compute_chunk_boundaries(
-        size_t chunkIndex, FreadTokenizer& fctx,
-        const char* lastChunkEnd, const char*& start, const char*& end)
-    {
-      bool isFirstChunk = (chunkIndex == 0);
-      bool isLastChunk = (chunkIndex == nchunks - 1);
-      if (nth == 1 && chunksContiguous) {
+    size_t get_numChunks() const { return chunkCount; }
+    int get_nthreads() const { return static_cast<int>(nThreads); }
+    const char* get_lastChunkEnd() const { return lastChunkEnd; }
+
+    void set_nthreads(int nth) {
+      nThreads = static_cast<size_t>(nth);
+      determine_chunking_strategy();
+    }
+
+    void set_lastChunkEnd(const char* ptr) {
+      lastChunkEnd = ptr;
+    }
+
+    void compute_chunk_boundaries(size_t i, FLPCPtr& ctx) {
+      assert(i < chunkCount);
+      const char*& start = ctx->chunkStart;
+      const char*& end   = ctx->chunkEnd;
+      bool isFirstChunk = (i == 0);
+      bool isLastChunk = (i == chunkCount - 1);
+      if (nThreads == 1) {  // && chunksContiguous
         start = lastChunkEnd;
         end = isLastChunk? inputEnd : start + chunkSize;
         return;
       }
-      start = inputStart + chunkIndex * chunkDistance;
+      start = inputStart + i * chunkDistance;
 
       // Move the end of the chunk, similarly skipping all newline characters;
       // plus 1 more character, thus guaranteeing that the entire next line will
@@ -166,41 +140,118 @@ class FreadChunkedReader {
       // always starts at the beginning of the text.
       if (!isFirstChunk) {
         while (*start=='\n' || *start=='\r') start++;
-        fctx.ch = start;
-        bool ret = fctx.nextGoodLine((int)ncols, fill, skipEmptyLines);
-        if (!ret) {
-          #pragma omp critical
-          if (!stopTeam) {
-            stopTeam = true;
-            std::snprintf(stopErr, stopErrSize, "No good line could be found from jump point %zu\n", chunkIndex);
-          }
-        }
-        start = fctx.ch;
+        ctx->adjust_chunk_boundaries();
       }
+      assert(inputStart <= start && start <= end && end <= inputEnd);
+    }
+
+  private:
+    void determine_chunking_strategy() {
+      size_t totalSize = inputEnd - inputStart;
+      size_t size1000 = static_cast<size_t>(1000 * lineLength);
+      chunkSize = std::max<size_t>(size1000, 65536);
+      chunkCount = std::max<size_t>(totalSize / chunkSize, 1);
+      if (chunkCount > nThreads) {
+        chunkCount = nThreads * (1 + (chunkCount - 1)/nThreads);
+      } else {
+        nThreads = chunkCount;
+      }
+      chunkSize = chunkDistance = totalSize / chunkCount;
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+
+class FreadChunkedReader {
+  public:
+    bool stopTeam;
+    bool showProgress;
+    bool verbose;
+    bool fill;
+    bool fillme;
+    int : 24;
+    size_t rowSize;
+    FreadReader& reader;
+    size_t chunk0;
+    const char* inputStart;
+    const char* inputEnd;
+    size_t ncols;
+    int buffGrown;
+    bool skipEmptyLines;
+    bool any_number_like_NAstrings;
+    char sep;
+    char quote;
+    char* stopErr;
+    size_t stopErrSize;
+    char* typeBumpMsg;
+    size_t typeBumpMsgSize;
+    int8_t* types;
+    int nTypeBump;
+    int nTypeBumpCols;
+    size_t row0;
+    size_t allocnrow;
+    size_t nrowLimit;
+    size_t extraAllocRows;
+    double thRead, thPush;
+    ChunkOrganizer chunkster;
+
+  public:
+    // The abominable constructor
+    FreadChunkedReader(
+        int nthreads, bool showProgress_, bool verbose_, bool fill_,
+        size_t rowSize_, FreadReader& reader_, size_t jump0_,
+        const char* sof_, const char* lastRowEnd_,
+        bool skipEmptyLines_, bool anyNum, char sep_, char quote_, bool fillme_,
+        char* stopErr_, size_t stopErrSize_, char* typeBumpMsg_, size_t typeBumpMsgSize_,
+        int8_t* types_, size_t allocnrow_, size_t nrowLimit_
+    ) : stopTeam(false), showProgress(showProgress_), verbose(verbose_),
+        fill(fill_), fillme(fillme_), rowSize(rowSize_), reader(reader_),
+        chunk0(jump0_), inputStart(sof_), inputEnd(lastRowEnd_), ncols(reader.columns.size()),
+        buffGrown(0), skipEmptyLines(skipEmptyLines_), any_number_like_NAstrings(anyNum),
+        sep(sep_), quote(quote_), stopErr(stopErr_),
+        stopErrSize(stopErrSize_), typeBumpMsg(typeBumpMsg_), typeBumpMsgSize(typeBumpMsgSize_),
+        types(types_), nTypeBump(0), nTypeBumpCols(0), row0(0), allocnrow(allocnrow_),
+        nrowLimit(nrowLimit_), extraAllocRows(0), thRead(0), thPush(0),
+        chunkster(sof_, lastRowEnd_, nthreads, reader_.meanLineLen) {}
+    ~FreadChunkedReader() {}
+
+    FLPCPtr init_thread_context() {
+      size_t nchunks = chunkster.get_numChunks();
+      size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
+      size_t tcols = rowSize / 8;
+      return FLPCPtr(new FreadLocalParseContext(tcols, trows, reader));
     }
 
 
     //********************************//
     // Main function
     //********************************//
-    void read_all() {
-      const char* last_chunkend = inputStart;
-      #pragma omp parallel num_threads(nth)
+    void read_all()
+    {
+      size_t nchunks = 0;
+      #pragma omp parallel num_threads(chunkster.get_nthreads())
       {
         #pragma omp master
         {
-          nth = omp_get_num_threads();
+          chunkster.set_nthreads(omp_get_num_threads());
+          nchunks = chunkster.get_numChunks();
         }
+        // Wait for all threads here: we want all threads to have consistent
+        // view of the chunking parameters.
+        #pragma omp barrier
 
         int tIndex = omp_get_thread_num();
         bool tShowProgress = (tIndex == 0);
-        const char* tChunkStart;
-        const char* tChunkEnd;
 
         FLPCPtr ctx = init_thread_context();
-        FreadTokenizer fctx = reader.makeTokenizer(ctx->tbuf, NULL);
+        FreadTokenizer& fctx = ctx->tokenizer;
         size_t& myNrow = ctx->used_nrows;
-        size_t myBuffRows = initialBuffRows;  // Upon realloc, myBuffRows will increase to grown capacity
+        size_t& myBuffRows = ctx->tbuf_nrows;
+        const char*& tChunkStart = ctx->chunkStart;
+        const char*& tChunkEnd = ctx->chunkEnd;
 
         #pragma omp for ordered schedule(dynamic) reduction(+:thRead,thPush)
         for (size_t i = chunk0; i < nchunks; i++) {
@@ -217,11 +268,11 @@ class FreadChunkedReader {
 
           double tLast = verbose? wallclock() : 0.0;
 
-          compute_chunk_boundaries(i, fctx, last_chunkend, tChunkStart, tChunkEnd);
+          chunkster.compute_chunk_boundaries(i, ctx);
 
           fctx.target = ctx->tbuf;
-          fctx.anchor = tChunkStart;
-          fctx.ch = tChunkStart;
+          fctx.anchor = ctx->chunkStart;
+          fctx.ch = ctx->chunkStart;
 
           const char*& tch = fctx.ch;
           while (tch < tChunkEnd) {
@@ -404,6 +455,7 @@ class FreadChunkedReader {
           #pragma omp ordered
           {
             // stopTeam could be true if a previous thread already stopped while I was waiting my turn
+            const char* last_chunkend = chunkster.get_lastChunkEnd();
             if (!stopTeam && last_chunkend != tChunkStart && i > chunk0) {
               snprintf(stopErr, stopErrSize,
                 "Jump %zu did not finish counting rows exactly where jump %zu found its first good line start: "
@@ -438,9 +490,8 @@ class FreadChunkedReader {
                 stopTeam = true;
               }
             }
-                               // tell next thread (she not me) 2 things :
-            last_chunkend = tch; // i) the \n I finished on so she can check (above) she started exactly on that \n good line start
-            row0 += myNrow;     // ii) which row in the final result she should start writing to since now I know myNrow.
+            chunkster.set_lastChunkEnd(tch);
+            row0 += myNrow;
             ctx->used_nrows = myNrow;
             if (!stopTeam) ctx->orderBuffer();
           }
@@ -697,7 +748,7 @@ DataTablePtr FreadReader::read()
   //     At the same time, calc mean and sd of row lengths in sample for very
   //     good nrow estimate.
   //*********************************************************************************************
-  size_t nJumps;          // How many jumps to use when pre-scanning the file
+  size_t nChunks;          // How many jumps to use when pre-scanning the file
   size_t sampleLines;     // How many lines were sampled during the initial pre-scan
   size_t bytesRead;       // Bytes in the whole data section
   const char* lastRowEnd; // Pointer to the end of the data section
@@ -716,21 +767,21 @@ DataTablePtr FreadReader::read()
     // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
     // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
     // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
-    nJumps = 0;
+    nChunks = 0;
     size_t sz = (size_t)(eof - sof);
     if (jump0size>0) {
-      if (jump0size*100*2 < sz) nJumps=100;  // 100 jumps * 100 lines = 10,000 line sample
-      else if (jump0size*10*2 < sz) nJumps=10;
+      if (jump0size*100*2 < sz) nChunks=100;  // 100 jumps * 100 lines = 10,000 line sample
+      else if (jump0size*10*2 < sz) nChunks=10;
       // *2 to get a good spacing. We don't want overlaps resulting in double counting.
-      // nJumps==1 means the whole (small) file will be sampled with one thread
+      // nChunks==1 means the whole (small) file will be sampled with one thread
     }
-    nJumps++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
+    nChunks++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
     if (verbose) {
       if (jump0size==0)
-        DTPRINT("  Number of sampling jump points = %d because jump0size==0", nJumps);
+        DTPRINT("  Number of sampling jump points = %d because jump0size==0", nChunks);
       else
         DTPRINT("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
-                nJumps, sz, jump0size, sz/(2*jump0size));
+                nChunks, sz, jump0size, sz/(2*jump0size));
     }
 
     sampleLines = 0;
@@ -742,10 +793,10 @@ DataTablePtr FreadReader::read()
     lastRowEnd = sof;
     bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
     bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
-    for (size_t j = 0; j < nJumps; ++j) {
+    for (size_t j = 0; j < nChunks; ++j) {
       tch = (j == 0) ? sof :
-            (j == nJumps-1) ? eof - (size_t)(0.5*jump0size) :
-                              sof + j * (sz/(nJumps-1));
+            (j == nChunks-1) ? eof - (size_t)(0.5*jump0size) :
+                              sof + j * (sz/(nChunks-1));
       if (tch < lastRowEnd) tch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
       // Skip any potential newlines, in case we jumped in the middle of one.
       // In particular, it could be problematic if the file had '\n\r' newlines
@@ -762,8 +813,8 @@ DataTablePtr FreadReader::read()
       bool skip = false;
       int jline = 0;  // line from this jump point
 
-      while (tch < eof && (jline<JUMPLINES || j==nJumps-1)) {
-        // nJumps==1 implies sample all of input to eof; last jump to eof too
+      while (tch < eof && (jline<JUMPLINES || j==nChunks-1)) {
+        // nChunks==1 implies sample all of input to eof; last jump to eof too
         const char* jlineStart = tch;
         if (sep==' ') while (tch<eof && *tch==' ') tch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
         // detect blank lines
@@ -873,8 +924,8 @@ DataTablePtr FreadReader::read()
         if (thisLineLen>maxLen) maxLen=thisLineLen;
       }
       if (skip) continue;
-      if (j==nJumps-1) lastSampleJumpOk = true;
-      if (verbose && (bumped || j==0 || j==nJumps-1)) {
+      if (j==nChunks-1) lastSampleJumpOk = true;
+      if (verbose && (bumped || j==0 || j==nChunks-1)) {
         DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
       }
     }
@@ -935,14 +986,14 @@ DataTablePtr FreadReader::read()
       // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
       if (verbose) {
         DTPRINT("  =====");
-        DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nJumps);
+        DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
         DTPRINT("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
         DTPRINT("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
         DTPRINT("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
         DTPRINT("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
                  allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
       }
-      if (nJumps==1) {
+      if (nChunks==1) {
         if (header == 1) sampleLines--;
         estnrow = allocnrow = sampleLines;
         g.trace("All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
@@ -1045,51 +1096,28 @@ DataTablePtr FreadReader::read()
   char stopErr[stopErrSize+1] = "";  // must be compile time size: the message is generated and we can't free before STOP
   size_t row0 = 0;   // the current row number in DT that we are writing to
   int buffGrown = 0;
-  // chunkBytes is the distance between each jump point; it decides the number of jumps
-  // We may want each chunk to write to its own page of the final column, hence 1000*maxLen
-  // For the 44GB file with 12875 columns, the max line len is 108,497. We may want each chunk to write to its
-  // own page (4k) of the final column, hence 1000 rows of the smallest type (4 byte int) is just
-  // under 4096 to leave space for R's header + malloc's header.
-  size_t chunkBytes = std::max(static_cast<size_t>(1000*meanLineLen),
-                               static_cast<size_t>(64*1024));
   // Index of the first jump to read. May be modified if we ever need to restart
   // reading from the middle of the file.
   size_t jump0 = 0;
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
-  size_t ncols = columns.size();
-  size_t znth = static_cast<size_t>(nth);
-  bool fillme = fill || (ncols==1 && !skipEmptyLines);
+  bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
 
-  if (nJumps/*from sampling*/ > 1) {
-    // ensure data size is split into same sized chunks (no remainder in last chunk) and a multiple of nth
-    // when nth==1 we still split by chunk for consistency (testing) and code sanity
-    nJumps = bytesRead / chunkBytes;
-    if (nJumps == 0)   nJumps = 1;
-    if (nJumps > znth) nJumps = znth * (1 + (nJumps-1)/znth);
-    chunkBytes = bytesRead / nJumps;
-  } else {
-    nJumps = 1;
-  }
-  size_t initialBuffRows = allocnrow / nJumps;
-  if (initialBuffRows < 4) initialBuffRows = 4;
-  ASSERT(initialBuffRows <= INT32_MAX);
-  nth = (int) std::min(nJumps, znth);
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid untile `typesPtr` goes out of scope
 
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   g.trace("[11] Read the data");
-  g.trace("jumps=[%zu..%d), chunk_size=%zu, total_size=%zd, nthreads=%d",
-          jump0, nJumps, chunkBytes, lastRowEnd-sof, nth);
+  // g.trace("jumps=[%zu..%d), chunk_size=%zu, total_size=%zd, nthreads=%d",
+  //         jump0, nChunks, chunkBytes, lastRowEnd-sof, nth);
   ASSERT(allocnrow <= nrowLimit);
   if (sep == '\n') sep = '\xFF';
 
 
   {
-    FreadChunkedReader scr(nth, stopTeam, g.show_progress, verbose, fill, initialBuffRows,
-                           rowSize, *this, jump0, nJumps, chunkBytes, sof, ncols, lastRowEnd,
+    FreadChunkedReader scr(nth, g.show_progress, verbose, fill,
+                           rowSize, *this, jump0, sof, lastRowEnd,
                            skipEmptyLines, any_number_like_NAstrings, sep, quote, fillme,
                            stopErr, stopErrSize, typeBumpMsg, typeBumpMsgSize, types,
                            allocnrow, nrowLimit);
@@ -1110,9 +1138,6 @@ DataTablePtr FreadReader::read()
 
   if (stopTeam && stopErr[0]!='\0') {
     STOP(stopErr);
-  } else {
-    // nrowLimit applied and stopped early normally
-    stopTeam = false;
   }
   if (row0>allocnrow && nrowLimit>allocnrow) {
     STOP("Internal error: row0(%llu) > allocnrow(%llu) but nrows=%llu (not limited)",
@@ -1130,7 +1155,6 @@ DataTablePtr FreadReader::read()
     }
     columns.allocate(allocnrow);
     extraAllocRows = 0;
-    stopTeam = false;
     goto read;   // jump0>0 at this point, set above
   }
 
@@ -1141,6 +1165,7 @@ DataTablePtr FreadReader::read()
 
   if (firstTime) {
     tReread = tRead = wallclock();
+    size_t ncols = columns.size();
 
     // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
     // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
@@ -1196,14 +1221,12 @@ DataTablePtr FreadReader::read()
     DTPRINT("%8.3fs (%3.0f%%) Column type detection using %zd sample rows",
             tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
     DTPRINT("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
-            tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, ncols,
+            tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, columns.size(),
             totalAllocSize/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
     thRead /= nth;
     thPush /= nth;
     double thWaiting = tReread - tAlloc - thRead - thPush;
-    DTPRINT("%8.3fs (%3.0f%%) Reading %d chunks of %.3fMB (%d rows) using %d threads",
-            tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot, nJumps, (double)chunkBytes/(1024*1024),
-            (int)(chunkBytes/meanLineLen), nth);
+    DTPRINT("%8.3fs (%3.0f%%) Reading data", tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot);
     DTPRINT("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers (grown %d times)",
             thRead, 100.0*thRead/tTot, buffGrown);
     DTPRINT("   + %8.3fs (%3.0f%%) Transpose", thPush, 100.0*thPush/tTot);

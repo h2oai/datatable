@@ -106,20 +106,26 @@ class FreadLocalParseContext : public LocalParseContext
 {
   public:
     const char* anchor;
+    const char* chunkStart;
+    const char* chunkEnd;
     int quoteRule;
     char quote;
     bool verbose;
-    int : 16;
+    bool fill;
+    bool skipEmptyLines;
     double thPush;
 
+    FreadReader& freader;
     GReaderColumns& columns;
     std::vector<StrBuf> strbufs;
+    FreadTokenizer tokenizer;
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&);
     virtual ~FreadLocalParseContext();
     virtual void push_buffers() override;
     virtual const char* read_chunk(const char* start, const char* end) override;
+    void adjust_chunk_boundaries();
     void postprocess();
     void orderBuffer();
 };

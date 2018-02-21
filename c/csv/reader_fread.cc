@@ -379,13 +379,20 @@ DataTablePtr FreadReader::makeDatatable() {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f
-  ) : LocalParseContext(bcols, brows), columns(f.columns)
+  ) : LocalParseContext(bcols, brows),
+      freader(f),
+      columns(f.columns),
+      tokenizer(f.makeTokenizer(tbuf, NULL))
 {
   thPush = 0;
   anchor = nullptr;
+  chunkStart = nullptr;
+  chunkEnd = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
   verbose = f.g.verbose;
+  fill = f.g.fill;
+  skipEmptyLines = f.g.skip_blank_lines;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
@@ -398,6 +405,14 @@ FreadLocalParseContext::FreadLocalParseContext(
 }
 
 FreadLocalParseContext::~FreadLocalParseContext() {}
+
+
+void FreadLocalParseContext::adjust_chunk_boundaries() {
+  // TODO: nextGoodLine should be inlined here?
+  tokenizer.ch = chunkStart;
+  tokenizer.nextGoodLine(columns.size(), fill, skipEmptyLines);
+  chunkStart = tokenizer.ch;
+}
 
 
 const char* FreadLocalParseContext::read_chunk(const char*, const char*) {
