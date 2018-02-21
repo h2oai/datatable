@@ -12,6 +12,7 @@
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
 #include "memorybuf.h"
+#include "utils/assert.h"
 #include "utils/omp.h"
 #include "utils.h"
 
