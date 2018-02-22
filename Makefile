@@ -85,8 +85,9 @@ bi:
 
 
 coverage:
+	$(eval DTCOVERAGE := 1)
+	$(eval export DTCOVERAGE)
 	$(MAKE) clean
-	DTCOVERAGE=1 \
 	$(MAKE) build
 	$(MAKE) install
 	$(MAKE) test_install
@@ -248,7 +249,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
-# Note:  We don't actually need to run mrproper in docker (as root) because 
+# Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
 mrproper_in_docker: mrproper
 

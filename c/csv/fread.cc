@@ -1002,9 +1002,16 @@ DataTablePtr FreadReader::read()
     }
     // Push out all buffers one last time.
     if (myNrow) {
-      double now = verbose? wallclock() : 0;
-      ctx.push_buffers();
-      if (verbose) thRead += wallclock() - now;
+      if (stopTeam && stopErr[0]!='\0') {
+        // Stopped early because of error. Discard the content of the buffers,
+        // because they were not ordered, and trying to push them may lead to
+        // unexpected bugs...
+        ctx.used_nrows = 0;
+      } else {
+        double now = verbose? wallclock() : 0;
+        ctx.push_buffers();
+        if (verbose) thRead += wallclock() - now;
+      }
     }
   }
   //-- end parallel ------------------
