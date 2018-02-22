@@ -431,6 +431,7 @@ void FreadLocalParseContext::read_chunk() {
   bool stopTeam = false;
   const char*& tch = tokenizer.ch;
   tch = chunkStart;
+  used_nrows = 0;
   tokenizer.target = tbuf;
   tokenizer.anchor = anchor = chunkStart;
 
@@ -593,7 +594,12 @@ void FreadLocalParseContext::read_chunk() {
     }
     used_nrows++;
   }
-  chunkEnd = stopTeam? nullptr : tch;
+  if (stopTeam) {
+    chunkEnd = nullptr;
+  } else {
+    chunkEnd = tch;
+    postprocess();
+  }
 }
 
 
@@ -648,6 +654,7 @@ void FreadLocalParseContext::postprocess() {
 
 
 void FreadLocalParseContext::orderBuffer() {
+  if (!used_nrows) return;
   size_t nstrcols = strbufs.size();
   for (size_t k = 0; k < nstrcols; ++k) {
     size_t i = strbufs[k].idxdt;
@@ -683,11 +690,12 @@ void FreadLocalParseContext::push_buffers() {
       // any attempt to write the data may fail with data corruption
     } else if (col.type == CT_STRING) {
       WritableBuffer* wb = col.strdata;
-      size_t ptr = strbufs[k].ptr;
-      size_t sz = strbufs[k].sz;
-      field64* lo = tbuf + strbufs[k].idx8;
+      StrBuf& sb = strbufs[k];
+      size_t ptr = sb.ptr;
+      size_t sz = sb.sz;
+      field64* lo = tbuf + sb.idx8;
 
-      wb->write_at(ptr, sz, strbufs[k].mbuf->get());
+      wb->write_at(ptr, sz, sb.mbuf->get());
 
       int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
       int32_t iptr = (int32_t) ptr;

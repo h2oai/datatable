@@ -183,7 +183,8 @@ fast:
 	$(eval export CC CCFLAGS LDFLAGS EXTEXT)
 	@echo • Checking dependencies graph
 	@python fastcheck.py
-	@$(MAKE) --no-print-directory main-fast
+	@DTDEBUG=1 \
+	$(MAKE) --no-print-directory main-fast
 
 post-fast:
 	@echo • Copying _datatable.so into ``datatable/lib/_datatable$(EXTEXT)``
