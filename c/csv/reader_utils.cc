@@ -277,7 +277,7 @@ void ChunkedDataReader::read_all()
         adjust_chunk_boundaries(chunkstart, chunkend, i);
       }
 
-      tend = tctx->read_chunk(chunkstart, chunkend);
+      // tend = tctx->read_chunk(chunkstart, chunkend);
       tnrows = tctx->get_nrows();
       assert(tend >= chunkend);
 
@@ -302,7 +302,7 @@ void ChunkedDataReader::read_all()
         if (chunkstart != last_chunkend && chunks_contiguous) {
           tctx->set_nrows(0);
           chunkstart = last_chunkend;
-          tend = tctx->read_chunk(chunkstart, chunkend);
+          // tend = tctx->read_chunk(chunkstart, chunkend);
           tnrows = tctx->get_nrows();
         }
         size_t row0 = nrows_total;

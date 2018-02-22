@@ -670,6 +670,6 @@ $(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@

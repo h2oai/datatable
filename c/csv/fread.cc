@@ -35,7 +35,7 @@ int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,      
  * be called more than twice per single printf() invocation.
  * Parameter `limit` cannot exceed 500.
  */
-static const char* strlim(const char* ch, size_t limit) {
+const char* strlim(const char* ch, size_t limit) {
   static char buf[1002];
   static int flip = 0;
   char* ptr = buf + 501 * flip;
@@ -78,6 +78,17 @@ typedef std::unique_ptr<FreadLocalParseContext> FLPCPtr;
 
 //------------------------------------------------------------------------------
 
+/**
+ * Helper class whose responsibility is to determine how the input should be
+ * split into chunks, based on the size of the input, number of available
+ * threads, and the estimated line length.
+ *
+ * If the input is sufficiently small, then instead of making the chunks too
+ * small in size, this class will simply reduce the number of threads used.
+ * Call `get_nthreads()` to find the recommended number of threads. If OpenMP
+ * allocates less threads than requested, then you can call `set_nthreads()` to
+ * make this class re-evaluate the chunking strategy based on this information.
+ */
 class ChunkOrganizer {
   private:
     size_t chunkCount;
@@ -98,26 +109,28 @@ class ChunkOrganizer {
       determine_chunking_strategy();
     }
 
-    size_t get_numChunks() const { return chunkCount; }
+    size_t get_nchunks() const { return chunkCount; }
     int get_nthreads() const { return static_cast<int>(nThreads); }
-    const char* get_lastChunkEnd() const { return lastChunkEnd; }
 
     void set_nthreads(int nth) {
       nThreads = static_cast<size_t>(nth);
       determine_chunking_strategy();
     }
 
-    void set_lastChunkEnd(const char* ptr) {
-      lastChunkEnd = ptr;
-    }
-
+    /**
+     * Determine location (start and end) of the `i`-th chunk. The index `i`
+     * must be in the range [0..chunkCount). The computed chunk coordinates
+     * will be stored in `ctx->chunkStart` and `ctx->chunkEnd` variables.
+     * This method is thread-safe provided that different invocations pass
+     * different `ctx` objects.
+     */
     void compute_chunk_boundaries(size_t i, FLPCPtr& ctx) {
       assert(i < chunkCount);
       const char*& start = ctx->chunkStart;
       const char*& end   = ctx->chunkEnd;
       bool isFirstChunk = (i == 0);
       bool isLastChunk = (i == chunkCount - 1);
-      if (nThreads == 1) {  // && chunksContiguous
+      if (nThreads == 1) {
         start = lastChunkEnd;
         end = isLastChunk? inputEnd : start + chunkSize;
         return;
@@ -145,9 +158,26 @@ class ChunkOrganizer {
       assert(inputStart <= start && start <= end && end <= inputEnd);
     }
 
+    /**
+     * Ensure that the chunks were placed properly. This method must be called
+     * from the #ordered section, and given the actual start and end positions
+     * of the chunk currently being ordered. If this method returns NULL, it
+     * means the chunk was read correctly. Otherwise the returned value is the
+     * pointer to where the chunk should have started (the caller is expected
+     * to re-parse the chunk from that location, and then call this method
+     * again).
+     */
+    const char* order_chunk(const char* actualStart, const char* actualEnd) {
+      if (actualStart == lastChunkEnd) {
+        lastChunkEnd = actualEnd;
+        return nullptr;
+      }
+      return lastChunkEnd;
+    }
+
   private:
     void determine_chunking_strategy() {
-      size_t totalSize = inputEnd - inputStart;
+      size_t totalSize = static_cast<size_t>(inputEnd - inputStart);
       size_t size1000 = static_cast<size_t>(1000 * lineLength);
       chunkSize = std::max<size_t>(size1000, 65536);
       chunkCount = std::max<size_t>(totalSize / chunkSize, 1);
@@ -219,10 +249,11 @@ class FreadChunkedReader {
     ~FreadChunkedReader() {}
 
     FLPCPtr init_thread_context() {
-      size_t nchunks = chunkster.get_numChunks();
+      size_t nchunks = chunkster.get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
       size_t tcols = rowSize / 8;
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, reader));
+      return FLPCPtr(new FreadLocalParseContext(tcols, trows, reader, types, parsers,
+        typeBumpMsg, typeBumpMsgSize, stopErr, stopErrSize, fill));
     }
 
 
@@ -237,7 +268,7 @@ class FreadChunkedReader {
         #pragma omp master
         {
           chunkster.set_nthreads(omp_get_num_threads());
-          nchunks = chunkster.get_numChunks();
+          nchunks = chunkster.get_nchunks();
         }
         // Wait for all threads here: we want all threads to have consistent
         // view of the chunking parameters.
@@ -247,11 +278,6 @@ class FreadChunkedReader {
         bool tShowProgress = (tIndex == 0);
 
         FLPCPtr ctx = init_thread_context();
-        FreadTokenizer& fctx = ctx->tokenizer;
-        size_t& myNrow = ctx->used_nrows;
-        size_t& myBuffRows = ctx->tbuf_nrows;
-        const char*& tChunkStart = ctx->chunkStart;
-        const char*& tChunkEnd = ctx->chunkEnd;
 
         #pragma omp for ordered schedule(dynamic) reduction(+:thRead,thPush)
         for (size_t i = chunk0; i < nchunks; i++) {
@@ -260,219 +286,35 @@ class FreadChunkedReader {
             reader.progress(100.0*(i - 1)/nchunks);
           }
 
-          // Push buffers that were read on the previous iteration of the loop.
-          // A more proper place for this step would've been after the #ordered
-          // section, however we can't do that because of the limitations of
-          // OMP framework.
           ctx->push_buffers();
-
-          double tLast = verbose? wallclock() : 0.0;
 
           chunkster.compute_chunk_boundaries(i, ctx);
 
-          fctx.target = ctx->tbuf;
-          fctx.anchor = ctx->chunkStart;
-          fctx.ch = ctx->chunkStart;
+          ctx->read_chunk();
 
-          const char*& tch = fctx.ch;
-          while (tch < tChunkEnd) {
-            if (myNrow == myBuffRows) {
-              // buffer full due to unusually short lines in this chunk vs the sample; e.g. #2070
-              myBuffRows *= 1.5;
-              #pragma omp atomic
-              buffGrown++;
-              ctx->tbuf = (field64*) realloc(ctx->tbuf, rowSize * myBuffRows + 8);
-              if (ncols && !ctx->tbuf) {
-                stopTeam = true;
-                break;
-              }
-              // shift current buffer positions, since `myBuffX`s were probably moved by realloc
-              fctx.target = ctx->tbuf + myNrow * (rowSize / 8);
-            }
-            const char* tlineStart = tch;  // for error message
-            const char* fieldStart = tch;
-            size_t j = 0;
-
-            //*** START HOT ***//
-            if (sep!=' ' && !any_number_like_NAstrings) {  // TODO:  can this 'if' be dropped somehow? Can numeric NAstrings be dealt with afterwards in one go as numeric comparison?
-              // Try most common and fastest branch first: no whitespace, no quoted numeric, ",," means NA
-              while (j < ncols) {
-                fieldStart = tch;
-                // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
-                parsers[types[j]](fctx);
-                if (*tch != sep) break;
-                fctx.target += reader.columns[j].presentInBuffer;
-                tch++;
-                j++;
-              }
-              //*** END HOT. START TEPID ***//
-              if (tch == tlineStart) {
-                fctx.skip_white();
-                if (*tch=='\0') break;  // empty last line
-                if (skipEmptyLines && fctx.skip_eol()) continue;
-                tch = tlineStart;  // in case white space at the beginning may need to be included in field
-              }
-              else if (fctx.skip_eol() && j < ncols) {
-                fctx.target += reader.columns[j].presentInBuffer;
-                j++;
-                if (j==ncols) { myNrow++; continue; }  // next line. Back up to while (tch<tChunkEnd). Usually happens, fastest path
-                tch--;
-              }
-              else {
-                tch = fieldStart; // restart field as int processor could have moved to A in ",123A,"
-              }
-              // if *tch=='\0' then *eof in mind, fall through to below and, if finalByte is set, reread final field
-            }
-            //*** END TEPID. NOW COLD.
-
-            // Either whitespace surrounds field in which case the processor will fault very quickly, it's numeric but quoted (quote will fault the non-string processor),
-            // it contains an NA string, or there's an out-of-sample type bump needed.
-            // In all those cases we're ok to be a bit slower. The rest of this line will be processed using the slower version.
-            // (End-of-file) is also dealt with now, as could be the highly unusual line ending /n/r
-            // This way (each line has new opportunity of the fast path) if only a little bit of the file is quoted (e.g. just when commas are present as fwrite does)
-            // then a penalty isn't paid everywhere.
-            // TODO: reduce(slowerBranch++). So we can see in verbose mode if this is happening too much.
-
-            if (sep==' ') {
-              while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
-              fieldStart = tch;
-              if (skipEmptyLines && fctx.skip_eol()) continue;
-            }
-
-            if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
-              while (j < ncols) {
-                fieldStart = tch;
-                int8_t oldType = types[j];
-                int8_t newType = oldType;
-
-                while (newType < NUMTYPE) {
-                  tch = fieldStart;
-                  bool quoted = false;
-                  if (newType < CT_STRING && newType > CT_DROP) {
-                    fctx.skip_white();
-                    const char* afterSpace = tch;
-                    tch = fctx.end_NA_string(fieldStart);
-                    fctx.skip_white();
-                    if (!fctx.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
-                    if (*tch==quote) { quoted=true; tch++; }
-                  } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
-                  parsers[newType](fctx);
-                  if (quoted) {
-                    if (*tch==quote) tch++;
-                    else goto typebump;
-                  }
-                  fctx.skip_white();
-                  if (fctx.end_of_field()) {
-                    if (sep==' ' && *tch==' ') {
-                      while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
-                      if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;
-                    }
-                    break;
-                  }
-
-                  // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
-                  // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
-                  // sure a single re-read will definitely work.
-                  typebump:
-                  newType++;
-                  tch = fieldStart;
-                }
-
-                if (newType != oldType) {          // rare out-of-sample type exception.
-                  #pragma omp critical
-                  {
-                    oldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
-                    // Can't print because we're likely not master. So accumulate message and print afterwards.
-                    if (newType != oldType) {
-                      if (verbose) {
-                        char temp[1001];
-                        int len = snprintf(temp, 1000,
-                          "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                          j+1, reader.columns[j].name.data(), typeName[oldType], typeName[newType],
-                          (int)(tch-fieldStart), fieldStart, (llu)(ctx->row0+myNrow));
-                        typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
-                        strcpy(typeBumpMsg + typeBumpMsgSize, temp);
-                        typeBumpMsgSize += (size_t)len;
-                      }
-                      nTypeBump++;
-                      if (!reader.columns[j].typeBumped) nTypeBumpCols++;
-                      types[j] = newType;
-                      reader.columns[j].type = newType;
-                      reader.columns[j].typeBumped = true;
-                    } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
-                  }
-                }
-                fctx.target += reader.columns[j].presentInBuffer;
-                j++;
-                if (*tch==sep) { tch++; continue; }
-                if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
-                  // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
-                  // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
-                  // case should be handled explicitly.
-                  if (oldType == CT_STRING && reader.columns[j-1].presentInBuffer && fctx.target[-1].str32.length == 0) {
-                    fctx.target[-1].str32.setna();
-                  }
-                  continue;
-                }
-                break;
-              }
-            }
-
-            if (j < ncols)  {
-              // not enough columns observed (including empty line). If fill==true, fields should already have been filled above due to continue inside while(j<ncols)
-              #pragma omp critical
-              if (!stopTeam) {
-                stopTeam = true;
-                snprintf(stopErr, stopErrSize,
-                  "Expecting %zu cols but row %zu contains only %zu cols (sep='%c'). "
-                  "Consider fill=true. \"%s\"",
-                  ncols, ctx->row0, j, sep, strlim(tlineStart, 500));
-              }
-              break;
-            }
-            if (!(fctx.skip_eol() || *tch=='\0')) {
-              #pragma omp critical
-              if (!stopTeam) {
-                stopTeam = true;
-                snprintf(stopErr, stopErrSize,
-                  "Too many fields on out-of-sample row %zu from jump %zu. Read all %zu "
-                  "expected columns but more are present. \"%s\"",
-                  ctx->row0, i, ncols, strlim(tlineStart, 500));
-              }
-              break;
-            }
-            myNrow++;
+          if (!ctx->chunkEnd) {
+            stopTeam = true;
           }
 
-          if (verbose) {
-            double now = wallclock();
-            thRead += now - tLast;
-            tLast = now;
-          }
-          ctx->anchor = tChunkStart;
           ctx->postprocess();
 
           #pragma omp ordered
           {
-            // stopTeam could be true if a previous thread already stopped while I was waiting my turn
-            const char* last_chunkend = chunkster.get_lastChunkEnd();
-            if (!stopTeam && last_chunkend != tChunkStart && i > chunk0) {
-              snprintf(stopErr, stopErrSize,
-                "Jump %zu did not finish counting rows exactly where jump %zu found its first good line start: "
-                "prevEnd(%p)\"%s\" != thisStart(prevEnd%+d)\"%s\"",
-                i-1, i, (const void*)last_chunkend, strlim(last_chunkend, 50),
-                (int)(tChunkStart-last_chunkend), strlim(tChunkStart, 50));
+            size_t& used_nrows = ctx->used_nrows;
+            const char* newstart;
+            if ((newstart = chunkster.order_chunk(ctx->chunkStart, ctx->chunkEnd))) {
+              snprintf(stopErr, stopErrSize, "Unable to order chunk %zu\n", i);
               stopTeam = true;
             }
             ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer). The previous thread just told me.
             if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
               stopTeam = true;
-              myNrow = 0;
-            } else if (myNrow + ctx->row0 > allocnrow) {  // current thread has reached `allocnrow` limit
+              used_nrows = 0;
+            } else if (used_nrows + ctx->row0 > allocnrow) {  // current thread has reached `allocnrow` limit
               if (allocnrow == nrowLimit) {
                 // allocnrow is the same as nrowLimit, no need to reallocate the DT,
                 // just truncate the rows in the current chunk.
-                myNrow = nrowLimit - ctx->row0;
+                used_nrows = nrowLimit - ctx->row0;
               } else {
                 // We reached `allocnrow` limit, but there are more data to read
                 // left. In this case we arrange to terminate all threads but
@@ -480,19 +322,17 @@ class FreadChunkedReader {
                 // will reallocate the DT and restart reading from the same point.
                 chunk0 = i;
                 if (i < nchunks - 1) {
-                  extraAllocRows = (size_t)((double)(row0+myNrow)*nchunks/(i+1) * 1.2) - allocnrow;
+                  extraAllocRows = (size_t)((double)(row0+used_nrows)*nchunks/(i+1) * 1.2) - allocnrow;
                   if (extraAllocRows < 1024) extraAllocRows = 1024;
                 } else {
                   // If we're on the last jump, then we know exactly how many extra rows is needed.
-                  extraAllocRows = row0 + myNrow - allocnrow;
+                  extraAllocRows = row0 + used_nrows - allocnrow;
                 }
-                myNrow = 0;
+                used_nrows = 0;
                 stopTeam = true;
               }
             }
-            chunkster.set_lastChunkEnd(tch);
-            row0 += myNrow;
-            ctx->used_nrows = myNrow;
+            row0 += used_nrows;
             if (!stopTeam) ctx->orderBuffer();
           }
           // END ORDERED.
@@ -500,7 +340,7 @@ class FreadChunkedReader {
           // Ordered has to be last in some OpenMP implementations currently. Logically though, push_buffers happens now.
         }
         // Push out all buffers one last time.
-        if (myNrow) {
+        if (ctx->used_nrows) {
           if (stopTeam && stopErr[0]!='\0') {
             // Stopped early because of error. Discard the content of the buffers,
             // because they were not ordered, and trying to push them may lead to
@@ -511,6 +351,9 @@ class FreadChunkedReader {
             thPush += ctx->thPush;
           }
         }
+
+        #pragma omp atomic update
+        nTypeBump += ctx->nTypeBump;
       }
     }
 };
