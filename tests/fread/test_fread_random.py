@@ -19,6 +19,7 @@ import random
 from tests import random_string
 
 root_env_name = "DT_LARGE_TESTS_ROOT"
+env_coverage = "DTCOVERAGE"
 
 
 
@@ -30,7 +31,8 @@ def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
     # return [398276719]
     n = 25
-    if os.environ.get(root_env_name, "") != "":
+    if (os.environ.get(root_env_name, "") != "" and
+            os.environ.get(env_coverage, "") == ""):
         n = 500
     return [random.randint(0, 2**31) for _ in range(n)]
 
