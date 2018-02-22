@@ -154,7 +154,7 @@ pipeline {
                     steps {
                         script {
                             def p = 'x86_64_linux'
-                            project.coverage(p, BUILD_MATRIX[p]['pythonBin'], BUILD_MATRIX[p]['env'], needsLargerTest, targetDir)
+                            project.coverage(p, BUILD_MATRIX[p]['pythonBin'], BUILD_MATRIX[p]['env'], false, targetDir)
                         }
                     }
                 }
@@ -164,9 +164,8 @@ pipeline {
                     }
                     steps {
                         script {
-                            linkFolders(sourceDir, targetDir)
                             def p = 'x86_64_macos'
-                            project.coverage(p, BUILD_MATRIX[p]['pythonBin'], BUILD_MATRIX[p]['env'], needsLargerTest, targetDir)
+                            project.coverage(p, BUILD_MATRIX[p]['pythonBin'], BUILD_MATRIX[p]['env'], false, targetDir)
                         }
                     }
                 }
