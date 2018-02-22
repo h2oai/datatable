@@ -63,11 +63,11 @@ FreadReader::~FreadReader() {
 }
 
 
-FieldParseContext FreadReader::makeFieldParseContext(
-    const char*& ch, field64* target, const char* anchor
-) {
+FreadTokenizer FreadReader::makeTokenizer(
+    field64* target, const char* anchor)
+{
   return {
-    .ch = ch,
+    .ch = NULL,
     .target = target,
     .anchor = anchor,
     .eof = eof,
@@ -94,13 +94,13 @@ class HypothesisPool;
 
 class Hypothesis {
   protected:
-    FieldParseContext& ctx;
+    FreadTokenizer& ctx;
     size_t nlines;
     bool invalid;
     int64_t : 56;
 
   public:
-    Hypothesis(FieldParseContext& c) : ctx(c), nlines(0), invalid(false) {}
+    Hypothesis(FreadTokenizer& c) : ctx(c), nlines(0), invalid(false) {}
     virtual ~Hypothesis() {}
     virtual void parse_next_line(HypothesisPool&) = 0;
     virtual double score() = 0;
@@ -128,7 +128,7 @@ class HypothesisQC : public Hypothesis {
     char qc;
     int64_t : 56;
   public:
-    HypothesisQC(FieldParseContext& c, char q, HypothesisNoQC* p)
+    HypothesisQC(FreadTokenizer& c, char q, HypothesisNoQC* p)
       : Hypothesis(c), parent(p), qc(q) {}
     void parse_next_line(HypothesisPool&) override {
       (void) parent;
@@ -146,7 +146,7 @@ class HypothesisNoQC : public Hypothesis {
     bool singleQuoteSeen;
     int64_t : 48;
   public:
-    HypothesisNoQC(FieldParseContext& ctx)
+    HypothesisNoQC(FreadTokenizer& ctx)
       : Hypothesis(ctx), chcounts(MaxSeps * HypothesisPool::MaxLines),
         doubleQuoteSeen(false), singleQuoteSeen(false) {}
 
@@ -229,7 +229,7 @@ class HypothesisNoQC : public Hypothesis {
  * H1: QC = «"», starting with QR1 = 0
  * H2: QC = «'», starting with QR2 = 0
  */
-void FreadReader::detect_sep(FieldParseContext&) {
+void FreadReader::detect_sep(FreadTokenizer&) {
 }
 
 
@@ -248,7 +248,7 @@ void FreadReader::detect_sep(FieldParseContext&) {
  * correctly, so that `parse_string()` can parse each field without error. If
  * not, a `RuntimeError` will be thrown.
  */
-void FreadReader::parse_column_names(FieldParseContext& ctx) {
+void FreadReader::parse_column_names(FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
   // Skip whitespace at the beginning of a line.
@@ -378,12 +378,30 @@ DataTablePtr FreadReader::makeDatatable() {
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t bcols, size_t brows, FreadReader& f
-  ) : LocalParseContext(bcols, brows), columns(f.columns)
+    size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
+    ParserFnPtr* parsers_, char*& tbm, size_t& tbmsize, char*& se,
+    size_t& sesize, bool fill_
+  ) : LocalParseContext(bcols, brows),
+      types(types_),
+      freader(f),
+      columns(f.columns),
+      tokenizer(f.makeTokenizer(tbuf, NULL)),
+      parsers(parsers_),
+      typeBumpMsg(tbm), typeBumpMsgSize(tbmsize),
+      stopErr(se), stopErrSize(sesize)
 {
+  thPush = 0;
   anchor = nullptr;
+  chunkStart = nullptr;
+  chunkEnd = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
+  sep = f.sep;
+  verbose = f.g.verbose;
+  fill = fill_;
+  nTypeBump = 0;
+  skipEmptyLines = f.g.skip_blank_lines;
+  numbersMayBeNAs = f.g.number_is_na;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
@@ -398,8 +416,184 @@ FreadLocalParseContext::FreadLocalParseContext(
 FreadLocalParseContext::~FreadLocalParseContext() {}
 
 
-const char* FreadLocalParseContext::read_chunk(const char*, const char*) {
-  return nullptr;
+void FreadLocalParseContext::adjust_chunk_boundaries() {
+  // TODO: nextGoodLine should be inlined here?
+  tokenizer.ch = chunkStart;
+  tokenizer.nextGoodLine((int)columns.size(), fill, skipEmptyLines);
+  chunkStart = tokenizer.ch;
+}
+
+
+void FreadLocalParseContext::read_chunk() {
+  size_t ncols = columns.size();
+  bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
+  bool fastParsingAllowed = (sep != ' ') && !numbersMayBeNAs;
+  bool stopTeam = false;
+  const char*& tch = tokenizer.ch;
+  tch = chunkStart;
+  tokenizer.target = tbuf;
+  tokenizer.anchor = anchor = chunkStart;
+
+  while (tch < chunkEnd) {
+    if (used_nrows == tbuf_nrows) {
+      allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
+      tokenizer.target = tbuf + used_nrows * tbuf_ncols;
+    }
+    const char* tlineStart = tch;  // for error message
+    const char* fieldStart = tch;
+    size_t j = 0;
+
+    //*** START HOT ***//
+    if (fastParsingAllowed) {  // TODO:  can this 'if' be dropped somehow? Can numeric NAstrings be dealt with afterwards in one go as numeric comparison?
+      // Try most common and fastest branch first: no whitespace, no quoted numeric, ",," means NA
+      while (j < ncols) {
+        fieldStart = tch;
+        // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
+        parsers[types[j]](tokenizer);
+        if (*tch != sep) break;
+        tokenizer.target += columns[j].presentInBuffer;
+        tch++;
+        j++;
+      }
+      //*** END HOT. START TEPID ***//
+      if (tch == tlineStart) {
+        tokenizer.skip_white();
+        if (*tch=='\0') break;  // empty last line
+        if (skipEmptyLines && tokenizer.skip_eol()) continue;
+        tch = tlineStart;  // in case white space at the beginning may need to be included in field
+      }
+      else if (tokenizer.skip_eol() && j < ncols) {
+        tokenizer.target += columns[j].presentInBuffer;
+        j++;
+        if (j==ncols) { used_nrows++; continue; }  // next line. Back up to while (tch<chunkEnd). Usually happens, fastest path
+        tch--;
+      }
+      else {
+        tch = fieldStart; // restart field as int processor could have moved to A in ",123A,"
+      }
+      // if *tch=='\0' then *eof in mind, fall through to below and, if finalByte is set, reread final field
+    }
+    //*** END TEPID. NOW COLD.
+
+    // Either whitespace surrounds field in which case the processor will fault very quickly, it's numeric but quoted (quote will fault the non-string processor),
+    // it contains an NA string, or there's an out-of-sample type bump needed.
+    // In all those cases we're ok to be a bit slower. The rest of this line will be processed using the slower version.
+    // (End-of-file) is also dealt with now, as could be the highly unusual line ending /n/r
+    // This way (each line has new opportunity of the fast path) if only a little bit of the file is quoted (e.g. just when commas are present as fwrite does)
+    // then a penalty isn't paid everywhere.
+    // TODO: reduce(slowerBranch++). So we can see in verbose mode if this is happening too much.
+
+    if (sep==' ') {
+      while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
+      fieldStart = tch;
+      if (skipEmptyLines && tokenizer.skip_eol()) continue;
+    }
+
+    if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
+      while (j < ncols) {
+        fieldStart = tch;
+        int8_t oldType = types[j];
+        int8_t newType = oldType;
+
+        while (newType < NUMTYPE) {
+          tch = fieldStart;
+          bool quoted = false;
+          if (newType < CT_STRING && newType > CT_DROP) {
+            tokenizer.skip_white();
+            const char* afterSpace = tch;
+            tch = tokenizer.end_NA_string(fieldStart);
+            tokenizer.skip_white();
+            if (!tokenizer.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
+            if (*tch==quote) { quoted=true; tch++; }
+          } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
+          parsers[newType](tokenizer);
+          if (quoted) {
+            if (*tch==quote) tch++;
+            else goto typebump;
+          }
+          tokenizer.skip_white();
+          if (tokenizer.end_of_field()) {
+            if (sep==' ' && *tch==' ') {
+              while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
+              if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;
+            }
+            break;
+          }
+
+          // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
+          // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
+          // sure a single re-read will definitely work.
+          typebump:
+          newType++;
+          tch = fieldStart;
+        }
+
+        if (newType != oldType) {          // rare out-of-sample type exception.
+          #pragma omp critical
+          {
+            oldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
+            // Can't print because we're likely not master. So accumulate message and print afterwards.
+            if (newType != oldType) {
+              if (verbose) {
+                char temp[1001];
+                int len = snprintf(temp, 1000,
+                  "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
+                  j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
+                  (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
+                typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
+                strcpy(typeBumpMsg + typeBumpMsgSize, temp);
+                typeBumpMsgSize += (size_t)len;
+              }
+              nTypeBump++;
+              // if (!columns[j].typeBumped) nTypeBumpCols++;
+              types[j] = newType;
+              columns[j].type = newType;
+              columns[j].typeBumped = true;
+            } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
+          }
+        }
+        tokenizer.target += columns[j].presentInBuffer;
+        j++;
+        if (*tch==sep) { tch++; continue; }
+        if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
+          // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
+          // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
+          // case should be handled explicitly.
+          if (oldType == CT_STRING && columns[j-1].presentInBuffer && tokenizer.target[-1].str32.length == 0) {
+            tokenizer.target[-1].str32.setna();
+          }
+          continue;
+        }
+        break;
+      }
+    }
+
+    if (j < ncols)  {
+      // not enough columns observed (including empty line). If fill==true, fields should already have been filled above due to continue inside while(j<ncols)
+      #pragma omp critical
+      if (!stopTeam) {
+        stopTeam = true;
+        snprintf(stopErr, stopErrSize,
+          "Expecting %zu cols but row %zu contains only %zu cols (sep='%c'). "
+          "Consider fill=true. \"%s\"",
+          ncols, row0, j, sep, strlim(tlineStart, 500));
+      }
+      break;
+    }
+    if (!(tokenizer.skip_eol() || *tch=='\0')) {
+      #pragma omp critical
+      if (!stopTeam) {
+        stopTeam = true;
+        snprintf(stopErr, stopErrSize,
+          "Too many fields on out-of-sample row %zu. Read all %zu "
+          "expected columns but more are present. \"%s\"",
+          row0, ncols, strlim(tlineStart, 500));
+      }
+      break;
+    }
+    used_nrows++;
+  }
+  chunkEnd = stopTeam? nullptr : tch;
 }
 
 
@@ -474,6 +668,10 @@ void FreadLocalParseContext::orderBuffer() {
 
 
 void FreadLocalParseContext::push_buffers() {
+  // If the buffer is empty, then there's nothing to do...
+  if (!used_nrows) return;
+
+  double now = verbose? wallclock() : 0;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0, k = 0; i < ncols; i++) {
     const GReaderColumn& col = columns[i];
@@ -531,14 +729,15 @@ void FreadLocalParseContext::push_buffers() {
     j++;
   }
   used_nrows = 0;
+  if (verbose) thPush += wallclock() - now;
 }
 
 
 
 //==============================================================================
-// FieldParseContext
+// FreadTokenizer
 //==============================================================================
-void parse_string(FieldParseContext&);
+void parse_string(FreadTokenizer&);
 
 
 /**
@@ -574,7 +773,7 @@ void parse_string(FieldParseContext&);
  * found in the file, in which case a standalone '\\r' will not be considered a
  * newline.
  */
-bool FieldParseContext::skip_eol() {
+bool FreadTokenizer::skip_eol() {
   // we call eol() when we expect to be at a newline, so optimize as if we are
   // at the end of line.
   if (*ch == '\n') {       // '\n\r' or '\n'
@@ -603,7 +802,7 @@ bool FieldParseContext::skip_eol() {
  * Return True iff `ch` is a valid field terminator character: either a field
  * separator or a newline.
  */
-bool FieldParseContext::end_of_field() {
+bool FreadTokenizer::end_of_field() {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
   // single check `tch<=13` is almost equivalent to checking whether `tch` is one
@@ -627,7 +826,7 @@ bool FieldParseContext::end_of_field() {
 }
 
 
-const char* FieldParseContext::end_NA_string(const char* fieldStart) {
+const char* FreadTokenizer::end_NA_string(const char* fieldStart) {
   const char* const* nastr = NAstrings;
   const char* mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
   while (*nastr) {
@@ -641,7 +840,7 @@ const char* FieldParseContext::end_NA_string(const char* fieldStart) {
 }
 
 
-void FieldParseContext::skip_white() {
+void FreadTokenizer::skip_white() {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
   if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
     while (*ch == ' ' || *ch == '\t') ch++;
@@ -659,7 +858,7 @@ void FieldParseContext::skip_white() {
  * be parsed using current settings, or 0 if the line is empty (even though an
  * empty line may be viewed as a single field).
  */
-int FieldParseContext::countfields()
+int FreadTokenizer::countfields()
 {
   const char* ch0 = ch;
   if (sep==' ') while (*ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
@@ -693,7 +892,7 @@ int FieldParseContext::countfields()
 }
 
 
-bool FieldParseContext::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
+bool FreadTokenizer::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
   const char* ch0 = ch;
   // we may have landed inside quoted field containing embedded sep and/or embedded \n
   // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n

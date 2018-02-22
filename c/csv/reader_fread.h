@@ -15,7 +15,7 @@
 #include "memorybuf.h"
 
 class FreadLocalParseContext;
-
+class FreadChunkedReader;
 
 
 //------------------------------------------------------------------------------
@@ -80,15 +80,15 @@ public:
   DataTablePtr read();
 
 private:
-  FieldParseContext makeFieldParseContext(
-      const char*& ch, field64* target, const char* anchor);
-  void parse_column_names(FieldParseContext& ctx);
-  void detect_sep(FieldParseContext& ctx);
+  FreadTokenizer makeTokenizer(field64* target, const char* anchor);
+  void parse_column_names(FreadTokenizer& ctx);
+  void detect_sep(FreadTokenizer& ctx);
   void userOverride();
   void progress(double percent);
   DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;
+  friend FreadChunkedReader;
 };
 
 
@@ -106,18 +106,40 @@ class FreadLocalParseContext : public LocalParseContext
 {
   public:
     const char* anchor;
+    const char* chunkStart;
+    const char* chunkEnd;
     int quoteRule;
     char quote;
-    int : 24;
+    char sep;
+    bool verbose;
+    bool fill;
+    bool skipEmptyLines;
+    bool numbersMayBeNAs;
+    int64_t : 16;
+    int nTypeBump;
+    double thPush;
+    int8_t* types;
 
+    FreadReader& freader;
     GReaderColumns& columns;
     std::vector<StrBuf> strbufs;
+    FreadTokenizer tokenizer;
+    ParserFnPtr* parsers;
+
+    char*& typeBumpMsg;
+    size_t& typeBumpMsgSize;
+    char*& stopErr;
+    size_t& stopErrSize;
 
   public:
-    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&);
+    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
+                           ParserFnPtr* parsers, char*& typeBumpMsg,
+                           size_t& typeBumpMsgSize, char*& stopErr,
+                           size_t& stopErrSize, bool fill);
     virtual ~FreadLocalParseContext();
     virtual void push_buffers() override;
-    virtual const char* read_chunk(const char* start, const char* end) override;
+    void read_chunk();
+    void adjust_chunk_boundaries();
     void postprocess();
     void orderBuffer();
 };
