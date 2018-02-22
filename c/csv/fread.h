@@ -132,9 +132,10 @@ typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 //
 struct StrBuf {
   MemoryBuffer* mbuf;
-  size_t ptr;
   size_t idx8;
   size_t idxdt;
+  size_t ptr;
+  size_t sz;
 
   StrBuf(size_t allocsize, size_t i8, size_t idt) {
     mbuf = new MemoryMemBuf(allocsize);

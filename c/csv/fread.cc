@@ -500,8 +500,17 @@ class FreadChunkedReader {
           // Ordered has to be last in some OpenMP implementations currently. Logically though, push_buffers happens now.
         }
         // Push out all buffers one last time.
-        ctx->push_buffers();
-        thPush += ctx->thPush;
+        if (myNrow) {
+          if (stopTeam && stopErr[0]!='\0') {
+            // Stopped early because of error. Discard the content of the buffers,
+            // because they were not ordered, and trying to push them may lead to
+            // unexpected bugs...
+            ctx->used_nrows = 0;
+          } else {
+            ctx->push_buffers();
+            thPush += ctx->thPush;
+          }
+        }
       }
     }
 };

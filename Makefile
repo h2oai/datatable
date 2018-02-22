@@ -1,11 +1,17 @@
 BUILDDIR := build/fast
-PYTHON ?= python
-OS := $(shell uname | tr A-Z a-z)
-MODULE ?= .
+PYTHON   ?= python
+MODULE   ?= .
 
+# Platform details
+OS       := $(shell uname | tr A-Z a-z)
+ARCH     := $(shell uname -m)
+PLATFORM := $(ARCH)-$(OS)
+
+# Distribution directory
+DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug build_noomp bi coverage fast
+		benchmark debug build_noomp bi coverage fast dist
 .SECONDARY: main-fast
 
 
@@ -16,7 +22,7 @@ all:
 	$(MAKE) test
 
 
-clean:
+clean::
 	rm -rf .cache
 	rm -rf .eggs
 	rm -rf build
@@ -53,7 +59,7 @@ test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
 	$(PYTHON) -m pytest -ra \
-		--junit-prefix=$(OS) \
+		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
@@ -79,8 +85,9 @@ bi:
 
 
 coverage:
+	$(eval DTCOVERAGE := 1)
+	$(eval export DTCOVERAGE)
 	$(MAKE) clean
-	DTCOVERAGE=1 \
 	$(MAKE) build
 	$(MAKE) install
 	$(MAKE) test_install
@@ -97,7 +104,14 @@ coverage:
 	genhtml build/coverage.info --output-directory build/coverage-c
 	mv .coverage build/
 
+dist: build
+	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
 
+dist_noomp: build_noomp
+	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
+
+version:
+	@$(PYTHON) setup.py --version
 
 #-------------------------------------------------------------------------------
 # "Fast" (but fragile) datatable build
@@ -178,6 +192,77 @@ post-fast:
 main-fast: $(BUILDDIR)/_datatable.so
 	@echo • Done.
 
+# ------------------------------------------------------------
+#
+# New targets used in Jenkinsfile for DAI datatable build
+#    mrproper_in_docker
+#    centos7_in_docker
+#
+
+DIST_DIR = dist
+
+ARCH := $(shell arch)
+PLATFORM := $(ARCH)-centos7
+
+CONTAINER_NAME_SUFFIX ?= -$(USER)
+CONTAINER_NAME ?= opsh2oai/dai-datatable$(CONTAINER_NAME_SUFFIX)
+
+PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
+BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
+BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
+BUILD_NUM ?= local
+BUILD_NUM_SUFFIX = .$(BUILD_NUM)
+VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
+CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/+/-/g')
+
+CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
+
+ARCH_SUBST = undefined
+FROM_SUBST = undefined
+ifeq ($(ARCH),x86_64)
+    FROM_SUBST = centos:7
+    ARCH_SUBST = $(ARCH)
+endif
+ifeq ($(ARCH),ppc64le)
+    FROM_SUBST = ibmcom\/centos-ppc64le
+    ARCH_SUBST = $(ARCH)
+endif
+
+Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
+	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
+
+centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
+	docker build \
+		-t $(CONTAINER_NAME_TAG) \
+		-f Dockerfile-centos7.$(PLATFORM) \
+		.
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		$(CONTAINER_NAME_TAG) \
+		-c 'python3.6 setup.py bdist_wheel'
+	mkdir -p $(DIST_DIR)/$(PLATFORM)
+	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
+	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
+
+# Note:  We don't actually need to run mrproper in docker (as root) because
+#        the build step runs as the user.  But keep the API for consistency.
+mrproper_in_docker: mrproper
+
+printvars:
+	@echo $(PLATFORM)
+	@echo $(PROJECT_VERSION)
+	@echo $(VERSION)
+	@echo $(CONTAINER_TAG)
+
+clean::
+	rm -f Dockerfile-centos7.$(PLATFORM)
+
+# ------------------------------------------------------------
 
 $(BUILDDIR)/_datatable.so: $(fast_objects)
 	@echo • Linking object files into _datatable.so

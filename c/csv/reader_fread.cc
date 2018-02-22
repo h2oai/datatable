@@ -485,6 +485,7 @@ void FreadLocalParseContext::orderBuffer() {
     WritableBuffer* wb = columns[i].strdata;
     size_t write_at = wb->prep_write(sz, strbufs[k].mbuf->get());
     strbufs[k].ptr = write_at;
+    strbufs[k].sz = sz;
   }
 }
 
@@ -506,9 +507,8 @@ void FreadLocalParseContext::push_buffers() {
     } else if (col.type == CT_STRING) {
       WritableBuffer* wb = col.strdata;
       size_t ptr = strbufs[k].ptr;
+      size_t sz = strbufs[k].sz;
       field64* lo = tbuf + strbufs[k].idx8;
-      int32_t lastOffset = lo[(used_nrows - 1) * tbuf_ncols].str32.offset;
-      size_t sz = static_cast<size_t>(abs(lastOffset)) - 1;
 
       wb->write_at(ptr, sz, strbufs[k].mbuf->get());
 
