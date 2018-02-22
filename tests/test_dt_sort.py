@@ -4,12 +4,13 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import datatable
+import math
+import os
 import pytest
+import random
+import datatable
 from datatable import stype
 from tests import list_equals
-import random
-import os
 
 
 
@@ -359,25 +360,34 @@ def test_int64_large_random(seed):
 #-------------------------------------------------------------------------------
 
 def test_float32_small(numpy):
-    a = numpy.array([0, .4, .9, .2, .1, float("nan"), -float("inf"), -5, 3, 11,
-                     float("inf"), 5.2], dtype="float32")
+    a = numpy.array([0, .4, .9, .2, .1, math.nan, -math.inf, -5, 3, 11,
+                     math.inf, 5.2], dtype="float32")
     d0 = datatable.DataTable(a)
     assert d0.stypes == (stype.float32, )
     d1 = d0(sort=0)
-    dr = datatable.DataTable([None, -float("inf"), -5, 0, .1, .2,
-                              .4, .9, 3, 5.2, 11, float("inf")])
+    dr = datatable.DataTable([None, -math.inf, -5, 0, .1, .2,
+                              .4, .9, 3, 5.2, 11, math.inf])
     assert list_equals(d1.topython(), dr.topython())
 
 
+def test_float32_nans(numpy):
+    a = numpy.array([math.nan, 0.5, math.nan, math.nan, -3, math.nan, 0.2,
+                     math.nan, math.nan, 1], dtype="float32")
+    d0 = datatable.DataTable(a)
+    d1 = d0(sort=0)
+    assert list_equals(d1.topython(),
+                       [[None, None, None, None, None, None, -3, 0.2, 0.5, 1]])
+
+
 def test_float32_large(numpy):
-    a = numpy.array([-1000, 0, 1.5e10, 7.2, float("inf")] * 100,
+    a = numpy.array([-1000, 0, 1.5e10, 7.2, math.inf] * 100,
                     dtype="float32")
     d0 = datatable.DataTable(a)
     assert d0.stypes == (stype.float32, )
     d1 = d0(sort=0)
     assert d1.internal.check()
     dr = datatable.DataTable([-1000] * 100 + [0] * 100 + [7.2] * 100 +
-                             [1.5e10] * 100 + [float("inf")] * 100)
+                             [1.5e10] * 100 + [math.inf] * 100)
     assert list_equals(d1.topython(), dr.topython())
 
 
