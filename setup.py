@@ -155,7 +155,7 @@ def get_extra_compile_flags():
 
     # Include path to C++ header files
     flags += ["-I" + get_llvm() + "/include/c++/v1",
-	      "-I" + get_llvm() + "/include",
+              "-I" + get_llvm() + "/include",
               "-isystem " + get_llvm() + "/include/c++/v1"]
 
     # This macro is needed to combat "-DNDEBUG" flag in default Python. This
@@ -165,6 +165,7 @@ def get_extra_compile_flags():
     # Enable/disable OpenMP support
     if "DTNOOPENMP" in os.environ:
         flags.append("-DDTNOOMP")
+        flags.append("-Wno-source-uses-openmp")
     else:
         flags.insert(0, "-fopenmp")
 
