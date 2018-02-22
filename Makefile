@@ -166,6 +166,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	rowindex_array.o          \
 	rowindex_slice.o          \
 	sort.o                    \
+	sort_insert.o             \
 	stats.o                   \
 	types.o                   \
 	utils.o                   \
@@ -644,6 +645,10 @@ $(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/sort_insert.o : c/sort_insert.cc $(BUILDDIR)/sort.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

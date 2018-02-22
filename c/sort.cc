@@ -316,14 +316,14 @@ RowIndex Column::sort() const
   int32_t* ordering = ordering_array.data(); // borrowed ref
   SType stype_ = stype();
   prepare_inp_fn prepfn = prepare_inp_fns[stype_];
-  SortContext* sc = new SortContext();
+  SortContext sc;
 
   if (nrows_ <= INSERT_SORT_THRESHOLD) {
     if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || !rz.isabsent()) {
-      prepfn(this, ordering, (size_t)nrows_, sc);
-      insert_sort(sc);
-      ordering = sc->o;
-      dtfree(sc->x);
+      prepfn(this, ordering, (size_t)nrows_, &sc);
+      insert_sort(&sc);
+      ordering = sc.o;
+      dtfree(sc.x);
     } else if (stype_ == ST_STRING_I4_VCHAR) {
       auto scol = static_cast<const StringColumn<int32_t>*>(this);
       const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata()) + 1;
@@ -340,32 +340,31 @@ RowIndex Column::sort() const
     }
   } else {
     if (prepfn) {
-      prepfn(this, ordering, (size_t)nrows_, sc);
-      if (sc->issorted) {
+      prepfn(this, ordering, (size_t)nrows_, &sc);
+      if (sc.issorted) {
         return RowIndex::from_slice(0, nrows_, 1);
       }
-      if (sc->x != nullptr) {
-        radix_psort(sc);
+      if (sc.x != nullptr) {
+        radix_psort(&sc);
       }
-      int error_occurred = (sc->x == nullptr);
-      ordering = sc->o;
+      int error_occurred = (sc.x == nullptr);
+      ordering = sc.o;
       if (stype_ == ST_STRING_I4_VCHAR) {
-        if (sc->x !=
+        if (sc.x !=
             static_cast<const StringColumn<int32_t>*>(this)->strdata() + 1)
-          dtfree(sc->x);
+          dtfree(sc.x);
       } else {
-        if (sc->x != data()) dtfree(sc->x);
+        if (sc.x != data()) dtfree(sc.x);
       }
-      dtfree(sc->next_x);
-      dtfree(sc->next_o);
-      dtfree(sc->histogram);
+      dtfree(sc.next_x);
+      dtfree(sc.next_o);
+      dtfree(sc.histogram);
       if (error_occurred) ordering = nullptr;
     } else {
       throw ValueError() << "Radix sort not implemented for column "
                          << "of stype " << stype_;
     }
   }
-  delete sc;
   if (!ordering) return RowIndex();
   if (!ordering_array) {
     // TODO: avoid this copy...
