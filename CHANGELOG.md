@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread now allows `sep=""`, causing the file to be read line-by-line.
 - `range` arguments can now be passed to a DataTable constructor.
 - datatable will now fall back to eager execution if it cannot detect LLVM runtime.
+- simple Excel file reader.
+- It is now possible to select columns from DataTable by type: `df[int]` selects
+  all integer columns from `df`.
+- Allow creating DataTable from list, while forcing a specific stype(s).
+- Added ability to delete rows from a DataTable: `del df[rows, :]`
+
 
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
@@ -60,6 +66,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fread on an empty file now produces an empty DataTable, instead of an exception.
 - Fread's parameter `skip_lines` was replaced with `skip_to_line`, so that it's
   more in sync with the similar argument `skip_to_string`.
+- When saving datatable containing "obj64" columns, they will no longer be saved,
+  and user warning will be shown (previously saving this column would eventually
+  lead to a segfault).
+
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.
@@ -86,6 +96,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed a rare bug in fread which produced error message "Jump X did not finish
   reading where jump X+1 started" (#682).
 - Prevented memory leak when using "PyObject" columns in conjunction with numpy.
+- View datatables can now be properly saved.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18

@@ -233,7 +233,9 @@ def test_int_even_longer():
     text = "A,B,C,D\n%s,%s,1.%s,%s.99" % (src1, src2, src2, src2)
     d0 = dt.fread(text)
     assert d0.internal.check()
-    assert d0.topython() == [[src1], [src2], ["1." + src2], [src2 + ".99"]]
+    assert d0.topython() == [[src1], [src2],
+                             [float("1." + src2)],
+                             [float(src2)]]
 
 
 def test_float_ext_literals1():
@@ -287,6 +289,12 @@ def test_float_many_zeros():
     assert d0.internal.check()
     assert d0.ltypes == (ltype.real, )
     assert d0.topython() == [[4.49548e-47]]
+
+
+def test_invalid_float_numbers():
+    d0 = dt.fread("A,B,C,D,E,F\n.,+.,.e,.e+,0e,e-3\n")
+    assert d0.internal.check()
+    assert d0.topython() == [["."], ["+."], [".e"], [".e+"], ["0e"], ["e-3"]]
 
 
 

@@ -12,6 +12,7 @@ import os
 import pytest
 import datatable
 
+env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
 
 
@@ -34,6 +35,8 @@ def failed(reason, id=None):
 # unique file path str (or calls pytest.fail).
 # This prevents pytest from completely aborting if a failure occurs here.
 def get_file_list(*path):
+    if os.environ.get(env_coverage, None):
+        return [skipped("Large tests disabled in COVERAGE mode")]
     d = os.environ.get(root_env_name, "")
     if d == "":
         return [skipped("Environment variable '%s' is empty or not defined"

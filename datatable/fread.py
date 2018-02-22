@@ -20,7 +20,7 @@ from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
-
+from datatable.types import stype
 
 _log_color = term.bright_black
 
@@ -68,12 +68,12 @@ def fread(
         **extra) -> DataTable:
     params = {**locals(), **extra}
     del params["extra"]
-    freader = TextReader(**params)
+    freader = GenericReader(**params)
     return freader.read()
 
 
 
-class TextReader(object):
+class GenericReader(object):
     """
     Parser object for reading CSV files.
     """
@@ -114,6 +114,7 @@ class TextReader(object):
         self._colnames = None
         self._bar_ends = None
         self._bar_symbols = None
+        self._result = None
 
         if show_progress is None:
             show_progress = term.is_a_tty
@@ -124,8 +125,6 @@ class TextReader(object):
         self.verbose = verbose
         self.logger = logger
         self._resolve_source(anysource, file, text, cmd, url)
-        # self.text = text
-        # self.file = file
         self.columns = columns
         self.sep = sep
         self.dec = dec
@@ -181,7 +180,7 @@ class TextReader(object):
                 args.remove("any")
                 raise TValueError(
                     "When an unnamed argument is passed, it is invalid to also "
-                    "provide the `%s` parameter." % args[0])
+                    "provide the `%s` parameter." % (args[0], ))
         self._resolve_source_any(anysource)
         self._resolve_source_text(text)
         self._resolve_source_file(file)
@@ -285,6 +284,11 @@ class TextReader(object):
         # if `file` is not str, then `os.path.join(file, "..")` below will fail
         assert isinstance(file, str)
         if not os.path.exists(file):
+            # File does not exist -- search up the tree for the first file that
+            # does. This will allow us to provide a better error message to the
+            # user; also if the first path component that exists is a file (not
+            # a folder), then the user probably tries to specify a file within
+            # an archive -- and this is not an error at all!
             xpath = os.path.abspath(file)
             ypath = xpath
             while not os.path.exists(xpath):
@@ -372,6 +376,9 @@ class TextReader(object):
             if self._verbose:
                 self.logger.debug("  Extracting %s into memory" % filename)
             self._text = zf.read()
+
+        elif ext == ".xlsx" or ext == ".xls":
+            self._process_excel_file(filename)
 
         else:
             self._file = filename
@@ -638,6 +645,8 @@ class TextReader(object):
 
 
     def read(self):
+        if self._result:
+            return self._result
         _dt = core.gread(self)
         dt = DataTable(_dt, names=self._colnames)
         if self._tempfile:
@@ -892,6 +901,35 @@ class TextReader(object):
 
             raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
                                % colspec)
+
+
+    def _process_excel_file(self, filename):
+        try:
+            import xlrd
+        except ImportError:
+            raise TValueError("Module `xlrd` is required in order to read "
+                              "Excel file '%s'. You can install this module "
+                              "by running `pip install xlrd` in the command "
+                              "line." % filename)
+        self._result = []
+        wb = xlrd.open_workbook(filename)
+        for ws in wb.sheets():
+            # If the worksheet is empty, skip it
+            if ws.ncols == 0:
+                continue
+            # Assume first row contains headers
+            colnames = ws.row_values(0)
+            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
+                                           -stype.str32.value)
+                     for i in range(ws.ncols)]
+            colset = core.columns_from_columns(cols0)
+            res = DataTable(colset.to_datatable(), names=colnames)
+            self._result.append(res)
+        if len(self._result) == 0:
+            self._result = 0
+        if len(self._result) == 1:
+            self._result = self._result[0]
+
 
 
 

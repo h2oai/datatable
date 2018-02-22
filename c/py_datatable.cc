@@ -94,7 +94,7 @@ PyObject* get_ncols(obj* self) {
 }
 
 PyObject* get_isview(obj* self) {
-  return incref(self->ref->rowindex == nullptr? Py_False : Py_True);
+  return incref(self->ref->rowindex.isabsent()? Py_False : Py_True);
 }
 
 
@@ -125,18 +125,17 @@ PyObject* get_stypes(obj* self) {
 
 
 PyObject* get_rowindex_type(obj* self) {
-  if (self->ref->rowindex == nullptr)
-    return none();
-  RowIndexType rit = self->ref->rowindex->type;
-  return rit == RI_SLICE? incref(strRowIndexTypeSlice) :
-         rit == RI_ARR32? incref(strRowIndexTypeArr32) :
-         rit == RI_ARR64? incref(strRowIndexTypeArr64) : none();
+  RowIndex& ri = self->ref->rowindex;
+  return ri.isabsent()? none() :
+         ri.isslice()? incref(strRowIndexTypeSlice) :
+         ri.isarr32()? incref(strRowIndexTypeArr32) :
+         ri.isarr64()? incref(strRowIndexTypeArr64) : none();
 }
 
 
 PyObject* get_rowindex(obj* self) {
-  RowIndex* ri = self->ref->rowindex;
-  return ri? pyrowindex(self->ref->rowindex) : none();
+  RowIndex& ri = self->ref->rowindex;
+  return ri.isabsent()? none() : pyrowindex::wrap(ri);
 }
 
 
@@ -237,6 +236,19 @@ PyObject* delete_columns(obj* self, PyObject* args) {
 
 
 
+PyObject* replace_rowindex(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:replace_rowindex", &arg1))
+    return nullptr;
+  RowIndex newri = PyObj(arg1).as_rowindex();
+
+  dt->replace_rowindex(newri);
+  return none();
+}
+
+
+
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   int final_ncols;
@@ -319,8 +331,8 @@ PyObject* sort(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "i:sort", &idx)) return nullptr;
 
   Column* col = dt->columns[idx];
-  RowIndex* ri = col->sort();
-  return pyrowindex(ri);
+  RowIndex ri = col->sort();
+  return pyrowindex::wrap(ri);
 }
 
 
@@ -342,7 +354,7 @@ DT_METH_GET_STAT(countna)
 
 PyObject* materialize(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-  if (dt->rowindex == nullptr) {
+  if (dt->rowindex.isabsent()) {
     PyErr_Format(PyExc_ValueError, "Only a view can be materialized");
     return nullptr;
   }
@@ -396,6 +408,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(check),
   METHODv(column),
   METHODv(delete_columns),
+  METHODv(replace_rowindex),
   METHODv(rbind),
   METHODv(cbind),
   METHODv(sort),

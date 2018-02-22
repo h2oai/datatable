@@ -49,10 +49,14 @@ void exception_to_python(const std::exception&);
 class Error : public std::exception
 {
   std::ostringstream error;
+  PyObject* pycls;  // This pointer acts as an enum...
 
 public:
+  Error(PyObject* cls = PyExc_Exception);
   Error(const Error& other);
-  Error() = default;
+  Error(Error&& other);
+  virtual ~Error() {}
+  friend void swap(Error& first, Error& second) noexcept;
 
   Error& operator<<(const std::string&);
   Error& operator<<(const char*);
@@ -73,11 +77,6 @@ public:
    * with the appropriate exception class and message.
    */
   virtual void topython() const;
-
-  /**
-   * Return Python class corresponding to this exception.
-   */
-  virtual PyObject* pyclass() const;
 };
 
 
@@ -93,56 +92,19 @@ public:
   PyError();
   ~PyError();
   void topython() const override;
-  PyObject* pyclass() const override;
 };
 
 
 //------------------------------------------------------------------------------
 
-class RuntimeError : public Error {
-public:
-  PyObject* pyclass() const override { return PyExc_RuntimeError; }
-};
+Error RuntimeError();
+Error TypeError();
+Error ValueError();
+Error OverflowError();
+Error MemoryError();
+Error NotImplError();
+Error IOError();
 
-
-//------------------------------------------------------------------------------
-
-class TypeError : public Error {
-public:
-  PyObject* pyclass() const override { return PyExc_TypeError; }
-};
-
-
-//------------------------------------------------------------------------------
-
-class ValueError : public Error {
-public:
-  PyObject* pyclass() const override { return PyExc_ValueError; }
-};
-
-
-//------------------------------------------------------------------------------
-
-class MemoryError : public Error {
-public:
-  PyObject* pyclass() const override { return PyExc_MemoryError; }
-};
-
-
-//------------------------------------------------------------------------------
-
-class NotImplError : public Error {
-public:
-  PyObject* pyclass() const override { return PyExc_NotImplementedError; }
-};
-
-
-//------------------------------------------------------------------------------
-
-class IOError : public Error {
-public:
-  PyObject* pyclass() const override { return PyExc_IOError; }
-};
 
 
 //------------------------------------------------------------------------------

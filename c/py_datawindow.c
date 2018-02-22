@@ -5,12 +5,12 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "py_datawindow.h"
 #include <Python.h>
+#include <structmember.h>
 #include "datatable.h"
 #include "py_utils.h"
-#include "structmember.h"
 #include "rowindex.h"
-#include "py_datawindow.h"
 #include "py_datatable.h"
 #include "py_types.h"
 
@@ -98,15 +98,15 @@ static int _init_(DataWindow_PyObject *self, PyObject *args, PyObject *kwds)
     int64_t ncols = col1 - col0;
     int64_t nrows = row1 - row0;
 
-    RowIndex *rindex = dt->rowindex;
-    int no_rindex = (rindex == NULL);
-    int rindex_is_arr32 = rindex && rindex->type == RI_ARR32;
-    int rindex_is_arr64 = rindex && rindex->type == RI_ARR64;
-    int rindex_is_slice = rindex && rindex->type == RI_SLICE;
-    int32_t *rindexarr32 = rindex_is_arr32? rindex->ind32 : NULL;
-    int64_t *rindexarr64 = rindex_is_arr64? rindex->ind64 : NULL;
-    int64_t rindexstart = rindex_is_slice? rindex->slice.start : 0;
-    int64_t rindexstep = rindex_is_slice? rindex->slice.step : 0;
+    RowIndex rindex(dt->rowindex);
+    int no_rindex = rindex.isabsent();
+    int rindex_is_arr32 = rindex.isarr32();
+    int rindex_is_arr64 = rindex.isarr64();
+    int rindex_is_slice = rindex.isslice();
+    const int32_t* rindexarr32 = rindex_is_arr32? rindex.indices32() : NULL;
+    const int64_t* rindexarr64 = rindex_is_arr64? rindex.indices64() : NULL;
+    int64_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
+    int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 
     // Create and fill-in the `data` list
     view = PyList_New((Py_ssize_t) ncols);
@@ -286,73 +286,6 @@ static int _check_consistency(
             "whereas requested window is [%ld..%ld x %ld..%ld]",
             dt->nrows, dt->ncols, row0, row1, col0, col1);
         return 0;
-    }
-
-    // verify that the row index (if present) is valid
-    RowIndex *rindex = dt->rowindex;
-    if (rindex != NULL) {
-        if (rindex->length != dt->nrows) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid view: row index has %lld elements, while the "
-                "view itself has .nrows = %lld",
-                rindex->length, dt->nrows);
-            return 0;
-        }
-        switch (rindex->type) {
-            case RI_ARR32: {
-                for (int64_t j = row0; j < row1; ++j) {
-                    int32_t jsrc = rindex->ind32[j];
-                    if (jsrc < 0) {
-                        PyErr_Format(PyExc_RuntimeError,
-                            "Invalid row %ld in the rowindex", j);
-                        return 0;
-                    }
-                }
-            }   break;
-
-            case RI_ARR64: {
-                for (int64_t j = row0; j < row1; ++j) {
-                    int64_t jsrc = rindex->ind64[j];
-                    if (jsrc < 0) {
-                        PyErr_Format(PyExc_RuntimeError,
-                            "Invalid row %ld in the rowindex", j);
-                        return 0;
-                    }
-                }
-            }   break;
-
-            case RI_SLICE: {
-                int64_t start = rindex->slice.start;
-                int64_t count = rindex->length;
-                int64_t finish = start + (count - 1) * rindex->slice.step;
-                if (start < 0) {
-                    PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: first row is %ld", start);
-                    return 0;
-                }
-                if (finish < 0) {
-                    PyErr_Format(PyExc_RuntimeError,
-                        "Invalid view: last row is %ld", finish);
-                    return 0;
-                }
-            }   break;
-
-            default:
-                PyErr_Format(PyExc_RuntimeError,
-                    "Unexpected row index of type = %d", rindex->type);
-                return 0;
-        }
-    }
-
-    // check each column within the window for correctness
-    for (int64_t i = col0; i < col1; ++i) {
-        Column *col = dt->columns[i];
-        if (col->stype() < 1 || col->stype() >= DT_STYPES_COUNT) {
-            PyErr_Format(PyExc_RuntimeError,
-                "Invalid datatable: column %ld has unknown type %d",
-                i, col->stype());
-            return 0;
-        }
     }
     return 1;
 }

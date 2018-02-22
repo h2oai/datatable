@@ -7,7 +7,7 @@
 
 extern double now();
 
-#define NPARSERS 1
+#define NPARSERS 2
 
 
 union field64 {

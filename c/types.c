@@ -144,47 +144,59 @@ void init_types(void)
  */
 SType stype_from_string(const std::string& str)
 {
-  assert(str.length() == 3);
+  assert(str.length() == 3 || str.length() == 2);
   char s0 = str[0], s1 = str[1], s2 = str[2];
-    if (s0 == 'i') {
-        if (s2 == 'b') {
-            if (s1 == '1') return ST_BOOLEAN_I1;
-        } else if (s2 == 'i') {
-            if (s1 == '1') return ST_INTEGER_I1;
-            if (s1 == '2') return ST_INTEGER_I2;
-            if (s1 == '4') return ST_INTEGER_I4;
-            if (s1 == '8') return ST_INTEGER_I8;
-        } else if (s2 == 'r') {
-            if (s1 == '2') return ST_REAL_I2;
-            if (s1 == '4') return ST_REAL_I4;
-            if (s1 == '8') return ST_REAL_I8;
-        } else if (s2 == 's') {
-            if (s1 == '4') return ST_STRING_I4_VCHAR;
-            if (s1 == '8') return ST_STRING_I8_VCHAR;
-        } else if (s2 == 'd') {
-            if (s1 == '2') return ST_DATETIME_I2_MONTH;
-            if (s1 == '4') return ST_DATETIME_I4_DATE;
-            if (s1 == '8') return ST_DATETIME_I8_EPOCH;
-        } else if (s2 == 't') {
-            if (s1 == '4') return ST_DATETIME_I4_TIME;
-        }
-    } else if (s0 == 'f') {
-        if (s2 == 'r') {
-            if (s1 == '4') return ST_REAL_F4;
-            if (s1 == '8') return ST_REAL_F8;
-        }
-    } else if (s0 == 'u') {
-        if (s2 == 'e') {
-            if (s1 == '1') return ST_STRING_U1_ENUM;
-            if (s1 == '2') return ST_STRING_U2_ENUM;
-            if (s1 == '4') return ST_STRING_U4_ENUM;
-        }
-    } else if (s0 == 'c') {
-        if (s1 == '#' && s2 == 's') return ST_STRING_FCHAR;
-    } else if (s0 == 'p') {
-        if (s1 == '8' && s2 == 'p') return ST_OBJECT_PYPTR;
+  if (s0 == 'i') {
+    if (s2 == 'i' || s2 == '\0') {
+      if (s1 == '1') return ST_INTEGER_I1;
+      if (s1 == '2') return ST_INTEGER_I2;
+      if (s1 == '4') return ST_INTEGER_I4;
+      if (s1 == '8') return ST_INTEGER_I8;
+    } else if (s2 == 'b') {
+      if (s1 == '1') return ST_BOOLEAN_I1;
+    } else if (s2 == 'r') {
+      if (s1 == '2') return ST_REAL_I2;
+      if (s1 == '4') return ST_REAL_I4;
+      if (s1 == '8') return ST_REAL_I8;
+    } else if (s2 == 's') {
+      if (s1 == '4') return ST_STRING_I4_VCHAR;
+      if (s1 == '8') return ST_STRING_I8_VCHAR;
+    } else if (s2 == 'd') {
+      if (s1 == '2') return ST_DATETIME_I2_MONTH;
+      if (s1 == '4') return ST_DATETIME_I4_DATE;
+      if (s1 == '8') return ST_DATETIME_I8_EPOCH;
+    } else if (s2 == 't') {
+      if (s1 == '4') return ST_DATETIME_I4_TIME;
     }
-    return ST_VOID;
+  } else if (s0 == 'r' && s2 == '\0') {
+    if (s1 == '4') return ST_REAL_F4;
+    if (s1 == '8') return ST_REAL_F8;
+  } else if (s0 == 'b' && s2 == '\0') {
+    if (s1 == '1' && s2 == '\0') return ST_BOOLEAN_I1;
+  } else if (s0 == 'o') {
+    if (s1 == '8' && s2 == '\0') return ST_OBJECT_PYPTR;
+  } else if (s0 == 's') {
+    if (s2 == '\0') {
+      if (s1 == '4') return ST_STRING_I4_VCHAR;
+      if (s1 == '8') return ST_STRING_I8_VCHAR;
+    }
+  } else if (s0 == 'f') {
+    if (s2 == 'r') {
+      if (s1 == '4') return ST_REAL_F4;
+      if (s1 == '8') return ST_REAL_F8;
+    }
+  } else if (s0 == 'u') {
+    if (s2 == 'e') {
+      if (s1 == '1') return ST_STRING_U1_ENUM;
+      if (s1 == '2') return ST_STRING_U2_ENUM;
+      if (s1 == '4') return ST_STRING_U4_ENUM;
+    }
+  } else if (s0 == 'c') {
+    if (s1 == '#' && s2 == 's') return ST_STRING_FCHAR;
+  } else if (s0 == 'p') {
+    if (s1 == '8' && s2 == 'p') return ST_OBJECT_PYPTR;
+  }
+  return ST_VOID;
 }
 
 

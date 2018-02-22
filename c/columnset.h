@@ -17,7 +17,7 @@ typedef int (columnset_mapfn)(int64_t row0, int64_t row1, void** out);
 
 Column** columns_from_slice(
   DataTable* dt,
-  RowIndex* rowindex,
+  const RowIndex& rowindex,
   int64_t start,
   int64_t count,
   int64_t step
@@ -25,7 +25,7 @@ Column** columns_from_slice(
 
 Column** columns_from_array(
   DataTable *dt,
-  RowIndex* rowindex,
+  const RowIndex& rowindex,
   int64_t *indices,
   int64_t ncols
 );

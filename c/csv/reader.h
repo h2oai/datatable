@@ -257,12 +257,12 @@ class LocalParseContext {
     virtual ~LocalParseContext();
     virtual field64* next_row();
     virtual void push_buffers() = 0;
-    virtual const char* read_chunk(const char* start, const char* end) = 0;
+    // virtual const char* read_chunk(const char* start, const char* end) = 0;
     virtual void order(size_t r0) { row0 = r0; }
     virtual size_t get_nrows() { return used_nrows; }
     virtual void set_nrows(size_t n) { used_nrows = n; }
 
-  private:
+  public:
     void allocate_tbuf(size_t ncols, size_t nrows);
 };
 
@@ -369,7 +369,8 @@ public:
   virtual LocalParseContextPtr init_thread_context() = 0;
   virtual void realloc_columns(size_t n) = 0;
   virtual void compute_chunking_strategy();
-  virtual const char* adjust_chunk_start(const char* ch, const char* eof);
+  virtual void adjust_chunk_boundaries(
+      const char*& start, const char*& end, size_t ichunk) = 0;
   void read_all();
 };
 

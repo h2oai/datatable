@@ -22,13 +22,13 @@
  * and there is nothing to read nor parsing pointer to advance in an empty
  * column.
  */
-void parse_mu(FieldParseContext& ctx) {
+void parse_mu(FreadTokenizer& ctx) {
   ctx.target->int8 = NA_BOOL8;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
-void parse_bool8_numeric(FieldParseContext& ctx) {
+void parse_bool8_numeric(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
@@ -44,7 +44,7 @@ void parse_bool8_numeric(FieldParseContext& ctx) {
 
 
 /* Parse lowercase true | false as boolean. */
-void parse_bool8_lowercase(FieldParseContext& ctx) {
+void parse_bool8_lowercase(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -59,7 +59,7 @@ void parse_bool8_lowercase(FieldParseContext& ctx) {
 
 
 /* Parse titlecase True | False as boolean. */
-void parse_bool8_titlecase(FieldParseContext& ctx) {
+void parse_bool8_titlecase(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -74,7 +74,7 @@ void parse_bool8_titlecase(FieldParseContext& ctx) {
 
 
 /* Parse uppercase TRUE | FALSE as boolean. */
-void parse_bool8_uppercase(FieldParseContext& ctx) {
+void parse_bool8_uppercase(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   if (ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx.target->int8 = 0;
@@ -97,7 +97,7 @@ void parse_bool8_uppercase(FieldParseContext& ctx) {
 // would occur)!
 // See microbench/fread/int32.cpp for performance tests
 //
-void parse_int32_simple(FieldParseContext& ctx) {
+void parse_int32_simple(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
@@ -130,7 +130,7 @@ void parse_int32_simple(FieldParseContext& ctx) {
 // Int64
 //------------------------------------------------------------------------------
 
-void parse_int64_simple(FieldParseContext& ctx) {
+void parse_int64_simple(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   bool negative = (*ch == '-');
   ch += (negative || *ch == '+');
@@ -162,7 +162,7 @@ void parse_int64_simple(FieldParseContext& ctx) {
 // Float32
 //------------------------------------------------------------------------------
 
-void parse_float32_hex(FieldParseContext& ctx) {
+void parse_float32_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint32_t neg;
   uint8_t digit;
@@ -233,71 +233,113 @@ void parse_float32_hex(FieldParseContext& ctx) {
  *
  * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
  * whole part, fractional part, and the exponent respectively.
- *
- * Right now we do not parse floating numbers that would incur significant loss
- * of precision, for example `1.2439827340958723094785103` will not be parsed
- * as a double.
  */
-void parse_float64_simple(FieldParseContext& ctx) {
+void parse_float64_simple(FreadTokenizer& ctx) {
+  constexpr int MAX_DIGITS = 18;
   const char* ch = ctx.ch;
 
   bool neg, Eneg;
   double r;
   ch += (neg = *ch=='-') + (*ch=='+');
 
-  const char* start = ch;
-  uint_fast64_t acc = 0;  // holds NNN.MMM as NNNMMM
-  int_fast32_t e = 0;     // width of MMM to adjust NNNMMM by dec location
-  uint_fast8_t digit;
-  while (*ch=='0') ch++;
+  const char* start = ch; // beginning of the number, without the initial sign
+  uint_fast64_t acc = 0;  // mantissa NNN.MMM as a single 64-bit integer NNNMMM
+  int_fast32_t e = 0;     // the number's exponent. The value being parsed is
+                          // equal to acc·10ᵉ
+  uint_fast8_t digit;     // temporary variable, holds last scanned digit.
 
-  uint_fast32_t sf = 0;
-  while ( (digit=(uint_fast8_t)(ch[sf]-'0'))<10 ) {
+  // Skip leading zeros
+  while (*ch == '0') ch++;
+
+  // Read the first, integer part of the floating number (but no more than
+  // MAX_DIGITS digits).
+  int_fast32_t sflimit = MAX_DIGITS;
+  while ((digit = static_cast<uint_fast8_t>(*ch - '0')) < 10 && sflimit) {
     acc = 10*acc + digit;
-    sf++;
-  }
-  ch += sf;
-  if (*ch==ctx.dec) {
+    sflimit--;
     ch++;
-    // Numbers like 0.00000000000000000000000000000000004 can be read without
-    // loss of precision as 4e-35  (test 1817)
-    if (sf==0 && *ch=='0') {
-      while (ch[e]=='0') e++;
-      ch += e;
-      e = -e;
+  }
+
+  // If maximum allowed number of digits were read, but more are present -- then
+  // we will read and discard those extra digits, but only if they are followed
+  // by a decimal point (otherwise it's a just big integer, which should be
+  // treated as a string instead of losing precision).
+  if (sflimit == 0 && static_cast<uint_fast8_t>(*ch - '0') < 10) {
+    while (static_cast<uint_fast8_t>(*ch - '0') < 10) {
+      ch++;
+      e++;
     }
-    uint_fast32_t k = 0;
-    while ( (digit=(uint_fast8_t)(ch[k]-'0'))<10 ) {
+    if (*ch != ctx.dec) goto fail;
+  }
+
+  // Read the fractional part of the number, if it's present
+  if (*ch == ctx.dec) {
+    ch++;  // skip the dot
+    // If the integer part was 0, then leading zeros in the fractional part do
+    // not count against the number's precision: skip them.
+    if (*ch == '0' && acc == 0) {
+      int_fast32_t k = 0;
+      while (ch[k] == '0') k++;
+      ch += k;
+      e = -k;
+    }
+    // Now read the significant digits in the fractional part of the number
+    int_fast32_t k = 0;
+    while ((digit = static_cast<uint_fast8_t>(ch[k] - '0')) < 10 && sflimit) {
       acc = 10*acc + digit;
       k++;
+      sflimit--;
     }
     ch += k;
-    sf += k;
     e -= k;
-  }
-  if (sf>18) goto fail;  // Too much precision for double. TODO: reduce to 15(?) and discard trailing 0's.
-  if (*ch=='E' || *ch=='e') {
-    if (ch==start) goto fail;  // something valid must be between [+|-] and E, character E alone is invalid.
-    ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
-    int E=0, max_digits=3;
-    while ( max_digits && (digit=(uint_fast8_t)(*ch-'0'))<10 ) {
-      E = 10*E + digit;
+    // If more digits are present, skip them
+    if (sflimit == 0 && static_cast<uint_fast8_t>(*ch - '0') < 10) {
       ch++;
-      max_digits--;
+      while (static_cast<uint_fast8_t>(*ch - '0') < 10) ch++;
     }
-    e += Eneg? -E : E;
+    // Check that at least 1 digit was present either in the integer or
+    // fractional part ("+1" here accounts for the decimal point symbol).
+    if (ch == start + 1) goto fail;
+  }
+  // If there is no fractional part, then check that the integer part actually
+  // exists (otherwise it's not a valid number)...
+  else {
+    if (ch == start) goto fail;
+  }
+
+  // Now scan the "exponent" part of the number (if present)
+  if (*ch == 'E' || *ch == 'e') {
+    ch += 1/*E*/ + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    int_fast32_t exp = 0;
+    if ((digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
+      exp = digit;
+      ch++;
+      if ((digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
+        exp = exp*10 + digit;
+        ch++;
+        if ((digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
+          exp = exp*10 + digit;
+          ch++;
+        }
+      }
+    } else {
+      goto fail;
+    }
+    e += Eneg? -exp : exp;
   }
   e += 350; // lookup table is arranged from -350 (0) to +350 (700)
-  if (e<0 || e>700 || ch==start) goto fail;
+  if (e < 0 || e > 700) goto fail;
 
-  r = (double)((long double)acc * pow10lookup[e]);
+  r = static_cast<double>(static_cast<long double>(acc) * pow10lookup[e]);
   ctx.target->float64 = neg? -r : r;
   ctx.ch = ch;
   return;
 
-  fail:
+  fail: {
     ctx.target->uint64 = NA_FLOAT64_I64;
+  }
 }
+
 
 
 /**
@@ -309,7 +351,7 @@ void parse_float64_simple(FieldParseContext& ctx) {
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-void parse_float64_extended(FieldParseContext& ctx) {
+void parse_float64_extended(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg;
   bool quoted;
@@ -390,7 +432,7 @@ void parse_float64_extended(FieldParseContext& ctx) {
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-void parse_float64_hex(FieldParseContext& ctx) {
+void parse_float64_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg;
   uint8_t digit;
@@ -453,7 +495,7 @@ void parse_float64_hex(FieldParseContext& ctx) {
 //------------------------------------------------------------------------------
 
 // TODO: refactor into smaller pieces
-void parse_string(FieldParseContext& ctx) {
+void parse_string(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   const char quote = ctx.quote;
   const char sep = ctx.sep;
@@ -498,12 +540,10 @@ void parse_string(FieldParseContext& ctx) {
   //    the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
   // or the field is quoted but quotes are not escaped (quoteRule 2)
   // or the field is not quoted but the data contains a quote at the start (quoteRule 2 too)
-  int eolCount = 0;
   fieldStart++;  // step over opening quote
   switch(ctx.quoteRule) {
   case 0:  // quoted with embedded quotes doubled; the final unescaped " must be followed by sep|eol
     while (*++ch) {
-      if (*ch=='\n' && ++eolCount==100) return;  // TODO: expose this 100 to user to allow them to control limiting runaway fields
       if (*ch==quote) {
         if (ch[1]==quote) { ch++; continue; }
         break;  // found undoubled closing quote
@@ -512,7 +552,6 @@ void parse_string(FieldParseContext& ctx) {
     break;
   case 1:  // quoted with embedded quotes escaped; the final unescaped " must be followed by sep|eol
     while (*++ch) {
-      if (*ch=='\n' && ++eolCount==100) return;
       if (*ch=='\\' && (ch[1]==quote || ch[1]=='\\')) { ch++; continue; }
       if (*ch==quote) break;
     }

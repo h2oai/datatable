@@ -39,13 +39,13 @@ extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
 extern const uint8_t allowedseps[128];
+const char* strlim(const char* ch, size_t limit);
 
 
 
-
-struct FieldParseContext {
+struct FreadTokenizer {
   // Pointer to the current parsing location
-  const char*& ch;
+  const char* ch;
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
@@ -94,7 +94,7 @@ struct FieldParseContext {
   bool skip_eol();
 };
 
-typedef void (*ParserFnPtr)(FieldParseContext& ctx);
+typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 
 
 #define NA_BOOL8         INT8_MIN
@@ -132,9 +132,10 @@ typedef void (*ParserFnPtr)(FieldParseContext& ctx);
 //
 struct StrBuf {
   MemoryBuffer* mbuf;
-  size_t ptr;
   size_t idx8;
   size_t idxdt;
+  size_t ptr;
+  size_t sz;
 
   StrBuf(size_t allocsize, size_t i8, size_t idt) {
     mbuf = new MemoryMemBuf(allocsize);

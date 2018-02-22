@@ -10,6 +10,7 @@ from datatable.lib import core
 from .iterator_node import MapNode
 from datatable.expr import BaseExpr, ColSelectorExpr
 from datatable.graph.dtproxy import f
+from datatable.types import ltype, stype
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import normalize_slice
 from datatable.utils.typechecks import TValueError, TTypeError
@@ -81,6 +82,22 @@ class SliceCSNode(ColumnSetNode):
     evaluate_llvm = evaluate_eager
 
 
+    def get_list(self):
+        start, count, step = self._start, self._count, self._step
+        if step > 0:
+            return list(range(start, start + count * step, step))
+        elif step < 0:
+            return list(range(start + (count - 1) * step, start - step, -step))
+        else:
+            return [start] * count
+
+
+    def is_all(self):
+        return (self._start == 0 and
+                self._step == 1 and
+                self._count == self._dt.ncols)
+
+
 
 #===============================================================================
 
@@ -96,6 +113,9 @@ class ArrayCSNode(ColumnSetNode):
                                        self._elems)
 
     evaluate_llvm = evaluate_eager
+
+    def get_list(self):
+        return self._elems
 
 
 
@@ -138,36 +158,36 @@ class MixedCSNode(ColumnSetNode):
 
 #===============================================================================
 
-def make_columnset(cols, dt, cmod, _nested=False):
+def make_columnset(arg, dt, cmod, _nested=False):
     """
     Create a :class:`CSNode` object from the provided expression.
 
     This is a factory function that instantiates an appropriate subclass of
-    :class:`CSNode`, depending on the parameter ``cols`` and provided that it
+    :class:`CSNode`, depending on the parameter ``arg`` and provided that it
     is applied to a DataTable ``dt``.
 
     Parameters
     ----------
-    cols:
+    arg:
         An expression that will be converted into one of the ``CSNode``s.
 
     dt: DataTable
-        The DataTable to which ``cols`` selector applies.
+        The DataTable to which ``arg`` selector applies.
 
     cmod: CModule
         Expression evaluation engine.
     """
-    if cols is None or cols is Ellipsis:
+    if arg is None or arg is Ellipsis:
         return SliceCSNode(dt, 0, dt.ncols, 1)
 
-    if cols is True or cols is False:
+    if arg is True or arg is False:
         # Note: True/False are integer objects in Python, hence this test has
-        # to be performed before `isinstance(cols, int)` below.
+        # to be performed before `isinstance(arg, int)` below.
         raise TTypeError("A boolean cannot be used as a column selector")
 
-    if isinstance(cols, (int, str, slice, BaseExpr)):
+    if isinstance(arg, (int, str, slice, BaseExpr)):
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
-        pcol = process_column(cols, dt)
+        pcol = process_column(arg, dt)
         if isinstance(pcol, int):
             return SliceCSNode(dt, pcol, 1, 1)
         elif isinstance(pcol, tuple):
@@ -176,11 +196,11 @@ def make_columnset(cols, dt, cmod, _nested=False):
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
             return MixedCSNode(dt, [pcol], names=["V0"], cmodule=cmod)
 
-    if isinstance(cols, (list, tuple)):
+    if isinstance(arg, (types.GeneratorType, list, tuple)):
         isarray = True
         outcols = []
         colnames = []
-        for col in cols:
+        for col in arg:
             pcol = process_column(col, dt)
             if isinstance(pcol, int):
                 outcols.append(pcol)
@@ -202,11 +222,11 @@ def make_columnset(cols, dt, cmod, _nested=False):
         else:
             return MixedCSNode(dt, outcols, colnames, cmodule=cmod)
 
-    if isinstance(cols, dict):
+    if isinstance(arg, dict):
         isarray = True
         outcols = []
         colnames = []
-        for name, col in cols.items():
+        for name, col in arg.items():
             pcol = process_column(col, dt)
             colnames.append(name)
             if isinstance(pcol, int):
@@ -226,11 +246,32 @@ def make_columnset(cols, dt, cmod, _nested=False):
         else:
             return MixedCSNode(dt, outcols, colnames, cmodule=cmod)
 
-    if isinstance(cols, types.FunctionType) and not _nested:
-        res = cols(f)
+    if isinstance(arg, types.FunctionType) and not _nested:
+        res = arg(f)
         return make_columnset(res, dt, cmod=cmod, _nested=True)
 
-    raise TValueError("Unknown `select` argument: %r" % cols)
+    if isinstance(arg, (type, ltype)):
+        ltypes = dt.ltypes
+        lt = ltype(arg)
+        outcols = []
+        colnames = []
+        for i in range(dt.ncols):
+            if ltypes[i] == lt:
+                outcols.append(i)
+                colnames.append(dt.names[i])
+        return ArrayCSNode(dt, outcols, colnames)
+
+    if isinstance(arg, stype):
+        stypes = dt.stypes
+        outcols = []
+        colnames = []
+        for i in range(dt.ncols):
+            if stypes[i] == arg:
+                outcols.append(i)
+                colnames.append(dt.names[i])
+        return ArrayCSNode(dt, outcols, colnames)
+
+    raise TValueError("Unknown `select` argument: %r" % arg)
 
 
 

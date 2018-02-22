@@ -18,7 +18,6 @@
 
 Column::Column(int64_t nrows_)
     : mbuf(nullptr),
-      ri(nullptr),
       stats(nullptr),
       nrows(nrows_) {}
 
@@ -127,17 +126,17 @@ Column* Column::new_mbuf_column(SType stype, MemoryBuffer* mbuf,
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(RowIndex* new_rowindex) const {
+Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->shallowcopy();
   // TODO: also copy Stats object
 
   if (new_rowindex) {
-    col->ri = new_rowindex->shallowcopy();
-    col->nrows = new_rowindex->length;
+    col->ri = new_rowindex;
+    col->nrows = new_rowindex.length();
   } else if (ri) {
-    col->ri = ri->shallowcopy();
+    col->ri = ri;
   }
   return col;
 }
@@ -150,11 +149,12 @@ Column* Column::shallowcopy(RowIndex* new_rowindex) const {
  */
 Column* Column::deepcopy() const
 {
+  // TODO: it appears this method is not used anywhere...
   Column* col = new_column(stype());
   col->nrows = nrows;
   col->mbuf = mbuf->deepcopy();
+  col->ri = rowindex();  // this is shallow copy. Do we need deep?
   // TODO: deep copy stats when implemented
-  col->ri = rowindex() == nullptr ? nullptr : new RowIndex(rowindex());
   return col;
 }
 
@@ -216,10 +216,16 @@ Column* Column::rbind(const std::vector<const Column*>& columns)
 }
 
 
+void Column::replace_rowindex(const RowIndex& newri) {
+  ri = newri;
+  nrows = ri.length();
+}
+
+
+
 Column::~Column() {
   delete stats;
   if (mbuf) mbuf->release();
-  if (ri) ri->release();
 }
 
 
@@ -232,7 +238,7 @@ size_t Column::memory_footprint() const
 {
   size_t sz = sizeof(*this);
   sz += mbuf->memory_footprint();
-  if (ri) sz += ri->alloc_size();
+  // sz += ri.memory_footprint();
   if (stats) sz += stats->memory_footprint();
   return sz;
 }
@@ -258,6 +264,8 @@ Column* Column::countna_column() const {
   col->set_elem(0, countna());
   return col;
 }
+
+
 
 //------------------------------------------------------------------------------
 // Casting
@@ -354,33 +362,33 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   int64_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
-  RowIndex* col_ri = rowindex();
-  if (col_ri != nullptr) { // rowindexes are allowed to be null
-    // RowIndex check
-    bool ok = col_ri->verify_integrity(icc);
-    if (!ok) return false;
-
-    // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != col_ri->length) {
-      icc << "Mismatch in reported number of rows: " << name << " has "
-          << "nrows=" << nrows << ", while its rowindex.length="
-          << col_ri->length << end;
-    }
-
-    // Check that the maximum value of the RowIndex does not exceed the maximum
-    // row number in the memory buffer
-    if (col_ri->max >= mbuf_nrows && col_ri->max > 0) {
-      icc << "Maximum row number in the rowindex of " << name << " exceeds the "
-          << "number of rows in the underlying memory buffer: max(rowindex)="
-          << col_ri->max << ", and nrows(membuf)=" << mbuf_nrows << end;
-    }
-  }
-  else {
+  RowIndex col_rz(rowindex());
+  if (col_rz.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
       icc << "Mismatch between reported number of rows: " << name
           << " has nrows=" << nrows << " but MemoryBuffer has data for "
           << mbuf_nrows << " rows" << end;
+    }
+  }
+  else {
+    // RowIndex check
+    bool ok = col_rz.verify_integrity(icc);
+    if (!ok) return false;
+
+    // Check that the length of the RowIndex corresponds to `nrows`
+    if (nrows != col_rz.length()) {
+      icc << "Mismatch in reported number of rows: " << name << " has "
+          << "nrows=" << nrows << ", while its rowindex.length="
+          << col_rz.length() << end;
+    }
+
+    // Check that the maximum value of the RowIndex does not exceed the maximum
+    // row number in the memory buffer
+    if (col_rz.max() >= mbuf_nrows && col_rz.max() > 0) {
+      icc << "Maximum row number in the rowindex of " << name << " exceeds the "
+          << "number of rows in the underlying memory buffer: max(rowindex)="
+          << col_rz.max() << ", and nrows(membuf)=" << mbuf_nrows << end;
     }
   }
   if (icc.has_errors(nerrors)) return false;

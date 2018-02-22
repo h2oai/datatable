@@ -14,6 +14,12 @@
 
 class DataTable;
 class Column;
+class RowIndex;
+class PyyList;
+class PyyLong;
+class PyyFloat;
+extern PyObject* Py_One;
+extern PyObject* Py_Zero;
 
 
 /**
@@ -33,9 +39,15 @@ public:
   PyObj(PyObject*, const char* attr);
   PyObj(const PyObj&);
   PyObj(PyObj&&);
-  PyObj& operator=(const PyObj& other);
+  PyObj& operator=(PyObj other);
   ~PyObj();
   static PyObj fromPyObjectNewRef(PyObject*);
+
+  friend void swap(PyObj& first, PyObj& second) noexcept {
+    using std::swap;
+    swap(first.obj, second.obj);
+    swap(first.tmp, second.tmp);
+  }
 
   /**
    * Retrieve attribute `a` from this python object. This is equivalent to
@@ -93,9 +105,26 @@ public:
   char as_char(char ifnone, char ifempty) const;
   char as_char() const;
 
+  /**
+   * Return the underlying PyObject* object, as a new reference. The caller will
+   * own the returned reference.
+   */
   PyObject* as_pyobject() const;
+
   DataTable* as_datatable() const;
   Column* as_column() const;
+
+  /**
+   * Assuming the underlying object is pyrowindex::obj, return its RowIndex
+   * content object. An empty RowIndex will also be returned if the underlying
+   * object is None. In all other cases an exception will be thrown.
+   *
+   * Example:
+   *   PyObject* arg1;
+   *   if (!PyArg_ParseTuple("O", &arg1)) return NULL;
+   *   RowIndex ri = PyObj(arg1).as_rowindex();
+   */
+  RowIndex as_rowindex() const;
 
   /**
    * Convert the object to a list of strings. The object must be of python type
@@ -111,6 +140,37 @@ public:
   char** as_cstringlist() const;
 
   void print();
+  PyObj __str__() const;
+
+  /**
+   * Cast PyObject into boolean (using python's `bool(x)`), and return 1, 0 or
+   * NA depending on whether the value was truthy, falsy, or non-convertible.
+   */
+  int8_t __bool__() const;
+
+  /**
+   * Cast into a PyyLong, using python call `int(x)`. If the conversion fails,
+   * an "empty" PyyLong object is returned.
+   */
+  PyyLong __int__() const;
+
+  /**
+   * Cast into a PyyFloat, using python call `float(x)`. If the conversion
+   * fails, an "empty" PyyFloat object is returned.
+   */
+  PyyFloat __float__() const;
+
+  bool is_none() const   { return obj == Py_None; }
+  bool is_true() const   { return obj == Py_True || obj == Py_One; }
+  bool is_false() const  { return obj == Py_False || obj == Py_Zero; }
+  bool is_long() const   { return PyLong_Check(obj); }
+  bool is_float() const  { return PyFloat_Check(obj); }
+  bool is_list() const   { return PyList_Check(obj); }
+  bool is_string() const { return PyUnicode_Check(obj); }
+
+  operator PyyList() const;
+  operator PyyLong() const;
+  operator PyyFloat() const;
 };
 
 

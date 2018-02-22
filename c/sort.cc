@@ -298,49 +298,36 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex* Column::sort() const
+RowIndex Column::sort() const
 {
   if (nrows > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable with " << nrows << " rows";
   }
-  if (ri != nullptr && (ri->type == RI_ARR64 ||
-                        ri->length > INT32_MAX ||
-                        ri->max > INT32_MAX)) {
+  RowIndex rz(ri);
+  if (rz.isarr64() || rz.length() > INT32_MAX || rz.max() > INT32_MAX) {
     throw ValueError() << "Cannot sort a datatable which is based on a "
                           "datatable with >2**31 rows";
   }
   int32_t nrows_ = (int32_t) nrows;
-  int32_t *ordering = nullptr;
   if (nrows_ <= 1) {  // no need to sort
-    return new RowIndex((int64_t)0, nrows_, 1);
+    return RowIndex::from_slice(0, nrows_, 1);
   }
-  if (ri != nullptr) {
-    if (ri->type == RI_ARR32) {
-      dtmalloc(ordering, int32_t, nrows_);
-      memcpy(ordering, ri->ind32, (size_t) nrows_ * sizeof(int32_t));
-    }
-    else if (ri->type == RI_SLICE) {
-      RowIndex *ri_ = ri->expand();
-      if (ri_ == nullptr || ri_->type != RI_ARR32) return nullptr;
-      ordering = ri_->ind32;
-      ri_->ind32 = nullptr;
-      ri_->release();
-    }
-  }
+  dt::array<int32_t> ordering_array = rz.extract_as_array32();
+  int32_t* ordering = ordering_array.data(); // borrowed ref
   SType stype_ = stype();
   prepare_inp_fn prepfn = prepare_inp_fns[stype_];
   SortContext* sc = new SortContext();
 
   if (nrows_ <= INSERT_SORT_THRESHOLD) {
-    if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || ri != nullptr) {
+    if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || !rz.isabsent()) {
       prepfn(this, ordering, (size_t)nrows_, sc);
       insert_sort(sc);
       ordering = sc->o;
       dtfree(sc->x);
     } else if (stype_ == ST_STRING_I4_VCHAR) {
-      const unsigned char *strdata =
-          (const unsigned char*) static_cast<const StringColumn<int32_t>*>(this)->strdata() + 1;
-      const int32_t *offs = static_cast<const StringColumn<int32_t>*>(this)->offsets();
+      auto scol = static_cast<const StringColumn<int32_t>*>(this);
+      const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata()) + 1;
+      const int32_t* offs = scol->offsets();
       ordering = insert_sort_s4_noo(strdata, offs, 0, nullptr, nrows_);
     } else {
       insert_sort_fn sortfn = insert_sort_fns[stype_];
@@ -355,7 +342,7 @@ RowIndex* Column::sort() const
     if (prepfn) {
       prepfn(this, ordering, (size_t)nrows_, sc);
       if (sc->issorted) {
-        return new RowIndex((int64_t) 0, nrows_, 1);
+        return RowIndex::from_slice(0, nrows_, 1);
       }
       if (sc->x != nullptr) {
         radix_psort(sc);
@@ -379,9 +366,15 @@ RowIndex* Column::sort() const
     }
   }
   delete sc;
-  if (!ordering) return nullptr;
-  return new RowIndex(ordering, nrows_, 0);
+  if (!ordering) return RowIndex();
+  if (!ordering_array) {
+    // TODO: avoid this copy...
+    ordering_array.resize((size_t)nrows_);
+    std::memcpy(ordering_array.data(), ordering, (size_t)nrows_ * 4);
+  }
+  return RowIndex::from_array32(std::move(ordering_array));
 }
+
 
 
 //==============================================================================

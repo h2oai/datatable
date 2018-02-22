@@ -80,7 +80,7 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
         size_t ssta = static_cast<size_t>(abs(offs[i - 1]));
         size_t send = static_cast<size_t>(abs(offs[i]));
         size_t slen = static_cast<size_t>(send - ssta);
-        if (slen != 3) {
+        if (!(slen == 3 || slen==2)) {
             throw ValueError() << "Incorrect stype's length: " << slen;
         }
         std::string stype_str(cols->strdata() + ssta, slen);

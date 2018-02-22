@@ -229,17 +229,17 @@ static void write_utf8_codepoint(int32_t cp, uint8_t** dest) {
   if (cp <= 0x7F) {
     *ch++ = static_cast<uint8_t>(cp);
   } else if (cp <= 0x7FF) {
-    *ch++ = 0xC0 | (cp >> 6);
-    *ch++ = 0x80 | (cp & 0x3F);
+    *ch++ = 0xC0 | static_cast<uint8_t>(cp >> 6);
+    *ch++ = 0x80 | static_cast<uint8_t>(cp & 0x3F);
   } else if (cp <= 0xFFFF) {
-    *ch++ = 0xE0 | (cp >> 12);
-    *ch++ = 0x80 | ((cp >> 6) & 0x3F);
-    *ch++ = 0x80 | (cp & 0x3F);
+    *ch++ = 0xE0 | static_cast<uint8_t>(cp >> 12);
+    *ch++ = 0x80 | static_cast<uint8_t>((cp >> 6) & 0x3F);
+    *ch++ = 0x80 | static_cast<uint8_t>(cp & 0x3F);
   } else {
-    *ch++ = 0xF0 | (cp >> 18);
-    *ch++ = 0x80 | ((cp >> 12) & 0x3F);
-    *ch++ = 0x80 | ((cp >> 6) & 0x3F);
-    *ch++ = 0x80 | (cp & 0x3F);
+    *ch++ = 0xF0 | static_cast<uint8_t>(cp >> 18);
+    *ch++ = 0x80 | static_cast<uint8_t>((cp >> 12) & 0x3F);
+    *ch++ = 0x80 | static_cast<uint8_t>((cp >> 6) & 0x3F);
+    *ch++ = 0x80 | static_cast<uint8_t>(cp & 0x3F);
   }
   *dest = ch;
 }

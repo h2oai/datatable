@@ -123,6 +123,11 @@ DECLARE_METHOD(
   "Remove the specified list of columns from the datatable")
 
 DECLARE_METHOD(
+  replace_rowindex,
+  "replace_rowindex(rowindex)\n\n"
+  "Replace the current rowindex on the datatable with the new one.")
+
+DECLARE_METHOD(
   rbind,
   "Append rows of other datatables to the current")
 
@@ -177,8 +182,11 @@ DECLARE_METHOD(
 
 DECLARE_FUNCTION(
   datatable_from_list,
-  "datatable_from_list(...)\n\n"
-  "Create a DataTable from ...",
+  "datatable_from_list(list, types)\n\n"
+  "Create a DataTable from a list of Python objects (each will be converted\n"
+  "into a column). Optional `types` list may be provided to force a\n"
+  "particular stype for each column. The lengths of `types` list must be the\n"
+  "same as the number of entries in the source list.",
   HOMEFLAG)
 
 DECLARE_FUNCTION(

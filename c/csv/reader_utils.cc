@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
 #include "csv/fread.h"   // temporary
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -201,18 +202,18 @@ void ChunkedDataReader::compute_chunking_strategy() {
 
 // Default implementation merely moves the pointer to the beginning of the
 // next line.
-const char* ChunkedDataReader::adjust_chunk_start(
-    const char* ch, const char* end
-) {
-  while (ch < end) {
-    if (*ch == '\r' || *ch == '\n') {
-      ch += 1 + (ch[0] + ch[1] == '\r' + '\n');
-      break;
-    }
-    ch++;
-  }
-  return ch;
-}
+// const char* ChunkedDataReader::adjust_chunk_start(
+//     const char* ch, const char* end
+// ) {
+//   while (ch < end) {
+//     if (*ch == '\r' || *ch == '\n') {
+//       ch += 1 + (ch[0] + ch[1] == '\r' + '\n');
+//       break;
+//     }
+//     ch++;
+//   }
+//   return ch;
+// }
 
 
 void ChunkedDataReader::read_all()
@@ -267,12 +268,16 @@ void ChunkedDataReader::read_all()
       if (stop_team) continue;
       tctx->push_buffers();
 
-      const char* chunkstart = inputptr + i * chunkdist;
-      const char* chunkend = chunkstart + chunksize;
-      if (i == nchunks - 1) chunkend = inputend;
-      if (i > 0) chunkstart = adjust_chunk_start(chunkstart, chunkend);
+      // Determine chunkstart & chunkend
+      const char* chunkstart = nthreads > 1 ? inputptr + i * chunkdist
+                                            : last_chunkend;
+      const char* chunkend = i < nchunks - 1 ? chunkstart + chunksize
+                                             : inputend;
+      if (nthreads > 1) {
+        adjust_chunk_boundaries(chunkstart, chunkend, i);
+      }
 
-      tend = tctx->read_chunk(chunkstart, chunkend);
+      // tend = tctx->read_chunk(chunkstart, chunkend);
       tnrows = tctx->get_nrows();
       assert(tend >= chunkend);
 
@@ -297,7 +302,7 @@ void ChunkedDataReader::read_all()
         if (chunkstart != last_chunkend && chunks_contiguous) {
           tctx->set_nrows(0);
           chunkstart = last_chunkend;
-          tend = tctx->read_chunk(chunkstart, chunkend);
+          // tend = tctx->read_chunk(chunkstart, chunkend);
           tnrows = tctx->get_nrows();
         }
         size_t row0 = nrows_total;
@@ -333,8 +338,8 @@ void ChunkedDataReader::read_all()
         }
         // Allow each thread to perform any ordering it needs.
         tctx->order(row0);
-      } while (0);  // #omp ordered
-    } // #omp for(i in chunk0..nchunks) nowait
+      } while (0);  // #pragma omp ordered
+    } // #pragma omp ordered for nowait
 
     // Push the remaining data in the buffers
     if (!stop_team) {

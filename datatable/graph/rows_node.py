@@ -85,8 +85,10 @@ class RFNode:
         """
         rowindex = self._make_source_rowindex()
         _dt = self._engine.dt.internal
-        if _dt.isview:
-            return core.rowindex_uplift(rowindex, _dt)
+        if not rowindex:
+            return _dt.rowindex
+        elif _dt.isview:
+            return rowindex.uplift(_dt.rowindex)
         else:
             return rowindex
 
@@ -233,7 +235,7 @@ class BooleanColumnRFNode(RFNode):
 
     def _make_source_rowindex(self):
         col = self._coldt.internal.column(0)
-        return core.rowindex_from_boolcolumn(col)
+        return core.rowindex_from_column(col)
 
 
 
@@ -261,8 +263,13 @@ class IntegerColumnRFNode(RFNode):
         self._coldt = coldt
 
     def _make_source_rowindex(self):
-        return core.rowindex_from_intcolumn(self._coldt.internal,
-                                            self._engine.dt.nrows)
+        col = self._coldt.internal.column(0)
+        ri = core.rowindex_from_column(col)
+        if ri.max >= self._engine.dt.nrows:
+            raise ValueError("The data column contains index %d which is "
+                             "not allowed for a DataTable with %d rows"
+                             % (ri.max, self._engine.dt.nrows))
+        return ri
 
 
 
@@ -303,10 +310,11 @@ class FilterExprRFNode(RFNode):
     def _make_final_rowindex(self):
         if isinstance(self._engine, LlvmEvaluationEngine):
             ptr = self._engine.get_result(self._fnname)
-            return core.rowindex_from_function(ptr)
+            nrows = self._engine.dt.nrows
+            return core.rowindex_from_filterfn(ptr, nrows)
         else:
             col = self._expr.evaluate_eager()
-            return core.rowindex_from_boolcolumn(col)
+            return core.rowindex_from_column(col)
 
 
     def _make_source_rowindex(self):
@@ -321,7 +329,7 @@ class FilterExprRFNode(RFNode):
         dt = self._engine.dt
         ee = self._engine
         assert isinstance(ee, LlvmEvaluationEngine)
-        inode = IteratorNode(dt, ee, name="filter")
+        inode = IteratorNode(dt, ee, name=self._fnname)
         v = self._expr.value_or_0(inode=inode)
         inode.addto_preamble("int64_t j = 0;")
         inode.addto_mainloop("if (%s) {" % v)
@@ -331,20 +339,20 @@ class FilterExprRFNode(RFNode):
         inode.set_extra_args("int32_t *out, int32_t *n_outs")
         inode.generate_c()
 
-        rowindex_name = ee.make_variable_name("rowindex")
-        ee.add_global(rowindex_name, "void*", "NULL")
-        ee.add_function(
-            self._fnname,
-            "void* {fnname}(void) {{\n"
-            "    if (!{riname})\n"
-            "        {riname} = rowindex_from_filterfn32(\n"
-            "                       (void*) {filter}, {nrows}, {sorted});\n"
-            "    return {riname};\n"
-            "}}".format(fnname=self._fnname,
-                        riname=rowindex_name,
-                        filter=inode.fnname,
-                        sorted=int(not dt.internal.isview),
-                        nrows=dt.nrows))
+        # rowindex_name = ee.make_variable_name("rowindex")
+        # ee.add_global(rowindex_name, "void*", "NULL")
+        # ee.add_function(
+        #     self._fnname,
+        #     "void* {fnname}(void) {{\n"
+        #     "    if (!{riname})\n"
+        #     "        {riname} = rowindex_from_filterfn32(\n"
+        #     "                       (void*) {filter}, {nrows}, {sorted});\n"
+        #     "    return {riname};\n"
+        #     "}}".format(fnname=self._fnname,
+        #                 riname=rowindex_name,
+        #                 filter=inode.fnname,
+        #                 sorted=int(not dt.internal.isview),
+        #                 nrows=dt.nrows))
 
 
 
@@ -462,6 +470,8 @@ def make_rowfilter(rows, ee, _nested=False) -> RFNode:
                         "`rows` list" % (elem, i))
         if not counts:
             if len(bases) == 1:
+                if bases[0] == 0 and nrows == 1:
+                    return AllRFNode(ee)
                 return SliceRFNode(ee, bases[0], 1, 1)
             else:
                 return ArrayRFNode(ee, bases)

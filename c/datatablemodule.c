@@ -21,6 +21,11 @@
 
 
 PyMODINIT_FUNC PyInit__datatable(void);
+extern PyObject* Py_One, *Py_Zero;
+
+PyObject* Py_One;
+PyObject* Py_Zero;
+
 
 
 static PyObject* pyexec_function(PyObject *self, PyObject *args)
@@ -66,18 +71,19 @@ static PyObject* pyget_internal_function_ptrs(PyObject*, PyObject*)
 {
   #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
   CATCH_EXCEPTIONS(
+    const int SIZE = 6;
     int i = 0;
-    PyObject *res = PyTuple_New(7);
+    PyObject *res = PyTuple_New(SIZE);
     if (!res) return NULL;
 
     ADD(_dt_malloc);
     ADD(_dt_realloc);
     ADD(_dt_free);
-    ADD(RowIndex::from_filterfn32);
     ADD(datatable_get_column_data);
     ADD(datatable_unpack_slicerowindex);
     ADD(datatable_unpack_arrayrowindex);
 
+    assert(i == SIZE);
     return res;
   );
 }
@@ -86,8 +92,9 @@ static PyObject* pyget_internal_function_ptrs(PyObject*, PyObject*)
 static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
 {
   CATCH_EXCEPTIONS(
+    const int SIZE = 5;
     int i = 0;
-    PyObject *res = PyTuple_New(5);
+    PyObject *res = PyTuple_New(SIZE);
     if (!res) return NULL;
 
     ADD(sizeof(short int));
@@ -96,6 +103,7 @@ static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
     ADD(sizeof(long long int));
     ADD(sizeof(size_t));
 
+    assert(i == SIZE);
     return res;
   );
   #undef ADD
@@ -116,14 +124,11 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pycolumnset::columns_from_array),
     METHODv(pycolumnset::columns_from_columns),
     METHODv(pycolumn::column_from_list),
-    METHOD0_(rowindex_from_slice),
-    METHOD0_(rowindex_from_slicelist),
-    METHOD0_(rowindex_from_array),
-    METHOD0_(rowindex_from_boolcolumn),
-    METHOD0_(rowindex_from_intcolumn),
-    METHOD0_(rowindex_from_filterfn),
-    METHOD0_(rowindex_from_function),
-    METHOD0_(rowindex_uplift),
+    METHODv(pyrowindex::rowindex_from_slice),
+    METHODv(pyrowindex::rowindex_from_slicelist),
+    METHODv(pyrowindex::rowindex_from_array),
+    METHODv(pyrowindex::rowindex_from_column),
+    METHODv(pyrowindex::rowindex_from_filterfn),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
     METHODv(pydatatable::datatable_from_buffers),
@@ -159,17 +164,20 @@ PyMODINIT_FUNC
 PyInit__datatable(void) {
     init_csvwrite_constants();
 
+    Py_One = PyLong_FromLong(1);
+    Py_Zero = PyLong_FromLong(0);
+
     // Instantiate module object
     PyObject* m = PyModule_Create(&datatablemodule);
     if (m == NULL) return NULL;
 
     // Initialize submodules
-    if (!pydatatable::static_init(m)) return NULL;
     if (!init_py_datawindow(m)) return NULL;
-    if (!init_py_rowindex(m)) return NULL;
     if (!init_py_types(m)) return NULL;
     if (!pycolumn::static_init(m)) return NULL;
     if (!pycolumnset::static_init(m)) return NULL;
+    if (!pydatatable::static_init(m)) return NULL;
+    if (!pyrowindex::static_init(m)) return NULL;
     if (!init_py_encodings(m)) return NULL;
 
     return m;

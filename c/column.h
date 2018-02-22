@@ -15,9 +15,9 @@
 #include "memorybuf.h"
 #include "types.h"
 #include "stats.h"
+#include "python/list.h"
 
 class DataTable;
-class RowIndex;
 class BoolColumn;
 class PyObjectColumn;
 class FreadReader;  // used as a friend
@@ -72,7 +72,7 @@ class Column
 {
 protected:
   MemoryBuffer* mbuf;
-  RowIndex* ri;
+  RowIndex ri;
   mutable Stats* stats;
 
 public:  // TODO: convert this into private
@@ -85,7 +85,7 @@ public:
   static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryBuffer*, MemoryBuffer*);
-  static Column* from_pylist(PyObject* list, int stype0 = 0, int ltype0 = 0);
+  static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
@@ -96,9 +96,10 @@ public:
   virtual size_t elemsize() const = 0;
   virtual bool is_fixedwidth() const = 0;
 
-  inline void* data() const { return mbuf->get(); }
-  inline void* data_at(size_t i) const { return mbuf->at(i); }
-  inline RowIndex* rowindex() const { return ri; }
+  void replace_rowindex(const RowIndex& newri);
+  void* data() const { return mbuf->get(); }
+  void* data_at(size_t i) const { return mbuf->at(i); }
+  const RowIndex& rowindex() const { return ri; }
   size_t alloc_size() const;
   virtual int64_t data_nrows() const = 0;
   PyObject* mbuf_repr() const;
@@ -134,7 +135,8 @@ public:
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  virtual Column* shallowcopy(RowIndex* new_rowindex = nullptr) const;
+  virtual Column* shallowcopy(const RowIndex& new_rowindex) const;
+  Column* shallowcopy() const { return shallowcopy(RowIndex()); }
 
   virtual Column* deepcopy() const;
 
@@ -180,9 +182,16 @@ public:
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
-  RowIndex* sort() const;
+  /**
+   * Sort the column's values, and return the RowIndex that would make the
+   * column sorted.
+   */
+  RowIndex sort() const;
 
   int64_t countna() const;
+  virtual int64_t min_int64() const { return GETNA<int64_t>(); }
+  virtual int64_t max_int64() const { return GETNA<int64_t>(); }
+
   /**
    * Methods for retrieving statistics in the form of a Column. The resulting
    * Column will contain a single row, in which is the value of the statistic.
@@ -368,6 +377,8 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
+  int64_t min_int64() const override;
+  int64_t max_int64() const override;
 
   Column* min_column() const override;
   Column* max_column() const override;
@@ -488,6 +499,7 @@ protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
   Stats* get_stats() const override { return nullptr; }
+  void open_mmap(const std::string& filename) override;
 
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
@@ -534,7 +546,7 @@ public:
   char* strdata() const;
   T* offsets() const;
 
-  Column* shallowcopy(RowIndex* new_rowindex = nullptr) const override;
+  Column* shallowcopy(const RowIndex& new_rowindex) const override;
   Column* deepcopy() const override;
 
   bool verify_integrity(IntegrityCheckContext&,

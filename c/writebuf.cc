@@ -6,10 +6,13 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "writebuf.h"
+#include <cstdlib>     // std::realloc
+#include <cstring>     // std::memcpy
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
 #include "memorybuf.h"
+#include "utils/assert.h"
 #include "utils/omp.h"
 #include "utils.h"
 
@@ -134,19 +137,22 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*)
   // is writing into it leads to very-hard-to-debug crashes...
   while (bytes_written > allocsize) {
     size_t newsize = bytes_written * 2;
-    int old = 0;
+    int lockv = 1;
     // (1) wait until no other process is writing into the buffer
-    while (nlocks > 0) {}
+    while (lockv) {
+      #pragma omp atomic read
+      lockv = nlocks;
+    }
     // (2) make `numuses` negative, indicating that no other thread may
     //     initiate a memcopy operation for now.
     #pragma omp atomic capture
-    { old = nlocks; nlocks -= 1000000; }
-    // (3) The only case when `old != 0` is if another thread started memcopy
+    { lockv = nlocks; nlocks -= 1000000; }
+    // (3) The only case when `lockv != 0` is if another thread started memcopy
     //     operation in-between steps (1) and (2) above. In that case we restore
     //     the previous value of `numuses` and repeat the loop.
     //     Otherwise (and it is the most common case) we reallocate the buffer
     //     and only then restore the `numuses` variable.
-    if (old == 0) {
+    if (lockv == 0) {
       this->realloc(newsize);
     }
     #pragma omp atomic update
@@ -157,17 +163,18 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*)
 }
 
 
-void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void *src)
+void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src)
 {
-  int done = 0;
+  assert(pos + n <= allocsize);
+  bool done = false;
   while (!done) {
-    int old;
+    int lockv;
     #pragma omp atomic capture
-    old = nlocks++;
-    if (old >= 0) {
-      void *target = static_cast<void*>(static_cast<char*>(buffer) + pos);
-      memcpy(target, src, n);
-      done = 1;
+    lockv = nlocks++;
+    if (lockv >= 0) {
+      void* target = static_cast<void*>(static_cast<char*>(buffer) + pos);
+      std::memcpy(target, src, n);
+      done = true;
     }
     #pragma omp atomic update
     nlocks--;
@@ -177,13 +184,20 @@ void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void *src)
 
 void ThreadsafeWritableBuffer::finalize()
 {
-  while (nlocks > 0) {}
+  int lockv = 1;
+  while (lockv) {
+    #pragma omp atomic read
+    lockv = nlocks;
+  }
   while (allocsize > bytes_written) {
-    while (nlocks > 0) {}
-    int old = 0;
+    lockv = 1;
+    while (lockv) {
+      #pragma omp atomic read
+      lockv = nlocks;
+    }
     #pragma omp atomic capture
-    { old = nlocks; nlocks -= 1000000; }
-    if (old == 0) {
+    { lockv = nlocks; nlocks -= 1000000; }
+    if (lockv == 0) {
       this->realloc(bytes_written);
     }
     #pragma omp atomic update
@@ -201,7 +215,7 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
   : ThreadsafeWritableBuffer()
 {
   if (size) {
-    buffer = malloc(size);
+    buffer = std::malloc(size);
     allocsize = size;
     if (!buffer) {
       throw MemoryError() << "Unable to allocate memory of size " << size;
@@ -212,20 +226,20 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
 
 MemoryWritableBuffer::~MemoryWritableBuffer()
 {
-  free(buffer);
+  std::free(buffer);
 }
 
 
 void MemoryWritableBuffer::realloc(size_t newsize)
 {
   if (newsize) {
-    buffer = ::realloc(buffer, newsize);
+    buffer = std::realloc(buffer, newsize);
     allocsize = newsize;
     if (!buffer) {
       throw MemoryError() << "Unable to allocate memory of size " << newsize;
     }
   } else {
-    free(buffer);
+    std::free(buffer);
     buffer = nullptr;
     allocsize = 0;
   }

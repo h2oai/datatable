@@ -336,3 +336,35 @@ def test_issue684(seed):
     assert d0.internal.check()
     assert d0.ltypes == (dt.ltype.int,)
     assert d0.shape == (n - 1, 1)
+
+
+def test_issue735():
+    """
+    Integer column turns into a string consisting of 2 comma-separated
+    integers on an out-of-sample line...
+    """
+    lines = ["1,2"] * 2199
+    lines[111] = '5,"7,60000"'
+    src = "A,B\n" + "\n".join(lines)
+    d0 = dt.fread(src)
+    assert d0.internal.check()
+
+
+@pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
+def test_issue720(seed):
+    """
+    Fields containing many newlines should still work correctly.
+    """
+    seed = 124960729
+    random.seed(seed)
+    n = 100000
+    src0 = ["a"] * n
+    src1 = ["\n" * int(random.expovariate(0.02)) for _ in range(n)]
+    lines = "\n".join('%s,"%s"' % (src0[i], src1[i])
+                      for i in range(n))
+    src = "A,B\n" + lines
+    d0 = dt.fread(src)
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.ltypes == (dt.ltype.str, dt.ltype.str)
+    assert d0.topython() == [src0, src1]

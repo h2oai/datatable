@@ -43,9 +43,12 @@ int unwrap(PyObject* object, Column** address) {
 
 
 PyObject* column_from_list(PyObject*, PyObject* args) {
-  PyObject* list;
-  if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &list)) return nullptr;
-  Column* col = Column::from_pylist(list);
+  PyObject* arg1;
+  int stype = 0, ltype = 0;
+  if (!PyArg_ParseTuple(args, "O|ii", &arg1, &stype, &ltype))
+    return nullptr;
+  PyyList list = PyObj(arg1);
+  Column* col = Column::from_pylist(list, stype, ltype);
   return from_column(col, nullptr, 0);
 }
 
@@ -62,13 +65,13 @@ PyObject* get_mtype(pycolumn::obj* self) {
 
 PyObject* get_stype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
-  return incref(py_stype_names[stype]);
+  return incref(py_stype_objs[stype]);
 }
 
 
 PyObject* get_ltype(pycolumn::obj* self) {
   SType stype = self->ref->stype();
-  return incref(py_ltype_names[stype_info[stype].ltype]);
+  return incref(py_ltype_objs[stype_info[stype].ltype]);
 }
 
 
