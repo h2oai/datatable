@@ -289,32 +289,28 @@ class FreadChunkedReader {
           ctx->push_buffers();
 
           chunkster.compute_chunk_boundaries(i, ctx);
+          const char* end0 = ctx->chunkEnd;
 
           ctx->read_chunk();
 
-          if (!ctx->chunkEnd) {
-            stopTeam = true;
-          }
-
-          ctx->postprocess();
-
           #pragma omp ordered
           {
-            size_t& used_nrows = ctx->used_nrows;
             const char* newstart;
-            if ((newstart = chunkster.order_chunk(ctx->chunkStart, ctx->chunkEnd))) {
-              snprintf(stopErr, stopErrSize, "Unable to order chunk %zu\n", i);
-              stopTeam = true;
+            while ((newstart = chunkster.order_chunk(ctx->chunkStart, ctx->chunkEnd))) {
+              ctx->chunkStart = newstart;
+              ctx->chunkEnd = end0;
+              ctx->read_chunk();
             }
-            ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer). The previous thread just told me.
+            if (!ctx->chunkEnd) stopTeam = true;
+            ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).
             if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
               stopTeam = true;
-              used_nrows = 0;
-            } else if (used_nrows + ctx->row0 > allocnrow) {  // current thread has reached `allocnrow` limit
+              ctx->used_nrows = 0;
+            } else if (ctx->used_nrows + ctx->row0 > allocnrow) {  // current thread has reached `allocnrow` limit
               if (allocnrow == nrowLimit) {
                 // allocnrow is the same as nrowLimit, no need to reallocate the DT,
                 // just truncate the rows in the current chunk.
-                used_nrows = nrowLimit - ctx->row0;
+                ctx->used_nrows = nrowLimit - ctx->row0;
               } else {
                 // We reached `allocnrow` limit, but there are more data to read
                 // left. In this case we arrange to terminate all threads but
@@ -322,17 +318,17 @@ class FreadChunkedReader {
                 // will reallocate the DT and restart reading from the same point.
                 chunk0 = i;
                 if (i < nchunks - 1) {
-                  extraAllocRows = (size_t)((double)(row0+used_nrows)*nchunks/(i+1) * 1.2) - allocnrow;
+                  extraAllocRows = (size_t)((double)(row0+ctx->used_nrows)*nchunks/(i+1) * 1.2) - allocnrow;
                   if (extraAllocRows < 1024) extraAllocRows = 1024;
                 } else {
                   // If we're on the last jump, then we know exactly how many extra rows is needed.
-                  extraAllocRows = row0 + used_nrows - allocnrow;
+                  extraAllocRows = row0 + ctx->used_nrows - allocnrow;
                 }
-                used_nrows = 0;
+                ctx->used_nrows = 0;
                 stopTeam = true;
               }
             }
-            row0 += used_nrows;
+            row0 += ctx->used_nrows;
             if (!stopTeam) ctx->orderBuffer();
           }
           // END ORDERED.

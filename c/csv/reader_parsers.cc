@@ -540,12 +540,10 @@ void parse_string(FreadTokenizer& ctx) {
   //    the field is quoted and quotes are correctly escaped (quoteRule 0 and 1)
   // or the field is quoted but quotes are not escaped (quoteRule 2)
   // or the field is not quoted but the data contains a quote at the start (quoteRule 2 too)
-  int eolCount = 0;
   fieldStart++;  // step over opening quote
   switch(ctx.quoteRule) {
   case 0:  // quoted with embedded quotes doubled; the final unescaped " must be followed by sep|eol
     while (*++ch) {
-      if (*ch=='\n' && ++eolCount==100) return;  // TODO: expose this 100 to user to allow them to control limiting runaway fields
       if (*ch==quote) {
         if (ch[1]==quote) { ch++; continue; }
         break;  // found undoubled closing quote
@@ -554,7 +552,6 @@ void parse_string(FreadTokenizer& ctx) {
     break;
   case 1:  // quoted with embedded quotes escaped; the final unescaped " must be followed by sep|eol
     while (*++ch) {
-      if (*ch=='\n' && ++eolCount==100) return;
       if (*ch=='\\' && (ch[1]==quote || ch[1]=='\\')) { ch++; continue; }
       if (*ch==quote) break;
     }
