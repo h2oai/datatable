@@ -16,14 +16,13 @@ namespace dt
 {
 
 /**
- * Simple wrapper arount C primitive array `T*`. It encapsulates functions
+ * Simple wrapper around C primitive array `T*`. It encapsulates functions
  * `malloc`, `realloc` and `free` making sure that the array is deallocated
- * when necessary, and that it throws an exception when memory allocation
- * fails.
+ * when necessary, and that it throws an exception if memory allocation fails.
  *
  * Unlike `std::vector<T>`, this class does not distinguish between size and
  * capacity, and also it doesn't attempt to initialize elements to 0 when
- * array is created. Unlike `std::array<T, N>`, our array has dynamic size.
+ * array is created. Unlike `std::array<T, N>`, dt::array has dynamic size.
  *
  * Note that this class is designed to be used with primitive types only, in
  * particular it cannot hold objects (or pointers to objects) since it doesn't
@@ -40,6 +39,7 @@ namespace dt
  * int* ptr = a1.data();    // convert to plain C pointer
  * // free(ptr);            // error: the pointer still belongs to array!
  * array<int64_t> a3 = a1.cast<int64_t>(); // convert to a different array
+ *                          // array will keep its size but not values.
  * std::cout << a3.size();  // 5
  * std::cout << a1.size();  // 0 (a1 no longer owns the data)
  */
@@ -106,4 +106,8 @@ template <typename T> class array
 
 
 };  // namespace dt
+
+typedef dt::array<int32_t> arr32_t;
+typedef dt::array<int64_t> arr64_t;
+
 #endif

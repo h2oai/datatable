@@ -14,9 +14,6 @@ class BoolColumn;
 class RowIndex;
 class IntegrityCheckContext;
 
-typedef dt::array<int32_t> arr32_t;
-typedef dt::array<int64_t> arr64_t;
-
 
 
 //==============================================================================
@@ -68,15 +65,14 @@ class RowIndexImpl {
 
 class ArrayRowIndexImpl : public RowIndexImpl {
   private:
-    dt::array<int32_t> ind32;
-    dt::array<int64_t> ind64;
+    arr32_t ind32;
+    arr64_t ind64;
 
   public:
-    ArrayRowIndexImpl(dt::array<int32_t>&& indices, bool sorted);
-    ArrayRowIndexImpl(dt::array<int64_t>&& indices, bool sorted);
-    ArrayRowIndexImpl(const dt::array<int64_t>& starts,
-                      const dt::array<int64_t>& counts,
-                      const dt::array<int64_t>& steps);
+    ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
+    ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
+    ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
+                      const arr64_t& steps);
     ArrayRowIndexImpl(filterfn32* f, int64_t n, bool sorted);
     ArrayRowIndexImpl(filterfn64* f, int64_t n, bool sorted);
     ArrayRowIndexImpl(Column*);
@@ -148,8 +144,8 @@ class RowIndex {
      * Optional `sorted` flag tells the constructor whether the arrays are
      * sorted or not.
      */
-    static RowIndex from_array32(dt::array<int32_t>&& arr, bool sorted = false);
-    static RowIndex from_array64(dt::array<int64_t>&& arr, bool sorted = false);
+    static RowIndex from_array32(arr32_t&& arr, bool sorted = false);
+    static RowIndex from_array64(arr64_t&& arr, bool sorted = false);
 
     /**
      * Construct a RowIndex object from triple `(start, count, step)`. The new
@@ -172,9 +168,8 @@ class RowIndex {
      * This will create either an RI_ARR32 or RI_ARR64 object, depending on
      * which one is sufficient to hold all the indices.
      */
-    static RowIndex from_slices(const dt::array<int64_t>& starts,
-                                const dt::array<int64_t>& counts,
-                                const dt::array<int64_t>& steps);
+    static RowIndex from_slices(const arr64_t& starts, const arr64_t& counts,
+                                const arr64_t& steps);
 
     /**
      * Construct a RowIndex object using an external filter function. The
@@ -222,7 +217,7 @@ class RowIndex {
     int64_t slice_start() const { return impl_asslice()->start; }
     int64_t slice_step() const { return impl_asslice()->step; }
 
-    dt::array<int32_t> extract_as_array32() const;
+    arr32_t extract_as_array32() const;
     RowIndex inverse(int64_t nrows) const;
 
     /**

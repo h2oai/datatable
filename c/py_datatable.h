@@ -137,7 +137,10 @@ DECLARE_METHOD(
 
 DECLARE_METHOD(
   sort,
-  "Sort datatable according to a column")
+  "sort(col, makegroups=False)\n\n"
+  "Sort datatable by the specified column and return the RowIndex object\n"
+  "corresponding to the col's ordering. If `makegroups` is True, then\n"
+  "grouping information will also be computed and stored in the RowIndex.")
 
 DECLARE_METHOD(
   materialize,

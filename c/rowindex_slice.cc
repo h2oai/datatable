@@ -80,7 +80,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   // step = 0 and n > INT32_MAX, which case we handled above).
   if (uptype == RI_ARR32) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    dt::array<int32_t> res(zlen);
+    arr32_t res(zlen);
     const int32_t* srcrows = arii->indices32();
     int64_t j = start;
     for (size_t i = 0; i < zlen; ++i) {
@@ -92,7 +92,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
 
   if (uptype == RI_ARR64) {
     ArrayRowIndexImpl* arii = static_cast<ArrayRowIndexImpl*>(rii);
-    dt::array<int64_t> res(zlen);
+    arr64_t res(zlen);
     const int64_t* srcrows = arii->indices64();
     int64_t j = start;
     for (size_t i = 0; i < zlen; ++i) {

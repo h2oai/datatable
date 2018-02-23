@@ -46,19 +46,19 @@ RowIndex RowIndex::from_slice(int64_t start, int64_t count, int64_t step) {
 }
 
 
-RowIndex RowIndex::from_slices(const dt::array<int64_t>& starts,
-                               const dt::array<int64_t>& counts,
-                               const dt::array<int64_t>& steps) {
+RowIndex RowIndex::from_slices(const arr64_t& starts,
+                               const arr64_t& counts,
+                               const arr64_t& steps) {
   return RowIndex(new ArrayRowIndexImpl(starts, counts, steps));
 }
 
 
-RowIndex RowIndex::from_array32(dt::array<int32_t>&& arr, bool sorted) {
+RowIndex RowIndex::from_array32(arr32_t&& arr, bool sorted) {
   return RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted));
 }
 
 
-RowIndex RowIndex::from_array64(dt::array<int64_t>&& arr, bool sorted) {
+RowIndex RowIndex::from_array64(arr64_t&& arr, bool sorted) {
   return RowIndex(new ArrayRowIndexImpl(std::move(arr), sorted));
 }
 
@@ -78,9 +78,9 @@ RowIndex RowIndex::from_column(Column* col) {
 }
 
 
-dt::array<int32_t> RowIndex::extract_as_array32() const
+arr32_t RowIndex::extract_as_array32() const
 {
-  dt::array<int32_t> res;
+  arr32_t res;
   if (!impl) return res;
   size_t szlen = static_cast<size_t>(length());
   res.resize(szlen);
