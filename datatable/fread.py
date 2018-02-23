@@ -682,6 +682,8 @@ class GenericReader(object):
         endf, endl = self._bar_ends
         out = "\r" + s0 + endf + out + endl + s1
         print(_log_color(out), end="", flush=True)
+        if percent == 100:
+            print()
 
 
     def _get_destination(self, estimated_size):
