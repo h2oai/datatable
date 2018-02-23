@@ -275,15 +275,18 @@ class FreadChunkedReader {
         #pragma omp barrier
 
         int tIndex = omp_get_thread_num();
-        bool tShowProgress = (tIndex == 0);
+        bool tShowProgress = showProgress && (tIndex == 0);
+        bool tShowAlways = false;
+        double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
         FLPCPtr ctx = init_thread_context();
 
         #pragma omp for ordered schedule(dynamic) reduction(+:thRead,thPush)
         for (size_t i = chunk0; i < nchunks; i++) {
           if (stopTeam) continue;
-          if (tShowProgress && ctx->thPush >= 0.75) {
+          if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
             reader.progress(100.0*(i - 1)/nchunks);
+            tShowAlways = true;
           }
 
           ctx->push_buffers();
@@ -346,6 +349,9 @@ class FreadChunkedReader {
             ctx->push_buffers();
             thPush += ctx->thPush;
           }
+        }
+        if (tShowAlways) {
+          reader.progress(100.0);
         }
 
         #pragma omp atomic update
