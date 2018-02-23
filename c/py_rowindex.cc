@@ -61,9 +61,9 @@ PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
                           "`steps` arrays";
   }
   size_t n = static_cast<size_t>(n1);
-  dt::array<int64_t> starts(n);
-  dt::array<int64_t> counts(n);
-  dt::array<int64_t> steps(n);
+  arr64_t starts(n);
+  arr64_t counts(n);
+  arr64_t steps(n);
 
   // Convert Pythonic lists into regular C arrays of longs
   for (int64_t i = 0; i < n1; ++i) {
@@ -82,8 +82,8 @@ PyObject* rowindex_from_slicelist(PyObject*, PyObject* args) {
 
 
 PyObject* rowindex_from_array(PyObject*, PyObject* args) {
-  dt::array<int32_t> data32;
-  dt::array<int64_t> data64;
+  arr32_t data32;
+  arr64_t data64;
   PyObject* list;
   if (!PyArg_ParseTuple(args, "O!:rowindex_from_array",
                         &PyList_Type, &list)) return NULL;

@@ -644,7 +644,7 @@ $(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

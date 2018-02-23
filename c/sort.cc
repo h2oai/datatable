@@ -65,10 +65,10 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils.h"
+#include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
 
-typedef dt::array<int32_t> arr32_t;
 
 
 /**

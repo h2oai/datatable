@@ -106,4 +106,8 @@ template <typename T> class array
 
 
 };  // namespace dt
+
+typedef dt::array<int32_t> arr32_t;
+typedef dt::array<int64_t> arr64_t;
+
 #endif
