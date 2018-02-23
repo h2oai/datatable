@@ -24,15 +24,11 @@
 //==============================================================================
 
 /**
- * insert_sort_fw<T,I>(x, o, oo, n)
+ * insert_sort_keys_fw<T, V>(x, o, tmp, n)
  *
  * Sorts array `o` according to the values in `x` (both arrays must have the
- * same length `n`) and then returns it. Optionally, array `oo` of length `n`
- * may be provided, in which case it will be used as "scratch space" to use
- * during the sorting. If `o` is NULL, then it is treated as if it was
- * initialized with `o[i] == i`. In this case memory for array `o` will be
- * allocated and returned to the caller. The caller will have the ownership of
- * array `o`.
+ * same length `n`). Additionally, array `tmp` of length `n` must be provided,
+ * which will be used as "scratch space" during sorting.
  *
  * For example, if `x` is {5, 2, -1, 7, 2}, then this function will leave `x`
  * unmodified but reorder the elements of `o` into {o[2], o[1], o[4], o[0],
@@ -41,41 +37,58 @@
  * The template function is parametrized by
  *   T: the type of the elements in the "keys" array `x`. This type should be
  *      comparable using standard operator "<".
- *   I: type of elements in the "output" array `o`. Since output array is
+ *   V: type of elements in the "output" array `o`. Since output array is
  *      usually an ordering, this type is either `int32_t` or `int64_t`.
  */
-template <typename T, typename I>
-I* insert_sort_fw(const T* x, I* o, I* oo, int n)
+
+template <typename T, typename V>
+void insert_sort_keys_fw(const T* x, V* o, V* tmp, int n)
 {
-  bool oo_owned = false;
-  if (!oo) {
-    oo = new I[n];
-    oo_owned = true;
-  }
-  oo[0] = 0;
+  tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
     T xival = x[i];
     int j = i;
-    while (j && xival < x[oo[j - 1]]) {
-      oo[j] = oo[j - 1];
+    while (j && xival < x[tmp[j - 1]]) {
+      tmp[j] = tmp[j - 1];
       j--;
     }
-    oo[j] = static_cast<I>(i);
+    tmp[j] = static_cast<V>(i);
   }
-  if (o) {
-    for (int i = 0; i < n; ++i) {
-      oo[i] = o[oo[i]];
-    }
-    std::memcpy(o, oo, static_cast<size_t>(n) * sizeof(I));
-    if (oo_owned) {
-      delete[] oo;
-    }
-  } else {
-    if (oo_owned) return oo;
-    o = new I[n];
-    std::memcpy(o, oo, static_cast<size_t>(n) * sizeof(I));
+  for (int i = 0; i < n; ++i) {
+    tmp[i] = o[tmp[i]];
   }
-  return o;
+  std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
+}
+
+
+/**
+ * insert_sort_values_fw<T, V>(x, o, n)
+ *
+ * Sorts values in `x` and writes the ordering into `o`. Array `o` must be
+ * pre-allocated and have the same length `n` as `x`.
+ *
+ * For example, if `x` is {5, 2, -1, 7, 2}, then this function will leave `x`
+ * unmodified and write {2, 1, 4, 0, 3} into `o`.
+ *
+ * The template function is parametrized by
+ *   T: the type of the elements in the "keys" array `x`. This type should be
+ *      comparable using standard operator "<".
+ *   V: type of elements in the "output" array `o`. Since output array is
+ *      usually an ordering, this type is either `int32_t` or `int64_t`.
+ */
+template <typename T, typename V>
+void insert_sort_values_fw(const T* x, V* o, int n)
+{
+  o[0] = 0;
+  for (int i = 1; i < n; ++i) {
+    T xival = x[i];
+    int j = i;
+    while (j && xival < x[o[j - 1]]) {
+      o[j] = o[j - 1];
+      j--;
+    }
+    o[j] = static_cast<V>(i);
+  }
 }
 
 
@@ -97,12 +110,16 @@ I* insert_sort_fw(const T* x, I* o, I* oo, int n)
 // Explicit instantation of template functions
 //------------------------------------------------------------------------------
 
-template int32_t* insert_sort_fw(const int8_t*,   int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const int16_t*,  int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const int32_t*,  int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const int64_t*,  int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const uint8_t*,  int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const uint16_t*, int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const uint32_t*, int32_t*, int32_t*, int);
-template int32_t* insert_sort_fw(const uint64_t*, int32_t*, int32_t*, int);
+template void insert_sort_keys_fw(const uint8_t*,  int32_t*, int32_t*, int);
+template void insert_sort_keys_fw(const uint16_t*, int32_t*, int32_t*, int);
+template void insert_sort_keys_fw(const uint32_t*, int32_t*, int32_t*, int);
+template void insert_sort_keys_fw(const uint64_t*, int32_t*, int32_t*, int);
 
+template void insert_sort_values_fw(const int8_t*,   int32_t*, int);
+template void insert_sort_values_fw(const int16_t*,  int32_t*, int);
+template void insert_sort_values_fw(const int32_t*,  int32_t*, int);
+template void insert_sort_values_fw(const int64_t*,  int32_t*, int);
+template void insert_sort_values_fw(const uint8_t*,  int32_t*, int);
+template void insert_sort_values_fw(const uint16_t*, int32_t*, int);
+template void insert_sort_values_fw(const uint32_t*, int32_t*, int);
+template void insert_sort_values_fw(const uint64_t*, int32_t*, int);

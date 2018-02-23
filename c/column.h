@@ -186,7 +186,7 @@ public:
    * Sort the column's values, and return the RowIndex that would make the
    * column sorted.
    */
-  RowIndex sort() const;
+  RowIndex sort(bool compute_groups = false) const;
 
   int64_t countna() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
@@ -267,6 +267,9 @@ protected:
 
 private:
   static Column* new_column(SType);
+  // Sort helpers
+  RowIndex sort_tiny(bool compute_groups) const;
+
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);

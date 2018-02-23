@@ -7,8 +7,8 @@
 //------------------------------------------------------------------------------
 #define dt_PY_COLUMN_cc
 #include "py_column.h"
-#include "sort.h"
 #include "py_types.h"
+#include "sort.h"
 #include "writebuf.h"
 #include "utils/pyobj.h"
 
