@@ -62,6 +62,7 @@
 #include <stdlib.h>   // abs
 #include <stdio.h>    // printf
 #include "column.h"
+#include "datatable.h"
 #include "rowindex.h"
 #include "types.h"
 #include "utils.h"
@@ -294,34 +295,40 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex Column::sort(bool compute_groups) const
+RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 {
-  if (nrows > INT32_MAX) {
-    throw ValueError() << "Cannot sort a datatable with " << nrows << " rows";
+  if (colindices.size() != 1) {
+    throw NotImplError() << "Sorting by multiple columns is not supported yet";
   }
-  if (ri.isarr64() || ri.length() > INT32_MAX || ri.max() > INT32_MAX) {
-    throw ValueError() << "Cannot sort a datatable which is based on a "
-                          "datatable with >2**31 rows";
+  if (nrows > INT32_MAX) {
+    throw NotImplError() << "Cannot sort a datatable with " << nrows << " rows";
+  }
+  if (rowindex.isarr64() || rowindex.length() > INT32_MAX ||
+      rowindex.max() > INT32_MAX) {
+    throw NotImplError() << "Cannot sort a datatable which is based on a "
+                            "datatable with >2**31 rows";
   }
   if (nrows <= 1) {
-    return sort_tiny(compute_groups);
+    return sort_tiny(make_groups);
   }
   int32_t nrows_ = (int32_t) nrows;
   size_t zrows = static_cast<size_t>(nrows);
-  arr32_t ordering_array = ri.extract_as_array32();
+  arr32_t ordering_array = rowindex.extract_as_array32();
   int32_t* ordering = ordering_array.data(); // borrowed ref
-  SType stype_ = stype();
+
+  Column* col0 = columns[0];
+  SType stype_ = col0->stype();
   prepare_inp_fn prepfn = prepare_inp_fns[stype_];
   SortContext sc;
 
   if (nrows <= INSERT_SORT_THRESHOLD) {
-    if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || !ri.isabsent()) {
-      prepfn(this, ordering, zrows, &sc);
+    if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || !rowindex.isabsent()) {
+      prepfn(col0, ordering, zrows, &sc);
       insert_sort(&sc);
       ordering = sc.o;
       dtfree(sc.x);
     } else if (stype_ == ST_STRING_I4_VCHAR) {
-      auto scol = static_cast<const StringColumn<int32_t>*>(this);
+      auto scol = static_cast<const StringColumn<int32_t>*>(col0);
       const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata()) + 1;
       const int32_t* offs = scol->offsets();
       ordering_array.resize(zrows);
@@ -331,21 +338,22 @@ RowIndex Column::sort(bool compute_groups) const
     } else {
       ordering_array.resize(zrows);
       int32_t* o = ordering_array.data();
+      void* x = col0->data();
       switch (stype_) {
-        case ST_BOOLEAN_I1: insert_sort_values_fw<>(static_cast<int8_t*>(data()), o, nrows_); break;
-        case ST_INTEGER_I1: insert_sort_values_fw<>(static_cast<int8_t*>(data()), o, nrows_); break;
-        case ST_INTEGER_I2: insert_sort_values_fw<>(static_cast<int16_t*>(data()), o, nrows_); break;
-        case ST_INTEGER_I4: insert_sort_values_fw<>(static_cast<int32_t*>(data()), o, nrows_); break;
-        case ST_INTEGER_I8: insert_sort_values_fw<>(static_cast<int64_t*>(data()), o, nrows_); break;
-        case ST_REAL_F4:    insert_sort_values_fw<>(static_cast<uint32_t*>(data()), o, nrows_); break;
-        case ST_REAL_F8:    insert_sort_values_fw<>(static_cast<uint64_t*>(data()), o, nrows_); break;
+        case ST_BOOLEAN_I1: insert_sort_values_fw<>(static_cast<int8_t*>(x), o, nrows_); break;
+        case ST_INTEGER_I1: insert_sort_values_fw<>(static_cast<int8_t*>(x), o, nrows_); break;
+        case ST_INTEGER_I2: insert_sort_values_fw<>(static_cast<int16_t*>(x), o, nrows_); break;
+        case ST_INTEGER_I4: insert_sort_values_fw<>(static_cast<int32_t*>(x), o, nrows_); break;
+        case ST_INTEGER_I8: insert_sort_values_fw<>(static_cast<int64_t*>(x), o, nrows_); break;
+        case ST_REAL_F4:    insert_sort_values_fw<>(static_cast<uint32_t*>(x), o, nrows_); break;
+        case ST_REAL_F8:    insert_sort_values_fw<>(static_cast<uint64_t*>(x), o, nrows_); break;
         default: throw ValueError() << "Insert sort not implemented for column of stype " << stype_;
       }
       return RowIndex::from_array32(std::move(ordering_array));
     }
   } else {
     if (prepfn) {
-      prepfn(this, ordering, zrows, &sc);
+      prepfn(col0, ordering, zrows, &sc);
       if (sc.issorted) {
         return RowIndex::from_slice(0, nrows_, 1);
       }
@@ -356,10 +364,10 @@ RowIndex Column::sort(bool compute_groups) const
       ordering = sc.o;
       if (stype_ == ST_STRING_I4_VCHAR) {
         if (sc.x !=
-            static_cast<const StringColumn<int32_t>*>(this)->strdata() + 1)
+            static_cast<const StringColumn<int32_t>*>(col0)->strdata() + 1)
           dtfree(sc.x);
       } else {
-        if (sc.x != data()) dtfree(sc.x);
+        if (sc.x != col0->data()) dtfree(sc.x);
       }
       dtfree(sc.next_x);
       dtfree(sc.next_o);
@@ -380,7 +388,7 @@ RowIndex Column::sort(bool compute_groups) const
 }
 
 
-RowIndex Column::sort_tiny(bool compute_groups) const {
+RowIndex DataTable::sort_tiny(bool compute_groups) const {
   return RowIndex::from_slice(0, nrows, 1);
 }
 

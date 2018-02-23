@@ -68,6 +68,17 @@ class DataTable {
     DataTable* cbind(DataTable**, int);
     size_t memory_footprint();
 
+    /**
+     * Sort the DataTable by specified columns, and return the corresponding
+     * RowIndex. The array `colindices` provides the indices of columns to
+     * sort on. If an index is negative, it indicates that the column must be
+     * sorted in descending order instead of default ascending.
+     *
+     * If `make_groups` is true, then in addition to sorting, the grouping
+     * information will be computed and stored with the RowIndex.
+     */
+    RowIndex sortby(const arr32_t& colindices, bool make_groups) const;
+
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;
     DataTable* sum_datatable() const;
@@ -77,7 +88,12 @@ class DataTable {
 
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
-    static DataTable* load(DataTable* schema, int64_t nrows, const std::string& path);
+    static DataTable* load(DataTable* schema, int64_t nrows,
+                           const std::string& path);
+
+  private:
+    // Sort helpers
+    RowIndex sort_tiny(bool make_groups) const;
 };
 
 

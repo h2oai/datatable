@@ -327,11 +327,14 @@ PyObject* cbind(obj* self, PyObject* args) {
 
 PyObject* sort(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int idx;
-  if (!PyArg_ParseTuple(args, "i:sort", &idx)) return nullptr;
+  int idx = 0;
+  int make_groups = 0;
+  if (!PyArg_ParseTuple(args, "i|i:sort", &idx, &make_groups))
+    return nullptr;
 
-  Column* col = dt->columns[idx];
-  RowIndex ri = col->sort();
+  arr32_t cols(1);
+  cols[0] = idx;
+  RowIndex ri = dt->sortby(cols, make_groups);
   return pyrowindex::wrap(ri);
 }
 

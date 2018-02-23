@@ -182,12 +182,6 @@ public:
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
-  /**
-   * Sort the column's values, and return the RowIndex that would make the
-   * column sorted.
-   */
-  RowIndex sort(bool compute_groups = false) const;
-
   int64_t countna() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
@@ -267,8 +261,6 @@ protected:
 
 private:
   static Column* new_column(SType);
-  // Sort helpers
-  RowIndex sort_tiny(bool compute_groups) const;
 
   // FIXME
   friend Column* try_to_resolve_object_column(Column* col);
