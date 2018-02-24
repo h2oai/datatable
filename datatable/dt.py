@@ -242,10 +242,14 @@ class DataTable(object):
         else:
             raise TTypeError("Unexpected type of parameter %r" % pddf)
         for i in range(len(colarrays)):
-            if not colarrays[i].dtype.isnative:
+            coldtype = colarrays[i].dtype
+            if not coldtype.isnative:
                 # Array has wrong endianness -- coerce into native byte-order
                 colarrays[i] = colarrays[i].byteswap().newbyteorder()
-                assert colarrays[i].dtype.isnative
+                coldtype = colarrays[i].dtype
+                assert coldtype.isnative
+            if coldtype.char == 'e' and str(coldtype) == "float16":
+                colarrays[i] = colarrays[i].astype("float32")
         dt = core.datatable_from_buffers(colarrays)
         self._fill_from_dt(dt, names=names)
 
@@ -261,6 +265,8 @@ class DataTable(object):
             arr = arr.reshape((len(arr), 1))
         if not arr.dtype.isnative:
             arr = arr.byteswap().newbyteorder()
+        if str(arr.dtype) == "float16":
+            arr = arr.astype("float32")
 
         ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
