@@ -131,6 +131,10 @@ void PyError::topython() const {
   exc_traceback = nullptr;
 }
 
+bool PyError::is_keyboard_interrupt() const {
+  return exc_type == PyExc_KeyboardInterrupt;
+}
+
 
 
 //==============================================================================

@@ -663,27 +663,45 @@ class GenericReader(object):
 
     #---------------------------------------------------------------------------
 
-    def _progress(self, percent):
+    def _progress(self, progress, status):
         """
         Invoked from the C level to inform that the file reading progress has
-        reached the specified level (expressed as a number from 0 to 100.0).
+        reached the specified level (expressed as a number from 0 to 1).
+
+        Parameters
+        ----------
+        progress: float
+            The overall progress in reading the file. This will be the number
+            between 0 and 1.
+
+        status: int
+            Status indicator: 0 = the job is running; 1 = the job finished
+            successfully; 2 = the job finished with an exception; 3 = the job
+            was cancelled by the user (via Ctrl+C or some other mechanism).
         """
+        line_width = min(80, term.width)
+        if status == 1:
+            print("\r" + " " * line_width, end="\r", flush=True)
+            return
         bs = self._bar_symbols
-        s0 = "  Reading file: "
-        s1 = " %3d%%" % int(percent)
-        line_width = min(100, term.width)
+        s0 = "Reading file: "
+        s1 = " %3d%%" % int(100 * progress)
         bar_width = line_width - len(s0) - len(s1) - 2
-        progress = percent / 100
         n_chars = int(progress * bar_width + 0.001)
         frac_chars = int((progress * bar_width - n_chars) * len(bs))
         out = bs[-1] * n_chars
         out += bs[frac_chars - 1] if frac_chars > 0 else ""
-        out += " " * (bar_width - len(out))
+        outlen = len(out)
+        if status == 2:
+            out += term.red("(error)")
+            outlen += 7
+        elif status == 3:
+            out += term.dim_yellow("(cancelled)")
+            outlen += 11
+        out += " " * (bar_width - outlen)
         endf, endl = self._bar_ends
         out = "\r" + s0 + endf + out + endl + s1
-        print(_log_color(out), end="", flush=True)
-        if percent == 100:
-            print()
+        print(_log_color(out), end=("\n" if status else ""), flush=True)
 
 
     def _get_destination(self, estimated_size):
