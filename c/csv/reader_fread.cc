@@ -348,8 +348,8 @@ void FreadReader::userOverride()
 }
 
 
-void FreadReader::progress(double percent/*[0,100]*/) {
-  g.pyreader().invoke("_progress", "(d)", percent);
+void FreadReader::progress(double progress, int statuscode) {
+  g.pyreader().invoke("_progress", "(di)", progress, statuscode);
 }
 
 

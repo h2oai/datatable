@@ -175,6 +175,13 @@ class ChunkOrganizer {
       return lastChunkEnd;
     }
 
+    double work_done_ratio() const {
+      double done = static_cast<double>(lastChunkEnd - inputStart);
+      double total = static_cast<double>(inputEnd - inputStart);
+      return done / total;
+    }
+
+
   private:
     void determine_chunking_strategy() {
       size_t totalSize = static_cast<size_t>(inputEnd - inputStart);
@@ -263,6 +270,9 @@ class FreadChunkedReader {
     void read_all()
     {
       size_t nchunks = 0;
+      bool progressShown = false;
+      OmpExceptionManager oem;
+
       #pragma omp parallel num_threads(chunkster.get_nthreads())
       {
         #pragma omp master
@@ -278,23 +288,28 @@ class FreadChunkedReader {
         bool tShowProgress = showProgress && (tIndex == 0);
         bool tShowAlways = false;
         double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
+        const char* end0;
 
         FLPCPtr ctx = init_thread_context();
 
         #pragma omp for ordered schedule(dynamic) reduction(+:thRead,thPush)
         for (size_t i = chunk0; i < nchunks; i++) {
           if (stopTeam) continue;
-          if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-            reader.progress(100.0*(i - 1)/nchunks);
-            tShowAlways = true;
+          try {
+            if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
+              reader.progress(chunkster.work_done_ratio());
+              tShowAlways = true;
+            }
+
+            ctx->push_buffers();
+            chunkster.compute_chunk_boundaries(i, ctx);
+            end0 = ctx->chunkEnd;
+            ctx->read_chunk();
+
+          } catch (...) {
+            oem.capture_exception();
+            stopTeam = true;
           }
-
-          ctx->push_buffers();
-
-          chunkster.compute_chunk_boundaries(i, ctx);
-          const char* end0 = ctx->chunkEnd;
-
-          ctx->read_chunk();
 
           #pragma omp ordered
           {
@@ -333,30 +348,48 @@ class FreadChunkedReader {
             }
             row0 += ctx->used_nrows;
             if (!stopTeam) ctx->orderBuffer();
+          }  // #pragma omp ordered
+        }  // #pragma omp for ordered
+        try {
+          // Push out all buffers one last time.
+          if (ctx->used_nrows) {
+            if (stopTeam && stopErr[0]!='\0') {
+              // Stopped early because of error. Discard the content of the buffers,
+              // because they were not ordered, and trying to push them may lead to
+              // unexpected bugs...
+              ctx->used_nrows = 0;
+            } else {
+              ctx->push_buffers();
+              thPush += ctx->thPush;
+            }
           }
-          // END ORDERED.
-          // Next thread can now start its ordered section and write its results to the final DT at the same time as me.
-          // Ordered has to be last in some OpenMP implementations currently. Logically though, push_buffers happens now.
-        }
-        // Push out all buffers one last time.
-        if (ctx->used_nrows) {
-          if (stopTeam && stopErr[0]!='\0') {
-            // Stopped early because of error. Discard the content of the buffers,
-            // because they were not ordered, and trying to push them may lead to
-            // unexpected bugs...
-            ctx->used_nrows = 0;
-          } else {
-            ctx->push_buffers();
-            thPush += ctx->thPush;
-          }
-        }
-        if (tShowAlways) {
-          reader.progress(100.0);
+        } catch (...) {
+          oem.capture_exception();
         }
 
-        #pragma omp atomic update
-        nTypeBump += ctx->nTypeBump;
+        #pragma omp critical
+        {
+          nTypeBump += ctx->nTypeBump;
+          progressShown |= tShowAlways;
+        }
+      }  // #pragma omp parallel
+
+      if (progressShown) {
+        int status = 1;
+        if (oem.exception_caught()) {
+          status++;
+          try {
+            oem.rethrow_exception_if_any();
+          } catch (PyError& e) {
+            status += e.is_keyboard_interrupt();
+            oem.capture_exception();
+          } catch (...) {
+            oem.capture_exception();
+          }
+        }
+        reader.progress(chunkster.work_done_ratio(), status);
       }
+      oem.rethrow_exception_if_any();
     }
 };
 

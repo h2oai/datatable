@@ -84,7 +84,7 @@ private:
   void parse_column_names(FreadTokenizer& ctx);
   void detect_sep(FreadTokenizer& ctx);
   void userOverride();
-  void progress(double percent);
+  void progress(double progress, int status = 0);
   DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;

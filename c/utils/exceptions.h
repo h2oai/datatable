@@ -92,6 +92,7 @@ public:
   PyError();
   ~PyError();
   void topython() const override;
+  bool is_keyboard_interrupt() const;
 };
 
 
