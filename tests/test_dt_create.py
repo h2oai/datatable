@@ -240,6 +240,18 @@ def test_create_from_pandas_series_with_names(pandas):
     assert d.topython() == [[10000, 5, 19, -12]]
 
 
+def test_create_from_pandas_float16(pandas):
+    src = [1.5, 2.6, 7.8]
+    p = pandas.Series(src, dtype="float16")
+    d = dt.DataTable(p)
+    assert d.internal.check()
+    assert d.stypes == (stype.float32, )
+    assert d.shape == (3, 1)
+    # The precision of `float16`s is too low for `list_equals()` method.
+    res = d.topython()[0]
+    assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
+
+
 
 #-------------------------------------------------------------------------------
 # Create from Numpy
@@ -342,6 +354,19 @@ def test_create_from_numpy_array_with_names(numpy):
     assert d.names == ("gargantuan", )
     assert d.internal.check()
     assert d.topython() == [[1, 2, 3]]
+
+
+def test_create_from_numpy_float16(numpy):
+    src = [11.11, -3.162, 4.93, 0, 17.2]
+    a = numpy.array(src, dtype="float16")
+    d = dt.DataTable(a)
+    assert d.internal.check()
+    assert d.stypes == (stype.float32, )
+    assert d.shape == (len(src), 1)
+    # The precision of `float16`s is too low for `list_equals()` method.
+    res = d.topython()[0]
+    assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
+
 
 
 
