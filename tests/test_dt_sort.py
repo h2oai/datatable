@@ -491,7 +491,7 @@ def test_str32_small1():
            "Send these, the homeless, tempest-tost to me,",
            "I lift my lamp beside the golden door!'"]
     d0 = datatable.DataTable(src)
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
@@ -499,7 +499,7 @@ def test_str32_small1():
 def test_str32_small2():
     src = ["Welcome", "Welc", "", None, "Welc", "Welcome!", "Welcame"]
     d0 = datatable.DataTable(src)
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.internal.check()
     src.remove(None)
     assert d1.topython() == [[None] + sorted(src)]
@@ -509,7 +509,7 @@ def test_str32_large1():
     src = list("dfbvoiqeubvqoiervblkdfbvqoiergqoiufbvladfvboqiervblq"
                "134ty1-394 8n09er8gy209rg hwdoif13-40t 9u13- jdpfver")
     d0 = datatable.DataTable(src)
-    d1 = d0(sort=0)
+    d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
@@ -550,7 +550,6 @@ def test_str32_large5():
     assert dt0.topython()[0] == sorted(src)
 
 
-@pytest.mark.xfail()
 def test_str32_large6():
     rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
     assert os.path.isdir(rootdir)
