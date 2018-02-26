@@ -149,7 +149,6 @@ void insert_sort_keys_str(
 ) {
   int j;
   tmp[0] = 0;
-  const uint8_t* strdata1 = strdata - 1;
   for (int i = 1; i < n; ++i) {
     T off0i = std::abs(stroffs[o[i]-1]) + strstart;
     T off1i = stroffs[o[i]];
@@ -157,7 +156,7 @@ void insert_sort_keys_str(
       V k = tmp[j - 1];
       T off0k = std::abs(stroffs[o[k]-1]) + strstart;
       T off1k = stroffs[o[k]];
-      int cmp = _compare_offstrings(strdata1, off0i, off1i, off0k, off1k);
+      int cmp = _compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
       tmp[j] = tmp[j-1];
     }
@@ -176,7 +175,6 @@ void insert_sort_values_str(
 ) {
   int j;
   o[0] = 0;
-  const uint8_t* strdata1 = strdata - 1;
   for (int i = 1; i < n; ++i) {
     T off0i = std::abs(stroffs[i-1]) + strstart;
     T off1i = stroffs[i];
@@ -184,7 +182,7 @@ void insert_sort_values_str(
       V k = o[j - 1];
       T off0k = std::abs(stroffs[k-1]) + strstart;
       T off1k = stroffs[k];
-      int cmp = _compare_offstrings(strdata1, off0i, off1i, off0k, off1k);
+      int cmp = _compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
       o[j] = o[j-1];
     }

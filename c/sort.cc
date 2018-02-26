@@ -113,12 +113,10 @@
  *
  * strstart
  *      For string columns only, this is the position within the string that is
- *      currently being tested.
- *
- * strmore
- *      For string columns only, this is a flag that will be set after
- *      `prepare_data` / `reorder_data` and will indicate whether there are any
- *      more characters in the strings available.
+ *      currently being tested. More specifically, at the beginning of a
+ *      radix_sort() call, `strstart` will indicate the offset within each
+ *      string starting from each we need to sort. The assertion being that all
+ *      prefixes before position `strstart` are already properly sorted.
  *
  * issorted
  *      Flag indicating that the input array was found to be already sorted (for
@@ -182,7 +180,7 @@
  *
  * next_elemsize
  *      Size in bytes of each element in `next_x`. This cannot be greater than
- *      `elemsize`, however `next_elemsize` can be nullptr.
+ *      `elemsize`, however `next_elemsize` can be 0.
  */
 struct SortContext {
   public:
@@ -205,19 +203,17 @@ struct SortContext {
     int8_t nsigbits;
     int8_t shift;
     int8_t issorted;
-    int8_t strmore;
-    int : 16;
+    int : 24;
 
   SortContext()
     : x(nullptr), o(nullptr), next_x(nullptr), next_o(nullptr),
       histogram(nullptr), dx(0), strdata(nullptr), stroffs(nullptr),
       strstart(0), n(0), nth(0), nchunks(0), chunklen(0), nradixes(0),
-      elemsize(0), next_elemsize(0), nsigbits(0), shift(0), issorted(0),
-      strmore(0) {}
+      elemsize(0), next_elemsize(0), nsigbits(0), shift(0), issorted(0) {}
 
   /**
    * Calculate initial histograms of values in `x`. Specifically, we're creating
-   * a `counts` table which has `nchunks` rows and `nradix` columns. Cell
+   * a `histogram` table which has `nchunks` rows and `nradix` columns. Cell
    * `[i,j]` in this table will contain the count of values `x` within the chunk
    * `i` such that the topmost `nradixbits` of `x + dx` are equal to `j`. After
    * that the values are cumulated across all `j`s (i.e. in the end the
@@ -329,7 +325,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
       dtfree(sc.x);
     } else if (stype_ == ST_STRING_I4_VCHAR) {
       auto scol = static_cast<const StringColumn<int32_t>*>(col0);
-      const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata()) + 1;
+      const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
       const int32_t* offs = scol->offsets();
       ordering_array.resize(zrows);
       int32_t* o = ordering_array.data();
@@ -362,13 +358,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
       }
       int error_occurred = (sc.x == nullptr);
       ordering = sc.o;
-      if (stype_ == ST_STRING_I4_VCHAR) {
-        if (sc.x !=
-            static_cast<const StringColumn<int32_t>*>(col0)->strdata() + 1)
-          dtfree(sc.x);
-      } else {
-        if (sc.x != col0->data()) dtfree(sc.x);
-      }
+      if (sc.x != col0->data()) dtfree(sc.x);
       dtfree(sc.next_x);
       dtfree(sc.next_o);
       dtfree(sc.histogram);
@@ -388,7 +378,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 }
 
 
-RowIndex DataTable::sort_tiny(bool compute_groups) const {
+RowIndex DataTable::sort_tiny(bool /*compute_groups*/) const {
   return RowIndex::from_slice(0, nrows, 1);
 }
 
@@ -840,7 +830,7 @@ prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
 /**
  * For strings, we fill array `x` with the values of the first 2 characters in
  * each string. We also set up auxiliary variables `strdata`, `stroffs`,
- * `strstart` and `strmore` in the SortContext.
+ * `strstart` in the SortContext.
  *
  * More specifically, for each string item, if it is NA then we map it to 0;
  * if it is an empty string we map it to 1, otherwise we map it to
@@ -849,41 +839,39 @@ prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
  * This doesn't overflow because in UTF-8 the largest legal byte is 0xF7.
  */
 static void
-prepare_input_s4(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
+prepare_input_s4(const Column* col, int32_t* ordering, size_t n,
+                 SortContext* sc)
 {
-  uint8_t* strbuf = (uint8_t*) static_cast<const StringColumn<int32_t>*>(col)->strdata();
-  int32_t* offs = static_cast<const StringColumn<int32_t>*>(col)->offsets();
+  auto scol = static_cast<const StringColumn<int32_t>*>(col);
+  uint8_t* strbuf = reinterpret_cast<uint8_t*>(scol->strdata());
+  int32_t* offs = scol->offsets();
   int maxlen = 0;
-  uint16_t *xo = nullptr;
-  dtmalloc_g(xo, uint16_t, n);
+  uint8_t* xo = nullptr;
+  dtmalloc_g(xo, uint8_t, n);
 
   // TODO: This can be used for stats
   #pragma omp parallel for schedule(static) reduction(max:maxlen)
-  for (size_t j = 0; j < n; j++) {
+  for (size_t j = 0; j < n; ++j) {
     int32_t offend = offs[j];
     if (offend < 0) {  // NA
       xo[j] = 0;
     } else {
       int32_t offstart = abs(offs[j-1]);
       int32_t len = offend - offstart;
-      uint8_t c1 = len > 0? strbuf[offstart] + 1 : 0;
-      uint8_t c2 = len > 1? strbuf[offstart+1] + 1 : 0;
-      xo[j] = (uint16_t)(1 + (c1 << 8) + c2);
+      xo[j] = len > 0? strbuf[offstart] + 2 : 1;
       if (len > maxlen) maxlen = len;
     }
   }
 
-  sc->strdata = (unsigned char*) strbuf + 1;
+  sc->strdata = strbuf;
   sc->stroffs = offs;
   sc->strstart = 0;
-  sc->strmore = maxlen > 2;
   sc->n = n;
   sc->x = (void*) xo;
   sc->o = ordering;
-  sc->elemsize = 2;
-  sc->nsigbits = 16;
-  sc->next_elemsize = (maxlen > 2) * 2;
+  sc->elemsize = 1;
+  sc->nsigbits = 8;
+  sc->next_elemsize = (maxlen > 1);
   return;
   fail:
     sc->x = nullptr;
@@ -979,14 +967,14 @@ static void reorder_data2(SortContext *sc) {
 
 static void reorder_data_str(SortContext *sc)
 {
-  uint16_t* xi = static_cast<uint16_t*>(sc->x);
-  uint16_t* xo = static_cast<uint16_t*>(sc->next_x);
-  int32_t*  oi = sc->o;
-  int32_t*  oo = sc->next_o;
+  uint8_t* xi = static_cast<uint8_t*>(sc->x);
+  uint8_t* xo = static_cast<uint8_t*>(sc->next_x);
+  int32_t* oi = sc->o;
+  int32_t* oo = sc->next_o;
   assert(xo);
-  const uint8_t* strdata = sc->strdata - 1;
+  const uint8_t* strdata = sc->strdata;
   const int32_t* stroffs = sc->stroffs;
-  const int32_t  strstart = static_cast<int32_t>(sc->strstart);
+  const int32_t  strstart = static_cast<int32_t>(sc->strstart) + 1;
 
   int32_t maxlen = 0;
   #pragma omp parallel for schedule(dynamic) num_threads(sc->nth) \
@@ -1001,46 +989,41 @@ static void reorder_data_str(SortContext *sc)
       int32_t offend = stroffs[w];
       int32_t offstart = abs(stroffs[w-1]) + strstart;
       int32_t len = offend - offstart;
-      unsigned char c1 = len > 0? strdata[offstart] + 1 : 0;
-      unsigned char c2 = len > 1? strdata[offstart+1] + 1 : 0;
-      if (len > maxlen) maxlen = len;
-      xo[k] = offend < 0? 0 : (uint16_t)((c1 << 8) + c2 + 1);
+      xo[k] = len > 0? strdata[offstart] + 2 : 1;
       oo[k] = w;
+      if (len > maxlen) maxlen = len;
+      assert(k < sc->n && j < sc->n && offend > 0);
     }
   }
   assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
-  sc->next_elemsize = 2;
-  sc->strmore = maxlen > 2;
+  sc->next_elemsize = maxlen > 0;
 }
 
 
 
 static void reorder_data(SortContext *sc)
 {
-  if (!sc->next_x && sc->next_elemsize) {
-    dtmalloc_g(sc->next_x, void, sc->n * (size_t)sc->next_elemsize);
+  int8_t nextsize = sc->next_elemsize;
+  if (!sc->next_x && nextsize) {
+    dtmalloc_g(sc->next_x, void, sc->n * (size_t)nextsize);
   }
   if (!sc->next_o) {
     dtmalloc_g(sc->next_o, int32_t, sc->n);
   }
-  switch (sc->elemsize) {
-    case 8:
-      if (sc->next_elemsize == 8) reorder_data2<uint64_t, uint64_t>(sc);
-      else if (sc->next_elemsize == 4) reorder_data2<uint64_t, uint32_t>(sc);
-      else goto fail;
-      break;
-    case 4:
-      reorder_data2<uint32_t, uint16_t>(sc);
-      break;
-    case 2:
-      if (sc->next_elemsize == 2) reorder_data_str(sc);
-      else if (sc->next_elemsize == 0) reorder_data1<uint16_t>(sc);
-      else goto fail;
-      break;
-    case 1:
-      reorder_data1<uint8_t>(sc);
-      break;
-    default: printf("elemsize = %d\n", sc->elemsize); assert(0);
+  if (sc->strdata) {
+    if (sc->next_x)
+      reorder_data_str(sc);
+    else reorder_data1<uint8_t>(sc);
+  } else {
+    switch (sc->elemsize) {
+      case 8:
+        if (nextsize == 8) reorder_data2<uint64_t, uint64_t>(sc);
+        if (nextsize == 4) reorder_data2<uint64_t, uint32_t>(sc);
+        break;
+      case 4: reorder_data2<uint32_t, uint16_t>(sc); break;
+      case 2: reorder_data1<uint16_t>(sc); break;
+      case 1: reorder_data1<uint8_t>(sc); break;
+    }
   }
   return;
   fail:
@@ -1130,19 +1113,19 @@ static void radix_psort(SortContext *sc)
     size_t nradixes = sc->nradixes;
     size_t next_elemsize = (size_t) sc->next_elemsize;
     int8_t next_nsigbits = sc->shift;
-    if (!next_nsigbits) next_nsigbits = (int8_t)(sc->next_elemsize * 8);
+    if (!next_nsigbits) next_nsigbits = sc->next_elemsize * 8;
     SortContext next_sc;
     next_sc.strdata = sc->strdata;
     next_sc.stroffs = sc->stroffs;
-    next_sc.strstart = sc->strstart + 2;
-    next_sc.strmore = sc->strmore;
+    next_sc.strstart = sc->strstart + 1;
     next_sc.elemsize = sc->next_elemsize;
     next_sc.nsigbits = next_nsigbits;
     next_sc.histogram = sc->histogram;  // reuse the `histogram` buffer
     next_sc.next_x = sc->x;  // x is no longer needed: reuse
-    next_sc.next_elemsize = (int8_t)(sc->strdata? sc->strmore * 2 :
+    next_sc.next_elemsize = (int8_t)(sc->strdata? sc->next_elemsize :
                                      sc->shift > 32? 4 :
                                      sc->shift > 16? 2 : 0);
+    int8_t ne = next_sc.next_elemsize;
 
     // First, determine the sizes of ranges corresponding to each radix that
     // remain to be sorted. Recall that the previous step left us with the
@@ -1196,8 +1179,10 @@ static void radix_psort(SortContext *sc)
     while (rrmap[rri].size > rrlarge && rri < nradixes) {
       size_t off = rrmap[rri].offset;
       next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
+      next_sc.next_x = add_ptr(sc->x, off * next_elemsize);
       next_sc.o = sc->next_o + off;
       next_sc.n = rrmap[rri].size;
+      next_sc.next_elemsize = ne;
       radix_psort(&next_sc);
       rri++;
     }
@@ -1207,15 +1192,15 @@ static void radix_psort(SortContext *sc)
     // method.
     size_t size0 = rri < nradixes? rrmap[rri].size : 0;
     int32_t *tmp = nullptr;
-    int own_tmp = 0;
+    bool own_tmp = false;
     if (size0) {
-      size_t size_all = size0 * sc->nth * sizeof(int32_t);
-      if ((size_t)sc->elemsize * sc->n <= size_all) {
-        tmp = (int32_t*)sc->x;
-      } else {
-        own_tmp = 1;
-        dtmalloc_g(tmp, int32_t, size0 * sc->nth);
-      }
+      // size_t size_all = size0 * sc->nth * sizeof(int32_t);
+      // if ((size_t)sc->elemsize * sc->n <= size_all) {
+      //   tmp = (int32_t*)sc->x;
+      // } else {
+      own_tmp = true;
+      dtmalloc_g(tmp, int32_t, size0 * sc->nth);
+      // }
     }
     #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
     for (size_t i = rri; i < nradixes; i++) {
@@ -1223,12 +1208,12 @@ static void radix_psort(SortContext *sc)
       size_t off = rrmap[i].offset;
       int32_t n = (int32_t) rrmap[i].size;
       if (n <= 1) continue;
-      void *x = add_ptr(sc->next_x, off * next_elemsize);
-      int32_t *o = sc->next_o + off;
-      int32_t *oo = tmp + me * (int32_t)size0;
+      void* x = add_ptr(sc->next_x, off * next_elemsize);
+      int32_t* o = sc->next_o + off;
+      int32_t* oo = tmp + me * (int32_t)size0;
 
       if (sc->strdata) {
-        int32_t ss = (int32_t) sc->strstart;
+        int32_t ss = (int32_t) sc->strstart + 1;
         insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n);
       } else {
         switch (next_elemsize) {
@@ -1250,6 +1235,7 @@ static void radix_psort(SortContext *sc)
     sc->o = sc->next_o;
     sc->next_o = nullptr;
   }
+
   return;
   fail:
   sc->x = nullptr;
@@ -1265,8 +1251,8 @@ static void radix_psort(SortContext *sc)
 static void insert_sort(SortContext* sc)
 {
   int32_t n = (int32_t) sc->n;
-  if (sc->strdata && sc->strmore) {
-    int32_t ss = (int32_t)sc->strstart - 2;
+  if (sc->strdata && sc->next_elemsize) {
+    int32_t ss = (int32_t)sc->strstart - 1;
     int32_t* tmp = static_cast<int32_t*>(sc->next_x);
     if (sc->o)
       insert_sort_keys_str(sc->strdata, sc->stroffs, ss, sc->o, tmp, n);

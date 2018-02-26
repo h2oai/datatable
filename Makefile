@@ -177,6 +177,8 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	)
 
 fast:
+	$(eval DTDEBUG := 1)
+	$(eval export DTDEBUG)
 	$(eval CC := $(shell python setup.py get_CC))
 	$(eval CCFLAGS := $(shell python setup.py get_CCFLAGS))
 	$(eval LDFLAGS := $(shell python setup.py get_LDFLAGS))
@@ -184,8 +186,7 @@ fast:
 	$(eval export CC CCFLAGS LDFLAGS EXTEXT)
 	@echo • Checking dependencies graph
 	@python fastcheck.py
-	@DTDEBUG=1 \
-	$(MAKE) --no-print-directory main-fast
+	@$(MAKE) --no-print-directory main-fast
 
 post-fast:
 	@echo • Copying _datatable.so into ``datatable/lib/_datatable$(EXTEXT)``
