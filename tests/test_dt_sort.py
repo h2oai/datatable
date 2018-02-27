@@ -52,6 +52,23 @@ def test_sort_with_engine():
     assert d1.topython() == d2.topython() == [sorted(d0.topython()[0])]
 
 
+def test_nonfirst_column():
+    """Check that sorting by n-th column works too..."""
+    d0 = datatable.DataTable([range(100),
+                              [random.randint(0, 50) for _ in range(100)]],
+                             names=["A", "B"])
+    d1 = d0.sort("B")
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d1.internal.isview
+    assert d0.shape == d1.shape == (100, 2)
+    assert d0.names == d1.names == ("A", "B")
+    a0, a1 = d1.topython()
+    assert sorted(a0) == list(range(100))
+    assert a0 != list(range(100))
+    assert a1 == sorted(a1)
+
+
 
 #-------------------------------------------------------------------------------
 
