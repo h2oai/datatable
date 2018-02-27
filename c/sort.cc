@@ -177,12 +177,12 @@
  *      elements in `x` are in the range `[0; 2**nsigbits)`. The number of
  *      significant bits cannot be 0.
  *
- * shift, dx
- *      The parameters of linear transform to be applied to each item in `x` to
+ * shift
+ *      The parameter of linear transform to be applied to each item in `x` to
  *      obtain the radix. That is, radix for element `i` is
- *          ((x[i] + dx) >> shift)
- *      The `shift` and `dx` can also be zero, indicating that the values
- *      themselves are the radixes (as in counting sort).
+ *          (x[i] >> shift)
+ *      The `shift` can also be zero, indicating that the values themselves
+ *      are the radixes (as in counting sort).
  *
  * nradixes
  *      Total number of possible radixes, equal to `1 << (nsigbits - shift)`.
@@ -237,7 +237,6 @@ struct SortContext {
     void*    next_x;
     int32_t* next_o;
     size_t*  histogram;
-    uint64_t dx;
     const unsigned char *strdata;
     const int32_t *stroffs;
     size_t strstart;
@@ -255,45 +254,54 @@ struct SortContext {
 
   SortContext()
     : x(nullptr), o(nullptr), next_x(nullptr), next_o(nullptr),
-      histogram(nullptr), dx(0), strdata(nullptr), stroffs(nullptr),
-      strstart(0), n(0), nth(0), nchunks(0), chunklen(0), nradixes(0),
-      elemsize(0), next_elemsize(0), nsigbits(0), shift(0), issorted(0) {}
+      histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
+      n(0), nth(0), nchunks(0), chunklen(0), nradixes(0), elemsize(0),
+      next_elemsize(0), nsigbits(0), shift(0), issorted(0) {}
+
+
+  //============================================================================
+  // Histograms
+  //============================================================================
 
   /**
    * Calculate initial histograms of values in `x`. Specifically, we're creating
-   * a `histogram` table which has `nchunks` rows and `nradix` columns. Cell
+   * the `histogram` table which has `nchunks` rows and `nradix` columns. Cell
    * `[i,j]` in this table will contain the count of values `x` within the chunk
-   * `i` such that the topmost `nradixbits` of `x + dx` are equal to `j`. After
-   * that the values are cumulated across all `j`s (i.e. in the end the
-   * histogram will contain cumulative counts of values in `x`).
-   *
-   * If the `histogram` pointer is nullptr, then the required memory buffer
-   * will be allocated; if the `histogram` is not empty, then this memory region
-   * will be cleared and then filled in.
-   *
-   * Inputs:  x, dx, n, shift, nradixes, nth, nchunks, chunklen
-   * Outputs: histogram
+   * `i` such that the topmost `nradixbits` of `x` are equal to `j`. After that
+   * the values are cumulated across all `j`s (i.e. in the end the histogram
+   * will contain cumulative counts of values in `x`).
    */
-  template<typename T>
   void build_histogram() {
-    T* tx = static_cast<T*>(x);
-    T tdx = static_cast<T>(dx);
     size_t counts_size = nchunks * nradixes;
     if (!histogram) {
       histogram = new size_t[counts_size];
     }
     std::memset(histogram, 0, counts_size * sizeof(size_t));
+    switch (elemsize) {
+      case 1: _histogram_gather<uint8_t>();  break;
+      case 2: _histogram_gather<uint16_t>(); break;
+      case 4: _histogram_gather<uint32_t>(); break;
+      case 8: _histogram_gather<uint64_t>(); break;
+    }
+    _histogram_cumulate();
+  }
+
+  template<typename T> void _histogram_gather() {
+    T* tx = static_cast<T*>(x);
     #pragma omp parallel for schedule(dynamic) num_threads(nth)
     for (size_t i = 0; i < nchunks; ++i) {
       size_t* cnts = histogram + (nradixes * i);
       size_t j0 = i * chunklen;
       size_t j1 = std::min(j0 + chunklen, n);
       for (size_t j = j0; j < j1; ++j) {
-        T t = tx[j] + tdx;
-        cnts[t >> shift]++;
+        cnts[tx[j] >> shift]++;
       }
     }
+  }
+
+  void _histogram_cumulate() {
     size_t cumsum = 0;
+    size_t counts_size = nchunks * nradixes;
     for (size_t j = 0; j < nradixes; ++j) {
       for (size_t r = j; r < counts_size; r += nradixes) {
         size_t t = histogram[r];
@@ -302,6 +310,7 @@ struct SortContext {
       }
     }
   }
+
 };
 
 
@@ -503,34 +512,31 @@ static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
 static void prepare_input_b1(const Column *col, int32_t *ordering, size_t n,
                              SortContext *sc)
 {
-  if (ordering) {
-    uint8_t *xi = (uint8_t*) col->data();
-    uint8_t *xo = nullptr;
-    dtmalloc_g(xo, uint8_t, n);
-    uint8_t una = (uint8_t) NA_I1;
+  uint8_t* xi = static_cast<uint8_t*>(col->data());
+  uint8_t* xo = new uint8_t[n];
 
+  if (ordering) {
     #pragma omp parallel for schedule(static)
     for (size_t j = 0; j < n; j++) {
-      uint8_t t = xi[ordering[j]];
-      xo[j] = t == una? 0 : t + 1;
+      uint8_t t = xi[ordering[j]] + 0xBF;
+      xo[j] = t >> 6;
     }
-    sc->nsigbits = 8;
-    sc->x = (void*) xo;
-    sc->o = ordering;
   } else {
-    sc->shift = 6;
-    sc->nsigbits = 2;
-    sc->dx = 0xBF;
-    sc->x = col->data();
-    sc->o = nullptr;
+    #pragma omp parallel for schedule(static)
+    for (size_t j = 0; j < n; j++) {
+      // xi[j]+0xBF should be computed as uint8_t; by default C++ upcasts it
+      // to int, which leads to wrong results after shift by 6.
+      uint8_t t = xi[j] + 0xBF;
+      xo[j] = t >> 6;
+    }
   }
 
+  sc->nsigbits = 2;
+  sc->x = static_cast<void*>(xo);
+  sc->o = ordering;
   sc->n = n;
   sc->elemsize = 1;
   sc->next_elemsize = 0;
-  return;
-  fail:
-  sc->x = nullptr;
 }
 
 
@@ -927,21 +933,6 @@ prepare_input_s4(const Column* col, int32_t* ordering, size_t n,
 
 
 
-//==============================================================================
-// Histogram building functions
-//==============================================================================
-
-static void build_histogram(SortContext *sc)
-{
-  switch (sc->elemsize) {
-    case 1: return sc->build_histogram<uint8_t>();
-    case 2: return sc->build_histogram<uint16_t>();
-    case 4: return sc->build_histogram<uint32_t>();
-    case 8: return sc->build_histogram<uint64_t>();
-  }
-}
-
-
 
 //==============================================================================
 // Data processing step
@@ -972,7 +963,6 @@ template<typename TI>
 static void reorder_data1(SortContext *sc) {
   int8_t shift = sc->shift;
   TI* xi = static_cast<TI*>(sc->x);
-  TI dx = static_cast<TI>(sc->dx);
   int32_t* oi = sc->o;
   int32_t* oo = sc->next_o;
   #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
@@ -981,8 +971,7 @@ static void reorder_data1(SortContext *sc) {
     size_t j1 = std::min(j0 + sc->chunklen, sc->n);
     size_t* tcounts = sc->histogram + (sc->nradixes * i);
     for (size_t j = j0; j < j1; ++j) {
-      TI t = xi[j] + dx;
-      size_t k = tcounts[t >> shift]++;
+      size_t k = tcounts[xi[j] >> shift]++;
       oo[k] = oi? oi[j] : static_cast<int32_t>(j);
     }
   }
@@ -994,7 +983,6 @@ static void reorder_data2(SortContext *sc) {
   int8_t shift = sc->shift;
   TI mask = static_cast<TI>((1ULL << shift) - 1);
   TI* xi = static_cast<TI*>(sc->x);
-  TI  dx = static_cast<TI>(sc->dx);
   TO* xo = static_cast<TO*>(sc->next_x);
   int32_t* oi = sc->o;
   int32_t* oo = sc->next_o;
@@ -1004,9 +992,9 @@ static void reorder_data2(SortContext *sc) {
     size_t j1 = std::min(j0 + sc->chunklen, sc->n);
     size_t* tcounts = sc->histogram + (sc->nradixes * i);
     for (size_t j = j0; j < j1; ++j) {
-      size_t k = tcounts[(xi[j] + dx) >> shift]++;
+      size_t k = tcounts[xi[j] >> shift]++;
       oo[k] = oi? oi[j] : static_cast<int32_t>(j);
-      if (xo) xo[k] = static_cast<TO>(static_cast<TI>(xi[j] + dx) & mask);
+      if (xo) xo[k] = static_cast<TO>(xi[j] & mask);
     }
   }
   assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
@@ -1140,7 +1128,7 @@ static void determine_sorting_parameters(SortContext *sc)
 static void radix_psort(SortContext *sc)
 {
   determine_sorting_parameters(sc);
-  build_histogram(sc);
+  sc->build_histogram();
   reorder_data(sc);
 
   if (!sc->x) return;
