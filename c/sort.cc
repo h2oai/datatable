@@ -22,37 +22,35 @@
 //      https://en.wikipedia.org/wiki/Radix_sort
 //      https://en.wikipedia.org/wiki/Insertion_sort
 //      http://stereopsis.com/radix.html
+//      /microbench/sort
 //
 // Based on Radix sort implementation in (R)data.table:
 //      https://github.com/Rdatatable/data.table/src/forder.c
 //      https://github.com/Rdatatable/data.table/src/fsort.c
 //
+//------------------------------------------------------------------------------
+// The outline of the algorithm as it implemented here is roughly the following:
 //
-// Tuning of algorithms / constants in this file is based on `/microbench/sort`.
-// The summary of the results obtained from experimentation on a MacOS laptop
-// with 4CPUs and 16GB RAM is the following (here k is the number of significant
-// bits in unsigned representation of elements of an array, and n is the length
-// of that array):
+// 1. Data preparation step.
 //
-// [uint8_t]
-//   k=1:  n<=8  insert0, o/w radix1
-//   k=2:  n<=8  insert0, o/w radix2
-//   k=3:  n<=8  insert0, o/w radix3
-//   k=4:  n<=8  insert0, o/w radix4
-//   k=5:  n<=12 insert0, o/w radix5
+//    Before data can be sorted, it has to be "prepared". The purpose of this
+//    transformation is 1) to transform all types into unsigned integers which
+//    can be sorted via radix-sort algorithm; 2) to collect values into a
+//    contiguous buffer if they are originally shuffled by a RowIndex; 3) to
+//    reduce the range of possible values and thus the amount of sorting that
+//    has to be done; 4) to apply parameters `na_position` and `ascending`.
 //
-// [int]
-// k = 1, 2, 3, 4
-//     n <= 8 insert0, otherwise radix-K
-// k = 5
-//     n <= 12 insert0, otherwise radix-5
-// k = 6
-//     n <= 16 insert0, otherwise radix-6
-// k = 7
-//     n <= 16 insert0, n <= 40 radix-4/m, otherwise radix-7
-// k = 8
-//     n <= 16 insert0, n <= 72 radix-4/m, otherwise radix-8
+//    The result of this step is an array `x` of type `uintN_t[n]`, where N
+//    depends on the input column. Thus, during this step we try to map the
+//    original data into the unsigned integers, making sure that such
+//    transformation preserves the order of the original elements.
 //
+//    For integers, this transformation is merely subtracting the min value and
+//    relocating NA to the beginning of the range. For floats, we perform a
+//    more complicated bit twiddling (see description below). For strings the
+//    data cannot be prepared "fully", so we merely map the first byte into `x`.
+//
+// 2. Build histogram.
 //
 //------------------------------------------------------------------------------
 #include "sort.h"
@@ -312,7 +310,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
   arr32_t ordering_array = rowindex.extract_as_array32();
   int32_t* ordering = ordering_array.data(); // borrowed ref
 
-  Column* col0 = columns[0];
+  Column* col0 = columns[colindices[0]];
   SType stype_ = col0->stype();
   prepare_inp_fn prepfn = prepare_inp_fns[stype_];
   SortContext sc;
