@@ -28,8 +28,9 @@
 //      https://github.com/Rdatatable/data.table/src/forder.c
 //      https://github.com/Rdatatable/data.table/src/fsort.c
 //
-//------------------------------------------------------------------------------
-// The outline of the algorithm as it implemented here is roughly the following:
+//
+// Algorithm outline
+// =================
 //
 // 1. Data preparation step.
 //
@@ -52,12 +53,61 @@
 //
 // 2. Build histogram.
 //
+//    For each value in `x` take its `radix` most significant bits, and compute
+//    the frequency table for these prefixes. The histogram is computed
+//    separately for each chunk of the input used during parallel processing.
+//    This step produces a cumulative `histogram` of the data, where for each
+//    possible radix prefix and for each input chunk, the value in the histogram
+//    is the location within the final sorted array where all values in `x` with
+//    specific radix/chunk should go.
+//
+// 3. Reorder data.
+//
+//    Shuffle the input data according to the ordering implied by the histogram
+//    computed in the previous step. Also, update values of `x` if further
+//    sorting is needed. Here "updating" involves removing the initial radix
+//    prefix (which was already sorted), sometimes also reducing the elemsize
+//    of `x`. For strings we copy the next character of each string into the
+//    buffer `x`.
+//
+// 4. Recursion.
+//
+//    At this point the data is already stably-sorted according to its most
+//    significant `radix` bits (or for strings, by their first characters), and
+//    the values in `x` are properly transformed to for further sorting. Also,
+//    the `histogram` matrix from step 2 carries information about where each
+//    pre-sorted group is located. All we need to do is to sort values within
+//    each of those groups, and the job will be done.
+//
+//    Each sub-group that needs to be sorted will have a different size, and we
+//    process each such group taking into account its size: for small groups
+//    use insertion-sort and process all those groups in-parallel; larger groups
+//    can be sorted in-parallel too, using radix-sort; largest groups are sorted
+//    one-by-one, each one one with parallel radix-sort algorithm.
+//
+//
+// Grouping
+// ========
+//
+// Sorting naturally produces information about groups with same values, and
+// this information is even necessary in order to sort by multiple columns.
+//
+// For small arrays that are sorted with insert-sort, group sizes can be
+// computed simply by comparing adjacent values.
+//
+// For radix-sort, if there is no recursion step then group information can be
+// derived from the histogram. If radix-sort recurses, then large subgroups
+// (which are processed one-by-one) can simply push group sizes into the common
+// group stack. However when smaller subgroups are processed in parallel, then
+// each such processor needs to write its grouping information into a separate
+// buffer, which are then merged into the main group stack.
+//
+//
 //------------------------------------------------------------------------------
 #include "sort.h"
 #include <algorithm>  // std::min
+#include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
-#include <stdint.h>
-#include <stdlib.h>   // abs
 #include <stdio.h>    // printf
 #include "column.h"
 #include "datatable.h"
@@ -854,7 +904,7 @@ prepare_input_s4(const Column* col, int32_t* ordering, size_t n,
     if (offend < 0) {  // NA
       xo[j] = 0;
     } else {
-      int32_t offstart = abs(offs[j-1]);
+      int32_t offstart = std::abs(offs[j-1]);
       int32_t len = offend - offstart;
       xo[j] = len > 0? strbuf[offstart] + 2 : 1;
       if (len > maxlen) maxlen = len;
@@ -985,7 +1035,7 @@ static void reorder_data_str(SortContext *sc)
       size_t k = tcounts[xi[j]]++;
       int32_t w = oi? oi[j] : (int32_t) j;
       int32_t offend = stroffs[w];
-      int32_t offstart = abs(stroffs[w-1]) + strstart;
+      int32_t offstart = std::abs(stroffs[w-1]) + strstart;
       int32_t len = offend - offstart;
       xo[k] = len > 0? strdata[offstart] + 2 : 1;
       oo[k] = w;
