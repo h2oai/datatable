@@ -1045,9 +1045,6 @@ DataTablePtr FreadReader::read()
     goto read;   // jump0>0 at this point, set above
   }
 
-  // tell progress meter to finish up; e.g. write final newline
-  // if there's a reread, the progress meter will start again from 0
-  if (g.show_progress && thPush >= 0.75) progress(100.0);
   columns.allocate(row0);
 
   if (firstTime) {
