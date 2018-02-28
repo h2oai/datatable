@@ -148,46 +148,50 @@ struct Mod<LT, RT, double> {
 // Relational operators
 //------------------------------------------------------------------------------
 
-template<typename LT, typename RT>
+template<typename LT, typename RT, typename VT>
 inline static int8_t op_eq(LT x, RT y) {  // x == y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
-  return (!x_isna && !y_isna && x == y) || (x_isna && y_isna);
+  return (!x_isna && !y_isna && static_cast<VT>(x) == static_cast<VT>(y)) ||
+         (x_isna && y_isna);
 }
 
-template<typename LT, typename RT>
+template<typename LT, typename RT, typename VT>
 inline static int8_t op_ne(LT x, RT y) {  // x != y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
-  return (x_isna || y_isna || x != y) && !(x_isna && y_isna);
+  return (x_isna || y_isna || static_cast<VT>(x) != static_cast<VT>(y)) &&
+         !(x_isna && y_isna);
 }
 
-template<typename LT, typename RT>
+template<typename LT, typename RT, typename VT>
 inline static int8_t op_gt(LT x, RT y) {  // x > y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
-  return (!x_isna && !y_isna && x > y);
+  return (!x_isna && !y_isna && static_cast<VT>(x) > static_cast<VT>(y));
 }
 
-template<typename LT, typename RT>
+template<typename LT, typename RT, typename VT>
 inline static int8_t op_lt(LT x, RT y) {  // x < y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
-  return (!x_isna && !y_isna && x < y);
+  return (!x_isna && !y_isna && static_cast<VT>(x) < static_cast<VT>(y));
 }
 
-template<typename LT, typename RT>
+template<typename LT, typename RT, typename VT>
 inline static int8_t op_ge(LT x, RT y) {  // x >= y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
-  return (!x_isna && !y_isna && x >= y) || (x_isna && y_isna);
+  return (!x_isna && !y_isna && static_cast<VT>(x) >= static_cast<VT>(y)) ||
+         (x_isna && y_isna);
 }
 
-template<typename LT, typename RT>
+template<typename LT, typename RT, typename VT>
 inline static int8_t op_le(LT x, RT y) {  // x <= y
   bool x_isna = ISNA<LT>(x);
   bool y_isna = ISNA<RT>(y);
-  return (!x_isna && !y_isna && x <= y) || (x_isna && y_isna);
+  return (!x_isna && !y_isna && static_cast<VT>(x) <= static_cast<VT>(y)) ||
+         (x_isna && y_isna);
 }
 
 
@@ -228,12 +232,12 @@ static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, 
         return resolve2<LT, RT, VT, op_div<LT, RT, VT>>(mode);
 
     // Relational operators
-    case OpCode::Equal:          return resolve2<LT, RT, int8_t, op_eq<LT, RT>>(mode);
-    case OpCode::NotEqual:       return resolve2<LT, RT, int8_t, op_ne<LT, RT>>(mode);
-    case OpCode::Greater:        return resolve2<LT, RT, int8_t, op_gt<LT, RT>>(mode);
-    case OpCode::Less:           return resolve2<LT, RT, int8_t, op_lt<LT, RT>>(mode);
-    case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT>>(mode);
-    case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT>>(mode);
+    case OpCode::Equal:          return resolve2<LT, RT, int8_t, op_eq<LT, RT, VT>>(mode);
+    case OpCode::NotEqual:       return resolve2<LT, RT, int8_t, op_ne<LT, RT, VT>>(mode);
+    case OpCode::Greater:        return resolve2<LT, RT, int8_t, op_gt<LT, RT, VT>>(mode);
+    case OpCode::Less:           return resolve2<LT, RT, int8_t, op_lt<LT, RT, VT>>(mode);
+    case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT, VT>>(mode);
+    case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT, VT>>(mode);
   }
   return nullptr;
 }

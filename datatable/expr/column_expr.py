@@ -7,6 +7,7 @@
 
 from .base_expr import BaseExpr
 from .consts import nas_map
+from ..types import stype
 from datatable.lib import core
 
 
@@ -64,11 +65,13 @@ class ColSelectorExpr(BaseExpr):
         assert v == key
         datavar = key + "_data"
         inode.make_keyvar(datavar, datavar, exact=True)
-        inode.addto_preamble("{type} *{data} = "
+        inode.addto_preamble("{type}* {data} = "
                              "({type}*) dt_column_data({dt}, {idx});"
                              .format(type=self.ctype, data=datavar,
                                      dt=self._get_dtvar(inode),
                                      idx=self._colid))
+        if self.stype == stype.str32:
+            inode.addto_preamble("{data}++;".format(data=datavar))
         inode.addto_mainloop("{type} {var} = {data}[i];"
                              .format(type=self.ctype, var=v, data=datavar))
         return v
@@ -77,11 +80,15 @@ class ColSelectorExpr(BaseExpr):
         self.resolve()
         # TODO: use rollup stats to determine if some variable is never NA
         v = inode.make_keyvar(key, str(self) + "_isna", exact=True)
-        isna_fn = "IS" + nas_map[self.stype]
-        inode.add_extern(isna_fn)
-        inode.addto_mainloop("int {var} = {isna}({value});"
-                             .format(var=v, isna=isna_fn,
-                                     value=self.value(inode)))
+        if self.stype == stype.str32:
+            inode.addto_mainloop("int {var} = ({value} < 0);"
+                                 .format(var=v, value=self.value(inode)))
+        else:
+            isna_fn = "IS" + nas_map[self.stype]
+            inode.add_extern(isna_fn)
+            inode.addto_mainloop("int {var} = {isna}({value});"
+                                 .format(var=v, isna=isna_fn,
+                                         value=self.value(inode)))
         return v
 
     def notna(self, inode):

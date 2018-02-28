@@ -23,6 +23,10 @@ dt_int = {(5, -3, 6, 3, 0),
 dt_float = {(9.5, 0.2, 5.4857301, -3.14159265338979),
             (1.1, 2.3e12, -.5, None, float("inf"), 0.0)}
 
+dt_str = {("foo", "bbar", "baz"),
+          (None, "", " ", "  ", None, "\0"),
+          tuple("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-=")}
+
 
 
 #-------------------------------------------------------------------------------
@@ -109,10 +113,14 @@ def test_dt_pos_invalid(src):
 # isna()
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float)
+@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float | dt_str)
 def test_dt_isna(src):
     dt0 = dt.DataTable(src)
-    dtr = dt0(select=lambda f: dt.isna(f[0]))
-    assert dtr.internal.check()
-    assert dtr.stypes == (stype.bool8,)
-    assert dtr.topython()[0] == [x is None for x in src]
+    dt1 = dt0(select=lambda f: dt.isna(f[0]), engine="eager")
+    dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.stypes == dt2.stypes == (stype.bool8,)
+    pyans = [x is None for x in src]
+    assert dt1.topython()[0] == pyans
+    assert dt2.topython()[0] == pyans
