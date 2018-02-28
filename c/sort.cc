@@ -128,107 +128,94 @@
  * parameters it writes.
  *
  * x
- *      The main data array, depending on `elemsize` has one of the following
- *      types: `uint8_t*`, `uint16_t*`, `uint32_t*` or `uint64_t*`. The
- *      array has `n` elements. This array serves as a "sorting key" -- the
- *      final goal is to produce the ordering of values in `x`.
- *      The elements in `x` are always unsigned, and will be sorted accordingly.
- *      In particular, the data must usually be transformed in order to ensure
- *      that it sorts correctly (this is done in `prepare_input` step).
- *      If `x` is nullptr, it indicates that an error condition was raised, and
- *      the sorting routine should exit as soon as possible. It is also possible
- *      for `x` to be nullptr when `issorted` flag is set.
+ *   The main data array, depending on `elemsize` has one of the following
+ *   types: `uint8_t*`, `uint16_t*`, `uint32_t*` or `uint64_t*`. The
+ *   array has `n` elements. This array serves as a "sorting key" -- the
+ *   final goal is to produce the ordering of values in `x`.
+ *   The elements in `x` are always unsigned, and will be sorted accordingly.
+ *   In particular, the data must usually be transformed in order to ensure
+ *   that it sorts correctly (this is done in `prepare_input` step).
+ *   If `x` is nullptr, it indicates that an error condition was raised, and
+ *   the sorting routine should exit as soon as possible.
  *
  * o
- *      Current ordering (row indices) of elements in `x`. This is an array of
- *      size `n` (same as `x`). If present, then this array will be sorted
- *      according to the values `x`. If nullptr, then it will be treated as if
- *      `o[j] == j`.
+ *   Current ordering (row indices) of elements in `x`. This is an array of size
+ *   `n` (same as `x`). If present, then this array will be sorted according
+ *   to the values `x`. If nullptr, then it will be treated as if `o[j] == j`.
  *
  * n
- *      Number of elements in arrays `x` and `o`.
+ *   Number of elements in arrays `x` and `o`.
  *
  * elemsize
- *      Size in bytes of each element in `x`, one of: 1, 2, 4, or 8.
+ *   Size in bytes of each element in `x`, one of: 1, 2, 4, or 8.
  *
- * strdata
- *      For string columns only, this is the common "character data" memory
- *      buffer for all items in the column.
- *
- * stroffs
- *      For string columns only, this is a pointer to the "offsets" structure
- *      of the column.
+ * strdata, stroffs
+ *   For string columns only, these are pointers `col->strdata()` and
+ *   `col->offsets()` respectively.
  *
  * strstart
- *      For string columns only, this is the position within the string that is
- *      currently being tested. More specifically, at the beginning of a
- *      radix_sort() call, `strstart` will indicate the offset within each
- *      string starting from each we need to sort. The assertion being that all
- *      prefixes before position `strstart` are already properly sorted.
- *
- * issorted
- *      Flag indicating that the input array was found to be already sorted (for
- *      example when it is a constant array). When this flag is set, the sorting
- *      procedure should exit as soon as possible.
+ *   For string columns only, this is the position within the string that is
+ *   currently being tested. More specifically, at the beginning of a
+ *   radix_sort() call, `strstart` will indicate the offset within each string
+ *   starting from each we need to sort. The assertion being that all prefixes
+ *   before position `strstart` are already properly sorted.
  *
  * nsigbits
- *      Number of significant bits in the elements of `x`. This cannot exceed
- *      `8 * elemsize`, but could be less. This value is an assertion that all
- *      elements in `x` are in the range `[0; 2**nsigbits)`. The number of
- *      significant bits cannot be 0.
+ *   Number of significant bits in the elements of `x`. This cannot exceed
+ *   `8 * elemsize`, but could be less. This value is an assertion that all
+ *   elements in `x` are in the range `[0; 2**nsigbits)`. The number of
+ *   significant bits cannot be 0.
  *
  * shift
- *      The parameter of linear transform to be applied to each item in `x` to
- *      obtain the radix. That is, radix for element `i` is
- *          (x[i] >> shift)
- *      The `shift` can also be zero, indicating that the values themselves
- *      are the radixes (as in counting sort).
+ *   The parameter of linear transform to be applied to each item in `x` to
+ *   obtain the radix. That is, radix for element `i` is
+ *       (x[i] >> shift)
+ *   The `shift` can also be zero, indicating that the values themselves
+ *   are the radixes (as in counting sort).
  *
  * nradixes
- *      Total number of possible radixes, equal to `1 << (nsigbits - shift)`.
+ *   Total number of possible radixes, equal to `1 << (nsigbits - shift)`.
  *
  * nth
- *      The number of threads used by OMP.
+ *   The number of threads used by OMP.
  *
  * nchunks, chunklen
- *      These variables describe how the total number of rows, `n`, will be
- *      split into smaller chunks for the parallel computation. In particular,
- *      the range `[0; n)` is divided into `nchunks` sub-ranges each except the
- *      last one having length `chunklen`. The last chunk will have the length
- *      `n - chunklen*(nchunks - 1)`. The number of chunks is >= 1, and
- *      `chunklen` is also positive.
+ *   These variables describe how the total number of rows, `n`, will be split
+ *   into smaller chunks for the parallel computation. In particular, the range
+ *   `[0; n)` is divided into `nchunks` sub-ranges each except the last one
+ *   having length `chunklen`. The last chunk will have the length
+ *   `n - chunklen*(nchunks - 1)`. The number of chunks is >= 1, and `chunklen`
+ *   is also positive.
  *
  * histogram
- *      Computed during the `build_histogram` step, this array will contain the
- *      histogram of data values, by chunk and by radix. More specifically, this
- *      is a `size_t*` array which is viewed as a 2D table. The `(i,k)`-th
- *      element of this array (where `i` is the chunk index, and `k` is radix)
- *      is located at index `(i * nradixes + k)` and represents the starting
- *      position within the output array where the elements with radix `k` and
- *      within the chunk `i` should be written. That is,
- *          histogram[i,k] = #{elements in chunks 0..i-1 with radix = k} +
- *                           #{elements in all chunks with radix < k}
- *      After the "reorder_data" step, this histogram is modified to contain
- *      values
- *          histogram[i,k] = #{elements in chunks 0..i with radix = k} +
- *                           #{elements in all chunks with radix < k}
+ *   Computed during the `build_histogram` step, this array will contain the
+ *   histogram of data values, by chunk and by radix. More specifically, this
+ *   is a `size_t*` array which is viewed as a 2D table. The `(i,k)`-th element
+ *   of this array (where `i` is the chunk index, and `k` is radix) is located
+ *   at index `(i * nradixes + k)` and represents the starting position within
+ *   the output array where the elements with radix `k` and within the chunk `i`
+ *   should be written. That is,
+ *       histogram[i,k] = #{elements in chunks 0..i-1 with radix = k} +
+ *                        #{elements in all chunks with radix < k}
+ *   After the "reorder_data" step, this histogram is modified to contain values
+ *       histogram[i,k] = #{elements in chunks 0..i with radix = k} +
+ *                        #{elements in all chunks with radix < k}
  *
  * next_x
- *      When `shift > 0`, a single pass of the `radix_psort()` function will
- *      sort the data array only partially, and 1 or more extra passes will be
- *      needed to finish sorting. In this case the array `next_x` (of length
- *      `n`) will hold pre-sorted and potentially modified values of the
- *      original data array `x`.
- *      The array `next_x` is filled in the "reorder_data" step. If it was nullptr,
- *      the array will be allocated, otherwise its contents will be overwritten.
+ *   When `shift > 0`, a single pass of the `radix_psort()` function will sort
+ *   the data array only partially, and 1 or more extra passes will be needed to
+ *   finish sorting. In this case the array `next_x` (of length `n`) will hold
+ *   pre-sorted and potentially modified values of the original data array `x`.
+ *   The array `next_x` is filled in the "reorder_data" step. If it was nullptr,
+ *   the array will be allocated, otherwise its contents will be overwritten.
  *
  * next_o
- *      The reordered array `o` to be carried over to the next step, or to be
- *      returned as the final ordering in the end.
+ *   The reordered array `o` to be carried over to the next step, or to be
+ *   returned as the final ordering in the end.
  *
  * next_elemsize
- *      Size in bytes of each element in `next_x`. This cannot be greater than
- *      `elemsize`, however `next_elemsize` can be 0.
+ *   Size in bytes of each element in `next_x`. This cannot be greater than
+ *   `elemsize`, however `next_elemsize` can be 0.
  */
 class SortContext {
   public:
@@ -249,14 +236,13 @@ class SortContext {
     int8_t next_elemsize;
     int8_t nsigbits;
     int8_t shift;
-    int8_t issorted;
-    int : 24;
+    int : 32;
 
   SortContext()
     : x(nullptr), o(nullptr), next_x(nullptr), next_o(nullptr),
       histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
       n(0), nth(0), nchunks(0), chunklen(0), nradixes(0), elemsize(0),
-      next_elemsize(0), nsigbits(0), shift(0), issorted(0) {}
+      next_elemsize(0), nsigbits(0), shift(0) {}
 
 
   //============================================================================
@@ -512,6 +498,8 @@ class SortContext {
     }
   }
 
+
+
 };
 
 
@@ -601,19 +589,12 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
     }
   } else {
     sc.initialize(col0, ordering);
-    if (sc.issorted) {
-      return RowIndex::from_slice(0, nrows_, 1);
-    }
-    if (sc.x != nullptr) {
-      radix_psort(&sc);
-    }
-    int error_occurred = (sc.x == nullptr);
+    radix_psort(&sc);
     ordering = sc.o;
     if (sc.x != col0->data()) dtfree(sc.x);
     dtfree(sc.next_x);
     dtfree(sc.next_o);
     dtfree(sc.histogram);
-    if (error_occurred) ordering = nullptr;
   }
   if (!ordering) return RowIndex();
   if (!ordering_array) {
@@ -759,6 +740,8 @@ static void reorder_data(SortContext *sc)
       case 1: reorder_data1<uint8_t>(sc); break;
     }
   }
+  std::swap(sc->x, sc->next_x);
+  std::swap(sc->o, sc->next_o);
   return;
   fail:
   sc->next_x = nullptr;
@@ -825,12 +808,13 @@ static void determine_sorting_parameters(SortContext *sc)
  */
 static void radix_psort(SortContext *sc)
 {
+  int32_t* ores = sc->o;
   determine_sorting_parameters(sc);
   sc->build_histogram();
   reorder_data(sc);
 
-  if (!sc->x) return;
   if (sc->next_elemsize) {
+
     // At this point the input array is already partially sorted, and the
     // elements that remain to be sorted are collected into contiguous
     // chunks. For example if `shift` is 2, then `next_x` may be:
@@ -844,31 +828,30 @@ static void radix_psort(SortContext *sc)
     // radix range, our job will be complete.
 
     // Prepare the "next SortContext" variable
+    size_t strstart = sc->strstart + 1;
     size_t nradixes = sc->nradixes;
-    size_t next_elemsize = (size_t) sc->next_elemsize;
-    int8_t next_nsigbits = sc->shift;
-    if (!next_nsigbits) next_nsigbits = sc->next_elemsize * 8;
+    size_t elemsize = (size_t) sc->next_elemsize;
+    int8_t nsigbits = sc->shift? sc->shift : sc->next_elemsize * 8;
+    int8_t ne = (int8_t)(sc->strdata? sc->next_elemsize :
+                         sc->shift > 32? 4 :
+                         sc->shift > 16? 2 : 0);
+
     SortContext next_sc;
     next_sc.strdata = sc->strdata;
     next_sc.stroffs = sc->stroffs;
-    next_sc.strstart = sc->strstart + 1;
     next_sc.elemsize = sc->next_elemsize;
-    next_sc.nsigbits = next_nsigbits;
+    next_sc.nsigbits = nsigbits;
     next_sc.histogram = sc->histogram;  // reuse the `histogram` buffer
-    next_sc.next_x = sc->x;  // x is no longer needed: reuse
-    next_sc.next_elemsize = (int8_t)(sc->strdata? sc->next_elemsize :
-                                     sc->shift > 32? 4 :
-                                     sc->shift > 16? 2 : 0);
-    int8_t ne = next_sc.next_elemsize;
+    next_sc.next_x = sc->next_x;
+    next_sc.next_elemsize = ne;
 
     // First, determine the sizes of ranges corresponding to each radix that
     // remain to be sorted. Recall that the previous step left us with the
     // `histogram` array containing cumulative sizes of these ranges, so all
     // we need is to diff that array.
-    size_t *rrendoffsets = sc->histogram + (sc->nchunks - 1) * sc->nradixes;
-    radix_range *rrmap = nullptr;
-    dtmalloc_g(rrmap, radix_range, sc->nradixes);
-    for (size_t i = 0; i < sc->nradixes; i++) {
+    size_t* rrendoffsets = sc->histogram + (sc->nchunks - 1) * nradixes;
+    radix_range* rrmap = new radix_range[nradixes];
+    for (size_t i = 0; i < nradixes; i++) {
       size_t start = i? rrendoffsets[i-1] : 0;
       size_t end = rrendoffsets[i];
       assert(start <= end);
@@ -912,11 +895,12 @@ static void radix_psort(SortContext *sc)
     size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
     while (rrmap[rri].size > rrlarge && rri < nradixes) {
       size_t off = rrmap[rri].offset;
-      next_sc.x = add_ptr(sc->next_x, off * next_elemsize);
-      next_sc.next_x = add_ptr(sc->x, off * next_elemsize);
-      next_sc.o = sc->next_o + off;
+      next_sc.x = add_ptr(sc->x, off * elemsize);
+      next_sc.next_x = add_ptr(sc->next_x, off * elemsize);
+      next_sc.o = sc->o + off;
       next_sc.n = rrmap[rri].size;
       next_sc.next_elemsize = ne;
+      next_sc.strstart = strstart;
       radix_psort(&next_sc);
       rri++;
     }
@@ -942,15 +926,15 @@ static void radix_psort(SortContext *sc)
       size_t off = rrmap[i].offset;
       int32_t n = (int32_t) rrmap[i].size;
       if (n <= 1) continue;
-      void* x = add_ptr(sc->next_x, off * next_elemsize);
-      int32_t* o = sc->next_o + off;
+      void* x = add_ptr(sc->x, off * elemsize);
+      int32_t* o = sc->o + off;
       int32_t* oo = tmp + me * (int32_t)size0;
 
       if (sc->strdata) {
-        int32_t ss = (int32_t) sc->strstart + 1;
+        int32_t ss = (int32_t) strstart;
         insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n);
       } else {
-        switch (next_elemsize) {
+        switch (elemsize) {
           case 1: insert_sort_keys_fw<>(static_cast<uint8_t*>(x), o, oo, n); break;
           case 2: insert_sort_keys_fw<>(static_cast<uint16_t*>(x), o, oo, n); break;
           case 4: insert_sort_keys_fw<>(static_cast<uint32_t*>(x), o, oo, n); break;
@@ -958,16 +942,15 @@ static void radix_psort(SortContext *sc)
         }
       }
     }
-    dtfree(rrmap);
+    delete[] rrmap;
     if (own_tmp) dtfree(tmp);
   }
 
-  // Done. Save to array `o` the ordering of the input vector `x`.
-  if (sc->o) {
-    std::memcpy(sc->o, sc->next_o, sc->n * sizeof(int32_t));
-  } else {
-    sc->o = sc->next_o;
-    sc->next_o = nullptr;
+  // Done. Save to array `o` the computed ordering of the input vector `x`.
+  if (ores && sc->o != ores) {
+    std::memcpy(ores, sc->o, sc->n * sizeof(int32_t));
+    sc->next_o = sc->o;
+    sc->o = ores;
   }
 
   return;
