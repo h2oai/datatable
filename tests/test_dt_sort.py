@@ -9,6 +9,7 @@ import os
 import pytest
 import random
 import datatable
+import datatable as dt
 from datatable import stype
 from tests import list_equals
 
@@ -486,12 +487,32 @@ def test_sort_view2():
 
 
 def test_sort_view3():
-    d0 = datatable.DataTable(list(range(100)))
+    d0 = datatable.DataTable(list(range(1000)))
     d1 = d0[::-5, :]
     d2 = d1(sort=0)
     assert d2.internal.check()
-    assert d2.shape == (20, 1)
-    assert d2.topython() == [list(range(4, 100, 5))]
+    assert d2.shape == (200, 1)
+    assert d2.topython() == [list(range(4, 1000, 5))]
+
+
+def test_sort_view4():
+    d0 = dt.DataTable(["foo", "bar", "baz", None, "", "lalala", "quo",
+                       "rem", "aye", "nay"])
+    d1 = d0[1::2, :].sort(0)
+    d2 = d0[0::2, :].sort(0)
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d1.shape == d2.shape == (5, 1)
+    assert d1.topython() == [[None, "bar", "lalala", "nay", "rem"]]
+    assert d2.topython() == [["", "aye", "baz", "foo", "quo"]]
+
+
+def test_sort_view_large_strs():
+    d0 = dt.DataTable(list("abcbpeiuqenvkjqperufhqperofin;d") * 100)
+    d1 = d0[::2].sort(0)
+    assert d1.internal.check()
+    elems = d1.topython()[0]
+    assert elems == sorted(elems)
 
 
 

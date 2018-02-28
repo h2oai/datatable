@@ -251,6 +251,7 @@ def get_extra_link_args():
 argcmd = sys.argv[1] if len(sys.argv) == 2 else ""
 
 if argcmd.startswith("get_"):
+    os.environ["DTDEBUG"] = "1"  # Force debug flag
     cmd = argcmd[4:]
     if cmd == "EXTEXT":
         print(sysconfig.get_config_var("EXT_SUFFIX"))

@@ -99,7 +99,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed a rare bug in fread which produced error message "Jump X did not finish
   reading where jump X+1 started" (#682).
 - Prevented memory leak when using "PyObject" columns in conjunction with numpy.
-- View datatables can now be properly saved.
+- View frames can now be properly saved.
+- Fixed crash when sorting view frame by a string column.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
