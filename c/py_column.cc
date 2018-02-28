@@ -8,7 +8,6 @@
 #define dt_PY_COLUMN_cc
 #include "py_column.h"
 #include "py_types.h"
-#include "sort.h"
 #include "writebuf.h"
 #include "utils/pyobj.h"
 
@@ -230,8 +229,6 @@ PyTypeObject type = {
 
 
 int static_init(PyObject* module) {
-  init_sort_functions();
-
   // Register pycolumn::type on the module
   pycolumn::type.tp_new = PyType_GenericNew;
   if (PyType_Ready(&pycolumn::type) < 0) return 0;

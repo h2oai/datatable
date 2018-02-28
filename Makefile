@@ -585,7 +585,7 @@ $(BUILDDIR)/py_buffers.o : c/py_buffers.cc $(BUILDDIR)/column.h $(BUILDDIR)/enco
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_column.o : c/py_column.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/py_column.o : c/py_column.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
