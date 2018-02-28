@@ -509,6 +509,8 @@ class DataTable(object):
 
     def _delete_columns(self, cols):
         # `cols` must be a sorted list of positive integer indices
+        if not cols:
+            return
         self._dt.delete_columns(cols)
         assert self._ncols - len(cols) == self._dt.ncols
         newnames = self.names[:cols[0]]

@@ -101,6 +101,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Prevented memory leak when using "PyObject" columns in conjunction with numpy.
 - View frames can now be properly saved.
 - Fixed crash when sorting view frame by a string column.
+- Deleting 0 columns is no longer an error.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
