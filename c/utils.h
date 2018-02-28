@@ -252,9 +252,14 @@ void _dt_err_a(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
 // Binary arithmetics
 //==============================================================================
 
-int nlz(uint32_t x);  // Number of leading zeros
-int nlz8(uint64_t x);
+namespace dt {
+template <typename T> int nlz(T x);  // Number of leading zeros
 
+extern template int nlz(uint64_t);
+extern template int nlz(uint32_t);
+extern template int nlz(uint16_t);
+extern template int nlz(uint8_t);
+};
 
 
 //==============================================================================

@@ -14,37 +14,41 @@ int64_t max(int64_t a, int64_t b) { return a > b? a : b; }
 float max_f4(float a, float b) { return a < b? b : a; }
 
 
+namespace dt {
+
 /**
  * Number of leading zeros.
  * This algorithm tuned for the case when the number of leading zeros is
  * expected to be large.
  * Algorithm 5-7 from Henry S. Warren "Hacker's Delight"
  */
-int nlz(uint32_t x)
-{
-  uint32_t y;
-  int n = 32;
-  y = x >>16;  if (y != 0) { n = n -16;  x = y; }
-  y = x >> 8;  if (y != 0) { n = n - 8;  x = y; }
-  y = x >> 4;  if (y != 0) { n = n - 4;  x = y; }
-  y = x >> 2;  if (y != 0) { n = n - 2;  x = y; }
-  y = x >> 1;  if (y != 0) return n - 2;
-  return n - (int)x;
+template <typename T>
+int nlz(T x) {
+  T y;
+  int n = sizeof(T) * 8;
+  if (sizeof(T) >= 8) {
+    y = x >> 32; if (y != 0) { n = n -32;  x = y; }
+  }
+  if (sizeof(T) >= 4) {
+    y = x >> 16; if (y != 0) { n = n -16;  x = y; }
+  }
+  if (sizeof(T) >= 2) {
+    y = x >> 8;  if (y != 0) { n = n - 8;  x = y; }
+  }
+  if (sizeof(T) >= 1) {
+    y = x >> 4;  if (y != 0) { n = n - 4;  x = y; }
+    y = x >> 2;  if (y != 0) { n = n - 2;  x = y; }
+    y = x >> 1;  if (y != 0) return n - 2;
+  }
+  return n - static_cast<int>(x);
 }
 
-int nlz8(uint64_t x)
-{
-  uint64_t y;
-  int n = 64;
-  y = x >>32;  if (y != 0) { n = n -32;  x = y; }
-  y = x >>16;  if (y != 0) { n = n -16;  x = y; }
-  y = x >> 8;  if (y != 0) { n = n - 8;  x = y; }
-  y = x >> 4;  if (y != 0) { n = n - 4;  x = y; }
-  y = x >> 2;  if (y != 0) { n = n - 2;  x = y; }
-  y = x >> 1;  if (y != 0) return n - 2;
-  return n - (int)x;
-}
+template int nlz(uint64_t);
+template int nlz(uint32_t);
+template int nlz(uint16_t);
+template int nlz(uint8_t);
 
+};  // namespace dt
 
 
 /**

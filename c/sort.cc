@@ -230,7 +230,7 @@
  *      Size in bytes of each element in `next_x`. This cannot be greater than
  *      `elemsize`, however `next_elemsize` can be 0.
  */
-struct SortContext {
+class SortContext {
   public:
     void*    x;
     int32_t* o;
@@ -257,6 +257,207 @@ struct SortContext {
       histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
       n(0), nth(0), nchunks(0), chunklen(0), nradixes(0), elemsize(0),
       next_elemsize(0), nsigbits(0), shift(0), issorted(0) {}
+
+
+  //============================================================================
+  // Data preparation
+  //============================================================================
+
+  void initialize(const Column* col, int32_t* ordering) {
+    n = static_cast<size_t>(col->nrows);
+    o = ordering;
+    SType stype = col->stype();
+    switch (stype) {
+      case ST_BOOLEAN_I1: _initB(col); break;
+      case ST_INTEGER_I1: _initI<int8_t,  uint8_t>(col); break;
+      case ST_INTEGER_I2: _initI<int16_t, uint16_t>(col); break;
+      case ST_INTEGER_I4: _initI<int32_t, uint32_t>(col); break;
+      case ST_INTEGER_I8: _initI<int64_t, uint64_t>(col); break;
+      case ST_REAL_F4:    _initF<uint32_t>(col); break;
+      case ST_REAL_F8:    _initF<uint64_t>(col); break;
+      case ST_STRING_I4_VCHAR: _initS<int32_t>(col); break;
+      default:
+        throw NotImplError() << "Unable to sort Column of stype " << stype;
+    }
+  }
+
+
+  /**
+   * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
+   * `(x + 0xBF) >> 6` converts these to 0, 2 and 3 respectively, provided that
+   * the addition is done as addition of unsigned bytes (i.e. modulo 256).
+   */
+  void _initB(const Column* col) {
+    uint8_t* xi = static_cast<uint8_t*>(col->data());
+    uint8_t* xo = new uint8_t[n];
+    x = static_cast<void*>(xo);
+    elemsize = 1;
+    nsigbits = 2;
+
+    if (o) {
+      #pragma omp parallel for schedule(static)
+      for (size_t j = 0; j < n; j++) {
+        uint8_t t = xi[o[j]] + 0xBF;
+        xo[j] = t >> 6;
+      }
+    } else {
+      #pragma omp parallel for schedule(static)
+      for (size_t j = 0; j < n; j++) {
+        // xi[j]+0xBF should be computed as uint8_t; by default C++ upcasts it
+        // to int, which leads to wrong results after shift by 6.
+        uint8_t t = xi[j] + 0xBF;
+        xo[j] = t >> 6;
+      }
+    }
+  }
+
+
+  /**
+   * For integer columns we subtract the min value, thus making the column
+   * unsigned. Depending on the range of the values (max - min + 1), we cast
+   * the data into an appropriate smaller type.
+   */
+  template <typename T, typename TU>
+  void _initI(const Column* col) {
+    auto icol = static_cast<const IntColumn<T>*>(col);
+    assert(sizeof(T) == sizeof(TU));
+    T min = icol->min();
+    T max = icol->max();
+    nsigbits = sizeof(T) * 8;
+    nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
+    if (nsigbits > 32)      _initI_impl<T, TU, uint64_t>(icol, min);
+    else if (nsigbits > 16) _initI_impl<T, TU, uint32_t>(icol, min);
+    else if (nsigbits > 8)  _initI_impl<T, TU, uint16_t>(icol, min);
+    else                    _initI_impl<T, TU, uint8_t >(icol, min);
+  }
+
+  template <typename T, typename TI, typename TO>
+  void _initI_impl(const Column* col, T min) {
+    TI una = static_cast<TI>(GETNA<T>());
+    TI umin = static_cast<TI>(min);
+    TI* xi = static_cast<TI*>(col->data());
+    TO* xo = new TO[n];
+    x = static_cast<void*>(xo);
+    elemsize = sizeof(TO);
+    next_elemsize = nsigbits > 48? 8 :
+                    nsigbits > 32? 4 :
+                    nsigbits > 16? 2 : 0;
+
+    if (o) {
+      #pragma omp parallel for schedule(static)
+      for (size_t j = 0; j < n; ++j) {
+        TI t = xi[o[j]];
+        xo[j] = t == una? 0 : static_cast<TO>(t - umin + 1);
+      }
+    } else {
+      #pragma omp parallel for schedule(static)
+      for (size_t j = 0; j < n; j++) {
+        TI t = xi[j];
+        xo[j] = t == una? 0 : static_cast<TO>(t - umin + 1);
+      }
+    }
+  }
+
+
+  /**
+   * For float32/64 we need to carefully manipulate the bits in order to present
+   * them in the correct order as uint32/64. At bit level, the structure of
+   * IEEE754-1985 float is the following (first 1 bit is the sign, next 8 bits
+   * are the exponent, last 23 bits represent the significand):
+   *      Bits (uint32 value)          Float value
+   *      0 00 000000                  +0
+   *      0 00 000001 - 0 00 7FFFFF    Denormal numbers (positive)
+   *      0 01 000000 - 0 FE 7FFFFF    +1*2^-126 .. +1.7FFFFF*2^+126
+   *      0 FF 000000                  +Inf
+   *      0 FF 000001 - 0 FF 7FFFFF    NaNs (positive)
+   *      1 00 000000                  -0
+   *      1 00 000001 - 1 00 7FFFFF    Denormal numbers (negative)
+   *      1 01 000000 - 1 FE 7FFFFF    -1*2^-126 .. -1.7FFFFF*2^+126
+   *      1 FF 000000                  -Inf
+   *      1 FF 000001 - 1 FF 7FFFFF    NaNs (negative)
+   * In order to put these values into correct order, we'll do the following
+   * transform:
+   *      (1) numbers with sign bit = 0 will turn the sign bit on.
+   *      (2) numbers with sign bit = 1 will be XORed with 0xFFFFFFFF
+   *      (3) all NAs/NaNs will be converted to 0
+   *
+   * Float64 is similar: 1 bit for the sign, 11 bits of exponent, and finally
+   * 52 bits of the significand.
+   *
+   * See also:
+   *      https://en.wikipedia.org/wiki/Float32
+   *      https://en.wikipedia.org/wiki/Float64
+   */
+  template <typename TO>
+  void _initF(const Column* col) {
+    TO* xi = static_cast<TO*>(col->data());
+    TO* xo = new TO[n];
+    x = static_cast<void*>(xo);
+    elemsize = sizeof(TO);
+    nsigbits = elemsize * 8;
+    next_elemsize = sizeof(TO) == 8? 8 : 2;
+
+    constexpr TO EXP = sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000;
+    constexpr TO SIG = sizeof(TO) == 8? 0x000FFFFFFFFFFFFFULL : 0x007FFFFF;
+    constexpr TO SBT = sizeof(TO) == 8? 0x8000000000000000ULL : 0x80000000;
+    constexpr int SHIFT = sizeof(TO) * 8 - 1;
+
+    if (o) {
+      #pragma omp parallel for schedule(static)
+      for (size_t j = 0; j < n; j++) {
+        TO t = xi[o[j]];
+        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0)
+                ? 0 : t ^ (SBT | -(t>>SHIFT));
+      }
+    } else {
+      #pragma omp parallel for schedule(static)
+      for (size_t j = 0; j < n; j++) {
+        TO t = xi[j];
+        xo[j] = ((t & EXP) == EXP && (t & SIG) != 0)
+                ? 0 : t ^ (SBT | -(t>>SHIFT));
+      }
+    }
+  }
+
+
+  /**
+   * For strings, we fill array `x` with the values of the first 2 characters in
+   * each string. We also set up auxiliary variables `strdata`, `stroffs`,
+   * `strstart`.
+   *
+   * More specifically, for each string item, if it is NA then we map it to 0;
+   * if it is an empty string we map it to 1, otherwise we map it to `ch[i] + 2`
+   * where `ch[i]` is the i-th character of the string. This doesn't overflow
+   * because in UTF-8 the largest legal byte is 0xF7.
+   */
+  template <typename T>
+  void _initS(const Column* col) {
+    auto scol = static_cast<const StringColumn<T>*>(col);
+    strdata = reinterpret_cast<uint8_t*>(scol->strdata());
+    T* offs = scol->offsets();
+    stroffs = static_cast<int32_t*>(offs);  // ???
+    strstart = 0;
+    uint8_t* xo = new uint8_t[n];
+    x = static_cast<void*>(xo);
+    elemsize = 1;
+    nsigbits = 8;
+
+    int maxlen = 0;
+    #pragma omp parallel for schedule(static) reduction(max:maxlen)
+    for (size_t j = 0; j < n; ++j) {
+      T offend = offs[j];
+      if (offend < 0) {  // NA
+        xo[j] = 0;
+      } else {
+        T offstart = std::abs(offs[j-1]);
+        T len = offend - offstart;
+        xo[j] = len > 0? strdata[offstart] + 2 : 1;
+        if (len > maxlen) maxlen = len;
+      }
+    }
+    next_elemsize = (maxlen > 1);
+  }
+
 
 
   //============================================================================
@@ -318,9 +519,6 @@ struct SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-typedef void (*prepare_inp_fn)(const Column*, int32_t*, size_t, SortContext*);
-typedef int32_t* (*insert_sort_fn)(const void*, int32_t*, int32_t*, int32_t);
-static prepare_inp_fn prepare_inp_fns[DT_STYPES_COUNT];
 
 static void insert_sort(SortContext*);
 static void radix_psort(SortContext*);
@@ -371,12 +569,11 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 
   Column* col0 = columns[colindices[0]];
   SType stype_ = col0->stype();
-  prepare_inp_fn prepfn = prepare_inp_fns[stype_];
   SortContext sc;
 
   if (nrows <= INSERT_SORT_THRESHOLD) {
     if (stype_ == ST_REAL_F4 || stype_ == ST_REAL_F8 || !rowindex.isabsent()) {
-      prepfn(col0, ordering, zrows, &sc);
+      sc.initialize(col0, ordering);
       insert_sort(&sc);
       ordering = sc.o;
       dtfree(sc.x);
@@ -398,32 +595,25 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
         case ST_INTEGER_I2: insert_sort_values_fw<>(static_cast<int16_t*>(x), o, nrows_); break;
         case ST_INTEGER_I4: insert_sort_values_fw<>(static_cast<int32_t*>(x), o, nrows_); break;
         case ST_INTEGER_I8: insert_sort_values_fw<>(static_cast<int64_t*>(x), o, nrows_); break;
-        case ST_REAL_F4:    insert_sort_values_fw<>(static_cast<uint32_t*>(x), o, nrows_); break;
-        case ST_REAL_F8:    insert_sort_values_fw<>(static_cast<uint64_t*>(x), o, nrows_); break;
         default: throw ValueError() << "Insert sort not implemented for column of stype " << stype_;
       }
       return RowIndex::from_array32(std::move(ordering_array));
     }
   } else {
-    if (prepfn) {
-      prepfn(col0, ordering, zrows, &sc);
-      if (sc.issorted) {
-        return RowIndex::from_slice(0, nrows_, 1);
-      }
-      if (sc.x != nullptr) {
-        radix_psort(&sc);
-      }
-      int error_occurred = (sc.x == nullptr);
-      ordering = sc.o;
-      if (sc.x != col0->data()) dtfree(sc.x);
-      dtfree(sc.next_x);
-      dtfree(sc.next_o);
-      dtfree(sc.histogram);
-      if (error_occurred) ordering = nullptr;
-    } else {
-      throw ValueError() << "Radix sort not implemented for column "
-                         << "of stype " << stype_;
+    sc.initialize(col0, ordering);
+    if (sc.issorted) {
+      return RowIndex::from_slice(0, nrows_, 1);
     }
+    if (sc.x != nullptr) {
+      radix_psort(&sc);
+    }
+    int error_occurred = (sc.x == nullptr);
+    ordering = sc.o;
+    if (sc.x != col0->data()) dtfree(sc.x);
+    dtfree(sc.next_x);
+    dtfree(sc.next_o);
+    dtfree(sc.histogram);
+    if (error_occurred) ordering = nullptr;
   }
   if (!ordering) return RowIndex();
   if (!ordering_array) {
@@ -437,498 +627,6 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 
 RowIndex DataTable::sort_tiny(bool /*compute_groups*/) const {
   return RowIndex::from_slice(0, nrows, 1);
-}
-
-
-
-//==============================================================================
-// "Prepare input" functions
-//
-// Preparing input is the first step for the radix sort algorithm. The primary
-// goal of this step is to convert the input data from signed/float/string
-// representation into an array of unsigned integers.
-// If preparing data fails, then `sc->x` will be set to nullptr.
-//
-// SortContext inputs:
-//      -
-//
-// SortContext outputs:
-//      x, n, elemsize, nsigbits, next_elemsize, (?)issorted
-//
-//==============================================================================
-
-/**
- * Compute min/max of the data column, excluding NAs. The computation is done
- * in parallel. If the column contains NAs only, then `min` will hold value
- * INT_MAX, and `max` will hold value -INT_MAX. In all other cases it is
- * guaranteed that `min <= max`.
- *
- * This is a helper function for `prepare_input_i4`.
- * TODO: replace this with the information from RollupStats eventually.
- */
-static void compute_min_max_i4(SortContext *sc, int32_t *min, int32_t *max)
-{
-  int32_t *x = (int32_t*) sc->x;
-  int32_t tmin = INT32_MAX;
-  int32_t tmax = -INT32_MAX;
-  #pragma omp parallel for schedule(static) \
-          reduction(min:tmin) reduction(max:tmax)
-  for (size_t j = 0; j < sc->n; j++) {
-    int32_t t = x[j];
-    if (t != NA_I4) {
-      if (t < tmin) tmin = t;
-      if (t > tmax) tmax = t;
-    }
-  }
-  *min = tmin;
-  *max = tmax;
-}
-
-static void compute_min_max_i8(SortContext *sc, int64_t *min, int64_t *max)
-{
-  int64_t *x = (int64_t*) sc->x;
-  int64_t tmin = INT64_MAX;
-  int64_t tmax = -INT64_MAX;
-  #pragma omp parallel for schedule(static) \
-          reduction(min:tmin) reduction(max:tmax)
-  for (size_t j = 0; j < sc->n; j++) {
-    int64_t t = x[j];
-    if (t != NA_I8) {
-      if (t < tmin) tmin = t;
-      if (t > tmax) tmax = t;
-    }
-  }
-  *min = tmin;
-  *max = tmax;
-}
-
-
-/**
- * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
- * `(x + 0xBF) >> 6` converts these to 0, 2 and 3 respectively, provided that
- * the addition in parentheses is done as addition of unsigned bytes (i.e.
- * modulo 256).
- */
-static void prepare_input_b1(const Column *col, int32_t *ordering, size_t n,
-                             SortContext *sc)
-{
-  uint8_t* xi = static_cast<uint8_t*>(col->data());
-  uint8_t* xo = new uint8_t[n];
-
-  if (ordering) {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      uint8_t t = xi[ordering[j]] + 0xBF;
-      xo[j] = t >> 6;
-    }
-  } else {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      // xi[j]+0xBF should be computed as uint8_t; by default C++ upcasts it
-      // to int, which leads to wrong results after shift by 6.
-      uint8_t t = xi[j] + 0xBF;
-      xo[j] = t >> 6;
-    }
-  }
-
-  sc->nsigbits = 2;
-  sc->x = static_cast<void*>(xo);
-  sc->o = ordering;
-  sc->n = n;
-  sc->elemsize = 1;
-  sc->next_elemsize = 0;
-}
-
-
-/**
- * For i1/i2 columns we do not attempt to find the actual minimum, and instead
- * simply translate them into unsigned by subtracting the lowest possible
- * integer value. This maps NA to 0, -INT_MAX to 1, ... and INT_MAX to UINT_MAX.
- */
-static void
-prepare_input_i1(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
-{
-  uint8_t una = (uint8_t) NA_I1;
-  uint8_t *xi = (uint8_t*) col->data();
-  uint8_t *xo = nullptr;
-  dtmalloc_g(xo, uint8_t, n);
-
-  if (ordering) {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-        xo[j] = xi[ordering[j]] - una;
-    }
-  } else {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-        xo[j] = xi[j] - una;
-    }
-  }
-
-  sc->n = n;
-  sc->x = (void*) xo;
-  sc->o = ordering;
-  sc->elemsize = 1;
-  sc->nsigbits = 8;
-  return;
-  fail:
-    sc->x = nullptr;
-}
-
-
-static void
-prepare_input_i2(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
-{
-  uint16_t una = (uint16_t) NA_I2;
-  uint16_t *xi = (uint16_t*) col->data();
-  uint16_t *xo = nullptr;
-  dtmalloc_g(xo, uint16_t, n);
-
-  if (ordering) {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      xo[j] = xi[ordering[j]] - una;
-    }
-  } else {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      xo[j] = xi[j] - una;
-    }
-  }
-
-  sc->n = n;
-  sc->x = (void*) xo;
-  sc->o = ordering;
-  sc->elemsize = 2;
-  sc->nsigbits = 16;
-  return;
-  fail:
-    sc->x = nullptr;
-}
-
-
-/**
- * For i4/i8 columns we transform them by mapping NAs to 0, the minimum of `x`s
- * to 1, ... and the maximum of `x`s to `max - min + 1`.
- */
-static void
-prepare_input_i4(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
-{
-  sc->x = col->data();
-  sc->n = n;
-  sc->o = ordering;
-
-  int32_t min, max;
-  compute_min_max_i4(sc, &min, &max);
-  if (min > max) {  // the column contains NAs only
-    sc->issorted = 1;
-    return;
-  }
-
-  int nsigbits = 32 - (int) nlz((uint32_t)(max - min + 1));
-  sc->nsigbits = (int8_t) nsigbits;
-
-  uint32_t umin = (uint32_t) min;
-  uint32_t una = (uint32_t) NA_I4;
-  uint32_t *ux = (uint32_t*) sc->x;
-  if (nsigbits <= 16) {
-    uint16_t *xx = nullptr;
-    dtmalloc_g(xx, uint16_t, sc->n);
-    if (ordering) {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint32_t t = ux[ordering[j]];
-        xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
-      }
-    } else {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint32_t t = ux[j];
-        xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
-      }
-    }
-    sc->x = (void*) xx;
-    sc->elemsize = 2;
-    sc->next_elemsize = 0;
-  } else {
-    uint32_t *xx = nullptr;
-    dtmalloc_g(xx, uint32_t, sc->n);
-    if (ordering) {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint32_t t = ux[ordering[j]];
-        xx[j] = t == una? 0 : t - umin + 1;
-      }
-    } else {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint32_t t = ux[j];
-        xx[j] = t == una? 0 : t - umin + 1;
-      }
-    }
-    sc->x = (void*) xx;
-    sc->elemsize = 4;
-    sc->next_elemsize = 2;
-  }
-  return;
-
-  fail:
-  sc->x = nullptr;
-}
-
-
-static void
-prepare_input_i8(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
-{
-  sc->x = col->data();
-  sc->n = n;
-  sc->o = ordering;
-
-  int64_t min, max;
-  compute_min_max_i8(sc, &min, &max);
-  if (min > max) {  // the column contains NAs only
-    sc->issorted = 1;
-    return;
-  }
-
-  int nsigbits = 64 - (int) nlz8((uint64_t)(max - min + 1));
-  sc->nsigbits = (int8_t) nsigbits;
-
-  uint64_t umin = (uint64_t) min;
-  uint64_t una = (uint64_t) NA_I8;
-  uint64_t *ux = (uint64_t*) sc->x;
-  if (nsigbits > 32) {
-    uint64_t *xx = nullptr;
-    dtmalloc_g(xx, uint64_t, sc->n);
-    if (ordering) {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint64_t t = ux[ordering[j]];
-        xx[j] = t == una? 0 : t - umin + 1;
-      }
-    } else {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint64_t t = ux[j];
-        xx[j] = t == una? 0 : t - umin + 1;
-      }
-    }
-    sc->x = (void*) xx;
-    sc->elemsize = 8;
-    sc->next_elemsize = nsigbits > 48? 8 : 4;
-  }
-  else if (nsigbits > 16) {
-    uint32_t *xx = nullptr;
-    dtmalloc_g(xx, uint32_t, sc->n);
-    if (ordering) {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint64_t t = ux[ordering[j]];
-        xx[j] = t == una? 0 : (uint32_t)(t - umin + 1);
-      }
-    } else {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint64_t t = ux[j];
-        xx[j] = t == una? 0 : (uint32_t)(t - umin + 1);
-      }
-    }
-    sc->x = (void*) xx;
-    sc->elemsize = 4;
-    sc->next_elemsize = 2;
-  } else {
-    uint16_t *xx = nullptr;
-    dtmalloc_g(xx, uint16_t, sc->n);
-    if (ordering) {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint64_t t = ux[ordering[j]];
-        xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
-      }
-    } else {
-      #pragma omp parallel for schedule(static)
-      for (size_t j = 0; j < sc->n; j++) {
-        uint64_t t = ux[j];
-        xx[j] = t == una? 0 : (uint16_t)(t - umin + 1);
-      }
-    }
-    sc->x = (void*) xx;
-    sc->elemsize = 2;
-    sc->next_elemsize = 0;
-  }
-  return;
-
-  fail:
-  sc->x = nullptr;
-}
-
-
-/**
- * For float32/64 we need to carefully manipulate the bits in order to present
- * them in the correct order as uint32/64. At bit level, the structure of
- * IEEE754-1985 float is the following (first 1 bit is the sign, next 8 bits
- * are the exponent, last 23 bits represent the significand):
- *      Bits (uint32 value)          Float value
- *      0 00 000000                  +0
- *      0 00 000001 - 0 00 7FFFFF    Denormal numbers (positive)
- *      0 01 000000 - 0 FE 7FFFFF    +1*2^-126 .. +1.7FFFFF*2^+126
- *      0 FF 000000                  +Inf
- *      0 FF 000001 - 0 FF 7FFFFF    NaNs (positive)
- *      1 00 000000                  -0
- *      1 00 000001 - 1 00 7FFFFF    Denormal numbers (negative)
- *      1 01 000000 - 1 FE 7FFFFF    -1*2^-126 .. -1.7FFFFF*2^+126
- *      1 FF 000000                  -Inf
- *      1 FF 000001 - 1 FF 7FFFFF    NaNs (negative)
- * In order to put these values into correct order, we'll do the following
- * transform:
- *      (1) numbers with sign bit = 0 will turn the sign bit on.
- *      (2) numbers with sign bit = 1 will be XORed with 0xFFFFFFFF
- *      (3) all NAs will be converted to 0, and NaNs to 1
- *
- * Float64 is similar: 1 bit for the sign, 11 bits of exponent, and finally
- * 52 bits of the significand.
- *
- * See also:
- *      https://en.wikipedia.org/wiki/Float32
- *      https://en.wikipedia.org/wiki/Float64
- */
-static void
-prepare_input_f4(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
-{
-  // The data are actually floats; but casting `col->data` into `uint32_t*` is
-  // equivalent to using a union to convert from float into uint32_t
-  // representation.
-  uint32_t una = (uint32_t) NA_F4_BITS;
-  uint32_t *xi = (uint32_t*) col->data();
-  uint32_t *xo = nullptr;
-  dtmalloc_g(xo, uint32_t, n);
-
-  if (ordering) {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      uint32_t t = xi[ordering[j]];
-      xo[j] = ((t & 0x7F800000) == 0x7F800000 && (t & 0x7FFFFF) != 0)
-              ? (t != una)
-              : t ^ ((uint32_t)(-(int32_t)(t>>31)) | 0x80000000);
-    }
-  } else {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      uint32_t t = xi[j];
-      xo[j] = ((t & 0x7F800000) == 0x7F800000 && (t & 0x7FFFFF) != 0)
-              ? (t != una)
-              : t ^ ((uint32_t)(-(int32_t)(t>>31)) | 0x80000000);
-    }
-  }
-
-  sc->n = n;
-  sc->x = (void*) xo;
-  sc->o = ordering;
-  sc->elemsize = 4;
-  sc->nsigbits = 32;
-  sc->next_elemsize = 2;
-  return;
-  fail:
-    sc->x = nullptr;
-}
-
-
-#define F64SBT 0x8000000000000000ULL
-#define F64EXP 0x7FF0000000000000ULL
-#define F64SIG 0x000FFFFFFFFFFFFFULL
-
-static void
-prepare_input_f8(const Column *col, int32_t *ordering, size_t n,
-                 SortContext *sc)
-{
-  uint64_t una = (uint64_t) NA_F8_BITS;
-  uint64_t *xi = (uint64_t*) col->data();
-  uint64_t *xo = nullptr;
-  dtmalloc_g(xo, uint64_t, n);
-
-  if (ordering) {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      uint64_t t = xi[ordering[j]];
-      xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
-              ? (t != una)
-              : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
-    }
-  } else {
-    #pragma omp parallel for schedule(static)
-    for (size_t j = 0; j < n; j++) {
-      uint64_t t = xi[j];
-      xo[j] = ((t & F64EXP) == F64EXP && (t & F64SIG) != 0)
-              ? (t != una)
-              : t ^ ((uint64_t)(-(int64_t)(t>>63)) | F64SBT);
-    }
-  }
-
-  sc->n = n;
-  sc->x = (void*) xo;
-  sc->o = ordering;
-  sc->elemsize = 8;
-  sc->nsigbits = 64;
-  sc->next_elemsize = 8;
-  return;
-  fail:
-    sc->x = nullptr;
-}
-
-
-/**
- * For strings, we fill array `x` with the values of the first 2 characters in
- * each string. We also set up auxiliary variables `strdata`, `stroffs`,
- * `strstart` in the SortContext.
- *
- * More specifically, for each string item, if it is NA then we map it to 0;
- * if it is an empty string we map it to 1, otherwise we map it to
- * `(ch[0] + 1) * 256 + (ch[1] + 1) + 1`, where `ch[i]` is the i-th character
- * of the string, or -1 if the string's length is less than or equal to `i`.
- * This doesn't overflow because in UTF-8 the largest legal byte is 0xF7.
- */
-static void
-prepare_input_s4(const Column* col, int32_t* ordering, size_t n,
-                 SortContext* sc)
-{
-  auto scol = static_cast<const StringColumn<int32_t>*>(col);
-  uint8_t* strbuf = reinterpret_cast<uint8_t*>(scol->strdata());
-  int32_t* offs = scol->offsets();
-  int maxlen = 0;
-  uint8_t* xo = nullptr;
-  dtmalloc_g(xo, uint8_t, n);
-
-  // TODO: This can be used for stats
-  #pragma omp parallel for schedule(static) reduction(max:maxlen)
-  for (size_t j = 0; j < n; ++j) {
-    int32_t offend = offs[j];
-    if (offend < 0) {  // NA
-      xo[j] = 0;
-    } else {
-      int32_t offstart = std::abs(offs[j-1]);
-      int32_t len = offend - offstart;
-      xo[j] = len > 0? strbuf[offstart] + 2 : 1;
-      if (len > maxlen) maxlen = len;
-    }
-  }
-
-  sc->strdata = strbuf;
-  sc->stroffs = offs;
-  sc->strstart = 0;
-  sc->n = n;
-  sc->x = (void*) xo;
-  sc->o = ordering;
-  sc->elemsize = 1;
-  sc->nsigbits = 8;
-  sc->next_elemsize = (maxlen > 1);
-  return;
-  fail:
-    sc->x = nullptr;
 }
 
 
@@ -1318,25 +1016,4 @@ static void insert_sort(SortContext* sc)
       case 8: insert_sort_values_fw<>(static_cast<uint64_t*>(sc->x), sc->o, n); break;
     }
   }
-}
-
-
-
-//==============================================================================
-// Initializing static arrays
-//==============================================================================
-
-void init_sort_functions(void)
-{
-  for (int i = 0; i < DT_STYPES_COUNT; i++) {
-    prepare_inp_fns[i] = nullptr;
-  }
-  prepare_inp_fns[ST_BOOLEAN_I1] = (prepare_inp_fn) &prepare_input_b1;
-  prepare_inp_fns[ST_INTEGER_I1] = (prepare_inp_fn) &prepare_input_i1;
-  prepare_inp_fns[ST_INTEGER_I2] = (prepare_inp_fn) &prepare_input_i2;
-  prepare_inp_fns[ST_INTEGER_I4] = (prepare_inp_fn) &prepare_input_i4;
-  prepare_inp_fns[ST_INTEGER_I8] = (prepare_inp_fn) &prepare_input_i8;
-  prepare_inp_fns[ST_REAL_F4]    = (prepare_inp_fn) &prepare_input_f4;
-  prepare_inp_fns[ST_REAL_F8]    = (prepare_inp_fn) &prepare_input_f8;
-  prepare_inp_fns[ST_STRING_I4_VCHAR] = (prepare_inp_fn) &prepare_input_s4;
 }
