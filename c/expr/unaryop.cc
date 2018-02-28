@@ -32,6 +32,16 @@ static void map_n(int64_t row0, int64_t row1, void** params) {
   }
 }
 
+template<typename IT, typename OT, OT (*OP)(IT)>
+static void strmap_n(int64_t row0, int64_t row1, void** params) {
+  auto scol = static_cast<StringColumn<IT>*>(params[0]);
+  IT* arg_data = scol->offsets();
+  OT* res_data = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  for (int64_t i = row0; i < row1; ++i) {
+    res_data[i] = OP(arg_data[i]);
+  }
+}
+
 
 //------------------------------------------------------------------------------
 // Operator implementations
@@ -45,6 +55,11 @@ inline static T op_minus(T x) {
 template<typename T>
 inline static int8_t op_isna(T x) {
   return ISNA<T>(x);
+}
+
+template<typename T>
+inline static int8_t strop_isna(T x) {
+  return (x < 0);
 }
 
 template<typename T>
@@ -83,6 +98,14 @@ static mapperfn resolve1(int opcode) {
   return nullptr;
 }
 
+template<typename T>
+static mapperfn resolve_str(int opcode) {
+  if (opcode == OpCode::IsNa) {
+    return strmap_n<T, int8_t, strop_isna<T>>;
+  }
+  return nullptr;
+}
+
 
 static mapperfn resolve0(SType stype, int opcode) {
   switch (stype) {
@@ -93,6 +116,8 @@ static mapperfn resolve0(SType stype, int opcode) {
     case ST_INTEGER_I8: return resolve1<int64_t>(opcode);
     case ST_REAL_F4:    return resolve1<float>(opcode);
     case ST_REAL_F8:    return resolve1<double>(opcode);
+    case ST_STRING_I4_VCHAR: return resolve_str<int32_t>(opcode);
+    case ST_STRING_I8_VCHAR: return resolve_str<int64_t>(opcode);
     default: break;
   }
   return nullptr;

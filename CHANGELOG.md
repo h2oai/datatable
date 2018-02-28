@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added ability to delete rows from a DataTable: `del df[rows, :]`
 - DataTable can now accept pandas/numpy frames with columns of float16 dtype
   (which will be automatically converted to float32).
+- .isna() function now works on strings too.
 
 
 #### Changed
