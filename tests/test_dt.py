@@ -145,6 +145,13 @@ def smalldt():
     return dt.DataTable([[i] for i in range(16)],
                         names="ABCDEFGHIJKLMNOP")
 
+def test_del_0cols():
+    d0 = smalldt()
+    del d0[[]]
+    assert d0.internal.check()
+    assert d0.shape == (1, 16)
+    assert d0.topython() == smalldt().topython()
+
 def test_del_1col_str_1():
     d0 = smalldt()
     del d0["A"]
