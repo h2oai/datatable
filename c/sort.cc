@@ -236,13 +236,14 @@ class SortContext {
     int8_t next_elemsize;
     int8_t nsigbits;
     int8_t shift;
-    int : 32;
+    bool use_order;
+    int : 24;
 
   SortContext()
     : x(nullptr), o(nullptr), next_x(nullptr), next_o(nullptr),
       histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
       n(0), nth(0), nchunks(0), chunklen(0), nradixes(0), elemsize(0),
-      next_elemsize(0), nsigbits(0), shift(0) {}
+      next_elemsize(0), nsigbits(0), shift(0), use_order(false) {}
 
 
   //============================================================================
@@ -250,6 +251,7 @@ class SortContext {
   //============================================================================
 
   void initialize(const Column* col, int32_t* ordering) {
+    use_order = !!ordering;
     n = static_cast<size_t>(col->nrows);
     o = ordering;
     SType stype = col->stype();
@@ -280,7 +282,7 @@ class SortContext {
     elemsize = 1;
     nsigbits = 2;
 
-    if (o) {
+    if (use_order) {
       #pragma omp parallel for schedule(static)
       for (size_t j = 0; j < n; j++) {
         uint8_t t = xi[o[j]] + 0xBF;
@@ -329,7 +331,7 @@ class SortContext {
                     nsigbits > 32? 4 :
                     nsigbits > 16? 2 : 0;
 
-    if (o) {
+    if (use_order) {
       #pragma omp parallel for schedule(static)
       for (size_t j = 0; j < n; ++j) {
         TI t = xi[o[j]];
@@ -388,7 +390,7 @@ class SortContext {
     constexpr TO SBT = sizeof(TO) == 8? 0x8000000000000000ULL : 0x80000000;
     constexpr int SHIFT = sizeof(TO) * 8 - 1;
 
-    if (o) {
+    if (use_order) {
       #pragma omp parallel for schedule(static)
       for (size_t j = 0; j < n; j++) {
         TO t = xi[o[j]];
@@ -431,11 +433,12 @@ class SortContext {
     int maxlen = 0;
     #pragma omp parallel for schedule(static) reduction(max:maxlen)
     for (size_t j = 0; j < n; ++j) {
-      T offend = offs[j];
+      int32_t k = use_order? o[j] : static_cast<int32_t>(j);
+      T offend = offs[k];
       if (offend < 0) {  // NA
         xo[j] = 0;
       } else {
-        T offstart = std::abs(offs[j-1]);
+        T offstart = std::abs(offs[k - 1]);
         T len = offend - offstart;
         xo[j] = len > 0? strdata[offstart] + 2 : 1;
         if (len > maxlen) maxlen = len;
@@ -550,8 +553,8 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
   if (nrows <= 1) {
     return sort_tiny(make_groups);
   }
-  int32_t nrows_ = (int32_t) nrows;
-  size_t zrows = static_cast<size_t>(nrows);
+  int32_t irows = static_cast<int32_t>(nrows);
+  size_t  zrows = static_cast<size_t>(nrows);
   arr32_t ordering_array = rowindex.extract_as_array32();
   int32_t* ordering = ordering_array.data(); // borrowed ref
 
@@ -571,18 +574,18 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
       const int32_t* offs = scol->offsets();
       ordering_array.resize(zrows);
       int32_t* o = ordering_array.data();
-      insert_sort_values_str(strdata, offs, 0, o, nrows_);
+      insert_sort_values_str(strdata, offs, 0, o, irows);
       return RowIndex::from_array32(std::move(ordering_array));
     } else {
       ordering_array.resize(zrows);
       int32_t* o = ordering_array.data();
       void* x = col0->data();
       switch (stype_) {
-        case ST_BOOLEAN_I1: insert_sort_values_fw<>(static_cast<int8_t*>(x), o, nrows_); break;
-        case ST_INTEGER_I1: insert_sort_values_fw<>(static_cast<int8_t*>(x), o, nrows_); break;
-        case ST_INTEGER_I2: insert_sort_values_fw<>(static_cast<int16_t*>(x), o, nrows_); break;
-        case ST_INTEGER_I4: insert_sort_values_fw<>(static_cast<int32_t*>(x), o, nrows_); break;
-        case ST_INTEGER_I8: insert_sort_values_fw<>(static_cast<int64_t*>(x), o, nrows_); break;
+        case ST_BOOLEAN_I1: insert_sort_values_fw<>(static_cast<int8_t*>(x), o, irows); break;
+        case ST_INTEGER_I1: insert_sort_values_fw<>(static_cast<int8_t*>(x), o, irows); break;
+        case ST_INTEGER_I2: insert_sort_values_fw<>(static_cast<int16_t*>(x), o, irows); break;
+        case ST_INTEGER_I4: insert_sort_values_fw<>(static_cast<int32_t*>(x), o, irows); break;
+        case ST_INTEGER_I8: insert_sort_values_fw<>(static_cast<int64_t*>(x), o, irows); break;
         default: throw ValueError() << "Insert sort not implemented for column of stype " << stype_;
       }
       return RowIndex::from_array32(std::move(ordering_array));
@@ -599,8 +602,8 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
   if (!ordering) return RowIndex();
   if (!ordering_array) {
     // TODO: avoid this copy...
-    ordering_array.resize((size_t)nrows_);
-    std::memcpy(ordering_array.data(), ordering, (size_t)nrows_ * 4);
+    ordering_array.resize(zrows);
+    std::memcpy(ordering_array.data(), ordering, zrows * 4);
   }
   return RowIndex::from_array32(std::move(ordering_array));
 }
@@ -965,38 +968,34 @@ static void radix_psort(SortContext *sc)
 // Insertion sort functions
 //==============================================================================
 
-static void insert_sort(SortContext* sc)
-{
+static void insert_sort(SortContext* sc) {
+  void* x = sc->x;
+  int32_t* o = sc->o;
   int32_t n = (int32_t) sc->n;
-  if (sc->strdata && sc->next_elemsize) {
-    int32_t ss = (int32_t)sc->strstart - 1;
-    int32_t* tmp = static_cast<int32_t*>(sc->next_x);
-    if (sc->o)
-      insert_sort_keys_str(sc->strdata, sc->stroffs, ss, sc->o, tmp, n);
-    else {
-      sc->o = new int32_t[n];
-      insert_sort_values_str(sc->strdata, sc->stroffs, ss, sc->o, n);
+  if (o) {
+    arr32_t tmparr(sc->n);
+    int32_t* t = tmparr.data();
+    if (sc->strdata) {
+      insert_sort_keys_str(sc->strdata, sc->stroffs, 0, o, t, n);
+    } else {
+      switch (sc->elemsize) {
+        case 1: insert_sort_keys_fw(static_cast<uint8_t* >(x), o, t, n); break;
+        case 2: insert_sort_keys_fw(static_cast<uint16_t*>(x), o, t, n); break;
+        case 4: insert_sort_keys_fw(static_cast<uint32_t*>(x), o, t, n); break;
+        case 8: insert_sort_keys_fw(static_cast<uint64_t*>(x), o, t, n); break;
+      }
     }
-    return;
-  }
-  if (sc->o) {
-    int32_t* tmp = static_cast<int32_t*>(sc->next_x);
-    bool tmp_owned = !tmp;
-    if (tmp_owned) tmp = new int32_t[n];
-    switch (sc->elemsize) {
-      case 1: insert_sort_keys_fw<>(static_cast<uint8_t*>(sc->x), sc->o, tmp, n); break;
-      case 2: insert_sort_keys_fw<>(static_cast<uint16_t*>(sc->x), sc->o, tmp, n); break;
-      case 4: insert_sort_keys_fw<>(static_cast<uint32_t*>(sc->x), sc->o, tmp, n); break;
-      case 8: insert_sort_keys_fw<>(static_cast<uint64_t*>(sc->x), sc->o, tmp, n); break;
-    }
-    if (tmp_owned) delete[] tmp;
   } else {
-    sc->o = new int32_t[n];
-    switch (sc->elemsize) {
-      case 1: insert_sort_values_fw<>(static_cast<uint8_t*>(sc->x),  sc->o, n); break;
-      case 2: insert_sort_values_fw<>(static_cast<uint16_t*>(sc->x), sc->o, n); break;
-      case 4: insert_sort_values_fw<>(static_cast<uint32_t*>(sc->x), sc->o, n); break;
-      case 8: insert_sort_values_fw<>(static_cast<uint64_t*>(sc->x), sc->o, n); break;
+    sc->o = o = new int32_t[n];
+    if (sc->strdata) {
+      insert_sort_values_str(sc->strdata, sc->stroffs, 0, o, n);
+    } else {
+      switch (sc->elemsize) {
+        case 1: insert_sort_values_fw(static_cast<uint8_t*>(x),  o, n); break;
+        case 2: insert_sort_values_fw(static_cast<uint16_t*>(x), o, n); break;
+        case 4: insert_sort_values_fw(static_cast<uint32_t*>(x), o, n); break;
+        case 8: insert_sort_values_fw(static_cast<uint64_t*>(x), o, n); break;
+      }
     }
   }
 }
