@@ -91,9 +91,6 @@ class DataTable {
     static DataTable* load(DataTable* schema, int64_t nrows,
                            const std::string& path);
 
-  private:
-    // Sort helpers
-    RowIndex sort_tiny(bool make_groups) const;
 };
 
 
