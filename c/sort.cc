@@ -500,6 +500,102 @@ class SortContext {
     }
   }
 
+
+
+  //============================================================================
+  // Reorder data
+  //============================================================================
+
+  /**
+   * Perform the main radix shuffle, filling in arrays `next_o` and `next_x`.
+   * The array `next_o` will contain the original row numbers of the values in
+   * `x` such that `x[next_o]` is sorted with respect to the most significant
+   * bits. The `next_x` array will contain the sorted elements of `x`, with MSB
+   * bits already removed -- we need it mostly for page-efficiency at later
+   * stages of the algorithm.
+   *
+   * During execution of this step we also modify the `histogram` array so that
+   * by the end of the step each cell in `histogram` will contain the offset
+   * past the *last* item within that cell. In particular, the last row of the
+   * `histogram` table will contain end-offsets of output regions corresponding
+   * to each radix value.
+   */
+  void reorder_data() {
+    if (!next_x && next_elemsize) {
+      size_t sz = static_cast<size_t>(next_elemsize);
+      // Allocate as `int64_t` to ensure 8-byte alignment
+      next_x = new int64_t[(n * sz + 7) / 8];
+    }
+    if (!next_o) {
+      next_o = new int32_t[n];
+    }
+    if (strdata) {
+      if (next_x) _reorder_str();
+      else _reorder_impl<uint8_t, char, false>();
+    } else {
+      switch (elemsize) {
+        case 8:
+          if (next_elemsize == 8) _reorder_impl<uint64_t, uint64_t, true>();
+          if (next_elemsize == 4) _reorder_impl<uint64_t, uint32_t, true>();
+          break;
+        case 4: _reorder_impl<uint32_t, uint16_t, true>(); break;
+        case 2: _reorder_impl<uint16_t, char, false>(); break;
+        case 1: _reorder_impl<uint8_t,  char, false>(); break;
+      }
+    }
+    std::swap(x, next_x);
+    std::swap(o, next_o);
+    use_order = true;
+  }
+
+  template<typename TI, typename TO, bool OUT> void _reorder_impl() {
+    TI mask = static_cast<TI>((1ULL << shift) - 1);
+    TI* xi = static_cast<TI*>(x);
+    TO* xo = static_cast<TO*>(next_x);
+    #pragma omp parallel for schedule(dynamic) num_threads(nth)
+    for (size_t i = 0; i < nchunks; ++i) {
+      size_t j0 = i * chunklen;
+      size_t j1 = std::min(j0 + chunklen, n);
+      size_t* tcounts = histogram + (nradixes * i);
+      for (size_t j = j0; j < j1; ++j) {
+        size_t k = tcounts[xi[j] >> shift]++;
+        next_o[k] = use_order? o[j] : static_cast<int32_t>(j);
+        if (OUT) {
+          xo[k] = static_cast<TO>(xi[j] & mask);
+        }
+      }
+    }
+    assert(histogram[nchunks * nradixes - 1] == n);
+  }
+
+  void _reorder_str() {
+    uint8_t* xi = static_cast<uint8_t*>(x);
+    uint8_t* xo = static_cast<uint8_t*>(next_x);
+    const int32_t ss = static_cast<int32_t>(strstart) + 1;
+
+    int32_t maxlen = 0;
+    #pragma omp parallel for schedule(dynamic) num_threads(nth) \
+            reduction(max:maxlen)
+    for (size_t i = 0; i < nchunks; ++i) {
+      size_t j0 = i * chunklen;
+      size_t j1 = std::min(j0 + chunklen, n);
+      size_t* tcounts = histogram + (nradixes * i);
+      for (size_t j = j0; j < j1; ++j) {
+        size_t k = tcounts[xi[j]]++;
+        int32_t w = use_order? o[j] : static_cast<int32_t>(j);
+        int32_t offend = stroffs[w];
+        int32_t offstart = std::abs(stroffs[w - 1]) + ss;
+        int32_t len = offend - offstart;
+        xo[k] = len > 0? strdata[offstart] + 2 : 1;
+        next_o[k] = w;
+        if (len > maxlen) maxlen = len;
+      }
+    }
+    next_elemsize = maxlen > 0;
+    assert(histogram[nchunks * nradixes - 1] == n);
+  }
+
+
 };
 
 
@@ -588,149 +684,12 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool /*make_groups*/) cons
     SortContext sc;
     sc.initialize(col0, order);
     radix_psort(&sc);
-    dtfree(sc.x);
-    dtfree(sc.next_x);
-    dtfree(sc.next_o);
-    dtfree(sc.histogram);
+    free(sc.x);
+    free(sc.next_x);
+    delete[] sc.next_o;
+    delete[] sc.histogram;
   }
   return RowIndex::from_array32(std::move(order));
-}
-
-
-
-
-//==============================================================================
-// Data processing step
-//==============================================================================
-
-/**
- * Perform the main radix shuffle, filling in arrays `next_o` and `next_x`. The
- * array `next_o` will contain the original row numbers of the values in `x`
- * such that `x[next_o]` is sorted with respect to the most significant bits.
- * The `next_x` array will contain the sorted elements of `x`, with MSB bits
- * already removed -- we need it mostly for page-efficiency at later stages
- * of the algorithm.
- *
- * During execution of this step we also modify the `histogram` array so that
- * by the end of the step each cell in `histogram` will contain the offset past
- * the *last* item within that cell. In particular, the last row of the
- * `histogram` table will contain end-offsets of output regions corresponding
- * to each radix value.
- *
- * SortContext inputs:
- *      x, o, n, shift, nradixes, histogram, nth, nchunks, chunklen
- *
- * SortContext outputs:
- *      next_x, next_o, histogram
- *
- */
-template<typename TI>
-static void reorder_data1(SortContext *sc) {
-  int8_t shift = sc->shift;
-  TI* xi = static_cast<TI*>(sc->x);
-  int32_t* oi = sc->o;
-  int32_t* oo = sc->next_o;
-  #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-  for (size_t i = 0; i < sc->nchunks; ++i) {
-    size_t j0 = i * sc->chunklen;
-    size_t j1 = std::min(j0 + sc->chunklen, sc->n);
-    size_t* tcounts = sc->histogram + (sc->nradixes * i);
-    for (size_t j = j0; j < j1; ++j) {
-      size_t k = tcounts[xi[j] >> shift]++;
-      oo[k] = sc->use_order? oi[j] : static_cast<int32_t>(j);
-    }
-  }
-  assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
-}
-
-template<typename TI, typename TO>
-static void reorder_data2(SortContext *sc) {
-  int8_t shift = sc->shift;
-  TI mask = static_cast<TI>((1ULL << shift) - 1);
-  TI* xi = static_cast<TI*>(sc->x);
-  TO* xo = static_cast<TO*>(sc->next_x);
-  int32_t* oi = sc->o;
-  int32_t* oo = sc->next_o;
-  #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-  for (size_t i = 0; i < sc->nchunks; ++i) {
-    size_t j0 = i * sc->chunklen;
-    size_t j1 = std::min(j0 + sc->chunklen, sc->n);
-    size_t* tcounts = sc->histogram + (sc->nradixes * i);
-    for (size_t j = j0; j < j1; ++j) {
-      size_t k = tcounts[xi[j] >> shift]++;
-      oo[k] = sc->use_order? oi[j] : static_cast<int32_t>(j);
-      if (xo) xo[k] = static_cast<TO>(xi[j] & mask);
-    }
-  }
-  assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
-}
-
-
-static void reorder_data_str(SortContext *sc) {
-  uint8_t* xi = static_cast<uint8_t*>(sc->x);
-  uint8_t* xo = static_cast<uint8_t*>(sc->next_x);
-  int32_t* oi = sc->o;
-  int32_t* oo = sc->next_o;
-  assert(xo);
-  const uint8_t* strdata = sc->strdata;
-  const int32_t* stroffs = sc->stroffs;
-  const int32_t  strstart = static_cast<int32_t>(sc->strstart) + 1;
-
-  int32_t maxlen = 0;
-  #pragma omp parallel for schedule(dynamic) num_threads(sc->nth) \
-          reduction(max:maxlen)
-  for (size_t i = 0; i < sc->nchunks; i++) {
-    size_t j0 = i * sc->chunklen,
-           j1 = std::min(j0 + sc->chunklen, sc->n);
-    size_t* tcounts = sc->histogram + (sc->nradixes * i);
-    for (size_t j = j0; j < j1; j++) {
-      size_t k = tcounts[xi[j]]++;
-      int32_t w = sc->use_order? oi[j] : (int32_t) j;
-      int32_t offend = stroffs[w];
-      int32_t offstart = std::abs(stroffs[w-1]) + strstart;
-      int32_t len = offend - offstart;
-      xo[k] = len > 0? strdata[offstart] + 2 : 1;
-      oo[k] = w;
-      if (len > maxlen) maxlen = len;
-      assert(k < sc->n && j < sc->n && offend > 0);
-    }
-  }
-  assert(sc->histogram[sc->nchunks * sc->nradixes - 1] == sc->n);
-  sc->next_elemsize = maxlen > 0;
-}
-
-
-
-static void reorder_data(SortContext *sc)
-{
-  int8_t nextsize = sc->next_elemsize;
-  if (!sc->next_x && nextsize) {
-    dtmalloc_g(sc->next_x, void, sc->n * (size_t)nextsize);
-  }
-  if (!sc->next_o) {
-    dtmalloc_g(sc->next_o, int32_t, sc->n);
-  }
-  if (sc->strdata) {
-    if (sc->next_x)
-      reorder_data_str(sc);
-    else reorder_data1<uint8_t>(sc);
-  } else {
-    switch (sc->elemsize) {
-      case 8:
-        if (nextsize == 8) reorder_data2<uint64_t, uint64_t>(sc);
-        if (nextsize == 4) reorder_data2<uint64_t, uint32_t>(sc);
-        break;
-      case 4: reorder_data2<uint32_t, uint16_t>(sc); break;
-      case 2: reorder_data1<uint16_t>(sc); break;
-      case 1: reorder_data1<uint8_t>(sc); break;
-    }
-  }
-  std::swap(sc->x, sc->next_x);
-  std::swap(sc->o, sc->next_o);
-  sc->use_order = true;
-  return;
-  fail:
-  sc->next_x = nullptr;
 }
 
 
@@ -797,7 +756,7 @@ static void radix_psort(SortContext *sc)
   int32_t* ores = sc->o;
   determine_sorting_parameters(sc);
   sc->build_histogram();
-  reorder_data(sc);
+  sc->reorder_data();
 
   if (sc->next_elemsize) {
 
