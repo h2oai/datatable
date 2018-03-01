@@ -288,9 +288,9 @@ def test_stype_ltypes(c_stypes2):
 def test_ltype_stypes():
     from datatable import stype, ltype
     assert ltype.bool.stypes == [stype.bool8]
-    assert ltype.int.stypes == [stype.int8, stype.int16, stype.int32,
-                                stype.int64]
-    assert ltype.real.stypes == [stype.float32, stype.float64]
-    assert ltype.str.stypes == [stype.str32, stype.str64]
-    assert ltype.time.stypes == []
-    assert ltype.obj.stypes == [stype.obj64]
+    assert set(ltype.int.stypes) == {stype.int8, stype.int16, stype.int32,
+                                     stype.int64}
+    assert set(ltype.real.stypes) == {stype.float32, stype.float64}
+    assert set(ltype.str.stypes) == {stype.str32, stype.str64}
+    assert set(ltype.time.stypes) == set()
+    assert set(ltype.obj.stypes) == {stype.obj64}
