@@ -603,8 +603,7 @@ class SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-
-static void insert_sort(SortContext*);
+static RowIndex sort_small(Column* col);
 static void radix_psort(SortContext*);
 
 #define INSERT_SORT_THRESHOLD 64
@@ -647,47 +646,83 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool /*make_groups*/) cons
     return RowIndex::from_slice(0, nrows, 1);
   }
   Column* col0 = columns[colindices[0]];
-  int32_t irows = static_cast<int32_t>(nrows);
-  size_t  zrows = static_cast<size_t>(nrows);
-  arr32_t order = rowindex.extract_as_array32();
 
   if (nrows <= INSERT_SORT_THRESHOLD) {
-    SType stype = col0->stype();
-    if (stype == ST_REAL_F4 || stype == ST_REAL_F8 || !rowindex.isabsent()) {
-      SortContext sc;
-      sc.initialize(col0, order);
-      insert_sort(&sc);
-      dtfree(sc.x);
-    } else if (stype == ST_STRING_I4_VCHAR) {
-      auto scol = static_cast<const StringColumn<int32_t>*>(col0);
-      const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
-      const int32_t* offs = scol->offsets();
-      order.resize(zrows);
-      int32_t* o = order.data();
-      insert_sort_values_str(strdata, offs, 0, o, irows);
-      return RowIndex::from_array32(std::move(order));
-    } else {
-      order.resize(zrows);
-      int32_t* o = order.data();
-      void* x = col0->data();
-      switch (stype) {
-        case ST_BOOLEAN_I1: insert_sort_values_fw(static_cast<int8_t*>(x), o, irows); break;
-        case ST_INTEGER_I1: insert_sort_values_fw(static_cast<int8_t*>(x), o, irows); break;
-        case ST_INTEGER_I2: insert_sort_values_fw(static_cast<int16_t*>(x), o, irows); break;
-        case ST_INTEGER_I4: insert_sort_values_fw(static_cast<int32_t*>(x), o, irows); break;
-        case ST_INTEGER_I8: insert_sort_values_fw(static_cast<int64_t*>(x), o, irows); break;
-        default: throw ValueError() << "Insert sort not implemented for column of stype " << stype;
-      }
-      return RowIndex::from_array32(std::move(order));
-    }
-  } else {
+    return sort_small(col0);
+  }
+  arr32_t order = rowindex.extract_as_array32();
+  SortContext sc;
+  sc.initialize(col0, order);
+  radix_psort(&sc);
+  free(sc.x);
+  free(sc.next_x);
+  delete[] sc.next_o;
+  delete[] sc.histogram;
+  return RowIndex::from_array32(std::move(order));
+}
+
+
+/**
+ * Sort small-size columns using only insert-sort algorithm.
+ */
+static RowIndex sort_small(Column* col) {
+  int32_t n = static_cast<int32_t>(col->nrows);
+  arr32_t order = col->rowindex().extract_as_array32();
+  SType stype = col->stype();
+
+  if (stype == ST_REAL_F4 || stype == ST_REAL_F8 || order) {
     SortContext sc;
-    sc.initialize(col0, order);
-    radix_psort(&sc);
-    free(sc.x);
-    free(sc.next_x);
-    delete[] sc.next_o;
-    delete[] sc.histogram;
+    sc.initialize(col, order);
+    void*    x = sc.x;
+    int32_t* o = sc.o;
+    if (sc.use_order) {
+      arr32_t tmparr(sc.n);
+      int32_t* t = tmparr.data();
+      if (sc.strdata) {
+        insert_sort_keys_str(sc.strdata, sc.stroffs, 0, o, t, n);
+      } else {
+        switch (sc.elemsize) {
+          case 1: insert_sort_keys_fw(static_cast<uint8_t* >(x), o, t, n); break;
+          case 2: insert_sort_keys_fw(static_cast<uint16_t*>(x), o, t, n); break;
+          case 4: insert_sort_keys_fw(static_cast<uint32_t*>(x), o, t, n); break;
+          case 8: insert_sort_keys_fw(static_cast<uint64_t*>(x), o, t, n); break;
+        }
+      }
+    } else {
+      if (sc.strdata) {
+        insert_sort_values_str(sc.strdata, sc.stroffs, 0, o, n);
+      } else {
+        switch (sc.elemsize) {
+          case 1: insert_sort_values_fw(static_cast<uint8_t*>(x),  o, n); break;
+          case 2: insert_sort_values_fw(static_cast<uint16_t*>(x), o, n); break;
+          case 4: insert_sort_values_fw(static_cast<uint32_t*>(x), o, n); break;
+          case 8: insert_sort_values_fw(static_cast<uint64_t*>(x), o, n); break;
+        }
+      }
+    }
+    free(x);
+
+  } else {
+    order.resize(static_cast<size_t>(col->nrows));
+    int32_t* o = order.data();
+    void* x = col->data();
+    switch (stype) {
+      case ST_BOOLEAN_I1: insert_sort_values_fw(static_cast<int8_t*>(x), o, n); break;
+      case ST_INTEGER_I1: insert_sort_values_fw(static_cast<int8_t*>(x), o, n); break;
+      case ST_INTEGER_I2: insert_sort_values_fw(static_cast<int16_t*>(x), o, n); break;
+      case ST_INTEGER_I4: insert_sort_values_fw(static_cast<int32_t*>(x), o, n); break;
+      case ST_INTEGER_I8: insert_sort_values_fw(static_cast<int64_t*>(x), o, n); break;
+      case ST_STRING_I4_VCHAR: {
+        auto scol = static_cast<const StringColumn<int32_t>*>(col);
+        const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
+        const int32_t* offs = scol->offsets();
+        insert_sort_values_str(strdata, offs, 0, o, n);
+        break;
+      }
+      default:
+        throw ValueError() << "Insert sort not implemented for column of stype " << stype;
+    }
+
   }
   return RowIndex::from_array32(std::move(order));
 }
@@ -695,7 +730,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool /*make_groups*/) cons
 
 
 //==============================================================================
-// Radix sort functions
+// Radix sort function
 //==============================================================================
 
 /**
@@ -863,7 +898,7 @@ static void radix_psort(SortContext *sc)
       //   tmp = (int32_t*)sc->x;
       // } else {
       own_tmp = true;
-      dtmalloc_g(tmp, int32_t, size0 * sc->nth);
+      tmp = new int32_t[size0 * sc->nth];
       // }
     }
     #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
@@ -889,7 +924,7 @@ static void radix_psort(SortContext *sc)
       }
     }
     delete[] rrmap;
-    if (own_tmp) dtfree(tmp);
+    if (own_tmp) delete[] tmp;
   }
 
   // Done. Save to array `o` the computed ordering of the input vector `x`.
@@ -897,47 +932,5 @@ static void radix_psort(SortContext *sc)
     std::memcpy(ores, sc->o, sc->n * sizeof(int32_t));
     sc->next_o = sc->o;
     sc->o = ores;
-  }
-
-  return;
-  fail:
-  sc->x = nullptr;
-  sc->o = nullptr;
-}
-
-
-
-//==============================================================================
-// Insertion sort functions
-//==============================================================================
-
-static void insert_sort(SortContext* sc) {
-  void*    x = sc->x;
-  int32_t* o = sc->o;
-  int32_t  n = static_cast<int32_t>(sc->n);
-  if (sc->use_order) {
-    arr32_t tmparr(sc->n);
-    int32_t* t = tmparr.data();
-    if (sc->strdata) {
-      insert_sort_keys_str(sc->strdata, sc->stroffs, 0, o, t, n);
-    } else {
-      switch (sc->elemsize) {
-        case 1: insert_sort_keys_fw(static_cast<uint8_t* >(x), o, t, n); break;
-        case 2: insert_sort_keys_fw(static_cast<uint16_t*>(x), o, t, n); break;
-        case 4: insert_sort_keys_fw(static_cast<uint32_t*>(x), o, t, n); break;
-        case 8: insert_sort_keys_fw(static_cast<uint64_t*>(x), o, t, n); break;
-      }
-    }
-  } else {
-    if (sc->strdata) {
-      insert_sort_values_str(sc->strdata, sc->stroffs, 0, o, n);
-    } else {
-      switch (sc->elemsize) {
-        case 1: insert_sort_values_fw(static_cast<uint8_t*>(x),  o, n); break;
-        case 2: insert_sort_values_fw(static_cast<uint16_t*>(x), o, n); break;
-        case 4: insert_sort_values_fw(static_cast<uint32_t*>(x), o, n); break;
-        case 8: insert_sort_values_fw(static_cast<uint64_t*>(x), o, n); break;
-      }
-    }
   }
 }
