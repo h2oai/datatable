@@ -112,7 +112,7 @@ def test_int32_large():
 @pytest.mark.parametrize("n", [30, 300, 3000, 30000, 60000, 120000])
 def test_int32_large_stable(n):
     src = [None, 100, 100000] * (n // 3)
-    d0 = datatable.DataTable({"A": src, "B": list(range(n))})
+    d0 = datatable.DataTable([src, range(n)], names=["A", "B"])
     assert d0.stypes[0] == stype.int32
     d1 = d0(sort="A", select="B")
     assert d1.topython() == [list(range(0, n, 3)) +
@@ -222,7 +222,7 @@ def test_int8_large():
 @pytest.mark.parametrize("n", [30, 303, 3333, 30000, 60009, 120000])
 def test_int8_large_stable(n):
     src = [None, 10, -10] * (n // 3)
-    d0 = datatable.DataTable({"A": src, "B": list(range(n))})
+    d0 = datatable.DataTable([src, range(n)], names=("A", "B"))
     assert d0.stypes[0] == stype.int8
     d1 = d0(sort="A", select="B")
     assert d1.topython() == [list(range(0, n, 3)) +

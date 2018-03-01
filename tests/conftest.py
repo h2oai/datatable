@@ -21,6 +21,13 @@ def setup():
 
 
 @pytest.fixture(scope="session")
+def py36():
+    """Skip the test when run under Python 3.5.x"""
+    if sys.version_info < (3, 6):
+        pytest.skip("Python3.6+ is required")
+
+
+@pytest.fixture(scope="session")
 def pandas():
     """
     This fixture returns pandas module, or if unavailable marks test as skipped.
