@@ -161,20 +161,6 @@ class FreadLocalParseContext : public LocalParseContext
     } while(0)
 
 
-// This macro raises a warning using Python's standard warning mechanism. Usage:
-//     if (cond) WARN("Attention: %s", smth_smelly);
-//
-#define DTWARN(...)                                                            \
-    do {                                                                       \
-        PyErr_WarnFormat(PyExc_RuntimeWarning, 1, __VA_ARGS__);                \
-        if (warningsAreErrors) {                                               \
-            return 0;                                                          \
-        }                                                                      \
-    } while(0)
-
-
-#define DTPRINT(...) g.trace(__VA_ARGS__)
-
 
 #define ASSERT(test) do { \
   if (!(test)) \

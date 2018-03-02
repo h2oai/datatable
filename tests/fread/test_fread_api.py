@@ -526,7 +526,7 @@ def test_fread_skip_blank_lines_true():
 
 def test_fread_skip_blank_lines_false():
     inp = "A,B\n1,2\n  \n\n3,4\n"
-    with pytest.warns(RuntimeWarning) as ws:
+    with pytest.warns(UserWarning) as ws:
         d1 = dt.fread(text=inp, skip_blank_lines=False)
         assert d1.internal.check()
         assert d1.shape == (1, 2)

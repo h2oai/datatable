@@ -275,27 +275,43 @@ void GenericReader::trace(const char* format, ...) const {
   if (!verbose) return;
   va_list args;
   va_start(args, format);
-  char *msg;
+  _message("debug", format, args);
+  va_end(args);
+}
+
+__attribute__((format(printf, 2, 3)))
+void GenericReader::warn(const char* format, ...) const {
+  va_list args;
+  va_start(args, format);
+  _message("warning", format, args);
+  va_end(args);
+}
+
+void GenericReader::_message(
+  const char* method, const char* format, va_list args) const
+{
+  static char shared_buffer[2001];
+  char* msg;
   if (strcmp(format, "%s") == 0) {
     msg = va_arg(args, char*);
   } else {
-    msg = (char*) alloca(2001);
+    msg = shared_buffer;
+    IGNORE_WARNING(-Wformat-nonliteral)
     vsnprintf(msg, 2000, format, args);
+    RESTORE_WARNINGS()
   }
-  va_end(args);
 
   try {
     Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
     PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
                                        "backslashreplace");  // new ref
     if (!pymsg) throw PyError();
-    logger.invoke("debug", "(O)", pymsg);
+    logger.invoke(method, "(O)", pymsg);
     Py_XDECREF(pymsg);
   } catch (const std::exception&) {
     // ignore any exceptions
   }
 }
-
 
 
 //------------------------------------------------------------------------------

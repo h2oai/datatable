@@ -47,7 +47,7 @@ def fread(
         cmd=None,
         url=None,
 
-        columns: TColumnsSpec = None,
+        columns=None,
         sep: str = None,
         dec: str = ".",
         max_nrows: int = None,
@@ -351,9 +351,9 @@ class GenericReader(object):
                     raise TValueError("File `%s` does not exist in archive "
                                       "`%s`" % (subpath, filename))
             if len(zff) > 1:
-                warnings.warn("Zip file %s contains multiple compressed "
-                              "files: %r. Only the first of them will be used."
-                              % (filename, zff))
+                self.logger.warning("Zip file %s contains multiple compressed "
+                                    "files: %r. Only the first of them will be "
+                                    "used." % (filename, zff))
             if len(zff) == 0:
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
@@ -657,7 +657,7 @@ class GenericReader(object):
                 os.remove(self._tempfile)
                 os.rmdir(self._tempdir)
             except OSError as e:
-                self.logger.warn("Failed to remove temporary files: %r" % e)
+                self.logger.warning("Failed to remove temporary files: %r" % e)
         return dt
 
 
@@ -812,8 +812,8 @@ class GenericReader(object):
                 else:
                     coltypes[i] = 0
             if colsfound:
-                warnings.warn("Column(s) %r not found in the input file" %
-                              list(colsfound))
+                self.logger.warning("Column(s) %r not found in the input file"
+                                    % list(colsfound))
             return
 
         if isinstance(colspec, list):
@@ -957,7 +957,7 @@ class _DefaultLogger:
     def debug(self, message):
         print(_log_color(message), flush=True)
 
-    def warn(self, message):
+    def warning(self, message):
         warnings.warn(message)
 
 
