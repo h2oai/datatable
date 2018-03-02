@@ -7,7 +7,7 @@
 
 from datatable.graph.dtproxy import f
 from .__version__ import version as __version__
-from .dt import Frame
+from .frame import Frame
 from .expr import mean, min, max, sd, isna
 from .fread import fread, GenericReader
 from .nff import save, open

@@ -14,7 +14,7 @@ import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 from datatable.lib import core
-from datatable.dt import Frame
+from datatable.frame import Frame
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,

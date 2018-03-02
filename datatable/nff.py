@@ -10,7 +10,7 @@ import warnings
 
 import datatable as dt
 from datatable.lib import core
-from datatable.dt import Frame
+from datatable.fread import Frame
 from datatable.fread import fread
 from datatable.utils.typechecks import typed, TValueError
 
