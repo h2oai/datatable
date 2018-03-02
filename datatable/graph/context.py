@@ -64,7 +64,7 @@ class EagerEvaluationEngine(EvaluationEngine):
     `f.A + f.B * 2` will be computed in 2 steps: first, column "B" will be
     multiplied by 2 to produce a new temporary column; then column "A" will be
     added with that temporary column; finally the resulting column will be
-    converted into a DataTable and returned.
+    converted into a Frame and returned.
     """
     __slots__ = []
 
@@ -83,7 +83,7 @@ class LlvmEvaluationEngine(EvaluationEngine):
     This engine evaluates all expressions through LLVM. What this means is that
     in order to evaluate expression such as `f.A + f.B * 2` it writes a C
     program for its computation, then compiles that C program with Clang/LLVM,
-    then executes it and returns the DataTable produced by the program.
+    then executes it and returns the Frame produced by the program.
 
     This engine is more efficient than "Eager" for large datasets, however it
     requires access to Clang+LLVM runtime.

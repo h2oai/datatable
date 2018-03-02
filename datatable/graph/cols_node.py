@@ -164,15 +164,15 @@ def make_columnset(arg, dt, cmod, _nested=False):
 
     This is a factory function that instantiates an appropriate subclass of
     :class:`CSNode`, depending on the parameter ``arg`` and provided that it
-    is applied to a DataTable ``dt``.
+    is applied to a Frame ``dt``.
 
     Parameters
     ----------
     arg:
         An expression that will be converted into one of the ``CSNode``s.
 
-    dt: DataTable
-        The DataTable to which ``arg`` selector applies.
+    dt: Frame
+        The Frame to which ``arg`` selector applies.
 
     cmod: CModule
         Expression evaluation engine.

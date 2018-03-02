@@ -16,7 +16,7 @@ from datatable.types import stype, ltype
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import (
-    is_type, TValueError, TTypeError, DataTable_t, NumpyArray_t
+    is_type, TValueError, TTypeError, Frame_t, NumpyArray_t
 )
 from typing import Optional
 
@@ -32,11 +32,11 @@ class RFNode:
     call, and its primary function is to compute a :class:`core.RowIndex`
     object and place it into the EvaluationEngine.
 
-    A row filter is always applied to some DataTable, called "source". Sometimes
+    A row filter is always applied to some Frame, called "source". Sometimes
     the source is a view, in which case the rowindex must be "uplifted" to the
-    parent DataTable. The RowIndex created by this node will be the "final"
+    parent Frame. The RowIndex created by this node will be the "final"
     one, i.e. it will be indexing the data within the columns of the source
-    DataTable.
+    Frame.
 
     API:
       - execute(): construct the final RowIndex and store it in the
@@ -68,7 +68,7 @@ class RFNode:
         Construct the "source" RowIndex object.
 
         This method must be implemented in all subclasses. It should return a
-        core.RowIndex object as applied to the source DataTable, or None if no
+        core.RowIndex object as applied to the source Frame, or None if no
         index is necessary.
         """
         raise NotImplementedError  # pragma: no cover
@@ -78,7 +78,7 @@ class RFNode:
         """
         Construct the "final" RowIndex object.
 
-        If the source DataTable is a view, then the returned RowIndex is an
+        If the source Frame is a view, then the returned RowIndex is an
         uplifted version of the "source" RowIndex. Otherwise the final RowIndex
         is the same object as the source RowIndex. The returned value may also
         be None indicating absense of any RowIndex.
@@ -158,7 +158,7 @@ class ArrayRFNode(RFNode):
 
     array: List[int]
         The list of row indices that should be selected from the target
-        DataTable. The indices must be in the `range(dt.nrows)` (however this
+        Frame. The indices must be in the `range(dt.nrows)` (however this
         constraint is not verified here).
     """
     __slots__ = ["_array"]
@@ -221,9 +221,9 @@ class BooleanColumnRFNode(RFNode):
     ee: EvaluationEngine
         Current evaluation context.
 
-    col: DataTable
-        The "mask" DataTable containing a single boolean column of the same
-        length as the target DataTable. Only rows corresponding to the `True`
+    col: Frame
+        The "mask" Frame containing a single boolean column of the same
+        length as the target Frame. Only rows corresponding to the `True`
         values in the mask will be selected.
     """
     __slots__ = ["_coldt"]
@@ -251,8 +251,8 @@ class IntegerColumnRFNode(RFNode):
     ee: EvaluationEngine
         Current evaluation context.
 
-    coldt: DataTable
-        DataTable containing a single integer column, the values in this column
+    coldt: Frame
+        Frame containing a single integer column, the values in this column
         will be treated as row indices to select.
     """
     __slots__ = ["_coldt"]
@@ -267,7 +267,7 @@ class IntegerColumnRFNode(RFNode):
         ri = core.rowindex_from_column(col)
         if ri.max >= self._engine.dt.nrows:
             raise ValueError("The data column contains index %d which is "
-                             "not allowed for a DataTable with %d rows"
+                             "not allowed for a Frame with %d rows"
                              % (ri.max, self._engine.dt.nrows))
         return ri
 
@@ -390,7 +390,7 @@ def make_rowfilter(rows, ee, _nested=False) -> RFNode:
     ----------
     rows:
         An expression that will be converted into one of the RFNodes. This can
-        have a variety of different types, see `help(DataTable.__call__)` for
+        have a variety of different types, see `help(Frame.__call__)` for
         more information.
 
     ee: EvaluationEngine
@@ -498,11 +498,11 @@ def make_rowfilter(rows, ee, _nested=False) -> RFNode:
             raise TValueError("Cannot apply a boolean numpy array of length "
                               "%d to a datatable with %s"
                               % (arr.shape[-1], plural(nrows, "row")))
-        rows = datatable.DataTable(arr)
+        rows = datatable.Frame(arr)
         assert rows.ncols == 1
         assert rows.ltypes[0] == ltype.bool or rows.ltypes[0] == ltype.int
 
-    if is_type(rows, DataTable_t):
+    if is_type(rows, Frame_t):
         if rows.ncols != 1:
             raise TValueError("`rows` argument should be a single-column "
                               "datatable, got %r" % rows)

@@ -14,7 +14,7 @@ import os
 import pytest
 import random
 import re
-from tests import random_string
+from tests import random_string, list_equals
 
 
 
@@ -127,9 +127,11 @@ def test_float_hex_invalid():
     assert d0.topython() == [[f] for f in fields]
 
 
-@pytest.mark.xfail()
 def test_float_precision():
-    # This is a collection of numbers that fread is known to read incorrectly
+    """
+    This is a collection of numbers that fread is known to read with up to
+    ±1 ulp difference.
+    """
     src = [
         0.2396234748320447,  # reads as 0.23962347483204471 (+1 ulp)
         1.378139026373428,   # reads as 1.3781390263734279  (-1 ulp)
@@ -152,7 +154,7 @@ def test_float_precision():
     d0 = dt.fread(text)
     assert d0.internal.check()
     assert d0.ltypes == (ltype.real, )
-    assert d0.topython()[0] == src
+    assert list_equals(d0.topython()[0], src)
 
 
 def test_float_overflow():
@@ -642,7 +644,7 @@ def test_empty_strings(seed, repl):
         if src[i] == [repl] * nrows:
             src[i][0] = "!!!"
     colnames = list(alphabet[:ncols].upper())
-    d0 = dt.DataTable(src, names=colnames)
+    d0 = dt.Frame(src, names=colnames)
     assert d0.names == tuple(colnames)
     assert d0.ltypes == (ltype.str,) * ncols
     text = d0.to_csv()
@@ -654,7 +656,6 @@ def test_empty_strings(seed, repl):
 
 
 @pytest.mark.parametrize("seed", [random.randint(0, 2**31)])
-@pytest.mark.xfail()  # fails occasionally, see test_float_precision()
 def test_random_data(seed, tempfile):
     # Based on R tests 880-884
     random.seed(seed)
@@ -689,9 +690,9 @@ def test_random_data(seed, tempfile):
     res = d1.topython()
     assert res[0] == src[0]
     assert res[1] == src[1]
-    assert res[2] == src[2]
+    assert list_equals(res[2], src[2])
     assert res[3] == src[3]
-    assert res[4] == src[4]
+    assert list_equals(res[4], src[4])
     assert res[5] == src[5]
 
 

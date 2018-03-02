@@ -652,7 +652,7 @@ def test_fread_skip_to_line():
 
 
 def test_fread_skip_to_line_large():
-    # Note: exception is not thrown, instead an empty DataTable is returned
+    # Note: exception is not thrown, instead an empty Frame is returned
     d0 = dt.fread("a,b\n1,2\n3,4\n5,6\n", skip_to_line=1000)
     assert d0.internal.check()
     assert d0.shape == (0, 0)

@@ -42,7 +42,7 @@ def same_iterables(a, b):
     preserved the order of their keys, whereas in previous Python versions they
     didn't. Thus, if one creates say a datatable
 
-        dt = datatable.DataTable({"A": 1, "B": "foo", "C": 3.5})
+        dt = datatable.Frame({"A": 1, "B": "foo", "C": 3.5})
 
     then in Python3.6 it will be guaranteed to have columns ("A", "B", "C") --
     in this order, whereas in Python3.5 or older the order may be arbitrary.

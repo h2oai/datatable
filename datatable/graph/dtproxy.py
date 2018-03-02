@@ -26,26 +26,26 @@ class DatatableProxy(object):
     column whose name is "colName".
 
     Additionally, there is also instance ``ff`` which is used to refer to the
-    second DataTable in expressions involving two DataTables (joins).
+    second Frame in expressions involving two DataTables (joins).
 
     The purpose of ``f`` is:
-      1. to serve as a shorthand for the DataTable being operated on, which
+      1. to serve as a shorthand for the Frame being operated on, which
          usually improves formulas readability;
       2. to allow accessing columns via "." syntax, rather than using more
          verbose square brackets;
       3. to provide lazy evaluation semantics: for example if ``d`` is a
-         DataTable, then ``d["A"] + d["B"] + d["C"]`` evaluates immediately in
-         2 steps and returns a single-column DataTable containing sum of
+         Frame, then ``d["A"] + d["B"] + d["C"]`` evaluates immediately in
+         2 steps and returns a single-column Frame containing sum of
          columns A, B and C. At the same time ``f.A + f.B + f.C`` does not
          evaluate at all until after it is applied to ``d``, and then it is
          computed in a single step, optimized depending on the presence of
-         any other components of a single DataTable call.
+         any other components of a single Frame call.
 
     Examples
     --------
     >>> import datatable as dt
     >>> from datatable import f  # Standard name for a DatatableProxy object
-    >>> d0 = dt.DataTable([[1, 2, 3], [4, 5, -6], [0, 2, 7]], names=list("ABC"))
+    >>> d0 = dt.Frame([[1, 2, 3], [4, 5, -6], [0, 2, 7]], names=list("ABC"))
     >>>
     >>> # Select all rows where column A is positive
     >>> d1 = d0[f.A > 0, :]

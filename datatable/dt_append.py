@@ -6,11 +6,11 @@
 #-------------------------------------------------------------------------------
 import datatable
 from datatable.utils.misc import plural_form as plural
-from datatable.utils.typechecks import typed, DataTable_t, TValueError
+from datatable.utils.typechecks import typed, Frame_t, TValueError
 
 
 
-@typed(dts=DataTable_t, force=bool, bynames=bool, inplace=bool)
+@typed(dts=Frame_t, force=bool, bynames=bool, inplace=bool)
 def rbind(self, *dts, force=False, bynames=True, inplace=True):
     """
     Append rows of datatables `dts` to the current datatable.
@@ -62,7 +62,7 @@ def rbind(self, *dts, force=False, bynames=True, inplace=True):
     n = self.ncols
 
     # `spec` will be the description of how the DataTables are to be merged:
-    # it is a list of tuples (_datatable.DataTable, [int]), where the first
+    # it is a list of tuples (_datatable.Frame, [int]), where the first
     # element of the tuple is a datatable being appended, and the second element
     # is the array of column indices within that datatable. For example, if the
     # array is [1, 0, None, 2, None] then it means that we need to take the
@@ -72,11 +72,11 @@ def rbind(self, *dts, force=False, bynames=True, inplace=True):
     spec = []
     final_names = list(self.names)
 
-    # Which DataTable to operate upon. If not `inplace` then we will create
-    # a blank DataTable and append everything to it.
+    # Which Frame to operate upon. If not `inplace` then we will create
+    # a blank Frame and append everything to it.
     src = self
     if not inplace:
-        src = datatable.DataTable()
+        src = datatable.Frame()
         spec.append((self.internal, list(range(n))))
 
     # Append by column names, filling with NAs as necessary
@@ -166,7 +166,7 @@ def rbind(self, *dts, force=False, bynames=True, inplace=True):
 
 
 
-@typed(dts=DataTable_t, force=bool, inplace=bool)
+@typed(dts=Frame_t, force=bool, inplace=bool)
 def cbind(self, *dts, force=False, inplace=True):
     """
     Append columns of datatables `dts` to the current datatable.
@@ -220,11 +220,11 @@ def cbind(self, *dts, force=False, inplace=True):
     datatables = []
     column_names = list(self.names)
 
-    # Which DataTable to operate upon. If not `inplace` then we will create
-    # a blank DataTable and merge everything to it.
+    # Which Frame to operate upon. If not `inplace` then we will create
+    # a blank Frame and merge everything to it.
     src = self
     if not inplace:
-        src = datatable.DataTable()
+        src = datatable.Frame()
         datatables.append(self.internal)
 
     # Check that all datatables have compatible number of rows, and compose the

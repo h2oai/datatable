@@ -25,7 +25,7 @@ def tbl0():
 
 @pytest.fixture()
 def dt0(tbl0):
-    return dt.DataTable(tbl0, names=["A", "B", "C", "D"])
+    return dt.Frame(tbl0, names=["A", "B", "C", "D"])
 
 def as_list(datatable):
     nrows, ncols = datatable.shape
@@ -94,7 +94,7 @@ def test_cols_string(dt0, tbl0):
         assert dt1.names == (s, )
         assert not dt1.internal.isview
         assert as_list(dt1)[0] == tbl0["ABCD".index(s)]
-    assert_valueerror(dt0, "Z", "Column `Z` does not exist in <DataTable")
+    assert_valueerror(dt0, "Z", "Column `Z` does not exist in <Frame")
 
 
 def test_cols_intslice(dt0, tbl0):

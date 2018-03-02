@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 # Sort integers
 #-------------------------------------------------------------------------------
-import datatable
+import datatable as dt
 import pytest
 
 
@@ -22,7 +22,7 @@ def src(numpy, benchmark, request):
 
 def test_sort_int32_datatable(benchmark, src):
     benchmark.name = "datatable"
-    d = datatable.DataTable(src)
+    d = dt.Frame(src)
     assert d.types == ("int",)
     benchmark(lambda: d.sort(0))
 

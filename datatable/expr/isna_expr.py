@@ -7,7 +7,7 @@
 import math
 from .base_expr import BaseExpr
 from .unary_expr import unary_op_codes
-from ..utils.typechecks import TTypeError, DataTable_t, is_type
+from ..utils.typechecks import TTypeError, Frame_t, is_type
 from ..types import stype
 from datatable.lib import core
 
@@ -51,9 +51,9 @@ class Isna(BaseExpr):
 def isna(x):
     if isinstance(x, BaseExpr):
         return Isna(x)
-    if is_type(x, DataTable_t):
+    if is_type(x, Frame_t):
         if x.ncols != 1:
-            raise TTypeError("DataTable must have a single column")
+            raise TTypeError("Frame must have a single column")
         return x(select=lambda f: isna(f[0]))
     if x is None or (isinstance(x, float) and math.isnan(x)):
         return True
