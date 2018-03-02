@@ -108,6 +108,7 @@
 #include <algorithm>  // std::min
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
+#include <vector>     // std::vector
 #include <stdio.h>    // printf
 #include "column.h"
 #include "datatable.h"
@@ -603,8 +604,8 @@ class SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-static RowIndex sort_small(Column* col);
-static void radix_psort(SortContext*);
+static RowIndex sort_small(Column* col, bool make_groups);
+static void radix_psort(SortContext*, GroupGatherer&);
 
 #define INSERT_SORT_THRESHOLD 64
 
@@ -618,7 +619,7 @@ static int _rrcmp(const void *a, const void *b) {
 
 
 //==============================================================================
-// Main sorting routine
+// Main sorting routines
 //==============================================================================
 
 /**
@@ -629,7 +630,7 @@ static int _rrcmp(const void *a, const void *b) {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex DataTable::sortby(const arr32_t& colindices, bool /*make_groups*/) const
+RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 {
   if (colindices.size() != 1) {
     throw NotImplError() << "Sorting by multiple columns is not supported yet";
@@ -648,83 +649,83 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool /*make_groups*/) cons
   Column* col0 = columns[colindices[0]];
 
   if (nrows <= INSERT_SORT_THRESHOLD) {
-    return sort_small(col0);
+    return sort_small(col0, make_groups);
   }
   arr32_t order = rowindex.extract_as_array32();
+  GroupGatherer gg(make_groups);
   SortContext sc;
   sc.initialize(col0, order);
-  radix_psort(&sc);
+  radix_psort(&sc, gg);
   free(sc.x);
   free(sc.next_x);
   delete[] sc.next_o;
   delete[] sc.histogram;
-  return RowIndex::from_array32(std::move(order));
+  RowIndex res = RowIndex::from_array32(std::move(order));
+  if (gg.enabled()) {
+    res.set_groups(gg.release());
+  }
+  return res;
+}
+
+
+
+// Helpers for sort_small
+template <typename T> void _insert_sort(
+  void* x, int32_t* o, int32_t* tmp, int32_t n, GroupGatherer& gg)
+{
+  T* xt = static_cast<T*>(x);
+  insert_sort_keys(xt, o, tmp, n, gg);
+}
+
+template <typename T> void _insert_sort(
+  void* x, int32_t* o, int32_t n, GroupGatherer& gg)
+{
+  T* xt = static_cast<T*>(x);
+  insert_sort_values(xt, o, n, gg);
 }
 
 
 /**
  * Sort small-size columns using only insert-sort algorithm.
  */
-static RowIndex sort_small(Column* col) {
+static RowIndex sort_small(Column* col, bool make_groups) {
   int32_t n = static_cast<int32_t>(col->nrows);
   arr32_t order = col->rowindex().extract_as_array32();
-  SType stype = col->stype();
+  GroupGatherer gg(make_groups);
+  SortContext sc;
+  sc.initialize(col, order);
 
-  if (stype == ST_REAL_F4 || stype == ST_REAL_F8 || order) {
-    SortContext sc;
-    sc.initialize(col, order);
-    void*    x = sc.x;
-    int32_t* o = sc.o;
-    if (sc.use_order) {
-      arr32_t tmparr(sc.n);
-      int32_t* t = tmparr.data();
-      if (sc.strdata) {
-        insert_sort_keys_str(sc.strdata, sc.stroffs, 0, o, t, n);
-      } else {
-        switch (sc.elemsize) {
-          case 1: insert_sort_keys_fw(static_cast<uint8_t* >(x), o, t, n); break;
-          case 2: insert_sort_keys_fw(static_cast<uint16_t*>(x), o, t, n); break;
-          case 4: insert_sort_keys_fw(static_cast<uint32_t*>(x), o, t, n); break;
-          case 8: insert_sort_keys_fw(static_cast<uint64_t*>(x), o, t, n); break;
-        }
-      }
+  if (sc.use_order) {
+    arr32_t tmparr(sc.n);
+    int32_t* tmp = tmparr.data();
+    if (sc.strdata) {
+      insert_sort_keys_str(sc.strdata, sc.stroffs, 0, sc.o, tmp, n, gg);
     } else {
-      if (sc.strdata) {
-        insert_sort_values_str(sc.strdata, sc.stroffs, 0, o, n);
-      } else {
-        switch (sc.elemsize) {
-          case 1: insert_sort_values_fw(static_cast<uint8_t*>(x),  o, n); break;
-          case 2: insert_sort_values_fw(static_cast<uint16_t*>(x), o, n); break;
-          case 4: insert_sort_values_fw(static_cast<uint32_t*>(x), o, n); break;
-          case 8: insert_sort_values_fw(static_cast<uint64_t*>(x), o, n); break;
-        }
+      switch (sc.elemsize) {
+        case 1: _insert_sort<uint8_t >(sc.x, sc.o, tmp, n, gg); break;
+        case 2: _insert_sort<uint16_t>(sc.x, sc.o, tmp, n, gg); break;
+        case 4: _insert_sort<uint32_t>(sc.x, sc.o, tmp, n, gg); break;
+        case 8: _insert_sort<uint64_t>(sc.x, sc.o, tmp, n, gg); break;
       }
     }
-    free(x);
-
   } else {
-    order.resize(static_cast<size_t>(col->nrows));
-    int32_t* o = order.data();
-    void* x = col->data();
-    switch (stype) {
-      case ST_BOOLEAN_I1: insert_sort_values_fw(static_cast<int8_t*>(x), o, n); break;
-      case ST_INTEGER_I1: insert_sort_values_fw(static_cast<int8_t*>(x), o, n); break;
-      case ST_INTEGER_I2: insert_sort_values_fw(static_cast<int16_t*>(x), o, n); break;
-      case ST_INTEGER_I4: insert_sort_values_fw(static_cast<int32_t*>(x), o, n); break;
-      case ST_INTEGER_I8: insert_sort_values_fw(static_cast<int64_t*>(x), o, n); break;
-      case ST_STRING_I4_VCHAR: {
-        auto scol = static_cast<const StringColumn<int32_t>*>(col);
-        const uint8_t* strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
-        const int32_t* offs = scol->offsets();
-        insert_sort_values_str(strdata, offs, 0, o, n);
-        break;
+    if (sc.strdata) {
+      insert_sort_values_str(sc.strdata, sc.stroffs, 0, sc.o, n, gg);
+    } else {
+      switch (sc.elemsize) {
+        case 1: _insert_sort<uint8_t >(sc.x, sc.o, n, gg); break;
+        case 2: _insert_sort<uint16_t>(sc.x, sc.o, n, gg); break;
+        case 4: _insert_sort<uint32_t>(sc.x, sc.o, n, gg); break;
+        case 8: _insert_sort<uint64_t>(sc.x, sc.o, n, gg); break;
       }
-      default:
-        throw ValueError() << "Insert sort not implemented for column of stype " << stype;
     }
-
   }
-  return RowIndex::from_array32(std::move(order));
+  RowIndex res = RowIndex::from_array32(std::move(order));
+  if (gg.enabled()) {
+    res.set_groups(gg.release());
+  }
+  free(sc.x);
+  return res;
 }
 
 
@@ -786,7 +787,7 @@ static void determine_sorting_parameters(SortContext *sc)
  *      x, next_x, next_o, histogram: These arrays may be allocated, or their
  *          contents may be altered arbitrarily.
  */
-static void radix_psort(SortContext *sc)
+static void radix_psort(SortContext* sc, GroupGatherer& gg)
 {
   int32_t* ores = sc->o;
   determine_sorting_parameters(sc);
@@ -794,7 +795,6 @@ static void radix_psort(SortContext *sc)
   sc->reorder_data();
 
   if (sc->next_elemsize) {
-
     // At this point the input array is already partially sorted, and the
     // elements that remain to be sorted are collected into contiguous
     // chunks. For example if `shift` is 2, then `next_x` may be:
@@ -882,13 +882,14 @@ static void radix_psort(SortContext *sc)
       next_sc.n = rrmap[rri].size;
       next_sc.next_elemsize = ne;
       next_sc.strstart = strstart;
-      radix_psort(&next_sc);
+      radix_psort(&next_sc, gg);
       rri++;
     }
 
     // Finally iterate over all remaining radix ranges, in-parallel, and
     // sort each of them independently using a simpler insertion sort
     // method.
+    int32_t ss = static_cast<int32_t>(strstart);
     size_t size0 = rri < nradixes? rrmap[rri].size : 0;
     int32_t *tmp = nullptr;
     bool own_tmp = false;
@@ -901,30 +902,52 @@ static void radix_psort(SortContext *sc)
       tmp = new int32_t[size0 * sc->nth];
       // }
     }
-    #pragma omp parallel for schedule(dynamic) num_threads(sc->nth)
-    for (size_t i = rri; i < nradixes; i++) {
-      int me = omp_get_thread_num();
-      size_t off = rrmap[i].offset;
-      int32_t n = (int32_t) rrmap[i].size;
-      if (n <= 1) continue;
-      void* x = add_ptr(sc->x, off * elemsize);
-      int32_t* o = sc->o + off;
-      int32_t* oo = tmp + me * (int32_t)size0;
+    #pragma omp parallel num_threads(sc->nth)
+    {
+      int tnum = omp_get_thread_num();
+      int32_t* oo = tmp + tnum * (int32_t)size0;
+      GroupGatherer tgg(gg.enabled());
 
-      if (sc->strdata) {
-        int32_t ss = (int32_t) strstart;
-        insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n);
-      } else {
-        switch (elemsize) {
-          case 1: insert_sort_keys_fw<>(static_cast<uint8_t*>(x), o, oo, n); break;
-          case 2: insert_sort_keys_fw<>(static_cast<uint16_t*>(x), o, oo, n); break;
-          case 4: insert_sort_keys_fw<>(static_cast<uint32_t*>(x), o, oo, n); break;
-          case 8: insert_sort_keys_fw<>(static_cast<uint64_t*>(x), o, oo, n); break;
+      #pragma omp for ordered schedule(dynamic)
+      for (size_t i = rri; i < nradixes; ++i) {
+        int32_t n = static_cast<int32_t>(rrmap[i].size);
+        if (n <= 1) continue;
+        size_t off = rrmap[i].offset;
+        void*    x = static_cast<char*>(sc->x) + off * elemsize;
+        int32_t* o = sc->o + off;
+
+        if (sc->strdata) {
+          insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n, tgg);
+        } else {
+          switch (elemsize) {
+            case 1: insert_sort_keys<>(static_cast<uint8_t*>(x), o, oo, n, tgg); break;
+            case 2: insert_sort_keys<>(static_cast<uint16_t*>(x), o, oo, n, tgg); break;
+            case 4: insert_sort_keys<>(static_cast<uint32_t*>(x), o, oo, n, tgg); break;
+            case 8: insert_sort_keys<>(static_cast<uint64_t*>(x), o, oo, n, tgg); break;
+          }
+        }
+
+        #pragma omp ordered
+        {
+          if (gg.enabled()) {
+            gg.from_groups(tgg);
+            tgg.clear();
+          }
         }
       }
     }
     delete[] rrmap;
     if (own_tmp) delete[] tmp;
+
+  } else if (gg.enabled()) {
+    // At the end of recursion, groups can be computed directly from the histogram
+    size_t* rrendoffsets = sc->histogram + (sc->nchunks - 1) * sc->nradixes;
+    size_t off0 = 0;
+    for (size_t i = 0; i < sc->nradixes; i++) {
+      size_t off1 = rrendoffsets[i];
+      gg.push(off1 - off0);
+      off0 = off1;
+    }
   }
 
   // Done. Save to array `o` the computed ordering of the input vector `x`.
