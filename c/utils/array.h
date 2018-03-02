@@ -51,11 +51,13 @@ template <typename T> class array
 
   public:
     array(size_t len = 0) : x(nullptr), n(0) { resize(len); }
-    array(array<T>&& other) : array() { swap(*this, other); }
     ~array() { std::free(x); }
     // copy-constructor and assignment are forbidden
     array(const array<T>&) = delete;
     array<T>& operator=(const array<T>&) = delete;
+    // move-constructor and move-assignment are ok
+    array(array<T>&& other) : array() { swap(*this, other); }
+    array<T>& operator=(array<T>&& other) { swap(*this, other); return *this; }
 
     // see https://stackoverflow.com/questions/5695548
     friend void swap(array<T>& first, array<T>& second) noexcept {

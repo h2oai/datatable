@@ -41,6 +41,7 @@ class RowIndexImpl {
     int64_t length;
     int64_t min;
     int64_t max;
+    arr32_t groups;
 
     RowIndexImpl()
       : type(RowIndexType::RI_UNKNOWN),
@@ -48,6 +49,7 @@ class RowIndexImpl {
         length(0), min(0), max(0) {}
     void acquire() { refcount++; }
     void release() { if (!--refcount) delete this; }
+
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(int64_t nrows) const = 0;
     virtual size_t memory_footprint() const = 0;
@@ -197,6 +199,8 @@ class RowIndex {
     static RowIndex from_filterfn64(filterfn64* f, int64_t n, bool sorted);
 
     static RowIndex from_column(Column* col);
+
+    void set_groups(arr32_t&& g) { if (impl) impl->groups = std::move(g); }
 
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }
