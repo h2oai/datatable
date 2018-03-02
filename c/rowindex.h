@@ -200,8 +200,9 @@ class RowIndex {
 
     static RowIndex from_column(Column* col);
 
-    void set_groups(arr32_t&& g) { if (impl) impl->groups = std::move(g); }
-
+    size_t get_ngroups() const;
+    const arr32_t& get_groups() const { return impl->groups; }
+    void set_groups(arr32_t&& g) { impl->groups = std::move(g); }
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }
     operator bool() const { return impl != nullptr; }

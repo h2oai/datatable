@@ -78,6 +78,12 @@ RowIndex RowIndex::from_column(Column* col) {
 }
 
 
+size_t RowIndex::get_ngroups() const {
+  if (!impl || !impl->groups) return 0;
+  return impl->groups.size() - 1;
+}
+
+
 arr32_t RowIndex::extract_as_array32() const
 {
   arr32_t res;
