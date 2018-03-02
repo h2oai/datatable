@@ -129,6 +129,7 @@ class GenericReader
     const PyObj& pyreader() const { return freader; }
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
+    void warn(const char* format, ...) const;
 
   // Helper functions
   private:
@@ -154,6 +155,8 @@ class GenericReader
     void skip_to_line_number();
     void skip_to_line_with_string();
     void decode_utf16();
+
+    void _message(const char* method, const char* format, va_list args) const;
 
     DataTablePtr read_empty_input();
     void detect_improper_files();

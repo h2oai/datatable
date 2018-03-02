@@ -271,6 +271,15 @@ extern template int nlz(uint8_t);
  **/
 #define UNUSED(x)  __attribute__((unused)) x
 
+#define zMAKE_PRAGMA(x) _Pragma(#x);
+
+#define IGNORE_WARNING(name) \
+    zMAKE_PRAGMA(GCC diagnostic push) \
+    zMAKE_PRAGMA(GCC diagnostic ignored #name)
+
+#define RESTORE_WARNINGS() \
+    zMAKE_PRAGMA(GCC diagnostic pop)
+
 
 void set_value(void * __restrict__ ptr, const void * __restrict__ value,
                size_t sz, size_t count);

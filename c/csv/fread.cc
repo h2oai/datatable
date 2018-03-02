@@ -411,7 +411,6 @@ DataTablePtr FreadReader::read()
 {
   double t0 = wallclock();
   bool verbose = g.verbose;
-  bool warningsAreErrors = g.warnings_to_errors;
   int nth = g.nthreads;
   size_t nrowLimit = (size_t) g.max_nrows;
 
@@ -463,7 +462,7 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   const char* firstJumpEnd = NULL; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
   {
-    if (verbose) DTPRINT("[06] Detect separator, quoting rule, and ncolumns");
+    if (verbose) g.trace("[06] Detect separator, quoting rule, and ncolumns");
 
     int nseps;
     char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
@@ -475,7 +474,7 @@ DataTablePtr FreadReader::read()
       seps[0] = g.sep;
       seps[1] = '\0';
       nseps = 1;
-      if (verbose) DTPRINT("  Using supplied sep '%s'", g.sep=='\t' ? "\\t" : seps);
+      if (verbose) g.trace("  Using supplied sep '%s'", g.sep=='\t' ? "\\t" : seps);
     }
 
     int topNumLines=0;        // the most number of lines with the same number of fields, so far
@@ -508,7 +507,7 @@ DataTablePtr FreadReader::read()
         ctx.sep = sep;
         ctx.whiteChar = whiteChar;
         ctx.quoteRule = quoteRule;
-        // if (verbose) DTPRINT("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
+        // if (verbose) g.trace("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
         for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
         int i=-1; // The slot we're counting the currently contiguous consistent ncols
         int thisLine=0, lastncol=-1;
@@ -555,7 +554,7 @@ DataTablePtr FreadReader::read()
           }
         }
         if (verbose && updated) {
-          DTPRINT(sep<' '? "  sep=%#02x with %d lines of %d fields using quote rule %d" :
+          g.trace(sep<' '? "  sep=%#02x with %d lines of %d fields using quote rule %d" :
                            "  sep='%c' with %d lines of %d fields using quote rule %d",
                   sep, topNumLines, topNumFields, topQuoteRule);
         }
@@ -566,7 +565,7 @@ DataTablePtr FreadReader::read()
     sep = ctx.sep = topSep;
     whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
     if (sep==' ' && !fill) {
-      if (verbose) DTPRINT("  sep=' ' detected, setting fill to True\n");
+      if (verbose) g.trace("  sep=' ' detected, setting fill to True\n");
       fill = 1;
     }
 
@@ -607,11 +606,11 @@ DataTablePtr FreadReader::read()
     tch = sof;  // move back to start of line since countfields() moved to next
     ASSERT(fill || tt == ncols);
     if (verbose) {
-      DTPRINT("  Detected %d columns on line %d. This line is either column "
+      g.trace("  Detected %d columns on line %d. This line is either column "
               "names or first data row. Line starts as: \"%s\"",
               tt, line, strlim(sof, 30));
-      DTPRINT("  Quote rule picked = %d", quoteRule);
-      if (fill) DTPRINT("  fill=true and the most number of columns found is %d", ncols);
+      g.trace("  Quote rule picked = %d", quoteRule);
+      if (fill) g.trace("  fill=true and the most number of columns found is %d", ncols);
     }
 
     // Now check previous line which is being discarded and give helpful message to user
@@ -621,7 +620,7 @@ DataTablePtr FreadReader::read()
       ASSERT(ttt != ncols);
       ASSERT(tch==sof);
       if (ttt > 1) {
-        DTWARN("Starting data input on line %d <<%s>> with %d fields and discarding "
+        g.warn("Starting data input on line %d <<%s>> with %d fields and discarding "
                "line %d <<%s>> before it because it has a different number of fields (%d).",
                line, strlim(sof, 30), ncols, line-1, strlim(prevStart, 30), ttt);
       }
@@ -640,7 +639,7 @@ DataTablePtr FreadReader::read()
   size_t bytesRead;       // Bytes in the whole data section
   const char* lastRowEnd; // Pointer to the end of the data section
   {
-    if (verbose) DTPRINT("[07] Detect column types, and whether first row contains column names");
+    if (verbose) g.trace("[07] Detect column types, and whether first row contains column names");
     size_t ncols = columns.size();
 
     int8_t type0 = 1;
@@ -665,9 +664,9 @@ DataTablePtr FreadReader::read()
     nChunks++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
     if (verbose) {
       if (jump0size==0)
-        DTPRINT("  Number of sampling jump points = %d because jump0size==0", nChunks);
+        g.trace("  Number of sampling jump points = %d because jump0size==0", nChunks);
       else
-        DTPRINT("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
+        g.trace("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
                 nChunks, sz, jump0size, sz/(2*jump0size));
     }
 
@@ -752,7 +751,7 @@ DataTablePtr FreadReader::read()
               // Trying the next rule will only be successful if the number of fields is consistent with it
               ASSERT(quoteRule < 3);
               if (verbose)
-                DTPRINT("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
+                g.trace("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
                         quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart,200));
               quoteRule++;
               fctx.quoteRule++;
@@ -813,13 +812,13 @@ DataTablePtr FreadReader::read()
       if (skip) continue;
       if (j==nChunks-1) lastSampleJumpOk = true;
       if (verbose && (bumped || j==0 || j==nChunks-1)) {
-        DTPRINT("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
+        g.trace("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
       }
     }
     if (lastSampleJumpOk) {
       while (tch < eof && isspace(*tch)) tch++;
       if (tch < eof) {
-        DTWARN("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(tch, 200));
+        g.warn("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(tch, 200));
       }
     } else {
       // nextGoodLine() was false for the last (extra) jump to check the end
@@ -872,12 +871,12 @@ DataTablePtr FreadReader::read()
       // sd can be very close to 0.0 sometimes, so apply a +10% minimum
       // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
       if (verbose) {
-        DTPRINT("  =====");
-        DTPRINT("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
-        DTPRINT("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
-        DTPRINT("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
-        DTPRINT("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
-        DTPRINT("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
+        g.trace("  =====");
+        g.trace("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
+        g.trace("  Bytes from first data row on line %d to the end of last row: %zd", row1Line, bytesRead);
+        g.trace("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
+        g.trace("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
+        g.trace("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
                  allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
       }
       if (nChunks==1) {
@@ -921,7 +920,7 @@ DataTablePtr FreadReader::read()
   double tAlloc;      // Timer for allocating the DataTable
   size_t rowSize;
   {
-    if (verbose) DTPRINT("[09] Apply user overrides on column types");
+    if (verbose) g.trace("[09] Apply user overrides on column types");
     std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
 
     userOverride();
@@ -949,13 +948,13 @@ DataTablePtr FreadReader::read()
       }
     }
     if (verbose) {
-      DTPRINT("  After %d type and %d drop user overrides : %s",
+      g.trace("  After %d type and %d drop user overrides : %s",
               nUserBumped, ndropped, columns.printTypes());
     }
     tColType = wallclock();
 
     if (verbose) {
-      DTPRINT("  Allocating %d column slots (%d - %d dropped) with %zd rows",
+      g.trace("  Allocating %d column slots (%d - %d dropped) with %zd rows",
               ncols-ndropped, ncols, ndropped, allocnrow);
     }
 
@@ -1036,7 +1035,7 @@ DataTablePtr FreadReader::read()
     allocnrow += extraAllocRows;
     if (allocnrow > nrowLimit) allocnrow = nrowLimit;
     if (verbose) {
-      DTPRINT("  Too few rows allocated. Allocating additional %llu rows "
+      g.trace("  Too few rows allocated. Allocating additional %llu rows "
               "(now nrows=%llu) and continue reading from jump point %zu",
               (llu)extraAllocRows, (llu)allocnrow, jump0);
     }
@@ -1099,30 +1098,30 @@ DataTablePtr FreadReader::read()
 
   if (verbose) {
     size_t totalAllocSize = columns.totalAllocSize();
-    DTPRINT("=============================");
+    g.trace("=============================");
     if (tTot < 0.000001) tTot = 0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
-    DTPRINT("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
-    DTPRINT("%8.3fs (%3.0f%%) Column type detection using %zd sample rows",
+    g.trace("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
+    g.trace("%8.3fs (%3.0f%%) Column type detection using %zd sample rows",
             tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
-    DTPRINT("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
+    g.trace("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
             tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, columns.size(),
             totalAllocSize/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
     thRead /= nth;
     thPush /= nth;
     double thWaiting = tReread - tAlloc - thRead - thPush;
-    DTPRINT("%8.3fs (%3.0f%%) Reading data", tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot);
-    DTPRINT("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers (grown %d times)",
+    g.trace("%8.3fs (%3.0f%%) Reading data", tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot);
+    g.trace("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers (grown %d times)",
             thRead, 100.0*thRead/tTot, buffGrown);
-    DTPRINT("   + %8.3fs (%3.0f%%) Transpose", thPush, 100.0*thPush/tTot);
-    DTPRINT("   + %8.3fs (%3.0f%%) Waiting", thWaiting, 100.0*thWaiting/tTot);
-    DTPRINT("%8.3fs (%3.0f%%) Rereading %d columns due to out-of-sample type exceptions",
+    g.trace("   + %8.3fs (%3.0f%%) Transpose", thPush, 100.0*thPush/tTot);
+    g.trace("   + %8.3fs (%3.0f%%) Waiting", thWaiting, 100.0*thWaiting/tTot);
+    g.trace("%8.3fs (%3.0f%%) Rereading %d columns due to out-of-sample type exceptions",
             tReread-tRead, 100.0*(tReread-tRead)/tTot, nTypeBumpCols);
-    DTPRINT("%8.3fs        Total", tTot);
+    g.trace("%8.3fs        Total", tTot);
     if (typeBumpMsg) {
       // if type bumps happened, it's useful to see them at the end after the timing 2 lines up showing the reread time
       // TODO - construct and output the copy and pastable colClasses argument so user can avoid the reread time if they are
       //        reading this file or files formatted like it many times (say in a production environment).
-      DTPRINT("%s", typeBumpMsg);
+      g.trace("%s", typeBumpMsg);
       free(typeBumpMsg);  // local scope and only populated in verbose mode
     }
   }
