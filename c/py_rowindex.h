@@ -58,6 +58,20 @@ DECLARE_GETTER(
   max,
   "Largest value in the rowindex")
 
+DECLARE_GETTER(
+  ngroups,
+  "Number of groups in a grouped rowindex, or 0 if the rowindex has no\n"
+  "groups information")
+
+DECLARE_GETTER(
+  group_sizes,
+  "The array of group sizes within the rowindex")
+
+DECLARE_GETTER(
+  group_offsets,
+  "The cumulative array of group sizes within the rowindex. The length of the\n"
+  "array is `ngroups + 1`, and the first element is always 0.")
+
 
 
 //---- Methods -----------------------------------------------------------------
