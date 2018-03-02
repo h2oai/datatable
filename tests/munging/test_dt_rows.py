@@ -16,29 +16,29 @@ from datatable import stype, ltype, f
 @pytest.fixture(name="dt0")
 def _dt0():
     nan = float("nan")
-    return dt.DataTable([
+    return dt.Frame([
         [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
         [7, -11,   9, 10000, None,  0,    0,   -1,   1, None],  # int
         [5,   1, 1.3,   0.1,  1e5,  0, -2.6,  -14, nan,    2],  # real
     ], names=["colA", "colB", "colC"])
 
 
-def assert_valueerror(datatable, rows, error_message):
+def assert_valueerror(df, rows, error_message):
     with pytest.raises(ValueError) as e:
-        datatable(rows=rows)
+        df(rows=rows)
     assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
 
-def assert_typeerror(datatable, rows, error_message):
+def assert_typeerror(df, rows, error_message):
     with pytest.raises(TypeError) as e:
-        datatable(rows=rows)
+        df(rows=rows)
     assert str(e.type) == "<class 'datatable.TypeError'>"
     assert error_message in str(e.value)
 
 
-def as_list(datatable):
-    return datatable.topython()
+def as_list(df):
+    return df.topython()
 
 
 def is_slice(df):
@@ -55,8 +55,8 @@ def is_arr(df):
 #-------------------------------------------------------------------------------
 
 def test_dt0_properties(dt0):
-    """Test basic properties of the DataTable object."""
-    assert isinstance(dt0, dt.DataTable)
+    """Test basic properties of the Frame object."""
+    assert isinstance(dt0, dt.Frame)
     assert dt0.nrows == 10
     assert dt0.ncols == 3
     assert dt0.shape == (10, 3)  # must be a tuple, not a list!
@@ -124,7 +124,7 @@ def test_rows_integer3(dt0):
 
 
 def test_rows_integer_empty_dt():
-    df = dt.DataTable()
+    df = dt.Frame()
     assert_valueerror(df, 0, "Row `0` is invalid for datatable with 0 rows")
     assert_valueerror(df, -1, "Row `-1` is invalid for datatable with 0 rows")
 
@@ -275,12 +275,12 @@ def test_rows_multislice3(dt0):
 # Test the use of a boolean column as a filter:
 #     dt(rows=dt2[0])
 #
-# The boolean column can be either a 1-column DataTable, or a 1-dimensional
+# The boolean column can be either a 1-column Frame, or a 1-dimensional
 # numpy array.
 #-------------------------------------------------------------------------------
 
 def test_rows_bool_column(dt0):
-    col = dt.DataTable([1, 0, 1, 1, None, 0, None, 1, 1, 0])
+    col = dt.Frame([1, 0, 1, 1, None, 0, None, 1, 1, 0])
     dt1 = dt0(col)
     assert dt1.internal.check()
     assert dt1.shape == (5, 3)
@@ -291,7 +291,7 @@ def test_rows_bool_column(dt0):
 
 
 def test_rows_bool_column_error(dt0):
-    assert_valueerror(dt0, dt.DataTable(list(i % 2 for i in range(20))),
+    assert_valueerror(dt0, dt.Frame(list(i % 2 for i in range(20))),
                       "`rows` datatable has 20 rows, but applied to a "
                       "datatable with 10 rows")
 
@@ -316,7 +316,7 @@ def test_rows_bool_numpy_array_error(dt0, numpy):
 def test_rows_bad_column(dt0):
     assert_valueerror(dt0, dt0,
                       "`rows` argument should be a single-column datatable")
-    assert_typeerror(dt0, dt.DataTable([0.3, 1, 1.5]),
+    assert_typeerror(dt0, dt.Frame([0.3, 1, 1.5]),
                      "`rows` datatable should be either a boolean or an "
                      "integer column")
 
@@ -326,14 +326,14 @@ def test_rows_bad_column(dt0):
 # Integer column selector
 #
 # Test the use of an integer column as a filter:
-#     dt(rows=dt.DataTable([0, 5, 10]))
+#     dt(rows=dt.Frame([0, 5, 10]))
 #
 # which should produce the same result as
 #     dt(rows=[0, 5, 10])
 #-------------------------------------------------------------------------------
 
 def test_rows_int_column(dt0):
-    col = dt.DataTable([0, 3, 0, 1])
+    col = dt.Frame([0, 3, 0, 1])
     dt1 = dt0(rows=col)
     assert dt1.internal.check()
     assert dt1.shape == (4, 3)
@@ -374,18 +374,18 @@ def test_rows_int_numpy_array_errors(dt0, numpy):
     with pytest.raises(ValueError) as e:
         dt0(rows=numpy.array([5, 11, 3]))
     assert ("The data column contains index 11 which is not allowed for a "
-            "DataTable with 10 rows" in str(e.value))
+            "Frame with 10 rows" in str(e.value))
 
 
 def test_rows_int_column_negative(dt0):
-    col = dt.DataTable([3, 7, -1, 4])
+    col = dt.Frame([3, 7, -1, 4])
     with pytest.raises(ValueError) as e:
         dt0(rows=col)
     assert "Row indices in integer column cannot be negative" in str(e.value)
 
 
 def test_rows_int_column_nas(dt0):
-    col = dt.DataTable([3, None, 2, 4])
+    col = dt.Frame([3, None, 2, 4])
     with pytest.raises(ValueError) as e:
         dt0(rows=col)
     assert "RowIndex source column contains NA values" in str(e.value)
@@ -447,9 +447,9 @@ def test_rows_function_invalid(dt0):
 
 @pytest.fixture(name="df1")
 def _fixture2():
-    df1 = dt.DataTable([[0, 1, 2, 3, 4, 5, 6, None, 7,    None, 9],
-                        [3, 2, 1, 3, 4, 0, 2, None, None, 8,    9.0]],
-                       names=["A", "B"])
+    df1 = dt.Frame([[0, 1, 2, 3, 4, 5, 6, None, 7,    None, 9],
+                    [3, 2, 1, 3, 4, 0, 2, None, None, 8,    9.0]],
+                   names=["A", "B"])
     assert df1.internal.check()
     assert df1.ltypes == (ltype.int, ltype.real)
     assert df1.names == ("A", "B")
@@ -569,7 +569,7 @@ def test_rows_isna(df1):
 
 def test_rows_mean():
     from datatable import mean
-    df0 = dt.DataTable(range(10), names=["A"])
+    df0 = dt.Frame(range(10), names=["A"])
     df1 = df0(f.A > mean(f.A), engine="eager")
     assert df1.internal.check()
     assert df1.topython() == [[5, 6, 7, 8, 9]]
@@ -577,7 +577,7 @@ def test_rows_mean():
 
 def test_rows_min_max():
     from datatable import min, max
-    df0 = dt.DataTable(range(10), names=["A"])
+    df0 = dt.Frame(range(10), names=["A"])
     # min = 0, max = 9
     df1 = df0(f.A > (min(f.A) + max(f.A)) / 2, engine="eager")
     assert df1.internal.check()
@@ -586,7 +586,7 @@ def test_rows_min_max():
 
 def test_rows_stdev():
     from datatable import sd
-    df0 = dt.DataTable(range(10), names=["A"])
+    df0 = dt.Frame(range(10), names=["A"])
     # stdev = 3.0276
     df1 = df0(f.A > sd(f.A), engine="eager")
     assert df1.internal.check()
@@ -599,7 +599,7 @@ def test_rows_stdev():
 #-------------------------------------------------------------------------------
 
 def test_filter_on_view1():
-    dt0 = dt.DataTable({"A": list(range(50))})
+    dt0 = dt.Frame({"A": range(50)})
     dt1 = dt0[::2, :]
     assert dt1.shape == (25, 1)
     dt2 = dt1(rows=lambda g: g.A < 10)
@@ -609,7 +609,7 @@ def test_filter_on_view1():
 
 
 def test_filter_on_view2():
-    dt0 = dt.DataTable({"A": list(range(50))})
+    dt0 = dt.Frame({"A": range(50)})
     dt1 = dt0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
     dt2 = dt1(rows=lambda g: g.A < 10)
     assert dt2.internal.check()
@@ -680,7 +680,7 @@ def test_rows_bad_arguments(dt0):
 def test_issue689(tempdir):
     n = 300000  # Must be > 65536
     data = [i % 8 for i in range(n)]
-    d0 = dt.DataTable(data, names=["A"])
+    d0 = dt.Frame(data, names=["A"])
     dt.save(d0, tempdir)
     del d0
     d1 = dt.open(tempdir)

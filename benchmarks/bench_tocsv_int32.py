@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 # Write integers
 #-------------------------------------------------------------------------------
-import datatable
+import datatable as dt
 import pytest
 import tempfile
 import os
@@ -28,9 +28,9 @@ def src(numpy, request):
         numpy.random.randint(2**31, size=n, dtype="int32"),
         numpy.random.randint(-2**31, 2**31, size=n, dtype="int32"),
     ]
-    dts = [datatable.DataTable(x, names=["C%d" % i])
+    dts = [dt.Frame(x, names=["C%d" % i])
            for i, x in enumerate(cols)]
-    return datatable.DataTable().cbind(*dts)
+    return dt.Frame().cbind(*dts)
 
 @pytest.fixture(scope="module")
 def srcfile(pandas, src):

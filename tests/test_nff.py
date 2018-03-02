@@ -18,7 +18,7 @@ from tests import assert_equals
 
 def test_save_and_load():
     dir1 = tempfile.mkdtemp()
-    dt0 = dt.DataTable({"A": [1, 7, 100, 12],
+    dt0 = dt.Frame({"A": [1, 7, 100, 12],
                         "B": [True, None, False, None],
                         "C": ["alpha", "beta", None, "delta"]})
     dt.save(dt0, dir1)
@@ -29,11 +29,11 @@ def test_save_and_load():
 
 def test_empty_string_col():
     """
-    Test that DataTable with an empty string column can be saved/opened.
+    Test that Frame with an empty string column can be saved/opened.
     See #604
     """
     dir1 = tempfile.mkdtemp()
-    dt0 = dt.DataTable([[1, 2, 3], ["", "", ""]])
+    dt0 = dt.Frame([[1, 2, 3], ["", "", ""]])
     dt.save(dt0, dir1)
     dt1 = dt.open(dir1)
     assert_equals(dt0, dt1)
@@ -41,9 +41,9 @@ def test_empty_string_col():
 
 
 def test_issue627():
-    """Test saving DataTable with unicode file names"""
+    """Test saving Frame with unicode file names"""
     dir1 = tempfile.mkdtemp()
-    dt0 = dt.DataTable({"py": [1], "ру": [2], "рy": [3], "pу": [4]})
+    dt0 = dt.Frame({"py": [1], "ру": [2], "рy": [3], "pу": [4]})
     assert dt0.shape == (1, 4)
     dt.save(dt0, dir1)
     dt1 = dt.open(dir1)
@@ -54,7 +54,7 @@ def test_issue627():
 def test_obj_columns(tempdir):
     src1 = [1, 2, 3, 4]
     src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}]
-    d0 = dt.DataTable([src1, src2], names=["A", "B"])
+    d0 = dt.Frame([src1, src2], names=["A", "B"])
     print("Saved to %s" % tempdir)
     assert d0.internal.check()
     assert d0.ltypes == (dt.ltype.int, dt.ltype.obj)
@@ -72,7 +72,7 @@ def test_obj_columns(tempdir):
 
 
 def test_save_view(tempdir):
-    dt0 = dt.DataTable([4, 0, -2, 3, 17, 2, 0, 1, 5], names=["fancy"])
+    dt0 = dt.Frame([4, 0, -2, 3, 17, 2, 0, 1, 5], names=["fancy"])
     dt1 = dt0.sort(0)
     assert dt1.internal.isview
     dt.save(dt1, tempdir)

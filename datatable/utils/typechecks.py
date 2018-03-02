@@ -57,7 +57,7 @@ class _LazyClass(typesentry.MagicType):
             self._checker = lambda x: False
 
 
-DataTable_t = _LazyClass("datatable", "DataTable")
+Frame_t = _LazyClass("datatable", "Frame")
 PandasDataFrame_t = _LazyClass("pandas", "DataFrame")
 PandasSeries_t = _LazyClass("pandas", "Series")
 NumpyArray_t = _LazyClass("numpy", "ndarray")
@@ -65,4 +65,4 @@ NumpyMaskedArray_t = _LazyClass("numpy.ma", "MaskedArray")
 
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
-           "DataTable_t", "NumpyArray_t")
+           "Frame_t", "NumpyArray_t")

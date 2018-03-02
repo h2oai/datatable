@@ -7,7 +7,7 @@
 
 from .base_expr import BaseExpr
 from .consts import ctypes_map, nas_map, reduce_opcodes
-from ..utils.typechecks import DataTable_t, is_type
+from ..utils.typechecks import Frame_t, is_type
 from ..types import stype
 from datatable.lib import core
 
@@ -22,7 +22,7 @@ def min(*args, **kwds):
     if len(args) == 1 and isinstance(args[0], BaseExpr):
         skipna = kwds.get("skipna", True)
         return MinMaxReducer(args[0], ismin=True, skipna=skipna)
-    elif len(args) == 1 and is_type(args[0], DataTable_t):
+    elif len(args) == 1 and is_type(args[0], Frame_t):
         return args[0].min()
     else:
         return _builtin_min(*args, **kwds)
@@ -33,7 +33,7 @@ def max(*args, **kwds):
     if len(args) == 1 and isinstance(args[0], BaseExpr):
         skipna = kwds.get("skipna", True)
         return MinMaxReducer(args[0], ismin=False, skipna=skipna)
-    elif len(args) == 1 and is_type(args[0], DataTable_t):
+    elif len(args) == 1 and is_type(args[0], Frame_t):
         return args[0].max()
     else:
         return _builtin_max(*args, **kwds)

@@ -14,7 +14,7 @@ import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 from datatable.lib import core
-from datatable.dt import DataTable
+from datatable.dt import Frame
 from datatable.utils.typechecks import typed, U, TValueError, TTypeError
 from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
@@ -65,7 +65,7 @@ def fread(
         save_to: str = None,
         nthreads: int = None,
         logger=None,
-        **extra) -> DataTable:
+        **extra) -> Frame:
     params = {**locals(), **extra}
     del params["extra"]
     freader = GenericReader(**params)
@@ -648,7 +648,7 @@ class GenericReader(object):
         if self._result:
             return self._result
         _dt = core.gread(self)
-        dt = DataTable(_dt, names=self._colnames)
+        dt = Frame(_dt, names=self._colnames)
         if self._tempfile:
             if self._verbose:
                 self.logger.debug("Removing temporary file %s"
@@ -713,7 +713,7 @@ class GenericReader(object):
         handle a dataset of the requested size.
         """
         if self.verbose and estimated_size > 1:
-            self.logger.debug("  The DataTable is estimated to require %s bytes"
+            self.logger.debug("  The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
         if estimated_size < 1024:
             return None
@@ -725,7 +725,7 @@ class GenericReader(object):
         if (estimated_size < vm.available and self._save_to is None or
                 self._save_to == "memory"):
             if self.verbose:
-                self.logger.debug("  DataTable will be loaded into memory")
+                self.logger.debug("  Frame will be loaded into memory")
             return None
         else:
             if self._save_to:
@@ -740,10 +740,10 @@ class GenericReader(object):
                                      humanize_bytes(du.free)))
             if du.free > estimated_size or self._save_to:
                 if self.verbose:
-                    self.logger.debug("  DataTable will be stored in %s"
+                    self.logger.debug("  Frame will be stored in %s"
                                       % tmpdir)
                 return tmpdir
-        raise RuntimeError("The DataTable is estimated to require at lest %s "
+        raise RuntimeError("The Frame is estimated to require at lest %s "
                            "of memory, and you don't have that much available "
                            "either in RAM or on a hard drive."
                            % humanize_bytes(estimated_size))
@@ -943,7 +943,7 @@ class GenericReader(object):
                                            -stype.str32.value)
                      for i in range(ws.ncols)]
             colset = core.columns_from_columns(cols0)
-            res = DataTable(colset.to_datatable(), names=colnames)
+            res = Frame(colset.to_datatable(), names=colnames)
             self._result.append(res)
         if len(self._result) == 0:
             self._result = 0

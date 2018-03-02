@@ -17,7 +17,7 @@ from tests import same_iterables, list_equals
 
 @pytest.fixture()
 def dt0():
-    return dt.DataTable([
+    return dt.Frame([
         [2, 7, 0, 0],
         [True, False, False, True],
         [1, 1, 1, 1],
@@ -55,7 +55,7 @@ def as_list(datatable):
 
 @pytest.mark.run(order=1)
 def test_dt_properties(dt0):
-    assert isinstance(dt0, dt.DataTable)
+    assert isinstance(dt0, dt.Frame)
     assert dt0.internal.check()
     assert dt0.nrows == 4
     assert dt0.ncols == 7
@@ -142,8 +142,7 @@ def test_dt_getitem(dt0):
 
 # Not a fixture: create a new datatable each time this function is called
 def smalldt():
-    return dt.DataTable([[i] for i in range(16)],
-                        names="ABCDEFGHIJKLMNOP")
+    return dt.Frame([[i] for i in range(16)], names="ABCDEFGHIJKLMNOP")
 
 def test_del_0cols():
     d0 = smalldt()
@@ -263,14 +262,14 @@ def test_delitem_invalid_selectors():
 #-------------------------------------------------------------------------------
 
 def test_del_rows_single():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[3, :]
     assert d0.internal.check()
     assert d0.topython() == [[0, 1, 2, 4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_slice0():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[:3, :]
     assert d0.internal.check()
     assert d0.shape == (7, 1)
@@ -278,7 +277,7 @@ def test_del_rows_slice0():
 
 
 def test_del_rows_slice1():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[-4:, :]
     assert d0.internal.check()
     assert d0.shape == (6, 1)
@@ -286,7 +285,7 @@ def test_del_rows_slice1():
 
 
 def test_del_rows_slice2():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[2:6, :]
     assert d0.internal.check()
     assert d0.shape == (6, 1)
@@ -294,7 +293,7 @@ def test_del_rows_slice2():
 
 
 def test_del_rows_slice_empty():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[4:4, :]
     assert d0.internal.check()
     assert d0.shape == (10, 1)
@@ -302,7 +301,7 @@ def test_del_rows_slice_empty():
 
 
 def test_del_rows_slice_reverse():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     s0 = list(range(10))
     del d0[:4:-1, :]
     del s0[:4:-1]
@@ -311,50 +310,50 @@ def test_del_rows_slice_reverse():
 
 
 def test_del_rows_slice_all():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[::-1, :]
     assert d0.internal.check()
     assert d0.shape == (0, 1)
 
 
 def test_del_all():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[:, :]
     assert d0.internal.check()
     assert d0.shape == (0, 0)
 
 
 def test_del_rows_slice_step():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[::3, :]
     assert d0.internal.check()
     assert d0.topython() == [[1, 2, 4, 5, 7, 8]]
 
 
 def test_del_rows_array():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[[0, 7, 8], :]
     assert d0.internal.check()
     assert d0.topython() == [[1, 2, 3, 4, 5, 6, 9]]
 
 
-@pytest.mark.skip("Not implemented")
+@pytest.mark.skip("Issue #805")
 def test_del_rows_array_unordered():
-    d0 = dt.DataTable(range(10))
+    d0 = dt.Frame(range(10))
     del d0[[3, 1, 5, 2, 2, 0, -1], :]
     assert d0.internal.check()
     assert d0.topython() == [[4, 6, 7, 8]]
 
 
 def test_del_rows_filter():
-    d0 = dt.DataTable(range(10), names=["A"], stype="int32")
+    d0 = dt.Frame(range(10), names=["A"], stype="int32")
     del d0[f.A < 4, :]
     assert d0.internal.check()
     assert d0.topython() == [[4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_nas():
-    d0 = dt.DataTable({"A": [1, 5, None, 12, 7, None, -3]})
+    d0 = dt.Frame({"A": [1, 5, None, 12, 7, None, -3]})
     del d0[isna(f.A), :]
     assert d0.internal.check()
     assert d0.topython() == [[1, 5, 12, 7, -3]]
@@ -371,16 +370,21 @@ def test_column_hexview(dt0, patched_terminal, capsys):
     dt0.internal.column(-1).hexview()
     out, err = capsys.readouterr()
     print(out)
-    assert ("Column 6\n"
-            "Ltype: str, Stype: str32, Mtype: data\n"
-            "Bytes: 20\n"
-            "Meta: None\n"
-            "Refcnt: 1\n"
-            "     00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F                  \n"
-            "---  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ----------------\n"
-            "000  FF  FF  FF  FF  02  00  00  00  03  00  00  00  08  00  00  00  ÿÿÿÿ............\n"
-            "010  0D  00  00  00                                                  ....            \n"
-            in out)
+    assert (
+        "Column 6\n"
+        "Ltype: str, Stype: str32, Mtype: data\n"
+        "Bytes: 20\n"
+        "Meta: None\n"
+        "Refcnt: 1\n"
+        "     00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F  "
+        "                \n"
+        "---  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  "
+        "----------------\n"
+        "000  FF  FF  FF  FF  02  00  00  00  03  00  00  00  08  00  00  00  "
+        "ÿÿÿÿ............\n"
+        "010  0D  00  00  00                                                  "
+        "....            \n"
+        in out)
 
     with pytest.raises(ValueError) as e:
         dt0.internal.column(10).hexview()
@@ -399,7 +403,7 @@ def test_column_hexview(dt0, patched_terminal, capsys):
 
 @pytest.mark.run(order=8)
 def test_rename():
-    d0 = dt.DataTable([[1], [2], ["hello"]])
+    d0 = dt.Frame([[1], [2], ["hello"]])
     assert d0.names == ("C1", "C2", "C3")
     d0.rename({0: "x", -1: "z"})
     d0.rename({"C2": "y"})
@@ -411,7 +415,7 @@ def test_rename():
 
 @pytest.mark.run(order=8.1)
 def test_rename_bad():
-    d0 = dt.DataTable([[1], [2], ["hello"]], names=("a", "b", "c"))
+    d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError):
         d0.rename({"a", "b"})
     with pytest.raises(ValueError) as e:
@@ -429,7 +433,7 @@ def test_rename_bad():
 
 @pytest.mark.run(order=8.2)
 def test_rename_setter():
-    d0 = dt.DataTable([[7], [2], [5]])
+    d0 = dt.Frame([[7], [2], [5]])
     d0.names = ("A", "B", "E")
     d0.names = ["a", "c", "e"]
     assert d0.internal.check()
@@ -441,7 +445,7 @@ def test_rename_setter():
 
 @pytest.mark.run(order=9)
 def test_internal_rowindex():
-    d0 = dt.DataTable(list(range(100)))
+    d0 = dt.Frame(range(100))
     d1 = d0[:20, :]
     assert d0.internal.rowindex is None
     assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
@@ -455,7 +459,7 @@ def test_internal_rowindex():
 @pytest.mark.run(order=10)
 @pytest.mark.usefixture("pandas")
 def test_topandas():
-    d0 = dt.DataTable({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
+    d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
     p0 = d0.topandas()
     assert p0.shape == (2, 3)
     assert same_iterables(p0.columns.tolist(), ["A", "B", "C"])
@@ -467,9 +471,9 @@ def test_topandas():
 @pytest.mark.run(order=11)
 @pytest.mark.usefixture("pandas")
 def test_topandas_view():
-    d0 = dt.DataTable([[1, 5, 2, 0, 199, -12],
-                       ["alpha", "beta", None, "delta", "epsilon", "zeta"],
-                       [.3, 1e2, -.5, 1.9, 2.2, 7.9]], names=["A", "b", "c"])
+    d0 = dt.Frame([[1, 5, 2, 0, 199, -12],
+                   ["alpha", "beta", None, "delta", "epsilon", "zeta"],
+                   [.3, 1e2, -.5, 1.9, 2.2, 7.9]], names=["A", "b", "c"])
     d1 = d0[::-2, :]
     p1 = d1.topandas()
     assert p1.shape == d1.shape
@@ -480,11 +484,11 @@ def test_topandas_view():
 @pytest.mark.run(order=11.1)
 @pytest.mark.usefixture("pandas")
 def test_topandas_nas():
-    d0 = dt.DataTable([[True, None, None, None, False],
-                       [1, 5, None, -16, 100],
-                       [249, None, 30000, 1, None],
-                       [4587074, None, 109348, 1394, -343],
-                       [None, None, None, None, 134918374091834]])
+    d0 = dt.Frame([[True, None, None, None, False],
+                   [1, 5, None, -16, 100],
+                   [249, None, 30000, 1, None],
+                   [4587074, None, 109348, 1394, -343],
+                   [None, None, None, None, 134918374091834]])
     assert d0.internal.check()
     assert d0.stypes == (dt.stype.bool8, dt.stype.int8, dt.stype.int16,
                          dt.stype.int32, dt.stype.int64)
@@ -498,7 +502,7 @@ def test_topython():
     src = [[-1, 0, 1, 3],
            ["cat", "dog", "mouse", "elephant"],
            [False, True, None, True]]
-    d0 = dt.DataTable(src, names=["A", "B", "C"])
+    d0 = dt.Frame(src, names=["A", "B", "C"])
     assert d0.ltypes == (ltype.int, ltype.str, ltype.bool)
     a0 = d0.topython()
     assert len(a0) == 3
@@ -511,7 +515,7 @@ def test_topython():
 @pytest.mark.run(order=13)
 def test_topython2():
     src = [[1.0, None, float("nan"), 3.3]]
-    d0 = dt.DataTable(src)
+    d0 = dt.Frame(src)
     assert d0.ltypes == (ltype.real, )
     a0 = d0.topython()[0]
     assert a0 == [1.0, None, None, 3.3]
@@ -519,7 +523,7 @@ def test_topython2():
 
 @pytest.mark.run(order=14)
 def test_tonumpy0(numpy):
-    d0 = dt.DataTable([1, 3, 5, 7, 9])
+    d0 = dt.Frame([1, 3, 5, 7, 9])
     assert d0.stypes == (stype.int8, )
     a0 = d0.tonumpy()
     assert a0.shape == d0.shape
@@ -531,8 +535,8 @@ def test_tonumpy0(numpy):
 
 @pytest.mark.run(order=15)
 def test_tonumpy1(numpy):
-    d0 = dt.DataTable({"A": [1, 5], "B": ["helo", "you"],
-                       "C": [True, False], "D": [3.4, None]})
+    d0 = dt.Frame({"A": [1, 5], "B": ["helo", "you"],
+                   "C": [True, False], "D": [3.4, None]})
     a0 = d0.tonumpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("object")
@@ -544,7 +548,7 @@ def test_tonumpy1(numpy):
 @pytest.mark.run(order=16)
 def test_numpy_constructor_simple(numpy):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
-    d0 = dt.DataTable(tbl)
+    d0 = dt.Frame(tbl)
     assert d0.shape == (5, 3)
     assert d0.stypes == (stype.int8, stype.int8, stype.int8)
     assert d0.topython() == tbl
@@ -556,7 +560,7 @@ def test_numpy_constructor_simple(numpy):
 
 @pytest.mark.run(order=17)
 def test_numpy_constructor_empty(numpy):
-    d0 = dt.DataTable()
+    d0 = dt.Frame()
     assert d0.shape == (0, 0)
     n0 = numpy.array(d0)
     assert n0.shape == (0, 0)
@@ -570,7 +574,7 @@ def test_numpy_constructor_multi_types(numpy):
            [True, False, False],
            [30498, 1349810, -134308],
            [1.454, 4.9e-23, 10000000]]
-    d0 = dt.DataTable(tbl)
+    d0 = dt.Frame(tbl)
     assert d0.stypes == (stype.int8, stype.bool8, stype.int32, stype.float64)
     n0 = numpy.array(d0)
     assert n0.dtype == numpy.dtype("float64")
@@ -583,7 +587,7 @@ def test_numpy_constructor_multi_types(numpy):
 
 @pytest.mark.run(order=19)
 def test_numpy_constructor_view(numpy):
-    d0 = dt.DataTable([list(range(100)), list(range(0, 1000000, 10000))])
+    d0 = dt.Frame([range(100), range(0, 1000000, 10000)])
     d1 = d0[::-2, :]
     assert d1.internal.isview
     n1 = numpy.array(d1)
@@ -595,7 +599,7 @@ def test_numpy_constructor_view(numpy):
 
 @pytest.mark.run(order=20)
 def test_numpy_constructor_single_col(numpy):
-    d0 = dt.DataTable([1, 1, 3, 5, 8, 13, 21, 34, 55])
+    d0 = dt.Frame([1, 1, 3, 5, 8, 13, 21, 34, 55])
     assert d0.stypes == (stype.int8, )
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
@@ -605,7 +609,7 @@ def test_numpy_constructor_single_col(numpy):
 
 @pytest.mark.run(order=21)
 def test_numpy_constructor_single_string_col(numpy):
-    d = dt.DataTable(["adf", "dfkn", "qoperhi"])
+    d = dt.Frame(["adf", "dfkn", "qoperhi"])
     assert d.shape == (3, 1)
     assert d.stypes == (stype.str32, )
     a = numpy.array(d)
@@ -617,7 +621,7 @@ def test_numpy_constructor_single_string_col(numpy):
 
 @pytest.mark.run(order=22)
 def test_numpy_constructor_view_1col(numpy):
-    d0 = dt.DataTable({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
+    d0 = dt.Frame({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
     d2 = d0[::2, "B"]
     a = d2.tonumpy()
     assert a.T.tolist() == [[True, True]]
@@ -630,7 +634,7 @@ def test_tonumpy_with_stype(numpy):
     Test using dt.tonumpy() with explicit `stype` argument.
     """
     src = [[1.5, 2.6, 5.4], [3, 7, 10]]
-    d0 = dt.DataTable(src)
+    d0 = dt.Frame(src)
     assert d0.stypes == (stype.float64, stype.int8)
     a1 = d0.tonumpy("float32")
     a2 = d0.tonumpy()

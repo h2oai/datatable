@@ -41,7 +41,7 @@ def inv(t):
 
 @pytest.mark.parametrize("src", dt_bool | dt_int)
 def test_dt_invert(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: ~f[0])
     assert dtr.internal.check()
     assert dtr.stypes == dt0.stypes
@@ -50,7 +50,7 @@ def test_dt_invert(src):
 
 @pytest.mark.parametrize("src", dt_float)
 def test_dt_invert_invalid(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: ~f[0])
     assert str(e.value) == ("Operation ~ not allowed on operands of type %s"
@@ -69,7 +69,7 @@ def neg(t):
 
 @pytest.mark.parametrize("src", dt_int | dt_float)
 def test_dt_neg(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: -f[0])
     assert dtr.internal.check()
     assert dtr.stypes == dt0.stypes
@@ -78,7 +78,7 @@ def test_dt_neg(src):
 
 @pytest.mark.parametrize("src", dt_bool)
 def test_dt_neg_invalid(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: -f[0])
     assert str(e.value) == ("Operation - not allowed on operands of type %s"
@@ -92,7 +92,7 @@ def test_dt_neg_invalid(src):
 
 @pytest.mark.parametrize("src", dt_int | dt_float)
 def test_dt_pos(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     dtr = dt0(select=lambda f: +f[0])
     assert dtr.internal.check()
     assert dtr.stypes == dt0.stypes
@@ -101,7 +101,7 @@ def test_dt_pos(src):
 
 @pytest.mark.parametrize("src", dt_bool)
 def test_dt_pos_invalid(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: +f[0])
     assert str(e.value) == ("Operation + not allowed on operands of type %s"
@@ -115,7 +115,7 @@ def test_dt_pos_invalid(src):
 
 @pytest.mark.parametrize("src", dt_bool | dt_int | dt_float | dt_str)
 def test_dt_isna(src):
-    dt0 = dt.DataTable(src)
+    dt0 = dt.Frame(src)
     dt1 = dt0(select=lambda f: dt.isna(f[0]), engine="eager")
     dt2 = dt0(select=lambda f: dt.isna(f[0]), engine="llvm")
     assert dt1.internal.check()

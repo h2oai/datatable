@@ -34,9 +34,9 @@ class IteratorNode(object):
     As the function iterates over the rows of a datatable, two iterator
     variables are defined: `i` and `ii`. The former gives row indices within
     the `Column`s of the datatable, the latter is the row index within the
-    datatable. For a regular DataTable, `i` and `ii` are the same; whereas for
-    a view DataTable they are different: `ii` is the index within the target
-    DataTable, and `i` is the index within the parent.
+    datatable. For a regular Frame, `i` and `ii` are the same; whereas for
+    a view Frame they are different: `ii` is the index within the target
+    Frame, and `i` is the index within the parent.
     """
 
     def __init__(self, dt, cmod=None, name=None):

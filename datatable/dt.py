@@ -9,7 +9,6 @@ import re
 import sys
 import time
 import warnings
-from types import GeneratorType
 from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
@@ -20,24 +19,24 @@ from datatable.dt_append import rbind as dt_rbind, cbind as dt_cbind
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, typed, U, is_type, DataTable_t,
+    TTypeError, TValueError, typed, U, is_type, Frame_t,
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
 from datatable.types import stype
 
-__all__ = ("DataTable", )
+__all__ = ("Frame", )
 
 
 
-class DataTable(object):
+class Frame(object):
     """
     Two-dimensional column-oriented table of data. Each column has its own name
     and type. Types may vary across columns (unlike in a Numpy array) but cannot
     vary within each column (unlike in Pandas DataFrame).
 
     Internally the data is stored as C primitives, and processed using
-    multithreaded native C procedures.
+    multithreaded native C++ code.
 
     This is a primary data structure for datatable module.
     """
@@ -49,14 +48,14 @@ class DataTable(object):
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "colnames" in kwargs and names is None:
             names = kwargs.pop("colnames")
-            warnings.warn("Parameter `colnames` in DataTable constructor is "
+            warnings.warn("Parameter `colnames` in Frame constructor is "
                           "deprecated. Use `names` instead.")
         if "stype" in kwargs:
             stypes = [kwargs.pop("stype")]
         if kwargs:
-            warnings.warn("Unknown options %r to DataTable()" % kwargs)
-        DataTable._id_counter_ += 1
-        self._id = DataTable._id_counter_  # type: int
+            warnings.warn("Unknown options %r to Frame()" % kwargs)
+        Frame._id_counter_ += 1
+        self._id = Frame._id_counter_  # type: int
         self._ncols = 0      # type: int
         self._nrows = 0      # type: int
         self._ltypes = None  # type: Tuple[ltype]
@@ -108,7 +107,7 @@ class DataTable(object):
 
     @property
     def internal(self):
-        """Access to the underlying C DataTable object."""
+        """Access to the underlying C Frame object."""
         return self._dt
 
 
@@ -119,7 +118,7 @@ class DataTable(object):
     @names.setter
     @typed()
     def names(self, newnames: Union[List[str], Tuple[str, ...]]):
-        """Rename the columns of the DataTable."""
+        """Rename the columns of the Frame."""
         self.rename(newnames)
 
 
@@ -131,7 +130,7 @@ class DataTable(object):
     def __repr__(self):
         srows = plural(self._nrows, "row")
         scols = plural(self._ncols, "col")
-        return "<DataTable #%d (%s x %s)>" % (self._id, srows, scols)
+        return "<Frame #%d (%s x %s)>" % (self._id, srows, scols)
 
     def _display_in_terminal_(self):  # pragma: no cover
         # This method is called from the display hook set from .utils.terminal
@@ -181,7 +180,7 @@ class DataTable(object):
             self._fill_from_dt(srcdt.internal, names=names)
         elif src is None:
             self._fill_from_list([], names=None, stypes=None)
-        elif is_type(src, DataTable_t):
+        elif is_type(src, Frame_t):
             if names is None:
                 names = src.names
             self._fill_from_dt(src.internal, names=names)
@@ -190,7 +189,7 @@ class DataTable(object):
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
         else:
-            raise TTypeError("Cannot create DataTable from %r" % src)
+            raise TTypeError("Cannot create Frame from %r" % src)
 
 
     def _fill_from_list(self, src, names, stypes):
@@ -227,7 +226,7 @@ class DataTable(object):
         self._ltypes = None
         if not names:
             names = tuple("C%d" % (i + 1) for i in range(self._ncols))
-        names, inames = DataTable._dedup_names(names)
+        names, inames = Frame._dedup_names(names)
         self._names = names
         self._inames = inames
 
@@ -257,7 +256,7 @@ class DataTable(object):
     def _fill_from_numpy(self, arr, names):
         dim = len(arr.shape)
         if dim > 2:
-            raise TValueError("Cannot create DataTable from a %d-D numpy "
+            raise TValueError("Cannot create Frame from a %d-D numpy "
                               "array %r" % (dim, arr))
         if dim == 0:
             arr = arr.reshape((1, 1))
@@ -348,7 +347,7 @@ class DataTable(object):
                   parameters produces a 0-rows result (because `N - 1` and `-1`
                   is the same row).
                 - a list / tuple / generator of integers, slices, or ranges.
-                - a ``DataTable`` with a single boolean column and having same
+                - a ``Frame`` with a single boolean column and having same
                   number of rows as the current datatable, this will select
                   only those rows in the current datatable where the provided
                   column has truthful value
@@ -576,7 +575,7 @@ class DataTable(object):
         ri = self._dt.sort(idx)
         cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
         _dt = cs.to_datatable()
-        return DataTable(_dt, names=self.names)
+        return Frame(_dt, names=self.names)
 
 
     def min(self):
@@ -588,8 +587,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed minimum
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_min(),
-                         names=self.names)
+        return Frame(self._dt.get_min(), names=self.names)
 
     def max(self):
         """
@@ -600,8 +598,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed maximum
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_max(),
-                         names=self.names)
+        return Frame(self._dt.get_max(), names=self.names)
 
     def sum(self):
         """
@@ -612,8 +609,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed sums
         for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_sum(),
-                         names=self.names)
+        return Frame(self._dt.get_sum(), names=self.names)
 
     def mean(self):
         """
@@ -624,8 +620,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed mean
         values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_mean(),
-                         names=self.names)
+        return Frame(self._dt.get_mean(), names=self.names)
 
     def sd(self):
         """
@@ -636,8 +631,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the computed standard
         deviation values for each column (or NA if not applicable).
         """
-        return DataTable(self._dt.get_sd(),
-                         names=self.names)
+        return Frame(self._dt.get_sd(), names=self.names)
 
     def countna(self):
         """
@@ -648,8 +642,7 @@ class DataTable(object):
         A new datatable of shape (1, ncols) containing the counted number of NA
         values in each column.
         """
-        return DataTable(self._dt.get_countna(),
-                         names=self.names)
+        return Frame(self._dt.get_countna(), names=self.names)
 
 
 
@@ -682,7 +675,7 @@ class DataTable(object):
 
     def topandas(self):
         """
-        Convert DataTable to a pandas DataFrame, or raise an error if `pandas`
+        Convert Frame to a pandas DataFrame, or raise an error if `pandas`
         module is not installed.
         """
         pandas = load_module("pandas")
@@ -723,7 +716,7 @@ class DataTable(object):
 
     def tonumpy(self, stype=None):
         """
-        Convert DataTable into a numpy array, optionally forcing it into a
+        Convert Frame into a numpy array, optionally forcing it into a
         specific stype/dtype.
 
         Parameters
@@ -748,19 +741,19 @@ class DataTable(object):
 
     def __sizeof__(self):
         """
-        Return the size of this DataTable in memory.
+        Return the size of this Frame in memory.
 
-        The function attempts to compute the total memory size of the DataTable
+        The function attempts to compute the total memory size of the Frame
         as precisely as possible. In particular, it takes into account not only
         the size of data in columns, but also sizes of all auxiliary internal
         structures.
 
-        Special cases: if DataTable is a view (say, `d2 = d[:1000, :]`), then
+        Special cases: if Frame is a view (say, `d2 = d[:1000, :]`), then
         the reported size will not contain the size of the data, because that
         data "belongs" to the original datatable and is not copied. However if
-        a DataTable selects only a subset of columns (say, `d3 = d[:, :5]`),
+        a Frame selects only a subset of columns (say, `d3 = d[:, :5]`),
         then a view is not created and instead the columns are copied by
-        reference. DataTable `d3` will report the "full" size of its columns,
+        reference. Frame `d3` will report the "full" size of its columns,
         even though they do not occupy any extra memory compared to `d`. This
         behavior may be changed in the future.
 
@@ -775,7 +768,7 @@ class DataTable(object):
         #     shared with other objects in the system. Of course we could have
         #     used `sys.getrefcount()` to check whether any particular field
         #     is shared, but that creates an undesirable effect that the size
-        #     of the DataTable apparently depends on external variables...
+        #     of the Frame apparently depends on external variables...
         #   * The contents of `types` and `stypes` are not counted, because
         #     these strings are shared globally within datatable module.
         #   * Column names are added to the total sum.
@@ -783,7 +776,7 @@ class DataTable(object):
         #     objects as elements of `self._names`, the values are skipped
         #     because they are integers.
         #   * The sys.getsizeof() automatically adds 24 to the final answer,
-        #     which is the size of the DataTable object itself.
+        #     which is the size of the Frame object itself.
         size = 0
         for s in self.__class__.__slots__:
             attr = getattr(self, s)
@@ -821,4 +814,4 @@ def column_hexview(col, dt, colidx):
 
 
 core.register_function(1, column_hexview)
-core.install_buffer_hooks(DataTable())
+core.install_buffer_hooks(Frame())

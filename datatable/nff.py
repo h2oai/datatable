@@ -10,7 +10,7 @@ import warnings
 
 import datatable as dt
 from datatable.lib import core
-from datatable.dt import DataTable
+from datatable.dt import Frame
 from datatable.fread import fread
 from datatable.utils.typechecks import typed, TValueError
 
@@ -18,12 +18,12 @@ _builtin_open = open
 
 
 
-@typed(df=DataTable, dest=str, _strategy=str)
+@typed(df=Frame, dest=str, _strategy=str)
 def save(df, dest, _strategy="auto"):
     """
     Save datatable in binary NFF format.
 
-    :param df: DataTable to be saved
+    :param df: Frame to be saved
     :param dest: destination where the datatable should be saved.
     :param _strategy: one of "mmap", "write" or "auto"
     """
@@ -101,7 +101,7 @@ def open(path):
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
         _dt = core.datatable_load(f1.internal, nrows, path)
-        df = DataTable(_dt, names=colnames)
+        df = Frame(_dt, names=colnames)
         assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
         return df
     finally:

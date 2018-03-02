@@ -39,8 +39,7 @@ def get_file_list(*path):
         return [skipped("Large tests disabled in COVERAGE mode")]
     d = os.environ.get(root_env_name, "")
     if d == "":
-        return [skipped("Environment variable '%s' is empty or not defined"
-                        % root_env_name)]
+        return [skipped("%s is not defined" % root_env_name)]
     if not os.path.isdir(d):
         return [failed("Directory '%s' (%s) does not exist"
                        % (d, root_env_name), id=d)]

@@ -18,11 +18,11 @@ __all__ = ("make_datatable", "resolve_selector")
 
 def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
     """
-    Implementation of the `DataTable.__call__()` method.
+    Implementation of the `Frame.__call__()` method.
 
     This is the "main" function in the module; it is responsible for
     evaluating various transformations when they are applied to a target
-    DataTable.
+    Frame.
     """
     with f.bind_datatable(dt):
         ee = make_engine(engine, dt)
@@ -70,17 +70,17 @@ def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
             colsnode._rowindex = ee.rowindex
             columns = ee.execute(colsnode)
             res_dt = columns.to_datatable()
-            return datatable.DataTable(res_dt, names=colsnode.column_names)
+            return datatable.Frame(res_dt, names=colsnode.column_names)
 
         # Select computed columns + all rows from datatable which is not a
         # view -- in this case the rowindex is None, and the selected columns
         # can be copied by reference, while computed columns can be created
-        # without the need to apply a RowIndex object. The DataTable created
+        # without the need to apply a RowIndex object. The Frame created
         # will be a "data" table.
         if isinstance(rowsnode, AllRFNode) and not dt.internal.isview:
             columns = ee.execute(colsnode)
             res_dt = columns.to_datatable()
-            return datatable.DataTable(res_dt, names=colsnode.column_names)
+            return datatable.Frame(res_dt, names=colsnode.column_names)
 
     raise TValueError(  # pragma: no cover
         "Unable to handle input (rows=%r, select=%r)"

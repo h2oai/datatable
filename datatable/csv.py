@@ -15,16 +15,16 @@ __all__ = ("write_csv", "CsvWriter")
 
 def write_csv(dt, path="", nthreads=0, hex=False, verbose=False, **kwargs):
     """
-    Write the DataTable into the provided file in CSV format.
+    Write the Frame into the provided file in CSV format.
 
     Parameters
     ----------
-    dt: DataTable
-        DataTable object to write into CSV.
+    dt: Frame
+        Frame object to write into CSV.
 
     path: str
         Path to the output CSV file that will be created. If the file already
-        exists, it will be overwritten. If path is not given, then the DataTable
+        exists, it will be overwritten. If path is not given, then the Frame
         will be serialized into a string, and that string will be returned.
 
     nthreads: int

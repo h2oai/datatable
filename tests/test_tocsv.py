@@ -8,7 +8,8 @@ import datatable as dt
 import random
 import re
 import pytest
-from datatable import ltype, stype
+from datatable import stype
+
 
 def pyhex(v):
     """
@@ -29,13 +30,14 @@ def stringify(x):
     return str(x)
 
 
+
 #-------------------------------------------------------------------------------
 # Test generic saving
 #-------------------------------------------------------------------------------
 
 def test_save_simple():
-    d = dt.DataTable([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
-                     names=["A", "B", "C"])
+    d = dt.Frame([[1, 4, 5], [True, False, None], ["foo", None, "bar"]],
+                 names=["A", "B", "C"])
     out = d.to_csv()
     assert out == "A,B,C\n1,1,foo\n4,0,\n5,,bar\n"
 
@@ -47,7 +49,7 @@ def test_issue365():
     """
     # 999983 is prime; we want to have the number of rows not evenly divisible
     # by the number of threads.
-    d0 = dt.DataTable({"A": list(range(999983)), "B": [5] * 999983})
+    d0 = dt.Frame({"A": range(999983), "B": [5] * 999983})
     d1 = dt.fread(text=d0.to_csv())
     assert d1.shape == d0.shape
     assert d1.names == d0.names
@@ -57,15 +59,15 @@ def test_issue365():
 
 def test_write_spacestrs():
     # Test that fields having spaces at the beginning/end are auto-quoted
-    d = dt.DataTable([" hello ", "world  ", " !", "!", ""])
+    d = dt.Frame([" hello ", "world  ", " !", "!", ""])
     assert d.to_csv() == 'C1\n" hello "\n"world  "\n" !"\n!\n""\n'
     dd = dt.fread(text=d.to_csv(), sep='\n')
     assert d.topython() == dd.topython()
 
 
 def test_write_spacenames():
-    d = dt.DataTable([[1, 2, 3], [1, 2, 3], [0, 0, 0]],
-                     names=["  foo", "bar ", ""])
+    d = dt.Frame([[1, 2, 3], [1, 2, 3], [0, 0, 0]],
+                 names=["  foo", "bar ", ""])
     assert d.to_csv() == '"  foo","bar ",""\n1,1,0\n2,2,0\n3,3,0\n'
     dd = dt.fread(text=d.to_csv())
     assert d.topython() == dd.topython()
@@ -73,7 +75,7 @@ def test_write_spacenames():
 
 def test_strategy(capsys, tempfile):
     """Check that the _strategy parameter is respected."""
-    d = dt.DataTable({"A": [5, 6, 10, 12], "B": ["one", "two", "tree", "for"]})
+    d = dt.Frame({"A": [5, 6, 10, 12], "B": ["one", "two", "tree", "for"]})
     d.to_csv(tempfile, _strategy="mmap", verbose=True)
     out, err = capsys.readouterr()
     assert err == ""
@@ -94,7 +96,7 @@ def test_issue507(tempfile, col, scol):
     at the end of the file (problem with truncate?). This test verifies that the
     problem doesn't reappear in the future.
     """
-    d = dt.DataTable({col: [-0.006492080633259916]})
+    d = dt.Frame({col: [-0.006492080633259916]})
     d.to_csv(tempfile)
     exp_text = scol + "\n-0.006492080633259916\n"
     assert open(tempfile, "rb").read() == exp_text.encode()
@@ -106,7 +108,7 @@ def test_issue507(tempfile, col, scol):
 #-------------------------------------------------------------------------------
 
 def test_save_bool():
-    d = dt.DataTable([True, False, None, None, False, False, True, False])
+    d = dt.Frame([True, False, None, None, False, False, True, False])
     assert d.stypes == (stype.bool8, )
     assert d.to_csv() == "C1\n1\n0\n\n\n0\n0\n1\n0\n"
 
@@ -114,7 +116,7 @@ def test_save_bool():
 def test_save_int8():
     src = [1, 0, -5, None, 127, -127, 99, 10, 100, -100, -10]
     res = "\n".join(stringify(x) for x in src)
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.stypes == (stype.int8, )
     assert d.to_csv() == "C1\n" + res + "\n"
 
@@ -123,7 +125,7 @@ def test_save_int16():
     src = [0, 10, 100, 1000, 10000, 32767, -32767, -10, -20, 5, 5125, 3791,
            21, -45, 93, 0, None, 0, None, None, 499, 999, 1001, -8, None, -1]
     res = "\n".join(stringify(x) for x in src)
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.stypes == (stype.int16, )
     assert d.to_csv() == "C1\n" + res + "\n"
 
@@ -133,7 +135,7 @@ def test_save_int32():
            -2147483647, -25, 111, 215932, -1, None, 34857304, 999999, -1048573,
            123456789, 2, 97, 100100, 99, None, -5]
     res = "\n".join(stringify(x) for x in src)
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.stypes == (stype.int32, )
     assert d.to_csv() == "C1\n" + res + "\n"
 
@@ -144,7 +146,7 @@ def test_save_int64():
            -9223372036854775807, None, 123456789876543210, -245253356, None,
            328365213640134, 99999999999, 10000000000001, 33, -245, 3]
     res = "\n".join(stringify(x) for x in src)
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.stypes == (stype.int64, )
     assert d.to_csv() == "C1\n" + res + "\n"
 
@@ -155,7 +157,7 @@ def test_save_double():
             # 23.898342808714432,
             34981703410983.12, -3.232e-8, -4.241e+67] +
            [10**p for p in range(320) if p != 126])
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     dd = dt.fread(text=d.to_csv())
     assert d.topython()[0] == dd.topython()[0]
     # .split() in order to produce better error messages
@@ -168,7 +170,7 @@ def test_save_double2():
            ["0.0001", "0.001", "0.01", "0.1"] +
            [str(10.0**i) for i in range(15)] +
            ["1.0e+%02d" % i for i in range(15, 308)])
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.stypes == (stype.float64, )
     assert d.to_csv().split("\n")[1:-1] == res
 
@@ -176,7 +178,7 @@ def test_save_double2():
 def test_save_round_doubles():
     src = [1.0, 0.0, -3.0, 123.0, 5e55]
     res = ["1.0", "0.0", "-3.0", "123.0", "5.0e+55"]
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.stypes == (stype.float64, )
     assert d.to_csv().split("\n")[1:-1] == res
 
@@ -186,7 +188,7 @@ def test_save_hexdouble_subnormal():
            1e-316, 1e-317, 1e-318, 1e-319, 1e-320, 1e-321, 1e-322, 1e-323,
            0.0, 1e-324, -0.0,
            -1e-323, -1e-300, -2.76e-312, -6.487202e-309]
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     assert d.internal.check()
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]  # remove header & last \n
     assert hexxed == [pyhex(v) for v in src]
@@ -195,7 +197,7 @@ def test_save_hexdouble_subnormal():
 def test_save_hexdouble_special():
     from math import nan, inf
     src = [nan, inf, -inf, 0]
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     # Note: we serialize nan as an empty string
     assert hexxed == ["", "inf", "-inf", "0x0p+0"]
@@ -206,7 +208,7 @@ def test_save_hexdouble_random(seed):
     random.seed(seed)
     src = [(1.5 * random.random() - 0.5) * 10**random.randint(-325, 308)
            for _ in range(1000)]
-    d = dt.DataTable(src)
+    d = dt.Frame(src)
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == [pyhex(v) for v in src]
 
@@ -241,7 +243,7 @@ def test_save_hexfloat_sample(pandas):
         3.4028236e38: "inf",
         -3e328: "-inf",
     }
-    d = dt.DataTable(pandas.DataFrame({"A": list(src.keys())}, dtype="float32"))
+    d = dt.Frame(pandas.DataFrame({"A": list(src.keys())}, dtype="float32"))
     assert d.stypes == (stype.float32, )
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == list(src.values())
@@ -273,7 +275,7 @@ def test_save_float_sample(pandas):
         1.13404e+28: "1.13404e+28",
         1.134043e+28: "1.134043e+28",
     }
-    d = dt.DataTable(pandas.DataFrame(list(src.keys()), dtype="float32"))
+    d = dt.Frame(pandas.DataFrame(list(src.keys()), dtype="float32"))
     assert d.stypes == (stype.float32, )
     decs = d.to_csv().split("\n")[1:-1]
     assert decs == list(src.values())
@@ -286,7 +288,7 @@ def test_save_strings():
     src2 = ["", "empty", "None", None, "   with whitespace ", "with,commas",
             "\twith tabs\t", '"oh-no', "single'quote", "'squoted'",
             "\0bwahaha!", "?", "here be dragons"]
-    d = dt.DataTable([src1, src2], names=["A", "B"])
+    d = dt.Frame([src1, src2], names=["A", "B"])
     assert d.stypes == (stype.str32, stype.str32)
     assert d.internal.check()
     assert d.to_csv().split("\n") == [

@@ -14,7 +14,7 @@ from datatable.lib import core
 
 class ColSelectorExpr(BaseExpr):
     """
-    Expression node that selects a particular Column from a DataTable.
+    Expression node that selects a particular Column from a Frame.
 
     This node is usually created from the following expressions:
         f.colName

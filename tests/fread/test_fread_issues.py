@@ -164,7 +164,7 @@ def test_issue_R2535():
                              [2, 3, None, 4]]
 
 
-@pytest.mark.xfail()
+@pytest.mark.skip(reason="Issue #804")
 def test_issue_R2535x():
     # Currently we set fill=True when sep=' ' is detected. However fread should
     # distinguish between the user not passing `fill` parameter at all, or

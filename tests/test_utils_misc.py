@@ -131,8 +131,8 @@ class RangeChecker(object):
         res = utils_misc.normalize_range(rng, n)
         if res is None:
             array = list(rng)
-            assert (not(-n <= array[0] < n and -n <= array[-1] < n)
-                    or array[0] >= 0 > array[-1] or
+            assert (not(-n <= array[0] < n and -n <= array[-1] < n) or
+                    array[0] >= 0 > array[-1] or
                     array[0] < 0 <= array[-1])
         else:
             nstart, ncount, nstep = res

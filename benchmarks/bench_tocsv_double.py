@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 # Write booleans
 #-------------------------------------------------------------------------------
-import datatable
+import datatable as dt
 import pytest
 import tempfile
 import os
@@ -28,9 +28,9 @@ def src(numpy, request):
         numpy.random.randn(n) * 10.0**numpy.random.randint(-308, 308, size=n),
         numpy.random.randn(n) * 10.0**numpy.random.randint(-10, 10, size=n),
     ]
-    dts = [datatable.DataTable(x, names=["C%d" % i])
+    dts = [dt.Frame(x, names=["C%d" % i])
            for i, x in enumerate(cols)]
-    return datatable.DataTable().cbind(*dts)
+    return dt.Frame().cbind(*dts)
 
 @pytest.fixture(scope="module")
 def srcfile(pandas, src):
@@ -47,7 +47,7 @@ def test_tocsv_double_datatable(benchmark, src, pivot, capsys):
     benchmark.name = "datatable"
     benchmark.group = "tocsv(double):%d" % src.nrows
     d = src
-    assert d.stypes == (datatable.stype.float64,) * 10
+    assert d.stypes == (dt.stype.float64,) * 10
     benchmark(lambda: d.to_csv("out.csv"))
     pivot.save(benchmark)
     # Hack: make `capsys` fixture available to pivot

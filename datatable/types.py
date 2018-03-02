@@ -17,9 +17,9 @@ __all__ = ("stype", "ltype")
 @enum.unique
 class stype(enum.Enum):
     """
-    Enumeration of possible "storage" types of columns in a DataTable.
+    Enumeration of possible "storage" types of columns in a Frame.
 
-    Each column in a DataTable is a vector of values of the same type. We call
+    Each column in a Frame is a vector of values of the same type. We call
     this column's type the "stype". Most stypes correspond to primitive C types,
     such as ``int32_t`` or ``double``. However some stypes (corresponding to
     strings and categoricals) have a more complicated underlying structure.
