@@ -8,6 +8,7 @@ import datatable
 from .rows_node import AllRFNode, SortedRFNode
 from .cols_node import SliceCSNode, ArrayCSNode
 from .sort_node import SortNode
+from .groupby_node import make_groupby
 from .context import make_engine
 from .dtproxy import f
 from datatable.utils.typechecks import TValueError
@@ -16,7 +17,8 @@ __all__ = ("make_datatable", "resolve_selector")
 
 
 
-def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
+def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
+                   mode=None):
     """
     Implementation of the `Frame.__call__()` method.
 
@@ -28,18 +30,20 @@ def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
         ee = make_engine(engine, dt)
         ee.rowindex = dt.internal.rowindex
         rowsnode = ee.make_rowfilter(rows)
+        grbynode = ee.make_groupby(groupby)
         colsnode = ee.make_columnset(select)
         sortnode = ee.make_sort(sort)
 
         if sortnode:
-            if isinstance(rowsnode, AllRFNode):
+            if isinstance(rowsnode, AllRFNode) and not grbynode:
                 rowsnode = SortedRFNode(sortnode)
             else:  # pragma: no cover
                 raise NotImplementedError(
                     "Cannot yet apply sort argument to a view datatable or "
-                    "combine with rows argument.")
+                    "combine with rows / groupby argument.")
 
         if mode == "delete":
+            assert grbynode is None
             allcols = isinstance(colsnode, SliceCSNode) and colsnode.is_all()
             allrows = isinstance(rowsnode, AllRFNode)
             if allrows:
@@ -61,12 +65,15 @@ def make_datatable(dt, rows, select, sort=None, engine=None, mode=None):
                 raise NotImplementedError("Deleting rows + columns from a Frame"
                                           " is not supported yet")
 
+        rowsnode.execute()
+        if grbynode:
+            grbynode.execute()
+
         # Select subset of rows + subset of columns. In this case columns can
         # be simply copied by reference, and then the resulting datatable will
         # be either a plain "data" table if rowindex selects all rows and the
         # target datatable is not a view, or a "view" datatable otherwise.
         if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-            rowsnode.execute()
             colsnode._rowindex = ee.rowindex
             columns = ee.execute(colsnode)
             res_dt = columns.to_datatable()
