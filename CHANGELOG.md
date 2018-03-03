@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - DataTable can now accept pandas/numpy frames with columns of float16 dtype
   (which will be automatically converted to float32).
 - .isna() function now works on strings too.
+- `.save()` is now a method of `Frame` class.
 
 
 #### Changed
@@ -72,6 +73,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - When saving datatable containing "obj64" columns, they will no longer be saved,
   and user warning will be shown (previously saving this column would eventually
   lead to a segfault).
+- (python) DataTable class was renamed into Frame.
 
 
 #### Fixed

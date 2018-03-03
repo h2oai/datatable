@@ -10,21 +10,20 @@ import warnings
 
 import datatable as dt
 from datatable.lib import core
-from datatable.fread import Frame
-from datatable.fread import fread
+# from datatable.fread import Frame
+# from datatable.fread import fread
 from datatable.utils.typechecks import typed, TValueError
 
 _builtin_open = open
 
 
 
-@typed(df=Frame, dest=str, _strategy=str)
-def save(df, dest, _strategy="auto"):
+@typed(dest=str, _strategy=str)
+def save(self, dest, _strategy="auto"):
     """
-    Save datatable in binary NFF format.
+    Save Frame in binary NFF format.
 
-    :param df: Frame to be saved
-    :param dest: destination where the datatable should be saved.
+    :param dest: destination where the Frame should be saved.
     :param _strategy: one of "mmap", "write" or "auto"
     """
     if _strategy not in ("auto", "write", "mmap"):
@@ -37,25 +36,25 @@ def save(df, dest, _strategy="auto"):
     else:
         os.makedirs(dest)
 
-    if df.internal.isview:
+    if self.internal.isview:
         # Materialize before saving
-        df._dt = df.internal.materialize()
+        self._dt = self.internal.materialize()
 
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w", encoding="utf-8") as out:
         out.write("# NFF1\n")
-        out.write("# nrows = %d\n" % df.nrows)
+        out.write("# nrows = %d\n" % self.nrows)
         out.write('filename,stype,meta,colname\n')
-        l = len(str(df.ncols))
-        for i in range(df.ncols):
+        l = len(str(self.ncols))
+        for i in range(self.ncols):
             filename = "c%0*d" % (l, i + 1)
-            colname = df.names[i].replace('"', '""')
-            _col = df.internal.column(i)
+            colname = self.names[i].replace('"', '""')
+            _col = self.internal.column(i)
             stype = _col.stype
             meta = _col.meta
             if stype == dt.stype.obj64:
                 warnings.warn("Column %r of type obj64 was not saved"
-                              % df.names[i])
+                              % self.names[i])
                 continue
             if meta is None:
                 meta = ""
@@ -96,12 +95,12 @@ def open(path):
             else:
                 raise ValueError("Unknown NFF format: %s" % info[0])
 
-        f0 = fread(metafile, sep=",",
-                   columns=lambda i, name, type: (name, str))
+        f0 = dt.fread(metafile, sep=",",
+                      columns=lambda i, name, type: (name, str))
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
         _dt = core.datatable_load(f1.internal, nrows, path)
-        df = Frame(_dt, names=colnames)
+        df = dt.Frame(_dt, names=colnames)
         assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
         return df
     finally:
