@@ -233,7 +233,7 @@ pipeline {
                                 localArtifact = 'dist/*'
                                 artifactId = "pydatatable"
                                 version = versionText
-                                keepPrivate = true
+                                keepPrivate = false
                             }
                         }
                     }
