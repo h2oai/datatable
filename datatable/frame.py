@@ -321,8 +321,8 @@ class Frame(object):
     #---------------------------------------------------------------------------
 
     def __call__(self, rows=None, select=None, verbose=False, timeit=False,
-                 sort=None, engine=None
-                 #update=None, groupby=None, join=None, limit=None
+                 groupby=None, sort=None, engine=None
+                 #update=None, join=None, limit=None
                  ):
         """
         Perform computation on a datatable, and return the result.
@@ -390,6 +390,30 @@ class Frame(object):
                   datatable -- and returns any of the selectors above. Within
                   the function any operations on the frame will be lazy.
 
+        :param groupby:
+            When this parameter is specified, it will perform a "group-by"
+            operation on the datatable. The ``select``/``update`` clauses in
+            this case may contain only ``Reducer``s, or the columns specified
+            in the groupby, or mappers bound to the columns specified in the
+            groupby. Then each reducer will be executed within the subset of
+            rows for each group. When used with a select clause, the produced
+            datatable will contain as many rows as there are distinct groups
+            in the current datatable. When used with an update clause, the
+            new columns will have constant reduced value within each group.
+            Possible values for the parameter:
+
+                - an integer, specifying column's index
+                - a string, selecting a single column by name
+                - a Mapper object bound to one or more columns of the current
+                  datatable -- the mapped values will be used to produce the
+                  groupby values.
+                - a list or a tuple or a dict of the above. If a dictionary is
+                  given, then it specifies how to rename the columns within
+                  the groupby.
+                - a function taking the current datatable as an argument, and
+                  producing any of the groupby selectors listed above. Within
+                  this function all datatable operations are lazy.
+
         :param sort:
             When specified, the datatable will be sorted. If used with
             ``select``, it will sort the resulting datatable. If there is no
@@ -434,30 +458,6 @@ class Frame(object):
                   datatable -- and returns any of the selectors above. Within
                   the function any operations on the frame will be lazy.
 
-        :param groupby:
-            When this parameter is specified, it will perform a "group-by"
-            operation on the datatable. The ``select``/``update`` clauses in
-            this case may contain only ``Reducer``s, or the columns specified
-            in the groupby, or mappers bound to the columns specified in the
-            groupby. Then each reducer will be executed within the subset of
-            rows for each group. When used with a select clause, the produced
-            datatable will contain as many rows as there are distinct groups
-            in the current datatable. When used with an update clause, the
-            new columns will have constant reduced value within each group.
-            Possible values for the parameter:
-
-                - an integer, specifying column's index
-                - a string, selecting a single column by name
-                - a Mapper object bound to one or more columns of the current
-                  datatable -- the mapped values will be used to produce the
-                  groupby values.
-                - a list or a tuple or a dict of the above. If a dictionary is
-                  given, then it specifies how to rename the columns within
-                  the groupby.
-                - a function taking the current datatable as an argument, and
-                  producing any of the groupby selectors listed above. Within
-                  this function all datatable operations are lazy.
-
         :param join:
             Specifies another datatable to join with. If this parameter is
             given, then the "function" argument within ``rows``, ``select``
@@ -471,7 +471,7 @@ class Frame(object):
             applies that slice to the resulting datatable.
         """
         time0 = time.time() if timeit else 0
-        res = make_datatable(self, rows, select, sort, engine)
+        res = make_datatable(self, rows, select, groupby, sort, engine)
         if timeit:
             print("Time taken: %d ms" % (1000 * (time.time() - time0)))
         return res

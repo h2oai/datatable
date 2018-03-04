@@ -31,6 +31,10 @@ class EvaluationEngine:
     def make_rowfilter(self, rows):
         return datatable.graph.rows_node.make_rowfilter(rows, self)
 
+    def make_groupby(self, grby):
+        # return None
+        return datatable.graph.groupby_node.make_groupby(grby, self)
+
     def make_columnset(self, cols):
         return datatable.graph.cols_node.make_columnset(cols, self.dt, self)
 

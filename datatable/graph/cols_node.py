@@ -31,13 +31,11 @@ class ColumnSetNode:
     def __init__(self, dt):
         self._dt = dt
         self._rowindex = None
-        self._rowindexdt = None
         self._cname = None
         self._column_names = tuple()
 
     @property
     def dt(self):
-        # TODO: merge self._dt with self._rowindexdt
         return self._dt
 
     @property
@@ -275,27 +273,27 @@ def make_columnset(arg, dt, cmod, _nested=False):
 
 
 
-def process_column(col, dt):
+def process_column(col, df):
     """
     Helper function to verify the validity of a single column selector.
 
-    Given datatable `dt` and a column description `col`, this function returns:
+    Given frame `df` and a column description `col`, this function returns:
       * either the numeric index of the column
       * a numeric slice, as a triple (start, count, step)
       * or a `BaseExpr` object
     """
     if isinstance(col, int):
-        ncols = dt.ncols
+        ncols = df.ncols
         if -ncols <= col < ncols:
             return col % ncols
         else:
-            raise TValueError("Column index `{col}` is invalid for a datatable "
-                              "with {ncolumns}"
-                              .format(col=col, ncolumns=plural(ncols, "column")))
+            raise TValueError(
+                "Column index `{col}` is invalid for a frame with {ncolumns}"
+                .format(col=col, ncolumns=plural(ncols, "column")))
 
     if isinstance(col, str):
-        # This raises an exception if `col` cannot be found in the datatable
-        return dt.colindex(col)
+        # This raises an exception if `col` cannot be found in the dataframe
+        return df.colindex(col)
 
     if isinstance(col, slice):
         start = col.start
@@ -307,20 +305,20 @@ def process_column(col, dt):
             if start is None:
                 col0 = 0
             elif isinstance(start, str):
-                col0 = dt.colindex(start)
+                col0 = df.colindex(start)
             if stop is None:
-                col1 = dt.ncols - 1
+                col1 = df.ncols - 1
             elif isinstance(stop, str):
-                col1 = dt.colindex(stop)
+                col1 = df.colindex(stop)
             if col0 is None or col1 is None:
                 raise TValueError("Slice %r is invalid: cannot mix numeric and "
                                   "string column names" % col)
             if step is not None:
-                raise TValueError("Column name slices cannot use "
-                                  "strides: %r" % col)
+                raise TValueError("Column name slices cannot use strides: %r"
+                                  % col)
             return (col0, abs(col1 - col0) + 1, 1 if col1 >= col0 else -1)
         elif all(x is None or isinstance(x, int) for x in (start, stop, step)):
-            return normalize_slice(col, dt.ncols)
+            return normalize_slice(col, df.ncols)
         else:
             raise TValueError("%r is not integer-valued" % col)
 

@@ -44,6 +44,7 @@ def assert_typeerror(datatable, cols, error_message):
     assert error_message in str(e.value)
 
 
+
 #-------------------------------------------------------------------------------
 # Run the tests
 #-------------------------------------------------------------------------------
@@ -82,7 +83,7 @@ def test_cols_integer(dt0, tbl0):
         assert dt1.names == ("ABCD"[i], )
         assert not dt1.internal.isview
         assert as_list(dt1)[0] == tbl0[i]
-    assert_valueerror(dt0, 4, "Column index `4` is invalid for a datatable "
+    assert_valueerror(dt0, 4, "Column index `4` is invalid for a frame "
                               "with 4 columns")
     assert_valueerror(dt0, -5, "Column index `-5` is invalid")
 
