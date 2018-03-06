@@ -8,7 +8,6 @@ import collections
 import re
 import sys
 import time
-import warnings
 from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
@@ -20,7 +19,7 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, typed, U, is_type, Frame_t,
+    TTypeError, TValueError, typed, U, is_type, Frame_t, dtwarn,
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
@@ -49,12 +48,12 @@ class Frame(object):
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "colnames" in kwargs and names is None:
             names = kwargs.pop("colnames")
-            warnings.warn("Parameter `colnames` in Frame constructor is "
-                          "deprecated. Use `names` instead.")
+            dtwarn("Parameter `colnames` in Frame constructor is "
+                   "deprecated. Use `names` instead.")
         if "stype" in kwargs:
             stypes = [kwargs.pop("stype")]
         if kwargs:
-            warnings.warn("Unknown options %r to Frame()" % kwargs)
+            dtwarn("Unknown options %r to Frame()" % kwargs)
         Frame._id_counter_ += 1
         self._id = Frame._id_counter_  # type: int
         self._ncols = 0      # type: int
@@ -309,8 +308,8 @@ class Frame(object):
             inames[newname] = i
             tnames.append(newname)
         if dupnames:
-            warnings.warn("Duplicate column names found: %r. They were assigned"
-                          " unique names." % dupnames)
+            dtwarn("Duplicate column names found: %r. They were assigned "
+                   "unique names." % dupnames)
         assert len(inames) == len(tnames) == len(names)
         return (tuple(tnames), inames)
 

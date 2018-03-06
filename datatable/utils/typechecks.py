@@ -9,7 +9,9 @@ Utility for checking types at runtime.
 """
 import importlib
 import typesentry
+import warnings
 from typesentry import U
+from datatable.utils.terminal import term
 
 _tc = typesentry.Config()
 typed = _tc.typed
@@ -64,5 +66,35 @@ NumpyArray_t = _LazyClass("numpy", "ndarray")
 NumpyMaskedArray_t = _LazyClass("numpy.ma", "MaskedArray")
 
 
+
+#-------------------------------------------------------------------------------
+# Warnings
+#-------------------------------------------------------------------------------
+
+class DatatableWarning(UserWarning):
+    def _handle_(self):
+        name = self.__class__.__name__
+        message = str(self)
+        print(term.dim_yellow(name + ": ") + term.bright_black(message))
+
+
+def dtwarn(message):
+    warnings.warn(message, category=DatatableWarning)
+
+
+def _showwarning(message, category, filename, lineno, file=None, line=None):
+    custom_handler = getattr(category, "_handle_", None)
+    if custom_handler:
+        custom_handler(message)
+    else:
+        _default_warnings_hoook(message, category, filename, lineno, file, line)
+
+
+# Replace the default warnings handler
+_default_warnings_hoook = warnings.showwarning
+warnings.showwarning = _showwarning
+
+
+
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
-           "Frame_t", "NumpyArray_t")
+           "Frame_t", "NumpyArray_t", "DatatableWarning", "dtwarn")
