@@ -451,6 +451,9 @@ $(BUILDDIR)/utils/pyobj.h: c/utils/pyobj.h
 	@echo • Refreshing c/utils/pyobj.h
 	@cp c/utils/pyobj.h $@
 
+$(BUILDDIR)/utils/shared_mutex.h: c/utils/shared_mutex.h $(BUILDDIR)/utils/omp.h
+	@echo • Refreshing c/utils/shared_mutex.h
+	@cp c/utils/shared_mutex.h $@
 
 
 
@@ -498,7 +501,7 @@ $(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/uti
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h
+$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
