@@ -1,0 +1,84 @@
+@Library('test-shared-library@mr/ita/190-build-summary-emailer') _
+
+import ai.h2o.ci.buildsummary.StagesSummary
+import ai.h2o.ci.buildsummary.DetailsSummary
+import ai.h2o.ci.BuildResult
+
+properties([
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '25')),
+        parameters([
+                string(name: 'gitBranch', defaultValue: 'master', description: 'Branch to load the Dockerfile from.'),
+                string(name: 'registry', defaultValue: 'docker.h2o.ai', description: 'Docker registry to push images to'),
+                booleanParam(name: 'publish', defaultValue: true, description: 'If true, publish the docker image'),
+        ]),
+        pipelineTriggers([])
+])
+
+BuildResult result = BuildResult.FAILURE
+
+// initialize build summary
+buildSummary('https://github.com/h2oai/datatable', true)
+// setup custom DetailsSummary
+DetailsSummary detailsSummary = new DetailsSummary()
+detailsSummary.setEntry(this, 'Publish', params.publish ? 'Yes' : 'No')
+buildSummary.get().addDetailsSummary(this, detailsSummary)
+// use default StagesSummary implementation
+buildSummary.get().addStagesSummary(this, new StagesSummary())
+
+try {
+    node('docker && !mr-0xc8') {
+        buildSummary.stageWithSummary("Build images for x86_64") {
+            dir('centos7') {
+                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
+                env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '')
+                sh """
+                    sed -i 's/FROM_SUBST/centos:7/g' Dockerfile-centos7.in
+                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile-centos7.in
+                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 -f Dockerfile-centos7.in .
+                """
+            }
+            dir ('ubuntu') {
+                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
+                env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '')
+                sh """
+                    sed -i 's/FROM_SUBST/x86_64_linux/g' Dockerfile.build
+                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile.build
+                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux -f Dockerfile.build .
+                """
+            }
+        }
+
+        if (params.publish) {
+            buildSummary.stageWithSummary("Publish images for x86_64") {
+                withCredentials([usernamePassword(credentialsId: "${params.registry}", usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
+                    sh """
+                        docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD ${params.registry}
+                        docker push docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux
+                        docker push docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7
+                    """
+                    echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 built and pushed. ######"
+                    echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux built and pushed. ######"
+                }
+            }
+        }
+    }
+
+    node('ibm-power') {
+        buildSummary.stageWithSummary("Build image for ppc64le") {
+            dir('centos7') {
+                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
+                env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '')
+                sh """
+                    sed -i 's/FROM_SUBST/centos:7/g' Dockerfile-centos7.in
+                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile-centos7.in
+                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7 -f Dockerfile-centos7.in .
+                """
+            }
+        }
+
+        // we cannot publish to internal registry from this node
+    }
+    result = BuildResult.SUCCESS
+} finally {
+    sendEmailNotif(result, buildSummary.get().toEmail(this), ['michalr@h2o.ai'])
+}

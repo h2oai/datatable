@@ -6,35 +6,49 @@
 //  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 
-def build(platform, ciVersionSuffix, pythonBin, extraEnv) {
+def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extraEnv) {
     dumpInfo()
-    withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv) {
-        sh """
-                make mrproper
-                make dist PYTHON=${pythonBin} > stage_build_with_omp_on_${platform}_output
-                make version PYTHON=${pythonBin} > dist/VERSION.txt
 
-        """
-    }
+    final def ompLogFile = "stage_build_with_omp_on_${platform}_output.log"
+    final def noompLogFile = "stage_build_with_noomp_on_${platform}_output.log"
 
-    stash includes: 'dist/**/*.whl', name: "${platform}_omp"
-    stash includes: 'dist/VERSION.txt', name: 'VERSION'
-    arch 'dist/**/*.whl'
+    sh "mkdir -p ${stageDir}"
 
-    // Create also no omp version
-    withEnv(["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv) {
-        sh """
-                make clean
-                make dist_noomp PYTHON=${pythonBin} >> stage_build_without_omp_on_${platform}_output.txt
-        """
-    }
-    stash includes: 'dist/**/*.whl', name: "${platform}_noomp"
-    arch 'dist/**/*.whl'
+    // build and archive the omp version for Python 3.6
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'dist', ompLogFile)
+    arch "${stageDir}/dist/**/*.whl"
+    // build and archive the noomp version for Python 3.6
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv, py36VenvCmd, 'dist_noomp', noompLogFile)
+    arch "${stageDir}/dist/**/*.whl"
+
+    // build and archive the omp version for Python 3.6
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py35VenvCmd, 'dist', ompLogFile)
+    arch "${stageDir}/dist/**/*.whl"
+    // build and archive the noomp version for Python 3.6
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv, py35VenvCmd, 'dist_noomp', noompLogFile)
+    arch "${stageDir}/dist/**/*.whl"
+
+    // build and stash the version
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'version', 'dist/VERSION.txt')
+    stash includes: "${stageDir}/dist/VERSION.txt", name: 'VERSION'
+
     // Archive logs
-    arch 'stage_build_*.txt'
+    arch "${stageDir}/stage_build_*.log"
 }
 
-def coverage(platform, pythonBin, extraEnv, invokeLargeTests, targetDataDir) {
+def buildTarget(stageDir, extEnv, venvCmd, target, logfile) {
+    withEnv(extEnv) {
+        sh """
+            cd ${stageDir}
+            ${venvCmd}
+            make clean
+            mkdir -p \$(dirname ${logfile})
+            make ${target} >> ${logfile}
+        """
+    }
+}
+
+def coverage(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir) {
     dumpInfo()
     def extEnv = []
     if (invokeLargeTests) {
@@ -42,36 +56,74 @@ def coverage(platform, pythonBin, extraEnv, invokeLargeTests, targetDataDir) {
     }
 
     withEnv(extEnv + extraEnv) {
-        sh '''
-            make mrproper
-            rm -rf .venv venv 2> /dev/null
-            virtualenv --python=python3.6 --no-download .venv
-            make coverage PYTHON=.venv/bin/python
-        '''
+        sh """
+            cd ${stageDir}
+            ${venvCmd}
+            make coverage
+        """
     }
-    testReport 'build/coverage-c', "${platform} coverage report for C"
-    testReport 'build/coverage-py', "${platform} coverage report for Python"
+    testReport "${stageDir}/build/coverage-c", "${platform} coverage report for C"
+    testReport "${stageDir}/build/coverage-py", "${platform} coverage report for Python"
 }
 
-def test(platform, pythonBin, extraEnv, invokeLargeTests, targetDataDir) {
+def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir) {
     dumpInfo()
-    sh "make mrproper"
-    unstash "${platform}_omp"
     def extEnv = invokeLargeTests ? ["DT_LARGE_TESTS_ROOT=${targetDataDir}"] : []
     try {
         withEnv(extEnv + extraEnv) {
+            pullFilesFromArch("**/dist/**/*${getWheelPlatformName(platform)}*.whl", "${stageDir}/dist")
+
             sh """
-                rm -rf .venv venv 2> /dev/null
+                cd ${stageDir}
                 rm -rf datatable
-                virtualenv --python=python3.6 .venv
-                .venv/bin/python -m pip install --no-cache-dir --upgrade `find dist -name "datatable-*" | grep -v noomp`
-                make test PYTHON=.venv/bin/python MODULE=datatable
+                ${venvCmd}
+                pyVersion=\$(python --version 2>&1 | egrep -o '[0-9]\\.[0-9]' | tr -d '.')
+                pip install --no-cache-dir --upgrade `find dist -name "datatable-*cp\${pyVersion}*${getWheelPlatformName(platform)}*" | grep -v noomp`
+                make test MODULE=datatable
             """
         }
     } finally {
-        junit testResults: 'build/test-reports/TEST-*.xml', keepLongStdio: true, allowEmptyResults: false
-        deleteDir()
+        junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
+}
+
+def getWheelPlatformName(final platform) {
+    switch (platform){
+        case 'x86_64_linux':
+            return 'linux_x86_64'
+        case 'x86_64_centos7':
+            return 'linux_x86_64'
+        case 'x86_64_macos':
+            return 'macosx_10_7_x86_64'
+        case 'ppc64le_linux':
+            return 'linux_ppc64le'
+    }
+}
+
+def getS3PlatformName(final platform) {
+    echo "platform ${platform}"
+    switch (platform){
+        case 'x86_64_linux':
+            return 'x86_64-linux'
+        case 'x86_64_centos7':
+            return 'x86_64-centos7'
+        case 'x86_64_macos':
+            return 'x86_64-osx'
+        case 'ppc64le_linux':
+            return 'ppc64le-centos7'
+    }
+}
+
+def pullFilesFromArch(final String filter, final String targetDir) {
+    sh "mkdir -p ${targetDir}"
+    step([$class              : 'CopyArtifact',
+          projectName         : env.JOB_NAME,
+          fingerprintArtifacts: true,
+          filter              : filter,
+          selector            : [$class: 'SpecificBuildSelector', buildNumber: env.BUILD_ID],
+          target              : "${targetDir}/",
+          flatten             : true
+    ])
 }
 
 return this

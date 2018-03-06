@@ -8,9 +8,9 @@ RUN \
 RUN \
     yum install -y \
         ncurses-devel \
-	zlib-devel \
-	wget \
-	bzip2 && \
+        zlib-devel \
+        wget \
+        bzip2 && \
     wget https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
     bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
     wget https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps-llvm/1.0-master-21/ARCH_SUBST-centos7/llvm.tar.bz2 && \
@@ -23,7 +23,25 @@ ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM4/bin:$PATH
 
-RUN pip install llvmlite==0.20.0 wheel
+RUN pip install llvmlite==0.20.0 wheel virtualenv && \
+    conda create -n datatable-py35-pandas-numpy python=3.5 && \
+    . activate datatable-py35-pandas-numpy && \
+    conda install -y psutil pandas numpy && \
+    . deactivate && \
+    conda create -n datatable-py36-pandas-numpy python=3.6 && \
+    . activate datatable-py36-pandas-numpy && \
+    conda install -y psutil pandas numpy && \
+    . deactivate && \
+    conda create -n datatable-py36-numpy python=3.6 && \
+    . activate datatable-py36-numpy && \
+    conda install -y psutil numpy && \
+    . deactivate && \
+    conda create -n datatable-py36 python=3.6 && \
+    . activate datatable-py36 && \
+    conda install -y psutil && \
+    . deactivate && \
+    chmod -R a+w /opt/h2oai/dai/python/envs
+
 RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
 COPY clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
 
