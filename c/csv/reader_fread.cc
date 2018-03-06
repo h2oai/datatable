@@ -445,11 +445,10 @@ void FreadLocalParseContext::read_chunk() {
     size_t j = 0;
 
     //*** START HOT ***//
-    if (fastParsingAllowed) {  // TODO:  can this 'if' be dropped somehow? Can numeric NAstrings be dealt with afterwards in one go as numeric comparison?
-      // Try most common and fastest branch first: no whitespace, no quoted numeric, ",," means NA
+    if (fastParsingAllowed) {
+      // Try most common and fastest branch first: no whitespace, no numeric NAs, blank means NA
       while (j < ncols) {
         fieldStart = tch;
-        // fetch shared type once. Cannot read half-written byte is one reason type's type is single byte to avoid atomic read here.
         parsers[types[j]](tokenizer);
         if (*tch != sep) break;
         tokenizer.target += columns[j].presentInBuffer;
@@ -496,7 +495,7 @@ void FreadLocalParseContext::read_chunk() {
         int8_t oldType = types[j];
         int8_t newType = oldType;
 
-        while (newType < NUMTYPE) {
+        while (true) {
           tch = fieldStart;
           bool quoted = false;
           if (newType < CT_STRING && newType > CT_DROP) {
@@ -526,6 +525,10 @@ void FreadLocalParseContext::read_chunk() {
           // sure a single re-read will definitely work.
           typebump:
           newType++;
+          if (newType == NUMTYPE) {
+            newType = NUMTYPE - 1;
+            tokenizer.quoteRule++;
+          }
           tch = fieldStart;
         }
 

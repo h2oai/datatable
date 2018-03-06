@@ -18,6 +18,7 @@
 #include <cmath>       // std::sqrt, std::ceil
 #include <cstdio>      // std::snprintf
 #include <string>      // std::string
+#include "utils/shared_mutex.h"
 
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
@@ -84,7 +85,8 @@ typedef std::unique_ptr<FreadLocalParseContext> FLPCPtr;
  * threads, and the estimated line length.
  *
  * If the input is sufficiently small, then instead of making the chunks too
- * small in size, this class will simply reduce the number of threads used.
+ * small in size, this class will rather reduce the number of threads used.
+ *
  * Call `get_nthreads()` to find the recommended number of threads. If OpenMP
  * allocates less threads than requested, then you can call `set_nthreads()` to
  * make this class re-evaluate the chunking strategy based on this information.
@@ -175,7 +177,7 @@ class ChunkOrganizer {
       return lastChunkEnd;
     }
 
-    double work_done_ratio() const {
+    double work_done_amount() const {
       double done = static_cast<double>(lastChunkEnd - inputStart);
       double total = static_cast<double>(inputEnd - inputStart);
       return done / total;
@@ -234,6 +236,7 @@ class FreadChunkedReader {
     size_t extraAllocRows;
     double thRead, thPush;
     ChunkOrganizer chunkster;
+    // dt::shared_mutex shmutex;
 
   public:
     // The abominable constructor
@@ -297,7 +300,7 @@ class FreadChunkedReader {
           if (stopTeam) continue;
           try {
             if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-              reader.progress(chunkster.work_done_ratio());
+              reader.progress(chunkster.work_done_amount());
               tShowAlways = true;
             }
 
@@ -387,7 +390,7 @@ class FreadChunkedReader {
             oem.capture_exception();
           }
         }
-        reader.progress(chunkster.work_done_ratio(), status);
+        reader.progress(chunkster.work_done_amount(), status);
       }
       oem.rethrow_exception_if_any();
     }
