@@ -16,6 +16,7 @@ from datatable.utils.terminal import term
 _tc = typesentry.Config()
 typed = _tc.typed
 is_type = _tc.is_type
+name_type = _tc.name_type
 TTypeError = _tc.TypeError
 TValueError = _tc.ValueError
 
@@ -97,4 +98,4 @@ warnings.showwarning = _showwarning
 
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
-           "Frame_t", "NumpyArray_t", "DatatableWarning", "dtwarn")
+           "Frame_t", "NumpyArray_t", "DatatableWarning", "dtwarn", "name_type")

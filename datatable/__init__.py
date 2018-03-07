@@ -11,13 +11,14 @@ from .frame import Frame
 from .expr import mean, min, max, sd, isna
 from .fread import fread, GenericReader
 from .nff import save, open
+from .options import options
 from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
 
 __all__ = ("__version__", "Frame", "max", "mean", "min", "open", "sd",
            "isna", "fread", "GenericReader", "save", "stype", "ltype", "f",
-           "TypeError", "ValueError", "DataTable",
+           "TypeError", "ValueError", "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",
            "float32", "float64", "str32", "str64", "obj64")
 
