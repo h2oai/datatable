@@ -13,6 +13,7 @@
 #include <vector>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "options.h"
 #include "py_datatable.h"
 #include "py_utils.h"
 #include "utils.h"
@@ -47,11 +48,15 @@ PyObject* pywrite_csv(PyObject*, PyObject* args)
         colnames = pywr.attr("column_names").as_stringlist();
     cwriter.set_column_names(colnames);  // move-assignment
 
-    int nthreads = static_cast<int>(pywr.attr("nthreads").as_int64());
-    int maxth = omp_get_max_threads();
-    if (nthreads > maxth) nthreads = maxth;
-    if (nthreads <= 0) nthreads += maxth;
-    if (nthreads <= 0) nthreads = 1;
+    int32_t nthreads = static_cast<int32_t>(pywr.attr("nthreads").as_int64());
+    if (ISNA<int32_t>(nthreads)) {
+      nthreads = config::get_nthreads();
+    } else {
+      int32_t maxth = omp_get_max_threads();
+      if (nthreads > maxth) nthreads = maxth;
+      if (nthreads <= 0) nthreads += maxth;
+      if (nthreads <= 0) nthreads = 1;
+    }
     cwriter.set_nthreads(nthreads);
 
     // Write CSV

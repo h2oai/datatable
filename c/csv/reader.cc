@@ -13,6 +13,7 @@
 #include <strings.h>  // strcasecmp
 #include <cerrno>     // errno
 #include <cstring>    // std::memcmp
+#include "options.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 
@@ -64,6 +65,10 @@ void GenericReader::init_verbose() {
 
 void GenericReader::init_nthreads() {
   int32_t nth = freader.attr("nthreads").as_int32();
+  if (ISNA<int32_t>(nth)) {
+    nthreads = config::get_nthreads();
+    trace("Using default %d threads", nthreads);
+  }
   nthreads = nth;
   int32_t maxth = omp_get_max_threads();
   if (nthreads > maxth) nthreads = maxth;

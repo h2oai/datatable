@@ -14,14 +14,28 @@ class DtAttributeError(AttributeError):
     _handle_ = TTypeError._handle_
 
 
-class DtOption:
-    __slots__ = ["value", "type", "default", "doc"]
 
-    def __init__(self, typ, dflt, doc):
-        self.value = dflt
-        self.type = typ
-        self.default = dflt
+class DtOption:
+    __slots__ = ["_value", "xtype", "default", "doc", "_setter"]
+
+    def __init__(self, xtype, default, doc=None, setter=None):
+        self._value = default
+        self.xtype = xtype
+        self.default = default
         self.doc = doc
+        self._setter = setter
+        if setter:
+            setter(default)
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        self._value = v
+        if self._setter:
+            self._setter(v)
 
 
 
@@ -33,7 +47,7 @@ class DtConfig:
             prefix += "."
         # Use object.__setattr__ instead of our own __setattr__ below; note:
         # __setattr__ is called for all attributes, regardless of whether they
-        # exist in __dict__ or not.
+        # exist in __slots__ or not.
         object.__setattr__(self, "_keyvals", {})
         object.__setattr__(self, "_prefix", prefix)
 
@@ -58,11 +72,11 @@ class DtConfig:
     def __setattr__(self, key, val):
         opt = self._get_opt(key)
         if isinstance(opt, DtOption):
-            if is_type(val, opt.type):
+            if is_type(val, opt.xtype):
                 opt.value = val
             else:
                 fullkey = self._prefix + key
-                exptype = name_type(opt.type)
+                exptype = name_type(opt.xtype)
                 acttype = name_type(type(val))
                 raise TTypeError("Invalid value for option `%s`: expected "
                                  "type %s, got %s instead"
@@ -102,7 +116,7 @@ class DtConfig:
         self.__delattr__(key)
 
 
-    def register_option(self, key, typ, default, doc):
+    def register_option(self, key, xtype, default, doc=None, setter=None):
         assert isinstance(key, str)
         idot = key.find(".")
         if idot == 0:
@@ -115,7 +129,7 @@ class DtConfig:
                 self._keyvals[prekey] = preval
             if isinstance(preval, DtConfig):
                 subkey = key[idot + 1:]
-                preval.register_option(subkey, typ, default, doc)
+                preval.register_option(subkey, xtype, default, doc)
             else:
                 fullkey = self._prefix + key
                 fullprekey = self._prefix + prekey
@@ -125,11 +139,11 @@ class DtConfig:
         elif key in self._keyvals:
             fullkey = self._prefix + key
             raise TValueError("Option `%s` already registered" % fullkey)
-        elif not is_type(default, typ):
+        elif not is_type(default, xtype):
             raise TValueError("Default value `%s` is not of type %s"
-                              % (default, name_type(typ)))
+                              % (default, name_type(xtype)))
         else:
-            opt = DtOption(typ, default, doc)
+            opt = DtOption(xtype=xtype, default=default, doc=doc, setter=setter)
             self._keyvals[key] = opt
 
 

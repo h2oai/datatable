@@ -113,95 +113,10 @@ dist_noomp: build_noomp
 version:
 	@$(PYTHON) setup.py --version
 
+
 #-------------------------------------------------------------------------------
-# "Fast" (but fragile) datatable build
+# CentOS7 build
 #-------------------------------------------------------------------------------
-
-fast_objects = $(addprefix $(BUILDDIR)/, \
-	capi.o                    \
-	column.o                  \
-	column_bool.o             \
-	column_from_pylist.o      \
-	column_fw.o               \
-	column_int.o              \
-	column_pyobj.o            \
-	column_real.o             \
-	column_string.o           \
-	columnset.o               \
-	csv/fread.o               \
-	csv/py_csv.o              \
-	csv/reader.o              \
-	csv/reader_arff.o         \
-	csv/reader_fread.o        \
-	csv/reader_parsers.o      \
-	csv/reader_utils.o        \
-	csv/writer.o              \
-	datatable.o               \
-	datatable_cbind.o         \
-	datatable_check.o         \
-	datatable_load.o          \
-	datatable_rbind.o         \
-	datatablemodule.o         \
-	encodings.o               \
-	expr/binaryop.o           \
-	expr/py_expr.o            \
-	expr/reduceop.o           \
-	expr/unaryop.o            \
-	memorybuf.o               \
-	mmm.o                     \
-	py_buffers.o              \
-	py_column.o               \
-	py_columnset.o            \
-	py_datatable.o            \
-	py_datatable_fromlist.o   \
-	py_datawindow.o           \
-	py_encodings.o            \
-	py_rowindex.o             \
-	py_types.o                \
-	py_utils.o                \
-	python/float.o            \
-	python/list.o             \
-	python/long.o             \
-	rowindex.o                \
-	rowindex_array.o          \
-	rowindex_slice.o          \
-	sort.o                    \
-	sort_groups.o             \
-	sort_insert.o             \
-	stats.o                   \
-	types.o                   \
-	utils.o                   \
-	utils/exceptions.o        \
-	utils/file.o              \
-	utils/pyobj.o             \
-	writebuf.o                \
-	)
-
-fast:
-	$(eval DTDEBUG := 1)
-	$(eval export DTDEBUG)
-	$(eval CC := $(shell python setup.py get_CC))
-	$(eval CCFLAGS := $(shell python setup.py get_CCFLAGS))
-	$(eval LDFLAGS := $(shell python setup.py get_LDFLAGS))
-	$(eval EXTEXT := $(shell python setup.py get_EXTEXT))
-	$(eval export CC CCFLAGS LDFLAGS EXTEXT)
-	@echo • Checking dependencies graph
-	@python fastcheck.py
-	@$(MAKE) --no-print-directory main-fast
-
-post-fast:
-	@echo • Copying _datatable.so into ``datatable/lib/_datatable$(EXTEXT)``
-	@cp $(BUILDDIR)/_datatable.so datatable/lib/_datatable$(EXTEXT)
-
-main-fast: $(BUILDDIR)/_datatable.so
-	@echo • Done.
-
-# ------------------------------------------------------------
-#
-# New targets used in Jenkinsfile for DAI datatable build
-#    mrproper_in_docker
-#    centos7_in_docker
-#
 
 DIST_DIR = dist
 
@@ -266,6 +181,93 @@ printvars:
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
 
+
+
+#-------------------------------------------------------------------------------
+# "Fast" (but fragile) datatable build
+#-------------------------------------------------------------------------------
+
+fast_objects = $(addprefix $(BUILDDIR)/, \
+	capi.o                    \
+	column.o                  \
+	column_bool.o             \
+	column_from_pylist.o      \
+	column_fw.o               \
+	column_int.o              \
+	column_pyobj.o            \
+	column_real.o             \
+	column_string.o           \
+	columnset.o               \
+	csv/fread.o               \
+	csv/py_csv.o              \
+	csv/reader.o              \
+	csv/reader_arff.o         \
+	csv/reader_fread.o        \
+	csv/reader_parsers.o      \
+	csv/reader_utils.o        \
+	csv/writer.o              \
+	datatable.o               \
+	datatable_cbind.o         \
+	datatable_check.o         \
+	datatable_load.o          \
+	datatable_rbind.o         \
+	datatablemodule.o         \
+	encodings.o               \
+	expr/binaryop.o           \
+	expr/py_expr.o            \
+	expr/reduceop.o           \
+	expr/unaryop.o            \
+	memorybuf.o               \
+	mmm.o                     \
+	options.o                 \
+	py_buffers.o              \
+	py_column.o               \
+	py_columnset.o            \
+	py_datatable.o            \
+	py_datatable_fromlist.o   \
+	py_datawindow.o           \
+	py_encodings.o            \
+	py_rowindex.o             \
+	py_types.o                \
+	py_utils.o                \
+	python/float.o            \
+	python/list.o             \
+	python/long.o             \
+	rowindex.o                \
+	rowindex_array.o          \
+	rowindex_slice.o          \
+	sort.o                    \
+	sort_groups.o             \
+	sort_insert.o             \
+	stats.o                   \
+	types.o                   \
+	utils.o                   \
+	utils/exceptions.o        \
+	utils/file.o              \
+	utils/pyobj.o             \
+	writebuf.o                \
+	)
+
+fast:
+	$(eval DTDEBUG := 1)
+	$(eval export DTDEBUG)
+	$(eval CC := $(shell python setup.py get_CC))
+	$(eval CCFLAGS := $(shell python setup.py get_CCFLAGS))
+	$(eval LDFLAGS := $(shell python setup.py get_LDFLAGS))
+	$(eval EXTEXT := $(shell python setup.py get_EXTEXT))
+	$(eval export CC CCFLAGS LDFLAGS EXTEXT)
+	@echo • Checking dependencies graph
+	@python fastcheck.py
+	@$(MAKE) --no-print-directory main-fast
+
+post-fast:
+	@echo • Copying _datatable.so into ``datatable/lib/_datatable$(EXTEXT)``
+	@cp $(BUILDDIR)/_datatable.so datatable/lib/_datatable$(EXTEXT)
+
+main-fast: $(BUILDDIR)/_datatable.so
+	@echo • Done.
+
+
 # ------------------------------------------------------------
 
 $(BUILDDIR)/_datatable.so: $(fast_objects)
@@ -310,6 +312,10 @@ $(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)
 $(BUILDDIR)/mmm.h: c/mmm.h
 	@echo • Refreshing c/mmm.h
 	@cp c/mmm.h $@
+
+$(BUILDDIR)/options.h: c/options.h $(BUILDDIR)/py_utils.h
+	@echo • Refreshing c/options.h
+	@cp c/options.h $@
 
 $(BUILDDIR)/py_column.h: c/py_column.h $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/py_column.h
@@ -505,11 +511,11 @@ $(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc $(BUILDDIR)/options.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/options.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -553,7 +559,7 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -582,6 +588,10 @@ $(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDI
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/mmm.o : c/mmm.cc $(BUILDDIR)/mmm.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/options.o : c/options.cc $(BUILDDIR)/options.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -649,7 +659,7 @@ $(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/options.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

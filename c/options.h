@@ -5,17 +5,24 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_OMP_H
-#define dt_UTILS_OMP_H
+#ifndef dt_OPTIONS_h
+#define dt_OPTIONS_h
+#include <Python.h>
+#include "py_utils.h"
 
-#ifdef DTNOOMP
-  #define omp_get_max_threads() 1
-  #define omp_get_num_threads() 1
-  #define omp_set_num_threads(n)
-  #define omp_get_thread_num() 0
-#else
-  #include <omp.h>
-#endif
+namespace config {
+
+int get_nthreads();
+void set_nthreads(int nth);
+
+};
+
+
+
+DECLARE_FUNCTION(
+  set_nthreads,
+  "set_nthreads(nth)\n\n",
+  dt_OPTIONS_cc)
 
 
 #endif
