@@ -23,6 +23,7 @@ from datatable.utils.typechecks import (
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
+from datatable.options import options
 from datatable.types import stype
 
 __all__ = ("Frame", )
@@ -789,6 +790,11 @@ class Frame(object):
         return size
 
 
+
+#-------------------------------------------------------------------------------
+# Global settings
+#-------------------------------------------------------------------------------
+
 def column_hexview(col, dt, colidx):
     hexdigits = ["%02X" % i for i in range(16)] + [""]
 
@@ -816,3 +822,11 @@ def column_hexview(col, dt, colidx):
 
 core.register_function(1, column_hexview)
 core.install_buffer_hooks(Frame())
+
+
+options.register_option(
+    "nthreads", xtype=int, default=0, setter=core.set_nthreads,
+    doc="The number of OMP threads to be used by datatable. The value of 0 "
+        "(default) allows datatable to use the maximum number of threads. "
+        "Values less than zero allow to use that fewer threads than the "
+        "maximum. Finally, nthreads=1 indicates single-threaded mode.")

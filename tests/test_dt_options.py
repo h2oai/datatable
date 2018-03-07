@@ -11,7 +11,7 @@ import datatable as dt
 @pytest.mark.run(order=1001)
 def test_options_all():
     # Update this test every time a new option is added
-    assert dir(dt.options) == []
+    assert dir(dt.options) == ["nthreads"]
 
 
 @pytest.mark.run(order=1002)
@@ -95,3 +95,17 @@ def test_options_many_bad():
     with pytest.raises(AttributeError) as e:
         dt.options.tmp2.foo = 0
     assert "Cannot modify group of options `tmp2.foo`" in str(e.value)
+
+
+
+#-------------------------------------------------------------------------------
+# Individual options
+#-------------------------------------------------------------------------------
+
+@pytest.mark.run(order=1010)
+def test_nthreads():
+    assert dt.options.nthreads == 0
+    dt.options.nthreads = 1
+    assert dt.options.nthreads == 1
+    del dt.options.nthreads
+    assert dt.options.nthreads == 0
