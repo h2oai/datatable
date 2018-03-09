@@ -74,8 +74,11 @@ pipeline {
                 script {
                     buildInfo(env.BRANCH_NAME, false)
                     project = load 'ci/default.groovy'
-                    needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
-                    if (needsLargerTest) {
+                    isRelease = isModified("__version__\\.py")
+                    needsLargerTest = isRelease || isModified("(py_)?fread\\..*")
+                    if (isRelease) {
+                        manager.addBadge("db_out.gif", "Release")
+                    } else if (needsLargerTest) {
                         manager.addBadge("warning.gif", "Large tests required")
                     }
                 }
@@ -109,6 +112,11 @@ pipeline {
                     }
                 }
                 stage('Build on x86_64-centos7') {
+                    when {
+                        beforeAgent true
+                        branch 'master'
+                        expression { isRelease }
+                    }
                     agent {
                         label "docker"
                     }
@@ -129,6 +137,11 @@ pipeline {
                     }
                 }
                 stage('Build on ppc64le-centos7') {
+                    when {
+                        beforeAgent true
+                        branch 'master'
+                        expression { isRelease }
+                    }
                     agent {
                         label "ibm-power"
                     }
@@ -219,7 +232,9 @@ pipeline {
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
+                beforeAgent true
                 branch 'master'
+                expression { isRelease }
             }
             agent {
                 label "linux && docker"
@@ -248,17 +263,7 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
 
-        stage('Publish centos7 snapshot to S3') {
-            when {
-                branch 'master'
-            }
-            agent {
-                label "linux && docker"
-            }
-            steps {
                 sh "make mrproper"
                 unstash 'x86_64-centos7'
                 unstash 'ppc64le-centos7'
