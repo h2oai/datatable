@@ -128,6 +128,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	column_real.o             \
 	column_string.o           \
 	columnset.o               \
+	csv/chunks.o              \
 	csv/fread.o               \
 	csv/py_csv.o              \
 	csv/reader.o              \
@@ -368,6 +369,10 @@ $(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
 	@cp c/writebuf.h $@
 
 
+$(BUILDDIR)/csv/chunks.h: c/csv/chunks.h $(BUILDDIR)/utils/assert.h
+	@echo • Refreshing c/csv/chunks.h
+	@cp c/csv/chunks.h $@
+
 $(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
 	@echo • Refreshing c/csv/dtoa.h
 	@cp c/csv/dtoa.h $@
@@ -388,7 +393,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -498,6 +503,10 @@ $(BUILDDIR)/column_string.o : c/column_string.cc $(BUILDDIR)/column.h $(BUILDDIR
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
