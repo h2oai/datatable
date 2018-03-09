@@ -232,7 +232,10 @@ pipeline {
         // Publish into S3 all snapshots versions
         stage('Publish snapshot to S3') {
             when {
+                beforeAgent true
                 branch 'master'
+                expression { isRelease }
+            }
             }
             agent {
                 label "linux && docker"
@@ -261,19 +264,7 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
 
-        stage('Publish centos7 snapshot to S3') {
-            when {
-                beforeAgent true
-                branch 'master'
-                expression { isRelease }
-            }
-            agent {
-                label "linux && docker"
-            }
-            steps {
                 sh "make mrproper"
                 unstash 'x86_64-centos7'
                 unstash 'ppc64le-centos7'
