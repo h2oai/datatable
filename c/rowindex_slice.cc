@@ -51,6 +51,11 @@ void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
 }
 
 
+int64_t SliceRowIndexImpl::first() const {
+  return start;
+}
+
+
 
 RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
   RowIndexType uptype = rii->type;

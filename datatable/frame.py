@@ -738,7 +738,19 @@ class Frame(object):
 
 
     def topython(self):
+        """
+        Convert the Frame into a python list-of-lists.
+        """
         return self._dt.window(0, self.nrows, 0, self.ncols).data
+
+
+    def scalar(self):
+        """
+        For a 1x1 Frame return its content as a python object.
+
+        Raises an error if the shape of the Frame is not 1x1.
+        """
+        return self._dt.to_scalar()
 
 
     def __sizeof__(self):
@@ -821,6 +833,8 @@ def column_hexview(col, dt, colidx):
 
 
 core.register_function(1, column_hexview)
+core.register_function(4, TTypeError)
+core.register_function(5, TValueError)
 core.install_buffer_hooks(Frame())
 
 
