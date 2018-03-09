@@ -136,6 +136,8 @@ CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/+/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
+CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
+
 ARCH_SUBST = undefined
 FROM_SUBST = undefined
 ifeq ($(ARCH),x86_64)
@@ -155,6 +157,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
 		.
+	make clean
 	docker run \
 		--rm \
 		--init \
@@ -162,10 +165,27 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-v `pwd`:/dot \
 		-w /dot \
 		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		$(CONTAINER_NAME_TAG) \
-		-c 'python3.6 setup.py bdist_wheel'
+		-c 'make dist'
+	rm -fr build.output.tmp
+	mkdir build.output.tmp
+	mv $(DIST_DIR)/*.whl build.output.tmp
+	make clean
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX).noomp" \
+		$(CONTAINER_NAME_TAG) \
+		-c 'make dist_noomp'
+	mv $(DIST_DIR)/*.whl build.output.tmp
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
-	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
+	mv build.output.tmp/* $(DIST_DIR)/$(PLATFORM)
+	rmdir build.output.tmp
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
 # Note:  We don't actually need to run mrproper in docker (as root) because
