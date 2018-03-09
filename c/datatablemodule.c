@@ -59,6 +59,8 @@ static PyObject* pyregister_function(PyObject*, PyObject *args)
     if (n == 1) pycolumn::fn_hexview = fnref;
     else if (n == 2) init_py_stype_objs(fnref);
     else if (n == 3) init_py_ltype_objs(fnref);
+    else if (n == 4) replace_typeError(fnref);
+    else if (n == 5) replace_valueError(fnref);
     else {
         PyErr_Format(PyExc_ValueError, "Incorrect function index: %d", n);
         return NULL;

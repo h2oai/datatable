@@ -451,7 +451,6 @@ def test_internal_rowindex():
     assert repr(d1.internal.rowindex) == "_RowIndex(0/20/1)"
 
 
-
 #-------------------------------------------------------------------------------
 # Test conversions into Pandas / Numpy
 #-------------------------------------------------------------------------------
@@ -645,3 +644,40 @@ def test_tonumpy_with_stype(numpy):
     assert a2.T.tolist() == src
     assert a1.dtype == numpy.dtype("float32")
     assert a2.dtype == numpy.dtype("float64")
+
+
+
+#-------------------------------------------------------------------------------
+# .scalar()
+#-------------------------------------------------------------------------------
+
+@pytest.mark.run(order=30)
+def test_scalar1():
+    d0 = dt.Frame([False])
+    assert d0.scalar() is False
+    d1 = dt.Frame([-32767])
+    assert d1.scalar() == -32767
+    d2 = dt.Frame([3.14159])
+    assert d2.scalar() == 3.14159
+    d3 = dt.Frame(["koo!"])
+    assert d3.scalar() == "koo!"
+    d4 = dt.Frame([None])
+    assert d4.scalar() is None
+
+
+@pytest.mark.run(order=31)
+def test_scalar_bad():
+    d0 = dt.Frame([100, 200])
+    with pytest.raises(ValueError) as e:
+        d0.scalar()
+    assert (".scalar() method cannot be applied to a Frame with shape "
+            "`[2 x 1]`" in str(e.value))
+
+
+@pytest.mark.run(order=32)
+def test_scalar_on_view(dt0):
+    assert dt0[1, 0].scalar() == 7
+    assert dt0[3, 3].scalar() == 4.4
+    assert dt0[2, 6].scalar() == "hello"
+    assert dt0[2::5, 3::7].scalar() == -4
+    assert dt0[[3], "G"].scalar() == "world"

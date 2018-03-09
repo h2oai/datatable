@@ -469,6 +469,11 @@ RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
 }
 
 
+int64_t ArrayRowIndexImpl::first() const {
+  return (type == RowIndexType::RI_ARR32)? ind32[0] : ind64[0];
+}
+
+
 
 size_t ArrayRowIndexImpl::memory_footprint() const {
   return sizeof(*this) + ind32.size() * 4 + ind64.size() * 8;

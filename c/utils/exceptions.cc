@@ -14,6 +14,10 @@
 // Singleton, used to write the current "errno" into the stream
 CErrno Errno;
 
+static PyObject* type_error_class = PyExc_TypeError;
+static PyObject* value_error_class = PyExc_ValueError;
+
+
 
 //==============================================================================
 
@@ -140,12 +144,16 @@ bool PyError::is_keyboard_interrupt() const {
 //==============================================================================
 
 Error RuntimeError()  { return Error(PyExc_RuntimeError); }
-Error TypeError()     { return Error(PyExc_TypeError); }
-Error ValueError()    { return Error(PyExc_ValueError); }
+Error TypeError()     { return Error(type_error_class); }
+Error ValueError()    { return Error(value_error_class); }
 Error OverflowError() { return Error(PyExc_OverflowError); }
 Error MemoryError()   { return Error(PyExc_MemoryError); }
 Error NotImplError()  { return Error(PyExc_NotImplementedError); }
 Error IOError()       { return Error(PyExc_IOError); }
+
+
+void replace_typeError(PyObject* obj) { type_error_class = obj; }
+void replace_valueError(PyObject* obj) { value_error_class = obj; }
 
 
 

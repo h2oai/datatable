@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Warnings now have custom display hook.
 - Added global option `nthreads` which control the number of Omp threads used
   by `datatable` for parallel execution. Example: `dt.options.nthreads = 1`.
+- Add method `.scalar()` to quickly convert a 1x1 Frame into a python scalar.
 
 
 #### Changed

@@ -160,10 +160,7 @@ PyObject* get_alloc_size(obj* self) {
 //==============================================================================
 
 PyObject* window(obj* self, PyObject* args) {
-  int64_t row0;
-  int64_t row1;
-  int64_t col0;
-  int64_t col1;
+  int64_t row0, row1, col0, col1;
   if (!PyArg_ParseTuple(args, "llll", &row0, &row1, &col0, &col1))
     return nullptr;
 
@@ -172,6 +169,20 @@ PyObject* window(obj* self, PyObject* args) {
   Py_XDECREF(nargs);
 
   return res;
+}
+
+
+PyObject* to_scalar(obj* self, PyObject*) {
+  DataTable* dt = self->ref;
+  if (dt->ncols == 1 && dt->nrows == 1) {
+    Column* col = dt->columns[0];
+    int64_t i = col->rowindex().first();
+    auto f = py_stype_formatters[col->stype()];
+    return f(col, i);
+  } else {
+    throw ValueError() << ".scalar() method cannot be applied to a Frame with "
+      "shape `[" << dt->nrows << " x " << dt->ncols << "]`";
+  }
 }
 
 
@@ -408,6 +419,7 @@ static void dealloc(obj* self) {
 
 static PyMethodDef datatable_methods[] = {
   METHODv(window),
+  METHOD0(to_scalar),
   METHODv(check),
   METHODv(column),
   METHODv(delete_columns),
