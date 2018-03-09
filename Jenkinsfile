@@ -236,7 +236,6 @@ pipeline {
                 branch 'master'
                 expression { isRelease }
             }
-            }
             agent {
                 label "linux && docker"
             }
