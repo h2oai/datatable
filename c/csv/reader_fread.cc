@@ -64,7 +64,7 @@ FreadReader::~FreadReader() {
 
 
 FreadTokenizer FreadReader::makeTokenizer(
-    field64* target, const char* anchor)
+    field64* target, const char* anchor) const
 {
   return {
     .ch = NULL,
@@ -392,8 +392,6 @@ FreadLocalParseContext::FreadLocalParseContext(
 {
   thPush = 0;
   anchor = nullptr;
-  chunkStart = nullptr;
-  chunkEnd = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
   sep = f.sep;
@@ -416,26 +414,20 @@ FreadLocalParseContext::FreadLocalParseContext(
 FreadLocalParseContext::~FreadLocalParseContext() {}
 
 
-void FreadLocalParseContext::adjust_chunk_boundaries() {
-  // TODO: nextGoodLine should be inlined here?
-  tokenizer.ch = chunkStart;
-  tokenizer.nextGoodLine((int)columns.size(), fill, skipEmptyLines);
-  chunkStart = tokenizer.ch;
-}
 
-
-void FreadLocalParseContext::read_chunk() {
+ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
+{
   size_t ncols = columns.size();
   bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
   bool fastParsingAllowed = (sep != ' ') && !numbersMayBeNAs;
   bool stopTeam = false;
   const char*& tch = tokenizer.ch;
-  tch = chunkStart;
+  tch = cc.start;
   used_nrows = 0;
   tokenizer.target = tbuf;
-  tokenizer.anchor = anchor = chunkStart;
+  tokenizer.anchor = anchor = cc.start;
 
-  while (tch < chunkEnd) {
+  while (tch < cc.end) {
     if (used_nrows == tbuf_nrows) {
       allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
       tokenizer.target = tbuf + used_nrows * tbuf_ncols;
@@ -465,7 +457,7 @@ void FreadLocalParseContext::read_chunk() {
       else if (tokenizer.skip_eol() && j < ncols) {
         tokenizer.target += columns[j].presentInBuffer;
         j++;
-        if (j==ncols) { used_nrows++; continue; }  // next line. Back up to while (tch<chunkEnd). Usually happens, fastest path
+        if (j==ncols) { used_nrows++; continue; }  // next line. Back up to while (tch<cc.end). Usually happens, fastest path
         tch--;
       }
       else {
@@ -598,10 +590,10 @@ void FreadLocalParseContext::read_chunk() {
     used_nrows++;
   }
   if (stopTeam) {
-    chunkEnd = nullptr;
+    return ChunkCoordinates(cc.start, nullptr);
   } else {
-    chunkEnd = tch;
     postprocess();
+    return ChunkCoordinates(cc.start, tch);
   }
 }
 
@@ -900,36 +892,4 @@ int FreadTokenizer::countfields()
     return -1;  // -1 means this line not valid for this sep and quote rule
   }
   return ncol;
-}
-
-
-bool FreadTokenizer::nextGoodLine(int ncol, bool fill, bool skip_blank_lines) {
-  const char* ch0 = ch;
-  // we may have landed inside quoted field containing embedded sep and/or embedded \n
-  // find next \n and see if 5 good lines follow. If not try next \n, and so on, until we find the real \n
-  // We don't know which line number this is, either, because we jumped straight to it. So return true/false for
-  // the line number and error message to be worked out up there.
-  int attempts = 0;
-  while (ch < eof && attempts++<30) {
-    while (*ch!='\0' && *ch!='\n' && *ch!='\r') ch++;
-    if (*ch=='\0') return false;
-    skip_eol();  // move to the first byte of the next line
-    int i = 0;
-    // countfields() below moves the parse location, so store it in `ch1` in
-    // order to revert to the current parsing location later.
-    const char* ch1 = ch;
-    for (; i < 5; ++i) {
-      int n = countfields();  // advances `ch` to the beginning of the next line
-      if (n != ncol &&
-          !(ncol == 1 && n == 0) &&
-          !(skip_blank_lines && n == 0) &&
-          !(fill && n < ncol)) break;
-    }
-    ch = ch1;
-    // `i` is the count of consecutive consistent rows
-    if (i == 5) break;
-  }
-  if (*ch!='\0' && attempts<30) return true;
-  ch = ch0;
-  return false;
 }

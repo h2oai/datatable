@@ -218,6 +218,7 @@ void ChunkedDataReader::compute_chunking_strategy() {
 
 void ChunkedDataReader::read_all()
 {
+  /*
   const char* const inputend = inputptr + inputsize;
   if (!inputptr || !inputend) return;
   assert(alloc_nrows <= max_nrows);
@@ -375,6 +376,7 @@ void ChunkedDataReader::read_all()
       goto start_reading;
     }
   } // #omp parallel
+  */
 }
 
 
