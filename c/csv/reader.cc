@@ -68,14 +68,15 @@ void GenericReader::init_nthreads() {
   if (ISNA<int32_t>(nth)) {
     nthreads = config::get_nthreads();
     trace("Using default %d threads", nthreads);
+  } else {
+    nthreads = nth;
+    int32_t maxth = omp_get_max_threads();
+    if (nthreads > maxth) nthreads = maxth;
+    if (nthreads <= 0) nthreads += maxth;
+    if (nthreads <= 0) nthreads = 1;
+    trace("Using %d threads (requested=%d, max.available=%d)",
+          nthreads, nth, maxth);
   }
-  nthreads = nth;
-  int32_t maxth = omp_get_max_threads();
-  if (nthreads > maxth) nthreads = maxth;
-  if (nthreads <= 0) nthreads += maxth;
-  if (nthreads <= 0) nthreads = 1;
-  trace("Using %d threads (requested=%d, max.available=%d)",
-        nthreads, nth, maxth);
 }
 
 void GenericReader::init_fill() {
