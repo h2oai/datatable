@@ -114,11 +114,16 @@ pipeline {
                     }
                     steps {
                         dumpInfo 'x86_64-centos7 Build Info'
-                        script {
-                            sh """
-                                make mrproper_in_docker
-                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
-                            """
+                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                            script {
+                                sh """
+                                    make mrproper_in_docker
+                                    make BRANCH_NAME=${env.BRANCH_NAME} \
+                                         BUILD_NUM=${env.BUILD_ID} \
+                                         CI_VERSION_SUFFIX=${env.CI_VERSION_SUFFIX} \
+                                         centos7_in_docker
+                                """
+                            }
                         }
                         stash includes: 'dist/**/*', name: 'x86_64-centos7'
                     }
@@ -129,11 +134,16 @@ pipeline {
                     }
                     steps {
                         dumpInfo 'ppc64le-centos7 Build Info'
-                        script {
-                            sh """
-                                make mrproper_in_docker
-                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
-                            """
+                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                            script {
+                                sh """
+                                    make mrproper_in_docker
+                                    make BRANCH_NAME=${env.BRANCH_NAME} \
+                                         BUILD_NUM=${env.BUILD_ID} \
+                                         CI_VERSION_SUFFIX=${env.CI_VERSION_SUFFIX} \
+                                         centos7_in_docker
+                                """
+                            }
                         }
                         stash includes: 'dist/**/*', name: 'ppc64le-centos7'
                     }
