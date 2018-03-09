@@ -74,8 +74,11 @@ pipeline {
                 script {
                     buildInfo(env.BRANCH_NAME, false)
                     project = load 'ci/default.groovy'
-                    needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
-                    if (needsLargerTest) {
+                    isRelease = isModified("__version__\\.py")
+                    needsLargerTest = isRelease || isModified("(py_)?fread\\..*")
+                    if (isRelease) {
+                        manager.addBadge("db_out.gif", "Release")
+                    } else if (needsLargerTest) {
                         manager.addBadge("warning.gif", "Large tests required")
                     }
                 }
@@ -108,46 +111,56 @@ pipeline {
                         }
                     }
                 }
-                // stage('Build on x86_64-centos7') {
-                //     agent {
-                //         label "docker"
-                //     }
-                //     steps {
-                //         dumpInfo 'x86_64-centos7 Build Info'
-                //         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                //             script {
-                //                 sh """
-                //                     make mrproper_in_docker
-                //                     make BRANCH_NAME=${env.BRANCH_NAME} \
-                //                          BUILD_NUM=${env.BUILD_ID} \
-                //                          CI_VERSION_SUFFIX=${env.CI_VERSION_SUFFIX} \
-                //                          centos7_in_docker
-                //                 """
-                //             }
-                //         }
-                //         stash includes: 'dist/**/*', name: 'x86_64-centos7'
-                //     }
-                // }
-                // stage('Build on ppc64le-centos7') {
-                //     agent {
-                //         label "ibm-power"
-                //     }
-                //     steps {
-                //         dumpInfo 'ppc64le-centos7 Build Info'
-                //         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                //             script {
-                //                 sh """
-                //                     make mrproper_in_docker
-                //                     make BRANCH_NAME=${env.BRANCH_NAME} \
-                //                          BUILD_NUM=${env.BUILD_ID} \
-                //                          CI_VERSION_SUFFIX=${env.CI_VERSION_SUFFIX} \
-                //                          centos7_in_docker
-                //                 """
-                //             }
-                //         }
-                //         stash includes: 'dist/**/*', name: 'ppc64le-centos7'
-                //     }
-                // }
+                stage('Build on x86_64-centos7') {
+                    when {
+                        beforeAgent true
+                        branch 'master'
+                        expression { isRelease }
+                    }
+                    agent {
+                        label "docker"
+                    }
+                    steps {
+                        dumpInfo 'x86_64-centos7 Build Info'
+                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                            script {
+                                sh """
+                                    make mrproper_in_docker
+                                    make BRANCH_NAME=${env.BRANCH_NAME} \
+                                         BUILD_NUM=${env.BUILD_ID} \
+                                         CI_VERSION_SUFFIX=${env.CI_VERSION_SUFFIX} \
+                                         centos7_in_docker
+                                """
+                            }
+                        }
+                        stash includes: 'dist/**/*', name: 'x86_64-centos7'
+                    }
+                }
+                stage('Build on ppc64le-centos7') {
+                    when {
+                        beforeAgent true
+                        branch 'master'
+                        expression { isRelease }
+                    }
+                    agent {
+                        label "ibm-power"
+                    }
+                    steps {
+                        dumpInfo 'ppc64le-centos7 Build Info'
+                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                            script {
+                                sh """
+                                    make mrproper_in_docker
+                                    make BRANCH_NAME=${env.BRANCH_NAME} \
+                                         BUILD_NUM=${env.BUILD_ID} \
+                                         CI_VERSION_SUFFIX=${env.CI_VERSION_SUFFIX} \
+                                         centos7_in_docker
+                                """
+                            }
+                        }
+                        stash includes: 'dist/**/*', name: 'ppc64le-centos7'
+                    }
+                }
             }
         }
 
@@ -251,33 +264,35 @@ pipeline {
             }
         }
 
-        // stage('Publish centos7 snapshot to S3') {
-        //     when {
-        //         branch 'master'
-        //     }
-        //     agent {
-        //         label "linux && docker"
-        //     }
-        //     steps {
-        //         sh "make mrproper"
-        //         unstash 'x86_64-centos7'
-        //         unstash 'ppc64le-centos7'
-        //         sh 'echo "Stashed files:" && find dist'
-        //         script {
-        //             docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-        //                 docker.image('s3cmd').inside {
-        //                     def versionText = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
-        //                     s3up {
-        //                         localArtifact = 'dist/*'
-        //                         artifactId = "pydatatable"
-        //                         version = versionText
-        //                         keepPrivate = false
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Publish centos7 snapshot to S3') {
+            when {
+                beforeAgent true
+                branch 'master'
+                expression { isRelease }
+            }
+            agent {
+                label "linux && docker"
+            }
+            steps {
+                sh "make mrproper"
+                unstash 'x86_64-centos7'
+                unstash 'ppc64le-centos7'
+                sh 'echo "Stashed files:" && find dist'
+                script {
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                        docker.image('s3cmd').inside {
+                            def versionText = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
+                            s3up {
+                                localArtifact = 'dist/*'
+                                artifactId = "pydatatable"
+                                version = versionText
+                                keepPrivate = false
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
