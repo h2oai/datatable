@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   (which will be automatically converted to float32).
 - .isna() function now works on strings too.
 - `.save()` is now a method of `Frame` class.
+- Warnings now have custom display hook.
+- Added global option `nthreads` which control the number of Omp threads used
+  by `datatable` for parallel execution. Example: `dt.options.nthreads = 1`.
 
 
 #### Changed

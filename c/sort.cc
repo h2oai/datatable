@@ -112,6 +112,7 @@
 #include <stdio.h>    // printf
 #include "column.h"
 #include "datatable.h"
+#include "options.h"
 #include "rowindex.h"
 #include "types.h"
 #include "utils.h"
@@ -283,13 +284,13 @@ class SortContext {
     nsigbits = 2;
 
     if (use_order) {
-      #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         uint8_t t = xi[o[j]] + 0xBF;
         xo[j] = t >> 6;
       }
     } else {
-      #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         // xi[j]+0xBF should be computed as uint8_t; by default C++ upcasts it
         // to int, which leads to wrong results after shift by 6.
@@ -332,13 +333,13 @@ class SortContext {
                     nsigbits > 16? 2 : 0;
 
     if (use_order) {
-      #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; ++j) {
         TI t = xi[o[j]];
         xo[j] = t == una? 0 : static_cast<TO>(t - umin + 1);
       }
     } else {
-      #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         TI t = xi[j];
         xo[j] = t == una? 0 : static_cast<TO>(t - umin + 1);
@@ -385,20 +386,23 @@ class SortContext {
     nsigbits = elemsize * 8;
     next_elemsize = sizeof(TO) == 8? 8 : 2;
 
-    constexpr TO EXP = sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000;
-    constexpr TO SIG = sizeof(TO) == 8? 0x000FFFFFFFFFFFFFULL : 0x007FFFFF;
-    constexpr TO SBT = sizeof(TO) == 8? 0x8000000000000000ULL : 0x80000000;
+    constexpr TO EXP
+      = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
+    constexpr TO SIG
+      = static_cast<TO>(sizeof(TO) == 8? 0x000FFFFFFFFFFFFFULL : 0x007FFFFF);
+    constexpr TO SBT
+      = static_cast<TO>(sizeof(TO) == 8? 0x8000000000000000ULL : 0x80000000);
     constexpr int SHIFT = sizeof(TO) * 8 - 1;
 
     if (use_order) {
-      #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         TO t = xi[o[j]];
         xo[j] = ((t & EXP) == EXP && (t & SIG) != 0)
                 ? 0 : t ^ (SBT | -(t>>SHIFT));
       }
     } else {
-      #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static) num_threads(nth)
       for (size_t j = 0; j < n; j++) {
         TO t = xi[j];
         xo[j] = ((t & EXP) == EXP && (t & SIG) != 0)
@@ -431,7 +435,8 @@ class SortContext {
     nsigbits = 8;
 
     int maxlen = 0;
-    #pragma omp parallel for schedule(static) reduction(max:maxlen)
+    #pragma omp parallel for schedule(static) num_threads(nth) \
+            reduction(max:maxlen)
     for (size_t j = 0; j < n; ++j) {
       int32_t k = use_order? o[j] : static_cast<int32_t>(j);
       T offend = offs[k];
@@ -753,7 +758,7 @@ static RowIndex sort_small(Column* col, bool make_groups) {
  */
 static void determine_sorting_parameters(SortContext *sc)
 {
-  size_t nth = (size_t) omp_get_num_threads();
+  size_t nth = static_cast<size_t>(config::get_nthreads());
   size_t nch = nth * 2;
   size_t maxchunklen = 1024;
   sc->nth = nth;

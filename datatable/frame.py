@@ -8,7 +8,6 @@ import collections
 import re
 import sys
 import time
-import warnings
 from typing import Tuple, Dict, List, Union
 
 from datatable.lib import core
@@ -20,10 +19,11 @@ from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
 from datatable.utils.typechecks import (
-    TTypeError, TValueError, typed, U, is_type, Frame_t,
+    TTypeError, TValueError, typed, U, is_type, Frame_t, dtwarn,
     PandasDataFrame_t, PandasSeries_t, NumpyArray_t, NumpyMaskedArray_t)
 from datatable.graph import make_datatable, resolve_selector
 from datatable.csv import write_csv
+from datatable.options import options
 from datatable.types import stype
 
 __all__ = ("Frame", )
@@ -49,12 +49,12 @@ class Frame(object):
     def __init__(self, src=None, names=None, stypes=None, **kwargs):
         if "colnames" in kwargs and names is None:
             names = kwargs.pop("colnames")
-            warnings.warn("Parameter `colnames` in Frame constructor is "
-                          "deprecated. Use `names` instead.")
+            dtwarn("Parameter `colnames` in Frame constructor is "
+                   "deprecated. Use `names` instead.")
         if "stype" in kwargs:
             stypes = [kwargs.pop("stype")]
         if kwargs:
-            warnings.warn("Unknown options %r to Frame()" % kwargs)
+            dtwarn("Unknown options %r to Frame()" % kwargs)
         Frame._id_counter_ += 1
         self._id = Frame._id_counter_  # type: int
         self._ncols = 0      # type: int
@@ -309,8 +309,8 @@ class Frame(object):
             inames[newname] = i
             tnames.append(newname)
         if dupnames:
-            warnings.warn("Duplicate column names found: %r. They were assigned"
-                          " unique names." % dupnames)
+            dtwarn("Duplicate column names found: %r. They were assigned "
+                   "unique names." % dupnames)
         assert len(inames) == len(tnames) == len(names)
         return (tuple(tnames), inames)
 
@@ -790,6 +790,11 @@ class Frame(object):
         return size
 
 
+
+#-------------------------------------------------------------------------------
+# Global settings
+#-------------------------------------------------------------------------------
+
 def column_hexview(col, dt, colidx):
     hexdigits = ["%02X" % i for i in range(16)] + [""]
 
@@ -817,3 +822,11 @@ def column_hexview(col, dt, colidx):
 
 core.register_function(1, column_hexview)
 core.install_buffer_hooks(Frame())
+
+
+options.register_option(
+    "nthreads", xtype=int, default=0, setter=core.set_nthreads,
+    doc="The number of OMP threads to be used by datatable. The value of 0 "
+        "(default) allows datatable to use the maximum number of threads. "
+        "Values less than zero allow to use that fewer threads than the "
+        "maximum. Finally, nthreads=1 indicates single-threaded mode.")

@@ -9,7 +9,7 @@
 import ai.h2o.ci.Utils
 def utilsLib = new Utils()
 
-// Default mapping 
+// Default mapping
 def platformDefaults = [
         env      : [],
         pythonBin: 'python',
@@ -46,7 +46,7 @@ def sourceDir = "/home/0xdiag"
 def targetDir = "/tmp/pydatatable_large_data"
 
 // Data map for linking into container
-def linkMap = [ 
+def linkMap = [
         "Data"      : "h2oai-benchmarks/Data",
         "smalldata" : "h2o-3/smalldata",
         "bigdata"   : "h2o-3/bigdata",
@@ -108,40 +108,40 @@ pipeline {
                         }
                     }
                 }
-                stage('Build on x86_64-centos7') {
-                    agent {
-                        label "docker"
-                    }
-                    steps {
-                        dumpInfo 'x86_64-centos7 Build Info'
-                        script {
-                            sh """
-                                make mrproper_in_docker
-                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
-                            """
-                        }
-                        stash includes: 'dist/**/*', name: 'x86_64-centos7'
-                    }
-                }
-                stage('Build on ppc64le-centos7') {
-                    agent {
-                        label "ibm-power"
-                    }
-                    steps {
-                        dumpInfo 'ppc64le-centos7 Build Info'
-                        script {
-                            sh """
-                                make mrproper_in_docker
-                                make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
-                            """
-                        }
-                        stash includes: 'dist/**/*', name: 'ppc64le-centos7'
-                    }
-                }
+                // stage('Build on x86_64-centos7') {
+                //     agent {
+                //         label "docker"
+                //     }
+                //     steps {
+                //         dumpInfo 'x86_64-centos7 Build Info'
+                //         script {
+                //             sh """
+                //                 make mrproper_in_docker
+                //                 make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                //             """
+                //         }
+                //         stash includes: 'dist/**/*', name: 'x86_64-centos7'
+                //     }
+                // }
+                // stage('Build on ppc64le-centos7') {
+                //     agent {
+                //         label "ibm-power"
+                //     }
+                //     steps {
+                //         dumpInfo 'ppc64le-centos7 Build Info'
+                //         script {
+                //             sh """
+                //                 make mrproper_in_docker
+                //                 make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                //             """
+                //         }
+                //         stash includes: 'dist/**/*', name: 'ppc64le-centos7'
+                //     }
+                // }
             }
         }
 
-        stage("Coverage") { 
+        stage("Coverage") {
             parallel {
                 stage('Coverage on Linux') {
                     agent {
@@ -241,33 +241,33 @@ pipeline {
             }
         }
 
-        stage('Publish centos7 snapshot to S3') {
-            when {
-                branch 'master'
-            }
-            agent {
-                label "linux && docker"
-            }
-            steps {
-                sh "make mrproper"
-                unstash 'x86_64-centos7'
-                unstash 'ppc64le-centos7'
-                sh 'echo "Stashed files:" && find dist'
-                script {
-                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                        docker.image('s3cmd').inside {
-                            def versionText = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
-                            s3up {
-                                localArtifact = 'dist/*'
-                                artifactId = "pydatatable"
-                                version = versionText
-                                keepPrivate = false
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // stage('Publish centos7 snapshot to S3') {
+        //     when {
+        //         branch 'master'
+        //     }
+        //     agent {
+        //         label "linux && docker"
+        //     }
+        //     steps {
+        //         sh "make mrproper"
+        //         unstash 'x86_64-centos7'
+        //         unstash 'ppc64le-centos7'
+        //         sh 'echo "Stashed files:" && find dist'
+        //         script {
+        //             docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+        //                 docker.image('s3cmd').inside {
+        //                     def versionText = utilsLib.getCommandOutput("cat dist/x86_64-centos7/VERSION.txt")
+        //                     s3up {
+        //                         localArtifact = 'dist/*'
+        //                         artifactId = "pydatatable"
+        //                         version = versionText
+        //                         keepPrivate = false
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 

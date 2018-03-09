@@ -6,13 +6,12 @@
 #-------------------------------------------------------------------------------
 import os
 import re
-import warnings
 
 import datatable as dt
 from datatable.lib import core
 # from datatable.fread import Frame
 # from datatable.fread import fread
-from datatable.utils.typechecks import typed, TValueError
+from datatable.utils.typechecks import typed, TValueError, dtwarn
 
 _builtin_open = open
 
@@ -53,8 +52,7 @@ def save(self, dest, _strategy="auto"):
             stype = _col.stype
             meta = _col.meta
             if stype == dt.stype.obj64:
-                warnings.warn("Column %r of type obj64 was not saved"
-                              % self.names[i])
+                dtwarn("Column %r of type obj64 was not saved" % self.names[i])
                 continue
             if meta is None:
                 meta = ""

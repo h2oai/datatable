@@ -119,7 +119,8 @@ int64_t PyObj::as_int64() const {
 
 
 int32_t PyObj::as_int32() const {
-  return static_cast<int32_t>(as_int64());
+  int64_t val = as_int64();
+  return ISNA<int64_t>(val)? GETNA<int32_t>() : static_cast<int32_t>(val);
 }
 
 

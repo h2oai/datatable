@@ -15,7 +15,8 @@ from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 from datatable.lib import core
 from datatable.frame import Frame
-from datatable.utils.typechecks import typed, U, TValueError, TTypeError
+from datatable.utils.typechecks import (typed, U, TValueError, TTypeError,
+                                        DatatableWarning)
 from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
@@ -37,6 +38,7 @@ TColumnsSpec = Union[
     Callable[[int, str], Union[None, bool, str]],
     Callable[[int, str, str], Union[None, bool, str, Tuple[str, TColType]]]
 ]
+
 
 
 def fread(
@@ -952,13 +954,16 @@ class GenericReader(object):
 
 
 
+class FreadWarning(DatatableWarning):
+    pass
+
 
 class _DefaultLogger:
     def debug(self, message):
         print(_log_color(message), flush=True)
 
     def warning(self, message):
-        warnings.warn(message)
+        warnings.warn(message, category=FreadWarning)
 
 
 # os.PathLike interface was added in Python 3.6

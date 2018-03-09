@@ -51,7 +51,7 @@ def write_csv(dt, path="", nthreads=0, hex=False, verbose=False, **kwargs):
 
 class CsvWriter(object):
 
-    def __init__(self, datatable, path, nthreads=0, hex=False, verbose=False,
+    def __init__(self, datatable, path, nthreads=None, hex=False, verbose=False,
                  _strategy="auto"):
         self.datatable = datatable.internal
         self.column_names = datatable.names
