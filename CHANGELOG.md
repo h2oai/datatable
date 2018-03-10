@@ -108,6 +108,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - View frames can now be properly saved.
 - Fixed crash when sorting view frame by a string column.
 - Deleting 0 columns is no longer an error.
+- Rows filter now works properly when applied to a view table and using "eager"
+  evaluation engine.
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
