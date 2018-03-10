@@ -599,22 +599,33 @@ def test_rows_stdev():
 #-------------------------------------------------------------------------------
 
 def test_filter_on_view1():
-    dt0 = dt.Frame({"A": range(50)})
-    dt1 = dt0[::2, :]
-    assert dt1.shape == (25, 1)
-    dt2 = dt1(rows=lambda g: g.A < 10)
-    assert dt2.internal.check()
-    assert dt2.internal.isview
-    assert dt2.topython() == [[0, 2, 4, 6, 8]]
+    df0 = dt.Frame({"A": range(50)})
+    df1 = df0[::2, :]
+    assert df1.shape == (25, 1)
+    df2 = df1(f.A < 10)
+    assert df2.internal.check()
+    assert df2.internal.isview
+    assert df2.topython() == [[0, 2, 4, 6, 8]]
 
 
 def test_filter_on_view2():
-    dt0 = dt.Frame({"A": range(50)})
-    dt1 = dt0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
-    dt2 = dt1(rows=lambda g: g.A < 10)
-    assert dt2.internal.check()
-    assert dt2.internal.isview
-    assert dt2.topython() == [[5, 7, 9, 3, 1, 4, 8]]
+    df0 = dt.Frame({"A": range(50)})
+    df1 = df0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
+    df2 = df1(rows=lambda g: g.A < 10)
+    assert df2.internal.check()
+    assert df2.internal.isview
+    assert df2.topython() == [[5, 7, 9, 3, 1, 4, 8]]
+
+
+def test_filter_on_view3():
+    df0 = dt.Frame({"A": range(20)})
+    df1 = df0[::5, :]
+    df2 = df1(f.A <= 10, engine="eager")
+    df3 = df1(f.A <= 10, engine="llvm")
+    assert df2.internal.check()
+    assert df3.internal.check()
+    assert df2.topython() == [[0, 5, 10]]
+    assert df3.topython() == [[0, 5, 10]]
 
 
 def test_chained_slice(dt0):

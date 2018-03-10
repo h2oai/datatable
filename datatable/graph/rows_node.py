@@ -308,13 +308,17 @@ class FilterExprRFNode(RFNode):
 
 
     def _make_final_rowindex(self):
-        if isinstance(self._engine, LlvmEvaluationEngine):
-            ptr = self._engine.get_result(self._fnname)
-            nrows = self._engine.dt.nrows
+        ee = self._engine
+        if isinstance(ee, LlvmEvaluationEngine):
+            ptr = ee.get_result(self._fnname)
+            nrows = ee.dt.nrows
             return core.rowindex_from_filterfn(ptr, nrows)
         else:
             col = self._expr.evaluate_eager()
-            return core.rowindex_from_column(col)
+            rowindex = core.rowindex_from_column(col)
+            if ee.rowindex:
+                rowindex = rowindex.uplift(ee.rowindex)
+            return rowindex
 
 
     def _make_source_rowindex(self):
