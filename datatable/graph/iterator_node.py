@@ -166,10 +166,6 @@ class MapNode(IteratorNode):
     def __init__(self, dt, exprs):
         super().__init__(dt, name="map")
         self._exprs = exprs
-        self._rowindex = None
-
-    def use_rowindex(self, ri):
-        self._rowindex = ri
 
     def add_expression(self, expr):
         self._exprs.append(expr)

@@ -15,11 +15,12 @@ from .llvm import llvm
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt", "rowindex"]
+    __slots__ = ["dt", "rowindex", "columns"]
 
     def __init__(self, dt):
         self.dt = dt
         self.rowindex = None
+        self.columns = None
 
     def is_compiled(self):
         """Return True iff the engine requires code compilation step."""
@@ -36,7 +37,7 @@ class EvaluationEngine:
         return datatable.graph.groupby_node.make_groupby(grby, self)
 
     def make_columnset(self, cols):
-        return datatable.graph.cols_node.make_columnset(cols, self.dt, self)
+        return datatable.graph.cols_node.make_columnset(cols, self)
 
     def make_sort(self, sort):
         return datatable.graph.sort_node.make_sort(sort, self)
