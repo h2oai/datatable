@@ -329,4 +329,4 @@ def process_column(col, df):
     if isinstance(col, BaseExpr):
         return col
 
-    raise TTypeError("Unknown column format: %r" % col)
+    raise TTypeError("Unknown column selector: %r" % col)
