@@ -137,8 +137,8 @@ class MixedCSNode(ColumnSetNode):
     def evaluate_llvm(self):
         fnptr = self._mapnode.get_result()
         if self._rowindex:
-            rowindex = self._rowindex.get_result()
-            nrows = rowindex.length
+            rowindex = self._rowindex
+            nrows = rowindex.nrows
         else:
             nrows = self._dt.nrows
         return core.columns_from_mixed(self._elems, self._dt.internal,
