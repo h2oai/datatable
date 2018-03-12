@@ -258,6 +258,19 @@ def test_cols_expression(dt0, tbl0):
                                     for i in range(6)]]
 
 
+def test_cols_expression2():
+    f0 = dt.Frame({"A": range(10)})
+    f1 = f0(select={"foo": f.A, "bar": -f.A}, engine="eager")
+    f2 = f0(select={"foo": f.A, "bar": -f.A}, engine="llvm")
+    assert f1.internal.check()
+    assert f2.internal.check()
+    assert f1.names == f2.names == ("foo", "bar")
+    assert f1.stypes == f2.stypes == f0.stypes * 2
+    assert f1.topython() == f2.topython() == [list(range(10)),
+                                              list(range(0, -10, -1))]
+
+
+
 def test_cols_bad_arguments(dt0):
     """
     Check certain arguments that would be invalid as column selectors
