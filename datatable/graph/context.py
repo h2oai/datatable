@@ -49,10 +49,10 @@ def make_engine(engine, dt):
     if engine == "llvm":
         return LlvmEvaluationEngine(dt)
     if engine is None:
-        if dt.nrows < 0 or not llvm.available:
+        # if dt.nrows < 1000 or not llvm.available:
             return EagerEvaluationEngine(dt)
-        else:
-            return LlvmEvaluationEngine(dt)
+        # else:
+        #     return LlvmEvaluationEngine(dt)
     raise ValueError("Unknown value for parameter `engine`: %r" % (engine,))
 
 
