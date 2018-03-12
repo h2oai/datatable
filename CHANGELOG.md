@@ -78,6 +78,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   and user warning will be shown (previously saving this column would eventually
   lead to a segfault).
 - (python) DataTable class was renamed into Frame.
+- "eager" evaluation engine is now the default.
 
 
 #### Fixed

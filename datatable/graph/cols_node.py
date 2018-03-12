@@ -145,7 +145,10 @@ class MixedCSNode(ColumnSetNode):
                                        nrows, fnptr)
 
     def evaluate_eager(self):
-        columns = [e.evaluate_eager() for e in self._elems]
+        _dt = self._dt.internal
+        columns = [core.expr_column(_dt, e) if isinstance(e, int) else
+                   e.evaluate_eager()
+                   for e in self._elems]
         return core.columns_from_columns(columns)
 
     def use_rowindex(self, ri):

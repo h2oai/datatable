@@ -9,6 +9,7 @@ import re
 import subprocess
 from llvmlite import binding
 from datatable.utils.terminal import term
+from datatable.utils.typechecks import TValueError
 
 __all__ = ("llvm", )
 
@@ -99,6 +100,8 @@ class Llvm:
     #---------------------------------------------------------------------------
 
     def _c_to_llvm(self, code):
+        if self._clang is None:
+            raise TValueError("LLVM execution engine is not available")
         proc = subprocess.Popen(args=[self._clang, "-x", "c", "-S",
                                       "-emit-llvm", "-o", "-", "-"],
                                 stdin=subprocess.PIPE,

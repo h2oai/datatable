@@ -79,6 +79,9 @@ struct Inverse<double> {
   inline static double impl(double) { return 0; }
 };
 
+inline static int8_t bool_inverse(int8_t x) {
+  return ISNA<int8_t>(x)? x : !x;
+}
 
 
 
@@ -109,7 +112,9 @@ static mapperfn resolve_str(int opcode) {
 
 static mapperfn resolve0(SType stype, int opcode) {
   switch (stype) {
-    case ST_BOOLEAN_I1: return resolve1<int8_t>(opcode);
+    case ST_BOOLEAN_I1:
+      if (opcode == OpCode::Invert) return map_n<int8_t, int8_t, bool_inverse>;
+      return resolve1<int8_t>(opcode);
     case ST_INTEGER_I1: return resolve1<int8_t>(opcode);
     case ST_INTEGER_I2: return resolve1<int16_t>(opcode);
     case ST_INTEGER_I4: return resolve1<int32_t>(opcode);
@@ -130,8 +135,11 @@ Column* unaryop(int opcode, Column* arg)
 
   SType arg_type = arg->stype();
   SType res_type = arg_type;
-  if (opcode == OpCode::IsNa) res_type = ST_BOOLEAN_I1;
-  else if (arg_type == ST_BOOLEAN_I1) res_type = ST_INTEGER_I1;
+  if (opcode == OpCode::IsNa) {
+    res_type = ST_BOOLEAN_I1;
+  } else if (arg_type == ST_BOOLEAN_I1 && opcode == OpCode::Minus) {
+    res_type = ST_INTEGER_I1;
+  }
   void* params[2];
   params[0] = arg;
   params[1] = Column::new_data_column(res_type, arg->nrows);
