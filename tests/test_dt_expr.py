@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from datatable import stype
+from datatable import f, stype
 from tests import list_equals
 
 
@@ -42,19 +42,24 @@ def inv(t):
 @pytest.mark.parametrize("src", dt_bool | dt_int)
 def test_dt_invert(src):
     dt0 = dt.Frame(src)
-    dtr = dt0(select=lambda f: ~f[0])
-    assert dtr.internal.check()
-    assert dtr.stypes == dt0.stypes
-    assert dtr.topython() == [[inv(x) for x in src]]
+    df1 = dt0(select=~f[0], engine="llvm")
+    df2 = dt0(select=~f[0], engine="eager")
+    assert df1.internal.check()
+    assert df2.internal.check()
+    assert df1.stypes == dt0.stypes
+    assert df2.stypes == dt0.stypes
+    assert df1.topython() == [[inv(x) for x in src]]
+    assert df2.topython() == [[inv(x) for x in src]]
 
 
 @pytest.mark.parametrize("src", dt_float)
 def test_dt_invert_invalid(src):
     dt0 = dt.Frame(src)
-    with pytest.raises(TypeError) as e:
-        dt0(select=lambda f: ~f[0])
-    assert str(e.value) == ("Operation ~ not allowed on operands of type %s"
-                            % dt0.stypes[0])
+    for engine in ["llvm", "eager"]:
+        with pytest.raises(TypeError) as e:
+            dt0(select=~f[0], engine=engine)
+        assert str(e.value) == ("Operator `~` cannot be applied to a `%s` "
+                                "column" % dt0.stypes[0].name)
 
 
 
@@ -81,8 +86,8 @@ def test_dt_neg_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: -f[0])
-    assert str(e.value) == ("Operation - not allowed on operands of type %s"
-                            % dt0.stypes[0])
+    assert str(e.value) == ("Operator `-` cannot be applied to a `%s` column"
+                            % dt0.stypes[0].name)
 
 
 
@@ -104,8 +109,8 @@ def test_dt_pos_invalid(src):
     dt0 = dt.Frame(src)
     with pytest.raises(TypeError) as e:
         dt0(select=lambda f: +f[0])
-    assert str(e.value) == ("Operation + not allowed on operands of type %s"
-                            % dt0.stypes[0])
+    assert str(e.value) == ("Operator `+` cannot be applied to a `%s` column"
+                            % dt0.stypes[0].name)
 
 
 
