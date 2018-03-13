@@ -360,7 +360,7 @@ PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_dat
 
 typedef PyObject* (Column::*scalarstatfn)() const;
 static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
-  if (dt->ncols != 1) throw ValueError() << "Not a 1-column DataTable";
+  if (dt->ncols != 1) throw ValueError() << "This method can only be applied to a 1-column Frame";
   return (dt->columns[0]->*f)();
 }
 

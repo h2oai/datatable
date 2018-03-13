@@ -56,6 +56,7 @@ def test_min(src):
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
     assert dtr.topython() == [[t_min(src)]]
+    assert dtr.scalar() == dt0.min1()
 
 
 def test_dt_str():
@@ -86,6 +87,7 @@ def test_max(src):
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
     assert dtr.topython() == [[t_max(src)]]
+    assert dtr.scalar() == dt0.max1()
 
 
 
@@ -113,6 +115,7 @@ def test_sum(src):
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [[t_sum(src)]])
+    assert list_equals([dtr.scalar()], [dt0.sum1()])
 
 
 
@@ -135,6 +138,7 @@ def test_dt_mean(src):
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
     assert list_equals(dtr.topython(), [[t_mean(src)]])
+    assert list_equals([dtr.scalar()], [dt0.mean1()])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 3),
@@ -184,6 +188,7 @@ def test_dt_sd(src):
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
     assert list_equals(dtr.topython(), [[t_sd(src)]])
+    assert list_equals([dtr.scalar()], [dt0.sd1()])
 
 
 @pytest.mark.parametrize("src, res", [([1, 3, 5, None], 2.0),
@@ -220,11 +225,12 @@ def test_dt_count_na(src):
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
     assert dtr.topython() == [[t_count_na(src)]]
+    assert dtr.scalar() == dt0.countna1()
 
 
 
 #-------------------------------------------------------------------------------
-# RowIndex compatability
+# Special cases
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
@@ -235,11 +241,19 @@ def test_dt_count_na(src):
      ([3.5, -182, None, 2, 3], [0, 2, 4], 3),
      ([True, True, True, None, False], slice(4), True),
      ([True, True, True, None, False], [0, 3], True)])
-def test_dt_ridx(src, view, exp):
+def test_stats_on_view(src, view, exp):
     dt0 = dt.Frame(src)
     dt_view = dt0(view)
     res = dt_view.min()
-    assert res.topython()[0][0] == exp
+    assert res.scalar() == exp
+
+
+def test_bad_call():
+    f0 = dt.Frame([range(10), range(10)])
+    assert f0.ncols == 2
+    with pytest.raises(ValueError) as e:
+        f0.min1()
+    assert "This method can only be applied to a 1-column Frame" in str(e.value)
 
 
 
