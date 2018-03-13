@@ -27,7 +27,11 @@ SType IntColumn<T>::stype() const {
   return stype_integer(sizeof(T));
 }
 
-//---- Stats -------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Stats
+//------------------------------------------------------------------------------
 
 template <typename T>
 IntegerStats<T>* IntColumn<T>::get_stats() const {
@@ -122,8 +126,18 @@ int64_t IntColumn<T>::max_int64() const {
 }
 
 
+template <typename T> PyObject* IntColumn<T>::min_pyscalar() const { return int_to_py(min()); }
+template <typename T> PyObject* IntColumn<T>::max_pyscalar() const { return int_to_py(max()); }
+template <typename T> PyObject* IntColumn<T>::sum_pyscalar() const { return int_to_py(sum()); }
+template <typename T> PyObject* IntColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
+template <typename T> PyObject* IntColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
 
-//----- Type casts -------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------
+// Type casts
+//------------------------------------------------------------------------------
 
 template<typename IT, typename OT>
 inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {

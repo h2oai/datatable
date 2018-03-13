@@ -306,7 +306,7 @@ $(BUILDDIR)/capi.h: c/capi.h
 	@echo • Refreshing c/capi.h
 	@cp c/capi.h $@
 
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/column.h
 	@cp c/column.h $@
 
@@ -496,7 +496,7 @@ $(BUILDDIR)/capi.o : c/capi.cc $(BUILDDIR)/capi.h $(BUILDDIR)/datatable.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column.o : c/column.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/column.o : c/column.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

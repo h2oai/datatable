@@ -8,6 +8,7 @@
 #include "column.h"
 #include <cstdlib>     // atoll
 #include "datatable_check.h"
+#include "py_types.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -244,6 +245,11 @@ size_t Column::memory_footprint() const
 }
 
 
+
+//------------------------------------------------------------------------------
+// Stats
+//------------------------------------------------------------------------------
+
 int64_t Column::countna() const {
   Stats* s = get_stats();
   if (!s->countna_computed()) s->countna_compute(this);
@@ -263,6 +269,15 @@ Column* Column::countna_column() const {
   IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
   col->set_elem(0, countna());
   return col;
+}
+
+PyObject* Column::mean_pyscalar() const { return none(); }
+PyObject* Column::sd_pyscalar() const { return none(); }
+PyObject* Column::min_pyscalar() const { return none(); }
+PyObject* Column::max_pyscalar() const { return none(); }
+PyObject* Column::sum_pyscalar() const { return none(); }
+PyObject* Column::countna_pyscalar() const {
+  return PyLong_FromInt64(countna());
 }
 
 

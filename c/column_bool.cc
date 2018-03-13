@@ -9,11 +9,16 @@
 #include <Python.h>
 #include "utils/omp.h"
 
+
+
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
+
 BoolColumn::BoolColumn() : FwColumn<int8_t>() {}
 
 BoolColumn::BoolColumn(int64_t nrows_, MemoryBuffer* mb) :
     FwColumn<int8_t>(nrows_, mb) {}
-
 
 BoolColumn::~BoolColumn() {}
 
@@ -22,7 +27,11 @@ SType BoolColumn::stype() const {
   return ST_BOOLEAN_I1;
 }
 
-//---- Stats -------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Stats
+//------------------------------------------------------------------------------
 
 BooleanStats* BoolColumn::get_stats() const {
   if (stats == nullptr) stats = new BooleanStats();
@@ -75,8 +84,17 @@ Column* BoolColumn::sd_column() const {
   return col;
 }
 
+PyObject* BoolColumn::min_pyscalar() const { return bool_to_py(min()); }
+PyObject* BoolColumn::max_pyscalar() const { return bool_to_py(max()); }
+PyObject* BoolColumn::sum_pyscalar() const { return int_to_py(sum()); }
+PyObject* BoolColumn::mean_pyscalar() const { return float_to_py(mean()); }
+PyObject* BoolColumn::sd_pyscalar() const { return float_to_py(sd()); }
 
-//----- Type casts -------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Type casts
+//------------------------------------------------------------------------------
 
 template<typename T>
 inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
@@ -119,11 +137,10 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
   int8_t*    src_data = this->elements();
   PyObject** trg_data = target->elements();
   for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src_data[i];
-    trg_data[i] = x == 1? Py_True : x == 0? Py_False : Py_None;
-    Py_INCREF(trg_data[i]);
+    trg_data[i] = bool_to_py(src_data[i]);
   }
 }
+
 
 
 //------------------------------------------------------------------------------

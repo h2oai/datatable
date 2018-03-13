@@ -5,9 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_DATATABLE_H
-#define dt_DATATABLE_H
-#include <inttypes.h>
+#ifndef dt_DATATABLE_h
+#define dt_DATATABLE_h
 #include <vector>
 #include <string>
 #include "datatable_check.h"
@@ -21,6 +20,7 @@ class Stats;
 class DataTable;
 
 typedef std::unique_ptr<DataTable> DataTablePtr;
+typedef Column* (Column::*colmakerfn)(void) const;
 
 
 //==============================================================================
@@ -91,6 +91,8 @@ class DataTable {
     static DataTable* load(DataTable* schema, int64_t nrows,
                            const std::string& path);
 
+  private:
+    DataTable* _statdt(colmakerfn f) const;
 };
 
 
