@@ -5,7 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable as dt
-from datatable import f
+from datatable import f, mean
 
 
 def test_groups_internal0():
@@ -57,3 +57,16 @@ def test_groups_internal3():
     assert ri.ngroups == 3
     assert ri.group_sizes == [4, 4, 2]
     assert ri.group_offsets == [0, 4, 8, 10]
+
+
+
+#-------------------------------------------------------------------------------
+# Groupby on small datasets
+#-------------------------------------------------------------------------------
+
+def test_groups1():
+    f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
+                   "B": [0, 1, 2, 3, 4, 5, 6, 7]})
+    f1 = f0(select=mean(f.B), groupby=f.A)
+    assert f1.stypes == (dt.float64,)
+    assert f1.topython() == [[3.8, 2.0, 5.0]]
