@@ -76,9 +76,9 @@ class BinaryOpExpr(BaseExpr):
     # Eager evaluation
     #---------------------------------------------------------------------------
 
-    def evaluate_eager(self):
-        lhs = self._lhs.evaluate_eager()
-        rhs = self._rhs.evaluate_eager()
+    def evaluate_eager(self, ee):
+        lhs = self._lhs.evaluate_eager(ee)
+        rhs = self._rhs.evaluate_eager(ee)
         nl = lhs.nrows
         nr = rhs.nrows
         if nl == nr or nl == 1 or nr == 1:

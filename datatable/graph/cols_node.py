@@ -7,6 +7,7 @@
 import types
 
 from datatable.lib import core
+from .context import LlvmEvaluationEngine
 from .iterator_node import MapNode
 from datatable.expr import BaseExpr, ColSelectorExpr
 from datatable.graph.dtproxy import f
@@ -28,19 +29,24 @@ class ColumnSetNode:
     constructs and returns a ``Column**`` array of columns.
     """
 
-    def __init__(self, dt):
-        self._dt = dt
-        self._rowindex = None
-        self._cname = None
+    def __init__(self, ee):
+        self._engine = ee
         self._column_names = tuple()
 
     @property
     def dt(self):
-        return self._dt
+        return self._engine.dt
 
     @property
     def column_names(self):
         return self._column_names
+
+    def execute(self):
+        self._engine.columns = self._compute_columns()
+
+    def _compute_columns():
+        raise NotImplementedError
+
 
 
 
@@ -48,8 +54,8 @@ class ColumnSetNode:
 
 class SliceCSNode(ColumnSetNode):
 
-    def __init__(self, dt, start, count, step):
-        super().__init__(dt)
+    def __init__(self, ee, start, count, step):
+        super().__init__(ee)
         self._start = start
         self._step = step
         self._count = count
@@ -58,7 +64,7 @@ class SliceCSNode(ColumnSetNode):
 
     def _make_column_names(self):
         if self._step == 0:
-            s = self._dt.names[self._start]
+            s = self.dt.names[self._start]
             return tuple([s] * self._count)
         else:
             end = self._start + self._count * self._step
@@ -69,15 +75,13 @@ class SliceCSNode(ColumnSetNode):
                 # (3, 2, -2) denotes indices [3, 1], which can be achieved using
                 # slice [3::-2] but not slice [3:-1:-2].
                 end = None
-            return self._dt.names[self._start:end:self._step]
+            return self.dt.names[self._start:end:self._step]
 
 
-    def evaluate_eager(self):
-        res = core.columns_from_slice(self._dt.internal, self._rowindex,
+    def _compute_columns(self):
+        res = core.columns_from_slice(self.dt.internal, self._engine.rowindex,
                                       self._start, self._count, self._step)
         return res
-
-    evaluate_llvm = evaluate_eager
 
 
     def get_list(self):
@@ -93,7 +97,7 @@ class SliceCSNode(ColumnSetNode):
     def is_all(self):
         return (self._start == 0 and
                 self._step == 1 and
-                self._count == self._dt.ncols)
+                self._count == self.dt.ncols)
 
 
 
@@ -101,16 +105,14 @@ class SliceCSNode(ColumnSetNode):
 
 class ArrayCSNode(ColumnSetNode):
 
-    def __init__(self, dt, elems, colnames):
-        super().__init__(dt)
+    def __init__(self, ee, elems, colnames):
+        super().__init__(ee)
         self._elems = elems
         self._column_names = colnames
 
-    def evaluate_eager(self):
-        return core.columns_from_array(self._dt.internal, self._rowindex,
+    def _compute_columns(self):
+        return core.columns_from_array(self.dt.internal, self._engine.rowindex,
                                        self._elems)
-
-    evaluate_llvm = evaluate_eager
 
     def get_list(self):
         return self._elems
@@ -121,8 +123,8 @@ class ArrayCSNode(ColumnSetNode):
 
 class MixedCSNode(ColumnSetNode):
 
-    def __init__(self, dt, elems, names, cmodule=None):
-        super().__init__(dt)
+    def __init__(self, ee, elems, names):
+        super().__init__(ee)
         self._elems = elems
         self._column_names = names
         self._rowindex = None
@@ -131,35 +133,34 @@ class MixedCSNode(ColumnSetNode):
             if isinstance(elem, BaseExpr):
                 elem.resolve()
                 expr_elems.append(elem)
-        self._mapnode = MapNode(dt, expr_elems)
-        self._mapnode.use_cmodule(cmodule)
+        self._mapnode = MapNode(ee.dt, expr_elems)
+        self._mapnode.use_cmodule(ee)
 
-    def evaluate_llvm(self):
-        fnptr = self._mapnode.get_result()
-        if self._rowindex:
-            rowindex = self._rowindex.get_result()
-            nrows = rowindex.length
+    def _compute_columns(self):
+        if isinstance(self._engine, LlvmEvaluationEngine):
+            fnptr = self._mapnode.get_result()
+            rowindex = self._engine.rowindex
+            if rowindex:
+                nrows = rowindex.nrows
+            else:
+                nrows = self.dt.nrows
+            return core.columns_from_mixed(self._elems, self.dt.internal,
+                                           nrows, fnptr)
         else:
-            nrows = self._dt.nrows
-        return core.columns_from_mixed(self._elems, self._dt.internal,
-                                       nrows, fnptr)
+            ee = self._engine
+            _dt = ee.dt.internal
+            _ri = ee.rowindex
+            columns = [core.expr_column(_dt, e, _ri) if isinstance(e, int) else
+                       e.evaluate_eager(ee)
+                       for e in self._elems]
+            return core.columns_from_columns(columns)
 
-    def evaluate_eager(self):
-        _dt = self._dt.internal
-        columns = [core.expr_column(_dt, e) if isinstance(e, int) else
-                   e.evaluate_eager()
-                   for e in self._elems]
-        return core.columns_from_columns(columns)
-
-    def use_rowindex(self, ri):
-        self._rowindex = ri
-        self._mapnode.use_rowindex(ri)
 
 
 
 #===============================================================================
 
-def make_columnset(arg, dt, cmod, _nested=False):
+def make_columnset(arg, ee, _nested=False):
     """
     Create a :class:`CSNode` object from the provided expression.
 
@@ -175,11 +176,13 @@ def make_columnset(arg, dt, cmod, _nested=False):
     dt: Frame
         The Frame to which ``arg`` selector applies.
 
-    cmod: CModule
+    ee: EvalutionEngine
         Expression evaluation engine.
     """
+    dt = ee.dt
+
     if arg is None or arg is Ellipsis:
-        return SliceCSNode(dt, 0, dt.ncols, 1)
+        return SliceCSNode(ee, 0, dt.ncols, 1)
 
     if arg is True or arg is False:
         # Note: True/False are integer objects in Python, hence this test has
@@ -190,12 +193,12 @@ def make_columnset(arg, dt, cmod, _nested=False):
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
         pcol = process_column(arg, dt)
         if isinstance(pcol, int):
-            return SliceCSNode(dt, pcol, 1, 1)
+            return SliceCSNode(ee, pcol, 1, 1)
         elif isinstance(pcol, tuple):
-            return SliceCSNode(dt, *pcol)
+            return SliceCSNode(ee, *pcol)
         else:
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
-            return MixedCSNode(dt, [pcol], names=["V0"], cmodule=cmod)
+            return MixedCSNode(ee, [pcol], names=["V0"])
 
     if isinstance(arg, (types.GeneratorType, list, tuple)):
         isarray = True
@@ -219,9 +222,9 @@ def make_columnset(arg, dt, cmod, _nested=False):
                 outcols.append(pcol)
                 colnames.append(str(col))
         if isarray:
-            return ArrayCSNode(dt, outcols, colnames)
+            return ArrayCSNode(ee, outcols, colnames)
         else:
-            return MixedCSNode(dt, outcols, colnames, cmodule=cmod)
+            return MixedCSNode(ee, outcols, colnames)
 
     if isinstance(arg, dict):
         isarray = True
@@ -243,13 +246,13 @@ def make_columnset(arg, dt, cmod, _nested=False):
                 isarray = False
                 outcols.append(pcol)
         if isarray:
-            return ArrayCSNode(dt, outcols, colnames)
+            return ArrayCSNode(ee, outcols, colnames)
         else:
-            return MixedCSNode(dt, outcols, colnames, cmodule=cmod)
+            return MixedCSNode(ee, outcols, colnames)
 
     if isinstance(arg, types.FunctionType) and not _nested:
         res = arg(f)
-        return make_columnset(res, dt, cmod=cmod, _nested=True)
+        return make_columnset(res, ee, _nested=True)
 
     if isinstance(arg, (type, ltype)):
         ltypes = dt.ltypes
@@ -260,7 +263,7 @@ def make_columnset(arg, dt, cmod, _nested=False):
             if ltypes[i] == lt:
                 outcols.append(i)
                 colnames.append(dt.names[i])
-        return ArrayCSNode(dt, outcols, colnames)
+        return ArrayCSNode(ee, outcols, colnames)
 
     if isinstance(arg, stype):
         stypes = dt.stypes
@@ -270,7 +273,7 @@ def make_columnset(arg, dt, cmod, _nested=False):
             if stypes[i] == arg:
                 outcols.append(i)
                 colnames.append(dt.names[i])
-        return ArrayCSNode(dt, outcols, colnames)
+        return ArrayCSNode(ee, outcols, colnames)
 
     raise TValueError("Unknown `select` argument: %r" % arg)
 

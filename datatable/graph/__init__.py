@@ -69,29 +69,12 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
         if grbynode:
             grbynode.execute()
 
-        # Select subset of rows + subset of columns. In this case columns can
-        # be simply copied by reference, and then the resulting datatable will
-        # be either a plain "data" table if rowindex selects all rows and the
-        # target datatable is not a view, or a "view" datatable otherwise.
-        if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-            colsnode._rowindex = ee.rowindex
-            columns = ee.execute(colsnode)
-            res_dt = columns.to_datatable()
-            return datatable.Frame(res_dt, names=colsnode.column_names)
+        colsnode.execute()
+        res_dt = ee.columns.to_datatable()
+        return datatable.Frame(res_dt, names=colsnode.column_names)
 
-        # Select computed columns + all rows from datatable which is not a
-        # view -- in this case the rowindex is None, and the selected columns
-        # can be copied by reference, while computed columns can be created
-        # without the need to apply a RowIndex object. The Frame created
-        # will be a "data" table.
-        if isinstance(rowsnode, AllRFNode) and not dt.internal.isview:
-            columns = ee.execute(colsnode)
-            res_dt = columns.to_datatable()
-            return datatable.Frame(res_dt, names=colsnode.column_names)
+    raise RuntimeError("Unable to calculate the result")  # pragma: no cover
 
-    raise TValueError(  # pragma: no cover
-        "Unable to handle input (rows=%r, select=%r)"
-        % (rows, select))
 
 
 

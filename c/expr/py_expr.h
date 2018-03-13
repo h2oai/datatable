@@ -25,9 +25,9 @@ DECLARE_FUNCTION(
 
 DECLARE_FUNCTION(
   expr_column,
-  "expr_column(dt, index)\n\n"
-  "Retrieve column `index` from the DataTable `dt`. If the column has \n"
-  "associated rowindex, it will be materialized first.\n",
+  "expr_column(dt, i, rowindex)\n\n"
+  "Retrieve column `i` from the DataTable `dt`, replacing its rowindex with\n"
+  "the provided one and then materializing.\n",
   dt_EXPR_PY_EXPR_CC)
 
 DECLARE_FUNCTION(

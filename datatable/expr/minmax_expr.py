@@ -54,8 +54,8 @@ class MinMaxReducer(BaseExpr):
         self._stype = self._arg.stype
 
 
-    def evaluate_eager(self):
-        col = self._arg.evaluate_eager()
+    def evaluate_eager(self, ee):
+        col = self._arg.evaluate_eager(ee)
         opcode = reduce_opcodes[self._name]
         return core.expr_reduceop(opcode, col)
 

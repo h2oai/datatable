@@ -23,6 +23,6 @@ class CastExpr(BaseExpr):
     def resolve(self):
         self._arg.resolve()
 
-    def evaluate_eager(self):
-        col = self._arg.evaluate_eager()
+    def evaluate_eager(self, ee):
+        col = self._arg.evaluate_eager(ee)
         return core.expr_cast(col, self._stype.value)
