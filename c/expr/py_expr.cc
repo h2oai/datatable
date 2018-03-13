@@ -46,16 +46,18 @@ PyObject* expr_cast(PyObject*, PyObject* args)
 PyObject* expr_column(PyObject*, PyObject* args)
 {
   int64_t index;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "Ol:expr_column", &arg1, &index))
-    return NULL;
+  PyObject* arg1, *arg3;
+  if (!PyArg_ParseTuple(args, "OlO:expr_column", &arg1, &index, &arg3))
+    return nullptr;
   PyObj pyarg1(arg1);
+  PyObj pyarg3(arg3);
   DataTable* dt = pyarg1.as_datatable();
+  RowIndex ri = pyarg3.as_rowindex();
 
   if (index < 0 || index >= dt->ncols) {
     PyErr_Format(PyExc_ValueError, "Invalid column index %lld", index);
   }
-  Column* col = dt->columns[index]->shallowcopy();
+  Column* col = dt->columns[index]->shallowcopy(ri);
   col->reify();
   return pycolumn::from_column(col, NULL, 0);
 }

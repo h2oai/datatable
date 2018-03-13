@@ -28,8 +28,8 @@ class StdevReducer(BaseExpr):
                 "Cannot compute standard deviation of a variable of type %s"
                 % self.expr.stype)
 
-    def evaluate_eager(self):
-        col = self.expr.evaluate_eager()
+    def evaluate_eager(self, ee):
+        col = self.expr.evaluate_eager(ee)
         opcode = reduce_opcodes["stdev"]
         return core.expr_reduceop(opcode, col)
 

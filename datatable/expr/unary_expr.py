@@ -29,8 +29,8 @@ class UnaryOpExpr(BaseExpr):
         if self._op == "~" and self._stype == stype.bool8:
             self._op = "!"
 
-    def evaluate_eager(self):
-        arg = self._arg.evaluate_eager()
+    def evaluate_eager(self, ee):
+        arg = self._arg.evaluate_eager(ee)
         opcode = unary_op_codes[self._op]
         return core.expr_unaryop(opcode, arg)
 

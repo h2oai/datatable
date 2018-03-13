@@ -314,7 +314,7 @@ class FilterExprRFNode(RFNode):
             nrows = ee.dt.nrows
             return core.rowindex_from_filterfn(ptr, nrows)
         else:
-            col = self._expr.evaluate_eager()
+            col = self._expr.evaluate_eager(self._engine)
             rowindex = core.rowindex_from_column(col)
             if ee.rowindex:
                 rowindex = rowindex.uplift(ee.rowindex)

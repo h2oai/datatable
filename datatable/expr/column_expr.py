@@ -106,7 +106,8 @@ class ColSelectorExpr(BaseExpr):
     # Eager evaluation
     #---------------------------------------------------------------------------
 
-    def evaluate_eager(self):
+    def evaluate_eager(self, ee):
         self.resolve()
         dt = self._dtexpr.get_datatable()
-        return core.expr_column(dt.internal, self._colid)
+        ri = ee.rowindex
+        return core.expr_column(dt.internal, self._colid, ri)

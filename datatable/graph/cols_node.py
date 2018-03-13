@@ -147,9 +147,11 @@ class MixedCSNode(ColumnSetNode):
             return core.columns_from_mixed(self._elems, self.dt.internal,
                                            nrows, fnptr)
         else:
-            _dt = self.dt.internal
-            columns = [core.expr_column(_dt, e) if isinstance(e, int) else
-                       e.evaluate_eager()
+            ee = self._engine
+            _dt = ee.dt.internal
+            _ri = ee.rowindex
+            columns = [core.expr_column(_dt, e, _ri) if isinstance(e, int) else
+                       e.evaluate_eager(ee)
                        for e in self._elems]
             return core.columns_from_columns(columns)
 
