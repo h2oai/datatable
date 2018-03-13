@@ -8,7 +8,6 @@
 #include "column.h"
 #include <cstdlib>     // atoll
 #include "datatable_check.h"
-#include "py_types.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -276,9 +275,7 @@ PyObject* Column::sd_pyscalar() const { return none(); }
 PyObject* Column::min_pyscalar() const { return none(); }
 PyObject* Column::max_pyscalar() const { return none(); }
 PyObject* Column::sum_pyscalar() const { return none(); }
-PyObject* Column::countna_pyscalar() const {
-  return PyLong_FromInt64(countna());
-}
+PyObject* Column::countna_pyscalar() const { return int_to_py(countna()); }
 
 
 

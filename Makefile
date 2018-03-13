@@ -496,7 +496,7 @@ $(BUILDDIR)/capi.o : c/capi.cc $(BUILDDIR)/capi.h $(BUILDDIR)/datatable.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column.o : c/column.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/column.o : c/column.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
