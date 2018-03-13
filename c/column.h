@@ -177,6 +177,10 @@ public:
    *
    * This operation is in-place, and we attempt to reuse existing memory buffer
    * whenever possible.
+   *
+   * If the Column's rowindex carries groupby information, then we retain it
+   * by replacing the current rowindex with the "plain slice" (i.e. a slice
+   * with step 1).
    */
   virtual void reify() = 0;
 

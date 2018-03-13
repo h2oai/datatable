@@ -125,7 +125,7 @@ void FwColumn<T>::set_elem(int64_t i, T value) {
 
 template <typename T>
 void FwColumn<T>::reify() {
-  // If our rowindex is null, then we're already done
+  // If the rowindex is absent, then there's nothing else left to do.
   if (ri.isabsent()) return;
 
   size_t elemsize = sizeof(T);
@@ -171,7 +171,7 @@ void FwColumn<T>::reify() {
     mbuf->release();
     mbuf = new_mbuf;
   }
-  ri.clear();
+  ri.clear(true);
 }
 
 
@@ -285,7 +285,7 @@ void FwColumn<T>::fill_na() {
   for (int64_t i = 0; i < nrows; ++i) {
     vals[i] = na;
   }
-  ri.clear();
+  ri.clear(false);
 }
 
 

@@ -349,7 +349,7 @@ void StringColumn<T>::reify() {
     strbuf->release();
     strbuf = new_strbuf;
   }
-  ri.clear();
+  ri.clear(true);
 }
 
 
@@ -534,7 +534,7 @@ void StringColumn<T>::fill_na() {
   for (int64_t i = -1; i < nrows; ++i) {
     off_data[i] = -1;
   }
-  ri.clear();
+  ri.clear(false);
 }
 
 

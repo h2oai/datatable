@@ -25,7 +25,7 @@ RowIndex::RowIndex(const RowIndex& other) {
 
 // assignment operator, performs shallow copying
 RowIndex& RowIndex::operator=(const RowIndex& other) {
-  clear();
+  clear(false);
   impl = other.impl;
   if (impl) impl->acquire();
   return *this;
@@ -35,9 +35,16 @@ RowIndex::~RowIndex() {
   if (impl) impl->release();
 }
 
-void RowIndex::clear() {
-  if (impl) impl->release();
-  impl = nullptr;
+void RowIndex::clear(bool keep_groups) {
+  if (keep_groups && impl && impl->groups) {
+    RowIndexImpl* new_impl = new SliceRowIndexImpl(0, impl->length, 1);
+    swap(new_impl->groups, impl->groups);
+    impl->release();
+    impl = new_impl;
+  } else {
+    if (impl) impl->release();
+    impl = nullptr;
+  }
 }
 
 
