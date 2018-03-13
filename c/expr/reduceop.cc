@@ -31,18 +31,19 @@ constexpr T infinity() {
 
 
 //------------------------------------------------------------------------------
-// Final reducer function
+// Mean calculation
 //------------------------------------------------------------------------------
 
-// Using Kahan summation algorithm
 template<typename IT, typename OT>
-static void mean_skipna(int64_t row0, int64_t row1, void** params) {
+static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
   IT* inputs = static_cast<IT*>(static_cast<Column*>(params[0])->data());
-  OT* output = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  OT* outputs = static_cast<OT*>(static_cast<Column*>(params[1])->data());
   OT sum = 0;
   int64_t cnt = 0;
   OT delta = 0;
-  for (int64_t i = row0; i < row1; ++i) {
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+  for (int32_t i = row0; i < row1; ++i) {
     IT x = inputs[i];
     if (ISNA<IT>(x)) continue;
     OT y = static_cast<OT>(x) - delta;
@@ -51,18 +52,26 @@ static void mean_skipna(int64_t row0, int64_t row1, void** params) {
     sum = t;
     cnt++;
   }
-  output[0] = cnt == 0? GETNA<OT>() : sum / cnt;
+  outputs[grp] = cnt == 0? GETNA<OT>() : sum / cnt;
 }
+
+
+
+//------------------------------------------------------------------------------
+// Standard deviation
+//------------------------------------------------------------------------------
 
 // Welford algorithm
 template<typename IT, typename OT>
-static void stdev_skipna(int64_t row0, int64_t row1, void** params) {
+static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
   IT* inputs = static_cast<IT*>(static_cast<Column*>(params[0])->data());
-  OT* output = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  OT* outputs = static_cast<OT*>(static_cast<Column*>(params[1])->data());
   OT mean = 0;
   OT m2 = 0;
   int64_t cnt = 0;
-  for (int64_t i = row0; i < row1; ++i) {
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+  for (int32_t i = row0; i < row1; ++i) {
     IT x = inputs[i];
     if (ISNA<IT>(x)) continue;
     cnt++;
@@ -71,35 +80,51 @@ static void stdev_skipna(int64_t row0, int64_t row1, void** params) {
     OT t2 = x - mean;
     m2 += t1 * t2;
   }
-  output[0] = cnt <= 1? GETNA<OT>() : std::sqrt(m2 / (cnt - 1));
+  outputs[grp] = cnt <= 1? GETNA<OT>() : std::sqrt(m2 / (cnt - 1));
 }
 
+
+
+//------------------------------------------------------------------------------
+// Minimum
+//------------------------------------------------------------------------------
+
 template<typename T>
-static void min_skipna(int64_t row0, int64_t row1, void** params) {
+static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
   T* inputs = static_cast<T*>(static_cast<Column*>(params[0])->data());
-  T* output = static_cast<T*>(static_cast<Column*>(params[1])->data());
+  T* outputs = static_cast<T*>(static_cast<Column*>(params[1])->data());
   T res = infinity<T>();
-  for (int64_t i = row0; i < row1; ++i) {
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+  for (int32_t i = row0; i < row1; ++i) {
     T x = inputs[i];
     if (!ISNA<T>(x) && x < res) {
       res = x;
     }
   }
-  output[0] = res;
+  outputs[grp] = res;
 }
 
+
+
+//------------------------------------------------------------------------------
+// Maximum
+//------------------------------------------------------------------------------
+
 template<typename T>
-static void max_skipna(int64_t row0, int64_t row1, void** params) {
+static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
   T* inputs = static_cast<T*>(static_cast<Column*>(params[0])->data());
-  T* output = static_cast<T*>(static_cast<Column*>(params[1])->data());
+  T* outputs = static_cast<T*>(static_cast<Column*>(params[1])->data());
   T res = -infinity<T>();
-  for (int64_t i = row0; i < row1; ++i) {
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+  for (int32_t i = row0; i < row1; ++i) {
     T x = inputs[i];
     if (!ISNA<T>(x) && x > res) {
       res = x;
     }
   }
-  output[0] = res;
+  outputs[grp] = res;
 }
 
 
@@ -109,7 +134,7 @@ static void max_skipna(int64_t row0, int64_t row1, void** params) {
 //------------------------------------------------------------------------------
 
 template<typename T1, typename T2>
-static mapperfn resolve1(int opcode) {
+static gmapperfn resolve1(int opcode) {
   switch (opcode) {
     case OpCode::Mean:  return mean_skipna<T1, T2>;
     case OpCode::Min:   return min_skipna<T1>;
@@ -120,7 +145,7 @@ static mapperfn resolve1(int opcode) {
 }
 
 
-static mapperfn resolve0(int opcode, SType stype) {
+static gmapperfn resolve0(int opcode, SType stype) {
   switch (stype) {
     case ST_BOOLEAN_I1:
     case ST_INTEGER_I1:  return resolve1<int8_t, double>(opcode);
@@ -144,18 +169,25 @@ Column* reduceop(int opcode, Column* arg)
   SType arg_type = arg->stype();
   SType res_type = opcode == OpCode::Min || opcode == OpCode::Max ||
                    arg_type == ST_REAL_F4 ? arg_type : ST_REAL_F8;
+  int32_t ngrps = static_cast<int32_t>(arg->rowindex().get_ngroups());
+  if (ngrps == 0) ngrps = 1;
+
   void* params[2];
   params[0] = arg;
-  params[1] = Column::new_data_column(res_type, 1);
+  params[1] = Column::new_data_column(res_type, ngrps);
 
-  mapperfn fn = resolve0(opcode, arg_type);
+  gmapperfn fn = resolve0(opcode, arg_type);
   if (!fn) {
     throw RuntimeError()
       << "Unable to apply reduce function " << opcode
       << " to column(stype=" << arg_type << ")";
   }
 
-  (*fn)(0, arg->nrows, params);
+  int32_t _grps[2] = {0, static_cast<int32_t>(arg->nrows)};
+  const int32_t* grps = ngrps == 1? _grps : arg->rowindex().get_groups().data();
+  for (int32_t g = 0; g < ngrps; ++g) {
+    (*fn)(grps, g, params);
+  }
 
   return static_cast<Column*>(params[1]);
 }

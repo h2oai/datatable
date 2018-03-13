@@ -47,6 +47,7 @@ DECLARE_FUNCTION(
 namespace expr {
 
 typedef void (*mapperfn)(int64_t row0, int64_t row1, void** params);
+typedef void (*gmapperfn)(const int32_t* groups, int32_t grp, void** params);
 
 Column* unaryop(int opcode, Column* arg);
 Column* binaryop(int opcode, Column* lhs, Column* rhs);

@@ -44,7 +44,7 @@ class ColumnSetNode:
     def execute(self):
         self._engine.columns = self._compute_columns()
 
-    def _compute_columns():
+    def _compute_columns(self):
         raise NotImplementedError
 
 
@@ -170,14 +170,14 @@ def make_columnset(arg, ee, _nested=False):
 
     Parameters
     ----------
-    arg:
+    arg: Any
         An expression that will be converted into one of the ``CSNode``s.
-
-    dt: Frame
-        The Frame to which ``arg`` selector applies.
 
     ee: EvalutionEngine
         Expression evaluation engine.
+
+    _nested: bool
+        Internal flag which is set to True on the first recursive call.
     """
     dt = ee.dt
 
