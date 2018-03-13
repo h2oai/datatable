@@ -580,6 +580,10 @@ class Frame(object):
         return Frame(_dt, names=self.names)
 
 
+    #---------------------------------------------------------------------------
+    # Stats
+    #---------------------------------------------------------------------------
+
     def min(self):
         """
         Get the minimum value of each column.
@@ -645,6 +649,24 @@ class Frame(object):
         values in each column.
         """
         return Frame(self._dt.get_countna(), names=self.names)
+
+    def min1(self):
+        return self._dt.min1()
+
+    def max1(self):
+        return self._dt.max1()
+
+    def sum1(self):
+        return self._dt.sum1()
+
+    def mean1(self):
+        return self._dt.mean1()
+
+    def sd1(self):
+        return self._dt.sd1()
+
+    def countna1(self):
+        return self._dt.countna1()
 
 
 

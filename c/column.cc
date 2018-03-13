@@ -244,6 +244,11 @@ size_t Column::memory_footprint() const
 }
 
 
+
+//------------------------------------------------------------------------------
+// Stats
+//------------------------------------------------------------------------------
+
 int64_t Column::countna() const {
   Stats* s = get_stats();
   if (!s->countna_computed()) s->countna_compute(this);
@@ -264,6 +269,13 @@ Column* Column::countna_column() const {
   col->set_elem(0, countna());
   return col;
 }
+
+PyObject* Column::mean_pyscalar() const { return none(); }
+PyObject* Column::sd_pyscalar() const { return none(); }
+PyObject* Column::min_pyscalar() const { return none(); }
+PyObject* Column::max_pyscalar() const { return none(); }
+PyObject* Column::sum_pyscalar() const { return none(); }
+PyObject* Column::countna_pyscalar() const { return int_to_py(countna()); }
 
 
 

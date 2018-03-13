@@ -5,17 +5,17 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_H
-#define dt_COLUMN_H
-#include <Python.h>
-#include <stdint.h>
+#ifndef dt_COLUMN_h
+#define dt_COLUMN_h
 #include <string>
 #include <vector>
-#include "rowindex.h"
+#include <Python.h>
 #include "memorybuf.h"
-#include "types.h"
-#include "stats.h"
+#include "py_types.h"
 #include "python/list.h"
+#include "rowindex.h"
+#include "stats.h"
+#include "types.h"
 
 class DataTable;
 class BoolColumn;
@@ -205,7 +205,14 @@ public:
   virtual Column* sum_column() const;
   virtual Column* mean_column() const;
   virtual Column* sd_column() const;
-  Column* countna_column() const;
+  virtual Column* countna_column() const;
+
+  virtual PyObject* min_pyscalar() const;
+  virtual PyObject* max_pyscalar() const;
+  virtual PyObject* sum_pyscalar() const;
+  virtual PyObject* mean_pyscalar() const;
+  virtual PyObject* sd_pyscalar() const;
+  virtual PyObject* countna_pyscalar() const;
 
   /**
    * Check that the data in this Column object is correct. Use the provided
@@ -337,6 +344,11 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  PyObject* min_pyscalar() const override;
+  PyObject* max_pyscalar() const override;
+  PyObject* sum_pyscalar() const override;
+  PyObject* mean_pyscalar() const override;
+  PyObject* sd_pyscalar() const override;
 
 protected:
   BoolColumn();
@@ -384,6 +396,11 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  PyObject* min_pyscalar() const override;
+  PyObject* max_pyscalar() const override;
+  PyObject* sum_pyscalar() const override;
+  PyObject* mean_pyscalar() const override;
+  PyObject* sd_pyscalar() const override;
 
 protected:
   IntColumn();
@@ -436,6 +453,11 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  PyObject* min_pyscalar() const override;
+  PyObject* max_pyscalar() const override;
+  PyObject* sum_pyscalar() const override;
+  PyObject* mean_pyscalar() const override;
+  PyObject* sd_pyscalar() const override;
 
 protected:
   RealColumn();
@@ -464,6 +486,8 @@ template <> void RealColumn<double>::cast_into(RealColumn<float>*) const;
 template <> void RealColumn<double>::cast_into(RealColumn<double>*) const;
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
+
+
 
 //==============================================================================
 

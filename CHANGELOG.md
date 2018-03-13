@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added global option `nthreads` which control the number of Omp threads used
   by `datatable` for parallel execution. Example: `dt.options.nthreads = 1`.
 - Add method `.scalar()` to quickly convert a 1x1 Frame into a python scalar.
+- New methods `.min1()`, `.max1()`, `.mean1()`, `.sum1()`, `.sd1()`, `.countna1()`
+  that are similar to `.min()`, `.max()`, etc. but return a scalar instead of a
+  Frame (however they only work with a 1-column Frames).
 
 
 #### Changed

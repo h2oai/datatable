@@ -351,19 +351,26 @@ PyObject* sort(obj* self, PyObject* args) {
 
 
 
-#define DT_METH_GET_STAT(STAT) \
-  PyObject* get_## STAT(obj* self, PyObject*) { \
-    return wrap(self->ref-> STAT ## _datatable()); \
-  }
+PyObject* get_min    (obj* self, PyObject*) { return wrap(self->ref->min_datatable()); }
+PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatable()); }
+PyObject* get_mean   (obj* self, PyObject*) { return wrap(self->ref->mean_datatable()); }
+PyObject* get_sd     (obj* self, PyObject*) { return wrap(self->ref->sd_datatable()); }
+PyObject* get_sum    (obj* self, PyObject*) { return wrap(self->ref->sum_datatable()); }
+PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_datatable()); }
 
-DT_METH_GET_STAT(min)
-DT_METH_GET_STAT(max)
-DT_METH_GET_STAT(sum)
-DT_METH_GET_STAT(mean)
-DT_METH_GET_STAT(sd)
-DT_METH_GET_STAT(countna)
+typedef PyObject* (Column::*scalarstatfn)() const;
+static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
+  if (dt->ncols != 1) throw ValueError() << "This method can only be applied to a 1-column Frame";
+  return (dt->columns[0]->*f)();
+}
 
-#undef DT_METH_GET_STAT
+PyObject* countna1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::countna_pyscalar); }
+PyObject* min1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::min_pyscalar); }
+PyObject* max1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::max_pyscalar); }
+PyObject* mean1   (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::mean_pyscalar); }
+PyObject* sd1     (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::sd_pyscalar); }
+PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::sum_pyscalar); }
+
 
 
 PyObject* materialize(obj* self, PyObject*) {
@@ -433,6 +440,12 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(get_mean),
   METHOD0(get_sd),
   METHOD0(get_countna),
+  METHOD0(countna1),
+  METHOD0(min1),
+  METHOD0(max1),
+  METHOD0(sum1),
+  METHOD0(mean1),
+  METHOD0(sd1),
   METHOD0(materialize),
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),

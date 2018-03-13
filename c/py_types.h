@@ -50,4 +50,14 @@ int init_py_types(PyObject *module);
 void init_py_stype_objs(PyObject* stype_enum);
 void init_py_ltype_objs(PyObject* ltype_enum);
 
+
+PyObject* bool_to_py(int8_t x);
+PyObject* int_to_py(int8_t x);
+PyObject* int_to_py(int16_t x);
+PyObject* int_to_py(int32_t x);
+PyObject* int_to_py(int64_t x);
+PyObject* float_to_py(float x);
+PyObject* float_to_py(double x);
+
+
 #endif

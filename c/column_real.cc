@@ -26,7 +26,11 @@ SType RealColumn<T>::stype() const {
   return stype_real(sizeof(T));
 }
 
-//---- Stats -------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Stats
+//------------------------------------------------------------------------------
 
 template <typename T>
 RealStats<T>* RealColumn<T>::get_stats() const {
@@ -107,8 +111,17 @@ Column* RealColumn<T>::sd_column() const {
   return col;
 }
 
+template <typename T> PyObject* RealColumn<T>::min_pyscalar() const { return float_to_py(min()); }
+template <typename T> PyObject* RealColumn<T>::max_pyscalar() const { return float_to_py(max()); }
+template <typename T> PyObject* RealColumn<T>::sum_pyscalar() const { return float_to_py(sum()); }
+template <typename T> PyObject* RealColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
+template <typename T> PyObject* RealColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
 
-//----- Type casts -------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Type casts
+//------------------------------------------------------------------------------
 
 template<typename IT, typename OT>
 inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {

@@ -162,29 +162,54 @@ DECLARE_METHOD(
   use_stype_for_buffers,
   "use_stype_for_buffers(stype)\n\n")
 
+
 DECLARE_METHOD(
    get_min,
-   "Get the minimum for each column in the datatable")
+   "Get the minimum for each column in the DataTable")
 
 DECLARE_METHOD(
   get_max,
-  "Get the maximum for each column in the datatable")
+  "Get the maximum for each column in the DataTable")
 
 DECLARE_METHOD(
   get_sum,
-  "Get the sum for each column in the datatable")
+  "Get the sum for each column in the DataTable")
 
 DECLARE_METHOD(
   get_mean,
-  "Get the mean for each column in the datatable")
+  "Get the mean for each column in the DataTable")
 
 DECLARE_METHOD(
   get_sd,
-  "Get the standard deviation for each column in the datatable")
+  "Get the standard deviation for each column in the DataTable")
 
 DECLARE_METHOD(
   get_countna,
-  "Get the NA count for each column in the datatable")
+  "Get the NA count for each column in the DataTable")
+
+DECLARE_METHOD(
+   min1,
+   "Get the scalar minimum of a single-column DataTable")
+
+DECLARE_METHOD(
+   max1,
+   "Get the scalar maximum of a single-column DataTable")
+
+DECLARE_METHOD(
+   sum1,
+   "Get the scalar sum of a single-column DataTable")
+
+DECLARE_METHOD(
+   mean1,
+   "Get the scalar mean of a single-column DataTable")
+
+DECLARE_METHOD(
+   sd1,
+   "Get the scalar standard deviation of a single-column DataTable")
+
+DECLARE_METHOD(
+   countna1,
+   "Get the scalar count of NAs in a single-column DataTable")
 
 
 

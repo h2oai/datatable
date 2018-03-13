@@ -164,31 +164,29 @@ size_t DataTable::memory_footprint()
 }
 
 
-/**
- * Macro to define the `stat_datatable()` methods. The `STAT` parameter
- * is the name of the statistic; exactly how it is named in the
- * `stat_datatable()` method.
- */
-#define STAT_DATATABLE(STAT)                                                    \
-  DataTable* DataTable:: STAT ## _datatable() const {                           \
-    Column** out_cols = nullptr;                                                \
-    dtmalloc(out_cols, Column*, (size_t) (ncols + 1));                          \
-    for (int64_t i = 0; i < ncols; ++i)                                         \
-    {                                                                           \
-      out_cols[i] = columns[i]-> STAT ## _column();                             \
-    }                                                                           \
-    out_cols[ncols] = nullptr;                                                  \
-    return new DataTable(out_cols);                                             \
+
+//------------------------------------------------------------------------------
+// Compute stats
+//------------------------------------------------------------------------------
+
+DataTable* DataTable::_statdt(colmakerfn f) const {
+  Column** out_cols = new Column*[ncols + 1];
+  for (int64_t i = 0; i < ncols; ++i) {
+    out_cols[i] = (columns[i]->*f)();
   }
+  out_cols[ncols] = nullptr;
+  return new DataTable(out_cols);
+}
 
-STAT_DATATABLE(mean)
-STAT_DATATABLE(sd)
-STAT_DATATABLE(countna)
-STAT_DATATABLE(min)
-STAT_DATATABLE(max)
-STAT_DATATABLE(sum)
+DataTable* DataTable::countna_datatable() const { return _statdt(&Column::countna_column); }
+DataTable* DataTable::mean_datatable() const    { return _statdt(&Column::mean_column); }
+DataTable* DataTable::sd_datatable() const      { return _statdt(&Column::sd_column); }
+DataTable* DataTable::min_datatable() const     { return _statdt(&Column::min_column); }
+DataTable* DataTable::max_datatable() const     { return _statdt(&Column::max_column); }
+DataTable* DataTable::sum_datatable() const     { return _statdt(&Column::sum_column); }
 
-#undef STAT_DATATABLE
+
+
 
 /**
  * Verify that all internal constraints in the DataTable hold, and that there
