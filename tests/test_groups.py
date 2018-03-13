@@ -5,6 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable as dt
+from datatable import f
 
 
 def test_groups_internal0():
@@ -42,3 +43,17 @@ def test_groups_internal2():
     assert ri.group_sizes == [1, 2, 2, 1, 1, 1, 1]
     assert d2.topython() == [[1, 1, 2, 5, 1, 3, None, 3, 1],
                              [None, "a", "a", "b", "b", "c", "d", "f", "h"]]
+
+
+def test_groups_internal3():
+    f0 = dt.Frame({"A": [1, 2, 1, 3, 2, 2, 2, 1, 3, 1], "B": range(10)})
+    f1 = f0(select=[f.A, "B", f.A + f.B], groupby="A")
+    assert f1.internal.check()
+    assert f1.internal.isview
+    assert f1.topython() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
+                             [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
+                             [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
+    ri = f1.internal.rowindex
+    assert ri.ngroups == 3
+    assert ri.group_sizes == [4, 4, 2]
+    assert ri.group_offsets == [0, 4, 8, 10]

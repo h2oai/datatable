@@ -241,7 +241,7 @@ class RowIndex {
      */
     RowIndex uplift(const RowIndex& other) const;
 
-    void clear();
+    void clear(bool keep_groups);
     size_t memory_footprint() const;
 
     /**
