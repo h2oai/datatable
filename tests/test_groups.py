@@ -70,3 +70,17 @@ def test_groups1():
     f1 = f0(select=mean(f.B), groupby=f.A)
     assert f1.stypes == (dt.float64,)
     assert f1.topython() == [[3.8, 2.0, 5.0]]
+
+
+
+#-------------------------------------------------------------------------------
+# Groupby on large datasets
+#-------------------------------------------------------------------------------
+
+def test_groups_large1():
+    n = 251 * 4000
+    xs = [(i * 19) % 251 for i in range(n)]
+    f0 = dt.Frame({"A": xs})
+    f1 = f0(groupby="A")
+    assert f1.internal.rowindex.ngroups == 251
+    assert f1.internal.rowindex.group_sizes == [4000] * 251

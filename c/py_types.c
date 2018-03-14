@@ -39,7 +39,7 @@ PyObject* int_to_py(int64_t x) {
 }
 
 PyObject* float_to_py(float x) {
-  return ISNA<float>(x)? none() : PyFloat_FromDouble(static_cast<float>(x));
+  return ISNA<float>(x)? none() : PyFloat_FromDouble(static_cast<double>(x));
 }
 
 PyObject* float_to_py(double x) {
