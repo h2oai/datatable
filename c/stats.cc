@@ -46,16 +46,12 @@ void Stats::reset() {
   _computed.reset();
 }
 
-bool Stats::is_computed(Stat s) const { return _computed.test(s); }
-bool Stats::countna_computed() const { return _computed.test(Stat::NaCnt); }
-bool Stats::mean_computed() const    { return _computed.test(Stat::Mean); }
-bool Stats::sd_computed() const      { return _computed.test(Stat::StDev); }
-bool Stats::min_computed() const     { return _computed.test(Stat::Min); }
-bool Stats::max_computed() const     { return _computed.test(Stat::Max); }
-bool Stats::sum_computed() const     { return _computed.test(Stat::Sum); }
+bool Stats::is_computed(Stat s) const {
+  return _computed.test(s);
+}
 
-int64_t Stats::countna_get(const Column* col) {
-  if (!_computed.test(Stat::NaCnt)) countna_compute(col);
+int64_t Stats::countna(const Column* col) {
+  if (!_computed.test(Stat::NaCnt)) compute_countna(col);
   return _countna;
 }
 
@@ -169,37 +165,37 @@ void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
 
 
 template <typename T, typename A>
-A NumericalStats<T, A>::sum_get(const Column* col) {
+A NumericalStats<T, A>::sum(const Column* col) {
   if (!_computed.test(Stat::Sum)) compute_numerical_stats(col);
   return _sum;
 }
 
 template <typename T, typename A>
-T NumericalStats<T, A>::min_get(const Column* col) {
+T NumericalStats<T, A>::min(const Column* col) {
   if (!_computed.test(Stat::Min)) compute_numerical_stats(col);
   return _min;
 }
 
 template <typename T, typename A>
-T NumericalStats<T, A>::max_get(const Column* col) {
+T NumericalStats<T, A>::max(const Column* col) {
   if (!_computed.test(Stat::Max)) compute_numerical_stats(col);
   return _max;
 }
 
 template <typename T, typename A>
-double NumericalStats<T, A>::mean_get(const Column* col) {
+double NumericalStats<T, A>::mean(const Column* col) {
   if (!_computed.test(Stat::Mean)) compute_numerical_stats(col);
   return _mean;
 }
 
 template <typename T, typename A>
-double NumericalStats<T, A>::sd_get(const Column* col) {
+double NumericalStats<T, A>::stdev(const Column* col) {
   if (!_computed.test(Stat::StDev)) compute_numerical_stats(col);
   return _sd;
 }
 
 template<typename T, typename A>
-void NumericalStats<T, A>::countna_compute(const Column* col) {
+void NumericalStats<T, A>::compute_countna(const Column* col) {
   compute_numerical_stats(col);
 }
 
@@ -308,7 +304,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
 //==============================================================================
 
 template <typename T>
-void StringStats<T>::countna_compute(const Column *col) {
+void StringStats<T>::compute_countna(const Column *col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
   const RowIndex& rowindex = col->rowindex();
   int64_t nrows = scol->nrows;

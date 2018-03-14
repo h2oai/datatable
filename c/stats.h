@@ -77,16 +77,9 @@ class Stats {
     Stats(const Stats&) = delete;
     void operator=(const Stats&) = delete;
 
-    int64_t countna_get(const Column*);
+    int64_t countna(const Column*);
 
     bool is_computed(Stat s) const;
-    bool countna_computed() const;
-    bool mean_computed() const;
-    bool sd_computed() const;
-    bool min_computed() const;
-    bool max_computed() const;
-    bool sum_computed() const;
-
     void reset();
     virtual void merge_stats(const Stats*);
 
@@ -95,7 +88,7 @@ class Stats {
                           const std::string& name = "Stats") const;
 
   protected:
-    virtual void countna_compute(const Column*) = 0;
+    virtual void compute_countna(const Column*) = 0;
 };
 
 
@@ -127,17 +120,17 @@ class NumericalStats : public Stats {
   public:
     size_t memory_footprint() const override { return sizeof(*this); }
 
-    double mean_get(const Column*);
-    double sd_get(const Column*);
-    T min_get(const Column*);
-    T max_get(const Column*);
-    A sum_get(const Column*);
+    double mean(const Column*);
+    double stdev(const Column*);
+    T min(const Column*);
+    T max(const Column*);
+    A sum(const Column*);
 
   protected:
     // Helper method that computes min, max, sum, mean, sd, and countna
     virtual void compute_numerical_stats(const Column*);
     virtual void compute_sorted_stats(const Column*);
-    void countna_compute(const Column*) override;
+    virtual void compute_countna(const Column*) override;
 };
 
 extern template class NumericalStats<int8_t, int64_t>;
@@ -212,7 +205,7 @@ class BooleanStats : public NumericalStats<int8_t, int64_t> {
 template <typename T>
 class StringStats : public Stats {
   public:
-    void countna_compute(const Column*) override;
+    void compute_countna(const Column*) override;
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 };
 

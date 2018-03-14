@@ -250,7 +250,7 @@ size_t Column::memory_footprint() const
 //------------------------------------------------------------------------------
 
 int64_t Column::countna() const {
-  return get_stats()->countna_get(this);
+  return get_stats()->countna(this);
 }
 
 /**

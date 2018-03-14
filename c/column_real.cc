@@ -38,11 +38,11 @@ RealStats<T>* RealColumn<T>::get_stats() const {
   return static_cast<RealStats<T>*>(stats);
 }
 
-template <typename T> T      RealColumn<T>::min() const  { return get_stats()->min_get(this); }
-template <typename T> T      RealColumn<T>::max() const  { return get_stats()->max_get(this); }
-template <typename T> double RealColumn<T>::sum() const  { return get_stats()->sum_get(this); }
-template <typename T> double RealColumn<T>::mean() const { return get_stats()->mean_get(this); }
-template <typename T> double RealColumn<T>::sd() const   { return get_stats()->sd_get(this); }
+template <typename T> T      RealColumn<T>::min() const  { return get_stats()->min(this); }
+template <typename T> T      RealColumn<T>::max() const  { return get_stats()->max(this); }
+template <typename T> double RealColumn<T>::sum() const  { return get_stats()->sum(this); }
+template <typename T> double RealColumn<T>::mean() const { return get_stats()->mean(this); }
+template <typename T> double RealColumn<T>::sd() const   { return get_stats()->stdev(this); }
 
 
 // Retrieve stat value as a column

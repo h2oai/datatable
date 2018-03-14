@@ -38,11 +38,11 @@ BooleanStats* BoolColumn::get_stats() const {
   return static_cast<BooleanStats*>(stats);
 }
 
-int8_t  BoolColumn::min() const  { return get_stats()->min_get(this); }
-int8_t  BoolColumn::max() const  { return get_stats()->max_get(this); }
-int64_t BoolColumn::sum() const  { return get_stats()->sum_get(this); }
-double  BoolColumn::mean() const { return get_stats()->mean_get(this); }
-double  BoolColumn::sd() const   { return get_stats()->sd_get(this); }
+int8_t  BoolColumn::min() const  { return get_stats()->min(this); }
+int8_t  BoolColumn::max() const  { return get_stats()->max(this); }
+int64_t BoolColumn::sum() const  { return get_stats()->sum(this); }
+double  BoolColumn::mean() const { return get_stats()->mean(this); }
+double  BoolColumn::sd() const   { return get_stats()->stdev(this); }
 
 // Retrieve stat value as a column
 Column* BoolColumn::min_column() const {

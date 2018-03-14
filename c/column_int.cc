@@ -39,11 +39,11 @@ IntegerStats<T>* IntColumn<T>::get_stats() const {
   return static_cast<IntegerStats<T>*>(stats);
 }
 
-template <typename T> T       IntColumn<T>::min() const  { return get_stats()->min_get(this); }
-template <typename T> T       IntColumn<T>::max() const  { return get_stats()->max_get(this); }
-template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum_get(this); }
-template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean_get(this); }
-template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->sd_get(this); }
+template <typename T> T       IntColumn<T>::min() const  { return get_stats()->min(this); }
+template <typename T> T       IntColumn<T>::max() const  { return get_stats()->max(this); }
+template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum(this); }
+template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean(this); }
+template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->stdev(this); }
 
 
 // Retrieve stat value as a column
