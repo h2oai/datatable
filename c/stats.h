@@ -198,6 +198,7 @@ extern template class IntegerStats<int64_t>;
 class BooleanStats : public NumericalStats<int8_t, int64_t> {
   protected:
     void compute_numerical_stats(const Column *col) override;
+    void compute_sorted_stats(const Column*) override;
 };
 
 

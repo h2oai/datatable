@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - New methods `.min1()`, `.max1()`, `.mean1()`, `.sum1()`, `.sd1()`, `.countna1()`
   that are similar to `.min()`, `.max()`, etc. but return a scalar instead of a
   Frame (however they only work with a 1-column Frames).
+- Implemented method `.nunique()` to compute the number of unique values in each
+  column.
 
 
 #### Changed

@@ -298,12 +298,18 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   _max = count1 ? 1 : count0 ? 0 : GETNA<int8_t>();
   _sum = count1;
   _countna = nrows - t_count;
+  _nuniq = (!!count0) + (!!count1);
   _computed.set(Stat::Min);
   _computed.set(Stat::Max);
   _computed.set(Stat::Sum);
   _computed.set(Stat::Mean);
   _computed.set(Stat::StDev);
   _computed.set(Stat::NaCnt);
+  _computed.set(Stat::NUniq);
+}
+
+void BooleanStats::compute_sorted_stats(const Column *col) {
+  compute_numerical_stats(col);
 }
 
 
