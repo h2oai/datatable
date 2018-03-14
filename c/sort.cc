@@ -608,6 +608,7 @@ class SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
+static RowIndex sort_tiny(const Column* col, bool make_groups);
 static RowIndex sort_small(const Column* col, bool make_groups);
 static void radix_psort(SortContext*, GroupGatherer&);
 
@@ -654,7 +655,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 
 RowIndex Column::sort(bool make_groups) const {
   if (nrows <= 1) {
-    return RowIndex::from_slice(0, nrows, 1);
+    return sort_tiny(this, make_groups);
   }
   if (nrows <= INSERT_SORT_THRESHOLD) {
     return sort_small(this, make_groups);
@@ -690,6 +691,18 @@ template <typename T> void _insert_sort(
 {
   T* xt = static_cast<T*>(x);
   insert_sort_values(xt, o, n, gg);
+}
+
+
+static RowIndex sort_tiny(const Column* col, bool make_groups) {
+  RowIndex res = RowIndex::from_slice(0, col->nrows, 1);
+  if (make_groups) {
+    arr32_t grps(static_cast<size_t>(col->nrows) + 1);
+    grps[0] = 0;
+    if (col->nrows) grps[1] = 1;
+    res.set_groups(std::move(grps));
+  }
+  return res;
 }
 
 
