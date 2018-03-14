@@ -54,6 +54,11 @@ bool Stats::min_computed() const     { return _computed.test(Stat::Min); }
 bool Stats::max_computed() const     { return _computed.test(Stat::Max); }
 bool Stats::sum_computed() const     { return _computed.test(Stat::Sum); }
 
+int64_t Stats::countna_get(const Column* col) {
+  if (!_computed.test(Stat::NaCnt)) countna_compute(col);
+  return _countna;
+}
+
 
 size_t Stats::memory_footprint() const {
   return sizeof(*this);
@@ -78,15 +83,6 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
 //==============================================================================
 // NumericalStats
 //==============================================================================
-
-
-template<typename T, typename A> void NumericalStats<T, A>::min_compute(const Column* col)     { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::max_compute(const Column* col)     { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::sum_compute(const Column* col)     { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::mean_compute(const Column* col)    { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::sd_compute(const Column* col)      { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::countna_compute(const Column* col) { compute_numerical_stats(col); }
-
 
 /**
  * Standard deviation and mean computations are done using Welford's method.
@@ -169,6 +165,42 @@ template <typename T, typename A>
 void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
   RowIndex ri = col->sort(true);
   _nuniq = static_cast<int64_t>(ri.get_ngroups());
+}
+
+
+template <typename T, typename A>
+A NumericalStats<T, A>::sum_get(const Column* col) {
+  if (!_computed.test(Stat::Sum)) compute_numerical_stats(col);
+  return _sum;
+}
+
+template <typename T, typename A>
+T NumericalStats<T, A>::min_get(const Column* col) {
+  if (!_computed.test(Stat::Min)) compute_numerical_stats(col);
+  return _min;
+}
+
+template <typename T, typename A>
+T NumericalStats<T, A>::max_get(const Column* col) {
+  if (!_computed.test(Stat::Max)) compute_numerical_stats(col);
+  return _max;
+}
+
+template <typename T, typename A>
+double NumericalStats<T, A>::mean_get(const Column* col) {
+  if (!_computed.test(Stat::Mean)) compute_numerical_stats(col);
+  return _mean;
+}
+
+template <typename T, typename A>
+double NumericalStats<T, A>::sd_get(const Column* col) {
+  if (!_computed.test(Stat::StDev)) compute_numerical_stats(col);
+  return _sd;
+}
+
+template<typename T, typename A>
+void NumericalStats<T, A>::countna_compute(const Column* col) {
+  compute_numerical_stats(col);
 }
 
 

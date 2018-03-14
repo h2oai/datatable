@@ -39,41 +39,11 @@ IntegerStats<T>* IntColumn<T>::get_stats() const {
   return static_cast<IntegerStats<T>*>(stats);
 }
 
-// Retrieve stat value
-template <typename T>
-double IntColumn<T>::mean() const {
-  IntegerStats<T> *s = get_stats();
-  if (!s->mean_computed()) s->mean_compute(this);
-  return s->mean_get();
-}
-
-template <typename T>
-double IntColumn<T>::sd() const {
-  IntegerStats<T> *s = get_stats();
-  if (!s->sd_computed()) s->sd_compute(this);
-  return s->sd_get();
-}
-
-template <typename T>
-T IntColumn<T>::min() const {
-  IntegerStats<T> *s = get_stats();
-  if (!s->min_computed()) s->min_compute(this);
-  return s->min_get();
-}
-
-template <typename T>
-T IntColumn<T>::max() const {
-  IntegerStats<T> *s = get_stats();
-  if (!s->max_computed()) s->max_compute(this);
-  return s->max_get();
-}
-
-template <typename T>
-int64_t IntColumn<T>::sum() const {
-  IntegerStats<T> *s = get_stats();
-  if (!s->sum_computed()) s->sum_compute(this);
-  return s->sum_get();
-}
+template <typename T> T       IntColumn<T>::min() const  { return get_stats()->min_get(this); }
+template <typename T> T       IntColumn<T>::max() const  { return get_stats()->max_get(this); }
+template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum_get(this); }
+template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean_get(this); }
+template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->sd_get(this); }
 
 
 // Retrieve stat value as a column

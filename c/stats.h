@@ -77,8 +77,7 @@ class Stats {
     Stats(const Stats&) = delete;
     void operator=(const Stats&) = delete;
 
-    virtual void countna_compute(const Column*) = 0;
-    int64_t      countna_get() const { return _countna; }
+    int64_t countna_get(const Column*);
 
     bool is_computed(Stat s) const;
     bool countna_computed() const;
@@ -94,6 +93,9 @@ class Stats {
     virtual size_t memory_footprint() const;
     bool verify_integrity(IntegrityCheckContext&,
                           const std::string& name = "Stats") const;
+
+  protected:
+    virtual void countna_compute(const Column*) = 0;
 };
 
 
@@ -125,34 +127,17 @@ class NumericalStats : public Stats {
   public:
     size_t memory_footprint() const override { return sizeof(*this); }
 
-    // Mean value
-    void   mean_compute(const Column*);
-    double mean_get() const { return _mean; }
-
-    // Standard deviation
-    void   sd_compute(const Column*);
-    double sd_get() const { return _sd; }
-
-    // Minimum
-    void min_compute(const Column*);
-    T    min_get() const { return _min; }
-
-    // Maximum
-    void max_compute(const Column*);
-    T    max_get() const { return _max; }
-
-    // Sum
-    void sum_compute(const Column*);
-    A    sum_get() const { return _sum; }
-
-    // Count NA
-    void countna_compute(const Column*) override;
+    double mean_get(const Column*);
+    double sd_get(const Column*);
+    T min_get(const Column*);
+    T max_get(const Column*);
+    A sum_get(const Column*);
 
   protected:
     // Helper method that computes min, max, sum, mean, sd, and countna
     virtual void compute_numerical_stats(const Column*);
-
     virtual void compute_sorted_stats(const Column*);
+    void countna_compute(const Column*) override;
 };
 
 extern template class NumericalStats<int8_t, int64_t>;

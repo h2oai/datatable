@@ -250,10 +250,9 @@ size_t Column::memory_footprint() const
 //------------------------------------------------------------------------------
 
 int64_t Column::countna() const {
-  Stats* s = get_stats();
-  if (!s->countna_computed()) s->countna_compute(this);
-  return s->countna_get();
+  return get_stats()->countna_get(this);
 }
+
 /**
  * Methods for retrieving stats but in column form. These should be populated
  * with NA values when called from the base column instance.
