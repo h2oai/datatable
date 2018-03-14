@@ -950,7 +950,7 @@ static void radix_psort(SortContext* sc, GroupGatherer& gg)
     size_t off0 = 0;
     for (size_t i = 0; i < sc->nradixes; i++) {
       size_t off1 = rrendoffsets[i];
-      gg.push(off1 - off0);
+      if (off1 > off0) gg.push(off1 - off0);
       off0 = off1;
     }
   }

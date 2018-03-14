@@ -98,10 +98,7 @@ template <typename T> class array
         throw MemoryError() << "Unable to allocate " << sizeof(T) * newn
                             << " bytes";
       }
-      if (x != newx) {
-        std::free(x);
-        x = newx;
-      }
+      x = newx;
       n = newn;
     }
 };
