@@ -601,7 +601,6 @@ class SortContext {
     assert(histogram[nchunks * nradixes - 1] == n);
   }
 
-
 };
 
 
@@ -609,7 +608,7 @@ class SortContext {
 //==============================================================================
 // Forward declarations
 //==============================================================================
-static RowIndex sort_small(Column* col, bool make_groups);
+static RowIndex sort_small(const Column* col, bool make_groups);
 static void radix_psort(SortContext*, GroupGatherer&);
 
 #define INSERT_SORT_THRESHOLD 64
@@ -648,18 +647,22 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
     throw NotImplError() << "Cannot sort a datatable which is based on a "
                             "datatable with >2**31 rows";
   }
+  Column* col0 = columns[colindices[0]];
+  return col0->sort(make_groups);
+}
+
+
+RowIndex Column::sort(bool make_groups) const {
   if (nrows <= 1) {
     return RowIndex::from_slice(0, nrows, 1);
   }
-  Column* col0 = columns[colindices[0]];
-
   if (nrows <= INSERT_SORT_THRESHOLD) {
-    return sort_small(col0, make_groups);
+    return sort_small(this, make_groups);
   }
-  arr32_t order = rowindex.extract_as_array32();
+  arr32_t order = ri.extract_as_array32();
   GroupGatherer gg(make_groups);
   SortContext sc;
-  sc.initialize(col0, order);
+  sc.initialize(this, order);
   radix_psort(&sc, gg);
   free(sc.x);
   free(sc.next_x);
@@ -693,7 +696,7 @@ template <typename T> void _insert_sort(
 /**
  * Sort small-size columns using only insert-sort algorithm.
  */
-static RowIndex sort_small(Column* col, bool make_groups) {
+static RowIndex sort_small(const Column* col, bool make_groups) {
   int32_t n = static_cast<int32_t>(col->nrows);
   arr32_t order = col->rowindex().extract_as_array32();
   GroupGatherer gg(make_groups);

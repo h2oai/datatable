@@ -20,12 +20,13 @@
  * therefore should not be used for array maps.
  */
 enum Mask : uint64_t {
-  MIN      = ((uint64_t) 1 << 0),
-  MAX      = ((uint64_t) 1 << 1),
-  SUM      = ((uint64_t) 1 << 2),
-  MEAN     = ((uint64_t) 1 << 3),
-  SD       = ((uint64_t) 1 << 4),
-  COUNTNA  = ((uint64_t) 1 << 5),
+  MIN      = (1ULL << 0),
+  MAX      = (1ULL << 1),
+  SUM      = (1ULL << 2),
+  MEAN     = (1ULL << 3),
+  SD       = (1ULL << 4),
+  COUNTNA  = (1ULL << 5),
+  NUNIQ    = (1ULL << 6),
 };
 
 template<typename T>
@@ -41,17 +42,22 @@ constexpr T infinity() {
 // Stats
 //==============================================================================
 
-Stats::Stats() {
-  reset();
-}
-
 void Stats::reset() {
-  _countna = GETNA<int64_t>();
-  compute_mask = 0xFFFFFFFFFFFFFFFF & ~Mask::COUNTNA;
+  _computed.reset();
 }
 
-bool Stats::countna_computed() const {
-  return ((compute_mask & Mask::COUNTNA) != 0);
+bool Stats::is_computed(Stat s) const {
+  return _computed.test(s);
+}
+
+int64_t Stats::countna(const Column* col) {
+  if (!_computed.test(Stat::NaCnt)) compute_countna(col);
+  return _countna;
+}
+
+
+size_t Stats::memory_footprint() const {
+  return sizeof(*this);
 }
 
 
@@ -69,40 +75,10 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
 }
 
 
+
 //==============================================================================
 // NumericalStats
 //==============================================================================
-
-template<typename T, typename A>
-NumericalStats<T, A>::NumericalStats() {
-  reset();
-}
-
-template <typename T, typename A>
-void NumericalStats<T, A>::reset() {
-  Stats::reset();
-  _min  = GETNA<T>();
-  _max  = GETNA<T>();
-  _sum  = GETNA<A>();
-  _mean = GETNA<double>();
-  _sd   = GETNA<double>();
-  compute_mask &= ~(Mask::MIN | Mask::MAX | Mask::SUM | Mask::MEAN | Mask::SD);
-}
-
-
-template<typename T, typename A> void NumericalStats<T, A>::min_compute(const Column* col)     { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::max_compute(const Column* col)     { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::sum_compute(const Column* col)     { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::mean_compute(const Column* col)    { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::sd_compute(const Column* col)      { compute_numerical_stats(col); }
-template<typename T, typename A> void NumericalStats<T, A>::countna_compute(const Column* col) { compute_numerical_stats(col); }
-
-template<typename T, typename A> bool NumericalStats<T, A>::mean_computed() const { return ((compute_mask & Mask::MEAN) != 0); }
-template<typename T, typename A> bool NumericalStats<T, A>::sd_computed() const   { return ((compute_mask & Mask::SD) != 0); }
-template<typename T, typename A> bool NumericalStats<T, A>::min_computed() const  { return ((compute_mask & Mask::MIN) != 0); }
-template<typename T, typename A> bool NumericalStats<T, A>::max_computed() const  { return ((compute_mask & Mask::MAX) != 0); }
-template<typename T, typename A> bool NumericalStats<T, A>::sum_computed() const  { return ((compute_mask & Mask::SUM) != 0); }
-
 
 /**
  * Standard deviation and mean computations are done using Welford's method.
@@ -172,8 +148,55 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     _mean = mean;
     _sd = count_notna > 1 ? std::sqrt(m2 / (count_notna - 1)) : 0;
   }
-  compute_mask |= Mask::MIN | Mask::MAX | Mask::SUM |
-                  Mask::MEAN | Mask::SD | Mask::COUNTNA;
+  _computed.set(Stat::Min);
+  _computed.set(Stat::Max);
+  _computed.set(Stat::Sum);
+  _computed.set(Stat::Mean);
+  _computed.set(Stat::StDev);
+  _computed.set(Stat::NaCnt);
+}
+
+
+template <typename T, typename A>
+void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
+  RowIndex ri = col->sort(true);
+  _nuniq = static_cast<int64_t>(ri.get_ngroups());
+}
+
+
+template <typename T, typename A>
+A NumericalStats<T, A>::sum(const Column* col) {
+  if (!_computed.test(Stat::Sum)) compute_numerical_stats(col);
+  return _sum;
+}
+
+template <typename T, typename A>
+T NumericalStats<T, A>::min(const Column* col) {
+  if (!_computed.test(Stat::Min)) compute_numerical_stats(col);
+  return _min;
+}
+
+template <typename T, typename A>
+T NumericalStats<T, A>::max(const Column* col) {
+  if (!_computed.test(Stat::Max)) compute_numerical_stats(col);
+  return _max;
+}
+
+template <typename T, typename A>
+double NumericalStats<T, A>::mean(const Column* col) {
+  if (!_computed.test(Stat::Mean)) compute_numerical_stats(col);
+  return _mean;
+}
+
+template <typename T, typename A>
+double NumericalStats<T, A>::stdev(const Column* col) {
+  if (!_computed.test(Stat::StDev)) compute_numerical_stats(col);
+  return _sd;
+}
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_countna(const Column* col) {
+  compute_numerical_stats(col);
 }
 
 
@@ -266,8 +289,12 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   _max = count1 ? 1 : count0 ? 0 : GETNA<int8_t>();
   _sum = count1;
   _countna = nrows - t_count;
-  compute_mask |= Mask::MIN | Mask::MAX | Mask::SUM |
-                  Mask::MEAN | Mask::SD | Mask::COUNTNA;
+  _computed.set(Stat::Min);
+  _computed.set(Stat::Max);
+  _computed.set(Stat::Sum);
+  _computed.set(Stat::Mean);
+  _computed.set(Stat::StDev);
+  _computed.set(Stat::NaCnt);
 }
 
 
@@ -277,7 +304,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
 //==============================================================================
 
 template <typename T>
-void StringStats<T>::countna_compute(const Column *col) {
+void StringStats<T>::compute_countna(const Column *col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
   const RowIndex& rowindex = col->rowindex();
   int64_t nrows = scol->nrows;
@@ -302,7 +329,7 @@ void StringStats<T>::countna_compute(const Column *col) {
   }
 
   _countna = countna;
-  compute_mask |= Mask::COUNTNA;
+  _computed.set(Stat::NaCnt);
 }
 
 

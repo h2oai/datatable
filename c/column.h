@@ -106,6 +106,7 @@ public:
   int mbuf_refcount() const;
   MemoryBuffer* mbuf_shallowcopy() const;
   size_t memory_footprint() const;
+  RowIndex sort(bool make_groups) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
