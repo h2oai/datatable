@@ -13,22 +13,26 @@ from math import inf, nan, isnan
 from tests import list_equals
 
 
-srcs_bool = [(False, True, False, False, True),
-             (True, None, None, True, False)]
-srcs_int = [(5, -3, 6, 3, 0),
-            (None, -1, 0, 26, -3),
-            (129, 38, 27, -127, 8),
-            (385, None, None, -3, -89),
-            (-192, 32769, 683, 94, 0),
-            (None, -32788, -4, -44444, 5),
-            (30, -284928, 59, 3, 2147483649),
-            (2147483648, None, None, None, None)]
-srcs_real = [(9.5, 0.2, 5.4857301, -3.14159265358979),
-             (1.1, 2.3e12, -.5, None, inf, 0.0),
-             (3.5, 2.36, nan, 696.9, 4097)]
+srcs_bool = [[False, True, False, False, True],
+             [True, None, None, True, False],
+             [True], [False], [None] * 10, []]
+srcs_int = [[5, -3, 6, 3, 0],
+            [None, -1, 0, 26, -3],
+            [129, 38, 27, -127, 8],
+            [385, None, None, -3, -89],
+            [-192, 32769, 683, 94, 0],
+            [None, -32788, -4, -44444, 5],
+            [30, -284928, 59, 3, 2147483649],
+            [2147483648, None, None, None, None],
+            [-1, 1], [100], [0]]
+srcs_real = [[9.5, 0.2, 5.4857301, -3.14159265358979],
+             [1.1, 2.3e12, -.5, None, inf, 0.0],
+             [3.5, 2.36, nan, 696.9, 4097],
+             [3.1415926535897932], [nan]]
 
-srcs_str = [("foo", None, "bar", "baaz", None),
-            ("a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a")]
+srcs_str = [["foo", None, "bar", "baaz", None],
+            ["a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a"],
+            ["leeeeeroy!"]]
 
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
@@ -279,6 +283,21 @@ def test_bad_call():
     with pytest.raises(ValueError) as e:
         f0.min1()
     assert "This method can only be applied to a 1-column Frame" in str(e.value)
+
+
+@pytest.mark.parametrize("st", [dt.int8, dt.int16, dt.int32, dt.int64,
+                                dt.float32, dt.float64, dt.str32, dt.str64])
+def test_empty_frame(st):
+    f0 = dt.Frame([], stype=st)
+    f1 = dt.Frame([None], stype=st)
+    assert f0.internal.check()
+    assert f1.internal.check()
+    assert f0.stypes == f1.stypes == (st, )
+    assert f0.countna1() == 0
+    assert f0.nunique1() == 0
+    assert f1.countna1() == 1
+    assert f1.nunique1() == 0
+
 
 
 
