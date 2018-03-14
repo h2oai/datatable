@@ -7,13 +7,24 @@
 //------------------------------------------------------------------------------
 #ifndef dt_STATS_h
 #define dt_STATS_h
-#include <stddef.h>
-#include <stdint.h>
+#include <bitset>
 #include <vector>
 #include "datatable_check.h"
 #include "types.h"
 
 class Column;
+
+
+enum Stat {
+  Min,
+  Max,
+  Sum,
+  Mean,
+  StDev,
+  NaCnt,
+  NUniq,
+};
+
 
 
 //------------------------------------------------------------------------------
@@ -53,27 +64,34 @@ class Column;
  *       from the provided column.
  *   <S>_get() - retrieve the value of computed statistic (but the user should
  *       check its availability first).
- *
  */
 class Stats {
   protected:
-    uint64_t compute_mask;
+    std::bitset<7> _computed;
     int64_t _countna;
+    int64_t _nuniq;
 
   public:
-    Stats();
+    Stats() = default;
     virtual ~Stats() {}
     Stats(const Stats&) = delete;
     void operator=(const Stats&) = delete;
-    virtual size_t memory_footprint() const { return sizeof(*this); }
 
     virtual void countna_compute(const Column*) = 0;
-    bool         countna_computed() const;
     int64_t      countna_get() const { return _countna; }
 
-    virtual void reset();
+    bool is_computed(Stat s) const;
+    bool countna_computed() const;
+    bool mean_computed() const;
+    bool sd_computed() const;
+    bool min_computed() const;
+    bool max_computed() const;
+    bool sum_computed() const;
+
+    void reset();
     virtual void merge_stats(const Stats*);
 
+    virtual size_t memory_footprint() const;
     bool verify_integrity(IntegrityCheckContext&,
                           const std::string& name = "Stats") const;
 };
@@ -105,33 +123,26 @@ class NumericalStats : public Stats {
     int64_t : (sizeof(A) + sizeof(T) + sizeof(T)) * 56 % 64;
 
   public:
-    NumericalStats();
-    void reset() override;
     size_t memory_footprint() const override { return sizeof(*this); }
 
     // Mean value
     void   mean_compute(const Column*);
-    bool   mean_computed() const;
     double mean_get() const { return _mean; }
 
     // Standard deviation
     void   sd_compute(const Column*);
-    bool   sd_computed() const;
     double sd_get() const { return _sd; }
 
     // Minimum
     void min_compute(const Column*);
-    bool min_computed() const;
     T    min_get() const { return _min; }
 
     // Maximum
     void max_compute(const Column*);
-    bool max_computed() const;
     T    max_get() const { return _max; }
 
     // Sum
     void sum_compute(const Column*);
-    bool sum_computed() const;
     A    sum_get() const { return _sum; }
 
     // Count NA
@@ -140,6 +151,8 @@ class NumericalStats : public Stats {
   protected:
     // Helper method that computes min, max, sum, mean, sd, and countna
     virtual void compute_numerical_stats(const Column*);
+
+    virtual void compute_sorted_stats(const Column*);
 };
 
 extern template class NumericalStats<int8_t, int64_t>;
