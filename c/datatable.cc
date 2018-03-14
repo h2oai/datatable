@@ -179,6 +179,7 @@ DataTable* DataTable::_statdt(colmakerfn f) const {
 }
 
 DataTable* DataTable::countna_datatable() const { return _statdt(&Column::countna_column); }
+DataTable* DataTable::nunique_datatable() const { return _statdt(&Column::nunique_column); }
 DataTable* DataTable::mean_datatable() const    { return _statdt(&Column::mean_column); }
 DataTable* DataTable::sd_datatable() const      { return _statdt(&Column::sd_column); }
 DataTable* DataTable::min_datatable() const     { return _statdt(&Column::min_column); }

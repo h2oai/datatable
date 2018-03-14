@@ -14,21 +14,6 @@
 #include "utils/omp.h"
 
 
-/**
- * The CStat enum is primarily used as a bit mask for checking if a statistic
- * has been computed. Note that the values of each CStat are not consecutive and
- * therefore should not be used for array maps.
- */
-enum Mask : uint64_t {
-  MIN      = (1ULL << 0),
-  MAX      = (1ULL << 1),
-  SUM      = (1ULL << 2),
-  MEAN     = (1ULL << 3),
-  SD       = (1ULL << 4),
-  COUNTNA  = (1ULL << 5),
-  NUNIQ    = (1ULL << 6),
-};
-
 template<typename T>
 constexpr T infinity() {
   return std::numeric_limits<T>::has_infinity
@@ -53,6 +38,11 @@ bool Stats::is_computed(Stat s) const {
 int64_t Stats::countna(const Column* col) {
   if (!_computed.test(Stat::NaCnt)) compute_countna(col);
   return _countna;
+}
+
+int64_t Stats::nunique(const Column* col) {
+  if (!_computed.test(Stat::NUniq)) compute_nunique(col);
+  return _nuniq;
 }
 
 
@@ -160,7 +150,21 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
   RowIndex ri = col->sort(true);
-  _nuniq = static_cast<int64_t>(ri.get_ngroups());
+  const arr32_t& groups = ri.get_groups();
+
+  // Sorting gathers all NA elements at the top (in the first group). Thus if
+  // we did not yet compute the NA count for the column, we can do so now by
+  // checking whether the elements in the first group are NA or not.
+  if (!_computed.test(Stat::NaCnt)) {
+    T* coldata = static_cast<T*>(col->data());
+    T x0 = coldata[ri.first()];
+    _countna = ISNA<T>(x0)? groups[1] : 0;
+    _computed.set(Stat::NaCnt);
+  }
+
+  bool has_nas = (_countna > 0);
+  _nuniq = static_cast<int64_t>(ri.get_ngroups()) - has_nas;
+  _computed.set(Stat::NUniq);
 }
 
 
@@ -197,6 +201,11 @@ double NumericalStats<T, A>::stdev(const Column* col) {
 template<typename T, typename A>
 void NumericalStats<T, A>::compute_countna(const Column* col) {
   compute_numerical_stats(col);
+}
+
+template<typename T, typename A>
+void NumericalStats<T, A>::compute_nunique(const Column* col) {
+  compute_sorted_stats(col);
 }
 
 
@@ -304,7 +313,7 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
 //==============================================================================
 
 template <typename T>
-void StringStats<T>::compute_countna(const Column *col) {
+void StringStats<T>::compute_countna(const Column* col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
   const RowIndex& rowindex = col->rowindex();
   int64_t nrows = scol->nrows;
@@ -330,6 +339,22 @@ void StringStats<T>::compute_countna(const Column *col) {
 
   _countna = countna;
   _computed.set(Stat::NaCnt);
+}
+
+template <typename T>
+void StringStats<T>::compute_nunique(const Column* col) {
+  const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
+  RowIndex ri = col->sort(true);
+  const arr32_t& groups = ri.get_groups();
+
+  if (!_computed.test(Stat::NaCnt)) {
+    _countna = scol->offsets()[ri.first()] < 0? groups[1] : 0;
+    _computed.set(Stat::NaCnt);
+  }
+
+  bool has_nas = (_countna > 0);
+  _nuniq = static_cast<int64_t>(ri.get_ngroups()) - has_nas;
+  _computed.set(Stat::NUniq);
 }
 
 

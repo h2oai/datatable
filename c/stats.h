@@ -16,13 +16,18 @@ class Column;
 
 
 enum Stat {
-  Min,
-  Max,
   Sum,
   Mean,
   StDev,
   NaCnt,
   NUniq,
+  Min,
+  Qt25,
+  Median,
+  Qt75,
+  Max,
+
+  NSTATS
 };
 
 
@@ -67,7 +72,7 @@ enum Stat {
  */
 class Stats {
   protected:
-    std::bitset<7> _computed;
+    std::bitset<Stat::NSTATS> _computed;
     int64_t _countna;
     int64_t _nuniq;
 
@@ -78,6 +83,7 @@ class Stats {
     void operator=(const Stats&) = delete;
 
     int64_t countna(const Column*);
+    int64_t nunique(const Column*);
 
     bool is_computed(Stat s) const;
     void reset();
@@ -89,6 +95,7 @@ class Stats {
 
   protected:
     virtual void compute_countna(const Column*) = 0;
+    virtual void compute_nunique(const Column*) = 0;
 };
 
 
@@ -131,6 +138,7 @@ class NumericalStats : public Stats {
     virtual void compute_numerical_stats(const Column*);
     virtual void compute_sorted_stats(const Column*);
     virtual void compute_countna(const Column*) override;
+    virtual void compute_nunique(const Column*) override;
 };
 
 extern template class NumericalStats<int8_t, int64_t>;
@@ -205,8 +213,11 @@ class BooleanStats : public NumericalStats<int8_t, int64_t> {
 template <typename T>
 class StringStats : public Stats {
   public:
-    void compute_countna(const Column*) override;
     virtual size_t memory_footprint() const override { return sizeof(*this); }
+
+  protected:
+    virtual void compute_countna(const Column*) override;
+    virtual void compute_nunique(const Column*) override;
 };
 
 extern template class StringStats<int32_t>;

@@ -650,6 +650,17 @@ class Frame(object):
         """
         return Frame(self._dt.get_countna(), names=self.names)
 
+    def nunique(self):
+        """
+        Get the number of unique values in each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the counted number of
+        unique values in each column.
+        """
+        return Frame(self._dt.get_nunique(), names=self.names)
+
     def min1(self):
         return self._dt.min1()
 
@@ -667,6 +678,9 @@ class Frame(object):
 
     def countna1(self):
         return self._dt.countna1()
+
+    def nunique1(self):
+        return self._dt.nunique1()
 
 
 

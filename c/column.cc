@@ -253,6 +253,10 @@ int64_t Column::countna() const {
   return get_stats()->countna(this);
 }
 
+int64_t Column::nunique() const {
+  return get_stats()->nunique(this);
+}
+
 /**
  * Methods for retrieving stats but in column form. These should be populated
  * with NA values when called from the base column instance.
@@ -269,12 +273,19 @@ Column* Column::countna_column() const {
   return col;
 }
 
+Column* Column::nunique_column() const {
+  IntColumn<int64_t>* col = new IntColumn<int64_t>(1);
+  col->set_elem(0, nunique());
+  return col;
+}
+
 PyObject* Column::mean_pyscalar() const { return none(); }
 PyObject* Column::sd_pyscalar() const { return none(); }
 PyObject* Column::min_pyscalar() const { return none(); }
 PyObject* Column::max_pyscalar() const { return none(); }
 PyObject* Column::sum_pyscalar() const { return none(); }
 PyObject* Column::countna_pyscalar() const { return int_to_py(countna()); }
+PyObject* Column::nunique_pyscalar() const { return int_to_py(nunique()); }
 
 
 

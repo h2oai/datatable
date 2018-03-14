@@ -6,34 +6,32 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+import random
 import statistics
 from datatable import stype, ltype
 from math import inf, nan, isnan
 from tests import list_equals
 
 
-@pytest.fixture(name="src", params=[
-    # Boolean
-    (False, True, False, False, True),
-    (True, None, None, True, False),
-    # Integer
-    (5, -3, 6, 3, 0),
-    (None, -1, 0, 26, -3),
-    (129, 38, 27, -127, 8),
-    (385, None, None, -3, -89),
-    (-192, 32769, 683, 94, 0),
-    (None, -32788, -4, -44444, 5),
-    (30, -284928, 59, 3, 2147483649),
-    (2147483648, None, None, None, None),
-    # Real
-    (9.5, 0.2, 5.4857301, -3.14159265358979),
-    (1.1, 2.3e12, -.5, None, inf, 0.0),
-    (3.5, 2.36, nan, 696.9, 4097)
-])
-def src_fixture(request):
-    src = request.param
-    return src
+srcs_bool = [(False, True, False, False, True),
+             (True, None, None, True, False)]
+srcs_int = [(5, -3, 6, 3, 0),
+            (None, -1, 0, 26, -3),
+            (129, 38, 27, -127, 8),
+            (385, None, None, -3, -89),
+            (-192, 32769, 683, 94, 0),
+            (None, -32788, -4, -44444, 5),
+            (30, -284928, 59, 3, 2147483649),
+            (2147483648, None, None, None, None)]
+srcs_real = [(9.5, 0.2, 5.4857301, -3.14159265358979),
+             (1.1, 2.3e12, -.5, None, inf, 0.0),
+             (3.5, 2.36, nan, 696.9, 4097)]
 
+srcs_str = [("foo", None, "bar", "baaz", None),
+            ("a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a")]
+
+srcs_numeric = srcs_bool + srcs_int + srcs_real
+srcs_all = srcs_numeric + srcs_str
 
 
 #-------------------------------------------------------------------------------
@@ -48,6 +46,7 @@ def t_min(t):
         return min(t)
 
 
+@pytest.mark.parametrize("src", srcs_numeric)
 def test_min(src):
     dt0 = dt.Frame(src)
     dtr = dt0.min()
@@ -79,6 +78,7 @@ def t_max(t):
         return max(t)
 
 
+@pytest.mark.parametrize("src", srcs_numeric)
 def test_max(src):
     dt0 = dt.Frame(src)
     dtr = dt0.max()
@@ -107,6 +107,7 @@ def sum_stype(st):
     return stype.float64 if st.ltype == ltype.real else stype.int64
 
 
+@pytest.mark.parametrize("src", srcs_numeric)
 def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
@@ -130,6 +131,7 @@ def t_mean(t):
     else:
         return statistics.mean(t)
 
+@pytest.mark.parametrize("src", srcs_numeric)
 def test_dt_mean(src):
     dt0 = dt.Frame(src)
     dtr = dt0.mean()
@@ -180,6 +182,7 @@ def t_sd(t):
         res = statistics.stdev(t)
         return res if not isnan(res) else None
 
+@pytest.mark.parametrize("src", srcs_numeric)
 def test_dt_sd(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sd()
@@ -213,10 +216,12 @@ def test_dt_sd_special_cases(src, res):
 # Count_na function dt.count_na()
 #-------------------------------------------------------------------------------
 
-def t_count_na(t):
-    return sum(i is None or isnan(i) for i in t)
+def t_count_na(arr):
+    return sum(x is None or (isinstance(x, float) and isnan(x))
+               for x in arr)
 
 
+@pytest.mark.parametrize("src", srcs_all)
 def test_dt_count_na(src):
     dt0 = dt.Frame(src)
     dtr = dt0.countna()
@@ -226,6 +231,26 @@ def test_dt_count_na(src):
     assert dt0.names == dtr.names
     assert dtr.topython() == [[t_count_na(src)]]
     assert dtr.scalar() == dt0.countna1()
+
+
+
+#-------------------------------------------------------------------------------
+# N_unique function
+#-------------------------------------------------------------------------------
+
+def n_unique(arr):
+    return len(set(arr) - {None, nan})
+
+@pytest.mark.parametrize("src", srcs_all)
+def test_dt_n_unique(src):
+    dt0 = dt.Frame(src)
+    dtr = dt0.nunique()
+    assert dtr.internal.check()
+    assert dtr.stypes == (stype.int64, )
+    assert dtr.shape == (1, 1)
+    assert dtr.names == dt0.names
+    assert dtr.scalar() == n_unique(src)
+    assert dtr.scalar() == dt0.nunique1()
 
 
 
@@ -293,3 +318,11 @@ def test_stats_float_large(numpy):
     assert list_equals(dt0.sum().topython(), [[a.sum()]])
     assert list_equals(dt0.mean().topython(), [[a.mean()]])
     assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
+
+
+def test_stats_string_large():
+    n = 1324578
+    a = ["%x" % random.getrandbits(11) for _ in range(n)]
+    dt0 = dt.Frame(a)
+    assert dt0.countna1() == 0
+    assert dt0.nunique1() == n_unique(a)

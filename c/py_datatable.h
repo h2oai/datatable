@@ -188,6 +188,10 @@ DECLARE_METHOD(
   "Get the NA count for each column in the DataTable")
 
 DECLARE_METHOD(
+  get_nunique,
+  "Get the number of unique values for each column in the DataTable")
+
+DECLARE_METHOD(
    min1,
    "Get the scalar minimum of a single-column DataTable")
 
@@ -210,6 +214,10 @@ DECLARE_METHOD(
 DECLARE_METHOD(
    countna1,
    "Get the scalar count of NAs in a single-column DataTable")
+
+DECLARE_METHOD(
+   nunique1,
+   "Get the number of unique values in a single-column DataTable")
 
 
 
