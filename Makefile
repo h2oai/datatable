@@ -362,7 +362,7 @@ $(BUILDDIR)/py_rowindex.h: c/py_rowindex.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/ro
 	@echo • Refreshing c/py_rowindex.h
 	@cp c/py_rowindex.h $@
 
-$(BUILDDIR)/py_types.h: c/py_types.h $(BUILDDIR)/datatable.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/py_types.h: c/py_types.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/assert.h
 	@echo • Refreshing c/py_types.h
 	@cp c/py_types.h $@
 
@@ -656,7 +656,7 @@ $(BUILDDIR)/py_rowindex.o : c/py_rowindex.cc $(BUILDDIR)/py_column.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_types.o : c/py_types.c $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_types.o : c/py_types.c $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/column.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

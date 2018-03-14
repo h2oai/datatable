@@ -10,7 +10,6 @@
 #include "utils/assert.h"
 #include <Python.h>
 #include "types.h"
-#include "datatable.h"
 
 #if LLONG_MAX==9223372036854775807
     // int64_t == long long int
@@ -35,6 +34,7 @@
 dt_static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
                  "int64_t and Py_ssize_t should refer to the same type");
 
+class Column;
 
 typedef PyObject* (stype_formatter)(Column *col, int64_t row);
 

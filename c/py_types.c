@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "py_types.h"
 #include "py_utils.h"
+#include "column.h"
 
 PyObject* py_ltype_names[DT_LTYPES_COUNT];
 PyObject* py_stype_names[DT_STYPES_COUNT];

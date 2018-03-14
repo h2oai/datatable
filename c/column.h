@@ -188,6 +188,7 @@ public:
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
   int64_t countna() const;
+  int64_t nunique() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
@@ -207,6 +208,7 @@ public:
   virtual Column* mean_column() const;
   virtual Column* sd_column() const;
   virtual Column* countna_column() const;
+  virtual Column* nunique_column() const;
 
   virtual PyObject* min_pyscalar() const;
   virtual PyObject* max_pyscalar() const;
@@ -214,6 +216,7 @@ public:
   virtual PyObject* mean_pyscalar() const;
   virtual PyObject* sd_pyscalar() const;
   virtual PyObject* countna_pyscalar() const;
+  virtual PyObject* nunique_pyscalar() const;
 
   /**
    * Check that the data in this Column object is correct. Use the provided
@@ -542,6 +545,8 @@ protected:
 
 
 
+//==============================================================================
+// String column
 //==============================================================================
 
 template <typename T> class StringColumn : public Column

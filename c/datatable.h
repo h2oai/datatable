@@ -85,6 +85,7 @@ class DataTable {
     DataTable* mean_datatable() const;
     DataTable* sd_datatable() const;
     DataTable* countna_datatable() const;
+    DataTable* nunique_datatable() const;
 
     bool verify_integrity(IntegrityCheckContext& icc) const;
 

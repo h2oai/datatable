@@ -357,6 +357,7 @@ PyObject* get_mean   (obj* self, PyObject*) { return wrap(self->ref->mean_datata
 PyObject* get_sd     (obj* self, PyObject*) { return wrap(self->ref->sd_datatable()); }
 PyObject* get_sum    (obj* self, PyObject*) { return wrap(self->ref->sum_datatable()); }
 PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_datatable()); }
+PyObject* get_nunique(obj* self, PyObject*) { return wrap(self->ref->nunique_datatable()); }
 
 typedef PyObject* (Column::*scalarstatfn)() const;
 static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
@@ -365,6 +366,7 @@ static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
 }
 
 PyObject* countna1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::countna_pyscalar); }
+PyObject* nunique1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::nunique_pyscalar); }
 PyObject* min1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::min_pyscalar); }
 PyObject* max1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::max_pyscalar); }
 PyObject* mean1   (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::mean_pyscalar); }
@@ -440,7 +442,9 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(get_mean),
   METHOD0(get_sd),
   METHOD0(get_countna),
+  METHOD0(get_nunique),
   METHOD0(countna1),
+  METHOD0(nunique1),
   METHOD0(min1),
   METHOD0(max1),
   METHOD0(sum1),
