@@ -130,3 +130,12 @@ def test_groups_large1():
     f1 = f0(groupby="A")
     assert f1.internal.rowindex.ngroups == 251
     assert f1.internal.rowindex.group_sizes == [4000] * 251
+
+
+def test_groups_large2_str():
+    n = 1000
+    src = ["%x" % random.getrandbits(6) for _ in range(n)]
+    f0 = dt.Frame({"A": src})
+    f1 = f0(groupby="A")
+    assert f1.internal.check()
+    # assert f1.internal.rowindex.ngroups == len(set(src))
