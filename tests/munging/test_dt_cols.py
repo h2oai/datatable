@@ -259,9 +259,12 @@ def test_cols_expression(dt0, tbl0):
 
 
 def test_cols_expression2():
+    # In Py3.6+ we could have used a regular dictionary here...
+    from collections import OrderedDict
+    selector = OrderedDict([("foo", f.A), ("bar", -f.A)])
     f0 = dt.Frame({"A": range(10)})
-    f1 = f0(select={"foo": f.A, "bar": -f.A}, engine="eager")
-    f2 = f0(select={"foo": f.A, "bar": -f.A}, engine="llvm")
+    f1 = f0(select=selector, engine="eager")
+    f2 = f0(select=selector, engine="llvm")
     assert f1.internal.check()
     assert f2.internal.check()
     assert f1.names == f2.names == ("foo", "bar")
