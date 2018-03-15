@@ -74,10 +74,12 @@ void GroupGatherer::from_data(
 
 
 void GroupGatherer::from_groups(const GroupGatherer& gg) {
+  if (count + gg.count > groups.size()) groups.resize((count + gg.count) * 2);
   for (size_t i = 1; i < gg.count; ++i) {
     groups[count++] = total_size + gg.groups[i];
   }
-  total_size = groups[count - 1];
+  total_size += gg.total_size;
+  assert(total_size == groups[count - 1]);
 }
 
 
