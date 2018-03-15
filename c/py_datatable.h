@@ -192,12 +192,24 @@ DECLARE_METHOD(
   "Get the number of unique values for each column in the DataTable")
 
 DECLARE_METHOD(
+  get_mode,
+  "Get the most frequent value in each column in the DataTable")
+
+DECLARE_METHOD(
+  get_nmodal,
+  "Get the count of most frequent values for each column in the DataTable")
+
+DECLARE_METHOD(
    min1,
    "Get the scalar minimum of a single-column DataTable")
 
 DECLARE_METHOD(
    max1,
    "Get the scalar maximum of a single-column DataTable")
+
+DECLARE_METHOD(
+   mode1,
+   "Get the scalar mode of a single-column DataTable")
 
 DECLARE_METHOD(
    sum1,
@@ -218,6 +230,10 @@ DECLARE_METHOD(
 DECLARE_METHOD(
    nunique1,
    "Get the number of unique values in a single-column DataTable")
+
+DECLARE_METHOD(
+   nmodal1,
+   "Get the number of modal values in a single-column DataTable")
 
 
 

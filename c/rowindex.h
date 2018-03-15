@@ -50,7 +50,7 @@ class RowIndexImpl {
     void acquire() { refcount++; }
     void release() { if (!--refcount) delete this; }
 
-    virtual int64_t first() const = 0;
+    virtual int64_t nth(int64_t i) const = 0;
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(int64_t nrows) const = 0;
     virtual size_t memory_footprint() const = 0;
@@ -80,7 +80,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(filterfn64* f, int64_t n, bool sorted);
     ArrayRowIndexImpl(Column*);
 
-    int64_t first() const override;
+    int64_t nth(int64_t i) const override;
     const int32_t* indices32() const { return ind32.data(); }
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
@@ -119,7 +119,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     SliceRowIndexImpl(int64_t start, int64_t count, int64_t step);
     static void check_triple(int64_t start, int64_t count, int64_t step);
 
-    int64_t first() const override;
+    int64_t nth(int64_t i) const override;
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
     RowIndexImpl* inverse(int64_t nrows) const override;
     size_t memory_footprint() const override;
@@ -221,7 +221,7 @@ class RowIndex {
     size_t zlength() const { return static_cast<size_t>(length()); }
     int64_t min() const { return impl? impl->min : 0; }
     int64_t max() const { return impl? impl->max : 0; }
-    int64_t first() const { return impl? impl->first() : 0; }
+    int64_t nth(int64_t i) const { return impl? impl->nth(i) : 0; }
     const int32_t* indices32() const { return impl_asarray()->indices32(); }
     const int64_t* indices64() const { return impl_asarray()->indices64(); }
     int64_t slice_start() const { return impl_asslice()->start; }

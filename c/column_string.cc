@@ -539,7 +539,9 @@ void StringColumn<T>::fill_na() {
 
 
 
-//---- Stats -------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Stats
+//------------------------------------------------------------------------------
 
 template <typename T>
 StringStats<T>* StringColumn<T>::get_stats() const {
@@ -547,9 +549,36 @@ StringStats<T>* StringColumn<T>::get_stats() const {
   return static_cast<StringStats<T>*>(stats);
 }
 
+template <typename T>
+CString StringColumn<T>::mode() const {
+  return get_stats()->mode(this);
+}
+
+template <typename T>
+PyObject* StringColumn<T>::mode_pyscalar() const {
+  return string_to_py(mode());
+}
+
+template <typename T>
+Column* StringColumn<T>::mode_column() const {
+  CString m = mode();
+  auto col = new StringColumn<T>(1);
+  if (m.size >= 0) {
+    col->mbuf->set_elem(1, static_cast<T>(m.size) + 1);
+    col->strbuf->resize(static_cast<size_t>(m.size));
+    std::memcpy(col->strbuf->get(), m.ch, static_cast<size_t>(m.size));
+  } else {
+    col->mbuf->set_elem(1, static_cast<T>(-1));
+  }
+  return col;
+}
 
 
-//----- Type casts -------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Type casts
+//------------------------------------------------------------------------------
 
 template <typename T>
 void StringColumn<T>::cast_into(PyObjectColumn* target) const {

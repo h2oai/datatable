@@ -176,7 +176,7 @@ PyObject* to_scalar(obj* self, PyObject*) {
   DataTable* dt = self->ref;
   if (dt->ncols == 1 && dt->nrows == 1) {
     Column* col = dt->columns[0];
-    int64_t i = col->rowindex().first();
+    int64_t i = col->rowindex().nth(0);
     auto f = py_stype_formatters[col->stype()];
     return f(col, i);
   } else {
@@ -353,11 +353,13 @@ PyObject* sort(obj* self, PyObject* args) {
 
 PyObject* get_min    (obj* self, PyObject*) { return wrap(self->ref->min_datatable()); }
 PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatable()); }
+PyObject* get_mode   (obj* self, PyObject*) { return wrap(self->ref->mode_datatable()); }
 PyObject* get_mean   (obj* self, PyObject*) { return wrap(self->ref->mean_datatable()); }
 PyObject* get_sd     (obj* self, PyObject*) { return wrap(self->ref->sd_datatable()); }
 PyObject* get_sum    (obj* self, PyObject*) { return wrap(self->ref->sum_datatable()); }
 PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_datatable()); }
 PyObject* get_nunique(obj* self, PyObject*) { return wrap(self->ref->nunique_datatable()); }
+PyObject* get_nmodal (obj* self, PyObject*) { return wrap(self->ref->nmodal_datatable()); }
 
 typedef PyObject* (Column::*scalarstatfn)() const;
 static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
@@ -367,8 +369,10 @@ static PyObject* _scalar_stat(DataTable* dt, scalarstatfn f) {
 
 PyObject* countna1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::countna_pyscalar); }
 PyObject* nunique1(obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::nunique_pyscalar); }
+PyObject* nmodal1 (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::nmodal_pyscalar); }
 PyObject* min1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::min_pyscalar); }
 PyObject* max1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::max_pyscalar); }
+PyObject* mode1   (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::mode_pyscalar); }
 PyObject* mean1   (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::mean_pyscalar); }
 PyObject* sd1     (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::sd_pyscalar); }
 PyObject* sum1    (obj* self, PyObject*) { return _scalar_stat(self->ref, &Column::sum_pyscalar); }
@@ -438,15 +442,19 @@ static PyMethodDef datatable_methods[] = {
   METHODv(sort),
   METHOD0(get_min),
   METHOD0(get_max),
+  METHOD0(get_mode),
   METHOD0(get_sum),
   METHOD0(get_mean),
   METHOD0(get_sd),
   METHOD0(get_countna),
   METHOD0(get_nunique),
+  METHOD0(get_nmodal),
   METHOD0(countna1),
   METHOD0(nunique1),
+  METHOD0(nmodal1),
   METHOD0(min1),
   METHOD0(max1),
+  METHOD0(mode1),
   METHOD0(sum1),
   METHOD0(mean1),
   METHOD0(sd1),

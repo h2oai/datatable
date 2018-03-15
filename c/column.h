@@ -189,6 +189,7 @@ public:
 
   int64_t countna() const;
   int64_t nunique() const;
+  int64_t nmodal() const;
   virtual int64_t min_int64() const { return GETNA<int64_t>(); }
   virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
@@ -209,6 +210,8 @@ public:
   virtual Column* sd_column() const;
   virtual Column* countna_column() const;
   virtual Column* nunique_column() const;
+  virtual Column* nmodal_column() const;
+  virtual Column* mode_column() const;
 
   virtual PyObject* min_pyscalar() const;
   virtual PyObject* max_pyscalar() const;
@@ -217,6 +220,8 @@ public:
   virtual PyObject* sd_pyscalar() const;
   virtual PyObject* countna_pyscalar() const;
   virtual PyObject* nunique_pyscalar() const;
+  virtual PyObject* nmodal_pyscalar() const;
+  virtual PyObject* mode_pyscalar() const;
 
   /**
    * Check that the data in this Column object is correct. Use the provided
@@ -339,17 +344,20 @@ public:
 
   int8_t min() const;
   int8_t max() const;
+  int8_t mode() const;
   int64_t sum() const;
   double mean() const;
   double sd() const;
 
   Column* min_column() const override;
   Column* max_column() const override;
+  Column* mode_column() const override;
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
+  PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
@@ -389,6 +397,7 @@ public:
 
   T min() const;
   T max() const;
+  T mode() const;
   int64_t sum() const;
   double mean() const;
   double sd() const;
@@ -397,11 +406,13 @@ public:
 
   Column* min_column() const override;
   Column* max_column() const override;
+  Column* mode_column() const override;
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
+  PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
@@ -448,17 +459,20 @@ public:
 
   T min() const;
   T max() const;
+  T mode() const;
   double sum() const;
   double mean() const;
   double sd() const;
 
   Column* min_column() const override;
   Column* max_column() const override;
+  Column* mode_column() const override;
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
+  PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
@@ -574,6 +588,10 @@ public:
   static size_t padding(size_t datasize);
   char* strdata() const;
   T* offsets() const;
+
+  CString mode() const;
+  PyObject* mode_pyscalar() const override;
+  Column* mode_column() const override;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   Column* deepcopy() const override;

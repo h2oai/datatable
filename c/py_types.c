@@ -47,6 +47,9 @@ PyObject* float_to_py(double x) {
   return ISNA<double>(x)? none() : PyFloat_FromDouble(x);
 }
 
+PyObject* string_to_py(const CString& x) {
+  return x.size < 0? none() : PyUnicode_FromStringAndSize(x.ch, x.size);
+}
 
 
 static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)

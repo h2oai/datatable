@@ -16,16 +16,18 @@ class Column;
 
 
 enum Stat {
+  NaCount,
   Sum,
   Mean,
   StDev,
-  NaCnt,
-  NUniq,
   Min,
   Qt25,
   Median,
   Qt75,
   Max,
+  Mode,
+  NModal,
+  NUnique,
 
   NSTATS
 };
@@ -74,7 +76,8 @@ class Stats {
   protected:
     std::bitset<Stat::NSTATS> _computed;
     int64_t _countna;
-    int64_t _nuniq;
+    int64_t _nunique;
+    int64_t _nmodal;
 
   public:
     Stats() = default;
@@ -84,6 +87,7 @@ class Stats {
 
     int64_t countna(const Column*);
     int64_t nunique(const Column*);
+    int64_t nmodal(const Column*);
 
     bool is_computed(Stat s) const;
     void reset();
@@ -95,7 +99,7 @@ class Stats {
 
   protected:
     virtual void compute_countna(const Column*) = 0;
-    virtual void compute_nunique(const Column*) = 0;
+    virtual void compute_sorted_stats(const Column*) = 0;
 };
 
 
@@ -122,7 +126,8 @@ class NumericalStats : public Stats {
     A _sum;
     T _min;
     T _max;
-    int64_t : (sizeof(A) + sizeof(T) + sizeof(T)) * 56 % 64;
+    T _mode;
+    int64_t : (sizeof(A) + sizeof(T) * 3) * 56 % 64;
 
   public:
     size_t memory_footprint() const override { return sizeof(*this); }
@@ -131,14 +136,14 @@ class NumericalStats : public Stats {
     double stdev(const Column*);
     T min(const Column*);
     T max(const Column*);
+    T mode(const Column*);
     A sum(const Column*);
 
   protected:
     // Helper method that computes min, max, sum, mean, sd, and countna
     virtual void compute_numerical_stats(const Column*);
-    virtual void compute_sorted_stats(const Column*);
+    virtual void compute_sorted_stats(const Column*) override;
     virtual void compute_countna(const Column*) override;
-    virtual void compute_nunique(const Column*) override;
 };
 
 extern template class NumericalStats<int8_t, int64_t>;
@@ -213,12 +218,17 @@ class BooleanStats : public NumericalStats<int8_t, int64_t> {
  */
 template <typename T>
 class StringStats : public Stats {
+  private:
+    CString _mode;
+
   public:
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 
+    CString mode(const Column*);
+
   protected:
     virtual void compute_countna(const Column*) override;
-    virtual void compute_nunique(const Column*) override;
+    virtual void compute_sorted_stats(const Column*) override;
 };
 
 extern template class StringStats<int32_t>;
