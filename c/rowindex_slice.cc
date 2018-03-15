@@ -51,8 +51,8 @@ void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
 }
 
 
-int64_t SliceRowIndexImpl::first() const {
-  return start;
+int64_t SliceRowIndexImpl::nth(int64_t i) const {
+  return start + i * step;
 }
 
 

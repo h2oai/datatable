@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Frame (however they only work with a 1-column Frames).
 - Implemented method `.nunique()` to compute the number of unique values in each
   column.
+- Added stats functions `.mode()` and `.nmodal()`.
 
 
 #### Changed

@@ -24,7 +24,7 @@ constexpr T infinity() {
 
 
 //==============================================================================
-// Stats
+// Base Stats
 //==============================================================================
 
 void Stats::reset() {
@@ -36,13 +36,18 @@ bool Stats::is_computed(Stat s) const {
 }
 
 int64_t Stats::countna(const Column* col) {
-  if (!_computed.test(Stat::NaCnt)) compute_countna(col);
+  if (!_computed.test(Stat::NaCount)) compute_countna(col);
   return _countna;
 }
 
 int64_t Stats::nunique(const Column* col) {
-  if (!_computed.test(Stat::NUniq)) compute_nunique(col);
-  return _nuniq;
+  if (!_computed.test(Stat::NUnique)) compute_sorted_stats(col);
+  return _nunique;
+}
+
+int64_t Stats::nmodal(const Column* col) {
+  if (!_computed.test(Stat::NModal)) compute_sorted_stats(col);
+  return _nmodal;
 }
 
 
@@ -143,28 +148,44 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   _computed.set(Stat::Sum);
   _computed.set(Stat::Mean);
   _computed.set(Stat::StDev);
-  _computed.set(Stat::NaCnt);
+  _computed.set(Stat::NaCount);
 }
 
 
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
+  T* coldata = static_cast<T*>(col->data());
   RowIndex ri = col->sort(true);
   const arr32_t& groups = ri.get_groups();
+  size_t n_groups = ri.get_ngroups();
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if
   // we did not yet compute the NA count for the column, we can do so now by
   // checking whether the elements in the first group are NA or not.
-  if (!_computed.test(Stat::NaCnt)) {
-    T* coldata = static_cast<T*>(col->data());
-    T x0 = coldata[ri.first()];
+  if (!_computed.test(Stat::NaCount)) {
+    T x0 = coldata[ri.nth(0)];
     _countna = ISNA<T>(x0)? groups[1] : 0;
-    _computed.set(Stat::NaCnt);
+    _computed.set(Stat::NaCount);
   }
 
   bool has_nas = (_countna > 0);
-  _nuniq = static_cast<int64_t>(ri.get_ngroups()) - has_nas;
-  _computed.set(Stat::NUniq);
+  _nunique = static_cast<int64_t>(n_groups) - has_nas;
+  _computed.set(Stat::NUnique);
+
+  int64_t max_grpsize = 0;
+  size_t best_igrp = 0;
+  for (size_t i = has_nas; i < n_groups; ++i) {
+    int32_t grpsize = groups[i + 1] - groups[i];
+    if (grpsize > max_grpsize) {
+      max_grpsize = grpsize;
+      best_igrp = i;
+    }
+  }
+
+  _nmodal = max_grpsize;
+  _mode = max_grpsize ? coldata[ri.nth(groups[best_igrp])] : GETNA<T>();
+  _computed.set(Stat::NModal);
+  _computed.set(Stat::Mode);
 }
 
 
@@ -187,6 +208,12 @@ T NumericalStats<T, A>::max(const Column* col) {
 }
 
 template <typename T, typename A>
+T NumericalStats<T, A>::mode(const Column* col) {
+  if (!_computed.test(Stat::Mode)) compute_sorted_stats(col);
+  return _mode;
+}
+
+template <typename T, typename A>
 double NumericalStats<T, A>::mean(const Column* col) {
   if (!_computed.test(Stat::Mean)) compute_numerical_stats(col);
   return _mean;
@@ -198,14 +225,10 @@ double NumericalStats<T, A>::stdev(const Column* col) {
   return _sd;
 }
 
+
 template<typename T, typename A>
 void NumericalStats<T, A>::compute_countna(const Column* col) {
   compute_numerical_stats(col);
-}
-
-template<typename T, typename A>
-void NumericalStats<T, A>::compute_nunique(const Column* col) {
-  compute_sorted_stats(col);
 }
 
 
@@ -298,14 +321,18 @@ void BooleanStats::compute_numerical_stats(const Column *col) {
   _max = count1 ? 1 : count0 ? 0 : GETNA<int8_t>();
   _sum = count1;
   _countna = nrows - t_count;
-  _nuniq = (!!count0) + (!!count1);
-  _computed.set(Stat::Min);
+  _nunique = (!!count0) + (!!count1);
+  _mode = _nunique ? (count1 >= count0) : GETNA<int8_t>();
+  _nmodal = _mode == 1 ? count1 : _mode == 0 ? count0 : 0;
   _computed.set(Stat::Max);
-  _computed.set(Stat::Sum);
   _computed.set(Stat::Mean);
+  _computed.set(Stat::Min);
+  _computed.set(Stat::Mode);
+  _computed.set(Stat::NaCount);
+  _computed.set(Stat::NModal);
+  _computed.set(Stat::NUnique);
   _computed.set(Stat::StDev);
-  _computed.set(Stat::NaCnt);
-  _computed.set(Stat::NUniq);
+  _computed.set(Stat::Sum);
 }
 
 void BooleanStats::compute_sorted_stats(const Column *col) {
@@ -344,23 +371,58 @@ void StringStats<T>::compute_countna(const Column* col) {
   }
 
   _countna = countna;
-  _computed.set(Stat::NaCnt);
+  _computed.set(Stat::NaCount);
 }
 
+
 template <typename T>
-void StringStats<T>::compute_nunique(const Column* col) {
+void StringStats<T>::compute_sorted_stats(const Column* col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
+  T* offsets = scol->offsets();
   RowIndex ri = col->sort(true);
   const arr32_t& groups = ri.get_groups();
+  size_t n_groups = ri.get_ngroups();
 
-  if (!_computed.test(Stat::NaCnt)) {
-    _countna = scol->offsets()[ri.first()] < 0? groups[1] : 0;
-    _computed.set(Stat::NaCnt);
+  if (!_computed.test(Stat::NaCount)) {
+    T off0 = offsets[ri.nth(0)];
+    _countna = off0 < 0? groups[1] : 0;
+    _computed.set(Stat::NaCount);
   }
 
   bool has_nas = (_countna > 0);
-  _nuniq = static_cast<int64_t>(ri.get_ngroups()) - has_nas;
-  _computed.set(Stat::NUniq);
+  _nunique = static_cast<int64_t>(n_groups) - has_nas;
+  _computed.set(Stat::NUnique);
+
+  int64_t max_grpsize = 0;
+  size_t best_igrp = 0;
+  for (size_t i = has_nas; i < n_groups; ++i) {
+    int32_t grpsize = groups[i + 1] - groups[i];
+    if (grpsize > max_grpsize) {
+      max_grpsize = grpsize;
+      best_igrp = i;
+    }
+  }
+
+  if (max_grpsize) {
+    int64_t i = ri.nth(groups[best_igrp]);
+    T o0 = std::abs(offsets[i - 1]);
+    _nmodal = max_grpsize;
+    _mode.ch = scol->strdata() + o0;
+    _mode.size = offsets[i] - o0;
+  } else {
+    _nmodal = 0;
+    _mode.ch = nullptr;
+    _mode.size = -1;
+  }
+  _computed.set(Stat::NModal);
+  _computed.set(Stat::Mode);
+}
+
+
+template <typename T>
+CString StringStats<T>::mode(const Column* col) {
+  if (!_computed.test(Stat::Mode)) compute_sorted_stats(col);
+  return _mode;
 }
 
 

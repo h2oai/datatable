@@ -259,6 +259,53 @@ def test_dt_n_unique(src):
 
 
 #-------------------------------------------------------------------------------
+# Mode function
+#-------------------------------------------------------------------------------
+
+def t_mode(arr):
+    """
+    Returns mode of arr + count of modal values, the mode is returned as a set
+    of possible values (since it is not unique).
+    """
+    counts = {}
+    for x in arr:
+        if x is None or (isinstance(x, float) and isnan(x)):
+            continue
+        if x not in counts:
+            counts[x] = 0
+        counts[x] += 1
+    if not counts:
+        return 0, set()
+    else:
+        maxcnt = max(counts.values())
+        return maxcnt, set(x for x in counts if counts[x] == maxcnt)
+
+@pytest.mark.parametrize("src", srcs_all)
+def test_mode(src):
+    f0 = dt.Frame(src)
+    dtm = f0.mode()
+    dtn = f0.nmodal()
+    modal_count, modal_values = t_mode(src)
+    assert dtm.internal.check()
+    assert dtn.internal.check()
+    assert dtm.shape == dtn.shape == (1, 1)
+    assert dtm.names == dtn.names == f0.names
+    assert dtm.stypes == f0.stypes
+    assert dtn.stypes == (stype.int64, )
+    if modal_count:
+        assert dtm.scalar() in modal_values
+        assert dtm.scalar() == f0.mode1()
+        assert dtn.scalar() == modal_count
+        assert f0.nmodal1() == modal_count
+    else:
+        assert dtm.scalar() is None
+        assert f0.mode1() is None
+        assert dtn.scalar() == 0
+        assert f0.nmodal1() == 0
+
+
+
+#-------------------------------------------------------------------------------
 # Special cases
 #-------------------------------------------------------------------------------
 
@@ -297,6 +344,8 @@ def test_empty_frame(st):
     assert f0.nunique1() == 0
     assert f1.countna1() == 1
     assert f1.nunique1() == 0
+    assert f1.mode1() is None
+    assert f1.nmodal1() == 0
 
 
 
@@ -339,9 +388,12 @@ def test_stats_float_large(numpy):
     assert list_equals(dt0.sd().topython(), [[a.std(ddof=1)]])
 
 
-def test_stats_string_large():
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_stats_string_large(seed):
+    random.seed(seed)
     n = 1324578
     a = ["%x" % random.getrandbits(11) for _ in range(n)]
     dt0 = dt.Frame(a)
     assert dt0.countna1() == 0
     assert dt0.nunique1() == n_unique(a)
+    # assert dt0.mode1() in t_mode(a)[1]

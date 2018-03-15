@@ -19,6 +19,10 @@
 // etc.
 #define intXX(bits)  int ## bits ## _t
 
+struct CString {
+  const char* ch;
+  int64_t size;
+};
 
 
 //==============================================================================

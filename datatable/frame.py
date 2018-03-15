@@ -606,6 +606,17 @@ class Frame(object):
         """
         return Frame(self._dt.get_max(), names=self.names)
 
+    def mode(self):
+        """
+        Get the modal value of each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the computed count of
+        most frequent values for each column.
+        """
+        return Frame(self._dt.get_mode(), names=self.names)
+
     def sum(self):
         """
         Get the sum of each column.
@@ -661,11 +672,25 @@ class Frame(object):
         """
         return Frame(self._dt.get_nunique(), names=self.names)
 
+    def nmodal(self):
+        """
+        Get the number of modal values in each column.
+
+        Returns
+        -------
+        A new datatable of shape (1, ncols) containing the counted number of
+        most frequent values in each column.
+        """
+        return Frame(self._dt.get_nmodal(), names=self.names)
+
     def min1(self):
         return self._dt.min1()
 
     def max1(self):
         return self._dt.max1()
+
+    def mode1(self):
+        return self._dt.mode1()
 
     def sum1(self):
         return self._dt.sum1()
@@ -681,6 +706,9 @@ class Frame(object):
 
     def nunique1(self):
         return self._dt.nunique1()
+
+    def nmodal1(self):
+        return self._dt.nmodal1()
 
 
 

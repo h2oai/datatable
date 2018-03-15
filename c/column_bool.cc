@@ -40,6 +40,7 @@ BooleanStats* BoolColumn::get_stats() const {
 
 int8_t  BoolColumn::min() const  { return get_stats()->min(this); }
 int8_t  BoolColumn::max() const  { return get_stats()->max(this); }
+int8_t  BoolColumn::mode() const { return get_stats()->mode(this); }
 int64_t BoolColumn::sum() const  { return get_stats()->sum(this); }
 double  BoolColumn::mean() const { return get_stats()->mean(this); }
 double  BoolColumn::sd() const   { return get_stats()->stdev(this); }
@@ -54,6 +55,12 @@ Column* BoolColumn::min_column() const {
 Column* BoolColumn::max_column() const {
   BoolColumn* col = new BoolColumn(1);
   col->set_elem(0, max());
+  return col;
+}
+
+Column* BoolColumn::mode_column() const {
+  BoolColumn* col = new BoolColumn(1);
+  col->set_elem(0, mode());
   return col;
 }
 
@@ -77,6 +84,7 @@ Column* BoolColumn::sd_column() const {
 
 PyObject* BoolColumn::min_pyscalar() const { return bool_to_py(min()); }
 PyObject* BoolColumn::max_pyscalar() const { return bool_to_py(max()); }
+PyObject* BoolColumn::mode_pyscalar() const { return bool_to_py(mode()); }
 PyObject* BoolColumn::sum_pyscalar() const { return int_to_py(sum()); }
 PyObject* BoolColumn::mean_pyscalar() const { return float_to_py(mean()); }
 PyObject* BoolColumn::sd_pyscalar() const { return float_to_py(sd()); }

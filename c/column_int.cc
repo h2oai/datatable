@@ -41,6 +41,7 @@ IntegerStats<T>* IntColumn<T>::get_stats() const {
 
 template <typename T> T       IntColumn<T>::min() const  { return get_stats()->min(this); }
 template <typename T> T       IntColumn<T>::max() const  { return get_stats()->max(this); }
+template <typename T> T       IntColumn<T>::mode() const { return get_stats()->mode(this); }
 template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->stdev(this); }
@@ -58,6 +59,13 @@ template <typename T>
 Column* IntColumn<T>::max_column() const {
   IntColumn<T>* col = new IntColumn<T>(1);
   col->set_elem(0, max());
+  return col;
+}
+
+template <typename T>
+Column* IntColumn<T>::mode_column() const {
+  IntColumn<T>* col = new IntColumn<T>(1);
+  col->set_elem(0, mode());
   return col;
 }
 
@@ -98,6 +106,7 @@ int64_t IntColumn<T>::max_int64() const {
 
 template <typename T> PyObject* IntColumn<T>::min_pyscalar() const { return int_to_py(min()); }
 template <typename T> PyObject* IntColumn<T>::max_pyscalar() const { return int_to_py(max()); }
+template <typename T> PyObject* IntColumn<T>::mode_pyscalar() const { return int_to_py(mode()); }
 template <typename T> PyObject* IntColumn<T>::sum_pyscalar() const { return int_to_py(sum()); }
 template <typename T> PyObject* IntColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
 template <typename T> PyObject* IntColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
