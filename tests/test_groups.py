@@ -5,7 +5,10 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import pytest
+import random
 from datatable import f, mean
+
 
 
 def test_groups_internal0():
@@ -57,6 +60,49 @@ def test_groups_internal3():
     assert ri.ngroups == 3
     assert ri.group_sizes == [4, 4, 2]
     assert ri.group_offsets == [0, 4, 8, 10]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_groups_internal4(seed):
+    random.seed(seed)
+    n = 100000
+    src = [random.getrandbits(10) for _ in range(n)]
+    f0 = dt.Frame({"A": src})
+    f1 = f0(groupby="A")
+    assert f1.internal.check()
+    assert f1.internal.isview
+    ri = f1.internal.rowindex
+    grp_offsets = ri.group_offsets
+    ssrc = sorted(src)
+    x_prev = -1
+    for i in range(ri.ngroups):
+        s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
+        assert len(s) == 1
+        x = list(s)[0]
+        assert x != x_prev
+        x_prev = x
+
+
+@pytest.mark.xfail()
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_groups_internal5_strs(seed):
+    random.seed(seed)
+    n = 100000
+    src = ["%x" % random.getrandbits(10) for _ in range(n)]
+    f0 = dt.Frame({"A": src})
+    f1 = f0(groupby="A")
+    assert f1.internal.check()
+    assert f1.internal.isview
+    ri = f1.internal.rowindex
+    grp_offsets = ri.group_offsets
+    ssrc = sorted(src)
+    x_prev = None
+    for i in range(ri.ngroups):
+        s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
+        assert len(s) == 1
+        x = list(s)[0]
+        assert x != x_prev
+        x_prev = x
 
 
 
