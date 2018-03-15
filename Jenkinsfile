@@ -59,12 +59,13 @@ def BUILD_MATRIX = [
         ],
     ],
     // PPC64LE
+    /*
     ppc64le_linux : platformDefaults + centosDefaults + [
         node: 'ibm-power',
         coverage: false,
         pullImage: false,
         dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
-    ]
+    ]*/
 ]
 
 // Virtualenv used for build and coverage
