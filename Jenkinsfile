@@ -36,6 +36,14 @@ def centosDefaults = [
     pullImage: true
 ]
 
+def PPC64LE_PLATFORM = 'ppc64le_linux'
+def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
+    node: 'ibm-power',
+    coverage: false,
+    pullImage: false,
+    dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
+]
+
 // Build platforms parameters
 def BUILD_MATRIX = [
     // Linux build definition
@@ -57,16 +65,12 @@ def BUILD_MATRIX = [
             "LLVM4=/usr/local/opt/llvm",
             "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"
         ],
-    ],
-    // PPC64LE
-    /*
-    ppc64le_linux : platformDefaults + centosDefaults + [
-        node: 'ibm-power',
-        coverage: false,
-        pullImage: false,
-        dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
-    ]*/
+    ]
 ]
+
+if (!isPrJob()) {
+    BUILD_MATRIX[PPC64LE_PLATFORM] = PPC64LE_BUILD_CONF
+}
 
 // Virtualenv used for build and coverage
 def DEFAULT_PY36_ENV = 'datatable-py36-pandas-numpy'
