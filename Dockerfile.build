@@ -26,6 +26,8 @@ RUN \
     python3.6 \
     python3.6-dev \
     python3.6-venv \
+    python3.5 \
+    python3.5-dev \
     python3-pip && \
   update-alternatives --install /usr/bin/python python /usr/bin/python3.6 100 && \
   python -m pip install --upgrade pip && \
@@ -47,6 +49,24 @@ RUN \
   pip install --upgrade pytest && \
   pip install --upgrade virtualenv && \
   pip install --upgrade wheel
+
+RUN \
+    virtualenv --python=python3.5 /envs/datatable-py35-pandas-numpy && \
+    . /envs/datatable-py35-pandas-numpy/bin/activate && \
+    pip install --upgrade pandas numpy && \
+    deactivate && \
+    virtualenv --python=python3.6 /envs/datatable-py36-pandas-numpy && \
+    . /envs/datatable-py36-pandas-numpy/bin/activate && \
+    pip install --upgrade pandas numpy && \
+    deactivate && \
+    virtualenv --python=python3.6 /envs/datatable-py36-numpy && \
+    . /envs/datatable-py36-numpy/bin/activate && \
+    pip install --upgrade numpy && \
+    deactivate && \
+    virtualenv --python=python3.6 /envs/datatable-py36 && \
+    . /envs/datatable-py36/bin/activate && \
+    deactivate && \
+    chmod -R a+w /envs
 
 # Install LLVM for pydatatable
 RUN \
