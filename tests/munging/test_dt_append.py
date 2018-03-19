@@ -45,25 +45,25 @@ def test_rbind_fails():
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt1)
-    assert "Cannot rbind datatable with 2 columns to a datatable " \
+    assert "Cannot rbind Frame with 2 columns to a Frame " \
            "with 1 column" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt1, bynames=False)
-    assert "Cannot rbind datatable with 2 columns to a datatable " \
+    assert "Cannot rbind Frame with 2 columns to a Frame " \
            "with 1 column" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt1.rbind(dt0)
-    assert "Cannot rbind datatable with 1 column to a datatable " \
+    assert "Cannot rbind Frame with 1 column to a Frame " \
            "with 2 columns" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt2)
-    assert "Column 'C' is not found in the source datatable" in str(e.value)
+    assert "Column 'C' is not found in the source Frame" in str(e.value)
     assert "`force=True`" in str(e.value)
 
 
