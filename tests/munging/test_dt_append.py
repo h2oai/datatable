@@ -20,7 +20,7 @@ from datatable import stype
 def test_rbind_exists():
     dt0 = dt.Frame([1, 2, 3])
     assert isinstance(dt0.rbind, types.MethodType)
-    assert len(dt0.rbind.__doc__) > 2000
+    assert len(dt0.rbind.__doc__) > 1900
     assert dt0.append == dt0.rbind
 
 
@@ -45,25 +45,25 @@ def test_rbind_fails():
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt1)
-    assert "Cannot rbind datatable with 2 columns to a datatable " \
+    assert "Cannot rbind frame with 2 columns to a frame " \
            "with 1 column" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt1, bynames=False)
-    assert "Cannot rbind datatable with 2 columns to a datatable " \
+    assert "Cannot rbind frame with 2 columns to a frame " \
            "with 1 column" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt1.rbind(dt0)
-    assert "Cannot rbind datatable with 1 column to a datatable " \
+    assert "Cannot rbind frame with 1 column to a frame " \
            "with 2 columns" in str(e.value)
     assert "`force=True`" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt2)
-    assert "Column 'C' is not found in the source datatable" in str(e.value)
+    assert "Column `C` is not found in the source frame" in str(e.value)
     assert "`force=True`" in str(e.value)
 
 
@@ -115,7 +115,7 @@ def test_rbind_bynames():
 def test_not_inplace():
     dt0 = dt.Frame({"A": [5, 1], "B": [4, 4]})
     dt1 = dt.Frame({"A": [22], "B": [11]})
-    dtr = dt0.rbind(dt1, inplace=False)
+    dtr = dt.Frame().rbind(dt0, dt1)
     assert_equals(dtr, dt.Frame({"A": [5, 1, 22], "B": [4, 4, 11]}))
     assert_equals(dt0, dt.Frame({"A": [5, 1], "B": [4, 4]}))
 

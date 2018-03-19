@@ -82,7 +82,7 @@ def test_cbind_notforced():
     d1 = dt.Frame([4, 5])
     with pytest.raises(ValueError) as e:
         d0.cbind(d1)
-    assert ("Cannot merge datatable with 2 rows to a datatable with 3 rows"
+    assert ("Cannot merge Frame with 2 rows to a Frame with 3 rows"
             in str(e.value))
 
 

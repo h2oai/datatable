@@ -4,218 +4,188 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import datatable
+import datatable as dt
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import typed, Frame_t, TValueError
 
 
 
-@typed(dts=Frame_t, force=bool, bynames=bool, inplace=bool)
-def rbind(self, *dts, force=False, bynames=True, inplace=True):
+@typed(dfs=Frame_t, force=bool, bynames=bool)
+def rbind(self, *dfs, force=False, bynames=True):
     """
-    Append rows of datatables `dts` to the current datatable.
+    Append rows of Frames `dfs` to the current Frame.
 
-    This is equivalent to `list.extend()` in Python: the datatables are combined
-    by rows, i.e. rbinding a datatable of shape [n x k] to a datatable of shape
-    [m x k] produces a datatable of shape [(m + n) x k].
+    This is equivalent to `list.extend()` in Python: the Frames are combined
+    by rows, i.e. rbinding a Frame of shape [n x k] to a Frame of shape
+    [m x k] produces a Frame of shape [(m + n) x k].
 
-    By default, the source datatable is modified in-place. If you do not want
-    the original datatable modified, use option `inplace=False`.
+    By default, the source Frame is modified in-place. If you do not want
+    the original Frame modified append all frames to an empty Frame:
+    `dt.Frame().rbind(frame1, frame2)`.
 
-    If datatable(s) being appended have columns of different types than the
-    source datatable, then such column will be promoted to the "largest" of two
-    types: bool -> int -> decimal -> float -> string -> categorical.
+    If Frame(s) being appended have columns of different types than the
+    source Frame, then such columns will be promoted to the largest of two
+    types: bool -> int -> float -> string.
 
-    If you need to append multiple datatables, then it is more efficient to
+    If you need to append multiple Frames, then it is more efficient to
     collect them into an array first and then do a single `rbind()`, than it is
     to append them one-by-one.
 
-    Appending data to a datatable opened from disk will force loading the
-    source datatable into memory, which may fail with an OutOfMemory exception.
+    Appending data to a Frame opened from disk will force loading the
+    source Frame into memory, which may fail with an OutOfMemory exception.
 
     Parameters
     ----------
-    dts: sequence or list of DataTables
-        One or more datatable to append. These datatables should have the same
-        columnar structure as the current datatable (unless option `force` is
+    dfs: sequence or list of DataTables
+        One or more Frame to append. These Frames should have the same
+        columnar structure as the current Frame (unless option `force` is
         used).
 
     force: boolean, default False
-        If True, then the datatables are allowed to have mismatching set of
+        If True, then the Frames are allowed to have mismatching set of
         columns. Any gaps in the data will be filled with NAs.
 
     bynames: boolean, default True
-        If True, the columns in datatables are matched by their names. For
-        example, if one datatable has columns ["colA", "colB", "colC"] and the
+        If True, the columns in Frames are matched by their names. For
+        example, if one Frame has columns ["colA", "colB", "colC"] and the
         other ["colB", "colA", "colC"] then we will swap the order of the first
-        two columns of the appended datatable before performing the append.
+        two columns of the appended Frame before performing the append.
         However if `bynames` is False, then the column names will be ignored,
         and the columns will be matched according to their order, i.e. i-th
-        column in the current datatable to the i-th column in each appended
-        datatable.
-
-    inplace: boolean, default True
-        If True, then the data is appended to the current datatable modifying
-        it in-place. If False, then the current datatable remains unchanged
-        and a copy datatable is created and returned instead.
+        column in the current Frame to the i-th column in each appended
+        Frame.
     """
     n = self.ncols
 
     # `spec` will be the description of how the DataTables are to be merged:
-    # it is a list of tuples (_datatable.Frame, [int]), where the first
-    # element of the tuple is a datatable being appended, and the second element
-    # is the array of column indices within that datatable. For example, if the
+    # it is a list of tuples (core.DataTable, Optional[List[int]]), where the
+    # first item in the tuple is a Frame being appended, and the second item
+    # is the array of column indices within that Frame. For example, if the
     # array is [1, 0, None, 2, None] then it means that we need to take the
-    # datatable being appended, reorder its columns as (2nd column, 1st column,
+    # Frame being appended, reorder its columns as (2nd column, 1st column,
     # column of NAs, 3rd column, column of NAs) and only then "stitch" to the
-    # resulting datatable of 5 columns.
+    # resulting Frame of 5 columns.
     spec = []
     final_names = list(self.names)
 
-    # Which Frame to operate upon. If not `inplace` then we will create
-    # a blank Frame and append everything to it.
-    src = self
-    if not inplace:
-        src = datatable.Frame()
-        spec.append((self.internal, list(range(n))))
-
     # Append by column names, filling with NAs as necessary
     if bynames:
-        # Create mapping of column_name => column_index (or list of indices if
-        # there are multiple columns with the same name). Do not reuse
-        # `self._inames` here since we will be modifying this dictionary.
-        inames = dict()
-        for i, col in enumerate(self.names):
-            if col in inames:
-                if isinstance(inames[col], list):
-                    inames[col].append(i)
-                else:
-                    inames[col] = [inames[col], i]
-            else:
-                inames[col] = i
-        for dt in dts:
-            if dt.nrows == 0: continue
-            if not(dt.ncols == n or force):
+        # `inames` is a mapping of column_name => column_index.
+        inames = self._inames
+        for df in dfs:
+            _dt = df.internal
+            if df.nrows == 0: continue
+            if n == 0:
+                n = df.ncols
+                final_names = list(df.names)
+                inames = df._inames.copy()
+            elif not (df.ncols == n or force):
                 raise TValueError(
-                    "Cannot rbind datatable with %s to a datatable with %s. If"
-                    " you wish rbind the datatables anyways filling missing "
-                    "values with NAs, then use option `force=True`"
-                    % (plural(dt.ncols, "column"), plural(n, "column")))
-            # Column mapping that specifies which column of `dt` should be
+                    "Cannot rbind frame with %s to a frame with %s. If"
+                    " you wish to rbind the frames anyways filling missing "
+                    "values with NAs, then use `force=True`"
+                    % (plural(df.ncols, "column"), plural(n, "column")))
+            if final_names == list(df.names):
+                spec.append((_dt, None))
+                continue
+            # Column mapping that specifies which column of `df` should be
             # appended where in the result.
             res = [None] * len(final_names)
-            # For each column name, how many columns with this name already
-            # matched for the datatable `dt`.
-            used_inames = dict()
-            for i, col in enumerate(dt.names):
+            for i, col in enumerate(df.names):
                 icol = inames.get(col)
-                if icol is None:
-                    # Column with this name not present in the spec yet
-                    if not force:
-                        raise TValueError(
-                            "Column '%s' is not found in the source datatable. "
-                            "If you want to rbind the datatables anyways "
-                            "filling missing values with NAs, then specify "
-                            "option `force=True`" % col)
+                if icol is not None:
+                    res[icol] = i
+                elif force:
                     final_names.append(col)
                     inames[col] = len(final_names) - 1
-                    used_inames[col] = 1
                     res.append(i)
-                elif isinstance(icol, int):
-                    # Only 1 column with such name in the spec
-                    if col in used_inames:
-                        final_names.append(col)
-                        used_inames[col] += 1
-                        inames[col] = [icol, len(final_names) - 1]
-                        res.append(i)
-                    else:
-                        used_inames[col] = 1
-                        res[icol] = i
+                    n += 1
                 else:
-                    # Multiple columns with such name in the spec
-                    u = used_inames.get(col, 0)
-                    if u >= len(icol):
-                        final_names.append(col)
-                        used_inames[col] += 1
-                        inames[col].append(len(final_names) - 1)
-                        res.append(i)
-                    else:
-                        used_inames[col] = u + 1
-                        res[icol[u]] = i
-            spec.append((dt.internal, res))
+                    raise TValueError(
+                        "Column `%s` is not found in the source frame. "
+                        "If you want to rbind the frames anyways filling "
+                        "missing values with NAs, then use `force=True`"
+                        % col)
+            spec.append((_dt, res))
 
     # Append by column numbers
     else:
-        for dt in dts:
-            if dt.nrows == 0: continue
-            nn = dt.ncols
-            if nn != n and not force:
-                raise TValueError(
-                    "Cannot rbind datatable with %s to a datatable with %s. If"
-                    " you wish rbind the datatables anyways filling missing "
-                    "values with NAs, then use option `force=True`"
-                    % (plural(nn, "column"), plural(n, "column")))
-            if nn > len(final_names):
-                final_names += list(dt.names[len(final_names):])
-            spec.append((dt.internal, list(range(nn))))
+        for df in dfs:
+            _dt = df.internal
+            if df.nrows == 0: continue
+            if n == 0:
+                n = df.ncols
+                final_names = list(df.names)
+            if df.ncols != n:
+                if not force:
+                    raise TValueError(
+                        "Cannot rbind frame with %s to a frame with %s. If you "
+                        "wish to rbind the Frames anyways filling missing "
+                        "values with NAs, then use option `force=True`"
+                        % (plural(df.ncols, "column"), plural(n, "column")))
+                elif df.ncols > n:
+                    final_names += list(df.names[n:])
+                    n = df.ncols
+            spec.append((_dt, None))
 
     # Perform the append operation on C level
-    src.internal.rbind(len(final_names), spec)
-    src._fill_from_dt(src.internal, names=final_names)
-    return src
+    _dt = self.internal
+    _dt.rbind(len(final_names), spec)
+    self._fill_from_dt(_dt, names=final_names)
+    return self
 
 
 
-@typed(dts=Frame_t, force=bool, inplace=bool)
-def cbind(self, *dts, force=False, inplace=True):
+@typed(dfs=Frame_t, force=bool, inplace=bool)
+def cbind(self, *dfs, force=False, inplace=True):
     """
-    Append columns of datatables `dts` to the current datatable.
+    Append columns of Frames `dfs` to the current Frame.
 
-    This is equivalent to `pandas.concat(axis=1)`: the datatables are combined
-    by columns, i.e. cbinding a datatable of shape [n x m] to a datatable of
-    shape [n x k] produces a datatable of shape [n x (m + k)].
+    This is equivalent to `pandas.concat(axis=1)`: the Frames are combined
+    by columns, i.e. cbinding a Frame of shape [n x m] to a Frame of
+    shape [n x k] produces a Frame of shape [n x (m + k)].
 
-    As a special case, if you cbind a single-row datatable, then that row will
-    be replicated as many times as there are rows in the current datatable. This
+    As a special case, if you cbind a single-row Frame, then that row will
+    be replicated as many times as there are rows in the current Frame. This
     makes it easy to create constant columns, or to append reduction results
-    (such as min/max/mean/etc) to the current datatable.
+    (such as min/max/mean/etc) to the current Frame.
 
-    If datatable(s) being appended have different number of rows (with the
-    exception of datatables having 1 row), then the operation will fail by
-    default. You can force cbinding these datatables anyways by providing option
-    `force=True`: this will fill all "short" datatables with NAs. Thus there is
-    a difference in how datatables with 1 row are treated compared to datatables
+    If Frame(s) being appended have different number of rows (with the
+    exception of Frames having 1 row), then the operation will fail by
+    default. You can force cbinding these Frames anyways by providing option
+    `force=True`: this will fill all "short" Frames with NAs. Thus there is
+    a difference in how Frames with 1 row are treated compared to Frames
     with any other number of rows.
 
-    When appending several datatables with the similar column names, the
-    resulting datatable will have those names unmodified. Thus, it is entirely
-    possible to create a datatable which has more than one column with the same
+    When appending several Frames with the similar column names, the
+    resulting Frame will have those names unmodified. Thus, it is entirely
+    possible to create a Frame which has more than one column with the same
     name.
 
     Parameters
     ----------
-    dts: sequence or list of DataTables
-        One or more datatable to append. They should have the same number of
+    dfs: sequence or list of DataTables
+        One or more Frame to append. They should have the same number of
         rows (unless option `force` is also provided).
 
     force: boolean, default False
-        If True, allows datatables to be appended even if they have unequal
-        number of rows. The resulting datatable will have number of rows equal
-        to the largest among all datatables. Those datatables which have less
+        If True, allows Frames to be appended even if they have unequal
+        number of rows. The resulting Frame will have number of rows equal
+        to the largest among all Frames. Those Frames which have less
         than the largest number of rows, will be padded with NAs (with the
-        exception of datatables having just 1 row, which will be replicated
+        exception of Frames having just 1 row, which will be replicated
         instead of filling with NAs).
 
     inplace: boolean, default True
-        If True, then the data is appended to the current datatable in-place,
-        causing it to be modified. If False, then a new datatable will be
-        constructed and returned instead (and no existing datatables will be
+        If True, then the data is appended to the current Frame in-place,
+        causing it to be modified. If False, then a new Frame will be
+        constructed and returned instead (and no existing Frames will be
         modified).
 
     Returns
     -------
-    The current datatable, modified, if `inplace` is True; or a new datatable
-    containing all datatables concatenated, if `inplace` is False.
+    The current Frame, modified, if `inplace` is True; or a new Frame
+    containing all Frames concatenated, if `inplace` is False.
     """
     datatables = []
     column_names = list(self.names)
@@ -224,15 +194,15 @@ def cbind(self, *dts, force=False, inplace=True):
     # a blank Frame and merge everything to it.
     src = self
     if not inplace:
-        src = datatable.Frame()
+        src = dt.Frame()
         datatables.append(self.internal)
 
-    # Check that all datatables have compatible number of rows, and compose the
+    # Check that all Frames have compatible number of rows, and compose the
     # list of _DataTables to be passed down into the C level.
     nrows = src.nrows or -1
-    for dt in dts:
-        if dt.ncols == 0: continue
-        nn = dt.nrows
+    for df in dfs:
+        if df.ncols == 0: continue
+        nn = df.nrows
         if nrows == -1:
             nrows = nn
         if not(nn == nrows or nn == 1 or force):
@@ -240,12 +210,12 @@ def cbind(self, *dts, force=False, inplace=True):
                 nrows = nn
             else:
                 raise TValueError(
-                    "Cannot merge datatable with %s to a datatable with %s. If "
-                    "you want to disregard this warning and merge datatables "
+                    "Cannot merge Frame with %s to a Frame with %s. If "
+                    "you want to disregard this warning and merge Frames "
                     "anyways, then please provide option `inplace=True`"
                     % (plural(nn, "row"), plural(nrows, "row")))
-        datatables.append(dt.internal)
-        column_names.extend(list(dt.names))
+        datatables.append(df.internal)
+        column_names.extend(list(df.names))
 
     src.internal.cbind(datatables)
     src._fill_from_dt(src.internal, names=column_names)

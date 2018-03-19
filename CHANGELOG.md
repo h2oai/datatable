@@ -85,6 +85,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   lead to a segfault).
 - (python) DataTable class was renamed into Frame.
 - "eager" evaluation engine is now the default.
+- Parameter `inplace` of method `rbind()` was removed: instead you can now rbind
+  frames to an empty frame: `dt.Frame().rbind(df1, df2)`.
 
 
 #### Fixed
