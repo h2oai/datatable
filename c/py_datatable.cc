@@ -280,17 +280,24 @@ PyObject* rbind(obj* self, PyObject* args) {
     PyObject* item = PyList_GET_ITEM(list, i);
     DataTable* dti;
     PyObject* colslist;
-    if (!PyArg_ParseTuple(item, "O&O!",
-                          &unwrap, &dti, &PyList_Type, &colslist))
+    if (!PyArg_ParseTuple(item, "O&O",
+                          &unwrap, &dti, &colslist))
       return nullptr;
-    int ncolsi = (int) PyList_Size(colslist);
-    int j = 0;
-    for (; j < ncolsi; j++) {
-      PyObject* itemj = PyList_GET_ITEM(colslist, j);
-      cols_to_append[j][i] = (itemj == Py_None)? -1
-                             : (int) PyLong_AsLong(itemj);
+    int64_t j = 0;
+    if (colslist == Py_None) {
+      int64_t ncolsi = dti->ncols;
+      for (; j < ncolsi; ++j) {
+        cols_to_append[j][i] = static_cast<int>(j);
+      }
+    } else {
+      int64_t ncolsi = PyList_Size(colslist);
+      for (; j < ncolsi; ++j) {
+        PyObject* itemj = PyList_GET_ITEM(colslist, j);
+        cols_to_append[j][i] = (itemj == Py_None)? -1
+                               : (int) PyLong_AsLong(itemj);
+      }
     }
-    for (; j < final_ncols; j++) {
+    for (; j < final_ncols; ++j) {
       cols_to_append[j][i] = -1;
     }
     dts[i] = dti;

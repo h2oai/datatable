@@ -86,7 +86,7 @@ def rbind(self, *dfs, force=False, bynames=True):
                     "values with NAs, then use `force=True`"
                     % (plural(df.ncols, "column"), plural(n, "column")))
             if final_names == list(df.names):
-                spec.append((_dt, list(range(n))))
+                spec.append((_dt, None))
                 continue
             # Column mapping that specifies which column of `df` should be
             # appended where in the result.
@@ -126,7 +126,7 @@ def rbind(self, *dfs, force=False, bynames=True):
                 elif df.ncols > n:
                     final_names += list(df.names[n:])
                     n = df.ncols
-            spec.append((_dt, list(range(df.ncols))))
+            spec.append((_dt, None))
 
     # Perform the append operation on C level
     _dt = self.internal
