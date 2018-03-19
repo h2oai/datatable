@@ -8,7 +8,11 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.2.2)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.0)
+
+
+
+### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) - 2018-03-19
 #### Added
 - Method `df.tonumpy()` now has argument `stype` which will force conversion into
   a numpy array of the specific stype.
@@ -63,7 +67,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   column.
 - Added stats functions `.mode()` and `.nmodal()`.
 
-
 #### Changed
 - When writing "round" doubles/floats to CSV, they'll now always have trailing zero.
   For example, [0.0, 1.0, 1e23] now produce "0.0,1.0,1.0e+23" instead of "0,1,1e+23".
@@ -87,7 +90,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - "eager" evaluation engine is now the default.
 - Parameter `inplace` of method `rbind()` was removed: instead you can now rbind
   frames to an empty frame: `dt.Frame().rbind(df1, df2)`.
-
 
 #### Fixed
 - `datatable` will no longer cause the C locale settings to change upon importing.
@@ -121,6 +123,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   evaluation engine.
 - Computed columns expression can now be combined with rows expression, or
   applied to a view Frame.
+
 
 
 ### [v0.2.2](https://github.com/h2oai/datatable/compare/v0.2.2...v0.2.1) — 2017-10-18
@@ -178,5 +181,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ### [v0.2.0](https://github.com/h2oai/datatable/compare/v0.2.0...v0.1.0) — 2017-08-30
+
+
 
 ### [v0.1.0](https://github.com/h2oai/datatable/tree/v0.1.0) — 2017-04-13
