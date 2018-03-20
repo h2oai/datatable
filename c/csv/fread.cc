@@ -157,8 +157,13 @@ class FreadChunkedReader {
       size_t nchunks = 0;
       bool progressShown = false;
       OmpExceptionManager oem;
+      int nthreads = chunkster->get_nthreads();
+      if (nthreads != reader.get_nthreads()) {
+        reader.g.trace("Number of threads reduced to %d because data is small",
+                       nthreads);
+      }
 
-      #pragma omp parallel num_threads(chunkster->get_nthreads())
+      #pragma omp parallel num_threads(nthreads)
       {
         #pragma omp master
         {
@@ -750,9 +755,10 @@ DataTablePtr FreadReader::read()
         }
         allocnrow = 0;
       }
+      meanLineLen = sumLen;
     } else {
       bytesRead = (size_t)(lastRowEnd - sof);
-      meanLineLen = (double)sumLen/sampleLines;
+      meanLineLen = sumLen/sampleLines;
       estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
       double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
       allocnrow = std::max(static_cast<size_t>(bytesRead / fmax(meanLineLen - 2*sd, minLen)),

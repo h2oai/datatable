@@ -401,11 +401,12 @@ FreadLocalParseContext::FreadLocalParseContext(
   skipEmptyLines = f.g.skip_blank_lines;
   numbersMayBeNAs = f.g.number_is_na;
   size_t ncols = columns.size();
+  size_t bufsize = std::min(size_t(4096), f.get_data_size() / (ncols + 1));
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
     if (col.type == CT_STRING && !col.typeBumped) {
-      strbufs.push_back(StrBuf(4096, j, i));
+      strbufs.push_back(StrBuf(bufsize, j, i));
     }
     ++j;
   }

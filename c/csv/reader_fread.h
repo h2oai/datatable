@@ -83,6 +83,7 @@ public:
   int get_nthreads() const { return g.nthreads; }
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
+  size_t get_data_size() const { return g.datasize(); }
   bool get_fill() const { return g.fill; }
   bool get_skip_empty_lines() const { return g.skip_blank_lines; }
 
