@@ -178,41 +178,41 @@ MemoryBuffer* Column::mbuf_shallowcopy() const {
 
 
 
-Column* Column::rbind(const std::vector<const Column*>& columns)
+Column* Column::rbind(std::vector<const Column*>& columns)
 {
-    // Is the current column "empty" ?
-    bool col_empty = (stype() == ST_VOID);
-    // Compute the final number of rows and stype
-    int64_t new_nrows = this->nrows;
-    SType new_stype = std::max(stype(), ST_BOOLEAN_I1);
-    for (const Column* col : columns) {
-        new_nrows += col->nrows;
-        new_stype = std::max(new_stype, col->stype());
-    }
+  // Is the current column "empty" ?
+  bool col_empty = (stype() == ST_VOID);
+  // Compute the final number of rows and stype
+  int64_t new_nrows = this->nrows;
+  SType new_stype = col_empty? ST_BOOLEAN_I1 : stype();
+  for (const Column* col : columns) {
+    new_nrows += col->nrows;
+    new_stype = std::max(new_stype, col->stype());
+  }
 
-    // Create the resulting Column object. It can be either: an empty column
-    // filled with NAs; the current column (`this`); a clone of the current
-    // column (if it has refcount > 1); or a type-cast of the current column.
-    Column *res = nullptr;
-    if (col_empty) {
-        res = Column::new_na_column(new_stype, this->nrows);
-    } else if (stype() == new_stype) {
-        res = this;
-    } else {
-        res = this->cast(new_stype);
-    }
-    assert(res->stype() == new_stype);
+  // Create the resulting Column object. It can be either: an empty column
+  // filled with NAs; the current column (`this`); a clone of the current
+  // column (if it has refcount > 1); or a type-cast of the current column.
+  Column* res = nullptr;
+  if (col_empty) {
+    res = Column::new_na_column(new_stype, this->nrows);
+  } else if (stype() == new_stype) {
+    res = this;
+  } else {
+    res = this->cast(new_stype);
+  }
+  assert(res->stype() == new_stype);
 
-    // TODO: Temporary Fix. To be resolved in #301
-    if (res->stats != nullptr) res->stats->reset();
+  // TODO: Temporary Fix. To be resolved in #301
+  if (res->stats != nullptr) res->stats->reset();
 
-    // Use the appropriate strategy to continue appending the columns.
-    res->rbind_impl(columns, new_nrows, col_empty);
+  // Use the appropriate strategy to continue appending the columns.
+  res->rbind_impl(columns, new_nrows, col_empty);
 
-    // If everything is fine, then the current column can be safely discarded
-    // -- the upstream caller will replace this column with the `res`.
-    if (res != this) delete this;
-    return res;
+  // If everything is fine, then the current column can be safely discarded
+  // -- the upstream caller will replace this column with the `res`.
+  if (res != this) delete this;
+  return res;
 }
 
 

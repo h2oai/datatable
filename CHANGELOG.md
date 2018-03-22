@@ -9,7 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.0)
-
+#### Fixed
+- Fixed a crash when rbinding string column with non-string: now an exception
+  will be thrown instead.
 
 
 ### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) - 2018-03-19

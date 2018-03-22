@@ -25,38 +25,38 @@
  * number `cols[i][j]` in datatable `dts[j]` (if `cols[i][j] >= 0`, otherwise
  * NAs).
  */
-DataTable* DataTable::rbind(DataTable **dts, int **cols, int ndts,
-                            int64_t new_ncols)
+DataTable* DataTable::rbind(
+  DataTable** dts, int** cols, int ndts, int64_t new_ncols)
 {
-    assert(new_ncols >= ncols);
+  assert(new_ncols >= ncols);
 
-    // If this is a view datatable, then it must be materialized.
-    this->reify();
+  // If this is a view datatable, then it must be materialized.
+  this->reify();
 
-    dtrealloc(columns, Column*, new_ncols + 1);
-    for (int64_t i = ncols; i < new_ncols; ++i) {
-        columns[i] = new VoidColumn(nrows);
+  dtrealloc(columns, Column*, new_ncols + 1);
+  for (int64_t i = ncols; i < new_ncols; ++i) {
+    columns[i] = new VoidColumn(nrows);
+  }
+  columns[new_ncols] = NULL;
+
+  int64_t new_nrows = nrows;
+  for (int i = 0; i < ndts; ++i) {
+    new_nrows += dts[i]->nrows;
+  }
+
+  size_t undts = static_cast<size_t>(ndts);
+  std::vector<const Column*> cols_to_append(undts);
+  for (int64_t i = 0; i < new_ncols; ++i) {
+    for (size_t j = 0; j < undts; ++j) {
+      int k = cols[i][j];
+      Column* col = k < 0 ? new VoidColumn(dts[j]->nrows)
+                          : dts[j]->columns[k]->shallowcopy();
+      col->reify();
+      cols_to_append[j] = col;
     }
-    columns[new_ncols] = NULL;
-
-    int64_t new_nrows = nrows;
-    for (int i = 0; i < ndts; ++i) {
-        new_nrows += dts[i]->nrows;
-    }
-
-    size_t undts = static_cast<size_t>(ndts);
-    std::vector<const Column*> cols_to_append(undts);
-    for (int64_t i = 0; i < new_ncols; ++i) {
-        for (size_t j = 0; j < undts; ++j) {
-            int k = cols[i][j];
-            Column* col = k < 0 ? new VoidColumn(dts[j]->nrows)
-                                : dts[j]->columns[k]->shallowcopy();
-            col->reify();
-            cols_to_append[j] = col;
-        }
-        columns[i] = columns[i]->rbind(cols_to_append);
-    }
-    ncols = new_ncols;
-    nrows = new_nrows;
-    return this;
+    columns[i] = columns[i]->rbind(cols_to_append);
+  }
+  ncols = new_ncols;
+  nrows = new_nrows;
+  return this;
 }

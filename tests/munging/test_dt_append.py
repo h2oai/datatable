@@ -144,7 +144,7 @@ def test_repeating_names():
         assert_equals(dt0, dtr)
 
 
-def test_rbind_strings():
+def test_rbind_strings1():
     dt0 = dt.Frame({"A": ["Nothing's", "wrong", "with", "this", "world"]})
     dt1 = dt.Frame({"A": ["something", "wrong", "with", "humans"]})
     dt0.rbind(dt1)
@@ -152,12 +152,16 @@ def test_rbind_strings():
                           "something", "wrong", "with", "humans"]})
     assert_equals(dt0, dtr)
 
+
+def test_rbind_strings2():
     dt0 = dt.Frame(["a", "bc", None])
     dt1 = dt.Frame([None, "def", "g", None])
     dt0.rbind(dt1)
     dtr = dt.Frame(["a", "bc", None, None, "def", "g", None])
     assert_equals(dt0, dtr)
 
+
+def test_rbind_strings3():
     dt0 = dt.Frame({"A": [1, 5], "B": ["ham", "eggs"]})
     dt1 = dt.Frame({"A": [25], "C": ["spam"]})
     dt0.rbind(dt1, force=True)
@@ -165,6 +169,8 @@ def test_rbind_strings():
                     "C": [None, None, "spam"]})
     assert_equals(dt0, dtr)
 
+
+def test_rbind_strings4():
     dt0 = dt.Frame({"A": ["alpha", None], "C": ["eta", "theta"]})
     dt1 = dt.Frame({"A": [None, "beta"], "B": ["gamma", "delta"]})
     dt2 = dt.Frame({"D": ["psi", "omega"]})
@@ -174,6 +180,16 @@ def test_rbind_strings():
                     "B": [None, None, "gamma", "delta", None, None],
                     "D": [None, None, None, None, "psi", "omega"]})
     assert_equals(dt0, dtr)
+
+
+def test_rbind_strings5():
+    # TODO: fix this test once rbinding strings with non-strings properly
+    #       implemented.
+    f0 = dt.Frame([1, 2, 3])
+    f1 = dt.Frame(["foo", "bra"])
+    with pytest.raises(NotImplementedError):
+        f1.rbind(f0)
+
 
 
 def test_rbind_self():
