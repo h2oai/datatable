@@ -167,7 +167,7 @@ public:
    * Individual entries in the `columns` array may be instances of `VoidColumn,
    * indicating columns that should be replaced with NAs.
    */
-  Column* rbind(const std::vector<const Column*>& columns);
+  Column* rbind(std::vector<const Column*>& columns);
 
   /**
    * "Materialize" the Column. If the Column has no rowindex, this is a no-op.
@@ -237,7 +237,7 @@ protected:
   virtual void init_mmap(const std::string& filename) = 0;
   virtual void open_mmap(const std::string& filename) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
-  virtual void rbind_impl(const std::vector<const Column*>& columns,
+  virtual void rbind_impl(std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
 
   /**
@@ -313,7 +313,7 @@ protected:
   void open_mmap(const std::string& filename) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
-  void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
   void fill_na() override;
 
@@ -606,7 +606,7 @@ protected:
   void open_mmap(const std::string& filename) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
-  void rbind_impl(const std::vector<const Column*>& columns, int64_t nrows,
+  void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
   StringStats<T>* get_stats() const override;
@@ -651,7 +651,7 @@ public:
   int64_t data_nrows() const override { return nrows; }
   void reify() override {}
   void resize_and_fill(int64_t) override {}
-  void rbind_impl(const std::vector<const Column*>&, int64_t, bool) override {}
+  void rbind_impl(std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
 protected:
   VoidColumn() {}
