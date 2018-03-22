@@ -23,7 +23,7 @@ ChunkOrganizer::ChunkOrganizer(
     inputStart(start),
     inputEnd(end),
     lastChunkEnd(start),
-    lineLength(meanLineLength),
+    lineLength(std::max(meanLineLength, 1.0)),
     nThreads(nthreads)
 {
   determine_chunking_strategy();
@@ -70,15 +70,21 @@ ChunkCoordinates ChunkOrganizer::compute_chunk_boundaries(
   bool isFirstChunk = (i == 0);
   bool isLastChunk = (i == chunkCount - 1);
 
-  c.start = nThreads == 1? lastChunkEnd : inputStart + i * chunkSize;
-  c.end = isLastChunk? inputEnd : c.start + chunkSize;
-
-  if (nThreads > 1) {
-    if (!isFirstChunk) c.start = adjusted_chunk_start(c, ctx);
-    if (!isLastChunk) c.end = adjusted_chunk_end(c, ctx);
+  if (nThreads == 1 || isFirstChunk) {
+    c.start = lastChunkEnd;
+    c.true_start = true;
+  } else {
+    c.start = inputStart + i * chunkSize;
+  }
+  if (isLastChunk) {
+    c.end = inputEnd;
+    c.true_end = true;
+  } else {
+    c.end = c.start + chunkSize;
   }
 
-  // assert(inputStart <= c.start && c.start <= c.end && c.end <= inputEnd);
+  adjust_chunk_coordinates(c, ctx);
+
   return c;
 }
 
@@ -87,10 +93,15 @@ bool ChunkOrganizer::is_ordered(
   const ChunkCoordinates& acc, ChunkCoordinates& xcc)
 {
   if (acc.start == lastChunkEnd) {
-    lastChunkEnd = acc.end;
+    if (acc.end) {
+      assert(acc.end >= lastChunkEnd);
+      lastChunkEnd = acc.end;
+    }
     return true;
   } else {
+    assert(!xcc.true_start);
     xcc.start = lastChunkEnd;
+    xcc.true_start = true;
     return false;
   }
 }
@@ -103,17 +114,8 @@ double ChunkOrganizer::work_done_amount() const {
 }
 
 
-const char* ChunkOrganizer::adjusted_chunk_start(
-  const ChunkCoordinates& cc, LocalParseContext*) const
-{
-  return cc.start;
-}
-
-const char* ChunkOrganizer::adjusted_chunk_end(
-  const ChunkCoordinates& cc, LocalParseContext*) const
-{
-  return cc.end;
-}
+void ChunkOrganizer::adjust_chunk_coordinates(
+      ChunkCoordinates&, LocalParseContext*) const {}
 
 
 
@@ -166,34 +168,27 @@ bool FreadChunkOrganizer::next_good_line_start(
 
 
 
-// Adjust the beginning of the chunk so that it is guaranteed not to be
-// on a newline.
-const char* FreadChunkOrganizer::adjusted_chunk_start(
-  const ChunkCoordinates& cc, LocalParseContext* ctx) const
+void FreadChunkOrganizer::adjust_chunk_coordinates(
+  ChunkCoordinates& cc, LocalParseContext* ctx) const
 {
-  auto fctx = static_cast<FreadLocalParseContext*>(ctx);
-  const char* start = cc.start;
-  while (*start=='\n' || *start=='\r') start++;
-
-  ChunkCoordinates ccc(start, cc.end);
-  if (next_good_line_start(ccc, fctx->tokenizer)) {
-    return fctx->tokenizer.ch;
-  } else {
-    return start;
+  // Adjust the beginning of the chunk so that it is guaranteed not to be
+  // on a newline.
+  if (!cc.true_start) {
+    auto fctx = static_cast<FreadLocalParseContext*>(ctx);
+    const char* start = cc.start;
+    while (*start=='\n' || *start=='\r') start++;
+    cc.start = start;
+    if (next_good_line_start(cc, fctx->tokenizer)) {
+      cc.start = fctx->tokenizer.ch;
+    }
   }
-}
-
-
-
-// Move the end of the chunk, similarly skipping all newline characters;
-// plus 1 more character, thus guaranteeing that the entire next line will
-// also "belong" to the current chunk (this because chunk reader stops at
-// the first end of the line after `end`).
-const char* FreadChunkOrganizer::adjusted_chunk_end(
-  const ChunkCoordinates& cc, LocalParseContext*) const
-{
-  const char* end = cc.end;
-  while (*end=='\n' || *end=='\r') end++;
-  end++;
-  return end;
+  // Move the end of the chunk, similarly skipping all newline characters;
+  // plus 1 more character, thus guaranteeing that the entire next line will
+  // also "belong" to the current chunk (this because chunk reader stops at
+  // the first end of the line after `end`).
+  if (!cc.true_end) {
+    const char* end = cc.end;
+    while (*end=='\n' || *end=='\r') end++;
+    cc.end = end + 1;
+  }
 }

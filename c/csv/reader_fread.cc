@@ -517,6 +517,11 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
           // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
           // sure a single re-read will definitely work.
           typebump:
+          if (!cc.true_start) {
+            // Forbid bumping types / quote rules, unless we are sure that the
+            // start of the chunk is known precisely...
+            return ChunkCoordinates(cc.start, nullptr);
+          }
           newType++;
           if (newType == NUMTYPE) {
             newType = NUMTYPE - 1;
@@ -530,23 +535,21 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
           {
             oldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
             // Can't print because we're likely not master. So accumulate message and print afterwards.
-            if (newType != oldType) {
-              if (verbose) {
-                char temp[1001];
-                int len = snprintf(temp, 1000,
-                  "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                  j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
-                  (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
-                typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
-                strcpy(typeBumpMsg + typeBumpMsgSize, temp);
-                typeBumpMsgSize += (size_t)len;
-              }
-              nTypeBump++;
-              // if (!columns[j].typeBumped) nTypeBumpCols++;
-              types[j] = newType;
-              columns[j].type = newType;
-              columns[j].typeBumped = true;
-            } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
+            if (verbose) {
+              char temp[1001];
+              int len = snprintf(temp, 1000,
+                "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
+                j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
+                (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
+              typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
+              strcpy(typeBumpMsg + typeBumpMsgSize, temp);
+              typeBumpMsgSize += (size_t)len;
+            }
+            nTypeBump++;
+            // if (!columns[j].typeBumped) nTypeBumpCols++;
+            types[j] = newType;
+            columns[j].type = newType;
+            columns[j].typeBumped = true;
           }
         }
         tokenizer.target += columns[j].presentInBuffer;

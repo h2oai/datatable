@@ -206,6 +206,7 @@ class FreadChunkedReader {
             try {
               while (!chunkster->is_ordered(acc, xcc)) {
                 acc = ctx->read_chunk(xcc);
+                if (!acc.end) break;
               }
               if (!acc.end) stopTeam = true;
               ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).

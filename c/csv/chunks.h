@@ -23,16 +23,26 @@ struct FreadTokenizer;
 
 /**
  * Helper struct containing the beginning + the end for a chunk.
+ *
+ * Additional flags `true_start` and `true_end` indicate whether the beginning /
+ * end of the chunk are known with certainty or guessed.
  */
 struct ChunkCoordinates {
   const char* start;
   const char* end;
+  bool true_start;
+  bool true_end;
+  size_t : 48;
 
-  ChunkCoordinates() : start(nullptr), end(nullptr) {}
-  ChunkCoordinates(const char* s, const char* e) : start(s), end(e) {}
+  ChunkCoordinates()
+    : start(nullptr), end(nullptr), true_start(false), true_end(false) {}
+  ChunkCoordinates(const char* s, const char* e)
+    : start(s), end(e), true_start(false), true_end(false) {}
   ChunkCoordinates& operator=(const ChunkCoordinates& cc) {
     start = cc.start;
     end = cc.end;
+    true_start = cc.true_start;
+    true_end = cc.true_end;
     return *this;
   }
 
@@ -112,14 +122,14 @@ class ChunkOrganizer {
 
   protected:
     /**
-     * These methods can be overridden in derived classes in order to implement
-     * more advanced chunk boundaries detection. These methods are called from
+     * This method can be overridden in derived classes in order to implement
+     * more advanced chunk boundaries detection. This method will be called from
      * within `compute_chunk_boundaries()` only.
+     * This method should modify `cc` by-reference; making sure not to alter
+     * `start` / `end` if the flags `true_start` / `true_end` are set.
      */
-    virtual const char* adjusted_chunk_start(
-      const ChunkCoordinates& cc, LocalParseContext* ctx) const;
-    virtual const char* adjusted_chunk_end(
-      const ChunkCoordinates& cc, LocalParseContext* ctx) const;
+    virtual void adjust_chunk_coordinates(
+      ChunkCoordinates& cc, LocalParseContext* ctx) const;
 
   private:
     void determine_chunking_strategy();
@@ -146,10 +156,8 @@ class FreadChunkOrganizer : public ChunkOrganizer {
       const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
 
   protected:
-    const char* adjusted_chunk_start(
-      const ChunkCoordinates& cc, LocalParseContext* ctx) const override;
-    const char* adjusted_chunk_end(
-      const ChunkCoordinates& cc, LocalParseContext* ctx) const override;
+    void adjust_chunk_coordinates(
+      ChunkCoordinates& cc, LocalParseContext* ctx) const override;
 };
 
 

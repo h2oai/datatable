@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.0)
+#### Fixed
+- fread will no longer consume excessive amounts of memory when reading a file
+  with too many columns and few rows.
+- fixed a possible crash when reading CSV file containing long string fields.
 
 
 
