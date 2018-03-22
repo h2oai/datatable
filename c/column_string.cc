@@ -423,7 +423,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
 
 
 template <typename T>
-void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
+void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
                                  int64_t new_nrows, bool col_empty)
 {
   // Determine the size of the memory to allocate
@@ -434,6 +434,10 @@ void StringColumn<T>::rbind_impl(const std::vector<const Column*>& columns,
   }
   for (const Column* col : columns) {
     if (col->stype() == ST_VOID) continue;
+    if (col->stype() != stype()) {
+      throw NotImplError() << "Unable to rbind column of string type with "
+                              "a column of type " << col->stype();
+    }
     // TODO: replace with datasize(). But: what if col is not a string?
     new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf->size();
   }
