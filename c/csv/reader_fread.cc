@@ -494,7 +494,7 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
           if (newType < CT_STRING && newType > CT_DROP) {
             tokenizer.skip_white();
             const char* afterSpace = tch;
-            tch = tokenizer.end_NA_string(fieldStart);
+            tch = tokenizer.end_NA_string(tch);
             tokenizer.skip_white();
             if (!tokenizer.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
             if (*tch==quote) { quoted=true; tch++; }

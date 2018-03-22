@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread will no longer consume excessive amounts of memory when reading a file
   with too many columns and few rows.
 - fixed a possible crash when reading CSV file containing long string fields.
-
+- fread: NA fields with whitespace were not recognized correctly.
 
 
 ### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) - 2018-03-19

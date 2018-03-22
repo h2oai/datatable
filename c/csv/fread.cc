@@ -629,6 +629,7 @@ DataTablePtr FreadReader::read()
             fctx.skip_white();
             if (fctx.end_of_field()) break;
             tch = fctx.end_NA_string(fieldStart);
+            fctx.skip_white();
             if (fctx.end_of_field()) break;
             if (columns[field].type<CT_STRING) {
               tch = fieldStart;
