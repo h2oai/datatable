@@ -416,12 +416,16 @@ FreadLocalParseContext::~FreadLocalParseContext() {}
 
 
 
-ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
+void FreadLocalParseContext::read_chunk(
+  const ChunkCoordinates& cc, ChunkCoordinates& actual_cc)
 {
+  // If any error in the loop below occurs, we'll do `return;` and the output
+  // variable `actual_cc` will contain `.end = nullptr;`.
+  actual_cc.start = cc.start;
+  actual_cc.end = nullptr;
   size_t ncols = columns.size();
   bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
   bool fastParsingAllowed = (sep != ' ') && !numbersMayBeNAs;
-  bool stopTeam = false;
   const char*& tch = tokenizer.ch;
   tch = cc.start;
   used_nrows = 0;
@@ -458,26 +462,17 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
       else if (tokenizer.skip_eol() && j < ncols) {
         tokenizer.target += columns[j].presentInBuffer;
         j++;
-        if (j==ncols) { used_nrows++; continue; }  // next line. Back up to while (tch<cc.end). Usually happens, fastest path
+        if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
       }
       else {
-        tch = fieldStart; // restart field as int processor could have moved to A in ",123A,"
+        tch = fieldStart;
       }
-      // if *tch=='\0' then *eof in mind, fall through to below and, if finalByte is set, reread final field
     }
     //*** END TEPID. NOW COLD.
 
-    // Either whitespace surrounds field in which case the processor will fault very quickly, it's numeric but quoted (quote will fault the non-string processor),
-    // it contains an NA string, or there's an out-of-sample type bump needed.
-    // In all those cases we're ok to be a bit slower. The rest of this line will be processed using the slower version.
-    // (End-of-file) is also dealt with now, as could be the highly unusual line ending /n/r
-    // This way (each line has new opportunity of the fast path) if only a little bit of the file is quoted (e.g. just when commas are present as fwrite does)
-    // then a penalty isn't paid everywhere.
-    // TODO: reduce(slowerBranch++). So we can see in verbose mode if this is happening too much.
-
     if (sep==' ') {
-      while (*tch==' ') tch++;  // multiple sep=' ' at the tlineStart does not mean sep. We're at tLineStart because the fast branch above doesn't run when sep=' '
+      while (*tch==' ') tch++;
       fieldStart = tch;
       if (skipEmptyLines && tokenizer.skip_eol()) continue;
     }
@@ -494,11 +489,11 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
           if (newType < CT_STRING && newType > CT_DROP) {
             tokenizer.skip_white();
             const char* afterSpace = tch;
-            tch = tokenizer.end_NA_string(fieldStart);
+            tch = tokenizer.end_NA_string(tch);
             tokenizer.skip_white();
-            if (!tokenizer.end_of_field()) tch = afterSpace; // else it is the field_end, we're on closing sep|eol and we'll let processor write appropriate NA as if field was empty
+            if (!tokenizer.end_of_field()) tch = afterSpace;
             if (*tch==quote) { quoted=true; tch++; }
-          } // else Field() handles NA inside it unlike other processors e.g. ,, is interpretted as "" or NA depending on option read inside Field()
+          }
           parsers[newType](tokenizer);
           if (quoted) {
             if (*tch==quote) tch++;
@@ -513,41 +508,43 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
             break;
           }
 
-          // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
-          // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
-          // sure a single re-read will definitely work.
+          // Only perform bumping types / quote rules, when we are sure that the
+          // start of the chunk is valid.
+          // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
-          newType++;
-          if (newType == NUMTYPE) {
-            newType = NUMTYPE - 1;
-            tokenizer.quoteRule++;
+          if (cc.true_start) {
+            newType++;
+            if (newType == NUMTYPE) {
+              newType = NUMTYPE - 1;
+              tokenizer.quoteRule++;
+            }
+            tch = fieldStart;
+          } else {
+            return;
           }
-          tch = fieldStart;
         }
 
-        if (newType != oldType) {          // rare out-of-sample type exception.
-          #pragma omp critical
-          {
-            oldType = types[j];  // fetch shared value again in case another thread bumped it while I was waiting.
-            // Can't print because we're likely not master. So accumulate message and print afterwards.
-            if (newType != oldType) {
-              if (verbose) {
-                char temp[1001];
-                int len = snprintf(temp, 1000,
-                  "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-                  j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
-                  (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
-                typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
-                strcpy(typeBumpMsg + typeBumpMsgSize, temp);
-                typeBumpMsgSize += (size_t)len;
-              }
-              nTypeBump++;
-              // if (!columns[j].typeBumped) nTypeBumpCols++;
-              types[j] = newType;
-              columns[j].type = newType;
-              columns[j].typeBumped = true;
-            } // else another thread just bumped to a (negative) higher or equal type while I was waiting, so do nothing
+        // Type-bump. This may only happen if cc.true_start is true, which flag
+        // is only set to true on one thread at a time. Thus, there is no need
+        // for "critical" section here.
+        if (newType != oldType) {
+          assert(cc.true_start);
+          if (verbose) {
+            // Can't print because we're likely not master. So accumulate
+            // message and print afterwards.
+            char temp[1001];
+            int len = snprintf(temp, 1000,
+              "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
+              j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
+              (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
+            typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
+            strcpy(typeBumpMsg + typeBumpMsgSize, temp);
+            typeBumpMsgSize += (size_t)len;
           }
+          nTypeBump++;
+          types[j] = newType;
+          columns[j].type = newType;
+          columns[j].typeBumped = true;
         }
         tokenizer.target += columns[j].presentInBuffer;
         j++;
@@ -562,40 +559,38 @@ ChunkCoordinates FreadLocalParseContext::read_chunk(const ChunkCoordinates& cc)
           continue;
         }
         break;
-      }
+      }  // while (j < ncols)
     }
 
-    if (j < ncols)  {
-      // not enough columns observed (including empty line). If fill==true, fields should already have been filled above due to continue inside while(j<ncols)
-      #pragma omp critical
-      if (!stopTeam) {
-        stopTeam = true;
+    if (j < ncols) {
+      // not enough columns observed (including empty line). If fill==true,
+      // fields should already have been filled above due to continue inside
+      // `while (j < ncols)`.
+      if (cc.true_start) {
         snprintf(stopErr, stopErrSize,
           "Expecting %zu cols but row %zu contains only %zu cols (sep='%c'). "
           "Consider fill=true. \"%s\"",
           ncols, row0, j, sep, strlim(tlineStart, 500));
       }
-      break;
+      return;
     }
     if (!(tokenizer.skip_eol() || *tch=='\0')) {
-      #pragma omp critical
-      if (!stopTeam) {
-        stopTeam = true;
+      if (cc.true_start) {
         snprintf(stopErr, stopErrSize,
           "Too many fields on out-of-sample row %zu. Read all %zu "
           "expected columns but more are present. \"%s\"",
           row0, ncols, strlim(tlineStart, 500));
       }
-      break;
+      return;
     }
     used_nrows++;
   }
-  if (stopTeam) {
-    return ChunkCoordinates(cc.start, nullptr);
-  } else {
-    postprocess();
-    return ChunkCoordinates(cc.start, tch);
-  }
+
+  postprocess();
+
+  // Tell the caller where we finished reading the chunk. This is why
+  // the parameter `actual_cc` was passed to this function.
+  actual_cc.end = tch;
 }
 
 
@@ -832,7 +827,7 @@ bool FreadTokenizer::end_of_field() {
 
 const char* FreadTokenizer::end_NA_string(const char* fieldStart) {
   const char* const* nastr = NAstrings;
-  const char* mostConsumed = fieldStart; // tests 1550* includes both 'na' and 'nan' in nastrings. Don't stop after 'na' if 'nan' can be consumed too.
+  const char* mostConsumed = fieldStart;
   while (*nastr) {
     const char* ch1 = fieldStart;
     const char* ch2 = *nastr;

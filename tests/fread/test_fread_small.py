@@ -622,6 +622,20 @@ def test_unescaping1():
                               "\r\t\v\a\b\071\uABCD"]]
 
 
+def test_whitespace_nas():
+    d0 = dt.fread('A,   B,    C\n'
+                  '17,  34, 2.3\n'
+                  '3.,  NA,   1\n'
+                  'NA ,  2, NA \n'
+                  '0,0.1,0')
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.ltypes == (dt.ltype.real,) * 3
+    assert d0.topython() == [[17, 3, None, 0],
+                             [34, None, 2, 0.1],
+                             [2.3, 1, None, 0]]
+
+
 
 #-------------------------------------------------------------------------------
 # Medium-size files (generated)
