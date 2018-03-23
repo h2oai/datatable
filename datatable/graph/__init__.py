@@ -56,9 +56,9 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
                     return
                 raise TValueError("Cannot delete non-existing columns")
             elif allcols:
+                rowsnode.negate()
                 rowsnode.execute()
-                new_ri = ee.rowindex.inverse(dt.nrows)
-                dt.internal.replace_rowindex(new_ri)
+                dt.internal.replace_rowindex(ee.rowindex)
                 dt._nrows = dt.internal.nrows
                 return
             else:
