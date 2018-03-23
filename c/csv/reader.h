@@ -261,7 +261,7 @@ class LocalParseContext {
     virtual ~LocalParseContext();
     virtual field64* next_row();
     virtual void push_buffers() = 0;
-    virtual ChunkCoordinates read_chunk(const ChunkCoordinates& cc) = 0;
+    virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
     virtual void orderBuffer() = 0; // { row0 = r0; }
     virtual size_t get_nrows() { return used_nrows; }
     virtual void set_nrows(size_t n) { used_nrows = n; }

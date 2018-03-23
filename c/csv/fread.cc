@@ -165,17 +165,23 @@ class FreadChunkedReader {
 
       #pragma omp parallel num_threads(nthreads)
       {
+        bool tMaster = false;
         #pragma omp master
         {
-          chunkster->set_nthreads(omp_get_num_threads());
+          int actualNthreads = omp_get_num_threads();
+          if (actualNthreads != nthreads) {
+            reader.g.trace("Actual number of threads allowed by OMP: %d",
+                           actualNthreads);
+          }
+          chunkster->set_nthreads(actualNthreads);
           nchunks = chunkster->get_nchunks();
+          tMaster = true;
         }
-        // Wait for all threads here: we want all threads to have consistent
+        // Wait for master here: we want all threads to have consistent
         // view of the chunking parameters.
         #pragma omp barrier
 
-        int tIndex = omp_get_thread_num();
-        bool tShowProgress = showProgress && (tIndex == 0);
+        bool tShowProgress = showProgress && tMaster;
         bool tShowAlways = false;
         double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
@@ -194,7 +200,7 @@ class FreadChunkedReader {
 
             ctx->push_buffers();
             xcc = chunkster->compute_chunk_boundaries(i, ctx.get());
-            acc = ctx->read_chunk(xcc);
+            ctx->read_chunk(xcc, acc);
 
           } catch (...) {
             oem.capture_exception();
@@ -202,13 +208,34 @@ class FreadChunkedReader {
           }
 
           #pragma omp ordered
-          {
+          do {
             try {
-              while (!chunkster->is_ordered(acc, xcc)) {
-                acc = ctx->read_chunk(xcc);
-                if (!acc.end) break;
+              // The `is_ordered()` call checks whether the actual start of the
+              // chunk was correct (i.e. there are no gaps/overlaps in the
+              // input). If not, then we re-read the chunk using the correct
+              // coordinates (which `is_ordered()` saves in variable `xcc`).
+              // We also re-read if the first `read_chunk()` call returned an
+              // error: even if the chunk's start was determined correctly, we
+              // didn't know that up to this point, and so were not producing
+              // the correct error message.
+              // After re-reading, it is possible to still have `acc.end` equal
+              // nullptr (i.e. genuine file reading error); otherwise `acc.end`
+              // will have the correct end of the current chunk, which MUST be
+              // reported to `chunkster` by calling `is_ordered()` the second
+              // time.
+              bool reparse_error = !acc.end && !xcc.true_start;
+              if (!chunkster->is_ordered(acc, xcc) || reparse_error) {
+                assert(xcc.true_start);
+                ctx->read_chunk(xcc, acc);
+                if (acc.end && !chunkster->is_ordered(acc, xcc)) {
+                  throw RuntimeError() << "Unable to order chunks";
+                }
               }
-              if (!acc.end) stopTeam = true;
+              if (!acc.end) {
+                assert(stopErr[0]);
+                stopTeam = true;
+                break;
+              }
               ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).
               if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
                 stopTeam = true;
@@ -242,7 +269,7 @@ class FreadChunkedReader {
               oem.capture_exception();
               stopTeam = true;
             }
-          }  // #pragma omp ordered
+          } while (0);  // #pragma omp ordered
         }  // #pragma omp for ordered
         try {
           // Push out all buffers one last time.

@@ -147,7 +147,7 @@ class FreadLocalParseContext : public LocalParseContext
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
     virtual ~FreadLocalParseContext();
     virtual void push_buffers() override;
-    ChunkCoordinates read_chunk(const ChunkCoordinates&) override;
+    void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();
     void orderBuffer() override;
 };

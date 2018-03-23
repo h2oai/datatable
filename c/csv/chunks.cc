@@ -92,18 +92,14 @@ ChunkCoordinates ChunkOrganizer::compute_chunk_boundaries(
 bool ChunkOrganizer::is_ordered(
   const ChunkCoordinates& acc, ChunkCoordinates& xcc)
 {
-  if (acc.start == lastChunkEnd) {
-    if (acc.end) {
-      assert(acc.end >= lastChunkEnd);
-      lastChunkEnd = acc.end;
-    }
-    return true;
-  } else {
-    assert(!xcc.true_start);
-    xcc.start = lastChunkEnd;
-    xcc.true_start = true;
-    return false;
+  bool ordered = (acc.start == lastChunkEnd);
+  xcc.start = lastChunkEnd;
+  xcc.true_start = true;
+  if (ordered && acc.end) {
+    assert(acc.end >= lastChunkEnd);
+    lastChunkEnd = acc.end;
   }
+  return ordered;
 }
 
 

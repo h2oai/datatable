@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   with too many columns and few rows.
 - fixed a possible crash when reading CSV file containing long string fields.
 - fread: NA fields with whitespace were not recognized correctly.
+- fread will no longer emit error messages or type-bump variables due to
+  incorrectly recognized chunk boundaries.
 - Fixed a crash when rbinding string column with non-string: now an exception
   will be thrown instead.
 
