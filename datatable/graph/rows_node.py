@@ -52,11 +52,14 @@ class RFNode:
     ...:
         (Derived classes will typically add their own constructor parameters).
     """
-    __slots__ = ["_engine"]
+    __slots__ = ["_engine", "_inverse"]
 
     def __init__(self, ee):
         self._engine = ee  # type: EvaluationEngine
+        self._inverse = False
 
+    def negate(self):
+        self._inverse = not self._inverse
 
     def execute(self):
         rowindex = self._make_final_rowindex()
@@ -83,14 +86,25 @@ class RFNode:
         is the same object as the source RowIndex. The returned value may also
         be None indicating absense of any RowIndex.
         """
-        rowindex = self._make_source_rowindex()
         _dt = self._engine.dt.internal
-        if not rowindex:
-            return _dt.rowindex
-        elif _dt.isview:
-            return rowindex.uplift(_dt.rowindex)
+        ri_source = self._make_source_rowindex()
+        ri_target = _dt.rowindex
+
+        if self._inverse:
+            if ri_source is None:
+                return core.rowindex_from_slice(0, 0, 0)
+            elif ri_target is None:
+                return ri_source.inverse(_dt.nrows)
+            else:
+                return ri_source.inverse(_dt.nrows).uplift(ri_target)
+
+        if ri_source is None:
+            return ri_target
         else:
-            return rowindex
+            if ri_target is None:
+                return ri_source
+            else:
+                return ri_source.uplift(ri_target)
 
 
 
@@ -309,13 +323,15 @@ class FilterExprRFNode(RFNode):
 
     def _make_final_rowindex(self):
         ee = self._engine
+        nrows = ee.dt.nrows
         if isinstance(ee, LlvmEvaluationEngine):
             ptr = ee.get_result(self._fnname)
-            nrows = ee.dt.nrows
             return core.rowindex_from_filterfn(ptr, nrows)
         else:
             col = self._expr.evaluate_eager(self._engine)
             rowindex = core.rowindex_from_column(col)
+            if self._inverse:
+                rowindex = rowindex.inverse(nrows)
             if ee.rowindex:
                 rowindex = rowindex.uplift(ee.rowindex)
             return rowindex

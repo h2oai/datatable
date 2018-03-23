@@ -359,6 +359,22 @@ def test_del_rows_nas():
     assert d0.topython() == [[1, 5, 12, 7, -3]]
 
 
+def test_del_rows_from_view1():
+    d0 = dt.Frame(range(10))
+    d1 = d0[::2, :]  # 0 2 4 6 8
+    del d1[3, :]
+    assert d1.topython() == [[0, 2, 4, 8]]
+    del d1[[0, 3], :]
+    assert d1.topython() == [[2, 4]]
+
+
+def test_del_rows_from_view2():
+    f0 = dt.Frame([1, 3, None, 4, 5, None, None, 2, None, None, None])
+    f1 = f0[5:, :]
+    del f1[isna(f[0]), :]
+    assert f1.topython() == [[2]]
+
+
 
 #-------------------------------------------------------------------------------
 # ...
