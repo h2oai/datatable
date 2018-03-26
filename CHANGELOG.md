@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   incorrectly recognized chunk boundaries.
 - Fixed a crash when rbinding string column with non-string: now an exception
   will be thrown instead.
+- Calling any stats function on a column of obj64 type will no longer result in
+  a crash.
 
 
 

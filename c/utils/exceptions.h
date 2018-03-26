@@ -108,6 +108,7 @@ Error IOError();
 
 void replace_typeError(PyObject* obj);
 void replace_valueError(PyObject* obj);
+void init_exceptions();
 
 
 //------------------------------------------------------------------------------
