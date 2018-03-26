@@ -264,7 +264,7 @@ protected:
 
 
   /**
-   * Sets every row in the column with a NA value. As of now this method
+   * Sets every row in the column to an NA value. As of now this method
    * modifies every element in the column's memory buffer regardless of its
    * refcount or rowindex. Use with caution.
    * This implementation will be made safer after Column::extract is modified
@@ -553,7 +553,7 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
-  void fill_na() override {}
+  void fill_na() override;
   friend Column;
 };
 

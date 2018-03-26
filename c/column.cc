@@ -262,7 +262,7 @@ Column* Column::mean_column() const { return new_na_column(ST_REAL_F8, 1); }
 Column* Column::sd_column() const   { return new_na_column(ST_REAL_F8, 1); }
 Column* Column::min_column() const  { return new_na_column(stype(), 1); }
 Column* Column::max_column() const  { return new_na_column(stype(), 1); }
-Column* Column::mode_column() const { return new_na_column(stype(), 1); }
+Column* Column::mode_column() const { throw NotImplError(); }
 Column* Column::sum_column() const  { return new_na_column(stype(), 1); }
 
 Column* Column::countna_column() const {
@@ -287,7 +287,7 @@ PyObject* Column::mean_pyscalar() const { return none(); }
 PyObject* Column::sd_pyscalar() const { return none(); }
 PyObject* Column::min_pyscalar() const { return none(); }
 PyObject* Column::max_pyscalar() const { return none(); }
-PyObject* Column::mode_pyscalar() const { return none(); }
+PyObject* Column::mode_pyscalar() const { throw NotImplError(); }
 PyObject* Column::sum_pyscalar() const { return none(); }
 PyObject* Column::countna_pyscalar() const { return int_to_py(countna()); }
 PyObject* Column::nunique_pyscalar() const { return int_to_py(nunique()); }

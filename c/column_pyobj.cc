@@ -45,12 +45,18 @@ SType PyObjectColumn::stype() const {
 void PyObjectColumn::open_mmap(const std::string&) {
   assert(!ri && !mbuf);
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * sizeof(PyObject*));
+  fill_na();
+}
+
+
+void PyObjectColumn::fill_na() {
   PyObject** data = this->elements();
   for (int64_t i = 0; i < nrows; ++i) {
     data[i] = Py_None;
-    Py_INCREF(Py_None);
   }
+  Py_None->ob_refcnt += nrows;  // Manually increase ref-count on Py_None
 }
+
 
 
 //----- Type casts -------------------------------------------------------------
