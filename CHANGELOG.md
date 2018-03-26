@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.0)
 #### Added
 - Added ability to delete rows from a view Frame.
+- Implement countna() function for `obj64` columns.
+
+#### Changed
+- When creating a column of "object" type, we will now coerce float "nan"
+  values into `None`s.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file

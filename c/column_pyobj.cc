@@ -64,3 +64,10 @@ void PyObjectColumn::cast_into(PyObjectColumn* target) const {
 }
 
 
+
+//----- Stats ------------------------------------------------------------------
+
+PyObjectStats* PyObjectColumn::get_stats() const {
+  if (stats == nullptr) stats = new PyObjectStats();
+  return static_cast<PyObjectStats*>(stats);
+}

@@ -34,6 +34,9 @@ srcs_str = [["foo", None, "bar", "baaz", None],
             ["a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a"],
             ["leeeeeroy!"]]
 
+srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)],
+            ["a", "bc", "def", None, -2.5, 3.7]]
+
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
@@ -225,7 +228,7 @@ def t_count_na(arr):
                for x in arr)
 
 
-@pytest.mark.parametrize("src", srcs_all)
+@pytest.mark.parametrize("src", srcs_all + srcs_obj)
 def test_dt_count_na(src):
     dt0 = dt.Frame(src)
     dtr = dt0.countna()

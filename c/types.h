@@ -289,7 +289,7 @@ typedef enum LType {
  *
  * ST_OBJECT_PTR
  *     elem: PyObject*
- *     NA:   &Py_None
+ *     NA:   Py_None
  *
  */
 typedef enum SType {

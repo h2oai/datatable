@@ -539,7 +539,7 @@ public:
 protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
-  Stats* get_stats() const override { return nullptr; }
+  PyObjectStats* get_stats() const override;
   void open_mmap(const std::string& filename) override;
 
   // void cast_into(BoolColumn*) const override;

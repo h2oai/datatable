@@ -378,7 +378,11 @@ static bool parse_as_pyobj(PyyList& list, MemoryBuffer* membuf)
   PyObject** outdata = static_cast<PyObject**>(membuf->get());
 
   for (size_t i = 0; i < nrows; ++i) {
-    outdata[i] = list[i].as_new_ref();
+    PyObj item = list[i];
+    if (item.is_float() && std::isnan(item.as_double())) {
+      item = PyObj::none();
+    }
+    outdata[i] = item.as_pyobject();
   }
   return true;
 }
