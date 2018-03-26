@@ -167,6 +167,7 @@ static PyModuleDef datatablemodule = {
 PyMODINIT_FUNC
 PyInit__datatable(void) {
     init_csvwrite_constants();
+    init_exceptions();
 
     Py_One = PyLong_FromLong(1);
     Py_Zero = PyLong_FromLong(0);
