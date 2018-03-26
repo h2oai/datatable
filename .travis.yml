@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - '3.5'
+  - '3.6'
+
+install:
+  - make test_install
+
+script:
+  - make
+
+git:
+  depth: 5
