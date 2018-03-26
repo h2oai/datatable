@@ -43,11 +43,11 @@ enum Stat {
  *
  *                                +-------+
  *                                | Stats |
- *                                +-------+
- *                                 /     \
- *                 +----------------+   +-------------+
- *                 | NumericalStats |   | StringStats |
- *                 +----------------+   +-------------+
+ *                                +-------+ --------------~
+ *                                 /     \                 \
+ *                 +----------------+   +-------------+   +---------------+
+ *                 | NumericalStats |   | StringStats |   | PyObjectStats |
+ *                 +----------------+   +-------------+   +---------------+
  *                   /           \
  *         +--------------+   +-----------+
  *         | IntegerStats |   | RealStats |
@@ -93,7 +93,7 @@ class Stats {
     void reset();
     virtual void merge_stats(const Stats*);
 
-    virtual size_t memory_footprint() const;
+    virtual size_t memory_footprint() const = 0;
     bool verify_integrity(IntegrityCheckContext&,
                           const std::string& name = "Stats") const;
 
@@ -234,6 +234,20 @@ class StringStats : public Stats {
 extern template class StringStats<int32_t>;
 extern template class StringStats<int64_t>;
 
+
+
+//------------------------------------------------------------------------------
+// PyObjectStats class
+//------------------------------------------------------------------------------
+
+class PyObjectStats : public Stats {
+  public:
+    virtual size_t memory_footprint() const override { return sizeof(*this); }
+
+  protected:
+    void compute_countna(const Column*) override;
+    void compute_sorted_stats(const Column*) override;
+};
 
 
 #endif /* dt_STATS_h */
