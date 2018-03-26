@@ -543,7 +543,7 @@ void GenericReader::decode_utf16() {
   );
   PyObject* t = tempstr.as_pyobject();  // new ref
   // borrowed ref, belongs to PyObject `t`
-  char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
+  const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
   mbuf->release();
   mbuf = new ExternalMemBuf(buf, static_cast<size_t>(ssize) + 1);
   offset = 0;

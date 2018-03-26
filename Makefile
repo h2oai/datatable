@@ -74,6 +74,12 @@ debug:
 	$(MAKE) build
 	$(MAKE) install
 
+asan:
+	$(MAKE) clean
+	DTASAN=1 \
+	$(MAKE) fast
+	$(MAKE) install
+
 build_noomp:
 	DTNOOPENMP=1 \
 	$(MAKE) build

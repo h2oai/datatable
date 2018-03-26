@@ -83,7 +83,7 @@ Error& Error::operator<<(size_t v)             { error << v; return *this; }
 Error& Error::operator<<(PyObject* v) {
   PyObject* repr = PyObject_Repr(v);
   Py_ssize_t size;
-  char* chardata = PyUnicode_AsUTF8AndSize(repr, &size);
+  const char* chardata = PyUnicode_AsUTF8AndSize(repr, &size);
   if (chardata) {
     error << std::string(chardata, static_cast<size_t>(size));
   } else {
