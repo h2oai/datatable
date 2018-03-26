@@ -1,3 +1,5 @@
+#!/usr/bin/groovy
+
 @Library('test-shared-library@1.2') _
 
 import ai.h2o.ci.Utils
@@ -7,6 +9,8 @@ def utilsLib = new Utils()
 properties([
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
+
+H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
 def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux'
 
@@ -116,51 +120,58 @@ BUILD_MATRIX.each {platform, config ->
             final def buildDir = 'build'
 
             cleanWs()
-
-            stage("Build ${platform}") {
-                dir (buildDir) {
-                    unstash 'datatable-sources'
-                }
-                if (config.dockerImage && config.pullImage) {
-                    withCredentials([usernamePassword(credentialsId: 'docker.h2o.ai', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
-                        // by default, the image should be pulled
-                        def pullImage = true
-                        // First check that the image is present
-                        def imagePresent = sh(script: "docker inspect ${config.dockerImage}", returnStatus: true) == 0
-                        if (imagePresent) {
-                            echo "${config.dockerImage} present on host, checking versions..."
-                            // check that the image has expected SHA
-                            def expectedVersion = EXPECTED_SHAS.images[config.dockerImage]
-                            def currentVersion = sh(script: "docker inspect --format=\'{{index .RepoDigests 0}}\' ${config.dockerImage}", returnStdout: true).trim()
-                            echo "current image version: ${currentVersion}"
-                            echo "expected image version: ${expectedVersion}"
-                            pullImage = currentVersion != expectedVersion
-                        }
-                        if (pullImage) {
-                            sh """
-                                docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD docker.h2o.ai
-                                docker pull ${config.dockerImage}
-                            """
+            def buildStageName = "Build ${platform}"
+            withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, buildStageName) {
+                stage(buildStageName) {
+                    dir(buildDir) {
+                        unstash 'datatable-sources'
+                    }
+                    if (config.dockerImage && config.pullImage) {
+                        withCredentials([usernamePassword(credentialsId: 'docker.h2o.ai', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
+                            // by default, the image should be pulled
+                            def pullImage = true
+                            // First check that the image is present
+                            def imagePresent = sh(script: "docker inspect ${config.dockerImage}", returnStatus: true) == 0
+                            if (imagePresent) {
+                                echo "${config.dockerImage} present on host, checking versions..."
+                                // check that the image has expected SHA
+                                def expectedVersion = EXPECTED_SHAS.images[config.dockerImage]
+                                def currentVersion = sh(script: "docker inspect --format=\'{{index .RepoDigests 0}}\' ${config.dockerImage}", returnStdout: true).trim()
+                                echo "current image version: ${currentVersion}"
+                                echo "expected image version: ${expectedVersion}"
+                                pullImage = currentVersion != expectedVersion
+                            }
+                            if (pullImage) {
+                                sh """
+                                        docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD docker.h2o.ai
+                                        docker pull ${config.dockerImage}
+                                    """
+                            }
                         }
                     }
+                    // Specify build Closure
+                    def buildClosure = {
+                        project.buildAll(buildDir, platform, CI_VERSION_SUFFIX, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), getVenvActivationCmd(platform, DEFAULT_PY35_ENV), BUILD_MATRIX[platform]['env'])
+                    }
+                    callInEnv(config.dockerImage, dockerArgs, buildClosure)
                 }
-                // Specify build Closure
-                def buildClosure = {
-                    project.buildAll(buildDir, platform, CI_VERSION_SUFFIX, getVenvActivationCmd(platform, DEFAULT_PY36_ENV),getVenvActivationCmd(platform, DEFAULT_PY35_ENV), BUILD_MATRIX[platform]['env'])
-                }
-                callInEnv(config.dockerImage, dockerArgs, buildClosure)
             }
+
 
             if (config.coverage) {
                 final def coverageDir = "coverage-${platform}"
                 dir(coverageDir) {
                     unstash 'datatable-sources'
                 }
-                stage("Coverage ${platform}") {
-                    def coverageClosure = {
-                        project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
+                def coverageStageName = "Coverage ${platform}"
+                coverageStageName = appendLargeTestsSuffixIfRequired(coverageStageName, needsLargerTest)
+                withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, coverageStageName) {
+                    stage(coverageStageName) {
+                        def coverageClosure = {
+                            project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
+                        }
+                        callInEnv(config.dockerImage, dockerArgs, coverageClosure)
                     }
-                    callInEnv(config.dockerImage, dockerArgs, coverageClosure)
                 }
             } else {
                 stage("Coverage ${platform} - SKIPPED") {
@@ -172,14 +183,18 @@ BUILD_MATRIX.each {platform, config ->
             getRelevantTestEnvs().each {testEnv ->
                 final def testDir = "test-${platform}-${testEnv}"
                 try {
-                    stage("Test ${platform} with ${testEnv}") {
-                        dir(testDir) {
-                            unstash 'datatable-sources'
+                    def testStageName = "Test ${platform} with ${testEnv}"
+                    testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
+                    withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
+                        stage(testStageName) {
+                            dir(testDir) {
+                                unstash 'datatable-sources'
+                            }
+                            def testClosure = {
+                                project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
+                            }
+                            callInEnv(config.dockerImage, dockerArgs, testClosure)
                         }
-                        def testClosure = {
-                            project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
-                        }
-                        callInEnv(config.dockerImage, dockerArgs, testClosure)
                     }
                 } catch (e) {
                     failure = true
@@ -207,6 +222,7 @@ ansiColor('xterm') {
                 project = load 'ci/default.groovy'
                 needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
                 if (needsLargerTest) {
+                    echo "Large tests will be executed for this build"
                     manager.addBadge("warning.gif", "Large tests required")
                 }
                 stash 'datatable-sources'
@@ -292,8 +308,16 @@ def getRelevantTestEnvs() {
 }
 
 def isModified(pattern) {
-    def fList = buildInfo.get().getChangedFiles().join('\n')
-    out = sh(script: "echo '${fList}' | xargs basename | egrep -e '${pattern}' | wc -l", returnStdout: true).trim()
+    def fList
+    if (isPrJob()) {
+        sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"
+        final String mergeBaseSHA = sh(script: "git merge-base HEAD origin/${env.CHANGE_TARGET}", returnStdout: true).trim()
+        fList = sh(script: "git diff --name-only ${mergeBaseSHA}", returnStdout: true).trim()
+    } else {
+        fList = buildInfo.get().getChangedFiles().join('\n')
+    }
+
+    out = sh(script: "echo '${fList}' | xargs basename -a | egrep -e '${pattern}' | wc -l", returnStdout: true).trim()
     return !(out.isEmpty() || out == "0")
 }
 
@@ -335,6 +359,13 @@ def callInEnv(dockerImage, dockerArgs, body) {
         linkFolders(SOURCE_DIR, TARGET_DIR)
         body()
     }
+}
+
+def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
+    if (needsLargerTest) {
+        stageName += ' with large tests'
+    }
+    return stageName
 }
 
 def doPublish() {
