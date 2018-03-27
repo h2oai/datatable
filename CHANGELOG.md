@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Added ability to delete rows from a view Frame.
 - Implement countna() function for `obj64` columns.
+- New option `dt.options.core_logger` to help debug datatable.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"

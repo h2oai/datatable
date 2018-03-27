@@ -137,6 +137,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pydatatable::datatable_from_buffers),
     METHODv(pydatatable::install_buffer_hooks),
     METHODv(set_nthreads),
+    METHODv(set_core_logger),
     METHODv(gread),
     METHOD0_(write_csv),
     METHOD0_(exec_function),

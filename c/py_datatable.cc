@@ -302,13 +302,8 @@ PyObject* rbind(obj* self, PyObject* args) {
     }
     dts[i] = dti;
   }
-  try {
-    DataTable* ret = dt->rbind( dts, cols_to_append, ndts, final_ncols);
-    if (ret == nullptr) return nullptr;
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return nullptr;
-  }
+
+  dt->rbind(dts, cols_to_append, ndts, final_ncols);
 
   dtfree(cols_to_append);
   dtfree(dts);

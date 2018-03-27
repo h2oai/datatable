@@ -25,15 +25,14 @@
  * number `cols[i][j]` in datatable `dts[j]` (if `cols[i][j] >= 0`, otherwise
  * NAs).
  */
-DataTable* DataTable::rbind(
-  DataTable** dts, int** cols, int ndts, int64_t new_ncols)
+void DataTable::rbind(DataTable** dts, int** cols, int ndts, int64_t new_ncols)
 {
   assert(new_ncols >= ncols);
 
   // If this is a view datatable, then it must be materialized.
   this->reify();
 
-  dtrealloc(columns, Column*, new_ncols + 1);
+  dtrealloc_x(columns, Column*, new_ncols + 1);
   for (int64_t i = ncols; i < new_ncols; ++i) {
     columns[i] = new VoidColumn(nrows);
   }
@@ -58,5 +57,4 @@ DataTable* DataTable::rbind(
   }
   ncols = new_ncols;
   nrows = new_nrows;
-  return this;
 }

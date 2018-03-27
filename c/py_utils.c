@@ -110,3 +110,9 @@ void _dt_err_a(const char *format, ...)
     PyErr_FormatV(PyExc_AssertionError, format, vargs);
     va_end(vargs);
 }
+
+
+void log_call(const char* msg) {
+  if (!config::logger) return;
+  PyObject_CallMethod(config::logger, "info", "s", msg);
+}

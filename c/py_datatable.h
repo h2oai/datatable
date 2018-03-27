@@ -13,6 +13,7 @@
 
 
 #define BASECLS pydatatable::obj
+#define CLSNAME DataTable
 #define HOMEFLAG dt_PY_DATATABLE_cc
 namespace pydatatable
 {
@@ -270,5 +271,6 @@ DECLARE_FUNCTION(
 
 };
 #undef BASECLS
+#undef CLSNAME
 #undef HOMEFLAG
 #endif

@@ -14,6 +14,7 @@
 
 
 #define BASECLS pycolumn::obj
+#define CLSNAME Column
 #define HOMEFLAG dt_PY_COLUMN_cc
 namespace pycolumn
 {
@@ -108,5 +109,6 @@ DECLARE_FUNCTION(
 
 };  // namespace pycolumn
 #undef BASECLS
+#undef CLSNAME
 #undef HOMEFLAG
 #endif
