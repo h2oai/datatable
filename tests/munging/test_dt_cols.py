@@ -293,3 +293,13 @@ def test_cols_from_view(dt0):
     d2 = d1["B"]
     assert d2.internal.check()
     assert d2.topython() == [[2, 3, 2]]
+
+
+def test_cols_on_empty_frame():
+    df = dt.Frame()
+    d1 = df[:, :]
+    d2 = df[::-1, :5]
+    assert d1.internal.check()
+    assert d2.internal.check()
+    assert d1.shape == (0, 0)
+    assert d2.shape == (0, 0)
