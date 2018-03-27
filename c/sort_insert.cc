@@ -91,7 +91,7 @@ void insert_sort_values(const T* x, V* o, int n, GroupGatherer& gg)
     }
     o[j] = static_cast<V>(i);
   }
-  if (gg.enabled()) {
+  if (gg) {
     gg.from_data(x, o, static_cast<size_t>(n));
   }
 }
@@ -158,11 +158,11 @@ void insert_sort_keys_str(
     }
     tmp[j] = static_cast<V>(i);
   }
-  if (gg.enabled()) {
-    gg.from_data(strdata, stroffs, strstart, tmp, static_cast<size_t>(n));
-  }
   for (int i = 0; i < n; ++i) {
     tmp[i] = o[tmp[i]];
+  }
+  if (gg) {
+    gg.from_data(strdata, stroffs, strstart, tmp, static_cast<size_t>(n));
   }
   std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
 }
@@ -188,7 +188,7 @@ void insert_sort_values_str(
     }
     o[j] = static_cast<V>(i);
   }
-  if (gg.enabled()) {
+  if (gg) {
     gg.from_data(strdata, stroffs, strstart, o, static_cast<size_t>(n));
   }
 }

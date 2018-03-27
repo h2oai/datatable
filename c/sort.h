@@ -36,9 +36,6 @@
  * from_groups(gg)
  *     Adds all groups from another GroupGatherer instance `gg`.
  *
- * release()
- *     Return (by moving) the internal array of cumulative group sizes.
- *
  * Internal parameters
  * -------------------
  * groups
@@ -64,7 +61,7 @@ class GroupGatherer {
 
   public:
     GroupGatherer(bool enabled);
-    bool enabled() const { return _enabled; }
+    operator bool() const { return _enabled; }
     void clear();
     void push(size_t grp);
     template <typename T, typename V> void from_data(const T*, V*, size_t);

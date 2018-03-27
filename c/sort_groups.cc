@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "sort.h"
 #include <utility>  // std::move
+#include "utils/assert.h"
 
 
 
