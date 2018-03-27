@@ -11,7 +11,7 @@ import datatable as dt
 @pytest.mark.run(order=1001)
 def test_options_all():
     # Update this test every time a new option is added
-    assert dir(dt.options) == ["nthreads"]
+    assert set(dir(dt.options)) == {"nthreads", "core_logger"}
 
 
 @pytest.mark.run(order=1002)
@@ -109,3 +109,23 @@ def test_nthreads():
     assert dt.options.nthreads == 1
     del dt.options.nthreads
     assert dt.options.nthreads == 0
+
+@pytest.mark.run(order=1011)
+def test_core_logger():
+    class MyLogger:
+        def __init__(self):
+            self.messages = ""
+        def info(self, msg):
+            self.messages += msg + '\n'
+
+    ml = MyLogger()
+    assert dt.options.core_logger is None
+    dt.options.core_logger = ml
+    assert dt.options.core_logger == ml
+    f0 = dt.Frame([1, 2, 3])
+    assert f0.internal.check()
+    assert "call: DataTable.datatable_from_list(...)" in ml.messages
+    assert "call: DataTable.ncols" in ml.messages
+    assert "call: DataTable.nrows" in ml.messages
+    assert "call: DataTable.check(...)" in ml.messages
+    assert "done: DataTable.check(...)" in ml.messages

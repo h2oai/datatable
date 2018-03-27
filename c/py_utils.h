@@ -17,10 +17,23 @@
 #include "utils.h"
 #include "utils/exceptions.h"
 
-#define ES_FUNCTION(decl, call)                                                \
+namespace config {
+  extern PyObject* logger;
+};
+void log_call(const char* msg);
+
+
+#define ES_FUNCTION(decl, call, log_msg)                                       \
   decl {                                                                       \
     try {                                                                      \
-      return call;                                                             \
+      if (config::logger) {                                                    \
+        log_call("call: " log_msg);                                            \
+        PyObject* res = call;                                                  \
+        log_call("done: " log_msg);                                            \
+        return res;                                                            \
+      } else {                                                                 \
+        return call;                                                           \
+      }                                                                        \
     } catch (const std::exception& e) {                                        \
       exception_to_python(e);                                                  \
       return NULL;                                                             \
@@ -49,7 +62,8 @@
     char fn##_name[] = #fn;                                                    \
     ES_FUNCTION(                                                               \
       PyObject* fn##_safe(basecls* self, PyObject* args),                      \
-      fn(self, args))                                                          \
+      fn(self, args),                                                          \
+      STRINGIFY(CLSNAME) "." #fn "(...)")                                      \
   )                                                                            \
 
 
@@ -64,7 +78,8 @@
     static char name_get_##fn[] = #fn;                                         \
     ES_FUNCTION(                                                               \
       static PyObject* safe_get_##fn(BASECLS* self, void*),                    \
-      get_##fn(self))                                                          \
+      get_##fn(self),                                                          \
+      STRINGIFY(CLSNAME) "." #fn)                                              \
   )                                                                            \
 
 

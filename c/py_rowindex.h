@@ -13,6 +13,7 @@
 
 
 #define BASECLS pyrowindex::obj
+#define CLSNAME RowIndex
 #define HOMEFLAG dt_PY_ROWINDEX_cc
 namespace pyrowindex
 {
@@ -143,4 +144,5 @@ DECLARE_FUNCTION(
 };  // namespace pyrowindex
 #undef HOMEFLAG
 #undef BASECLS
+#undef CLSNAME
 #endif
