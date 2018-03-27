@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   will be thrown instead.
 - Calling any stats function on a column of obj64 type will no longer result in
   a crash.
+- Columns/rows slices no longer fail on an empty Frame.
 
 
 

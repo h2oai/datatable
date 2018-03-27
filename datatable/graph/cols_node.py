@@ -64,6 +64,8 @@ class SliceCSNode(ColumnSetNode):
 
     def _make_column_names(self):
         if self._step == 0:
+            if self._count == 0:
+                return tuple()
             s = self.dt.names[self._start]
             return tuple([s] * self._count)
         else:
