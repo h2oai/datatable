@@ -35,6 +35,7 @@ void log_call(const char* msg);
         return call;                                                           \
       }                                                                        \
     } catch (const std::exception& e) {                                        \
+      if (config::logger) log_call("error: " log_msg);                         \
       exception_to_python(e);                                                  \
       return NULL;                                                             \
     }                                                                          \

@@ -14,6 +14,7 @@
 
 
 #define BASECLS pycolumnset::obj
+#define CLSNAME ColumnSet
 #define HOMEFLAG dt_PY_COLUMNSET_cc
 namespace pycolumnset
 {
@@ -71,5 +72,6 @@ int static_init(PyObject* module);
 
 };
 #undef BASECLS
+#undef CLSNAME
 #undef HOMEFLAG
 #endif

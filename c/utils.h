@@ -142,6 +142,11 @@ inline std::string operator "" _s(const char* str, size_t len) {
     if (ptr == null && n) goto fail;                                           \
 } while(0)
 
+#define dtrealloc_x(ptr, T, n) do {                                            \
+    ptr = (T*) _dt_realloc(ptr, (size_t)(n) * SIZEOF(T));                      \
+    if (ptr == null && n) throw MemoryError();                                 \
+} while(0)
+
 
 
 /**

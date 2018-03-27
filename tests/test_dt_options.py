@@ -129,3 +129,5 @@ def test_core_logger():
     assert "call: DataTable.nrows" in ml.messages
     assert "call: DataTable.check(...)" in ml.messages
     assert "done: DataTable.check(...)" in ml.messages
+    del dt.options.core_logger
+    assert dt.options.core_logger is None
