@@ -204,7 +204,7 @@ PyTypeObject type = {
   0,                                  /* tp_getattr */
   0,                                  /* tp_setattr */
   0,                                  /* tp_compare */
-  (reprfunc)repr,                     /* tp_repr */
+  REPR,                               /* tp_repr */
   0,                                  /* tp_as_number */
   0,                                  /* tp_as_sequence */
   0,                                  /* tp_as_mapping */
@@ -260,3 +260,5 @@ int static_init(PyObject* module)
 
 
 };  // namespace columnset
+#undef BASECLS
+#undef CLSNAME

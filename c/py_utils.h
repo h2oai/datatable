@@ -117,6 +117,16 @@ void log_call(const char* msg);
   )                                                                            \
 
 
+#define DECLARE_REPR()                                                         \
+  static PyObject* repr(BASECLS* self);                                        \
+  WHEN(HOMEFLAG,                                                               \
+    ES_FUNCTION(                                                               \
+      static PyObject* safe_repr(BASECLS* self),                               \
+      repr(self),                                                              \
+      "repr(" STRINGIFY(CLSNAME) ")")                                          \
+  )
+
+
 #define DECLARE_DESTRUCTOR()                                                   \
   WHEN(HOMEFLAG,                                                               \
     static void dealloc(BASECLS*);                                             \
@@ -150,6 +160,7 @@ void log_call(const char* msg);
    doc_get_##fn, NULL}
 #define DESTRUCTOR (destructor)safe_dealloc
 #define CONSTRUCTOR (initproc)safe_init
+#define REPR (reprfunc)safe_repr
 
 
 #define DT_DOCS(name, doc) \
