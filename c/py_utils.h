@@ -35,12 +35,45 @@ void log_call(const char* msg);
         return call;                                                           \
       }                                                                        \
     } catch (const std::exception& e) {                                        \
-      if (config::logger) log_call("error: " log_msg);                         \
+      if (config::logger) log_call("fail: " log_msg);                          \
       exception_to_python(e);                                                  \
       return NULL;                                                             \
     }                                                                          \
   }
 
+#define ES_VOID_FUNCTION(decl, call, log_msg)                                  \
+  decl {                                                                       \
+    try {                                                                      \
+      if (config::logger) {                                                    \
+        log_call("call: " log_msg);                                            \
+        call;                                                                  \
+        log_call("done: " log_msg);                                            \
+      } else {                                                                 \
+        call;                                                                  \
+      }                                                                        \
+    } catch (const std::exception& e) {                                        \
+      if (config::logger) log_call("fail: " log_msg);                          \
+      exception_to_python(e);                                                  \
+    }                                                                          \
+  }
+
+#define ES_INT_FUNCTION(decl, call, log_msg)                                   \
+  decl {                                                                       \
+    try {                                                                      \
+      if (config::logger) {                                                    \
+        log_call("call: " log_msg);                                            \
+        int res = call;                                                        \
+        log_call("done: " log_msg);                                            \
+        return res;                                                            \
+      } else {                                                                 \
+        return call;                                                           \
+      }                                                                        \
+    } catch (const std::exception& e) {                                        \
+      if (config::logger) log_call("fail: " log_msg);                          \
+      exception_to_python(e);                                                  \
+      return -1;                                                               \
+    }                                                                          \
+  }
 
 
 #define DECLARE_INFO(name, docstring)                                          \
@@ -84,6 +117,26 @@ void log_call(const char* msg);
   )                                                                            \
 
 
+#define DECLARE_DESTRUCTOR()                                                   \
+  WHEN(HOMEFLAG,                                                               \
+    static void dealloc(BASECLS*);                                             \
+    ES_VOID_FUNCTION(                                                          \
+      static void safe_dealloc(BASECLS* self),                                 \
+      dealloc(self),                                                           \
+      "del " STRINGIFY(CLSNAME))                                               \
+  )
+
+
+#define DECLARE_CONSTRUCTOR()                                                  \
+  WHEN(HOMEFLAG,                                                               \
+    static int _init_(BASECLS*, PyObject*, PyObject*);                         \
+    ES_INT_FUNCTION(                                                           \
+      static int safe_init(BASECLS* self, PyObject* args, PyObject* kwds),     \
+      _init_(self, args, kwds),                                                \
+      "new " STRINGIFY(CLSNAME))                                               \
+  )
+
+
 #define METHOD0(fn)                                                            \
   {fn##_name, (PyCFunction)fn##_safe, METH_NOARGS, fn##_doc}
 #define METHODv(fn)                                                            \
@@ -95,6 +148,8 @@ void log_call(const char* msg);
 #define GETSET(fn)                                                             \
   {name_get_##fn, (getter)safe_get_##fn, (setter)safe_set_##fn,                \
    doc_get_##fn, NULL}
+#define DESTRUCTOR (destructor)safe_dealloc
+#define CONSTRUCTOR (initproc)safe_init
 
 
 #define DT_DOCS(name, doc) \

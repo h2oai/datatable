@@ -165,7 +165,7 @@ PyObject* window(obj* self, PyObject* args) {
     return nullptr;
 
   PyObject* nargs = Py_BuildValue("Ollll", self, row0, row1, col0, col1);
-  PyObject* res = PyObject_CallObject((PyObject*) &DataWindow_PyType, nargs);
+  PyObject* res = PyObject_CallObject((PyObject*) &pydatawindow::type, nargs);
   Py_XDECREF(nargs);
 
   return res;

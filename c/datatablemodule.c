@@ -178,8 +178,8 @@ PyInit__datatable(void) {
     if (m == NULL) return NULL;
 
     // Initialize submodules
-    if (!init_py_datawindow(m)) return NULL;
     if (!init_py_types(m)) return NULL;
+    if (!pydatawindow::static_init(m)) return NULL;
     if (!pycolumn::static_init(m)) return NULL;
     if (!pycolumnset::static_init(m)) return NULL;
     if (!pydatatable::static_init(m)) return NULL;

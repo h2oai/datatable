@@ -43,6 +43,8 @@ DECLARE_INFO(
   datatable.core.RowIndex,
   "C-side RowIndex object.")
 
+DECLARE_DESTRUCTOR()
+
 
 
 //---- Getters/setters ---------------------------------------------------------
