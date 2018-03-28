@@ -484,7 +484,7 @@ PyTypeObject type = {
   cls_name,                           /* tp_name */
   sizeof(pydatatable::obj),           /* tp_basicsize */
   0,                                  /* tp_itemsize */
-  (destructor) dealloc,               /* tp_dealloc */
+  DESTRUCTOR,                         /* tp_dealloc */
   0,                                  /* tp_print */
   0,                                  /* tp_getattr */
   0,                                  /* tp_setattr */
@@ -498,7 +498,7 @@ PyTypeObject type = {
   0,                                  /* tp_str */
   0,                                  /* tp_getattro */
   0,                                  /* tp_setattro */
-  &pydatatable::as_buffer,            /* tp_as_buffer;  see py_buffers.c */
+  &pydatatable::as_buffer,            /* tp_as_buffer;  see py_buffers.cc */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
   cls_doc,                            /* tp_doc */
   0,                                  /* tp_traverse */
