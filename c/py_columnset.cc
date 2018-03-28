@@ -199,7 +199,7 @@ PyTypeObject type = {
   cls_name,                           /* tp_name */
   sizeof(pycolumnset::obj),           /* tp_basicsize */
   0,                                  /* tp_itemsize */
-  (destructor)dealloc,                /* tp_dealloc */
+  DESTRUCTOR,                         /* tp_dealloc */
   0,                                  /* tp_print */
   0,                                  /* tp_getattr */
   0,                                  /* tp_setattr */

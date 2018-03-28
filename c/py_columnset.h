@@ -33,6 +33,9 @@ DECLARE_INFO(
   datatable.core.ColumnSet,
   "Array of columns that can be used to construct a DataTable.")
 
+DECLARE_DESTRUCTOR()
+
+
 
 //---- Methods -----------------------------------------------------------------
 
