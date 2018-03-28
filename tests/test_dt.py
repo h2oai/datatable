@@ -697,3 +697,24 @@ def test_scalar_on_view(dt0):
     assert dt0[2, 6].scalar() == "hello"
     assert dt0[2::5, 3::7].scalar() == -4
     assert dt0[[3], "G"].scalar() == "world"
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+@pytest.mark.run(order=33)
+def test_issue898():
+    """
+    Test that reification of obj column views does not lead to any disastrous
+    results (previously this was crashing).
+    """
+    class A: pass
+    f0 = dt.Frame([A() for i in range(1111)])
+    assert f0.stypes == (dt.stype.obj64, )
+    f1 = f0[:-1, :]
+    del f0
+    f1.materialize()
+    res = f1.topython()
+    del res

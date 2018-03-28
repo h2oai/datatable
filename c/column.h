@@ -304,7 +304,7 @@ public:
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
-  void reify() override;
+  virtual void reify() override;
 
 protected:
   void init_data() override;
@@ -553,6 +553,7 @@ protected:
   // void cast_into(StringColumn<int64_t>*) const;
 
   void fill_na() override;
+  void reify() override;
   friend Column;
 };
 
