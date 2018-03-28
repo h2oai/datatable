@@ -817,6 +817,12 @@ class Frame(object):
         return self._dt.to_scalar()
 
 
+    def materialize(self):
+        if self._dt.isview:
+            self._dt = self._dt.materialize()
+        return self
+
+
     def __sizeof__(self):
         """
         Return the size of this Frame in memory.

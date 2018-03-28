@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added ability to delete rows from a view Frame.
 - Implement countna() function for `obj64` columns.
 - New option `dt.options.core_logger` to help debug datatable.
+- New Frame method `.materialize()` to convert a view Frame into a "real" one.
+  This method is noop if applied to a non-view Frame.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"
@@ -30,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Calling any stats function on a column of obj64 type will no longer result in
   a crash.
 - Columns/rows slices no longer fail on an empty Frame.
+- Fixed crash when materializing a view frame containing obj64 columns.
 
 
 

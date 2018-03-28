@@ -58,6 +58,19 @@ void PyObjectColumn::fill_na() {
 }
 
 
+void PyObjectColumn::reify() {
+  if (ri.isabsent()) return;
+  FwColumn<PyObject*>::reify();
+
+  // After regular reification, we need to increment ref-counts for each
+  // element in the column, since we created a new independent reference of
+  // each python object.
+  PyObject** data = this->elements();
+  for (int64_t i = 0; i < nrows; ++i) {
+    Py_INCREF(data[i]);
+  }
+}
+
 
 //----- Type casts -------------------------------------------------------------
 
