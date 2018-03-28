@@ -199,12 +199,12 @@ PyTypeObject type = {
   cls_name,                           /* tp_name */
   sizeof(pycolumnset::obj),           /* tp_basicsize */
   0,                                  /* tp_itemsize */
-  (destructor)dealloc,                /* tp_dealloc */
+  DESTRUCTOR,                         /* tp_dealloc */
   0,                                  /* tp_print */
   0,                                  /* tp_getattr */
   0,                                  /* tp_setattr */
   0,                                  /* tp_compare */
-  (reprfunc)repr,                     /* tp_repr */
+  REPR,                               /* tp_repr */
   0,                                  /* tp_as_number */
   0,                                  /* tp_as_sequence */
   0,                                  /* tp_as_mapping */
@@ -260,3 +260,5 @@ int static_init(PyObject* module)
 
 
 };  // namespace columnset
+#undef BASECLS
+#undef CLSNAME

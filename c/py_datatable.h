@@ -55,6 +55,8 @@ DECLARE_INFO(
   datatable.core.DataTable,
   "C-side DataTable object.")
 
+DECLARE_DESTRUCTOR()
+
 
 
 //---- Getters/setters ---------------------------------------------------------

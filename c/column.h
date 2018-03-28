@@ -283,7 +283,6 @@ private:
   static Column* new_column(SType);
 
   // FIXME
-  friend Column* try_to_resolve_object_column(Column* col);
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
 };
 
@@ -626,7 +625,6 @@ protected:
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 
   friend Column;
-  friend Column* try_to_resolve_object_column(Column*);
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
 };
 

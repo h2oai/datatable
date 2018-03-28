@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_EXCEPTIONS_H
-#define dt_UTILS_EXCEPTIONS_H
+#ifndef dt_UTILS_EXCEPTIONS_h
+#define dt_UTILS_EXCEPTIONS_h
 #include <Python.h>
 #include <stdint.h>
 #include <exception>
@@ -14,29 +14,6 @@
 #include <sstream>
 #include <stdexcept>
 #include "types.h"
-
-
-
-#define MAKE_EXCEPTION_SAFE(fn, base)                                          \
-  static PyObject* safe_##fn(base* self, PyObject* args) {                     \
-    try {                                                                      \
-      return fn(self, args);                                                   \
-    } catch (const std::exception& e) {                                        \
-      exception_to_python(e);                                                  \
-      return NULL;                                                             \
-    }                                                                          \
-  }
-
-
-// TODO: remove this macro, replacing with `MAKE_EXCEPTION_SAFE`
-#define CATCH_EXCEPTIONS(CODE)                                                 \
-  try {                                                                        \
-    CODE                                                                       \
-  } catch (const std::exception& e) {                                          \
-    exception_to_python(e);                                                    \
-    return NULL;                                                               \
-  }
-
 
 class CErrno {};
 extern CErrno Errno;

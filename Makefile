@@ -356,7 +356,7 @@ $(BUILDDIR)/py_datatable.h: c/py_datatable.h $(BUILDDIR)/datatable.h $(BUILDDIR)
 	@echo • Refreshing c/py_datatable.h
 	@cp c/py_datatable.h $@
 
-$(BUILDDIR)/py_datawindow.h: c/py_datawindow.h
+$(BUILDDIR)/py_datawindow.h: c/py_datawindow.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/py_datawindow.h
 	@cp c/py_datawindow.h $@
 
@@ -650,7 +650,7 @@ $(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/colu
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datawindow.o : c/py_datawindow.c $(BUILDDIR)/datatable.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
+$(BUILDDIR)/py_datawindow.o : c/py_datawindow.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

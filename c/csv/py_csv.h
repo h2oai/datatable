@@ -10,8 +10,12 @@
 #include <Python.h>
 #include "py_utils.h"
 
-// TODO: clean up these old-style declarations
-PyObject* pywrite_csv(PyObject* self, PyObject* args);
+#define CLSNAME dt
+
+DECLARE_FUNCTION(
+  write_csv,
+  "write_csv()\n\n",
+  CSV_PY_CSV_cc)
 
 
 DECLARE_FUNCTION(
@@ -21,5 +25,5 @@ DECLARE_FUNCTION(
   "types, not just csv.\n",
   CSV_PY_CSV_cc)
 
-
+#undef CLSNAME
 #endif

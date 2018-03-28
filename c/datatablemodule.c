@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#define dt_DATATABLEMODULE_cc
 #include <Python.h>
 #include "capi.h"
 #include "csv/py_csv.h"
@@ -27,99 +28,105 @@ extern PyObject* Py_One, *Py_Zero;
 PyObject* Py_One;
 PyObject* Py_Zero;
 
+#define HOMEFLAG dt_DATATABLEMODULE_cc
+
+DECLARE_FUNCTION(
+    get_integer_sizes,
+    "get_integer_sizes()\n\n",
+    HOMEFLAG)
+
+DECLARE_FUNCTION(
+    get_internal_function_ptrs,
+    "get_internal_function_ptrs()\n\n",
+    HOMEFLAG)
+
+DECLARE_FUNCTION(
+    register_function,
+    "register_function()\n\n",
+    HOMEFLAG)
+
+DECLARE_FUNCTION(
+    exec_function,
+    "exec_function()\n\n",
+    HOMEFLAG)
 
 
-static PyObject* pyexec_function(PyObject *self, PyObject *args)
-{
-  CATCH_EXCEPTIONS(
-    void *fnptr;
-    PyObject *fnargs = NULL;
 
-    if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
-        return NULL;
 
-    return ((PyCFunction) fnptr)(self, fnargs);
-  );
+PyObject* exec_function(PyObject* self, PyObject* args) {
+  void* fnptr;
+  PyObject* fnargs = NULL;
+  if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
+      return NULL;
+
+  return ((PyCFunction) fnptr)(self, fnargs);
 }
 
 
-static PyObject* pyregister_function(PyObject*, PyObject *args)
-{
-  CATCH_EXCEPTIONS(
-    int n = -1;
-    PyObject *fnref = NULL;
+PyObject* register_function(PyObject*, PyObject *args) {
+  int n = -1;
+  PyObject* fnref = NULL;
+  if (!PyArg_ParseTuple(args, "iO:register_function", &n, &fnref))
+      return NULL;
 
-    if (!PyArg_ParseTuple(args, "iO:register_function", &n, &fnref))
-        return NULL;
-    if (!PyCallable_Check(fnref)) {
-        PyErr_SetString(PyExc_TypeError, "parameter `fn` must be callable");
-        return NULL;
-    }
-    Py_XINCREF(fnref);
-    if (n == 1) pycolumn::fn_hexview = fnref;
-    else if (n == 2) init_py_stype_objs(fnref);
-    else if (n == 3) init_py_ltype_objs(fnref);
-    else if (n == 4) replace_typeError(fnref);
-    else if (n == 5) replace_valueError(fnref);
-    else {
-        PyErr_Format(PyExc_ValueError, "Incorrect function index: %d", n);
-        return NULL;
-    }
-    return none();
-  );
+  if (!PyCallable_Check(fnref)) {
+    throw TypeError() << "parameter `fn` must be callable";
+  }
+  Py_XINCREF(fnref);
+  if (n == 1) pycolumn::fn_hexview = fnref;
+  else if (n == 2) init_py_stype_objs(fnref);
+  else if (n == 3) init_py_ltype_objs(fnref);
+  else if (n == 4) replace_typeError(fnref);
+  else if (n == 5) replace_valueError(fnref);
+  else {
+    throw ValueError() << "Incorrect function index: " << n;
+  }
+  return none();
 }
 
 
-static PyObject* pyget_internal_function_ptrs(PyObject*, PyObject*)
-{
-  #define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
-  CATCH_EXCEPTIONS(
-    const int SIZE = 6;
-    int i = 0;
-    PyObject *res = PyTuple_New(SIZE);
-    if (!res) return NULL;
+#define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
 
-    ADD(_dt_malloc);
-    ADD(_dt_realloc);
-    ADD(_dt_free);
-    ADD(datatable_get_column_data);
-    ADD(datatable_unpack_slicerowindex);
-    ADD(datatable_unpack_arrayrowindex);
+PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
+  const int SIZE = 6;
+  int i = 0;
+  PyObject *res = PyTuple_New(SIZE);
+  if (!res) return NULL;
 
-    assert(i == SIZE);
-    return res;
-  );
+  ADD(_dt_malloc);
+  ADD(_dt_realloc);
+  ADD(_dt_free);
+  ADD(datatable_get_column_data);
+  ADD(datatable_unpack_slicerowindex);
+  ADD(datatable_unpack_arrayrowindex);
+
+  assert(i == SIZE);
+  return res;
 }
 
 
-static PyObject* pyget_integer_sizes(PyObject*, PyObject*)
-{
-  CATCH_EXCEPTIONS(
-    const int SIZE = 5;
-    int i = 0;
-    PyObject *res = PyTuple_New(SIZE);
-    if (!res) return NULL;
+PyObject* get_integer_sizes(PyObject*, PyObject*) {
+  const int SIZE = 5;
+  int i = 0;
+  PyObject *res = PyTuple_New(SIZE);
+  if (!res) return NULL;
 
-    ADD(sizeof(short int));
-    ADD(sizeof(int));
-    ADD(sizeof(long int));
-    ADD(sizeof(long long int));
-    ADD(sizeof(size_t));
+  ADD(sizeof(short int));
+  ADD(sizeof(int));
+  ADD(sizeof(long int));
+  ADD(sizeof(long long int));
+  ADD(sizeof(size_t));
 
-    assert(i == SIZE);
-    return res;
-  );
-  #undef ADD
+  assert(i == SIZE);
+  return res;
 }
+#undef ADD
 
 
 
 //------------------------------------------------------------------------------
 // Module definition
 //------------------------------------------------------------------------------
-
-#define METHOD0_(name) {#name, (PyCFunction)py ## name, METH_VARARGS, NULL}
-#define METHOD1_(name) {#name, (PyCFunction)py ## name, METH_NOARGS, NULL}
 
 static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pycolumnset::columns_from_mixed),
@@ -139,11 +146,11 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(set_nthreads),
     METHODv(set_core_logger),
     METHODv(gread),
-    METHOD0_(write_csv),
-    METHOD0_(exec_function),
-    METHOD0_(register_function),
-    METHOD1_(get_internal_function_ptrs),
-    METHOD1_(get_integer_sizes),
+    METHODv(write_csv),
+    METHODv(exec_function),
+    METHODv(register_function),
+    METHOD0(get_internal_function_ptrs),
+    METHOD0(get_integer_sizes),
     METHODv(expr_binaryop),
     METHODv(expr_cast),
     METHODv(expr_column),
@@ -178,8 +185,8 @@ PyInit__datatable(void) {
     if (m == NULL) return NULL;
 
     // Initialize submodules
-    if (!init_py_datawindow(m)) return NULL;
     if (!init_py_types(m)) return NULL;
+    if (!pydatawindow::static_init(m)) return NULL;
     if (!pycolumn::static_init(m)) return NULL;
     if (!pycolumnset::static_init(m)) return NULL;
     if (!pydatatable::static_init(m)) return NULL;
