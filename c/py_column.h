@@ -44,6 +44,9 @@ DECLARE_INFO(
   datatable.core.Column,
   "Single Column within a DataTable.")
 
+DECLARE_DESTRUCTOR()
+
+
 
 //---- Getters/setters ---------------------------------------------------------
 

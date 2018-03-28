@@ -21,69 +21,61 @@
 #include "utils/pyobj.h"
 
 
-PyObject* pywrite_csv(PyObject*, PyObject* args)
+PyObject* write_csv(PyObject*, PyObject* args)
 {
   PyObject *pywriter = NULL;
   PyObject *result = NULL;
   if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter)) return NULL;
-  Py_INCREF(pywriter);
+  PyObj pywr(pywriter);
 
-  try {
-    PyObj pywr(pywriter);
-    DataTable* dt = pywr.attr("datatable").as_datatable();
-    std::string filename = pywr.attr("path").as_string();
-    std::string strategy = pywr.attr("_strategy").as_string();
-    auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
-                     (strategy == "write") ? WritableBuffer::Strategy::Write :
-                                             WritableBuffer::Strategy::Auto;
+  DataTable* dt = pywr.attr("datatable").as_datatable();
+  std::string filename = pywr.attr("path").as_string();
+  std::string strategy = pywr.attr("_strategy").as_string();
+  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
+                   (strategy == "write") ? WritableBuffer::Strategy::Write :
+                                           WritableBuffer::Strategy::Auto;
 
-    // Create the CsvWriter object
-    CsvWriter cwriter(dt, filename);
-    cwriter.set_logger(pywriter);
-    cwriter.set_verbose(pywr.attr("verbose").as_bool());
-    cwriter.set_usehex(pywr.attr("hex").as_bool());
-    cwriter.set_strategy(sstrategy);
+  // Create the CsvWriter object
+  CsvWriter cwriter(dt, filename);
+  cwriter.set_logger(pywriter);
+  cwriter.set_verbose(pywr.attr("verbose").as_bool());
+  cwriter.set_usehex(pywr.attr("hex").as_bool());
+  cwriter.set_strategy(sstrategy);
 
-    std::vector<std::string>
-        colnames = pywr.attr("column_names").as_stringlist();
-    cwriter.set_column_names(colnames);  // move-assignment
+  std::vector<std::string>
+      colnames = pywr.attr("column_names").as_stringlist();
+  cwriter.set_column_names(colnames);  // move-assignment
 
-    int32_t nthreads = static_cast<int32_t>(pywr.attr("nthreads").as_int64());
-    if (ISNA<int32_t>(nthreads)) {
-      nthreads = config::get_nthreads();
-    } else {
-      int32_t maxth = omp_get_max_threads();
-      if (nthreads > maxth) nthreads = maxth;
-      if (nthreads <= 0) nthreads += maxth;
-      if (nthreads <= 0) nthreads = 1;
-    }
-    cwriter.set_nthreads(nthreads);
-
-    // Write CSV
-    cwriter.write();
-
-    // Post-process the result
-    if (filename.empty()) {
-      WritableBuffer *wb = cwriter.get_output_buffer();
-      MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);
-      if (!mb) {
-        throw RuntimeError() << "Unable to case WritableBuffer into "
-                                "MemoryWritableBuffer";
-      }
-      // -1 because the buffer also stores trailing \0
-      Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
-      char *str = static_cast<char*>(mb->get_cptr());
-      result = PyUnicode_FromStringAndSize(str, len);
-    } else {
-      result = none();
-    }
-
-  } catch (const Error& e) {
-    e.topython();
-  } catch (const std::exception& e) {
-    exception_to_python(e);
+  int32_t nthreads = static_cast<int32_t>(pywr.attr("nthreads").as_int64());
+  if (ISNA<int32_t>(nthreads)) {
+    nthreads = config::get_nthreads();
+  } else {
+    int32_t maxth = omp_get_max_threads();
+    if (nthreads > maxth) nthreads = maxth;
+    if (nthreads <= 0) nthreads += maxth;
+    if (nthreads <= 0) nthreads = 1;
   }
-  Py_XDECREF(pywriter);
+  cwriter.set_nthreads(nthreads);
+
+  // Write CSV
+  cwriter.write();
+
+  // Post-process the result
+  if (filename.empty()) {
+    WritableBuffer *wb = cwriter.get_output_buffer();
+    MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);
+    if (!mb) {
+      throw RuntimeError() << "Unable to case WritableBuffer into "
+                              "MemoryWritableBuffer";
+    }
+    // -1 because the buffer also stores trailing \0
+    Py_ssize_t len = static_cast<Py_ssize_t>(mb->size() - 1);
+    char *str = static_cast<char*>(mb->get_cptr());
+    result = PyUnicode_FromStringAndSize(str, len);
+  } else {
+    result = none();
+  }
+
   return result;
 }
 

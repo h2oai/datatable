@@ -118,8 +118,8 @@ void log_call(const char* msg);
 
 
 #define DECLARE_REPR()                                                         \
-  static PyObject* repr(BASECLS* self);                                        \
   WHEN(HOMEFLAG,                                                               \
+    static PyObject* repr(BASECLS* self);                                      \
     ES_FUNCTION(                                                               \
       static PyObject* safe_repr(BASECLS* self),                               \
       repr(self),                                                              \
