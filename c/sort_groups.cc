@@ -11,27 +11,20 @@
 
 
 
-GroupGatherer::GroupGatherer(bool enabled)
-  : _enabled(enabled)
-{
-  if (!enabled) return;
-  groups.resize(16);
-  groups[0] = 0;
-  count = 1;
-  total_size = 0;
-}
+GroupGatherer::GroupGatherer()
+  : groups(nullptr) {}
 
 
-void GroupGatherer::clear() {
-  count = 1;
-  total_size = 0;
+void GroupGatherer::set_ptr(int32_t* data, int32_t cumsize0) {
+  groups = data;
+  count = 0;
+  cumsize = cumsize0;
 }
 
 
 void GroupGatherer::push(size_t grp) {
-  if (count == groups.size()) groups.resize(2 * count);
-  total_size += static_cast<int32_t>(grp);
-  groups[count++] = total_size;
+  cumsize += static_cast<int32_t>(grp);
+  groups[count++] = cumsize;
 }
 
 
@@ -74,21 +67,39 @@ void GroupGatherer::from_data(
 }
 
 
-void GroupGatherer::from_groups(const GroupGatherer& gg) {
-  if (count + gg.count > groups.size()) groups.resize((count + gg.count) * 2);
-  for (size_t i = 1; i < gg.count; ++i) {
-    groups[count++] = total_size + gg.groups[i];
+void GroupGatherer::from_chunks(radix_range* rrmap, size_t nradixes) {
+  assert(count == 0);
+  size_t dest_off = 0;
+  for (size_t i = 0; i < nradixes; ++i) {
+    size_t grp_size = rrmap[i].size;
+    if (!grp_size) continue;
+    size_t grp_off = rrmap[i].offset;
+    if (grp_off != dest_off) {
+      std::memmove(groups + dest_off, groups + grp_off,
+                   grp_size * sizeof(int32_t));
+    }
+    dest_off += grp_size;
   }
-  total_size += gg.total_size;
-  assert(total_size == groups[count - 1]);
+  count = static_cast<int32_t>(dest_off);
+  cumsize = groups[count - 1];
 }
 
 
-arr32_t&& GroupGatherer::release() {
-  groups.resize(count);
-  return std::move(groups);
+void GroupGatherer::from_histogram(
+  size_t* histogram, size_t nchunks, size_t nradixes)
+{
+  assert(count == 0);
+  size_t* rrendoffsets = histogram + (nchunks - 1) * nradixes;
+  int32_t off0 = 0;
+  for (size_t i = 0; i < nradixes; ++i) {
+    int32_t off1 = static_cast<int32_t>(rrendoffsets[i]);
+    if (off1 > off0) {
+      groups[count++] = cumsize + off1;
+      off0 = off1;
+    }
+  }
+  cumsize = groups[count - 1];
 }
-
 
 
 template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);

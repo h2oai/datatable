@@ -228,6 +228,7 @@ class SortContext {
     int32_t* o;
     int32_t* next_o;
     size_t*  histogram;
+    GroupGatherer gg;
     const uint8_t* strdata;
     const int32_t* stroffs;
     size_t strstart;
@@ -646,14 +647,9 @@ static RowIndex sort_tiny(const Column* col, bool make_groups);
 static RowIndex sort_small(const Column* col, bool make_groups);
 
 template <bool make_groups>
-static void radix_psort(SortContext*, GroupGatherer&);
+static void radix_psort(SortContext*);
 
 #define INSERT_SORT_THRESHOLD 64
-
-struct radix_range {
-  size_t size;
-  size_t offset;
-};
 
 
 
@@ -695,17 +691,21 @@ RowIndex Column::sort(bool make_groups) const {
     return sort_small(this, make_groups);
   }
   arr32_t order = ri.extract_as_array32();
-  GroupGatherer gg(make_groups);
+  arr32_t groups;
   SortContext sc;
   sc.initialize(this, order);
   if (make_groups) {
-    radix_psort<true>(&sc, gg);
+    groups.resize(static_cast<size_t>(nrows + 1));
+    groups[0] = 0;
+    sc.gg.set_ptr(groups.data() + 1, 0);
+    radix_psort<true>(&sc);
   } else {
-    radix_psort<false>(&sc, gg);
+    radix_psort<false>(&sc);
   }
   RowIndex res = RowIndex::from_array32(std::move(order));
   if (make_groups) {
-    res.set_groups(gg.release());
+    groups.resize(sc.gg.size() + 1);
+    res.set_groups(std::move(groups));
   }
   return res;
 }
@@ -746,38 +746,44 @@ template <typename T> void _insert_sort(
 static RowIndex sort_small(const Column* col, bool make_groups) {
   int32_t n = static_cast<int32_t>(col->nrows);
   arr32_t order = col->rowindex().extract_as_array32();
-  GroupGatherer gg(make_groups);
+  arr32_t groups;
   SortContext sc;
   sc.initialize(col, order);
+  if (make_groups) {
+    groups.resize(static_cast<size_t>(n + 1));
+    groups[0] = 0;
+    sc.gg.set_ptr(groups.data() + 1, 0);
+  }
 
   if (sc.use_order) {
     arr32_t tmparr(sc.n);
     int32_t* tmp = tmparr.data();
     if (sc.strdata) {
-      insert_sort_keys_str(sc.strdata, sc.stroffs, 0, sc.o, tmp, n, gg);
+      insert_sort_keys_str(sc.strdata, sc.stroffs, 0, sc.o, tmp, n, sc.gg);
     } else {
       switch (sc.elemsize) {
-        case 1: _insert_sort<uint8_t >(sc.x, sc.o, tmp, n, gg); break;
-        case 2: _insert_sort<uint16_t>(sc.x, sc.o, tmp, n, gg); break;
-        case 4: _insert_sort<uint32_t>(sc.x, sc.o, tmp, n, gg); break;
-        case 8: _insert_sort<uint64_t>(sc.x, sc.o, tmp, n, gg); break;
+        case 1: _insert_sort<uint8_t >(sc.x, sc.o, tmp, n, sc.gg); break;
+        case 2: _insert_sort<uint16_t>(sc.x, sc.o, tmp, n, sc.gg); break;
+        case 4: _insert_sort<uint32_t>(sc.x, sc.o, tmp, n, sc.gg); break;
+        case 8: _insert_sort<uint64_t>(sc.x, sc.o, tmp, n, sc.gg); break;
       }
     }
   } else {
     if (sc.strdata) {
-      insert_sort_values_str(sc.strdata, sc.stroffs, 0, sc.o, n, gg);
+      insert_sort_values_str(sc.strdata, sc.stroffs, 0, sc.o, n, sc.gg);
     } else {
       switch (sc.elemsize) {
-        case 1: _insert_sort<uint8_t >(sc.x, sc.o, n, gg); break;
-        case 2: _insert_sort<uint16_t>(sc.x, sc.o, n, gg); break;
-        case 4: _insert_sort<uint32_t>(sc.x, sc.o, n, gg); break;
-        case 8: _insert_sort<uint64_t>(sc.x, sc.o, n, gg); break;
+        case 1: _insert_sort<uint8_t >(sc.x, sc.o, n, sc.gg); break;
+        case 2: _insert_sort<uint16_t>(sc.x, sc.o, n, sc.gg); break;
+        case 4: _insert_sort<uint32_t>(sc.x, sc.o, n, sc.gg); break;
+        case 8: _insert_sort<uint64_t>(sc.x, sc.o, n, sc.gg); break;
       }
     }
   }
   RowIndex res = RowIndex::from_array32(std::move(order));
   if (make_groups) {
-    res.set_groups(gg.release());
+    groups.resize(sc.gg.size() + 1);
+    res.set_groups(std::move(groups));
   }
   return res;
 }
@@ -842,7 +848,7 @@ static void determine_sorting_parameters(SortContext *sc)
  *          contents may be altered arbitrarily.
  */
 template <bool make_groups>
-static void radix_psort(SortContext* sc, GroupGatherer& gg)
+static void radix_psort(SortContext* sc)
 {
   int32_t* ores = sc->o;
   determine_sorting_parameters(sc);
@@ -850,6 +856,7 @@ static void radix_psort(SortContext* sc, GroupGatherer& gg)
   sc->reorder_data();
 
   if (sc->next_elemsize) {
+    constexpr size_t GROUPED = size_t(1) << 63;
     // At this point the input array is already partially sorted, and the
     // elements that remain to be sorted are collected into contiguous
     // chunks. For example if `shift` is 2, then `next_x` may be:
@@ -863,6 +870,8 @@ static void radix_psort(SortContext* sc, GroupGatherer& gg)
     // radix range, our job will be complete.
 
     // Prepare the "next SortContext" variable
+    int32_t  ggoff0  = make_groups? sc->gg.cumulative_size() : 0;
+    int32_t* ggdata0 = make_groups? sc->gg.data() : 0;
     size_t strstart = sc->strstart + 1;
     size_t nradixes = sc->nradixes;
     size_t elemsize = (size_t) sc->next_elemsize;
@@ -916,6 +925,7 @@ static void radix_psort(SortContext* sc, GroupGatherer& gg)
     size_t size0 = 0;
     size_t nsmallgroups = 0;
     size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
+    assert(GROUPED > rrlarge);
     for (size_t rri = 0; rri < nradixes; ++rri) {
       size_t sz = rrmap[rri].size;
       if (sz > rrlarge) {
@@ -927,7 +937,14 @@ static void radix_psort(SortContext* sc, GroupGatherer& gg)
         next_sc.n = sz;
         next_sc.next_elemsize = ne;
         next_sc.strstart = strstart;
-        radix_psort<make_groups>(&next_sc, gg);
+        if (make_groups) {
+          next_sc.gg.set_ptr(ggdata0 + off,
+                             ggoff0 + static_cast<int32_t>(off));
+          radix_psort<true>(&next_sc);
+          rrmap[rri].size = static_cast<size_t>(next_sc.gg.size()) | GROUPED;
+        } else {
+          radix_psort<false>(&next_sc);
+        }
       } else {
         nsmallgroups++;
         if (sz > size0) size0 = sz;
@@ -954,50 +971,52 @@ static void radix_psort(SortContext* sc, GroupGatherer& gg)
     {
       int tnum = omp_get_thread_num();
       int32_t* oo = tmp + tnum * (int32_t)size0;
-      GroupGatherer tgg(make_groups);
+      GroupGatherer tgg;
 
-      #pragma omp for ordered schedule(dynamic)
+      #pragma omp for schedule(dynamic)
       for (size_t i = 0; i < nradixes; ++i) {
-        size_t sz = rrmap[i].size;
-        if (sz > rrlarge) continue;
-        int32_t n = static_cast<int32_t>(sz);
-        if (n <= 1) continue;
+        size_t zn  = rrmap[i].size;
         size_t off = rrmap[i].offset;
-        void*    x = static_cast<char*>(sc->x) + off * elemsize;
-        int32_t* o = sc->o + off;
-
-        if (sc->strdata) {
-          insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n, tgg);
-        } else {
-          switch (elemsize) {
-            case 1: insert_sort_keys<>(static_cast<uint8_t*>(x), o, oo, n, tgg); break;
-            case 2: insert_sort_keys<>(static_cast<uint16_t*>(x), o, oo, n, tgg); break;
-            case 4: insert_sort_keys<>(static_cast<uint32_t*>(x), o, oo, n, tgg); break;
-            case 8: insert_sort_keys<>(static_cast<uint64_t*>(x), o, oo, n, tgg); break;
+        if (zn > rrlarge) {
+          rrmap[i].size = zn & ~GROUPED;
+        } else if (zn > 1) {
+          int32_t  n = static_cast<int32_t>(zn);
+          void*    x = static_cast<char*>(sc->x) + off * elemsize;
+          int32_t* o = sc->o + off;
+          if (make_groups) {
+            tgg.set_ptr(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
           }
-        }
-
-        #pragma omp ordered
-        {
-          if (sz <= rrlarge && make_groups) {
-            gg.from_groups(tgg);
-            tgg.clear();
+          if (sc->strdata) {
+            insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n, tgg);
+          } else {
+            switch (elemsize) {
+              case 1: insert_sort_keys<>(static_cast<uint8_t*>(x), o, oo, n, tgg); break;
+              case 2: insert_sort_keys<>(static_cast<uint16_t*>(x), o, oo, n, tgg); break;
+              case 4: insert_sort_keys<>(static_cast<uint32_t*>(x), o, oo, n, tgg); break;
+              case 8: insert_sort_keys<>(static_cast<uint64_t*>(x), o, oo, n, tgg); break;
+            }
           }
+          if (make_groups) {
+            rrmap[i].size = static_cast<size_t>(tgg.size());
+          }
+        } else if (zn == 1 && make_groups) {
+          ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
+          rrmap[i].size = 1;
         }
       }
     }
+
+    // Consolidate groups into a single contiguous chunk
+    if (make_groups) {
+      sc->gg.from_chunks(rrmap, nradixes);
+    }
+
     delete[] rrmap;
     if (own_tmp) delete[] tmp;
 
   } else if (make_groups) {
     // At the end of recursion, groups can be computed directly from the histogram
-    size_t* rrendoffsets = sc->histogram + (sc->nchunks - 1) * sc->nradixes;
-    size_t off0 = 0;
-    for (size_t i = 0; i < sc->nradixes; i++) {
-      size_t off1 = rrendoffsets[i];
-      if (off1 > off0) gg.push(off1 - off0);
-      off0 = off1;
-    }
+    sc->gg.from_histogram(sc->histogram, sc->nchunks, sc->nradixes);
   }
 
   // Done. Save to array `o` the computed ordering of the input vector `x`.

@@ -10,6 +10,13 @@
 #include "utils/array.h"  // arr32_t
 
 
+struct radix_range {
+  size_t size;
+  size_t offset;
+};
+
+
+
 /**
  * Helper class to collect grouping information while sorting. It has stack-like
  * interface, i.e. the code is expected to simply push sizes of each group as
@@ -20,6 +27,11 @@
  * first element being 0, and the last the total number of elements in the data
  * being sorted/grouped.
  *
+
+
+ TODO: update
+
+
  * Interface
  * ---------
  * push(grp)
@@ -46,28 +58,31 @@
  *     The count of elements in `groups` that are already in use. Thus, `count`
  *     is 1 + the number of groups.
  *
- * total_size
+ * cumsize
  *     The total size of all groups added so far. This is always equals to
  *     `groups[count - 1]`.
  *
  */
 class GroupGatherer {
   private:
-    arr32_t groups;
-    size_t  count;
-    int32_t total_size;
-    bool    _enabled;
-    size_t : 24;
+    int32_t* groups;  // externally owned pointer
+    int32_t  count;
+    int32_t  cumsize;
 
   public:
-    GroupGatherer(bool enabled);
-    operator bool() const { return _enabled; }
-    void clear();
+    GroupGatherer();
+    void set_ptr(int32_t* data, int32_t cumsize0);
+
+    int32_t* data() const { return groups; }
+    int32_t  size() const { return count; }
+    int32_t  cumulative_size() const { return cumsize; }
+    operator bool() const { return !!groups; }
+
     void push(size_t grp);
     template <typename T, typename V> void from_data(const T*, V*, size_t);
     template <typename T, typename V> void from_data(const uint8_t*, const T*, T, V*, size_t);
-    void from_groups(const GroupGatherer& gg);
-    arr32_t&& release();
+    void from_chunks(radix_range* rrmap, size_t nradixes);
+    void from_histogram(size_t* histogram, size_t nchunks, size_t nradixes);
 };
 
 
