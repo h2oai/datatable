@@ -13,6 +13,7 @@ namespace config
 {
 
 static int n_threads = 0;
+PyObject* logger = nullptr;
 
 
 int get_nthreads() {
@@ -35,6 +36,20 @@ void set_nthreads(int nth) {
   omp_set_num_threads(nth);
 }
 
+
+PyObject* get_core_logger() {
+  return logger;
+}
+
+void set_core_logger(PyObject* o) {
+  if (o == Py_None) {
+    logger = nullptr;
+  } else {
+    logger = o;
+    Py_INCREF(o);
+  }
+}
+
 };
 
 
@@ -43,5 +58,12 @@ PyObject* set_nthreads(PyObject*, PyObject* args) {
   int nth;
   if (!PyArg_ParseTuple(args, "i", &nth)) return nullptr;
   config::set_nthreads(nth);
+  return none();
+}
+
+PyObject* set_core_logger(PyObject*, PyObject* args) {
+  PyObject* o;
+  if (!PyArg_ParseTuple(args, "O", &o)) return nullptr;
+  config::set_core_logger(o);
   return none();
 }

@@ -63,6 +63,10 @@ PyObj PyObj::fromPyObjectNewRef(PyObject* t) {
   return res;
 }
 
+PyObj PyObj::none() {
+  return PyObj(Py_None);
+}
+
 
 // Note from http://en.cppreference.com/w/cpp/language/copy_elision:
 //

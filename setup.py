@@ -173,6 +173,11 @@ def get_extra_compile_flags():
 
     if "DTDEBUG" in os.environ:
         flags += ["-g", "-ggdb", "-O0"]
+    elif "DTASAN" in os.environ:
+        flags += ["-g", "-ggdb", "-O0",
+                  "-fsanitize=address",
+                  "-fsanitize-address-use-after-scope",
+                  "-shared-libasan"]
     elif "DTCOVERAGE" in os.environ:
         flags += ["-g", "--coverage", "-O0"]
     else:
@@ -235,6 +240,9 @@ def get_extra_link_args():
 
     if not("DTNOOPENMP" in os.environ):
         flags += ["-fopenmp"]
+
+    if "DTASAN" in os.environ:
+        flags += ["-fsanitize=address", "-shared-libasan"]
 
     if "DTCOVERAGE" in os.environ:
         flags += ["--coverage", "-O0"]

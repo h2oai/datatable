@@ -20,7 +20,7 @@
 #include "utils/exceptions.h"
 
 // Forward declarations
-Column* try_to_resolve_object_column(Column* col);
+static Column* try_to_resolve_object_column(Column* col);
 static SType stype_from_format(const char *format, int64_t itemsize);
 static const char* format_from_stype(SType stype);
 static Column* convert_fwchararray_to_column(Py_buffer* view);
@@ -35,12 +35,34 @@ static Column* convert_fwchararray_to_column(Py_buffer* view);
 
 static char strB[] = "B";
 
+#define DECLARE_INIT_BUFFER(BASECLS, CLSNAME)                                  \
+  static int getbuffer_ ## CLSNAME(BASECLS*, Py_buffer*, int);                 \
+  ES_INT_FUNCTION(                                                             \
+    static int safe_getbuffer_##CLSNAME(                                       \
+      BASECLS* self, Py_buffer* buf, int flags),                               \
+    getbuffer_ ## CLSNAME(self, buf, flags),                                   \
+    STRINGIFY(CLSNAME) "::get_buffer()")
+
+#define DECLARE_RELEASE_BUFFER(BASECLS, CLSNAME)                               \
+  static void releasebuffer_ ## CLSNAME(BASECLS*, Py_buffer*);                 \
+  ES_VOID_FUNCTION(                                                            \
+    static void safe_releasebuffer_ ## CLSNAME(BASECLS* self, Py_buffer* buf), \
+    releasebuffer_ ## CLSNAME(self, buf),                                      \
+    STRINGIFY(CLSNAME) "::release_buffer()")
+
+#define DECLARE_BUFFERS_STRUCT(STRUCTNAME, CLSNAME)                            \
+  PyBufferProcs STRUCTNAME = {                                                 \
+    (getbufferproc) safe_getbuffer_##CLSNAME,                                  \
+    (releasebufferproc) safe_releasebuffer_##CLSNAME,                          \
+  };
+
+
 
 //------------------------------------------------------------------------------
 // Construct a DataTable from a list of objects implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-// Declared in py_datatable.h
+// Declared in py_datatable.h; becomes method in datatable module.
 PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
 {
   PyObject* list = nullptr;
@@ -125,7 +147,7 @@ PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
 }
 
 
-Column* convert_fwchararray_to_column(Py_buffer* view)
+static Column* convert_fwchararray_to_column(Py_buffer* view)
 {
   // Number of characters in each element
   int64_t k = view->itemsize / 4;
@@ -161,7 +183,7 @@ Column* convert_fwchararray_to_column(Py_buffer* view)
  * if more appropriate), and return either the original or the new modified
  * column. If a new column is returned, the original one is decrefed.
  */
-Column* try_to_resolve_object_column(Column* col)
+static Column* try_to_resolve_object_column(Column* col)
 {
   PyObject **data = (PyObject**) col->data();
   int64_t nrows = col->nrows;
@@ -221,6 +243,7 @@ Column* try_to_resolve_object_column(Column* col)
 }
 
 
+
 //==============================================================================
 // Buffers interface for pycolumn::obj
 //==============================================================================
@@ -276,51 +299,42 @@ struct XInfo {
  *   - creates a shallow copy of the Column (together with its buffer), and
  *     stores it in the `XInfo` struct.
  */
-static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
+static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
-  try {
-    Column* col = self->ref;
+  Column* col = self->ref;
 
-    if (REQ_WRITABLE(flags)) {
-      // Do not provide a writable array (this may violate all kinds of internal
-      // assumptions about the data). Instead let the requester ask again, this
-      // time for a read-only buffer.
-      throw ValueError() << "Cannot create a writable buffer for a Column";
-    }
-    if (stype_info[col->stype()].varwidth) {
-      throw ValueError() << "Column's data has variable width";
-    }
-
-    xinfo = new XInfo();
-    xinfo->mbuf = col->mbuf_shallowcopy();
-    xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
-    xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
-    xinfo->stype = col->stype();
-
-    view->buf = xinfo->mbuf->get();
-    view->obj = reinterpret_cast<PyObject*>(self);
-    view->len = static_cast<Py_ssize_t>(xinfo->mbuf->size());
-    view->itemsize = xinfo->strides[0];
-    view->readonly = 1;
-    view->ndim = 1;
-    view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
-    view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
-    view->suboffsets = nullptr;
-    view->internal = xinfo;
-    view->format = REQ_FORMAT(flags) ?
-        const_cast<char*>(format_from_stype(col->stype())) : nullptr;
-
-    Py_INCREF(self);
-    return 0;
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    view->obj = nullptr;
-    view->internal = nullptr;
-    delete xinfo;
-    return -1;
+  if (REQ_WRITABLE(flags)) {
+    // Do not provide a writable array (this may violate all kinds of internal
+    // assumptions about the data). Instead let the requester ask again, this
+    // time for a read-only buffer.
+    throw ValueError() << "Cannot create a writable buffer for a Column";
   }
+  if (stype_info[col->stype()].varwidth) {
+    throw ValueError() << "Column's data has variable width";
+  }
+
+  xinfo = new XInfo();
+  xinfo->mbuf = col->mbuf_shallowcopy();
+  xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
+  xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
+  xinfo->stype = col->stype();
+
+  view->buf = xinfo->mbuf->get();
+  view->obj = reinterpret_cast<PyObject*>(self);
+  view->len = static_cast<Py_ssize_t>(xinfo->mbuf->size());
+  view->itemsize = xinfo->strides[0];
+  view->readonly = 1;
+  view->ndim = 1;
+  view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
+  view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
+  view->suboffsets = nullptr;
+  view->internal = xinfo;
+  view->format = REQ_FORMAT(flags) ?
+      const_cast<char*>(format_from_stype(col->stype())) : nullptr;
+
+  Py_INCREF(self);
+  return 0;
 }
 
 
@@ -330,7 +344,7 @@ static int column_getbuffer(pycolumn::obj* self, Py_buffer* view, int flags)
  * This function MUST NOT decrement view->obj (== self), since it is done by
  * Python in `PyBuffer_Release()`.
  */
-static void column_releasebuffer(pycolumn::obj*, Py_buffer* view)
+static void releasebuffer_Column(pycolumn::obj*, Py_buffer* view)
 {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   delete xinfo;
@@ -338,11 +352,9 @@ static void column_releasebuffer(pycolumn::obj*, Py_buffer* view)
 }
 
 
-PyBufferProcs pycolumn::as_buffer = {
-  (getbufferproc) column_getbuffer,
-  (releasebufferproc) column_releasebuffer,
-};
-
+DECLARE_INIT_BUFFER(pycolumn::obj, Column)
+DECLARE_RELEASE_BUFFER(pycolumn::obj, Column)
+DECLARE_BUFFERS_STRUCT(pycolumn::as_buffer, Column);
 
 
 
@@ -350,180 +362,156 @@ PyBufferProcs pycolumn::as_buffer = {
 // Buffers interface for pydatatable::obj
 //==============================================================================
 
-static int dt_getbuffer_no_cols(pydatatable::obj* self, Py_buffer* view,
-                                int flags)
+static int dt_getbuffer_no_cols(
+  pydatatable::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
-  try {
-    xinfo = new XInfo();
-    view->buf = NULL;
-    view->obj = incref(reinterpret_cast<PyObject*>(self));
-    view->len = 0;
-    view->readonly = 0;
-    view->itemsize = 1;
-    view->format = REQ_FORMAT(flags) ? strB : NULL;
-    view->ndim = 2;
-    view->shape = REQ_ND(flags) ? xinfo->shape : NULL;
-    view->strides = REQ_STRIDES(flags) ? xinfo->strides : NULL;
-    view->suboffsets = NULL;
-    view->internal = xinfo;
-    return 0;
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    view->obj = nullptr;
-    delete xinfo;
-    return -1;
-  }
+  xinfo = new XInfo();
+  view->buf = NULL;
+  view->obj = incref(reinterpret_cast<PyObject*>(self));
+  view->len = 0;
+  view->readonly = 0;
+  view->itemsize = 1;
+  view->format = REQ_FORMAT(flags) ? strB : NULL;
+  view->ndim = 2;
+  view->shape = REQ_ND(flags) ? xinfo->shape : NULL;
+  view->strides = REQ_STRIDES(flags) ? xinfo->strides : NULL;
+  view->suboffsets = NULL;
+  view->internal = xinfo;
+  return 0;
 }
 
 
-static int dt_getbuffer_1_col(pydatatable::obj* self, Py_buffer* view,
-                              int flags)
+static int dt_getbuffer_1_col(
+  pydatatable::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
-  try {
-    Column* col = self->ref->columns[0];
-    const char* fmt = format_from_stype(col->stype());
+  Column* col = self->ref->columns[0];
+  const char* fmt = format_from_stype(col->stype());
 
-    xinfo = new XInfo();
-    xinfo->mbuf = col->mbuf_shallowcopy();
-    xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
-    xinfo->shape[1] = 1;
-    xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
-    xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf->size());
-    xinfo->stype = col->stype();
+  xinfo = new XInfo();
+  xinfo->mbuf = col->mbuf_shallowcopy();
+  xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
+  xinfo->shape[1] = 1;
+  xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
+  xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf->size());
+  xinfo->stype = col->stype();
 
-    view->buf = xinfo->mbuf->get();
-    view->obj = incref(reinterpret_cast<PyObject*>(self));
-    view->len = xinfo->strides[1];
-    view->readonly = 1;
-    view->itemsize = xinfo->strides[0];
-    view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
-    view->ndim = 2;
-    view->shape = REQ_ND(flags) ? xinfo->shape : nullptr;
-    view->strides = REQ_STRIDES(flags) ? xinfo->strides : nullptr;
-    view->suboffsets = nullptr;
-    view->internal = xinfo;
-    return 0;
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    view->obj = nullptr;
-    delete xinfo;
-    return -1;
-  }
+  view->buf = xinfo->mbuf->get();
+  view->obj = incref(reinterpret_cast<PyObject*>(self));
+  view->len = xinfo->strides[1];
+  view->readonly = 1;
+  view->itemsize = xinfo->strides[0];
+  view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
+  view->ndim = 2;
+  view->shape = REQ_ND(flags) ? xinfo->shape : nullptr;
+  view->strides = REQ_STRIDES(flags) ? xinfo->strides : nullptr;
+  view->suboffsets = nullptr;
+  view->internal = xinfo;
+  return 0;
 }
 
 
-static int dt_getbuffer(pydatatable::obj* self, Py_buffer* view, int flags)
+static int getbuffer_DataTable(
+  pydatatable::obj* self, Py_buffer* view, int flags)
 {
   XInfo* xinfo = nullptr;
   MemoryBuffer* mbuf = nullptr;
-  try {
-    DataTable* dt = self->ref;
-    size_t ncols = static_cast<size_t>(dt->ncols);
-    size_t nrows = static_cast<size_t>(dt->nrows);
+  DataTable* dt = self->ref;
+  size_t ncols = static_cast<size_t>(dt->ncols);
+  size_t nrows = static_cast<size_t>(dt->nrows);
 
-    if (ncols == 0) {
-      return dt_getbuffer_no_cols(self, view, flags);
-    }
-
-    // Check whether we have a single-column DataTable that doesn't need to be
-    // copied -- in which case it should be possible to return the buffer
-    // by-reference instead of copying the data into an intermediate buffer.
-    if (ncols == 1 && dt->rowindex.isabsent() && !REQ_WRITABLE(flags) &&
-        dt->columns[0]->is_fixedwidth()) {
-      return dt_getbuffer_1_col(self, view, flags);
-    }
-
-    // Multiple columns datatable => copy all data into a new buffer before
-    // passing it to the requester. This is of course very unfortunate, but
-    // Numpy (the primary consumer of the buffer protocol) is unable to handle
-    // "INDIRECT" buffer.
-
-    // First, find the common stype for all columns in the DataTable.
-    SType stype = self->use_stype_for_buffers;
-    if (stype == ST_VOID) {
-      // Auto-detect common stype
-      uint64_t stypes_mask = 0;
-      for (size_t i = 0; i < ncols; ++i) {
-        SType next_stype = dt->columns[i]->stype();
-        if (stypes_mask & (1 << next_stype)) continue;
-        stypes_mask |= 1 << next_stype;
-        stype = common_stype_for_buffer(stype, next_stype);
-      }
-    }
-
-    // Allocate the final buffer
-    assert(!stype_info[stype].varwidth);
-    size_t elemsize = stype_info[stype].elemsize;
-    size_t colsize = nrows * elemsize;
-    mbuf = new MemoryMemBuf(ncols * colsize);
-    const char* fmt = format_from_stype(stype);
-
-    // Construct the data buffer
-    for (size_t i = 0; i < ncols; ++i) {
-      // either a shallow copy, or "materialized" column
-      Column* col = dt->columns[i]->shallowcopy();
-      col->reify();
-      if (col->stype() == stype) {
-        assert(col->alloc_size() == colsize);
-        memcpy(mbuf->at(i*colsize), col->data(), colsize);
-      } else {
-        // xmb becomes a "view" on a portion of the buffer `mbuf`. An
-        // ExternelMemBuf object is documented to be readonly; however in
-        // practice it can still be written to, just not resized (this is
-        // hacky, maybe fix in the future).
-        MemoryBuffer* xmb = new ExternalMemBuf(mbuf->at(i*colsize), colsize);
-        // Now we create a `newcol` by casting `col` into `stype`, using
-        // the buffer `xmb`. Since `xmb` already has the correct size, this
-        // is possible. The effect of this call is that `newcol` will be
-        // created having the converted data; but the side-effect of this is
-        // that `mbuf` will have the same data, and in the right place.
-        Column* newcol = col->cast(stype, xmb);
-        assert(newcol->alloc_size() == colsize);
-        // We can now delete the new column: this will delete `xmb` as well,
-        // however an ExternalMemBuf object does not attempt to free its
-        // memory buffer. The converted data that was written to `mbuf` will
-        // thus remain intact. No need to delete `xmb` either.
-        delete newcol;
-      }
-      // Delete the `col` pointer, which was extracted from the i-th column
-      // of the DataTable.
-      delete col;
-    }
-
-    xinfo = new XInfo();
-    xinfo->mbuf = mbuf;
-    xinfo->shape[0] = static_cast<Py_ssize_t>(nrows);
-    xinfo->shape[1] = static_cast<Py_ssize_t>(ncols);
-    xinfo->strides[0] = static_cast<Py_ssize_t>(elemsize);
-    xinfo->strides[1] = static_cast<Py_ssize_t>(colsize);
-    xinfo->stype = stype;
-    mbuf = nullptr;
-
-    // Fill in the `view` struct
-    view->buf = xinfo->mbuf->get();
-    view->obj = incref(reinterpret_cast<PyObject*>(self));
-    view->len = static_cast<Py_ssize_t>(xinfo->mbuf->size());
-    view->readonly = 0;
-    view->itemsize = static_cast<Py_ssize_t>(elemsize);
-    view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
-    view->ndim = 2;
-    view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
-    view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
-    view->suboffsets = nullptr;
-    view->internal = xinfo;
-    return 0;
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    view->obj = nullptr;
-    if (mbuf) mbuf->release();
-    delete xinfo;
-    return -1;
+  if (ncols == 0) {
+    return dt_getbuffer_no_cols(self, view, flags);
   }
+
+  // Check whether we have a single-column DataTable that doesn't need to be
+  // copied -- in which case it should be possible to return the buffer
+  // by-reference instead of copying the data into an intermediate buffer.
+  if (ncols == 1 && dt->rowindex.isabsent() && !REQ_WRITABLE(flags) &&
+      dt->columns[0]->is_fixedwidth()) {
+    return dt_getbuffer_1_col(self, view, flags);
+  }
+
+  // Multiple columns datatable => copy all data into a new buffer before
+  // passing it to the requester. This is of course very unfortunate, but
+  // Numpy (the primary consumer of the buffer protocol) is unable to handle
+  // "INDIRECT" buffer.
+
+  // First, find the common stype for all columns in the DataTable.
+  SType stype = self->use_stype_for_buffers;
+  if (stype == ST_VOID) {
+    // Auto-detect common stype
+    uint64_t stypes_mask = 0;
+    for (size_t i = 0; i < ncols; ++i) {
+      SType next_stype = dt->columns[i]->stype();
+      if (stypes_mask & (1 << next_stype)) continue;
+      stypes_mask |= 1 << next_stype;
+      stype = common_stype_for_buffer(stype, next_stype);
+    }
+  }
+
+  // Allocate the final buffer
+  assert(!stype_info[stype].varwidth);
+  size_t elemsize = stype_info[stype].elemsize;
+  size_t colsize = nrows * elemsize;
+  mbuf = new MemoryMemBuf(ncols * colsize);
+  const char* fmt = format_from_stype(stype);
+
+  // Construct the data buffer
+  for (size_t i = 0; i < ncols; ++i) {
+    // either a shallow copy, or "materialized" column
+    Column* col = dt->columns[i]->shallowcopy();
+    col->reify();
+    if (col->stype() == stype) {
+      assert(col->alloc_size() == colsize);
+      memcpy(mbuf->at(i*colsize), col->data(), colsize);
+    } else {
+      // xmb becomes a "view" on a portion of the buffer `mbuf`. An
+      // ExternelMemBuf object is documented to be readonly; however in
+      // practice it can still be written to, just not resized (this is
+      // hacky, maybe fix in the future).
+      MemoryBuffer* xmb = new ExternalMemBuf(mbuf->at(i*colsize), colsize);
+      // Now we create a `newcol` by casting `col` into `stype`, using
+      // the buffer `xmb`. Since `xmb` already has the correct size, this
+      // is possible. The effect of this call is that `newcol` will be
+      // created having the converted data; but the side-effect of this is
+      // that `mbuf` will have the same data, and in the right place.
+      Column* newcol = col->cast(stype, xmb);
+      assert(newcol->alloc_size() == colsize);
+      // We can now delete the new column: this will delete `xmb` as well,
+      // however an ExternalMemBuf object does not attempt to free its
+      // memory buffer. The converted data that was written to `mbuf` will
+      // thus remain intact. No need to delete `xmb` either.
+      delete newcol;
+    }
+    // Delete the `col` pointer, which was extracted from the i-th column
+    // of the DataTable.
+    delete col;
+  }
+
+  xinfo = new XInfo();
+  xinfo->mbuf = mbuf;
+  xinfo->shape[0] = static_cast<Py_ssize_t>(nrows);
+  xinfo->shape[1] = static_cast<Py_ssize_t>(ncols);
+  xinfo->strides[0] = static_cast<Py_ssize_t>(elemsize);
+  xinfo->strides[1] = static_cast<Py_ssize_t>(colsize);
+  xinfo->stype = stype;
+  mbuf = nullptr;
+
+  // Fill in the `view` struct
+  view->buf = xinfo->mbuf->get();
+  view->obj = incref(reinterpret_cast<PyObject*>(self));
+  view->len = static_cast<Py_ssize_t>(xinfo->mbuf->size());
+  view->readonly = 0;
+  view->itemsize = static_cast<Py_ssize_t>(elemsize);
+  view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
+  view->ndim = 2;
+  view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
+  view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
+  view->suboffsets = nullptr;
+  view->internal = xinfo;
+  return 0;
 }
 
 
@@ -567,16 +555,15 @@ static int dt_getbuffer(pydatatable::obj* self, Py_buffer* view, int flags)
     }
 */
 
-static void dt_releasebuffer(pydatatable::obj*, Py_buffer *view) {
+static void releasebuffer_DataTable(pydatatable::obj*, Py_buffer *view) {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   delete xinfo;
 }
 
 
-PyBufferProcs pydatatable::as_buffer = {
-  (getbufferproc) dt_getbuffer,
-  (releasebufferproc) dt_releasebuffer,
-};
+DECLARE_INIT_BUFFER(pydatatable::obj, DataTable)
+DECLARE_RELEASE_BUFFER(pydatatable::obj, DataTable)
+DECLARE_BUFFERS_STRUCT(pydatatable::as_buffer, DataTable);
 
 
 
@@ -599,7 +586,7 @@ PyBufferProcs pydatatable::as_buffer = {
 //
 //==============================================================================
 
-static int python_frame_getbuffer(PyObject* self, Py_buffer* view, int flags)
+static int getbuffer_Frame(PyObject* self, Py_buffer* view, int flags)
 {
   PyObject* pydt = PyObject_GetAttrString(self, "internal");
   if (pydt == nullptr) {
@@ -607,18 +594,20 @@ static int python_frame_getbuffer(PyObject* self, Py_buffer* view, int flags)
                  "Cannot retrieve attribute internal");
     return -1;
   }
-  return dt_getbuffer(reinterpret_cast<pydatatable::obj*>(pydt), view, flags);
+  pydatatable::obj* dt = reinterpret_cast<pydatatable::obj*>(pydt);
+  return getbuffer_DataTable(dt, view, flags);
 }
 
-static void python_frame_releasebuffer(PyObject*, Py_buffer* view)
+static void releasebuffer_Frame(PyObject*, Py_buffer* view)
 {
-  dt_releasebuffer(nullptr, view);
+  releasebuffer_DataTable(nullptr, view);
 }
 
-static PyBufferProcs python_frame_as_buffer = {
-  (getbufferproc) python_frame_getbuffer,
-  (releasebufferproc) python_frame_releasebuffer,
-};
+
+DECLARE_INIT_BUFFER(PyObject, Frame)
+DECLARE_RELEASE_BUFFER(PyObject, Frame)
+DECLARE_BUFFERS_STRUCT(static python_frame_as_buffer, Frame);
+
 
 PyObject* pydatatable::install_buffer_hooks(PyObject*, PyObject* args)
 {

@@ -14,6 +14,7 @@
 
 
 #define BASECLS pycolumn::obj
+#define CLSNAME Column
 #define HOMEFLAG dt_PY_COLUMN_cc
 namespace pycolumn
 {
@@ -42,6 +43,9 @@ int static_init(PyObject* module);
 DECLARE_INFO(
   datatable.core.Column,
   "Single Column within a DataTable.")
+
+DECLARE_DESTRUCTOR()
+
 
 
 //---- Getters/setters ---------------------------------------------------------
@@ -108,5 +112,6 @@ DECLARE_FUNCTION(
 
 };  // namespace pycolumn
 #undef BASECLS
+#undef CLSNAME
 #undef HOMEFLAG
 #endif

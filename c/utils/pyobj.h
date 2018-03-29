@@ -42,6 +42,7 @@ public:
   PyObj& operator=(PyObj other);
   ~PyObj();
   static PyObj fromPyObjectNewRef(PyObject*);
+  static PyObj none();
 
   friend void swap(PyObj& first, PyObj& second) noexcept {
     using std::swap;

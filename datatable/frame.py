@@ -817,6 +817,12 @@ class Frame(object):
         return self._dt.to_scalar()
 
 
+    def materialize(self):
+        if self._dt.isview:
+            self._dt = self._dt.materialize()
+        return self
+
+
     def __sizeof__(self):
         """
         Return the size of this Frame in memory.
@@ -908,3 +914,8 @@ options.register_option(
         "(default) allows datatable to use the maximum number of threads. "
         "Values less than zero allow to use that fewer threads than the "
         "maximum. Finally, nthreads=1 indicates single-threaded mode.")
+
+options.register_option(
+    "core_logger", xtype=object, default=None, setter=core.set_core_logger,
+    doc="If you set this option to a Logger object, then every call to any "
+        "core function will be recorded via this object.")

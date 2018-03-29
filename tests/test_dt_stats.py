@@ -34,6 +34,9 @@ srcs_str = [["foo", None, "bar", "baaz", None],
             ["a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a"],
             ["leeeeeroy!"]]
 
+srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)],
+            ["a", "bc", "def", None, -2.5, 3.7]]
+
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
@@ -225,7 +228,7 @@ def t_count_na(arr):
                for x in arr)
 
 
-@pytest.mark.parametrize("src", srcs_all)
+@pytest.mark.parametrize("src", srcs_all + srcs_obj)
 def test_dt_count_na(src):
     dt0 = dt.Frame(src)
     dtr = dt0.countna()
@@ -347,6 +350,50 @@ def test_empty_frame(st):
     assert f1.mode1() is None
     assert f1.nmodal1() == 0
 
+
+def test_object_column():
+    df = dt.Frame([None, nan, 3, "srsh"])
+    assert df.internal.check()
+    assert df.countna1() == 2
+    assert df.min1() is None
+    assert df.max1() is None
+    assert df.mean1() is None
+    assert df.sum1() is None
+    assert df.sd1() is None
+    with pytest.raises(NotImplementedError):
+        df.mode1()
+    with pytest.raises(NotImplementedError):
+        df.nunique1()
+    with pytest.raises(NotImplementedError):
+        df.nmodal1()
+
+
+def test_object_column2():
+    df = dt.Frame([None, nan, 3, "srsh"])
+    f0 = df.countna()
+    assert f0.stypes == (stype.int64, )
+    assert f0.topython() == [[2]]
+    f1 = df.min()
+    assert f1.stypes == (stype.obj64, )
+    assert f1.topython() == [[None]]
+    f2 = df.max()
+    assert f2.stypes == (stype.obj64, )
+    assert f2.topython() == [[None]]
+    f3 = df.sum()
+    assert f3.stypes == (stype.obj64, )
+    assert f3.topython() == [[None]]
+    f4 = df.mean()
+    assert f4.stypes == (stype.float64, )
+    assert f4.topython() == [[None]]
+    f5 = df.sd()
+    assert f5.stypes == (stype.float64, )
+    assert f5.topython() == [[None]]
+    with pytest.raises(NotImplementedError):
+        df.mode()
+    with pytest.raises(NotImplementedError):
+        df.nunique()
+    with pytest.raises(NotImplementedError):
+        df.nmodal()
 
 
 

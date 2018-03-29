@@ -264,7 +264,7 @@ protected:
 
 
   /**
-   * Sets every row in the column with a NA value. As of now this method
+   * Sets every row in the column to an NA value. As of now this method
    * modifies every element in the column's memory buffer regardless of its
    * refcount or rowindex. Use with caution.
    * This implementation will be made safer after Column::extract is modified
@@ -283,7 +283,6 @@ private:
   static Column* new_column(SType);
 
   // FIXME
-  friend Column* try_to_resolve_object_column(Column* col);
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
 };
 
@@ -305,7 +304,7 @@ public:
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
-  void reify() override;
+  virtual void reify() override;
 
 protected:
   void init_data() override;
@@ -539,7 +538,7 @@ public:
 protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
-  Stats* get_stats() const override { return nullptr; }
+  PyObjectStats* get_stats() const override;
   void open_mmap(const std::string& filename) override;
 
   // void cast_into(BoolColumn*) const override;
@@ -553,7 +552,8 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
-  void fill_na() override {}
+  void fill_na() override;
+  void reify() override;
   friend Column;
 };
 
@@ -626,7 +626,6 @@ protected:
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
 
   friend Column;
-  friend Column* try_to_resolve_object_column(Column*);
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
 };
 

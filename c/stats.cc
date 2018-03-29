@@ -428,3 +428,42 @@ CString StringStats<T>::mode(const Column* col) {
 
 template class StringStats<int32_t>;
 template class StringStats<int64_t>;
+
+
+
+
+//==============================================================================
+// PyObjectStats
+//==============================================================================
+
+void PyObjectStats::compute_countna(const Column* col) {
+  const RowIndex& rowindex = col->rowindex();
+  int64_t nrows = col->nrows;
+  int64_t countna = 0;
+  PyObject** data = static_cast<PyObject**>(col->data());
+
+  #pragma omp parallel
+  {
+    int ith = omp_get_thread_num();  // current thread index
+    int nth = omp_get_num_threads(); // total number of threads
+    size_t tcountna = 0;
+
+    rowindex.strided_loop(ith, nrows, nth,
+      [&](int64_t i) {
+        tcountna += (data[i] == Py_None);
+      });
+
+    #pragma omp critical
+    {
+      countna += tcountna;
+    }
+  }
+
+  _countna = countna;
+  _computed.set(Stat::NaCount);
+}
+
+
+void PyObjectStats::compute_sorted_stats(const Column*) {
+  throw NotImplError();
+}

@@ -45,10 +45,29 @@ SType PyObjectColumn::stype() const {
 void PyObjectColumn::open_mmap(const std::string&) {
   assert(!ri && !mbuf);
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * sizeof(PyObject*));
+  fill_na();
+}
+
+
+void PyObjectColumn::fill_na() {
   PyObject** data = this->elements();
   for (int64_t i = 0; i < nrows; ++i) {
     data[i] = Py_None;
-    Py_INCREF(Py_None);
+  }
+  Py_None->ob_refcnt += nrows;  // Manually increase ref-count on Py_None
+}
+
+
+void PyObjectColumn::reify() {
+  if (ri.isabsent()) return;
+  FwColumn<PyObject*>::reify();
+
+  // After regular reification, we need to increment ref-counts for each
+  // element in the column, since we created a new independent reference of
+  // each python object.
+  PyObject** data = this->elements();
+  for (int64_t i = 0; i < nrows; ++i) {
+    Py_INCREF(data[i]);
   }
 }
 
@@ -64,3 +83,10 @@ void PyObjectColumn::cast_into(PyObjectColumn* target) const {
 }
 
 
+
+//----- Stats ------------------------------------------------------------------
+
+PyObjectStats* PyObjectColumn::get_stats() const {
+  if (stats == nullptr) stats = new PyObjectStats();
+  return static_cast<PyObjectStats*>(stats);
+}

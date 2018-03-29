@@ -15,6 +15,9 @@ namespace config {
 int get_nthreads();
 void set_nthreads(int nth);
 
+extern PyObject* logger;
+PyObject* get_core_logger();
+void set_core_logger(PyObject*);
 };
 
 
@@ -22,6 +25,11 @@ void set_nthreads(int nth);
 DECLARE_FUNCTION(
   set_nthreads,
   "set_nthreads(nth)\n\n",
+  dt_OPTIONS_cc)
+
+DECLARE_FUNCTION(
+  set_core_logger,
+  "set_core_logger(logger)\n\n",
   dt_OPTIONS_cc)
 
 

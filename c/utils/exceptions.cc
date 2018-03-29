@@ -14,8 +14,8 @@
 // Singleton, used to write the current "errno" into the stream
 CErrno Errno;
 
-static PyObject* type_error_class = PyExc_TypeError;
-static PyObject* value_error_class = PyExc_ValueError;
+static PyObject* type_error_class;
+static PyObject* value_error_class;
 
 
 
@@ -83,7 +83,7 @@ Error& Error::operator<<(size_t v)             { error << v; return *this; }
 Error& Error::operator<<(PyObject* v) {
   PyObject* repr = PyObject_Repr(v);
   Py_ssize_t size;
-  char* chardata = PyUnicode_AsUTF8AndSize(repr, &size);
+  const char* chardata = PyUnicode_AsUTF8AndSize(repr, &size);
   if (chardata) {
     error << std::string(chardata, static_cast<size_t>(size));
   } else {
@@ -154,6 +154,11 @@ Error IOError()       { return Error(PyExc_IOError); }
 
 void replace_typeError(PyObject* obj) { type_error_class = obj; }
 void replace_valueError(PyObject* obj) { value_error_class = obj; }
+
+void init_exceptions() {
+  type_error_class = PyExc_TypeError;
+  value_error_class = PyExc_ValueError;
+}
 
 
 

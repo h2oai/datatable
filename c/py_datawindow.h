@@ -5,10 +5,17 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_PY_DATAWINDOW_H
-#define dt_PY_DATAWINDOW_H
+#ifndef dt_PY_DATAWINDOW_h
+#define dt_PY_DATAWINDOW_h
 #include <Python.h>
+#include "py_utils.h"
 
+
+#define BASECLS pydatawindow::obj
+#define CLSNAME DataWindow
+#define HOMEFLAG dt_PY_DATAWINDOW_cc
+namespace pydatawindow
+{
 
 /**
  * This object facilitates access to a `DataTable`s data from Python. The idea
@@ -23,37 +30,62 @@
  * since they are able to view only a limited amount of data in their viewport
  * anyways.
  */
-typedef struct DataWindow_PyObject {
-    PyObject_HEAD
+struct obj : public PyObject {
+  // Coordinates of the window returned: `row0`..`row1` x `col0`..`col1`.
+  // `row0` is the first row to include, `row1` is one after the last. The
+  // number of rows in the window is thus `row1 - row0`. Similarly with cols.
+  int64_t row0, row1;
+  int64_t col0, col1;
 
-    // Coordinates of the window returned: `row0`..`row1` x `col0`..`col1`.
-    // `row0` is the first row to include, `row1` is one after the last. The
-    // number of rows in the window is thus `row1 - row0`. Similarly with cols.
-    int64_t row0, row1;
-    int64_t col0, col1;
+  // List of types (LType) of each column returned. This list will have
+  // `col1 - col0` elements.
+  PyListObject* types;
 
-    // List of types (LType) of each column returned. This list will have
-    // `col1 - col0` elements.
-    PyListObject *types;
+  // List of storage types (SType) for each column returned.
+  PyListObject* stypes;
 
-    // List of storage types (SType) for each column returned.
-    PyListObject *stypes;
+  // Actual data within the window, represented as a PyList of PyLists of
+  // Python primitives (such as PyLong, PyFloat, etc). The data is returned
+  // in column-major order, i.e. each element of the list `data` represents
+  // a single column from the parent datatable. The number of elements in
+  // this list is `col1 - col0`; and each element is a list of `row1 - row0`
+  // items.
+  PyListObject* data;
 
-    // Actual data within the window, represented as a PyList of PyLists of
-    // Python primitives (such as PyLong, PyFloat, etc). The data is returned
-    // in column-major order, i.e. each element of the list `data` represents
-    // a single column from the parent datatable. The number of elements in
-    // this list is `col1 - col0`; and each element is a list of `row1 - row0`
-    // items.
-    PyListObject *data;
+};
 
-} DataWindow_PyObject;
-
-
-/** Python type corresponding to DataWindow_PyObject. */
-extern PyTypeObject DataWindow_PyType;
+extern PyTypeObject type;
 
 
-int init_py_datawindow(PyObject *module);
+//---- Generic info ------------------------------------------------------------
 
+DECLARE_INFO(
+  datatable.core.DataWindow,
+  "DataWindow object")
+
+DECLARE_CONSTRUCTOR()
+DECLARE_DESTRUCTOR()
+
+
+
+//---- Getters/setters ---------------------------------------------------------
+
+DECLARE_GETTER(row0, "Starting row index of the data window")
+DECLARE_GETTER(row1, "Last row index + 1 of the data window")
+DECLARE_GETTER(col0, "Starting column index of the data window")
+DECLARE_GETTER(col1, "Last column index + 1 of the data window")
+DECLARE_GETTER(types, "LTypes of the columns within the view")
+DECLARE_GETTER(stypes, "STypes of the columns within the view")
+DECLARE_GETTER(data, "Datatable's data within the specified window")
+
+
+
+
+int static_init(PyObject* module);
+
+
+};
+#undef BASECLS
+#undef CLSNAME
+#undef HOMEFLAG
 #endif

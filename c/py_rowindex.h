@@ -13,6 +13,7 @@
 
 
 #define BASECLS pyrowindex::obj
+#define CLSNAME RowIndex
 #define HOMEFLAG dt_PY_ROWINDEX_cc
 namespace pyrowindex
 {
@@ -41,6 +42,9 @@ PyObject* wrap(const RowIndex& src);
 DECLARE_INFO(
   datatable.core.RowIndex,
   "C-side RowIndex object.")
+
+DECLARE_REPR()
+DECLARE_DESTRUCTOR()
 
 
 
@@ -143,4 +147,5 @@ DECLARE_FUNCTION(
 };  // namespace pyrowindex
 #undef HOMEFLAG
 #undef BASECLS
+#undef CLSNAME
 #endif

@@ -64,7 +64,7 @@ class DataTable {
     void apply_na_mask(DataTable* mask);
     void replace_rowindex(const RowIndex& newri);
     void reify();
-    DataTable* rbind(DataTable**, int**, int, int64_t);
+    void rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
     size_t memory_footprint();
 

@@ -17,16 +17,63 @@
 #include "utils.h"
 #include "utils/exceptions.h"
 
-#define ES_FUNCTION(decl, call)                                                \
+namespace config {
+  extern PyObject* logger;
+};
+void log_call(const char* msg);
+
+
+#define ES_FUNCTION(decl, call, log_msg)                                       \
   decl {                                                                       \
     try {                                                                      \
-      return call;                                                             \
+      if (config::logger) {                                                    \
+        log_call("call: " log_msg);                                            \
+        PyObject* res = call;                                                  \
+        log_call("done: " log_msg);                                            \
+        return res;                                                            \
+      } else {                                                                 \
+        return call;                                                           \
+      }                                                                        \
     } catch (const std::exception& e) {                                        \
+      if (config::logger) log_call("fail: " log_msg);                          \
       exception_to_python(e);                                                  \
       return NULL;                                                             \
     }                                                                          \
   }
 
+#define ES_VOID_FUNCTION(decl, call, log_msg)                                  \
+  decl {                                                                       \
+    try {                                                                      \
+      if (config::logger) {                                                    \
+        log_call("call: " log_msg);                                            \
+        call;                                                                  \
+        log_call("done: " log_msg);                                            \
+      } else {                                                                 \
+        call;                                                                  \
+      }                                                                        \
+    } catch (const std::exception& e) {                                        \
+      if (config::logger) log_call("fail: " log_msg);                          \
+      exception_to_python(e);                                                  \
+    }                                                                          \
+  }
+
+#define ES_INT_FUNCTION(decl, call, log_msg)                                   \
+  decl {                                                                       \
+    try {                                                                      \
+      if (config::logger) {                                                    \
+        log_call("call: " log_msg);                                            \
+        int res = call;                                                        \
+        log_call("done: " log_msg);                                            \
+        return res;                                                            \
+      } else {                                                                 \
+        return call;                                                           \
+      }                                                                        \
+    } catch (const std::exception& e) {                                        \
+      if (config::logger) log_call("fail: " log_msg);                          \
+      exception_to_python(e);                                                  \
+      return -1;                                                               \
+    }                                                                          \
+  }
 
 
 #define DECLARE_INFO(name, docstring)                                          \
@@ -49,7 +96,8 @@
     char fn##_name[] = #fn;                                                    \
     ES_FUNCTION(                                                               \
       PyObject* fn##_safe(basecls* self, PyObject* args),                      \
-      fn(self, args))                                                          \
+      fn(self, args),                                                          \
+      STRINGIFY(CLSNAME) "." #fn "(...)")                                      \
   )                                                                            \
 
 
@@ -64,8 +112,39 @@
     static char name_get_##fn[] = #fn;                                         \
     ES_FUNCTION(                                                               \
       static PyObject* safe_get_##fn(BASECLS* self, void*),                    \
-      get_##fn(self))                                                          \
+      get_##fn(self),                                                          \
+      STRINGIFY(CLSNAME) "." #fn)                                              \
   )                                                                            \
+
+
+#define DECLARE_REPR()                                                         \
+  WHEN(HOMEFLAG,                                                               \
+    static PyObject* repr(BASECLS* self);                                      \
+    ES_FUNCTION(                                                               \
+      static PyObject* safe_repr(BASECLS* self),                               \
+      repr(self),                                                              \
+      "repr(" STRINGIFY(CLSNAME) ")")                                          \
+  )
+
+
+#define DECLARE_DESTRUCTOR()                                                   \
+  WHEN(HOMEFLAG,                                                               \
+    static void dealloc(BASECLS*);                                             \
+    ES_VOID_FUNCTION(                                                          \
+      static void safe_dealloc(BASECLS* self),                                 \
+      dealloc(self),                                                           \
+      "del " STRINGIFY(CLSNAME))                                               \
+  )
+
+
+#define DECLARE_CONSTRUCTOR()                                                  \
+  WHEN(HOMEFLAG,                                                               \
+    static int _init_(BASECLS*, PyObject*, PyObject*);                         \
+    ES_INT_FUNCTION(                                                           \
+      static int safe_init(BASECLS* self, PyObject* args, PyObject* kwds),     \
+      _init_(self, args, kwds),                                                \
+      "new " STRINGIFY(CLSNAME))                                               \
+  )
 
 
 #define METHOD0(fn)                                                            \
@@ -79,6 +158,9 @@
 #define GETSET(fn)                                                             \
   {name_get_##fn, (getter)safe_get_##fn, (setter)safe_set_##fn,                \
    doc_get_##fn, NULL}
+#define DESTRUCTOR (destructor)safe_dealloc
+#define CONSTRUCTOR (initproc)safe_init
+#define REPR (reprfunc)safe_repr
 
 
 #define DT_DOCS(name, doc) \
