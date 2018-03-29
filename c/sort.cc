@@ -697,7 +697,7 @@ RowIndex Column::sort(bool make_groups) const {
   if (make_groups) {
     groups.resize(static_cast<size_t>(nrows + 1));
     groups[0] = 0;
-    sc.gg.set_ptr(groups.data() + 1, 0);
+    sc.gg.init(groups.data() + 1, 0);
     radix_psort<true>(&sc);
   } else {
     radix_psort<false>(&sc);
@@ -752,7 +752,7 @@ static RowIndex sort_small(const Column* col, bool make_groups) {
   if (make_groups) {
     groups.resize(static_cast<size_t>(n + 1));
     groups[0] = 0;
-    sc.gg.set_ptr(groups.data() + 1, 0);
+    sc.gg.init(groups.data() + 1, 0);
   }
 
   if (sc.use_order) {
@@ -938,7 +938,7 @@ static void radix_psort(SortContext* sc)
         next_sc.next_elemsize = ne;
         next_sc.strstart = strstart;
         if (make_groups) {
-          next_sc.gg.set_ptr(ggdata0 + off,
+          next_sc.gg.init(ggdata0 + off,
                              ggoff0 + static_cast<int32_t>(off));
           radix_psort<true>(&next_sc);
           rrmap[rri].size = static_cast<size_t>(next_sc.gg.size()) | GROUPED;
@@ -984,7 +984,7 @@ static void radix_psort(SortContext* sc)
           void*    x = static_cast<char*>(sc->x) + off * elemsize;
           int32_t* o = sc->o + off;
           if (make_groups) {
-            tgg.set_ptr(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
+            tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
           }
           if (sc->strdata) {
             insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n, tgg);
