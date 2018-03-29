@@ -97,9 +97,9 @@ pipeline {
         }
 
         stage('Publish centos7 snapshot to S3') {
-            //when {
-            //    branch 'master'
-            //}
+            when {
+                branch 'master'
+            }
             agent {
                 label "linux && docker"
             }
