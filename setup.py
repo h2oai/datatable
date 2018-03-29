@@ -40,8 +40,9 @@ def get_version():
         raise RuntimeError("Could not detect version from the "
                            "__version__.py file")
     # Append build suffix if necessary
-    if os.environ.get("CI_VERSION_SUFFIX"):
-        version = "%s+%s" % (version, os.environ["CI_VERSION_SUFFIX"])
+    suffix = os.environ.get("CI_VERSION_SUFFIX")
+    if suffix:
+        version += "+" + suffix
     return version
 
 
@@ -160,7 +161,8 @@ def get_extra_compile_flags():
 
     # This macro is needed to combat "-DNDEBUG" flag in default Python. This
     # flag in turn enables all `assert` statements at the C level.
-    flags += ["-DNONDEBUG"]
+    if "DTDEBUG" in os.environ:
+        flags += ["-DNONDEBUG"]
 
     # Enable/disable OpenMP support
     if "DTNOOPENMP" in os.environ:

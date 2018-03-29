@@ -698,7 +698,7 @@ $(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BU
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/sort_groups.o : c/sort_groups.cc $(BUILDDIR)/sort.h
+$(BUILDDIR)/sort_groups.o : c/sort_groups.cc $(BUILDDIR)/sort.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

@@ -10,18 +10,28 @@
 #include "utils/array.h"  // arr32_t
 
 
+struct radix_range {
+  size_t size;
+  size_t offset;
+};
+
+
+
 /**
- * Helper class to collect grouping information while sorting. It has stack-like
- * interface, i.e. the code is expected to simply push sizes of each group as
- * they are encountered.
+ * Helper class to collect grouping information while sorting.
  *
- * Note that this class builds group information in the form of the cumulative
- * group sizes. The final array it produces has 1 + ngroups elements, with the
- * first element being 0, and the last the total number of elements in the data
- * being sorted/grouped.
+ * The end product of this class is the array of cumulative group sizes. This
+ * array will have 1 + ngroups elements, with the first element being 0, and
+ * the last the total number of elements in the data being sorted/grouped.
+ *
+ * In order to accommodate parallel sorting, the array of group sizes is
+ * provided externally, and is not managed by this class (only written to).
  *
  * Interface
  * ---------
+ * init(groups, cumsize)
+ *     Initialize the `groups` pointer and initial `cumsize` value.
+ *
  * push(grp)
  *     Add a single group of size `grp`.
  *
@@ -33,44 +43,53 @@
  * from_data(strdata, offsets, strstart, indices, n)
  *     Similar to the previous function, but works with string data.
  *
- * from_groups(gg)
- *     Adds all groups from another GroupGatherer instance `gg`.
+ * from_chunks(rrmap, nr)
+ *     Gather groups information from distinct chunks given by the `rrmap`.
+ *     Specifically, for each of the `nr` entries in the `rrmap` array, there
+ *     is a chunk of grouping data of size `rrmap[i].size` stored at the offset
+ *     `rrmap[i].offset` from the `groups` pointer (the offset is in elements,
+ *     not in bytes). Thereby, the purpose of this method is to collect this
+ *     information into a contiguous array.
  *
- * release()
- *     Return (by moving) the internal array of cumulative group sizes.
+ * from_histogram(histogram, nchunks, nradixes)
+ *     Fill the grouping information from the data histogram, as described
+ *     in the documentation for `SortContext` class.
  *
  * Internal parameters
  * -------------------
  * groups
- *     The array of cumulative group sizes. This array must be allocated for at
- *     least `1 + ngroups` elements.
+ *     The array of cumulative group sizes. The array must be pre-allocated
+ *     and passed to this class via `init()`.
  *
  * count
- *     The count of elements in `groups` that are already in use. Thus, `count`
- *     is 1 + the number of groups.
+ *     The number of groups that were stored in the `groups` array.
  *
- * total_size
+ * cumsize
  *     The total size of all groups added so far. This is always equals to
  *     `groups[count - 1]`.
  *
  */
+// TODO: Add support for 64-bit groups
 class GroupGatherer {
   private:
-    arr32_t groups;
-    size_t  count;
-    int32_t total_size;
-    bool    _enabled;
-    size_t : 24;
+    int32_t* groups;  // externally owned pointer
+    int32_t  count;
+    int32_t  cumsize;
 
   public:
-    GroupGatherer(bool enabled);
-    bool enabled() const { return _enabled; }
-    void clear();
+    GroupGatherer();
+    void init(int32_t* data, int32_t cumsize0);
+
+    int32_t* data() const { return groups; }
+    int32_t  size() const { return count; }
+    int32_t  cumulative_size() const { return cumsize; }
+    operator bool() const { return !!groups; }
+
     void push(size_t grp);
     template <typename T, typename V> void from_data(const T*, V*, size_t);
     template <typename T, typename V> void from_data(const uint8_t*, const T*, T, V*, size_t);
-    void from_groups(const GroupGatherer& gg);
-    arr32_t&& release();
+    void from_chunks(radix_range* rrmap, size_t nradixes);
+    void from_histogram(size_t* histogram, size_t nchunks, size_t nradixes);
 };
 
 

@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   a crash.
 - Columns/rows slices no longer fail on an empty Frame.
 - Fixed crash when materializing a view frame containing obj64 columns.
+- Fixed erroneous grouping calculations.
 
 
 
