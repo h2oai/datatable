@@ -83,7 +83,6 @@ def test_groups_internal4(seed):
         x_prev = x
 
 
-@pytest.mark.xfail()
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
 def test_groups_internal5_strs(seed):
     random.seed(seed)
