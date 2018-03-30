@@ -124,6 +124,8 @@
 #include "utils/assert.h"
 #include "utils/omp.h"
 
+#define INSERT_SORT_THRESHOLD 64
+
 
 
 /**
@@ -222,7 +224,10 @@
  *   `elemsize`, however `next_elemsize` can be 0.
  */
 class SortContext {
-  public:
+  private:
+    arr32_t order;
+    arr32_t groups;
+
     void* x;
     void* next_x;
     int32_t* o;
@@ -237,43 +242,37 @@ class SortContext {
     size_t nchunks;
     size_t chunklen;
     size_t nradixes;
+    size_t histogram_size;
     int8_t elemsize;
     int8_t next_elemsize;
     int8_t nsigbits;
     int8_t shift;
     bool use_order;
-    bool is_root;
-    int : 16;
+    int : 24;
 
-  SortContext()
-    : x(nullptr), next_x(nullptr), o(nullptr), next_o(nullptr),
-      histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
-      n(0), nth(0), nchunks(0), chunklen(0), nradixes(0), elemsize(0),
-      next_elemsize(0), nsigbits(0), shift(0), use_order(false), is_root(false)
-  {}
+  public:
   SortContext(const SortContext&) = delete;
   SortContext& operator=(const SortContext&) = delete;
+  SortContext(const Column* col, bool make_groups) {
+    next_x = nullptr;
+    next_o = nullptr;
+    histogram = nullptr;
+    strdata = nullptr;
+    histogram_size = 0;
 
-  ~SortContext() {
-    if (!is_root) return;
-    free(x);
-    free(next_x);
-    // Note: `o` is not owned by this class, see `initialize()`
-    delete[] next_o;
-    delete[] histogram;
-  }
-
-
-  //============================================================================
-  // Data preparation
-  //============================================================================
-
-  void initialize(const Column* col, arr32_t& order) {
+    nth = static_cast<size_t>(config::get_nthreads());
     n = static_cast<size_t>(col->nrows);
-    is_root = true;
+    order = (col->rowindex()).extract_as_array32();
     use_order = (bool) order;
     if (!use_order) order.resize(n);
     o = order.data();
+    if (make_groups) {
+      groups.resize(n + 1);
+      groups[0] = 0;
+      gg.init(groups.data() + 1, 0);
+    }
+    // These will initialize `x`, `elemsize` and `nsigbits`, and also
+    // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = col->stype();
     switch (stype) {
       case ST_BOOLEAN_I1: _initB(col); break;
@@ -289,6 +288,46 @@ class SortContext {
     }
   }
 
+  ~SortContext() {
+    std::free(x);
+    std::free(next_x);
+    std::free(histogram);
+    // Note: `o` is not owned by this class, see `initialize()`
+    delete[] next_o;
+  }
+
+
+  void do_sort() {
+    if (n <= INSERT_SORT_THRESHOLD) {
+      if (use_order) {
+        kinsert_sort();
+      } else {
+        vinsert_sort();
+      }
+    } else {
+      if (groups) {
+        radix_psort<true>();
+      } else {
+        radix_psort<false>();
+      }
+    }
+  }
+
+
+  RowIndex get_result() {
+    RowIndex res = RowIndex::from_array32(std::move(order));
+    if (groups) {
+      groups.resize(static_cast<size_t>(gg.size() + 1));
+      res.set_groups(std::move(groups));
+    }
+    return res;
+  }
+
+
+
+  //============================================================================
+  // Data preparation
+  //============================================================================
 
   /**
    * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
@@ -347,9 +386,6 @@ class SortContext {
     TO* xo = new TO[n];
     x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
-    next_elemsize = nsigbits > 48? 8 :
-                    nsigbits > 32? 4 :
-                    nsigbits > 16? 2 : 0;
 
     if (use_order) {
       #pragma omp parallel for schedule(static) num_threads(nth)
@@ -403,7 +439,6 @@ class SortContext {
     x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
-    next_elemsize = sizeof(TO) == 8? 8 : 2;
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -472,9 +507,50 @@ class SortContext {
   }
 
 
+  //============================================================================
+  // Radix sorting parameters
+  //============================================================================
+
+  /**
+   * Determine how the input should be split into chunks: at least as many
+   * chunks as the number of threads, unless the input array is too small
+   * and chunks become too small in size. We want to have more than 1 chunk
+   * per thread so as to reduce delays caused by uneven execution time among
+   * threads, on the other hand too many chunks should be avoided because that
+   * would increase the time needed to combine the results from different
+   * threads.
+   * Also compute the desired radix size, as a function of `nsigbits` (number of
+   * significant bits in the data column).
+   *
+   * SortContext inputs:
+   *      n, nsigbits
+   *
+   * SortContext outputs:
+   *      nth, nchunks, chunklen, shift, nradixes
+   */
+  void determine_sorting_parameters() {
+    size_t nch = nth * 2;
+    size_t maxchunklen = 1024;
+    chunklen = std::max((n + nch - 1) / nch, maxchunklen);
+    nchunks = (n - 1)/chunklen + 1;
+
+    int8_t nradixbits = nsigbits < 16 ? nsigbits : 16;
+    shift = nsigbits - nradixbits;
+    nradixes = 1 << nradixbits;
+
+    if (!strdata) {
+      // The remaining number of sig.bits is `shift`. Thus, this value will
+      // determine the `next_elemsize`.
+      next_elemsize = shift > 32? 8 :
+                      shift > 16? 4 :
+                      shift > 0? 2 : 0;
+    }
+  }
+
+
 
   //============================================================================
-  // Histograms
+  // Histograms (for radix sort)
   //============================================================================
 
   /**
@@ -487,8 +563,10 @@ class SortContext {
    */
   void build_histogram() {
     size_t counts_size = nchunks * nradixes;
-    if (!histogram) {
-      histogram = new size_t[counts_size];
+    if (histogram_size < counts_size) {
+      histogram = static_cast<size_t*>(
+        std::realloc(histogram, counts_size * sizeof(size_t)));
+      histogram_size = counts_size;
     }
     std::memset(histogram, 0, counts_size * sizeof(size_t));
     switch (elemsize) {
@@ -528,7 +606,7 @@ class SortContext {
 
 
   //============================================================================
-  // Reorder data
+  // Reorder data (for radix sort)
   //============================================================================
 
   /**
@@ -565,12 +643,14 @@ class SortContext {
           if (next_elemsize == 4) _reorder_impl<uint64_t, uint32_t, true>();
           break;
         case 4:
-          assert(next_elemsize == 2);
-          _reorder_impl<uint32_t, uint16_t, true>();
+          assert(next_elemsize == 4 || next_elemsize == 2);
+          if (next_elemsize == 4) _reorder_impl<uint32_t, uint32_t, true>();
+          if (next_elemsize == 2) _reorder_impl<uint32_t, uint16_t, true>();
           break;
         case 2:
-          assert(next_elemsize == 0);
-          _reorder_impl<uint16_t, uint8_t, false>();
+          assert(next_elemsize == 2 || next_elemsize == 0);
+          if (next_elemsize == 2) _reorder_impl<uint16_t, uint16_t, true>();
+          if (next_elemsize == 0) _reorder_impl<uint16_t, uint8_t, false>();
           break;
         case 1:
           assert(next_elemsize == 0);
@@ -580,6 +660,7 @@ class SortContext {
     }
     std::swap(x, next_x);
     std::swap(o, next_o);
+    std::swap(elemsize, next_elemsize);
     use_order = true;
   }
 
@@ -636,20 +717,276 @@ class SortContext {
     assert(histogram[nchunks * nradixes - 1] == n);
   }
 
+
+
+  //============================================================================
+  // Radix sort
+  //============================================================================
+
+  /**
+   * Sort array `o` of length `n` by values `x`, using MSB Radix sort algorithm.
+   * Array `o` will be modified in-place. If `o` is nullptr, then it will be
+   * allocated and filled with values of `range(n)`.
+   *
+   * SortContext inputs:
+   *   x:      buffer of size `elemsize * n`
+   *   next_x: nullptr, or buffer of size `next_elemsize * n`
+   *   o:      nullptr, or array of `int32_t`s of length `n`
+   *   next_o: nullptr, or array of `int32_t`s of length `n`
+   *   elemsize
+   *   next_elemsize: (may be zero)
+   *   nsigbits
+   *
+   * SortContext outputs:
+   *   o: If nullptr, this array will be allocated; otherwise its contents
+   *      will be modified in-place.
+   *   x, next_x, next_o, histogram: These arrays may be allocated, or their
+   *      contents may be altered arbitrarily.
+   */
+  template <bool make_groups>
+  void radix_psort() {
+    int32_t* ores = o;
+    determine_sorting_parameters();
+    build_histogram();
+    reorder_data();
+
+    if (elemsize) {
+      // If after reordering there are still unsorted elements in `x`, then
+      // sort them recursively.
+      _radix_recurse<make_groups>();
+    } else if (make_groups) {
+      // Otherwise groups can be computed directly from the histogram
+      gg.from_histogram(histogram, nchunks, nradixes);
+    }
+
+    // Done. Save to array `o` the computed ordering of the input vector `x`.
+    if (ores && o != ores) {
+      std::memcpy(ores, o, n * sizeof(int32_t));
+      next_o = o;
+      o = ores;
+    }
+  }
+
+  /**
+   * Helper for radix sorting function.
+   *
+   * At this point the input array is already partially sorted, and the
+   * elements that remain to be sorted are collected into contiguous
+   * chunks. For example if `shift` is 2, then `x` may be:
+   *     na na | 0 2 1 3 1 | 2 | 1 1 3 0 | 3 0 0 | 2 2 2 2 2 2
+   *
+   * For each distinct radix there is a "range" within `x` that
+   * contains values corresponding to that radix. The values in `x`
+   * have their most significant bits already removed, since they are
+   * constant within each radix range. The array `x` is accompanied
+   * by array `o` which carries the original row numbers of each
+   * value. Once we sort `o` by the values of `x` within each
+   * radix range, our job will be complete.
+   */
+  template <bool make_groups>
+  void _radix_recurse() {
+    // Save some of the variables in SortContext that we will be modifying
+    // in order to perform the recursion.
+    size_t   _n        = n;
+    void*    _x        = x;
+    void*    _next_x   = next_x;
+    int32_t* _o        = o;
+    int32_t* _next_o   = next_o;
+    int8_t   _elemsize = elemsize;
+    int8_t   _nsigbits = nsigbits;
+    size_t   _nradixes = nradixes;
+    size_t   _strstart = strstart;
+    int32_t  ggoff0    = make_groups? gg.cumulative_size() : 0;
+    int32_t* ggdata0   = make_groups? gg.data() : 0;
+    size_t   zelemsize = static_cast<size_t>(elemsize);
+
+    // First, determine the sizes of ranges corresponding to each radix that
+    // remain to be sorted. The previous step left us with the `histogram`
+    // array containing cumulative sizes of these ranges, so all we need is
+    // to diff that array.
+    size_t* rrendoffsets = histogram + (nchunks - 1) * nradixes;
+    radix_range* rrmap = new radix_range[nradixes];
+    for (size_t i = 0; i < nradixes; i++) {
+      size_t start = i? rrendoffsets[i-1] : 0;
+      size_t end = rrendoffsets[i];
+      assert(start <= end);
+      rrmap[i].size   = end - start;
+      rrmap[i].offset = start;
+    }
+
+    // At this point the distribution of radix range sizes may or may not
+    // be uniform. If the distribution is uniform (i.e. roughly same number
+    // of elements in each range), then the best way to proceed is to let
+    // all threads process the ranges in-parallel, each thread working on
+    // its own range. However if the distribution is highly skewed (i.e.
+    // one or several overly large ranges), then such approach will be
+    // suboptimal. In the worst-case scenario we would have single thread
+    // processing almost the entire array while other threads are idling.
+    // In order to combat such "skew", we first process all "large" radix
+    // ranges one-at-a-time and sorting each of them in a multithreaded way.
+    // How big should a radix range be to be considered "large"? If there
+    // are `n` elements in the array, and the array is split into `k` ranges
+    // then the lower bound for the size of the largest range is `n/k`. In
+    // fact, if the largest range's size is exactly `n/k`, then all other
+    // ranges are forced to have the same sizes (which is an ideal
+    // situation). In practice we deem a range to be "large" if its size is
+    // more then `2n/k`.
+    // size_t rrlarge = 2 * _n / nradixes;
+    constexpr size_t GROUPED = size_t(1) << 63;
+    size_t size0 = 0;
+    size_t nsmallgroups = 0;
+    size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
+    assert(GROUPED > rrlarge);
+
+    strstart = _strstart + 1;
+    nsigbits = strdata? 8 : shift;
+
+    for (size_t rri = 0; rri < _nradixes; ++rri) {
+      size_t sz = rrmap[rri].size;
+      if (sz > rrlarge) {
+        size_t off = rrmap[rri].offset;
+        n = sz;
+        x = add_ptr(_x, off * zelemsize);
+        o = _o + off;
+        next_x = add_ptr(_next_x, off * zelemsize);
+        next_o = _next_o + off;
+        elemsize = _elemsize;
+        if (make_groups) {
+          gg.init(ggdata0 + off, ggoff0 + static_cast<int32_t>(off));
+          radix_psort<true>();
+          rrmap[rri].size = static_cast<size_t>(gg.size()) | GROUPED;
+        } else {
+          radix_psort<false>();
+        }
+      } else {
+        nsmallgroups++;
+        if (sz > size0) size0 = sz;
+      }
+    }
+
+    n = _n;
+    x = _x;
+    o = _o;
+    next_x = _next_x;
+    next_o = _next_o;
+    strstart = _strstart;
+    gg.init(ggdata0, ggoff0);
+    nsigbits = _nsigbits;
+
+    // Finally iterate over all remaining radix ranges, in-parallel, and
+    // sort each of them independently using a simpler insertion sort
+    // method.
+    size_t nthreads = std::min(nth, nsmallgroups);
+    int32_t ss = static_cast<int32_t>(_strstart + 1);
+    int32_t* tmp = nullptr;
+    bool own_tmp = false;
+    if (size0) {
+      // size_t size_all = size0 * nthreads * sizeof(int32_t);
+      // if ((size_t)_next_elemsize * _n <= size_all) {
+      //   tmp = (int32_t*)_x;
+      // } else {
+      own_tmp = true;
+      tmp = new int32_t[size0 * nthreads];
+      // }
+    }
+    #pragma omp parallel num_threads(nthreads)
+    {
+      int tnum = omp_get_thread_num();
+      int32_t* oo = tmp + tnum * static_cast<int32_t>(size0);
+      GroupGatherer tgg;
+
+      #pragma omp for schedule(dynamic)
+      for (size_t i = 0; i < _nradixes; ++i) {
+        size_t zn  = rrmap[i].size;
+        size_t off = rrmap[i].offset;
+        if (zn > rrlarge) {
+          rrmap[i].size = zn & ~GROUPED;
+        } else if (zn > 1) {
+          int32_t  tn = static_cast<int32_t>(zn);
+          void*    tx = static_cast<char*>(_x) + off * zelemsize;
+          int32_t* to = _o + off;
+          if (make_groups) {
+            tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
+          }
+          if (strdata) {
+            insert_sort_keys_str(strdata, stroffs, ss, to, oo, tn, tgg);
+          } else {
+            switch (_elemsize) {
+              case 1: insert_sort_keys<>(static_cast<uint8_t*>(tx), to, oo, tn, tgg); break;
+              case 2: insert_sort_keys<>(static_cast<uint16_t*>(tx), to, oo, tn, tgg); break;
+              case 4: insert_sort_keys<>(static_cast<uint32_t*>(tx), to, oo, tn, tgg); break;
+              case 8: insert_sort_keys<>(static_cast<uint64_t*>(tx), to, oo, tn, tgg); break;
+            }
+          }
+          if (make_groups) {
+            rrmap[i].size = static_cast<size_t>(tgg.size());
+          }
+        } else if (zn == 1 && make_groups) {
+          ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
+          rrmap[i].size = 1;
+        }
+      }
+    }
+
+    // Consolidate groups into a single contiguous chunk
+    if (make_groups) {
+      gg.from_chunks(rrmap, nradixes);
+    }
+
+    delete[] rrmap;
+    if (own_tmp) delete[] tmp;
+  }
+
+
+
+  //============================================================================
+  // Insert sort
+  //============================================================================
+
+  void kinsert_sort() {
+    arr32_t tmparr(n);
+    int32_t* tmp = tmparr.data();
+    if (strdata) {
+      int32_t nn = static_cast<int32_t>(n);
+      insert_sort_keys_str(strdata, stroffs, 0, o, tmp, nn, gg);
+    } else {
+      switch (elemsize) {
+        case 1: _insert_sort_keys<uint8_t >(tmp); break;
+        case 2: _insert_sort_keys<uint16_t>(tmp); break;
+        case 4: _insert_sort_keys<uint32_t>(tmp); break;
+        case 8: _insert_sort_keys<uint64_t>(tmp); break;
+      }
+    }
+
+  }
+
+  void vinsert_sort() {
+    if (strdata) {
+      int32_t nn = static_cast<int32_t>(n);
+      insert_sort_values_str(strdata, stroffs, 0, o, nn, gg);
+    } else {
+      switch (elemsize) {
+        case 1: _insert_sort_values<uint8_t >(); break;
+        case 2: _insert_sort_values<uint16_t>(); break;
+        case 4: _insert_sort_values<uint32_t>(); break;
+        case 8: _insert_sort_values<uint64_t>(); break;
+      }
+    }
+  }
+
+  template <typename T> void _insert_sort_keys(int32_t* tmp) {
+    T* xt = static_cast<T*>(x);
+    int32_t nn = static_cast<int32_t>(n);
+    insert_sort_keys(xt, o, tmp, nn, gg);
+  }
+
+  template <typename T> void _insert_sort_values() {
+    T* xt = static_cast<T*>(x);
+    int32_t nn = static_cast<int32_t>(n);
+    insert_sort_values(xt, o, nn, gg);
+  }
+
 };
-
-
-
-//==============================================================================
-// Forward declarations
-//==============================================================================
-static RowIndex sort_tiny(const Column* col, bool make_groups);
-static RowIndex sort_small(const Column* col, bool make_groups);
-
-template <bool make_groups>
-static void radix_psort(SortContext*);
-
-#define INSERT_SORT_THRESHOLD 64
 
 
 
@@ -683,34 +1020,6 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 }
 
 
-RowIndex Column::sort(bool make_groups) const {
-  if (nrows <= 1) {
-    return sort_tiny(this, make_groups);
-  }
-  if (nrows <= INSERT_SORT_THRESHOLD) {
-    return sort_small(this, make_groups);
-  }
-  arr32_t order = ri.extract_as_array32();
-  arr32_t groups;
-  SortContext sc;
-  sc.initialize(this, order);
-  if (make_groups) {
-    groups.resize(static_cast<size_t>(nrows + 1));
-    groups[0] = 0;
-    sc.gg.init(groups.data() + 1, 0);
-    radix_psort<true>(&sc);
-  } else {
-    radix_psort<false>(&sc);
-  }
-  RowIndex res = RowIndex::from_array32(std::move(order));
-  if (make_groups) {
-    groups.resize(sc.gg.size() + 1);
-    res.set_groups(std::move(groups));
-  }
-  return res;
-}
-
-
 static RowIndex sort_tiny(const Column* col, bool make_groups) {
   RowIndex res = RowIndex::from_slice(0, col->nrows, 1);
   if (make_groups) {
@@ -723,306 +1032,11 @@ static RowIndex sort_tiny(const Column* col, bool make_groups) {
 }
 
 
-
-// Helpers for sort_small
-template <typename T> void _insert_sort(
-  void* x, int32_t* o, int32_t* tmp, int32_t n, GroupGatherer& gg)
-{
-  T* xt = static_cast<T*>(x);
-  insert_sort_keys(xt, o, tmp, n, gg);
-}
-
-template <typename T> void _insert_sort(
-  void* x, int32_t* o, int32_t n, GroupGatherer& gg)
-{
-  T* xt = static_cast<T*>(x);
-  insert_sort_values(xt, o, n, gg);
-}
-
-
-/**
- * Sort small-size columns using only insert-sort algorithm.
- */
-static RowIndex sort_small(const Column* col, bool make_groups) {
-  int32_t n = static_cast<int32_t>(col->nrows);
-  arr32_t order = col->rowindex().extract_as_array32();
-  arr32_t groups;
-  SortContext sc;
-  sc.initialize(col, order);
-  if (make_groups) {
-    groups.resize(static_cast<size_t>(n + 1));
-    groups[0] = 0;
-    sc.gg.init(groups.data() + 1, 0);
+RowIndex Column::sort(bool make_groups) const {
+  if (nrows <= 1) {
+    return sort_tiny(this, make_groups);
   }
-
-  if (sc.use_order) {
-    arr32_t tmparr(sc.n);
-    int32_t* tmp = tmparr.data();
-    if (sc.strdata) {
-      insert_sort_keys_str(sc.strdata, sc.stroffs, 0, sc.o, tmp, n, sc.gg);
-    } else {
-      switch (sc.elemsize) {
-        case 1: _insert_sort<uint8_t >(sc.x, sc.o, tmp, n, sc.gg); break;
-        case 2: _insert_sort<uint16_t>(sc.x, sc.o, tmp, n, sc.gg); break;
-        case 4: _insert_sort<uint32_t>(sc.x, sc.o, tmp, n, sc.gg); break;
-        case 8: _insert_sort<uint64_t>(sc.x, sc.o, tmp, n, sc.gg); break;
-      }
-    }
-  } else {
-    if (sc.strdata) {
-      insert_sort_values_str(sc.strdata, sc.stroffs, 0, sc.o, n, sc.gg);
-    } else {
-      switch (sc.elemsize) {
-        case 1: _insert_sort<uint8_t >(sc.x, sc.o, n, sc.gg); break;
-        case 2: _insert_sort<uint16_t>(sc.x, sc.o, n, sc.gg); break;
-        case 4: _insert_sort<uint32_t>(sc.x, sc.o, n, sc.gg); break;
-        case 8: _insert_sort<uint64_t>(sc.x, sc.o, n, sc.gg); break;
-      }
-    }
-  }
-  RowIndex res = RowIndex::from_array32(std::move(order));
-  if (make_groups) {
-    groups.resize(sc.gg.size() + 1);
-    res.set_groups(std::move(groups));
-  }
-  return res;
-}
-
-
-
-//==============================================================================
-// Radix sort function
-//==============================================================================
-
-/**
- * Determine how the input should be split into chunks: at least as many
- * chunks as the number of threads, unless the input array is too small
- * and chunks become too small in size. We want to have more than 1 chunk
- * per thread so as to reduce delays caused by uneven execution time among
- * threads, on the other hand too many chunks should be avoided because that
- * would increase the time needed to combine the results from different
- * threads.
- * Also compute the desired radix size, as a function of `nsigbits` (number of
- * significant bits in the data column).
- *
- * SortContext inputs:
- *      n, nsigbits
- *
- * SortContext outputs:
- *      nth, nchunks, chunklen, shift, nradixes
- */
-static void determine_sorting_parameters(SortContext *sc)
-{
-  size_t nth = static_cast<size_t>(config::get_nthreads());
-  size_t nch = nth * 2;
-  size_t maxchunklen = 1024;
-  sc->nth = nth;
-  sc->chunklen = std::max((sc->n + nch - 1) / nch, maxchunklen);
-  sc->nchunks = (sc->n - 1)/sc->chunklen + 1;
-
-  int8_t nradixbits = sc->nsigbits < 16 ? sc->nsigbits : 16;
-  if (!sc->shift) sc->shift = sc->nsigbits - nradixbits;
-  sc->nradixes = 1 << nradixbits;
-}
-
-
-
-/**
- * Sort array `o` of length `n` by values `x`, using MSB Radix sort algorithm.
- * Array `o` will be modified in-place. If `o` is nullptr, then it will be
- * allocated and filled with values of `range(n)`.
- *
- * SortContext inputs:
- *      x:      buffer of size `elemsize * n`
- *      next_x: nullptr, or buffer of size `next_elemsize * n`
- *      o:      nullptr, or array of `int32_t`s of length `n`
- *      next_o: nullptr, or array of `int32_t`s of length `n`
- *      elemsize
- *      next_elemsize: (may be zero)
- *      nsigbits
- *
- * SortContext outputs:
- *      o:  If nullptr, this array will be allocated; otherwise its contents will
- *          be modified in-place.
- *      x, next_x, next_o, histogram: These arrays may be allocated, or their
- *          contents may be altered arbitrarily.
- */
-template <bool make_groups>
-static void radix_psort(SortContext* sc)
-{
-  int32_t* ores = sc->o;
-  determine_sorting_parameters(sc);
-  sc->build_histogram();
-  sc->reorder_data();
-
-  if (sc->next_elemsize) {
-    constexpr size_t GROUPED = size_t(1) << 63;
-    // At this point the input array is already partially sorted, and the
-    // elements that remain to be sorted are collected into contiguous
-    // chunks. For example if `shift` is 2, then `next_x` may be:
-    //     na na | 0 2 1 3 1 | 2 | 1 1 3 0 | 3 0 0 | 2 2 2 2 2 2
-    // For each distinct radix there is a "range" within `next_x` that
-    // contains values corresponding to that radix. The values in `next_x`
-    // have their most significant bits already removed, since they are
-    // constant within each radix range. The array `next_x` is accompanied
-    // by array `next_o` which carries the original row numbers of each
-    // value. Once we sort `next_o` by the values of `next_x` within each
-    // radix range, our job will be complete.
-
-    // Prepare the "next SortContext" variable
-    int32_t  ggoff0  = make_groups? sc->gg.cumulative_size() : 0;
-    int32_t* ggdata0 = make_groups? sc->gg.data() : 0;
-    size_t strstart = sc->strstart + 1;
-    size_t nradixes = sc->nradixes;
-    size_t elemsize = (size_t) sc->next_elemsize;
-    int8_t nsigbits = sc->shift? sc->shift : sc->next_elemsize * 8;
-    int8_t ne = (int8_t)(sc->strdata? sc->next_elemsize :
-                         sc->shift > 32? 4 :
-                         sc->shift > 16? 2 : 0);
-
-    SortContext next_sc;
-    next_sc.strdata = sc->strdata;
-    next_sc.stroffs = sc->stroffs;
-    next_sc.elemsize = sc->next_elemsize;
-    next_sc.nsigbits = nsigbits;
-    next_sc.histogram = sc->histogram;  // reuse the `histogram` buffer
-    next_sc.next_x = sc->next_x;
-    next_sc.next_elemsize = ne;
-    next_sc.use_order = sc->use_order;
-
-    // First, determine the sizes of ranges corresponding to each radix that
-    // remain to be sorted. Recall that the previous step left us with the
-    // `histogram` array containing cumulative sizes of these ranges, so all
-    // we need is to diff that array.
-    size_t* rrendoffsets = sc->histogram + (sc->nchunks - 1) * nradixes;
-    radix_range* rrmap = new radix_range[nradixes];
-    for (size_t i = 0; i < nradixes; i++) {
-      size_t start = i? rrendoffsets[i-1] : 0;
-      size_t end = rrendoffsets[i];
-      assert(start <= end);
-      rrmap[i].size   = end - start;
-      rrmap[i].offset = start;
-    }
-
-    // At this point the distribution of radix range sizes may or may not
-    // be uniform. If the distribution is uniform (i.e. roughly same number
-    // of elements in each range), then the best way to proceed is to let
-    // all threads process the ranges in-parallel, each thread working on
-    // its own range. However if the distribution is highly skewed (i.e.
-    // one or several overly large ranges), then such approach will be
-    // suboptimal. In the worst-case scenario we would have single thread
-    // processing almost the entire array while other threads are idling.
-    // In order to combat such "skew", we first process all "large" radix
-    // ranges one-at-a-time and sorting each of them in a multithreaded way.
-    // How big should a radix range be to be considered "large"? If there
-    // are `n` elements in the array, and the array is split into `k` ranges
-    // then the lower bound for the size of the largest range is `n/k`. In
-    // fact, if the largest range's size is exactly `n/k`, then all other
-    // ranges are forced to have the same sizes (which is an ideal
-    // situation). In practice we deem a range to be "large" if its size is
-    // more then `2n/k`.
-    // size_t rrlarge = 2 * sc->n / nradixes;
-    size_t size0 = 0;
-    size_t nsmallgroups = 0;
-    size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
-    assert(GROUPED > rrlarge);
-    for (size_t rri = 0; rri < nradixes; ++rri) {
-      size_t sz = rrmap[rri].size;
-      if (sz > rrlarge) {
-        size_t off = rrmap[rri].offset;
-        next_sc.x = add_ptr(sc->x, off * elemsize);
-        next_sc.next_x = add_ptr(sc->next_x, off * elemsize);
-        next_sc.o = sc->o + off;
-        next_sc.next_o = sc->next_o + off;
-        next_sc.n = sz;
-        next_sc.next_elemsize = ne;
-        next_sc.strstart = strstart;
-        if (make_groups) {
-          next_sc.gg.init(ggdata0 + off,
-                             ggoff0 + static_cast<int32_t>(off));
-          radix_psort<true>(&next_sc);
-          rrmap[rri].size = static_cast<size_t>(next_sc.gg.size()) | GROUPED;
-        } else {
-          radix_psort<false>(&next_sc);
-        }
-      } else {
-        nsmallgroups++;
-        if (sz > size0) size0 = sz;
-      }
-    }
-
-    // Finally iterate over all remaining radix ranges, in-parallel, and
-    // sort each of them independently using a simpler insertion sort
-    // method.
-    size_t nth = std::min(sc->nth, nsmallgroups);
-    int32_t ss = static_cast<int32_t>(strstart);
-    int32_t* tmp = nullptr;
-    bool own_tmp = false;
-    if (size0) {
-      // size_t size_all = size0 * nth * sizeof(int32_t);
-      // if ((size_t)sc->elemsize * sc->n <= size_all) {
-      //   tmp = (int32_t*)sc->x;
-      // } else {
-      own_tmp = true;
-      tmp = new int32_t[size0 * nth];
-      // }
-    }
-    #pragma omp parallel num_threads(nth)
-    {
-      int tnum = omp_get_thread_num();
-      int32_t* oo = tmp + tnum * (int32_t)size0;
-      GroupGatherer tgg;
-
-      #pragma omp for schedule(dynamic)
-      for (size_t i = 0; i < nradixes; ++i) {
-        size_t zn  = rrmap[i].size;
-        size_t off = rrmap[i].offset;
-        if (zn > rrlarge) {
-          rrmap[i].size = zn & ~GROUPED;
-        } else if (zn > 1) {
-          int32_t  n = static_cast<int32_t>(zn);
-          void*    x = static_cast<char*>(sc->x) + off * elemsize;
-          int32_t* o = sc->o + off;
-          if (make_groups) {
-            tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
-          }
-          if (sc->strdata) {
-            insert_sort_keys_str(sc->strdata, sc->stroffs, ss, o, oo, n, tgg);
-          } else {
-            switch (elemsize) {
-              case 1: insert_sort_keys<>(static_cast<uint8_t*>(x), o, oo, n, tgg); break;
-              case 2: insert_sort_keys<>(static_cast<uint16_t*>(x), o, oo, n, tgg); break;
-              case 4: insert_sort_keys<>(static_cast<uint32_t*>(x), o, oo, n, tgg); break;
-              case 8: insert_sort_keys<>(static_cast<uint64_t*>(x), o, oo, n, tgg); break;
-            }
-          }
-          if (make_groups) {
-            rrmap[i].size = static_cast<size_t>(tgg.size());
-          }
-        } else if (zn == 1 && make_groups) {
-          ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
-          rrmap[i].size = 1;
-        }
-      }
-    }
-
-    // Consolidate groups into a single contiguous chunk
-    if (make_groups) {
-      sc->gg.from_chunks(rrmap, nradixes);
-    }
-
-    delete[] rrmap;
-    if (own_tmp) delete[] tmp;
-
-  } else if (make_groups) {
-    // At the end of recursion, groups can be computed directly from the histogram
-    sc->gg.from_histogram(sc->histogram, sc->nchunks, sc->nradixes);
-  }
-
-  // Done. Save to array `o` the computed ordering of the input vector `x`.
-  if (ores && sc->o != ores) {
-    std::memcpy(ores, sc->o, sc->n * sizeof(int32_t));
-    sc->next_o = sc->o;
-    sc->o = ores;
-  }
+  SortContext sc(this, make_groups);
+  sc.do_sort();
+  return sc.get_result();
 }
