@@ -4,6 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+from datatable.lib import core as _datatable
 from datatable.utils.typechecks import (is_type, name_type, TTypeError,
                                         TValueError)
 
@@ -16,16 +17,16 @@ class DtAttributeError(AttributeError):
 
 
 class DtOption:
-    __slots__ = ["_value", "xtype", "default", "doc", "_setter"]
+    __slots__ = ["_name", "_value", "xtype", "default", "doc", "_core"]
 
-    def __init__(self, xtype, default, doc=None, setter=None):
-        self._value = default
+    def __init__(self, name, xtype, default, doc=None, core=None):
+        self._name = name
+        self._core = core
+        self._value = None
         self.xtype = xtype
         self.default = default
         self.doc = doc
-        self._setter = setter
-        if setter:
-            setter(default)
+        self.value = default  # Set value, possibly reporting to core too
 
     @property
     def value(self):
@@ -34,8 +35,8 @@ class DtOption:
     @value.setter
     def value(self, v):
         self._value = v
-        if self._setter:
-            self._setter(v)
+        if self._core:
+            _datatable.set_option(self._name, v)
 
 
 
@@ -116,7 +117,7 @@ class DtConfig:
         self.__delattr__(key)
 
 
-    def register_option(self, key, xtype, default, doc=None, setter=None):
+    def register_option(self, key, xtype, default, doc=None, core=False):
         assert isinstance(key, str)
         idot = key.find(".")
         if idot == 0:
@@ -143,7 +144,8 @@ class DtConfig:
             raise TValueError("Default value `%s` is not of type %s"
                               % (default, name_type(xtype)))
         else:
-            opt = DtOption(xtype=xtype, default=default, doc=doc, setter=setter)
+            opt = DtOption(xtype=xtype, default=default, doc=doc, core=core,
+                           name=self._prefix + key)
             self._keyvals[key] = opt
 
 

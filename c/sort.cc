@@ -305,11 +305,7 @@ class SortContext {
         vinsert_sort();
       }
     } else {
-      if (groups) {
-        radix_psort<true>();
-      } else {
-        radix_psort<false>();
-      }
+      radix_psort();
     }
   }
 
@@ -743,7 +739,6 @@ class SortContext {
    *   x, next_x, next_o, histogram: These arrays may be allocated, or their
    *      contents may be altered arbitrarily.
    */
-  template <bool make_groups>
   void radix_psort() {
     int32_t* ores = o;
     determine_sorting_parameters();
@@ -753,8 +748,12 @@ class SortContext {
     if (elemsize) {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
-      _radix_recurse<make_groups>();
-    } else if (make_groups) {
+      if (groups) {
+        _radix_recurse<true>();
+      } else {
+        _radix_recurse<false>();
+      }
+    } else if (groups) {
       // Otherwise groups can be computed directly from the histogram
       gg.from_histogram(histogram, nchunks, nradixes);
     }
@@ -853,10 +852,10 @@ class SortContext {
         elemsize = _elemsize;
         if (make_groups) {
           gg.init(ggdata0 + off, ggoff0 + static_cast<int32_t>(off));
-          radix_psort<true>();
+        }
+        radix_psort();
+        if (make_groups) {
           rrmap[rri].size = static_cast<size_t>(gg.size()) | GROUPED;
-        } else {
-          radix_psort<false>();
         }
       } else {
         nsmallgroups++;

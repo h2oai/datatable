@@ -8,6 +8,8 @@
 #define dt_OPTIONS_cc
 #include "options.h"
 #include "utils/omp.h"
+#include "utils/pyobj.h"
+
 
 namespace config
 {
@@ -44,26 +46,28 @@ PyObject* get_core_logger() {
 void set_core_logger(PyObject* o) {
   if (o == Py_None) {
     logger = nullptr;
+    Py_DECREF(o);
   } else {
     logger = o;
-    Py_INCREF(o);
   }
 }
 
-};
 
+PyObject* set_option(PyObject*, PyObject* args) {
+  PyObject* arg1;
+  PyObject* arg2;
+  if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) return nullptr;
+  PyObj arg_name(arg1);
+  PyObj value(arg2);
+  std::string name = arg_name.as_string();
 
-
-PyObject* set_nthreads(PyObject*, PyObject* args) {
-  int nth;
-  if (!PyArg_ParseTuple(args, "i", &nth)) return nullptr;
-  config::set_nthreads(nth);
+  if (name == "nthreads")          set_nthreads(value.as_int32());
+  else if (name == "core_logger")  set_core_logger(value.as_pyobject());
+  else {
+    throw ValueError() << "Unknown option `" << name << "`";
+  }
   return none();
 }
 
-PyObject* set_core_logger(PyObject*, PyObject* args) {
-  PyObject* o;
-  if (!PyArg_ParseTuple(args, "O", &o)) return nullptr;
-  config::set_core_logger(o);
-  return none();
-}
+
+}; // namespace config

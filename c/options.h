@@ -18,19 +18,16 @@ void set_nthreads(int nth);
 extern PyObject* logger;
 PyObject* get_core_logger();
 void set_core_logger(PyObject*);
+
+
+DECLARE_FUNCTION(
+  set_option,
+  "set_option(name, value)\n\n"
+  "Set core option `name` to the given `value`. The `name` must be a string,\n"
+  "and it must be one of the recognizable option names. If not, an exception\n"
+  "will be raised. The allowed `value`s depend on the option being set.",
+  dt_OPTIONS_cc)
+
 };
-
-
-
-DECLARE_FUNCTION(
-  set_nthreads,
-  "set_nthreads(nth)\n\n",
-  dt_OPTIONS_cc)
-
-DECLARE_FUNCTION(
-  set_core_logger,
-  "set_core_logger(logger)\n\n",
-  dt_OPTIONS_cc)
-
 
 #endif
