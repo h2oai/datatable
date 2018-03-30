@@ -32,6 +32,16 @@ def test_sort_len1():
     assert d1.topython() == [[10**6]]
 
 
+def test_sort_len1_view():
+    d0 = dt.Frame(range(10))
+    d1 = d0[5, :].sort(0)
+    assert d1.scalar() == 5
+    d2 = d0[[7], :].sort(0)
+    assert d2.scalar() == 7
+    d2 = d0[2:3, :].sort(0)
+    assert d2.scalar() == 2
+
+
 def test_sort_len2():
     d0 = dt.Frame([None, 10000000])
     d1 = d0.sort(0)
