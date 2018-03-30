@@ -128,7 +128,6 @@
 
 
 
-
 /**
  * Data structure that holds all the variables needed to perform radix sort.
  * This object is passed around between the functions that represent different
@@ -229,7 +228,6 @@ class SortContext {
     arr32_t order;
     arr32_t groups;
 
-  public:
     void* x;
     void* next_x;
     int32_t* o;
@@ -252,6 +250,7 @@ class SortContext {
     bool use_order;
     int : 24;
 
+  public:
   SortContext(const SortContext&) = delete;
   SortContext& operator=(const SortContext&) = delete;
   SortContext(const Column* col, bool make_groups) {
@@ -535,7 +534,7 @@ class SortContext {
     chunklen = std::max((n + nch - 1) / nch, maxchunklen);
     nchunks = (n - 1)/chunklen + 1;
 
-    int8_t nradixbits = nsigbits < 16 ? nsigbits : 8;
+    int8_t nradixbits = nsigbits < 16 ? nsigbits : 16;
     shift = nsigbits - nradixbits;
     nradixes = 1 << nradixbits;
 
