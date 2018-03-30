@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Columns/rows slices no longer fail on an empty Frame.
 - Fixed crash when materializing a view frame containing obj64 columns.
 - Fixed erroneous grouping calculations.
-
+- Fixed sorting of 1-row view frames.
 
 
 ### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) - 2018-03-19
