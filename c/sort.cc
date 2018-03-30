@@ -232,6 +232,10 @@ static RowIndex sort_small(const Column* col, bool make_groups);
  *   `elemsize`, however `next_elemsize` can be 0.
  */
 class SortContext {
+  private:
+    arr32_t order;
+    arr32_t groups;
+
   public:
     void* x;
     void* next_x;
@@ -255,34 +259,28 @@ class SortContext {
     bool use_order;
     int : 24;
 
-  SortContext()
-    : x(nullptr), next_x(nullptr), o(nullptr), next_o(nullptr),
-      histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
-      n(0), nth(0), nchunks(0), chunklen(0), nradixes(0),
-      histogram_size(0), elemsize(0), next_elemsize(0), nsigbits(0),
-      shift(0), use_order(false)
-  {}
   SortContext(const SortContext&) = delete;
   SortContext& operator=(const SortContext&) = delete;
+  SortContext(const Column* col, bool make_groups) {
+    next_x = nullptr;
+    next_o = nullptr;
+    histogram = nullptr;
+    strdata = nullptr;
+    histogram_size = 0;
 
-  ~SortContext() {
-    std::free(x);
-    std::free(next_x);
-    std::free(histogram);
-    // Note: `o` is not owned by this class, see `initialize()`
-    delete[] next_o;
-  }
-
-
-  //============================================================================
-  // Data preparation
-  //============================================================================
-
-  void initialize(const Column* col, arr32_t& order) {
+    nth = static_cast<size_t>(config::get_nthreads());
     n = static_cast<size_t>(col->nrows);
+    order = (col->rowindex()).extract_as_array32();
     use_order = (bool) order;
     if (!use_order) order.resize(n);
     o = order.data();
+    if (make_groups) {
+      groups.resize(n + 1);
+      groups[0] = 0;
+      gg.init(groups.data() + 1, 0);
+    }
+    // These will initialize `x`, `elemsize` and `nsigbits`, and also
+    // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = col->stype();
     switch (stype) {
       case ST_BOOLEAN_I1: _initB(col); break;
@@ -298,6 +296,27 @@ class SortContext {
     }
   }
 
+  ~SortContext() {
+    std::free(x);
+    std::free(next_x);
+    std::free(histogram);
+    // Note: `o` is not owned by this class, see `initialize()`
+    delete[] next_o;
+  }
+
+  RowIndex get_result() {
+    RowIndex res = RowIndex::from_array32(std::move(order));
+    if (groups) {
+      groups.resize(static_cast<size_t>(gg.size() + 1));
+      res.set_groups(std::move(groups));
+    }
+    return res;
+  }
+
+
+  //============================================================================
+  // Data preparation
+  //============================================================================
 
   /**
    * Boolean columns have only 3 distinct values: -128, 0 and 1. The transform
@@ -499,7 +518,6 @@ class SortContext {
    *      nth, nchunks, chunklen, shift, nradixes
    */
   void determine_sorting_parameters() {
-    nth = static_cast<size_t>(config::get_nthreads());
     size_t nch = nth * 2;
     size_t maxchunklen = 1024;
     chunklen = std::max((n + nch - 1) / nch, maxchunklen);
@@ -908,6 +926,12 @@ class SortContext {
     if (own_tmp) delete[] tmp;
   }
 
+
+
+  //============================================================================
+  // Insert sort
+  //============================================================================
+
 };
 
 
@@ -949,24 +973,13 @@ RowIndex Column::sort(bool make_groups) const {
   if (nrows <= INSERT_SORT_THRESHOLD) {
     return sort_small(this, make_groups);
   }
-  arr32_t order = ri.extract_as_array32();
-  arr32_t groups;
-  SortContext sc;
-  sc.initialize(this, order);
+  SortContext sc(this, make_groups);
   if (make_groups) {
-    groups.resize(static_cast<size_t>(nrows + 1));
-    groups[0] = 0;
-    sc.gg.init(groups.data() + 1, 0);
     sc.radix_psort<true>();
   } else {
     sc.radix_psort<false>();
   }
-  RowIndex res = RowIndex::from_array32(std::move(order));
-  if (make_groups) {
-    groups.resize(static_cast<size_t>(sc.gg.size() + 1));
-    res.set_groups(std::move(groups));
-  }
-  return res;
+  return sc.get_result();
 }
 
 
@@ -1004,15 +1017,7 @@ template <typename T> void _insert_sort(
  */
 static RowIndex sort_small(const Column* col, bool make_groups) {
   int32_t n = static_cast<int32_t>(col->nrows);
-  arr32_t order = col->rowindex().extract_as_array32();
-  arr32_t groups;
-  SortContext sc;
-  sc.initialize(col, order);
-  if (make_groups) {
-    groups.resize(static_cast<size_t>(n + 1));
-    groups[0] = 0;
-    sc.gg.init(groups.data() + 1, 0);
-  }
+  SortContext sc(col, make_groups);
 
   if (sc.use_order) {
     arr32_t tmparr(sc.n);
@@ -1039,10 +1044,5 @@ static RowIndex sort_small(const Column* col, bool make_groups) {
       }
     }
   }
-  RowIndex res = RowIndex::from_array32(std::move(order));
-  if (make_groups) {
-    groups.resize(static_cast<size_t>(sc.gg.size() + 1));
-    res.set_groups(std::move(groups));
-  }
-  return res;
+  return sc.get_result();
 }
