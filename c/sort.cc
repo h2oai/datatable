@@ -237,7 +237,7 @@ class SortContext {
     size_t nchunks;
     size_t chunklen;
     size_t nradixes;
-    size_t histogram_allocsize;
+    size_t histogram_size;
     int8_t elemsize;
     int8_t next_elemsize;
     int8_t nsigbits;
@@ -250,7 +250,7 @@ class SortContext {
     : x(nullptr), next_x(nullptr), o(nullptr), next_o(nullptr),
       histogram(nullptr), strdata(nullptr), stroffs(nullptr), strstart(0),
       n(0), nth(0), nchunks(0), chunklen(0), nradixes(0),
-      histogram_allocsize(0), elemsize(0), next_elemsize(0), nsigbits(0),
+      histogram_size(0), elemsize(0), next_elemsize(0), nsigbits(0),
       shift(0), use_order(false), is_root(false)
   {}
   SortContext(const SortContext&) = delete;
@@ -258,11 +258,11 @@ class SortContext {
 
   ~SortContext() {
     if (!is_root) return;
-    free(x);
-    free(next_x);
+    std::free(x);
+    std::free(next_x);
+    std::free(histogram);
     // Note: `o` is not owned by this class, see `initialize()`
     delete[] next_o;
-    delete[] histogram;
   }
 
 
@@ -527,10 +527,10 @@ class SortContext {
    */
   void build_histogram() {
     size_t counts_size = nchunks * nradixes;
-    if (histogram_allocsize < counts_size) {
+    if (histogram_size < counts_size) {
       histogram = static_cast<size_t*>(
         std::realloc(histogram, counts_size * sizeof(size_t)));
-      histogram_allocsize = counts_size;
+      histogram_size = counts_size;
     }
     std::memset(histogram, 0, counts_size * sizeof(size_t));
     switch (elemsize) {
@@ -869,6 +869,14 @@ static void radix_psort(SortContext* sc)
   sc->reorder_data();
 
   if (sc->elemsize) {
+    size_t   _n      = sc->n;
+    void*    _x      = sc->x;
+    void*    _next_x = sc->next_x;
+    int32_t* _o      = sc->o;
+    int32_t* _next_o = sc->next_o;
+    int8_t _elemsize = sc->elemsize;
+    int8_t _nsigbits = sc->nsigbits;
+
     // At this point the input array is already partially sorted, and the
     // elements that remain to be sorted are collected into contiguous
     // chunks. For example if `shift` is 2, then `x` may be:
@@ -887,15 +895,6 @@ static void radix_psort(SortContext* sc)
     size_t strstart = sc->strstart + 1;
     size_t nradixes = sc->nradixes;
     size_t elemsize = static_cast<size_t>(sc->elemsize);
-
-    SortContext next_sc;
-    next_sc.strdata = sc->strdata;
-    next_sc.stroffs = sc->stroffs;
-    next_sc.strstart = strstart;
-    next_sc.nsigbits = sc->strdata? 8 : sc->shift;
-    next_sc.histogram = sc->histogram;  // reuse the `histogram` buffer
-    next_sc.histogram_allocsize = sc->histogram_allocsize;
-    next_sc.use_order = sc->use_order;
 
     // First, determine the sizes of ranges corresponding to each radix that
     // remain to be sorted. Recall that the previous step left us with the
@@ -928,35 +927,48 @@ static void radix_psort(SortContext* sc)
     // ranges are forced to have the same sizes (which is an ideal
     // situation). In practice we deem a range to be "large" if its size is
     // more then `2n/k`.
-    // size_t rrlarge = 2 * sc->n / nradixes;
+    // size_t rrlarge = 2 * _n / nradixes;
     constexpr size_t GROUPED = size_t(1) << 63;
     size_t size0 = 0;
     size_t nsmallgroups = 0;
     size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
     assert(GROUPED > rrlarge);
+
+    sc->strstart = strstart;
+    sc->nsigbits = sc->strdata? 8 : sc->shift;
+
     for (size_t rri = 0; rri < nradixes; ++rri) {
       size_t sz = rrmap[rri].size;
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
-        next_sc.x = add_ptr(sc->x, off * elemsize);
-        next_sc.next_x = add_ptr(sc->next_x, off * elemsize);
-        next_sc.o = sc->o + off;
-        next_sc.next_o = sc->next_o + off;
-        next_sc.n = sz;
-        next_sc.elemsize = sc->elemsize;
+        sc->n = sz;
+        sc->x = add_ptr(_x, off * elemsize);
+        sc->o = _o + off;
+        sc->next_x = add_ptr(_next_x, off * elemsize);
+        sc->next_o = _next_o + off;
+        sc->elemsize = _elemsize;
         if (make_groups) {
-          next_sc.gg.init(ggdata0 + off,
-                          ggoff0 + static_cast<int32_t>(off));
-          radix_psort<true>(&next_sc);
-          rrmap[rri].size = static_cast<size_t>(next_sc.gg.size()) | GROUPED;
+          sc->gg.init(ggdata0 + off,
+                      ggoff0 + static_cast<int32_t>(off));
+          radix_psort<true>(&(*sc));
+          rrmap[rri].size = static_cast<size_t>(sc->gg.size()) | GROUPED;
         } else {
-          radix_psort<false>(&next_sc);
+          radix_psort<false>(&(*sc));
         }
       } else {
         nsmallgroups++;
         if (sz > size0) size0 = sz;
       }
     }
+
+    sc->n = _n;
+    sc->x = _x;
+    sc->o = _o;
+    sc->next_x = _next_x;
+    sc->next_o = _next_o;
+    sc->strstart = strstart - 1;
+    sc->gg.init(ggdata0, ggoff0);
+    sc->nsigbits = _nsigbits;
 
     // Finally iterate over all remaining radix ranges, in-parallel, and
     // sort each of them independently using a simpler insertion sort
@@ -967,8 +979,8 @@ static void radix_psort(SortContext* sc)
     bool own_tmp = false;
     if (size0) {
       // size_t size_all = size0 * nth * sizeof(int32_t);
-      // if ((size_t)sc->next_elemsize * sc->n <= size_all) {
-      //   tmp = (int32_t*)sc->x;
+      // if ((size_t)_next_elemsize * _n <= size_all) {
+      //   tmp = (int32_t*)_x;
       // } else {
       own_tmp = true;
       tmp = new int32_t[size0 * nth];
@@ -988,8 +1000,8 @@ static void radix_psort(SortContext* sc)
           rrmap[i].size = zn & ~GROUPED;
         } else if (zn > 1) {
           int32_t  n = static_cast<int32_t>(zn);
-          void*    x = static_cast<char*>(sc->x) + off * elemsize;
-          int32_t* o = sc->o + off;
+          void*    x = static_cast<char*>(_x) + off * elemsize;
+          int32_t* o = _o + off;
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
           }
@@ -1018,8 +1030,6 @@ static void radix_psort(SortContext* sc)
       sc->gg.from_chunks(rrmap, nradixes);
     }
 
-    sc->histogram = next_sc.histogram;
-    sc->histogram_allocsize = next_sc.histogram_allocsize;
     delete[] rrmap;
     if (own_tmp) delete[] tmp;
 
