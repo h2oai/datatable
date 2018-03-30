@@ -124,8 +124,6 @@
 #include "utils/assert.h"
 #include "utils/omp.h"
 
-#define INSERT_SORT_THRESHOLD 64
-
 
 
 /**
@@ -260,7 +258,7 @@ class SortContext {
     strdata = nullptr;
     histogram_size = 0;
 
-    nth = static_cast<size_t>(config::get_nthreads());
+    nth = static_cast<size_t>(config::nthreads);
     n = static_cast<size_t>(col->nrows);
     order = (col->rowindex()).extract_as_array32();
     use_order = (bool) order;
@@ -298,7 +296,7 @@ class SortContext {
 
 
   void do_sort() {
-    if (n <= INSERT_SORT_THRESHOLD) {
+    if (n <= config::sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
       } else {
@@ -834,7 +832,7 @@ class SortContext {
     constexpr size_t GROUPED = size_t(1) << 63;
     size_t size0 = 0;
     size_t nsmallgroups = 0;
-    size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
+    size_t rrlarge = config::sort_insert_method_threshold;  // for now
     assert(GROUPED > rrlarge);
 
     strstart = _strstart + 1;

@@ -919,3 +919,10 @@ options.register_option(
     "core_logger", xtype=object, default=None, core=True,
     doc="If you set this option to a Logger object, then every call to any "
         "core function will be recorded via this object.")
+
+options.register_option(
+    "sort.insert_method_threshold", xtype=int, default=64, core=True,
+    doc="Largest n at which sorting will be performed using insert sort "
+        "method. This setting also governs the recursive parts of the "
+        "radix sort algorithm, when we need to sort smaller sub-parts of "
+        "the input.")

@@ -130,7 +130,7 @@ class DtConfig:
                 self._keyvals[prekey] = preval
             if isinstance(preval, DtConfig):
                 subkey = key[idot + 1:]
-                preval.register_option(subkey, xtype, default, doc)
+                preval.register_option(subkey, xtype, default, doc, core)
             else:
                 fullkey = self._prefix + key
                 fullprekey = self._prefix + prekey

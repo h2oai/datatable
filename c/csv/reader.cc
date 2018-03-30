@@ -66,7 +66,7 @@ void GenericReader::init_verbose() {
 void GenericReader::init_nthreads() {
   int32_t nth = freader.attr("nthreads").as_int32();
   if (ISNA<int32_t>(nth)) {
-    nthreads = config::get_nthreads();
+    nthreads = config::nthreads;
     trace("Using default %d threads", nthreads);
   } else {
     nthreads = nth;

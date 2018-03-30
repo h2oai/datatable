@@ -12,12 +12,13 @@
 
 namespace config {
 
-int get_nthreads();
-void set_nthreads(int nth);
-
 extern PyObject* logger;
-PyObject* get_core_logger();
+extern int nthreads;
+extern size_t sort_insert_method_threshold;
+
+void set_nthreads(int nth);
 void set_core_logger(PyObject*);
+void set_sort_insert_method_threshold(int64_t n);
 
 
 DECLARE_FUNCTION(

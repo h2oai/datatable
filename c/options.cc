@@ -14,13 +14,10 @@
 namespace config
 {
 
-static int n_threads = 0;
+int nthreads = 0;
 PyObject* logger = nullptr;
+size_t sort_insert_method_threshold = 0;
 
-
-int get_nthreads() {
-  return n_threads;
-}
 
 void set_nthreads(int nth) {
   // Initialize `max_threads` only once, on the first run. This is because we
@@ -32,16 +29,12 @@ void set_nthreads(int nth) {
   if (nth > max_threads) nth = max_threads;
   if (nth <= 0) nth += max_threads;
   if (nth <= 0) nth = 1;
-  n_threads = nth;
+  nthreads = nth;
   // Default number of threads that will be used in all `#pragma omp` calls
   // that do not use explicit `num_threads()` directive.
   omp_set_num_threads(nth);
 }
 
-
-PyObject* get_core_logger() {
-  return logger;
-}
 
 void set_core_logger(PyObject* o) {
   if (o == Py_None) {
@@ -50,6 +43,11 @@ void set_core_logger(PyObject* o) {
   } else {
     logger = o;
   }
+}
+
+void set_sort_insert_method_threshold(int64_t n) {
+  if (n < 0) n = 0;
+  sort_insert_method_threshold = static_cast<size_t>(n);
 }
 
 
@@ -61,9 +59,13 @@ PyObject* set_option(PyObject*, PyObject* args) {
   PyObj value(arg2);
   std::string name = arg_name.as_string();
 
-  if (name == "nthreads")          set_nthreads(value.as_int32());
-  else if (name == "core_logger")  set_core_logger(value.as_pyobject());
-  else {
+  if (name == "nthreads") {
+    set_nthreads(value.as_int32());
+  } else if (name == "sort.insert_method_threshold") {
+    set_sort_insert_method_threshold(value.as_int64());
+  } else if (name == "core_logger") {
+    set_core_logger(value.as_pyobject());
+  } else {
     throw ValueError() << "Unknown option `" << name << "`";
   }
   return none();
