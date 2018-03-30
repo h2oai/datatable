@@ -124,13 +124,6 @@
 #include "utils/assert.h"
 #include "utils/omp.h"
 
-
-//==============================================================================
-// Forward declarations
-//==============================================================================
-static RowIndex sort_tiny(const Column* col, bool make_groups);
-static RowIndex sort_small(const Column* col, bool make_groups);
-
 #define INSERT_SORT_THRESHOLD 64
 
 
@@ -304,6 +297,24 @@ class SortContext {
     delete[] next_o;
   }
 
+
+  void do_sort() {
+    if (n <= INSERT_SORT_THRESHOLD) {
+      if (use_order) {
+        kinsert_sort();
+      } else {
+        vinsert_sort();
+      }
+    } else {
+      if (groups) {
+        radix_psort<true>();
+      } else {
+        radix_psort<false>();
+      }
+    }
+  }
+
+
   RowIndex get_result() {
     RowIndex res = RowIndex::from_array32(std::move(order));
     if (groups) {
@@ -312,6 +323,7 @@ class SortContext {
     }
     return res;
   }
+
 
 
   //============================================================================
@@ -497,7 +509,7 @@ class SortContext {
 
 
   //============================================================================
-  // Generic sorting parameters
+  // Radix sorting parameters
   //============================================================================
 
   /**
@@ -539,7 +551,7 @@ class SortContext {
 
 
   //============================================================================
-  // Histograms
+  // Histograms (for radix sort)
   //============================================================================
 
   /**
@@ -595,7 +607,7 @@ class SortContext {
 
 
   //============================================================================
-  // Reorder data
+  // Reorder data (for radix sort)
   //============================================================================
 
   /**
@@ -932,6 +944,49 @@ class SortContext {
   // Insert sort
   //============================================================================
 
+  void kinsert_sort() {
+    arr32_t tmparr(n);
+    int32_t* tmp = tmparr.data();
+    if (strdata) {
+      int32_t nn = static_cast<int32_t>(n);
+      insert_sort_keys_str(strdata, stroffs, 0, o, tmp, nn, gg);
+    } else {
+      switch (elemsize) {
+        case 1: _insert_sort_keys<uint8_t >(tmp); break;
+        case 2: _insert_sort_keys<uint16_t>(tmp); break;
+        case 4: _insert_sort_keys<uint32_t>(tmp); break;
+        case 8: _insert_sort_keys<uint64_t>(tmp); break;
+      }
+    }
+
+  }
+
+  void vinsert_sort() {
+    if (strdata) {
+      int32_t nn = static_cast<int32_t>(n);
+      insert_sort_values_str(strdata, stroffs, 0, o, nn, gg);
+    } else {
+      switch (elemsize) {
+        case 1: _insert_sort_values<uint8_t >(); break;
+        case 2: _insert_sort_values<uint16_t>(); break;
+        case 4: _insert_sort_values<uint32_t>(); break;
+        case 8: _insert_sort_values<uint64_t>(); break;
+      }
+    }
+  }
+
+  template <typename T> void _insert_sort_keys(int32_t* tmp) {
+    T* xt = static_cast<T*>(x);
+    int32_t nn = static_cast<int32_t>(n);
+    insert_sort_keys(xt, o, tmp, nn, gg);
+  }
+
+  template <typename T> void _insert_sort_values() {
+    T* xt = static_cast<T*>(x);
+    int32_t nn = static_cast<int32_t>(n);
+    insert_sort_values(xt, o, nn, gg);
+  }
+
 };
 
 
@@ -966,23 +1021,6 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
 }
 
 
-RowIndex Column::sort(bool make_groups) const {
-  if (nrows <= 1) {
-    return sort_tiny(this, make_groups);
-  }
-  if (nrows <= INSERT_SORT_THRESHOLD) {
-    return sort_small(this, make_groups);
-  }
-  SortContext sc(this, make_groups);
-  if (make_groups) {
-    sc.radix_psort<true>();
-  } else {
-    sc.radix_psort<false>();
-  }
-  return sc.get_result();
-}
-
-
 static RowIndex sort_tiny(const Column* col, bool make_groups) {
   RowIndex res = RowIndex::from_slice(0, col->nrows, 1);
   if (make_groups) {
@@ -995,54 +1033,11 @@ static RowIndex sort_tiny(const Column* col, bool make_groups) {
 }
 
 
-
-// Helpers for sort_small
-template <typename T> void _insert_sort(
-  void* x, int32_t* o, int32_t* tmp, int32_t n, GroupGatherer& gg)
-{
-  T* xt = static_cast<T*>(x);
-  insert_sort_keys(xt, o, tmp, n, gg);
-}
-
-template <typename T> void _insert_sort(
-  void* x, int32_t* o, int32_t n, GroupGatherer& gg)
-{
-  T* xt = static_cast<T*>(x);
-  insert_sort_values(xt, o, n, gg);
-}
-
-
-/**
- * Sort small-size columns using only insert-sort algorithm.
- */
-static RowIndex sort_small(const Column* col, bool make_groups) {
-  int32_t n = static_cast<int32_t>(col->nrows);
-  SortContext sc(col, make_groups);
-
-  if (sc.use_order) {
-    arr32_t tmparr(sc.n);
-    int32_t* tmp = tmparr.data();
-    if (sc.strdata) {
-      insert_sort_keys_str(sc.strdata, sc.stroffs, 0, sc.o, tmp, n, sc.gg);
-    } else {
-      switch (sc.elemsize) {
-        case 1: _insert_sort<uint8_t >(sc.x, sc.o, tmp, n, sc.gg); break;
-        case 2: _insert_sort<uint16_t>(sc.x, sc.o, tmp, n, sc.gg); break;
-        case 4: _insert_sort<uint32_t>(sc.x, sc.o, tmp, n, sc.gg); break;
-        case 8: _insert_sort<uint64_t>(sc.x, sc.o, tmp, n, sc.gg); break;
-      }
-    }
-  } else {
-    if (sc.strdata) {
-      insert_sort_values_str(sc.strdata, sc.stroffs, 0, sc.o, n, sc.gg);
-    } else {
-      switch (sc.elemsize) {
-        case 1: _insert_sort<uint8_t >(sc.x, sc.o, n, sc.gg); break;
-        case 2: _insert_sort<uint16_t>(sc.x, sc.o, n, sc.gg); break;
-        case 4: _insert_sort<uint32_t>(sc.x, sc.o, n, sc.gg); break;
-        case 8: _insert_sort<uint64_t>(sc.x, sc.o, n, sc.gg); break;
-      }
-    }
+RowIndex Column::sort(bool make_groups) const {
+  if (nrows <= 1) {
+    return sort_tiny(this, make_groups);
   }
+  SortContext sc(this, make_groups);
+  sc.do_sort();
   return sc.get_result();
 }
