@@ -926,3 +926,15 @@ options.register_option(
         "method. This setting also governs the recursive parts of the "
         "radix sort algorithm, when we need to sort smaller sub-parts of "
         "the input.")
+
+options.register_option(
+    "sort.thread_multiplier", xtype=int, default=2, core=True)
+
+options.register_option(
+    "sort.max_chunk_length", xtype=int, default=1024, core=True)
+
+options.register_option(
+    "sort.max_radix_bits", xtype=int, default=16, core=True)
+
+options.register_option(
+    "sort.over_radix_bits", xtype=int, default=16, core=True)

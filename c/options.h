@@ -15,10 +15,18 @@ namespace config {
 extern PyObject* logger;
 extern int nthreads;
 extern size_t sort_insert_method_threshold;
+extern size_t sort_thread_multiplier;
+extern size_t sort_max_chunk_length;
+extern int8_t sort_max_radix_bits;
+extern int8_t sort_over_radix_bits;
 
 void set_nthreads(int nth);
 void set_core_logger(PyObject*);
 void set_sort_insert_method_threshold(int64_t n);
+void set_sort_thread_multiplier(int64_t n);
+void set_sort_max_chunk_length(int64_t n);
+void set_sort_max_radix_bits(int64_t n);
+void set_sort_over_radix_bits(int64_t n);
 
 
 DECLARE_FUNCTION(

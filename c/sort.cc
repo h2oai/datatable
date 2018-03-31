@@ -113,7 +113,6 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
-#include <stdio.h>    // printf
 #include "column.h"
 #include "datatable.h"
 #include "options.h"
@@ -123,7 +122,6 @@
 #include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
-
 
 
 /**
@@ -249,8 +247,6 @@ class SortContext {
     int : 24;
 
   public:
-  SortContext(const SortContext&) = delete;
-  SortContext& operator=(const SortContext&) = delete;
   SortContext(const Column* col, bool make_groups) {
     next_x = nullptr;
     next_o = nullptr;
@@ -285,6 +281,9 @@ class SortContext {
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
   }
+
+  SortContext(const SortContext&) = delete;
+  SortContext& operator=(const SortContext&) = delete;
 
   ~SortContext() {
     std::free(x);
@@ -523,12 +522,13 @@ class SortContext {
    *      nth, nchunks, chunklen, shift, nradixes
    */
   void determine_sorting_parameters() {
-    size_t nch = nth * 2;
-    size_t maxchunklen = 1024;
-    chunklen = std::max((n + nch - 1) / nch, maxchunklen);
+    size_t nch = nth * config::sort_thread_multiplier;
+    chunklen = std::max((n - 1) / nch + 1,
+                        config::sort_max_chunk_length);
     nchunks = (n - 1)/chunklen + 1;
 
-    int8_t nradixbits = nsigbits < 16 ? nsigbits : 16;
+    int8_t nradixbits = nsigbits < config::sort_max_radix_bits
+                        ? nsigbits : config::sort_over_radix_bits;
     shift = nsigbits - nradixbits;
     nradixes = 1 << nradixbits;
 

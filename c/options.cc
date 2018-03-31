@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #define dt_OPTIONS_cc
 #include "options.h"
+#include "utils/exceptions.h"
 #include "utils/omp.h"
 #include "utils/pyobj.h"
 
@@ -14,9 +15,13 @@
 namespace config
 {
 
-int nthreads = 0;
 PyObject* logger = nullptr;
-size_t sort_insert_method_threshold = 0;
+int nthreads = 1;
+size_t sort_insert_method_threshold = 64;
+size_t sort_thread_multiplier = 2;
+size_t sort_max_chunk_length = 1 << 20;
+int8_t sort_max_radix_bits = 16;
+int8_t sort_over_radix_bits = 16;
 
 
 void set_nthreads(int nth) {
@@ -50,6 +55,29 @@ void set_sort_insert_method_threshold(int64_t n) {
   sort_insert_method_threshold = static_cast<size_t>(n);
 }
 
+void set_sort_thread_multiplier(int64_t n) {
+  if (n < 1) n = 1;
+  sort_thread_multiplier = static_cast<size_t>(n);
+}
+
+void set_sort_max_chunk_length(int64_t n) {
+  if (n < 1) n = 1;
+  sort_max_chunk_length = static_cast<size_t>(n);
+}
+
+void set_sort_max_radix_bits(int64_t n) {
+  sort_max_radix_bits = static_cast<int8_t>(n);
+  if (sort_max_radix_bits <= 0)
+    throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
+}
+
+void set_sort_over_radix_bits(int64_t n) {
+  sort_over_radix_bits = static_cast<int8_t>(n);
+  if (sort_over_radix_bits <= 0)
+    throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
+}
+
+
 
 PyObject* set_option(PyObject*, PyObject* args) {
   PyObject* arg1;
@@ -61,10 +89,25 @@ PyObject* set_option(PyObject*, PyObject* args) {
 
   if (name == "nthreads") {
     set_nthreads(value.as_int32());
+
   } else if (name == "sort.insert_method_threshold") {
     set_sort_insert_method_threshold(value.as_int64());
+
+  } else if (name == "sort.thread_multiplier") {
+    set_sort_thread_multiplier(value.as_int64());
+
+  } else if (name == "sort.max_chunk_length") {
+    set_sort_max_chunk_length(value.as_int64());
+
+  } else if (name == "sort.max_radix_bits") {
+    set_sort_max_radix_bits(value.as_int64());
+
+  } else if (name == "sort.over_radix_bits") {
+    set_sort_over_radix_bits(value.as_int64());
+
   } else if (name == "core_logger") {
     set_core_logger(value.as_pyobject());
+
   } else {
     throw ValueError() << "Unknown option `" << name << "`";
   }
