@@ -626,7 +626,7 @@ $(BUILDDIR)/mmm.o : c/mmm.cc $(BUILDDIR)/mmm.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/options.o : c/options.cc $(BUILDDIR)/options.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/options.o : c/options.cc $(BUILDDIR)/options.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

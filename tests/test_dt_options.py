@@ -11,7 +11,10 @@ import datatable as dt
 @pytest.mark.run(order=1001)
 def test_options_all():
     # Update this test every time a new option is added
-    assert set(dir(dt.options)) == {"nthreads", "core_logger"}
+    assert set(dir(dt.options)) == {"nthreads", "core_logger", "sort"}
+    assert set(dir(dt.options.sort)) == {
+        "insert_method_threshold", "thread_multiplier", "max_chunk_length",
+        "max_radix_bits", "over_radix_bits"}
 
 
 @pytest.mark.run(order=1002)

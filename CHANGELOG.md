@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - New option `dt.options.core_logger` to help debug datatable.
 - New Frame method `.materialize()` to convert a view Frame into a "real" one.
   This method is noop if applied to a non-view Frame.
+- Several internal options to fine-tune the performance of sorting algorithm.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"

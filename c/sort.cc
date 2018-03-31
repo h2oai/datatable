@@ -113,7 +113,6 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
-#include <stdio.h>    // printf
 #include "column.h"
 #include "datatable.h"
 #include "options.h"
@@ -123,9 +122,6 @@
 #include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
-
-#define INSERT_SORT_THRESHOLD 64
-
 
 
 /**
@@ -251,8 +247,6 @@ class SortContext {
     int : 24;
 
   public:
-  SortContext(const SortContext&) = delete;
-  SortContext& operator=(const SortContext&) = delete;
   SortContext(const Column* col, bool make_groups) {
     next_x = nullptr;
     next_o = nullptr;
@@ -260,7 +254,7 @@ class SortContext {
     strdata = nullptr;
     histogram_size = 0;
 
-    nth = static_cast<size_t>(config::get_nthreads());
+    nth = static_cast<size_t>(config::nthreads);
     n = static_cast<size_t>(col->nrows);
     order = (col->rowindex()).extract_as_array32();
     use_order = (bool) order;
@@ -288,6 +282,9 @@ class SortContext {
     }
   }
 
+  SortContext(const SortContext&) = delete;
+  SortContext& operator=(const SortContext&) = delete;
+
   ~SortContext() {
     std::free(x);
     std::free(next_x);
@@ -298,18 +295,14 @@ class SortContext {
 
 
   void do_sort() {
-    if (n <= INSERT_SORT_THRESHOLD) {
+    if (n <= config::sort_insert_method_threshold) {
       if (use_order) {
         kinsert_sort();
       } else {
         vinsert_sort();
       }
     } else {
-      if (groups) {
-        radix_psort<true>();
-      } else {
-        radix_psort<false>();
-      }
+      radix_psort();
     }
   }
 
@@ -529,12 +522,13 @@ class SortContext {
    *      nth, nchunks, chunklen, shift, nradixes
    */
   void determine_sorting_parameters() {
-    size_t nch = nth * 2;
-    size_t maxchunklen = 1024;
-    chunklen = std::max((n + nch - 1) / nch, maxchunklen);
+    size_t nch = nth * config::sort_thread_multiplier;
+    chunklen = std::max((n - 1) / nch + 1,
+                        config::sort_max_chunk_length);
     nchunks = (n - 1)/chunklen + 1;
 
-    int8_t nradixbits = nsigbits < 16 ? nsigbits : 16;
+    int8_t nradixbits = nsigbits < config::sort_max_radix_bits
+                        ? nsigbits : config::sort_over_radix_bits;
     shift = nsigbits - nradixbits;
     nradixes = 1 << nradixbits;
 
@@ -743,7 +737,6 @@ class SortContext {
    *   x, next_x, next_o, histogram: These arrays may be allocated, or their
    *      contents may be altered arbitrarily.
    */
-  template <bool make_groups>
   void radix_psort() {
     int32_t* ores = o;
     determine_sorting_parameters();
@@ -753,8 +746,12 @@ class SortContext {
     if (elemsize) {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
-      _radix_recurse<make_groups>();
-    } else if (make_groups) {
+      if (groups) {
+        _radix_recurse<true>();
+      } else {
+        _radix_recurse<false>();
+      }
+    } else if (groups) {
       // Otherwise groups can be computed directly from the histogram
       gg.from_histogram(histogram, nchunks, nradixes);
     }
@@ -835,7 +832,7 @@ class SortContext {
     constexpr size_t GROUPED = size_t(1) << 63;
     size_t size0 = 0;
     size_t nsmallgroups = 0;
-    size_t rrlarge = INSERT_SORT_THRESHOLD;  // for now
+    size_t rrlarge = config::sort_insert_method_threshold;  // for now
     assert(GROUPED > rrlarge);
 
     strstart = _strstart + 1;
@@ -853,10 +850,10 @@ class SortContext {
         elemsize = _elemsize;
         if (make_groups) {
           gg.init(ggdata0 + off, ggoff0 + static_cast<int32_t>(off));
-          radix_psort<true>();
+        }
+        radix_psort();
+        if (make_groups) {
           rrmap[rri].size = static_cast<size_t>(gg.size()) | GROUPED;
-        } else {
-          radix_psort<false>();
         }
       } else {
         nsmallgroups++;

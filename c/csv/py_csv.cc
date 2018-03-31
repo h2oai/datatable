@@ -48,7 +48,7 @@ PyObject* write_csv(PyObject*, PyObject* args)
 
   int32_t nthreads = static_cast<int32_t>(pywr.attr("nthreads").as_int64());
   if (ISNA<int32_t>(nthreads)) {
-    nthreads = config::get_nthreads();
+    nthreads = config::nthreads;
   } else {
     int32_t maxth = omp_get_max_threads();
     if (nthreads > maxth) nthreads = maxth;

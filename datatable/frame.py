@@ -909,13 +909,32 @@ core.install_buffer_hooks(Frame())
 
 
 options.register_option(
-    "nthreads", xtype=int, default=0, setter=core.set_nthreads,
+    "nthreads", xtype=int, default=0, core=True,
     doc="The number of OMP threads to be used by datatable. The value of 0 "
         "(default) allows datatable to use the maximum number of threads. "
         "Values less than zero allow to use that fewer threads than the "
         "maximum. Finally, nthreads=1 indicates single-threaded mode.")
 
 options.register_option(
-    "core_logger", xtype=object, default=None, setter=core.set_core_logger,
+    "core_logger", xtype=object, default=None, core=True,
     doc="If you set this option to a Logger object, then every call to any "
         "core function will be recorded via this object.")
+
+options.register_option(
+    "sort.insert_method_threshold", xtype=int, default=64, core=True,
+    doc="Largest n at which sorting will be performed using insert sort "
+        "method. This setting also governs the recursive parts of the "
+        "radix sort algorithm, when we need to sort smaller sub-parts of "
+        "the input.")
+
+options.register_option(
+    "sort.thread_multiplier", xtype=int, default=2, core=True)
+
+options.register_option(
+    "sort.max_chunk_length", xtype=int, default=1024, core=True)
+
+options.register_option(
+    "sort.max_radix_bits", xtype=int, default=16, core=True)
+
+options.register_option(
+    "sort.over_radix_bits", xtype=int, default=16, core=True)
