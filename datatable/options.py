@@ -106,6 +106,11 @@ class DtConfig:
     def __dir__(self):
         return list(self._keyvals.keys())
 
+    def __repr__(self):
+        return ("<datatble.options.DtConfig: %s>"
+                % ", ".join("%s=%r" % (k, v.value)
+                            for k, v in self._keyvals.items()))
+
 
     def get(self, key=""):
         return self.__getattr__(key)

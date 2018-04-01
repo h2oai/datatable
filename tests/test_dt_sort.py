@@ -8,6 +8,7 @@ import math
 import os
 import pytest
 import random
+import time
 import datatable as dt
 from datatable import stype
 from tests import list_equals
@@ -464,6 +465,19 @@ def test_float64_random(numpy, n):
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
     assert list_equals(d1.topython()[0], sorted(a.tolist()))
+
+
+@pytest.mark.parametrize("n", [100000, 1000000, 10000000])
+def test_float64_speed(numpy, n):
+    """Test that datatable sorts faster than numpy"""
+    a = numpy.random.randn(n)
+    d0 = dt.Frame(a)
+    t0 = time.time()
+    d1 = d0.sort(0)
+    t1 = time.time()
+    a.sort()  # numpy sort
+    t2 = time.time()
+    assert (t1 - t0) < (t2 - t1)
 
 
 
