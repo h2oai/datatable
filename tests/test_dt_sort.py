@@ -469,7 +469,13 @@ def test_float64_random(numpy, n):
 
 @pytest.mark.parametrize("n", [100000, 1000000, 10000000])
 def test_float64_speed(numpy, n):
-    """Test that datatable sorts faster than numpy"""
+    """
+    Test that datatable sorts faster than numpy. May break if datatable
+    was compiled in debug mode.
+    """
+    if dt.lib.core.is_debug_mode():
+        pytest.skip("datatable was compiled in DEBUG mode")
+        return
     a = numpy.random.randn(n)
     d0 = dt.Frame(a)
     t0 = time.time()
@@ -477,7 +483,9 @@ def test_float64_speed(numpy, n):
     t1 = time.time()
     a.sort()  # numpy sort
     t2 = time.time()
-    assert (t1 - t0) < (t2 - t1)
+    t_datatable = t1 - t0
+    t_numpy = t2 - t1
+    assert t_datatable < t_numpy
 
 
 

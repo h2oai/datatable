@@ -186,6 +186,9 @@ def get_extra_compile_flags():
     if "CI_EXTRA_COMPILE_ARGS" in os.environ:
         flags += [os.environ["CI_EXTRA_COMPILE_ARGS"]]
 
+    if "-O0" in flags:
+        flags += ["-DDTDEBUG"]
+
     # Ignored warnings:
     #   -Wcovered-switch-default: we add `default` statement to
     #       an exhaustive switch to guard against memory
