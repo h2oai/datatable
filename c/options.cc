@@ -16,15 +16,16 @@ namespace config
 {
 
 PyObject* logger = nullptr;
-int nthreads = 1;
+int32_t nthreads = 1;
 size_t sort_insert_method_threshold = 64;
 size_t sort_thread_multiplier = 2;
 size_t sort_max_chunk_length = 1 << 20;
 int8_t sort_max_radix_bits = 16;
 int8_t sort_over_radix_bits = 16;
+int32_t sort_nthreads = 1;
 
 
-void set_nthreads(int nth) {
+static int32_t normalize_nthreads(int32_t nth) {
   // Initialize `max_threads` only once, on the first run. This is because we
   // use `omp_set_num_threads` below, and once it was used,
   // `omp_get_max_threads` will return that number, and we won't be able to
@@ -34,10 +35,16 @@ void set_nthreads(int nth) {
   if (nth > max_threads) nth = max_threads;
   if (nth <= 0) nth += max_threads;
   if (nth <= 0) nth = 1;
-  nthreads = nth;
+  return nth;
+}
+
+void set_nthreads(int32_t n) {
+  n = normalize_nthreads(n);
+  nthreads = n;
+  sort_nthreads = n;
   // Default number of threads that will be used in all `#pragma omp` calls
   // that do not use explicit `num_threads()` directive.
-  omp_set_num_threads(nth);
+  omp_set_num_threads(n);
 }
 
 
@@ -77,6 +84,10 @@ void set_sort_over_radix_bits(int64_t n) {
     throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
 }
 
+void set_sort_nthreads(int32_t n) {
+  sort_nthreads = normalize_nthreads(n);
+}
+
 
 
 PyObject* set_option(PyObject*, PyObject* args) {
@@ -104,6 +115,9 @@ PyObject* set_option(PyObject*, PyObject* args) {
 
   } else if (name == "sort.over_radix_bits") {
     set_sort_over_radix_bits(value.as_int64());
+
+  } else if (name == "sort.nthreads") {
+    set_sort_nthreads(value.as_int32());
 
   } else if (name == "core_logger") {
     set_core_logger(value.as_pyobject());

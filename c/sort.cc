@@ -254,7 +254,7 @@ class SortContext {
     strdata = nullptr;
     histogram_size = 0;
 
-    nth = static_cast<size_t>(config::nthreads);
+    nth = static_cast<size_t>(config::sort_nthreads);
     n = static_cast<size_t>(col->nrows);
     order = (col->rowindex()).extract_as_array32();
     use_order = (bool) order;

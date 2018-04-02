@@ -938,3 +938,6 @@ options.register_option(
 
 options.register_option(
     "sort.over_radix_bits", xtype=int, default=8, core=True)
+
+options.register_option(
+    "sort.nthreads", xtype=int, default=4, core=True)
