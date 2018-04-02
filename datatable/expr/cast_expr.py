@@ -20,6 +20,9 @@ class CastExpr(BaseExpr):
         self._arg = arg
         self._stype = stype
 
+    def __str__(self):
+        return "%s(%s)" % (self._stype.name, str(self._arg))
+
     def resolve(self):
         self._arg.resolve()
 

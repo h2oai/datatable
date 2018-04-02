@@ -129,3 +129,18 @@ def test_dt_isna(src):
     pyans = [x is None for x in src]
     assert dt1.topython()[0] == pyans
     assert dt2.topython()[0] == pyans
+
+
+
+#-------------------------------------------------------------------------------
+# type-cast
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float)
+def test_cast_to_float32(src):
+    dt0 = dt.Frame(src)
+    dt1 = dt0[:, [dt.float32(dt.f[i]) for i in range(dt0.ncols)]]
+    assert dt1.internal.check()
+    assert dt1.stypes == (dt.float32,) * dt0.ncols
+    pyans = [float(x) if x is not None else None for x in src]
+    assert list_equals(dt1.topython()[0], pyans)
