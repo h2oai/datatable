@@ -14,18 +14,6 @@ from datatable import stype
 from tests import list_equals
 
 
-def timeit(code, nrep):
-    times = []
-    for t in range(nrep):
-        t0 = time.time()
-        res = code()
-        times.append(time.time() - t0)
-    times.sort()
-    cutoff = nrep // 5
-    if cutoff:
-        times = times[cutoff:-cutoff]
-    return sum(times) / len(times)
-
 
 #-------------------------------------------------------------------------------
 
@@ -477,30 +465,6 @@ def test_float64_random(numpy, n):
     assert d0.stypes == (stype.float64, )
     d1 = d0.sort(0)
     assert list_equals(d1.topython()[0], sorted(a.tolist()))
-
-
-@pytest.mark.parametrize("n", [100000, 1000000, 10000000])
-def test_float64_speed(numpy, n):
-    """
-    Test that datatable sorts faster than numpy. May break if datatable
-    was compiled in debug mode.
-    """
-    assert dt.options.sort.nthreads <= 4
-    if dt.lib.core.is_debug_mode():
-        pytest.skip("datatable was compiled in DEBUG mode")
-        return
-    a = numpy.random.randn(n)
-    d0 = dt.Frame(a)
-    t_datatable = timeit(nrep=1, code=lambda: d0.sort(0))
-    t_numpy     = timeit(nrep=1, code=lambda: numpy.sort(a))
-    if t_datatable < t_numpy:
-        pass
-    else:
-        # The timings are random, and we really want to compare the average
-        # times
-        t_datatable = timeit(nrep=12, code=lambda: d0.sort(0))
-        t_numpy     = timeit(nrep=12, code=lambda: numpy.sort(a))
-        assert t_datatable < t_numpy
 
 
 
