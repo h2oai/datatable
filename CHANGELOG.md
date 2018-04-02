@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"
   values into `None`s.
+- Significantly improved performance of sorting doubles.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file

@@ -31,25 +31,29 @@ PyObject* Py_Zero;
 #define HOMEFLAG dt_DATATABLEMODULE_cc
 
 DECLARE_FUNCTION(
-    get_integer_sizes,
-    "get_integer_sizes()\n\n",
-    HOMEFLAG)
+  get_integer_sizes,
+  "get_integer_sizes()\n\n",
+  HOMEFLAG)
 
 DECLARE_FUNCTION(
-    get_internal_function_ptrs,
-    "get_internal_function_ptrs()\n\n",
-    HOMEFLAG)
+  get_internal_function_ptrs,
+  "get_internal_function_ptrs()\n\n",
+  HOMEFLAG)
 
 DECLARE_FUNCTION(
-    register_function,
-    "register_function()\n\n",
-    HOMEFLAG)
+  register_function,
+  "register_function()\n\n",
+  HOMEFLAG)
 
 DECLARE_FUNCTION(
-    exec_function,
-    "exec_function()\n\n",
-    HOMEFLAG)
+  exec_function,
+  "exec_function()\n\n",
+  HOMEFLAG)
 
+DECLARE_FUNCTION(
+  is_debug_mode,
+  "is_debug_mode()\n\n",
+  HOMEFLAG)
 
 
 
@@ -123,6 +127,15 @@ PyObject* get_integer_sizes(PyObject*, PyObject*) {
 #undef ADD
 
 
+PyObject* is_debug_mode(PyObject*, PyObject*) {
+  #ifdef DTDEBUG
+    return incref(Py_True);
+  #else
+    return incref(Py_False);
+  #endif
+}
+
+
 
 //------------------------------------------------------------------------------
 // Module definition
@@ -155,6 +168,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(expr_column),
     METHODv(expr_reduceop),
     METHODv(expr_unaryop),
+    METHOD0(is_debug_mode),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
