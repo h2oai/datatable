@@ -479,13 +479,13 @@ def test_float64_random(numpy, n):
     assert list_equals(d1.topython()[0], sorted(a.tolist()))
 
 
-@pytest.mark.skip("Sort algos need further tune-up")
 @pytest.mark.parametrize("n", [100000, 1000000, 10000000])
 def test_float64_speed(numpy, n):
     """
     Test that datatable sorts faster than numpy. May break if datatable
     was compiled in debug mode.
     """
+    assert dt.options.sort.nthreads <= 4
     if dt.lib.core.is_debug_mode():
         pytest.skip("datatable was compiled in DEBUG mode")
         return
