@@ -11,6 +11,7 @@
 import os
 import pytest
 import datatable
+import zipfile
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -86,8 +87,11 @@ def f(request):
 @pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
                          indirect=True)
 def test_h2oai_benchmarks(f):
-    d = datatable.fread(f)
-    assert d.internal.check()
+    try:
+        d = datatable.fread(f)
+        assert d.internal.check()
+    except zipfile.BadZipFile:
+        pytest.skip("Bad zip file error")
 
 
 

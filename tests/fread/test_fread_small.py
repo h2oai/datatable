@@ -724,7 +724,7 @@ def test_almost_nodata(capsys):
     assert d0.shape == (n, 3)
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.topython() == [[2017] * n, m, ["foo"] * n]
-    assert ("Column 2 (\"B\") bumped from 'bool8' to 'string' "
+    assert ("Column 2 (\"B\") bumped from 'Bool8/numeric' to 'Str32' "
             "due to <<gotcha>> on row 109" in out)
 
 

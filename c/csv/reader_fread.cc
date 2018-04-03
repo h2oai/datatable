@@ -24,21 +24,6 @@
 #include "utils/pyobj.h"
 #include "utils.h"
 
-static const SType colType_to_stype[NUMTYPE] = {
-  ST_VOID,
-  ST_BOOLEAN_I1,
-  ST_BOOLEAN_I1,
-  ST_BOOLEAN_I1,
-  ST_BOOLEAN_I1,
-  ST_INTEGER_I4,
-  ST_INTEGER_I8,
-  ST_REAL_F4,
-  ST_REAL_F8,
-  ST_REAL_F8,
-  ST_REAL_F8,
-  ST_STRING_I4_VCHAR,
-};
-
 
 
 //------------------------------------------------------------------------------
@@ -362,7 +347,7 @@ DataTablePtr FreadReader::makeDatatable() {
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInOutput) continue;
-    SType stype = colType_to_stype[col.type];
+    SType stype = ParserLibrary::info(col.type).stype;
     MemoryBuffer* databuf = col.extract_databuf();
     MemoryBuffer* strbuf = col.extract_strbuf();
     ccols[j] = Column::new_mbuf_column(stype, databuf, strbuf);
@@ -379,14 +364,14 @@ DataTablePtr FreadReader::makeDatatable() {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
-    ParserFnPtr* parsers_, char*& tbm, size_t& tbmsize, char*& se,
+    char*& tbm, size_t& tbmsize, char*& se,
     size_t& sesize, bool fill_
   ) : LocalParseContext(bcols, brows),
       types(types_),
       freader(f),
       columns(f.columns),
       tokenizer(f.makeTokenizer(tbuf, NULL)),
-      parsers(parsers_),
+      parsers(ParserLibrary::get_parser_fns()),
       typeBumpMsg(tbm), typeBumpMsgSize(tbmsize),
       stopErr(se), stopErrSize(sesize)
 {
@@ -405,7 +390,7 @@ FreadLocalParseContext::FreadLocalParseContext(
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
-    if (col.type == CT_STRING && !col.typeBumped) {
+    if (col.isstring() && !col.typeBumped) {
       strbufs.push_back(StrBuf(bufsize, j, i));
     }
     ++j;
@@ -486,7 +471,8 @@ void FreadLocalParseContext::read_chunk(
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (newType < CT_STRING && newType > CT_DROP) {
+          if (!ParserLibrary::info(newType).isstring() &&
+              newType != static_cast<int8_t>(PT::Drop)) {
             tokenizer.skip_white();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
@@ -513,9 +499,9 @@ void FreadLocalParseContext::read_chunk(
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
           if (cc.true_start) {
-            newType++;
-            if (newType == NUMTYPE) {
-              newType = NUMTYPE - 1;
+            newType++;  // TODO: replace with proper type iteration
+            if (newType == ParserLibrary::num_parsers) {
+              newType = ParserLibrary::num_parsers - 1;
               tokenizer.quoteRule++;
             }
             tch = fieldStart;
@@ -535,7 +521,9 @@ void FreadLocalParseContext::read_chunk(
             char temp[1001];
             int len = snprintf(temp, 1000,
               "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-              j+1, columns[j].name.data(), typeName[oldType], typeName[newType],
+              j+1, columns[j].name.data(),
+              ParserLibrary::info(oldType).cname(),
+              ParserLibrary::info(newType).cname(),
               (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
             typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
             strcpy(typeBumpMsg + typeBumpMsgSize, temp);
@@ -550,10 +538,11 @@ void FreadLocalParseContext::read_chunk(
         j++;
         if (*tch==sep) { tch++; continue; }
         if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
-          // Reuse processors to write appropriate NA to target; saves maintenance of a type switch down here.
-          // This works for all processors except CT_STRING, which write "" value instead of NA -- hence this
-          // case should be handled explicitly.
-          if (oldType == CT_STRING && columns[j-1].presentInBuffer && tokenizer.target[-1].str32.length == 0) {
+          // All parsers have already stored NA to target; except for string
+          // which writes "" value instead -- hence this case should be
+          // corrected here.
+          if (columns[j-1].isstring() && columns[j-1].presentInBuffer &&
+              tokenizer.target[-1].str32.length == 0) {
             tokenizer.target[-1].str32.setna();
           }
           continue;
@@ -679,7 +668,7 @@ void FreadLocalParseContext::push_buffers() {
     if (col.typeBumped) {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
-    } else if (col.type == CT_STRING) {
+    } else if (col.isstring()) {
       WritableBuffer* wb = col.strdata;
       StrBuf& sb = strbufs[k];
       size_t ptr = sb.ptr;
@@ -698,7 +687,7 @@ void FreadLocalParseContext::push_buffers() {
       k++;
 
     } else {
-      int8_t elemsize = typeSize[col.type];
+      int8_t elemsize = static_cast<int8_t>(col.elemsize());
       const field64* src = tbuf + j;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(data) + row0;

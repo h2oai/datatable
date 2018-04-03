@@ -6,7 +6,15 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "csv/reader_parsers.h"
+#include "utils/assert.h"
 
+#define NA_BOOL8         INT8_MIN
+#define NA_INT32         INT32_MIN
+#define NA_INT64         INT64_MIN
+#define NA_FLOAT32_I32   0x7F8007A2
+#define NA_FLOAT64_I64   0x7FF00000000007A2
+#define INF_FLOAT32_I32  0x7F800000
+#define INF_FLOAT64_I64  0x7FF0000000000000
 
 
 //------------------------------------------------------------------------------
@@ -617,64 +625,98 @@ void parse_string(FreadTokenizer& ctx) {
 
 
 //------------------------------------------------------------------------------
-// Other
+// ParserLibrary
 //------------------------------------------------------------------------------
 
-/*
-class PTypeIterator {
-  class PTypeIteratorImpl {
-    const PT ptype;
-    const RT rtype;
-    int ipt, irt;
-    PTypeIteratorImpl() : ipt(-1) {}
-    PTypeIteratorImpl(PT pt, RT rt) : ptype(pt), rtype(rt), ipt(0), irt(0) {}
+// The only reason we don't do std::vector<ParserInfo> here is because it causes
+// annoying warnings about exit-time / global destructors.
+ParserInfo* ParserLibrary::parsers = nullptr;
+ParserFnPtr* ParserLibrary::parser_fns = nullptr;
 
-    PTypeIteratorImpl& operator++() {
-      if (ipt >= 0) {
-        ipt++;
-        if (ipt + ptype == 12) ipt = -1;
-      }
-      return *this;
-    }
-    PT operator*() const {
-      return ipt >= 0? ptype + ipt : 0;
-    }
-    bool operator!=(const PTypeIteratorImpl& other) const {
-      return ipt != other.ipt;
-    }
+void ParserLibrary::init_parsers() {
+  parsers = new ParserInfo[num_parsers];
+  parser_fns = new ParserFnPtr[num_parsers];
+
+  auto add = [&](PT pt, const char* name, char code, int8_t sz, SType st,
+                 ParserFnPtr ptr) {
+    size_t iid = static_cast<size_t>(pt);
+    assert(iid < ParserLibrary::num_parsers);
+    parsers[iid] = ParserInfo(pt, name, code, sz, st, ptr);
+    parser_fns[iid] = ptr;
   };
 
-  const PT ptype;
-  const RT rtype;
-  PTypeIterator(PT pt, RT rt) : ptype(pt), rtype(rt) {}
-  PTypeIteratorImpl begin() const { return PTypeIteratorImpl(ptype, rtype); }
-  PTypeIteratorImpl end() const { return PTypeIteratorImpl(); }
-};
-
-
-class CsvReadColumn {
-  std::string name;
-  PT ptype;
-  RT rtype;
-
-  PTypeIterator successor_types() const;
-};
-*/
-
-ParserLibrary& ParserLibrary::get() {
-  static ParserLibrary& instance = *new ParserLibrary();
-  return instance;
+  add(PT::Drop,         "Dropped",         '-', 0, ST_VOID, parse_string);
+  // add(PT::Mu,           "Unknown",         '?', 0, parse_mu);
+  add(PT::BoolL,        "Bool8/lowercase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_lowercase);
+  add(PT::BoolU,        "Bool8/uppercase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_uppercase);
+  add(PT::BoolT,        "Bool8/titlecase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_titlecase);
+  add(PT::Bool01,       "Bool8/numeric",   'b', 1, ST_BOOLEAN_I1, parse_bool8_numeric);
+  add(PT::Int32,        "Int32",           'i', 4, ST_INTEGER_I4, parse_int32_simple);
+  add(PT::Int64,        "Int64",           'I', 8, ST_INTEGER_I8, parse_int64_simple);
+  add(PT::Float32Hex,   "Float32/hex",     'f', 4, ST_REAL_F4, parse_float32_hex);
+  add(PT::Float64Plain, "Float64",         'F', 8, ST_REAL_F8, parse_float64_simple);
+  add(PT::Float64Ext,   "Float64/ext",     'F', 8, ST_REAL_F8, parse_float64_extended);
+  add(PT::Float64Hex,   "Float64/hex",     'F', 8, ST_REAL_F8, parse_float64_hex);
+  add(PT::Str32,        "Str32",           's', 4, ST_STRING_I4_VCHAR, parse_string);
 }
+
 
 ParserLibrary::ParserLibrary() {
-  add(ParserInfo(PT::Drop, "Drop", '-', nullptr));
-  add(ParserInfo(PT::Mu, "Mu", '?', parse_mu));
-  // {parse_bool8_lowercase, parse_bool8_titlecase, parse_bool8_uppercase, parse_bool8_numeric,
-  //  parse_int32_simple, parse_int64_simple};
+  if (!parsers) init_parsers();
 }
 
-void ParserLibrary::add(ParserInfo&& p) {
-  size_t iid = static_cast<size_t>(p.id);
-  parsers.reserve(iid + 1);
-  parsers[iid] = p;
+
+
+//------------------------------------------------------------------------------
+// ParserIterator
+//------------------------------------------------------------------------------
+
+ParserIterable ParserLibrary::successor_types(PT pt) const {
+  return ParserIterable(pt, *this);
 }
+
+
+ParserIterable::ParserIterable(PT pt, const ParserLibrary& pl)
+  : plib(pl), ptype(pt) {}
+
+ParserIterator ParserIterable::begin() const {
+  return ParserIterator(ptype);
+}
+
+ParserIterator ParserIterable::end() const {
+  return ParserIterator();
+}
+
+
+ParserIterator::ParserIterator()
+  : ipt(-1), ptype(0) {}
+
+ParserIterator::ParserIterator(PT pt)
+  : ipt(0), ptype(static_cast<uint8_t>(pt))
+{
+  ++*this;
+}
+
+
+ParserIterator& ParserIterator::operator++() {
+  if (ipt >= 0) {
+    ipt++;
+    if (ipt + ptype == ParserLibrary::num_parsers) ipt = -1;
+  }
+  return *this;
+}
+
+bool ParserIterator::operator==(const ParserIterator& rhs) const {
+  return (ipt == -1 && rhs.ipt == -1) ||
+         (ipt == rhs.ipt && ptype == rhs.ptype);
+}
+
+bool ParserIterator::operator!=(const ParserIterator& rhs) const {
+  return (ipt != -1 || rhs.ipt != -1) &&
+         (ipt != rhs.ipt || ptype != rhs.ptype);
+}
+
+PT ParserIterator::operator*() const {
+  return static_cast<PT>(ptype + ipt);
+}
+

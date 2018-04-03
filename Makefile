@@ -433,7 +433,7 @@ $(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h
 	@echo • Refreshing c/csv/reader_arff.h
 	@cp c/csv/reader_arff.h $@
 
-$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h
+$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memorybuf.h
 	@echo • Refreshing c/csv/reader_fread.h
 	@cp c/csv/reader_fread.h $@
 
@@ -562,11 +562,11 @@ $(BUILDDIR)/csv/reader_fread.o : c/csv/reader_fread.cc $(BUILDDIR)/column.h $(BU
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/reader_parsers.h
+$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_FREAD_H
-#define dt_FREAD_H
+#ifndef dt_FREAD_h
+#define dt_FREAD_h
 #include <stdint.h>  // uint32_t
 #include <stdlib.h>  // size_t
 #include "utils.h"
@@ -14,28 +14,6 @@
 #include "memorybuf.h"
 #include "csv/reader.h"
 
-
-// Ordered hierarchy of types
-typedef enum {
-  NEG            = -1,  // dummy to force signed type; sign bit used for out-of-sample type bump management
-  CT_DROP        = 0,   // skip column requested by user; it is navigated as a string column with the prevailing quoteRule
-  CT_BOOL8_N     = 1,   // int8_t; first enum value must be 1 not 0(=CT_DROP) so that it can be negated to -1.
-  CT_BOOL8_U     = 2,
-  CT_BOOL8_T     = 3,
-  CT_BOOL8_L     = 4,
-  CT_INT32       = 5,   // int32_t
-  CT_INT64       = 6,   // int64_t
-  CT_FLOAT32_HEX = 7,    // float, in hexadecimal format
-  CT_FLOAT64     = 8,   // double (64-bit IEEE 754 float)
-  CT_FLOAT64_EXT = 9,   // double, with various "NaN" literals
-  CT_FLOAT64_HEX = 10,  // double, in hexadecimal format
-  CT_STRING      = 11,  // RelStr struct below
-  NUMTYPE        = 12   // placeholder for the number of types including drop
-} colType;
-
-extern int8_t typeSize[NUMTYPE];
-extern const char typeSymbols[NUMTYPE];
-extern const char typeName[NUMTYPE][10];
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
 extern const uint8_t allowedseps[128];
@@ -95,14 +73,6 @@ struct FreadTokenizer {
 typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 
 
-#define NA_BOOL8         INT8_MIN
-#define NA_INT32         INT32_MIN
-#define NA_INT64         INT64_MIN
-#define NA_FLOAT64_I64   0x7FF00000000007A2
-#define NA_FLOAT32_I32   0x7F8007A2
-#define NA_LENOFF        INT32_MIN  // RelStr.len only; RelStr.off undefined for NA
-#define INF_FLOAT32_I32  0x7F800000
-#define INF_FLOAT64_I64   0x7FF0000000000000
 
 
 

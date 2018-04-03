@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include "csv/reader.h"
 #include "csv/fread.h"   // temporary
+#include "csv/reader_parsers.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
@@ -42,14 +43,14 @@ GReaderColumn::~GReaderColumn() {
 
 void GReaderColumn::allocate(size_t nrows) {
   if (!presentInOutput) return;
-  bool isstring = (type == CT_STRING);
-  size_t allocsize = (nrows + isstring) * elemsize();
+  bool col_is_string = isstring();
+  size_t allocsize = (nrows + col_is_string) * elemsize();
   if (mbuf) {
     mbuf->resize(allocsize);
   } else {
     mbuf = new MemoryMemBuf(allocsize);
   }
-  if (isstring) {
+  if (col_is_string) {
     mbuf->set_elem<int32_t>(0, -1);
     if (!strdata) {
       strdata = new MemoryWritableBuffer(allocsize);
@@ -57,8 +58,16 @@ void GReaderColumn::allocate(size_t nrows) {
   }
 }
 
+const char* GReaderColumn::typeName() const {
+  return ParserLibrary::info(type).name.data();
+}
+
 size_t GReaderColumn::elemsize() const {
-  return static_cast<size_t>(typeSize[type]);
+  return static_cast<size_t>(ParserLibrary::info(type).elemsize);
+}
+
+bool GReaderColumn::isstring() const {
+  return ParserLibrary::info(type).isstring();
 }
 
 MemoryBuffer* GReaderColumn::extract_databuf() {
@@ -68,7 +77,7 @@ MemoryBuffer* GReaderColumn::extract_databuf() {
 }
 
 MemoryBuffer* GReaderColumn::extract_strbuf() {
-  if (!(strdata && type == CT_STRING)) return nullptr;
+  if (!(strdata && isstring())) return nullptr;
   // TODO: make get_mbuf() method available on WritableBuffer itself
   strdata->finalize();
   return strdata->get_mbuf();
@@ -116,13 +125,14 @@ void GReaderColumns::setType(int8_t type) {
 }
 
 const char* GReaderColumns::printTypes() const {
+  const ParserInfo* parsers = ParserLibrary::get_parser_infos();
   static const size_t N = 100;
   static char out[N + 1];
   char* ch = out;
   size_t ncols = size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = typeSymbols[(*this)[i].type];
+    *ch++ = parsers[(*this)[i].type].code;
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -131,7 +141,7 @@ const char* GReaderColumns::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = typeSymbols[(*this)[i].type];
+      *ch++ = parsers[(*this)[i].type].code;
   }
   *ch = '\0';
   return out;
@@ -150,7 +160,7 @@ size_t GReaderColumns::nStringColumns() const {
   size_t nstrs = 0;
   size_t ncols = size();
   for (size_t i = 0; i < ncols; ++i) {
-    nstrs += ((*this)[i].type == CT_STRING);
+    nstrs += (*this)[i].isstring();
   }
   return nstrs;
 }

@@ -974,7 +974,7 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 
 
 #-------------------------------------------------------------------------------
-# Directly corresponds to `colType` enum in "fread.h"
+# Directly corresponds to `PT` enum in "reader_parsers.h"
 _coltypes_strs = [
     "drop",      # 0
     "bool8n",    # 1

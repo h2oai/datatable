@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_FREAD_LOOKUPS_H
-#define dt_FREAD_LOOKUPS_H
+#ifndef dt_FREAD_LOOKUPS_h
+#define dt_FREAD_LOOKUPS_h
 
 // characters re-interpreted as hex digits (or 99 for characters that are not
 // valid digits). Thus, this table maps
