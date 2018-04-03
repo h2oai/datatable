@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_READER_H
-#define dt_CSV_READER_H
+#ifndef dt_CSV_READER_h
+#define dt_CSV_READER_h
 #include <Python.h>
 #include <limits>         // std::numeric_limits
 #include <memory>         // std::unique_ptr
@@ -61,22 +61,22 @@ class GenericReader
   //
   public:
     int32_t nthreads;
-    bool verbose;
-    char sep;
-    char dec;
-    char quote;
-    int64_t max_nrows;
+    bool    verbose;
+    char    sep;
+    char    dec;
+    char    quote;
+    size_t  max_nrows;
     int64_t skip_to_line;
-    const char* skip_string;
+    int8_t  header;
+    bool    strip_whitespace;
+    bool    skip_blank_lines;
+    bool    report_progress;
+    bool    fill;
+    bool    blank_is_na;
+    bool    number_is_na;
+    int : 8;
+    const char* skip_to_string;
     const char* const* na_strings;
-    int8_t header;
-    bool strip_white;
-    bool skip_blank_lines;
-    bool show_progress;
-    bool fill;
-    bool warnings_to_errors;
-    bool blank_is_na;
-    bool number_is_na;
 
   //---- Runtime parameters ----
   // line:
@@ -90,6 +90,8 @@ class GenericReader
     PyObj text_arg;
     PyObj skipstring_arg;
     PyObj tempstr;
+
+  protected:
     MemoryBuffer* mbuf;
     size_t offset;
     size_t offend;
@@ -100,7 +102,8 @@ class GenericReader
   //---- Public API ----
   public:
     GenericReader(const PyObj& pyreader);
-    ~GenericReader();
+    GenericReader& operator=(const GenericReader&) = delete;
+    virtual ~GenericReader();
 
     DataTablePtr read();
 
@@ -161,6 +164,10 @@ class GenericReader
 
     DataTablePtr read_empty_input();
     void detect_improper_files();
+
+  //---- Inherited API ----
+  protected:
+    GenericReader(const GenericReader&);
 };
 
 

@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_FREAD_IMPL_H
-#define dt_FREAD_IMPL_H
+#ifndef dt_CSV_READER_FREAD_h
+#define dt_CSV_READER_FREAD_h
 #include <Python.h>
 #include <vector>        // std::vector
 #include "csv/fread.h"
@@ -29,10 +29,8 @@ class FreadChunkedReader;
  *
  * This is a wrapper around freadMain function from R's data.table.
  */
-class FreadReader
+class FreadReader : public GenericReader
 {
-  GenericReader& g;
-
   //----- Runtime parameters ---------------------------------------------------
   // nstrcols: number of string columns in the output DataTable. This will be
   //     computed within `allocateDT()` callback, and used for allocation of
@@ -46,6 +44,7 @@ class FreadReader
   ParserLibrary parserlib;
   GReaderColumns columns;
   char* targetdir;
+  const char* sof;
   const char* eof;
   size_t allocnrow;
   double meanLineLen;
@@ -67,27 +66,20 @@ class FreadReader
   //       Example: <<...,hello "world",...>>
   //
   char whiteChar;
-  char dec;
-  char sep;
-  char quote;
   int8_t quoteRule;
-  bool stripWhite;
-  bool blank_is_a_NAstring;
   bool LFpresent;
+  int64_t : 40;
 
 public:
-  FreadReader(GenericReader&);
+  FreadReader(const GenericReader&);
   ~FreadReader();
 
   DataTablePtr read();
 
   // Simple getters
-  int get_nthreads() const { return g.nthreads; }
+  int get_nthreads() const { return nthreads; }
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
-  size_t get_data_size() const { return g.datasize(); }
-  bool get_fill() const { return g.fill; }
-  bool get_skip_empty_lines() const { return g.skip_blank_lines; }
 
   FreadTokenizer makeTokenizer(field64* target, const char* anchor) const;
 

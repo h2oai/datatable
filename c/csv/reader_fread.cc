@@ -30,16 +30,17 @@
 // Initialization
 //------------------------------------------------------------------------------
 
-FreadReader::FreadReader(GenericReader& greader) : g(greader) {
+FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
+{
   targetdir = nullptr;
-  // strbufs = nullptr;
-  eof = nullptr;
-  // nstrcols = 0;
-  // ndigits = 0;
-  whiteChar = dec = sep = quote = '\0';
+  sof = dataptr();
+  eof = sof + datasize();
+  // TODO: Do not require the extra byte, and do not write into the input stream...
+  ASSERT(extra_byte_accessible() && eof > sof);
+  *const_cast<char*>(eof) = '\0';
+
+  whiteChar = '\0';
   quoteRule = -1;
-  stripWhite = false;
-  blank_is_a_NAstring = false;
   LFpresent = false;
 }
 
@@ -56,14 +57,14 @@ FreadTokenizer FreadReader::makeTokenizer(
     .target = target,
     .anchor = anchor,
     .eof = eof,
-    .NAstrings = g.na_strings,
+    .NAstrings = na_strings,
     .whiteChar = whiteChar,
     .dec = dec,
     .sep = sep,
     .quote = quote,
     .quoteRule = quoteRule,
-    .stripWhite = stripWhite,
-    .blank_is_a_NAstring = blank_is_a_NAstring,
+    .strip_whitespace = strip_whitespace,
+    .blank_is_na = blank_is_na,
     .LFpresent = LFpresent,
   };
 }
@@ -237,7 +238,7 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
   // Skip whitespace at the beginning of a line.
-  if (stripWhite && (*ch == ' ' || (*ch == '\t' && sep != '\t'))) {
+  if (strip_whitespace && (*ch == ' ' || (*ch == '\t' && sep != '\t'))) {
     while (*ch == ' ' || *ch == '\t') ch++;
   }
 
@@ -322,7 +323,7 @@ void FreadReader::userOverride()
     PyList_SET_ITEM(colTypesList, i, pytype);
   }
 
-  g.pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
+  pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
 
   for (size_t i = 0; i < ncols; i++) {
     PyObject* t = PyList_GET_ITEM(colTypesList, i);
@@ -334,7 +335,7 @@ void FreadReader::userOverride()
 
 
 void FreadReader::progress(double progress, int statuscode) {
-  g.pyreader().invoke("_progress", "(di)", progress, statuscode);
+  pyreader().invoke("_progress", "(di)", progress, statuscode);
 }
 
 
@@ -380,13 +381,13 @@ FreadLocalParseContext::FreadLocalParseContext(
   quote = f.quote;
   quoteRule = f.quoteRule;
   sep = f.sep;
-  verbose = f.g.verbose;
+  verbose = f.verbose;
   fill = fill_;
   nTypeBump = 0;
-  skipEmptyLines = f.g.skip_blank_lines;
-  numbersMayBeNAs = f.g.number_is_na;
+  skipEmptyLines = f.skip_blank_lines;
+  numbersMayBeNAs = f.number_is_na;
   size_t ncols = columns.size();
-  size_t bufsize = std::min(size_t(4096), f.get_data_size() / (ncols + 1));
+  size_t bufsize = std::min(size_t(4096), f.datasize() / (ncols + 1));
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;

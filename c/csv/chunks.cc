@@ -133,8 +133,8 @@ bool FreadChunkOrganizer::next_good_line_start(
   const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
 {
   int ncols = static_cast<int>(fr.get_ncols());
-  bool fill = fr.get_fill();
-  bool skipEmptyLines = fr.get_skip_empty_lines();
+  bool fill = fr.fill;
+  bool skipEmptyLines = fr.skip_blank_lines;
   const char*& ch = tokenizer.ch;
   ch = cc.start;
   const char* eof = cc.end;

@@ -49,8 +49,34 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   init_skipstring();
   init_stripwhite();
   init_skipblanklines();
+}
 
-  warnings_to_errors = 0;
+// Copy-constructor will copy only the essential parts
+GenericReader::GenericReader(const GenericReader& g) {
+  // Input parameters
+  nthreads         = g.nthreads;
+  verbose          = g.verbose;
+  sep              = g.sep;
+  dec              = g.dec;
+  quote            = g.quote;
+  max_nrows        = g.max_nrows;
+  skip_to_line     = 0;  // this parameter was already applied
+  skip_to_string   = nullptr;
+  na_strings       = g.na_strings;
+  header           = g.header;
+  strip_whitespace = g.strip_whitespace;
+  skip_blank_lines = g.skip_blank_lines;
+  report_progress  = g.report_progress;
+  fill             = g.fill;
+  blank_is_na      = g.blank_is_na;
+  number_is_na     = g.number_is_na;
+  // Runtime parameters
+  mbuf    = g.mbuf? g.mbuf->shallowcopy() : nullptr;
+  offset  = g.offset;
+  offend  = g.offend;
+  line    = g.line;
+  logger  = g.logger;   // for verbose messages / warnings
+  freader = g.freader;  // for progress function / override columns
 }
 
 GenericReader::~GenericReader() {
@@ -87,9 +113,12 @@ void GenericReader::init_fill() {
 
 void GenericReader::init_maxnrows() {
   int64_t n = freader.attr("max_nrows").as_int64();
-  max_nrows = (n < 0)? LONG_MAX : n;
-  if (n >= 0) trace("max_nrows=%lld", static_cast<long long>(n));
-  if (n >= 0) trace("max_nrows=%lld", static_cast<long long>(n));
+  if (n < 0) {
+    max_nrows = std::numeric_limits<size_t>::max();
+  } else {
+    max_nrows = static_cast<size_t>(n);
+    trace("max_nrows = %lld", static_cast<long long>(n));
+  }
 }
 
 void GenericReader::init_skiptoline() {
@@ -155,8 +184,8 @@ void GenericReader::init_quote() {
 }
 
 void GenericReader::init_showprogress() {
-  show_progress = freader.attr("show_progress").as_bool();
-  if (show_progress) trace("show_progress = True");
+  report_progress = freader.attr("show_progress").as_bool();
+  if (report_progress) trace("show_progress = True");
 }
 
 void GenericReader::init_header() {
@@ -215,18 +244,18 @@ void GenericReader::init_nastrings() {
 
 void GenericReader::init_skipstring() {
   skipstring_arg = freader.attr("skip_to_string");
-  skip_string = skipstring_arg.as_cstring();
-  if (skip_string && skip_string[0]=='\0') skip_string = nullptr;
-  if (skip_string && skip_to_line) {
+  skip_to_string = skipstring_arg.as_cstring();
+  if (skip_to_string && skip_to_string[0]=='\0') skip_to_string = nullptr;
+  if (skip_to_string && skip_to_line) {
     throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
                        << "cannot be provided simultaneously";
   }
-  if (skip_string) trace("skip_to_string = \"%s\"", skip_string);
+  if (skip_to_string) trace("skip_to_string = \"%s\"", skip_to_string);
 }
 
 void GenericReader::init_stripwhite() {
-  strip_white = freader.attr("strip_white").as_bool();
-  trace("strip_whitespace = %s", strip_white? "True" : "False");
+  strip_whitespace = freader.attr("strip_whitespace").as_bool();
+  trace("strip_whitespace = %s", strip_whitespace? "True" : "False");
 }
 
 void GenericReader::init_skipblanklines() {
@@ -385,13 +414,13 @@ void GenericReader::detect_and_skip_bom() {
 
 /**
  * Skip all initial whitespace in the file (i.e. empty lines and spaces).
- * However if `strip_white` is false, then we want to remove empty lines only,
- * leaving the initial spaces on the last line.
+ * However if `strip_whitespace` is false, then we want to remove empty lines
+ * only, leaving the initial spaces on the last line.
  *
  * This function modifies `offset` so that it points to: (1) the first
- * non-whitespace character in the file, if strip_white is true; or (2) the
+ * non-whitespace character in the file, if strip_whitespace is true; or (2) the
  * first character on the first line that contains any non-whitespace
- * characters, if strip_white is false.
+ * characters, if strip_whitespace is false.
  *
  * Example
  * -------
@@ -399,9 +428,9 @@ void GenericReader::detect_and_skip_bom() {
  *
  *     _ _ _ _ ␤ _ ⇥ _ H e l l o …
  *
- * If strip_white=true, then this function will move the offset to character H;
- * whereas if strip_white=false, this function will move the offset to the
- * first space after '␤'.
+ * If strip_whitespace=true, then this function will move the offset to
+ * character H; whereas if strip_whitespace=false, this function will move the
+ * offset to the first space after '␤'.
  */
 void GenericReader::skip_initial_whitespace() {
   const char* sof = dataptr();         // start-of-file
@@ -412,7 +441,7 @@ void GenericReader::skip_initial_whitespace() {
          (*ch==' ' || *ch=='\n' || *ch=='\r' || *ch=='\t')) {
     ch++;
   }
-  if (!strip_white) {
+  if (!strip_whitespace) {
     ch--;
     while (ch >= sof && (*ch==' ' || *ch=='\t')) ch--;
     ch++;
@@ -467,7 +496,7 @@ void GenericReader::skip_to_line_number() {
 
 
 void GenericReader::skip_to_line_with_string() {
-  const char* const ss = skip_string;
+  const char* const ss = skip_to_string;
   if (!ss) return;
   const char* sof = dataptr();
   const char* eof = sof + datasize();
@@ -480,7 +509,7 @@ void GenericReader::skip_to_line_with_string() {
       if (ss[d] == '\0') {
         if (line_start > sof) {
           offset += static_cast<size_t>(line_start - sof);
-          trace("Skipped to line %zd containing skip_string = \"%s\"",
+          trace("Skipped to line %zd containing skip_to_string = \"%s\"",
                 line, ss);
         }
         return;
@@ -496,7 +525,7 @@ void GenericReader::skip_to_line_with_string() {
       ch++;
     }
   }
-  throw ValueError() << "skip_string = \"" << skip_string << "\" was not found "
+  throw ValueError() << "skip_to_string = \"" << skip_to_string << "\" was not found "
                      << "in the input";
 }
 

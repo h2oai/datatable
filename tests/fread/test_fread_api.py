@@ -539,19 +539,19 @@ def test_fread_skip_blank_lines_false():
 
 
 #-------------------------------------------------------------------------------
-# `strip_white`
+# `strip_whitespace`
 #-------------------------------------------------------------------------------
 
-def test_fread_strip_white():
+def test_fread_strip_whitespace():
     inp = ("A,B\n"
            "1,  c  \n"
            "3, d\n")
-    d0 = dt.fread(text=inp, strip_white=True)
+    d0 = dt.fread(text=inp, strip_whitespace=True)
     assert d0.internal.check()
     assert d0.shape == (2, 2)
     assert d0.ltypes == (ltype.int, ltype.str)
     assert d0.topython() == [[1, 3], ["c", "d"]]
-    d1 = dt.fread(text=inp, strip_white=False)
+    d1 = dt.fread(text=inp, strip_whitespace=False)
     assert d1.internal.check()
     assert d1.shape == (2, 2)
     assert d1.ltypes == (ltype.int, ltype.str)
@@ -671,7 +671,7 @@ def test_fread_skip_to_string():
 def test_skip_to_string_bad():
     with pytest.raises(Exception) as e:
         dt.fread("A,B\n1,2", skip_to_string="bazinga!")
-    assert 'skip_string = "bazinga!" was not found in the input' in str(e)
+    assert 'skip_to_string = "bazinga!" was not found in the input' in str(e)
 
 
 

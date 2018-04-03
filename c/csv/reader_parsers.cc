@@ -510,7 +510,7 @@ void parse_string(FreadTokenizer& ctx) {
 
   // need to skip_white first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
-  if (*ch==' ' && ctx.stripWhite) while(*++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+  if (*ch==' ' && ctx.strip_whitespace) while(*++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
   const char* fieldStart = ch;
   if (*ch!=quote || ctx.quoteRule==3) {
     // Most common case: unambiguously not quoted. Simply search for sep|eol.
@@ -531,11 +531,11 @@ void parse_string(FreadTokenizer& ctx) {
     }
     ctx.ch = ch;
     int fieldLen = (int)(ch-fieldStart);
-    if (ctx.stripWhite) {   // TODO:  do this if and the next one together once in bulk afterwards before push
+    if (ctx.strip_whitespace) {   // TODO:  do this if and the next one together once in bulk afterwards before push
       while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
       // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
     }
-    if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_a_NAstring) {
+    if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_na) {
       // TODO - speed up by avoiding end_NA_string when there are none
       ctx.target->str32.setna();
     } else {
@@ -613,7 +613,7 @@ void parse_string(FreadTokenizer& ctx) {
         ctx.target->str32.length++;
       }
     }
-    if (ctx.stripWhite) {  // see test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
+    if (ctx.strip_whitespace) {  // see test 1551.6; trailing whitespace in field [67,V37] == "\"\"A\"\" ST       "
       while (ctx.target->str32.length>0 && ch[-1]==' ') {
         ctx.target->str32.length--;
         ch--;
