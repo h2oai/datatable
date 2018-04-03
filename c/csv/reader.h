@@ -285,7 +285,7 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
  *
  * An input column usually translates into an output column in a DataTable
  * returned to the user. The exception to this are "dropped" columns. They are
- * marked with `presentInOutput = false` flag (and have type CT_DROP).
+ * marked with `presentInOutput = false` flag (and have type PT::Drop).
  *
  * Implemented in "csv/reader_utils.cc".
  */
@@ -307,8 +307,10 @@ class GReaderColumn {
     GReaderColumn(const GReaderColumn&) = delete;
     GReaderColumn(GReaderColumn&&);
     virtual ~GReaderColumn();
+    const char* typeName() const;
     size_t elemsize() const;
     size_t getAllocSize() const;
+    bool isstring() const;
     void* data() const { return mbuf->get(); }
     void allocate(size_t nrows);
     MemoryBuffer* extract_databuf();

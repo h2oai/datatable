@@ -23,12 +23,6 @@
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
-const char typeSymbols[NUMTYPE]  = {'x',    'b',     'b',     'b',     'b',     'i',     'I',     'h',       'd',       'D',       'H',       's'};
-const char typeName[NUMTYPE][10] = {"drop", "bool8", "bool8", "bool8", "bool8", "int32", "int64", "float32", "float64", "float64", "float64", "string"};
-int8_t     typeSize[NUMTYPE]     = { 0,      1,      1,        1,       1,       4,       8,      4,         8,         8,         8,         4       };
-
-
-
 /**
  * Helper for error and warning messages to extract an input line starting at
  * `*ch` and until an end of line, but no longer than `limit` characters.
@@ -47,30 +41,6 @@ const char* strlim(const char* ch, size_t limit) {
   *ch2 = '\0';
   return ptr;
 }
-
-
-// In order to add a new type:
-//   - register new parser in this `parsers` array
-//   - add entries in arrays `typeName` / `typeSize` / `typeSymbols` at the top of this file
-//   - add entry in array `colType` in "fread.h" and increase NUMTYPE
-//   - add record in array `colType_to_stype` in "reader_fread.cc"
-//   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
-//   - update `test_fread_fillna1` in test_fread.py to include the new column type
-//
-static ParserFnPtr parsers[NUMTYPE] = {
-  parse_string,   // CT_DROP
-  parse_bool8_numeric,
-  parse_bool8_uppercase,
-  parse_bool8_titlecase,
-  parse_bool8_lowercase,
-  parse_int32_simple,
-  parse_int64_simple,
-  parse_float32_hex,
-  parse_float64_simple,
-  parse_float64_extended,
-  parse_float64_hex,
-  parse_string
-};
 
 
 typedef std::unique_ptr<LocalParseContext>LPCPtr;
@@ -136,7 +106,7 @@ class FreadChunkedReader {
       size_t nchunks = chunkster->get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
       size_t tcols = rowSize / 8;
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, reader, types, parsers,
+      return FLPCPtr(new FreadLocalParseContext(tcols, trows, reader, types,
         typeBumpMsg, typeBumpMsgSize, stopErr, stopErrSize, fill));
     }
 
@@ -342,7 +312,7 @@ DataTablePtr FreadReader::read()
   bool fill = g.fill;
   dec = g.dec;
   quote = g.quote;
-  int header = g.header;
+  int8_t header = g.header;
 
   size_t fileSize = g.datasize();
   const char* sof = g.dataptr();
@@ -350,6 +320,8 @@ DataTablePtr FreadReader::read()
   // TODO: Do not require the extra byte, and do not write into the input stream...
   ASSERT(g.extra_byte_accessible() && fileSize > 0);
   *const_cast<char*>(eof) = '\0';
+
+  const ParserFnPtr* parsers = parserlib.get_parser_fns();
 
   // Convenience variable for iterating over the file.
   const char* ch = NULL;
@@ -605,14 +577,14 @@ DataTablePtr FreadReader::read()
       tch = (j == 0) ? sof :
             (j == nChunks-1) ? eof - (size_t)(0.5*jump0size) :
                               sof + j * (sz/(nChunks-1));
-      if (tch < lastRowEnd) tch = lastRowEnd;  // Overlap when apx 1,200 lines (just over 11*100) with short lines at the beginning and longer lines near the end, #2157
+      if (tch < lastRowEnd) tch = lastRowEnd;
       // Skip any potential newlines, in case we jumped in the middle of one.
       // In particular, it could be problematic if the file had '\n\r' newlines
       // and we jumped onto the second '\r' (which wouldn't be considered a
       // newline by `skip_eol()`s rules, which would then become a part of the
       // following field).
       while (*tch == '\n' || *tch == '\r') tch++;
-      if (tch >= eof) break;                  // The 9th jump could reach the end in the same situation and that's ok. As long as the end is sampled is what we want.
+      if (tch >= eof) break;
       if (j > 0) {
         ChunkCoordinates cc(tch, eof);
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
@@ -647,18 +619,19 @@ DataTablePtr FreadReader::read()
           bool thisColumnNameWasString = false;
           if (firstDataRowAfterPotentialColumnNames) {
             // 2nd non-blank row is being read now.
-            // 1st row's type is remembered and compared (a little lower down) to second row to decide if 1st row is column names or not
-            thisColumnNameWasString = (columns[field].type == CT_STRING);
+            // 1st row's type is remembered and compared (a little lower down)
+            // to second row to decide if 1st row is column names or not
+            thisColumnNameWasString = columns[field].isstring();
             columns[field].type = type0;  // re-initialize for 2nd row onwards
           }
-          while (columns[field].type <= CT_STRING) {
+          while (true) {
             parsers[columns[field].type](fctx);
             fctx.skip_white();
             if (fctx.end_of_field()) break;
             tch = fctx.end_NA_string(fieldStart);
             fctx.skip_white();
             if (fctx.end_of_field()) break;
-            if (columns[field].type<CT_STRING) {
+            if (!columns[field].isstring()) {
               tch = fieldStart;
               if (*tch==quote) {
                 tch++;
@@ -683,10 +656,10 @@ DataTablePtr FreadReader::read()
             bumped = true;
             tch = fieldStart;
           }
-          if (header==NA_BOOL8 && thisColumnNameWasString && columns[field].type < CT_STRING) {
+          if (ISNA<int8_t>(header) && thisColumnNameWasString && !columns[field].isstring()) {
             header = true;
             g.trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2",
-                    field + 1, typeName[columns[field].type]);
+                    field + 1, columns[field].typeName());
           }
           if (*tch!=sep || *tch=='\n' || *tch=='\r') break;
           if (sep==' ') {
@@ -708,7 +681,8 @@ DataTablePtr FreadReader::read()
                "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
                jline, strlim(jlineStart,10), ncols, *tch, (int)(tch-jlineStart+1), (int)(tch-fieldStart+1), strlim(fieldStart,200));
           }
-          g.trace("  Not using sample from jump %d. Looks like a complicated file where nextGoodLine could not establish the true line start.", j);
+          g.trace("  Not using sample from jump %d. Looks like a complicated file where "
+                  "nextGoodLine could not establish the true line start.", j);
           skip = true;
           break;
         }
@@ -756,10 +730,10 @@ DataTablePtr FreadReader::read()
     meanLineLen = 0;
     bytesRead = 0;
 
-    if (header == NA_BOOL8) {
+    if (ISNA<int8_t>(header)) {
       header = true;
       for (size_t j = 0; j < ncols; j++) {
-        if (columns[j].type < CT_STRING) {
+        if (!columns[j].isstring()) {
           header = false;
           break;
         }
@@ -856,7 +830,7 @@ DataTablePtr FreadReader::read()
     rowSize = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
-      if (col.type == CT_DROP) {
+      if (col.type == static_cast<int8_t>(PT::Drop)) {
         ndropped++;
         col.presentInOutput = false;
         col.presentInBuffer = false;
@@ -867,7 +841,7 @@ DataTablePtr FreadReader::read()
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
                "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-               i+1, col.name.data(), typeName[oldtypes[i]], typeName[col.type]);
+               i+1, col.name.data(), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
         }
         nUserBumped += (col.type != oldtypes[i]);
       }
@@ -902,7 +876,7 @@ DataTablePtr FreadReader::read()
   double thPush = 0.0;  // reductions of timings within the parallel region
   char* typeBumpMsg = NULL;
   size_t typeBumpMsgSize = 0;
-  int typeCounts[NUMTYPE];  // used for verbose output; needs populating after first read and before reread (if any) -- see later comment
+  int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
   #define stopErrSize 1000
   char stopErr[stopErrSize+1] = "";  // must be compile time size: the message is generated and we can't free before STOP
   size_t row0 = 0;   // the current row number in DT that we are writing to
@@ -924,7 +898,6 @@ DataTablePtr FreadReader::read()
   //         jump0, nChunks, chunkBytes, lastRowEnd-sof, nth);
   ASSERT(allocnrow <= nrowLimit);
   if (sep == '\n') sep = '\xFF';
-
 
   {
     FreadChunkedReader scr(g.show_progress, verbose, fill,
@@ -975,9 +948,7 @@ DataTablePtr FreadReader::read()
     tReread = tRead = wallclock();
     size_t ncols = columns.size();
 
-    // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
-    // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
-    for (int i = 0; i < NUMTYPE; i++) typeCounts[i] = 0;
+    for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
     for (size_t i = 0; i < ncols; i++) {
       typeCounts[columns[i].type]++;
     }
@@ -993,7 +964,7 @@ DataTablePtr FreadReader::read()
           col.presentInBuffer = true;
           rowSize += 8;
         } else {
-          types[j] = CT_DROP;
+          types[j] = static_cast<int8_t>(PT::Drop);
           col.presentInBuffer = false;
         }
       }
@@ -1002,8 +973,8 @@ DataTablePtr FreadReader::read()
       // reread from the beginning
       row0 = 0;
       firstTime = false;
-      nTypeBump = 0;   // for test 1328.1. Otherwise the last field would get shifted forwards again.
-      jump0 = 0;       // for #2486
+      nTypeBump = 0;
+      jump0 = 0;
       goto read;
     }
   } else {

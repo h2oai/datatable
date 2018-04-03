@@ -11,18 +11,12 @@
 #include "utils/assert.h"
 
 
-// forward declaration
-class LocalParseContext;
-class FreadReader;
-struct FreadTokenizer;
-
-
 //------------------------------------------------------------------------------
 // ChunkCoordinates struct
 //------------------------------------------------------------------------------
 
 /**
- * Helper struct containing the beginning + the end for a chunk.
+ * Helper struct containing the beginning / the end for a chunk.
  *
  * Additional flags `true_start` and `true_end` indicate whether the beginning /
  * end of the chunk are known with certainty or guessed.
@@ -54,6 +48,7 @@ struct ChunkCoordinates {
 //------------------------------------------------------------------------------
 // Base ChunkOrganizer
 //------------------------------------------------------------------------------
+class LocalParseContext;
 
 /**
  * Helper class whose responsibility is to determine how the input should be
@@ -143,6 +138,9 @@ typedef std::unique_ptr<ChunkOrganizer> ChunkOrganizerPtr;
 //------------------------------------------------------------------------------
 // Fread ChunkOrganizer
 //------------------------------------------------------------------------------
+class FreadReader;
+struct FreadTokenizer;
+
 
 class FreadChunkOrganizer : public ChunkOrganizer {
   private:

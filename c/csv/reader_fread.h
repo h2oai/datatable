@@ -11,6 +11,7 @@
 #include <vector>        // std::vector
 #include "csv/fread.h"
 #include "csv/reader.h"
+#include "csv/reader_parsers.h"
 #include "csv/py_csv.h"
 #include "memorybuf.h"
 
@@ -42,6 +43,7 @@ class FreadReader
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
+  ParserLibrary parserlib;
   GReaderColumns columns;
   char* targetdir;
   const char* eof;
@@ -131,7 +133,7 @@ class FreadLocalParseContext : public LocalParseContext
     GReaderColumns& columns;
     std::vector<StrBuf> strbufs;
     FreadTokenizer tokenizer;
-    ParserFnPtr* parsers;
+    const ParserFnPtr* parsers;
 
     char*& typeBumpMsg;
     size_t& typeBumpMsgSize;
@@ -140,7 +142,7 @@ class FreadLocalParseContext : public LocalParseContext
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
-                           ParserFnPtr* parsers, char*& typeBumpMsg,
+                           char*& typeBumpMsg,
                            size_t& typeBumpMsgSize, char*& stopErr,
                            size_t& stopErrSize, bool fill);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
