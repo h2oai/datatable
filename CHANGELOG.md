@@ -16,11 +16,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - New Frame method `.materialize()` to convert a view Frame into a "real" one.
   This method is noop if applied to a non-view Frame.
 - Several internal options to fine-tune the performance of sorting algorithm.
+- Significantly improved performance of sorting doubles.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"
   values into `None`s.
-- Significantly improved performance of sorting doubles.
+- Renamed fread's parameter `strip_white` into `strip_whitespace`.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file

@@ -56,10 +56,10 @@ struct FreadTokenizer {
   int8_t quoteRule;
 
   // Should white space be removed?
-  bool stripWhite;
+  bool strip_whitespace;
 
   // Do we consider blank as NA string?
-  bool blank_is_a_NAstring;
+  bool blank_is_na;
 
   bool LFpresent;
 

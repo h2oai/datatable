@@ -62,7 +62,7 @@ def fread(
         skip_to_string: str = None,
         skip_to_line: int = None,
         skip_blank_lines: bool = False,
-        strip_white: bool = True,
+        strip_whitespace: bool = True,
         quotechar: Optional[str] = '"',
         save_to: str = None,
         nthreads: int = None,
@@ -86,7 +86,7 @@ class GenericReader(object):
                  fill=False, show_progress=None, encoding=None, dec=".",
                  skip_to_string=None, skip_to_line=None, save_to=None,
                  nthreads=None, logger=None, skip_blank_lines=True,
-                 strip_white=True, quotechar='"', **args):
+                 strip_whitespace=True, quotechar='"', **args):
         self._src = None            # type: str
         self._file = None           # type: str
         self._files = None          # type: List[str]
@@ -107,7 +107,7 @@ class GenericReader(object):
         self._skip_to_line = None
         self._skip_blank_lines = True
         self._skip_to_string = None
-        self._strip_white = True
+        self._strip_whitespace = True
         self._columns = None
         self._save_to = save_to
         self._nthreads = nthreads
@@ -138,7 +138,7 @@ class GenericReader(object):
         self.skip_to_string = skip_to_string
         self.skip_to_line = skip_to_line
         self.skip_blank_lines = skip_blank_lines
-        self.strip_white = strip_white
+        self.strip_whitespace = strip_whitespace
         self.quotechar = quotechar
 
         if "separator" in args:
@@ -591,13 +591,13 @@ class GenericReader(object):
 
 
     @property
-    def strip_white(self) -> bool:
-        return self._strip_white
+    def strip_whitespace(self) -> bool:
+        return self._strip_whitespace
 
-    @strip_white.setter
+    @strip_whitespace.setter
     @typed()
-    def strip_white(self, v: bool):
-        self._strip_white = v
+    def strip_whitespace(self, v: bool):
+        self._strip_whitespace = v
 
 
     @property
