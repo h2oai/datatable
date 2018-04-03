@@ -1,0 +1,157 @@
+#!/usr/bin/groovy
+//------------------------------------------------------------------------------
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//------------------------------------------------------------------------------
+@Library('test-shared-library') _
+
+import ai.h2o.ci.Utils
+def utilsLib = new Utils()
+
+// Default mapping
+def platformDefaults = [
+        env      : [],
+        pythonBin: 'python',
+        enabled  : true,
+        build    : 'ci/default.groovy',
+        test     : 'ci/default.groovy',
+        coverage : 'ci/default.groovy',
+    ]
+
+// Build platforms parameters
+def BUILD_MATRIX = [
+    // Linux build definition
+    // OSX
+    // PowerPC 64bit little-endian
+    ppc64le_linux : platformDefaults
+]
+
+// Computed version suffix
+def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
+
+// Global project build trigger filled in init stage
+def project
+
+// Needs invocation of larger tests
+def needsLargerTest
+
+// Paths should be absolute
+def sourceDir = "/home/0xdiag"
+def targetDir = "/tmp/pydatatable_large_data"
+
+// Data map for linking into container
+def linkMap = [
+        "Data"      : "h2oai-benchmarks/Data",
+        "smalldata" : "h2o-3/smalldata",
+        "bigdata"   : "h2o-3/bigdata",
+        "fread"     : "h2o-3/fread",
+    ]
+
+def dockerArgs = createDockerArgs(linkMap, sourceDir, targetDir)
+
+pipeline {
+    agent none
+
+    // Setup job options
+    options {
+        ansiColor('xterm')
+        timestamps()
+        timeout(time: 60, unit: 'MINUTES')
+        buildDiscarder(logRotator(daysToKeepStr: '30'))
+    }
+
+
+    stages {
+        stage('Init') {
+            agent { label 'linux' }
+            steps {
+                script {
+                    buildInfo(env.BRANCH_NAME, false)
+                    project = load 'ci/default.groovy'
+                    needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
+                    if (needsLargerTest) {
+                        manager.addBadge("warning.gif", "Large tests required")
+                    }
+                }
+            }
+        }
+        stage('Build') {
+            parallel {
+                stage('Build on ppc64le-centos7') {
+                     agent {
+                         label "ibm-power"
+                     }
+                     steps {
+                         dumpInfo 'ppc64le-centos7 Build Info'
+                         script {
+                             sh """
+                                 make mrproper_in_docker
+                                 make BRANCH_NAME=${env.BRANCH_NAME} BUILD_NUM=${env.BUILD_ID} centos7_in_docker
+                             """
+                         }
+                         stash includes: 'dist/**/*', name: 'ppc64le-centos7'
+                     }
+                 }
+            }
+        }
+
+        stage('Publish centos7 snapshot to S3') {
+            when {
+                branch 'master'
+            }
+            agent {
+                label "linux && docker"
+            }
+            steps {
+                sh "make mrproper"
+                unstash 'ppc64le-centos7'
+                sh 'echo "Stashed files:" && find dist'
+                script {
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                        docker.image('s3cmd').inside {
+                            def versionText = utilsLib.getCommandOutput("cat dist/ppc64le-centos7/VERSION.txt")
+                            s3up {
+                                localArtifact = 'dist/*'
+                                artifactId = "pydatatable"
+                                version = versionText
+                                keepPrivate = false
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+def isModified(pattern) {
+    def fList = buildInfo.get().getChangedFiles().join('\n')
+    out = sh(script: "echo '${fList}' | xargs basename | egrep -e '${pattern}' | wc -l", returnStdout: true).trim()
+    return !(out.isEmpty() || out == "0")
+}
+
+
+def createDockerArgs(linkMap, sourceDir, targetDir) {
+    def out = ""
+    linkMap.each { key, value ->
+        out += "-v ${sourceDir}/${key}:${targetDir}/${value} "
+    }
+    return out
+}
+
+def linkFolders(sourceDir, targetDir) {
+    sh """
+        mkdir ${targetDir} || true
+
+        mkdir ${targetDir}/h2oai-benchmarks || true
+        ln -sf ${sourceDir}/Data ${targetDir}/h2oai-benchmarks
+
+        mkdir ${targetDir}/h2o-3 || true
+        ln -sf ${sourceDir}/smalldata ${targetDir}/h2o-3
+        ln -sf ${sourceDir}/bigdata ${targetDir}/h2o-3
+        ln -sf ${sourceDir}/fread ${targetDir}/h2o-3
+        find ${targetDir}
+    """
+}
+
