@@ -22,7 +22,7 @@ def EXPECTED_SHAS = [
         images: [
                 (X86_64_LINUX_DOCKER_IMAGE): 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:0e09d9145fc1ae14ae29acebacd9d5dc17e5d7b913234eb291909982749abf24',
                 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7': 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:123d142f8e27feb9a0e3cde7e2e7fcf2587c74259f226c73f9c89ce21cd60026',
-                /*'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'e0d49e7a7e0e'*/
+                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'e0d49e7a7e0e'
         ]
 ]
 
@@ -40,13 +40,13 @@ def centosDefaults = [
         pullImage: true
 ]
 
-/*def PPC64LE_PLATFORM = 'ppc64le_linux'
+def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node: 'ibm-power',
         coverage: false,
         pullImage: false,
         dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
-]*/
+]
 
 // Build platforms parameters
 def BUILD_MATRIX = [
@@ -292,8 +292,8 @@ def getVenvActivationCmd(final platform, final venvName) {
             return ". activate ${venvName}"
         case 'x86_64_macos':
             return ". /Users/jenkins/anaconda/bin/activate ${venvName}"
-        /*case 'ppc64le_linux':
-            return ". activate ${venvName}"*/
+        case 'ppc64le_linux':
+            return ". activate ${venvName}"
     }
 }
 def isPrJob() {
