@@ -8,6 +8,7 @@
 #include "rowindex.h"
 #include <algorithm>           // std::swap, std::move
 #include "datatable_check.h"   // IntegrityCheckContext
+#include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 
 
@@ -113,7 +114,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(RowIndexImpl* rii) {
 
 
 RowIndexImpl* SliceRowIndexImpl::inverse(int64_t nrows) const {
-  assert(nrows >= length);
+  xassert(nrows >= length);
   int64_t newcount = nrows - length;
   int64_t tstart = start;
   int64_t tcount = length;
@@ -161,7 +162,7 @@ RowIndexImpl* SliceRowIndexImpl::inverse(int64_t nrows) const {
         indices[j++] = i;
       }
     }
-    assert(j == znewcount);
+    xassert(j == znewcount);
     return new ArrayRowIndexImpl(std::move(indices), true);
   } else {
     arr64_t indices(znewcount);
@@ -176,7 +177,7 @@ RowIndexImpl* SliceRowIndexImpl::inverse(int64_t nrows) const {
         indices[j++] = i;
       }
     }
-    assert(j == znewcount);
+    xassert(j == znewcount);
     return new ArrayRowIndexImpl(std::move(indices), true);
   }
 }

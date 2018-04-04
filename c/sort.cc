@@ -360,7 +360,7 @@ class SortContext {
   template <typename T, typename TU>
   void _initI(const Column* col) {
     auto icol = static_cast<const IntColumn<T>*>(col);
-    assert(sizeof(T) == sizeof(TU));
+    xassert(sizeof(T) == sizeof(TU));
     T min = icol->min();
     T max = icol->max();
     nsigbits = sizeof(T) * 8;
@@ -632,22 +632,22 @@ class SortContext {
     } else {
       switch (elemsize) {
         case 8:
-          assert(next_elemsize == 8 || next_elemsize == 4);
+          xassert(next_elemsize == 8 || next_elemsize == 4);
           if (next_elemsize == 8) _reorder_impl<uint64_t, uint64_t, true>();
           if (next_elemsize == 4) _reorder_impl<uint64_t, uint32_t, true>();
           break;
         case 4:
-          assert(next_elemsize == 4 || next_elemsize == 2);
+          xassert(next_elemsize == 4 || next_elemsize == 2);
           if (next_elemsize == 4) _reorder_impl<uint32_t, uint32_t, true>();
           if (next_elemsize == 2) _reorder_impl<uint32_t, uint16_t, true>();
           break;
         case 2:
-          assert(next_elemsize == 2 || next_elemsize == 0);
+          xassert(next_elemsize == 2 || next_elemsize == 0);
           if (next_elemsize == 2) _reorder_impl<uint16_t, uint16_t, true>();
           if (next_elemsize == 0) _reorder_impl<uint16_t, uint8_t, false>();
           break;
         case 1:
-          assert(next_elemsize == 0);
+          xassert(next_elemsize == 0);
           _reorder_impl<uint8_t, uint8_t, false>();
           break;
       }
@@ -673,14 +673,14 @@ class SortContext {
       size_t* tcounts = histogram + (nradixes * i);
       for (size_t j = j0; j < j1; ++j) {
         size_t k = tcounts[xi[j] >> shift]++;
-        assert(k < n);
+        xassert(k < n);
         next_o[k] = use_order? o[j] : static_cast<int32_t>(j);
         if (OUT) {
           xo[k] = static_cast<TO>(xi[j] & mask);
         }
       }
     }
-    assert(histogram[nchunks * nradixes - 1] == n);
+    xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
   void _reorder_str() {
@@ -697,7 +697,7 @@ class SortContext {
       size_t* tcounts = histogram + (nradixes * i);
       for (size_t j = j0; j < j1; ++j) {
         size_t k = tcounts[xi[j]]++;
-        assert(k < n);
+        xassert(k < n);
         int32_t w = use_order? o[j] : static_cast<int32_t>(j);
         int32_t offend = stroffs[w];
         int32_t offstart = std::abs(stroffs[w - 1]) + ss;
@@ -708,7 +708,7 @@ class SortContext {
       }
     }
     next_elemsize = maxlen > 0;
-    assert(histogram[nchunks * nradixes - 1] == n);
+    xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
 
@@ -806,7 +806,7 @@ class SortContext {
     for (size_t i = 0; i < nradixes; i++) {
       size_t start = i? rrendoffsets[i-1] : 0;
       size_t end = rrendoffsets[i];
-      assert(start <= end);
+      xassert(start <= end);
       rrmap[i].size   = end - start;
       rrmap[i].offset = start;
     }
@@ -833,7 +833,7 @@ class SortContext {
     size_t size0 = 0;
     size_t nsmallgroups = 0;
     size_t rrlarge = config::sort_insert_method_threshold;  // for now
-    assert(GROUPED > rrlarge);
+    xassert(GROUPED > rrlarge);
 
     strstart = _strstart + 1;
     nsigbits = strdata? 8 : shift;

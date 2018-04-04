@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - When creating a column of "object" type, we will now coerce float "nan"
   values into `None`s.
 - Renamed fread's parameter `strip_white` into `strip_whitespace`.
+- Eliminated all `assert()` statements from C code, and replaced them with
+  exception throws.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file

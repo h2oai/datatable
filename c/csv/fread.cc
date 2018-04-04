@@ -18,6 +18,7 @@
 #include <cmath>       // std::sqrt, std::ceil
 #include <cstdio>      // std::snprintf
 #include <string>      // std::string
+#include "utils/assert.h"
 #include "utils/shared_mutex.h"
 
 
@@ -90,7 +91,7 @@ class FreadChunkedReader {
       row0 = 0;
       thRead = 0.0;
       thPush = 0.0;
-      ASSERT(allocnrow <= max_nrows);
+      xassert(allocnrow <= max_nrows);
     }
     ~FreadChunkedReader() {}
 
@@ -280,7 +281,7 @@ class FreadChunkedReader {
       if (stopTeam && stopErr[0]!='\0') {
         STOP(stopErr);
       }
-      ASSERT(row0 <= allocnrow || max_nrows <= allocnrow);
+      xassert(row0 <= allocnrow || max_nrows <= allocnrow);
       if (extraAllocRows) {
         allocnrow += extraAllocRows;
         if (allocnrow > max_nrows) allocnrow = max_nrows;
@@ -446,7 +447,7 @@ DataTablePtr FreadReader::read()
         }
       }
     }
-    ASSERT(firstJumpEnd);
+    xassert(firstJumpEnd);
     quoteRule = ctx.quoteRule = topQuoteRule;
     sep = ctx.sep = topSep;
     whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
@@ -478,7 +479,7 @@ DataTablePtr FreadReader::read()
         }
       }
     }
-    ASSERT(ncols >= 1 && line >= 1);
+    xassert(ncols >= 1 && line >= 1);
 
     // Create vector of Column objects
     columns.reserve(static_cast<size_t>(ncols));
@@ -490,7 +491,7 @@ DataTablePtr FreadReader::read()
     tch = sof;
     int tt = ctx.countfields();
     tch = sof;  // move back to start of line since countfields() moved to next
-    ASSERT(fill || tt == ncols);
+    xassert(fill || tt == ncols);
     if (verbose) {
       trace("  Detected %d columns on line %d. This line is either column "
             "names or first data row. Line starts as: \"%s\"",
@@ -503,8 +504,8 @@ DataTablePtr FreadReader::read()
     if (prevStart) {
       tch = prevStart;
       int ttt = ctx.countfields();
-      ASSERT(ttt != ncols);
-      ASSERT(tch==sof);
+      xassert(ttt != ncols);
+      xassert(tch==sof);
       if (ttt > 1) {
         warn("Starting data input on line %d <<%s>> with %d fields and discarding "
              "line %d <<%s>> before it because it has a different number of fields (%d).",
@@ -639,7 +640,7 @@ DataTablePtr FreadReader::read()
             } else {
               // the field could not be read with this quote rule, try again with next one
               // Trying the next rule will only be successful if the number of fields is consistent with it
-              ASSERT(quoteRule < 3);
+              xassert(quoteRule < 3);
               if (verbose)
                 trace("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
                       quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart,200));
@@ -663,7 +664,7 @@ DataTablePtr FreadReader::read()
         }
         bool eol_found = fctx.skip_eol();
         if (field < ncols-1 && !fill) {
-          ASSERT(tch==eof || eol_found);
+          xassert(tch==eof || eol_found);
           STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
                "Expecting %d fields but found %d: \"%s\"", jline, ncols, field+1, strlim(jlineStart, 200));
         }
@@ -693,7 +694,7 @@ DataTablePtr FreadReader::read()
 
         lastRowEnd = tch;
         int thisLineLen = (int)(tch-jlineStart);  // tch is now on start of next line so this includes EOLLEN already
-        ASSERT(thisLineLen >= 0);
+        xassert(thisLineLen >= 0);
         sampleLines++;
         sumLen += thisLineLen;
         sumLenSq += thisLineLen*thisLineLen;
@@ -776,7 +777,7 @@ DataTablePtr FreadReader::read()
         estnrow = allocnrow = sampleLines;
         trace("All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
       } else {
-        ASSERT(sampleLines <= allocnrow);
+        xassert(sampleLines <= allocnrow);
       }
       if (max_nrows < allocnrow) {
         trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
@@ -877,8 +878,7 @@ DataTablePtr FreadReader::read()
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
     trace("[11] Read the data");
-    FreadChunkedReader scr(*this, rowSize, lastRowEnd,
-                           typeBumpMsg, typeBumpMsgSize, types);
+    FreadChunkedReader scr(*this, rowSize, lastRowEnd, typeBumpMsg, typeBumpMsgSize, types);
     scr.read_all();
     thRead += scr.thRead;
     thPush += scr.thPush;

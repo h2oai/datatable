@@ -102,16 +102,6 @@ void _dt_err_v(const char *format, ...)
 }
 
 
-__attribute__ ((format(printf, 1, 2)))
-void _dt_err_a(const char *format, ...)
-{
-    va_list vargs;
-    va_start(vargs, format);
-    PyErr_FormatV(PyExc_AssertionError, format, vargs);
-    va_end(vargs);
-}
-
-
 void log_call(const char* msg) {
   if (!config::logger) return;
   PyObject_CallMethod(config::logger, "info", "s", msg);

@@ -640,7 +640,7 @@ void ParserLibrary::init_parsers() {
   auto add = [&](PT pt, const char* name, char code, int8_t sz, SType st,
                  ParserFnPtr ptr) {
     size_t iid = static_cast<size_t>(pt);
-    assert(iid < ParserLibrary::num_parsers);
+    xassert(iid < ParserLibrary::num_parsers);
     parsers[iid] = ParserInfo(pt, name, code, sz, st, ptr);
     parser_fns[iid] = ptr;
   };

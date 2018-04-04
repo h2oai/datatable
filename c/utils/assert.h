@@ -9,19 +9,25 @@
 #define dt_UTILS_ASSERT_h
 #include "utils/exceptions.h"
 
+// First, fix the NDEBUG macro.
+// This macro, if present, disables all assert statements. Unfortunately, python
+// may add it as a default compilation flag, so in order to combat this we have
+// defined a new `DTDEBUG` macro. This macro may be passed from the Makefile,
+// and if declared it means to ignore the NDEBUG macro even if it is present.
 #ifdef NDEBUG
-  // Macro NDEBUG, if present, disables all assert statements. Unfortunately,
-  // Python turns on this macro by default, so we need to turn it off
-  // explicitly.
-  #ifdef NONDEBUG
+  #ifdef DTDEBUG
     #undef NDEBUG
   #endif
 #endif
 
-#include <assert.h>  // assert, dt_static_assert
+// This will include the standard `assert` and `static_assert` macros.
+#include <assert.h>
 
+
+// Here we also define the `xassert` macro, which behaves similarly to `assert`,
+// however it throws exceptions instead of terminating the program
 #ifdef NDEBUG
-  #define xassert(EXPRESSION)
+  #define xassert(EXPRESSION) ((void)0)
 #else
   #define xassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
@@ -29,6 +35,7 @@
           << __FILE__ << ", line " << __LINE__; \
     }
 #endif
+
 
 #ifdef static_assert
   #define dt_static_assert static_assert

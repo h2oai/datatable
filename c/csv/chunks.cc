@@ -55,7 +55,7 @@ int ChunkOrganizer::get_nthreads() const {
 }
 
 void ChunkOrganizer::set_nthreads(int nth) {
-  assert(nth > 0);
+  xassert(nth > 0);
   nThreads = nth;
   determine_chunking_strategy();
 }
@@ -64,7 +64,7 @@ void ChunkOrganizer::set_nthreads(int nth) {
 ChunkCoordinates ChunkOrganizer::compute_chunk_boundaries(
   size_t i, LocalParseContext* ctx) const
 {
-  assert(i < chunkCount);
+  xassert(i < chunkCount);
   ChunkCoordinates c;
 
   bool isFirstChunk = (i == 0);
@@ -96,7 +96,7 @@ bool ChunkOrganizer::is_ordered(
   xcc.start = lastChunkEnd;
   xcc.true_start = true;
   if (ordered && acc.end) {
-    assert(acc.end >= lastChunkEnd);
+    xassert(acc.end >= lastChunkEnd);
     lastChunkEnd = acc.end;
   }
   return ordered;

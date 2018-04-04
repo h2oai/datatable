@@ -231,7 +231,7 @@ void ChunkedDataReader::read_all()
   /*
   const char* const inputend = inputptr + inputsize;
   if (!inputptr || !inputend) return;
-  assert(alloc_nrows <= max_nrows);
+  xassert(alloc_nrows <= max_nrows);
   //
   // Thread-common state
   // -------------------
@@ -256,11 +256,11 @@ void ChunkedDataReader::read_all()
     {
       nthreads = omp_get_num_threads();
       compute_chunking_strategy();  // sets nchunks and possibly chunksize
-      assert(nchunks > 0);
+      xassert(nchunks > 0);
       if (chunks_contiguous) {
         chunksize = chunkdist = inputsize / nchunks;
       } else {
-        assert(chunksize > 0 && chunksize <= inputsize);
+        xassert(chunksize > 0 && chunksize <= inputsize);
         if (nchunks > 1) {
           chunkdist = (inputsize - chunksize) / (nchunks - 1);
         }
@@ -290,7 +290,7 @@ void ChunkedDataReader::read_all()
 
       // tend = tctx->read_chunk(chunkstart, chunkend);
       tnrows = tctx->get_nrows();
-      assert(tend >= chunkend);
+      xassert(tend >= chunkend);
 
       // Artificial loop makes it easy to quickly exit the "ordered" section.
       #pragma omp ordered
@@ -376,7 +376,7 @@ void ChunkedDataReader::read_all()
           new_alloc_nrows = static_cast<size_t>(1.2 * nrows_total *
                                                 nchunks / chunk0);
         }
-        assert(new_alloc_nrows >= nrows_total);
+        xassert(new_alloc_nrows >= nrows_total);
         realloc_columns(new_alloc_nrows);
         alloc_nrows = new_alloc_nrows;
         stop_team = false;
@@ -422,7 +422,7 @@ void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
 
 
 LocalParseContext::~LocalParseContext() {
-  assert(used_nrows == 0);
+  xassert(used_nrows == 0);
   free(tbuf);
 }
 

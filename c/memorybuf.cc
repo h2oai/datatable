@@ -14,7 +14,6 @@
 #include <mutex>       // std::mutex, std::lock_guard
 #include "datatable_check.h"
 #include "utils/file.h"
-#include "utils/assert.h"
 #include "py_utils.h"
 #include "utils.h"
 
