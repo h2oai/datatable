@@ -163,11 +163,4 @@ class FreadLocalParseContext : public LocalParseContext
     } while(0)
 
 
-
-#define ASSERT(test) do { \
-  if (!(test)) \
-    STOP("Assertion violation at line %d, please report", __LINE__); \
-} while(0)
-
-
 #endif

@@ -20,6 +20,7 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "utils/assert.h"
 
 
 PyMODINIT_FUNC PyInit__datatable(void);
@@ -104,7 +105,7 @@ PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
   ADD(datatable_unpack_slicerowindex);
   ADD(datatable_unpack_arrayrowindex);
 
-  assert(i == SIZE);
+  xassert(i == SIZE);
   return res;
 }
 
@@ -121,7 +122,7 @@ PyObject* get_integer_sizes(PyObject*, PyObject*) {
   ADD(sizeof(long long int));
   ADD(sizeof(size_t));
 
-  assert(i == SIZE);
+  xassert(i == SIZE);
   return res;
 }
 #undef ADD

@@ -8,7 +8,6 @@
 #ifndef dt_CSV_CHUNKS_h
 #define dt_CSV_CHUNKS_h
 #include <memory>           // std::unique_ptr
-#include "utils/assert.h"
 
 
 //------------------------------------------------------------------------------

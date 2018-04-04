@@ -58,14 +58,14 @@ test:
 	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra \
+	$(PYTHON) -m pytest -ra --maxfail=10 \
 		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
 
 benchmark:
-	$(PYTHON) -m pytest -ra -v benchmarks
+	$(PYTHON) -m pytest -ra -x -v benchmarks
 
 
 debug:
@@ -97,11 +97,11 @@ coverage:
 	$(MAKE) build
 	$(MAKE) install
 	$(MAKE) test_install
-	$(PYTHON) -m pytest \
+	$(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
-	$(PYTHON) -m pytest \
+	$(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
@@ -401,7 +401,7 @@ $(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
 	@cp c/writebuf.h $@
 
 
-$(BUILDDIR)/csv/chunks.h: c/csv/chunks.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/csv/chunks.h: c/csv/chunks.h
 	@echo • Refreshing c/csv/chunks.h
 	@cp c/csv/chunks.h $@
 
@@ -468,7 +468,7 @@ $(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/array.h
 	@cp c/utils/array.h $@
 
-$(BUILDDIR)/utils/assert.h: c/utils/assert.h
+$(BUILDDIR)/utils/assert.h: c/utils/assert.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/assert.h
 	@cp c/utils/assert.h $@
 
@@ -522,7 +522,7 @@ $(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_t
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h
+$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -542,7 +542,7 @@ $(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/shared_mutex.h
+$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -586,7 +586,7 @@ $(BUILDDIR)/datatable_check.o : c/datatable_check.cc $(BUILDDIR)/datatable_check
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatable_load.o : c/datatable_load.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/datatable_load.o : c/datatable_load.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -594,7 +594,7 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -618,7 +618,7 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/file.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -630,7 +630,7 @@ $(BUILDDIR)/options.o : c/options.cc $(BUILDDIR)/options.h $(BUILDDIR)/utils/exc
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_buffers.o : c/py_buffers.cc $(BUILDDIR)/column.h $(BUILDDIR)/encodings.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/py_buffers.o : c/py_buffers.cc $(BUILDDIR)/column.h $(BUILDDIR)/encodings.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -682,7 +682,7 @@ $(BUILDDIR)/python/long.o : c/python/long.cc $(BUILDDIR)/python/long.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -690,7 +690,7 @@ $(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDD
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

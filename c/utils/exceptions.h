@@ -82,6 +82,7 @@ Error OverflowError();
 Error MemoryError();
 Error NotImplError();
 Error IOError();
+Error AssertionError();
 
 void replace_typeError(PyObject* obj);
 void replace_valueError(PyObject* obj);

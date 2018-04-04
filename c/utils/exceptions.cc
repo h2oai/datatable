@@ -143,13 +143,14 @@ bool PyError::is_keyboard_interrupt() const {
 
 //==============================================================================
 
-Error RuntimeError()  { return Error(PyExc_RuntimeError); }
-Error TypeError()     { return Error(type_error_class); }
-Error ValueError()    { return Error(value_error_class); }
-Error OverflowError() { return Error(PyExc_OverflowError); }
-Error MemoryError()   { return Error(PyExc_MemoryError); }
-Error NotImplError()  { return Error(PyExc_NotImplementedError); }
-Error IOError()       { return Error(PyExc_IOError); }
+Error RuntimeError()   { return Error(PyExc_RuntimeError); }
+Error TypeError()      { return Error(type_error_class); }
+Error ValueError()     { return Error(value_error_class); }
+Error OverflowError()  { return Error(PyExc_OverflowError); }
+Error MemoryError()    { return Error(PyExc_MemoryError); }
+Error NotImplError()   { return Error(PyExc_NotImplementedError); }
+Error IOError()        { return Error(PyExc_IOError); }
+Error AssertionError() { return Error(PyExc_AssertionError); }
 
 
 void replace_typeError(PyObject* obj) { type_error_class = obj; }

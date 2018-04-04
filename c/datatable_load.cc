@@ -8,7 +8,6 @@
 #include <stdlib.h>  // abs
 #include <string>  // memcpy
 #include "datatable.h"
-#include "utils/assert.h"
 #include "utils.h"
 
 

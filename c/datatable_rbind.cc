@@ -27,7 +27,7 @@
  */
 void DataTable::rbind(DataTable** dts, int** cols, int ndts, int64_t new_ncols)
 {
-  assert(new_ncols >= ncols);
+  xassert(new_ncols >= ncols);
 
   // If this is a view datatable, then it must be materialized.
   this->reify();

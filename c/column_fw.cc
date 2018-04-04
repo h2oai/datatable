@@ -26,7 +26,7 @@ FwColumn<T>::FwColumn(int64_t nrows_, MemoryBuffer* mb) : Column(nrows_) {
   if (mb == nullptr) {
     mb = new MemoryMemBuf(req_size);
   } else {
-    assert(mb->size() == req_size);
+    xassert(mb->size() == req_size);
   }
   mbuf = mb;
 }
@@ -38,19 +38,19 @@ FwColumn<T>::FwColumn(int64_t nrows_, MemoryBuffer* mb) : Column(nrows_) {
 
 template <typename T>
 void FwColumn<T>::init_data() {
-  assert(!ri && !mbuf);
+  xassert(!ri && !mbuf);
   mbuf = new MemoryMemBuf(static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::init_mmap(const std::string& filename) {
-  assert(!ri && !mbuf);
+  xassert(!ri && !mbuf);
   mbuf = new MemmapMemBuf(filename, static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::open_mmap(const std::string& filename) {
-  assert(!ri && !mbuf);
+  xassert(!ri && !mbuf);
   mbuf = new MemmapMemBuf(filename);
   size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
   if (mbuf->size() != exp_size) {
@@ -63,7 +63,7 @@ void FwColumn<T>::open_mmap(const std::string& filename) {
 
 template <typename T>
 void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
-  assert(!ri && !mbuf);
+  xassert(!ri && !mbuf);
   size_t exp_buf_len = static_cast<size_t>(nrows) * elemsize();
   if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
     throw Error() << "PyBuffer cannot be used to create a column of " << nrows
@@ -79,7 +79,7 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryBuffer* new_mbuf, MemoryBuffer*) {
-  assert(new_mbuf != nullptr);
+  xassert(new_mbuf != nullptr);
   if (new_mbuf->size() % sizeof(T)) {
     throw RuntimeError() << "New buffer has invalid size " << new_mbuf->size();
   }
@@ -145,7 +145,7 @@ void FwColumn<T>::reify() {
     // the new buffer (use memmove because the old and the new buffer can be
     // the same).
     size_t start = static_cast<size_t>(ri.slice_start());
-    assert(newsize + start * elemsize <= mbuf->size());
+    xassert(newsize + start * elemsize <= mbuf->size());
     memmove(new_mbuf->get(), elements() + start, newsize);
 
   } else {
@@ -221,7 +221,7 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   size_t old_alloc_size = alloc_size();
   size_t new_alloc_size = sizeof(T) * (size_t) new_nrows;
   mbuf = mbuf->safe_resize(new_alloc_size);
-  assert(!mbuf->is_readonly());
+  xassert(!mbuf->is_readonly());
   nrows = new_nrows;
 
   // Copy the data
@@ -250,7 +250,7 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     set_value(resptr, naptr, sizeof(T), rows_to_fill);
     resptr = add_ptr(resptr, rows_to_fill * sizeof(T));
   }
-  assert(resptr == mbuf->at(new_alloc_size));
+  xassert(resptr == mbuf->at(new_alloc_size));
 }
 
 
