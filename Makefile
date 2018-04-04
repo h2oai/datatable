@@ -58,7 +58,7 @@ test:
 	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra \
+	$(PYTHON) -m pytest -ra --maxfail=10 \
 		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
