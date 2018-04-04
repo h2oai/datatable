@@ -65,7 +65,7 @@ test:
 
 
 benchmark:
-	$(PYTHON) -m pytest -ra -v benchmarks
+	$(PYTHON) -m pytest -ra -x -v benchmarks
 
 
 debug:
@@ -97,11 +97,11 @@ coverage:
 	$(MAKE) build
 	$(MAKE) install
 	$(MAKE) test_install
-	$(PYTHON) -m pytest \
+	$(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
-	$(PYTHON) -m pytest \
+	$(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
