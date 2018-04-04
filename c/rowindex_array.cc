@@ -27,7 +27,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted)
 {
   type = RowIndexType::RI_ARR32;
   length = static_cast<int64_t>(ind32.size());
-  assert(length <= std::numeric_limits<int32_t>::max());
+  xassert(length <= std::numeric_limits<int32_t>::max());
   set_min_max<int32_t>(ind32, sorted);
 }
 
@@ -46,7 +46,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     const arr64_t& starts, const arr64_t& counts, const arr64_t& steps)
 {
   size_t n = starts.size();
-  assert(n == counts.size() && n == steps.size());
+  xassert(n == counts.size() && n == steps.size());
 
   // Compute the total number of elements, and the largest index that needs
   // to be stored. Also check for potential overflows / invalid values.
@@ -67,7 +67,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     length += len;
   }
   if (max == 0) min = 0;
-  assert(min >= 0 && min <= max);
+  xassert(min >= 0 && min <= max);
   size_t zlen = static_cast<size_t>(length);
 
   if (zlen <= INT32_MAX && max <= INT32_MAX) {
@@ -83,7 +83,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
         j += istep;
       }
     }
-    assert(rowsptr == &ind32[zlen]);
+    xassert(rowsptr == &ind32[zlen]);
   } else {
     type = RowIndexType::RI_ARR64;
     ind64.resize(zlen);
@@ -97,7 +97,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
         j += istep;
       }
     }
-    assert(rowsptr == &ind64[zlen]);
+    xassert(rowsptr == &ind64[zlen]);
   }
 }
 
@@ -120,7 +120,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(Column* col) {
 
 
 ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
-  assert(n <= std::numeric_limits<int32_t>::max());
+  xassert(n <= std::numeric_limits<int32_t>::max());
 
   // Output buffer, where we will write the indices of selected rows. This
   // buffer is preallocated to the length of the original dataset, and it will
@@ -414,7 +414,7 @@ void ArrayRowIndexImpl::compactify()
   if (type == RowIndexType::RI_ARR32) return;
   if (max > INT32_MAX || length > INT32_MAX) return;
   size_t zlen = static_cast<size_t>(length);
-  assert(zlen == ind64.size());
+  xassert(zlen == ind64.size());
 
   ind32.resize(zlen);
   for (size_t i = 0; i < zlen; ++i) {
@@ -454,7 +454,7 @@ RowIndexImpl* ArrayRowIndexImpl::inverse_impl(
 
 
 RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
-  assert(nrows >= length);
+  xassert(nrows >= length);
   if (type == RowIndexType::RI_ARR32) {
     if (nrows <= INT32_MAX)
       return inverse_impl<int32_t, int32_t>(ind32, nrows);

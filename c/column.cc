@@ -73,7 +73,7 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  */
 void Column::save_to_disk(const std::string& filename,
                           WritableBuffer::Strategy strategy) {
-  assert(mbuf != nullptr);
+  xassert(mbuf != nullptr);
   mbuf->save_to_disk(filename, strategy);
 }
 
@@ -201,7 +201,7 @@ Column* Column::rbind(std::vector<const Column*>& columns)
   } else {
     res = this->cast(new_stype);
   }
-  assert(res->stype() == new_stype);
+  xassert(res->stype() == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
   if (res->stats != nullptr) res->stats->reset();

@@ -50,7 +50,7 @@ DataTable* DataTable::cbind(DataTable **dts, int ndts)
             columns[j++] = c;
         }
     }
-    assert(j == t_ncols);
+    xassert(j == t_ncols);
 
     // Done.
     ncols = t_ncols;

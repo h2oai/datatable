@@ -36,7 +36,7 @@ FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
   sof = dataptr();
   eof = sof + datasize();
   // TODO: Do not require the extra byte, and do not write into the input stream...
-  ASSERT(extra_byte_accessible() && eof > sof);
+  xassert(extra_byte_accessible() && eof > sof);
   *const_cast<char*>(eof) = '\0';
 
   whiteChar = '\0';
@@ -273,7 +273,7 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
           newlen = decode_win1252(usrc, ilen, unewsrc);
           newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
         }
-        assert(newlen > 0);
+        xassert(newlen > 0);
         columns[i].name = std::string(newsrc, static_cast<size_t>(newlen));
         delete[] newsrc;
       }
@@ -515,7 +515,7 @@ void FreadLocalParseContext::read_chunk(
         // is only set to true on one thread at a time. Thus, there is no need
         // for "critical" section here.
         if (newType != oldType) {
-          assert(cc.true_start);
+          xassert(cc.true_start);
           if (verbose) {
             // Can't print because we're likely not master. So accumulate
             // message and print afterwards.
@@ -616,7 +616,7 @@ void FreadLocalParseContext::postprocess() {
           lo->str32.offset = off;
         } else {
           int newlen = decode_win1252(src, len, dest);
-          assert(newlen > 0);
+          xassert(newlen > 0);
           newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
           off += static_cast<size_t>(newlen);
           lo->str32.offset = off;
@@ -624,7 +624,7 @@ void FreadLocalParseContext::postprocess() {
       } else if (len == 0) {
         lo->str32.offset = off;
       } else {
-        assert(lo->str32.isna());
+        xassert(lo->str32.isna());
         lo->str32.offset = -off;
       }
       lo += tbuf_ncols;

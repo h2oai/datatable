@@ -165,7 +165,7 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*)
 
 void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src)
 {
-  assert(pos + n <= allocsize);
+  xassert(pos + n <= allocsize);
   bool done = false;
   while (!done) {
     int lockv;

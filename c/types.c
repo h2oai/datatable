@@ -120,7 +120,7 @@ void init_types(void)
     UPCAST(ST_REAL_F4,    ST_REAL_F8,     ST_REAL_F8)
     #undef UPCAST
     // In py_datatable.c we use 64-bit mask over stypes
-    assert(DT_STYPES_COUNT <= 64);
+    xassert(DT_STYPES_COUNT <= 64);
 
     //---- More static asserts -------------------------------------------------
     // This checks validity of a cast used in the fread.c
@@ -128,11 +128,11 @@ void init_types(void)
         char ch = (char) i;
         int test1 = (ch >= '0' && ch <= '9');
         int test2 = ((uint_fast8_t)(ch - '0') < 10);
-        assert(test1 == test2);
+        xassert(test1 == test2);
     }
 
     for (int i = 0; i < DT_STYPES_COUNT; i++) {
-        assert((SType)i == stype_from_string(stype_info[i].code));
+        xassert((SType)i == stype_from_string(stype_info[i].code));
     }
 }
 
@@ -144,7 +144,7 @@ void init_types(void)
  */
 SType stype_from_string(const std::string& str)
 {
-  assert(str.length() == 3 || str.length() == 2);
+  xassert(str.length() == 3 || str.length() == 2);
   char s0 = str[0], s1 = str[1], s2 = str[2];
   if (s0 == 'i') {
     if (s2 == 'i' || s2 == '\0') {

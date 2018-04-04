@@ -40,10 +40,10 @@ StringColumn<T>::StringColumn(int64_t nrows_,
     if (sb == nullptr) {
       throw Error() << "String buffer cannot be null when offset buffer is defined";
     }
-    assert(mb->size() == exp_off_size);
-    assert(mb->get_elem<T>(0) == -1);
+    xassert(mb->size() == exp_off_size);
+    xassert(mb->get_elem<T>(0) == -1);
     size_t exp_str_size = static_cast<size_t>(abs(mb->get_elem<T>(nrows)) - 1);
-    assert(sb->size() == exp_str_size);
+    xassert(sb->size() == exp_str_size);
   }
 
   mbuf = mb;
@@ -57,7 +57,7 @@ StringColumn<T>::StringColumn(int64_t nrows_,
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  assert(!ri && !mbuf && !strbuf);
+  xassert(!ri && !mbuf && !strbuf);
   strbuf = new MemoryMemBuf(0);
   mbuf = new MemoryMemBuf((static_cast<size_t>(nrows) + 1) * sizeof(T));
   mbuf->set_elem<T>(0, -1);
@@ -65,7 +65,7 @@ void StringColumn<T>::init_data() {
 
 template <typename T>
 void StringColumn<T>::init_mmap(const std::string& filename) {
-  assert(!ri && !mbuf && !strbuf);
+  xassert(!ri && !mbuf && !strbuf);
   strbuf = new MemmapMemBuf(path_str(filename), 0);
   mbuf = new MemmapMemBuf(filename, (static_cast<size_t>(nrows) + 1) * sizeof(T));
   mbuf->set_elem<T>(0, -1);
@@ -73,7 +73,7 @@ void StringColumn<T>::init_mmap(const std::string& filename) {
 
 template <typename T>
 void StringColumn<T>::open_mmap(const std::string& filename) {
-  assert(!ri && !mbuf && !strbuf);
+  xassert(!ri && !mbuf && !strbuf);
 
   mbuf = new MemmapMemBuf(filename);
   size_t exp_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
@@ -116,8 +116,8 @@ void StringColumn<T>::init_xbuf(Py_buffer*) {
 template <typename T>
 void StringColumn<T>::save_to_disk(const std::string& filename,
                                    WritableBuffer::Strategy strategy) {
-  assert(mbuf != nullptr);
-  assert(strbuf != nullptr);
+  xassert(mbuf != nullptr);
+  xassert(strbuf != nullptr);
   mbuf->save_to_disk(filename, strategy);
   strbuf->save_to_disk(path_str(filename), strategy);
 }
@@ -142,8 +142,8 @@ template <typename T>
 void StringColumn<T>::replace_buffer(MemoryBuffer* new_offbuf,
                                      MemoryBuffer* new_strbuf)
 {
-  assert(new_offbuf != nullptr);
-  assert(new_strbuf != nullptr);
+  xassert(new_offbuf != nullptr);
+  xassert(new_strbuf != nullptr);
   int64_t new_nrows = new_offbuf->size()/sizeof(T) - 1;
   if (new_offbuf->size() % sizeof(T)) {
     throw ValueError() << "The size of `new_offbuf` is not a multiple of "
@@ -411,7 +411,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
       strbuf = new_strbuf;
     }
   } else {
-    if (old_nrows == 1) assert(old_strbuf_size == 0);
+    if (old_nrows == 1) xassert(old_strbuf_size == 0);
     T na = -static_cast<T>(old_strbuf_size + 1);
     set_value(offsets + nrows, &na, sizeof(T),
               static_cast<size_t>(diff_rows));
@@ -446,8 +446,8 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   // Reallocate the column
   mbuf = mbuf->safe_resize(new_mbuf_size);
   strbuf = strbuf->safe_resize(new_strbuf_size);
-  assert(!mbuf->is_readonly());
-  assert(!strbuf->is_readonly());
+  xassert(!mbuf->is_readonly());
+  xassert(!strbuf->is_readonly());
   nrows = new_nrows;
   T* offs = offsets();
 

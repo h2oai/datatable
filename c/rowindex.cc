@@ -9,7 +9,6 @@
 #include <cstring>     // std::memcpy
 #include "datatable_check.h"
 #include "utils.h"
-#include "utils/assert.h"
 #include "utils/omp.h"
 
 

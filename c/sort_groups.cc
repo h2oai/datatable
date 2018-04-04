@@ -68,7 +68,7 @@ void GroupGatherer::from_data(
 
 
 void GroupGatherer::from_chunks(radix_range* rrmap, size_t nradixes) {
-  assert(count == 0);
+  xassert(count == 0);
   size_t dest_off = 0;
   for (size_t i = 0; i < nradixes; ++i) {
     size_t grp_size = rrmap[i].size;
@@ -88,7 +88,7 @@ void GroupGatherer::from_chunks(radix_range* rrmap, size_t nradixes) {
 void GroupGatherer::from_histogram(
   size_t* histogram, size_t nchunks, size_t nradixes)
 {
-  assert(count == 0);
+  xassert(count == 0);
   size_t* rrendoffsets = histogram + (nchunks - 1) * nradixes;
   int32_t off0 = 0;
   for (size_t i = 0; i < nradixes; ++i) {

@@ -17,6 +17,7 @@
 #include "py_datatable.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 
 // Forward declarations
@@ -452,7 +453,7 @@ static int getbuffer_DataTable(
   }
 
   // Allocate the final buffer
-  assert(!stype_info[stype].varwidth);
+  xassert(!stype_info[stype].varwidth);
   size_t elemsize = stype_info[stype].elemsize;
   size_t colsize = nrows * elemsize;
   mbuf = new MemoryMemBuf(ncols * colsize);
@@ -464,7 +465,7 @@ static int getbuffer_DataTable(
     Column* col = dt->columns[i]->shallowcopy();
     col->reify();
     if (col->stype() == stype) {
-      assert(col->alloc_size() == colsize);
+      xassert(col->alloc_size() == colsize);
       memcpy(mbuf->at(i*colsize), col->data(), colsize);
     } else {
       // xmb becomes a "view" on a portion of the buffer `mbuf`. An
@@ -478,7 +479,7 @@ static int getbuffer_DataTable(
       // created having the converted data; but the side-effect of this is
       // that `mbuf` will have the same data, and in the right place.
       Column* newcol = col->cast(stype, xmb);
-      assert(newcol->alloc_size() == colsize);
+      xassert(newcol->alloc_size() == colsize);
       // We can now delete the new column: this will delete `xmb` as well,
       // however an ExternalMemBuf object does not attempt to free its
       // memory buffer. The converted data that was written to `mbuf` will
