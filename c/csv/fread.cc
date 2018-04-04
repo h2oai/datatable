@@ -57,8 +57,6 @@ class FreadChunkedReader {
     // dt::shared_mutex shmutex;
     size_t rowSize;
     size_t chunk0;
-    int buffGrown;
-    int : 32;
     static constexpr size_t stopErrSize = 1000;
     char stopErr[stopErrSize];
     char* typeBumpMsg;
@@ -74,18 +72,16 @@ class FreadChunkedReader {
   public:
     // The abominable constructor
     FreadChunkedReader(
-        FreadReader& reader, size_t rowSize_,
-        const char* lastRowEnd_, char* typeBumpMsg_, size_t typeBumpMsgSize_,
-        int8_t* types_, size_t allocnrow_
+        FreadReader& reader, size_t rowSize_, const char* lastRowEnd_,
+        char* typeBumpMsg_, size_t typeBumpMsgSize_, int8_t* types_
     ) : f(reader)
     {
       chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
       rowSize = rowSize_;
       types = types_;
-      allocnrow = allocnrow_;
+      allocnrow = f.columns.nrows();
       max_nrows = f.max_nrows;
       chunk0 = 0;
-      buffGrown = 0;
       stopErr[0] = '\0';
       typeBumpMsg = typeBumpMsg_;
       typeBumpMsgSize = typeBumpMsgSize_;
@@ -873,7 +869,6 @@ DataTablePtr FreadReader::read()
   char* typeBumpMsg = NULL;
   size_t typeBumpMsgSize = 0;
   int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
-  int buffGrown = 0;
 
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
@@ -883,17 +878,14 @@ DataTablePtr FreadReader::read()
   {
     trace("[11] Read the data");
     FreadChunkedReader scr(*this, rowSize, lastRowEnd,
-                           typeBumpMsg, typeBumpMsgSize, types,
-                           allocnrow);
+                           typeBumpMsg, typeBumpMsgSize, types);
     scr.read_all();
     thRead += scr.thRead;
     thPush += scr.thPush;
-    buffGrown += scr.buffGrown;
     typeBumpMsg = scr.typeBumpMsg;
     typeBumpMsgSize = scr.typeBumpMsgSize;
     nTypeBump += scr.nTypeBump;
     nTypeBumpCols += scr.nTypeBumpCols;
-    allocnrow = scr.allocnrow;
   }
 
   if (firstTime) {
@@ -953,8 +945,8 @@ DataTablePtr FreadReader::read()
           totalAllocSize/(1024.0*1024*1024), (llu)nrows, 100.0*nrows/allocnrow);
     double thWaiting = tReread - tAlloc - thRead - thPush;
     trace("%8.3fs (%3.0f%%) Reading data", tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot);
-    trace("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers (grown %d times)",
-          thRead, 100.0*thRead/tTot, buffGrown);
+    trace("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers",
+          thRead, 100.0*thRead/tTot);
     trace("   + %8.3fs (%3.0f%%) Transpose", thPush, 100.0*thPush/tTot);
     trace("   + %8.3fs (%3.0f%%) Waiting", thWaiting, 100.0*thWaiting/tTot);
     trace("%8.3fs (%3.0f%%) Rereading %d columns due to out-of-sample type exceptions",
