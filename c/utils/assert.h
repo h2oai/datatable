@@ -5,8 +5,9 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_ASSERT_H
-#define dt_UTILS_ASSERT_H
+#ifndef dt_UTILS_ASSERT_h
+#define dt_UTILS_ASSERT_h
+#include "utils/exceptions.h"
 
 #ifdef NDEBUG
   // Macro NDEBUG, if present, disables all assert statements. Unfortunately,
@@ -16,7 +17,18 @@
     #undef NDEBUG
   #endif
 #endif
+
 #include <assert.h>  // assert, dt_static_assert
+
+#ifdef NDEBUG
+  #define xassert(EXPRESSION)
+#else
+  #define xassert(EXPRESSION) \
+    if (!(EXPRESSION)) { \
+      throw AssertionError() << "Assertion '" << #EXPRESSION << "' failed in " \
+          << __FILE__ << ", line " << __LINE__; \
+    }
+#endif
 
 #ifdef static_assert
   #define dt_static_assert static_assert

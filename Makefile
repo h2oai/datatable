@@ -468,7 +468,7 @@ $(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/array.h
 	@cp c/utils/array.h $@
 
-$(BUILDDIR)/utils/assert.h: c/utils/assert.h
+$(BUILDDIR)/utils/assert.h: c/utils/assert.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/assert.h
 	@cp c/utils/assert.h $@
 

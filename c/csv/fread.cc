@@ -69,23 +69,22 @@ class FreadChunkedReader {
     size_t row0;
     size_t allocnrow;
     size_t max_nrows;
-    size_t extraAllocRows;
     double thRead, thPush;
 
   public:
     // The abominable constructor
     FreadChunkedReader(
-        FreadReader& reader, size_t rowSize_, size_t jump0_,
+        FreadReader& reader, size_t rowSize_,
         const char* lastRowEnd_, char* typeBumpMsg_, size_t typeBumpMsgSize_,
         int8_t* types_, size_t allocnrow_
     ) : f(reader)
     {
       chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
       rowSize = rowSize_;
-      chunk0 = jump0_;
       types = types_;
       allocnrow = allocnrow_;
       max_nrows = f.max_nrows;
+      chunk0 = 0;
       buffGrown = 0;
       stopErr[0] = '\0';
       typeBumpMsg = typeBumpMsg_;
@@ -93,7 +92,6 @@ class FreadChunkedReader {
       nTypeBump = 0;
       nTypeBumpCols = 0;
       row0 = 0;
-      extraAllocRows = 0;
       thRead = 0.0;
       thPush = 0.0;
       ASSERT(allocnrow <= max_nrows);
@@ -122,6 +120,9 @@ class FreadChunkedReader {
     //********************************//
     void read_all()
     {
+      // If we need to restart reading the file because we ran out of allocation
+      // space, then this variable will tell how many new rows has to be allocated.
+      size_t extraAllocRows = 0;
       bool stopTeam = false;
       size_t nchunks = 0;
       bool progressShown = false;
@@ -129,7 +130,7 @@ class FreadChunkedReader {
       int nthreads = chunkster->get_nthreads();
       if (nthreads != f.nthreads) {
         f.trace("Number of threads reduced to %d because data is small",
-                     nthreads);
+                nthreads);
       }
 
       #pragma omp parallel num_threads(nthreads)
@@ -141,8 +142,7 @@ class FreadChunkedReader {
           if (actualNthreads != nthreads) {
             nthreads = actualNthreads;
             chunkster->set_nthreads(nthreads);
-            f.trace("Actual number of threads allowed by OMP: %d",
-                         nthreads);
+            f.trace("Actual number of threads allowed by OMP: %d", nthreads);
           }
           nchunks = chunkster->get_nchunks();
           tMaster = true;
@@ -195,14 +195,13 @@ class FreadChunkedReader {
               // time.
               bool reparse_error = !acc.end && !xcc.true_start;
               if (!chunkster->is_ordered(acc, xcc) || reparse_error) {
-                assert(xcc.true_start);
+                xassert(xcc.true_start);
                 ctx->read_chunk(xcc, acc);
-                if (acc.end && !chunkster->is_ordered(acc, xcc)) {
-                  throw RuntimeError() << "Unable to order chunks";
-                }
+                bool ok = !acc.end || chunkster->is_ordered(acc, xcc);
+                xassert(ok);
               }
               if (!acc.end) {
-                assert(stopErr[0]);
+                xassert(stopErr[0]);
                 stopTeam = true;
                 break;
               }
@@ -228,7 +227,8 @@ class FreadChunkedReader {
                     // If we're on the last jump, then we know exactly how many extra rows is needed.
                     extraAllocRows = row0 + ctx->used_nrows - allocnrow;
                   }
-                  ctx->used_nrows = 0;
+                  ctx->used_nrows = 0; // do not push this chunk
+                  chunkster->unorder_chunk(acc);
                   stopTeam = true;
                 }
               }
@@ -244,7 +244,7 @@ class FreadChunkedReader {
         try {
           // Push out all buffers one last time.
           if (ctx->used_nrows) {
-            if (stopTeam && stopErr[0]!='\0') {
+            if (stopTeam && (stopErr[0]!='\0' || oem.exception_caught())) {
               // Stopped early because of error. Discard the content of the buffers,
               // because they were not ordered, and trying to push them may lead to
               // unexpected bugs...
@@ -284,10 +284,20 @@ class FreadChunkedReader {
       if (stopTeam && stopErr[0]!='\0') {
         STOP(stopErr);
       }
-
-      thRead /= nthreads;
-      thPush /= nthreads;
       ASSERT(row0 <= allocnrow || max_nrows <= allocnrow);
+      if (extraAllocRows) {
+        allocnrow += extraAllocRows;
+        if (allocnrow > max_nrows) allocnrow = max_nrows;
+        f.trace("  Too few rows allocated. Allocating additional %llu rows "
+                "(now nrows=%llu) and continue reading from jump point %zu",
+                (llu)extraAllocRows, (llu)allocnrow, chunk0);
+        f.columns.allocate(allocnrow);
+        read_all();
+      } else {
+        f.columns.allocate(row0);
+        thRead /= nthreads;
+        thPush /= nthreads;
+      }
     }
 };
 
@@ -863,14 +873,7 @@ DataTablePtr FreadReader::read()
   char* typeBumpMsg = NULL;
   size_t typeBumpMsgSize = 0;
   int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
-  size_t row0 = 0;   // the current row number in DT that we are writing to
   int buffGrown = 0;
-  // Index of the first jump to read. May be modified if we ever need to restart
-  // reading from the middle of the file.
-  size_t jump0 = 0;
-  // If we need to restart reading the file because we ran out of allocation
-  // space, then this variable will tell how many new rows has to be allocated.
-  size_t extraAllocRows = 0;
 
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
@@ -879,36 +882,19 @@ DataTablePtr FreadReader::read()
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
     trace("[11] Read the data");
-    FreadChunkedReader scr(*this, rowSize, jump0, lastRowEnd,
+    FreadChunkedReader scr(*this, rowSize, lastRowEnd,
                            typeBumpMsg, typeBumpMsgSize, types,
                            allocnrow);
     scr.read_all();
     thRead += scr.thRead;
     thPush += scr.thPush;
-    jump0 = scr.chunk0;
     buffGrown += scr.buffGrown;
     typeBumpMsg = scr.typeBumpMsg;
     typeBumpMsgSize = scr.typeBumpMsgSize;
     nTypeBump += scr.nTypeBump;
     nTypeBumpCols += scr.nTypeBumpCols;
-    row0 = scr.row0;
-    extraAllocRows = scr.extraAllocRows;
+    allocnrow = scr.allocnrow;
   }
-
-  if (extraAllocRows) {
-    allocnrow += extraAllocRows;
-    if (allocnrow > max_nrows) allocnrow = max_nrows;
-    if (verbose) {
-      trace("  Too few rows allocated. Allocating additional %llu rows "
-            "(now nrows=%llu) and continue reading from jump point %zu",
-            (llu)extraAllocRows, (llu)allocnrow, jump0);
-    }
-    columns.allocate(allocnrow);
-    extraAllocRows = 0;
-    goto read;   // jump0>0 at this point, set above
-  }
-
-  columns.allocate(row0);
 
   if (firstTime) {
     tReread = tRead = wallclock();
@@ -934,13 +920,8 @@ DataTablePtr FreadReader::read()
           col.presentInBuffer = false;
         }
       }
-      allocnrow = row0;
-      columns.allocate(allocnrow);
-      // reread from the beginning
-      row0 = 0;
       firstTime = false;
       nTypeBump = 0;
-      jump0 = 0;
       goto read;
     }
   } else {
@@ -949,7 +930,8 @@ DataTablePtr FreadReader::read()
 
   double tTot = tReread-t0;  // tReread==tRead when there was no reread
   trace("Read %zu rows x %d columns from %s file in %02d:%06.3f wall clock time",
-        row0, columns.nOutputs(), filesize_to_str(datasize()), (int)tTot/60, fmod(tTot,60.0));
+        columns.nrows(), columns.nOutputs(), filesize_to_str(datasize()),
+        (int)tTot/60, fmod(tTot,60.0));
 
 
 
@@ -960,6 +942,7 @@ DataTablePtr FreadReader::read()
 
   if (verbose) {
     size_t totalAllocSize = columns.totalAllocSize();
+    size_t nrows = columns.nrows();
     trace("=============================");
     if (tTot < 0.000001) tTot = 0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
     trace("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
@@ -967,7 +950,7 @@ DataTablePtr FreadReader::read()
           tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
     trace("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
           tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, columns.size(),
-          totalAllocSize/(1024.0*1024*1024), (llu)row0, 100.0*row0/allocnrow);
+          totalAllocSize/(1024.0*1024*1024), (llu)nrows, 100.0*nrows/allocnrow);
     double thWaiting = tReread - tAlloc - thRead - thPush;
     trace("%8.3fs (%3.0f%%) Reading data", tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot);
     trace("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers (grown %d times)",
@@ -979,8 +962,6 @@ DataTablePtr FreadReader::read()
     trace("%8.3fs        Total", tTot);
     if (typeBumpMsg) {
       // if type bumps happened, it's useful to see them at the end after the timing 2 lines up showing the reread time
-      // TODO - construct and output the copy and pastable colClasses argument so user can avoid the reread time if they are
-      //        reading this file or files formatted like it many times (say in a production environment).
       trace("%s", typeBumpMsg);
       free(typeBumpMsg);  // local scope and only populated in verbose mode
     }
