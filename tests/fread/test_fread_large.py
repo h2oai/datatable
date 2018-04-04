@@ -60,6 +60,8 @@ def get_file_list(*path):
                 ext = ""
             if ext in bad_extensions:
                 continue
+            if f.endswith(".dat.gz"):
+                continue
             if ("readme" not in filename.lower() and
                     ".svm" not in filename and
                     ".json" not in filename and

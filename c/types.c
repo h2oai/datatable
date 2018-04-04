@@ -125,14 +125,12 @@ void init_types(void)
     //---- More static asserts -------------------------------------------------
     // This checks validity of a cast used in the fread.c
     for (int i = -128; i <= 127; i++) {
-        char ch = (char) i;
-        int test1 = (ch >= '0' && ch <= '9');
-        int test2 = ((uint_fast8_t)(ch - '0') < 10);
-        xassert(test1 == test2);
+      char ch = static_cast<char>(i);
+      xassert((ch >= '0' && ch <= '9') == ((uint_fast8_t)(ch - '0') < 10));
     }
 
     for (int i = 0; i < DT_STYPES_COUNT; i++) {
-        xassert((SType)i == stype_from_string(stype_info[i].code));
+      xassert((SType)i == stype_from_string(stype_info[i].code));
     }
 }
 
