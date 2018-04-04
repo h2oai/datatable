@@ -50,23 +50,17 @@ typedef std::unique_ptr<FreadLocalParseContext> FLPCPtr;
 //------------------------------------------------------------------------------
 
 class FreadChunkedReader {
+  private:
+    FreadReader& f;
+    ChunkOrganizerPtr chunkster;
   public:
-    bool stopTeam;
-    bool showProgress;
-    bool verbose;
-    bool fill;
-    bool fillme;
-    int : 24;
+    // dt::shared_mutex shmutex;
     size_t rowSize;
-    FreadReader& reader;
     size_t chunk0;
     int buffGrown;
-    bool skip_blank_lines;
-    char sep;
-    char quote;
-    int : 8;
-    char* stopErr;
-    size_t stopErrSize;
+    int : 32;
+    static constexpr size_t stopErrSize = 1000;
+    char stopErr[stopErrSize];
     char* typeBumpMsg;
     size_t typeBumpMsgSize;
     int8_t* types;
@@ -77,28 +71,32 @@ class FreadChunkedReader {
     size_t max_nrows;
     size_t extraAllocRows;
     double thRead, thPush;
-    ChunkOrganizerPtr chunkster;
-    // dt::shared_mutex shmutex;
 
   public:
     // The abominable constructor
     FreadChunkedReader(
-        bool showProgress_, bool verbose_, bool fill_,
-        size_t rowSize_, FreadReader& reader_, size_t jump0_,
-        const char* sof_, const char* lastRowEnd_,
-        bool skipEmptyLines_, char sep_, char quote_, bool fillme_,
-        char* stopErr_, size_t stopErrSize_, char* typeBumpMsg_, size_t typeBumpMsgSize_,
-        int8_t* types_, size_t allocnrow_, size_t nrowLimit_
-    ) : stopTeam(false), showProgress(showProgress_), verbose(verbose_),
-        fill(fill_), fillme(fillme_), rowSize(rowSize_), reader(reader_),
-        chunk0(jump0_),
-        buffGrown(0), skip_blank_lines(skipEmptyLines_),
-        sep(sep_), quote(quote_), stopErr(stopErr_),
-        stopErrSize(stopErrSize_), typeBumpMsg(typeBumpMsg_), typeBumpMsgSize(typeBumpMsgSize_),
-        types(types_), nTypeBump(0), nTypeBumpCols(0), row0(0), allocnrow(allocnrow_),
-        max_nrows(nrowLimit_), extraAllocRows(0), thRead(0), thPush(0)
+        FreadReader& reader, size_t rowSize_, size_t jump0_,
+        const char* lastRowEnd_, char* typeBumpMsg_, size_t typeBumpMsgSize_,
+        int8_t* types_, size_t allocnrow_
+    ) : f(reader)
     {
-      chunkster = init_chunk_organizer(reader_, sof_, lastRowEnd_);
+      chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
+      rowSize = rowSize_;
+      chunk0 = jump0_;
+      types = types_;
+      allocnrow = allocnrow_;
+      max_nrows = f.max_nrows;
+      buffGrown = 0;
+      stopErr[0] = '\0';
+      typeBumpMsg = typeBumpMsg_;
+      typeBumpMsgSize = typeBumpMsgSize_;
+      nTypeBump = 0;
+      nTypeBumpCols = 0;
+      row0 = 0;
+      extraAllocRows = 0;
+      thRead = 0.0;
+      thPush = 0.0;
+      ASSERT(allocnrow <= max_nrows);
     }
     ~FreadChunkedReader() {}
 
@@ -106,12 +104,12 @@ class FreadChunkedReader {
       size_t nchunks = chunkster->get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
       size_t tcols = rowSize / 8;
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, reader, types,
-        typeBumpMsg, typeBumpMsgSize, stopErr, stopErrSize, fill));
+      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types,
+        typeBumpMsg, typeBumpMsgSize, stopErr, stopErrSize));
     }
 
     ChunkOrganizerPtr init_chunk_organizer(
-        const FreadReader& f, const char* inputStart, const char* inputEnd)
+        const char* inputStart, const char* inputEnd)
     {
       return ChunkOrganizerPtr(
         new FreadChunkOrganizer(inputStart, inputEnd, f)
@@ -124,12 +122,13 @@ class FreadChunkedReader {
     //********************************//
     void read_all()
     {
+      bool stopTeam = false;
       size_t nchunks = 0;
       bool progressShown = false;
       OmpExceptionManager oem;
       int nthreads = chunkster->get_nthreads();
-      if (nthreads != reader.get_nthreads()) {
-        reader.trace("Number of threads reduced to %d because data is small",
+      if (nthreads != f.nthreads) {
+        f.trace("Number of threads reduced to %d because data is small",
                      nthreads);
       }
 
@@ -142,7 +141,7 @@ class FreadChunkedReader {
           if (actualNthreads != nthreads) {
             nthreads = actualNthreads;
             chunkster->set_nthreads(nthreads);
-            reader.trace("Actual number of threads allowed by OMP: %d",
+            f.trace("Actual number of threads allowed by OMP: %d",
                          nthreads);
           }
           nchunks = chunkster->get_nchunks();
@@ -152,7 +151,7 @@ class FreadChunkedReader {
         // view of the chunking parameters.
         #pragma omp barrier
 
-        bool tShowProgress = showProgress && tMaster;
+        bool tShowProgress = f.report_progress && tMaster;
         bool tShowAlways = false;
         double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
@@ -165,7 +164,7 @@ class FreadChunkedReader {
           if (stopTeam) continue;
           try {
             if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-              reader.progress(chunkster->work_done_amount());
+              f.progress(chunkster->work_done_amount());
               tShowAlways = true;
             }
 
@@ -279,12 +278,16 @@ class FreadChunkedReader {
             oem.capture_exception();
           }
         }
-        reader.progress(chunkster->work_done_amount(), status);
+        f.progress(chunkster->work_done_amount(), status);
       }
       oem.rethrow_exception_if_any();
+      if (stopTeam && stopErr[0]!='\0') {
+        STOP(stopErr);
+      }
 
       thRead /= nthreads;
       thPush /= nthreads;
+      ASSERT(row0 <= allocnrow || max_nrows <= allocnrow);
     }
 };
 
@@ -850,7 +853,6 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   // [11] Read the data
   //*********************************************************************************************
-  bool stopTeam = false;  // bool for MT-safey (cannot ever read half written bool value)
   bool firstTime = true;
   int nTypeBump = 0;
   int nTypeBumpCols = 0;
@@ -861,8 +863,6 @@ DataTablePtr FreadReader::read()
   char* typeBumpMsg = NULL;
   size_t typeBumpMsgSize = 0;
   int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
-  #define stopErrSize 1000
-  char stopErr[stopErrSize+1] = "";  // must be compile time size: the message is generated and we can't free before STOP
   size_t row0 = 0;   // the current row number in DT that we are writing to
   int buffGrown = 0;
   // Index of the first jump to read. May be modified if we ever need to restart
@@ -871,27 +871,21 @@ DataTablePtr FreadReader::read()
   // If we need to restart reading the file because we ran out of allocation
   // space, then this variable will tell how many new rows has to be allocated.
   size_t extraAllocRows = 0;
-  bool fillme = fill || (columns.size()==1 && !skip_blank_lines);
 
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
-  int8_t* types = typesPtr.get();  // This pointer is valid untile `typesPtr` goes out of scope
-
-  read:  // we'll return here to reread any columns with out-of-sample type exceptions
-  trace("[11] Read the data");
-  ASSERT(allocnrow <= max_nrows);
+  int8_t* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
   if (sep == '\n') sep = '\xFF';
 
+  read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
-    FreadChunkedReader scr(report_progress, verbose, fill,
-                           rowSize, *this, jump0, sof, lastRowEnd,
-                           skip_blank_lines, sep, quote, fillme,
-                           stopErr, stopErrSize, typeBumpMsg, typeBumpMsgSize, types,
-                           allocnrow, max_nrows);
+    trace("[11] Read the data");
+    FreadChunkedReader scr(*this, rowSize, jump0, lastRowEnd,
+                           typeBumpMsg, typeBumpMsgSize, types,
+                           allocnrow);
     scr.read_all();
     thRead += scr.thRead;
     thPush += scr.thPush;
     jump0 = scr.chunk0;
-    stopTeam = scr.stopTeam;
     buffGrown += scr.buffGrown;
     typeBumpMsg = scr.typeBumpMsg;
     typeBumpMsgSize = scr.typeBumpMsgSize;
@@ -899,16 +893,6 @@ DataTablePtr FreadReader::read()
     nTypeBumpCols += scr.nTypeBumpCols;
     row0 = scr.row0;
     extraAllocRows = scr.extraAllocRows;
-  }
-
-
-  if (stopTeam && stopErr[0]!='\0') {
-    STOP(stopErr);
-  }
-  if (row0>allocnrow && max_nrows>allocnrow) {
-    STOP("Internal error: row0(%llu) > allocnrow(%llu) but nrows=%llu (not limited)",
-         (llu)row0, (llu)allocnrow, (llu)max_nrows);
-    // for the last jump that fills nrow limit, then ansi is +=buffi which is >allocnrow and correct
   }
 
   if (extraAllocRows) {

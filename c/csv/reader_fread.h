@@ -129,14 +129,13 @@ class FreadLocalParseContext : public LocalParseContext
 
     char*& typeBumpMsg;
     size_t& typeBumpMsgSize;
-    char*& stopErr;
-    size_t& stopErrSize;
+    char*   stopErr;
+    size_t  stopErrSize;
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
-                           char*& typeBumpMsg,
-                           size_t& typeBumpMsgSize, char*& stopErr,
-                           size_t& stopErrSize, bool fill);
+                           char*& typeBumpMsg, size_t& typeBumpMsgSize,
+                           char* stopErr, size_t stopErrSize);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
     virtual ~FreadLocalParseContext();
