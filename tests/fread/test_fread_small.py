@@ -728,27 +728,28 @@ def test_almost_nodata(capsys):
             "due to <<gotcha>> on row 109" in out)
 
 
+
 def test_under_allocation(capsys):
     # Test scenarion when fread underestimates the number of rows in a file
     # and consequently allocates too few rows.
-    # From R issue #2246
-    n = 2900
-    l1 = ["123,456"] * 100
-    l2 = ["1,2"] * 200
-    lines = (l1 + l2) * 9 + l1 + l1
-    assert len(lines) == n
+    l1 = ["1234567,45789123"] * 200
+    l2 = ["7,3"] * 2000
+    lines = (l1 + l2) * 100 + l1
+    n = len(lines)
     src = "A,B\n" + "\n".join(lines)
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     mm = re.search("Initial alloc = (\d+) rows", out)
     assert mm
     assert int(mm.group(1)) < n, "Under-allocation didn't happen"
+    assert "Too few rows allocated" in out
     assert d0.internal.check()
     assert d0.shape == (n, 2)
     assert d0.ltypes == (ltype.int, ltype.int)
     assert d0.names == ("A", "B")
-    assert d0.sum().topython() == [[12300 * 11 + 200 * 9],
-                                   [45600 * 11 + 400 * 9]]
+    sum1 = 1234567 * 200 * 101 + 7 * 2000 * 100
+    sum2 = 45789123 * 200 * 101 + 3 * 2000 * 100
+    assert d0.sum().topython() == [[sum1], [sum2]]
 
 
 @pytest.mark.parametrize("mul", [16, 128, 256, 512, 1024, 2048])

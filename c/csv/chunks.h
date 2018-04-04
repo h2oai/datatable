@@ -107,6 +107,8 @@ class ChunkOrganizer {
      */
     bool is_ordered(const ChunkCoordinates& acc, ChunkCoordinates& xcc);
 
+    void unorder_chunk(const ChunkCoordinates& cc);
+
     /**
      * Return the fraction of the input that was parsed, as a number between
      * 0 and 1.0.

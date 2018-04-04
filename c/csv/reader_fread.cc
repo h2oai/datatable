@@ -365,8 +365,7 @@ DataTablePtr FreadReader::makeDatatable() {
 
 FreadLocalParseContext::FreadLocalParseContext(
     size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
-    char*& tbm, size_t& tbmsize, char*& se,
-    size_t& sesize, bool fill_
+    char*& tbm, size_t& tbmsize, char* se, size_t sesize
   ) : LocalParseContext(bcols, brows),
       types(types_),
       freader(f),
@@ -382,7 +381,7 @@ FreadLocalParseContext::FreadLocalParseContext(
   quoteRule = f.quoteRule;
   sep = f.sep;
   verbose = f.verbose;
-  fill = fill_;
+  fill = f.fill;
   nTypeBump = 0;
   skipEmptyLines = f.skip_blank_lines;
   numbersMayBeNAs = f.number_is_na;

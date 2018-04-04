@@ -103,6 +103,12 @@ bool ChunkOrganizer::is_ordered(
 }
 
 
+void ChunkOrganizer::unorder_chunk(const ChunkCoordinates& cc) {
+  assert(cc.end == lastChunkEnd);
+  lastChunkEnd = cc.start;
+}
+
+
 double ChunkOrganizer::work_done_amount() const {
   double done = static_cast<double>(lastChunkEnd - inputStart);
   double total = static_cast<double>(inputEnd - inputStart);

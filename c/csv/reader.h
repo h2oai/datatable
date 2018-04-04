@@ -343,6 +343,7 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     size_t nOutputs() const;
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
+    size_t nrows() const { return allocnrows; }
 };
 
 
