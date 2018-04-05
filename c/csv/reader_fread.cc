@@ -34,10 +34,11 @@ FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
 {
   size_t input_size = datasize();
   targetdir = nullptr;
-  sof = dataptr();
-  eof = sof + input_size;
   // TODO: Do not require the extra byte, and do not write into the input stream...
-  xassert(extra_byte_accessible() && input_size > 0);
+  xassert(extra_byte_accessible());
+  xassert(input_size > 0);
+  // Usually the extra byte is already zero, however if we skipped whitespace
+  // at the end, it may no longer be so
   *const_cast<char*>(eof) = '\0';
 
   whiteChar = '\0';

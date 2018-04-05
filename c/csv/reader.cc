@@ -18,15 +18,14 @@
 #include "utils/omp.h"
 
 
-
 //------------------------------------------------------------------------------
 // GenericReader initialization
 //------------------------------------------------------------------------------
 
 GenericReader::GenericReader(const PyObj& pyrdr) {
   mbuf = nullptr;
-  offset = 0;
-  offend = 0;
+  sof = nullptr;
+  eof = nullptr;
   line = 0;
   freader = pyrdr;
   src_arg = pyrdr.attr("src");
@@ -72,8 +71,8 @@ GenericReader::GenericReader(const GenericReader& g) {
   number_is_na     = g.number_is_na;
   // Runtime parameters
   mbuf    = g.mbuf? g.mbuf->shallowcopy() : nullptr;
-  offset  = g.offset;
-  offend  = g.offend;
+  sof     = g.sof;
+  eof     = g.eof;
   line    = g.line;
   logger  = g.logger;   // for verbose messages / warnings
   freader = g.freader;  // for progress function / override columns
@@ -292,16 +291,12 @@ DataTablePtr GenericReader::read()
 
 //------------------------------------------------------------------------------
 
-const char* GenericReader::dataptr() const {
-  return static_cast<const char*>(mbuf->at(offset));
-}
-
 size_t GenericReader::datasize() const {
-  return mbuf->size() - offset - offend;
+  return static_cast<size_t>(eof - sof);
 }
 
 bool GenericReader::extra_byte_accessible() const {
-  return (offend > 0);
+  return (eof < mbuf->getstr() + mbuf->size());
 }
 
 
@@ -357,9 +352,10 @@ void GenericReader::progress(double progress, int statuscode) {
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
-  offset = 0;
-  offend = 0;
-  line = 1;
+  size_t size = 0;
+  const char* text = nullptr;
+  const char* filename = nullptr;
+  size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
     mbuf = new OvermapMemBuf(src, 1, fileno);
@@ -367,44 +363,47 @@ void GenericReader::open_input() {
     if (sz > 0) {
       sz--;
       *(mbuf->getstr() + sz) = '\0';
+      extra_byte = 1;
     }
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
-    return;
-  }
-  size_t size = 0;
-  const char* text = text_arg.as_cstring(&size);
-  if (text) {
+
+  } else if ((text = text_arg.as_cstring(&size))) {
     mbuf = new ExternalMemBuf(text, size + 1);
-    return;
-  }
-  const char* filename = file_arg.as_cstring();
-  if (filename) {
+    extra_byte = 1;
+
+  } else if ((filename = file_arg.as_cstring())) {
     mbuf = new OvermapMemBuf(filename, 1);
     size_t sz = mbuf->size();
     if (sz > 0) {
       sz--;
       *(mbuf->getstr() + sz) = '\0';
+      extra_byte = 1;
     }
     trace("File \"%s\" opened, size: %zu", filename, sz);
-    return;
+
+  } else {
+    throw RuntimeError() << "No input given to the GenericReader";
   }
-  throw RuntimeError() << "No input given to the GenericReader";
+  line = 1;
+  sof = mbuf->getstr();
+  eof = sof + mbuf->size() - extra_byte;
+  if (eof) xassert(*eof == '\0');
 }
 
 
 /**
  * Check whether the input contains BOM (Byte Order Mark), and if so skip it
- * modifying `offset`. If BOM indicates UTF-16 file, then recode the file into
+ * modifying `sof`. If BOM indicates UTF-16 file, then recode the file into
  * UTF-8 (we cannot read UTF-16 directly).
  *
  * See: https://en.wikipedia.org/wiki/Byte_order_mark
  */
 void GenericReader::detect_and_skip_bom() {
   size_t sz = datasize();
-  const char* ch = dataptr();
+  const char* ch = sof;
   if (!sz) return;
   if (sz >= 3 && ch[0]=='\xEF' && ch[1]=='\xBB' && ch[2]=='\xBF') {
-    offset += 3;
+    sof += 3;
     trace("UTF-8 byte order mark EF BB BF found at the start of the file "
           "and skipped");
   } else
@@ -422,7 +421,7 @@ void GenericReader::detect_and_skip_bom() {
  * However if `strip_whitespace` is false, then we want to remove empty lines
  * only, leaving the initial spaces on the last line.
  *
- * This function modifies `offset` so that it points to: (1) the first
+ * This function modifies `sof` so that it points to: (1) the first
  * non-whitespace character in the file, if strip_whitespace is true; or (2) the
  * first character on the first line that contains any non-whitespace
  * characters, if strip_whitespace is false.
@@ -433,13 +432,11 @@ void GenericReader::detect_and_skip_bom() {
  *
  *     _ _ _ _ ␤ _ ⇥ _ H e l l o …
  *
- * If strip_whitespace=true, then this function will move the offset to
+ * If strip_whitespace=true, then this function will move the `sof` to
  * character H; whereas if strip_whitespace=false, this function will move the
- * offset to the first space after '␤'.
+ * `sof` to the first space after '␤'.
  */
 void GenericReader::skip_initial_whitespace() {
-  const char* sof = dataptr();         // start-of-file
-  const char* eof = sof + datasize();  // end-of-file
   const char* ch = sof;
   if (!sof) return;
   while ((ch < eof) && (*ch <= ' ') &&
@@ -453,15 +450,13 @@ void GenericReader::skip_initial_whitespace() {
   }
   if (ch > sof) {
     size_t doffset = static_cast<size_t>(ch - sof);
-    offset += doffset;
+    sof = ch;
     trace("Skipped %zu initial whitespace character(s)", doffset);
   }
 }
 
 
 void GenericReader::skip_trailing_whitespace() {
-  const char* sof = dataptr();
-  const char* eof = sof + datasize();
   const char* ch = eof - 1;
   if (!sof) return;
   // Skip characters \0 and Ctrl+Z
@@ -470,7 +465,7 @@ void GenericReader::skip_trailing_whitespace() {
   }
   if (ch < eof - 1) {
     size_t d = static_cast<size_t>(eof - 1 - ch);
-    offend += d;
+    eof = ch + 1;
     if (d > 1) {
       trace("Skipped %zu trailing whitespace characters", d);
     }
@@ -480,8 +475,6 @@ void GenericReader::skip_trailing_whitespace() {
 
 void GenericReader::skip_to_line_number() {
   if (skip_to_line <= line) return;
-  const char* sof = dataptr();
-  const char* eof = sof + datasize();
   const char* ch = sof;
   while (ch < eof && line < skip_to_line) {
     char c = *ch;
@@ -494,7 +487,7 @@ void GenericReader::skip_to_line_number() {
     }
   }
   if (ch > sof) {
-    offset += static_cast<size_t>(ch - sof);
+    sof = ch;
     trace("Skipped to line %zd in the file", line);
   }
 }
@@ -503,8 +496,6 @@ void GenericReader::skip_to_line_number() {
 void GenericReader::skip_to_line_with_string() {
   const char* const ss = skip_to_string;
   if (!ss) return;
-  const char* sof = dataptr();
-  const char* eof = sof + datasize();
   const char* ch = sof;
   const char* line_start = sof;
   while (ch < eof) {
@@ -513,7 +504,7 @@ void GenericReader::skip_to_line_with_string() {
       while (ss[d] != '\0' && ch + d < eof && ch[d] == ss[d]) d++;
       if (ss[d] == '\0') {
         if (line_start > sof) {
-          offset += static_cast<size_t>(line_start - sof);
+          sof = line_start;
           trace("Skipped to line %zd containing skip_to_string = \"%s\"",
                 line, ss);
         }
@@ -537,7 +528,6 @@ void GenericReader::skip_to_line_with_string() {
 
 DataTablePtr GenericReader::read_empty_input() {
   size_t size = datasize();
-  const char* sof = dataptr();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
     Column** cols = static_cast<Column**>(malloc(sizeof(Column*)));
@@ -554,8 +544,7 @@ DataTablePtr GenericReader::read_empty_input() {
  * thrown.
  */
 void GenericReader::detect_improper_files() {
-  const char* ch = dataptr();
-  const char* eof = ch + datasize();
+  const char* ch = sof;  // dataptr();
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
     throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
@@ -565,10 +554,9 @@ void GenericReader::detect_improper_files() {
 
 
 void GenericReader::decode_utf16() {
-  const char* ch = dataptr();
+  const char* ch = sof;
   size_t size = datasize();
   if (!size) return;
-  if (ch[size - 1] == '\0') size--;
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;
@@ -580,8 +568,8 @@ void GenericReader::decode_utf16() {
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
   mbuf->release();
   mbuf = new ExternalMemBuf(buf, static_cast<size_t>(ssize) + 1);
-  offset = 0;
-  offend = 0;
+  sof = mbuf->getstr();
+  eof = sof + ssize + 1;
   // the object `t` remains alive within `tempstr`
   Py_DECREF(t);
 }

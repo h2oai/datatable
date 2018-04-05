@@ -20,6 +20,7 @@
 #include "utils/pyobj.h"
 
 
+
 //------------------------------------------------------------------------------
 // GReaderColumn
 //------------------------------------------------------------------------------
@@ -162,8 +163,8 @@ class GenericReader
 
   protected:
     MemoryBuffer* mbuf;
-    size_t offset;
-    size_t offend;
+    const char* sof;
+    const char* eof;
     int64_t line;
     int32_t fileno;
     int : 32;
@@ -189,7 +190,7 @@ class GenericReader
      *
      * is guaranteed to be readable, provided the region is not empty.
      */
-    const char* dataptr() const;
+    const char* dataptr() const { return sof; }
     size_t datasize() const;
 
     /**
@@ -241,6 +242,7 @@ class GenericReader
   //---- Inherited API ----
   protected:
     GenericReader(const GenericReader&);
+
 };
 
 

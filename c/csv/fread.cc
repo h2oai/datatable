@@ -60,9 +60,7 @@ class BaseChunkedReader {
     int : 32;
 
   public:
-    BaseChunkedReader(GenericReader& reader,
-                      const char* sof, const char* eof) : g(reader) {
-      chunkster = init_chunk_organizer(sof, eof);
+    BaseChunkedReader(GenericReader& reader) : g(reader) {
       allocnrow = g.columns.nrows();
       max_nrows = g.max_nrows;
       nthreads = g.nthreads;
@@ -71,14 +69,6 @@ class BaseChunkedReader {
       xassert(allocnrow <= max_nrows);
     }
     virtual ~BaseChunkedReader() {}
-
-    ChunkOrganizerPtr init_chunk_organizer(
-        const char* inputStart, const char* inputEnd)
-    {
-      return ChunkOrganizerPtr(
-        new FreadChunkOrganizer(inputStart, inputEnd, g)
-      );
-    }
 
     //********************************//
     // Main function
@@ -266,9 +256,11 @@ class FreadChunkedReader : public BaseChunkedReader {
 
   public:
     FreadChunkedReader(FreadReader& reader, int8_t* types_)
-      : BaseChunkedReader(reader, reader.sof, reader.eof), f(reader)
+      : BaseChunkedReader(reader), f(reader)
     {
       types = types_;
+      chunkster = ChunkOrganizerPtr(
+        new FreadChunkOrganizer(reader.sof, reader.eof, f));
     }
     virtual ~FreadChunkedReader() {}
 

@@ -83,8 +83,6 @@ class FreadReader : public GenericReader
   ParserLibrary parserlib;
   FreadObserver fo;
   char* targetdir;
-  const char* sof;
-  const char* eof;
   size_t allocnrow;
   double meanLineLen;
 
@@ -110,7 +108,7 @@ class FreadReader : public GenericReader
   int64_t : 40;
 
 public:
-  FreadReader(const GenericReader&);
+  explicit FreadReader(const GenericReader&);
   ~FreadReader();
 
   DataTablePtr read();
