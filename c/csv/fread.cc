@@ -63,11 +63,8 @@ class FreadChunkedReader {
     size_t max_nrows;
 
   public:
-    FreadChunkedReader(
-        FreadReader& reader, const char* lastRowEnd_, int8_t* types_
-    ) : f(reader)
-    {
-      chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
+    FreadChunkedReader(FreadReader& reader, int8_t* types_) : f(reader) {
+      chunkster = init_chunk_organizer(f.sof, f.eof);
       types = types_;
       allocnrow = f.columns.nrows();
       max_nrows = f.max_nrows;
@@ -497,7 +494,6 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   size_t nChunks;          // How many jumps to use when pre-scanning the file
   size_t bytesRead;       // Bytes in the whole data section
-  const char* lastRowEnd; // Pointer to the end of the data section
   {
     if (verbose) trace("[07] Detect column types, and whether first row contains column names");
     size_t ncols = columns.size();
@@ -536,7 +532,7 @@ DataTablePtr FreadReader::read()
     double sumLenSq = 0.0;
     int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
     int maxLen = -1;
-    lastRowEnd = sof;
+    const char* lastRowEnd = sof;
     bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
     bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
     auto fco = std::unique_ptr<FreadChunkOrganizer>(new FreadChunkOrganizer(sof, eof, *this));
@@ -727,7 +723,7 @@ DataTablePtr FreadReader::read()
       }
       meanLineLen = sumLen;
     } else {
-      bytesRead = (size_t)(lastRowEnd - sof);
+      bytesRead = (size_t)(eof - sof);
       meanLineLen = sumLen/sampleLines;
       estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
       double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
@@ -840,7 +836,7 @@ DataTablePtr FreadReader::read()
   trace("[11] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
-    FreadChunkedReader scr(*this, lastRowEnd, types);
+    FreadChunkedReader scr(*this, types);
     scr.read_all();
 
     if (firstTime) {
