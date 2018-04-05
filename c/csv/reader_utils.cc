@@ -156,6 +156,15 @@ size_t GReaderColumns::nOutputs() const {
   return nouts;
 }
 
+size_t GReaderColumns::nColumnsInBuffer() const {
+  size_t nouts = 0;
+  size_t ncols = size();
+  for (size_t i = 0; i < ncols; ++i) {
+    nouts += (*this)[i].presentInBuffer;
+  }
+  return nouts;
+}
+
 size_t GReaderColumns::nStringColumns() const {
   size_t nstrs = 0;
   size_t ncols = size();

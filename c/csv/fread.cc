@@ -56,7 +56,6 @@ class FreadChunkedReader {
     ChunkOrganizerPtr chunkster;
     // dt::shared_mutex shmutex;
     int8_t* types;
-    size_t rowSize;
     size_t n_type_bumps;
     size_t chunk0;
     size_t row0;
@@ -65,12 +64,10 @@ class FreadChunkedReader {
 
   public:
     FreadChunkedReader(
-        FreadReader& reader, size_t rowSize_, const char* lastRowEnd_,
-        int8_t* types_
+        FreadReader& reader, const char* lastRowEnd_, int8_t* types_
     ) : f(reader)
     {
       chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
-      rowSize = rowSize_;
       types = types_;
       allocnrow = f.columns.nrows();
       max_nrows = f.max_nrows;
@@ -84,7 +81,7 @@ class FreadChunkedReader {
     std::unique_ptr<FreadLocalParseContext> init_thread_context() {
       size_t nchunks = chunkster->get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
-      size_t tcols = rowSize / 8;
+      size_t tcols = f.columns.nColumnsInBuffer();
       return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types));
     }
 
@@ -786,7 +783,6 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   // [9] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
-  size_t rowSize;
   {
     if (verbose) trace("[09] Apply user overrides on column types");
     std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
@@ -796,7 +792,6 @@ DataTablePtr FreadReader::read()
     size_t ncols = columns.size();
     size_t ndropped = 0;
     int nUserBumped = 0;
-    rowSize = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
       if (col.type == static_cast<int8_t>(PT::Drop)) {
@@ -805,7 +800,6 @@ DataTablePtr FreadReader::read()
         col.presentInBuffer = false;
         continue;
       } else {
-        rowSize += 8;
         if (col.type < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
@@ -846,7 +840,7 @@ DataTablePtr FreadReader::read()
   trace("[11] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
-    FreadChunkedReader scr(*this, rowSize, lastRowEnd, types);
+    FreadChunkedReader scr(*this, lastRowEnd, types);
     scr.read_all();
 
     if (firstTime) {
@@ -860,7 +854,6 @@ DataTablePtr FreadReader::read()
 
       if (scr.get_n_type_bumps()) {
         size_t n_type_bump_cols = 0;
-        rowSize = 0;
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
           if (!col.presentInOutput) continue;
@@ -869,7 +862,6 @@ DataTablePtr FreadReader::read()
             col.typeBumped = false;
             col.presentInBuffer = true;
             n_type_bump_cols++;
-            rowSize += 8;
           } else {
             types[j] = static_cast<int8_t>(PT::Drop);
             col.presentInBuffer = false;

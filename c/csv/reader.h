@@ -341,6 +341,7 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     void setType(int8_t type);
     const char* printTypes() const;
     size_t nOutputs() const;
+    size_t nColumnsInBuffer() const;
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
     size_t nrows() const { return allocnrows; }
