@@ -32,16 +32,18 @@
 
 FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
 {
+  size_t input_size = datasize();
   targetdir = nullptr;
   sof = dataptr();
-  eof = sof + datasize();
+  eof = sof + input_size;
   // TODO: Do not require the extra byte, and do not write into the input stream...
-  xassert(extra_byte_accessible() && eof > sof);
+  xassert(extra_byte_accessible() && input_size > 0);
   *const_cast<char*>(eof) = '\0';
 
   whiteChar = '\0';
   quoteRule = -1;
   LFpresent = false;
+  fo.input_size = input_size;
 }
 
 FreadReader::~FreadReader() {
@@ -364,27 +366,25 @@ DataTablePtr FreadReader::makeDatatable() {
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
-    char*& tbm, size_t& tbmsize, char* se, size_t sesize
+    size_t bcols, size_t brows, FreadReader& f, int8_t* types_
   ) : LocalParseContext(bcols, brows),
       types(types_),
       freader(f),
       columns(f.columns),
       tokenizer(f.makeTokenizer(tbuf, NULL)),
-      parsers(ParserLibrary::get_parser_fns()),
-      typeBumpMsg(tbm), typeBumpMsgSize(tbmsize),
-      stopErr(se), stopErrSize(sesize)
+      parsers(ParserLibrary::get_parser_fns())
 {
-  thPush = 0;
+  ttime_push = 0;
+  ttime_read = 0;
   anchor = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
   sep = f.sep;
   verbose = f.verbose;
   fill = f.fill;
-  nTypeBump = 0;
   skipEmptyLines = f.skip_blank_lines;
   numbersMayBeNAs = f.number_is_na;
+  n_type_bumps = 0;
   size_t ncols = columns.size();
   size_t bufsize = std::min(size_t(4096), f.datasize() / (ncols + 1));
   for (size_t i = 0, j = 0; i < ncols; ++i) {
@@ -404,6 +404,7 @@ FreadLocalParseContext::~FreadLocalParseContext() {}
 void FreadLocalParseContext::read_chunk(
   const ChunkCoordinates& cc, ChunkCoordinates& actual_cc)
 {
+  double t0 = verbose? wallclock() : 0;
   // If any error in the loop below occurs, we'll do `return;` and the output
   // variable `actual_cc` will contain `.end = nullptr;`.
   actual_cc.start = cc.start;
@@ -516,20 +517,11 @@ void FreadLocalParseContext::read_chunk(
         if (newType != oldType) {
           xassert(cc.true_start);
           if (verbose) {
-            // Can't print because we're likely not master. So accumulate
-            // message and print afterwards.
-            char temp[1001];
-            int len = snprintf(temp, 1000,
-              "Column %zu (\"%s\") bumped from '%s' to '%s' due to <<%.*s>> on row %llu\n",
-              j+1, columns[j].name.data(),
-              ParserLibrary::info(oldType).cname(),
-              ParserLibrary::info(newType).cname(),
-              (int)(tch-fieldStart), fieldStart, (llu)(row0+used_nrows));
-            typeBumpMsg = (char*) realloc(typeBumpMsg, typeBumpMsgSize + (size_t)len + 1);
-            strcpy(typeBumpMsg + typeBumpMsgSize, temp);
-            typeBumpMsgSize += (size_t)len;
+            freader.fo.type_bump_info(j + 1, columns[j], newType, fieldStart,
+                                      tch - fieldStart,
+                                      static_cast<int64_t>(row0 + used_nrows));
           }
-          nTypeBump++;
+          n_type_bumps++;
           types[j] = newType;
           columns[j].type = newType;
           columns[j].typeBumped = true;
@@ -556,21 +548,22 @@ void FreadLocalParseContext::read_chunk(
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
       if (cc.true_start) {
-        snprintf(stopErr, stopErrSize,
-          "Expecting %zu cols but row %zu contains only %zu cols (sep='%c'). "
-          "Consider fill=true. \"%s\"",
-          ncols, row0, j, sep, strlim(tlineStart, 500));
+        throw RuntimeError() << "Too few fields on row " << row0 + used_nrows
+          << ": expected " << ncols << " but found only " << j
+          << " (with sep='" << sep << "'). Set fill=True to ignore this error. "
+          << " <<" << strlim(tlineStart, 500) << ">>";
+      } else {
+        return;
       }
-      return;
     }
     if (!(tokenizer.skip_eol() || *tch=='\0')) {
       if (cc.true_start) {
-        snprintf(stopErr, stopErrSize,
-          "Too many fields on out-of-sample row %zu. Read all %zu "
-          "expected columns but more are present. \"%s\"",
-          row0, ncols, strlim(tlineStart, 500));
+        throw RuntimeError() << "Too many fields on row " << row0 + used_nrows
+          << ": expected " << ncols << " but more are present. <<"
+          << strlim(tlineStart, 500) << ">>";
+      } else {
+        return;
       }
-      return;
     }
     used_nrows++;
   }
@@ -580,6 +573,7 @@ void FreadLocalParseContext::read_chunk(
   // Tell the caller where we finished reading the chunk. This is why
   // the parameter `actual_cc` was passed to this function.
   actual_cc.end = tch;
+  if (verbose) ttime_read += wallclock() - t0;
 }
 
 
@@ -658,7 +652,7 @@ void FreadLocalParseContext::push_buffers() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
 
-  double now = verbose? wallclock() : 0;
+  double t0 = verbose? wallclock() : 0;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0, k = 0; i < ncols; i++) {
     const GReaderColumn& col = columns[i];
@@ -717,7 +711,7 @@ void FreadLocalParseContext::push_buffers() {
     j++;
   }
   used_nrows = 0;
-  if (verbose) thPush += wallclock() - now;
+  if (verbose) ttime_push += wallclock() - t0;
 }
 
 
@@ -877,4 +871,120 @@ int FreadTokenizer::countfields()
     return -1;  // -1 means this line not valid for this sep and quote rule
   }
   return ncol;
+}
+
+
+
+//==============================================================================
+// FreadObserver
+//==============================================================================
+
+FreadObserver::FreadObserver() {
+  t_start = wallclock();
+  t_initialized = 0;
+  t_parse_parameters_detected = 0;
+  t_column_types_detected = 0;
+  t_frame_allocated = 0;
+  t_data_read = 0;
+  t_data_reread = 0;
+  time_read_data = 0;
+  time_push_data = 0;
+  input_size = 0;
+  n_rows_read = 0;
+  n_cols_read = 0;
+  n_lines_sampled = 0;
+  n_rows_allocated = 0;
+  n_cols_allocated = 0;
+  n_cols_reread = 0;
+  allocation_size = 0;
+  read_data_nthreads = 0;
+}
+
+FreadObserver::~FreadObserver() {}
+
+
+void FreadObserver::report(const GenericReader& g) {
+  double t_end = wallclock();
+  xassert(t_start <= t_initialized &&
+          t_initialized <= t_parse_parameters_detected &&
+          t_parse_parameters_detected <= t_column_types_detected &&
+          t_column_types_detected <= t_frame_allocated &&
+          t_frame_allocated <= t_data_read &&
+          t_data_read <= t_data_reread &&
+          t_data_reread <= t_end &&
+          read_data_nthreads > 0);
+  double total_time = std::max(t_end - t_start, 1e-6);
+  int    total_minutes = static_cast<int>(total_time/60);
+  double total_seconds = total_time - total_minutes * 60;
+  double params_time = t_parse_parameters_detected - t_initialized;
+  double types_time = t_column_types_detected - t_parse_parameters_detected;
+  double alloc_time = t_frame_allocated - t_column_types_detected;
+  double read_time = t_data_read - t_frame_allocated;
+  double reread_time = t_data_reread - t_data_read;
+  double makedt_time = t_end - t_data_reread;
+  time_read_data /= read_data_nthreads;
+  time_push_data /= read_data_nthreads;
+  double time_wait_data = read_time + reread_time
+                          - time_read_data - time_push_data;
+  int p = total_time < 10 ? 5 :
+          total_time < 100 ? 6 :
+          total_time < 1000 ? 7 : 8;
+
+  g.trace("=============================");
+  g.trace("Read %s row%s x %s column%s from %s input in %02d:%06.3fs",
+          humanize_number(n_rows_read), (n_rows_read == 1 ? "" : "s"),
+          humanize_number(n_cols_read), (n_cols_read == 1 ? "" : "s"),
+          filesize_to_str(input_size),
+          total_minutes, total_seconds);
+  g.trace(" = %*.3fs (%2.0f%%) detecting parse parameters", p,
+          params_time, 100 * params_time / total_time);
+  g.trace(" + %*.3fs (%2.0f%%) detecting column types using %s sample rows", p,
+          types_time, 100 * types_time / total_time,
+          humanize_number(n_lines_sampled));
+  g.trace(" + %*.3fs (%2.0f%%) allocating [%s x %s] frame (%s) of which "
+          "%s (%.0f%%) rows used", p,
+          alloc_time, 100 * alloc_time / total_time,
+          humanize_number(n_rows_allocated),
+          humanize_number(n_cols_allocated),
+          filesize_to_str(allocation_size),
+          humanize_number(n_rows_read),
+          100.0 * n_rows_read / n_rows_allocated);  // may be > 100%
+  g.trace(" + %*.3fs (%2.0f%%) reading data using %zu thread%s", p,
+          read_time, 100 * read_time / total_time,
+          read_data_nthreads, (read_data_nthreads == 1? "" : "s"));
+  if (n_cols_reread) {
+    g.trace(" + %*.3fs (%2.0f%%) Rereading %d columns due to out-of-sample "
+            "type exceptions", p,
+            reread_time, 100 * reread_time / total_time,
+            n_cols_reread);
+  }
+  g.trace("    = %*.3fs (%2.0f%%) reading into row-major buffers", p,
+          time_read_data, 100 * time_read_data / total_time);
+  g.trace("    + %*.3fs (%2.0f%%) saving into the output frame", p,
+          time_push_data, 100 * time_push_data / total_time);
+  g.trace("    + %*.3fs (%2.0f%%) waiting", p,
+          time_wait_data, 100 * time_wait_data / total_time);
+  g.trace(" + %*.3fs (%2.0f%%) creating the final Frame", p,
+          makedt_time, 100 * makedt_time / total_time);
+  if (!type_bump_messages.empty()) {
+    g.trace("=============================");
+    for (std::string msg : type_bump_messages) {
+      g.trace("%s", msg.data());
+    }
+  }
+}
+
+
+void FreadObserver::type_bump_info(
+  size_t icol, const GReaderColumn& col, int8_t new_type,
+  const char* field, int64_t len, int64_t lineno)
+{
+  char temp[1001];
+  int n = snprintf(temp, sizeof(temp) - 1,
+    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %llu",
+    icol, col.name.data(),
+    ParserLibrary::info(col.type).cname(),
+    ParserLibrary::info(new_type).cname(),
+    static_cast<int>(len), field, lineno);
+  type_bump_messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }

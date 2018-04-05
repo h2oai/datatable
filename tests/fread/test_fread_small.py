@@ -724,7 +724,8 @@ def test_almost_nodata(capsys):
     assert d0.shape == (n, 3)
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.topython() == [[2017] * n, m, ["foo"] * n]
-    assert ("Column 2 (\"B\") bumped from 'Bool8/numeric' to 'Str32' "
+    print(out)
+    assert ("Column 2 (B) bumped from Bool8/numeric to Str32 "
             "due to <<gotcha>> on row 109" in out)
 
 
@@ -782,3 +783,41 @@ def test_maxnrows_on_large_dataset():
     assert d0.internal.check()
     assert d0.shape == (5, 3)
     assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
+
+
+def test_typebumps(capsys):
+    lines = ["1,2,3,4"] * 2111
+    lines[105] = "Fals,3.5,boo,\"1,000\""
+    src = "A,B,C,D\n" + "\n".join(lines)
+    d0 = dt.fread(src, verbose=True)
+    out, err = capsys.readouterr()
+    assert ("4 columns need to be re-read because their types have changed"
+            in out)
+    assert ("Column 1 (A) bumped from Bool8/numeric to Str32 due to <<Fals>> "
+            "on row 105" in out)
+    assert ("Column 2 (B) bumped from Int32 to Float64 due to <<3.5>> on "
+            "row 105" in out)
+    assert ("Column 3 (C) bumped from Int32 to Str32 due to <<boo>> on "
+            "row 105" in out)
+    assert ("Column 4 (D) bumped from Int32 to Str32 due to <<\"1,000\">> on "
+            "row 105" in out)
+
+
+def test_too_few_rows():
+    lines = ["1,2,3"] * 2500
+    lines[111] = "a"
+    src = "\n".join(lines)
+    with pytest.raises(RuntimeError) as e:
+        dt.fread(src, verbose=True)
+    assert ("Too few fields on row 111: expected 3 but found only 1"
+            in str(e.value))
+
+
+def test_too_many_rows():
+    lines = ["1,2,3"] * 2500
+    lines[111] = "0,0,0,0,0"
+    src = "\n".join(lines)
+    with pytest.raises(RuntimeError) as e:
+        dt.fread(src, verbose=True)
+    assert ("Too many fields on row 111: expected 3 but more are present"
+            in str(e.value))

@@ -35,6 +35,7 @@ int64_t max(int64_t a, int64_t b);
 float max_f4(float a, float b);
 double wallclock(void);
 const char* filesize_to_str(size_t filesize);
+const char* humanize_number(size_t num);
 
 inline std::string operator "" _s(const char* str, size_t len) {
   return std::string(str, len);

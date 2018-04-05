@@ -104,6 +104,19 @@ Error& Error::operator<<(SType stype) {
   return *this;
 }
 
+Error& Error::operator<<(char c) {
+  uint8_t uc = static_cast<uint8_t>(c);
+  if (uc < 0x20 || uc >= 0x80) {
+    uint8_t d1 = uc >> 4;
+    uint8_t d2 = uc & 15;
+    error << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
+                   << static_cast<char>((d2 <= 9? '0' : 'a' - 10) + d2);
+  } else {
+    error << c;
+  }
+  return *this;
+}
+
 
 void Error::topython() const {
   // The pointer returned by errstr.c_str() is valid until errstr gets out

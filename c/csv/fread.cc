@@ -54,27 +54,19 @@ class FreadChunkedReader {
   private:
     FreadReader& f;
     ChunkOrganizerPtr chunkster;
-  public:
     // dt::shared_mutex shmutex;
-    size_t rowSize;
-    size_t chunk0;
-    static constexpr size_t stopErrSize = 1000;
-    char stopErr[stopErrSize];
-    char* typeBumpMsg;
-    size_t typeBumpMsgSize;
     int8_t* types;
-    int nTypeBump;
-    int nTypeBumpCols;
+    size_t rowSize;
+    size_t n_type_bumps;
+    size_t chunk0;
     size_t row0;
     size_t allocnrow;
     size_t max_nrows;
-    double thRead, thPush;
 
   public:
-    // The abominable constructor
     FreadChunkedReader(
         FreadReader& reader, size_t rowSize_, const char* lastRowEnd_,
-        char* typeBumpMsg_, size_t typeBumpMsgSize_, int8_t* types_
+        int8_t* types_
     ) : f(reader)
     {
       chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
@@ -83,14 +75,8 @@ class FreadChunkedReader {
       allocnrow = f.columns.nrows();
       max_nrows = f.max_nrows;
       chunk0 = 0;
-      stopErr[0] = '\0';
-      typeBumpMsg = typeBumpMsg_;
-      typeBumpMsgSize = typeBumpMsgSize_;
-      nTypeBump = 0;
-      nTypeBumpCols = 0;
+      n_type_bumps = 0;
       row0 = 0;
-      thRead = 0.0;
-      thPush = 0.0;
       xassert(allocnrow <= max_nrows);
     }
     ~FreadChunkedReader() {}
@@ -99,8 +85,7 @@ class FreadChunkedReader {
       size_t nchunks = chunkster->get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
       size_t tcols = rowSize / 8;
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types,
-        typeBumpMsg, typeBumpMsgSize, stopErr, stopErrSize));
+      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types));
     }
 
     ChunkOrganizerPtr init_chunk_organizer(
@@ -111,6 +96,7 @@ class FreadChunkedReader {
       );
     }
 
+    size_t get_n_type_bumps() const { return n_type_bumps; }
 
     //********************************//
     // Main function
@@ -156,7 +142,7 @@ class FreadChunkedReader {
         ChunkCoordinates xcc;
         ChunkCoordinates acc;
 
-        #pragma omp for ordered schedule(dynamic) reduction(+:thRead,thPush)
+        #pragma omp for ordered schedule(dynamic)
         for (size_t i = chunk0; i < nchunks; i++) {
           if (stopTeam) continue;
           try {
@@ -185,22 +171,17 @@ class FreadChunkedReader {
               // error: even if the chunk's start was determined correctly, we
               // didn't know that up to this point, and so were not producing
               // the correct error message.
-              // After re-reading, it is possible to still have `acc.end` equal
-              // nullptr (i.e. genuine file reading error); otherwise `acc.end`
-              // will have the correct end of the current chunk, which MUST be
-              // reported to `chunkster` by calling `is_ordered()` the second
-              // time.
+              // After re-reading, it is no longer possible to have `acc.end`
+              // being nullptr: if a genuine reading error occurs, it will be
+              // thrown as an exception. Thus, `acc.end` will have the correct
+              // end of the current chunk, which MUST be reported to `chunkster`
+              // by calling `is_ordered()` the second time.
               bool reparse_error = !acc.end && !xcc.true_start;
               if (!chunkster->is_ordered(acc, xcc) || reparse_error) {
                 xassert(xcc.true_start);
                 ctx->read_chunk(xcc, acc);
-                bool ok = !acc.end || chunkster->is_ordered(acc, xcc);
+                bool ok = acc.end && chunkster->is_ordered(acc, xcc);
                 xassert(ok);
-              }
-              if (!acc.end) {
-                xassert(stopErr[0]);
-                stopTeam = true;
-                break;
               }
               ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).
               if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
@@ -241,14 +222,13 @@ class FreadChunkedReader {
         try {
           // Push out all buffers one last time.
           if (ctx->used_nrows) {
-            if (stopTeam && (stopErr[0]!='\0' || oem.exception_caught())) {
+            if (stopTeam && oem.exception_caught()) {
               // Stopped early because of error. Discard the content of the buffers,
               // because they were not ordered, and trying to push them may lead to
               // unexpected bugs...
               ctx->used_nrows = 0;
             } else {
               ctx->push_buffers();
-              thPush += ctx->thPush;
             }
           }
         } catch (...) {
@@ -257,8 +237,10 @@ class FreadChunkedReader {
 
         #pragma omp critical
         {
-          nTypeBump += ctx->nTypeBump;
+          n_type_bumps += ctx->n_type_bumps;
           progressShown |= tShowAlways;
+          f.fo.time_push_data += ctx->ttime_push;
+          f.fo.time_read_data += ctx->ttime_read;
         }
       }  // #pragma omp parallel
 
@@ -278,9 +260,6 @@ class FreadChunkedReader {
         f.progress(chunkster->work_done_amount(), status);
       }
       oem.rethrow_exception_if_any();
-      if (stopTeam && stopErr[0]!='\0') {
-        STOP(stopErr);
-      }
       xassert(row0 <= allocnrow || max_nrows <= allocnrow);
       if (extraAllocRows) {
         allocnrow += extraAllocRows;
@@ -292,13 +271,10 @@ class FreadChunkedReader {
         read_all();
       } else {
         f.columns.allocate(row0);
-        thRead /= nthreads;
-        thPush /= nthreads;
+        f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
       }
     }
 };
-
-
 
 
 
@@ -314,8 +290,6 @@ class FreadChunkedReader {
 //=================================================================================================
 DataTablePtr FreadReader::read()
 {
-  double t0 = wallclock();
-
   const ParserFnPtr* parsers = parserlib.get_parser_fns();
 
   // Convenience variable for iterating over the file.
@@ -336,6 +310,7 @@ DataTablePtr FreadReader::read()
   } else {
     trace("LF character (\\n) not found in input, CR (\\r) will be considered a line ending");
   }
+  if (verbose) fo.t_initialized = wallclock();
 
 
   //*********************************************************************************************
@@ -513,6 +488,8 @@ DataTablePtr FreadReader::read()
       }
     }
     ch = tch;
+
+    if (verbose) fo.t_parse_parameters_detected = wallclock();
   }
 
 
@@ -522,7 +499,6 @@ DataTablePtr FreadReader::read()
   //     good nrow estimate.
   //*********************************************************************************************
   size_t nChunks;          // How many jumps to use when pre-scanning the file
-  size_t sampleLines;     // How many lines were sampled during the initial pre-scan
   size_t bytesRead;       // Bytes in the whole data section
   const char* lastRowEnd; // Pointer to the end of the data section
   {
@@ -557,7 +533,7 @@ DataTablePtr FreadReader::read()
               nChunks, sz, jump0size, sz/(2*jump0size));
     }
 
-    sampleLines = 0;
+    size_t sampleLines = 0;     // How many lines were sampled during the initial pre-scan
     int64_t row1Line = line;
     double sumLen = 0.0;
     double sumLenSq = 0.0;
@@ -786,6 +762,7 @@ DataTablePtr FreadReader::read()
       trace("=====");
     }
     ch = tch;
+    fo.n_lines_sampled = sampleLines;
   }
 
 
@@ -803,14 +780,12 @@ DataTablePtr FreadReader::read()
     parse_column_names(fctx);
     sof = fctx.ch;  // Update sof to point to the first line after the columns
   }
+  if (verbose) fo.t_column_types_detected = wallclock();
 
 
   //*********************************************************************************************
   // [9] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
-  double tLayout = wallclock();
-  double tColType;    // Timer for applying user column class overrides
-  double tAlloc;      // Timer for allocating the DataTable
   size_t rowSize;
   {
     if (verbose) trace("[09] Apply user overrides on column types");
@@ -843,17 +818,18 @@ DataTablePtr FreadReader::read()
     if (verbose) {
       trace("  After %d type and %d drop user overrides : %s",
             nUserBumped, ndropped, columns.printTypes());
-    }
-    tColType = wallclock();
-
-    if (verbose) {
-      trace("  Allocating %d column slots (%d - %d dropped) with %zd rows",
-            ncols-ndropped, ncols, ndropped, allocnrow);
+      trace("  Allocating %d column slots with %zd rows",
+            ncols - ndropped, allocnrow);
     }
 
     columns.allocate(allocnrow);
 
-    tAlloc = wallclock();
+    if (verbose) {
+      fo.t_frame_allocated = wallclock();
+      fo.n_rows_allocated = allocnrow;
+      fo.n_cols_allocated = ncols - ndropped;
+      fo.allocation_size = columns.totalAllocSize();
+    }
   }
 
 
@@ -861,103 +837,65 @@ DataTablePtr FreadReader::read()
   // [11] Read the data
   //*********************************************************************************************
   bool firstTime = true;
-  int nTypeBump = 0;
-  int nTypeBumpCols = 0;
-  double tRead = 0.0;
-  double tReread = 0.0;
-  double thRead = 0.0;
-  double thPush = 0.0;  // reductions of timings within the parallel region
-  char* typeBumpMsg = NULL;
-  size_t typeBumpMsgSize = 0;
   int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
 
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
   if (sep == '\n') sep = '\xFF';
 
+  trace("[11] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
-    trace("[11] Read the data");
-    FreadChunkedReader scr(*this, rowSize, lastRowEnd, typeBumpMsg, typeBumpMsgSize, types);
+    FreadChunkedReader scr(*this, rowSize, lastRowEnd, types);
     scr.read_all();
-    thRead += scr.thRead;
-    thPush += scr.thPush;
-    typeBumpMsg = scr.typeBumpMsg;
-    typeBumpMsgSize = scr.typeBumpMsgSize;
-    nTypeBump += scr.nTypeBump;
-    nTypeBumpCols += scr.nTypeBumpCols;
-  }
 
-  if (firstTime) {
-    tReread = tRead = wallclock();
-    size_t ncols = columns.size();
+    if (firstTime) {
+      fo.t_data_read = fo.t_data_reread = wallclock();
+      size_t ncols = columns.size();
 
-    for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
-    for (size_t i = 0; i < ncols; i++) {
-      typeCounts[columns[i].type]++;
-    }
-
-    if (nTypeBump) {
-      rowSize = 0;
-      for (size_t j = 0; j < ncols; j++) {
-        GReaderColumn& col = columns[j];
-        if (!col.presentInOutput) continue;
-        if (col.typeBumped) {
-          // column was bumped due to out-of-sample type exception
-          col.typeBumped = false;
-          col.presentInBuffer = true;
-          rowSize += 8;
-        } else {
-          types[j] = static_cast<int8_t>(PT::Drop);
-          col.presentInBuffer = false;
-        }
+      for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
+      for (size_t i = 0; i < ncols; i++) {
+        typeCounts[columns[i].type]++;
       }
-      firstTime = false;
-      nTypeBump = 0;
-      goto read;
+
+      if (scr.get_n_type_bumps()) {
+        size_t n_type_bump_cols = 0;
+        rowSize = 0;
+        for (size_t j = 0; j < ncols; j++) {
+          GReaderColumn& col = columns[j];
+          if (!col.presentInOutput) continue;
+          if (col.typeBumped) {
+            // column was bumped due to out-of-sample type exception
+            col.typeBumped = false;
+            col.presentInBuffer = true;
+            n_type_bump_cols++;
+            rowSize += 8;
+          } else {
+            types[j] = static_cast<int8_t>(PT::Drop);
+            col.presentInBuffer = false;
+          }
+        }
+        fo.n_cols_reread = n_type_bump_cols;
+        firstTime = false;
+        if (verbose) {
+          trace(n_type_bump_cols == 1
+                ? "%zu column needs to be re-read because its type has changed"
+                : "%zu columns need to be re-read because their types have changed",
+                n_type_bump_cols);
+        }
+        goto read;
+      }
+    } else {
+      fo.t_data_reread = wallclock();
     }
-  } else {
-    tReread = wallclock();
+
+    fo.n_rows_read = columns.nrows();
+    fo.n_cols_read = columns.nOutputs();
   }
 
-  double tTot = tReread-t0;  // tReread==tRead when there was no reread
-  trace("Read %zu rows x %d columns from %s file in %02d:%06.3f wall clock time",
-        columns.nrows(), columns.nOutputs(), filesize_to_str(datasize()),
-        (int)tTot/60, fmod(tTot,60.0));
 
-
-
-  //*********************************************************************************************
-  // [12] Finalize the datatable
-  //*********************************************************************************************
-  trace("[12] Finalizing the datatable");
-
-  if (verbose) {
-    size_t totalAllocSize = columns.totalAllocSize();
-    size_t nrows = columns.nrows();
-    trace("=============================");
-    if (tTot < 0.000001) tTot = 0.000001;  // to avoid nan% output in some trivially small tests where tot==0.000s
-    trace("%8.3fs (%3.0f%%) sep, ncols and header detection", tLayout-t0, 100.0*(tLayout-t0)/tTot);
-    trace("%8.3fs (%3.0f%%) Column type detection using %zd sample rows",
-          tColType-tLayout, 100.0*(tColType-tLayout)/tTot, sampleLines);
-    trace("%8.3fs (%3.0f%%) Allocation of %llu rows x %d cols (%.3fGB) of which %llu (%3.0f%%) rows used",
-          tAlloc-tColType, 100.0*(tAlloc-tColType)/tTot, (llu)allocnrow, columns.size(),
-          totalAllocSize/(1024.0*1024*1024), (llu)nrows, 100.0*nrows/allocnrow);
-    double thWaiting = tReread - tAlloc - thRead - thPush;
-    trace("%8.3fs (%3.0f%%) Reading data", tReread-tAlloc, 100.0*(tReread-tAlloc)/tTot);
-    trace("   + %8.3fs (%3.0f%%) Parse to row-major thread buffers",
-          thRead, 100.0*thRead/tTot);
-    trace("   + %8.3fs (%3.0f%%) Transpose", thPush, 100.0*thPush/tTot);
-    trace("   + %8.3fs (%3.0f%%) Waiting", thWaiting, 100.0*thWaiting/tTot);
-    trace("%8.3fs (%3.0f%%) Rereading %d columns due to out-of-sample type exceptions",
-          tReread-tRead, 100.0*(tReread-tRead)/tTot, nTypeBumpCols);
-    trace("%8.3fs        Total", tTot);
-    if (typeBumpMsg) {
-      // if type bumps happened, it's useful to see them at the end after the timing 2 lines up showing the reread time
-      trace("%s", typeBumpMsg);
-      free(typeBumpMsg);  // local scope and only populated in verbose mode
-    }
-  }
-
-  return makeDatatable();
+  trace("[12] Finalize the datatable");
+  DataTablePtr res = makeDatatable();
+  if (verbose) fo.report(*this);
+  return res;
 }
