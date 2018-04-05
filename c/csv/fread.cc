@@ -54,10 +54,9 @@ class FreadChunkedReader {
   private:
     FreadReader& f;
     ChunkOrganizerPtr chunkster;
-  public:
     // dt::shared_mutex shmutex;
-    size_t rowSize;
     int8_t* types;
+    size_t rowSize;
     size_t n_type_bumps;
     size_t chunk0;
     size_t row0;
@@ -65,7 +64,6 @@ class FreadChunkedReader {
     size_t max_nrows;
 
   public:
-    // The abominable constructor
     FreadChunkedReader(
         FreadReader& reader, size_t rowSize_, const char* lastRowEnd_,
         int8_t* types_
@@ -98,6 +96,7 @@ class FreadChunkedReader {
       );
     }
 
+    size_t get_n_type_bumps() const { return n_type_bumps; }
 
     //********************************//
     // Main function
@@ -276,8 +275,6 @@ class FreadChunkedReader {
       }
     }
 };
-
-
 
 
 
@@ -861,7 +858,7 @@ DataTablePtr FreadReader::read()
         typeCounts[columns[i].type]++;
       }
 
-      if (scr.n_type_bumps) {
+      if (scr.get_n_type_bumps()) {
         size_t n_type_bump_cols = 0;
         rowSize = 0;
         for (size_t j = 0; j < ncols; j++) {
