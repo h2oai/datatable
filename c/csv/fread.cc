@@ -57,8 +57,6 @@ class FreadChunkedReader {
   public:
     // dt::shared_mutex shmutex;
     size_t rowSize;
-    static constexpr size_t stopErrSize = 1000;
-    char stopErr[stopErrSize];
     int8_t* types;
     size_t n_type_bumps;
     size_t chunk0;
@@ -79,7 +77,6 @@ class FreadChunkedReader {
       allocnrow = f.columns.nrows();
       max_nrows = f.max_nrows;
       chunk0 = 0;
-      stopErr[0] = '\0';
       n_type_bumps = 0;
       row0 = 0;
       xassert(allocnrow <= max_nrows);
@@ -90,8 +87,7 @@ class FreadChunkedReader {
       size_t nchunks = chunkster->get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
       size_t tcols = rowSize / 8;
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types,
-        stopErr, stopErrSize));
+      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types));
     }
 
     ChunkOrganizerPtr init_chunk_organizer(
@@ -176,22 +172,17 @@ class FreadChunkedReader {
               // error: even if the chunk's start was determined correctly, we
               // didn't know that up to this point, and so were not producing
               // the correct error message.
-              // After re-reading, it is possible to still have `acc.end` equal
-              // nullptr (i.e. genuine file reading error); otherwise `acc.end`
-              // will have the correct end of the current chunk, which MUST be
-              // reported to `chunkster` by calling `is_ordered()` the second
-              // time.
+              // After re-reading, it is no longer possible to have `acc.end`
+              // being nullptr: if a genuine reading error occurs, it will be
+              // thrown as an exception. Thus, `acc.end` will have the correct
+              // end of the current chunk, which MUST be reported to `chunkster`
+              // by calling `is_ordered()` the second time.
               bool reparse_error = !acc.end && !xcc.true_start;
               if (!chunkster->is_ordered(acc, xcc) || reparse_error) {
                 xassert(xcc.true_start);
                 ctx->read_chunk(xcc, acc);
-                bool ok = !acc.end || chunkster->is_ordered(acc, xcc);
+                bool ok = acc.end && chunkster->is_ordered(acc, xcc);
                 xassert(ok);
-              }
-              if (!acc.end) {
-                xassert(stopErr[0]);
-                stopTeam = true;
-                break;
               }
               ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).
               if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
@@ -232,7 +223,7 @@ class FreadChunkedReader {
         try {
           // Push out all buffers one last time.
           if (ctx->used_nrows) {
-            if (stopTeam && (stopErr[0]!='\0' || oem.exception_caught())) {
+            if (stopTeam && oem.exception_caught()) {
               // Stopped early because of error. Discard the content of the buffers,
               // because they were not ordered, and trying to push them may lead to
               // unexpected bugs...
@@ -270,9 +261,6 @@ class FreadChunkedReader {
         f.progress(chunkster->work_done_amount(), status);
       }
       oem.rethrow_exception_if_any();
-      if (stopTeam && stopErr[0]!='\0') {
-        STOP(stopErr);
-      }
       xassert(row0 <= allocnrow || max_nrows <= allocnrow);
       if (extraAllocRows) {
         allocnrow += extraAllocRows;

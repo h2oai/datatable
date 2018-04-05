@@ -167,12 +167,8 @@ class FreadLocalParseContext : public LocalParseContext
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 
-    char*   stopErr;
-    size_t  stopErrSize;
-
   public:
-    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
-                           char* stopErr, size_t stopErrSize);
+    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
     virtual ~FreadLocalParseContext();

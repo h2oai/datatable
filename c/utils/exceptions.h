@@ -41,6 +41,7 @@ public:
   Error& operator<<(int64_t);
   Error& operator<<(int32_t);
   Error& operator<<(int8_t);
+  Error& operator<<(char);
   Error& operator<<(size_t);
   Error& operator<<(SType);
   Error& operator<<(const CErrno&);

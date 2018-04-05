@@ -366,15 +366,13 @@ DataTablePtr FreadReader::makeDatatable() {
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
-    char* se, size_t sesize
+    size_t bcols, size_t brows, FreadReader& f, int8_t* types_
   ) : LocalParseContext(bcols, brows),
       types(types_),
       freader(f),
       columns(f.columns),
       tokenizer(f.makeTokenizer(tbuf, NULL)),
-      parsers(ParserLibrary::get_parser_fns()),
-      stopErr(se), stopErrSize(sesize)
+      parsers(ParserLibrary::get_parser_fns())
 {
   ttime_push = 0;
   ttime_read = 0;
@@ -550,21 +548,22 @@ void FreadLocalParseContext::read_chunk(
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
       if (cc.true_start) {
-        snprintf(stopErr, stopErrSize,
-          "Expecting %zu cols but row %zu contains only %zu cols (sep='%c'). "
-          "Consider fill=true. \"%s\"",
-          ncols, row0, j, sep, strlim(tlineStart, 500));
+        throw RuntimeError() << "Too few fields on row " << row0 + used_nrows
+          << ": expected " << ncols << " but found only " << j
+          << " (with sep='" << sep << "'). Set fill=True to ignore this error. "
+          << " <<" << strlim(tlineStart, 500) << ">>";
+      } else {
+        return;
       }
-      return;
     }
     if (!(tokenizer.skip_eol() || *tch=='\0')) {
       if (cc.true_start) {
-        snprintf(stopErr, stopErrSize,
-          "Too many fields on out-of-sample row %zu. Read all %zu "
-          "expected columns but more are present. \"%s\"",
-          row0, ncols, strlim(tlineStart, 500));
+        throw RuntimeError() << "Too many fields on row " << row0 + used_nrows
+          << ": expected " << ncols << " but more are present. <<"
+          << strlim(tlineStart, 500) << ">>";
+      } else {
+        return;
       }
-      return;
     }
     used_nrows++;
   }

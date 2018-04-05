@@ -801,3 +801,23 @@ def test_typebumps(capsys):
             "row 105" in out)
     assert ("Column 4 (D) bumped from Int32 to Str32 due to <<\"1,000\">> on "
             "row 105" in out)
+
+
+def test_too_few_rows():
+    lines = ["1,2,3"] * 2500
+    lines[111] = "a"
+    src = "\n".join(lines)
+    with pytest.raises(RuntimeError) as e:
+        dt.fread(src, verbose=True)
+    assert ("Too few fields on row 111: expected 3 but found only 1"
+            in str(e.value))
+
+
+def test_too_many_rows():
+    lines = ["1,2,3"] * 2500
+    lines[111] = "0,0,0,0,0"
+    src = "\n".join(lines)
+    with pytest.raises(RuntimeError) as e:
+        dt.fread(src, verbose=True)
+    assert ("Too many fields on row 111: expected 3 but more are present"
+            in str(e.value))
