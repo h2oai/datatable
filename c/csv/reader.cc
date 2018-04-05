@@ -348,6 +348,11 @@ void GenericReader::_message(
   }
 }
 
+void GenericReader::progress(double progress, int statuscode) {
+  freader.invoke("_progress", "(di)", progress, statuscode);
+}
+
+
 
 //------------------------------------------------------------------------------
 
@@ -535,9 +540,9 @@ DataTablePtr GenericReader::read_empty_input() {
   const char* sof = dataptr();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
-    Column** columns = static_cast<Column**>(malloc(sizeof(Column*)));
-    columns[0] = nullptr;
-    return DataTablePtr(new DataTable(columns));
+    Column** cols = static_cast<Column**>(malloc(sizeof(Column*)));
+    cols[0] = nullptr;
+    return DataTablePtr(new DataTable(cols));
   }
   return nullptr;
 }

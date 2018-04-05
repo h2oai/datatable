@@ -44,54 +44,46 @@ const char* strlim(const char* ch, size_t limit) {
 }
 
 
-typedef std::unique_ptr<LocalParseContext>LPCPtr;
-typedef std::unique_ptr<FreadLocalParseContext> FLPCPtr;
-
 
 //------------------------------------------------------------------------------
 
-class FreadChunkedReader {
-  private:
-    FreadReader& f;
+class BaseChunkedReader {
+  protected:
+    GenericReader& g;
     ChunkOrganizerPtr chunkster;
     // dt::shared_mutex shmutex;
-    int8_t* types;
     size_t chunk0;
     size_t row0;
     size_t allocnrow;
     size_t max_nrows;
+    int nthreads;
+    int : 32;
 
   public:
-    FreadChunkedReader(FreadReader& reader, int8_t* types_) : f(reader) {
-      chunkster = init_chunk_organizer(f.sof, f.eof);
-      types = types_;
-      allocnrow = f.columns.nrows();
-      max_nrows = f.max_nrows;
+    BaseChunkedReader(GenericReader& reader,
+                      const char* sof, const char* eof) : g(reader) {
+      chunkster = init_chunk_organizer(sof, eof);
+      allocnrow = g.columns.nrows();
+      max_nrows = g.max_nrows;
+      nthreads = g.nthreads;
       chunk0 = 0;
       row0 = 0;
       xassert(allocnrow <= max_nrows);
     }
-    ~FreadChunkedReader() {}
-
-    std::unique_ptr<FreadLocalParseContext> init_thread_context() {
-      size_t nchunks = chunkster->get_nchunks();
-      size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
-      size_t tcols = f.columns.nColumnsInBuffer();
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types));
-    }
+    virtual ~BaseChunkedReader() {}
 
     ChunkOrganizerPtr init_chunk_organizer(
         const char* inputStart, const char* inputEnd)
     {
       return ChunkOrganizerPtr(
-        new FreadChunkOrganizer(inputStart, inputEnd, f)
+        new FreadChunkOrganizer(inputStart, inputEnd, g)
       );
     }
 
     //********************************//
     // Main function
     //********************************//
-    void read_all()
+    virtual void read_all()
     {
       // If we need to restart reading the file because we ran out of allocation
       // space, then this variable will tell how many new rows has to be allocated.
@@ -100,9 +92,10 @@ class FreadChunkedReader {
       size_t nchunks = 0;
       bool progressShown = false;
       OmpExceptionManager oem;
-      int nthreads = chunkster->get_nthreads();
-      if (nthreads != f.nthreads) {
-        f.trace("Number of threads reduced to %d because data is small",
+      int new_nthreads = chunkster->get_nthreads();
+      if (new_nthreads != nthreads) {
+        nthreads = new_nthreads;
+        g.trace("Number of threads reduced to %d because data is small",
                 nthreads);
       }
 
@@ -115,7 +108,7 @@ class FreadChunkedReader {
           if (actualNthreads != nthreads) {
             nthreads = actualNthreads;
             chunkster->set_nthreads(nthreads);
-            f.trace("Actual number of threads allowed by OMP: %d", nthreads);
+            g.trace("Actual number of threads allowed by OMP: %d", nthreads);
           }
           nchunks = chunkster->get_nchunks();
           tMaster = true;
@@ -124,11 +117,11 @@ class FreadChunkedReader {
         // view of the chunking parameters.
         #pragma omp barrier
 
-        bool tShowProgress = f.report_progress && tMaster;
+        bool tShowProgress = g.report_progress && tMaster;
         bool tShowAlways = false;
         double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
-        FLPCPtr ctx = init_thread_context();
+        auto ctx = init_thread_context();
         ChunkCoordinates xcc;
         ChunkCoordinates acc;
 
@@ -137,7 +130,7 @@ class FreadChunkedReader {
           if (stopTeam) continue;
           try {
             if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-              f.progress(chunkster->work_done_amount());
+              g.progress(chunkster->work_done_amount());
               tShowAlways = true;
             }
 
@@ -225,12 +218,9 @@ class FreadChunkedReader {
           oem.capture_exception();
         }
 
-        #pragma omp critical
-        {
-          progressShown |= tShowAlways;
-          f.fo.time_push_data += ctx->ttime_push;
-          f.fo.time_read_data += ctx->ttime_read;
-        }
+        #pragma omp atomic update
+        progressShown |= tShowAlways;
+
       }  // #pragma omp parallel
 
       if (progressShown) {
@@ -246,26 +236,57 @@ class FreadChunkedReader {
             oem.capture_exception();
           }
         }
-        f.progress(chunkster->work_done_amount(), status);
+        g.progress(chunkster->work_done_amount(), status);
       }
       oem.rethrow_exception_if_any();
       xassert(row0 <= allocnrow || max_nrows <= allocnrow);
       if (extraAllocRows) {
         allocnrow += extraAllocRows;
         if (allocnrow > max_nrows) allocnrow = max_nrows;
-        f.trace("  Too few rows allocated. Allocating additional %llu rows "
+        g.trace("  Too few rows allocated. Allocating additional %llu rows "
                 "(now nrows=%llu) and continue reading from jump point %zu",
                 (llu)extraAllocRows, (llu)allocnrow, chunk0);
-        f.columns.allocate(allocnrow);
+        g.columns.allocate(allocnrow);
         read_all();
       } else {
-        f.columns.allocate(row0);
-        f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
+        g.columns.allocate(row0);
+        // g.fo.read_data_nthreads = static_cast<size_t>(nthreads);
       }
     }
+
+  protected:
+    virtual std::unique_ptr<LocalParseContext> init_thread_context() = 0;
 };
 
 
+class FreadChunkedReader : public BaseChunkedReader {
+  private:
+    FreadReader& f;
+    int8_t* types;
+
+  public:
+    FreadChunkedReader(FreadReader& reader, int8_t* types_)
+      : BaseChunkedReader(reader, reader.sof, reader.eof), f(reader)
+    {
+      types = types_;
+    }
+    virtual ~FreadChunkedReader() {}
+
+    virtual void read_all() override {
+      BaseChunkedReader::read_all();
+      f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
+    }
+
+  protected:
+    virtual std::unique_ptr<LocalParseContext> init_thread_context() override {
+      size_t nchunks = chunkster->get_nchunks();
+      size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
+      size_t tcols = f.columns.nColumnsInBuffer();
+      return std::unique_ptr<LocalParseContext>(
+                new FreadLocalParseContext(tcols, trows, f, types));
+    }
+
+};
 
 
 

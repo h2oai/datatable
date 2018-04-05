@@ -17,6 +17,7 @@
 
 class FreadLocalParseContext;
 class FreadChunkedReader;
+class BaseChunkedReader;
 
 
 //------------------------------------------------------------------------------
@@ -80,7 +81,6 @@ class FreadReader : public GenericReader
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
   ParserLibrary parserlib;
-  GReaderColumns columns;
   FreadObserver fo;
   char* targetdir;
   const char* sof;
@@ -126,11 +126,11 @@ private:
   void parse_column_names(FreadTokenizer& ctx);
   void detect_sep(FreadTokenizer& ctx);
   void userOverride();
-  void progress(double progress, int status = 0);
   DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;
+  friend BaseChunkedReader;
 };
 
 
@@ -171,6 +171,7 @@ class FreadLocalParseContext : public LocalParseContext
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
     virtual ~FreadLocalParseContext();
+
     virtual void push_buffers() override;
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();

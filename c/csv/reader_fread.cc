@@ -336,10 +336,6 @@ void FreadReader::userOverride()
 }
 
 
-void FreadReader::progress(double progress, int statuscode) {
-  pyreader().invoke("_progress", "(di)", progress, statuscode);
-}
-
 
 DataTablePtr FreadReader::makeDatatable() {
   Column** ccols = NULL;
@@ -396,7 +392,14 @@ FreadLocalParseContext::FreadLocalParseContext(
   }
 }
 
-FreadLocalParseContext::~FreadLocalParseContext() {}
+FreadLocalParseContext::~FreadLocalParseContext() {
+  #pragma omp atomic update
+  freader.fo.time_push_data += ttime_push;
+  #pragma omp atomic update
+  freader.fo.time_read_data += ttime_read;
+  ttime_push = 0;
+  ttime_read = 0;
+}
 
 
 
@@ -711,6 +714,7 @@ void FreadLocalParseContext::push_buffers() {
   used_nrows = 0;
   if (verbose) ttime_push += wallclock() - t0;
 }
+
 
 
 
