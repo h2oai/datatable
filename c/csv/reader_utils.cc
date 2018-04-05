@@ -147,38 +147,42 @@ const char* GReaderColumns::printTypes() const {
   return out;
 }
 
-size_t GReaderColumns::nOutputs() const {
-  size_t nouts = 0;
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    nouts += (*this)[i].presentInOutput;
+size_t GReaderColumns::nColumnsInOutput() const {
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.presentInOutput;
   }
-  return nouts;
+  return n;
 }
 
 size_t GReaderColumns::nColumnsInBuffer() const {
-  size_t nouts = 0;
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    nouts += (*this)[i].presentInBuffer;
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.presentInBuffer;
   }
-  return nouts;
+  return n;
+}
+
+size_t GReaderColumns::nColumnsToReread() const {
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.typeBumped;
+  }
+  return n;
 }
 
 size_t GReaderColumns::nStringColumns() const {
-  size_t nstrs = 0;
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    nstrs += (*this)[i].isstring();
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.isstring();
   }
-  return nstrs;
+  return n;
 }
 
 size_t GReaderColumns::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    allocsize += (*this)[i].getAllocSize();
+  for (const GReaderColumn& col : *this) {
+    allocsize += col.getAllocSize();
   }
   return allocsize;
 }

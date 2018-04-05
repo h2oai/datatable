@@ -156,7 +156,6 @@ class FreadLocalParseContext : public LocalParseContext
     bool skipEmptyLines;
     bool numbersMayBeNAs;
     int64_t : 48;
-    size_t n_type_bumps;
     double ttime_push;
     double ttime_read;
     int8_t* types;

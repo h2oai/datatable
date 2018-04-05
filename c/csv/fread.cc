@@ -56,7 +56,6 @@ class FreadChunkedReader {
     ChunkOrganizerPtr chunkster;
     // dt::shared_mutex shmutex;
     int8_t* types;
-    size_t n_type_bumps;
     size_t chunk0;
     size_t row0;
     size_t allocnrow;
@@ -69,7 +68,6 @@ class FreadChunkedReader {
       allocnrow = f.columns.nrows();
       max_nrows = f.max_nrows;
       chunk0 = 0;
-      n_type_bumps = 0;
       row0 = 0;
       xassert(allocnrow <= max_nrows);
     }
@@ -89,8 +87,6 @@ class FreadChunkedReader {
         new FreadChunkOrganizer(inputStart, inputEnd, f)
       );
     }
-
-    size_t get_n_type_bumps() const { return n_type_bumps; }
 
     //********************************//
     // Main function
@@ -231,7 +227,6 @@ class FreadChunkedReader {
 
         #pragma omp critical
         {
-          n_type_bumps += ctx->n_type_bumps;
           progressShown |= tShowAlways;
           f.fo.time_push_data += ctx->ttime_push;
           f.fo.time_read_data += ctx->ttime_read;
@@ -848,7 +843,9 @@ DataTablePtr FreadReader::read()
         typeCounts[columns[i].type]++;
       }
 
-      if (scr.get_n_type_bumps()) {
+      size_t ncols_to_reread = columns.nColumnsToReread();
+      if (ncols_to_reread) {
+        fo.n_cols_reread += ncols_to_reread;
         size_t n_type_bump_cols = 0;
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
@@ -863,7 +860,6 @@ DataTablePtr FreadReader::read()
             col.presentInBuffer = false;
           }
         }
-        fo.n_cols_reread = n_type_bump_cols;
         firstTime = false;
         if (verbose) {
           trace(n_type_bump_cols == 1
@@ -878,7 +874,7 @@ DataTablePtr FreadReader::read()
     }
 
     fo.n_rows_read = columns.nrows();
-    fo.n_cols_read = columns.nOutputs();
+    fo.n_cols_read = columns.nColumnsInOutput();
   }
 
 

@@ -344,7 +344,7 @@ void FreadReader::progress(double progress, int statuscode) {
 DataTablePtr FreadReader::makeDatatable() {
   Column** ccols = NULL;
   size_t ncols = columns.size();
-  size_t ocols = columns.nOutputs();
+  size_t ocols = columns.nColumnsInOutput();
   ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
   ccols[ocols] = NULL;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
@@ -384,7 +384,6 @@ FreadLocalParseContext::FreadLocalParseContext(
   fill = f.fill;
   skipEmptyLines = f.skip_blank_lines;
   numbersMayBeNAs = f.number_is_na;
-  n_type_bumps = 0;
   size_t ncols = columns.size();
   size_t bufsize = std::min(size_t(4096), f.datasize() / (ncols + 1));
   for (size_t i = 0, j = 0; i < ncols; ++i) {
@@ -521,7 +520,6 @@ void FreadLocalParseContext::read_chunk(
                                       tch - fieldStart,
                                       static_cast<int64_t>(row0 + used_nrows));
           }
-          n_type_bumps++;
           types[j] = newType;
           columns[j].type = newType;
           columns[j].typeBumped = true;
