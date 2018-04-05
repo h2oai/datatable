@@ -72,9 +72,9 @@ def BUILD_MATRIX = [
         ]
 ]
 
-/*if (!isPrJob()) {
+if (!isPrJob()) {
     BUILD_MATRIX[PPC64LE_PLATFORM] = PPC64LE_BUILD_CONF
-}*/
+}
 
 // Virtualenv used for build and coverage
 def DEFAULT_PY36_ENV = 'datatable-py36-pandas-numpy'
