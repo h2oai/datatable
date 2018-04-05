@@ -129,17 +129,43 @@ const char* filesize_to_str(size_t fsize)
     }
     if (ndigits == 0 || (fsize == (fsize >> shift << shift))) {
       if (i < NSUFFIXES) {
-        snprintf(output, BUFFSIZE, "%llu%cB (%llu bytes)",
-                 lsize >> shift, suffixes[i], lsize);
+        snprintf(output, BUFFSIZE, "%llu%cB",
+                 lsize >> shift, suffixes[i]);
         return output;
       }
     } else {
-      snprintf(output, BUFFSIZE, "%.*f%cB (%llu bytes)",
-               ndigits, (double)fsize / (1 << shift), suffixes[i], lsize);
+      snprintf(output, BUFFSIZE, "%.*f%cB",
+               ndigits, (double)fsize / (1 << shift), suffixes[i]);
       return output;
     }
   }
   if (fsize == 1) return one_byte;
   snprintf(output, BUFFSIZE, "%llu bytes", lsize);
+  return output;
+}
+
+
+const char* humanize_number(size_t num) {
+  static char outputs[270];
+  static int curr_out = 0;
+  char* output = outputs + (curr_out++) * 27;
+  if (curr_out == 10) curr_out = 0;
+  int len = 0;
+  if (num) {
+    while (true) {
+      output[len++] = '0' + static_cast<char>(num % 10);
+      num /= 10;
+      if (!num) break;
+      if (len % 4 == 3) output[len++] = ',';
+    }
+    for (int i = 0; i < len/2; ++i) {
+      char c = output[i];
+      output[i] = output[len - 1 - i];
+      output[len - 1 - i] = c;
+    }
+  } else {
+    output[len++] = '0';
+  }
+  output[len] = '\0';
   return output;
 }

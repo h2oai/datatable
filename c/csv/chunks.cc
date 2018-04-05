@@ -34,7 +34,7 @@ void ChunkOrganizer::determine_chunking_strategy() {
   size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
   size_t size1000 = static_cast<size_t>(1000 * lineLength);
   size_t zThreads = static_cast<size_t>(nThreads);
-  chunkSize = std::max<size_t>(size1000, 65536);
+  chunkSize = std::max<size_t>(size1000, 1 << 18);
   chunkCount = std::max<size_t>(inputSize / chunkSize, 1);
   if (chunkCount > zThreads) {
     chunkCount = zThreads * (1 + (chunkCount - 1)/zThreads);

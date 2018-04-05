@@ -20,6 +20,49 @@ class FreadChunkedReader;
 
 
 //------------------------------------------------------------------------------
+// FreadObserver
+//------------------------------------------------------------------------------
+
+/**
+ * Helper class to gather various stats about fread's inner workings, and then
+ * present them in the form of a report.
+ */
+class FreadObserver {
+  public:
+    double t_start;
+    double t_initialized;
+    double t_parse_parameters_detected;
+    double t_column_types_detected;
+    double t_frame_allocated;
+    double t_data_read;
+    double t_data_reread;
+    double time_read_data;
+    double time_push_data;
+    size_t n_rows_read;
+    size_t n_cols_read;
+    size_t input_size;
+    size_t n_lines_sampled;
+    size_t n_rows_allocated;
+    size_t n_cols_allocated;
+    size_t n_cols_reread;
+    size_t allocation_size;
+    size_t read_data_nthreads;
+    std::vector<std::string> type_bump_messages;
+
+  public:
+    FreadObserver();
+    ~FreadObserver();
+
+    void type_bump_info(size_t icol, const GReaderColumn& col, int8_t new_type,
+                        const char* field, int64_t len, int64_t lineno);
+
+    void report(const GenericReader&);
+};
+
+
+
+
+//------------------------------------------------------------------------------
 // FreadReader
 //------------------------------------------------------------------------------
 
@@ -32,17 +75,13 @@ class FreadChunkedReader;
 class FreadReader : public GenericReader
 {
   //----- Runtime parameters ---------------------------------------------------
-  // nstrcols: number of string columns in the output DataTable. This will be
-  //     computed within `allocateDT()` callback, and used for allocation of
-  //     string buffers. If the file is re-read (due to type bumps), this
-  //     variable will only count those string columns that need to be re-read.
-  // ndigits: len(str(ncols))
   // allocnrow:
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
   ParserLibrary parserlib;
   GReaderColumns columns;
+  FreadObserver fo;
   char* targetdir;
   const char* sof;
   const char* eof;
@@ -116,9 +155,10 @@ class FreadLocalParseContext : public LocalParseContext
     bool fill;
     bool skipEmptyLines;
     bool numbersMayBeNAs;
-    int64_t : 16;
-    int nTypeBump;
-    double thPush;
+    int64_t : 48;
+    size_t n_type_bumps;
+    double ttime_push;
+    double ttime_read;
     int8_t* types;
 
     FreadReader& freader;
@@ -127,14 +167,11 @@ class FreadLocalParseContext : public LocalParseContext
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 
-    char*& typeBumpMsg;
-    size_t& typeBumpMsgSize;
     char*   stopErr;
     size_t  stopErrSize;
 
   public:
     FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
-                           char*& typeBumpMsg, size_t& typeBumpMsgSize,
                            char* stopErr, size_t stopErrSize);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
