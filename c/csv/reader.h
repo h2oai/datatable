@@ -162,7 +162,7 @@ class GenericReader
     PyObj tempstr;
 
   protected:
-    MemoryBuffer* mbuf;
+    MemoryBuffer* input_mbuf;
     const char* sof;
     const char* eof;
     int64_t line;
