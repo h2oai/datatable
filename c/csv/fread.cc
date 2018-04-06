@@ -195,21 +195,27 @@ DataTablePtr FreadReader::read()
 
     int nseps;
     char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
+    char topSep;             // which sep matches the input best so far
     // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
 
     if (sep == '\xFF') {   // '\xFF' means 'auto'
       nseps = (int) strlen(seps);
+      topSep = '\xFE';     // '\xFE' means single-column mode
     } else {
+      // Cannot use '\n' as a separator, because it prevents us from proper
+      // detection of line endings
+      if (sep == '\n') sep = '\xFE';
       seps[0] = sep;
       seps[1] = '\0';
+      topSep = sep;
       nseps = 1;
-      if (verbose) trace("  Using supplied sep '%s'", sep=='\t' ? "\\t" : seps);
+      if (verbose) trace("  Using supplied sep '%s'",
+                         sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
     }
 
-    int topNumLines=0;        // the most number of lines with the same number of fields, so far
-    int topNumFields=1;       // how many fields that was, to resolve ties
-    char topSep='\n';         // which sep that was, by default \n to mean single-column input (1 field)
-    int8_t topQuoteRule=0;    // which quote rule that was
+    int topNumLines = 0;      // the most number of lines with the same number of fields, so far
+    int topNumFields = 0;     // how many fields that was, to resolve ties
+    int8_t topQuoteRule = 0;  // which quote rule that was
     int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                               //   (when fill=true, the max is usually the header row and is the longest but there are more
                               //    lines of fewer)
@@ -280,6 +286,11 @@ DataTablePtr FreadReader::read()
             updated = true;
             // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
             // updated flag is just to print once.
+          } else if (topNumFields == 0 && nseps == 1 && quoteRule != 2) {
+            topNumFields = numFields[i];
+            topSep = sep;
+            topQuoteRule = quoteRule;
+            topNmax = nmax;
           }
         }
         if (verbose && updated) {
@@ -289,6 +300,7 @@ DataTablePtr FreadReader::read()
         }
       }
     }
+    if (!topNumFields) topNumFields = 1;
     xassert(firstJumpEnd);
     quoteRule = ctx.quoteRule = topQuoteRule;
     sep = ctx.sep = topSep;
@@ -705,7 +717,6 @@ DataTablePtr FreadReader::read()
 
   std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
   int8_t* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
-  if (sep == '\n') sep = '\xFF';
 
   trace("[11] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions

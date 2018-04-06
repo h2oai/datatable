@@ -369,3 +369,11 @@ def test_issue720(seed):
     assert d0.names == ("A", "B")
     assert d0.ltypes == (dt.ltype.str, dt.ltype.str)
     assert d0.topython() == [src0, src1]
+
+
+def test_issuee786():
+    df = dt.fread('"A","B"\n', sep="")
+    assert df.internal.check()
+    assert df.shape == (0, 1)
+    assert df.names == ('"A","B"',)
+    assert df.topython() == [[]]
