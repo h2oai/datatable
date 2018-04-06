@@ -7,6 +7,7 @@
 import time
 
 import datatable
+from datatable.options import options
 from datatable.utils.misc import plural_form, clamp
 from datatable.utils.terminal import term, register_onresize
 
@@ -69,6 +70,7 @@ class DataFrameWidget(object):
         # Display state
         self._n_displayed_lines = 0
         self._show_types = 0
+        self._show_navbar = options.display.interactive_hint and interactive
         self._interactive = interactive
         self._colwidths = {}
         self._term_width = term.width
@@ -181,7 +183,7 @@ class DataFrameWidget(object):
         footer = ["", "[%s x %s]" % (srows, scols), ""]
 
         # Display hint about navigation keys
-        if self._interactive:
+        if self._show_navbar:
             remaining_width = term.width
             if self._jump_string is None:
                 nav_elements = [grey("Press") + " q " + grey("to quit"),
@@ -462,3 +464,9 @@ def _float_tail(x):
         return len(x) - idot - 1
     else:
         return -1
+
+
+options.register_option(
+    "display.interactive_hint", xtype=bool, default=True,
+    doc="Display navigation hint at the bottom of a Frame when viewing "
+        "its contents in the console.")
