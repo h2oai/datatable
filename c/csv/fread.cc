@@ -44,239 +44,106 @@ const char* strlim(const char* ch, size_t limit) {
 }
 
 
-typedef std::unique_ptr<LocalParseContext>LPCPtr;
-typedef std::unique_ptr<FreadLocalParseContext> FLPCPtr;
-
 
 //------------------------------------------------------------------------------
 
-class FreadChunkedReader {
+class FreadChunkedReader : public ChunkedDataReader {
   private:
     FreadReader& f;
-    ChunkOrganizerPtr chunkster;
-    // dt::shared_mutex shmutex;
     int8_t* types;
-    size_t rowSize;
-    size_t n_type_bumps;
-    size_t chunk0;
-    size_t row0;
-    size_t allocnrow;
-    size_t max_nrows;
 
   public:
-    FreadChunkedReader(
-        FreadReader& reader, size_t rowSize_, const char* lastRowEnd_,
-        int8_t* types_
-    ) : f(reader)
+    FreadChunkedReader(FreadReader& reader, int8_t* types_)
+      : ChunkedDataReader(reader, reader.get_mean_line_len()), f(reader)
     {
-      chunkster = init_chunk_organizer(f.sof, lastRowEnd_);
-      rowSize = rowSize_;
       types = types_;
-      allocnrow = f.columns.nrows();
-      max_nrows = f.max_nrows;
-      chunk0 = 0;
-      n_type_bumps = 0;
-      row0 = 0;
-      xassert(allocnrow <= max_nrows);
     }
-    ~FreadChunkedReader() {}
+    virtual ~FreadChunkedReader() {}
 
-    std::unique_ptr<FreadLocalParseContext> init_thread_context() {
-      size_t nchunks = chunkster->get_nchunks();
+    virtual void read_all() override {
+      ChunkedDataReader::read_all();
+      f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
+    }
+
+    bool next_good_line_start(
+      const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
+
+  protected:
+    virtual std::unique_ptr<LocalParseContext> init_thread_context() override {
+      size_t nchunks = get_nchunks();
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
-      size_t tcols = rowSize / 8;
-      return FLPCPtr(new FreadLocalParseContext(tcols, trows, f, types));
+      size_t tcols = f.columns.nColumnsInBuffer();
+      return std::unique_ptr<LocalParseContext>(
+                new FreadLocalParseContext(tcols, trows, f, types));
     }
 
-    ChunkOrganizerPtr init_chunk_organizer(
-        const char* inputStart, const char* inputEnd)
-    {
-      return ChunkOrganizerPtr(
-        new FreadChunkOrganizer(inputStart, inputEnd, f)
-      );
-    }
+    void adjust_chunk_coordinates(
+      ChunkCoordinates& cc, LocalParseContext* ctx) const override;
 
-    size_t get_n_type_bumps() const { return n_type_bumps; }
-
-    //********************************//
-    // Main function
-    //********************************//
-    void read_all()
-    {
-      // If we need to restart reading the file because we ran out of allocation
-      // space, then this variable will tell how many new rows has to be allocated.
-      size_t extraAllocRows = 0;
-      bool stopTeam = false;
-      size_t nchunks = 0;
-      bool progressShown = false;
-      OmpExceptionManager oem;
-      int nthreads = chunkster->get_nthreads();
-      if (nthreads != f.nthreads) {
-        f.trace("Number of threads reduced to %d because data is small",
-                nthreads);
-      }
-
-      #pragma omp parallel num_threads(nthreads)
-      {
-        bool tMaster = false;
-        #pragma omp master
-        {
-          int actualNthreads = omp_get_num_threads();
-          if (actualNthreads != nthreads) {
-            nthreads = actualNthreads;
-            chunkster->set_nthreads(nthreads);
-            f.trace("Actual number of threads allowed by OMP: %d", nthreads);
-          }
-          nchunks = chunkster->get_nchunks();
-          tMaster = true;
-        }
-        // Wait for master here: we want all threads to have consistent
-        // view of the chunking parameters.
-        #pragma omp barrier
-
-        bool tShowProgress = f.report_progress && tMaster;
-        bool tShowAlways = false;
-        double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
-
-        FLPCPtr ctx = init_thread_context();
-        ChunkCoordinates xcc;
-        ChunkCoordinates acc;
-
-        #pragma omp for ordered schedule(dynamic)
-        for (size_t i = chunk0; i < nchunks; i++) {
-          if (stopTeam) continue;
-          try {
-            if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
-              f.progress(chunkster->work_done_amount());
-              tShowAlways = true;
-            }
-
-            ctx->push_buffers();
-            xcc = chunkster->compute_chunk_boundaries(i, ctx.get());
-            ctx->read_chunk(xcc, acc);
-
-          } catch (...) {
-            oem.capture_exception();
-            stopTeam = true;
-          }
-
-          #pragma omp ordered
-          do {
-            try {
-              // The `is_ordered()` call checks whether the actual start of the
-              // chunk was correct (i.e. there are no gaps/overlaps in the
-              // input). If not, then we re-read the chunk using the correct
-              // coordinates (which `is_ordered()` saves in variable `xcc`).
-              // We also re-read if the first `read_chunk()` call returned an
-              // error: even if the chunk's start was determined correctly, we
-              // didn't know that up to this point, and so were not producing
-              // the correct error message.
-              // After re-reading, it is no longer possible to have `acc.end`
-              // being nullptr: if a genuine reading error occurs, it will be
-              // thrown as an exception. Thus, `acc.end` will have the correct
-              // end of the current chunk, which MUST be reported to `chunkster`
-              // by calling `is_ordered()` the second time.
-              bool reparse_error = !acc.end && !xcc.true_start;
-              if (!chunkster->is_ordered(acc, xcc) || reparse_error) {
-                xassert(xcc.true_start);
-                ctx->read_chunk(xcc, acc);
-                bool ok = acc.end && chunkster->is_ordered(acc, xcc);
-                xassert(ok);
-              }
-              ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).
-              if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
-                stopTeam = true;
-                ctx->used_nrows = 0;
-              } else if (ctx->used_nrows + ctx->row0 > allocnrow) {  // current thread has reached `allocnrow` limit
-                if (allocnrow == max_nrows) {
-                  // allocnrow is the same as max_nrows, no need to reallocate the DT,
-                  // just truncate the rows in the current chunk.
-                  ctx->used_nrows = max_nrows - ctx->row0;
-                } else {
-                  // We reached `allocnrow` limit, but there are more data to read
-                  // left. In this case we arrange to terminate all threads but
-                  // remember the position where the previous thread has finished. We
-                  // will reallocate the DT and restart reading from the same point.
-                  chunk0 = i;
-                  if (i < nchunks - 1) {
-                    extraAllocRows = (size_t)((double)(row0+ctx->used_nrows)*nchunks/(i+1) * 1.2) - allocnrow;
-                    if (extraAllocRows < 1024) extraAllocRows = 1024;
-                  } else {
-                    // If we're on the last jump, then we know exactly how many extra rows is needed.
-                    extraAllocRows = row0 + ctx->used_nrows - allocnrow;
-                  }
-                  ctx->used_nrows = 0; // do not push this chunk
-                  chunkster->unorder_chunk(acc);
-                  stopTeam = true;
-                }
-              }
-              row0 += ctx->used_nrows;
-              if (!stopTeam) ctx->orderBuffer();
-
-            } catch (...) {
-              oem.capture_exception();
-              stopTeam = true;
-            }
-          } while (0);  // #pragma omp ordered
-        }  // #pragma omp for ordered
-        try {
-          // Push out all buffers one last time.
-          if (ctx->used_nrows) {
-            if (stopTeam && oem.exception_caught()) {
-              // Stopped early because of error. Discard the content of the buffers,
-              // because they were not ordered, and trying to push them may lead to
-              // unexpected bugs...
-              ctx->used_nrows = 0;
-            } else {
-              ctx->push_buffers();
-            }
-          }
-        } catch (...) {
-          oem.capture_exception();
-        }
-
-        #pragma omp critical
-        {
-          n_type_bumps += ctx->n_type_bumps;
-          progressShown |= tShowAlways;
-          f.fo.time_push_data += ctx->ttime_push;
-          f.fo.time_read_data += ctx->ttime_read;
-        }
-      }  // #pragma omp parallel
-
-      if (progressShown) {
-        int status = 1;
-        if (oem.exception_caught()) {
-          status++;
-          try {
-            oem.rethrow_exception_if_any();
-          } catch (PyError& e) {
-            status += e.is_keyboard_interrupt();
-            oem.capture_exception();
-          } catch (...) {
-            oem.capture_exception();
-          }
-        }
-        f.progress(chunkster->work_done_amount(), status);
-      }
-      oem.rethrow_exception_if_any();
-      xassert(row0 <= allocnrow || max_nrows <= allocnrow);
-      if (extraAllocRows) {
-        allocnrow += extraAllocRows;
-        if (allocnrow > max_nrows) allocnrow = max_nrows;
-        f.trace("  Too few rows allocated. Allocating additional %llu rows "
-                "(now nrows=%llu) and continue reading from jump point %zu",
-                (llu)extraAllocRows, (llu)allocnrow, chunk0);
-        f.columns.allocate(allocnrow);
-        read_all();
-      } else {
-        f.columns.allocate(row0);
-        f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
-      }
-    }
 };
 
 
+// Find the next "good line", in the sense that we find at least 5 lines
+// with `ncols` fields from that point on.
+bool FreadChunkedReader::next_good_line_start(
+  const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const
+{
+  int ncols = static_cast<int>(f.get_ncols());
+  bool fill = f.fill;
+  bool skipEmptyLines = f.skip_blank_lines;
+  const char*& ch = tokenizer.ch;
+  ch = cc.start;
+  const char* eof = cc.end;
+  int attempts = 0;
+  while (ch < eof && attempts++ < 10) {
+    while (ch < eof && *ch != '\n' && *ch != '\r') ch++;
+    if (ch == eof) break;
+    tokenizer.skip_eol();  // updates `ch`
+    // countfields() below moves the parse location, so store it in `ch1` in
+    // order to revert to the current parsing location later.
+    const char* ch1 = ch;
+    int i = 0;
+    for (; i < 5; ++i) {
+      // `countfields()` advances `ch` to the beginning of the next line
+      int n = tokenizer.countfields();
+      if (n != ncols &&
+          !(ncols == 1 && n == 0) &&
+          !(skipEmptyLines && n == 0) &&
+          !(fill && n < ncols)) break;
+    }
+    ch = ch1;
+    // `i` is the count of consecutive consistent rows
+    if (i == 5) return true;
+  }
+  return false;
+}
+
+
+
+void FreadChunkedReader::adjust_chunk_coordinates(
+  ChunkCoordinates& cc, LocalParseContext* ctx) const
+{
+  // Adjust the beginning of the chunk so that it is guaranteed not to be
+  // on a newline.
+  if (!cc.true_start) {
+    auto fctx = static_cast<FreadLocalParseContext*>(ctx);
+    const char* start = cc.start;
+    while (*start=='\n' || *start=='\r') start++;
+    cc.start = start;
+    if (next_good_line_start(cc, fctx->tokenizer)) {
+      cc.start = fctx->tokenizer.ch;
+    }
+  }
+  // Move the end of the chunk, similarly skipping all newline characters;
+  // plus 1 more character, thus guaranteeing that the entire next line will
+  // also "belong" to the current chunk (this because chunk reader stops at
+  // the first end of the line after `end`).
+  if (!cc.true_end) {
+    const char* end = cc.end;
+    while (*end=='\n' || *end=='\r') end++;
+    cc.end = end + 1;
+  }
+}
 
 
 
@@ -500,7 +367,6 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   size_t nChunks;          // How many jumps to use when pre-scanning the file
   size_t bytesRead;       // Bytes in the whole data section
-  const char* lastRowEnd; // Pointer to the end of the data section
   {
     if (verbose) trace("[07] Detect column types, and whether first row contains column names");
     size_t ncols = columns.size();
@@ -539,10 +405,11 @@ DataTablePtr FreadReader::read()
     double sumLenSq = 0.0;
     int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
     int maxLen = -1;
-    lastRowEnd = sof;
+    const char* lastRowEnd = sof;
     bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
     bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
-    auto fco = std::unique_ptr<FreadChunkOrganizer>(new FreadChunkOrganizer(sof, eof, *this));
+    // auto fco = std::unique_ptr<FreadChunkOrganizer>(new FreadChunkOrganizer(sof, eof, *this));
+    FreadChunkedReader fcr(*this, nullptr);
     for (size_t j = 0; j < nChunks; ++j) {
       tch = (j == 0) ? sof :
             (j == nChunks-1) ? eof - (size_t)(0.5*jump0size) :
@@ -558,7 +425,7 @@ DataTablePtr FreadReader::read()
       if (j > 0) {
         ChunkCoordinates cc(tch, eof);
         // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
-        if (!fco->next_good_line_start(cc, fctx)) continue;
+        if (!fcr.next_good_line_start(cc, fctx)) continue;
       }
       bool bumped = false;  // did this jump find any different types; to reduce verbose output to relevant lines
       bool skip = false;
@@ -730,7 +597,7 @@ DataTablePtr FreadReader::read()
       }
       meanLineLen = sumLen;
     } else {
-      bytesRead = (size_t)(lastRowEnd - sof);
+      bytesRead = (size_t)(eof - sof);
       meanLineLen = sumLen/sampleLines;
       estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
       double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
@@ -786,7 +653,6 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   // [9] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
-  size_t rowSize;
   {
     if (verbose) trace("[09] Apply user overrides on column types");
     std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
@@ -796,7 +662,6 @@ DataTablePtr FreadReader::read()
     size_t ncols = columns.size();
     size_t ndropped = 0;
     int nUserBumped = 0;
-    rowSize = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
       if (col.type == static_cast<int8_t>(PT::Drop)) {
@@ -805,7 +670,6 @@ DataTablePtr FreadReader::read()
         col.presentInBuffer = false;
         continue;
       } else {
-        rowSize += 8;
         if (col.type < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
@@ -846,7 +710,7 @@ DataTablePtr FreadReader::read()
   trace("[11] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
-    FreadChunkedReader scr(*this, rowSize, lastRowEnd, types);
+    FreadChunkedReader scr(*this, types);
     scr.read_all();
 
     if (firstTime) {
@@ -858,9 +722,10 @@ DataTablePtr FreadReader::read()
         typeCounts[columns[i].type]++;
       }
 
-      if (scr.get_n_type_bumps()) {
+      size_t ncols_to_reread = columns.nColumnsToReread();
+      if (ncols_to_reread) {
+        fo.n_cols_reread += ncols_to_reread;
         size_t n_type_bump_cols = 0;
-        rowSize = 0;
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
           if (!col.presentInOutput) continue;
@@ -869,13 +734,11 @@ DataTablePtr FreadReader::read()
             col.typeBumped = false;
             col.presentInBuffer = true;
             n_type_bump_cols++;
-            rowSize += 8;
           } else {
             types[j] = static_cast<int8_t>(PT::Drop);
             col.presentInBuffer = false;
           }
         }
-        fo.n_cols_reread = n_type_bump_cols;
         firstTime = false;
         if (verbose) {
           trace(n_type_bump_cols == 1
@@ -890,7 +753,7 @@ DataTablePtr FreadReader::read()
     }
 
     fo.n_rows_read = columns.nrows();
-    fo.n_cols_read = columns.nOutputs();
+    fo.n_cols_read = columns.nColumnsInOutput();
   }
 
 

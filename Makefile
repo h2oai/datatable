@@ -1,6 +1,9 @@
 BUILDDIR := build/fast
 PYTHON   ?= python
 MODULE   ?= .
+ifdef JENKINS_URL
+PYTEST_FLAGS := -vv -s
+endif
 
 # Platform details
 OS       := $(shell uname | tr A-Z a-z)
@@ -58,7 +61,7 @@ test:
 	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra --maxfail=10 \
+	$(PYTHON) -m pytest -ra --maxfail=10 $(PYTEST_FLAGS) \
 		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
@@ -400,11 +403,6 @@ $(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
 	@echo • Refreshing c/writebuf.h
 	@cp c/writebuf.h $@
 
-
-$(BUILDDIR)/csv/chunks.h: c/csv/chunks.h
-	@echo • Refreshing c/csv/chunks.h
-	@cp c/csv/chunks.h $@
-
 $(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
 	@echo • Refreshing c/csv/dtoa.h
 	@cp c/csv/dtoa.h $@
@@ -425,7 +423,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -538,7 +536,7 @@ $(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/uti
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

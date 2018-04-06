@@ -34,10 +34,11 @@ FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
 {
   size_t input_size = datasize();
   targetdir = nullptr;
-  sof = dataptr();
-  eof = sof + input_size;
   // TODO: Do not require the extra byte, and do not write into the input stream...
-  xassert(extra_byte_accessible() && input_size > 0);
+  xassert(extra_byte_accessible());
+  xassert(input_size > 0);
+  // Usually the extra byte is already zero, however if we skipped whitespace
+  // at the end, it may no longer be so
   *const_cast<char*>(eof) = '\0';
 
   whiteChar = '\0';
@@ -336,15 +337,11 @@ void FreadReader::userOverride()
 }
 
 
-void FreadReader::progress(double progress, int statuscode) {
-  pyreader().invoke("_progress", "(di)", progress, statuscode);
-}
-
 
 DataTablePtr FreadReader::makeDatatable() {
   Column** ccols = NULL;
   size_t ncols = columns.size();
-  size_t ocols = columns.nOutputs();
+  size_t ocols = columns.nColumnsInOutput();
   ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
   ccols[ocols] = NULL;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
@@ -384,7 +381,6 @@ FreadLocalParseContext::FreadLocalParseContext(
   fill = f.fill;
   skipEmptyLines = f.skip_blank_lines;
   numbersMayBeNAs = f.number_is_na;
-  n_type_bumps = 0;
   size_t ncols = columns.size();
   size_t bufsize = std::min(size_t(4096), f.datasize() / (ncols + 1));
   for (size_t i = 0, j = 0; i < ncols; ++i) {
@@ -397,7 +393,14 @@ FreadLocalParseContext::FreadLocalParseContext(
   }
 }
 
-FreadLocalParseContext::~FreadLocalParseContext() {}
+FreadLocalParseContext::~FreadLocalParseContext() {
+  #pragma omp atomic update
+  freader.fo.time_push_data += ttime_push;
+  #pragma omp atomic update
+  freader.fo.time_read_data += ttime_read;
+  ttime_push = 0;
+  ttime_read = 0;
+}
 
 
 
@@ -521,7 +524,6 @@ void FreadLocalParseContext::read_chunk(
                                       tch - fieldStart,
                                       static_cast<int64_t>(row0 + used_nrows));
           }
-          n_type_bumps++;
           types[j] = newType;
           columns[j].type = newType;
           columns[j].typeBumped = true;
@@ -713,6 +715,7 @@ void FreadLocalParseContext::push_buffers() {
   used_nrows = 0;
   if (verbose) ttime_push += wallclock() - t0;
 }
+
 
 
 

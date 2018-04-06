@@ -383,9 +383,9 @@ def test_del_rows_from_view2():
 @pytest.mark.run(order=7)
 def test_column_hexview(dt0, patched_terminal, capsys):
     assert dt0.internal.column(0).data_pointer
+    dt.options.display.interactive_hint = False
     dt0.internal.column(-1).hexview()
     out, err = capsys.readouterr()
-    print(out)
     assert (
         "Column 6\n"
         "Ltype: str, Stype: str32, Mtype: data\n"
@@ -408,7 +408,6 @@ def test_column_hexview(dt0, patched_terminal, capsys):
 
     dt0[::2].internal.column(1).hexview()
     out, err = capsys.readouterr()
-    print(out)
     assert ("Column 1\n"
             "Ltype: bool, Stype: bool8, Mtype: data\n"
             "Bytes: 4\n"
