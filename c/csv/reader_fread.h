@@ -17,7 +17,7 @@
 
 class FreadLocalParseContext;
 class FreadChunkedReader;
-class BaseChunkedReader;
+class ChunkedDataReader;
 
 
 //------------------------------------------------------------------------------
@@ -128,7 +128,7 @@ private:
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;
-  friend BaseChunkedReader;
+  friend ChunkedDataReader;
 };
 
 

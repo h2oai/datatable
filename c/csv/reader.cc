@@ -8,7 +8,6 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
-#include <stdint.h>
 #include <stdlib.h>   // strtod
 #include <strings.h>  // strcasecmp
 #include <cerrno>     // errno
