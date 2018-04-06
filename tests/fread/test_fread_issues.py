@@ -181,6 +181,18 @@ def test_issue_R2542():
     assert d0.topython() == [[1, None, None, 2]]
 
 
+def test_issue_R2666():
+    # Explicitly specified sep should not be ignored
+    d0 = dt.fread("1;2;3\n4\n5;6", sep=";", fill=True)
+    d1 = dt.fread("1;2;3\n4\n5",   sep=";", fill=True)
+    d2 = dt.fread("1;2;3\n;4\n5",  sep=";", fill=True)
+    d3 = dt.fread("1;2;3\n4\n;5",  sep=";", fill=True)
+    assert d0.topython() == [[1, 4, 5],    [2, None, 6],    [3, None, None]]
+    assert d1.topython() == [[1, 4, 5],    [2, None, None], [3, None, None]]
+    assert d2.topython() == [[1, None, 5], [2, 4, None],    [3, None, None]]
+    assert d3.topython() == [[1, 4, None], [2, None, 5],    [3, None, None]]
+
+
 
 #-------------------------------------------------------------------------------
 
