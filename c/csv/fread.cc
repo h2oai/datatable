@@ -19,7 +19,6 @@
 #include <cstdio>      // std::snprintf
 #include <string>      // std::string
 #include "utils/assert.h"
-#include "utils/shared_mutex.h"
 
 
 #define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
@@ -74,7 +73,7 @@ class FreadChunkedReader : public ChunkedDataReader {
       size_t trows = std::max<size_t>(allocnrow / nchunks, 4);
       size_t tcols = f.columns.nColumnsInBuffer();
       return std::unique_ptr<LocalParseContext>(
-                new FreadLocalParseContext(tcols, trows, f, types));
+                new FreadLocalParseContext(tcols, trows, f, types, shmutex));
     }
 
     void adjust_chunk_coordinates(

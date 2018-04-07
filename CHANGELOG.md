@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   This method is noop if applied to a non-view Frame.
 - Several internal options to fine-tune the performance of sorting algorithm.
 - Significantly improved performance of sorting doubles.
+- fread can now read string columns that are larger than 2GB in size
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"

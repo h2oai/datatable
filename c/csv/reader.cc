@@ -573,3 +573,21 @@ void GenericReader::decode_utf16() {
   Py_DECREF(t);
 }
 
+
+DataTablePtr GenericReader::makeDatatable() {
+  Column** ccols = NULL;
+  size_t ncols = columns.size();
+  size_t ocols = columns.nColumnsInOutput();
+  ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
+  ccols[ocols] = NULL;
+  for (size_t i = 0, j = 0; i < ncols; ++i) {
+    GReaderColumn& col = columns[i];
+    if (!col.presentInOutput) continue;
+    SType stype = ParserLibrary::info(col.type).stype;
+    MemoryBuffer* databuf = col.extract_databuf();
+    MemoryBuffer* strbuf = col.extract_strbuf();
+    ccols[j] = Column::new_mbuf_column(stype, databuf, strbuf);
+    j++;
+  }
+  return DataTablePtr(new DataTable(ccols));
+}

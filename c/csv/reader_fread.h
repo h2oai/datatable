@@ -14,6 +14,7 @@
 #include "csv/reader_parsers.h"
 #include "csv/py_csv.h"
 #include "memorybuf.h"
+#include "utils/shared_mutex.h"
 
 class FreadLocalParseContext;
 class FreadChunkedReader;
@@ -48,7 +49,7 @@ class FreadObserver {
     size_t n_cols_reread;
     size_t allocation_size;
     size_t read_data_nthreads;
-    std::vector<std::string> type_bump_messages;
+    std::vector<std::string> messages;
 
   public:
     FreadObserver();
@@ -56,6 +57,7 @@ class FreadObserver {
 
     void type_bump_info(size_t icol, const GReaderColumn& col, int8_t new_type,
                         const char* field, int64_t len, int64_t lineno);
+    void str64_bump(size_t icol, const GReaderColumn& col);
 
     void report(const GenericReader&);
 };
@@ -124,7 +126,6 @@ private:
   void parse_column_names(FreadTokenizer& ctx);
   void detect_sep(FreadTokenizer& ctx);
   void userOverride();
-  DataTablePtr makeDatatable();
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;
@@ -160,12 +161,14 @@ class FreadLocalParseContext : public LocalParseContext
 
     FreadReader& freader;
     GReaderColumns& columns;
+    dt::shared_mutex& shmutex;
     std::vector<StrBuf> strbufs;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 
   public:
-    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*);
+    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
+                           dt::shared_mutex&);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
     virtual ~FreadLocalParseContext();

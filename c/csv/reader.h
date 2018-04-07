@@ -17,6 +17,7 @@
 #include "memorybuf.h"    // MemoryBuffer
 #include "writebuf.h"     // WritableBuffer
 #include "utils/pyobj.h"
+#include "utils/shared_mutex.h"
 
 
 //------------------------------------------------------------------------------
@@ -60,6 +61,7 @@ class GReaderColumn {
     void allocate(size_t nrows);
     MemoryBuffer* extract_databuf();
     MemoryBuffer* extract_strbuf();
+    void convert_to_str64();
 };
 
 
@@ -241,7 +243,7 @@ class GenericReader
   //---- Inherited API ----
   protected:
     GenericReader(const GenericReader&);
-
+    DataTablePtr makeDatatable();
 };
 
 
@@ -411,7 +413,7 @@ class ChunkedDataReader {
 
   protected:
     GenericReader& g;
-    // dt::shared_mutex shmutex;
+    dt::shared_mutex shmutex;
     size_t chunk0;
     size_t row0;
     size_t allocnrow;

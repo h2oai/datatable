@@ -51,7 +51,7 @@ enum class PT : uint8_t {
   Float64Ext,
   Float64Hex,
   Str32,
-  // Str64,
+  Str64,
 };
 
 
@@ -86,7 +86,7 @@ class ParserInfo {
       : fn(ptr), name(name_), code(code_), elemsize(sz_), stype(st_), id(id_) {}
 
     const char* cname() const { return name.data(); }
-    bool isstring() const { return id == PT::Str32; }
+    bool isstring() const { return id >= PT::Str32; }
 };
 
 
@@ -144,7 +144,7 @@ class ParserLibrary {
     int64_t : 64;
 
   public:
-    static constexpr size_t num_parsers = static_cast<size_t>(PT::Str32) + 1;
+    static constexpr size_t num_parsers = static_cast<size_t>(PT::Str64) + 1;
     ParserLibrary();
     ParserLibrary(const ParserLibrary&) = delete;
     void operator=(const ParserLibrary&) = delete;
