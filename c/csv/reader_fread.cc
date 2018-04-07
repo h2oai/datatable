@@ -338,36 +338,18 @@ void FreadReader::userOverride()
 
 
 
-DataTablePtr FreadReader::makeDatatable() {
-  Column** ccols = NULL;
-  size_t ncols = columns.size();
-  size_t ocols = columns.nColumnsInOutput();
-  ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
-  ccols[ocols] = NULL;
-  for (size_t i = 0, j = 0; i < ncols; ++i) {
-    GReaderColumn& col = columns[i];
-    if (!col.presentInOutput) continue;
-    SType stype = ParserLibrary::info(col.type).stype;
-    MemoryBuffer* databuf = col.extract_databuf();
-    MemoryBuffer* strbuf = col.extract_strbuf();
-    ccols[j] = Column::new_mbuf_column(stype, databuf, strbuf);
-    j++;
-  }
-  return DataTablePtr(new DataTable(ccols));
-}
-
-
-
 //------------------------------------------------------------------------------
 // FreadLocalParseContext
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t bcols, size_t brows, FreadReader& f, int8_t* types_
+    size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
+    dt::shared_mutex& mut
   ) : LocalParseContext(bcols, brows),
       types(types_),
       freader(f),
       columns(f.columns),
+      shmutex(mut),
       tokenizer(f.makeTokenizer(tbuf, NULL)),
       parsers(ParserLibrary::get_parser_fns())
 {
@@ -646,6 +628,15 @@ void FreadLocalParseContext::orderBuffer() {
     size_t write_at = wb->prep_write(sz, strbufs[k].mbuf->get());
     strbufs[k].ptr = write_at;
     strbufs[k].sz = sz;
+    if (columns[i].type == static_cast<int8_t>(PT::Str32) &&
+        write_at + sz > 0x80000000) {
+      dt::shared_lock lock(shmutex, /* exclusive = */ true);
+      columns[i].convert_to_str64();
+      types[i] = static_cast<int8_t>(PT::Str64);
+      if (verbose) {
+        freader.fo.str64_bump(i, columns[i]);
+      }
+    }
   }
 }
 
@@ -653,6 +644,7 @@ void FreadLocalParseContext::orderBuffer() {
 void FreadLocalParseContext::push_buffers() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
+  dt::shared_lock lock(shmutex);
 
   double t0 = verbose? wallclock() : 0;
   size_t ncols = columns.size();
@@ -660,6 +652,7 @@ void FreadLocalParseContext::push_buffers() {
     const GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
     void* data = col.data();
+    int8_t elemsize = static_cast<int8_t>(col.elemsize());
 
     if (col.typeBumped) {
       // do nothing: the column was not properly allocated for its type, so
@@ -673,17 +666,26 @@ void FreadLocalParseContext::push_buffers() {
 
       wb->write_at(ptr, sz, sb.mbuf->get());
 
-      int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
-      int32_t iptr = (int32_t) ptr;
-      for (size_t n = 0; n < used_nrows; n++) {
-        int32_t soff = lo->str32.offset;
-        *dest++ = (soff < 0)? soff - iptr : soff + iptr;
-        lo += tbuf_ncols;
+      if (elemsize == 4) {
+        int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
+        int32_t iptr = static_cast<int32_t>(ptr);
+        for (size_t n = 0; n < used_nrows; ++n) {
+          int32_t soff = lo->str32.offset;
+          *dest++ = (soff < 0)? soff - iptr : soff + iptr;
+          lo += tbuf_ncols;
+        }
+      } else {
+        int64_t* dest = static_cast<int64_t*>(data) + row0 + 1;
+        int64_t iptr = static_cast<int64_t>(ptr);
+        for (size_t n = 0; n < used_nrows; ++n) {
+          int64_t soff = lo->str32.offset;
+          *dest++ = (soff < 0)? soff - iptr : soff + iptr;
+          lo += tbuf_ncols;
+        }
       }
       k++;
 
     } else {
-      int8_t elemsize = static_cast<int8_t>(col.elemsize());
       const field64* src = tbuf + j;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(data) + row0;
@@ -969,9 +971,9 @@ void FreadObserver::report(const GenericReader& g) {
           time_wait_data, 100 * time_wait_data / total_time);
   g.trace(" + %*.3fs (%2.0f%%) creating the final Frame", p,
           makedt_time, 100 * makedt_time / total_time);
-  if (!type_bump_messages.empty()) {
+  if (!messages.empty()) {
     g.trace("=============================");
-    for (std::string msg : type_bump_messages) {
+    for (std::string msg : messages) {
       g.trace("%s", msg.data());
     }
   }
@@ -989,5 +991,15 @@ void FreadObserver::type_bump_info(
     ParserLibrary::info(col.type).cname(),
     ParserLibrary::info(new_type).cname(),
     static_cast<int>(len), field, lineno);
-  type_bump_messages.push_back(std::string(temp, static_cast<size_t>(n)));
+  messages.push_back(std::string(temp, static_cast<size_t>(n)));
+}
+
+
+void FreadObserver::str64_bump(size_t icol, const GReaderColumn& col) {
+  char temp[1001];
+  int n = snprintf(temp, sizeof(temp) - 1,
+    "Column %zu (%s) switched from Str32 to Str64 because its size "
+    "exceeded 2GB",
+    icol, col.name.data());
+  messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }

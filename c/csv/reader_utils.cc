@@ -51,7 +51,10 @@ void GReaderColumn::allocate(size_t nrows) {
     mbuf = new MemoryMemBuf(allocsize);
   }
   if (col_is_string) {
-    mbuf->set_elem<int32_t>(0, -1);
+    if (elemsize() == 4)
+      mbuf->set_elem<int32_t>(0, -1);
+    else
+      mbuf->set_elem<int64_t>(0, -1);
     if (!strdata) {
       strdata = new MemoryWritableBuffer(allocsize);
     }
@@ -87,6 +90,21 @@ size_t GReaderColumn::getAllocSize() const {
   return (mbuf? mbuf->size() : 0) +
          (strdata? strdata->size() : 0) +
          name.size() + sizeof(*this);
+}
+
+
+void GReaderColumn::convert_to_str64() {
+  xassert(type == static_cast<int8_t>(PT::Str32));
+  size_t nelems = mbuf->size() / sizeof(int32_t);
+  MemoryBuffer* new_mbuf = new MemoryMemBuf(nelems * sizeof(int64_t));
+  int32_t* old_data = static_cast<int32_t*>(mbuf->get());
+  int64_t* new_data = static_cast<int64_t*>(new_mbuf->get());
+  for (size_t i = 0; i < nelems; ++i) {
+    new_data[i] = old_data[i];
+  }
+  type = static_cast<int8_t>(PT::Str64);
+  mbuf->release();
+  mbuf = new_mbuf->shallowcopy();
 }
 
 

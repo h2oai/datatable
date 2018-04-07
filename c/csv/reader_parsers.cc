@@ -658,6 +658,7 @@ void ParserLibrary::init_parsers() {
   add(PT::Float64Ext,   "Float64/ext",     'F', 8, ST_REAL_F8, parse_float64_extended);
   add(PT::Float64Hex,   "Float64/hex",     'F', 8, ST_REAL_F8, parse_float64_hex);
   add(PT::Str32,        "Str32",           's', 4, ST_STRING_I4_VCHAR, parse_string);
+  add(PT::Str64,        "Str64",           'S', 8, ST_STRING_I8_VCHAR, parse_string);
 }
 
 
