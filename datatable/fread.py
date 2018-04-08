@@ -458,7 +458,6 @@ class GenericReader(object):
         return self._columns
 
     @columns.setter
-    @typed(columns=TColumnsSpec)
     def columns(self, columns):
         self._columns = columns or None
 
@@ -818,7 +817,7 @@ class GenericReader(object):
                                     % list(colsfound))
             return
 
-        if isinstance(colspec, list):
+        if isinstance(colspec, (list, tuple)):
             nn = len(colspec)
             if n != nn:
                 raise TValueError("Input file contains %s, whereas `columns` "
@@ -830,14 +829,19 @@ class GenericReader(object):
                     coltypes[i] = 0
                 elif isinstance(entry, str):
                     self._colnames.append(entry)
-                else:
-                    assert isinstance(entry, tuple)
+                elif isinstance(entry, stype):
+                    self._colnames.append(colnames[i])
+                    coltypes[i] = _coltypes.get(entry)
+                elif isinstance(entry, tuple):
                     newname, newtype = entry
                     self._colnames.append(newname)
                     coltypes[i] = _coltypes.get(newtype)
                     if not coltypes[i]:
                         raise TValueError("Unknown type %r used as an override "
                                           "for column %r" % (newtype, newname))
+                else:
+                    raise TTypeError("Entry `columns[%d]` has invalid type %r"
+                                     % (i, entry.__class__.__name__))
             return
 
         if isinstance(colspec, dict):
@@ -1011,4 +1015,11 @@ _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
     ("float64x", "float64x"),
     ("str",      "str"),
     ("drop",     "drop"),
+    (stype.bool8, "bool8n"),
+    (stype.int32, "int32"),
+    (stype.int64, "int64"),
+    (stype.float32, "float32x"),  # should be float32
+    (stype.float64, "float64"),
+    (stype.str32, "str"),  # should be str32
+    (stype.str64, "str"),  # should be str32
 ]}

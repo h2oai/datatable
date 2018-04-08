@@ -380,6 +380,13 @@ def test_fread_single_number2():
     assert f.topython() == [[345.12]]
 
 
+def test_fread_two_numbers():
+    f = dt.fread("12.34\n56.78")
+    assert f.internal.check()
+    assert f.shape == (2, 1)
+    assert f.topython() == [[12.34, 56.78]]
+
+
 def test_1x1_na():
     d0 = dt.fread("A\n\n")
     assert d0.internal.check()
@@ -637,6 +644,7 @@ def test_whitespace_nas():
 
 
 
+
 #-------------------------------------------------------------------------------
 # Medium-size files (generated)
 #-------------------------------------------------------------------------------
@@ -708,6 +716,49 @@ def test_random_data(seed, tempfile):
     assert res[3] == src[3]
     assert list_equals(res[4], src[4])
     assert res[5] == src[5]
+
+
+def test_int64s_and_typebumps(capsys):
+    # Based on R tests 897-899
+    n = 2222
+    names = ("i32", "i64", "i64-2", "f64-1", "f64-2",
+             "s32", "s32-2", "s32-3", "s32-4")
+    src = [list(range(n)),  # i32
+           [2**40 * 7 * i for i in range(n)],  # i64
+           list(range(n)),  # i64-2
+           list(range(n)),  # f64-1
+           [2**40 * 11 * i for i in range(n)],  # f64-2
+           ["f" + "o" * (i % 5 + 1) for i in range(n)],  # s32
+           list(range(n)),  # s32-2
+           [str(j * 100) for j in range(n)],  # s32-3
+           [str(i / 100) for i in range(n)]  # s32-4
+           ]
+    src[2][111] = 4568034971487098  # i64-2s
+    src[3][111] += 0.11  # f64-1
+    src[4][111] = 11111111111111.11  #  f64-2
+    src[6][111] = "111e"  # s32-2
+    src[7][111] = "1111111111111111111111"  # s32-3
+    src[8][111] = "1.23e"
+    text = ",".join(names) + "\n" + \
+           "\n".join(",".join(str(src[j][i]) for j in range(len(src)))
+                     for i in range(n))
+    f0 = dt.fread(text, verbose=True)
+    out, err = capsys.readouterr()
+    assert f0.names == names
+    assert f0.shape == (n, len(names))
+    assert f0.stypes == (stype.int32, stype.int64, stype.int64,
+                         stype.float64, stype.float64,
+                         stype.str32, stype.str32, stype.str32, stype.str32)
+    assert "6 columns need to be re-read" in out
+    assert "Column 3 (i64-2) bumped from Int32 to Int64" in out
+    assert "Column 9 (s32-4) bumped from Float64 to Str32 due to " \
+           "<<1.23e>> on row 111" in out
+    f1 = dt.fread(text, verbose=True, columns=f0.stypes)
+    out, err = capsys.readouterr()
+    assert f1.stypes == f0.stypes
+    assert not re.search("columns? needs? to be re-?read", out)
+    assert "bumped from" not in out
+
 
 
 def test_almost_nodata(capsys):

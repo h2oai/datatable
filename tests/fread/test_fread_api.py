@@ -11,7 +11,7 @@
 import pytest
 import datatable as dt
 import os
-from datatable import ltype
+from datatable import ltype, stype
 
 
 
@@ -369,6 +369,15 @@ def test_fread_columns_list3():
     assert d0.internal.check()
     assert d0.names == ("foo", )
     assert d0.topython() == [["1"]]
+
+
+def test_fread_list_of_types():
+    d0 = dt.fread(text="A,B,C\n1,2,3",
+                  columns=(stype.int32, stype.float64, stype.str32))
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.stypes == (stype.int32, stype.float64, stype.str32)
+    assert d0.topython() == [[1], [2.0], ["3"]]
 
 
 def test_fread_columns_list_bad1():
