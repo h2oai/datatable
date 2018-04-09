@@ -116,15 +116,15 @@ def test_fread_omnibus(seed):
             o.write(text)
         with open("omnibus.params", "w") as o:
             del params["text"]
-            o.write("params = %r\n"
-                    "exp.shape = (%d, %d)\n"
-                    "exp.names = %r\n"
-                    "exp.types = %r\n"
-                    % (params, nrows, ncols, colnames, coltypes))
+            o.write("params = %r\n\n"
+                    "exp_shape = (%d, %d)\n"
+                    "exp_names = %r\n"
+                    "exp_types = %r\n"
+                    % (params, nrows, ncols, tuple(colnames), tuple(coltypes)))
             if d0:
-                o.write("act.shape = %r\n"
-                        "act.names = %r\n"
-                        "act.types = %r\n"
+                o.write("act_shape = %r\n"
+                        "act_names = %r\n"
+                        "act_types = %r\n"
                         % (d0.shape, d0.names, d0.ltypes))
         raise
 
@@ -146,8 +146,12 @@ def all_boollike(coldata):
 
 def is_intlike(x):
     x = x.strip()
-    return x.isdigit() or (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
-                           x[1:-1].isdigit()) or x == ""
+    return (x.isdigit() or
+            (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
+                               x[1:-1].isdigit()) or
+            x == "" or
+            x == '""' or
+            x == "''")
 
 
 def generate_int_column(allparams):
