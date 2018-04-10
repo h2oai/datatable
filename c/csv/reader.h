@@ -412,7 +412,6 @@ class ChunkedDataReader {
   protected:
     GenericReader& g;
     dt::shared_mutex shmutex;
-    size_t chunk0;
     size_t row0;
     size_t allocnrow;
     size_t max_nrows;
@@ -450,7 +449,7 @@ class ChunkedDataReader {
      * assuming that different invocation receive different `ctx` objects.
      */
     ChunkCoordinates compute_chunk_boundaries(
-      size_t i, LocalParseContext* ctx = nullptr) const;
+      size_t i, LocalParseContext* ctx) const;
 
     /**
      * Ensure that the chunks were placed properly. This method must be called
@@ -477,6 +476,8 @@ class ChunkedDataReader {
 
   private:
     void determine_chunking_strategy();
+
+    void realloc_output_columns(size_t i, size_t new_allocnrow);
 };
 
 
