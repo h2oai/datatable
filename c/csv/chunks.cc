@@ -26,10 +26,10 @@ ChunkedDataReader::ChunkedDataReader(GenericReader& reader, double meanLineLen)
   lastChunkEnd = inputStart;
   lineLength = std::max(meanLineLen, 1.0);
   nthreads = g.nthreads;
-  allocnrow = g.columns.nrows();
-  max_nrows = g.max_nrows;
-  row0 = 0;
-  xassert(allocnrow <= max_nrows);
+  nrows_written = 0;
+  nrows_allocated = g.columns.nrows();
+  nrows_max = g.max_nrows;
+  xassert(nrows_allocated <= nrows_max);
 
   determine_chunking_strategy();
 }
@@ -170,19 +170,19 @@ void ChunkedDataReader::read_all()
         try {
           order_chunk(tacc, txcc, tctx);
 
-          size_t new_row0 = row0 + tctx->used_nrows;
-          if (new_row0 > allocnrow) {
-            if (allocnrow == max_nrows) {
-              // allocnrow is the same as max_nrows, no need to reallocate
+          size_t nrows_new = nrows_written + tctx->used_nrows;
+          if (nrows_new > nrows_allocated) {
+            if (nrows_allocated == nrows_max) {
+              // nrows_allocated is the same as nrows_max, no need to reallocate
               // the output, just truncate the rows in the current chunk.
-              tctx->used_nrows = allocnrow - row0;
-              new_row0 = allocnrow;
+              tctx->used_nrows = nrows_allocated - nrows_written;
+              nrows_new = nrows_allocated;
             } else {
-              realloc_output_columns(i, new_row0);
+              realloc_output_columns(i, nrows_new);
             }
           }
-          tctx->row0 = row0;
-          row0 = new_row0;
+          tctx->row0 = nrows_written;
+          nrows_written = nrows_new;
 
           tctx->orderBuffer();
 
@@ -219,11 +219,11 @@ void ChunkedDataReader::read_all()
   oem.rethrow_exception_if_any();
 
   // Reallocate the output to have the correct number of rows
-  g.columns.allocate(row0);
+  g.columns.allocate(nrows_written);
 
   // Check that all input was read (unless interrupted early because of
-  // max_nrows).
-  if (row0 < max_nrows) {
+  // nrows_max).
+  if (nrows_written < nrows_max) {
     xassert(lastChunkEnd == inputEnd);
   }
 }
@@ -238,16 +238,17 @@ void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
   } else {
     // Otherwise we adjust the alloc to account for future chunks as well.
     double exp_nrows = 1.2 * new_alloc * chunkCount / (ichunk + 1);
-    new_alloc = std::max(static_cast<size_t>(exp_nrows), 1024 + allocnrow);
+    new_alloc = std::max(static_cast<size_t>(exp_nrows),
+                         1024 + nrows_allocated);
   }
-  if (new_alloc > max_nrows) {
-    new_alloc = max_nrows;
+  if (new_alloc > nrows_max) {
+    new_alloc = nrows_max;
   }
-  allocnrow = new_alloc;
-  g.trace("Too few rows allocated, reallocating to %zu rows", allocnrow);
+  nrows_allocated = new_alloc;
+  g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
   dt::shared_lock(shmutex, /* exclusive = */ true);
-  g.columns.allocate(allocnrow);
+  g.columns.allocate(nrows_allocated);
 }
 
 

@@ -69,7 +69,7 @@ class FreadChunkedReader : public ChunkedDataReader {
 
   protected:
     virtual std::unique_ptr<LocalParseContext> init_thread_context() override {
-      size_t trows = std::max<size_t>(allocnrow / chunkCount, 4);
+      size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
       size_t tcols = f.columns.nColumnsInBuffer();
       return std::unique_ptr<LocalParseContext>(
                 new FreadLocalParseContext(tcols, trows, f, types, shmutex));

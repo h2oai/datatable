@@ -412,9 +412,9 @@ class ChunkedDataReader {
   protected:
     GenericReader& g;
     dt::shared_mutex shmutex;
-    size_t row0;
-    size_t allocnrow;
-    size_t max_nrows;
+    size_t nrows_max;
+    size_t nrows_allocated;
+    size_t nrows_written;
     int nthreads;
     int : 32;
 
