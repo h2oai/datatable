@@ -16,7 +16,7 @@ import re
 #-------------------------------------------------------------------------------
 
 def test_issue_R1113():
-    # Loosely based on #1113 in R
+    # Based on #1113 in R, test 1555.1-11
     txt = ("ITER    THETA1    THETA2   MCMC\n"
            "        -11000 -2.50000E+00  2.30000E+00    345678.20255 \n"
            "        -10999 -2.49853E+01  3.79270E+02    -195780.43911\n"
@@ -30,21 +30,41 @@ def test_issue_R1113():
                              [-2.5, -24.9853, 0.195957],
                              [2.3, 379.270, 4.16522],
                              [345678.20255, -195780.43911, 7937.13048]]
+    # `strip_whitespace` has no effect when `sep == ' '`
+    d1 = dt.fread(txt, strip_whitespace=False)
+    assert d1.internal.check()
+    assert d1.names == d0.names
+    assert d1.topython() == d0.topython()
+    # Check that whitespace is not removed from column names either
+    d2 = dt.fread(text=" ITER,    THETA1,       THETA2", strip_whitespace=False)
+    d3 = dt.fread(text=" ITER  ,  THETA1   ,    THETA2", strip_whitespace=False)
+    d4 = dt.fread(text=' ITER  ,  THETA1  ,   "THETA2"', strip_whitespace=False)
+    assert d2.names == (" ITER", "    THETA1", "       THETA2")
+    assert d3.names == (" ITER  ", "  THETA1   ", "    THETA2")
+    assert d4.names == (' ITER  ', '  THETA1  ', '   "THETA2"')
+
 
 
 def test_issue_R2106():
     """skip_blank_lines and fill parameters in single-column file."""
     # See also: #R2535
     src = "A\n1\n5\n\n12\n18\n\n"
+    src2 = "A\n1\n5\nNA\n12\n18\nNA\n"
     d0 = dt.fread(src)
     d1 = dt.fread(src, skip_blank_lines=True)
     d2 = dt.fread(src, skip_blank_lines=True, fill=True)
+    d3 = dt.fread(src2, na_strings=[""])
+    d4 = dt.fread(src2, na_strings=["NA"])
     assert d0.internal.check()
     assert d1.internal.check()
     assert d2.internal.check()
+    assert d3.internal.check()
+    assert d4.internal.check()
     assert d0.topython() == [[1, 5, None, 12, 18, None]]
     assert d1.topython() == [[1, 5, 12, 18]]
     assert d2.topython() == [[1, 5, 12, 18]]
+    assert d3.topython() == [["1", "5", "NA", "12", "18", "NA"]]
+    assert d4.topython() == [[1, 5, None, 12, 18, None]]
 
 
 def test_issue_R2196():

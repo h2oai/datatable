@@ -502,6 +502,18 @@ def test_sep_newline():
     assert d0.topython() == d1.topython() == [["1,2;3 ,5"]]
 
 
+@pytest.mark.parametrize("sep", [None, ";", ",", "|", "\n", "*"])
+def test_sep_selection(sep):
+    src = "A;B;C|D,E\n1;3;4|5,6\n2;4;6|8,10\n"
+    d0 = dt.fread(src, sep=sep)
+    # It is not clear whether ';' should be the winning sep here. Comma (',') is
+    # also a viable choice, since it has higher preference over ';'
+    if sep is None:
+        sep = ";"
+    assert d0.internal.check()
+    assert d0.names == tuple("A;B;C|D,E".split(sep))
+
+
 def test_sep_invalid():
     with pytest.raises(TypeError) as e:
         dt.fread("A,,B\n", sep=12)
