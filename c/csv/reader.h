@@ -429,12 +429,6 @@ class ChunkedDataReader {
      */
     virtual void read_all();
 
-    /**
-     * Return the fraction of the input that was parsed, as a number between
-     * 0 and 1.0.
-     */
-    double work_done_amount() const;
-
 
   protected:
     /**
@@ -452,17 +446,6 @@ class ChunkedDataReader {
       size_t i, LocalParseContext* ctx) const;
 
     /**
-     * Ensure that the chunks were placed properly. This method must be called
-     * from the #ordered section. It takes two arguments: the *actual*
-     * coordinates of the chunk just read; and the coordinates that were
-     * *expected*. If the chunk was chunk was ordered properly, than this
-     * method returns true. Otherwise, it updates the expected coordinates
-     * `xcc` and returns false. The caller is expected to re-parse the chunk
-     * with the updated coords, and then call this method again.
-     */
-    bool is_ordered(const ChunkCoordinates& acc, ChunkCoordinates& xcc);
-
-    /**
      * This method can be overridden in derived classes in order to implement
      * more advanced chunk boundaries detection. This method will be called from
      * within `compute_chunk_boundaries()` only.
@@ -472,13 +455,47 @@ class ChunkedDataReader {
     virtual void adjust_chunk_coordinates(
       ChunkCoordinates& cc, LocalParseContext* ctx) const;
 
+    /**
+     * Return an instance of a `LocalParseContext` class. Implementations of
+     * `ChunkedDataReader` are expected to override this method to return
+     * appropriate subclasses of `LocalParseContext`.
+     */
     virtual LocalParseContextPtr init_thread_context() = 0;
+
 
   private:
     void determine_chunking_strategy();
 
+    /**
+     * Return the fraction of the input that was parsed, as a number between
+     * 0 and 1.0.
+     */
+    double work_done_amount() const;
+
+    /**
+     * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
+     * Argument `i` contains the index of the chunk that was read last (this
+     * helps with determining the new number of rows), and `new_allocnrow` is
+     * the minimal number of rows to reallocate to.
+     *
+     * This method is thread-safe.
+     */
     void realloc_output_columns(size_t i, size_t new_allocnrow);
 
+    /**
+     * Ensure that the chunks were placed properly. This method must be called
+     * from the #ordered section. It takes three arguments: `acc` the *actual*
+     * coordinates of the chunk just read; `xcc` the coordinates that were
+     * *expected*; and `ctx` the thread-local parse context.
+     *
+     * If the chunk was ordered properly (i.e. started reading from the place
+     * were the previous chunk ended), then this method updates the internal
+     * `lastChunkEnd` variable and returns.
+     *
+     * Otherwise, it re-parses the chunk with correct coordinates. When doing
+     * so, it will set `xcc.true_start` to true, thus informing the chunk
+     * parser that the coordinates that it received are true.
+     */
     void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
                      LocalParseContextPtr& ctx);
 };

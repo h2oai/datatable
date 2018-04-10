@@ -81,20 +81,6 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
 }
 
 
-bool ChunkedDataReader::is_ordered(
-  const ChunkCoordinates& acc, ChunkCoordinates& xcc)
-{
-  bool ordered = (acc.start == lastChunkEnd);
-  xcc.start = lastChunkEnd;
-  xcc.true_start = true;
-  if (ordered && acc.end) {
-    xassert(acc.end >= lastChunkEnd);
-    lastChunkEnd = acc.end;
-  }
-  return ordered;
-}
-
-
 double ChunkedDataReader::work_done_amount() const {
   double done = static_cast<double>(lastChunkEnd - inputStart);
   double total = static_cast<double>(inputEnd - inputStart);
@@ -243,6 +229,7 @@ void ChunkedDataReader::read_all()
 }
 
 
+
 void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
 {
   if (ichunk == chunkCount - 1) {
@@ -264,19 +251,6 @@ void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
 }
 
 
-          // The `is_ordered()` call checks whether the actual start of the
-          // chunk was correct (i.e. there are no gaps/overlaps in the
-          // input). If not, then we re-read the chunk using the correct
-          // coordinates (which `is_ordered()` saves in variable `xcc`).
-          // We also re-read if the first `read_chunk()` call returned an
-          // error: even if the chunk's start was determined correctly, we
-          // didn't know that up to this point, and so were not producing
-          // the correct error message.
-          // After re-reading, it is no longer possible to have `acc.end`
-          // being nullptr: if a genuine reading error occurs, it will be
-          // thrown as an exception. Thus, `acc.end` will have the correct
-          // end of the current chunk, which MUST be reported to `chunkster`
-          // by calling `is_ordered()` the second time.
 void ChunkedDataReader::order_chunk(
   ChunkCoordinates& acc, ChunkCoordinates& xcc, LocalParseContextPtr& ctx)
 {
