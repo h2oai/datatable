@@ -116,7 +116,6 @@ void ChunkedDataReader::read_all()
   // try-catch clauses, and `OmpExceptionManager` to help us remember the
   // exception that was thrown and manually propagate it outwards.
   OmpExceptionManager oem;
-  bool progressShown = false;
 
   #pragma omp parallel num_threads(nthreads)
   {
@@ -149,12 +148,21 @@ void ChunkedDataReader::read_all()
     bool tShowAlways = tShowProgress && (inputEnd - inputStart > (1 << 28));
     double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
-    auto ctx = init_thread_context();
-    ChunkCoordinates xcc;
-    ChunkCoordinates acc;
+    // Thread-local parse context. This object does most of the parsing job.
+    auto tctx = init_thread_context();
 
+    // Helper variables for keeping track of chunk's coordinates:
+    // `txcc` has the expected chunk coordinates (i.e. as determined ex ante
+    // in `compute_chunk_coordinates()`), and `tacc` the actual chunk
+    // coordinates (i.e. how much data was actually read in `read_chunk()`).
+    // These two are very often the same; however when they do differ, it is
+    // the job of `order_chunk()` to reconcile the differences.
+    ChunkCoordinates txcc;
+    ChunkCoordinates tacc;
+
+    // Main data reading loop
     #pragma omp for ordered schedule(dynamic)
-    for (size_t i = 0; i < chunkCount; i++) {
+    for (size_t i = 0; i < chunkCount; ++i) {
       if (oem.exception_caught()) continue;
       try {
         if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
@@ -162,9 +170,9 @@ void ChunkedDataReader::read_all()
           tShowAlways = true;
         }
 
-        ctx->push_buffers();
-        xcc = compute_chunk_boundaries(i, ctx.get());
-        ctx->read_chunk(xcc, acc);
+        tctx->push_buffers();
+        txcc = compute_chunk_boundaries(i, tctx.get());
+        tctx->read_chunk(txcc, tacc);
 
       } catch (...) {
         oem.capture_exception();
@@ -174,88 +182,64 @@ void ChunkedDataReader::read_all()
       do {
         if (oem.exception_caught()) break;
         try {
-          // The `is_ordered()` call checks whether the actual start of the
-          // chunk was correct (i.e. there are no gaps/overlaps in the
-          // input). If not, then we re-read the chunk using the correct
-          // coordinates (which `is_ordered()` saves in variable `xcc`).
-          // We also re-read if the first `read_chunk()` call returned an
-          // error: even if the chunk's start was determined correctly, we
-          // didn't know that up to this point, and so were not producing
-          // the correct error message.
-          // After re-reading, it is no longer possible to have `acc.end`
-          // being nullptr: if a genuine reading error occurs, it will be
-          // thrown as an exception. Thus, `acc.end` will have the correct
-          // end of the current chunk, which MUST be reported to `chunkster`
-          // by calling `is_ordered()` the second time.
-          bool reparse_error = !acc.end && !xcc.true_start;
-          if (!is_ordered(acc, xcc) || reparse_error) {
-            xassert(xcc.true_start);
-            ctx->read_chunk(xcc, acc);
-            bool ok = acc.end && is_ordered(acc, xcc);
-            xassert(ok);
-          }
-          ctx->row0 = row0;
-          size_t new_row0 = row0 + ctx->used_nrows;
+          order_chunk(tacc, txcc, tctx);
+
+          size_t new_row0 = row0 + tctx->used_nrows;
           if (new_row0 > allocnrow) {
             if (allocnrow == max_nrows) {
               // allocnrow is the same as max_nrows, no need to reallocate
               // the output, just truncate the rows in the current chunk.
-              ctx->used_nrows = allocnrow - row0;
+              tctx->used_nrows = allocnrow - row0;
               new_row0 = allocnrow;
             } else {
               realloc_output_columns(i, new_row0);
             }
           }
+          tctx->row0 = row0;
           row0 = new_row0;
 
-          ctx->orderBuffer();
+          tctx->orderBuffer();
 
         } catch (...) {
           oem.capture_exception();
         }
       } while (0);  // #pragma omp ordered
     }  // #pragma omp for ordered
-    try {
-      // Push out all buffers one last time.
-      if (ctx->used_nrows) {
-        if (oem.exception_caught()) {
-          // Stopped early because of error. Discard the content of the
-          // buffers, because they were not ordered, and trying to push them
-          // may lead to unexpected bugs...
-          ctx->used_nrows = 0;
-        } else {
-          ctx->push_buffers();
-        }
-      }
-    } catch (...) {
-      oem.capture_exception();
+
+    // Stopped early because of error. Discard the content of the buffers,
+    // because they were not ordered, and trying to push them may lead to
+    // unexpected bugs...
+    if (oem.exception_caught()) {
+      tctx->used_nrows = 0;
     }
 
-    #pragma omp atomic update
-    progressShown |= tShowAlways;
-
-  }  // #pragma omp parallel
-
-  if (progressShown) {
-    int status = 1;
-    if (oem.exception_caught()) {
-      status++;
+    // Push out the buffers one last time.
+    if (tctx->used_nrows) {
       try {
-        oem.rethrow_exception_if_any();
-      } catch (PyError& e) {
-        status += e.is_keyboard_interrupt();
-        oem.capture_exception();
+        tctx->push_buffers();
       } catch (...) {
         oem.capture_exception();
       }
     }
-    g.progress(work_done_amount(), status);
-  }
+
+    // Report progress one last time
+    if (tShowAlways) {
+      int status = 1 + oem.exception_caught() + oem.is_keyboard_interrupt();
+      g.progress(work_done_amount(), status);
+    }
+  }  // #pragma omp parallel
+
+  // If any exception occurred, propagate it to the caller
   oem.rethrow_exception_if_any();
-  xassert(row0 <= allocnrow || max_nrows <= allocnrow);
 
   // Reallocate the output to have the correct number of rows
   g.columns.allocate(row0);
+
+  // Check that all input was read (unless interrupted early because of
+  // max_nrows).
+  if (row0 < max_nrows) {
+    xassert(lastChunkEnd == inputEnd);
+  }
 }
 
 
@@ -277,4 +261,35 @@ void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
 
   dt::shared_lock(shmutex, /* exclusive = */ true);
   g.columns.allocate(allocnrow);
+}
+
+
+          // The `is_ordered()` call checks whether the actual start of the
+          // chunk was correct (i.e. there are no gaps/overlaps in the
+          // input). If not, then we re-read the chunk using the correct
+          // coordinates (which `is_ordered()` saves in variable `xcc`).
+          // We also re-read if the first `read_chunk()` call returned an
+          // error: even if the chunk's start was determined correctly, we
+          // didn't know that up to this point, and so were not producing
+          // the correct error message.
+          // After re-reading, it is no longer possible to have `acc.end`
+          // being nullptr: if a genuine reading error occurs, it will be
+          // thrown as an exception. Thus, `acc.end` will have the correct
+          // end of the current chunk, which MUST be reported to `chunkster`
+          // by calling `is_ordered()` the second time.
+void ChunkedDataReader::order_chunk(
+  ChunkCoordinates& acc, ChunkCoordinates& xcc, LocalParseContextPtr& ctx)
+{
+  int i = 2;
+  while (i--) {
+    if (acc.start == lastChunkEnd && acc.end >= lastChunkEnd) {
+      lastChunkEnd = acc.end;
+      return;
+    }
+    xcc.start = lastChunkEnd;
+    xcc.true_start = true;
+
+    ctx->read_chunk(xcc, acc);
+    xassert(i);
+  }
 }

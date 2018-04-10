@@ -478,6 +478,9 @@ class ChunkedDataReader {
     void determine_chunking_strategy();
 
     void realloc_output_columns(size_t i, size_t new_allocnrow);
+
+    void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
+                     LocalParseContextPtr& ctx);
 };
 
 
