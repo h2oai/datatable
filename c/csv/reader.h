@@ -401,15 +401,13 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
  * ensuring that the data integrity is maintained.
  */
 class ChunkedDataReader {
-  private:
+  protected:
     size_t chunkSize;
     size_t chunkCount;
     const char* inputStart;
     const char* inputEnd;
     const char* lastChunkEnd;
     double lineLength;
-    int nThreads;
-    int : 32;
 
   protected:
     GenericReader& g;
@@ -427,12 +425,19 @@ class ChunkedDataReader {
     ChunkedDataReader& operator=(const ChunkedDataReader&) = delete;
     virtual ~ChunkedDataReader() {}
 
-    size_t get_nchunks() const;
-    int get_nthreads() const;
-    void set_nthreads(int n);
-
+    /**
+     * Main function that reads all data from the input.
+     */
     virtual void read_all();
 
+    /**
+     * Return the fraction of the input that was parsed, as a number between
+     * 0 and 1.0.
+     */
+    double work_done_amount() const;
+
+
+  protected:
     /**
      * Determine coordinates (start and end) of the `i`-th chunk. The index `i`
      * must be in the range [0..chunkCount).
@@ -458,16 +463,6 @@ class ChunkedDataReader {
      */
     bool is_ordered(const ChunkCoordinates& acc, ChunkCoordinates& xcc);
 
-    void unorder_chunk(const ChunkCoordinates& cc);
-
-    /**
-     * Return the fraction of the input that was parsed, as a number between
-     * 0 and 1.0.
-     */
-    double work_done_amount() const;
-
-
-  protected:
     /**
      * This method can be overridden in derived classes in order to implement
      * more advanced chunk boundaries detection. This method will be called from

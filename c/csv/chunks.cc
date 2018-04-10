@@ -21,51 +21,37 @@ ChunkedDataReader::ChunkedDataReader(GenericReader& reader, double meanLineLen)
 {
   chunkSize = 0;
   chunkCount = 0;
-  inputStart = reader.sof;
-  inputEnd = reader.eof;
+  inputStart = g.sof;
+  inputEnd = g.eof;
   lastChunkEnd = inputStart;
   lineLength = std::max(meanLineLen, 1.0);
-  nThreads = reader.nthreads;
-  determine_chunking_strategy();
-
+  nthreads = g.nthreads;
   allocnrow = g.columns.nrows();
   max_nrows = g.max_nrows;
-  nthreads = g.nthreads;
   chunk0 = 0;
   row0 = 0;
   xassert(allocnrow <= max_nrows);
+
+  determine_chunking_strategy();
 }
 
 
 void ChunkedDataReader::determine_chunking_strategy() {
   size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
   size_t size1000 = static_cast<size_t>(1000 * lineLength);
-  size_t zThreads = static_cast<size_t>(nThreads);
+  size_t zThreads = static_cast<size_t>(nthreads);
   chunkSize = std::max<size_t>(size1000, 1 << 18);
   chunkCount = std::max<size_t>(inputSize / chunkSize, 1);
   if (chunkCount > zThreads) {
     chunkCount = zThreads * (1 + (chunkCount - 1)/zThreads);
   } else {
-    nThreads = static_cast<int>(chunkCount);
+    nthreads = static_cast<int>(chunkCount);
+    g.trace("Number of threads reduced to %d because data is small",
+            nthreads);
   }
   chunkSize = inputSize / chunkCount;
 }
 
-
-
-size_t ChunkedDataReader::get_nchunks() const {
-  return chunkCount;
-}
-
-int ChunkedDataReader::get_nthreads() const {
-  return nThreads;
-}
-
-void ChunkedDataReader::set_nthreads(int nth) {
-  xassert(nth > 0);
-  nThreads = nth;
-  determine_chunking_strategy();
-}
 
 
 ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
@@ -77,7 +63,7 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
   bool isFirstChunk = (i == 0);
   bool isLastChunk = (i == chunkCount - 1);
 
-  if (nThreads == 1 || isFirstChunk) {
+  if (nthreads == 1 || isFirstChunk) {
     c.start = lastChunkEnd;
     c.true_start = true;
   } else {
@@ -110,12 +96,6 @@ bool ChunkedDataReader::is_ordered(
 }
 
 
-void ChunkedDataReader::unorder_chunk(const ChunkCoordinates& cc) {
-  assert(cc.end == lastChunkEnd);
-  lastChunkEnd = cc.start;
-}
-
-
 double ChunkedDataReader::work_done_amount() const {
   double done = static_cast<double>(lastChunkEnd - inputStart);
   double total = static_cast<double>(inputEnd - inputStart);
@@ -137,25 +117,19 @@ void ChunkedDataReader::read_all() {
   size_t nchunks = 0;
   bool progressShown = false;
   OmpExceptionManager oem;
-  int new_nthreads = get_nthreads();
-  if (new_nthreads != nthreads) {
-    nthreads = new_nthreads;
-    g.trace("Number of threads reduced to %d because data is small",
-            nthreads);
-  }
 
   #pragma omp parallel num_threads(nthreads)
   {
     bool tMaster = false;
     #pragma omp master
     {
-      int actualNthreads = omp_get_num_threads();
-      if (actualNthreads != nthreads) {
-        nthreads = actualNthreads;
-        set_nthreads(nthreads);
+      int actual_nthreads = omp_get_num_threads();
+      if (actual_nthreads != nthreads) {
+        nthreads = actual_nthreads;
         g.trace("Actual number of threads allowed by OMP: %d", nthreads);
+        determine_chunking_strategy();
       }
-      nchunks = get_nchunks();
+      nchunks = chunkCount;
       tMaster = true;
     }
     // Wait for master here: we want all threads to have consistent
@@ -234,7 +208,8 @@ void ChunkedDataReader::read_all() {
                 extraAllocRows = row0 + ctx->used_nrows - allocnrow;
               }
               ctx->used_nrows = 0; // do not push this chunk
-              unorder_chunk(acc);
+              xassert(acc.end == lastChunkEnd);
+              lastChunkEnd = acc.start;
               stopTeam = true;
             }
           }

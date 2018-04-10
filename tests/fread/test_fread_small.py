@@ -293,6 +293,13 @@ def test_float_many_zeros():
     assert d0.topython() == [[4.49548e-47]]
 
 
+def test_invalid_int_numbers():
+    d0 = dt.fread('A,B,C\n1,+,4\n2,-,5\n3,-,6\n')
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[1, 2, 3], ["+", "-", "-"], [4, 5, 6]]
+
+
 def test_invalid_float_numbers():
     d0 = dt.fread("A,B,C,D,E,F\n.,+.,.e,.e+,0e,e-3\n")
     assert d0.internal.check()
@@ -301,7 +308,7 @@ def test_invalid_float_numbers():
 
 
 #-------------------------------------------------------------------------------
-# Empty / tiny files
+# Tiny files
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
@@ -453,7 +460,7 @@ def test_fread2():
         """)
     assert f.shape == (3, 4)
     assert f.names == ("A", "B", "C", "D")
-    assert f.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int, dt.ltype.real)
+    assert f.ltypes == (ltype.int, ltype.int, ltype.int, ltype.real)
 
 
 def test_runaway_quote():

@@ -116,7 +116,6 @@ public:
   DataTablePtr read();
 
   // Simple getters
-  int get_nthreads() const { return nthreads; }
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
 

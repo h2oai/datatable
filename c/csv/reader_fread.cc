@@ -76,6 +76,8 @@ FreadTokenizer FreadReader::makeTokenizer(
 
 //------------------------------------------------------------------------------
 // Detect the separator / quoting rule
+//
+// This entire section is WIP
 //------------------------------------------------------------------------------
 class HypothesisNoQC;
 class HypothesisQC;
@@ -221,6 +223,11 @@ class HypothesisNoQC : public Hypothesis {
 void FreadReader::detect_sep(FreadTokenizer&) {
 }
 
+
+
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
 
 /**
  * Parse a single line of input starting from location `ctx.ch` as strings,
