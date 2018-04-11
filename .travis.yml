@@ -14,12 +14,12 @@ branches:
 before_install:
   - wget http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - tar xf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - cp /clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
+  - cp clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
 
 env:
-  - LLVM4=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 \
-  - LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
-  - CLANG =/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+  - LLVM4=clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04
+  - LLVM_CONFIG=clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config
+  - CLANG =clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
 python:
   - "3.5"
