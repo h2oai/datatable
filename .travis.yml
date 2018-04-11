@@ -16,11 +16,11 @@ before_install:
   - sudo cp clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
 
 env:
-  - LLVM4=~/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=~/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=~/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+  - LLVM4=/home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=/home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=/home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
 cache:
     directories:
-        - $HOME/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04
+        - /home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/
 
 python:
   - "3.5"
