@@ -19,6 +19,13 @@ before_install:
 env:
   - LLVM4=clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
+cache:
+    directories:
+        - $HOME/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so
+        - $CLANG
+        - $LLVM_CONFIG
+        - $LLVM4
+
 python:
   - "3.5"
   - "3.6"
