@@ -40,8 +40,8 @@ install:
   - pip install --upgrade wheel
 
 script:
-  - make
   - make test_install
+  - make
 
 git:
   depth: 5
