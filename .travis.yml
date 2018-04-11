@@ -11,10 +11,6 @@ branches:
   only:
     - travis-ci
 
-python:
-  - "3.5"
-  - "3.6"
-
 before_install:
   - wget http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - tar xf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
@@ -24,6 +20,10 @@ env:
   - LLVM4=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 \
   - LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
   - CLANG =/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+
+python:
+  - "3.5"
+  - "3.6"
 
 install:
   - pip install --upgrade pip
