@@ -21,51 +21,36 @@ ChunkedDataReader::ChunkedDataReader(GenericReader& reader, double meanLineLen)
 {
   chunkSize = 0;
   chunkCount = 0;
-  inputStart = reader.sof;
-  inputEnd = reader.eof;
+  inputStart = g.sof;
+  inputEnd = g.eof;
   lastChunkEnd = inputStart;
   lineLength = std::max(meanLineLen, 1.0);
-  nThreads = reader.nthreads;
-  determine_chunking_strategy();
-
-  allocnrow = g.columns.nrows();
-  max_nrows = g.max_nrows;
   nthreads = g.nthreads;
-  chunk0 = 0;
-  row0 = 0;
-  xassert(allocnrow <= max_nrows);
+  nrows_written = 0;
+  nrows_allocated = g.columns.nrows();
+  nrows_max = g.max_nrows;
+  xassert(nrows_allocated <= nrows_max);
+
+  determine_chunking_strategy();
 }
 
 
 void ChunkedDataReader::determine_chunking_strategy() {
   size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
   size_t size1000 = static_cast<size_t>(1000 * lineLength);
-  size_t zThreads = static_cast<size_t>(nThreads);
+  size_t zThreads = static_cast<size_t>(nthreads);
   chunkSize = std::max<size_t>(size1000, 1 << 18);
   chunkCount = std::max<size_t>(inputSize / chunkSize, 1);
   if (chunkCount > zThreads) {
     chunkCount = zThreads * (1 + (chunkCount - 1)/zThreads);
   } else {
-    nThreads = static_cast<int>(chunkCount);
+    nthreads = static_cast<int>(chunkCount);
+    g.trace("Number of threads reduced to %d because data is small",
+            nthreads);
   }
   chunkSize = inputSize / chunkCount;
 }
 
-
-
-size_t ChunkedDataReader::get_nchunks() const {
-  return chunkCount;
-}
-
-int ChunkedDataReader::get_nthreads() const {
-  return nThreads;
-}
-
-void ChunkedDataReader::set_nthreads(int nth) {
-  xassert(nth > 0);
-  nThreads = nth;
-  determine_chunking_strategy();
-}
 
 
 ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
@@ -77,7 +62,7 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
   bool isFirstChunk = (i == 0);
   bool isLastChunk = (i == chunkCount - 1);
 
-  if (nThreads == 1 || isFirstChunk) {
+  if (nthreads == 1 || isFirstChunk) {
     c.start = lastChunkEnd;
     c.true_start = true;
   } else {
@@ -96,26 +81,6 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
 }
 
 
-bool ChunkedDataReader::is_ordered(
-  const ChunkCoordinates& acc, ChunkCoordinates& xcc)
-{
-  bool ordered = (acc.start == lastChunkEnd);
-  xcc.start = lastChunkEnd;
-  xcc.true_start = true;
-  if (ordered && acc.end) {
-    xassert(acc.end >= lastChunkEnd);
-    lastChunkEnd = acc.end;
-  }
-  return ordered;
-}
-
-
-void ChunkedDataReader::unorder_chunk(const ChunkCoordinates& cc) {
-  assert(cc.end == lastChunkEnd);
-  lastChunkEnd = cc.start;
-}
-
-
 double ChunkedDataReader::work_done_amount() const {
   double done = static_cast<double>(lastChunkEnd - inputStart);
   double total = static_cast<double>(inputEnd - inputStart);
@@ -129,172 +94,177 @@ void ChunkedDataReader::adjust_chunk_coordinates(
 
 
 
-void ChunkedDataReader::read_all() {
-  // If we need to restart reading the file because we ran out of allocation
-  // space, then this variable will tell how many new rows has to be allocated.
-  size_t extraAllocRows = 0;
-  bool stopTeam = false;
-  size_t nchunks = 0;
-  bool progressShown = false;
+void ChunkedDataReader::read_all()
+{
+  // Any exceptions that are thrown within OMP blocks must be captured within
+  // the same block. If allowed to propagate, they may corrupt the stack and
+  // crash the program. This is why we have all code surrounded with
+  // try-catch clauses, and `OmpExceptionManager` to help us remember the
+  // exception that was thrown and manually propagate it outwards.
   OmpExceptionManager oem;
-  int new_nthreads = get_nthreads();
-  if (new_nthreads != nthreads) {
-    nthreads = new_nthreads;
-    g.trace("Number of threads reduced to %d because data is small",
-            nthreads);
-  }
 
   #pragma omp parallel num_threads(nthreads)
   {
     bool tMaster = false;
     #pragma omp master
     {
-      int actualNthreads = omp_get_num_threads();
-      if (actualNthreads != nthreads) {
-        nthreads = actualNthreads;
-        set_nthreads(nthreads);
+      int actual_nthreads = omp_get_num_threads();
+      if (actual_nthreads != nthreads) {
+        nthreads = actual_nthreads;
         g.trace("Actual number of threads allowed by OMP: %d", nthreads);
+        determine_chunking_strategy();
       }
-      nchunks = get_nchunks();
       tMaster = true;
     }
     // Wait for master here: we want all threads to have consistent
     // view of the chunking parameters.
     #pragma omp barrier
 
+    // These variables control how the progress bar is shown. `tShowProgress`
+    // is the main flag telling us whether the progress bar should be shown
+    // or not by the current thread (note that only master thread can have
+    // this flag on -- this is because progress-reporting reaches to python
+    // runtime, and we can do that from a single thread only). When
+    // `tShowProgress` is on, the flag `tShowAlways` controls whether we need
+    // to show the progress right away, or wait until time moment `tShowWhen`.
+    // This is needed because we don't want the progress bar for really small
+    // and fast files. However if the file is big enough (>256MB) then it's ok
+    // to show the progress as soon as possible.
     bool tShowProgress = g.report_progress && tMaster;
-    bool tShowAlways = false;
+    bool tShowAlways = tShowProgress && (inputEnd - inputStart > (1 << 28));
     double tShowWhen = tShowProgress? wallclock() + 0.75 : 0;
 
-    auto ctx = init_thread_context();
-    ChunkCoordinates xcc;
-    ChunkCoordinates acc;
+    // Thread-local parse context. This object does most of the parsing job.
+    auto tctx = init_thread_context();
 
+    // Helper variables for keeping track of chunk's coordinates:
+    // `txcc` has the expected chunk coordinates (i.e. as determined ex ante
+    // in `compute_chunk_coordinates()`), and `tacc` the actual chunk
+    // coordinates (i.e. how much data was actually read in `read_chunk()`).
+    // These two are very often the same; however when they do differ, it is
+    // the job of `order_chunk()` to reconcile the differences.
+    ChunkCoordinates txcc;
+    ChunkCoordinates tacc;
+
+    // Main data reading loop
     #pragma omp for ordered schedule(dynamic)
-    for (size_t i = chunk0; i < nchunks; i++) {
-      if (stopTeam) continue;
+    for (size_t i = 0; i < chunkCount; ++i) {
+      if (oem.exception_caught()) continue;
       try {
         if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
           g.progress(work_done_amount());
           tShowAlways = true;
         }
 
-        ctx->push_buffers();
-        xcc = compute_chunk_boundaries(i, ctx.get());
-        ctx->read_chunk(xcc, acc);
+        tctx->push_buffers();
+        txcc = compute_chunk_boundaries(i, tctx.get());
+        tctx->read_chunk(txcc, tacc);
 
       } catch (...) {
         oem.capture_exception();
-        stopTeam = true;
       }
 
       #pragma omp ordered
       do {
+        if (oem.exception_caught()) break;
         try {
-          // The `is_ordered()` call checks whether the actual start of the
-          // chunk was correct (i.e. there are no gaps/overlaps in the
-          // input). If not, then we re-read the chunk using the correct
-          // coordinates (which `is_ordered()` saves in variable `xcc`).
-          // We also re-read if the first `read_chunk()` call returned an
-          // error: even if the chunk's start was determined correctly, we
-          // didn't know that up to this point, and so were not producing
-          // the correct error message.
-          // After re-reading, it is no longer possible to have `acc.end`
-          // being nullptr: if a genuine reading error occurs, it will be
-          // thrown as an exception. Thus, `acc.end` will have the correct
-          // end of the current chunk, which MUST be reported to `chunkster`
-          // by calling `is_ordered()` the second time.
-          bool reparse_error = !acc.end && !xcc.true_start;
-          if (!is_ordered(acc, xcc) || reparse_error) {
-            xassert(xcc.true_start);
-            ctx->read_chunk(xcc, acc);
-            bool ok = acc.end && is_ordered(acc, xcc);
-            xassert(ok);
-          }
-          ctx->row0 = row0;  // fetch shared row0 (where to write my results to the answer).
-          if (ctx->row0 >= allocnrow) {  // a previous thread has already reached the `allocnrow` limit
-            stopTeam = true;
-            ctx->used_nrows = 0;
-          } else if (ctx->used_nrows + ctx->row0 > allocnrow) {  // current thread has reached `allocnrow` limit
-            if (allocnrow == max_nrows) {
-              // allocnrow is the same as max_nrows, no need to reallocate the DT,
-              // just truncate the rows in the current chunk.
-              ctx->used_nrows = max_nrows - ctx->row0;
+          order_chunk(tacc, txcc, tctx);
+
+          size_t nrows_new = nrows_written + tctx->used_nrows;
+          if (nrows_new > nrows_allocated) {
+            if (nrows_allocated == nrows_max) {
+              // nrows_allocated is the same as nrows_max, no need to reallocate
+              // the output, just truncate the rows in the current chunk.
+              tctx->used_nrows = nrows_allocated - nrows_written;
+              nrows_new = nrows_allocated;
             } else {
-              // We reached `allocnrow` limit, but there are more data to read
-              // left. In this case we arrange to terminate all threads but
-              // remember the position where the previous thread has finished. We
-              // will reallocate the DT and restart reading from the same point.
-              chunk0 = i;
-              if (i < nchunks - 1) {
-                extraAllocRows = (size_t)((double)(row0+ctx->used_nrows)*nchunks/(i+1) * 1.2) - allocnrow;
-                if (extraAllocRows < 1024) extraAllocRows = 1024;
-              } else {
-                // If we're on the last jump, then we know exactly how many extra rows is needed.
-                extraAllocRows = row0 + ctx->used_nrows - allocnrow;
-              }
-              ctx->used_nrows = 0; // do not push this chunk
-              unorder_chunk(acc);
-              stopTeam = true;
+              realloc_output_columns(i, nrows_new);
             }
           }
-          row0 += ctx->used_nrows;
-          if (!stopTeam) ctx->orderBuffer();
+          tctx->row0 = nrows_written;
+          nrows_written = nrows_new;
+
+          tctx->orderBuffer();
 
         } catch (...) {
           oem.capture_exception();
-          stopTeam = true;
         }
       } while (0);  // #pragma omp ordered
     }  // #pragma omp for ordered
-    try {
-      // Push out all buffers one last time.
-      if (ctx->used_nrows) {
-        if (stopTeam && oem.exception_caught()) {
-          // Stopped early because of error. Discard the content of the buffers,
-          // because they were not ordered, and trying to push them may lead to
-          // unexpected bugs...
-          ctx->used_nrows = 0;
-        } else {
-          ctx->push_buffers();
-        }
-      }
-    } catch (...) {
-      oem.capture_exception();
+
+    // Stopped early because of error. Discard the content of the buffers,
+    // because they were not ordered, and trying to push them may lead to
+    // unexpected bugs...
+    if (oem.exception_caught()) {
+      tctx->used_nrows = 0;
     }
 
-    #pragma omp atomic update
-    progressShown |= tShowAlways;
-
-  }  // #pragma omp parallel
-
-  if (progressShown) {
-    int status = 1;
-    if (oem.exception_caught()) {
-      status++;
+    // Push out the buffers one last time.
+    if (tctx->used_nrows) {
       try {
-        oem.rethrow_exception_if_any();
-      } catch (PyError& e) {
-        status += e.is_keyboard_interrupt();
-        oem.capture_exception();
+        tctx->push_buffers();
       } catch (...) {
         oem.capture_exception();
       }
     }
-    g.progress(work_done_amount(), status);
-  }
+
+    // Report progress one last time
+    if (tShowAlways) {
+      int status = 1 + oem.exception_caught() + oem.is_keyboard_interrupt();
+      g.progress(work_done_amount(), status);
+    }
+  }  // #pragma omp parallel
+
+  // If any exception occurred, propagate it to the caller
   oem.rethrow_exception_if_any();
-  xassert(row0 <= allocnrow || max_nrows <= allocnrow);
-  if (extraAllocRows) {
-    allocnrow += extraAllocRows;
-    if (allocnrow > max_nrows) allocnrow = max_nrows;
-    g.trace("  Too few rows allocated. Allocating additional %llu rows "
-            "(now nrows=%llu) and continue reading from jump point %zu",
-            (llu)extraAllocRows, (llu)allocnrow, chunk0);
-    g.columns.allocate(allocnrow);
-    // Re-read starting from chunk0
-    read_all();
+
+  // Reallocate the output to have the correct number of rows
+  g.columns.allocate(nrows_written);
+
+  // Check that all input was read (unless interrupted early because of
+  // nrows_max).
+  if (nrows_written < nrows_max) {
+    xassert(lastChunkEnd == inputEnd);
+  }
+}
+
+
+
+void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
+{
+  if (ichunk == chunkCount - 1) {
+    // If we're on the last jump, then `new_alloc` is exactly how many rows
+    // will be needed.
   } else {
-    g.columns.allocate(row0);
+    // Otherwise we adjust the alloc to account for future chunks as well.
+    double exp_nrows = 1.2 * new_alloc * chunkCount / (ichunk + 1);
+    new_alloc = std::max(static_cast<size_t>(exp_nrows),
+                         1024 + nrows_allocated);
+  }
+  if (new_alloc > nrows_max) {
+    new_alloc = nrows_max;
+  }
+  nrows_allocated = new_alloc;
+  g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
+
+  dt::shared_lock(shmutex, /* exclusive = */ true);
+  g.columns.allocate(nrows_allocated);
+}
+
+
+void ChunkedDataReader::order_chunk(
+  ChunkCoordinates& acc, ChunkCoordinates& xcc, LocalParseContextPtr& ctx)
+{
+  int i = 2;
+  while (i--) {
+    if (acc.start == lastChunkEnd && acc.end >= lastChunkEnd) {
+      lastChunkEnd = acc.end;
+      return;
+    }
+    xcc.start = lastChunkEnd;
+    xcc.true_start = true;
+
+    ctx->read_chunk(xcc, acc);
+    xassert(i);
   }
 }

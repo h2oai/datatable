@@ -111,6 +111,8 @@ public:
   bool exception_caught();
   void capture_exception();
   void rethrow_exception_if_any();
+
+  bool is_keyboard_interrupt();
 };
 
 

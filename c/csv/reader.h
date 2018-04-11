@@ -401,23 +401,20 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
  * ensuring that the data integrity is maintained.
  */
 class ChunkedDataReader {
-  private:
+  protected:
     size_t chunkSize;
     size_t chunkCount;
     const char* inputStart;
     const char* inputEnd;
     const char* lastChunkEnd;
     double lineLength;
-    int nThreads;
-    int : 32;
 
   protected:
     GenericReader& g;
     dt::shared_mutex shmutex;
-    size_t chunk0;
-    size_t row0;
-    size_t allocnrow;
-    size_t max_nrows;
+    size_t nrows_max;
+    size_t nrows_allocated;
+    size_t nrows_written;
     int nthreads;
     int : 32;
 
@@ -427,12 +424,13 @@ class ChunkedDataReader {
     ChunkedDataReader& operator=(const ChunkedDataReader&) = delete;
     virtual ~ChunkedDataReader() {}
 
-    size_t get_nchunks() const;
-    int get_nthreads() const;
-    void set_nthreads(int n);
-
+    /**
+     * Main function that reads all data from the input.
+     */
     virtual void read_all();
 
+
+  protected:
     /**
      * Determine coordinates (start and end) of the `i`-th chunk. The index `i`
      * must be in the range [0..chunkCount).
@@ -445,29 +443,8 @@ class ChunkedDataReader {
      * assuming that different invocation receive different `ctx` objects.
      */
     ChunkCoordinates compute_chunk_boundaries(
-      size_t i, LocalParseContext* ctx = nullptr) const;
+      size_t i, LocalParseContext* ctx) const;
 
-    /**
-     * Ensure that the chunks were placed properly. This method must be called
-     * from the #ordered section. It takes two arguments: the *actual*
-     * coordinates of the chunk just read; and the coordinates that were
-     * *expected*. If the chunk was chunk was ordered properly, than this
-     * method returns true. Otherwise, it updates the expected coordinates
-     * `xcc` and returns false. The caller is expected to re-parse the chunk
-     * with the updated coords, and then call this method again.
-     */
-    bool is_ordered(const ChunkCoordinates& acc, ChunkCoordinates& xcc);
-
-    void unorder_chunk(const ChunkCoordinates& cc);
-
-    /**
-     * Return the fraction of the input that was parsed, as a number between
-     * 0 and 1.0.
-     */
-    double work_done_amount() const;
-
-
-  protected:
     /**
      * This method can be overridden in derived classes in order to implement
      * more advanced chunk boundaries detection. This method will be called from
@@ -478,10 +455,49 @@ class ChunkedDataReader {
     virtual void adjust_chunk_coordinates(
       ChunkCoordinates& cc, LocalParseContext* ctx) const;
 
+    /**
+     * Return an instance of a `LocalParseContext` class. Implementations of
+     * `ChunkedDataReader` are expected to override this method to return
+     * appropriate subclasses of `LocalParseContext`.
+     */
     virtual LocalParseContextPtr init_thread_context() = 0;
+
 
   private:
     void determine_chunking_strategy();
+
+    /**
+     * Return the fraction of the input that was parsed, as a number between
+     * 0 and 1.0.
+     */
+    double work_done_amount() const;
+
+    /**
+     * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
+     * Argument `i` contains the index of the chunk that was read last (this
+     * helps with determining the new number of rows), and `new_allocnrow` is
+     * the minimal number of rows to reallocate to.
+     *
+     * This method is thread-safe.
+     */
+    void realloc_output_columns(size_t i, size_t new_allocnrow);
+
+    /**
+     * Ensure that the chunks were placed properly. This method must be called
+     * from the #ordered section. It takes three arguments: `acc` the *actual*
+     * coordinates of the chunk just read; `xcc` the coordinates that were
+     * *expected*; and `ctx` the thread-local parse context.
+     *
+     * If the chunk was ordered properly (i.e. started reading from the place
+     * were the previous chunk ended), then this method updates the internal
+     * `lastChunkEnd` variable and returns.
+     *
+     * Otherwise, it re-parses the chunk with correct coordinates. When doing
+     * so, it will set `xcc.true_start` to true, thus informing the chunk
+     * parser that the coordinates that it received are true.
+     */
+    void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
+                     LocalParseContextPtr& ctx);
 };
 
 

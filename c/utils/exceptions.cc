@@ -192,3 +192,17 @@ void OmpExceptionManager::capture_exception() {
 void OmpExceptionManager::rethrow_exception_if_any() {
   if (ptr) std::rethrow_exception(ptr);
 }
+
+bool OmpExceptionManager::is_keyboard_interrupt() {
+  if (!ptr) return false;
+  bool ret = false;
+  try {
+    std::rethrow_exception(ptr);
+  } catch (PyError& e) {
+    ret = e.is_keyboard_interrupt();
+    capture_exception();
+  } catch (...) {
+    capture_exception();
+  }
+  return ret;
+}
