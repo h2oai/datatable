@@ -41,6 +41,7 @@ FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
   // at the end, it may no longer be so
   *const_cast<char*>(eof) = '\0';
 
+  first_jump_size = 0;
   whiteChar = '\0';
   quoteRule = -1;
   LFpresent = false;
@@ -221,6 +222,275 @@ class HypothesisNoQC : public Hypothesis {
  * H2: QC = «'», starting with QR2 = 0
  */
 void FreadReader::detect_sep(FreadTokenizer&) {
+}
+
+
+
+//------------------------------------------------------------------------------
+// Column type detection
+//------------------------------------------------------------------------------
+
+void FreadReader::detect_column_types()
+{
+  if (verbose) {
+    trace("[07] Detect column types, and whether first row is header");
+  }
+  const ParserFnPtr* parsers = parserlib.get_parser_fns();
+  size_t ncols = columns.size();
+
+  int8_t type0 = 1;
+  columns.setType(type0);
+  field64 trash;
+  FreadTokenizer fctx = makeTokenizer(&trash, nullptr);
+  const char*& tch = fctx.ch;
+
+  // the size in bytes of the first JUMPLINES from the start (jump point 0)
+  size_t jump0size = first_jump_size;
+  // how many places in the file to jump to and test types there (the very end is added as 11th or 101th)
+  // not too many though so as not to slow down wide files; e.g. 10,000 columns.  But for such large files (50GB) it is
+  // worth spending a few extra seconds sampling 10,000 rows to decrease a chance of costly reread even further.
+  size_t nChunks = 0;
+  size_t sz = (size_t)(eof - sof);
+  if (jump0size>0) {
+    if (jump0size*100*2 < sz) nChunks=100;  // 100 jumps * 100 lines = 10,000 line sample
+    else if (jump0size*10*2 < sz) nChunks=10;
+    // *2 to get a good spacing. We don't want overlaps resulting in double counting.
+    // nChunks==1 means the whole (small) file will be sampled with one thread
+  }
+  nChunks++; // the extra sample at the very end (up to eof) is sampled and format checked but not jumped to when reading
+  if (verbose) {
+    if (jump0size==0)
+      trace("  Number of sampling jump points = %d because jump0size==0", nChunks);
+    else
+      trace("  Number of sampling jump points = %d because (%zd bytes from row 1 to eof) / (2 * %zd jump0size) == %zd",
+            nChunks, sz, jump0size, sz/(2*jump0size));
+  }
+
+  size_t sampleLines = 0;     // How many lines were sampled during the initial pre-scan
+  int64_t row1Line = line;
+  double sumLen = 0.0;
+  double sumLenSq = 0.0;
+  int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
+  int maxLen = -1;
+  const char* lastRowEnd = sof;
+  bool firstDataRowAfterPotentialColumnNames = false;  // for test 1585.7
+  bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
+  // auto fco = std::unique_ptr<FreadChunkOrganizer>(new FreadChunkOrganizer(sof, eof, *this));
+  FreadChunkedReader fcr(*this, nullptr);
+  for (size_t j = 0; j < nChunks; ++j) {
+    tch = (j == 0) ? sof :
+          (j == nChunks-1) ? eof - (size_t)(0.5*jump0size) :
+                            sof + j * (sz/(nChunks-1));
+    if (tch < lastRowEnd) tch = lastRowEnd;
+    // Skip any potential newlines, in case we jumped in the middle of one.
+    // In particular, it could be problematic if the file had '\n\r' newlines
+    // and we jumped onto the second '\r' (which wouldn't be considered a
+    // newline by `skip_eol()`s rules, which would then become a part of the
+    // following field).
+    while (*tch == '\n' || *tch == '\r') tch++;
+    if (tch >= eof) break;
+    if (j > 0) {
+      ChunkCoordinates cc(tch, eof);
+      // skip this jump for sampling. Very unusual and in such unusual cases, we don't mind a slightly worse guess.
+      if (!fcr.next_good_line_start(cc, fctx)) continue;
+    }
+    bool bumped = false;  // did this jump find any different types; to reduce verbose output to relevant lines
+    bool skip = false;
+    int jline = 0;  // line from this jump point
+
+    while (tch < eof && (jline<JUMPLINES || j==nChunks-1)) {
+      // nChunks==1 implies sample all of input to eof; last jump to eof too
+      const char* jlineStart = tch;
+      if (sep==' ') while (tch<eof && *tch==' ') tch++;  // multiple sep=' ' at the jlineStart does not mean sep(!)
+      // detect blank lines
+      fctx.skip_white();
+      if (tch == eof) break;
+      if (ncols > 1 && fctx.skip_eol()) {
+        if (skip_blank_lines) continue;
+        if (!fill) break;
+        sampleLines++;
+        lastRowEnd = tch;
+        continue;
+      }
+      jline++;
+      size_t field = 0;
+      const char* fieldStart = NULL;  // Needed outside loop for error messages below
+      tch--;
+      while (field < ncols) {
+        tch++;
+        fctx.skip_white();
+        fieldStart = tch;
+        bool thisColumnNameWasString = false;
+        if (firstDataRowAfterPotentialColumnNames) {
+          // 2nd non-blank row is being read now.
+          // 1st row's type is remembered and compared (a little lower down)
+          // to second row to decide if 1st row is column names or not
+          thisColumnNameWasString = columns[field].isstring();
+          columns[field].type = type0;  // re-initialize for 2nd row onwards
+        }
+        while (true) {
+          parsers[columns[field].type](fctx);
+          fctx.skip_white();
+          if (fctx.end_of_field()) break;
+          tch = fctx.end_NA_string(fieldStart);
+          fctx.skip_white();
+          if (fctx.end_of_field()) break;
+          if (!columns[field].isstring()) {
+            tch = fieldStart;
+            if (*tch==quote) {
+              tch++;
+              parsers[columns[field].type](fctx);
+              if (*tch==quote) {
+                tch++;
+                fctx.skip_white();
+                if (fctx.end_of_field()) break;
+              }
+            }
+            columns[field].type++;
+          } else {
+            // the field could not be read with this quote rule, try again with next one
+            // Trying the next rule will only be successful if the number of fields is consistent with it
+            xassert(quoteRule < 3);
+            if (verbose)
+              trace("Bumping quote rule from %d to %d due to field %d on line %d of sampling jump %d starting \"%s\"",
+                    quoteRule, quoteRule+1, field+1, jline, j, strlim(fieldStart,200));
+            quoteRule++;
+            fctx.quoteRule++;
+          }
+          bumped = true;
+          tch = fieldStart;
+        }
+        if (ISNA<int8_t>(header) && thisColumnNameWasString && !columns[field].isstring()) {
+          header = true;
+          trace("header determined to be True due to column %d containing a string on row 1 and a lower type (%s) on row 2",
+                field + 1, columns[field].typeName());
+        }
+        if (*tch!=sep || *tch=='\n' || *tch=='\r') break;
+        if (sep==' ') {
+          while (tch[1]==' ') tch++;
+          if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') { tch++; break; }
+        }
+        field++;
+      }
+      bool eol_found = fctx.skip_eol();
+      if (field < ncols-1 && !fill) {
+        xassert(tch==eof || eol_found);
+        STOP("Line %d has too few fields when detecting types. Use fill=True to pad with NA. "
+             "Expecting %d fields but found %d: \"%s\"", jline, ncols, field+1, strlim(jlineStart, 200));
+      }
+      if (field>=ncols || !(eol_found || tch==eof)) {   // >=ncols covers ==ncols. We do not expect >ncols to ever happen.
+        if (j==0) {
+          STOP("Line %d starting <<%s>> has more than the expected %d fields. "
+             "Separator '%c' occurs at position %d which is character %d of the last field: <<%s>>. "
+             "Consider setting 'comment.char=' if there is a trailing comment to be ignored.",
+             jline, strlim(jlineStart,10), ncols, *tch, (int)(tch-jlineStart+1), (int)(tch-fieldStart+1), strlim(fieldStart,200));
+        }
+        trace("  Not using sample from jump %d. Looks like a complicated file where "
+              "nextGoodLine could not establish the true line start.", j);
+        skip = true;
+        break;
+      }
+      if (firstDataRowAfterPotentialColumnNames) {
+        if (fill) {
+          for (size_t jj = field+1; jj < ncols; jj++) {
+            columns[jj].type = type0;
+          }
+        }
+        firstDataRowAfterPotentialColumnNames = false;
+      } else if (sampleLines==0) {
+        // To trigger 2nd row starting from type 1 again to compare to 1st row to decide if column names present
+        firstDataRowAfterPotentialColumnNames = true;
+      }
+
+      lastRowEnd = tch;
+      int thisLineLen = (int)(tch-jlineStart);  // tch is now on start of next line so this includes EOLLEN already
+      xassert(thisLineLen >= 0);
+      sampleLines++;
+      sumLen += thisLineLen;
+      sumLenSq += thisLineLen*thisLineLen;
+      if (thisLineLen<minLen) minLen=thisLineLen;
+      if (thisLineLen>maxLen) maxLen=thisLineLen;
+    }
+    if (skip) continue;
+    if (j==nChunks-1) lastSampleJumpOk = true;
+    if (verbose && (bumped || j==0 || j==nChunks-1)) {
+      trace("  Type codes (jump %03d): %s  Quote rule %d", j, columns.printTypes(), quoteRule);
+    }
+  }
+  if (lastSampleJumpOk) {
+    while (tch < eof && isspace(*tch)) tch++;
+    if (tch < eof) {
+      warn("Found the last consistent line but text exists afterwards (discarded): \"%s\"", strlim(tch, 200));
+    }
+    eof = lastRowEnd;
+  }
+
+  size_t estnrow = 1;
+  allocnrow = 1;
+  meanLineLen = 0;
+
+  if (ISNA<int8_t>(header)) {
+    header = true;
+    for (size_t j = 0; j < ncols; j++) {
+      if (!columns[j].isstring()) {
+        header = false;
+        break;
+      }
+    }
+    if (verbose) {
+      trace("header detetected to be %s because %s",
+            header? "True" : "False",
+            sampleLines <= 1 ?
+              (header? "there are numeric fields in the first and only row" :
+                       "all fields in the first and only row are of string type") :
+              (header? "all columns are of string type, and a better guess is not possible" :
+                       "there are some columns containing only numeric data (even in the first row)"));
+    }
+  }
+
+  if (sampleLines <= 1) {
+    if (header == 1) {
+      // A single-row input, and that row is the header. Reset all types to
+      // boolean (lowest type possible, a better guess than "string").
+      for (size_t j = 0; j < ncols; j++) {
+        columns[j].type = type0;
+      }
+      allocnrow = 0;
+    }
+    meanLineLen = sumLen;
+  } else {
+    size_t bytesRead = static_cast<size_t>(eof - sof);
+    meanLineLen = sumLen/sampleLines;
+    estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
+    double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
+    allocnrow = std::max(static_cast<size_t>(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
+                         static_cast<size_t>(1.1*estnrow));
+    allocnrow = std::min(allocnrow, 2*estnrow);
+    // sd can be very close to 0.0 sometimes, so apply a +10% minimum
+    // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
+    if (verbose) {
+      trace("  =====");
+      trace("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
+      trace("  Bytes from first data row on line %lld to the end of last row: %zd", row1Line, bytesRead);
+      trace("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
+      trace("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
+      trace("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
+            allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+    }
+    if (nChunks==1) {
+      if (header == 1) sampleLines--;
+      estnrow = allocnrow = sampleLines;
+      trace("All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
+    } else {
+      xassert(sampleLines <= allocnrow);
+    }
+    if (max_nrows < allocnrow) {
+      trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
+      estnrow = allocnrow = max_nrows;
+    }
+    trace("=====");
+  }
+  fo.n_lines_sampled = sampleLines;
 }
 
 
