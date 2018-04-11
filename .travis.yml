@@ -4,8 +4,8 @@ sudo: false
 language: python
 
 compiler:
-  - clang-3.8
-  - gcc-5.3
+  - clang
+  - gcc
 
 branches:
   only:
@@ -15,11 +15,35 @@ python:
   - "3.5"
   - "3.6"
 
+before_install:
+  - wget http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+  - tar xf clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+  - cp /clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
+
+env:
+  - LLVM4=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 \
+  - LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
+  - CLANG =/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+
 install:
-  - make test_install
+  - pip install --upgrade pip
+  - pip install --upgrade setuptools
+  - pip install --upgrade python-dateutil
+  - pip install --upgrade numpy
+  - pip install --upgrade colorama
+  - pip install --upgrade typesentry
+  - pip install --upgrade wcwidth
+  - pip install --upgrade blessed
+  - pip install --upgrade llvmlite
+  - pip install --upgrade psutil
+  - pip install --upgrade pandas
+  - pip install --upgrade pytest
+  - pip install --upgrade virtualenv
+  - pip install --upgrade wheel
 
 script:
   - make
+  - make test_install
 
 git:
   depth: 5
