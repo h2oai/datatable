@@ -69,6 +69,7 @@ struct FreadTokenizer {
   const char* end_NA_string(const char*);
   int countfields();
   bool skip_eol();
+  bool at_eof() const { return ch == eof; }
 };
 
 typedef void (*ParserFnPtr)(FreadTokenizer& ctx);

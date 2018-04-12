@@ -19,6 +19,7 @@
 class FreadLocalParseContext;
 class FreadChunkedReader;
 class ChunkedDataReader;
+class ColumnTypeDetectionChunkster;
 
 
 //------------------------------------------------------------------------------
@@ -83,6 +84,7 @@ class FreadReader : public GenericReader
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
   ParserLibrary parserlib;
+  const ParserFnPtr* parsers;
   FreadObserver fo;
   char* targetdir;
   size_t allocnrow;
@@ -128,10 +130,12 @@ private:
   void userOverride();
 
   void detect_column_types();
+  size_t parse_single_line(FreadTokenizer&, bool* bumped);
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;
   friend ChunkedDataReader;
+  friend ColumnTypeDetectionChunkster;
 };
 
 
