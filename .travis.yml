@@ -11,12 +11,12 @@ branches:
     - travis-ci
 
 before_install:
-  - ( wget -O llvm4.tar.xz "http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && sudo mkdir -p "$LLVM4" && tar xf "llvm4.tar.xz" -C "$LLVM4" )
-  - sudo cp $LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
+  - ( wget -O llvm4.tar.xz "http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mv llvm4.tar.xz $HOME/ && mkdir -p "$HOME/LLVM4" && tar xf "$HOME/llvm4.tar.xz" -C "$HOME/LLVM4" )
+  - sudo cp $HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
 
 env:
   global:
-  - LLVM4=$LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=$LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=$LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+  - LLVM4=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
 cache:
     directories:
