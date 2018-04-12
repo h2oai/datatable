@@ -255,8 +255,8 @@ DataTablePtr FreadReader::read()
           }
         }
         if (verbose && updated) {
-          trace(sep<' '? "  sep=%#02x with %d lines of %d fields using quote rule %d" :
-                         "  sep='%c' with %d lines of %d fields using quote rule %d",
+          trace(sep<' '? "sep=%#02x with %d lines of %d fields using quote rule %d" :
+                         "sep='%c' with %d lines of %d fields using quote rule %d",
                 sep, topNumLines, topNumFields, topQuoteRule);
         }
       }
@@ -267,7 +267,7 @@ DataTablePtr FreadReader::read()
     sep = ctx.sep = topSep;
     whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
     if (sep==' ' && !fill) {
-      if (verbose) trace("  sep=' ' detected, setting fill to True\n");
+      if (verbose) trace("sep=' ' detected, setting fill to True");
       fill = 1;
     }
 

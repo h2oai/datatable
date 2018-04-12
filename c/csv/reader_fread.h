@@ -130,7 +130,7 @@ private:
   void userOverride();
 
   void detect_column_types();
-  size_t parse_single_line(FreadTokenizer&, bool* bumped);
+  int64_t parse_single_line(FreadTokenizer&, bool* bumped);
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;

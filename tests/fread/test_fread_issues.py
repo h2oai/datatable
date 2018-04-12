@@ -21,7 +21,7 @@ def test_issue_R1113():
            "        -11000 -2.50000E+00  2.30000E+00    345678.20255 \n"
            "        -10999 -2.49853E+01  3.79270E+02    -195780.43911\n"
            "        -10998 1.95957E-01  4.16522E+00    7937.13048")
-    d0 = dt.fread(txt)
+    d0 = dt.fread(txt, verbose=True)
     assert d0.internal.check()
     assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,

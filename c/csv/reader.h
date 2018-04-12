@@ -81,6 +81,7 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     GReaderColumns() noexcept;
 
     std::unique_ptr<PT[]> getTypes() const;
+    void saveTypes(std::unique_ptr<PT[]>& types) const;
     void setTypes(const std::unique_ptr<PT[]>& types);
     void setType(PT type);
     const char* printTypes() const;

@@ -131,12 +131,16 @@ void GReaderColumns::set_nrows(size_t nrows) {
 
 
 std::unique_ptr<PT[]> GReaderColumns::getTypes() const {
-  size_t n = size();
-  std::unique_ptr<PT[]> res(new PT[n]);
-  for (size_t i = 0; i < n; ++i) {
-    res[i] = (*this)[i].type;
-  }
+  std::unique_ptr<PT[]> res(new PT[size()]);
+  saveTypes(res);
   return res;
+}
+
+void GReaderColumns::saveTypes(std::unique_ptr<PT[]>& types) const {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    types[i] = (*this)[i].type;
+  }
 }
 
 void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
