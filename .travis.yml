@@ -13,6 +13,7 @@ branches:
 before_install:
   - wget -O llvm4.tar.xz http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - tar xf llvm4.tar.xz
+  - mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 llvm4
   - sudo cp llvm4/lib/libomp.so /usr/lib
 
 env:
