@@ -18,11 +18,11 @@ before_install:
   - sudo cp llvm4/lib/libomp.so /usr/lib
 
 env:
-  - LLVM4=$HOME/llvm4 LLVM_CONFIG=$HOME/llvm4/bin/llvm-config CLANG=$HOME/llvm4/bin/clang
+  - LLVM4=/home/travis/build/h2oai/datatable/llvm4 LLVM_CONFIG=/home/travis/build/h2oai/datatable/llvm4/bin/llvm-config CLANG=/home/travis/build/h2oai/datatable/llvm4/bin/clang
 
 cache:
     directories:
-        - $HOME/llvm4
+        - /home/travis/build/h2oai/datatable/llvm4
 
 python:
   - "3.5"
