@@ -5,6 +5,7 @@ language: python
 
 compiler:
   - gcc
+  - clang
 
 branches:
   only:
