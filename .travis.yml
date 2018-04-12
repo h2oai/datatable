@@ -11,18 +11,16 @@ branches:
     - travis-ci
 
 before_install:
-  - wget -O llvm4.tar.xz http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - pwd
-  - tar xf llvm4.tar.xz
-  - mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 llvm4
-  - sudo cp /home/travis/build/h2oai/datatable/llvm4/lib/libomp.so /usr/lib
+  - ( wget -O llvm4.tar.xz "http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM4" && tar xf "llvm4.tar.xz" -C "$LLVM4" )
+  - sudo cp $LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
 
 env:
-  - LLVM4=/home/travis/build/h2oai/datatable/llvm4 LLVM_CONFIG=/home/travis/build/h2oai/datatable/llvm4/bin/llvm-config CLANG=/home/travis/build/h2oai/datatable/llvm4/bin/clang
+  global:
+  - LLVM4=$HOME/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=$LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=$LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
 cache:
     directories:
-        - /home/travis/build/h2oai/datatable/llvm4
+        - $LLVM4
 
 python:
   - "3.5"
