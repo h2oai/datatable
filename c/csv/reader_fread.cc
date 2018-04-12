@@ -267,26 +267,35 @@ class ColumnTypeDetectionChunkster {
     }
 
     ChunkCoordinates compute_chunk_boundaries(size_t j) {
-      const char* tch =
-        (j == 0) ? f.sof :
-        (j == nchunks - 1) ? f.eof - f.first_jump_size/2 :
-                             f.sof + j * chunk_distance;
-      if (tch < last_row_end) tch = last_row_end;
+      ChunkCoordinates cc(f.eof, f.eof);
+      if (j == 0) {
+        if (f.header == 0) {
+          cc.start = f.sof;
+        } else {
+          // If `header` is either True or <auto>, we skip the first row during
+          // type detection.
+          fctx.ch = f.sof;
+          int n = fctx.countfields();
+          if (n >= 0) cc.start = fctx.ch;
+        }
+      } else {
+        const char* tch =
+          (j == nchunks - 1) ? f.eof - f.first_jump_size/2 :
+                               f.sof + j * chunk_distance;
+        if (tch < last_row_end) tch = last_row_end;
 
-      // Skip any potential newlines, in case we jumped in the middle of one.
-      // In particular, it could be problematic if the file had '\n\r' newlines
-      // and we jumped onto the second '\r' (which wouldn't be considered a
-      // newline by `skip_eol()`s rules, which would then become a part of the
-      // following field).
-      while (*tch == '\n' || *tch == '\r') tch++;
+        // Skip any potential newlines, in case we jumped in the middle of one.
+        // In particular, it could be problematic if the file had '\n\r' newline
+        // and we jumped onto the second '\r' (which wouldn't be considered a
+        // newline by `skip_eol()`s rules, which would then become a part of the
+        // following field).
+        while (*tch == '\n' || *tch == '\r') tch++;
 
-      ChunkCoordinates cc(tch, f.eof);
-
-      if (j > 0 && tch < f.eof) {
-        bool ok = fcr.next_good_line_start(cc, fctx);
-        cc.start = ok? fctx.ch : f.eof;
+        if (tch < f.eof) {
+          bool ok = fcr.next_good_line_start(cc, fctx);
+          if (ok) cc.start = fctx.ch;
+        }
       }
-
       return cc;
     }
 };
@@ -338,7 +347,7 @@ size_t FreadReader::parse_single_line(FreadTokenizer& fctx, bool* bumped)
       }
 
       // Finally, bump the column's type and try again
-      columns[field].type++;
+      columns[field].type = static_cast<PT>(columns[field].type + 1);
       *bumped = true;
       tch = fieldStart;
     }
@@ -367,7 +376,7 @@ void FreadReader::detect_column_types()
   }
   size_t ncols = columns.size();
 
-  int8_t type0 = 1;
+  PT type0 = PT::Bool01;  // TODO: replace with PT::Mu
   columns.setType(type0);
   field64 trash;
   FreadTokenizer fctx = makeTokenizer(&trash, nullptr);
@@ -382,7 +391,6 @@ void FreadReader::detect_column_types()
   double sumLenSq = 0.0;
   int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
   int maxLen = -1;
-  bool lastSampleJumpOk = false;   // it won't be ok if its nextGoodLine returns false as testing in test 1768
 
   for (size_t j = 0; j < nChunks; ++j) {
     ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
@@ -457,9 +465,7 @@ void FreadReader::detect_column_types()
     if (header == 1) {
       // A single-row input, and that row is the header. Reset all types to
       // boolean (lowest type possible, a better guess than "string").
-      for (size_t j = 0; j < ncols; j++) {
-        columns[j].type = type0;
-      }
+      columns.setType(type0);
       allocnrow = 0;
     }
     meanLineLen = sumLen;
@@ -612,7 +618,7 @@ void FreadReader::userOverride()
 
   for (size_t i = 0; i < ncols; i++) {
     PyObject* t = PyList_GET_ITEM(colTypesList, i);
-    columns[i].type = (int8_t) PyLong_AsUnsignedLongMask(t);
+    columns[i].type = static_cast<PT>(PyLong_AsUnsignedLongMask(t));
   }
   pyfree(colTypesList);
   pyfree(colNamesList);
@@ -625,7 +631,7 @@ void FreadReader::userOverride()
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
+    size_t bcols, size_t brows, FreadReader& f, PT* types_,
     dt::shared_mutex& mut
   ) : LocalParseContext(bcols, brows),
       types(types_),
@@ -733,14 +739,13 @@ void FreadLocalParseContext::read_chunk(
     if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        int8_t oldType = types[j];
-        int8_t newType = oldType;
+        PT oldType = types[j];
+        PT newType = oldType;
 
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(newType).isstring() &&
-              newType != static_cast<int8_t>(PT::Drop)) {
+          if (!ParserLibrary::info(newType).isstring() && newType != PT::Drop) {
             tokenizer.skip_white();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
@@ -767,9 +772,10 @@ void FreadLocalParseContext::read_chunk(
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
           if (cc.true_start) {
-            newType++;  // TODO: replace with proper type iteration
-            if (newType == ParserLibrary::num_parsers) {
-              newType = ParserLibrary::num_parsers - 1;
+            // TODO: replace with proper type iteration
+            if (newType + 1 < ParserLibrary::num_parsers) {
+              newType = static_cast<PT>(newType + 1);
+            } else {
               tokenizer.quoteRule++;
             }
             tch = fieldStart;
@@ -921,11 +927,10 @@ void FreadLocalParseContext::orderBuffer() {
     size_t write_at = wb->prep_write(sz, strbufs[k].mbuf->get());
     strbufs[k].ptr = write_at;
     strbufs[k].sz = sz;
-    if (columns[i].type == static_cast<int8_t>(PT::Str32) &&
-        write_at + sz > 0x80000000) {
+    if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
       dt::shared_lock lock(shmutex, /* exclusive = */ true);
       columns[i].convert_to_str64();
-      types[i] = static_cast<int8_t>(PT::Str64);
+      types[i] = PT::Str64;
       if (verbose) {
         freader.fo.str64_bump(i, columns[i]);
       }
@@ -1274,7 +1279,7 @@ void FreadObserver::report(const GenericReader& g) {
 
 
 void FreadObserver::type_bump_info(
-  size_t icol, const GReaderColumn& col, int8_t new_type,
+  size_t icol, const GReaderColumn& col, PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
   char temp[1001];

@@ -21,7 +21,7 @@
 GReaderColumn::GReaderColumn() {
   mbuf = nullptr;
   strdata = nullptr;
-  type = 0;
+  type = PT::Drop;
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;
@@ -94,7 +94,7 @@ size_t GReaderColumn::getAllocSize() const {
 
 
 void GReaderColumn::convert_to_str64() {
-  xassert(type == static_cast<int8_t>(PT::Str32));
+  xassert(type == PT::Str32);
   size_t nelems = mbuf->size() / sizeof(int32_t);
   MemoryBuffer* new_mbuf = new MemoryMemBuf(nelems * sizeof(int64_t));
   int32_t* old_data = static_cast<int32_t*>(mbuf->get());
@@ -102,7 +102,7 @@ void GReaderColumn::convert_to_str64() {
   for (size_t i = 0; i < nelems; ++i) {
     new_data[i] = old_data[i];
   }
-  type = static_cast<int8_t>(PT::Str64);
+  type = PT::Str64;
   mbuf->release();
   mbuf = new_mbuf->shallowcopy();
 }
@@ -117,7 +117,11 @@ GReaderColumns::GReaderColumns() noexcept
     : std::vector<GReaderColumn>(), allocnrows(0) {}
 
 
-void GReaderColumns::allocate(size_t nrows) {
+size_t GReaderColumns::get_nrows() const {
+  return allocnrows;
+}
+
+void GReaderColumns::set_nrows(size_t nrows) {
   size_t ncols = size();
   for (size_t i = 0; i < ncols; ++i) {
     (*this)[i].allocate(nrows);
@@ -126,16 +130,23 @@ void GReaderColumns::allocate(size_t nrows) {
 }
 
 
-std::unique_ptr<int8_t[]> GReaderColumns::getTypes() const {
+std::unique_ptr<PT[]> GReaderColumns::getTypes() const {
   size_t n = size();
-  std::unique_ptr<int8_t[]> res(new int8_t[n]);
+  std::unique_ptr<PT[]> res(new PT[n]);
   for (size_t i = 0; i < n; ++i) {
     res[i] = (*this)[i].type;
   }
   return res;
 }
 
-void GReaderColumns::setType(int8_t type) {
+void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    (*this)[i].type = types[i];
+  }
+}
+
+void GReaderColumns::setType(PT type) {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
     (*this)[i].type = type;

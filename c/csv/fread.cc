@@ -358,7 +358,7 @@ DataTablePtr FreadReader::read()
   //*********************************************************************************************
   {
     if (verbose) trace("[09] Apply user overrides on column types");
-    std::unique_ptr<int8_t[]> oldtypes = columns.getTypes();
+    std::unique_ptr<PT[]> oldtypes = columns.getTypes();
 
     userOverride();
 
@@ -367,7 +367,7 @@ DataTablePtr FreadReader::read()
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
-      if (col.type == static_cast<int8_t>(PT::Drop)) {
+      if (col.type == PT::Drop) {
         ndropped++;
         col.presentInOutput = false;
         col.presentInBuffer = false;
@@ -389,7 +389,7 @@ DataTablePtr FreadReader::read()
             ncols - ndropped, allocnrow);
     }
 
-    columns.allocate(allocnrow);
+    columns.set_nrows(allocnrow);
 
     if (verbose) {
       fo.t_frame_allocated = wallclock();
@@ -406,8 +406,8 @@ DataTablePtr FreadReader::read()
   bool firstTime = true;
   int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
 
-  std::unique_ptr<int8_t[]> typesPtr = columns.getTypes();
-  int8_t* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
+  std::unique_ptr<PT[]> typesPtr = columns.getTypes();
+  PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
 
   trace("[11] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
@@ -437,7 +437,7 @@ DataTablePtr FreadReader::read()
             col.presentInBuffer = true;
             n_type_bump_cols++;
           } else {
-            types[j] = static_cast<int8_t>(PT::Drop);
+            types[j] = PT::Drop;
             col.presentInBuffer = false;
           }
         }
@@ -454,7 +454,7 @@ DataTablePtr FreadReader::read()
       fo.t_data_reread = wallclock();
     }
 
-    fo.n_rows_read = columns.nrows();
+    fo.n_rows_read = columns.get_nrows();
     fo.n_cols_read = columns.nColumnsInOutput();
   }
 

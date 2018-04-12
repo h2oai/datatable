@@ -56,7 +56,7 @@ class FreadObserver {
     FreadObserver();
     ~FreadObserver();
 
-    void type_bump_info(size_t icol, const GReaderColumn& col, int8_t new_type,
+    void type_bump_info(size_t icol, const GReaderColumn& col, PT new_type,
                         const char* field, int64_t len, int64_t lineno);
     void str64_bump(size_t icol, const GReaderColumn& col);
 
@@ -163,7 +163,7 @@ class FreadLocalParseContext : public LocalParseContext
     int64_t : 48;
     double ttime_push;
     double ttime_read;
-    int8_t* types;
+    PT* types;
 
     FreadReader& freader;
     GReaderColumns& columns;
@@ -173,7 +173,7 @@ class FreadLocalParseContext : public LocalParseContext
     const ParserFnPtr* parsers;
 
   public:
-    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*,
+    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, PT* types,
                            dt::shared_mutex&);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
@@ -192,10 +192,10 @@ class FreadLocalParseContext : public LocalParseContext
 class FreadChunkedReader : public ChunkedDataReader {
   private:
     FreadReader& f;
-    int8_t* types;
+    PT* types;
 
   public:
-    FreadChunkedReader(FreadReader& reader, int8_t* types_)
+    FreadChunkedReader(FreadReader& reader, PT* types_)
       : ChunkedDataReader(reader, reader.get_mean_line_len()), f(reader)
     {
       types = types_;

@@ -19,6 +19,8 @@
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
 
+enum PT : uint8_t;
+
 
 //------------------------------------------------------------------------------
 // GReaderColumn
@@ -42,7 +44,7 @@ class GReaderColumn {
   public:
     std::string name;
     MemoryWritableBuffer* strdata;
-    int8_t type;
+    PT type;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
@@ -77,16 +79,20 @@ class GReaderColumns : public std::vector<GReaderColumn> {
 
   public:
     GReaderColumns() noexcept;
-    void allocate(size_t nrows);
-    std::unique_ptr<int8_t[]> getTypes() const;
-    void setType(int8_t type);
+
+    std::unique_ptr<PT[]> getTypes() const;
+    void setTypes(const std::unique_ptr<PT[]>& types);
+    void setType(PT type);
     const char* printTypes() const;
+
     size_t nColumnsInOutput() const;
     size_t nColumnsInBuffer() const;
     size_t nColumnsToReread() const;
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
-    size_t nrows() const { return allocnrows; }
+
+    size_t get_nrows() const;
+    void set_nrows(size_t nrows);
 };
 
 

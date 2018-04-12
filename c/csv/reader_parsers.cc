@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "csv/reader_parsers.h"
+#include "csv/fread.h"    // FreadTokenizer
 #include "utils/assert.h"
 
 #define NA_BOOL8         INT8_MIN
