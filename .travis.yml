@@ -11,17 +11,16 @@ branches:
     - travis-ci
 
 before_install:
-  - wget http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz /home/travis/
-  - tar xf /home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - sudo cp /home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib/libomp.so /usr/lib
+  - wget -O llvm4.tar.xz http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+  - tar xf llvm4.tar.xz
+  - sudo cp llvm4/lib/libomp.so /usr/lib
 
 env:
-  - LLVM4=/home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=/home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=/home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+  - LLVM4=/home/travis/llvm4 LLVM_CONFIG=/home/travis/llvm4/bin/llvm-config CLANG=/home/travis/llvm4/bin/clang
 
 cache:
     directories:
-        - /home/travis/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/
+        - /home/travis/llvm4
 
 python:
   - "3.5"
