@@ -17,11 +17,11 @@ before_install:
   - sudo cp llvm4/lib/libomp.so /usr/lib
 
 env:
-  - LLVM4=/home/travis/llvm4 LLVM_CONFIG=/home/travis/llvm4/bin/llvm-config CLANG=/home/travis/llvm4/bin/clang
+  - LLVM4=$TRAVIS_BUILD_DIR/llvm4 LLVM_CONFIG=$TRAVIS_BUILD_DIR/llvm4/bin/llvm-config CLANG=$TRAVIS_BUILD_DIR/llvm4/bin/clang
 
 cache:
     directories:
-        - /home/travis/llvm4
+        - $TRAVIS_BUILD_DIR/llvm4
 
 python:
   - "3.5"
