@@ -15,7 +15,7 @@ before_install:
   - pwd
   - tar xf llvm4.tar.xz
   - mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 llvm4
-  - sudo cp llvm4/lib/libomp.so /usr/lib
+  - sudo cp /home/travis/build/h2oai/datatable/llvm4/lib/libomp.so /usr/lib
 
 env:
   - LLVM4=/home/travis/build/h2oai/datatable/llvm4 LLVM_CONFIG=/home/travis/build/h2oai/datatable/llvm4/bin/llvm-config CLANG=/home/travis/build/h2oai/datatable/llvm4/bin/clang
