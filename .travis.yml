@@ -17,7 +17,7 @@ before_install:
 
 env:
   global:
-  - LLVM4=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
+  - LLVM4=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04 LLVM_CONFIG=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config CLANG=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang LD_LIBRARY_PATH=$HOME/LLVM4/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/lib:$LD_LIBRARY_PATH
 
 cache:
     directories:
