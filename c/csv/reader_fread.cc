@@ -393,9 +393,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx, bool* bumped_flag)
 
 void FreadReader::detect_column_types()
 {
-  if (verbose) {
-    trace("[07] Detect column types, and whether first row is header");
-  }
+  trace("[3] Detect column types, and whether first row is header");
   size_t ncols = columns.size();
   int64_t sncols = static_cast<int64_t>(ncols);
 
@@ -478,7 +476,7 @@ void FreadReader::detect_column_types()
     auto header_types = columns.getTypes();
     columns.setTypes(saved_types);
 
-    if (ncols_header != sncols && sampleLines > 0) {
+    if (ncols_header != sncols && sampleLines > 0 && !fill) {
       header = true;
       trace("`header` determined to be True because the first line contains "
             "different number of columns (%zd) than the rest of the file (%zu)",
@@ -536,18 +534,18 @@ void FreadReader::detect_column_types()
     // sd can be very close to 0.0 sometimes, so apply a +10% minimum
     // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
     if (verbose) {
-      trace("  =====");
-      trace("  Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
-      trace("  Bytes from first data row on line %lld to the end of last row: %zd", row1Line, bytesRead);
-      trace("  Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
-      trace("  Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
-      trace("  Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
+      trace("=====");
+      trace("Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
+      trace("Bytes from first data row on line %lld to the end of last row: %zd", row1Line, bytesRead);
+      trace("Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
+      trace("Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
+      trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
             allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
     }
     if (nChunks==1) {
       if (header == 1) sampleLines--;
       estnrow = allocnrow = sampleLines;
-      trace("All rows were sampled since file is small so we know nrow=%zd exactly", estnrow);
+      trace("All rows were sampled since file is small so we know nrows=%zd exactly", estnrow);
     } else {
       xassert(sampleLines <= allocnrow);
     }

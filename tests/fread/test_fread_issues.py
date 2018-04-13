@@ -97,7 +97,8 @@ def test_issue_R2287(v):
     """
     with pytest.raises(Exception) as e:
         dt.fread("A,B\nfoo,1\nbar" + v)
-    assert ('Expecting 2 fields but found 1: "bar%s"' % v) in str(e)
+    assert 'expected 2 but found only 1' in str(e)
+    assert ('<<bar%s>>' % v) in str(e)
 
 
 def test_issue_R2299():

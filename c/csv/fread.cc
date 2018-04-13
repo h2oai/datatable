@@ -142,7 +142,7 @@ DataTablePtr FreadReader::read()
 
 
   //*********************************************************************************************
-  // [6] Auto detect separator, quoting rule, first line and ncols, simply,
+  // [2] Auto detect separator, quoting rule, first line and ncols, simply,
   //     using jump 0 only.
   //
   //     Always sample as if nrows= wasn't supplied. That's probably *why*
@@ -151,7 +151,7 @@ DataTablePtr FreadReader::read()
   //     across a set of files.
   //*********************************************************************************************
   {
-    if (verbose) trace("[06] Detect separator, quoting rule, and ncolumns");
+    if (verbose) trace("[2] Detect separator, quoting rule, and ncolumns");
 
     int nseps;
     char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
@@ -169,14 +169,14 @@ DataTablePtr FreadReader::read()
       seps[1] = '\0';
       topSep = sep;
       nseps = 1;
-      if (verbose) trace("  Using supplied sep '%s'",
-                         sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
+      trace("Using supplied sep '%s'",
+            sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
     }
 
     const char* firstJumpEnd = NULL; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
     int topNumLines = 0;      // the most number of lines with the same number of fields, so far
     int topNumFields = 0;     // how many fields that was, to resolve ties
-    int8_t topQuoteRule = 0;  // which quote rule that was
+    int8_t topQuoteRule = -1;  // which quote rule that was
     int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                               //   (when fill=true, the max is usually the header row and is the longest but there are more
                               //    lines of fewer)
@@ -195,10 +195,10 @@ DataTablePtr FreadReader::read()
     // `numLines` has the number of lines in each group.
     int numFields[JUMPLINES+1];
     int numLines[JUMPLINES+1];
-    for (int s=0; s<nseps; s++) {
-      sep = seps[s];
-      whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
-      for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
+    for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
+      for (int s=0; s<nseps; s++) {
+        sep = seps[s];
+        whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
         ctx.ch = sof;
         ctx.sep = sep;
         ctx.whiteChar = whiteChar;
@@ -223,6 +223,7 @@ DataTablePtr FreadReader::read()
         }
         if (numFields[0] == -1) continue;
         if (firstJumpEnd == NULL) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+        if (topQuoteRule < 0) topQuoteRule = quoteRule;
         bool updated = false;
         int nmax = 0;
 
@@ -262,12 +263,12 @@ DataTablePtr FreadReader::read()
       }
     }
     if (!topNumFields) topNumFields = 1;
-    xassert(firstJumpEnd);
+    xassert(firstJumpEnd && topQuoteRule >= 0);
     quoteRule = ctx.quoteRule = topQuoteRule;
     sep = ctx.sep = topSep;
     whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
     if (sep==' ' && !fill) {
-      if (verbose) trace("sep=' ' detected, setting fill to True");
+      trace("sep=' ' detected, setting fill to True");
       fill = 1;
     }
 
@@ -308,11 +309,11 @@ DataTablePtr FreadReader::read()
     tch = sof;  // move back to start of line since countfields() moved to next
     xassert(fill || tt == ncols);
     if (verbose) {
-      trace("  Detected %d columns on line %d. This line is either column "
+      trace("Detected %d columns on line %d. This line is either column "
             "names or first data row. Line starts as: \"%s\"",
             tt, line, strlim(sof, 30));
-      trace("  Quote rule picked = %d", quoteRule);
-      if (fill) trace("  fill=true and the most number of columns found is %d", ncols);
+      trace("Quote rule picked = %d", quoteRule);
+      if (fill) trace("fill=True and the most number of columns found is %d", ncols);
     }
 
     // Now check previous line which is being discarded and give helpful message to user
@@ -333,17 +334,17 @@ DataTablePtr FreadReader::read()
   }
 
 
-  detect_column_types();  // [7]
+  detect_column_types();  // [3]
 
 
   //*********************************************************************************************
-  // [8] Parse column names (if present)
+  // [4] Parse column names (if present)
   //
   //     This section also moves the `sof` pointer to point at the first row
   //     of data ("removing" the column names).
   //*********************************************************************************************
   if (header == 1) {
-    trace("[08] Assign column names");
+    trace("[4] Assign column names");
     field64 tmp;
     FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
@@ -354,10 +355,10 @@ DataTablePtr FreadReader::read()
 
 
   //*********************************************************************************************
-  // [9] Allow user to override column types; then allocate the DataTable
+  // [5] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
   {
-    if (verbose) trace("[09] Apply user overrides on column types");
+    if (verbose) trace("[5] Apply user overrides on column types");
     std::unique_ptr<PT[]> oldtypes = columns.getTypes();
 
     userOverride();
@@ -383,9 +384,9 @@ DataTablePtr FreadReader::read()
       }
     }
     if (verbose) {
-      trace("  After %d type and %d drop user overrides : %s",
+      trace("After %d type and %d drop user overrides : %s",
             nUserBumped, ndropped, columns.printTypes());
-      trace("  Allocating %d column slots with %zd rows",
+      trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
     }
 
@@ -401,7 +402,7 @@ DataTablePtr FreadReader::read()
 
 
   //*********************************************************************************************
-  // [11] Read the data
+  // [6] Read the data
   //*********************************************************************************************
   bool firstTime = true;
   int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
@@ -409,7 +410,7 @@ DataTablePtr FreadReader::read()
   std::unique_ptr<PT[]> typesPtr = columns.getTypes();
   PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
 
-  trace("[11] Read the data");
+  trace("[6] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
     FreadChunkedReader scr(*this, types);
@@ -459,7 +460,7 @@ DataTablePtr FreadReader::read()
   }
 
 
-  trace("[12] Finalize the datatable");
+  trace("[7] Finalize the datatable");
   DataTablePtr res = makeDatatable();
   if (verbose) fo.report(*this);
   return res;

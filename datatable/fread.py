@@ -25,20 +25,6 @@ from datatable.types import stype
 
 _log_color = term.bright_black
 
-TColName = Union[str, type(...)]
-TColType = Union[str, type]
-TColumnsSpec = Union[
-    None,
-    slice,
-    range,
-    Set[str],
-    List[Union[None, str, Tuple[str, TColType]]],
-    Dict[TColName, Union[None, TColName, Tuple[TColName, TColType]]],
-    Callable[[str], Union[None, bool, str]],
-    Callable[[int, str], Union[None, bool, str]],
-    Callable[[int, str, str], Union[None, bool, str, Tuple[str, TColType]]]
-]
-
 
 
 def fread(
@@ -126,6 +112,8 @@ class GenericReader(object):
             self._tempdir = args.pop("_tempdir")
         self.verbose = verbose
         self.logger = logger
+        if verbose:
+            self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
         self.columns = columns
         self.sep = sep
@@ -198,8 +186,8 @@ class GenericReader(object):
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
                 if self.verbose:
-                    self.logger.debug("  Source has length %d characters, and "
-                                      "will be treated as raw text" % len(src))
+                    self.logger.debug("Input has length %d characters, "
+                                      "treating it as raw text" % len(src))
                 self._resolve_source_text(src)
             else:
                 fn = ord if isinstance(src, str) else int
@@ -207,19 +195,18 @@ class GenericReader(object):
                     ccode = fn(ch)
                     if ccode < 0x20:
                         if self.verbose:
-                            self.logger.debug("  Character %d in the input is "
-                                              "%r, treating input as raw text"
-                                              % (i, chr(ccode)))
+                            self.logger.debug("Input contains newline(s), "
+                                              "treating it as raw text")
                         self._resolve_source_text(src)
                         return
                 if (isinstance(src, str) and
                         re.match(r"(?:https?|ftp|file)://", src)):
                     if self.verbose:
-                        self.logger.debug("  Input is a URL.")
+                        self.logger.debug("Input is a URL.")
                     self._resolve_source_url(src)
                 else:
                     if self.verbose:
-                        self.logger.debug("  Input is assumed to be a "
+                        self.logger.debug("Input is assumed to be a "
                                           "file name.")
                     self._resolve_source_file(src)
         elif isinstance(src, _pathlike) or hasattr(src, "read"):
@@ -360,7 +347,7 @@ class GenericReader(object):
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
             if self._verbose:
-                self.logger.debug("  Extracting %s to temporary directory %s"
+                self.logger.debug("Extracting %s to temporary directory %s"
                                   % (filename, self._tempdir))
             self._tempfile = zf.extract(zff[0], path=self._tempdir)
             self._file = self._tempfile
@@ -369,14 +356,14 @@ class GenericReader(object):
             import gzip
             zf = gzip.GzipFile(filename, mode="rb")
             if self._verbose:
-                self.logger.debug("  Extracting %s into memory" % filename)
+                self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
         elif ext == ".xz":
             import lzma
             zf = lzma.open(filename, mode="rb")
             if self._verbose:
-                self.logger.debug("  Extracting %s into memory" % filename)
+                self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
         elif ext == ".xlsx" or ext == ".xls":
@@ -714,19 +701,19 @@ class GenericReader(object):
         handle a dataset of the requested size.
         """
         if self.verbose and estimated_size > 1:
-            self.logger.debug("  The Frame is estimated to require %s bytes"
+            self.logger.debug("The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
         if estimated_size < 1024:
             return None
         vm = psutil.virtual_memory()
         if self.verbose:
-            self.logger.debug("  Memory available = %s (out of %s)"
+            self.logger.debug("Memory available = %s (out of %s)"
                               % (humanize_bytes(vm.available),
                                  humanize_bytes(vm.total)))
         if (estimated_size < vm.available and self._save_to is None or
                 self._save_to == "memory"):
             if self.verbose:
-                self.logger.debug("  Frame will be loaded into memory")
+                self.logger.debug("Frame will be loaded into memory")
             return None
         else:
             if self._save_to:
@@ -736,12 +723,12 @@ class GenericReader(object):
                 tmpdir = tempfile.mkdtemp()
             du = psutil.disk_usage(tmpdir)
             if self.verbose:
-                self.logger.debug("  Free disk space on drive %s = %s"
+                self.logger.debug("Free disk space on drive %s = %s"
                                   % (os.path.splitdrive(tmpdir)[0] or "/",
                                      humanize_bytes(du.free)))
             if du.free > estimated_size or self._save_to:
                 if self.verbose:
-                    self.logger.debug("  Frame will be stored in %s"
+                    self.logger.debug("Frame will be stored in %s"
                                       % tmpdir)
                 return tmpdir
         raise RuntimeError("The Frame is estimated to require at lest %s "
@@ -964,6 +951,8 @@ class FreadWarning(DatatableWarning):
 
 class _DefaultLogger:
     def debug(self, message):
+        if message[0] != "[":
+            message = "  " + message
         print(_log_color(message), flush=True)
 
     def warning(self, message):
