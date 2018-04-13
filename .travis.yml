@@ -3,10 +3,6 @@ sudo: true
 
 language: python
 
-branches:
-  only:
-  - travis-ci
-
 compiler:
   - gcc
 
