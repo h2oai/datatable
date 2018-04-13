@@ -16,8 +16,9 @@ env:
 
 cache:
   pip: true
-    directories:
-        - $LLVM4
+  ccache: true
+  directories:
+      - $LLVM4
 
 python:
   - "3.5"
