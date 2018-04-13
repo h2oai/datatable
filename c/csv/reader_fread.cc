@@ -565,6 +565,35 @@ void FreadReader::detect_column_types()
 //------------------------------------------------------------------------------
 
 /**
+ * This helper method tests whether '\n' characters are present in the file,
+ * and sets the `LFpresent` flag accordingly.
+ *
+ * If '\n' exists in the file, then `LFpresent` is set to true, and standalone
+ * '\r' will be treated as a regular character. However if there are no '\n's
+ * in the file (at least within the first 100 lines), then we will treat '\r'
+ * as a newline character.
+ */
+void FreadReader::detect_lf() {
+  int cnt = 0;
+  const char* ch = sof;
+  while (ch < eof && *ch != '\n' && cnt < 100) {
+    cnt += (*ch == '\r');
+    ch++;
+  }
+  LFpresent = (ch < eof && *ch == '\n');
+  if (LFpresent) {
+    trace("LF character (\\n) found in input, "
+          "\\r-only newlines will not be recognized");
+  } else {
+    trace("LF character (\\n) not found in input, "
+          "CR character (\\r) will be treated as a newline");
+  }
+
+}
+
+
+
+/**
  * Parse a single line of input starting from location `ctx.ch` as strings,
  * and interpret them as column names. At the end of this function the parsing
  * location `ctx.ch` will be moved to the beginning of the next line.

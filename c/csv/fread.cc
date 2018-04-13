@@ -120,24 +120,8 @@ void FreadChunkedReader::adjust_chunk_coordinates(
 //=================================================================================================
 DataTablePtr FreadReader::read()
 {
-  // Convenience variable for iterating over the file.
-  const char* ch = NULL;
+  detect_lf();
 
-  // Test whether '\n's are present in the file at all... If not, then standalone '\r's are valid
-  // line endings. However if '\n' exists in the file, then '\r' will be considered as regular
-  // characters instead of a line ending.
-  int cnt = 0;
-  ch = sof;
-  while (ch < eof && *ch != '\n' && cnt < 100) {
-    cnt += (*ch == '\r');
-    ch++;
-  }
-  LFpresent = (ch < eof && *ch == '\n');
-  if (LFpresent) {
-    trace("LF character (\\n) found in input, \\r-only line endings are prohibited");
-  } else {
-    trace("LF character (\\n) not found in input, CR (\\r) will be considered a line ending");
-  }
   if (verbose) fo.t_initialized = wallclock();
 
 
