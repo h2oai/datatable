@@ -166,6 +166,8 @@ def test_h2o3_bigdata(f):
         os.path.join("jira", "re0.wc.arff.txt.zip"),
         os.path.join("jira", "rotterdam.csv.zip"),
         os.path.join("parser", "hexdev_497", "milsongs_csv.zip"),
+        # requires `comment` parameter
+        os.path.join("new-poker-hand.full.311M.txt"),
     }
     filledna_files = {
         os.path.join("lending-club", "LoanStats3a.csv"),
