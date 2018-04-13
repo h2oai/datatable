@@ -22,7 +22,6 @@ cache:
   pip: true
     directories:
         - $LLVM4
-        - ccache
 
 python:
   - "3.5"
