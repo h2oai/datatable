@@ -30,7 +30,8 @@
 // Initialization
 //------------------------------------------------------------------------------
 
-FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
+FreadReader::FreadReader(const GenericReader& g)
+: GenericReader(g), parsers(parserlib.get_parser_fns())
 {
   size_t input_size = datasize();
   targetdir = nullptr;
@@ -41,6 +42,7 @@ FreadReader::FreadReader(const GenericReader& g) : GenericReader(g)
   // at the end, it may no longer be so
   *const_cast<char*>(eof) = '\0';
 
+  first_jump_size = 0;
   whiteChar = '\0';
   quoteRule = -1;
   LFpresent = false;
@@ -226,6 +228,339 @@ void FreadReader::detect_sep(FreadTokenizer&) {
 
 
 //------------------------------------------------------------------------------
+// Column type detection
+//------------------------------------------------------------------------------
+
+class ColumnTypeDetectionChunkster {
+  public:
+    const FreadReader& f;
+    FreadChunkedReader fcr;
+    FreadTokenizer fctx;
+    size_t nchunks;
+    size_t chunk_distance;
+    const char* last_row_end;
+
+    ColumnTypeDetectionChunkster(FreadReader& fr, FreadTokenizer& ft)
+    : f(fr), fcr(fr, nullptr), fctx(ft)
+    {
+      nchunks = 0;
+      chunk_distance = 0;
+      last_row_end = f.sof;
+      determine_chunking_strategy();
+    }
+
+    void determine_chunking_strategy() {
+      size_t chunk0_size = f.first_jump_size;
+      if (chunk0_size == 0) {
+        nchunks = 1;
+        f.trace("Number of sampling jump points = 1 because the first chunk"
+                "was size 0");
+      } else {
+        size_t input_size = static_cast<size_t>(f.eof - f.sof);
+        nchunks = chunk0_size * 200 < input_size ? 101 :
+                  chunk0_size * 20  < input_size ? 11 : 1;
+        if (nchunks > 1) chunk_distance = input_size / (nchunks - 1);
+        f.trace("Number of sampling jump points = %zu because the first "
+                "chunk was %.1f times smaller than the entire file",
+                nchunks, 1.0 * input_size / chunk0_size);
+      }
+    }
+
+    ChunkCoordinates compute_chunk_boundaries(size_t j) {
+      ChunkCoordinates cc(f.eof, f.eof);
+      if (j == 0) {
+        if (f.header == 0) {
+          cc.start = f.sof;
+        } else {
+          // If `header` is either True or <auto>, we skip the first row during
+          // type detection.
+          fctx.ch = f.sof;
+          int n = fctx.countfields();
+          if (n >= 0) cc.start = fctx.ch;
+        }
+      } else {
+        const char* tch =
+          (j == nchunks - 1) ? f.eof - f.first_jump_size/2 :
+                               f.sof + j * chunk_distance;
+        if (tch < last_row_end) tch = last_row_end;
+
+        // Skip any potential newlines, in case we jumped in the middle of one.
+        // In particular, it could be problematic if the file had '\n\r' newline
+        // and we jumped onto the second '\r' (which wouldn't be considered a
+        // newline by `skip_eol()`s rules, which would then become a part of the
+        // following field).
+        while (*tch == '\n' || *tch == '\r') tch++;
+
+        if (tch < f.eof) {
+          bool ok = fcr.next_good_line_start(cc, fctx);
+          if (ok) cc.start = fctx.ch;
+        }
+      }
+      return cc;
+    }
+};
+
+
+/**
+ * Parse a single line of input, discarding the parsed values but detecting
+ * the proper column types. This method will bump `columns[j].type`s if
+ * necessary in order to parse the fields. It will advance the parse location
+ * to the beginning of the next line, and return the number of fields detected
+ * on the line (which could be more or less than the number of columns).
+ *
+ * If the line is empty then 0 is returned (the caller should try to
+ * disambiguate this from a situation of a single column with NA field).
+ *
+ * If the line cannot be parsed (because it contains a string that is not
+ * parseable under the current quoting rule), then return -1.
+ */
+int64_t FreadReader::parse_single_line(FreadTokenizer& fctx, bool* bumped_flag)
+{
+  bool bumped = false;
+  const char*& tch = fctx.ch;
+  if (sep==' ') {
+    while (tch<eof && *tch==' ') tch++;
+  }
+
+  // detect blank lines
+  fctx.skip_white();
+  if (tch == eof || fctx.skip_eol()) return 0;
+
+  size_t ncols = columns.size();
+  size_t j = 0;
+  while (true) {
+    fctx.skip_white();
+
+    const char* fieldStart = tch;
+    PT coltype = j < ncols ? columns[j].type : PT::Drop;
+    while (true) {
+      // Try to parse using the regular field parser
+      tch = fieldStart;
+      parsers[coltype](fctx);
+      fctx.skip_white();
+      if (fctx.end_of_field()) break;
+
+      // Try to parse as NA
+      // TODO: this API is awkward; better have smth like `fctx.parse_na();`
+      tch = fctx.end_NA_string(fieldStart);
+      fctx.skip_white();
+      if (fctx.end_of_field()) break;
+
+      if (ParserLibrary::info(coltype).isstring()) {
+        // Do not bump the quote rule, since we cannot be sure that the jump
+        // was reliable. Instead, we'll defer quote rule bumping to regular
+        // file reading.
+        return -1;
+      }
+
+      // Try to parse as quoted field
+      if (*fieldStart == quote) {
+        tch = fieldStart + 1;
+        parsers[coltype](fctx);
+        if (*tch == quote) {
+          tch++;
+          fctx.skip_white();
+          if (fctx.end_of_field()) break;
+        }
+      }
+
+      // Finally, bump the column's type and try again
+      coltype = static_cast<PT>(coltype + 1);
+      bumped = true;
+      if (j < ncols) columns[j].type = coltype;
+    }
+    j++;
+
+    if (*tch == sep) {
+      if (sep == ' ') {
+        // Multiple spaces are considered a single sep. In addition, spaces at
+        // the end of the line should be discarded and not treated as a sep.
+        while (*tch == ' ') tch++;
+        if (fctx.skip_eol()) break;
+      } else {
+        tch++;
+      }
+    } else if (fctx.skip_eol() || tch == eof) {
+      break;
+    } else {
+      xassert(0 && "Invalid state when parsing a line");
+    }
+  }
+  if (bumped_flag) *bumped_flag = bumped;
+  return static_cast<int64_t>(j);
+}
+
+
+void FreadReader::detect_column_types()
+{
+  trace("[3] Detect column types, and whether first row is header");
+  size_t ncols = columns.size();
+  int64_t sncols = static_cast<int64_t>(ncols);
+
+  field64 trash;
+  FreadTokenizer fctx = makeTokenizer(&trash, nullptr);
+  const char*& tch = fctx.ch;
+
+  ColumnTypeDetectionChunkster chunkster(*this, fctx);
+  size_t nChunks = chunkster.nchunks;
+
+  size_t sampleLines = 0;     // How many lines were sampled during the initial pre-scan
+  int64_t row1Line = line;
+  double sumLen = 0.0;
+  double sumLenSq = 0.0;
+  int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
+  int maxLen = -1;
+
+  // Start with all columns having the smallest possible type
+  PT type0 = PT::Bool01;  // TODO: replace with PT::Mu
+  columns.setType(type0);
+
+  // This variable will store column types at the beginning of each jump
+  // so that we can revert to them if the jump proves to be invalid.
+  std::unique_ptr<PT[]> saved_types(new PT[ncols]);
+
+  for (size_t j = 0; j < nChunks; ++j) {
+    ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
+    tch = cc.start;
+    if (tch >= eof) continue;
+
+    bool print_types = (j == 0 || j == nChunks - 1);
+    columns.saveTypes(saved_types);
+
+    for (int i = 0; i < JUMPLINES; ++i) {
+      if (tch >= eof) break;
+      const char* lineStart = tch;
+      int64_t incols = parse_single_line(fctx, &print_types);
+      if (incols == 0 && (skip_blank_lines || ncols == 1)) {
+        continue;
+      }
+      // bool eol_found = fctx.skip_eol();
+      if (incols == -1 || (incols != sncols && !fill)) {
+        trace("A line with too %s fields (%zd out of %zd) was found on line %d "
+              "of sample jump %zu.",
+              incols < sncols ? "few" : "many", incols, ncols, i, j);
+        // Restore column types: it is possible that the chunk start was guessed
+        // incorrectly, in which case we don't want the types to be bumped
+        // invalidly.
+        columns.setTypes(saved_types);
+        print_types = false;
+        if (j == 0) chunkster.last_row_end = eof;
+        break;
+      }
+      sampleLines++;
+      chunkster.last_row_end = tch;
+      int thisLineLen = (int)(tch - lineStart);
+      xassert(thisLineLen >= 0);
+      sampleLines++;
+      sumLen += thisLineLen;
+      sumLenSq += thisLineLen*thisLineLen;
+      if (thisLineLen<minLen) minLen = thisLineLen;
+      if (thisLineLen>maxLen) maxLen = thisLineLen;
+    }
+    if (verbose && print_types) {
+      trace("Type codes (jump %03d): %s", j, columns.printTypes());
+    }
+  }
+
+  size_t estnrow = 1;
+  allocnrow = 1;
+  meanLineLen = 0;
+
+  if (ISNA<int8_t>(header)) {
+    columns.saveTypes(saved_types);
+
+    // Detect types in the header column
+    tch = sof;
+    columns.setType(type0);
+    int64_t ncols_header = parse_single_line(fctx, nullptr);
+    auto header_types = columns.getTypes();
+    columns.setTypes(saved_types);
+
+    if (ncols_header != sncols && sampleLines > 0 && !fill) {
+      header = true;
+      trace("`header` determined to be True because the first line contains "
+            "different number of columns (%zd) than the rest of the file (%zu)",
+            ncols_header, ncols);
+    }
+
+    if (ISNA<int8_t>(header) && sampleLines > 0) {
+      for (size_t j = 0; j < ncols; ++j) {
+        if (ParserLibrary::info(header_types[j]).isstring() &&
+            !ParserLibrary::info(saved_types[j]).isstring()) {
+          header = true;
+          trace("`header` determined to be True due to column %d containing a "
+                "string on row 1 and type %s in the rest of the sample.",
+                j+1, ParserLibrary::info(saved_types[j]).cname());
+          break;
+        }
+      }
+    }
+
+    if (ISNA<int8_t>(header)) {
+      bool all_strings = true;
+      for (size_t j = 0; j < ncols; ++j) {
+        if (!ParserLibrary::info(header_types[j]).isstring())
+          all_strings = false;
+      }
+      if (all_strings) {
+        header = true;
+        trace("`header` determined to be True because all inputs columns are "
+              "strings and better guess is not possible");
+      } else {
+        header = false;
+        trace("`header` determined to be False because some of the fields on "
+              "the first row are not of the string type");
+      }
+    }
+
+  }
+
+  if (sampleLines <= 1) {
+    if (header == 1) {
+      // A single-row input, and that row is the header. Reset all types to
+      // boolean (lowest type possible, a better guess than "string").
+      columns.setType(type0);
+      allocnrow = 0;
+    }
+    meanLineLen = sumLen;
+  } else {
+    size_t bytesRead = static_cast<size_t>(eof - sof);
+    meanLineLen = sumLen/sampleLines;
+    estnrow = static_cast<size_t>(std::ceil(bytesRead/meanLineLen));  // only used for progress meter and verbose line below
+    double sd = std::sqrt( (sumLenSq - (sumLen*sumLen)/sampleLines)/(sampleLines-1) );
+    allocnrow = std::max(static_cast<size_t>(bytesRead / fmax(meanLineLen - 2*sd, minLen)),
+                         static_cast<size_t>(1.1*estnrow));
+    allocnrow = std::min(allocnrow, 2*estnrow);
+    // sd can be very close to 0.0 sometimes, so apply a +10% minimum
+    // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
+    if (verbose) {
+      trace("=====");
+      trace("Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
+      trace("Bytes from first data row on line %lld to the end of last row: %zd", row1Line, bytesRead);
+      trace("Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
+      trace("Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
+      trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
+            allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+    }
+    if (nChunks==1) {
+      if (header == 1) sampleLines--;
+      estnrow = allocnrow = sampleLines;
+      trace("All rows were sampled since file is small so we know nrows=%zd exactly", estnrow);
+    } else {
+      xassert(sampleLines <= allocnrow);
+    }
+    if (max_nrows < allocnrow) {
+      trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
+      estnrow = allocnrow = max_nrows;
+    }
+    trace("=====");
+  }
+  fo.n_lines_sampled = sampleLines;
+}
+
+
+
+//------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
 
@@ -337,7 +672,7 @@ void FreadReader::userOverride()
 
   for (size_t i = 0; i < ncols; i++) {
     PyObject* t = PyList_GET_ITEM(colTypesList, i);
-    columns[i].type = (int8_t) PyLong_AsUnsignedLongMask(t);
+    columns[i].type = static_cast<PT>(PyLong_AsUnsignedLongMask(t));
   }
   pyfree(colTypesList);
   pyfree(colNamesList);
@@ -350,7 +685,7 @@ void FreadReader::userOverride()
 //------------------------------------------------------------------------------
 
 FreadLocalParseContext::FreadLocalParseContext(
-    size_t bcols, size_t brows, FreadReader& f, int8_t* types_,
+    size_t bcols, size_t brows, FreadReader& f, PT* types_,
     dt::shared_mutex& mut
   ) : LocalParseContext(bcols, brows),
       types(types_),
@@ -458,14 +793,13 @@ void FreadLocalParseContext::read_chunk(
     if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        int8_t oldType = types[j];
-        int8_t newType = oldType;
+        PT oldType = types[j];
+        PT newType = oldType;
 
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(newType).isstring() &&
-              newType != static_cast<int8_t>(PT::Drop)) {
+          if (!ParserLibrary::info(newType).isstring() && newType != PT::Drop) {
             tokenizer.skip_white();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
@@ -492,9 +826,10 @@ void FreadLocalParseContext::read_chunk(
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
           if (cc.true_start) {
-            newType++;  // TODO: replace with proper type iteration
-            if (newType == ParserLibrary::num_parsers) {
-              newType = ParserLibrary::num_parsers - 1;
+            // TODO: replace with proper type iteration
+            if (newType + 1 < ParserLibrary::num_parsers) {
+              newType = static_cast<PT>(newType + 1);
+            } else {
               tokenizer.quoteRule++;
             }
             tch = fieldStart;
@@ -535,6 +870,17 @@ void FreadLocalParseContext::read_chunk(
     }
 
     if (j < ncols) {
+      // Is it perhaps an empty line at the end of the input? If so then it
+      // should be simply skipped without raising any errors
+      if (j <= 1) {
+        tch = fieldStart;
+        tokenizer.skip_white();
+        while (tokenizer.skip_eol()) {
+          tokenizer.skip_white();
+        }
+        if (tokenizer.at_eof()) break;
+      }
+
       // not enough columns observed (including empty line). If fill==true,
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
@@ -635,11 +981,10 @@ void FreadLocalParseContext::orderBuffer() {
     size_t write_at = wb->prep_write(sz, strbufs[k].mbuf->get());
     strbufs[k].ptr = write_at;
     strbufs[k].sz = sz;
-    if (columns[i].type == static_cast<int8_t>(PT::Str32) &&
-        write_at + sz > 0x80000000) {
+    if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
       dt::shared_lock lock(shmutex, /* exclusive = */ true);
       columns[i].convert_to_str64();
-      types[i] = static_cast<int8_t>(PT::Str64);
+      types[i] = PT::Str64;
       if (verbose) {
         freader.fo.str64_bump(i, columns[i]);
       }
@@ -793,8 +1138,9 @@ bool FreadTokenizer::skip_eol() {
 
 
 /**
- * Return True iff `ch` is a valid field terminator character: either a field
- * separator or a newline.
+ * Return true iff the tokenizer's current position `ch` is a valid field
+ * terminator (either a `sep` or a newline). This does not advance the tokenizer
+ * position.
  */
 bool FreadTokenizer::end_of_field() {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
@@ -988,7 +1334,7 @@ void FreadObserver::report(const GenericReader& g) {
 
 
 void FreadObserver::type_bump_info(
-  size_t icol, const GReaderColumn& col, int8_t new_type,
+  size_t icol, const GReaderColumn& col, PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
   char temp[1001];

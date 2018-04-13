@@ -19,6 +19,7 @@ extern const uint8_t hexdigits[256];
 extern const uint8_t allowedseps[128];
 const char* strlim(const char* ch, size_t limit);
 
+#define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
 
 struct FreadTokenizer {
@@ -68,6 +69,7 @@ struct FreadTokenizer {
   const char* end_NA_string(const char*);
   int countfields();
   bool skip_eol();
+  bool at_eof() const { return ch == eof; }
 };
 
 typedef void (*ParserFnPtr)(FreadTokenizer& ctx);

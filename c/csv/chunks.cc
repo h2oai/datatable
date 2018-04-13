@@ -27,7 +27,7 @@ ChunkedDataReader::ChunkedDataReader(GenericReader& reader, double meanLineLen)
   lineLength = std::max(meanLineLen, 1.0);
   nthreads = g.nthreads;
   nrows_written = 0;
-  nrows_allocated = g.columns.nrows();
+  nrows_allocated = g.columns.get_nrows();
   nrows_max = g.max_nrows;
   xassert(nrows_allocated <= nrows_max);
 
@@ -219,7 +219,7 @@ void ChunkedDataReader::read_all()
   oem.rethrow_exception_if_any();
 
   // Reallocate the output to have the correct number of rows
-  g.columns.allocate(nrows_written);
+  g.columns.set_nrows(nrows_written);
 
   // Check that all input was read (unless interrupted early because of
   // nrows_max).
@@ -248,7 +248,7 @@ void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
   g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
   dt::shared_lock(shmutex, /* exclusive = */ true);
-  g.columns.allocate(nrows_allocated);
+  g.columns.set_nrows(nrows_allocated);
 }
 
 

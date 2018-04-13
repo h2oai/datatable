@@ -9,7 +9,10 @@
 #define dt_CSV_READER_PARSERS_h
 #include <string>
 #include <vector>
-#include "csv/fread.h"
+#include "types.h"
+
+struct FreadTokenizer;
+typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 
 
 // In order to add a new type:
@@ -35,8 +38,10 @@ void parse_string(FreadTokenizer&);
 
 
 //------------------------------------------------------------------------------
+// Do not use "enum class" here: we want these enums to be implicitly
+// convertible into integers, so that we can use them as array indices.
 
-enum class PT : uint8_t {
+enum PT : uint8_t {
   Drop,
   // Mu,
   Bool01,
@@ -55,7 +60,7 @@ enum class PT : uint8_t {
 };
 
 
-enum class BT : uint8_t {
+enum BT : uint8_t {
   None   = 0,
   Simple = 1,
   Normal = 2,
@@ -154,7 +159,7 @@ class ParserLibrary {
     static const ParserFnPtr* get_parser_fns() { return parser_fns; }
     static const ParserInfo* get_parser_infos() { return parsers; }
     static const ParserInfo& info(size_t i) { return parsers[i]; }
-    static const ParserInfo& info(int8_t i) { return parsers[i]; }
+    static const ParserInfo& info(PT i) { return parsers[i]; }
 };
 
 

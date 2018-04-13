@@ -435,7 +435,7 @@ $(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(B
 	@echo • Refreshing c/csv/reader_fread.h
 	@cp c/csv/reader_fread.h $@
 
-$(BUILDDIR)/csv/reader_parsers.h: c/csv/reader_parsers.h $(BUILDDIR)/csv/fread.h
+$(BUILDDIR)/csv/reader_parsers.h: c/csv/reader_parsers.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/csv/reader_parsers.h
 	@cp c/csv/reader_parsers.h $@
 
@@ -560,7 +560,7 @@ $(BUILDDIR)/csv/reader_fread.o : c/csv/reader_fread.cc $(BUILDDIR)/column.h $(BU
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
