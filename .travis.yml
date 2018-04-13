@@ -19,10 +19,10 @@ env:
   - LLVM4=$HOME/LLVM4 LLVM_CONFIG=$LLVM4/bin/llvm-config CLANG=$LLVM4/bin/clang LD_LIBRARY_PATH=$LLVM4/lib:$LD_LIBRARY_PATH
 
 cache:
-  ccache: true
   pip: true
     directories:
         - $LLVM4
+        - ccache
 
 python:
   - "3.5"
