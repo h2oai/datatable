@@ -121,8 +121,8 @@ void GenericReader::init_maxnrows() {
 
 void GenericReader::init_skiptoline() {
   int64_t n = freader.attr("skip_to_line").as_int64();
-  skip_to_line = (n < 0)? 0 : n;
-  if (n > 1) trace("skip_to_line = %lld", static_cast<long long>(n));
+  skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
+  if (n > 1) trace("skip_to_line = %zu", n);
 }
 
 void GenericReader::init_sep() {

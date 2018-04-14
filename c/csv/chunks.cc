@@ -168,6 +168,7 @@ void ChunkedDataReader::read_all()
       do {
         if (oem.exception_caught()) break;
         try {
+          tctx->row0 = nrows_written;
           order_chunk(tacc, txcc, tctx);
 
           size_t nrows_new = nrows_written + tctx->used_nrows;
@@ -181,7 +182,6 @@ void ChunkedDataReader::read_all()
               realloc_output_columns(i, nrows_new);
             }
           }
-          tctx->row0 = nrows_written;
           nrows_written = nrows_new;
 
           tctx->orderBuffer();

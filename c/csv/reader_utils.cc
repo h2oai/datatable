@@ -21,7 +21,7 @@
 GReaderColumn::GReaderColumn() {
   mbuf = nullptr;
   strdata = nullptr;
-  type = PT::Drop;
+  type = PT::Bool01;  // should be PT::Mu
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;

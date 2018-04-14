@@ -867,7 +867,7 @@ def test_too_few_rows():
     src = "\n".join(lines)
     with pytest.raises(RuntimeError) as e:
         dt.fread(src, verbose=True)
-    assert ("Too few fields on row 111: expected 3 but found only 1"
+    assert ("Too few fields on line 112: expected 3 but found only 1"
             in str(e.value))
 
 
@@ -877,5 +877,5 @@ def test_too_many_rows():
     src = "\n".join(lines)
     with pytest.raises(RuntimeError) as e:
         dt.fread(src, verbose=True)
-    assert ("Too many fields on row 111: expected 3 but more are present"
+    assert ("Too many fields on line 112: expected 3 but more are present"
             in str(e.value))

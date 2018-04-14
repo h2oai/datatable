@@ -146,7 +146,7 @@ class GenericReader
     char    dec;
     char    quote;
     size_t  max_nrows;
-    int64_t skip_to_line;
+    size_t  skip_to_line;
     int8_t  header;
     bool    strip_whitespace;
     bool    skip_blank_lines;
@@ -166,7 +166,7 @@ class GenericReader
     MemoryBuffer* input_mbuf;
     const char* sof;
     const char* eof;
-    int64_t line;
+    size_t line;
     int32_t fileno;
     int : 32;
     GReaderColumns columns;

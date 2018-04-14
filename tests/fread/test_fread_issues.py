@@ -110,7 +110,7 @@ def test_issue_R2299():
            "3,4\n" * 5000)
     with pytest.raises(Exception) as e:
         dt.fread(src)
-    assert re.search("Too few fields on row .+: expected 2 but found only 1",
+    assert re.search("Too few fields on line 102: expected 2 but found only 1",
                      str(e))
 
 

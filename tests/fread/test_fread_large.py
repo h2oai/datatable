@@ -168,6 +168,9 @@ def test_h2o3_bigdata(f):
         os.path.join("parser", "hexdev_497", "milsongs_csv.zip"),
         # requires `comment` parameter
         os.path.join("new-poker-hand.full.311M.txt"),
+        # files with 36M columns
+        os.path.join("testng", "newsgroup_train1.csv"),
+        os.path.join("testng", "newsgroup_validation1.csv"),
     }
     filledna_files = {
         os.path.join("lending-club", "LoanStats3a.csv"),

@@ -405,7 +405,6 @@ void FreadReader::detect_column_types()
   size_t nChunks = chunkster.nchunks;
 
   size_t sampleLines = 0;     // How many lines were sampled during the initial pre-scan
-  int64_t row1Line = line;
   double sumLen = 0.0;
   double sumLenSq = 0.0;
   int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
@@ -481,6 +480,14 @@ void FreadReader::detect_column_types()
       trace("`header` determined to be True because the first line contains "
             "different number of columns (%zd) than the rest of the file (%zu)",
             ncols_header, ncols);
+      if (ncols_header > sncols) {
+        fill = true;
+        trace("Setting `fill` to True because the header contains more columns "
+              "than the data.");
+        for (int64_t j = sncols; j < ncols_header; ++j) {
+          columns.push_back(GReaderColumn());
+        }
+      }
     }
 
     if (ISNA<int8_t>(header) && sampleLines > 0) {
@@ -536,7 +543,7 @@ void FreadReader::detect_column_types()
     if (verbose) {
       trace("=====");
       trace("Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", sampleLines, nChunks);
-      trace("Bytes from first data row on line %lld to the end of last row: %zd", row1Line, bytesRead);
+      trace("Bytes from first data row to the end of last row: %zd", bytesRead);
       trace("Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
       trace("Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
       trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
@@ -565,12 +572,12 @@ void FreadReader::detect_column_types()
 //------------------------------------------------------------------------------
 
 /**
- * This helper method tests whether '\n' characters are present in the file,
+ * This helper method tests whether '\\n' characters are present in the file,
  * and sets the `LFpresent` flag accordingly.
  *
- * If '\n' exists in the file, then `LFpresent` is set to true, and standalone
- * '\r' will be treated as a regular character. However if there are no '\n's
- * in the file (at least within the first 100 lines), then we will treat '\r'
+ * If '\\n' exists in the file, then `LFpresent` is set to true, and standalone
+ * '\\r' will be treated as a regular character. However if there are no '\\n's
+ * in the file (at least within the first 100 lines), then we will treat '\\r'
  * as a newline character.
  */
 void FreadReader::detect_lf() {
@@ -589,6 +596,56 @@ void FreadReader::detect_lf() {
           "CR character (\\r) will be treated as a newline");
   }
 
+}
+
+
+/**
+ * Detect whether the file contains an initial "preamble" section (comments
+ * at the top of the file), and if so skip them.
+ */
+void FreadReader::skip_preamble() {
+  if (skip_to_line || skip_to_string) {
+    // If the user has explicitly requested skip then do not try to detect
+    // any other comment section.
+    return;
+  }
+
+  field64 tmp;
+  auto fctx = makeTokenizer(&tmp, /* anchor = */ nullptr);
+  const char*& ch = fctx.ch;
+
+  char comment_char = '\xFF';  // meaning "auto"
+  size_t comment_lines = 0;
+  size_t total_lines = 0;
+
+  ch = sof;
+  while (ch < eof) {
+    const char* start_of_line = ch;
+    total_lines++;
+    fctx.skip_white();
+    if (fctx.skip_eol()) continue;
+    if (comment_char == '\xFF') {
+      if (*ch == '#' || *ch == '%') comment_char = *ch;
+    }
+    if (*ch == comment_char) {
+      comment_lines++;
+      while (ch < eof) {
+        if ((*ch == '\n' || *ch == '\r') && fctx.skip_eol()) break;
+        ch++;
+      }
+    } else {
+      ch = start_of_line;
+      total_lines--;
+      break;
+    }
+  }
+  if (comment_lines) {
+    trace("Comment section (%zu line%s starting with '%c') found at the "
+          "top of the file and skipped",
+          comment_lines, (comment_lines == 1? "" : "s"), comment_char);
+    sof = ch;
+    line += total_lines;
+  }
 }
 
 
@@ -914,7 +971,8 @@ void FreadLocalParseContext::read_chunk(
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
       if (cc.true_start) {
-        throw RuntimeError() << "Too few fields on row " << row0 + used_nrows
+        throw RuntimeError() << "Too few fields on line "
+          << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but found only " << j
           << " (with sep='" << sep << "'). Set fill=True to ignore this error. "
           << " <<" << strlim(tlineStart, 500) << ">>";
@@ -924,7 +982,8 @@ void FreadLocalParseContext::read_chunk(
     }
     if (!(tokenizer.skip_eol() || *tch=='\0')) {
       if (cc.true_start) {
-        throw RuntimeError() << "Too many fields on row " << row0 + used_nrows
+        throw RuntimeError() << "Too many fields on line "
+          << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but more are present. <<"
           << strlim(tlineStart, 500) << ">>";
       } else {
