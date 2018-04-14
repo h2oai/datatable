@@ -129,6 +129,8 @@ private:
   void detect_sep(FreadTokenizer& ctx);
   void userOverride();
 
+  void detect_lf();
+  void skip_preamble();
   void detect_column_types();
   int64_t parse_single_line(FreadTokenizer&, bool* bumped);
 

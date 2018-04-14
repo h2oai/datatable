@@ -120,24 +120,9 @@ void FreadChunkedReader::adjust_chunk_coordinates(
 //=================================================================================================
 DataTablePtr FreadReader::read()
 {
-  // Convenience variable for iterating over the file.
-  const char* ch = NULL;
+  detect_lf();
+  skip_preamble();
 
-  // Test whether '\n's are present in the file at all... If not, then standalone '\r's are valid
-  // line endings. However if '\n' exists in the file, then '\r' will be considered as regular
-  // characters instead of a line ending.
-  int cnt = 0;
-  ch = sof;
-  while (ch < eof && *ch != '\n' && cnt < 100) {
-    cnt += (*ch == '\r');
-    ch++;
-  }
-  LFpresent = (ch < eof && *ch == '\n');
-  if (LFpresent) {
-    trace("LF character (\\n) found in input, \\r-only line endings are prohibited");
-  } else {
-    trace("LF character (\\n) not found in input, CR (\\r) will be considered a line ending");
-  }
   if (verbose) fo.t_initialized = wallclock();
 
 
@@ -256,7 +241,7 @@ DataTablePtr FreadReader::read()
           }
         }
         if (verbose && updated) {
-          trace(sep<' '? "sep=%#02x with %d lines of %d fields using quote rule %d" :
+          trace(sep<' '? "sep='\\x%02x' with %d lines of %d fields using quote rule %d" :
                          "sep='%c' with %d lines of %d fields using quote rule %d",
                 sep, topNumLines, topNumFields, topQuoteRule);
         }
@@ -272,29 +257,7 @@ DataTablePtr FreadReader::read()
       fill = 1;
     }
 
-    // Find the first line with the consistent number of fields.  There might
-    // be irregular header lines above it.
-    const char* prevStart = NULL;  // the start of the non-empty line before the first not-ignored row
-    int ncols;
-    if (fill) {
-      // start input from first populated line; do not alter sof.
-      ncols = topNmax;
-    } else {
-      ncols = topNumFields;
-      int thisLine = -1;
-      tch = sof;
-      while (tch < eof && ++thisLine < JUMPLINES) {
-        const char* lastLineStart = tch;   // lineStart
-        int cols = ctx.countfields();  // advances tch to next line
-        if (cols == ncols) {
-          tch = sof = lastLineStart;
-          line += thisLine;
-          break;
-        } else {
-          prevStart = (cols > 0)? lastLineStart : NULL;
-        }
-      }
-    }
+    int ncols = fill? topNmax : topNumFields;
     xassert(ncols >= 1 && line >= 1);
 
     // Create vector of Column objects
@@ -303,34 +266,16 @@ DataTablePtr FreadReader::read()
       columns.push_back(GReaderColumn());
     }
 
-    // For standard regular separated files, we're now on the first byte of the file.
-    tch = sof;
-    int tt = ctx.countfields();
-    tch = sof;  // move back to start of line since countfields() moved to next
-    xassert(fill || tt == ncols);
-    if (verbose) {
-      trace("Detected %d columns on line %d. This line is either column "
-            "names or first data row. Line starts as: \"%s\"",
-            tt, line, strlim(sof, 30));
-      trace("Quote rule picked = %d", quoteRule);
-      if (fill) trace("fill=True and the most number of columns found is %d", ncols);
-    }
-
-    // Now check previous line which is being discarded and give helpful message to user
-    if (prevStart) {
-      tch = prevStart;
-      int ttt = ctx.countfields();
-      xassert(ttt != ncols);
-      xassert(tch==sof);
-      if (ttt > 1) {
-        warn("Starting data input on line %d <<%s>> with %d fields and discarding "
-             "line %d <<%s>> before it because it has a different number of fields (%d).",
-             line, strlim(sof, 30), ncols, line-1, strlim(prevStart, 30), ttt);
-      }
-    }
     first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
-    if (verbose) fo.t_parse_parameters_detected = wallclock();
+    if (verbose) {
+      trace("Detected %d columns", ncols);
+      if (sep == '\xFE') trace("sep = <single-column mode>");
+      else if (sep >= ' ') trace("sep = '%c'", sep);
+      else trace("sep = '\\x%02x'", int(sep));
+      trace("Quote rule = %d", quoteRule);
+      fo.t_parse_parameters_detected = wallclock();
+    }
   }
 
 
@@ -350,6 +295,7 @@ DataTablePtr FreadReader::read()
     fctx.ch = sof;
     parse_column_names(fctx);
     sof = fctx.ch;  // Update sof to point to the first line after the columns
+    line++;
   }
   if (verbose) fo.t_column_types_detected = wallclock();
 
