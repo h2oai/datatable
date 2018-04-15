@@ -276,6 +276,11 @@ DataTablePtr FreadReader::read()
       trace("Quote rule = %d", quoteRule);
       fo.t_parse_parameters_detected = wallclock();
     }
+
+    // if (ncols > 1) {
+    //   // Don't do this for ncols = 1, because then blank lines are significant.
+    //   skip_trailing_whitespace();
+    // }
   }
 
 
