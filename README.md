@@ -6,6 +6,8 @@
 
 # datatable
 
+[![Build Status](https://travis-ci.org/h2oai/datatable.svg?branch=master)](https://travis-ci.org/h2oai/datatable)
+
 This is a Python package for manipulating 2-dimensional tabular data structures
 (aka data frames). It is close in spirit to [pandas] or [SFrame]; however we
 put specific emphasis on speed and big data support. As the name suggests, the
