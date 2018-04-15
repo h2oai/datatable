@@ -429,28 +429,33 @@ void FreadReader::detect_column_types()
     for (int i = 0; i < JUMPLINES; ++i) {
       if (tch >= eof) break;
       const char* lineStart = tch;
-      int64_t incols = parse_single_line(fctx, &print_types);
+      bool bumped;
+      int64_t incols = parse_single_line(fctx, &bumped);
+      print_types |= bumped;
       if (incols == 0 && (skip_blank_lines || ncols == 1)) {
         continue;
       }
       // bool eol_found = fctx.skip_eol();
       if (incols == -1 || (incols != sncols && !fill)) {
         trace("A line with too %s fields (%zd out of %zd) was found on line %d "
-              "of sample jump %zu.",
+              "of sample jump %zu",
               incols < sncols ? "few" : "many", incols, ncols, i, j);
         // Restore column types: it is possible that the chunk start was guessed
         // incorrectly, in which case we don't want the types to be bumped
-        // invalidly.
-        columns.setTypes(saved_types);
-        print_types = false;
-        if (j == 0) chunkster.last_row_end = eof;
+        // invalidly. This applies to all chunks except the first (for which we
+        // know that the start is correct).
+        if (j == 0) {
+          chunkster.last_row_end = eof;
+        } else {
+          columns.setTypes(saved_types);
+          print_types = false;
+        }
         break;
       }
       sampleLines++;
       chunkster.last_row_end = tch;
       int thisLineLen = (int)(tch - lineStart);
       xassert(thisLineLen >= 0);
-      sampleLines++;
       sumLen += thisLineLen;
       sumLenSq += thisLineLen*thisLineLen;
       if (thisLineLen<minLen) minLen = thisLineLen;
@@ -517,6 +522,10 @@ void FreadReader::detect_column_types()
         header = false;
         trace("`header` determined to be False because some of the fields on "
               "the first row are not of the string type");
+        // If header is false, then the first row also belongs to the sample.
+        // Accurate count of sample lines is needed so that we can allocate
+        // the correct amount of rows for the output Frame.
+        sampleLines++;
       }
     }
 

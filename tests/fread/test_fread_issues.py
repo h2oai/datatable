@@ -315,6 +315,7 @@ def test_issue_664(capsys):
                  skip_blank_lines=True)
     out, err = capsys.readouterr()
     assert "Too few rows allocated" not in out
+    assert "we know nrows=3 exactly" in out
     assert f.internal.check()
     assert f.shape == (3, 3)
     assert f.topython() == [["x", "A", "y"],
@@ -410,3 +411,37 @@ def test_issuee786():
     assert df.shape == (0, 1)
     assert df.names == ('"A","B"',)
     assert df.topython() == [[]]
+
+
+def test_issue939(capsys):
+    df = dt.fread("""
+             1,9ff4ed3a-6b00-4130-9aca-2ed897305fd1,1
+             2,ac1e1ca3-5ca8-438a-85a4-8175ed5bb7ec,1
+             3,6870f256-e145-4d75-adb0-99ccb77d5d3a,0
+             4,d8da52c1-d145-4dff-b3d1-127c6eb75d40,1
+             5,,0
+             6,2e1d193f-d1da-4664-8a2b-ffdfe0aa7be3,0
+    1000010407,89e68530-422e-43ba-bd00-aa3d8f2cfcaa,1
+    1000024046,4055a53b-411f-46f0-9d2e-cf03bc95c080,0
+    1000054511,49d14d8e-5c42-439d-b4a8-995e25b1602f,0
+    1000065922,4e31b8aa-4aa9-4e8b-be8f-5cc6323235b4,0
+    1000066478,2e1d193f-d1da-4664-8a2b-ffdfe0aa7be3,0
+    1000067268,25ce1456-546d-4e35-bddc-d571b26581ea,0
+     100007536,d8da52c1-d145-4dff-b3d1-127c6eb75d40,1
+    1000079839,6870f256-e145-4d75-adb0-99ccb77d5d3a,0
+      10000913,ac1e1ca3-5ca8-438a-85a4-8175ed5bb7ec,0
+    1000104538,9ff4ed3a-6b00-4130-9aca-2ed897305fd1,1
+             7,00000000-0000-0000-0000-000000000000,0
+             9,FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF,1
+
+    """, verbose=True)
+    assert df.internal.check()
+    assert df.names == ("V0", "V1", "V2")
+    assert df.shape == (18, 3)
+    assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)
+    out, err = capsys.readouterr()
+    assert "`header` determined to be False" in out
+    assert "Sampled 18 rows" in out
+    assert "Type codes (jump 000): isb" in out
+    assert "columns need to be re-read" not in out
+    assert "column needs to be re-read" not in out

@@ -234,6 +234,7 @@ class GenericReader
     void init_stripwhite();
     void init_skipblanklines();
 
+  protected:
     void open_input();
     void detect_and_skip_bom();
     void skip_initial_whitespace();
