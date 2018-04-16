@@ -23,7 +23,7 @@ from tests import same_iterables, list_equals, assert_equals
 def test_create_from_list():
     d0 = dt.Frame([1, 2, 3])
     assert d0.shape == (3, 1)
-    assert d0.names == ("C1", )
+    assert d0.names == ("C0", )
     assert d0.ltypes == (ltype.int, )
     assert d0.internal.check()
 
@@ -76,7 +76,7 @@ def test_create_from_nothing():
 def test_create_from_empty_list():
     d5 = dt.Frame([])
     assert d5.shape == (0, 1)
-    assert d5.names == ("C1", )
+    assert d5.names == ("C0", )
     assert d5.ltypes == (ltype.bool, )
     assert d5.stypes == (stype.bool8, )
     assert d5.internal.check()
@@ -85,7 +85,7 @@ def test_create_from_empty_list():
 def test_create_from_empty_list_of_lists():
     d6 = dt.Frame([[]])
     assert d6.shape == (0, 1)
-    assert d6.names == ("C1", )
+    assert d6.names == ("C0", )
     assert d6.ltypes == (ltype.bool, )
     assert d6.internal.check()
 
@@ -266,7 +266,7 @@ def test_create_from_0d_numpy_array(numpy):
     a = numpy.array(100)
     d = dt.Frame(a)
     assert d.shape == (1, 1)
-    assert d.names == ("C1", )
+    assert d.names == ("C0", )
     assert d.internal.check()
     assert d.topython() == [[100]]
 
@@ -275,7 +275,7 @@ def test_create_from_1d_numpy_array(numpy):
     a = numpy.array([1, 2, 3])
     d = dt.Frame(a)
     assert d.shape == (3, 1)
-    assert d.names == ("C1", )
+    assert d.names == ("C0", )
     assert d.internal.check()
     assert d.topython() == [[1, 2, 3]]
 
@@ -284,7 +284,7 @@ def test_create_from_2d_numpy_array(numpy):
     a = numpy.array([[5, 4, 3, 10, 12], [-2, -1, 0, 1, 7]])
     d = dt.Frame(a)
     assert d.shape == a.shape
-    assert d.names == ("C1", "C2", "C3", "C4", "C5")
+    assert d.names == ("C0", "C1", "C2", "C3", "C4")
     assert d.internal.check()
     assert d.topython() == a.T.tolist()
 
@@ -301,7 +301,7 @@ def test_create_from_string_numpy_array(numpy):
     d = dt.Frame(a)
     assert d.internal.check()
     assert d.shape == (6, 1)
-    assert d.names == ("C1", )
+    assert d.names == ("C0", )
     assert d.topython() == [a.tolist()]
 
 

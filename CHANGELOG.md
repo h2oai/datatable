@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Renamed fread's parameter `strip_white` into `strip_whitespace`.
 - Eliminated all `assert()` statements from C code, and replaced them with
   exception throws.
+- Default column names, if none given by the user, are "C0", "C1", "C2", ...
+  for both `fread` and `Frame` constructor.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file

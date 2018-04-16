@@ -419,9 +419,9 @@ def test_column_hexview(dt0, patched_terminal, capsys):
 @pytest.mark.run(order=8)
 def test_rename():
     d0 = dt.Frame([[1], [2], ["hello"]])
-    assert d0.names == ("C1", "C2", "C3")
+    assert d0.names == ("C0", "C1", "C2")
     d0.rename({0: "x", -1: "z"})
-    d0.rename({"C2": "y"})
+    d0.rename({"C1": "y"})
     assert d0.names == ("x", "y", "z")
     assert d0.colindex("x") == 0
     assert d0.colindex("y") == 1
