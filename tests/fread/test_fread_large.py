@@ -82,7 +82,7 @@ def get_file_list(*path, skip=None):
                     open(f, "rb")
                     out.add(param(f))
                 except Exception as e:
-                    out.add(skipped("%s: '%s'" % (e.__class__.__name__, f)), id=f)
+                    out.add(skipped("%s: '%s'" % (e.__class__.__name__, f), id=f))
             else:
                 out.add(skipped("Invalid file: '%s'" % f, id=f))
     return out

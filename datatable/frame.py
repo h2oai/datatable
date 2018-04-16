@@ -8,7 +8,7 @@ import collections
 import re
 import sys
 import time
-from typing import Tuple, Dict, List, Union
+from typing import Tuple, Dict, List, Union, Optional
 
 from datatable.lib import core
 import datatable
@@ -118,7 +118,8 @@ class Frame(object):
 
     @names.setter
     @typed()
-    def names(self, newnames: Union[List[str], Tuple[str, ...]]):
+    def names(self, newnames: Union[List[Optional[str]],
+                                    Tuple[Optional[str], ...]]):
         """Rename the columns of the Frame."""
         self.rename(newnames)
 
@@ -225,11 +226,11 @@ class Frame(object):
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
         self._ltypes = None
-        if not names:
-            names = tuple("C%d" % i for i in range(self._ncols))
-        names, inames = Frame._dedup_names(names)
-        self._names = names
-        self._inames = inames
+        if names:
+            self._names, self._inames = Frame._dedup_names(names)
+        else:
+            self._names = tuple("C%d" % i for i in range(self._ncols))
+            self._inames = {self._names[i]: i for i in range(self._ncols)}
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -285,14 +286,22 @@ class Frame(object):
 
     @staticmethod
     def _dedup_names(names) -> Tuple[Tuple[str, ...], Dict[str, int]]:
-        re0 = re.compile(r"[\x00-\x1F]+")
         inames = {}
         tnames = []
         dupnames = []
+        min_c = 0
+        fill_default_names = False
         for i, name in enumerate(names):
-            name = re.sub(re0, ".", name)
+            if not name:
+                fill_default_names = True
+                tnames.append(None)  # Placeholder, filled in below
+                continue
+            if re.match(_dedup_names_re1, name):
+                min_c = max(min_c, int(name[1:]) + 1)
+            else:
+                name = re.sub(_dedup_names_re0, ".", name)
             if name in inames:
-                mm = re.match(r"^(.*)(\d+)$", name)
+                mm = re.match(_dedup_names_re2, name)
                 if mm:
                     base = mm.group(1)
                     count = int(mm.group(2)) + 1
@@ -308,6 +317,13 @@ class Frame(object):
                 newname = name
             inames[newname] = i
             tnames.append(newname)
+        if fill_default_names:
+            for i, name in enumerate(names):
+                if not name:
+                    newname = "C%d" % min_c
+                    tnames[i] = newname
+                    inames[newname] = i
+                    min_c += 1
         if dupnames:
             dtwarn("Duplicate column names found: %r. They were assigned "
                    "unique names." % dupnames)
@@ -870,6 +886,12 @@ class Frame(object):
             size += sys.getsizeof(n)
         size += self._dt.alloc_size
         return size
+
+
+
+_dedup_names_re0 = re.compile(r"[\x00-\x1F]+")
+_dedup_names_re1 = re.compile(r"^C\d+$")
+_dedup_names_re2 = re.compile(r"^(.*)(\d+)$")
 
 
 
