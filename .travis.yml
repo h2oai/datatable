@@ -25,7 +25,6 @@ python:
   - "3.6"
 
 install:
-  - pip install --upgrade pip
   - pip install --upgrade setuptools
   - pip install --upgrade python-dateutil
   - pip install --upgrade numpy
