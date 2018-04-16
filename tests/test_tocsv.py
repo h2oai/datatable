@@ -67,8 +67,8 @@ def test_write_spacestrs():
 
 def test_write_spacenames():
     d = dt.Frame([[1, 2, 3], [1, 2, 3], [0, 0, 0]],
-                 names=["  foo", "bar ", ""])
-    assert d.to_csv() == '"  foo","bar ",""\n1,1,0\n2,2,0\n3,3,0\n'
+                 names=["  foo", "bar ", " "])
+    assert d.to_csv() == '"  foo","bar "," "\n1,1,0\n2,2,0\n3,3,0\n'
     dd = dt.fread(text=d.to_csv())
     assert d.topython() == dd.topython()
 
@@ -87,7 +87,7 @@ def test_strategy(capsys, tempfile):
 
 
 @pytest.mark.parametrize("col, scol", [("col", "col"),
-                                       ("", '""'),
+                                       ("", 'C0'),
                                        (" ", '" "'),
                                        ('"', '""""')])
 def test_issue507(tempfile, col, scol):
