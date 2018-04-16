@@ -352,7 +352,7 @@ def test_1x2_empty():
     d0 = dt.fread(text=",")
     assert d0.internal.check()
     assert d0.shape == (1, 2)  # should this be 0x2 ?
-    assert d0.names == ("V0", "V1")
+    assert d0.names == ("C0", "C1")
 
 
 def test_headers_line():

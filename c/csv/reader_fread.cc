@@ -757,7 +757,7 @@ void FreadReader::userOverride()
     size_t len = columns[i].name.size();
     Py_ssize_t slen = static_cast<Py_ssize_t>(len);
     PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
-                              : PyUnicode_FromFormat("V%d", i);
+                              : PyUnicode_FromFormat("C%d", i);
     PyObject* pytype = PyLong_FromLong(columns[i].type);
     PyList_SET_ITEM(colNamesList, i, pycol);
     PyList_SET_ITEM(colTypesList, i, pytype);

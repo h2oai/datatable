@@ -246,7 +246,7 @@ def test_int8_large_stable(n):
 def test_bool8_small():
     d0 = dt.Frame([True, False, False, None, True, True, None])
     assert d0.stypes == (stype.bool8, )
-    d1 = d0(sort="C1")
+    d1 = d0(sort="C0")
     assert d1.stypes == d0.stypes
     assert d1.internal.isview
     assert d1.internal.check()
@@ -257,7 +257,7 @@ def test_bool8_small_stable():
     d0 = dt.Frame([[True, False, False, None, True, True, None],
                    [1, 2, 3, 4, 5, 6, 7]])
     assert d0.stypes == (stype.bool8, stype.int8)
-    d1 = d0(sort="C1")
+    d1 = d0(sort="C0")
     assert d1.stypes == d0.stypes
     assert d1.names == d0.names
     assert d1.internal.isview

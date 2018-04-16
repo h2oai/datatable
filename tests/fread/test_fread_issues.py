@@ -436,7 +436,7 @@ def test_issue939(capsys):
 
     """, verbose=True)
     assert df.internal.check()
-    assert df.names == ("V0", "V1", "V2")
+    assert df.names == ("C0", "C1", "C2")
     assert df.shape == (18, 3)
     assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)
     out, err = capsys.readouterr()

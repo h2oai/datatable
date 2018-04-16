@@ -226,7 +226,7 @@ class Frame(object):
         self._stypes = None
         self._ltypes = None
         if not names:
-            names = tuple("C%d" % (i + 1) for i in range(self._ncols))
+            names = tuple("C%d" % i for i in range(self._ncols))
         names, inames = Frame._dedup_names(names)
         self._names = names
         self._inames = inames
@@ -279,7 +279,7 @@ class Frame(object):
             dt = core.datatable_from_buffers([arr[:, i] for i in range(ncols)])
 
         if names is None:
-            names = ["C%d" % i for i in range(1, ncols + 1)]
+            names = ["C%d" % i for i in range(ncols)]
         self._fill_from_dt(dt, names=names)
 
 

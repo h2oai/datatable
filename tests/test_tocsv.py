@@ -60,7 +60,7 @@ def test_issue365():
 def test_write_spacestrs():
     # Test that fields having spaces at the beginning/end are auto-quoted
     d = dt.Frame([" hello ", "world  ", " !", "!", ""])
-    assert d.to_csv() == 'C1\n" hello "\n"world  "\n" !"\n!\n""\n'
+    assert d.to_csv() == 'C0\n" hello "\n"world  "\n" !"\n!\n""\n'
     dd = dt.fread(text=d.to_csv(), sep='\n')
     assert d.topython() == dd.topython()
 
@@ -110,7 +110,7 @@ def test_issue507(tempfile, col, scol):
 def test_save_bool():
     d = dt.Frame([True, False, None, None, False, False, True, False])
     assert d.stypes == (stype.bool8, )
-    assert d.to_csv() == "C1\n1\n0\n\n\n0\n0\n1\n0\n"
+    assert d.to_csv() == "C0\n1\n0\n\n\n0\n0\n1\n0\n"
 
 
 def test_save_int8():
@@ -118,7 +118,7 @@ def test_save_int8():
     res = "\n".join(stringify(x) for x in src)
     d = dt.Frame(src)
     assert d.stypes == (stype.int8, )
-    assert d.to_csv() == "C1\n" + res + "\n"
+    assert d.to_csv() == "C0\n" + res + "\n"
 
 
 def test_save_int16():
@@ -127,7 +127,7 @@ def test_save_int16():
     res = "\n".join(stringify(x) for x in src)
     d = dt.Frame(src)
     assert d.stypes == (stype.int16, )
-    assert d.to_csv() == "C1\n" + res + "\n"
+    assert d.to_csv() == "C0\n" + res + "\n"
 
 
 def test_save_int32():
@@ -137,7 +137,7 @@ def test_save_int32():
     res = "\n".join(stringify(x) for x in src)
     d = dt.Frame(src)
     assert d.stypes == (stype.int32, )
-    assert d.to_csv() == "C1\n" + res + "\n"
+    assert d.to_csv() == "C0\n" + res + "\n"
 
 
 def test_save_int64():
@@ -148,7 +148,7 @@ def test_save_int64():
     res = "\n".join(stringify(x) for x in src)
     d = dt.Frame(src)
     assert d.stypes == (stype.int64, )
-    assert d.to_csv() == "C1\n" + res + "\n"
+    assert d.to_csv() == "C0\n" + res + "\n"
 
 
 def test_save_double():
