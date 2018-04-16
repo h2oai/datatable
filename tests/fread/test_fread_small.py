@@ -650,6 +650,25 @@ def test_whitespace_nas():
                              [2.3, 1, None, 0]]
 
 
+def test_clashing_column_names():
+    # there should be no warning; and first column should be C2
+    d0 = dt.fread("""C2\n1,2,3,4,5,6,7\n""")
+    assert d0.internal.check()
+    assert d0.shape == (1, 7)
+    assert d0.names == ("C2", "C3", "C4", "C5", "C6", "C7", "C8")
+
+
+def test_clashing_column_names2():
+    # there should be no warnings; and the second column should retain its name
+    d0 = dt.fread("""
+        ,C0,,,
+        1,2,3,4,5
+        6,7,8,9,0
+        """)
+    assert d0.internal.check()
+    assert d0.shape == (2, 5)
+    assert d0.names == ("C1", "C0", "C2", "C3", "C4")
+
 
 
 #-------------------------------------------------------------------------------

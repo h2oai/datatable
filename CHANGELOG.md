@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Significantly improved performance of sorting doubles.
 - fread can now read string columns that are larger than 2GB in size.
 - fread can now accept a list/tuple of stypes for its `columns` parameter.
+- improved logic for auto-assigning column names when they are missing.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"
