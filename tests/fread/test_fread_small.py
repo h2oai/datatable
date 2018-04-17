@@ -670,6 +670,36 @@ def test_clashing_column_names2():
     assert d0.names == ("C1", "C0", "C2", "C3", "C4")
 
 
+def test_nuls1():
+    d0 = dt.fread("A,B\0\n1,2\n")
+    assert d0.internal.check()
+    # Special characters are replaced in column names
+    assert d0.names == ("A", "B.")
+    assert d0.shape == (1, 2)
+    assert d0.topython() == [[1], [2]]
+
+
+def test_nuls2():
+    d0 = dt.fread("A,B\nfoo,ba\0r\nalpha,beta\0\ngamma\0,delta\n")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.shape == (3, 2)
+    assert d0.topython() == [["foo", "alpha", "gamma\0"],
+                             ["ba\0r", "beta\0", "delta"]]
+
+def test_nuls3():
+    lines = ["%02d,%d,%d\0" % (i, i % 3, 20-i) for i in range(10)]
+    src = "\n".join(["a,b,c"] + lines + [""])
+    d0 = dt.fread(src, verbose=True)
+    assert d0.internal.check()
+    assert d0.shape == (10, 3)
+    assert d0.names == ("a", "b", "c")
+    assert d0.topython() == [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                             [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
+                             ["%d\0" % i for i in range(20, 10, -1)]]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Medium-size files (generated)
