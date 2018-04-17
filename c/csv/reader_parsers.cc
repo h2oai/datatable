@@ -520,7 +520,7 @@ void parse_string(FreadTokenizer& ctx) {
     while (1) {
       if (*ch == sep) break;
       if (static_cast<uint8_t>(*ch) <= 13) {
-        if (*ch == '\0' || *ch == '\n') break;
+        if (*ch == '\n' || ch == ctx.eof) break;
         if (*ch == '\r') {
           if (!ctx.LFpresent || ch[1] == '\n') break;
           const char *tch = ch + 1;
@@ -552,15 +552,20 @@ void parse_string(FreadTokenizer& ctx) {
   fieldStart++;  // step over opening quote
   switch(ctx.quoteRule) {
   case 0:  // quoted with embedded quotes doubled; the final unescaped " must be followed by sep|eol
-    while (*++ch) {
-      if (*ch==quote) {
-        if (ch[1]==quote) { ch++; continue; }
+    while (true) {
+      ch++;
+      if (*ch == '\0' && ch == ctx.eof) {
+        break;
+      } else if (*ch == quote) {
+        if (ch[1] == quote) { ch++; continue; }
         break;  // found undoubled closing quote
       }
     }
     break;
   case 1:  // quoted with embedded quotes escaped; the final unescaped " must be followed by sep|eol
-    while (*++ch) {
+    while (true) {
+      ch++;
+      if (*ch == '\0' && ch == ctx.eof) break;
       if (*ch=='\\' && (ch[1]==quote || ch[1]=='\\')) { ch++; continue; }
       if (*ch==quote) break;
     }

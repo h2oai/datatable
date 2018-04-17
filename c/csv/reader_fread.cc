@@ -446,11 +446,12 @@ void FreadReader::detect_column_types()
         // know that the start is correct).
         if (j == 0) {
           chunkster.last_row_end = eof;
+          sampleLines--;
         } else {
           columns.setTypes(saved_types);
           print_types = false;
+          break;
         }
-        break;
       }
       sampleLines++;
       chunkster.last_row_end = tch;
@@ -1249,7 +1250,7 @@ bool FreadTokenizer::end_of_field() {
   char c = *ch;
   if (c == sep) return true;
   if (static_cast<uint8_t>(c) > 13) return false;
-  if (c == '\n' || c == '\0') return true;
+  if (c == '\n' || (c == '\0' && ch == eof)) return true;
   if (c == '\r') {
     if (LFpresent) {
       const char* tch = ch + 1;

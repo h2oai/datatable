@@ -35,8 +35,23 @@ const char* strlim(const char* ch, size_t limit) {
   char* ptr = buf + 501 * flip;
   flip = 1 - flip;
   char* ch2 = ptr;
-  size_t width = 0;
-  while ((*ch>'\r' || (*ch!='\0' && *ch!='\r' && *ch!='\n')) && width++<limit) *ch2++ = *ch++;
+  char* ch2end = ptr + limit;
+  while (ch2 < ch2end) {
+    uint8_t c = static_cast<uint8_t>(*ch);
+    if (c < 0x0E && (c == 0 || c == 0x0D || c == 0x0A)) break;
+    if (c < 0x20 || c > 0x7F) {
+      int d0 = int(c & 0xF);
+      int d1 = int(c >> 4);
+      ch++;
+      *ch2++ = '\\';
+      *ch2++ = 'x';
+      *ch2++ = static_cast<char>((d1 < 10 ? '0' : 'A' - 10) + d1);
+      *ch2++ = static_cast<char>((d0 < 10 ? '0' : 'A' - 10) + d0);
+      if (ch2 > ch2end) { ch2 -= 4; break; }
+    } else {
+      *ch2++ = *ch++;
+    }
+  }
   *ch2 = '\0';
   return ptr;
 }
