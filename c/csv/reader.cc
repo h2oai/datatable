@@ -16,6 +16,7 @@
 #include "utils/exceptions.h"
 #include "utils/omp.h"
 #include "python/long.h"
+#include "python/string.h"
 
 
 //------------------------------------------------------------------------------
@@ -585,22 +586,17 @@ void GenericReader::decode_utf16() {
 void GenericReader::report_columns_to_python() {
   size_t ncols = columns.size();
 
-  if (override_column_types || true) {
+  if (override_column_types) {
     PyyList colNamesList(ncols);
     PyyList colTypesList(ncols);
     for (size_t i = 0; i < ncols; i++) {
-      const char* src = columns[i].name.data();
-      size_t len = columns[i].name.size();
-      Py_ssize_t slen = static_cast<Py_ssize_t>(len);
-      PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
-                                : none();
-      colNamesList[i] = pycol;
+      colNamesList[i] = PyyString(columns[i].name);
       colTypesList[i] = PyyLong(columns[i].type);
     }
 
     PyyList newTypesList =
-      pyreader().invoke("_override_columns", "(OO)",
-                        colNamesList.release(), colTypesList.release());
+      freader.invoke("_override_columns", "(OO)",
+                     colNamesList.release(), colTypesList.release());
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
@@ -608,8 +604,13 @@ void GenericReader::report_columns_to_python() {
         columns[i].type = static_cast<PT>(elem.as_int64());  // unsafe?
       }
     }
-  } else {
 
+  } else {
+    PyyList colNamesList(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      colNamesList[i] = PyyString(columns[i].name);
+    }
+    freader.invoke("_set_column_names", "(O)", colNamesList.release());
   }
 }
 

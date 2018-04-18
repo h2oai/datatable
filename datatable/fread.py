@@ -758,6 +758,16 @@ class GenericReader(object):
                 print("Warning: unknown encoding %s" % tty_encoding)
 
 
+    def _set_column_names(self, colnames):
+        """
+        Invoked by `gread` from C++ to inform the class about the detected
+        column names. This method is a simplified version of
+        `_override_columns`, and will only be invoked if `self._columns` is
+        None.
+        """
+        self._colnames = colnames
+
+
     def _override_columns(self, colnames, coltypes):
         assert len(colnames) == len(coltypes)
         n = len(colnames)

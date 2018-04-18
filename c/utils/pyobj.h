@@ -18,6 +18,7 @@ class RowIndex;
 class PyyList;
 class PyyLong;
 class PyyFloat;
+class PyyString;
 extern PyObject* Py_One;
 extern PyObject* Py_Zero;
 
@@ -172,6 +173,7 @@ public:
   operator PyyList() const;
   operator PyyLong() const;
   operator PyyFloat() const;
+  operator PyyString() const;
 };
 
 
