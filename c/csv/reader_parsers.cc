@@ -509,7 +509,7 @@ void parse_string(FreadTokenizer& ctx) {
   const char quote = ctx.quote;
   const char sep = ctx.sep;
 
-  // need to skip_white first for the reason that a quoted field might have space before the
+  // need to skip_whitespace first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
   if (*ch==' ' && ctx.strip_whitespace) while(*++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
   const char* fieldStart = ch;
@@ -610,7 +610,7 @@ void parse_string(FreadTokenizer& ctx) {
   ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
   if (*ch==quote) {
     ctx.ch = ch + 1;
-    ctx.skip_white();
+    ctx.skip_whitespace();
   } else {
     ctx.ch = ch;
     if (*ch=='\0') {
@@ -652,7 +652,7 @@ void ParserLibrary::init_parsers() {
   };
 
   add(PT::Drop,         "Dropped",         '-', 0, ST_VOID, parse_string);
-  // add(PT::Mu,           "Unknown",         '?', 0, parse_mu);
+  add(PT::Mu,           "Unknown",         '?', 1, ST_BOOLEAN_I1, parse_mu);
   add(PT::BoolL,        "Bool8/lowercase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_lowercase);
   add(PT::BoolU,        "Bool8/uppercase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_uppercase);
   add(PT::BoolT,        "Bool8/titlecase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_titlecase);

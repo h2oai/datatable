@@ -43,7 +43,7 @@ void parse_string(FreadTokenizer&);
 
 enum PT : uint8_t {
   Drop,
-  // Mu,
+  Mu,
   Bool01,
   BoolU,
   BoolT,
