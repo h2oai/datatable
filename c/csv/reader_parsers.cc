@@ -651,18 +651,18 @@ void ParserLibrary::init_parsers() {
     parser_fns[iid] = ptr;
   };
 
-  add(PT::Drop,         "Dropped",         '-', 0, ST_VOID, parse_string);
-  add(PT::Mu,           "Unknown",         '?', 1, ST_BOOLEAN_I1, parse_mu);
-  add(PT::BoolL,        "Bool8/lowercase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_lowercase);
-  add(PT::BoolU,        "Bool8/uppercase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_uppercase);
-  add(PT::BoolT,        "Bool8/titlecase", 'b', 1, ST_BOOLEAN_I1, parse_bool8_titlecase);
-  add(PT::Bool01,       "Bool8/numeric",   'b', 1, ST_BOOLEAN_I1, parse_bool8_numeric);
-  add(PT::Int32,        "Int32",           'i', 4, ST_INTEGER_I4, parse_int32_simple);
-  add(PT::Int64,        "Int64",           'I', 8, ST_INTEGER_I8, parse_int64_simple);
-  add(PT::Float32Hex,   "Float32/hex",     'f', 4, ST_REAL_F4, parse_float32_hex);
-  add(PT::Float64Plain, "Float64",         'F', 8, ST_REAL_F8, parse_float64_simple);
-  add(PT::Float64Ext,   "Float64/ext",     'F', 8, ST_REAL_F8, parse_float64_extended);
-  add(PT::Float64Hex,   "Float64/hex",     'F', 8, ST_REAL_F8, parse_float64_hex);
+  add(PT::Drop,         "Dropped",         '-', 0, ST_VOID,            parse_string);
+  add(PT::Mu,           "Unknown",         '?', 1, ST_BOOLEAN_I1,      parse_mu);
+  add(PT::Bool01,       "Bool8/numeric",   'b', 1, ST_BOOLEAN_I1,      parse_bool8_numeric);
+  add(PT::BoolU,        "Bool8/uppercase", 'b', 1, ST_BOOLEAN_I1,      parse_bool8_uppercase);
+  add(PT::BoolT,        "Bool8/titlecase", 'b', 1, ST_BOOLEAN_I1,      parse_bool8_titlecase);
+  add(PT::BoolL,        "Bool8/lowercase", 'b', 1, ST_BOOLEAN_I1,      parse_bool8_lowercase);
+  add(PT::Int32,        "Int32",           'i', 4, ST_INTEGER_I4,      parse_int32_simple);
+  add(PT::Int64,        "Int64",           'I', 8, ST_INTEGER_I8,      parse_int64_simple);
+  add(PT::Float32Hex,   "Float32/hex",     'f', 4, ST_REAL_F4,         parse_float32_hex);
+  add(PT::Float64Plain, "Float64",         'F', 8, ST_REAL_F8,         parse_float64_simple);
+  add(PT::Float64Ext,   "Float64/ext",     'F', 8, ST_REAL_F8,         parse_float64_extended);
+  add(PT::Float64Hex,   "Float64/hex",     'F', 8, ST_REAL_F8,         parse_float64_hex);
   add(PT::Str32,        "Str32",           's', 4, ST_STRING_I4_VCHAR, parse_string);
   add(PT::Str64,        "Str64",           'S', 8, ST_STRING_I8_VCHAR, parse_string);
 }
