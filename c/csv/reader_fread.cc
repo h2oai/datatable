@@ -512,6 +512,9 @@ void FreadReader::detect_column_types()
 }
 
 
+/**
+ * Detect whether the first line in input is the header or not.
+ */
 void FreadReader::detect_header() {
   if (!ISNA<int8_t>(header)) return;
   size_t ncols = columns.size();
@@ -548,7 +551,8 @@ void FreadReader::detect_header() {
   if (n_sample_lines > 0) {
     for (size_t j = 0; j < ncols; ++j) {
       if (ParserLibrary::info(header_types[j]).isstring() &&
-          !ParserLibrary::info(saved_types[j]).isstring()) {
+          !ParserLibrary::info(saved_types[j]).isstring() &&
+          saved_types[j] != PT::Mu) {
         header = true;
         trace("`header` determined to be True due to column %d containing a "
               "string on row 1 and type %s in the rest of the sample.",

@@ -29,3 +29,14 @@ def test_fread_headers_less2():
     assert f0.internal.check()
     assert f0.names == ("A", "B", "C0", "C1")
     assert f0.topython() == [[10, 11], [5, -3], ["foo", "bar"], [1, 2]]
+
+
+def test_fread_headers_against_mu():
+    # See issue #656
+    # First row contains "A" in first column, while in the rest of the file
+    # first column is empty. "Empty" type should be considered equivalent to
+    # string (or any other) for the purpose of headers detection.
+    f0 = dt.fread("A,100,2\n,300,4\n,500,6\n")
+    assert f0.internal.check()
+    assert f0.names == ("C0", "C1", "C2")
+    assert f0.topython() == [["A", "", ""], [100, 300, 500], [2, 4, 6]]
