@@ -327,7 +327,7 @@ DataTablePtr FreadReader::read()
     if (verbose) trace("[5] Apply user overrides on column types");
     std::unique_ptr<PT[]> oldtypes = columns.getTypes();
 
-    userOverride();
+    report_columns_to_python();
 
     size_t ncols = columns.size();
     size_t ndropped = 0;

@@ -47,6 +47,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   init_skipstring();
   init_stripwhite();
   init_skipblanklines();
+  init_overridecolumntypes();
 }
 
 // Copy-constructor will copy only the essential parts
@@ -68,6 +69,7 @@ GenericReader::GenericReader(const GenericReader& g) {
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
+  override_column_types = g.override_column_types;
   // Runtime parameters
   input_mbuf    = g.input_mbuf? g.input_mbuf->shallowcopy() : nullptr;
   sof     = g.sof;
@@ -259,6 +261,10 @@ void GenericReader::init_stripwhite() {
 void GenericReader::init_skipblanklines() {
   skip_blank_lines = freader.attr("skip_blank_lines").as_bool();
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
+}
+
+void GenericReader::init_overridecolumntypes() {
+  override_column_types = !freader.attr("_columns").is_none();
 }
 
 
@@ -571,6 +577,34 @@ void GenericReader::decode_utf16() {
   eof = sof + ssize + 1;
   // the object `t` remains alive within `tempstr`
   Py_DECREF(t);
+}
+
+
+void GenericReader::report_columns_to_python()
+{
+  size_t ncols = columns.size();
+  Py_ssize_t sncols = static_cast<Py_ssize_t>(ncols);
+  PyObject* colNamesList = PyList_New(sncols);
+  PyObject* colTypesList = PyList_New(sncols);
+  for (size_t i = 0; i < ncols; i++) {
+    const char* src = columns[i].name.data();
+    size_t len = columns[i].name.size();
+    Py_ssize_t slen = static_cast<Py_ssize_t>(len);
+    PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
+                              : none();
+    PyObject* pytype = PyLong_FromLong(columns[i].type);
+    PyList_SET_ITEM(colNamesList, i, pycol);
+    PyList_SET_ITEM(colTypesList, i, pytype);
+  }
+
+  pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
+
+  for (size_t i = 0; i < ncols; i++) {
+    PyObject* t = PyList_GET_ITEM(colTypesList, i);
+    columns[i].type = static_cast<PT>(PyLong_AsUnsignedLongMask(t));
+  }
+  pyfree(colTypesList);
+  pyfree(colNamesList);
 }
 
 

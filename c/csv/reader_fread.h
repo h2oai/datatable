@@ -128,7 +128,6 @@ public:
 private:
   void parse_column_names(FreadTokenizer& ctx);
   void detect_sep(FreadTokenizer& ctx);
-  void userOverride();
 
   void detect_lf();
   void skip_preamble();

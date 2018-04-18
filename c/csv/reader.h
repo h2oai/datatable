@@ -155,7 +155,7 @@ class GenericReader
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
-    int : 8;
+    bool    override_column_types;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -234,6 +234,7 @@ class GenericReader
     void init_skipstring();
     void init_stripwhite();
     void init_skipblanklines();
+    void init_overridecolumntypes();
 
   protected:
     void open_input();
@@ -243,6 +244,7 @@ class GenericReader
     void skip_to_line_number();
     void skip_to_line_with_string();
     void decode_utf16();
+    void report_columns_to_python();
 
     void _message(const char* method, const char* format, va_list args) const;
 
