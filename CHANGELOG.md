@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread can now accept a list/tuple of stypes for its `columns` parameter.
 - improved logic for auto-assigning column names when they are missing.
 - fread now supports reading files that contain NUL characters.
+- Added global settings `options.frame.names_auto_index` and
+  `options.frame.names_auto_prefix` to control automatic column name
+  generation in a Frame.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"

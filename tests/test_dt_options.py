@@ -13,11 +13,13 @@ def test_options_all():
     # Update this test every time a new option is added
     assert repr(dt.options).startswith("<datatable.options.DtConfig:")
     assert set(dir(dt.options)) == {
-        "nthreads", "core_logger", "sort", "display"}
+        "nthreads", "core_logger", "sort", "display", "frame"}
     assert set(dir(dt.options.sort)) == {
         "insert_method_threshold", "thread_multiplier", "max_chunk_length",
         "max_radix_bits", "over_radix_bits", "nthreads"}
     assert set(dir(dt.options.display)) == {"interactive_hint"}
+    assert set(dir(dt.options.frame)) == {
+        "names_auto_index", "names_auto_prefix"}
 
 
 @pytest.mark.run(order=1002)
@@ -137,3 +139,32 @@ def test_core_logger():
     assert "done: DataTable.check(...)" in ml.messages
     del dt.options.core_logger
     assert dt.options.core_logger is None
+
+
+@pytest.mark.run(order=1012)
+def test_frame_names_auto_index():
+    assert dt.options.frame.names_auto_index == 0
+    dt.options.frame.names_auto_index = 1
+    f0 = dt.Frame([[1], [2], [3], [4]])
+    assert f0.names == ("C1", "C2", "C3", "C4")
+    dt.options.frame.names_auto_index = 999
+    f1 = dt.Frame([[1], [2], [3], [4]])
+    assert f1.names == ("C999", "C1000", "C1001", "C1002")
+    del dt.options.frame.names_auto_index
+    f2 = dt.Frame([[1], [2], [3], [4]])
+    assert f2.names == ("C0", "C1", "C2", "C3")
+    with pytest.raises(TypeError):
+        dt.options.frame.names_auto_index = "C"
+
+
+@pytest.mark.run(order=1013)
+def test_frame_names_auto_prefix():
+    assert dt.options.frame.names_auto_prefix == "C"
+    dt.options.frame.names_auto_prefix = "foo"
+    f0 = dt.Frame([[3], [3], [3]])
+    assert f0.names == ("foo0", "foo1", "foo2")
+    del dt.options.frame.names_auto_prefix
+    f2 = dt.Frame([[1], [2], [3], [4]])
+    assert f2.names == ("C0", "C1", "C2", "C3")
+    with pytest.raises(TypeError):
+        dt.options.frame.names_auto_prefix = 0

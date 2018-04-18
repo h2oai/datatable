@@ -226,11 +226,9 @@ class Frame(object):
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
         self._ltypes = None
-        if names:
-            self._names, self._inames = Frame._dedup_names(names)
-        else:
-            self._names = tuple("C%d" % i for i in range(self._ncols))
-            self._inames = {self._names[i]: i for i in range(self._ncols)}
+        if not names:
+            names = [None] * self._ncols
+        self._names, self._inames = Frame._dedup_names(names)
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -280,28 +278,31 @@ class Frame(object):
             dt = core.datatable_from_buffers([arr[:, i] for i in range(ncols)])
 
         if names is None:
-            names = ["C%d" % i for i in range(ncols)]
+            names = [None] * ncols
         self._fill_from_dt(dt, names=names)
 
 
     @staticmethod
     def _dedup_names(names) -> Tuple[Tuple[str, ...], Dict[str, int]]:
+        if not names:
+            return tuple(), dict()
         inames = {}
         tnames = []
         dupnames = []
-        min_c = 0
+        min_c = options.frame.names_auto_index
+        prefix = options.frame.names_auto_prefix
         fill_default_names = False
         for i, name in enumerate(names):
             if not name:
                 fill_default_names = True
                 tnames.append(None)  # Placeholder, filled in below
                 continue
-            if re.match(_dedup_names_re1, name):
-                min_c = max(min_c, int(name[1:]) + 1)
+            if name[:len(prefix)] == prefix and name[len(prefix):].isdigit():
+                min_c = max(min_c, int(name[len(prefix):]) + 1)
             else:
                 name = re.sub(_dedup_names_re0, ".", name)
             if name in inames:
-                mm = re.match(_dedup_names_re2, name)
+                mm = re.match(_dedup_names_re1, name)
                 if mm:
                     base = mm.group(1)
                     count = int(mm.group(2)) + 1
@@ -320,7 +321,7 @@ class Frame(object):
         if fill_default_names:
             for i, name in enumerate(names):
                 if not name:
-                    newname = "C%d" % min_c
+                    newname = prefix + str(min_c)
                     tnames[i] = newname
                     inames[newname] = i
                     min_c += 1
@@ -890,8 +891,7 @@ class Frame(object):
 
 
 _dedup_names_re0 = re.compile(r"[\x00-\x1F]+")
-_dedup_names_re1 = re.compile(r"^C\d+$")
-_dedup_names_re2 = re.compile(r"^(.*)(\d+)$")
+_dedup_names_re1 = re.compile(r"^(.*)(\d+)$")
 
 
 
@@ -963,3 +963,19 @@ options.register_option(
 
 options.register_option(
     "sort.nthreads", xtype=int, default=4, core=True)
+
+options.register_option(
+    "frame.names_auto_index", xtype=int, default=0, core=False,
+    doc="When Frame needs to auto-name columns, they will be assigned "
+        "names C0, C1, C2, ... by default. This option allows you to "
+        "control the starting index in this sequence. For example, setting "
+        "options.frame.names_auto_index=1 will cause the columns to be "
+        "named C1, C2, C3, ...")
+
+options.register_option(
+    "frame.names_auto_prefix", xtype=str, default="C", core=False,
+    doc="When Frame needs to auto-name columns, they will be assigned "
+        "names C0, C1, C2, ... by default. This option allows you to "
+        "control the prefix used in this sequence. For example, setting "
+        "options.frame.names_auto_prefix='Z' will cause the columns to be "
+        "named Z0, Z1, Z2, ...")
