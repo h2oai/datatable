@@ -21,7 +21,7 @@
 GReaderColumn::GReaderColumn() {
   mbuf = nullptr;
   strdata = nullptr;
-  type = PT::Bool01;  // should be PT::Mu
+  type = PT::Mu;
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;
@@ -141,6 +141,14 @@ void GReaderColumns::saveTypes(std::unique_ptr<PT[]>& types) const {
   for (size_t i = 0; i < n; ++i) {
     types[i] = (*this)[i].type;
   }
+}
+
+bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    if (types[i] != (*this)[i].type) return false;
+  }
+  return true;
 }
 
 void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {

@@ -90,6 +90,7 @@ class FreadReader : public GenericReader
   size_t allocnrow;
   double meanLineLen;
   size_t first_jump_size;
+  size_t n_sample_lines;
 
   //----- Parse parameters -----------------------------------------------------
   // quoteRule:
@@ -132,7 +133,8 @@ private:
   void detect_lf();
   void skip_preamble();
   void detect_column_types();
-  int64_t parse_single_line(FreadTokenizer&, bool* bumped);
+  void detect_header();
+  int64_t parse_single_line(FreadTokenizer&);
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;

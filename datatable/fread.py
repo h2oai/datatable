@@ -970,17 +970,18 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 # Directly corresponds to `PT` enum in "reader_parsers.h"
 _coltypes_strs = [
     "drop",      # 0
-    "bool8n",    # 1
-    "bool8u",    # 2
-    "bool8t",    # 3
-    "bool8l",    # 4
-    "int32",     # 5
-    "int64",     # 6
-    "float32x",  # 7
-    "float64",   # 8
-    "float64e",  # 9
-    "float64x",  # 10
-    "str",       # 11
+    "mu",        # 1
+    "bool8n",    # 2
+    "bool8u",    # 3
+    "bool8t",    # 4
+    "bool8l",    # 5
+    "int32",     # 6
+    "int64",     # 7
+    "float32x",  # 8
+    "float64",   # 9
+    "float64e",  # 10
+    "float64x",  # 11
+    "str",       # 12
 ]
 
 _coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
