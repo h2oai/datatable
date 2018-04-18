@@ -9,10 +9,13 @@
 #define dt_CSV_READER_PARSERS_h
 #include <string>
 #include <vector>
+#include <Python.h>
 #include "types.h"
 
 struct FreadTokenizer;
+class GReaderColumn;
 typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
+typedef PyObject* (*FormatGeneratorFn)(GReaderColumn& col);
 
 
 // In order to add a new type:
@@ -41,6 +44,10 @@ void parse_string(FreadTokenizer&);
 // Do not use "enum class" here: we want these enums to be implicitly
 // convertible into integers, so that we can use them as array indices.
 
+/**
+ * Parse Type -- each identifier corresponds to one of the parser functions
+ * listed above.
+ */
 enum PT : uint8_t {
   Drop,
   Mu,
@@ -60,11 +67,42 @@ enum PT : uint8_t {
 };
 
 
+/**
+ * Bump Type -- this describes transition between different parsers:
+ *   Simple - values read by the previous parser can be used as-is with the
+ *            new parser. For example, changing from PT::Float64Plain to
+ *            PT::Float64Ext.
+ *   Normal - values read by the previous parser can be losslessly converted
+ *            into the values produced by the new parser. For example,
+ *            transition from PT::Int32 to PT::Int64.
+ *   Reread - values read by the previous parser cannot be converted, so the
+ *            entire column has to be re-read.
+ */
 enum BT : uint8_t {
   None   = 0,
   Simple = 1,
   Normal = 2,
   Reread = 3,
+};
+
+
+/**
+ * Requested Type -- column type as requested by the user; each may correspond
+ * to one or more parse types.
+ */
+enum RT : uint8_t {
+  RAuto,
+  RDrop,
+  RBool,
+  RInt,
+  RInt32,
+  RInt64,
+  RFloat,
+  RFloat32,
+  RFloat64,
+  RStr,
+  RStr32,
+  RStr64,
 };
 
 
@@ -79,11 +117,11 @@ class ParserInfo {
   public:
     ParserFnPtr fn;
     std::string name;
-    char code;
-    int8_t elemsize;
-    SType stype;
-    PT id;
-    int32_t : 32;
+    char        code;
+    int8_t      elemsize;
+    SType       stype;
+    PT          id;
+    int : 32;
 
     ParserInfo() : fn(nullptr), code(0), id(PT::Drop) {}
     ParserInfo(PT id_, const char* name_, char code_, int8_t sz_, SType st_,
