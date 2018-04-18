@@ -37,6 +37,10 @@ class PyyLong {
 
   public:
     PyyLong();
+    PyyLong(int32_t n);
+    PyyLong(int64_t n);
+    PyyLong(size_t n);
+    PyyLong(double x);
     PyyLong(PyObject*);
     PyyLong(const PyyLong&);
     PyyLong(PyyLong&&);
@@ -45,6 +49,9 @@ class PyyLong {
     template<typename T> T value() const;
     template<typename T> T value(int* overflow) const;
     template<typename T> T masked_value() const;
+
+    operator PyObj() const &;
+    operator PyObj() &&;
 
     static PyyLong fromAnyObject(PyObject*);
     friend void swap(PyyLong& first, PyyLong& second) noexcept;

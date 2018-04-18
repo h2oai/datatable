@@ -15,6 +15,7 @@
 #include "options.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
+#include "python/long.h"
 
 
 //------------------------------------------------------------------------------
@@ -580,32 +581,38 @@ void GenericReader::decode_utf16() {
 }
 
 
-void GenericReader::report_columns_to_python()
-{
+
+void GenericReader::report_columns_to_python() {
   size_t ncols = columns.size();
-  Py_ssize_t sncols = static_cast<Py_ssize_t>(ncols);
-  PyObject* colNamesList = PyList_New(sncols);
-  PyObject* colTypesList = PyList_New(sncols);
-  for (size_t i = 0; i < ncols; i++) {
-    const char* src = columns[i].name.data();
-    size_t len = columns[i].name.size();
-    Py_ssize_t slen = static_cast<Py_ssize_t>(len);
-    PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
-                              : none();
-    PyObject* pytype = PyLong_FromLong(columns[i].type);
-    PyList_SET_ITEM(colNamesList, i, pycol);
-    PyList_SET_ITEM(colTypesList, i, pytype);
-  }
 
-  pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
+  if (override_column_types || true) {
+    PyyList colNamesList(ncols);
+    PyyList colTypesList(ncols);
+    for (size_t i = 0; i < ncols; i++) {
+      const char* src = columns[i].name.data();
+      size_t len = columns[i].name.size();
+      Py_ssize_t slen = static_cast<Py_ssize_t>(len);
+      PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
+                                : none();
+      colNamesList[i] = pycol;
+      colTypesList[i] = PyyLong(columns[i].type);
+    }
 
-  for (size_t i = 0; i < ncols; i++) {
-    PyObject* t = PyList_GET_ITEM(colTypesList, i);
-    columns[i].type = static_cast<PT>(PyLong_AsUnsignedLongMask(t));
+    PyyList newTypesList =
+      pyreader().invoke("_override_columns", "(OO)",
+                        colNamesList.release(), colTypesList.release());
+
+    if (newTypesList) {
+      for (size_t i = 0; i < ncols; i++) {
+        PyObj elem = newTypesList[i];
+        columns[i].type = static_cast<PT>(elem.as_int64());  // unsafe?
+      }
+    }
+  } else {
+
   }
-  pyfree(colTypesList);
-  pyfree(colNamesList);
 }
+
 
 
 DataTablePtr GenericReader::makeDatatable() {

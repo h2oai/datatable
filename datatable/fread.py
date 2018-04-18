@@ -766,7 +766,7 @@ class GenericReader(object):
 
         if colspec is None:
             self._colnames = colnames
-            return
+            return coltypes
 
         if isinstance(colspec, (slice, range)):
             if isinstance(colspec, slice):
@@ -785,7 +785,7 @@ class GenericReader(object):
                     self._colnames.append(colnames[i])
                 else:
                     coltypes[i] = 0
-            return
+            return coltypes
 
         if isinstance(colspec, set):
             # Make a copy of the `colspec`, in order to check whether all the
@@ -802,7 +802,7 @@ class GenericReader(object):
             if colsfound:
                 self.logger.warning("Column(s) %r not found in the input file"
                                     % list(colsfound))
-            return
+            return coltypes
 
         if isinstance(colspec, (list, tuple)):
             nn = len(colspec)
@@ -829,7 +829,7 @@ class GenericReader(object):
                 else:
                     raise TTypeError("Entry `columns[%d]` has invalid type %r"
                                      % (i, entry.__class__.__name__))
-            return
+            return coltypes
 
         if isinstance(colspec, dict):
             for i in range(n):
@@ -854,6 +854,7 @@ class GenericReader(object):
                     if not coltypes[i]:
                         raise TValueError("Unknown type %r used as an override "
                                           "for column %r" % (newtype, newname))
+            return coltypes
 
         if callable(colspec) and hasattr(colspec, "__code__"):
             nargs = colspec.__code__.co_argcount
@@ -872,7 +873,7 @@ class GenericReader(object):
                                           "argument was expected to return a "
                                           "`Union[None, bool, str]` but "
                                           "instead returned value %r" % (ret,))
-                return
+                return coltypes
 
             if nargs == 2:
                 for i in range(n):
@@ -888,7 +889,7 @@ class GenericReader(object):
                                           "argument was expected to return a "
                                           "`Union[None, bool, str]` but "
                                           "instead returned value %r" % (ret,))
-                return
+                return coltypes
 
             if nargs == 3:
                 for i in range(n):
@@ -910,10 +911,10 @@ class GenericReader(object):
                                           "`Union[None, bool, str, Tuple[str, "
                                           "Union[str, type]]]` but "
                                           "instead returned value %r" % ret)
-                return
+                return coltypes
 
-            raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
-                               % colspec)
+        raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
+                           % colspec)
 
 
     def _process_excel_file(self, filename):

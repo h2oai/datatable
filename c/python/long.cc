@@ -16,6 +16,21 @@
 
 PyyLong::PyyLong() : obj(nullptr) {}
 
+PyyLong::PyyLong(int32_t n) {
+  obj = PyLong_FromLong(n);
+}
+
+PyyLong::PyyLong(int64_t n) {
+  obj = PyLong_FromLongLong(n);
+}
+
+PyyLong::PyyLong(size_t n) {
+  obj = PyLong_FromSize_t(n);
+}
+
+PyyLong::PyyLong(double x) {
+  obj = PyLong_FromDouble(x);
+}
 
 PyyLong::PyyLong(PyObject* src) {
   if (!src) throw PyError();
@@ -65,6 +80,16 @@ PyyLong PyyLong::fromAnyObject(PyObject* obj) {
 //------------------------------------------------------------------------------
 // Public API
 //------------------------------------------------------------------------------
+
+PyyLong::operator PyObj() const & {
+  return PyObj(obj);
+}
+
+PyyLong::operator PyObj() && {
+  PyObject* t = obj;
+  obj = nullptr;
+  return PyObj::fromPyObjectNewRef(t);
+}
 
 
 template<> long PyyLong::value<long>(int* overflow) const {

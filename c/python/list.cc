@@ -8,6 +8,7 @@
 #include "python/list.h"
 #include "python/long.h"
 #include "python/float.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 
 
@@ -89,6 +90,7 @@ PyyListEntry::PyyListEntry(PyObject* pylist, Py_ssize_t index)
 
 
 PyyListEntry& PyyListEntry::operator=(PyObject* s) {
+  xassert(list);
   PyList_SET_ITEM(list, i, s);
   return *this;
 }
@@ -102,6 +104,7 @@ PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
 
 
 PyObject* PyyListEntry::get() const {
+  xassert(list);
   return PyList_GET_ITEM(list, i);
 }
 

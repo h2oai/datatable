@@ -548,7 +548,7 @@ $(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc $(BUILDDIR)/options.h $(BUILDDIR)/csv
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/options.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/options.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -672,7 +672,7 @@ $(BUILDDIR)/python/float.o : c/python/float.cc $(BUILDDIR)/python/float.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
