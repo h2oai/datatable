@@ -91,6 +91,13 @@ PyyLong::operator PyObj() && {
   return PyObj(std::move(t));
 }
 
+PyObject* PyyLong::release() {
+  PyObject* t = obj;
+  obj = nullptr;
+  return t;
+}
+
+
 
 template<> long PyyLong::value<long>(int* overflow) const {
   long value = PyLong_AsLongAndOverflow(obj, overflow);

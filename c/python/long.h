@@ -52,6 +52,7 @@ class PyyLong {
 
     operator PyObj() const &;
     operator PyObj() &&;
+    PyObject* release();
 
     static PyyLong fromAnyObject(PyObject*);
     friend void swap(PyyLong& first, PyyLong& second) noexcept;

@@ -78,3 +78,9 @@ PyyString::operator PyObj() && {
   obj = nullptr;
   return PyObj(std::move(t));
 }
+
+PyObject* PyyString::release() {
+  PyObject* t = obj;
+  obj = nullptr;
+  return t;
+}

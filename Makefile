@@ -569,7 +569,7 @@ $(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/fread
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

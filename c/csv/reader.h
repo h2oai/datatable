@@ -40,6 +40,7 @@ enum PT : uint8_t;
 class GReaderColumn {
   private:
     MemoryBuffer* mbuf;
+    static PyTypeObject* NameTypePyTuple;
 
   public:
     std::string name;
@@ -64,6 +65,8 @@ class GReaderColumn {
     MemoryBuffer* extract_databuf();
     MemoryBuffer* extract_strbuf();
     void convert_to_str64();
+    PyObj py_descriptor() const;
+    static void init_nametypepytuple();
 };
 
 

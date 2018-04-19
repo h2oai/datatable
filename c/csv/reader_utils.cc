@@ -8,6 +8,8 @@
 #include "csv/reader.h"
 #include "csv/fread.h"   // temporary
 #include "csv/reader_parsers.h"
+#include "python/string.h"
+#include "python/long.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
@@ -105,6 +107,32 @@ void GReaderColumn::convert_to_str64() {
   type = PT::Str64;
   mbuf->release();
   mbuf = new_mbuf->shallowcopy();
+}
+
+
+PyTypeObject* GReaderColumn::NameTypePyTuple = nullptr;
+
+void GReaderColumn::init_nametypepytuple() {
+  if (NameTypePyTuple) return;
+  PyStructSequence_Field* fields = new PyStructSequence_Field[2];
+  fields[0].name = "name";
+  fields[0].doc = nullptr;
+  fields[1].name = "doc";
+  fields[1].doc = nullptr;
+  PyStructSequence_Desc* desc = new PyStructSequence_Desc;
+  desc->name = "column_descriptor";
+  desc->doc = nullptr;
+  desc->fields = fields;
+  desc->n_in_sequence = 2;
+  NameTypePyTuple = PyStructSequence_NewType(desc);
+}
+
+
+PyObj GReaderColumn::py_descriptor() const {
+  PyObject* nt_tuple = PyStructSequence_New(NameTypePyTuple);
+  PyStructSequence_SetItem(nt_tuple, 0, PyyString(name).release());
+  PyStructSequence_SetItem(nt_tuple, 1, PyyLong(type).release());
+  return PyObj(std::move(nt_tuple));
 }
 
 

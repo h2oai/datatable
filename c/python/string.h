@@ -32,6 +32,7 @@ class PyyString {
 
     operator PyObj() const &;
     operator PyObj() &&;
+    PyObject* release();
 
     friend void swap(PyyString& first, PyyString& second) noexcept;
 };
