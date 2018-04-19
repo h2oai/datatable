@@ -567,9 +567,7 @@ void GenericReader::decode_utf16() {
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;
-  tempstr = PyObj::fromPyObjectNewRef(
-    PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder)
-  );
+  tempstr = PyObj(PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder));
   PyObject* t = tempstr.as_pyobject();  // new ref
   // borrowed ref, belongs to PyObject `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);

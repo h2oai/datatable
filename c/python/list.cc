@@ -109,7 +109,12 @@ PyObject* PyyListEntry::get() const {
 }
 
 
-PyyListEntry::operator PyObj() const { return PyObj(get()); }
+PyyListEntry::operator PyObj() const {
+  // Variable `entry` cannot be inlined, otherwise PyObj constructor will
+  // assume that the reference to PyObject* can be stolen.
+  PyObject* entry = get();  // borrowed ref
+  return PyObj(entry);
+}
 PyyListEntry::operator PyyList() const { return PyyList(get()); }
 PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
 PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }

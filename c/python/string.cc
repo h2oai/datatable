@@ -76,5 +76,5 @@ PyyString::operator PyObj() const & {
 PyyString::operator PyObj() && {
   PyObject* t = obj;
   obj = nullptr;
-  return PyObj::fromPyObjectNewRef(t);
+  return PyObj(std::move(t));
 }

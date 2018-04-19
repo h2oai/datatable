@@ -88,7 +88,7 @@ PyyLong::operator PyObj() const & {
 PyyLong::operator PyObj() && {
   PyObject* t = obj;
   obj = nullptr;
-  return PyObj::fromPyObjectNewRef(t);
+  return PyObj(std::move(t));
 }
 
 
