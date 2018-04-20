@@ -600,7 +600,7 @@ void GenericReader::report_columns_to_python() {
         columns[i].rtype = static_cast<RT>(elem.as_int64());  // unsafe?
         // Temporary
         switch (columns[i].rtype) {
-          case RDrop:    columns[i].type = PT::Drop; break;
+          case RDrop:    columns[i].type = PT::Str32; break;
           case RAuto:    break;
           case RBool:    columns[i].type = PT::Bool01; break;
           case RInt:     columns[i].type = PT::Int32; break;

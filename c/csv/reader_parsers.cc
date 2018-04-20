@@ -651,7 +651,6 @@ void ParserLibrary::init_parsers() {
     parser_fns[iid] = ptr;
   };
 
-  add(PT::Drop,         "Dropped",         '-', 0, ST_VOID,            parse_string);
   add(PT::Mu,           "Unknown",         '?', 1, ST_BOOLEAN_I1,      parse_mu);
   add(PT::Bool01,       "Bool8/numeric",   'b', 1, ST_BOOLEAN_I1,      parse_bool8_numeric);
   add(PT::BoolU,        "Bool8/uppercase", 'b', 1, ST_BOOLEAN_I1,      parse_bool8_uppercase);

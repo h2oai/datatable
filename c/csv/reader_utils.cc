@@ -32,8 +32,8 @@ GReaderColumn::GReaderColumn() {
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
   : mbuf(o.mbuf), name(std::move(o.name)), strdata(o.strdata), type(o.type),
-    typeBumped(o.typeBumped), presentInOutput(o.presentInOutput),
-    presentInBuffer(o.presentInBuffer) {
+    rtype(o.rtype), typeBumped(o.typeBumped),
+    presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer) {
   o.mbuf = nullptr;
   o.strdata = nullptr;
 }

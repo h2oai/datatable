@@ -49,7 +49,6 @@ void parse_string(FreadTokenizer&);
  * listed above.
  */
 enum PT : uint8_t {
-  Drop,
   Mu,
   Bool01,
   BoolU,
@@ -123,7 +122,7 @@ class ParserInfo {
     PT          id;
     int : 32;
 
-    ParserInfo() : fn(nullptr), code(0), id(PT::Drop) {}
+    ParserInfo() : fn(nullptr), code(0) {}
     ParserInfo(PT id_, const char* name_, char code_, int8_t sz_, SType st_,
                ParserFnPtr ptr)
       : fn(ptr), name(name_), code(code_), elemsize(sz_), stype(st_), id(id_) {}

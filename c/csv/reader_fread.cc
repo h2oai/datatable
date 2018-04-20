@@ -333,7 +333,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    PT coltype = j < ncols ? columns[j].type : PT::Drop;
+    PT coltype = j < ncols ? columns[j].type : PT::Str32;
     while (true) {
       // Try to parse using the regular field parser
       tch = fieldStart;
@@ -874,7 +874,7 @@ void FreadLocalParseContext::read_chunk(
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(newType).isstring() && newType != PT::Drop) {
+          if (!ParserLibrary::info(newType).isstring()) {
             tokenizer.skip_whitespace();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);

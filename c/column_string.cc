@@ -42,8 +42,7 @@ StringColumn<T>::StringColumn(int64_t nrows_,
     }
     xassert(mb->size() == exp_off_size);
     xassert(mb->get_elem<T>(0) == -1);
-    size_t exp_str_size = static_cast<size_t>(abs(mb->get_elem<T>(nrows)) - 1);
-    xassert(sb->size() == exp_str_size);
+    xassert(sb->size() == static_cast<size_t>(abs(mb->get_elem<T>(nrows)) - 1));
   }
 
   mbuf = mb;
