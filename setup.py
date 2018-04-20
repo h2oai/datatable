@@ -7,6 +7,7 @@
 """
 Build script for the `datatable` module.
 
+    $ python setup.py sdist
     $ python setup.py bdist_wheel
     $ twine upload dist/*
 """
@@ -341,9 +342,18 @@ setup(
 
     description="Python library for fast multi-threaded data manipulation and "
                 "munging.",
+    long_description="""
+        This is a Python package for manipulating 2-dimensional tabular data
+        structures (aka data frames). It is close in spirit to pandas or SFrame;
+        however we put specific emphasis on speed and big data support. As the
+        name suggests, the package is closely related to R's data.table and
+        attempts to mimic its core algorithms and API.
+
+        See https://github.com/h2oai/datatable for more details.
+    """,
 
     # The homepage
-    url="https://github.com/h2oai/datatable.git",
+    url="https://github.com/h2oai/datatable",
 
     # Author details
     author="Pasha Stetsenko",
@@ -372,6 +382,8 @@ setup(
         "llvmlite" + llvmlite_req,
         "psutil"
     ],
+
+    python_requires=">=3.5",
 
     tests_require=get_test_dependencies(),
 
