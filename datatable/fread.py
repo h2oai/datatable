@@ -768,15 +768,11 @@ class GenericReader(object):
         self._colnames = colnames
 
 
-    def _override_columns(self, colnames, coltypes):
-        assert len(colnames) == len(coltypes)
+    def _override_columns(self, coldescs):
+        colnames, coltypes = zip(*coldescs)
         n = len(colnames)
         colspec = self._columns
         self._colnames = []
-
-        if colspec is None:
-            self._colnames = colnames
-            return coltypes
 
         if isinstance(colspec, (slice, range)):
             if isinstance(colspec, slice):
@@ -903,8 +899,7 @@ class GenericReader(object):
 
             if nargs == 3:
                 for i in range(n):
-                    typ = _coltypes_strs[coltypes[i]]
-                    ret = colspec(i, colnames[i], typ)
+                    ret = colspec(i, colnames[i], coltypes[i])
                     if ret is None or ret is False:
                         coltypes[i] = 0
                     elif ret is True:

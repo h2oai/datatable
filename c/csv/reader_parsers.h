@@ -91,18 +91,18 @@ enum BT : uint8_t {
  * to one or more parse types.
  */
 enum RT : uint8_t {
-  RAuto,
-  RDrop,
-  RBool,
-  RInt,
-  RInt32,
-  RInt64,
-  RFloat,
-  RFloat32,
-  RFloat64,
-  RStr,
-  RStr32,
-  RStr64,
+  RDrop    = 0,
+  RAuto    = 1,
+  RBool    = 2,
+  RInt     = 3,
+  RInt32   = 4,
+  RInt64   = 5,
+  RFloat   = 6,
+  RFloat32 = 7,
+  RFloat64 = 8,
+  RStr     = 9,
+  RStr32   = 10,
+  RStr64   = 11,
 };
 
 
