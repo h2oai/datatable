@@ -595,7 +595,7 @@ void GenericReader::report_columns_to_python() {
     }
 
     PyyList newTypesList =
-      freader.invoke("_override_columns", "(O)",
+      freader.invoke("_override_columns0", "(O)",
                      // colNamesList.release(), colTypesList.release(),
                      colDescriptorList.release());
 
