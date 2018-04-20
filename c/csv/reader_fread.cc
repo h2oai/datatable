@@ -333,7 +333,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    PT coltype = j < ncols ? columns[j].type : PT::Drop;
+    PT coltype = j < ncols ? columns[j].type : PT::Str32;
     while (true) {
       // Try to parse using the regular field parser
       tch = fieldStart;
@@ -754,34 +754,6 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
 }
 
 
-void FreadReader::userOverride()
-{
-  size_t ncols = columns.size();
-  Py_ssize_t sncols = static_cast<Py_ssize_t>(ncols);
-  PyObject* colNamesList = PyList_New(sncols);
-  PyObject* colTypesList = PyList_New(sncols);
-  for (size_t i = 0; i < ncols; i++) {
-    const char* src = columns[i].name.data();
-    size_t len = columns[i].name.size();
-    Py_ssize_t slen = static_cast<Py_ssize_t>(len);
-    PyObject* pycol = slen > 0? PyUnicode_FromStringAndSize(src, slen)
-                              : none();
-    PyObject* pytype = PyLong_FromLong(columns[i].type);
-    PyList_SET_ITEM(colNamesList, i, pycol);
-    PyList_SET_ITEM(colTypesList, i, pytype);
-  }
-
-  pyreader().invoke("_override_columns", "(OO)", colNamesList, colTypesList);
-
-  for (size_t i = 0; i < ncols; i++) {
-    PyObject* t = PyList_GET_ITEM(colTypesList, i);
-    columns[i].type = static_cast<PT>(PyLong_AsUnsignedLongMask(t));
-  }
-  pyfree(colTypesList);
-  pyfree(colNamesList);
-}
-
-
 
 //------------------------------------------------------------------------------
 // FreadLocalParseContext
@@ -902,7 +874,7 @@ void FreadLocalParseContext::read_chunk(
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(newType).isstring() && newType != PT::Drop) {
+          if (!ParserLibrary::info(newType).isstring()) {
             tokenizer.skip_whitespace();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);

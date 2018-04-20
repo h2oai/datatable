@@ -18,6 +18,7 @@ class RowIndex;
 class PyyList;
 class PyyLong;
 class PyyFloat;
+class PyyString;
 extern PyObject* Py_One;
 extern PyObject* Py_Zero;
 
@@ -32,16 +33,17 @@ class PyObj
 {
   PyObject* obj;
   mutable PyObject* tmp;
+  static PyObject* None;
 
 public:
   PyObj();
-  PyObj(PyObject*);
+  PyObj(PyObject* const&);
+  PyObj(PyObject*&&);
   PyObj(PyObject*, const char* attr);
   PyObj(const PyObj&);
   PyObj(PyObj&&);
   PyObj& operator=(PyObj other);
   ~PyObj();
-  static PyObj fromPyObjectNewRef(PyObject*);
   static PyObj none();
 
   friend void swap(PyObj& first, PyObj& second) noexcept {
@@ -172,6 +174,7 @@ public:
   operator PyyList() const;
   operator PyyLong() const;
   operator PyyFloat() const;
+  operator PyyString() const;
 };
 
 

@@ -4,6 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import enum
 import os
 import pathlib
 import psutil
@@ -21,7 +22,7 @@ from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
-from datatable.types import stype
+from datatable.types import stype, ltype
 
 _log_color = term.bright_black
 
@@ -148,7 +149,7 @@ class GenericReader(object):
 
 
     #---------------------------------------------------------------------------
-    # Parameter helpers
+    # Resolve from various sources
     #---------------------------------------------------------------------------
 
     def _resolve_source(self, anysource, file, text, cmd, url):
@@ -371,6 +372,34 @@ class GenericReader(object):
 
         else:
             self._file = filename
+
+
+    def _process_excel_file(self, filename):
+        try:
+            import xlrd
+        except ImportError:
+            raise TValueError("Module `xlrd` is required in order to read "
+                              "Excel file '%s'. You can install this module "
+                              "by running `pip install xlrd` in the command "
+                              "line." % filename)
+        self._result = []
+        wb = xlrd.open_workbook(filename)
+        for ws in wb.sheets():
+            # If the worksheet is empty, skip it
+            if ws.ncols == 0:
+                continue
+            # Assume first row contains headers
+            colnames = ws.row_values(0)
+            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
+                                           -stype.str32.value)
+                     for i in range(ws.ncols)]
+            colset = core.columns_from_columns(cols0)
+            res = Frame(colset.to_datatable(), names=colnames)
+            self._result.append(res)
+        if len(self._result) == 0:
+            self._result = 0
+        if len(self._result) == 1:
+            self._result = self._result[0]
 
 
     #---------------------------------------------------------------------------
@@ -758,190 +787,163 @@ class GenericReader(object):
                 print("Warning: unknown encoding %s" % tty_encoding)
 
 
-    def _override_columns(self, colnames, coltypes):
-        assert len(colnames) == len(coltypes)
-        n = len(colnames)
-        colspec = self._columns
-        self._colnames = []
 
-        if colspec is None:
-            self._colnames = colnames
-            return
+    #---------------------------------------------------------------------------
+    # Process `columns` argument
+    #---------------------------------------------------------------------------
 
+    def _set_column_names(self, colnames):
+        """
+        Invoked by `gread` from C++ to inform the class about the detected
+        column names. This method is a simplified version of
+        `_override_columns`, and will only be invoked if `self._columns` is
+        None.
+        """
+        self._colnames = colnames
+
+
+    def _override_columns0(self, coldescs):
+        return self._override_columns1(self._columns, coldescs)
+
+
+    def _override_columns1(self, colspec, coldescs):
         if isinstance(colspec, (slice, range)):
-            if isinstance(colspec, slice):
-                start, count, step = normalize_slice(colspec, n)
-            else:
-                t = normalize_range(colspec, n)
-                if t is None:
-                    raise TValueError("Invalid range iterator for a file with "
-                                      "%d columns: %r" % (n, colspec))
-                start, count, step = t
-            if step <= 0:
-                raise TValueError("Cannot use slice/range with negative step "
-                                  "for column filter: %r" % colspec)
-            for i in range(n):
-                if (i - start) % step == 0 and i < start + count * step:
-                    self._colnames.append(colnames[i])
-                else:
-                    coltypes[i] = 0
-            return
+            return self._apply_columns_slice(colspec, coldescs)
 
         if isinstance(colspec, set):
-            # Make a copy of the `colspec`, in order to check whether all the
-            # columns requested by the user were found, and issue a warning
-            # otherwise.
-            colsfound = set(colspec)
-            for i in range(n):
-                if colnames[i] in colspec:
-                    if colnames[i] in colsfound:
-                        colsfound.remove(colnames[i])
-                    self._colnames.append(colnames[i])
-                else:
-                    coltypes[i] = 0
-            if colsfound:
-                self.logger.warning("Column(s) %r not found in the input file"
-                                    % list(colsfound))
-            return
+            return self._apply_columns_set(colspec, coldescs)
 
         if isinstance(colspec, (list, tuple)):
-            nn = len(colspec)
-            if n != nn:
-                raise TValueError("Input file contains %s, whereas `columns` "
-                                  "parameter specifies only %s"
-                                  % (plural(n, "column"), plural(nn, "column")))
-            for i in range(n):
-                entry = colspec[i]
-                if entry is None:
-                    coltypes[i] = 0
-                elif isinstance(entry, str):
-                    self._colnames.append(entry)
-                elif isinstance(entry, stype):
-                    self._colnames.append(colnames[i])
-                    coltypes[i] = _coltypes.get(entry)
-                elif isinstance(entry, tuple):
-                    newname, newtype = entry
-                    self._colnames.append(newname)
-                    coltypes[i] = _coltypes.get(newtype)
-                    if not coltypes[i]:
-                        raise TValueError("Unknown type %r used as an override "
-                                          "for column %r" % (newtype, newname))
-                else:
-                    raise TTypeError("Entry `columns[%d]` has invalid type %r"
-                                     % (i, entry.__class__.__name__))
-            return
+            return self._apply_columns_list(colspec, coldescs)
 
         if isinstance(colspec, dict):
-            for i in range(n):
-                name = colnames[i]
-                if name in colspec:
-                    entry = colspec[name]
-                else:
-                    entry = colspec.get(..., ...)
-                if entry is None:
-                    coltypes[i] = 0
-                elif entry is Ellipsis:
-                    self._colnames.append(name)
-                elif isinstance(entry, str):
-                    self._colnames.append(entry)
-                else:
-                    assert isinstance(entry, tuple)
-                    newname, newtype = entry
-                    if newname is Ellipsis:
-                        newname = name
-                    self._colnames.append(newname)
-                    coltypes[i] = _coltypes.get(newtype)
-                    if not coltypes[i]:
-                        raise TValueError("Unknown type %r used as an override "
-                                          "for column %r" % (newtype, newname))
+            return self._apply_columns_dict(colspec, coldescs)
 
-        if callable(colspec) and hasattr(colspec, "__code__"):
-            nargs = colspec.__code__.co_argcount
+        if callable(colspec):
+            return self._apply_columns_function(colspec, coldescs)
 
-            if nargs == 1:
-                for i in range(n):
-                    ret = colspec(colnames[i])
-                    if ret is None or ret is False:
-                        coltypes[i] = 0
-                    elif ret is True:
-                        self._colnames.append(colnames[i])
-                    elif isinstance(ret, str):
-                        self._colnames.append(ret)
-                    else:
-                        raise TValueError("Function passed as the `columns` "
-                                          "argument was expected to return a "
-                                          "`Union[None, bool, str]` but "
-                                          "instead returned value %r" % (ret,))
-                return
-
-            if nargs == 2:
-                for i in range(n):
-                    ret = colspec(i, colnames[i])
-                    if ret is None or ret is False:
-                        coltypes[i] = 0
-                    elif ret is True:
-                        self._colnames.append(colnames[i])
-                    elif isinstance(ret, str):
-                        self._colnames.append(ret)
-                    else:
-                        raise TValueError("Function passed as the `columns` "
-                                          "argument was expected to return a "
-                                          "`Union[None, bool, str]` but "
-                                          "instead returned value %r" % (ret,))
-                return
-
-            if nargs == 3:
-                for i in range(n):
-                    typ = _coltypes_strs[coltypes[i]]
-                    ret = colspec(i, colnames[i], typ)
-                    if ret is None or ret is False:
-                        coltypes[i] = 0
-                    elif ret is True:
-                        self._colnames.append(colnames[i])
-                    elif isinstance(ret, str):
-                        self._colnames.append(ret)
-                    elif isinstance(ret, tuple) and len(ret) == 2:
-                        newname, newtype = ret
-                        self._colnames.append(newname)
-                        coltypes[i] = _coltypes.get(newtype)
-                    else:
-                        raise TValueError("Function passed as the `columns` "
-                                          "argument was expected to return a "
-                                          "`Union[None, bool, str, Tuple[str, "
-                                          "Union[str, type]]]` but "
-                                          "instead returned value %r" % ret)
-                return
-
-            raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
-                               % colspec)
+        raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
+                           % colspec)
 
 
-    def _process_excel_file(self, filename):
-        try:
-            import xlrd
-        except ImportError:
-            raise TValueError("Module `xlrd` is required in order to read "
-                              "Excel file '%s'. You can install this module "
-                              "by running `pip install xlrd` in the command "
-                              "line." % filename)
-        self._result = []
-        wb = xlrd.open_workbook(filename)
-        for ws in wb.sheets():
-            # If the worksheet is empty, skip it
-            if ws.ncols == 0:
-                continue
-            # Assume first row contains headers
-            colnames = ws.row_values(0)
-            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
-                                           -stype.str32.value)
-                     for i in range(ws.ncols)]
-            colset = core.columns_from_columns(cols0)
-            res = Frame(colset.to_datatable(), names=colnames)
-            self._result.append(res)
-        if len(self._result) == 0:
-            self._result = 0
-        if len(self._result) == 1:
-            self._result = self._result[0]
+    def _apply_columns_slice(self, colslice, colsdesc):
+        n = len(colsdesc)
+
+        if isinstance(colslice, slice):
+            start, count, step = normalize_slice(colslice, n)
+        else:
+            t = normalize_range(colslice, n)
+            if t is None:
+                raise TValueError("Invalid range iterator for a file with "
+                                  "%d columns: %r" % (n, colslice))
+            start, count, step = t
+        if step <= 0:
+            raise TValueError("Cannot use slice/range with negative step "
+                              "for column filter: %r" % colslice)
+
+        colnames = [None] * count
+        coltypes = [rtype.rdrop.value] * n
+        for j in range(count):
+            i = start + j * step
+            colnames[j] = colsdesc[i].name
+            coltypes[i] = rtype.rauto.value
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_set(self, colset, colsdesc):
+        n = len(colsdesc)
+        # Make a copy of the `colset` in order to check whether all the
+        # columns requested by the user were found, and issue a warning
+        # otherwise.
+        requested_cols = colset.copy()
+        colnames = []
+        coltypes = [rtype.rdrop.value] * n
+        for i in range(n):
+            colname = colsdesc[i][0]
+            if colname in colset:
+                requested_cols.discard(colname)
+                colnames.append(colname)
+                coltypes[i] = rtype.rauto.value
+        if requested_cols:
+            self.logger.warning("Column(s) %r not found in the input file"
+                                % list(requested_cols))
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_list(self, collist, colsdesc):
+        n = len(colsdesc)
+        nn = len(collist)
+        if n != nn:
+            raise TValueError("Input file contains %s, whereas `columns` "
+                              "parameter specifies only %s"
+                              % (plural(n, "column"), plural(nn, "column")))
+        colnames = []
+        coltypes = [rtype.rdrop.value] * n
+        for i in range(n):
+            entry = collist[i]
+            if entry is None or entry is False:
+                pass
+            elif entry is True or entry is Ellipsis:
+                colnames.append(colsdesc[i].name)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, str):
+                colnames.append(entry)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, (stype, ltype, type)):
+                colnames.append(colsdesc[i].name)
+                coltypes[i] = _rtypes_map[entry].value
+            elif isinstance(entry, tuple):
+                newname, newtype = entry
+                if newtype not in _rtypes_map:
+                    raise TValueError("Unknown type %r used as an override "
+                                      "for column %r" % (newtype, newname))
+                colnames.append(newname)
+                coltypes[i] = _rtypes_map[newtype].value
+            else:
+                raise TTypeError("Entry `columns[%d]` has invalid type %r"
+                                 % (i, entry.__class__.__name__))
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_dict(self, colsdict, colsdesc):
+        default_entry = colsdict.get(..., ...)
+        colnames = []
+        coltypes = [rtype.rdrop.value] * len(colsdesc)
+        for i in range(len(colsdesc)):
+            name = colsdesc[i].name
+            entry = colsdict.get(name, default_entry)
+            if entry is None:
+                pass  # coltype is already "drop"
+            elif entry is Ellipsis:
+                colnames.append(name)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, str):
+                colnames.append(entry)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, (stype, ltype, type)):
+                colnames.append(name)
+                coltypes[i] = _rtypes_map[entry].value
+            elif isinstance(entry, tuple):
+                newname, newtype = entry
+                colnames.append(newname)
+                coltypes[i] = _rtypes_map[newtype].value
+                assert isinstance(newname, str)
+                if not coltypes[i]:
+                    raise TValueError("Unknown type %r used as an override "
+                                      "for column %r" % (newtype, newname))
+            else:
+                raise TTypeError("Unknown value %r for column '%s' in "
+                                 "columns descriptor" % (entry, name))
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_function(self, colsfn, colsdesc):
+        res = colsfn(colsdesc)
+        return self._override_columns1(res, colsdesc)
 
 
 
@@ -967,49 +969,53 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 
 
 #-------------------------------------------------------------------------------
-# Directly corresponds to `PT` enum in "reader_parsers.h"
-_coltypes_strs = [
-    "drop",      # 0
-    "mu",        # 1
-    "bool8n",    # 2
-    "bool8u",    # 3
-    "bool8t",    # 4
-    "bool8l",    # 5
-    "int32",     # 6
-    "int64",     # 7
-    "float32x",  # 8
-    "float64",   # 9
-    "float64e",  # 10
-    "float64x",  # 11
-    "str",       # 12
-]
 
-_coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
-    (bool,       "bool8n"),
-    (int,        "int32"),
-    (float,      "float64"),
-    (str,        "str"),
-    ("bool",     "bool8n"),
-    ("bool8",    "bool8n"),
-    ("bool8n",   "bool8n"),
-    ("bool8u",   "bool8u"),
-    ("bool8t",   "bool8t"),
-    ("bool8l",   "bool8l"),
-    ("int",      "int32"),
-    ("int32",    "int32"),
-    ("int64",    "int64"),
-    ("float32x", "float32x"),
-    ("float",    "float64"),
-    ("float64",  "float64"),
-    ("float64e", "float64e"),
-    ("float64x", "float64x"),
-    ("str",      "str"),
-    ("drop",     "drop"),
-    (stype.bool8, "bool8n"),
-    (stype.int32, "int32"),
-    (stype.int64, "int64"),
-    (stype.float32, "float32x"),  # should be float32
-    (stype.float64, "float64"),
-    (stype.str32, "str"),  # should be str32
-    (stype.str64, "str"),  # should be str32
-]}
+# Corresponds to RT enum in "reader_parsers.h"
+class rtype(enum.Enum):
+    rdrop    = 0
+    rauto    = 1
+    rbool    = 2
+    rint     = 3
+    rint32   = 4
+    rint64   = 5
+    rfloat   = 6
+    rfloat32 = 7
+    rfloat64 = 8
+    rstr     = 9
+    rstr32   = 10
+    rstr64   = 11
+
+
+_rtypes_map = {
+    None:          rtype.rdrop,
+    bool:          rtype.rbool,
+    int:           rtype.rint,
+    float:         rtype.rfloat,
+    str:           rtype.rstr,
+    "drop":        rtype.rdrop,
+    "bool":        rtype.rbool,
+    "auto":        rtype.rauto,
+    "bool8":       rtype.rbool,
+    "logical":     rtype.rbool,
+    "int":         rtype.rint,
+    "integer":     rtype.rint,
+    "int32":       rtype.rint32,
+    "int64":       rtype.rint64,
+    "float":       rtype.rfloat,
+    "float32":     rtype.rfloat32,
+    "float64":     rtype.rfloat64,
+    "str":         rtype.rstr,
+    "str32":       rtype.rstr32,
+    "str64":       rtype.rstr64,
+    stype.bool8:   rtype.rbool,
+    stype.int32:   rtype.rint32,
+    stype.int64:   rtype.rint64,
+    stype.float32: rtype.rfloat32,
+    stype.float64: rtype.rfloat64,
+    stype.str32:   rtype.rstr32,
+    stype.str64:   rtype.rstr64,
+    ltype.bool:    rtype.rbool,
+    ltype.int:     rtype.rint,
+    ltype.real:    rtype.rfloat,
+    ltype.str:     rtype.rstr,
+}

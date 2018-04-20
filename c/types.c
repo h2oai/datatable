@@ -123,15 +123,19 @@ void init_types(void)
     xassert(DT_STYPES_COUNT <= 64);
 
     //---- More static asserts -------------------------------------------------
-    // This checks validity of a cast used in the fread.c
-    for (int i = -128; i <= 127; i++) {
-      char ch = static_cast<char>(i);
-      xassert((ch >= '0' && ch <= '9') == ((uint_fast8_t)(ch - '0') < 10));
-    }
+    #ifndef NDEBUG
+      // This checks validity of a cast used in reader_parsers.cc
+      // Cannot use `char ch` as a loop variable here because `127 + 1 == -128`.
+      for (int i = -128; i <= 127; i++) {
+        char ch = static_cast<char>(i);
+        xassert((ch >= '0' && ch <= '9') ==
+                (static_cast<uint_fast8_t>(ch - '0') < 10));
+      }
 
-    for (int i = 0; i < DT_STYPES_COUNT; i++) {
-      xassert((SType)i == stype_from_string(stype_info[i].code));
-    }
+      for (int i = 0; i < DT_STYPES_COUNT; i++) {
+        xassert(static_cast<SType>(i) == stype_from_string(stype_info[i].code));
+      }
+    #endif
 }
 
 

@@ -437,7 +437,7 @@ def test_fread_columns_dict2():
 
 def test_fread_columns_dict3():
     d0 = dt.fread(text="A,B,C\n1,2,3",
-                  columns={"A": ("foo", float), "B": (..., str), "C": None})
+                  columns={"A": ("foo", float), "B": str, "C": None})
     assert d0.names == ("foo", "B")
     assert d0.ltypes == (ltype.real, ltype.str)
     assert d0.topython() == [[1.0], ["2"]]
@@ -446,16 +446,17 @@ def test_fread_columns_dict3():
 def test_fread_columns_fn1():
     text = ("A1,A2,A3,A4,A5,x16,b333\n"
             "5,4,3,2,1,0,0\n")
-    d0 = dt.fread(text=text, columns=lambda col: int(col[1:]) % 2 == 0)
+    d0 = dt.fread(text=text, columns=lambda cols: [int(col.name[1:]) % 2 == 0
+                                                   for col in cols])
     assert d0.internal.check()
     assert d0.names == ("A2", "A4", "x16")
     assert d0.topython() == [[4], [2], [0]]
 
 
 def test_fread_columns_fn3():
-    d0 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, int))
-    d1 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, float))
-    d2 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, str))
+    d0 = dt.fread('A,B\n"1","2"', columns=lambda cols: [int] * len(cols))
+    d1 = dt.fread('A,B\n"1","2"', columns=lambda cols: [float] * len(cols))
+    d2 = dt.fread('A,B\n"1","2"', columns=lambda cols: [str] * len(cols))
     assert d0.internal.check()
     assert d1.internal.check()
     assert d2.internal.check()

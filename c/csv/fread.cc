@@ -327,14 +327,14 @@ DataTablePtr FreadReader::read()
     if (verbose) trace("[5] Apply user overrides on column types");
     std::unique_ptr<PT[]> oldtypes = columns.getTypes();
 
-    userOverride();
+    report_columns_to_python();
 
     size_t ncols = columns.size();
     size_t ndropped = 0;
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
-      if (col.type == PT::Drop) {
+      if (col.rtype == RT::RDrop) {
         ndropped++;
         col.presentInOutput = false;
         col.presentInBuffer = false;
@@ -404,7 +404,6 @@ DataTablePtr FreadReader::read()
             col.presentInBuffer = true;
             n_type_bump_cols++;
           } else {
-            types[j] = PT::Drop;
             col.presentInBuffer = false;
           }
         }

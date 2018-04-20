@@ -20,6 +20,7 @@
 #include "utils/shared_mutex.h"
 
 enum PT : uint8_t;
+enum RT : uint8_t;
 
 
 //------------------------------------------------------------------------------
@@ -33,22 +34,24 @@ enum PT : uint8_t;
  *
  * An input column usually translates into an output column in a DataTable
  * returned to the user. The exception to this are "dropped" columns. They are
- * marked with `presentInOutput = false` flag (and have type PT::Drop).
+ * marked with `presentInOutput = false` flag (and have rtype RT::RDrop).
  *
  * Implemented in "csv/reader_utils.cc".
  */
 class GReaderColumn {
   private:
     MemoryBuffer* mbuf;
+    static PyTypeObject* NameTypePyTuple;
 
   public:
     std::string name;
     MemoryWritableBuffer* strdata;
     PT type;
+    RT rtype;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
-    int32_t : 32;
+    int32_t : 24;
 
   public:
     GReaderColumn();
@@ -64,6 +67,8 @@ class GReaderColumn {
     MemoryBuffer* extract_databuf();
     MemoryBuffer* extract_strbuf();
     void convert_to_str64();
+    PyObj py_descriptor() const;
+    static void init_nametypepytuple();
 };
 
 
@@ -155,7 +160,7 @@ class GenericReader
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
-    int : 8;
+    bool    override_column_types;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -234,6 +239,7 @@ class GenericReader
     void init_skipstring();
     void init_stripwhite();
     void init_skipblanklines();
+    void init_overridecolumntypes();
 
   protected:
     void open_input();
@@ -243,6 +249,7 @@ class GenericReader
     void skip_to_line_number();
     void skip_to_line_with_string();
     void decode_utf16();
+    void report_columns_to_python();
 
     void _message(const char* method, const char* format, va_list args) const;
 

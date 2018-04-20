@@ -93,8 +93,7 @@ def open(path):
             else:
                 raise ValueError("Unknown NFF format: %s" % info[0])
 
-        f0 = dt.fread(metafile, sep=",",
-                      columns=lambda i, name, type: (name, str))
+        f0 = dt.fread(metafile, sep=",", columns=[dt.stype.str32] * 4)
         f1 = f0(select=["filename", "stype", "meta"])
         colnames = f0["colname"].topython()[0]
         _dt = core.datatable_load(f1.internal, nrows, path)

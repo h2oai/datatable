@@ -15,6 +15,8 @@
 #include "options.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
+#include "python/long.h"
+#include "python/string.h"
 
 
 //------------------------------------------------------------------------------
@@ -47,6 +49,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   init_skipstring();
   init_stripwhite();
   init_skipblanklines();
+  init_overridecolumntypes();
 }
 
 // Copy-constructor will copy only the essential parts
@@ -68,6 +71,7 @@ GenericReader::GenericReader(const GenericReader& g) {
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
+  override_column_types = g.override_column_types;
   // Runtime parameters
   input_mbuf    = g.input_mbuf? g.input_mbuf->shallowcopy() : nullptr;
   sof     = g.sof;
@@ -259,6 +263,10 @@ void GenericReader::init_stripwhite() {
 void GenericReader::init_skipblanklines() {
   skip_blank_lines = freader.attr("skip_blank_lines").as_bool();
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
+}
+
+void GenericReader::init_overridecolumntypes() {
+  override_column_types = !freader.attr("_columns").is_none();
 }
 
 
@@ -559,9 +567,7 @@ void GenericReader::decode_utf16() {
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;
-  tempstr = PyObj::fromPyObjectNewRef(
-    PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder)
-  );
+  tempstr = PyObj(PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder));
   PyObject* t = tempstr.as_pyobject();  // new ref
   // borrowed ref, belongs to PyObject `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
@@ -572,6 +578,53 @@ void GenericReader::decode_utf16() {
   // the object `t` remains alive within `tempstr`
   Py_DECREF(t);
 }
+
+
+
+void GenericReader::report_columns_to_python() {
+  size_t ncols = columns.size();
+
+  if (override_column_types) {
+    PyyList colDescriptorList(ncols);
+    for (size_t i = 0; i < ncols; i++) {
+      colDescriptorList[i] = columns[i].py_descriptor();
+    }
+
+    PyyList newTypesList =
+      freader.invoke("_override_columns0", "(O)",
+                     colDescriptorList.release());
+
+    if (newTypesList) {
+      for (size_t i = 0; i < ncols; i++) {
+        PyObj elem = newTypesList[i];
+        columns[i].rtype = static_cast<RT>(elem.as_int64());  // unsafe?
+        // Temporary
+        switch (columns[i].rtype) {
+          case RDrop:    columns[i].type = PT::Str32; break;
+          case RAuto:    break;
+          case RBool:    columns[i].type = PT::Bool01; break;
+          case RInt:     columns[i].type = PT::Int32; break;
+          case RInt32:   columns[i].type = PT::Int32; break;
+          case RInt64:   columns[i].type = PT::Int64; break;
+          case RFloat:   columns[i].type = PT::Float32Hex; break;
+          case RFloat32: columns[i].type = PT::Float32Hex; break;
+          case RFloat64: columns[i].type = PT::Float64Plain; break;
+          case RStr:     columns[i].type = PT::Str32; break;
+          case RStr32:   columns[i].type = PT::Str32; break;
+          case RStr64:   columns[i].type = PT::Str64; break;
+        }
+      }
+    }
+
+  } else {
+    PyyList colNamesList(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      colNamesList[i] = PyyString(columns[i].name);
+    }
+    freader.invoke("_set_column_names", "(O)", colNamesList.release());
+  }
+}
+
 
 
 DataTablePtr GenericReader::makeDatatable() {

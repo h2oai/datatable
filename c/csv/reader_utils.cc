@@ -8,6 +8,8 @@
 #include "csv/reader.h"
 #include "csv/fread.h"   // temporary
 #include "csv/reader_parsers.h"
+#include "python/string.h"
+#include "python/long.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
@@ -22,6 +24,7 @@ GReaderColumn::GReaderColumn() {
   mbuf = nullptr;
   strdata = nullptr;
   type = PT::Mu;
+  rtype = RT::RAuto;
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;
@@ -29,8 +32,8 @@ GReaderColumn::GReaderColumn() {
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
   : mbuf(o.mbuf), name(std::move(o.name)), strdata(o.strdata), type(o.type),
-    typeBumped(o.typeBumped), presentInOutput(o.presentInOutput),
-    presentInBuffer(o.presentInBuffer) {
+    rtype(o.rtype), typeBumped(o.typeBumped),
+    presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer) {
   o.mbuf = nullptr;
   o.strdata = nullptr;
 }
@@ -105,6 +108,48 @@ void GReaderColumn::convert_to_str64() {
   type = PT::Str64;
   mbuf->release();
   mbuf = new_mbuf->shallowcopy();
+}
+
+
+PyTypeObject* GReaderColumn::NameTypePyTuple = nullptr;
+
+void GReaderColumn::init_nametypepytuple() {
+  if (NameTypePyTuple) return;
+  static const char* tuple_name = "column_descriptor";
+  static const char* field0 = "name";
+  static const char* field1 = "type";
+  PyStructSequence_Field* fields = new PyStructSequence_Field[3];
+  fields[0].name = const_cast<char*>(field0);
+  fields[1].name = const_cast<char*>(field1);
+  fields[2].name = nullptr;
+  fields[0].doc = nullptr;
+  fields[1].doc = nullptr;
+  fields[2].doc = nullptr;
+  PyStructSequence_Desc* desc = new PyStructSequence_Desc;
+  desc->name = const_cast<char*>(tuple_name);
+  desc->doc = nullptr;
+  desc->fields = fields;
+  desc->n_in_sequence = 2;
+  // Do not use PyStructSequence_NewType, because it is buggy
+  // (see https://lists.gt.net/python/bugs/1320383)
+  NameTypePyTuple = new PyTypeObject;
+  PyStructSequence_InitType2(NameTypePyTuple, desc);
+
+  // clean up
+  delete[] fields;
+  delete desc;
+}
+
+
+PyObj GReaderColumn::py_descriptor() const {
+  if (!NameTypePyTuple) init_nametypepytuple();
+  PyObject* nt_tuple = PyStructSequence_New(NameTypePyTuple);  // new ref
+  if (!nt_tuple) throw PyError();
+  PyObject* stype = py_stype_objs[ParserLibrary::info(type).stype];
+  Py_INCREF(stype);
+  PyStructSequence_SetItem(nt_tuple, 0, PyyString(name).release());
+  PyStructSequence_SetItem(nt_tuple, 1, stype);
+  return PyObj(std::move(nt_tuple));
 }
 
 

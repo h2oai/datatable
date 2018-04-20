@@ -13,7 +13,10 @@
 #include "python/float.h"
 #include "python/list.h"
 #include "python/long.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
+
+PyObject* PyObj::None = Py_None;
 
 
 PyObj::PyObj() {
@@ -21,18 +24,24 @@ PyObj::PyObj() {
   tmp = nullptr;
 }
 
-PyObj::PyObj(PyObject* o) {
+PyObj::PyObj(PyObject* const& o) {
   obj = o;
   tmp = nullptr;
-  if (!obj) throw PyError();
+  xassert(obj);
   Py_INCREF(o);
+}
+
+PyObj::PyObj(PyObject*&& o) {
+  obj = o;
+  tmp = nullptr;
+  xassert(obj);
 }
 
 PyObj::PyObj(PyObject* o, const char* attr) {
   // `PyObject_GetAttrString` returns a new reference
   obj = PyObject_GetAttrString(o, attr);
   tmp = nullptr;
-  if (!obj) throw PyError();
+  xassert(obj);
 }
 
 PyObj::PyObj(const PyObj& other) {
@@ -57,14 +66,8 @@ PyObj::~PyObj() {
   Py_XDECREF(tmp);
 }
 
-PyObj PyObj::fromPyObjectNewRef(PyObject* t) {
-  PyObj res(t);
-  Py_XDECREF(t);
-  return res;
-}
-
 PyObj PyObj::none() {
-  return PyObj(Py_None);
+  return PyObj(PyObj::None);
 }
 
 
@@ -103,7 +106,7 @@ PyObj PyObj::invoke(const char* fn, const char* format, ...) const {
   Py_XDECREF(callable);
   Py_XDECREF(args);
   if (!res) throw PyError();
-  return PyObj::fromPyObjectNewRef(res);
+  return PyObj(std::move(res));
 }
 
 
@@ -309,7 +312,7 @@ void PyObj::print() {
 
 
 PyObj PyObj::__str__() const {
-  return PyObj::fromPyObjectNewRef(PyObject_Str(obj));
+  return PyObj(PyObject_Str(obj));
 }
 
 

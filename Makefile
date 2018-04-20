@@ -263,6 +263,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	python/float.o            \
 	python/list.o             \
 	python/long.o             \
+	python/string.o           \
 	rowindex.o                \
 	rowindex_array.o          \
 	rowindex_slice.o          \
@@ -461,6 +462,10 @@ $(BUILDDIR)/python/long.h: c/python/long.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/long.h
 	@cp c/python/long.h $@
 
+$(BUILDDIR)/python/string.h: c/python/string.h $(BUILDDIR)/utils/pyobj.h
+	@echo • Refreshing c/python/string.h
+	@cp c/python/string.h $@
+
 
 $(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/array.h
@@ -548,7 +553,7 @@ $(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc $(BUILDDIR)/options.h $(BUILDDIR)/csv
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/options.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/options.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -564,7 +569,7 @@ $(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/fread
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -672,11 +677,15 @@ $(BUILDDIR)/python/float.o : c/python/float.cc $(BUILDDIR)/python/float.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/python/long.o : c/python/long.cc $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/python/string.o : c/python/string.cc $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -724,7 +733,7 @@ $(BUILDDIR)/utils/file.o : c/utils/file.cc $(BUILDDIR)/utils.h $(BUILDDIR)/utils
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
