@@ -20,6 +20,7 @@
 #include "utils/shared_mutex.h"
 
 enum PT : uint8_t;
+enum RT : uint8_t;
 
 
 //------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ enum PT : uint8_t;
  *
  * An input column usually translates into an output column in a DataTable
  * returned to the user. The exception to this are "dropped" columns. They are
- * marked with `presentInOutput = false` flag (and have type PT::Drop).
+ * marked with `presentInOutput = false` flag (and have rtype RT::RDrop).
  *
  * Implemented in "csv/reader_utils.cc".
  */
@@ -46,10 +47,11 @@ class GReaderColumn {
     std::string name;
     MemoryWritableBuffer* strdata;
     PT type;
+    RT rtype;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
-    int32_t : 32;
+    int32_t : 24;
 
   public:
     GReaderColumn();

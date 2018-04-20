@@ -893,14 +893,14 @@ class GenericReader(object):
                 coltypes[i] = rtype.rauto.value
             elif isinstance(entry, (stype, ltype, type)):
                 colnames.append(colsdesc[i].name)
-                coltypes[i] = _coltypes.get(entry)
+                coltypes[i] = _rtypes_map[entry].value
             elif isinstance(entry, tuple):
                 newname, newtype = entry
-                colnames.append(newname)
-                coltypes[i] = _coltypes.get(newtype)
-                if not coltypes[i]:
+                if newtype not in _rtypes_map:
                     raise TValueError("Unknown type %r used as an override "
                                       "for column %r" % (newtype, newname))
+                colnames.append(newname)
+                coltypes[i] = _rtypes_map[newtype].value
             else:
                 raise TTypeError("Entry `columns[%d]` has invalid type %r"
                                  % (i, entry.__class__.__name__))
@@ -925,11 +925,11 @@ class GenericReader(object):
                 coltypes[i] = rtype.rauto.value
             elif isinstance(entry, (stype, ltype, type)):
                 colnames.append(name)
-                coltypes[i] = _coltypes.get(entry)
+                coltypes[i] = _rtypes_map[entry].value
             elif isinstance(entry, tuple):
                 newname, newtype = entry
                 colnames.append(newname)
-                coltypes[i] = _coltypes.get(newtype)
+                coltypes[i] = _rtypes_map[newtype].value
                 assert isinstance(newname, str)
                 if not coltypes[i]:
                     raise TValueError("Unknown type %r used as an override "
@@ -969,52 +969,6 @@ _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
 
 
 #-------------------------------------------------------------------------------
-# Directly corresponds to `PT` enum in "reader_parsers.h"
-_coltypes_strs = [
-    "drop",      # 0
-    "mu",        # 1
-    "bool8n",    # 2
-    "bool8u",    # 3
-    "bool8t",    # 4
-    "bool8l",    # 5
-    "int32",     # 6
-    "int64",     # 7
-    "float32x",  # 8
-    "float64",   # 9
-    "float64e",  # 10
-    "float64x",  # 11
-    "str",       # 12
-]
-
-_coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
-    (bool,       "bool8n"),
-    (int,        "int32"),
-    (float,      "float64"),
-    (str,        "str"),
-    ("bool",     "bool8n"),
-    ("bool8",    "bool8n"),
-    ("bool8n",   "bool8n"),
-    ("bool8u",   "bool8u"),
-    ("bool8t",   "bool8t"),
-    ("bool8l",   "bool8l"),
-    ("int",      "int32"),
-    ("int32",    "int32"),
-    ("int64",    "int64"),
-    ("float32x", "float32x"),
-    ("float",    "float64"),
-    ("float64",  "float64"),
-    ("float64e", "float64e"),
-    ("float64x", "float64x"),
-    ("str",      "str"),
-    ("drop",     "drop"),
-    (stype.bool8, "bool8n"),
-    (stype.int32, "int32"),
-    (stype.int64, "int64"),
-    (stype.float32, "float32x"),  # should be float32
-    (stype.float64, "float64"),
-    (stype.str32, "str"),  # should be str32
-    (stype.str64, "str"),  # should be str32
-]}
 
 # Corresponds to RT enum in "reader_parsers.h"
 class rtype(enum.Enum):
@@ -1032,3 +986,36 @@ class rtype(enum.Enum):
     rstr64   = 11
 
 
+_rtypes_map = {
+    None:          rtype.rdrop,
+    bool:          rtype.rbool,
+    int:           rtype.rint,
+    float:         rtype.rfloat,
+    str:           rtype.rstr,
+    "drop":        rtype.rdrop,
+    "bool":        rtype.rbool,
+    "auto":        rtype.rauto,
+    "bool8":       rtype.rbool,
+    "logical":     rtype.rbool,
+    "int":         rtype.rint,
+    "integer":     rtype.rint,
+    "int32":       rtype.rint32,
+    "int64":       rtype.rint64,
+    "float":       rtype.rfloat,
+    "float32":     rtype.rfloat32,
+    "float64":     rtype.rfloat64,
+    "str":         rtype.rstr,
+    "str32":       rtype.rstr32,
+    "str64":       rtype.rstr64,
+    stype.bool8:   rtype.rbool,
+    stype.int32:   rtype.rint32,
+    stype.int64:   rtype.rint64,
+    stype.float32: rtype.rfloat32,
+    stype.float64: rtype.rfloat64,
+    stype.str32:   rtype.rstr32,
+    stype.str64:   rtype.rstr64,
+    ltype.bool:    rtype.rbool,
+    ltype.int:     rtype.rint,
+    ltype.real:    rtype.rfloat,
+    ltype.str:     rtype.rstr,
+}

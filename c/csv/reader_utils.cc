@@ -24,6 +24,7 @@ GReaderColumn::GReaderColumn() {
   mbuf = nullptr;
   strdata = nullptr;
   type = PT::Mu;
+  rtype = RT::RAuto;
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;
