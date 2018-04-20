@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   exception throws.
 - Default column names, if none given by the user, are "C0", "C1", "C2", ...
   for both `fread` and `Frame` constructor.
+- function-valued `columns` parameter in fread has been changed: if previously
+  the function was invoked for every column, now it receives the list of all
+  columns at once, and is expected to return a modified list (or dict / set /
+  etc). Each column description in the list that the function receives carries
+  the columns name and stype, in the future `format` field will also be added.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file
