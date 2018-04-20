@@ -8,7 +8,13 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.0)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.1)
+#### Added
+#### Changed
+#### Fixed
+
+
+### [v0.3.1](https://github.com/h2oai/datatable/compare/0.3.1...v0.3.0) — 2018-04-20
 #### Added
 - Added ability to delete rows from a view Frame.
 - Implement countna() function for `obj64` columns.
@@ -56,7 +62,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed sorting of 1-row view frames.
 
 
-### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) - 2018-03-19
+### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) — 2018-03-19
 #### Added
 - Method `df.tonumpy()` now has argument `stype` which will force conversion into
   a numpy array of the specific stype.
