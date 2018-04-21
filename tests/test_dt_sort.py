@@ -593,7 +593,8 @@ def test_str32_large5():
     assert dt0.topython()[0] == sorted(src)
 
 
-def test_str32_large6():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_large6(st):
     rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
     assert os.path.isdir(rootdir)
     words = []
@@ -602,7 +603,8 @@ def test_str32_large6():
             f = os.path.join(dirname, filename)
             txt = open(f, "r", encoding="utf-8").read()
             words.extend(txt.split())
-    dt0 = dt.Frame(words)
+    dt0 = dt.Frame(words, stype=st)
+    assert dt0.stypes == (st, )
     dt1 = dt0(sort=0)
     assert dt1.internal.check()
     assert dt1.topython()[0] == sorted(words)

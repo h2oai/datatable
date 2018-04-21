@@ -127,14 +127,18 @@ extern template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGat
 
 extern template void insert_sort_keys_str(const uint8_t*, const int32_t*, int32_t, int32_t*, int32_t*, int, GroupGatherer&);
 extern template void insert_sort_values_str(const uint8_t*, const int32_t*, int32_t, int32_t*, int, GroupGatherer&);
+extern template void insert_sort_keys_str(const uint8_t*, const int64_t*, int64_t, int32_t*, int32_t*, int, GroupGatherer&);
+extern template void insert_sort_values_str(const uint8_t*, const int64_t*, int64_t, int32_t*, int, GroupGatherer&);
 
 extern template int compare_offstrings(const uint8_t*, int32_t, int32_t, int32_t, int32_t);
+extern template int compare_offstrings(const uint8_t*, int64_t, int64_t, int64_t, int64_t);
 
 extern template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint8_t*, const int32_t*, int32_t, int32_t*, size_t);
+extern template void GroupGatherer::from_data(const uint8_t*, const int64_t*, int64_t, int32_t*, size_t);
 
 
 #endif
