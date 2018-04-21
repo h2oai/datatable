@@ -107,3 +107,4 @@ template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint8_t*, const int32_t*, int32_t, int32_t*, size_t);
+template void GroupGatherer::from_data(const uint8_t*, const int64_t*, int64_t, int32_t*, size_t);
