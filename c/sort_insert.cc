@@ -211,4 +211,7 @@ template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&)
 
 template void insert_sort_keys_str(const uint8_t*, const int32_t*, int32_t, int32_t*, int32_t*, int, GroupGatherer&);
 template void insert_sort_values_str(const uint8_t*, const int32_t*, int32_t, int32_t*, int, GroupGatherer&);
+template void insert_sort_keys_str(const uint8_t*, const int64_t*, int64_t, int32_t*, int32_t*, int, GroupGatherer&);
+template void insert_sort_values_str(const uint8_t*, const int64_t*, int64_t, int32_t*, int, GroupGatherer&);
 template int compare_offstrings(const uint8_t*, int32_t, int32_t, int32_t, int32_t);
+template int compare_offstrings(const uint8_t*, int64_t, int64_t, int64_t, int64_t);
