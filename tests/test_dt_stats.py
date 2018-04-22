@@ -32,7 +32,10 @@ srcs_real = [[9.5, 0.2, 5.4857301, -3.14159265358979],
 
 srcs_str = [["foo", None, "bar", "baaz", None],
             ["a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a"],
-            ["leeeeeroy!"]]
+            ["leeeeeroy!"],
+            (dt.str64, ["abc", None, "def", "abc", "a", None, "a", "ab"]),
+            (dt.str64, [None, "integrity", None, None, None, None, None]),
+            (dt.str64, ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"])]
 
 srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)],
             ["a", "bc", "def", None, -2.5, 3.7]]
@@ -230,13 +233,18 @@ def t_count_na(arr):
 
 @pytest.mark.parametrize("src", srcs_all + srcs_obj)
 def test_dt_count_na(src):
-    dt0 = dt.Frame(src)
+    if isinstance(src, tuple):
+        dt0 = dt.Frame(src[1], stype=src[0])
+        ans = t_count_na(src[1])
+    else:
+        dt0 = dt.Frame(src)
+        ans = t_count_na(src)
     dtr = dt0.countna()
     assert dtr.internal.check()
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
-    assert dtr.topython() == [[t_count_na(src)]]
+    assert dtr.topython() == [[ans]]
     assert dtr.scalar() == dt0.countna1()
 
 
@@ -250,13 +258,18 @@ def n_unique(arr):
 
 @pytest.mark.parametrize("src", srcs_all)
 def test_dt_n_unique(src):
-    dt0 = dt.Frame(src)
+    if isinstance(src, tuple):
+        dt0 = dt.Frame(src[1], stype=src[0])
+        ans = n_unique(src[1])
+    else:
+        dt0 = dt.Frame(src)
+        ans = n_unique(src)
     dtr = dt0.nunique()
     assert dtr.internal.check()
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dtr.names == dt0.names
-    assert dtr.scalar() == n_unique(src)
+    assert dtr.scalar() == ans
     assert dtr.scalar() == dt0.nunique1()
 
 
@@ -285,6 +298,7 @@ def t_mode(arr):
 
 @pytest.mark.parametrize("src", srcs_all)
 def test_mode(src):
+    if isinstance(src, tuple): return
     f0 = dt.Frame(src)
     dtm = f0.mode()
     dtn = f0.nmodal()

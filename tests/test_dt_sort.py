@@ -522,8 +522,11 @@ def test_sort_view_large_strs():
 
 
 #-------------------------------------------------------------------------------
+# Str32/Str64
+#-------------------------------------------------------------------------------
 
-def test_str32_small1():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_small1(st):
     src = ["MOTHER OF EXILES. From her beacon-hand",
            "Glows world-wide welcome; her mild eyes command",
            "The air-bridged harbor that twin cities frame.",
@@ -533,64 +536,78 @@ def test_str32_small1():
            "The wretched refuse of your teeming shore.",
            "Send these, the homeless, tempest-tost to me,",
            "I lift my lamp beside the golden door!'"]
-    d0 = dt.Frame(src)
+    d0 = dt.Frame(src, stype=st)
+    assert d0.stypes == (st, )
     d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
-def test_str32_small2():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_small2(st):
     src = ["Welcome", "Welc", "", None, "Welc", "Welcome!", "Welcame"]
-    d0 = dt.Frame(src)
+    d0 = dt.Frame(src, stype=st)
+    assert d0.stypes == (st, )
     d1 = d0.sort(0)
     assert d1.internal.check()
     src.remove(None)
     assert d1.topython() == [[None] + sorted(src)]
 
 
-def test_str32_large1():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_large1(st):
     src = list("dfbvoiqeubvqoiervblkdfbvqoiergqoiufbvladfvboqiervblq"
                "134ty1-394 8n09er8gy209rg hwdoif13-40t 9u13- jdpfver")
-    d0 = dt.Frame(src)
+    d0 = dt.Frame(src, stype=st)
+    assert d0.stypes == (st, )
     d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
-def test_str32_large2():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_large2(st):
     src = ["test-%d" % (i * 1379 % 200) for i in range(200)]
-    d0 = dt.Frame(src)
+    d0 = dt.Frame(src, stype=st)
+    assert d0.stypes == (st, )
     d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
-def test_str32_large3():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_large3(st):
     src = ["aa"] * 100 + ["abc", "aba", "abb", "aba", "abc"]
-    d0 = dt.Frame(src)
+    d0 = dt.Frame(src, stype=st)
+    assert d0.stypes == (st, )
     d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
-def test_str32_large4():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_large4(st):
     src = ["aa"] * 100 + ["ab%d" % (i // 10) for i in range(100)] + \
           ["bb", "cce", "dd"] * 25 + ["ff", "gg", "hhe"] * 10 + \
           ["ff3", "www"] * 2
-    d0 = dt.Frame(src)
+    d0 = dt.Frame(src, stype=st)
+    assert d0.stypes == (st, )
     d1 = d0.sort(0)
     assert d1.internal.check()
     assert d1.topython() == [sorted(src)]
 
 
-def test_str32_large5():
+@pytest.mark.parametrize("st", [dt.str32, dt.str64])
+def test_strXX_large5(st):
     src = ['acol', 'acols', 'acolu', 'acells', 'achar', 'bdatatable!'] * 20 + \
           ['bd', 'bdat', 'bdata', 'bdatr', 'bdatx', 'bdatatable'] * 5 + \
           ['bdt%d' % (i // 2) for i in range(30)]
     random.shuffle(src)
-    dt0 = dt.Frame(src)(sort=0)
-    assert dt0.internal.check()
-    assert dt0.topython()[0] == sorted(src)
+    dt0 = dt.Frame(src, stype=st)
+    assert dt0.stypes == (st, )
+    dt1 = dt0(sort=0)
+    assert dt1.internal.check()
+    assert dt1.topython()[0] == sorted(src)
 
 
 @pytest.mark.parametrize("st", [dt.str32, dt.str64])
