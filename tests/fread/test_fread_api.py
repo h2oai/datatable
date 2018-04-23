@@ -317,6 +317,39 @@ def test_fread_bad_source_cmd():
     assert "Invalid parameter `cmd` in fread: expected str" in str(e)
 
 
+def test_fread_from_glob(tempfile):
+    base, ext = os.path.splitext(tempfile)
+    if not ext:
+        ext = ".csv"
+    pattern = base + "*" + ext
+    tempfiles = ["".join([base, str(i), ext]) for i in range(10)]
+    try:
+        for j in range(10):
+            with open(tempfiles[j], "w") as f:
+                f.write("A,B,C\n0,0,0\n%d,%d,%d\n"
+                        % (j, j * 2 + 1, (j + 3) * 17 % 23))
+        res = dt.fread(pattern)
+        assert len(res) == 10
+        assert set(res.keys()) == set(tempfiles)
+        assert all(isinstance(f, dt.Frame) for f in res.values())
+        assert all(f.internal.check() for f in res.values())
+        assert all(f.names == ("A", "B", "C") for f in res.values())
+        assert all(f.shape == (2, 3) for f in res.values())
+        df = dt.Frame().rbind(*[res[f] for f in tempfiles])
+        assert df.internal.check()
+        assert df.names == ("A", "B", "C")
+        assert df.shape == (20, 3)
+        assert df.topython() == [
+            [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9],
+            [0, 1, 0, 3, 0, 5, 0, 7, 0, 9, 0, 11, 0, 13, 0, 15, 0, 17, 0, 19],
+            [0, 5, 0, 22, 0, 16, 0, 10, 0, 4, 0, 21, 0, 15, 0, 9, 0, 3, 0, 20]
+        ]
+    finally:
+        for f in tempfiles:
+            os.remove(f)
+
+
+
 
 #-------------------------------------------------------------------------------
 # `columns`
