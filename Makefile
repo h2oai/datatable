@@ -119,6 +119,9 @@ dist: build
 dist_noomp: build_noomp
 	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
 
+sdist:
+	$(PYTHON) setup.py sdist
+
 version:
 	@$(PYTHON) setup.py --version
 

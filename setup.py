@@ -17,8 +17,8 @@ import sys
 import re
 import sysconfig
 from functools import lru_cache as memoize
-from setuptools import setup, find_packages
-from distutils.core import Extension
+from setuptools import setup, find_packages, Extension
+# from distutils.core import Extension
 from sys import stderr
 
 
@@ -47,14 +47,18 @@ def get_version():
     return version
 
 
-def get_c_sources():
-    """Find all C source files in the "c/" directory."""
-    c_sources = []
-    for root, dirs, files in os.walk("c"):
+def get_c_sources(folder, include_headers=False):
+    """Find all C/C++ source files in the `folder` directory."""
+    allowed_extensions = [".c", ".C", ".cc", ".cpp", ".cxx", ".c++"]
+    if include_headers:
+        allowed_extensions.extend([".h", ".hpp"])
+    sources = []
+    for root, dirs, files in os.walk(folder):
         for name in files:
-            if name.endswith(".c") or name.endswith(".cc"):
-                c_sources.append(os.path.join(root, name))
-    return c_sources
+            ext = os.path.splitext(name)[1]
+            if ext in allowed_extensions:
+                sources.append(os.path.join(root, name))
+    return sources
 
 
 def get_py_sources():
@@ -397,9 +401,10 @@ setup(
         Extension(
             "datatable/lib/_datatable",
             include_dirs=["c"],
-            sources=get_c_sources(),
+            sources=get_c_sources("c", include_headers=(argcmd == "sdist")),
             extra_compile_args=get_extra_compile_flags(),
             extra_link_args=get_extra_link_args(),
+            language="c++",
         ),
     ],
 
