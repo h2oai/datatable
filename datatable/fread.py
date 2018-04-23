@@ -5,6 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import enum
+import glob
 import os
 import pathlib
 import psutil
@@ -27,6 +28,7 @@ from datatable.types import stype, ltype
 
 _log_color = term.bright_black
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
+_glob_regex = re.compile(r"[\*\?\[\]]")
 
 
 def fread(
@@ -202,6 +204,10 @@ class GenericReader(object):
                     if self.verbose:
                         self.logger.debug("Input is a URL.")
                     self._resolve_source_url(src)
+                elif is_str and re.search(_glob_regex, src):
+                    if self.verbose:
+                        self.logger.debug("Input is a glob pattern.")
+                    self._resolve_source_list_of_files(glob.glob(src))
                 else:
                     if self.verbose:
                         self.logger.debug("Input is assumed to be a "
@@ -209,6 +215,8 @@ class GenericReader(object):
                     self._resolve_source_file(src)
         elif isinstance(src, _pathlike) or hasattr(src, "read"):
             self._resolve_source_file(src)
+        elif isinstance(src, (list, tuple)):
+            self._resolve_source_list_of_files(src)
         else:
             raise TTypeError("Unknown type for the first argument in fread: %r"
                              % type(src))
@@ -290,6 +298,14 @@ class GenericReader(object):
             raise TValueError("Path `%s` is not a file" % file)
         self._src = file
         self._resolve_archive(file)
+
+
+    def _resolve_source_list_of_files(self, files_list):
+        self._files = []
+        for s in files_list:
+            self._resolve_source_file(s)
+            entry = (self._src, self._file, self._fileno, self._text)
+            self._files.append(entry)
 
 
     def _resolve_source_cmd(self, cmd):
@@ -375,7 +391,8 @@ class GenericReader(object):
                               "Excel file '%s'. You can install this module "
                               "by running `pip install xlrd` in the command "
                               "line." % filename)
-        self._result = []
+        if self._result is None:
+            self._result = {}
         wb = xlrd.open_workbook(filename)
         for ws in wb.sheets():
             # If the worksheet is empty, skip it
@@ -388,11 +405,11 @@ class GenericReader(object):
                      for i in range(ws.ncols)]
             colset = core.columns_from_columns(cols0)
             res = Frame(colset.to_datatable(), names=colnames)
-            self._result.append(res)
+            self._result[ws.name] = res
         if len(self._result) == 0:
-            self._result = 0
+            self._result = None
         if len(self._result) == 1:
-            self._result = self._result[0]
+            self._result = [*self._result.values()][0]
 
 
     #---------------------------------------------------------------------------
@@ -671,12 +688,28 @@ class GenericReader(object):
     #---------------------------------------------------------------------------
 
     def read(self):
-        if self._result:
-            return self._result
         try:
-            _dt = core.gread(self)
-            dt = Frame(_dt, names=self._colnames)
-            return dt
+            if self._result:
+                return self._result
+            if self._files:
+                res = {}
+                for src, filename, fileno, txt in self._files:
+                    self._src = src
+                    self._file = filename
+                    self._fileno = fileno
+                    self._txt = txt
+                    self._colnames = None
+                    try:
+                        _dt = core.gread(self)
+                        dt = Frame(_dt, names=self._colnames)
+                        res[src] = dt
+                    except Exception as e:
+                        res[src] = e
+                return res
+            else:
+                _dt = core.gread(self)
+                dt = Frame(_dt, names=self._colnames)
+                return dt
         finally:
             self._clear_temporary_files()
 
