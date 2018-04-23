@@ -77,7 +77,7 @@ def test_fread_from_anysource_as_text1(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     assert d0.internal.check()
-    assert "Input contains newline(s), treating it as raw text" in out
+    assert "Input contains '\\x0A', treating it as raw text" in out
 
 
 def test_fread_from_anysource_as_text2(capsys):
@@ -96,7 +96,7 @@ def test_fread_from_anysource_as_text3(capsys):
     out, err = capsys.readouterr()
     assert d0.internal.check()
     assert d0.topython() == [[1, 5], [2, 4], [3, 3]]
-    assert "Input contains newline(s), treating it as raw text" in out
+    assert "Input contains '\\x0A', treating it as raw text" in out
 
 
 def test_fread_from_anysource_as_file1(tempfile, capsys):

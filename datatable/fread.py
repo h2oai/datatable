@@ -9,6 +9,7 @@ import os
 import pathlib
 import psutil
 import re
+import shutil
 import tempfile
 import urllib.request
 import warnings
@@ -25,7 +26,7 @@ from datatable.utils.misc import plural_form as plural
 from datatable.types import stype, ltype
 
 _log_color = term.bright_black
-
+_url_regex = re.compile(r"(?:https?|ftp|file)://")
 
 
 def fread(
@@ -78,8 +79,9 @@ class GenericReader(object):
         self._file = None           # type: str
         self._files = None          # type: List[str]
         self._fileno = None         # type: int
-        self._tempfile = None       # type: str
+        self._tempfiles = []        # type: List[str]
         self._tempdir = None        # type: str
+        self._tempdir_own = False   # type: bool
         self._text = None           # type: Union[str, bytes]
         self._sep = None            # type: str
         self._dec = None            # type: str
@@ -110,7 +112,7 @@ class GenericReader(object):
         if na_strings is None:
             na_strings = ["NA"]
         if "_tempdir" in args:
-            self._tempdir = args.pop("_tempdir")
+            self.tempdir = args.pop("_tempdir")
         self.verbose = verbose
         self.logger = logger
         if verbose:
@@ -137,11 +139,6 @@ class GenericReader(object):
             if not callable(progress):
                 raise TTypeError("`progress_fn` argument should be a function")
             self._progress = progress
-        if "_tempfile" in args:
-            self._tempfile = args.pop("_tempfile")
-            self._file = self._tempfile
-        if "_fileno" in args:
-            self._fileno = args.pop("_fileno")
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
@@ -182,7 +179,8 @@ class GenericReader(object):
     def _resolve_source_any(self, src):
         if src is None:
             return
-        if isinstance(src, (str, bytes)):
+        is_str = isinstance(src, str)
+        if is_str or isinstance(src, bytes):
             # If there are any control characters (such as \n or \r) in the
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
@@ -191,17 +189,16 @@ class GenericReader(object):
                                       "treating it as raw text" % len(src))
                 self._resolve_source_text(src)
             else:
-                fn = ord if isinstance(src, str) else int
-                for i, ch in enumerate(src):
+                fn = ord if is_str else int
+                for ch in src:
                     ccode = fn(ch)
                     if ccode < 0x20:
                         if self.verbose:
-                            self.logger.debug("Input contains newline(s), "
-                                              "treating it as raw text")
+                            self.logger.debug("Input contains '\\x%02X', "
+                                              "treating it as raw text" % ccode)
                         self._resolve_source_text(src)
                         return
-                if (isinstance(src, str) and
-                        re.match(r"(?:https?|ftp|file)://", src)):
+                if is_str and re.match(_url_regex, src):
                     if self.verbose:
                         self.logger.debug("Input is a URL.")
                     self._resolve_source_url(src)
@@ -309,13 +306,9 @@ class GenericReader(object):
     def _resolve_source_url(self, url):
         if url is None:
             return
-        tempdir = self._tempdir
-        if tempdir is None:
-            tempdir = tempfile.mkdtemp()
-            self._tempdir = tempdir
-        targetfile = tempfile.mktemp(dir=tempdir)
+        targetfile = tempfile.mktemp(dir=self.tempdir)
         urllib.request.urlretrieve(url, filename=targetfile)
-        self._tempfile = targetfile
+        self._tempfiles.append(targetfile)
         self._file = targetfile
         self._src = url
 
@@ -350,8 +343,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s to temporary directory %s"
                                   % (filename, self._tempdir))
-            self._tempfile = zf.extract(zff[0], path=self._tempdir)
-            self._file = self._tempfile
+            self._tempfiles.append(zf.extract(zff[0], path=self._tempdir))
+            self._file = self._tempfiles[-1]
 
         elif ext == ".gz":
             import gzip
@@ -467,6 +460,20 @@ class GenericReader(object):
         close this file.
         """
         return self._fileno
+
+
+    @property
+    def tempdir(self):
+        if self._tempdir is None:
+            self._tempdir = tempfile.mkdtemp()
+            self._tempdir_own = True
+        return self._tempdir
+
+    @tempdir.setter
+    @typed(tempdir=str)
+    def tempdir(self, tempdir):
+        self._tempdir = tempdir
+        self._tempdir_own = False
 
 
     @property
@@ -661,21 +668,17 @@ class GenericReader(object):
         self._logger = l
 
 
+    #---------------------------------------------------------------------------
+
     def read(self):
         if self._result:
             return self._result
-        _dt = core.gread(self)
-        dt = Frame(_dt, names=self._colnames)
-        if self._tempfile:
-            if self._verbose:
-                self.logger.debug("Removing temporary file %s"
-                                  % self._tempfile)
-            try:
-                os.remove(self._tempfile)
-                os.rmdir(self._tempdir)
-            except OSError as e:
-                self.logger.warning("Failed to remove temporary files: %r" % e)
-        return dt
+        try:
+            _dt = core.gread(self)
+            dt = Frame(_dt, names=self._colnames)
+            return dt
+        finally:
+            self._clear_temporary_files()
 
 
     #---------------------------------------------------------------------------
@@ -785,6 +788,18 @@ class GenericReader(object):
                 pass
             except LookupError:
                 print("Warning: unknown encoding %s" % tty_encoding)
+
+
+    def _clear_temporary_files(self):
+        for f in self._tempfiles:
+            try:
+                if self._verbose:
+                    self.logger.debug("Removing temporary file %s" % f)
+                os.remove(f)
+            except OSError as e:
+                self.logger.warning("Failed to remove a temporary file: %r" % e)
+        if self._tempdir_own:
+            shutil.rmtree(self._tempdir, ignore_errors=True)
 
 
 
@@ -946,6 +961,11 @@ class GenericReader(object):
         return self._override_columns1(res, colsdesc)
 
 
+
+
+#-------------------------------------------------------------------------------
+# Helper classes
+#-------------------------------------------------------------------------------
 
 class FreadWarning(DatatableWarning):
     pass
