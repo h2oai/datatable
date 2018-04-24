@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Implemented sorting for `str64` columns.
 - Fwrite can now write columns of type `str64`.
+- Fread can now accept a list of files to read, or a glob pattern.
 
 #### Changed
 #### Fixed
