@@ -8,7 +8,7 @@ def utilsLib = new Utils()
 
 properties([
         parameters([
-            booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts')
+                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts')
         ]),
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -18,13 +18,13 @@ H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux'
 
 def EXPECTED_SHAS = [
-        files: [
-                'Dockerfile.build': 'e01271264d0ec9f50b2707479f8689441fa89cb3',
+        files : [
+                'Dockerfile.build'     : 'e01271264d0ec9f50b2707479f8689441fa89cb3',
                 'Dockerfile-centos7.in': '4b54cdd262d7b75d854c48fde6fc5db83af01bb0',
         ],
         images: [
-                (X86_64_LINUX_DOCKER_IMAGE): 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:0e09d9145fc1ae14ae29acebacd9d5dc17e5d7b913234eb291909982749abf24',
-                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7': 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:123d142f8e27feb9a0e3cde7e2e7fcf2587c74259f226c73f9c89ce21cd60026',
+                (X86_64_LINUX_DOCKER_IMAGE)                             : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:0e09d9145fc1ae14ae29acebacd9d5dc17e5d7b913234eb291909982749abf24',
+                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:123d142f8e27feb9a0e3cde7e2e7fcf2587c74259f226c73f9c89ce21cd60026',
                 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'e0d49e7a7e0e'
         ]
 ]
@@ -39,36 +39,36 @@ def platformDefaults = [
 
 // Default mapping for CentOS environments
 def centosDefaults = [
-        env: ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
+        env      : ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
         pullImage: true
 ]
 
 def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
-        node: 'ibm-power',
-        coverage: false,
-        pullImage: false,
+        node       : 'ibm-power',
+        coverage   : false,
+        pullImage  : false,
         dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
 ]
 
 // Build platforms parameters
 def BUILD_MATRIX = [
         // Linux build definition
-        x86_64_linux: platformDefaults + [
-                pullImage: true,
-                node: 'docker && linux',
+        x86_64_linux  : platformDefaults + [
+                pullImage  : true,
+                node       : 'docker && linux',
                 dockerImage: X86_64_LINUX_DOCKER_IMAGE
         ],
         // CentOS 7 build definition
         x86_64_centos7: platformDefaults + centosDefaults + [
-                node: 'docker && linux',
-                coverage: false,
+                node       : 'docker && linux',
+                coverage   : false,
                 dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7'
         ],
         // OSX
-        x86_64_macos: platformDefaults + [
+        x86_64_macos  : platformDefaults + [
                 node: 'osx',
-                env: [
+                env : [
                         "LLVM4=/usr/local/opt/llvm",
                         "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"
                 ],
@@ -108,16 +108,16 @@ TARGET_DIR = "/tmp/pydatatable_large_data"
 
 // Data map for linking into container
 def linkMap = [
-        "Data"      : "h2oai-benchmarks/Data",
-        "smalldata" : "h2o-3/smalldata",
-        "bigdata"   : "h2o-3/bigdata",
-        "fread"     : "h2o-3/fread",
+        "Data"     : "h2oai-benchmarks/Data",
+        "smalldata": "h2o-3/smalldata",
+        "bigdata"  : "h2o-3/bigdata",
+        "fread"    : "h2o-3/fread",
 ]
 
 def dockerArgs = createDockerArgs(linkMap, SOURCE_DIR, TARGET_DIR)
 
 def stages = [:]
-BUILD_MATRIX.each {platform, config ->
+BUILD_MATRIX.each { platform, config ->
     stages[platform] = {
         node(config.node) {
             final def buildDir = 'build'
@@ -183,7 +183,7 @@ BUILD_MATRIX.each {platform, config ->
             }
 
             boolean failure = false
-            getRelevantTestEnvs().each {testEnv ->
+            getRelevantTestEnvs().each { testEnv ->
                 final def testDir = "test-${platform}-${testEnv}"
                 try {
                     def testStageName = "Test ${platform} with ${testEnv}"
@@ -231,7 +231,7 @@ ansiColor('xterm') {
                 stash 'datatable-sources'
                 docker.image(X86_64_LINUX_DOCKER_IMAGE).inside {
                     def dockerfileSHAsString = ""
-                    EXPECTED_SHAS.files.each {filename, sha ->
+                    EXPECTED_SHAS.files.each { filename, sha ->
                         dockerfileSHAsString += "${sha}\t${filename}\n"
                     }
                     try {
@@ -271,6 +271,33 @@ ansiColor('xterm') {
                         uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
                     }
                 }
+
+                stage('Publish to public S3') {
+                    cleanWs()
+                    dumpInfo()
+
+                    project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
+                    unstash 'VERSION'
+                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+
+                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
+
+                    BUILD_MATRIX.each { platform, config ->
+                        uploadToS3Public("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
+                    }
+                }
+
+                //  stage('Publish to Pypi') {
+                //      cleanWs()
+                //     dumpInfo()
+
+                //     project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
+                //     unstash 'VERSION'
+                //     sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+
+                //     def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
+
+                // }
             }
         }
     }
@@ -287,6 +314,18 @@ def uploadToS3(artifact, versionText, platformDir) {
     }
 }
 
+def uploadToS3Public(artifact, versionText, platformDir) {
+    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+            docker.image("docker.h2o.ai/s3cmd").inside {
+                sh """
+         s3cmd put ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
+            """
+            }
+        }
+    }
+}
+
 def getVenvActivationCmd(final platform, final venvName) {
     switch (platform) {
         case 'x86_64_linux':
@@ -299,6 +338,7 @@ def getVenvActivationCmd(final platform, final venvName) {
             return ". activate ${venvName}"
     }
 }
+
 def isPrJob() {
     return env.CHANGE_BRANCH != null && env.CHANGE_BRANCH != ''
 }
