@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.1)
 #### Added
 - Implemented sorting for `str64` columns.
+- Fread can now accept a list of files to read, or a glob pattern.
 
 #### Changed
 #### Fixed
