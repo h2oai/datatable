@@ -412,5 +412,5 @@ def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
 }
 
 def doPublish() {
-    return env.BRANCH_NAME == 's3-links'
+    return env.BRANCH_NAME == 'master'
 }
