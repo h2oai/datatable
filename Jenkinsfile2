@@ -315,13 +315,11 @@ def uploadToS3(artifact, versionText, platformDir) {
 }
 
 def uploadToS3Public(artifact, versionText, platformDir) {
-    def publishS3Dir = 'publish-s3'
-    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
     docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
             docker.image("docker.h2o.ai/s3cmd").inside {
                 sh """
-         s3cmd put ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
+         s3cmd put publishS3Dir/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
             """
             }
         }
