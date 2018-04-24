@@ -282,10 +282,22 @@ ansiColor('xterm') {
 
                     def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
 
-                   // sh """
-                    //        s3cmd cp s3://BUCKET1/OBJECT1 s3://BUCKET2[/OBJECT2] Need to Specify"
-                   //    """
+                    BUILD_MATRIX.each { platform, config ->
+                        uploadToS3Public("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
+                    }
                 }
+
+                //  stage('Publish to Pypi') {
+                //      cleanWs()
+                //     dumpInfo()
+
+                //     project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
+                //     unstash 'VERSION'
+                //     sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+
+                //     def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
+
+                // }
             }
         }
     }
@@ -299,6 +311,18 @@ def uploadToS3(artifact, versionText, platformDir) {
         keepPrivate = false
         platform = platformDir
         isRelease = true
+    }
+}
+
+def uploadToS3Public(artifact, versionText, platformDir) {
+    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+            docker.image("docker.h2o.ai/s3cmd").inside {
+                sh """
+         s3cmd put ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
+            """
+            }
+        }
     }
 }
 
