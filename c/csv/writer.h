@@ -37,7 +37,8 @@ class CsvWriter {
   size_t bytes_per_chunk;
   int64_t nchunks;
   std::vector<CsvColumn*> columns;
-  std::vector<CsvColumn*> strcolumns;
+  std::vector<CsvColumn*> strcolumns32;
+  std::vector<CsvColumn*> strcolumns64;
   double t_last;
   double t_size_estimation;
   double t_create_target;
