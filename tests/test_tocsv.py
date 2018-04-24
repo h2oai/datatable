@@ -307,3 +307,18 @@ def test_save_strings():
         '"""""""""""",?',
         ',here be dragons',
         '']
+
+
+def test_save_str64():
+    src = [["foo", "baar", "ba", None],
+           ["idjfbn", "q", None, "bvqpoeqnperoin;dj"]]
+    d = dt.Frame(src, stypes=(stype.str32, stype.str64), names=["F", "G"])
+    assert d.internal.check()
+    assert d.stypes == (stype.str32, stype.str64)
+    assert d.to_csv() == (
+        "F,G\n"
+        "foo,idjfbn\n"
+        "baar,q\n"
+        "ba,\n"
+        ",bvqpoeqnperoin;dj\n")
+

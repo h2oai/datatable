@@ -34,8 +34,8 @@ static writer_fn writers_per_stype[DT_STYPES_COUNT];
 // TODO: replace with classes that derive from CsvColumn and implement write()
 class CsvColumn {
 public:
-  void *data;
-  char *strbuf;
+  void* data;
+  char* strbuf;
   writer_fn writer;
 
   CsvColumn(Column *col) {
@@ -49,15 +49,20 @@ public:
       strbuf = static_cast<StringColumn<int32_t>*>(col)->strdata();
       data = static_cast<StringColumn<int32_t>*>(col)->offsets();
     }
+    else if (col->stype() == ST_STRING_I8_VCHAR) {
+      strbuf = static_cast<StringColumn<int64_t>*>(col)->strdata();
+      data = static_cast<StringColumn<int64_t>*>(col)->offsets();
+    }
   }
 
   void write(char **pch, int64_t row) {
     writer(pch, this, row);
   }
 
-  // This should only be called on a CsvColumn of type i4s!
+  // This should only be called on a CsvColumn of type i4s / i8s!
+  template <typename T>
   size_t strsize(int64_t row0, int64_t row1) {
-    int32_t *offsets = reinterpret_cast<int32_t*>(data) - 1;
+    T* offsets = reinterpret_cast<T*>(data) - 1;
     return static_cast<size_t>(abs(offsets[row1]) - abs(offsets[row0]));
   }
 };
@@ -144,11 +149,11 @@ static void write_i8(char **pch, CsvColumn *col, int64_t row)
   ltoa(pch, value);
 }
 
-
-static void write_s4(char **pch, CsvColumn *col, int64_t row)
+template <typename T>
+void write_str(char **pch, CsvColumn *col, int64_t row)
 {
-  int32_t offset1 = ((int32_t*) col->data)[row];
-  int32_t offset0 = abs(((int32_t*) col->data)[row - 1]);
+  T offset1 = ((T*) col->data)[row];
+  T offset0 = abs(((T*) col->data)[row - 1]);
   char *ch = *pch;
 
   if (offset1 < 0) return;
@@ -362,7 +367,8 @@ void CsvWriter::write()
   write_column_names();
   determine_chunking_strategy(bytes_total, nrows);
   create_column_writers(ncols);
-  size_t nstrcols = strcolumns.size();
+  size_t nstrcols32 = strcolumns32.size();
+  size_t nstrcols64 = strcolumns64.size();
 
   OmpExceptionManager oem;
   #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
@@ -410,8 +416,11 @@ void CsvWriter::write()
         // by 2 in order to account for the possibility that the buffer may
         // expand twice in size (if every character needs to be escaped).
         size_t reqsize = 0;
-        for (size_t col = 0; col < nstrcols; col++) {
-          reqsize += strcolumns[col]->strsize(row0, row1);
+        for (size_t col = 0; col < nstrcols32; col++) {
+          reqsize += strcolumns32[col]->strsize<int32_t>(row0, row1);
+        }
+        for (size_t col = 0; col < nstrcols64; col++) {
+          reqsize += strcolumns64[col]->strsize<int64_t>(row0, row1);
         }
         reqsize *= 2;
         reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
@@ -623,9 +632,8 @@ void CsvWriter::create_column_writers(size_t ncols)
     SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);
-    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-      strcolumns.push_back(csvcol);
-    }
+    if (stype == ST_STRING_I4_VCHAR) strcolumns32.push_back(csvcol);
+    if (stype == ST_STRING_I8_VCHAR) strcolumns64.push_back(csvcol);
   }
   t_prepare_for_writing = checkpoint();
 }
@@ -659,5 +667,6 @@ void init_csvwrite_constants() {
   writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_i8;
   writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_dec;
   writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_dec;
-  writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_s4;
+  writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_str<int32_t>;
+  writers_per_stype[ST_STRING_I8_VCHAR] = (writer_fn) write_str<int64_t>;
 }
