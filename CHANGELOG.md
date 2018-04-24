@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fwrite can now write columns of type `str64`.
 - Fread can now accept a list of files to read, or a glob pattern.
 
-#### Changed
 #### Fixed
+- Fix the source distribution (`sdist`) by including all the files that are
+  required for building from source.
 
 
 ### [v0.3.1](https://github.com/h2oai/datatable/compare/0.3.1...v0.3.0) — 2018-04-20
