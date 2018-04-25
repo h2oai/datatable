@@ -276,15 +276,13 @@ ansiColor('xterm') {
                     cleanWs()
                     dumpInfo()
 
-                    project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
-                    unstash 'VERSION'
-                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-
-                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-
                     docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
                             docker.image("docker.h2o.ai/s3cmd").inside {
+                                project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
+                                unstash 'VERSION'
+                                sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+                                def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
                                 sh """
                                    cd publishS3Dir/dist/ &&
                                    s3cmd put *.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
