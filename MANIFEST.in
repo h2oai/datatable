@@ -6,3 +6,6 @@ include setup.cfg
 recursive-include c         *.c *.cc *.h
 recursive-include datatable *.py
 recursive-include tests     *.py
+
+exclude datatable/lib/*.*
+include datatable/lib/__init__.py
