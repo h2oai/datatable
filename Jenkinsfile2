@@ -284,8 +284,8 @@ ansiColor('xterm') {
                                 sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
                                 def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
                                 sh """
-                                   cd publishS3Dir/dist/ &&
-                                   s3cmd put *.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
+                                   ls
+                                   s3cmd put ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
                                    """
                             }
                         }
