@@ -18,7 +18,6 @@ import re
 import sysconfig
 from functools import lru_cache as memoize
 from setuptools import setup, find_packages, Extension
-# from distutils.core import Extension
 from sys import stderr
 
 
@@ -38,12 +37,17 @@ def get_version():
                 version = mm.group(1)
                 break
     if version is None:
-        raise RuntimeError("Could not detect version from the "
-                           "__version__.py file")
+        raise SystemExit("Could not detect project version from the "
+                         "__version__.py file")
     # Append build suffix if necessary
     suffix = os.environ.get("CI_VERSION_SUFFIX")
     if suffix:
-        version += "+" + suffix
+        # See https://www.python.org/dev/peps/pep-0440/ for valid versioning
+        # schemes.
+        mm = re.match(r"(?:master|dev)[.+_-]?(\d+)", suffix)
+        if mm:
+            suffix = "dev" + str(mm.group(1))
+        version += "." + suffix
     return version
 
 
@@ -88,27 +92,29 @@ def get_test_dependencies():
 @memoize()
 def get_llvm(with_version=False):
     curdir = os.path.dirname(os.path.abspath(__file__))
-    for LLVMX in ["LLVM4", "LLVM5"]:
-        # Check whether there is 'llvmx' folder in the package folder
+    llvmdir = None
+    for LLVMX in ["LLVM4", "LLVM5", "LLVM6"]:
+        d = os.path.join(curdir, "datatable/" + LLVMX.lower())
         if LLVMX in os.environ:
             llvmdir = os.environ[LLVMX]
-        else:
-            d = os.path.join(curdir, "datatable/" + LLVMX.lower())
-            if os.path.isdir(d):
-                llvmdir = d
-            else:
-                continue
-        if not os.path.isdir(llvmdir):
-            raise ValueError("Variable %s = %r is not a directory"
-                             % (LLVMX, llvmdir))
-        if with_version:
-            return llvmdir, LLVMX
-        return llvmdir
-    # Failed to find LLVM
-    raise RuntimeError("Environment variables LLVM4 or LLVM5 are not set. "
-                       "Please set one of these variables to the location of "
-                       "the Clang+Llvm distribution, which you can download "
-                       "from http://releases.llvm.org/download.html")
+            if llvmdir:
+                break
+        elif os.path.isdir(d):
+            llvmdir = d
+            break
+
+    if llvmdir and not os.path.isdir(llvmdir):
+        raise SystemExit("Environment variable %s = %r is not a directory"
+                         % (LLVMX, llvmdir))
+    if not llvmdir:
+        raise SystemExit("Environment variables LLVM4, LLVM5 or LLVM6 are not "
+                         "set. Please set one of these variables to the location"
+                         " of the Clang+Llvm distribution, which you can "
+                         " downloadfrom http://releases.llvm.org/download.html")
+
+    if with_version:
+        return llvmdir, LLVMX
+    return llvmdir
 
 
 @memoize()
@@ -121,12 +127,12 @@ def get_rpath():
 
 @memoize()
 def get_cc(with_isystem=False):
-    clang = os.path.join(get_llvm(), "bin", "clang++")
-    if not os.path.exists(clang):
-        raise RuntimeError("Cannot find CLang compiler at `%r`" % clang)
+    cc = os.path.join(get_llvm(), "bin", "clang++")
+    if not os.path.exists(cc):
+        raise SystemExit("Cannot find CLang compiler at `%r`" % cc)
     if with_isystem and sysconfig.get_config_var("CONFINCLUDEPY"):
-        clang += " -isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
-    return clang
+        cc += " -isystem " + sysconfig.get_config_var("CONFINCLUDEPY")
+    return cc
 
 
 @memoize()
@@ -225,7 +231,7 @@ def get_extra_compile_flags():
 def get_default_link_flags():
     flags = sysconfig.get_config_var("LDSHARED")
     # remove the name of the linker program
-    flags = re.sub(r"^\w+[\w\.\-]+\s+", "", flags)
+    flags = re.sub(r"^\w+[\w.\-]+\s+", "", flags)
     # remove -arch XXX flags, and add "-m64" to force 64-bit only builds
     flags = re.sub(r"-arch \w+\s*", "", flags) + " -m64"
     # Add "-isystem" path with system libraries
@@ -261,11 +267,18 @@ def get_extra_link_args():
 # Process extra commands
 #-------------------------------------------------------------------------------
 
-argcmd = sys.argv[1] if len(sys.argv) == 2 else ""
-
-if argcmd.startswith("get_"):
+def process_args(cmd):
+    """
+    Support for additional setup.py commands:
+        python setup.py get_CC
+        python setup.py get_CCFLAGS
+        python setup.py get_LDFLAGS
+        python setup.py get_EXTEXT
+    """
+    if not cmd.startswith("get_"):
+        return
     os.environ["DTDEBUG"] = "1"  # Force debug flag
-    cmd = argcmd[4:]
+    cmd = cmd[4:]
     if cmd == "EXTEXT":
         print(sysconfig.get_config_var("EXT_SUFFIX"))
     elif cmd == "CC":
@@ -277,8 +290,14 @@ if argcmd.startswith("get_"):
         flags = [get_default_link_flags()] + get_extra_link_args()
         print(" ".join(flags))
     else:
-        raise RuntimeError("Unknown setup.py command '%s'" % argcmd)
+        raise SystemExit("Unknown setup.py command '%s'" % cmd)
     sys.exit(0)
+
+
+argcmd = ""
+if len(sys.argv) == 2:
+    argcmd = sys.argv[1]
+    process_args(argcmd)
 
 
 
@@ -292,12 +311,13 @@ llvm_config = os.path.join(llvmx, "bin", "llvm-config")
 clang = os.path.join(llvmx, "bin", "clang++")
 libsdir = os.path.join(llvmx, "lib")
 includes = os.path.join(llvmx, "include")
-llvmlite_req = ("==0.20.0" if llvmver == "LLVM4" else
-                ">=0.21.0" if llvmver == "LLVM5" else None)
-for f in [llvm_config, clang, libsdir, includes]:
-    if not os.path.exists(f):
-        raise RuntimeError("Cannot find %s folder. "
-                           "Is this a valid installation?" % f)
+llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
+                ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
+                ">=0.23.0        " if llvmver == "LLVM6" else None)
+for ff in [llvm_config, clang, libsdir, includes]:
+    if not os.path.exists(ff):
+        raise SystemExit("Cannot find %s folder. "
+                         "Is this a valid Llvm installation?" % ff)
 
 # Compiler
 os.environ["CC"] = os.environ["CXX"] = get_cc(True)
@@ -401,7 +421,7 @@ setup(
         Extension(
             "datatable/lib/_datatable",
             include_dirs=["c"],
-            sources=get_c_sources("c", include_headers=(argcmd == "sdist")),
+            sources=get_c_sources("c"),
             extra_compile_args=get_extra_compile_flags(),
             extra_link_args=get_extra_link_args(),
             language="c++",

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Fixed
 - Fix the source distribution (`sdist`) by including all the files that are
   required for building from source.
+- Install no longer fails with `llvmlite 0.23.0` package.
 
 
 ### [v0.3.1](https://github.com/h2oai/datatable/compare/0.3.1...v0.3.0) — 2018-04-20
