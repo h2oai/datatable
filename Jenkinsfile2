@@ -319,6 +319,8 @@ def uploadToS3Public(artifact, versionText, platformDir) {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
             docker.image("docker.h2o.ai/s3cmd").inside {
                 sh """
+                pwd
+                ls
          s3cmd put ./publishS3Dir/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
             """
             }
