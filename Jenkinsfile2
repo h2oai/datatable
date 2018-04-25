@@ -393,5 +393,5 @@ def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
 }
 
 def doPublish() {
-    return true
+    return env.BRANCH_NAME == 'master'
 }
