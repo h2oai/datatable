@@ -6,7 +6,7 @@
 
 # datatable
 
-[![PyPi version](https://img.shields.io/pypi/v/pandas.svg)](https://pypi.org/project/datatable/)
+[![PyPi version](https://img.shields.io/pypi/v/datatable.svg)](https://pypi.org/project/datatable/)
 [![License](https://img.shields.io/pypi/l/datatable.svg)](https://github.com/h2oai/datatable/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/h2oai/datatable.svg?branch=master)](https://travis-ci.org/h2oai/datatable)
 
@@ -74,7 +74,7 @@ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.
 pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.3.1/datatable-0.3.1%2Bmaster.61-cp36-cp36m-linux_x86_64.whl
 ```
 
-On all other platforms a source distribution will be needed.
+On all other platforms a source distribution will be needed. For more information see [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions).
 
 
 ## See also
