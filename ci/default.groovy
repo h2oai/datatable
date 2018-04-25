@@ -12,25 +12,41 @@ def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extr
     final def ompLogFile = "stage_build_with_omp_on_${platform}_output.log"
     final def noompLogFile = "stage_build_with_noomp_on_${platform}_output.log"
 
+    def noompSuffix = "${ciVersionSuffix}.noomp"
+    if (ciVersionSuffix == null || ciVersionSuffix == '') {
+        noompSuffix = 'noomp'
+    }
+
     sh "mkdir -p ${stageDir}"
 
     // build and archive the omp version for Python 3.6
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'dist', ompLogFile)
     arch "${stageDir}/dist/**/*.whl"
     // build and archive the noomp version for Python 3.6
-    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv, py36VenvCmd, 'dist_noomp', noompLogFile)
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${noompSuffix}"] + extraEnv, py36VenvCmd, 'dist_noomp', noompLogFile)
     arch "${stageDir}/dist/**/*.whl"
 
-    // build and archive the omp version for Python 3.6
+    // build and archive the omp version for Python 3.5
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py35VenvCmd, 'dist', ompLogFile)
     arch "${stageDir}/dist/**/*.whl"
-    // build and archive the noomp version for Python 3.6
-    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv, py35VenvCmd, 'dist_noomp', noompLogFile)
+    // build and archive the noomp version for Python 3.5
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${noompSuffix}"] + extraEnv, py35VenvCmd, 'dist_noomp', noompLogFile)
     arch "${stageDir}/dist/**/*.whl"
 
     // build and stash the version
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'version', 'dist/VERSION.txt')
     stash includes: "${stageDir}/dist/VERSION.txt", name: 'VERSION'
+
+    // Archive logs
+    arch "${stageDir}/stage_build_*.log"
+}
+
+def buildSDist(stageDir, ciVersionSuffix, py36VenvCmd) {
+    final def sDistLogFile = "stage_build_sdist_output.log"
+
+    // build and archive the sdist
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"], py36VenvCmd, 'sdist', sDistLogFile)
+    arch "${stageDir}/dist/**/*.tar.gz"
 
     // Archive logs
     arch "${stageDir}/stage_build_*.log"
