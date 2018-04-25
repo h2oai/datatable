@@ -286,25 +286,13 @@ ansiColor('xterm') {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
                             docker.image("docker.h2o.ai/s3cmd").inside {
                                 sh """
-                                   cd publishS3Dir/dist/
+                                   cd publishS3Dir/dist/ &&
                                    s3cmd put *.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
                                    """
                             }
                         }
                     }
                 }
-
-                //  stage('Publish to Pypi') {
-                //      cleanWs()
-                //     dumpInfo()
-
-                //     project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
-                //     unstash 'VERSION'
-                //     sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-
-                //     def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-
-                // }
             }
         }
     }
