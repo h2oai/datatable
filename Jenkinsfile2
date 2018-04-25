@@ -8,23 +8,25 @@ def utilsLib = new Utils()
 
 properties([
         parameters([
-            booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts')
+                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts')
         ]),
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
+
+RELEASE_BRANCH_PREFIX = 'rel-'
 
 H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
 def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux'
 
-def EXPECTED_SHAS = [
-        files: [
-                'Dockerfile.build': 'e01271264d0ec9f50b2707479f8689441fa89cb3',
+EXPECTED_SHAS = [
+        files : [
+                'Dockerfile.build'     : 'e01271264d0ec9f50b2707479f8689441fa89cb3',
                 'Dockerfile-centos7.in': '4b54cdd262d7b75d854c48fde6fc5db83af01bb0',
         ],
         images: [
-                (X86_64_LINUX_DOCKER_IMAGE): 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:0e09d9145fc1ae14ae29acebacd9d5dc17e5d7b913234eb291909982749abf24',
-                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7': 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:123d142f8e27feb9a0e3cde7e2e7fcf2587c74259f226c73f9c89ce21cd60026',
+                (X86_64_LINUX_DOCKER_IMAGE)                             : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:0e09d9145fc1ae14ae29acebacd9d5dc17e5d7b913234eb291909982749abf24',
+                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:123d142f8e27feb9a0e3cde7e2e7fcf2587c74259f226c73f9c89ce21cd60026',
                 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'e0d49e7a7e0e'
         ]
 ]
@@ -39,36 +41,38 @@ def platformDefaults = [
 
 // Default mapping for CentOS environments
 def centosDefaults = [
-        env: ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
+        env      : ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
         pullImage: true
 ]
 
 def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
-        node: 'ibm-power',
-        coverage: false,
-        pullImage: false,
+        node       : 'ibm-power',
+        coverage   : false,
+        pullImage  : false,
         dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
 ]
+
+def LINUX_PLATFORM = 'x86_64_linux'
 
 // Build platforms parameters
 def BUILD_MATRIX = [
         // Linux build definition
-        x86_64_linux: platformDefaults + [
-                pullImage: true,
-                node: 'docker && linux',
+        (LINUX_PLATFORM)   : platformDefaults + [
+                pullImage  : true,
+                node       : 'docker && linux',
                 dockerImage: X86_64_LINUX_DOCKER_IMAGE
         ],
         // CentOS 7 build definition
         x86_64_centos7: platformDefaults + centosDefaults + [
-                node: 'docker && linux',
-                coverage: false,
+                node       : 'docker && linux',
+                coverage   : false,
                 dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7'
         ],
         // OSX
-        x86_64_macos: platformDefaults + [
+        x86_64_macos  : platformDefaults + [
                 node: 'osx',
-                env: [
+                env : [
                         "LLVM4=/usr/local/opt/llvm",
                         "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"
                 ],
@@ -108,16 +112,16 @@ TARGET_DIR = "/tmp/pydatatable_large_data"
 
 // Data map for linking into container
 def linkMap = [
-        "Data"      : "h2oai-benchmarks/Data",
-        "smalldata" : "h2o-3/smalldata",
-        "bigdata"   : "h2o-3/bigdata",
-        "fread"     : "h2o-3/fread",
+        "Data"     : "h2oai-benchmarks/Data",
+        "smalldata": "h2o-3/smalldata",
+        "bigdata"  : "h2o-3/bigdata",
+        "fread"    : "h2o-3/fread",
 ]
 
 def dockerArgs = createDockerArgs(linkMap, SOURCE_DIR, TARGET_DIR)
 
 def stages = [:]
-BUILD_MATRIX.each {platform, config ->
+BUILD_MATRIX.each { platform, config ->
     stages[platform] = {
         node(config.node) {
             final def buildDir = 'build'
@@ -130,27 +134,7 @@ BUILD_MATRIX.each {platform, config ->
                         unstash 'datatable-sources'
                     }
                     if (config.dockerImage && config.pullImage) {
-                        withCredentials([usernamePassword(credentialsId: 'docker.h2o.ai', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
-                            // by default, the image should be pulled
-                            def pullImage = true
-                            // First check that the image is present
-                            def imagePresent = sh(script: "docker inspect ${config.dockerImage}", returnStatus: true) == 0
-                            if (imagePresent) {
-                                echo "${config.dockerImage} present on host, checking versions..."
-                                // check that the image has expected SHA
-                                def expectedVersion = EXPECTED_SHAS.images[config.dockerImage]
-                                def currentVersion = sh(script: "docker inspect --format=\'{{index .RepoDigests 0}}\' ${config.dockerImage}", returnStdout: true).trim()
-                                echo "current image version: ${currentVersion}"
-                                echo "expected image version: ${expectedVersion}"
-                                pullImage = currentVersion != expectedVersion
-                            }
-                            if (pullImage) {
-                                sh """
-                                        docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD docker.h2o.ai
-                                        docker pull ${config.dockerImage}
-                                    """
-                            }
-                        }
+                        pullDockerImageIfRequired(config.dockerImage)
                     }
                     // Specify build Closure
                     def buildClosure = {
@@ -183,7 +167,7 @@ BUILD_MATRIX.each {platform, config ->
             }
 
             boolean failure = false
-            getRelevantTestEnvs().each {testEnv ->
+            getRelevantTestEnvs().each { testEnv ->
                 final def testDir = "test-${platform}-${testEnv}"
                 try {
                     def testStageName = "Test ${platform} with ${testEnv}"
@@ -221,8 +205,11 @@ ansiColor('xterm') {
         node('linux') {
             stage('Init') {
                 checkout scm
-                buildInfo(env.BRANCH_NAME, false)
+                buildInfo(env.BRANCH_NAME, isRelease())
                 project = load 'ci/default.groovy'
+                if (isRelease()) {
+                    CI_VERSION_SUFFIX = ''
+                }
                 needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
                 if (needsLargerTest) {
                     echo "Large tests will be executed for this build"
@@ -231,7 +218,7 @@ ansiColor('xterm') {
                 stash 'datatable-sources'
                 docker.image(X86_64_LINUX_DOCKER_IMAGE).inside {
                     def dockerfileSHAsString = ""
-                    EXPECTED_SHAS.files.each {filename, sha ->
+                    EXPECTED_SHAS.files.each { filename, sha ->
                         dockerfileSHAsString += "${sha}\t${filename}\n"
                     }
                     try {
@@ -255,13 +242,27 @@ ansiColor('xterm') {
         // Publish into S3 all snapshots versions
         if (doPublish()) {
             node('docker && !mr-0xc8') {
+
+                final def buildDir = 'build-sdist'
+                stage('Build sdist') {
+                    dir(buildDir) {
+                        unstash 'datatable-sources'
+                    }
+                    pullDockerImageIfRequired(X86_64_LINUX_DOCKER_IMAGE)
+                    // Specify build Closure
+                    def buildClosure = {
+                        project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
+                    }
+                    callInEnv(X86_64_LINUX_DOCKER_IMAGE, dockerArgs, buildClosure)
+                }
+
                 def publishS3Dir = 'publish-s3'
 
                 stage('Publish snapshot to S3') {
                     cleanWs()
                     dumpInfo()
 
-                    project.pullFilesFromArch('build/dist/**/*.whl', "${publishS3Dir}/dist")
+                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
                     unstash 'VERSION'
                     sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
 
@@ -269,6 +270,33 @@ ansiColor('xterm') {
 
                     BUILD_MATRIX.each { platform, config ->
                         uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
+                        uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
+                    }
+                }
+
+                stage('Publish to public S3') {
+                    cleanWs()
+                    dumpInfo()
+
+                    def targetFolder = 'nightly'
+                    if (isRelease()) {
+                        targetFolder = 'stable'
+                    }
+
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                            docker.image("docker.h2o.ai/s3cmd").inside {
+                                project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
+                                unstash 'VERSION'
+                                sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+                                def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
+                                sh """
+                                   ls
+                                   s3cmd put ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                   s3cmd put ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                               """
+                            }
+                        }
                     }
                 }
             }
@@ -299,6 +327,7 @@ def getVenvActivationCmd(final platform, final venvName) {
             return ". activate ${venvName}"
     }
 }
+
 def isPrJob() {
     return env.CHANGE_BRANCH != null && env.CHANGE_BRANCH != ''
 }
@@ -372,5 +401,37 @@ def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
 }
 
 def doPublish() {
-    return env.BRANCH_NAME == 'master'
+    return env.BRANCH_NAME == 'master' || isRelease()
+}
+
+def isRelease() {
+    return env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)
+}
+
+/**
+ * Pulls specified docker image if SHA of image present on the host and expected SHA are not the same.
+ * @param dockerImage Docker image to pull
+ */
+def pullDockerImageIfRequired(final dockerImage) {
+    withCredentials([usernamePassword(credentialsId: 'docker.h2o.ai', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
+        // by default, the image should be pulled
+        def pullImage = true
+        // First check that the image is present
+        def imagePresent = sh(script: "docker inspect ${dockerImage}", returnStatus: true) == 0
+        if (imagePresent) {
+            echo "${dockerImage} present on host, checking versions..."
+            // check that the image has expected SHA
+            def expectedVersion = EXPECTED_SHAS.images[dockerImage]
+            def currentVersion = sh(script: "docker inspect --format=\'{{index .RepoDigests 0}}\' ${dockerImage}", returnStdout: true).trim()
+            echo "current image version: ${currentVersion}"
+            echo "expected image version: ${expectedVersion}"
+            pullImage = currentVersion != expectedVersion
+        }
+        if (pullImage) {
+            sh """
+                docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD docker.h2o.ai
+                docker pull ${dockerImage}
+            """
+        }
+    }
 }
