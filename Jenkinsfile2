@@ -282,8 +282,16 @@ ansiColor('xterm') {
 
                     def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
 
-                    BUILD_MATRIX.each { platform, config ->
-                        uploadToS3Public("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                            docker.image("docker.h2o.ai/s3cmd").inside {
+                                sh """
+                                   pwd
+                                   ls
+                                   s3cmd put publishS3Dir/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
+                                   """
+                            }
+                        }
                     }
                 }
 
@@ -311,20 +319,6 @@ def uploadToS3(artifact, versionText, platformDir) {
         keepPrivate = false
         platform = platformDir
         isRelease = true
-    }
-}
-
-def uploadToS3Public(artifact, versionText, platformDir) {
-    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-            docker.image("docker.h2o.ai/s3cmd").inside {
-                sh """
-                pwd
-                ls
-         s3cmd put ./publishS3Dir/dist/*.whl s3://h2o-release/datatable/stable/datatable-${versionText}/
-            """
-            }
-        }
     }
 }
 
