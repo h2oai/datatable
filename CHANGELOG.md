@@ -8,10 +8,15 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.1)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.2)
+#### Added
+#### Fixed
+
+
+### [v0.3.2](https://github.com/h2oai/datatable/compare/0.3.2...v0.3.1) — 2018-04-25
 #### Added
 - Implemented sorting for `str64` columns.
-- Fwrite can now write columns of type `str64`.
+- write_csv can now write columns of type `str64`.
 - Fread can now accept a list of files to read, or a glob pattern.
 
 #### Fixed
