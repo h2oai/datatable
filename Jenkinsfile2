@@ -292,8 +292,8 @@ ansiColor('xterm') {
                                 def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
                                 sh """
                                    ls
-                                   s3cmd put ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                   s3cmd put ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                   s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                   s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
                                """
                             }
                         }
