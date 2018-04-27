@@ -134,6 +134,80 @@ void parse_int32_simple(FreadTokenizer& ctx) {
 }
 
 
+// Parse integers where thousands are separated into groups, eg
+//   1,000,000
+//     100,000
+//          17
+//       00001  // output of `printf("%'05d", 1)` -- initial zeros are not
+//              // comma-separated
+//
+// `T` should be either int32_t or int64_t
+//
+template <typename T>
+void parse_intNN_separated(FreadTokenizer& ctx) {
+  const char* ch = ctx.ch;
+  bool quoted = (*ch == ctx.quote);
+  ch += quoted;
+  bool negative = (*ch == '-');
+  ch += (negative || *ch == '+');
+
+  const char thsep = quoted || ctx.sep != ','? ',' : '\xFF';
+  const char* start = ch;  // to check if at least one digit is present
+  uint_fast64_t acc = 0;   // value accumulator
+  uint8_t  digit;          // current digit being read
+  int sf = 0;              // number of significant digits (without initial 0s)
+  int gr = 0;              // number of digits in the current digit group
+
+  while (*ch == '0') ch++;   // skip leading zeros
+  while ((digit = static_cast<uint8_t>(*ch - '0')) < 10) {
+    acc = 10*acc + digit;
+    ch++;
+    sf++;
+    gr++;
+    if (*ch == thsep) {
+      if (gr > 3 || (gr < 3 && gr != sf)) goto fail;
+      gr = 0;  // restart the digit group
+      ch++;    // skip over the thousands separator
+    }
+  }
+  // Check that the last group has the correct number of digits (or a number
+  // without any thousand separators should be considered valid too).
+  if (gr != 3 && gr != sf) goto fail;
+  // Check that a quoted field properly ends with a quote
+  if (quoted) {
+    if (*ch != ctx.quote) goto fail;
+    ch++;
+  } else {
+    // Make sure we do not confuse field separator with thousands separator when
+    // the field isn't quoted.
+    if (gr != sf && thsep == '\xFF') goto fail;
+  }
+
+  // Usually `0 < sf < max_digits`, and the condition short-circuits.
+  // If `sf == 0` then the input is valid iff it is "0" (or multiple 0s,
+  // possibly with a sign), which can be checked via `ch > start`.
+  // If `sf == max_digits`, then we explicitly check for overflow against
+  // `max_value` (noting that `uint64_t` can hold values up to
+  // 18446744073709551615, which is sufficient to represent any 19-digit
+  // number up to 9999999999999999999).
+  static constexpr int max_digits = sizeof(T) == sizeof(int32_t)? 10 : 19;
+  static constexpr T max_value = std::numeric_limits<T>::max();
+  if ((sf? sf < max_digits : ch > start) ||
+      (sf == max_digits && acc <= max_value))
+  {
+    T x = static_cast<T>(acc);
+    if (sizeof(T) == 4) ctx.target->int32 = negative? -x : x;
+    if (sizeof(T) == 8) ctx.target->int64 = negative? -x : x;
+    ctx.ch = ch;
+    return;
+  }
+
+  fail:
+    if (sizeof(T) == 4) ctx.target->int32 = NA_INT32;
+    if (sizeof(T) == 8) ctx.target->int64 = NA_INT64;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Int64
@@ -657,7 +731,9 @@ void ParserLibrary::init_parsers() {
   add(PT::BoolT,        "Bool8/titlecase", 'b', 1, ST_BOOLEAN_I1,      parse_bool8_titlecase);
   add(PT::BoolL,        "Bool8/lowercase", 'b', 1, ST_BOOLEAN_I1,      parse_bool8_lowercase);
   add(PT::Int32,        "Int32",           'i', 4, ST_INTEGER_I4,      parse_int32_simple);
+  add(PT::Int32Sep,     "Int32/separated", 'i', 4, ST_INTEGER_I4,      parse_intNN_separated<int32_t>);
   add(PT::Int64,        "Int64",           'I', 8, ST_INTEGER_I8,      parse_int64_simple);
+  add(PT::Int64Sep,     "Int64/separated", 'I', 8, ST_INTEGER_I8,      parse_intNN_separated<int64_t>);
   add(PT::Float32Hex,   "Float32/hex",     'f', 4, ST_REAL_F4,         parse_float32_hex);
   add(PT::Float64Plain, "Float64",         'F', 8, ST_REAL_F8,         parse_float64_simple);
   add(PT::Float64Ext,   "Float64/ext",     'F', 8, ST_REAL_F8,         parse_float64_extended);

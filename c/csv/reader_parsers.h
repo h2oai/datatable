@@ -22,7 +22,6 @@ typedef PyObject* (*FormatGeneratorFn)(GReaderColumn& col);
 //   - implement a new parser function `void (*)(FreadTokenizer&)`
 //   - add a new identifier into `enum PT`
 //   - declare this parser in `ParserLibrary::init_parsers()`
-//   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
 //   - update `test_fread_fillna1` in test_fread.py to include the new type
 //
 
@@ -55,7 +54,9 @@ enum PT : uint8_t {
   BoolT,
   BoolL,
   Int32,
+  Int32Sep,
   Int64,
+  Int64Sep,
   // Float32Plain,
   Float32Hex,
   Float64Plain,

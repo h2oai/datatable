@@ -240,6 +240,54 @@ def test_int_even_longer():
                              [float(src2)]]
 
 
+def test_int_with_thousand_sep():
+    d0 = dt.fread("A;B;C\n"
+                  "5;100;3,378,149\n"
+                  "0000;1,234;0001,999\n"
+                  "295;500,005;7,134,930\n")
+    assert d0.internal.check()
+    assert d0.shape == (3, 3)
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[5, 0, 295],
+                             [100, 1234, 500005],
+                             [3378149, 1999, 7134930]]
+
+
+def test_int_with_thousand_sep2():
+    d0 = dt.fread("A,B,C\n"
+                  '3,200,998\n'
+                  '"4,785",11,"9,560,293"\n'
+                  '17,835,000\n'
+                  ',"1,549,048,733,295,668",5354\n')
+    assert d0.internal.check()
+    assert d0.stypes == (dt.int32, dt.int64, dt.int32)
+    assert d0.topython() == [[3, 4785, 17, None],
+                             [200, 11, 835, 1549048733295668],
+                             [998, 9560293, 0, 5354]]
+
+
+def test_int_with_thousand_sep_not_really():
+    bad_ints = [",345",
+                "1234,567",
+                "13,4,488",
+                "17,9500,136",
+                "2,300,4,800",
+                "9,4482",
+                "3,800027",
+                "723,012,00",
+                "900,534,2",
+                "967,300,",
+                "24,,500"]
+    names = tuple("B%d" % i for i in range(len(bad_ints)))
+    src = ("\t".join(names) + "\n" +
+           "\t".join('"%s"' % x for x in bad_ints) + "\n")
+    d0 = dt.fread(src)
+    assert d0.names == names
+    assert d0.stypes == (dt.str32,) * len(bad_ints)
+    assert d0.topython() == [[x] for x in bad_ints]
+
+
+
 def test_float_ext_literals1():
     inf = math.inf
     d0 = dt.fread("A\n+Inf\nINF\n-inf\n-Infinity\n1.3e2")
