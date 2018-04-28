@@ -190,6 +190,8 @@ class Frame(object):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
+        elif src is Ellipsis:
+            self._fill_from_list([42], "?", None)
         else:
             raise TTypeError("Cannot create Frame from %r" % src)
 

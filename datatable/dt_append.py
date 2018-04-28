@@ -10,21 +10,21 @@ from datatable.utils.typechecks import typed, Frame_t, TValueError
 
 
 
-@typed(dfs=Frame_t, force=bool, bynames=bool)
-def rbind(self, *dfs, force=False, bynames=True):
+@typed(frames=Frame_t, force=bool, bynames=bool)
+def rbind(self, *frames, force=False, bynames=True):
     """
-    Append rows of Frames `dfs` to the current Frame.
+    Append rows of `frames` to the current Frame.
 
     This is equivalent to `list.extend()` in Python: the Frames are combined
     by rows, i.e. rbinding a Frame of shape [n x k] to a Frame of shape
     [m x k] produces a Frame of shape [(m + n) x k].
 
-    By default, the source Frame is modified in-place. If you do not want
-    the original Frame modified append all frames to an empty Frame:
+    This method modifies the current Frame in-place. If you do not want
+    the current Frame modified, then append all Frames to an empty Frame:
     `dt.Frame().rbind(frame1, frame2)`.
 
-    If Frame(s) being appended have columns of different types than the
-    source Frame, then such columns will be promoted to the largest of two
+    If Frame(s) being appended have columns of types different from the
+    current Frame, then these columns will be promoted to the largest of two
     types: bool -> int -> float -> string.
 
     If you need to append multiple Frames, then it is more efficient to
@@ -32,11 +32,11 @@ def rbind(self, *dfs, force=False, bynames=True):
     to append them one-by-one.
 
     Appending data to a Frame opened from disk will force loading the
-    source Frame into memory, which may fail with an OutOfMemory exception.
+    current Frame into memory, which may fail with an OutOfMemory exception.
 
     Parameters
     ----------
-    dfs: sequence or list of DataTables
+    frames: sequence or list of Frames
         One or more Frame to append. These Frames should have the same
         columnar structure as the current Frame (unless option `force` is
         used).
@@ -72,7 +72,7 @@ def rbind(self, *dfs, force=False, bynames=True):
     if bynames:
         # `inames` is a mapping of column_name => column_index.
         inames = self._inames
-        for df in dfs:
+        for df in frames:
             _dt = df.internal
             if df.nrows == 0: continue
             if n == 0:
@@ -82,7 +82,7 @@ def rbind(self, *dfs, force=False, bynames=True):
             elif not (df.ncols == n or force):
                 raise TValueError(
                     "Cannot rbind frame with %s to a frame with %s. If"
-                    " you wish to rbind the frames anyways filling missing "
+                    " you wish to rbind the frames anyways, filling missing "
                     "values with NAs, then use `force=True`"
                     % (plural(df.ncols, "column"), plural(n, "column")))
             if final_names == list(df.names):
@@ -110,7 +110,7 @@ def rbind(self, *dfs, force=False, bynames=True):
 
     # Append by column numbers
     else:
-        for df in dfs:
+        for df in frames:
             _dt = df.internal
             if df.nrows == 0: continue
             if n == 0:
@@ -136,10 +136,10 @@ def rbind(self, *dfs, force=False, bynames=True):
 
 
 
-@typed(dfs=Frame_t, force=bool, inplace=bool)
-def cbind(self, *dfs, force=False, inplace=True):
+@typed(frames=Frame_t, force=bool, inplace=bool)
+def cbind(self, *frames, force=False, inplace=True):
     """
-    Append columns of Frames `dfs` to the current Frame.
+    Append columns of Frames `frames` to the current Frame.
 
     This is equivalent to `pandas.concat(axis=1)`: the Frames are combined
     by columns, i.e. cbinding a Frame of shape [n x m] to a Frame of
@@ -157,16 +157,11 @@ def cbind(self, *dfs, force=False, inplace=True):
     a difference in how Frames with 1 row are treated compared to Frames
     with any other number of rows.
 
-    When appending several Frames with the similar column names, the
-    resulting Frame will have those names unmodified. Thus, it is entirely
-    possible to create a Frame which has more than one column with the same
-    name.
-
     Parameters
     ----------
-    dfs: sequence or list of DataTables
+    frames: sequence or list of Frames
         One or more Frame to append. They should have the same number of
-        rows (unless option `force` is also provided).
+        rows (unless option `force` is also used).
 
     force: boolean, default False
         If True, allows Frames to be appended even if they have unequal
@@ -176,7 +171,7 @@ def cbind(self, *dfs, force=False, inplace=True):
         exception of Frames having just 1 row, which will be replicated
         instead of filling with NAs).
 
-    inplace: boolean, default True
+    inplace: boolean, default True [DEPRECATED]
         If True, then the data is appended to the current Frame in-place,
         causing it to be modified. If False, then a new Frame will be
         constructed and returned instead (and no existing Frames will be
@@ -200,7 +195,7 @@ def cbind(self, *dfs, force=False, inplace=True):
     # Check that all Frames have compatible number of rows, and compose the
     # list of _DataTables to be passed down into the C level.
     nrows = src.nrows or -1
-    for df in dfs:
+    for df in frames:
         if df.ncols == 0: continue
         nn = df.nrows
         if nrows == -1:
@@ -212,7 +207,7 @@ def cbind(self, *dfs, force=False, inplace=True):
                 raise TValueError(
                     "Cannot merge Frame with %s to a Frame with %s. If "
                     "you want to disregard this warning and merge Frames "
-                    "anyways, then please provide option `inplace=True`"
+                    "anyways, then use option `force=True`"
                     % (plural(nn, "row"), plural(nrows, "row")))
         datatables.append(df.internal)
         column_names.extend(list(df.names))
