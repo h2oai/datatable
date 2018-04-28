@@ -12,6 +12,7 @@
 #include <strings.h>  // strcasecmp
 #include <cerrno>     // errno
 #include <cstring>    // std::memcmp
+#include "encodings.h"
 #include "options.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
@@ -28,6 +29,9 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   sof = nullptr;
   eof = nullptr;
   line = 0;
+  cr_is_newline = 0;
+  printout_anonymize = config::fread_anonymize;
+  printout_escape_unicode = false;
   freader = pyrdr;
   src_arg = pyrdr.attr("src");
   file_arg = pyrdr.attr("file");
@@ -71,7 +75,9 @@ GenericReader::GenericReader(const GenericReader& g) {
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
-  override_column_types = g.override_column_types;
+  override_column_types   = g.override_column_types;
+  printout_anonymize      = g.printout_anonymize;
+  printout_escape_unicode = g.printout_escape_unicode;
   // Runtime parameters
   input_mbuf    = g.input_mbuf? g.input_mbuf->shallowcopy() : nullptr;
   sof     = g.sof;
@@ -355,7 +361,110 @@ void GenericReader::progress(double progress, int statuscode) {
 }
 
 
+static void print_byte(uint8_t c, char*& out) {
+  *out++ = '\\';
+  if (c == '\n') *out++ = 'n';
+  else if (c == '\r') *out++ = 'r';
+  else if (c == '\t') *out++ = 't';
+  else {
+    int d0 = int(c & 0xF);
+    int d1 = int(c >> 4);
+    *out++ = 'x';
+    *out++ = static_cast<char>((d1 < 10 ? '0' : 'A' - 10) + d1);
+    *out++ = static_cast<char>((d0 < 10 ? '0' : 'A' - 10) + d0);
+  }
+}
 
+/**
+ * Extract an input line starting from `ch` and until an end of line, or until
+ * an end of file, or until `limit` characters have been printed, whichever
+ * comes first. This function returns the string copied into an internal static
+ * buffer. It can be called more than once, provided that the total size of all
+ * requested strings does not exceed `BUFSIZE`.
+ *
+ * The function will attempt to escape all non-printable characters. It can
+ * optionally escape all unicode characters too; or anonymize all text content.
+ */
+const char* GenericReader::repr_source(const char* ch, size_t limit)
+{
+  static constexpr size_t BUFSIZE = 1002;
+  static char buf[BUFSIZE + 10];
+  static size_t pos = 0;
+
+  if (pos + limit + 1 > BUFSIZE) pos = 0;
+  char* ptr = buf + pos;
+  char* out = ptr;
+  char* end = ptr + limit;
+  char* saved = ptr;
+  bool stopped_at_newline = false;
+  while (out < end) {
+    stopped_at_newline = true;
+    saved = out;
+    if (ch == eof) break;
+    uint8_t c = static_cast<uint8_t>(*ch++);
+
+    // Stop at a newline
+    if (c == '\n') break;
+    if (c == '\r') {
+      if (cr_is_newline) break;
+      if (ch < eof     && ch[0] == '\n') break;  // \r\n
+      if (ch + 1 < eof && ch[0] == '\r' && ch[1] == '\n') break;  // \r\r\n
+    }
+    stopped_at_newline = false;
+
+    // Control characters
+    if (c < 0x20) {
+      print_byte(c, out);
+    }
+
+    // Normal ASCII characters
+    else if (c < 0x80) {
+      *out++ = (printout_anonymize && c >= '1' && c <= '9')? '1' :
+               (printout_anonymize && c >= 'a' && c <= 'z')? 'a' :
+               (printout_anonymize && c >= 'A' && c <= 'Z')? 'A' :
+               static_cast<char>(c);
+    }
+
+    // Unicode (UTF-8) characters
+    else if (c < 0xF8) {
+      auto usrc = reinterpret_cast<const uint8_t*>(ch - 1);
+      size_t cp_bytes = (c < 0xE0)? 2 : (c < 0xF0)? 3 : 4;
+      bool cp_valid = (ch + cp_bytes - 2 < eof) &&
+                      is_valid_utf8(usrc, cp_bytes);
+      if (!cp_valid || printout_escape_unicode) {
+        print_byte(c, out);
+      } else if (printout_anonymize) {
+        *out++ = 'U';
+        ch += cp_bytes - 1;
+      } else {
+        // Copy the unicode character
+        *out++ = static_cast<char>(c);
+        *out++ = *ch++;
+        if (cp_bytes >= 3) *out++ = *ch++;
+        if (cp_bytes == 4) *out++ = *ch++;
+      }
+    }
+
+    // Invalid bytes
+    else {
+      print_byte(c, out);
+    }
+  }
+  if (out > end) out = saved;
+  if (!stopped_at_newline) {
+    out[-1] = '.';
+    out[-2] = '.';
+    out[-3] = '.';
+  }
+  *out++ = '\0';
+  pos += static_cast<size_t>(out - ptr);
+  return ptr;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Input handling
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
@@ -395,6 +504,23 @@ void GenericReader::open_input() {
   sof = input_mbuf->getstr();
   eof = sof + input_mbuf->size() - extra_byte;
   if (eof) xassert(*eof == '\0');
+
+  if (verbose) {
+    trace("==== file sample ====");
+    const char* ch = sof;
+    for (int i = 0; i < 5 && ch < eof; i++) {
+      trace("%s", repr_source(ch, 100));
+      while (ch < eof) {
+        char c = *ch++;
+        // simplified newline sequence. TODO: replace with `skip_eol()`
+        if (c == '\n' || c == '\r') {
+          if ((*ch == '\r' || *ch == '\n') && *ch != c) ch++;
+          break;
+        }
+      }
+    }
+    trace("=====================");
+  }
 }
 
 

@@ -396,3 +396,4 @@ void StrBuf2::resize(size_t newsize) {
   }
 }
 
+

@@ -834,3 +834,27 @@ def test_nastrings_invalid(na):
     with pytest.raises(Exception) as e:
         dt.fread("A\n1", na_strings=[na])
     assert "has whitespace or control characters" in str(e)
+
+
+
+#-------------------------------------------------------------------------------
+# `anonymize`
+#-------------------------------------------------------------------------------
+
+def test_anonymize1(capsys):
+    try:
+        src = ("Якби ви знали, паничі,\n"
+               "Де люде плачуть живучи,\n"
+               "То ви б елегій не творили\n"
+               "Та марне бога б не хвалили,\n"
+               "На наші сльози сміючись.\n")
+        d0 = dt.fread(src, sep="", verbose=True)
+        out, err = capsys.readouterr()
+        assert "На наші сльози сміючись." in out
+        dt.options.fread.anonymize = True
+        d1 = dt.fread(src, sep="", verbose=True)
+        out, err = capsys.readouterr()
+        assert "На наші сльози сміючись." not in out
+        assert "UU UUUU UUUUUU UUUUUUUU." in out
+    finally:
+        dt.options.fread.anonymize = False

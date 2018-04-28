@@ -605,6 +605,7 @@ void FreadReader::detect_lf() {
     ch++;
   }
   LFpresent = (ch < eof && *ch == '\n');
+  cr_is_newline = !LFpresent;
   if (LFpresent) {
     trace("LF character (\\n) found in input, "
           "\\r-only newlines will not be recognized");
@@ -964,7 +965,7 @@ void FreadLocalParseContext::read_chunk(
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but found only " << j
           << " (with sep='" << sep << "'). Set fill=True to ignore this error. "
-          << " <<" << strlim(tlineStart, 500) << ">>";
+          << " <<" << freader.repr_source(tlineStart, 500) << ">>";
       } else {
         return;
       }
@@ -974,7 +975,7 @@ void FreadLocalParseContext::read_chunk(
         throw RuntimeError() << "Too many fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but more are present. <<"
-          << strlim(tlineStart, 500) << ">>";
+          << freader.repr_source(tlineStart, 500) << ">>";
       } else {
         return;
       }

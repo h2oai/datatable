@@ -18,6 +18,7 @@ from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 from datatable.lib import core
 from datatable.frame import Frame
+from datatable.options import options
 from datatable.utils.typechecks import (typed, U, TValueError, TTypeError,
                                         DatatableWarning)
 from datatable.utils.terminal import term
@@ -1018,6 +1019,8 @@ class _DefaultLogger:
 _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)
 
+options.register_option(
+    "fread.anonymize", xtype=bool, default=False, core=True)
 
 
 
