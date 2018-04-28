@@ -22,42 +22,6 @@
 
 
 
-/**
- * Helper for error and warning messages to extract an input line starting at
- * `*ch` and until an end of line, but no longer than `limit` characters.
- * This function returns the string copied into an internal static buffer. Cannot
- * be called more than twice per single printf() invocation.
- * Parameter `limit` cannot exceed 500.
- */
-const char* strlim(const char* ch, size_t limit) {
-  static char buf[1002];
-  static int flip = 0;
-  char* ptr = buf + 501 * flip;
-  flip = 1 - flip;
-  char* ch2 = ptr;
-  char* ch2end = ptr + limit;
-  while (ch2 < ch2end) {
-    uint8_t c = static_cast<uint8_t>(*ch);
-    if (c < 0x0E && (c == 0 || c == 0x0D || c == 0x0A)) break;
-    if (c < 0x20 || c > 0x7F) {
-      int d0 = int(c & 0xF);
-      int d1 = int(c >> 4);
-      ch++;
-      *ch2++ = '\\';
-      *ch2++ = 'x';
-      *ch2++ = static_cast<char>((d1 < 10 ? '0' : 'A' - 10) + d1);
-      *ch2++ = static_cast<char>((d0 < 10 ? '0' : 'A' - 10) + d0);
-      if (ch2 > ch2end) { ch2 -= 4; break; }
-    } else {
-      *ch2++ = *ch++;
-    }
-  }
-  *ch2 = '\0';
-  return ptr;
-}
-
-
-
 //------------------------------------------------------------------------------
 
 

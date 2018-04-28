@@ -161,6 +161,9 @@ class GenericReader
     bool    blank_is_na;
     bool    number_is_na;
     bool    override_column_types;
+    bool    printout_anonymize;
+    bool    printout_escape_unicode;
+    size_t : 48;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -174,7 +177,8 @@ class GenericReader
     const char* eof;
     size_t line;
     int32_t fileno;
-    int : 32;
+    bool cr_is_newline;
+    int : 24;
     GReaderColumns columns;
 
   private:
@@ -251,6 +255,7 @@ class GenericReader
     void decode_utf16();
     void report_columns_to_python();
 
+    const char* repr_source(const char* ch, size_t limit);
     void _message(const char* method, const char* format, va_list args) const;
 
     DataTablePtr read_empty_input();
