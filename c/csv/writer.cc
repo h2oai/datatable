@@ -14,6 +14,7 @@
 #include "column.h"
 #include "csv/dtoa.h"
 #include "csv/itoa.h"
+#include "csv/htoa.h"
 #include "datatable.h"
 #include "memorybuf.h"
 #include "utils/omp.h"
@@ -22,9 +23,9 @@
 
 
 class CsvColumn;
-static void write_string(char **pch, const char *value);
+static void write_string(char** pch, const char* value);
 
-typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
+typedef void (*writer_fn)(char** pch, CsvColumn* col, int64_t row);
 
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
@@ -55,7 +56,7 @@ public:
     }
   }
 
-  void write(char **pch, int64_t row) {
+  void write(char** pch, int64_t row) {
     writer(pch, this, row);
   }
 
@@ -77,80 +78,42 @@ public:
 // experiments and benchmarks.
 //=================================================================================================
 
-static void write_b1(char **pch, CsvColumn *col, int64_t row)
-{
+static void write_b1(char** pch, CsvColumn* col, int64_t row) {
   int8_t value = reinterpret_cast<int8_t*>(col->data)[row];
   **pch = static_cast<char>(value) + '0';
   *pch += (value != NA_I1);
 }
 
 
-static void write_i1(char **pch, CsvColumn *col, int64_t row)
-{
-  int value = static_cast<int>(reinterpret_cast<int8_t*>(col->data)[row]);
-  char *ch = *pch;
+static void write_i1(char** pch, CsvColumn* col, int64_t row) {
+  int8_t value = reinterpret_cast<int8_t*>(col->data)[row];
   if (value == NA_I1) return;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  if (value >= 100) {  // the range of `value` is up to 127
-    *ch++ = '1';
-    int d = value/10;
-    *ch++ = static_cast<char>(d) - 10 + '0';
-    value -= d*10;
-  } else if (value >= 10) {
-    int d = value/10;
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d*10;
-  }
-  *ch++ = static_cast<char>(value) + '0';
-  *pch = ch;
+  btoa(pch, value);
 }
 
 
-static void write_i2(char **pch, CsvColumn *col, int64_t row)
-{
-  int value = ((int16_t*) col->data)[row];
-  if (value == 0) {
-    *((*pch)++) = '0';
-    return;
-  }
+static void write_i2(char** pch, CsvColumn* col, int64_t row) {
+  int16_t value = reinterpret_cast<int16_t*>(col->data)[row];
   if (value == NA_I2) return;
-  char *ch = *pch;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  int r = (value < 1000)? 2 : 4;
-  for (; value < DIVS32[r]; r--);
-  for (; r; r--) {
-    int d = value / DIVS32[r];
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS32[r];
-  }
-  *ch = static_cast<char>(value) + '0';
-  *pch = ch + 1;
+  htoa(pch, value);
 }
 
 
-static void write_i4(char **pch, CsvColumn *col, int64_t row)
-{
-  int32_t value = ((int32_t*) col->data)[row];
+static void write_i4(char** pch, CsvColumn* col, int64_t row) {
+  int32_t value = reinterpret_cast<int32_t*>(col->data)[row];
   if (value == NA_I4) return;
   itoa(pch, value);
 }
 
 
-static void write_i8(char **pch, CsvColumn *col, int64_t row)
-{
-  int64_t value = ((int64_t*) col->data)[row];
+static void write_i8(char** pch, CsvColumn* col, int64_t row) {
+  int64_t value = reinterpret_cast<int64_t*>(col->data)[row];
   if (value == NA_I8) return;
   ltoa(pch, value);
 }
 
 template <typename T>
-void write_str(char **pch, CsvColumn *col, int64_t row)
+void write_str(char** pch, CsvColumn* col, int64_t row)
 {
   T offset1 = ((T*) col->data)[row];
   T offset0 = abs(((T*) col->data)[row - 1]);
@@ -192,7 +155,7 @@ void write_str(char **pch, CsvColumn *col, int64_t row)
 
 static char hexdigits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
+static void write_f8_hex(char** pch, CsvColumn* col, int64_t row)
 {
   // Read the value as if it was uint64_t
   uint64_t value = static_cast<uint64_t*>(col->data)[row];
@@ -239,7 +202,7 @@ static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
 }
 
 
-static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
+static void write_f4_hex(char** pch, CsvColumn* col, int64_t row)
 {
   // Read the value as if it was uint32_t
   uint32_t value = static_cast<uint32_t*>(col->data)[row];
@@ -280,12 +243,12 @@ static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
 }
 
 
-static void write_f8_dec(char **pch, CsvColumn *col, int64_t row) {
+static void write_f8_dec(char** pch, CsvColumn* col, int64_t row) {
   double value = ((double*) col->data)[row];
   dtoa(pch, value);
 }
 
-static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
+static void write_f4_dec(char** pch, CsvColumn* col, int64_t row) {
   float value = ((float*) col->data)[row];
   ftoa(pch, value);
 }
@@ -296,7 +259,7 @@ static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
  * "writer" -- instead it may be used to write extra data to the file, such
  * as headers/footers.
  */
-static void write_string(char **pch, const char *value)
+static void write_string(char** pch, const char *value)
 {
   char *ch = *pch;
   const char *sch = value;
