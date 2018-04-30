@@ -1,5 +1,5 @@
 FROM FROM_SUBST
- 
+
 MAINTAINER H2o.ai <ops@h2o.ai>
 
 RUN \
@@ -24,22 +24,24 @@ ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM4/bin:$PATH
 
 RUN pip install llvmlite==0.20.0 wheel virtualenv && \
-    conda create -n datatable-py35-pandas-numpy python=3.5 && \
-    . activate datatable-py35-pandas-numpy && \
-    pip install --no-cache-dir psutil pandas numpy && \
+    \
+    conda create -n datatable-py35-with-pandas python=3.5 && \
+    . activate datatable-py35-with-pandas && \
+    pip install --no-cache-dir pandas && \
     . deactivate && \
-    conda create -n datatable-py36-pandas-numpy python=3.6 && \
-    . activate datatable-py36-pandas-numpy && \
-    pip install --no-cache-dir psutil pandas numpy && \
+    \
+    conda create -n datatable-py36-with-pandas python=3.6 && \
+    . activate datatable-py36-with-pandas && \
+    pip install --no-cache-dir pandas && \
     . deactivate && \
-    conda create -n datatable-py36-numpy python=3.6 && \
-    . activate datatable-py36-numpy && \
-    pip install --no-cache-dir psutil numpy && \
+    \
+    conda create -n datatable-py36-with-numpy python=3.6 && \
+    . activate datatable-py36-with-numpy && \
+    pip install --no-cache-dir numpy && \
     . deactivate && \
+    \
     conda create -n datatable-py36 python=3.6 && \
-    . activate datatable-py36 && \
-    pip install --no-cache-dir psutil && \
-    . deactivate && \
+    \
     chmod -R a+w /opt/h2oai/dai/python/envs
 
 RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2

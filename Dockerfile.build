@@ -41,26 +41,24 @@ RUN \
   pip install --upgrade numpy && \
   pip install --upgrade colorama && \
   pip install --upgrade typesentry && \
-  pip install --upgrade wcwidth && \
   pip install --upgrade blessed && \
   pip install --upgrade llvmlite && \
-  pip install --upgrade psutil && \
   pip install --upgrade pandas && \
   pip install --upgrade pytest && \
   pip install --upgrade virtualenv && \
   pip install --upgrade wheel
 
 RUN \
-    virtualenv --python=python3.5 /envs/datatable-py35-pandas-numpy && \
-    . /envs/datatable-py35-pandas-numpy/bin/activate && \
+    virtualenv --python=python3.5 /envs/datatable-py35-with-pandas && \
+    . /envs/datatable-py35-with-pandas/bin/activate && \
     pip install --upgrade pandas numpy && \
     deactivate && \
-    virtualenv --python=python3.6 /envs/datatable-py36-pandas-numpy && \
-    . /envs/datatable-py36-pandas-numpy/bin/activate && \
+    virtualenv --python=python3.6 /envs/datatable-py36-with-pandas && \
+    . /envs/datatable-py36-with-pandas/bin/activate && \
     pip install --upgrade pandas numpy && \
     deactivate && \
-    virtualenv --python=python3.6 /envs/datatable-py36-numpy && \
-    . /envs/datatable-py36-numpy/bin/activate && \
+    virtualenv --python=python3.6 /envs/datatable-py36-with-numpy && \
+    . /envs/datatable-py36-with-numpy/bin/activate && \
     pip install --upgrade numpy && \
     deactivate && \
     virtualenv --python=python3.6 /envs/datatable-py36 && \

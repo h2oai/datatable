@@ -84,8 +84,8 @@ if ((!isPrJob() && params.BUILD_PPC64LE) || isRelease()) {
 }
 
 // Virtualenv used for build and coverage
-def DEFAULT_PY36_ENV = 'datatable-py36-pandas-numpy'
-def DEFAULT_PY35_ENV = 'datatable-py35-pandas-numpy'
+def DEFAULT_PY36_ENV = 'datatable-py36-with-pandas'
+def DEFAULT_PY35_ENV = 'datatable-py35-with-pandas'
 // Virtualenvs used for PR testing
 PR_TEST_ENVIRONMENTS = [
         DEFAULT_PY35_ENV,
@@ -94,7 +94,7 @@ PR_TEST_ENVIRONMENTS = [
 // Virtualenvs used for nightly testing
 NIGHTLY_TEST_ENVIRONMENTS = PR_TEST_ENVIRONMENTS + [
         'datatable-py36',
-        'datatable-py36-numpy'
+        'datatable-py36-with-numpy'
 ]
 
 // Computed version suffix
