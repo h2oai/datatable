@@ -22,17 +22,18 @@ ENV LLVM4=/opt/h2oai/dai
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM4/bin:$PATH
+ENV PANDAS_VERSION=0.20.0
 
 RUN pip install llvmlite==0.20.0 wheel virtualenv && \
     \
     conda create -n datatable-py35-with-pandas python=3.5 && \
     . activate datatable-py35-with-pandas && \
-    pip install --no-cache-dir pandas && \
+    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
     . deactivate && \
     \
     conda create -n datatable-py36-with-pandas python=3.6 && \
     . activate datatable-py36-with-pandas && \
-    pip install --no-cache-dir pandas && \
+    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
     . deactivate && \
     \
     conda create -n datatable-py36-with-numpy python=3.6 && \
