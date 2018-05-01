@@ -26,19 +26,19 @@ ENV PATH=$LLVM4/bin:$PATH
 RUN pip install llvmlite==0.20.0 wheel virtualenv && \
     conda create -n datatable-py35-pandas-numpy python=3.5 && \
     . activate datatable-py35-pandas-numpy && \
-    conda install -y psutil pandas numpy && \
+    pip install --no-cache-dir psutil pandas numpy && \
     . deactivate && \
     conda create -n datatable-py36-pandas-numpy python=3.6 && \
     . activate datatable-py36-pandas-numpy && \
-    conda install -y psutil pandas numpy && \
+    pip install --no-cache-dir psutil pandas numpy && \
     . deactivate && \
     conda create -n datatable-py36-numpy python=3.6 && \
     . activate datatable-py36-numpy && \
-    conda install -y psutil numpy && \
+    pip install --no-cache-dir psutil numpy && \
     . deactivate && \
     conda create -n datatable-py36 python=3.6 && \
     . activate datatable-py36 && \
-    conda install -y psutil && \
+    pip install --no-cache-dir psutil && \
     . deactivate && \
     chmod -R a+w /opt/h2oai/dai/python/envs
 
