@@ -68,6 +68,17 @@ const char* GReaderColumn::typeName() const {
   return ParserLibrary::info(type).name.data();
 }
 
+const std::string& GReaderColumn::get_name() const {
+  return name;
+}
+
+const char* GReaderColumn::repr_name(const GenericReader& g) const {
+  const char* start = name.c_str();
+  const char* end = start + name.size();
+  return g.repr_binary(start, end, 25);
+}
+
+
 size_t GReaderColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(type).elemsize);
 }

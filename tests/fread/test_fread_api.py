@@ -858,3 +858,21 @@ def test_anonymize1(capsys):
         assert "UU UUUU UUUUUU UUUUUUUU." in out
     finally:
         dt.options.fread.anonymize = False
+
+
+def test_anonymize2(capsys):
+    try:
+        lines = ["secret code"] + [str(j) for j in range(10000)]
+        lines[111] = "boo"
+        src = "\n".join(lines)
+        d0 = dt.fread(src, verbose=True)
+        out, err = capsys.readouterr()
+        assert "secret code" in out
+        assert "Column 1 (secret code)" in out
+        dt.options.fread.anonymize = True
+        d0 = dt.fread(src, verbose=True)
+        out, err = capsys.readouterr()
+        assert "Column 1 (secret code)" not in out
+        assert "Column 1 (aaaaaa aaaa)" in out
+    finally:
+        dt.options.fread.anonymize = False
