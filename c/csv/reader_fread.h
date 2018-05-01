@@ -32,6 +32,7 @@ class ColumnTypeDetectionChunkster;
  */
 class FreadObserver {
   public:
+    const GenericReader& g;
     double t_start;
     double t_initialized;
     double t_parse_parameters_detected;
@@ -53,14 +54,14 @@ class FreadObserver {
     std::vector<std::string> messages;
 
   public:
-    FreadObserver();
+    FreadObserver(const GenericReader&);
     ~FreadObserver();
 
     void type_bump_info(size_t icol, const GReaderColumn& col, PT new_type,
                         const char* field, int64_t len, int64_t lineno);
     void str64_bump(size_t icol, const GReaderColumn& col);
 
-    void report(const GenericReader&);
+    void report();
 };
 
 

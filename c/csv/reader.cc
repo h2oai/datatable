@@ -385,7 +385,13 @@ static void print_byte(uint8_t c, char*& out) {
  * The function will attempt to escape all non-printable characters. It can
  * optionally escape all unicode characters too; or anonymize all text content.
  */
-const char* GenericReader::repr_source(const char* ch, size_t limit)
+const char* GenericReader::repr_source(const char* ch, size_t limit) const {
+  return repr_binary(ch, eof, limit);
+}
+
+
+const char* GenericReader::repr_binary(
+  const char* ch, const char* endch, size_t limit) const
 {
   static constexpr size_t BUFSIZE = 1002;
   static char buf[BUFSIZE + 10];
@@ -400,15 +406,15 @@ const char* GenericReader::repr_source(const char* ch, size_t limit)
   while (out < end) {
     stopped_at_newline = true;
     saved = out;
-    if (ch == eof) break;
+    if (ch == endch) break;
     uint8_t c = static_cast<uint8_t>(*ch++);
 
     // Stop at a newline
     if (c == '\n') break;
     if (c == '\r') {
       if (cr_is_newline) break;
-      if (ch < eof     && ch[0] == '\n') break;  // \r\n
-      if (ch + 1 < eof && ch[0] == '\r' && ch[1] == '\n') break;  // \r\r\n
+      if (ch < endch     && ch[0] == '\n') break;  // \r\n
+      if (ch + 1 < endch && ch[0] == '\r' && ch[1] == '\n') break;  // \r\r\n
     }
     stopped_at_newline = false;
 
@@ -429,7 +435,7 @@ const char* GenericReader::repr_source(const char* ch, size_t limit)
     else if (c < 0xF8) {
       auto usrc = reinterpret_cast<const uint8_t*>(ch - 1);
       size_t cp_bytes = (c < 0xE0)? 2 : (c < 0xF0)? 3 : 4;
-      bool cp_valid = (ch + cp_bytes - 2 < eof) &&
+      bool cp_valid = (ch + cp_bytes - 2 < endch) &&
                       is_valid_utf8(usrc, cp_bytes);
       if (!cp_valid || printout_escape_unicode) {
         print_byte(c, out);
@@ -745,7 +751,7 @@ void GenericReader::report_columns_to_python() {
   } else {
     PyyList colNamesList(ncols);
     for (size_t i = 0; i < ncols; ++i) {
-      colNamesList[i] = PyyString(columns[i].name);
+      colNamesList[i] = PyyString(columns[i].get_name());
     }
     freader.invoke("_set_column_names", "(O)", colNamesList.release());
   }
