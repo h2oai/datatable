@@ -21,13 +21,13 @@ def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_l
 
 EXPECTED_SHAS = [
         files : [
-                'Dockerfile.build'     : 'e01271264d0ec9f50b2707479f8689441fa89cb3',
-                'Dockerfile-centos7.in': 'c9ee7d5a68df34431a0a65d7d7f44ace8459b101',
+                'Dockerfile.build'     : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
+                'Dockerfile-centos7.in': '4c92900914eb3b2fee49ec84aece79cd32e4dcf6',
         ],
         images: [
-                (X86_64_LINUX_DOCKER_IMAGE)                             : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:0e09d9145fc1ae14ae29acebacd9d5dc17e5d7b913234eb291909982749abf24',
-                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:123d142f8e27feb9a0e3cde7e2e7fcf2587c74259f226c73f9c89ce21cd60026',
-                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'e0d49e7a7e0e'
+                (X86_64_LINUX_DOCKER_IMAGE)                             : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:6ecaa19199f289dda64963abcc9514083e911fac29ceb64cc0dc2521dca269a9',
+                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:d2a37f1b494e58ae039ba83d98fa4f716afdc97d8924959913db3dc3058f18a9',
+                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7@sha256:3ddbf42291ead65853124cce00e8da9443361d179b3724f2bc0beb35be69c9df'
         ]
 ]
 
