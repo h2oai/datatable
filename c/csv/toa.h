@@ -5,9 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_HTOA_h
-#define dt_CSV_HTOA_h
-#include "csv/dtoa.h"   // DIVS32
+#ifndef dt_CSV_TOA_h
+#define dt_CSV_TOA_h
+#include "csv/dtoa.h"   // dtoa, ftoa, DIVS32
+#include "csv/itoa.h"   // itoa, ltoa
 
 
 inline void btoa(char** pch, int8_t value)
@@ -54,5 +55,17 @@ inline void htoa(char** pch, int16_t value)
   *pch = ch + 1;
 }
 
+
+
+//---- Generic -----------------------------------------------------------------
+
+template<typename T>
+           inline void toa(char**, T)              { }
+template<> inline void toa(char** pch, int8_t x)   { btoa(pch, x); }
+template<> inline void toa(char** pch, int16_t x)  { htoa(pch, x); }
+template<> inline void toa(char** pch, int32_t x)  { itoa(pch, x); }
+template<> inline void toa(char** pch, int64_t x)  { ltoa(pch, x); }
+template<> inline void toa(char** pch, float x)    { ftoa(pch, x); }
+template<> inline void toa(char** pch, double x)   { dtoa(pch, x); }
 
 #endif

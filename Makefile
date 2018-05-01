@@ -423,9 +423,9 @@ $(BUILDDIR)/csv/itoa.h: c/csv/itoa.h
 	@echo • Refreshing c/csv/itoa.h
 	@cp c/csv/itoa.h $@
 
-$(BUILDDIR)/csv/htoa.h: c/csv/htoa.h $(BUILDDIR)/csv/dtoa.h
-	@echo • Refreshing c/csv/htoa.h
-	@cp c/csv/htoa.h $@
+$(BUILDDIR)/csv/toa.h: c/csv/toa.h $(BUILDDIR)/csv/dtoa.h $(BUILDDIR)/csv/itoa.h
+	@echo • Refreshing c/csv/toa.h
+	@cp c/csv/toa.h $@
 
 $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
@@ -580,7 +580,7 @@ $(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/dtoa.h $(BUILDDIR)/csv/itoa.h $(BUILDDIR)/csv/htoa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

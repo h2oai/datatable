@@ -12,9 +12,7 @@
 #include <stdint.h>     // int32_t, etc
 #include <stdio.h>      // printf
 #include "column.h"
-#include "csv/dtoa.h"
-#include "csv/itoa.h"
-#include "csv/htoa.h"
+#include "csv/toa.h"
 #include "datatable.h"
 #include "memorybuf.h"
 #include "utils/omp.h"
@@ -85,32 +83,13 @@ static void write_b1(char** pch, CsvColumn* col, int64_t row) {
 }
 
 
-static void write_i1(char** pch, CsvColumn* col, int64_t row) {
-  int8_t value = reinterpret_cast<int8_t*>(col->data)[row];
-  if (value == NA_I1) return;
-  btoa(pch, value);
+template <typename T>
+void write_iN(char** pch, CsvColumn* col, int64_t row) {
+  T value = reinterpret_cast<T*>(col->data)[row];
+  if (ISNA<T>(value)) return;
+  toa<T>(pch, value);
 }
 
-
-static void write_i2(char** pch, CsvColumn* col, int64_t row) {
-  int16_t value = reinterpret_cast<int16_t*>(col->data)[row];
-  if (value == NA_I2) return;
-  htoa(pch, value);
-}
-
-
-static void write_i4(char** pch, CsvColumn* col, int64_t row) {
-  int32_t value = reinterpret_cast<int32_t*>(col->data)[row];
-  if (value == NA_I4) return;
-  itoa(pch, value);
-}
-
-
-static void write_i8(char** pch, CsvColumn* col, int64_t row) {
-  int64_t value = reinterpret_cast<int64_t*>(col->data)[row];
-  if (value == NA_I8) return;
-  ltoa(pch, value);
-}
 
 template <typename T>
 void write_str(char** pch, CsvColumn* col, int64_t row)
@@ -624,10 +603,10 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 
   writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
-  writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;
-  writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_i2;
-  writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_i4;
-  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_i8;
+  writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_iN<int8_t>;
+  writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_iN<int16_t>;
+  writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_iN<int32_t>;
+  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_iN<int64_t>;
   writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_dec;
   writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_dec;
   writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_str<int32_t>;
