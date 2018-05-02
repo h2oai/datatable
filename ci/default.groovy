@@ -39,6 +39,9 @@ def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extr
 
     // Archive logs
     arch "${stageDir}/stage_build_*.log"
+
+    // Archive core dump log
+    arch "/tmp/cores/*"
 }
 
 def buildSDist(stageDir, ciVersionSuffix, py36VenvCmd) {
