@@ -30,7 +30,7 @@ try {
     node('docker && !mr-0xc8') {
         buildSummary.stageWithSummary("Build images for x86_64") {
             dir('centos7') {
-                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
+                checkout scm
                 sh """
                     make mrproper
                     make centos7_docker_build CONTAINER_NAME_SUFFIX=
@@ -38,7 +38,7 @@ try {
                 arch "*.tag"
             }
             dir ('ubuntu') {
-                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
+                checkout scm
                 sh """
                     sed -i 's/FROM_SUBST/x86_64_linux/g' Dockerfile.build
                     sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile.build
@@ -64,7 +64,7 @@ try {
     node('ibm-power') {
         buildSummary.stageWithSummary("Build image for ppc64le") {
             dir('centos7') {
-                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
+                checkout scm
                 sh """
                     make mrproper
                     make centos7_docker_build CONTAINER_NAME_SUFFIX=
