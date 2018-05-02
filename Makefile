@@ -164,11 +164,16 @@ endif
 Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
 	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
 
-centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
+Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
 	docker build \
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
 		.
+	echo $(CONTAINER_NAME_TAG) > $@
+
+centos7_docker_image: Dockerfile-centos7.$(PLATFORM).tag
+
+centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	make clean
 	docker run \
 		--rm \
