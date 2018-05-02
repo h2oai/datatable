@@ -175,6 +175,7 @@ Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
 centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
 
 centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
+	docker push $(CONTAINER_NAME_TAG)
 
 centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	make clean

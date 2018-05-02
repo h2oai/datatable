@@ -44,7 +44,7 @@ try {
                     sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile.build
                     docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux -f Dockerfile.build .
                 """
-                arch "*.tag"
+                //arch "*.tag"
             }
         }
 
