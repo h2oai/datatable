@@ -38,6 +38,7 @@ try {
                     sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile-centos7.in
                     docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 -f Dockerfile-centos7.in .
                 """
+                arch "*.tag"
             }
             dir ('ubuntu') {
                 def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
@@ -47,6 +48,7 @@ try {
                     sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile.build
                     docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux -f Dockerfile.build .
                 """
+                arch "*.tag"
             }
         }
 
@@ -76,6 +78,7 @@ try {
                     docker build -t docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7 -f Dockerfile-centos7.in .
                     docker push docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7
                 """
+                arch "*.tag"
             }
         }
 

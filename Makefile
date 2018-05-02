@@ -135,8 +135,9 @@ DIST_DIR = dist
 ARCH := $(shell arch)
 PLATFORM := $(ARCH)-centos7
 
+DOCKER_REPO_NAME ?= docker.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
-CONTAINER_NAME ?= opsh2oai/dai-datatable$(CONTAINER_NAME_SUFFIX)
+CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
 
 PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -144,7 +145,7 @@ BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
 BUILD_NUM ?= local
 BUILD_NUM_SUFFIX = .$(BUILD_NUM)
 VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
-CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/+/-/g')
+CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
@@ -171,7 +172,9 @@ Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
 		.
 	echo $(CONTAINER_NAME_TAG) > $@
 
-centos7_docker_image: Dockerfile-centos7.$(PLATFORM).tag
+centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
+
+centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
 
 centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	make clean
