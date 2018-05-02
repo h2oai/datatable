@@ -8,7 +8,6 @@ import enum
 import glob
 import os
 import pathlib
-import psutil
 import re
 import shutil
 import tempfile
@@ -26,6 +25,11 @@ from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
 from datatable.types import stype, ltype
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 _log_color = term.bright_black
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
@@ -769,7 +773,7 @@ class GenericReader(object):
         if self.verbose and estimated_size > 1:
             self.logger.debug("The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
-        if estimated_size < 1024:
+        if estimated_size < 1024 or psutil is None:
             return None
         vm = psutil.virtual_memory()
         if self.verbose:

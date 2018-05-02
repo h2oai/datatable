@@ -404,7 +404,6 @@ setup(
         "typesentry>=0.2.4",
         "blessed",
         "llvmlite" + llvmlite_req,
-        "psutil"
     ],
 
     python_requires=">=3.5",
