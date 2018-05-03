@@ -340,7 +340,7 @@ def isModified(pattern) {
     }
 
     def out = ""
-    if (!fList.isEmpty()) 
+    if (!fList.isEmpty()) {
         out = sh(script: "echo '${fList}' | xargs basename -a | egrep -e '${pattern}' | wc -l", returnStdout: true).trim()
     }
     return !(out.isEmpty() || out == "0")
