@@ -59,7 +59,6 @@ def LINUX_PLATFORM = 'x86_64_linux'
 def BUILD_MATRIX = [
         // Linux build definition
         (LINUX_PLATFORM)   : platformDefaults + [
-                pullImage  : true,
                 node       : 'docker && linux',
                 dockerImage: X86_64_LINUX_DOCKER_IMAGE
         ],
