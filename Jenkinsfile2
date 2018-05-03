@@ -17,14 +17,14 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 
 H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
-def DOCKER_IMAGE_TAG = '0.3.2-PR-997.6'
+def DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
 
 def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:${DOCKER_IMAGE_TAG}"
 
 EXPECTED_SHAS = [
         files : [
-                'Dockerfile-ubuntu.in' : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
-                'Dockerfile-centos7.in': '2a88aa746a15b9c9f66eb9cf5d32bf9d9937ddb1',
+                'Dockerfile-ubuntu.in' : '47087215fe899c38e12037e2d91dd4202988e98c',
+                'Dockerfile-centos7.in': 'cac8444c631555cff6b291f30cbc330c917cb0fe',
         ]
 ]
 

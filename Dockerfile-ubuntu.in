@@ -78,3 +78,6 @@ ENV \
   LLVM_CONFIG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/llvm-config \
   CLANG=/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/clang
 
+# A separated layer to collect core dumps
+RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores
+
