@@ -14,7 +14,7 @@ PLATFORM := $(ARCH)-$(OS)
 DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug build_noomp bi coverage fast dist
+		benchmark debug bi coverage fast dist
 .SECONDARY: main-fast
 
 
@@ -83,11 +83,6 @@ asan:
 	$(MAKE) fast
 	$(MAKE) install
 
-build_noomp:
-	DTNOOPENMP=1 \
-	$(MAKE) build
-
-
 bi:
 	$(MAKE) build
 	$(MAKE) install
@@ -114,9 +109,6 @@ coverage:
 	mv .coverage build/
 
 dist: build
-	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
-
-dist_noomp: build_noomp
 	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
 
 sdist:
@@ -194,24 +186,8 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		$(CONTAINER_NAME_TAG) \
 		-c 'make dist'
-	rm -fr build.output.tmp
-	mkdir build.output.tmp
-	mv $(DIST_DIR)/*.whl build.output.tmp
-	make clean
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX).noomp" \
-		$(CONTAINER_NAME_TAG) \
-		-c 'make dist_noomp'
-	mv $(DIST_DIR)/*.whl build.output.tmp
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
-	mv build.output.tmp/* $(DIST_DIR)/$(PLATFORM)
-	rmdir build.output.tmp
+	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
 #
