@@ -10,27 +10,15 @@ def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extr
     dumpInfo()
 
     final def ompLogFile = "stage_build_with_omp_on_${platform}_output.log"
-    final def noompLogFile = "stage_build_with_noomp_on_${platform}_output.log"
-
-    def noompSuffix = "${ciVersionSuffix}.noomp"
-    if (ciVersionSuffix == null || ciVersionSuffix == '') {
-        noompSuffix = 'noomp'
-    }
 
     sh "mkdir -p ${stageDir}"
 
     // build and archive the omp version for Python 3.6
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'dist', ompLogFile)
     arch "${stageDir}/dist/**/*.whl"
-    // build and archive the noomp version for Python 3.6
-    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${noompSuffix}"] + extraEnv, py36VenvCmd, 'dist_noomp', noompLogFile)
-    arch "${stageDir}/dist/**/*.whl"
 
     // build and archive the omp version for Python 3.5
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py35VenvCmd, 'dist', ompLogFile)
-    arch "${stageDir}/dist/**/*.whl"
-    // build and archive the noomp version for Python 3.5
-    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${noompSuffix}"] + extraEnv, py35VenvCmd, 'dist_noomp', noompLogFile)
     arch "${stageDir}/dist/**/*.whl"
 
     // build and stash the version
@@ -97,7 +85,7 @@ def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir)
                 rm -rf datatable
                 ${venvCmd}
                 pyVersion=\$(python --version 2>&1 | egrep -o '[0-9]\\.[0-9]' | tr -d '.')
-                pip install --no-cache-dir --upgrade `find dist -name "datatable-*cp\${pyVersion}*${getWheelPlatformName(platform)}*" | grep -v noomp`
+                pip install --no-cache-dir --upgrade `find dist -name "datatable-*cp\${pyVersion}*${getWheelPlatformName(platform)}*"`
                 make test MODULE=datatable
             """
         }
