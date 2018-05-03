@@ -74,6 +74,7 @@ def BUILD_MATRIX = [
 
 if ((!isPrJob() && params.BUILD_PPC64LE) || isRelease()) {
     BUILD_MATRIX[PPC64LE_PLATFORM] = PPC64LE_BUILD_CONF
+    manager.addBadge("success.gif", "PPC64LE build triggered!")
 }
 
 // Virtualenv used for build and coverage
