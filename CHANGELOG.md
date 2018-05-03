@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Implemented sorting for `str64` columns.
 - write_csv can now write columns of type `str64`.
 - Fread can now accept a list of files to read, or a glob pattern.
+- Added `dt.lib.core.has_omp_support()` to check whether `datatable` was
+  built with OMP support or not.
 
 #### Fixed
 - Fix the source distribution (`sdist`) by including all the files that are

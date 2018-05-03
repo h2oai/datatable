@@ -98,19 +98,24 @@ void GenericReader::init_verbose() {
 }
 
 void GenericReader::init_nthreads() {
-  int32_t nth = freader.attr("nthreads").as_int32();
-  if (ISNA<int32_t>(nth)) {
-    nthreads = config::nthreads;
-    trace("Using default %d threads", nthreads);
-  } else {
-    nthreads = nth;
-    int32_t maxth = omp_get_max_threads();
-    if (nthreads > maxth) nthreads = maxth;
-    if (nthreads <= 0) nthreads += maxth;
-    if (nthreads <= 0) nthreads = 1;
-    trace("Using %d threads (requested=%d, max.available=%d)",
-          nthreads, nth, maxth);
-  }
+  #ifdef DTNOOPENMP
+    nthreads = 1;
+    trace("Using 1 thread because datatable was built without OMP support");
+  #else
+    int32_t nth = freader.attr("nthreads").as_int32();
+    if (ISNA<int32_t>(nth)) {
+      nthreads = config::nthreads;
+      trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
+    } else {
+      nthreads = nth;
+      int32_t maxth = omp_get_max_threads();
+      if (nthreads > maxth) nthreads = maxth;
+      if (nthreads <= 0) nthreads += maxth;
+      if (nthreads <= 0) nthreads = 1;
+      trace("Using %d thread%s (requested=%d, max.available=%d)",
+            nthreads, (nthreads==1? "" : "s"), nth, maxth);
+    }
+  #endif
 }
 
 void GenericReader::init_fill() {
