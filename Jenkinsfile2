@@ -17,17 +17,14 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 
 H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
-def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux'
+def DOCKER_IMAGE_TAG = '0.3.2-PR-997.6'
+
+def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:${DOCKER_IMAGE_TAG}"
 
 EXPECTED_SHAS = [
         files : [
-                'Dockerfile.build'     : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
-                'Dockerfile-centos7.in': 'b8914d51d81c90a1b59ab41824f1e9d3c9fc9795',
-        ],
-        images: [
-                (X86_64_LINUX_DOCKER_IMAGE)                             : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:759343ea1af567894269b2d076cd13a6c31200bb61cc2155791dfd9078ac081b',
-                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:10883b8e96faa3b0d53c64bca62d4deedd423f3d017f51bea54dcadfcfc3521d',
-                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7@sha256:ea028532092690654a5728368fd994583f5be2d91ef1eb9da68efc01683e473b',
+                'Dockerfile-ubuntu.in' : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
+                'Dockerfile-centos7.in': '2a88aa746a15b9c9f66eb9cf5d32bf9d9937ddb1',
         ]
 ]
 
@@ -36,21 +33,18 @@ def platformDefaults = [
         env      : [],
         pythonBin: 'python',
         coverage : true,
-
 ]
 
 // Default mapping for CentOS environments
 def centosDefaults = [
         env      : ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
-        pullImage: true
 ]
 
 def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node       : 'ibm-power',
         coverage   : false,
-        pullImage  : false,
-        dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
+        dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}"
 ]
 
 def LINUX_PLATFORM = 'x86_64_linux'
@@ -59,7 +53,6 @@ def LINUX_PLATFORM = 'x86_64_linux'
 def BUILD_MATRIX = [
         // Linux build definition
         (LINUX_PLATFORM)   : platformDefaults + [
-                pullImage  : true,
                 node       : 'docker && linux',
                 dockerImage: X86_64_LINUX_DOCKER_IMAGE
         ],
@@ -67,7 +60,7 @@ def BUILD_MATRIX = [
         x86_64_centos7: platformDefaults + centosDefaults + [
                 node       : 'docker && linux',
                 coverage   : false,
-                dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7'
+                dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
         ],
         // OSX
         x86_64_macos  : platformDefaults + [
@@ -132,9 +125,6 @@ BUILD_MATRIX.each { platform, config ->
                 stage(buildStageName) {
                     dir(buildDir) {
                         unstash 'datatable-sources'
-                    }
-                    if (config.dockerImage && config.pullImage) {
-                        pullDockerImageIfRequired(config.dockerImage)
                     }
                     // Specify build Closure
                     def buildClosure = {
@@ -248,7 +238,6 @@ ansiColor('xterm') {
                     dir(buildDir) {
                         unstash 'datatable-sources'
                     }
-                    pullDockerImageIfRequired(X86_64_LINUX_DOCKER_IMAGE)
                     // Specify build Closure
                     def buildClosure = {
                         project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
@@ -408,30 +397,3 @@ def isRelease() {
     return env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)
 }
 
-/**
- * Pulls specified docker image if SHA of image present on the host and expected SHA are not the same.
- * @param dockerImage Docker image to pull
- */
-def pullDockerImageIfRequired(final dockerImage) {
-    withCredentials([usernamePassword(credentialsId: 'docker.h2o.ai', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
-        // by default, the image should be pulled
-        def pullImage = true
-        // First check that the image is present
-        def imagePresent = sh(script: "docker inspect ${dockerImage}", returnStatus: true) == 0
-        if (imagePresent) {
-            echo "${dockerImage} present on host, checking versions..."
-            // check that the image has expected SHA
-            def expectedVersion = EXPECTED_SHAS.images[dockerImage]
-            def currentVersion = sh(script: "docker inspect --format=\'{{index .RepoDigests 0}}\' ${dockerImage}", returnStdout: true).trim()
-            echo "current image version: ${currentVersion}"
-            echo "expected image version: ${expectedVersion}"
-            pullImage = currentVersion != expectedVersion
-        }
-        if (pullImage) {
-            sh """
-                docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD docker.h2o.ai
-                docker pull ${dockerImage}
-            """
-        }
-    }
-}
