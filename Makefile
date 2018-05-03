@@ -142,9 +142,9 @@ CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONT
 PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
-BUILD_NUM ?= local
-BUILD_NUM_SUFFIX = .$(BUILD_NUM)
-VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
+BUILD_ID ?= local
+BUILD_ID_SUFFIX = .$(BUILD_ID)
+VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
 CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
