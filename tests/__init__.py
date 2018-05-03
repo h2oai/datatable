@@ -4,6 +4,8 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import os
+import pytest
 import random
 import sys
 from math import isnan
@@ -113,3 +115,14 @@ def random_string(n):
     """Return random alphanumeric string of `n` characters."""
     alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     return "".join(random.choice(alphabet) for _ in range(n))
+
+
+def find_file(*nameparts):
+    root_var = "DT_LARGE_TESTS_ROOT"
+    d = os.environ.get(root_var, "").strip()
+    if not d:
+        pytest.skip("%s is not defined" % root_var)
+    elif not os.path.isdir(d):
+        pytest.fail("Directory '%s' does not exist" % d)
+    else:
+        return os.path.join(d, *nameparts)

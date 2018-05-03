@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fix the source distribution (`sdist`) by including all the files that are
   required for building from source.
 - Install no longer fails with `llvmlite 0.23.0` package.
+- Fixed a stall in fread when using single-threaded mode with fill=True.
 
 
 ### [v0.3.1](https://github.com/h2oai/datatable/compare/0.3.1...v0.3.0) — 2018-04-20
