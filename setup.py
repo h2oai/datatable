@@ -172,7 +172,7 @@ def get_extra_compile_flags():
 
     # Enable/disable OpenMP support
     if "DTNOOPENMP" in os.environ:
-        flags.append("-DDTNOOMP")
+        flags.append("-DDTNOOPENMP")
         flags.append("-Wno-source-uses-openmp")
     else:
         flags.insert(0, "-fopenmp")
