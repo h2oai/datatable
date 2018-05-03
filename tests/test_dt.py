@@ -471,7 +471,7 @@ def test_internal_rowindex():
 #-------------------------------------------------------------------------------
 
 @pytest.mark.run(order=10)
-@pytest.mark.usefixture("pandas")
+@pytest.mark.usefixtures("pandas")
 def test_topandas():
     d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
     p0 = d0.topandas()
@@ -483,7 +483,7 @@ def test_topandas():
 
 
 @pytest.mark.run(order=11)
-@pytest.mark.usefixture("pandas")
+@pytest.mark.usefixtures("pandas")
 def test_topandas_view():
     d0 = dt.Frame([[1, 5, 2, 0, 199, -12],
                    ["alpha", "beta", None, "delta", "epsilon", "zeta"],
@@ -496,7 +496,7 @@ def test_topandas_view():
 
 
 @pytest.mark.run(order=11.1)
-@pytest.mark.usefixture("pandas")
+@pytest.mark.usefixtures("pandas")
 def test_topandas_nas():
     d0 = dt.Frame([[True, None, None, None, False],
                    [1, 5, None, -16, 100],
