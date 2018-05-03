@@ -76,7 +76,6 @@ def get_test_dependencies():
     # Test dependencies exposed as extras, based on:
     # https://stackoverflow.com/questions/29870629
     return [
-        "pandas",
         "pytest>=3.1",
         "pytest-cov",
         "pytest-benchmark>=3.1",
