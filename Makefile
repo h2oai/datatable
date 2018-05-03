@@ -133,7 +133,8 @@ version:
 DIST_DIR = dist
 
 ARCH := $(shell arch)
-PLATFORM := $(ARCH)-centos7
+OS_NAME ?= centos7
+PLATFORM := $(ARCH)_$(OS_NAME)
 
 DOCKER_REPO_NAME ?= docker.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
@@ -153,12 +154,16 @@ CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
 
 ARCH_SUBST = undefined
 FROM_SUBST = undefined
-ifeq ($(ARCH),x86_64)
+ifeq ($(PLATFORM),x86_64_centos7)
     FROM_SUBST = centos:7
     ARCH_SUBST = $(ARCH)
 endif
-ifeq ($(ARCH),ppc64le)
+ifeq ($(PLATFORM),ppc64le_centos7)
     FROM_SUBST = ibmcom\/centos-ppc64le
+    ARCH_SUBST = $(ARCH)
+endif
+ifeq ($(PLATFORM),x86_64_ubuntu)
+    FROM_SUBST = x86_64_linux
     ARCH_SUBST = $(ARCH)
 endif
 
@@ -209,15 +214,34 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	rmdir build.output.tmp
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
+#
+# Ubuntu image - will be removed
+#
+Dockerfile-ubuntu.$(PLATFORM): Dockerfile-ubuntu.in
+	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
+
+Dockerfile-ubuntu.$(PLATFORM).tag: Dockerfile-ubuntu.$(PLATFORM)
+	docker build \
+		-t $(CONTAINER_NAME_TAG) \
+		-f Dockerfile-ubuntu.$(PLATFORM) \
+		.
+	echo $(CONTAINER_NAME_TAG) > $@
+
+ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
+
+ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
+	docker push $(CONTAINER_NAME_TAG)
+
 # Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
 mrproper_in_docker: mrproper
 
 printvars:
-	@echo $(PLATFORM)
-	@echo $(PROJECT_VERSION)
-	@echo $(VERSION)
-	@echo $(CONTAINER_TAG)
+	@echo PLATFORM=$(PLATFORM)
+	@echo PROJECT_VERSION=$(PROJECT_VERSION)
+	@echo VERSION=$(VERSION)
+	@echo CONTAINER_TAG=$(CONTAINER_TAG)
+	@echo CONTAINER_NAME=$(CONTAINER_NAME)
 
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)

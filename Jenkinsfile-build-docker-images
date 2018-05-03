@@ -40,9 +40,8 @@ try {
             dir ('ubuntu') {
                 checkout scm
                 sh """
-                    sed -i 's/FROM_SUBST/x86_64_linux/g' Dockerfile.build
-                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile.build
-                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux -f Dockerfile.build .
+                    make mrproper
+                    make ubuntu_docker_build CONTAINER_NAME_SUFFIX= OS=ubuntu
                 """
                 //arch "*.tag"
             }
@@ -54,6 +53,7 @@ try {
                     sh """
                         docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD ${params.registry}
                         make centos7_docker_publish CONTAINER_NAME_SUFFIX=
+                        make ubuntu_docker_publish CONTAINER_NAME_SUFFIX=
                     """
                     echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 built and pushed. ######"
                 }
