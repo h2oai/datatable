@@ -9,7 +9,6 @@ import ai.h2o.ci.BuildResult
 properties([
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '25')),
         parameters([
-                string(name: 'gitBranch', defaultValue: 'master', description: 'Branch to load the Dockerfile from.'),
                 string(name: 'registry', defaultValue: 'docker.h2o.ai', description: 'Docker registry to push images to'),
                 booleanParam(name: 'publish', defaultValue: true, description: 'If true, publish the docker image'),
         ]),
@@ -31,22 +30,20 @@ try {
     node('docker && !mr-0xc8') {
         buildSummary.stageWithSummary("Build images for x86_64") {
             dir('centos7') {
-                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
-                env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '')
+                checkout scm
                 sh """
-                    sed -i 's/FROM_SUBST/centos:7/g' Dockerfile-centos7.in
-                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile-centos7.in
-                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 -f Dockerfile-centos7.in .
+                    make mrproper
+                    make centos7_docker_build CONTAINER_NAME_SUFFIX=
                 """
+                arch "*.tag"
             }
             dir ('ubuntu') {
-                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
-                env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '')
+                checkout scm
                 sh """
-                    sed -i 's/FROM_SUBST/x86_64_linux/g' Dockerfile.build
-                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile.build
-                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux -f Dockerfile.build .
+                    make mrproper
+                    make ubuntu_docker_build CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
                 """
+                arch "*.tag"
             }
         }
 
@@ -55,11 +52,18 @@ try {
                 withCredentials([usernamePassword(credentialsId: "${params.registry}", usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
                     sh """
                         docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD ${params.registry}
-                        docker push docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux
-                        docker push docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7
                     """
+                    dir('centos7') {
+                        sh """
+                            make centos7_docker_publish CONTAINER_NAME_SUFFIX=
+                        """
+                    }
+                    dir('ubuntu') {
+                        sh """
+                             make ubuntu_docker_publish CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
+                        """
+                    }
                     echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 built and pushed. ######"
-                    echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux built and pushed. ######"
                 }
             }
         }
@@ -68,14 +72,13 @@ try {
     node('ibm-power') {
         buildSummary.stageWithSummary("Build image for ppc64le") {
             dir('centos7') {
-                def final scmEnv = git branch: params.gitBranch, changelog: false, credentialsId: 'd57016f6-d172-43ea-bea1-1d6c7c1747a0', poll: false, url: 'https://github.com/h2oai/datatable'
-                env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '')
+                checkout scm
                 sh """
-                    sed -i 's/FROM_SUBST/centos:7/g' Dockerfile-centos7.in
-                    sed -i 's/ARCH_SUBST/\$(uname -m)/g' Dockerfile-centos7.in
-                    docker build -t docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7 -f Dockerfile-centos7.in .
-                    docker push docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7
+                    make mrproper
+                    make centos7_docker_build CONTAINER_NAME_SUFFIX=
+                    make centos7_docker_publish CONTAINER_NAME_SUFFIX=
                 """
+                arch "*.tag"
             }
         }
 
