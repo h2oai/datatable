@@ -19,7 +19,7 @@ H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
 def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu'
 
-def DOCKER_IMAGE_TAG = '0.3.2-PR-997.5'
+def DOCKER_IMAGE_TAG = '0.3.2-PR-997.6'
 
 EXPECTED_SHAS = [
         files : [
@@ -27,7 +27,7 @@ EXPECTED_SHAS = [
                 'Dockerfile-centos7.in': 'b8914d51d81c90a1b59ab41824f1e9d3c9fc9795',
         ],
         images: [
-                (X86_64_LINUX_DOCKER_IMAGE)                             : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux:latest",
+                (X86_64_LINUX_DOCKER_IMAGE)                             : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux:${DOCKER_IMAGE_TAG}",
                 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}",
                 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}",
         ]
@@ -44,14 +44,12 @@ def platformDefaults = [
 // Default mapping for CentOS environments
 def centosDefaults = [
         env      : ['LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/h2oai/dai/python/lib/'],
-        pullImage: true
 ]
 
 def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node       : 'ibm-power',
         coverage   : false,
-        pullImage  : false,
         dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
 ]
 
@@ -135,14 +133,11 @@ BUILD_MATRIX.each { platform, config ->
                     dir(buildDir) {
                         unstash 'datatable-sources'
                     }
-                    if (config.dockerImage && config.pullImage) {
-                        pullDockerImageIfRequired(config.dockerImage)
-                    }
                     // Specify build Closure
                     def buildClosure = {
                         project.buildAll(buildDir, platform, CI_VERSION_SUFFIX, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), getVenvActivationCmd(platform, DEFAULT_PY35_ENV), BUILD_MATRIX[platform]['env'])
                     }
-                    callInEnv(config.dockerImage, dockerArgs, buildClosure)
+                    callInEnv(EXPECTED_SHAS.images[config.dockerImage], dockerArgs, buildClosure)
                 }
             }
 
@@ -159,7 +154,7 @@ BUILD_MATRIX.each { platform, config ->
                         def coverageClosure = {
                             project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
                         }
-                        callInEnv(config.dockerImage, dockerArgs, coverageClosure)
+                        callInEnv(EXPECTED_SHAS.images[config.dockerImage], dockerArgs, coverageClosure)
                     }
                 }
             } else {
@@ -182,7 +177,7 @@ BUILD_MATRIX.each { platform, config ->
                             def testClosure = {
                                 project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
                             }
-                            callInEnv(config.dockerImage, dockerArgs, testClosure)
+                            callInEnv(EXPECTED_SHAS.images[config.dockerImage], dockerArgs, testClosure)
                         }
                     }
                 } catch (e) {
@@ -250,12 +245,11 @@ ansiColor('xterm') {
                     dir(buildDir) {
                         unstash 'datatable-sources'
                     }
-                    pullDockerImageIfRequired(X86_64_LINUX_DOCKER_IMAGE)
                     // Specify build Closure
                     def buildClosure = {
                         project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
                     }
-                    callInEnv(X86_64_LINUX_DOCKER_IMAGE, dockerArgs, buildClosure)
+                    callInEnv(EXPECTED_SHAS.images[X86_64_LINUX_DOCKER_IMAGE], dockerArgs, buildClosure)
                 }
 
                 def publishS3Dir = 'publish-s3'
@@ -410,30 +404,3 @@ def isRelease() {
     return env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)
 }
 
-/**
- * Pulls specified docker image if SHA of image present on the host and expected SHA are not the same.
- * @param dockerImage Docker image to pull
- */
-def pullDockerImageIfRequired(final dockerImage) {
-    withCredentials([usernamePassword(credentialsId: 'docker.h2o.ai', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
-        // by default, the image should be pulled
-        def pullImage = true
-        // First check that the image is present
-        def imagePresent = sh(script: "docker inspect ${dockerImage}", returnStatus: true) == 0
-        if (imagePresent) {
-            echo "${dockerImage} present on host, checking versions..."
-            // check that the image has expected SHA
-            def expectedVersion = EXPECTED_SHAS.images[dockerImage]
-            def currentVersion = sh(script: "docker inspect --format=\'{{index .RepoDigests 0}}\' ${dockerImage}", returnStdout: true).trim()
-            echo "current image version: ${currentVersion}"
-            echo "expected image version: ${expectedVersion}"
-            pullImage = currentVersion != expectedVersion
-        }
-        if (pullImage) {
-            sh """
-                docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD docker.h2o.ai
-                docker pull ${dockerImage}
-            """
-        }
-    }
-}
