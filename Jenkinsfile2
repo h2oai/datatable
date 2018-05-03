@@ -17,17 +17,19 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 
 H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
-def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux'
+def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu'
+
+def DOCKER_IMAGE_TAG = '0.3.2-PR-997.5'
 
 EXPECTED_SHAS = [
         files : [
-                'Dockerfile.build'     : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
+                'Dockerfile-ubuntu.in' : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
                 'Dockerfile-centos7.in': 'b8914d51d81c90a1b59ab41824f1e9d3c9fc9795',
         ],
         images: [
-                (X86_64_LINUX_DOCKER_IMAGE)                             : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux@sha256:759343ea1af567894269b2d076cd13a6c31200bb61cc2155791dfd9078ac081b',
-                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7@sha256:10883b8e96faa3b0d53c64bca62d4deedd423f3d017f51bea54dcadfcfc3521d',
-                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7@sha256:ea028532092690654a5728368fd994583f5be2d91ef1eb9da68efc01683e473b',
+                (X86_64_LINUX_DOCKER_IMAGE)                             : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux:latest",
+                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}",
+                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}",
         ]
 ]
 
