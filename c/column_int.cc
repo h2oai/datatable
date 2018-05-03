@@ -131,10 +131,14 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
 }
 
 template<typename IT, typename OT>
-inline static void cast_str_helper(
-  int64_t nrows, const IT* src, OT* toffsets, char** pch)
+inline static MemoryBuffer* cast_str_helper(
+  int64_t nrows, const IT* src, OT* toffsets)
 {
-  char* ch = *pch;
+  size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT);
+  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  char* tmpbuf = new char[1024];
+  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
+  char* ch = tmpbuf;
   OT offset = 1;
   toffsets[-1] = -1;
   for (int64_t i = 0; i < nrows; ++i) {
@@ -146,9 +150,18 @@ inline static void cast_str_helper(
       toa<IT>(&ch, x);
       offset += ch - ch0;
       toffsets[i] = offset;
+      if (ch > tmpend) {
+        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+        ch = tmpbuf;
+      }
     }
   }
-  *pch = ch;
+  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+  wb->finalize();
+  delete[] tmpbuf;
+  MemoryBuffer* res = wb->get_mbuf();
+  delete wb;
+  return res;
 }
 
 
@@ -197,14 +210,20 @@ void IntColumn<T>::cast_into(RealColumn<double>* target) const {
 
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<int32_t>* target) const {
-  cast_str_helper<T, int32_t>(
-    this->nrows, this->elements(), target->offsets(), target->strdata());
+  MemoryBuffer* data = target->mbuf_shallowcopy();
+  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(
+      this->nrows, this->elements(), target->offsets()
+  );
+  target->replace_buffer(data, strbuf);
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<int64_t>* target) const {
-  cast_str_helper<T, int64_t>(
-    this->nrows, this->elements(), target->offsets(), target->strdata());
+  MemoryBuffer* data = target->mbuf_shallowcopy();
+  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(
+      this->nrows, this->elements(), target->offsets()
+  );
+  target->replace_buffer(data, strbuf);
 }
 
 template <typename T>
