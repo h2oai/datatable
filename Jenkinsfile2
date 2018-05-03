@@ -17,19 +17,14 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 
 H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
-def X86_64_LINUX_DOCKER_IMAGE = 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu'
-
 def DOCKER_IMAGE_TAG = '0.3.2-PR-997.6'
+
+def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:${DOCKER_IMAGE_TAG}"
 
 EXPECTED_SHAS = [
         files : [
                 'Dockerfile-ubuntu.in' : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
                 'Dockerfile-centos7.in': 'b8914d51d81c90a1b59ab41824f1e9d3c9fc9795',
-        ],
-        images: [
-                (X86_64_LINUX_DOCKER_IMAGE)                             : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_linux:${DOCKER_IMAGE_TAG}",
-                'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7' : "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}",
-                'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7': "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}",
         ]
 ]
 
@@ -38,7 +33,6 @@ def platformDefaults = [
         env      : [],
         pythonBin: 'python',
         coverage : true,
-
 ]
 
 // Default mapping for CentOS environments
@@ -50,7 +44,7 @@ def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node       : 'ibm-power',
         coverage   : false,
-        dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7'
+        dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}"
 ]
 
 def LINUX_PLATFORM = 'x86_64_linux'
@@ -66,7 +60,7 @@ def BUILD_MATRIX = [
         x86_64_centos7: platformDefaults + centosDefaults + [
                 node       : 'docker && linux',
                 coverage   : false,
-                dockerImage: 'docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7'
+                dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
         ],
         // OSX
         x86_64_macos  : platformDefaults + [
@@ -136,7 +130,7 @@ BUILD_MATRIX.each { platform, config ->
                     def buildClosure = {
                         project.buildAll(buildDir, platform, CI_VERSION_SUFFIX, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), getVenvActivationCmd(platform, DEFAULT_PY35_ENV), BUILD_MATRIX[platform]['env'])
                     }
-                    callInEnv(EXPECTED_SHAS.images[config.dockerImage], dockerArgs, buildClosure)
+                    callInEnv(config.dockerImage, dockerArgs, buildClosure)
                 }
             }
 
@@ -153,7 +147,7 @@ BUILD_MATRIX.each { platform, config ->
                         def coverageClosure = {
                             project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
                         }
-                        callInEnv(EXPECTED_SHAS.images[config.dockerImage], dockerArgs, coverageClosure)
+                        callInEnv(config.dockerImage, dockerArgs, coverageClosure)
                     }
                 }
             } else {
@@ -176,7 +170,7 @@ BUILD_MATRIX.each { platform, config ->
                             def testClosure = {
                                 project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
                             }
-                            callInEnv(EXPECTED_SHAS.images[config.dockerImage], dockerArgs, testClosure)
+                            callInEnv(config.dockerImage, dockerArgs, testClosure)
                         }
                     }
                 } catch (e) {
@@ -248,7 +242,7 @@ ansiColor('xterm') {
                     def buildClosure = {
                         project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
                     }
-                    callInEnv(EXPECTED_SHAS.images[X86_64_LINUX_DOCKER_IMAGE], dockerArgs, buildClosure)
+                    callInEnv(X86_64_LINUX_DOCKER_IMAGE, dockerArgs, buildClosure)
                 }
 
                 def publishS3Dir = 'publish-s3'
