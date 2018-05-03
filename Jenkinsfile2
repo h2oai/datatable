@@ -17,7 +17,7 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 
 H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
 
-def DOCKER_IMAGE_TAG = '0.3.2-PR-996.2'
+def DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
 
 def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:${DOCKER_IMAGE_TAG}"
 
