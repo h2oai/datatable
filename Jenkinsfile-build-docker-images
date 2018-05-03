@@ -43,7 +43,7 @@ try {
                     make mrproper
                     make ubuntu_docker_build CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
                 """
-                //arch "*.tag"
+                arch "*.tag"
             }
         }
 
