@@ -41,7 +41,7 @@ try {
                 checkout scm
                 sh """
                     make mrproper
-                    make ubuntu_docker_build CONTAINER_NAME_SUFFIX= OS=ubuntu
+                    make ubuntu_docker_build CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
                 """
                 //arch "*.tag"
             }
@@ -52,9 +52,17 @@ try {
                 withCredentials([usernamePassword(credentialsId: "${params.registry}", usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
                     sh """
                         docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD ${params.registry}
-                        make centos7_docker_publish CONTAINER_NAME_SUFFIX=
-                        make ubuntu_docker_publish CONTAINER_NAME_SUFFIX=
                     """
+                    dir('centos7') {
+                        sh """
+                            make centos7_docker_publish CONTAINER_NAME_SUFFIX=
+                        """
+                    }
+                    dir('ubuntu') {
+                        sh """
+                             make ubuntu_docker_publish CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
+                        """
+                    }
                     echo "###### Docker image docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7 built and pushed. ######"
                 }
             }
