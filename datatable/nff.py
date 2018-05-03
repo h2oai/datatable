@@ -15,6 +15,12 @@ from datatable.utils.typechecks import typed, TValueError, dtwarn
 
 _builtin_open = open
 
+def _stringify(x):
+    if x is None:
+        return ""
+    if isinstance(x, bool):
+        return str(int(x))
+    return str(x)
 
 
 @typed(dest=str, _strategy=str)
@@ -35,15 +41,15 @@ def save(self, dest, _strategy="auto"):
     else:
         os.makedirs(dest)
 
-    if self.internal.isview:
-        # Materialize before saving
-        self._dt = self.internal.materialize()
+    self.materialize()
+    mins = self.min().topython()
+    maxs = self.max().topython()
 
     metafile = os.path.join(dest, "_meta.nff")
     with _builtin_open(metafile, "w", encoding="utf-8") as out:
-        out.write("# NFF1\n")
+        out.write("# NFF1+\n")
         out.write("# nrows = %d\n" % self.nrows)
-        out.write('filename,stype,meta,colname\n')
+        out.write('filename,stype,meta,colname,min,max\n')
         l = len(str(self.ncols))
         for i in range(self.ncols):
             filename = "c%0*d" % (l, i + 1)
@@ -56,7 +62,10 @@ def save(self, dest, _strategy="auto"):
                 continue
             if meta is None:
                 meta = ""
-            out.write('%s,%s,%s,"%s"\n' % (filename, stype.code, meta, colname))
+            smin = _stringify(mins[i][0])
+            smax = _stringify(maxs[i][0])
+            out.write('%s,%s,%s,"%s",%s,%s\n'
+                      % (filename, stype.code, meta, colname, smin, smax))
             filename = os.path.join(dest, filename)
             _col.save_to_disk(filename, _strategy)
 
@@ -64,41 +73,42 @@ def save(self, dest, _strategy="auto"):
 
 @typed(path=str)
 def open(path):
-    cwd = os.getcwd()
-    try:
-        path = os.path.expanduser(path)
-        if not os.path.isdir(path):
-            raise ValueError("%s is not a valid directory" % path)
-        # os.chdir(path)
+    path = os.path.expanduser(path)
+    if not os.path.exists(path):
+        msg = "Path %s does not exist" % path
+        if not path.startswith("/"):
+            msg += " (current directory = %s)" % os.getcwd()
+        raise ValueError(msg)
+    if not os.path.isdir(path):
+        raise ValueError("%s is not a directory" % path)
 
-        nrows = 0
-        metafile = os.path.join(path, "_meta.nff")
-        with _builtin_open(metafile, encoding="utf-8") as inp:
-            info = []
-            for line in inp:
-                if line.startswith("#"):
-                    info.append(line[1:].strip())
-                else:
-                    break
-            if not (info and info[0].startswith("NFF")):
-                raise ValueError("File _meta.nff has invalid format")
-            if info[0] == "NFF1":
-                assert len(info) == 2
-                mm = re.match("nrows\s*=\s*(\d+)", info[1])
-                if mm:
-                    nrows = int(mm.group(1))
-                else:
-                    raise ValueError("nrows info not found in line %r" %
-                                     info[1])
+    nrows = 0
+    metafile = os.path.join(path, "_meta.nff")
+    with _builtin_open(metafile, encoding="utf-8") as inp:
+        info = []
+        for line in inp:
+            if line.startswith("#"):
+                info.append(line[1:].strip())
             else:
-                raise ValueError("Unknown NFF format: %s" % info[0])
+                break
+        if not (info and info[0].startswith("NFF")):
+            raise ValueError("File _meta.nff has invalid format")
+        if info[0] == "NFF1" or info[0] == "NFF1+":
+            assert len(info) == 2
+            mm = re.match("nrows\s*=\s*(\d+)", info[1])
+            if mm:
+                nrows = int(mm.group(1))
+            else:
+                raise ValueError("nrows info not found in line %r" %
+                                 info[1])
+        else:
+            raise ValueError("Unknown NFF format: %s" % info[0])
 
-        f0 = dt.fread(metafile, sep=",", columns=[dt.stype.str32] * 4)
-        f1 = f0(select=["filename", "stype", "meta"])
-        colnames = f0["colname"].topython()[0]
-        _dt = core.datatable_load(f1.internal, nrows, path)
-        df = dt.Frame(_dt, names=colnames)
-        assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
-        return df
-    finally:
-        os.chdir(cwd)
+    coltypes = [dt.stype.str32] * 4 + [None] * 2
+    f0 = dt.fread(metafile, sep=",", columns=coltypes)
+    f1 = f0(select=["filename", "stype", "meta"])
+    colnames = f0["colname"].topython()[0]
+    _dt = core.datatable_load(f1.internal, nrows, path)
+    df = dt.Frame(_dt, names=colnames)
+    assert df.nrows == nrows, "Wrong number of rows read: %d" % df.nrows
+    return df

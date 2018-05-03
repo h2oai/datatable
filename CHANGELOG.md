@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fread can now accept a list of files to read, or a glob pattern.
 - Added `dt.lib.core.has_omp_support()` to check whether `datatable` was
   built with OMP support or not.
+- Save per-column min/max information in the NFF format.
 
 #### Fixed
 - Fix the source distribution (`sdist`) by including all the files that are
