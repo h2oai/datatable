@@ -24,7 +24,7 @@ def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_u
 EXPECTED_SHAS = [
         files : [
                 'Dockerfile-ubuntu.in' : '448a4f897d65bb81803bd818ea0e11fdf73d2168',
-                'Dockerfile-centos7.in': 'b8914d51d81c90a1b59ab41824f1e9d3c9fc9795',
+                'Dockerfile-centos7.in': '2a88aa746a15b9c9f66eb9cf5d32bf9d9937ddb1',
         ]
 ]
 
