@@ -6,9 +6,12 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "column.h"
-#include "utils/omp.h"
+#include "csv/toa.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "utils/omp.h"
+
+
 
 template <typename T>
 IntColumn<T>::IntColumn() : FwColumn<T>() {}
@@ -127,6 +130,41 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
   }
 }
 
+template<typename IT, typename OT>
+inline static MemoryBuffer* cast_str_helper(
+  int64_t nrows, const IT* src, OT* toffsets)
+{
+  size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT);
+  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  char* tmpbuf = new char[1024];
+  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
+  char* ch = tmpbuf;
+  OT offset = 1;
+  toffsets[-1] = -1;
+  for (int64_t i = 0; i < nrows; ++i) {
+    IT x = src[i];
+    if (ISNA<IT>(x)) {
+      toffsets[i] = -offset;
+    } else {
+      char* ch0 = ch;
+      toa<IT>(&ch, x);
+      offset += ch - ch0;
+      toffsets[i] = offset;
+      if (ch > tmpend) {
+        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+        ch = tmpbuf;
+      }
+    }
+  }
+  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+  wb->finalize();
+  delete[] tmpbuf;
+  MemoryBuffer* res = wb->get_mbuf();
+  delete wb;
+  return res;
+}
+
+
 template <typename T>
 void IntColumn<T>::cast_into(BoolColumn* target) const {
   constexpr T na_src = GETNA<T>();
@@ -168,6 +206,24 @@ void IntColumn<T>::cast_into(RealColumn<float>* target) const {
 template <typename T>
 void IntColumn<T>::cast_into(RealColumn<double>* target) const {
   cast_helper<T, double>(this->nrows, this->elements(), target->elements());
+}
+
+template <typename T>
+void IntColumn<T>::cast_into(StringColumn<int32_t>* target) const {
+  MemoryBuffer* data = target->mbuf_shallowcopy();
+  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(
+      this->nrows, this->elements(), target->offsets()
+  );
+  target->replace_buffer(data, strbuf);
+}
+
+template <typename T>
+void IntColumn<T>::cast_into(StringColumn<int64_t>* target) const {
+  MemoryBuffer* data = target->mbuf_shallowcopy();
+  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(
+      this->nrows, this->elements(), target->offsets()
+  );
+  target->replace_buffer(data, strbuf);
 }
 
 template <typename T>

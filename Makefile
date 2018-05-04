@@ -432,6 +432,10 @@ $(BUILDDIR)/csv/itoa.h: c/csv/itoa.h
 	@echo • Refreshing c/csv/itoa.h
 	@cp c/csv/itoa.h $@
 
+$(BUILDDIR)/csv/toa.h: c/csv/toa.h $(BUILDDIR)/csv/dtoa.h $(BUILDDIR)/csv/itoa.h
+	@echo • Refreshing c/csv/toa.h
+	@cp c/csv/toa.h $@
+
 $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
@@ -533,7 +537,7 @@ $(BUILDDIR)/column_fw.o : c/column_fw.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils.
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -585,7 +589,7 @@ $(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/dtoa.h $(BUILDDIR)/csv/itoa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

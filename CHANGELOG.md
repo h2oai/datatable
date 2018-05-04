@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fread can now parse integers with thousands separator (e.g. "1,000").
 - Added option `fread.anonymize` to force fread anonymize all user input in the
   verbose logs / error messages.
+- Allow type-casts from integers into strings.
 
 ### [v0.3.2](https://github.com/h2oai/datatable/compare/0.3.2...v0.3.1) — 2018-04-25
 #### Added

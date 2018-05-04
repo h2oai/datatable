@@ -282,5 +282,27 @@ def test_rbind_different_stypes2():
     assert_equals(dt0, dtr)
 
 
+def test_rbind_different_stypes3():
+    dt0 = dt.Frame([range(10),
+                    range(100, 200, 10),
+                    range(10, 0, -1),
+                    range(-50, 0, 5)],
+                   stypes=[stype.int8, stype.int16, stype.int32, stype.int64])
+    dt1 = dt.Frame([["alpha"], ["beta"], ["gamma"], ["delta"]])
+    assert dt0.internal.check()
+    assert dt1.internal.check()
+    assert dt0.stypes == (stype.int8, stype.int16, stype.int32, stype.int64)
+    assert dt1.stypes == (stype.str32,) * 4
+    dt0.rbind(dt1)
+    assert dt0.stypes == (stype.str32,) * 4
+    assert dt0.topython() == [
+        ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "alpha"],
+        ["100", "110", "120", "130", "140", "150", "160", "170", "180", "190",
+         "beta"],
+        ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1", "gamma"],
+        ["-50", "-45", "-40", "-35", "-30", "-25", "-20", "-15", "-10", "-5",
+         "delta"]
+    ]
+
 
 # TODO: add tests for appending categorical columns (requires merging levelsets)

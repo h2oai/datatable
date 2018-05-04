@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from datatable import f, stype
+from datatable import f, stype, ltype
 from tests import list_equals
 
 
@@ -139,8 +139,21 @@ def test_dt_isna(src):
 @pytest.mark.parametrize("src", dt_bool | dt_int | dt_float)
 def test_cast_to_float32(src):
     dt0 = dt.Frame(src)
-    dt1 = dt0[:, [dt.float32(dt.f[i]) for i in range(dt0.ncols)]]
+    dt1 = dt0[:, [dt.float32(f[i]) for i in range(dt0.ncols)]]
     assert dt1.internal.check()
     assert dt1.stypes == (dt.float32,) * dt0.ncols
     pyans = [float(x) if x is not None else None for x in src]
     assert list_equals(dt1.topython()[0], pyans)
+
+
+@pytest.mark.parametrize("stype0", ltype.int.stypes)
+def test_cast_int_to_str(stype0):
+    dt0 = dt.Frame([None, 0, -3, 189, 77, 14, None, 394831, -52939047130424957],
+                   stype=stype0)
+    dt1 = dt0[:, [dt.str32(f.C0), dt.str64(f.C0)]]
+    assert dt1.internal.check()
+    assert dt1.stypes == (dt.str32, dt.str64)
+    assert dt1.shape == (dt0.nrows, 2)
+    ans = [None if v is None else str(v)
+           for v in dt0.topython()[0]]
+    assert dt1.topython()[0] == ans
