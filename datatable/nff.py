@@ -82,6 +82,7 @@ def open(path):
     if not os.path.isdir(path):
         raise ValueError("%s is not a directory" % path)
 
+    nff_version = None
     nrows = 0
     metafile = os.path.join(path, "_meta.nff")
     with _builtin_open(metafile, encoding="utf-8") as inp:
@@ -93,7 +94,11 @@ def open(path):
                 break
         if not (info and info[0].startswith("NFF")):
             raise ValueError("File _meta.nff has invalid format")
-        if info[0] == "NFF1" or info[0] == "NFF1+":
+        if info[0] == "NFF1":
+            nff_version = 1
+        elif info[0] == "NFF1+":
+            nff_version = 1.5
+        if nff_version:
             assert len(info) == 2
             mm = re.match("nrows\s*=\s*(\d+)", info[1])
             if mm:
@@ -104,7 +109,9 @@ def open(path):
         else:
             raise ValueError("Unknown NFF format: %s" % info[0])
 
-    coltypes = [dt.stype.str32] * 4 + [None] * 2
+    coltypes = [dt.stype.str32] * 4
+    if nff_version > 1:
+        coltypes += [None] * 2
     f0 = dt.fread(metafile, sep=",", columns=coltypes)
     f1 = f0(select=["filename", "stype", "meta"])
     colnames = f0["colname"].topython()[0]
