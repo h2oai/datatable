@@ -13,18 +13,19 @@ RUN \
         bzip2 && \
     wget -q https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
     bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
-    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps-llvm/1.0-master-21/ARCH_SUBST-centos7/llvm.tar.bz2 && \
+    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps-llvm/1.0-PR-2-4/ARCH_SUBST-centos7/llvm.tar.bz2 && \
     tar xvf llvm.tar.bz2 && \
     cp -r llvm/* /opt/h2oai/dai/ && \
     rm -rf llvm*
 
-ENV LLVM4=/opt/h2oai/dai
+ENV LLVM6=/opt/h2oai/dai
+ENV LLVM_CONFIG=$LLVM6/bin/llvm-config
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
-ENV PATH=$LLVM4/bin:$PATH
+ENV PATH=$LLVM6/bin:$PATH
 ENV PANDAS_VERSION=0.20.0
 
-RUN pip install llvmlite==0.20.0 wheel virtualenv && \
+RUN pip install llvmlite==0.23.0 wheel virtualenv && \
     \
     conda create -n datatable-py35-with-pandas python=3.5 && \
     . activate datatable-py35-with-pandas && \
