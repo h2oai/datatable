@@ -56,6 +56,13 @@ DECLARE_FUNCTION(
   "is_debug_mode()\n\n",
   HOMEFLAG)
 
+DECLARE_FUNCTION(
+  has_omp_support,
+  "has_omp_support()\n\n"
+  "Returns True if datatable was built with OMP support, and False otherwise.\n"
+  "Without OMP datatable will be significantly slower, performing all\n"
+  "operations in single-threaded mode.\n",
+  HOMEFLAG)
 
 
 PyObject* exec_function(PyObject* self, PyObject* args) {
@@ -136,6 +143,14 @@ PyObject* is_debug_mode(PyObject*, PyObject*) {
   #endif
 }
 
+PyObject* has_omp_support(PyObject*, PyObject*) {
+  #ifdef DTNOOPENMP
+    return incref(Py_False);
+  #else
+    return incref(Py_True);
+  #endif
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -170,6 +185,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(expr_reduceop),
     METHODv(expr_unaryop),
     METHOD0(is_debug_mode),
+    METHOD0(has_omp_support),
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };

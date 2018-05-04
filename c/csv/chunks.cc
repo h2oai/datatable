@@ -68,15 +68,18 @@ ChunkCoordinates ChunkedDataReader::compute_chunk_boundaries(
   } else {
     c.start = inputStart + i * chunkSize;
   }
-  if (isLastChunk) {
+
+  // It is possible to reach the end of input before the last chunk (for
+  // example if )
+  c.end = c.start + chunkSize;
+  if (isLastChunk || c.end >= inputEnd) {
     c.end = inputEnd;
     c.true_end = true;
-  } else {
-    c.end = c.start + chunkSize;
   }
 
   adjust_chunk_coordinates(c, ctx);
 
+  xassert(c.start >= inputStart && c.end <= inputEnd);
   return c;
 }
 

@@ -12,6 +12,7 @@ import os
 import pytest
 import datatable as dt
 import zipfile
+from tests import find_file
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -86,16 +87,6 @@ def get_file_list(*path, skip=None):
             else:
                 out.add(skipped("Invalid file: '%s'" % f, id=f))
     return out
-
-
-def find_file(*nameparts):
-    d = os.environ.get(root_env_name, "")
-    if d == "":
-        pytest.skip("%s is not defined" % root_env_name)
-    elif not os.path.isdir(d):
-        pytest.fail("Directory '%s' does not exist" % d)
-    else:
-        return os.path.join(d, *nameparts)
 
 
 

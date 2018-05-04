@@ -31,7 +31,7 @@
 //------------------------------------------------------------------------------
 
 FreadReader::FreadReader(const GenericReader& g)
-: GenericReader(g), parsers(parserlib.get_parser_fns())
+  : GenericReader(g), parsers(parserlib.get_parser_fns()), fo(g)
 {
   size_t input_size = datasize();
   targetdir = nullptr;
@@ -683,6 +683,7 @@ void FreadReader::skip_preamble() {
  * correctly, so that `parse_string()` can parse each field without error. If
  * not, a `RuntimeError` will be thrown.
  */
+// TODO name-cleaning should be a method of GReaderColumn
 void FreadReader::parse_column_names(FreadTokenizer& ctx) {
   const char*& ch = ctx.ch;
 
@@ -1336,7 +1337,7 @@ int FreadTokenizer::countfields()
 // FreadObserver
 //==============================================================================
 
-FreadObserver::FreadObserver() {
+FreadObserver::FreadObserver(const GenericReader& g_) : g(g_) {
   t_start = wallclock();
   t_initialized = 0;
   t_parse_parameters_detected = 0;
@@ -1360,7 +1361,7 @@ FreadObserver::FreadObserver() {
 FreadObserver::~FreadObserver() {}
 
 
-void FreadObserver::report(const GenericReader& g) {
+void FreadObserver::report() {
   double t_end = wallclock();
   xassert(t_start <= t_initialized &&
           t_initialized <= t_parse_parameters_detected &&
@@ -1439,7 +1440,7 @@ void FreadObserver::type_bump_info(
   char temp[1001];
   int n = snprintf(temp, sizeof(temp) - 1,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %llu",
-    icol, col.name.data(),
+    icol, col.repr_name(g),
     ParserLibrary::info(col.type).cname(),
     ParserLibrary::info(new_type).cname(),
     static_cast<int>(len), field, lineno);
@@ -1452,6 +1453,6 @@ void FreadObserver::str64_bump(size_t icol, const GReaderColumn& col) {
   int n = snprintf(temp, sizeof(temp) - 1,
     "Column %zu (%s) switched from Str32 to Str64 because its size "
     "exceeded 2GB",
-    icol, col.name.data());
+    icol, col.repr_name(g));
   messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }

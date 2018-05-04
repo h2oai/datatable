@@ -8,9 +8,11 @@
 # on GitHub. The test cases are expected to all be reasonably small.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import os
 import pytest
 import random
 import re
+from tests import find_file, same_iterables
 
 
 #-------------------------------------------------------------------------------
@@ -445,3 +447,27 @@ def test_issue939(capsys):
     assert "Type codes (jump 000): isb" in out
     assert "columns need to be re-read" not in out
     assert "column needs to be re-read" not in out
+
+
+def test_issue998():
+    src = find_file("h2o-3", "bigdata", "laptop", "higgs_head_2M.csv")
+    # The file is 1.46GB in size. I could not find a smaller file that exhibits
+    # this problem... The issue only appeared in single-threaded mode, so we
+    # have to read this file slowly. On my laptop, this test runs in about 8s.
+    f0 = dt.fread(src, nthreads=1, fill=True, na_strings=["-999"])
+    assert f0.shape == (2000000, 29)
+    assert f0.names == tuple("C%d" % i for i in range(f0.ncols))
+    assert f0.stypes == (dt.stype.float64,) * f0.ncols
+    assert same_iterables(
+        f0.sum().topython(),
+        [[1058818.0], [1981919.6107614636], [701.7858121241807],
+         [-195.48500674014213], [1996390.3476011853], [-1759.5364254778178],
+         [1980743.446578741], [-1108.7512905876065], [1712.947751407064],
+         [2003064.4534490108], [1985100.3810670376], [1190.8404791812281],
+         [384.00605312064], [1998592.0739881992], [1984490.1900614202],
+         [2033.9754767678387], [-1028.0810855487362], [2001341.0813384056],
+         [1971311.3271338642], [-943.92552991907], [-1079.3848229270661],
+         [1996588.295421958], [2068619.2163415626], [2049516.5437491536],
+         [2100795.4839400873], [2019540.6562294513], [1946283.046177674],
+         [2066298.020782411], [1919714.12131235]])
+

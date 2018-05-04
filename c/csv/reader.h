@@ -21,6 +21,7 @@
 
 enum PT : uint8_t;
 enum RT : uint8_t;
+class GenericReader;
 
 
 //------------------------------------------------------------------------------
@@ -59,6 +60,8 @@ class GReaderColumn {
     GReaderColumn(GReaderColumn&&);
     virtual ~GReaderColumn();
     const char* typeName() const;
+    const std::string& get_name() const;
+    const char* repr_name(const GenericReader& g) const;
     size_t elemsize() const;
     size_t getAllocSize() const;
     bool isstring() const;
@@ -227,6 +230,9 @@ class GenericReader
     void warn(const char* format, ...) const;
     void progress(double progress, int status = 0);
 
+    const char* repr_source(const char* ch, size_t limit) const;
+    const char* repr_binary(const char* ch, const char* end, size_t limit) const;
+
   // Helper functions
   private:
     void init_verbose();
@@ -255,7 +261,6 @@ class GenericReader
     void decode_utf16();
     void report_columns_to_python();
 
-    const char* repr_source(const char* ch, size_t limit);
     void _message(const char* method, const char* format, va_list args) const;
 
     DataTablePtr read_empty_input();

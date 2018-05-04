@@ -14,7 +14,7 @@ PLATFORM := $(ARCH)-$(OS)
 DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug build_noomp bi coverage fast dist
+		benchmark debug bi coverage fast dist
 .SECONDARY: main-fast
 
 
@@ -83,11 +83,6 @@ asan:
 	$(MAKE) fast
 	$(MAKE) install
 
-build_noomp:
-	DTNOOPENMP=1 \
-	$(MAKE) build
-
-
 bi:
 	$(MAKE) build
 	$(MAKE) install
@@ -116,9 +111,6 @@ coverage:
 dist: build
 	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
 
-dist_noomp: build_noomp
-	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
-
 sdist:
 	$(PYTHON) setup.py sdist
 
@@ -133,18 +125,20 @@ version:
 DIST_DIR = dist
 
 ARCH := $(shell arch)
-PLATFORM := $(ARCH)-centos7
+OS_NAME ?= centos7
+PLATFORM := $(ARCH)_$(OS_NAME)
 
+DOCKER_REPO_NAME ?= docker.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
-CONTAINER_NAME ?= opsh2oai/dai-datatable$(CONTAINER_NAME_SUFFIX)
+CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
 
 PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
-BUILD_NUM ?= local
-BUILD_NUM_SUFFIX = .$(BUILD_NUM)
-VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
-CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/+/-/g')
+BUILD_ID ?= local
+BUILD_ID_SUFFIX = .$(BUILD_ID)
+VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
+CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
@@ -152,23 +146,35 @@ CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
 
 ARCH_SUBST = undefined
 FROM_SUBST = undefined
-ifeq ($(ARCH),x86_64)
+ifeq ($(PLATFORM),x86_64_centos7)
     FROM_SUBST = centos:7
     ARCH_SUBST = $(ARCH)
 endif
-ifeq ($(ARCH),ppc64le)
+ifeq ($(PLATFORM),ppc64le_centos7)
     FROM_SUBST = ibmcom\/centos-ppc64le
+    ARCH_SUBST = $(ARCH)
+endif
+ifeq ($(PLATFORM),x86_64_ubuntu)
+    FROM_SUBST = x86_64_linux
     ARCH_SUBST = $(ARCH)
 endif
 
 Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
 	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
 
-centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
+Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
 	docker build \
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
 		.
+	echo $(CONTAINER_NAME_TAG) > $@
+
+centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
+
+centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
+	docker push $(CONTAINER_NAME_TAG)
+
+centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	make clean
 	docker run \
 		--rm \
@@ -180,35 +186,38 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		$(CONTAINER_NAME_TAG) \
 		-c 'make dist'
-	rm -fr build.output.tmp
-	mkdir build.output.tmp
-	mv $(DIST_DIR)/*.whl build.output.tmp
-	make clean
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX).noomp" \
-		$(CONTAINER_NAME_TAG) \
-		-c 'make dist_noomp'
-	mv $(DIST_DIR)/*.whl build.output.tmp
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
-	mv build.output.tmp/* $(DIST_DIR)/$(PLATFORM)
-	rmdir build.output.tmp
+	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
+
+#
+# Ubuntu image - will be removed
+#
+Dockerfile-ubuntu.$(PLATFORM): Dockerfile-ubuntu.in
+	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
+
+Dockerfile-ubuntu.$(PLATFORM).tag: Dockerfile-ubuntu.$(PLATFORM)
+	docker build \
+		-t $(CONTAINER_NAME_TAG) \
+		-f Dockerfile-ubuntu.$(PLATFORM) \
+		.
+	echo $(CONTAINER_NAME_TAG) > $@
+
+ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
+
+ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
+	docker push $(CONTAINER_NAME_TAG)
 
 # Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
 mrproper_in_docker: mrproper
 
 printvars:
-	@echo $(PLATFORM)
-	@echo $(PROJECT_VERSION)
-	@echo $(VERSION)
-	@echo $(CONTAINER_TAG)
+	@echo PLATFORM=$(PLATFORM)
+	@echo PROJECT_VERSION=$(PROJECT_VERSION)
+	@echo VERSION=$(VERSION)
+	@echo CONTAINER_TAG=$(CONTAINER_TAG)
+	@echo CONTAINER_NAME=$(CONTAINER_NAME)
 
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)

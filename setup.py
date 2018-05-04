@@ -76,7 +76,6 @@ def get_test_dependencies():
     # Test dependencies exposed as extras, based on:
     # https://stackoverflow.com/questions/29870629
     return [
-        "pandas",
         "pytest>=3.1",
         "pytest-cov",
         "pytest-benchmark>=3.1",
@@ -170,12 +169,8 @@ def get_extra_compile_flags():
               "-I" + get_llvm() + "/include",
               "-isystem " + get_llvm() + "/include/c++/v1"]
 
-    # Enable/disable OpenMP support
-    if "DTNOOPENMP" in os.environ:
-        flags.append("-DDTNOOMP")
-        flags.append("-Wno-source-uses-openmp")
-    else:
-        flags.insert(0, "-fopenmp")
+    # Enable OpenMP support
+    flags.insert(0, "-fopenmp")
 
     if "DTDEBUG" in os.environ:
         flags += ["-g", "-ggdb", "-O0"]
@@ -244,11 +239,10 @@ def get_extra_link_args():
     flags = ["-L%s" % os.path.join(get_llvm(), "lib"),
              "-Wl,-rpath,%s" % get_rpath()]
 
+    flags += ["-fopenmp"]
+
     if sys.platform == "linux":
         flags += ["-lc++"]
-
-    if not("DTNOOPENMP" in os.environ):
-        flags += ["-fopenmp"]
 
     if "DTASAN" in os.environ:
         flags += ["-fsanitize=address", "-shared-libasan"]
@@ -404,7 +398,6 @@ setup(
         "typesentry>=0.2.4",
         "blessed",
         "llvmlite" + llvmlite_req,
-        "psutil"
     ],
 
     python_requires=">=3.5",

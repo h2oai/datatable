@@ -308,7 +308,7 @@ DataTablePtr FreadReader::read()
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
                "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
-               i+1, col.name.data(), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
+               i+1, col.repr_name(*this), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
         }
         nUserBumped += (col.type != oldtypes[i]);
       }
@@ -391,6 +391,6 @@ DataTablePtr FreadReader::read()
 
   trace("[7] Finalize the datatable");
   DataTablePtr res = makeDatatable();
-  if (verbose) fo.report(*this);
+  if (verbose) fo.report();
   return res;
 }
