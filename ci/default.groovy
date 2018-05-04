@@ -27,9 +27,6 @@ def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extr
 
     // Archive logs
     arch "${stageDir}/stage_build_*.log"
-
-    // Archive core dump log
-    arch "/tmp/cores/*"
 }
 
 def buildSDist(stageDir, ciVersionSuffix, py36VenvCmd) {
@@ -63,11 +60,16 @@ def coverage(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetData
     }
 
     withEnv(extEnv + extraEnv) {
-        sh """
-            cd ${stageDir}
-            ${venvCmd}
-            make coverage
-        """
+        try {
+            sh """
+                cd ${stageDir}
+                ${venvCmd}
+                make coverage
+            """
+        } finally {
+            // Archive core dump log
+            arch "/tmp/cores/*"
+        }
     }
     testReport "${stageDir}/build/coverage-c", "${platform} coverage report for C"
     testReport "${stageDir}/build/coverage-py", "${platform} coverage report for Python"
@@ -91,6 +93,8 @@ def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir)
         }
     } finally {
         junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+        // Archive core dump log
+        arch "/tmp/cores/*"
     }
 }
 
