@@ -92,9 +92,9 @@ def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir)
             """
         }
     } finally {
-        junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
         // Archive core dump log
         arch "/tmp/cores/*"
+        junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
 
