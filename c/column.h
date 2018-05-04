@@ -373,8 +373,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<int32_t>*) const override;
-  // void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<int32_t>*) const override;
+  void cast_into(StringColumn<int64_t>*) const override;
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Column") const override;
