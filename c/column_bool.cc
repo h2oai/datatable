@@ -104,6 +104,40 @@ inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
   }
 }
 
+template<typename T>
+inline static MemoryBuffer* cast_str_helper(
+  int64_t nrows, const int8_t* src, T* toffsets)
+{
+  size_t exp_size = static_cast<size_t>(nrows);
+  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  char* tmpbuf = new char[1024];
+  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
+  char* ch = tmpbuf;
+  T offset = 1;
+  toffsets[-1] = -1;
+  for (int64_t i = 0; i < nrows; ++i) {
+    int8_t x = src[i];
+    if (ISNA<int8_t>(x)) {
+      toffsets[i] = -offset;
+    } else {
+      *ch++ = '0' + x;
+      offset++;
+      toffsets[i] = offset;
+      if (ch > tmpend) {
+        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+        ch = tmpbuf;
+      }
+    }
+  }
+  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+  wb->finalize();
+  delete[] tmpbuf;
+  MemoryBuffer* res = wb->get_mbuf();
+  delete wb;
+  return res;
+}
+
+
 void BoolColumn::cast_into(BoolColumn* target) const {
   memcpy(target->data(), data(), alloc_size());
 }
@@ -138,6 +172,20 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
   for (int64_t i = 0; i < nrows; ++i) {
     trg_data[i] = bool_to_py(src_data[i]);
   }
+}
+
+void BoolColumn::cast_into(StringColumn<int32_t>* target) const {
+  MemoryBuffer* data = target->mbuf_shallowcopy();
+  int32_t* offsets = target->offsets();
+  MemoryBuffer* strbuf = cast_str_helper<int32_t>(nrows, elements(), offsets);
+  target->replace_buffer(data, strbuf);
+}
+
+void BoolColumn::cast_into(StringColumn<int64_t>* target) const {
+  MemoryBuffer* data = target->mbuf_shallowcopy();
+  int64_t* offsets = target->offsets();
+  MemoryBuffer* strbuf = cast_str_helper<int64_t>(nrows, elements(), offsets);
+  target->replace_buffer(data, strbuf);
 }
 
 

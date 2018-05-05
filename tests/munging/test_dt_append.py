@@ -305,4 +305,25 @@ def test_rbind_different_stypes3():
     ]
 
 
+def test_rbind_different_stypes4():
+    dt0 = dt.Frame([[True, False, False, None, True],
+                    [0.0, -12.34, None, 7e7, 1499],
+                    [None, 4.998, 5.14, -34e4, 1.333333]],
+                   stypes=[stype.bool8, stype.float32, stype.float64])
+    dt1 = dt.Frame([["vega", "altair", None],
+                    [None, "wren", "crow"],
+                    ["f", None, None]])
+    assert dt0.internal.check()
+    assert dt1.internal.check()
+    assert dt0.stypes == (stype.bool8, stype.float32, stype.float64)
+    assert dt1.stypes == (stype.str32, ) * 3
+    dt0.rbind(dt1)
+    assert dt0.stypes == (stype.str32, ) * 3
+    assert dt0.topython() == [
+        ["1", "0", "0", None, "1", "vega", "altair", None],
+        ["0.0", "-12.34", None, "70000000.0", "1499.0", None, "wren", "crow"],
+        [None, "4.998", "5.14", "-340000.0", "1.333333", "f", None, None]
+    ]
+
+
 # TODO: add tests for appending categorical columns (requires merging levelsets)

@@ -157,3 +157,21 @@ def test_cast_int_to_str(stype0):
     ans = [None if v is None else str(v)
            for v in dt0.topython()[0]]
     assert dt1.topython()[0] == ans
+
+
+@pytest.mark.parametrize("src", dt_bool | dt_int | dt_float)
+def test_cast_to_str(src):
+    def to_str(x):
+        if x is None: return None
+        if isinstance(x, bool): return str(int(x))
+        # if isinstance(x, float) and math.isnan(x): return None
+        return str(x)
+
+    dt0 = dt.Frame(src)
+    dt1 = dt0[:, [dt.str32(f[i]) for i in range(dt0.ncols)]]
+    dt2 = dt0[:, [dt.str64(f[i]) for i in range(dt0.ncols)]]
+    assert dt1.internal.check()
+    assert dt2.internal.check()
+    assert dt1.stypes == (dt.str32,) * dt0.ncols
+    assert dt2.stypes == (dt.str64,) * dt0.ncols
+    assert dt1.topython()[0] == [to_str(x) for x in src]
