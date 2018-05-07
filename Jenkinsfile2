@@ -32,6 +32,7 @@ EXPECTED_SHAS = [
 def platformDefaults = [
         env      : [],
         pythonBin: 'python',
+        test     : true,
         coverage : true,
 ]
 
@@ -44,6 +45,7 @@ def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node       : 'ibm-power',
         coverage   : false,
+        test       : false,
         dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}"
 ]
 
@@ -162,16 +164,22 @@ BUILD_MATRIX.each { platform, config ->
                 final def testDir = "test-${platform}-${testEnv}"
                 try {
                     def testStageName = "Test ${platform} with ${testEnv}"
-                    testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
-                    withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
+                    if (config.test) {
+                        testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
+                        withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
+                            stage(testStageName) {
+                                dir(testDir) {
+                                    unstash 'datatable-sources'
+                                }
+                                def testClosure = {
+                                    project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
+                                }
+                                callInEnv(config.dockerImage, dockerArgs, testClosure)
+                            }
+                        }
+                    } else {
                         stage(testStageName) {
-                            dir(testDir) {
-                                unstash 'datatable-sources'
-                            }
-                            def testClosure = {
-                                project.test(testDir, platform, getVenvActivationCmd(platform, testEnv), BUILD_MATRIX[platform]['env'], needsLargerTest, TARGET_DIR)
-                            }
-                            callInEnv(config.dockerImage, dockerArgs, testClosure)
+                            echo "SKIPPED"
                         }
                     }
                 } catch (e) {
