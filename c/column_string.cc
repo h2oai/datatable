@@ -431,11 +431,13 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   if (!col_empty) {
     new_strbuf_size += strbuf->size();
   }
-  for (const Column* col : columns) {
+  for (size_t i = 0; i < columns.size(); ++i) {
+    const Column* col = columns[i];
     if (col->stype() == ST_VOID) continue;
     if (col->stype() != stype()) {
-      throw NotImplError() << "Unable to rbind column of string type with "
-                              "a column of type " << col->stype();
+      columns[i] = col->cast(stype());
+      delete col;
+      col = columns[i];
     }
     // TODO: replace with datasize(). But: what if col is not a string?
     new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf->size();
@@ -601,6 +603,27 @@ void StringColumn<T>::cast_into(PyObjectColumn* target) const {
     }
   }
 }
+
+
+template <>
+void StringColumn<int32_t>::cast_into(StringColumn<int64_t>* target) const {
+  MemoryBuffer* strdata_buf = strbuf->shallowcopy();
+  int32_t* src_data = this->offsets() - 1;
+  int64_t* trg_data = target->offsets() - 1;
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i <= this->nrows; ++i) {
+    trg_data[i] = static_cast<int32_t>(src_data[i]);
+  }
+  target->replace_buffer(target->mbuf_shallowcopy(), strdata_buf);
+}
+
+template <>
+void StringColumn<int64_t>::cast_into(StringColumn<int64_t>* target) const {
+  size_t alloc_size = sizeof(int64_t) * static_cast<size_t>(1 + this->nrows);
+  memcpy(target->data(), this->data(), alloc_size);
+  target->replace_buffer(target->mbuf_shallowcopy(), strbuf->shallowcopy());
+}
+
 
 
 //------------------------------------------------------------------------------

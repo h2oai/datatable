@@ -620,7 +620,7 @@ protected:
   // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
   // void cast_into(StringColumn<int32_t>*) const;
-  // void cast_into(StringColumn<int64_t>*) const;
+  void cast_into(StringColumn<int64_t>*) const override;
   void fill_na() override;
 
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
@@ -630,6 +630,8 @@ protected:
 };
 
 
+template <> void StringColumn<int32_t>::cast_into(StringColumn<int64_t>*) const;
+template <> void StringColumn<int64_t>::cast_into(StringColumn<int64_t>*) const;
 extern template class StringColumn<int32_t>;
 extern template class StringColumn<int64_t>;
 
