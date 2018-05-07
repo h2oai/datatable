@@ -45,7 +45,7 @@ def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node       : 'ibm-power',
         coverage   : false,
-        test       : false,
+        test       : true,
         dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}"
 ]
 
