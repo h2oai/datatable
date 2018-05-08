@@ -274,29 +274,37 @@ ansiColor('xterm') {
                     }
                 }
 
-                stage('Publish to public S3') {
-                    cleanWs()
-                    dumpInfo()
+                if (params.PROMOTE) {
+                    final def publishPublicS3StageName = 'Publish to public S3'
+                    stage(publishPublicS3StageName) {
+                        cleanWs()
+                        dumpInfo()
 
-                    def targetFolder = 'nightly'
-                    if (isRelease()) {
-                        targetFolder = 'stable'
-                    }
+                        def targetFolder = 'nightly'
+                        if (isRelease()) {
+                            targetFolder = 'stable'
+                        }
 
-                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-                            docker.image("docker.h2o.ai/s3cmd").inside {
-                                project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                                unstash 'VERSION'
-                                sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-                                def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-                                sh """
-                                   ls
-                                   s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                   s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                               """
+                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                                docker.image("docker.h2o.ai/s3cmd").inside {
+                                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
+                                    unstash 'VERSION'
+                                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+                                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
+                                    sh """
+                                        ls
+                                        s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                    """
+                                }
                             }
                         }
+                    }
+                } else {
+                    final def publishPublicS3StageNameSkipped = "${publishPublicS3StageName} - SKIPPED"
+                    stage(publishPublicS3StageNameSkipped) {
+                        echo publishPublicS3StageNameSkipped
                     }
                 }
             }
