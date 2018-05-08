@@ -6,6 +6,8 @@
 //  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 
+GENERIC_VERSION_REGEX = /^### \[v(\d+\.)+\d\].*/
+
 def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extraEnv) {
     dumpInfo()
 
@@ -135,6 +137,45 @@ def pullFilesFromArch(final String filter, final String targetDir) {
           target              : "${targetDir}/",
           flatten             : true
     ])
+}
+
+def getChangelogPartForVersion(final version, final changelogPath = 'CHANGELOG.md') {
+    if (version == null || version.trim().isEmpty()) {
+        error 'Version must be set'
+    }
+
+    echo "Reading changelog from ${changelogPath}"
+    def changelogLines = readFile(changelogPath).readLines()
+
+    def startIndex = changelogLines.findIndexOf {
+        it ==~ /^### \[v${version}\].*/
+    }
+    if (startIndex == -1) {
+        error 'Cannot find Changelog for this version'
+    }
+
+    def endIndex = startIndex
+    if ((startIndex + 1) < changelogLines.size() - 1) {
+        endIndex = startIndex + changelogLines[(startIndex + 1)..-1].findIndexOf {
+            it ==~ GENERIC_VERSION_REGEX
+        }
+    }
+
+    return changelogLines[startIndex..endIndex].join('\n').trim()
+}
+
+def getReleaseDownloadLinksText(final folder, final s3PathPrefix) {
+    def files = sh(script: "cd ${folder} && find . \\( -name '*.whl' -o -name '*.tar.gz' \\) -printf '%P\n'", returnStdout: true).trim().readLines()
+    def resultLines = ['## Download links ##', '']
+    files.each { file ->
+        resultLines += "- [${file}](${s3PathPrefix}/${file})"
+    }
+    return resultLines.join('\n').trim()
+
+}
+
+def getReleaseBucket(final targetFolder, final versionText) {
+    return "s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/"
 }
 
 return this

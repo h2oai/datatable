@@ -108,6 +108,9 @@ def needsLargerTest
 SOURCE_DIR = "/home/0xdiag"
 TARGET_DIR = "/tmp/pydatatable_large_data"
 
+S3_FOLDER_NIGHTLY = 'nightly'
+S3_FOLDER_STABLE = 'stable'
+
 // Data map for linking into container
 def linkMap = [
         "Data"     : "h2oai-benchmarks/Data",
@@ -217,6 +220,8 @@ ansiColor('xterm') {
                     manager.addBadge("warning.gif", "Large tests required")
                 }
                 stash 'datatable-sources'
+                stash includes: "CHANGELOG.md", name: 'CHANGELOG'
+
                 docker.image(X86_64_LINUX_DOCKER_IMAGE).inside {
                     def dockerfileSHAsString = ""
                     EXPECTED_SHAS.files.each { filename, sha ->
@@ -269,34 +274,72 @@ ansiColor('xterm') {
                     def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
 
                     BUILD_MATRIX.each { platform, config ->
-                        uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
-                        uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
+//                        FIXME
+//                        uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
+//                        uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
                     }
                 }
 
-                if (params.PROMOTE) {
+//                FIXME
+                if (true) { //params.PROMOTE) {
+                    cleanWs()
+
+                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
+                    unstash 'VERSION'
+                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
+
+                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
+
                     final def publishPublicS3StageName = 'Publish to public S3'
                     stage(publishPublicS3StageName) {
-                        cleanWs()
                         dumpInfo()
 
-                        def targetFolder = 'nightly'
+                        def targetFolder = S3_FOLDER_NIGHTLY
                         if (isRelease()) {
-                            targetFolder = 'stable'
+                            targetFolder = S3_FOLDER_STABLE
                         }
 
                         docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
                             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
                                 docker.image("docker.h2o.ai/s3cmd").inside {
-                                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                                    unstash 'VERSION'
-                                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-                                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-                                    sh """
-                                        ls
-                                        s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                    """
+//                                    FIXME
+//                                    sh """
+//                                        ls
+//                                        s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+//                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+//                                    """
+                                }
+                            }
+                        }
+                    }
+
+//                    FIXME
+                    if (true) { //isRelease()) {
+                        node('master') {
+                            stage('GitHub Release') {
+                                cleanWs()
+                                dumpInfo()
+                                docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                                    docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
+                                        withCredentials([string(credentialsId: 'h2o-ops-personal-auth-token', variable: 'GITHUB_TOKEN')]) {
+                                            project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
+                                            final def releaseMsgFile = "${publishS3Dir}/release-msg.md"
+                                            dir (publishS3Dir) {
+                                                unstash 'CHANGELOG'
+                                            }
+                                            def currentChangelog = """${versionText}
+
+${project.getChangelogPartForVersion('0.4.0', "${publishS3Dir}/CHANGELOG.md")}
+---
+${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "https://h2o-release.s3.amazonaws.com/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}")}
+"""
+                                            writeFile(file: releaseMsgFile, text: currentChangelog)
+//                                            FIXME
+                                            sh "cat ${releaseMsgFile}"
+                                            sh "find ${publishS3Dir}/dist \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;"
+//                                            sh "hub release create -d \"v${versionText}\" -f ${releaseMsgFile} \$(find ${publishS3Dir}/dist \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;)"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -412,7 +455,9 @@ def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
 }
 
 def doPublish() {
-    return env.BRANCH_NAME == 'master' || isRelease()
+//    FIXME
+//    return env.BRANCH_NAME == 'master' || isRelease()
+    return true
 }
 
 def isRelease() {
