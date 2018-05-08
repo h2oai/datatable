@@ -8,10 +8,15 @@ import datatable as dt
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.typechecks import typed, Frame_t, TValueError
 
+def rbind(*frames, force=False, bynames=True):
+    return _rbind(dt.Frame(), *frames, force=force, bynames=bynames)
+
+def cbind(self, *frames, force=False):
+    return _cbind(dt.Frame(), *frames, force=force)
 
 
 @typed(frames=Frame_t, force=bool, bynames=bool)
-def rbind(self, *frames, force=False, bynames=True):
+def _rbind(self, *frames, force=False, bynames=True):
     """
     Append rows of `frames` to the current Frame.
 
@@ -137,7 +142,7 @@ def rbind(self, *frames, force=False, bynames=True):
 
 
 @typed(frames=Frame_t, force=bool, inplace=bool)
-def cbind(self, *frames, force=False, inplace=True):
+def _cbind(self, *frames, force=False, inplace=True):
     """
     Append columns of Frames `frames` to the current Frame.
 

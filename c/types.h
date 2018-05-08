@@ -7,11 +7,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_H
 #define dt_TYPES_H
-#include <stddef.h>  // size_t
-#include <stdint.h>  // int*_t
 #include <string>
 #include <cmath>     // isnan
 #include <limits>    // std::numeric_limits
+#include <Python.h>
 
 
 // intXX(32)  =>  int32_t
@@ -462,6 +461,7 @@ template<> constexpr uint16_t GETNA() { return NA_U2; }
 template<> constexpr uint32_t GETNA() { return NA_U4; }
 template<> constexpr float    GETNA() { return NA_F4; }
 template<> constexpr double   GETNA() { return NA_F8; }
+template<> constexpr PyObject* GETNA() { return Py_None; }
 
 /**
  * ISNA function
@@ -479,6 +479,7 @@ template<> inline bool ISNA(uint16_t x) { return ISNA_U2(x); }
 template<> inline bool ISNA(uint32_t x) { return ISNA_U4(x); }
 template<> inline bool ISNA(float x)    { return isnan(x); }
 template<> inline bool ISNA(double x)   { return isnan(x); }
+template<> inline bool ISNA(PyObject* x) { return x == Py_None; }
 
 /**
  * Similar to ISNA<T>(x) template, except it returns true only for integer-

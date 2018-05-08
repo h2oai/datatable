@@ -4,6 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import math
 import tempfile
 import shutil
 import pytest
@@ -183,12 +184,10 @@ def test_rbind_strings4():
 
 
 def test_rbind_strings5():
-    # TODO: fix this test once rbinding strings with non-strings properly
-    #       implemented.
     f0 = dt.Frame([1, 2, 3])
     f1 = dt.Frame(["foo", "bra"])
-    with pytest.raises(NotImplementedError):
-        f1.rbind(f0)
+    f1.rbind(f0)
+    assert f1.topython() == [["foo", "bra", "1", "2", "3"]]
 
 
 
@@ -326,4 +325,37 @@ def test_rbind_different_stypes4():
     ]
 
 
-# TODO: add tests for appending categorical columns (requires merging levelsets)
+def test_rbind_all_stypes():
+    sources = {
+        dt.bool8: [True, False, True, None, False, None],
+        dt.int8: [3, -5, None, 17, None, 99, -99],
+        dt.int16: [None, 245, 872, -333, None],
+        dt.int32: [10000, None, 1, 0, None, 34, -2222222],
+        dt.int64: [None, 9348571093841, -394, 3053867, 111334],
+        dt.float32: [None, 3.3, math.inf, -7.123e20, 34098.79],
+        dt.float64: [math.inf, math.nan, 341.0, -34985.94872, 1e310],
+        dt.str32: ["first", None, "third", "asblkhblierb", ""],
+        dt.str64: ["red", "orange", "blue", "purple", "magenta", None],
+        dt.obj64: [1, False, "yey", math.nan, (3, "foo"), None, 2.33],
+    }
+    all_stypes = list(sources.keys())
+    for st1 in all_stypes:
+        for st2 in all_stypes:
+            f1 = dt.Frame(sources[st1], stype=st1)
+            f2 = dt.Frame(sources[st2], stype=st2)
+            f3 = dt.Frame().rbind(f1, f2)
+            f1.rbind(f2)
+            assert f1.internal.check()
+            assert f2.internal.check()
+            assert f3.internal.check()
+            assert f1.nrows == len(sources[st1]) + len(sources[st2])
+            assert f3.shape == f1.shape
+            assert f1.topython() == f3.topython()
+
+
+def test_rbind_modulefn():
+    f0 = dt.Frame([1, 5409, 204])
+    f1 = dt.Frame([109813, None, 9385])
+    f3 = dt.rbind(f0, f1)
+    assert f3.internal.check()
+    assert f3.topython()[0] == f0.topython()[0] + f1.topython()[0]
