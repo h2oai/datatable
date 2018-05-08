@@ -28,6 +28,25 @@ dt_str = {("foo", "bbar", "baz"),
           tuple("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-=")}
 
 
+#-------------------------------------------------------------------------------
+# f
+#-------------------------------------------------------------------------------
+
+def test_f():
+    # Check that unbounded f-expressions can be stringified (see #1024). The
+    # exact representation may be modified in the future; however f-expressions
+    # should not raise expressions when printed.
+    x = f.a
+    assert repr(x) == "ColSelectorExpr(f_a)"
+    assert str(x) == "f_a"
+    y = f.C1 < f.C2
+    assert repr(y) == "RelationalOpExpr((f_C1 < f_C2))"
+    assert str(y) == "(f_C1 < f_C2)"
+    z = f[0]
+    assert str(z) == "f_0"
+    assert repr(z) == "ColSelectorExpr(f_0)"
+
+
 
 #-------------------------------------------------------------------------------
 # Unary bitwise NOT (__invert__)

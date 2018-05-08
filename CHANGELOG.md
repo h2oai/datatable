@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Fixed
 - Ensure that fread only emits messages to Python from the master thread.
 - Fread can now properly recognize quoted NA strings.
+- Fixed error when unbounded f-expressions were printed to console.
 
 
 ### [v0.4.0](https://github.com/h2oai/datatable/compare/0.4.0...v0.3.2) — 2018-05-07
