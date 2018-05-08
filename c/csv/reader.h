@@ -193,6 +193,13 @@ class GenericReader
     PyObj skipstring_arg;
     PyObj tempstr;
 
+    // If `trace()` cannot display a message immediately (because it was not
+    // sent from the main thread), it will be temporarily stored in this
+    // variable. Call `emit_delayed_messages()` from the master thread to send
+    // these messages to the frontend.
+    mutable std::string delayed_message;
+    // std::string delayed_warning;
+
   //---- Public API ----
   public:
     GenericReader(const PyObj& pyreader);
@@ -229,6 +236,7 @@ class GenericReader
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;
     void progress(double progress, int status = 0);
+    void emit_delayed_messages();
 
     const char* repr_source(const char* ch, size_t limit) const;
     const char* repr_binary(const char* ch, const char* end, size_t limit) const;

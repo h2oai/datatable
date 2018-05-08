@@ -154,6 +154,7 @@ void ChunkedDataReader::read_all()
     for (size_t i = 0; i < chunkCount; ++i) {
       if (oem.exception_caught()) continue;
       try {
+        if (tMaster) g.emit_delayed_messages();
         if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
           g.progress(work_done_amount());
           tShowAlways = true;
@@ -212,6 +213,7 @@ void ChunkedDataReader::read_all()
     }
 
     // Report progress one last time
+    if (tMaster) g.emit_delayed_messages();
     if (tShowAlways) {
       int status = 1 + oem.exception_caught() + oem.is_keyboard_interrupt();
       g.progress(work_done_amount(), status);

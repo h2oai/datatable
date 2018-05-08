@@ -33,7 +33,7 @@ def make_seeds():
     n = 25
     if (os.environ.get(root_env_name, "") != "" and
             os.environ.get(env_coverage, "") == ""):
-        n = 500
+        n = 100
     return [random.randint(0, 2**31) for _ in range(n)]
 
 
