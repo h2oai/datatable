@@ -698,6 +698,18 @@ def test_whitespace_nas():
                              [2.3, 1, None, 0]]
 
 
+def test_quoted_na_strings():
+    # Check that na strings are recognized regardless from whether they
+    # were quoted or not. See issue #1014
+    d0 = dt.fread('A,   B,   C\n'
+                  'foo, bar, caw\n'
+                  'nan, inf, "inf"\n', na_strings=["nan", "inf"])
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.ltypes == (dt.ltype.str,) * 3
+    assert d0.topython() == [["foo", None], ["bar", None], ["caw", None]]
+
+
 def test_clashing_column_names():
     # there should be no warning; and first column should be C2
     d0 = dt.fread("""C2\n1,2,3,4,5,6,7\n""")
@@ -736,7 +748,7 @@ def test_nuls2():
                              ["ba\0r", "beta\0", "delta"]]
 
 def test_nuls3():
-    lines = ["%02d,%d,%d\0" % (i, i % 3, 20-i) for i in range(10)]
+    lines = ["%02d,%d,%d\0" % (i, i % 3, 20 - i) for i in range(10)]
     src = "\n".join(["a,b,c"] + lines + [""])
     d0 = dt.fread(src, verbose=True)
     assert d0.internal.check()

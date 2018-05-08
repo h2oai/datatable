@@ -26,7 +26,7 @@ int32_t sort_nthreads = 1;
 bool fread_anonymize = false;
 
 
-static int32_t normalize_nthreads(int32_t nth) {
+int32_t normalize_nthreads(int32_t nth) {
   // Initialize `max_threads` only once, on the first run. This is because we
   // use `omp_set_num_threads` below, and once it was used,
   // `omp_get_max_threads` will return that number, and we won't be able to

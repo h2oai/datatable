@@ -680,8 +680,14 @@ void parse_string(FreadTokenizer& ctx) {
   default:
     return;  // Internal error: undefined quote rule
   }
-  ctx.target->str32.length = (int32_t)(ch - fieldStart);
-  ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
+  int32_t fieldLen = static_cast<int32_t>(ch - fieldStart);
+  if (fieldLen ? ctx.end_NA_string(fieldStart)==ch : ctx.blank_is_na) {
+    // TODO - speed up by avoiding end_NA_string when there are none
+    ctx.target->str32.setna();
+  } else {
+    ctx.target->str32.length = fieldLen;
+    ctx.target->str32.offset = static_cast<int32_t>(fieldStart - ctx.anchor);
+  }
   if (*ch==quote) {
     ctx.ch = ch + 1;
     ctx.skip_whitespace();
