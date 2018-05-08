@@ -214,22 +214,22 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
                              int64_t new_nrows, bool col_empty)
 {
   const T na = na_elem;
-  const void *naptr = static_cast<const void*>(&na);
+  const void* naptr = static_cast<const void*>(&na);
 
   // Reallocate the column's data buffer
-  size_t old_nrows = (size_t) nrows;
+  size_t old_nrows = static_cast<size_t>(nrows);
   size_t old_alloc_size = alloc_size();
-  size_t new_alloc_size = sizeof(T) * (size_t) new_nrows;
+  size_t new_alloc_size = sizeof(T) * static_cast<size_t>(new_nrows);
   mbuf = mbuf->safe_resize(new_alloc_size);
   xassert(!mbuf->is_readonly());
   nrows = new_nrows;
 
   // Copy the data
-  void *resptr = mbuf->at(col_empty ? 0 : old_alloc_size);
+  void* resptr = mbuf->at(col_empty ? 0 : old_alloc_size);
   size_t rows_to_fill = col_empty ? old_nrows : 0;
   for (const Column* col : columns) {
-    if (col->stype() == 0) {
-      rows_to_fill += (size_t) col->nrows;
+    if (col->stype() == ST_VOID) {
+      rows_to_fill += static_cast<size_t>(col->nrows);
     } else {
       if (rows_to_fill) {
         set_value(resptr, naptr, sizeof(T), rows_to_fill);
@@ -237,7 +237,7 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
         rows_to_fill = 0;
       }
       if (col->stype() != stype()) {
-        Column *newcol = col->cast(stype());
+        Column* newcol = col->cast(stype());
         delete col;
         col = newcol;
       }

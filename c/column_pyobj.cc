@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "column.h"
+#include "utils.h"          // set_value, add_ptr
 #include "utils/assert.h"
 
 
@@ -17,6 +18,7 @@ PyObjectColumn::PyObjectColumn(int64_t nrows_, MemoryBuffer* mb) :
 
 
 PyObjectColumn::~PyObjectColumn() {
+  if (!mbuf) return;
   // If mbuf is either an instance of ExternalMemBuf (owned externally), or
   // shared with some other user (refcount > 1) then we don't want to decref
   // the objects in the buffer.
@@ -73,12 +75,66 @@ void PyObjectColumn::reify() {
 }
 
 
+void PyObjectColumn::rbind_impl(
+  std::vector<const Column*>& columns, int64_t nnrows, bool col_empty)
+{
+  PyObject* na = Py_None;
+  const void* naptr = static_cast<const void*>(&na);
+
+  // Reallocate the column's data buffer
+  size_t old_nrows = static_cast<size_t>(nrows);
+  size_t new_nrows = static_cast<size_t>(nnrows);
+  size_t old_alloc_size = sizeof(PyObject*) * old_nrows;
+  size_t new_alloc_size = sizeof(PyObject*) * new_nrows;
+  mbuf = mbuf->safe_resize(new_alloc_size);
+  xassert(!mbuf->is_readonly());
+  nrows = nnrows;
+
+  // Copy the data
+  void* resptr = mbuf->at(col_empty ? 0 : old_alloc_size);
+  size_t nrows_to_fill = col_empty ? old_nrows : 0;
+  size_t nrows_filled = 0;
+  for (const Column* col : columns) {
+    if (col->stype() == ST_VOID) {
+      nrows_to_fill += static_cast<size_t>(col->nrows);
+    } else {
+      if (nrows_to_fill) {
+        set_value(resptr, naptr, sizeof(PyObject*), nrows_to_fill);
+        resptr = add_ptr(resptr, nrows_to_fill * sizeof(PyObject*));
+        nrows_filled += nrows_to_fill;
+        nrows_to_fill = 0;
+      }
+      if (col->stype() != ST_OBJECT_PYPTR) {
+        Column* newcol = col->cast(stype());
+        delete col;
+        col = newcol;
+      }
+      memcpy(resptr, col->data(), col->alloc_size());
+      PyObject** out = static_cast<PyObject**>(resptr);
+      for (int64_t i = 0; i < col->nrows; ++i) {
+        Py_INCREF(out[i]);
+      }
+      resptr = out + col->nrows;
+    }
+    delete col;
+  }
+  if (nrows_to_fill) {
+    set_value(resptr, naptr, sizeof(PyObject*), nrows_to_fill);
+    resptr = add_ptr(resptr, nrows_to_fill * sizeof(PyObject*));
+    nrows_filled += nrows_to_fill;
+  }
+  xassert(resptr == mbuf->at(new_alloc_size));
+  na->ob_refcnt += nrows_filled;
+}
+
+
+
 //----- Type casts -------------------------------------------------------------
 
 void PyObjectColumn::cast_into(PyObjectColumn* target) const {
   PyObject** src_data = this->elements();
-  for (int64_t i = 0; i < this->nrows; ++i) {
-    Py_XINCREF(src_data[i]);
+  for (int64_t i = 0; i < nrows; ++i) {
+    Py_INCREF(src_data[i]);
   }
   memcpy(target->data(), this->data(), alloc_size());
 }

@@ -336,17 +336,26 @@ def test_rbind_all_stypes():
         dt.float64: [math.inf, math.nan, 341.0, -34985.94872, 1e310],
         dt.str32: ["first", None, "third", "asblkhblierb", ""],
         dt.str64: ["red", "orange", "blue", "purple", "magenta", None],
-        # dt.obj64: [1, False, "yey", math.nan, (3, "foo"), None, 2.33],
+        dt.obj64: [1, False, "yey", math.nan, (3, "foo"), None, 2.33],
     }
     all_stypes = list(sources.keys())
     for st1 in all_stypes:
         for st2 in all_stypes:
             f1 = dt.Frame(sources[st1], stype=st1)
             f2 = dt.Frame(sources[st2], stype=st2)
-            try:
-                f1.rbind(f2)
-            except Exception as e:
-                raise Exception("Cannot rbind %s to %s (%s)"
-                                % (st1.name, st2.name, e))
+            f3 = dt.Frame().rbind(f1, f2)
+            f1.rbind(f2)
             assert f1.internal.check()
+            assert f2.internal.check()
+            assert f3.internal.check()
             assert f1.nrows == len(sources[st1]) + len(sources[st2])
+            assert f3.shape == f1.shape
+            assert f1.topython() == f3.topython()
+
+
+def test_rbind_modulefn():
+    f0 = dt.Frame([1, 5409, 204])
+    f1 = dt.Frame([109813, None, 9385])
+    f3 = dt.rbind(f0, f1)
+    assert f3.internal.check()
+    assert f3.topython()[0] == f0.topython()[0] + f1.topython()[0]

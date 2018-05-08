@@ -7,6 +7,7 @@
 
 from datatable.graph.dtproxy import f
 from .__version__ import version as __version__
+from .dt_append import rbind, cbind
 from .frame import Frame
 from .expr import mean, min, max, sd, isna
 from .fread import fread, GenericReader
@@ -20,7 +21,8 @@ __all__ = ("__version__", "Frame", "max", "mean", "min", "open", "sd",
            "isna", "fread", "GenericReader", "save", "stype", "ltype", "f",
            "TypeError", "ValueError", "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",
-           "float32", "float64", "str32", "str64", "obj64")
+           "float32", "float64", "str32", "str64", "obj64",
+           "cbind", "rbind")
 
 bool8 = stype.bool8
 int8 = stype.int8
