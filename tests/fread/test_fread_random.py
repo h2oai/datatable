@@ -72,6 +72,9 @@ def test_fread_omnibus(seed):
         assert len(coldata) == nrows
         if coltype != dt.ltype.int and all(is_intlike(x) for x in coldata):
             coltype = dt.ltype.int
+        if (coltype not in [dt.ltype.real, dt.ltype.int] and
+                all(is_reallike(x) for x in coldata)):
+            coltype = dt.ltype.real
         # Check 'bool' last, since ['0', '1'] is both int-like and bool-like
         if coltype != dt.ltype.bool and all_boollike(coldata):
             coltype = dt.ltype.bool
@@ -145,13 +148,21 @@ def all_boollike(coldata):
 
 
 def is_intlike(x):
-    x = x.strip()
+    x = x.strip().strip('"\'')
     return (x.isdigit() or
             (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
                                x[1:-1].isdigit()) or
             x == "" or
             x == '""' or
             x == "''")
+
+def is_reallike(x):
+    x = x.strip().strip('"\'')
+    try:
+        float(x)
+        return True
+    except:
+        return False
 
 
 def generate_int_column(allparams):
