@@ -107,11 +107,8 @@ void GenericReader::init_nthreads() {
       nthreads = config::nthreads;
       trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
     } else {
-      nthreads = nth;
-      int32_t maxth = omp_get_max_threads();
-      if (nthreads > maxth) nthreads = maxth;
-      if (nthreads <= 0) nthreads += maxth;
-      if (nthreads <= 0) nthreads = 1;
+      nthreads = config::normalize_nthreads(nth);
+      int maxth = config::normalize_nthreads(0);
       trace("Using %d thread%s (requested=%d, max.available=%d)",
             nthreads, (nthreads==1? "" : "s"), nth, maxth);
     }
