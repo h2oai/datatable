@@ -349,20 +349,38 @@ void GenericReader::_message(
     RESTORE_WARNINGS()
   }
 
-  try {
-    Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
-    PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
-                                       "backslashreplace");  // new ref
-    if (!pymsg) throw PyError();
-    logger.invoke(method, "(O)", pymsg);
-    Py_XDECREF(pymsg);
-  } catch (const std::exception&) {
-    // ignore any exceptions
+  if (omp_get_thread_num() == 0) {
+    try {
+      Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
+      PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
+                                         "backslashreplace");  // new ref
+      if (!pymsg) throw PyError();
+      logger.invoke(method, "(O)", pymsg);
+      Py_XDECREF(pymsg);
+    } catch (const std::exception&) {
+      // ignore any exceptions
+    }
+  } else {
+    if (strcmp(method, "debug") == 0) {
+      delayed_message += msg;
+    } else {
+      // delayed_warning not implemented yet
+    }
   }
 }
 
 void GenericReader::progress(double progress, int statuscode) {
+  xassert(omp_get_thread_num() == 0);
   freader.invoke("_progress", "(di)", progress, statuscode);
+}
+
+void GenericReader::emit_delayed_messages() {
+  xassert(omp_get_thread_num() == 0);
+  if (delayed_message.size()) {
+    trace("%s", delayed_message.c_str());
+    delayed_message.clear();
+  }
+  // delayed_warning not implemented
 }
 
 
