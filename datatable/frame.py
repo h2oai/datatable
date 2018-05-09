@@ -501,26 +501,35 @@ class Frame(object):
         Simpler version than __call__, but allows slice literals.
 
         Example:
-            dt[5]        # 6-th column
-            dt[5, :]     # 6-th row
-            dt[:10, -1]  # first 10 rows of the last column
-            dt[::-1]     # all rows of the datatable in reverse order
+            df[5]        # 6-th column
+            df[5, :]     # 6-th row
+            df[:10, -1]  # first 10 rows of the last column
+            df[::-1, :]  # all rows of the Frame in reverse order
         etc.
         """
         rows, cols = resolve_selector(item)
         return make_datatable(self, rows, cols)
 
 
+    def __setitem__(self, item, value):
+        """
+        Update values in Frame, in-place.
+        """
+        rows, cols = resolve_selector(item)
+        return make_datatable(self, rows, cols, mode="update",
+                              replacement=value)
+
+
     def __delitem__(self, item):
         """
-        Delete columns / rows from the datatable.
+        Delete columns / rows from the Frame.
 
         Example:
-            del dt["colA"]
-            del dt[:, ["A", "B"]]
-            del dt[::2]
-            del dt["col5":"col9"]
-            del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
+            del df["colA"]
+            del df[:, ["A", "B"]]
+            del df[::2]
+            del df["col5":"col9"]
+            del df[(i for i in range(df.ncols) if i % 3 <= 1)]
         """
         drows, dcols = resolve_selector(item)
         return make_datatable(self, drows, dcols, mode="delete")

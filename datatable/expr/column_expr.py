@@ -114,3 +114,18 @@ class ColSelectorExpr(BaseExpr):
         dt = self._dtexpr.get_datatable()
         ri = ee.rowindex
         return core.expr_column(dt.internal, self._colid, ri)
+
+
+
+
+class NewColumnExpr(BaseExpr):
+    __slots__ = ["_name"]
+
+    def __init__(self, name):
+        self._name = name
+
+    def __str__(self):
+        return self._name
+
+    def resolve(self):
+        pass

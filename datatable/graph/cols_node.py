@@ -9,7 +9,7 @@ import types
 from datatable.lib import core
 from .context import LlvmEvaluationEngine
 from .iterator_node import MapNode
-from datatable.expr import BaseExpr, ColSelectorExpr
+from datatable.expr import BaseExpr, ColSelectorExpr, NewColumnExpr
 from datatable.graph.dtproxy import f
 from datatable.types import ltype, stype
 from datatable.utils.misc import plural_form as plural
@@ -61,6 +61,9 @@ class SliceCSNode(ColumnSetNode):
         self._count = count
         self._column_names = self._make_column_names()
 
+    def __repr__(self):
+        return ("<datatable.graph.SliceCSNode %d/%d/%d>"
+                % (self._start, self._count, self._step))
 
     def _make_column_names(self):
         if self._step == 0:
@@ -112,6 +115,11 @@ class ArrayCSNode(ColumnSetNode):
         self._elems = elems
         self._column_names = colnames
 
+    def __repr__(self):
+        return ("<datatable.graph.ArrayCSNode [%s]>"
+                % ", ".join("%d (%r)" % (self._elems[i], self._column_names[i])
+                            for i in range(len(self._elems))))
+
     def _compute_columns(self):
         return core.columns_from_array(self.dt.internal, self._engine.rowindex,
                                        self._elems)
@@ -162,7 +170,7 @@ class MixedCSNode(ColumnSetNode):
 
 #===============================================================================
 
-def make_columnset(arg, ee, _nested=False):
+def make_columnset(arg, ee, new_cols_allowed=False):
     """
     Create a :class:`CSNode` object from the provided expression.
 
@@ -177,27 +185,26 @@ def make_columnset(arg, ee, _nested=False):
 
     ee: EvalutionEngine
         Expression evaluation engine.
-
-    _nested: bool
-        Internal flag which is set to True on the first recursive call.
     """
     dt = ee.dt
 
     if arg is None or arg is Ellipsis:
         return SliceCSNode(ee, 0, dt.ncols, 1)
 
-    if arg is True or arg is False:
-        # Note: True/False are integer objects in Python, hence this test has
-        # to be performed before `isinstance(arg, int)` below.
-        raise TTypeError("A boolean cannot be used as a column selector")
-
     if isinstance(arg, (int, str, slice, BaseExpr)):
+        if isinstance(arg, bool):
+            # Note: True/False are integer objects in Python, however we do
+            # not want to treat `df[True]` as the second column in `df`.
+            raise TTypeError("A boolean cannot be used as a column selector")
+
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
-        pcol = process_column(arg, dt)
+        pcol = process_column(arg, dt, new_cols_allowed)
         if isinstance(pcol, int):
             return SliceCSNode(ee, pcol, 1, 1)
         elif isinstance(pcol, tuple):
             return SliceCSNode(ee, *pcol)
+        elif isinstance(pcol, NewColumnExpr):
+            return ArrayCSNode(ee, [dt.ncols], [arg])
         else:
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
             return MixedCSNode(ee, [pcol], names=["V0"])
@@ -252,9 +259,9 @@ def make_columnset(arg, ee, _nested=False):
         else:
             return MixedCSNode(ee, outcols, colnames)
 
-    if isinstance(arg, types.FunctionType) and not _nested:
+    if isinstance(arg, types.FunctionType):
         res = arg(f)
-        return make_columnset(res, ee, _nested=True)
+        return make_columnset(res, ee)
 
     if isinstance(arg, (type, ltype)):
         ltypes = dt.ltypes
@@ -281,7 +288,7 @@ def make_columnset(arg, ee, _nested=False):
 
 
 
-def process_column(col, df):
+def process_column(col, df, new_cols_allowed=False):
     """
     Helper function to verify the validity of a single column selector.
 
@@ -300,8 +307,14 @@ def process_column(col, df):
                 .format(col=col, ncolumns=plural(ncols, "column")))
 
     if isinstance(col, str):
-        # This raises an exception if `col` cannot be found in the dataframe
-        return df.colindex(col)
+        if new_cols_allowed:
+            try:
+                # This raises an exception if `col` cannot be found
+                return df.colindex(col)
+            except TValueError:
+                return NewColumnExpr(col)
+        else:
+            return df.colindex(col)
 
     if isinstance(col, slice):
         start = col.start

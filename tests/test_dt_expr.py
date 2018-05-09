@@ -35,7 +35,7 @@ dt_str = {("foo", "bbar", "baz"),
 def test_f():
     # Check that unbounded f-expressions can be stringified (see #1024). The
     # exact representation may be modified in the future; however f-expressions
-    # should not raise expressions when printed.
+    # should not raise exceptions when printed.
     x = f.a
     assert repr(x) == "ColSelectorExpr(f_a)"
     assert str(x) == "f_a"
