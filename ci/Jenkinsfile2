@@ -121,6 +121,9 @@ def linkMap = [
 
 def dockerArgs = createDockerArgs(linkMap, SOURCE_DIR, TARGET_DIR)
 
+/////////////////////////////////////
+// Build, Coverage and Test stages //
+/////////////////////////////////////
 def stages = [:]
 BUILD_MATRIX.each { platform, config ->
     stages[platform] = {
@@ -201,11 +204,16 @@ BUILD_MATRIX.each { platform, config ->
     }
 }
 
+////////////////////////
+// Main pipeline code //
+////////////////////////
 ansiColor('xterm') {
     timestamps {
         if (isPrJob()) {
             cancelPreviousBuilds()
         }
+
+        // Checkout, apply patch and stash sources
         node('linux') {
             stage('Init') {
                 checkout scm
@@ -243,111 +251,105 @@ ansiColor('xterm') {
             }
         }
 
+        // Build, Coverage and Test stages for all platforms
         parallel stages
 
-        // Publish into S3 all snapshots versions
+        def versionText = null
+        def publishS3Dir = 'publish-s3'
+        // If building master or rel-* branch, publish to S3
         if (doPublish()) {
+            // Build and archive sdist wheel and read information required for following stages.
             node('docker && !mr-0xc8') {
-
                 final def buildDir = 'build-sdist'
                 stage('Build sdist') {
                     dir(buildDir) {
                         unstash 'datatable-sources'
                     }
-                    // Specify build Closure
+                    // read additional information for following stages
+                    unstash 'VERSION'
+                    versionText = readFile("build/dist/VERSION.txt").trim()
+
                     def buildClosure = {
                         project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
                     }
                     callInEnv(X86_64_LINUX_DOCKER_IMAGE, dockerArgs, buildClosure)
                 }
+            }
 
-                def publishS3Dir = 'publish-s3'
+            if (versionText == null || versionText.trim() == '') {
+                error 'Version cannot be read'
+            }
 
+            // Always publish to artifacts.h2o.ai
+            node('master') {
                 stage('Publish snapshot to S3') {
                     cleanWs()
                     dumpInfo()
-
                     project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                    unstash 'VERSION'
-                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-
-                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-
                     BUILD_MATRIX.each { platform, config ->
-//                        FIXME
-//                        uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
-//                        uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
+                        uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
+                        uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
                     }
                 }
+            }
 
-//                FIXME
-                if (true) { //params.PROMOTE) {
-                    cleanWs()
+            // We want to publish master builds automatically. For other branches (because doPublish() is true those
+            // might be only rel-* branches) we want user confirmation.
+            if (env.BRANCH_NAME != 'master') {
+                timeout(unit: 'HOURS', time: 24) {
+                    input('Promote build?')
+                }
+            }
+            node('master') {
+                cleanWs()
+                project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
 
-                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                    unstash 'VERSION'
-                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-
-                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-
-                    final def publishPublicS3StageName = 'Publish to public S3'
-                    stage(publishPublicS3StageName) {
-                        dumpInfo()
-
-                        def targetFolder = S3_FOLDER_NIGHTLY
-                        if (isRelease()) {
-                            targetFolder = S3_FOLDER_STABLE
-                        }
-
-                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-                                docker.image("docker.h2o.ai/s3cmd").inside {
-//                                    FIXME
-//                                    sh """
-//                                        ls
-//                                        s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-//                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-//                                    """
-                                }
+                // Building either master (nightly) or user has apporved the promotion, so upload to h2o-releases.
+                final def publishPublicS3StageName = 'Publish to public S3'
+                stage(publishPublicS3StageName) {
+                    dumpInfo()
+                    def targetFolder = S3_FOLDER_NIGHTLY
+                    if (isRelease()) {
+                        targetFolder = S3_FOLDER_STABLE
+                    }
+                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                            docker.image("docker.h2o.ai/s3cmd").inside {
+                                sh """
+                                    s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                    s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
+                                """
                             }
                         }
                     }
+                }
 
-//                    FIXME
-                    if (true) { //isRelease()) {
-                        node('master') {
-                            stage('GitHub Release') {
-                                cleanWs()
-                                dumpInfo()
-                                docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                                    docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
-                                        withCredentials([string(credentialsId: 'h2o-ops-personal-auth-token', variable: 'GITHUB_TOKEN')]) {
-                                            project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                                            final def releaseMsgFile = "${publishS3Dir}/release-msg.md"
-                                            dir (publishS3Dir) {
-                                                unstash 'CHANGELOG'
-                                            }
-                                            def currentChangelog = """${versionText}
+                // GitHub release should be created for rel-* biulds only (not for master build)
+                if (isRelease()) {
+                    stage('GitHub Release') {
+                        dumpInfo()
+                        dir(publishS3Dir) {
+                            checkout scm
+                            unstash 'CHANGELOG'
+                        }
+                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                            docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
+                                withCredentials([string(credentialsId: 'h2o-ops-personal-auth-token', variable: 'GITHUB_TOKEN')]) {
+                                    final def releaseMsgFile = "release-msg.md"
+                                    def currentChangelog = """${versionText}
 
 ${project.getChangelogPartForVersion('0.4.0', "${publishS3Dir}/CHANGELOG.md")}
 ---
 ${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "https://h2o-release.s3.amazonaws.com/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}")}
 """
-                                            writeFile(file: releaseMsgFile, text: currentChangelog)
-//                                            FIXME
-                                            sh "cat ${releaseMsgFile}"
-                                            sh "find ${publishS3Dir}/dist \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;"
-//                                            sh "hub release create -d \"v${versionText}\" -f ${releaseMsgFile} \$(find ${publishS3Dir}/dist \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;)"
-                                        }
-                                    }
+                                    writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: currentChangelog)
+                                    sh """
+                                        cd ${publishS3Dir}
+                                        hub release create -d -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}" 
+                                    """
                                 }
                             }
                         }
-                    }
-                } else {
-                    final def publishPublicS3StageNameSkipped = "${publishPublicS3StageName} - SKIPPED"
-                    stage(publishPublicS3StageNameSkipped) {
-                        echo publishPublicS3StageNameSkipped
                     }
                 }
             }
@@ -355,6 +357,9 @@ ${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "https://h2o-relea
     }
 }
 
+//////////////////////
+// Helper functions //
+//////////////////////
 def uploadToS3(artifact, versionText, platformDir) {
     s3upDocker {
         localArtifact = artifact
@@ -455,9 +460,7 @@ def appendLargeTestsSuffixIfRequired(stageName, needsLargerTest) {
 }
 
 def doPublish() {
-//    FIXME
-//    return env.BRANCH_NAME == 'master' || isRelease()
-    return true
+    return env.BRANCH_NAME == 'master' || isRelease()
 }
 
 def isRelease() {
