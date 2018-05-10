@@ -118,6 +118,9 @@ public:
    *   {1}.resize_and_fill(5)          -> {1, 1, 1, 1, 1}
    *
    * The contents of the column will be modified in-place if possible.
+   *
+   * This method can be used to both increase and reduce the size of the
+   * column.
    */
   virtual void resize_and_fill(int64_t nrows) = 0;
 
@@ -555,6 +558,7 @@ protected:
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
+  void resize_and_fill(int64_t nrows) override;
   void fill_na() override;
   void reify() override;
   friend Column;

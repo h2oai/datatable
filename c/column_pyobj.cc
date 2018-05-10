@@ -61,6 +61,33 @@ void PyObjectColumn::fill_na() {
 }
 
 
+void PyObjectColumn::resize_and_fill(int64_t new_nrows)
+{
+  if (new_nrows == nrows) return;
+
+  if (new_nrows < nrows) {
+    for (int64_t i = new_nrows; i < nrows; ++i) {
+      Py_DECREF(mbuf->get_elem<PyObject*>(i));
+    }
+  }
+
+  mbuf = mbuf->safe_resize(sizeof(PyObject*) * static_cast<size_t>(new_nrows));
+
+  if (new_nrows > nrows) {
+    // Replicate the value or fill with NAs
+    PyObject* fill_value = nrows == 1? get_elem(0) : na_elem;
+    for (int64_t i = nrows; i < new_nrows; ++i) {
+      mbuf->set_elem<PyObject*>(i, fill_value);
+    }
+    Py_REFCNT(fill_value) += new_nrows - nrows;
+  }
+  this->nrows = new_nrows;
+
+  // TODO(#301): Temporary fix.
+  if (this->stats != nullptr) this->stats->reset();
+}
+
+
 void PyObjectColumn::reify() {
   if (ri.isabsent()) return;
   FwColumn<PyObject*>::reify();

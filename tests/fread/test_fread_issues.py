@@ -471,3 +471,13 @@ def test_issue998():
          [2100795.4839400873], [2019540.6562294513], [1946283.046177674],
          [2066298.020782411], [1919714.12131235]])
 
+
+def test_issue1030():
+    # The file contains unterminated quote character, which had resulted in
+    # a crash in verbose mode (due to incorrect use of `snprintf`).
+    lines = ["6,7,8,9,3,4,5\n"] * 100000
+    lines[0] = "A,B,C,D,E,F\n"
+    lines[3333] = '3,"45,99,-3,7,0\n'
+    src = "".join(lines)
+    with pytest.raises(RuntimeError):
+        dt.fread(src, verbose=True)

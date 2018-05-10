@@ -133,6 +133,10 @@ DECLARE_METHOD(
   "Remove the specified list of columns from the datatable")
 
 DECLARE_METHOD(
+  resize_rows,
+  "Change the number of rows in the Frame.")
+
+DECLARE_METHOD(
   replace_rowindex,
   "replace_rowindex(rowindex)\n\n"
   "Replace the current rowindex on the datatable with the new one.")

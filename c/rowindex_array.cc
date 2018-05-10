@@ -469,6 +469,31 @@ RowIndexImpl* ArrayRowIndexImpl::inverse(int64_t nrows) const {
 }
 
 
+void ArrayRowIndexImpl::shrink(int64_t n) {
+  xassert(n < length);
+  if (type == RowIndexType::RI_ARR32) {
+    ind32.resize(n);
+  } else {
+    ind64.resize(n);
+  }
+  length = n;
+}
+
+RowIndexImpl* ArrayRowIndexImpl::shrunk(int64_t n) {
+  xassert(n < length);
+  size_t zn = static_cast<size_t>(n);
+  if (type == RowIndexType::RI_ARR32) {
+    arr32_t new_ind32(n);
+    memcpy(new_ind32.data(), ind32.data(), zn * sizeof(int32_t));
+    return new ArrayRowIndexImpl(std::move(new_ind32), false);
+  } else {
+    arr64_t new_ind64(n);
+    memcpy(new_ind64.data(), ind64.data(), zn * sizeof(int64_t));
+    return new ArrayRowIndexImpl(std::move(new_ind64), false);
+  }
+}
+
+
 int64_t ArrayRowIndexImpl::nth(int64_t i) const {
   size_t zi = static_cast<size_t>(i);
   return (type == RowIndexType::RI_ARR32)? ind32[zi] : ind64[zi];

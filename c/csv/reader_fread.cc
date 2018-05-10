@@ -1437,22 +1437,26 @@ void FreadObserver::type_bump_info(
   size_t icol, const GReaderColumn& col, PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
-  char temp[1001];
-  int n = snprintf(temp, sizeof(temp) - 1,
+  static const int BUF_SIZE = 1000;
+  char temp[BUF_SIZE + 1];
+  int n = snprintf(temp, BUF_SIZE,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %llu",
     icol, col.repr_name(g),
     ParserLibrary::info(col.type).cname(),
     ParserLibrary::info(new_type).cname(),
     static_cast<int>(len), field, lineno);
+  n = std::min(n, BUF_SIZE);
   messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }
 
 
 void FreadObserver::str64_bump(size_t icol, const GReaderColumn& col) {
-  char temp[1001];
-  int n = snprintf(temp, sizeof(temp) - 1,
+  static const int BUF_SIZE = 1000;
+  char temp[BUF_SIZE + 1];
+  int n = snprintf(temp, BUF_SIZE,
     "Column %zu (%s) switched from Str32 to Str64 because its size "
     "exceeded 2GB",
     icol, col.repr_name(g));
+  n = std::min(n, BUF_SIZE);
   messages.push_back(std::string(temp, static_cast<size_t>(n)));
 }

@@ -8,7 +8,9 @@ def utilsLib = new Utils()
 
 properties([
         parameters([
-                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts')
+                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
+                booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
+                booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
         ]),
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -138,7 +140,7 @@ BUILD_MATRIX.each { platform, config ->
             }
 
 
-            if (config.coverage) {
+            if (config.coverage && !params.DISABLE_COVERAGE) {
                 final def coverageDir = "coverage-${platform}"
                 dir(coverageDir) {
                     unstash 'datatable-sources'
@@ -164,7 +166,7 @@ BUILD_MATRIX.each { platform, config ->
                 final def testDir = "test-${platform}-${testEnv}"
                 try {
                     def testStageName = "Test ${platform} with ${testEnv}"
-                    if (config.test) {
+                    if (config.test && !params.DISABLE_TESTS) {
                         testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
                         withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
                             stage(testStageName) {
