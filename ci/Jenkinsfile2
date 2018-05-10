@@ -328,7 +328,7 @@ ansiColor('xterm') {
                             docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
                                 withCredentials([string(credentialsId: 'h2o-ops-personal-auth-token', variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
-                                    def releaseMsg = """${versionText}
+                                    def releaseMsg = """v${versionText}
 
 ${project.getChangelogPartForVersion(versionText, "${publishS3Dir}/CHANGELOG.md")}
 ---
