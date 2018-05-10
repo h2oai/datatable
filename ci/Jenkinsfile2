@@ -108,7 +108,6 @@ def needsLargerTest
 SOURCE_DIR = "/home/0xdiag"
 TARGET_DIR = "/tmp/pydatatable_large_data"
 
-S3_FOLDER_NIGHTLY = 'nightly'
 S3_FOLDER_STABLE = 'stable'
 
 // Data map for linking into container
@@ -293,56 +292,49 @@ ansiColor('xterm') {
                 }
             }
 
-            // We want to publish master builds automatically. For other branches (because doPublish() is true those
-            // might be only rel-* branches) we want user confirmation.
-            if (env.BRANCH_NAME != 'master') {
+            // If we are building rel-* branch, ask for user confirmation in order to promote this build. Given approval,
+            // artifacts will be copied to h2o-release and a GitHub release will be created.
+            if (isRelease()) {
                 timeout(unit: 'HOURS', time: 24) {
                     input('Promote build?')
                 }
-            }
-            node('master') {
-                cleanWs()
-                project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-
-                // Building either master (nightly) or user has apporved the promotion, so upload to h2o-releases.
-                final def publishPublicS3StageName = 'Publish to public S3'
-                stage(publishPublicS3StageName) {
-                    dumpInfo()
-                    def targetFolder = S3_FOLDER_NIGHTLY
-                    if (isRelease()) {
-                        targetFolder = S3_FOLDER_STABLE
+                node('master') {
+                    cleanWs()
+                    // git repository and CHANGELOG.md must be present in order to create GitHub Release
+                    dir(publishS3Dir) {
+                        checkout scm
+                        unstash 'CHANGELOG'
                     }
-                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-                            docker.image("docker.h2o.ai/s3cmd").inside {
-                                sh """
-                                    s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                    s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                """
+                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
+
+                    final def publishPublicS3StageName = 'Publish to public S3'
+                    stage(publishPublicS3StageName) {
+                        dumpInfo()
+                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                                docker.image("docker.h2o.ai/s3cmd").inside {
+                                    sh """
+                                        s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}/
+                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}/
+                                    """
+                                }
                             }
                         }
                     }
-                }
 
-                // GitHub release should be created for rel-* biulds only (not for master build)
-                if (isRelease()) {
                     stage('GitHub Release') {
                         dumpInfo()
-                        dir(publishS3Dir) {
-                            checkout scm
-                            unstash 'CHANGELOG'
-                        }
                         docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
                             docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
                                 withCredentials([string(credentialsId: 'h2o-ops-personal-auth-token', variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
-                                    def currentChangelog = """${versionText}
+                                    def releaseMsg = """${versionText}
 
-${project.getChangelogPartForVersion('0.4.0', "${publishS3Dir}/CHANGELOG.md")}
+${project.getChangelogPartForVersion(versionText, "${publishS3Dir}/CHANGELOG.md")}
 ---
 ${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "https://h2o-release.s3.amazonaws.com/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}")}
 """
-                                    writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: currentChangelog)
+                                    writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: releaseMsg)
                                     sh """
                                         cd ${publishS3Dir}
                                         hub release create -d -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}" 
