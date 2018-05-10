@@ -140,7 +140,7 @@ BUILD_MATRIX.each { platform, config ->
             }
 
 
-            if (config.coverage || !params.DISABLE_COVERAGE) {
+            if (config.coverage && !params.DISABLE_COVERAGE) {
                 final def coverageDir = "coverage-${platform}"
                 dir(coverageDir) {
                     unstash 'datatable-sources'
@@ -166,7 +166,7 @@ BUILD_MATRIX.each { platform, config ->
                 final def testDir = "test-${platform}-${testEnv}"
                 try {
                     def testStageName = "Test ${platform} with ${testEnv}"
-                    if (config.test || !params.DISABLE_TESTS) {
+                    if (config.test && !params.DISABLE_TESTS) {
                         testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
                         withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
                             stage(testStageName) {
