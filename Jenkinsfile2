@@ -8,8 +8,8 @@ def utilsLib = new Utils()
 
 properties([
         parameters([
-                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts')
-                booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests')
+                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
+                booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
                 booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
         ]),
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
