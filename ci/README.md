@@ -41,9 +41,17 @@ update applies.
   additional commits into this branch to fix any emergent problems.
 - Merge the PR into master, but **DO NOT delete the branch**. This branch
   should be kept forever.
-- Go to Jenkins and open the Console Output (make sure to be outside of BlueOcean UI). On the very bottom, there should be a prompt whether this build should be promoted (if the prompt is not there, the build might be still in progress or has failed). Click proceed - this will upload the artifacts to `s3://h2o-release/datatable/stable/datatable-{MAJOR}.{MINOR}.{MICRO}/` and draft a GitHub release. Then go to https://github.com/h2oai/datatable/releases find the particular draft and click `Edit`. Review the changelog and artifacts and if everything is correct click `Publish Release` on the very bottom of the page.
+- Go to Jenkins and open the Console Output (make sure to be outside of 
+  BlueOcean UI). On the very bottom, there should be a prompt whether this 
+  build should be promoted (if the prompt is not there, the build might be 
+  still in progress or has failed). Click proceed — this will upload the 
+  artifacts to `s3://h2o-release/datatable/stable/datatable-{MN0}/` and 
+  draft a GitHub release. 
+- Go to [Releases](https://github.com/h2oai/datatable/releases) on GitHub — 
+  there should be a draft of the latest release. Click `Edit`. Review the 
+  changelog and artifacts, and if everything is correct click 
+  `Publish Release` on the bottom of the page.
 - ??? use `twine upload` to make the new release available on PyPi
-- ??? make a release on GitHub
 
 
 
@@ -67,7 +75,9 @@ version with some bug fixes. Do not add new functionality into a patch release
   immediately preceding the `[v{MMM}] ...` line. Add a description of the
   changes being introduced in this patch.
 - Commit the changes, and push the commit to GitHub.
-- Wait for tests to finish (fix problems if some checks fail), then go to Jenkins and do the same procedure as in case of new minor version (approve the prompt in console, review and publish the GitHub release draft).
+- Wait for tests to finish (fix problems if some checks fail), then go to Jenkins 
+  and do the same procedure as in case of new minor version (approve the prompt 
+  in console, review and publish the GitHub release draft).
 - ???
 
 
@@ -82,12 +92,16 @@ change the version number to `{MAJOR+1}.0.0`. In addition to steps outlined
 in the minor version release section, the following might be needed:
 
 - Look through the code for places that say
-  - "will be removed in version {MAJOR+1}"
-  - "will be changed in version {MAJOR+1}"
-  - "will become deprecated in version {MAJOR+1}"
+    - "will be removed in version {MAJOR+1}"
+    - "will be changed in version {MAJOR+1}"
+    - "will become deprecated in version {MAJOR+1}"
+    
   and make those changes accordingly.
+  
 - Update `CHANGELOG.md` noting all functionality that was removed/ changed/
   deprecated.
+  
 - Publish a blog post outlining all main improvements since the previous major
   release.
+  
 - Make a twitter announcement on @pydatatable
