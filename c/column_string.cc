@@ -360,9 +360,6 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
   int64_t old_nrows = nrows;
   int64_t diff_rows = new_nrows - old_nrows;
   if (diff_rows == 0) return;
-  if (diff_rows < 0) {
-    throw RuntimeError() << "Column::resize_and_fill() cannot shrink a column";
-  }
 
   if (new_nrows > INT32_MAX && sizeof(T) == 4) {
     // TODO: instead of throwing an error, upcast the column to <int64_t>
@@ -375,45 +372,49 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
   size_t old_mbuf_size = mbuf->size();
   size_t new_strbuf_size = old_strbuf_size;
   size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(new_nrows) + 1);
-  if (old_nrows == 1) new_strbuf_size = old_strbuf_size * (size_t) new_nrows;
-
-  // Check if we can expand offsets in-place
-  if (mbuf->is_readonly()) {
-    MemoryBuffer* new_mbuf = new MemoryMemBuf(new_mbuf_size);\
-    memcpy(new_mbuf->get(), mbuf->get(), old_mbuf_size);
-    mbuf->release();
-    mbuf = new_mbuf;
-  } else {
-    mbuf->resize(new_mbuf_size);
+  if (old_nrows == 1) {
+    new_strbuf_size = old_strbuf_size * (size_t) new_nrows;
+  }
+  if (diff_rows < 0) {
+    new_strbuf_size = mbuf->get_elem<T>(new_nrows + 1);
   }
 
-  // Replicate the value, or fill with NAs
-  T* offsets = static_cast<T*>(mbuf->get());
-  ++offsets;
-  if (old_nrows == 1 && offsets[0] > 0) {
-    MemoryBuffer* new_strbuf = strbuf;
-    if (strbuf->is_readonly()) {
-      new_strbuf = new MemoryMemBuf(new_strbuf_size);
-    } else {
-      new_strbuf->resize(new_strbuf_size);
-    }
-    char* str_src = static_cast<char*>(strbuf->get());
-    char* str_dest = static_cast<char*>(new_strbuf->get());
-    T src_len = static_cast<T>(old_strbuf_size);
-    for (T i = 0; i < new_nrows; ++i) {
-      memcpy(str_dest, str_src, old_strbuf_size);
-      str_dest += old_strbuf_size;
-      offsets[i] = 1 + (i + 1) * src_len;
-    }
-    if (new_strbuf != strbuf) {
-      strbuf->release();
-      strbuf = new_strbuf;
+  // Resize the offsets buffer
+  mbuf = mbuf->safe_resize(new_mbuf_size);
+
+  if (diff_rows < 0) {
+    if (new_strbuf_size != old_strbuf_size) {
+      strbuf = strbuf->safe_resize(new_strbuf_size);
     }
   } else {
-    if (old_nrows == 1) xassert(old_strbuf_size == 0);
-    T na = -static_cast<T>(old_strbuf_size + 1);
-    set_value(offsets + nrows, &na, sizeof(T),
-              static_cast<size_t>(diff_rows));
+    // Replicate the value, or fill with NAs
+    T* offsets = static_cast<T*>(mbuf->get());
+    ++offsets;
+    if (old_nrows == 1 && offsets[0] > 0) {
+      MemoryBuffer* new_strbuf = strbuf;
+      if (strbuf->is_readonly()) {
+        new_strbuf = new MemoryMemBuf(new_strbuf_size);
+      } else {
+        new_strbuf->resize(new_strbuf_size);
+      }
+      char* str_src = static_cast<char*>(strbuf->get());
+      char* str_dest = static_cast<char*>(new_strbuf->get());
+      T src_len = static_cast<T>(old_strbuf_size);
+      for (T i = 0; i < new_nrows; ++i) {
+        memcpy(str_dest, str_src, old_strbuf_size);
+        str_dest += old_strbuf_size;
+        offsets[i] = 1 + (i + 1) * src_len;
+      }
+      if (new_strbuf != strbuf) {
+        strbuf->release();
+        strbuf = new_strbuf;
+      }
+    } else {
+      if (old_nrows == 1) xassert(old_strbuf_size == 0);
+      T na = -static_cast<T>(old_strbuf_size + 1);
+      set_value(offsets + nrows, &na, sizeof(T),
+                static_cast<size_t>(diff_rows));
+    }
   }
   nrows = new_nrows;
   // TODO: Temporary fix. To be resolved in #301

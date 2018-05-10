@@ -61,6 +61,7 @@ class DataTable {
     DataTable(Column**);
     ~DataTable();
     DataTable* delete_columns(int*, int);
+    void resize_rows(int64_t n);
     void apply_na_mask(DataTable* mask);
     void replace_rowindex(const RowIndex& newri);
     void reify();

@@ -43,10 +43,6 @@ def assert_valueerror(datatable, rows, error_message):
     assert str(e.type) == "<class 'dt.ValueError'>"
     assert error_message in str(e.value)
 
-def as_list(datatable):
-    nrows, ncols = datatable.shape
-    return datatable.internal.window(0, nrows, 0, ncols).data
-
 
 
 #-------------------------------------------------------------------------------
@@ -196,7 +192,7 @@ def test_del_cols_intslice1():
     assert d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("BDFHJLNP")
-    assert as_list(d0) == [[i] for i in range(1, 16, 2)]
+    assert d0.topython() == [[i] for i in range(1, 16, 2)]
 
 def test_del_cols_intslice2():
     d0 = smalldt()
@@ -204,7 +200,7 @@ def test_del_cols_intslice2():
     assert d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("ACEGIKMO")
-    assert as_list(d0) == [[i] for i in range(0, 16, 2)]
+    assert d0.topython() == [[i] for i in range(0, 16, 2)]
 
 def test_del_cols_all():
     d0 = smalldt()
@@ -373,6 +369,97 @@ def test_del_rows_from_view2():
     f1 = f0[5:, :]
     del f1[isna(f[0]), :]
     assert f1.topython() == [[2]]
+
+
+
+#-------------------------------------------------------------------------------
+# Resize rows
+#-------------------------------------------------------------------------------
+
+def test_resize_rows_api():
+    f0 = dt.Frame([20])
+    f0.nrows = 3
+    f0.resize(5)
+    assert f0.topython() == [[20, 20, 20, None, None]]
+
+
+def test_resize_rows0():
+    f0 = dt.Frame(range(10), stype=dt.int32)
+    f0.nrows = 6
+    assert f0.shape == (6, 1)
+    assert f0.stypes == (dt.int32,)
+    assert f0.topython() == [[0, 1, 2, 3, 4, 5]]
+    f0.nrows = 12
+    assert f0.shape == (12, 1)
+    assert f0.stypes == (dt.int32,)
+    assert f0.topython() == [[0, 1, 2, 3, 4, 5] + [None] * 6]
+    f0.nrows = 1
+    assert f0.shape == (1, 1)
+    assert f0.stypes == (dt.int32,)
+    assert f0.scalar() == 0
+    f0.nrows = 20
+    assert f0.shape == (20, 1)
+    assert f0.stypes == (dt.int32,)
+    assert f0.topython() == [[0] * 20]
+
+
+def test_resize_rows1():
+    srcs = [[True], [5], [14.3], ["fooga"], ["zoom"]]
+    stypes = (dt.bool8, dt.int64, dt.float64, dt.str32, dt.str64)
+    f0 = dt.Frame(srcs, stypes=stypes)
+    assert f0.shape == (1, 5)
+    assert f0.stypes == stypes
+    f0.nrows = 7
+    assert f0.shape == (7, 5)
+    assert f0.stypes == stypes
+    assert f0.topython() == [src * 7 for src in srcs]
+    f0.nrows = 20
+    assert f0.shape == (20, 5)
+    assert f0.stypes == stypes
+    assert f0.topython() == [src * 7 + [None] * 13 for src in srcs]
+    f0.nrows = 0
+    assert f0.shape == (0, 5)
+    assert f0.stypes == stypes
+    assert f0.topython() == [[]] * 5
+
+
+def test_resize_view_slice():
+    f0 = dt.Frame(range(100))
+    f1 = f0[8::2, :]
+    assert f1.shape == (46, 1)
+    assert f1.internal.isview
+    f1.nrows = 10
+    assert f1.shape == (10, 1)
+    assert f1.internal.isview
+    assert f1.topython()[0] == list(range(8, 28, 2))
+    f1.nrows = 15
+    assert f1.shape == (15, 1)
+    assert not f1.internal.isview
+    assert f1.topython()[0] == list(range(8, 28, 2)) + [None] * 5
+
+
+def test_resize_view_array():
+    f0 = dt.Frame(range(100))
+    f1 = f0[[1, 1, 2, 3, 5, 8, 13, 0], :]
+    assert f1.shape == (8, 1)
+    assert f1.internal.isview
+    assert f1.topython() == [[1, 1, 2, 3, 5, 8, 13, 0]]
+    f1.nrows = 4
+    assert f1.shape == (4, 1)
+    assert f1.internal.isview
+    assert f1.topython() == [[1, 1, 2, 3]]
+    f1.nrows = 5
+    assert f1.shape == (5, 1)
+    assert not f1.internal.isview
+    assert f1.topython() == [[1, 1, 2, 3, None]]
+
+
+def test_resize_bad():
+    f0 = dt.Frame(range(10))
+    with pytest.raises(ValueError):
+        f0.nrows = -3
+    with pytest.raises(TypeError):
+        f0.nrows = (10, 2)
 
 
 

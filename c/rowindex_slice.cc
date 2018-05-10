@@ -183,6 +183,15 @@ RowIndexImpl* SliceRowIndexImpl::inverse(int64_t nrows) const {
 }
 
 
+void SliceRowIndexImpl::shrink(int64_t n) {
+  length = n;
+}
+
+RowIndexImpl* SliceRowIndexImpl::shrunk(int64_t n) {
+  return new SliceRowIndexImpl(start, n, step);
+}
+
+
 
 size_t SliceRowIndexImpl::memory_footprint() const {
   return sizeof(*this);

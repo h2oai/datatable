@@ -72,11 +72,33 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 
 
 
+void DataTable::resize_rows(int64_t new_nrows) {
+  if (rowindex) {
+    if (new_nrows < nrows) {
+      rowindex.shrink(new_nrows, ncols);
+      replace_rowindex(rowindex);
+      return;
+    }
+    if (new_nrows > nrows) {
+      reify();
+      // fall-through
+    }
+  }
+  if (new_nrows != nrows) {
+    for (int64_t i = 0; i < ncols; ++i) {
+      columns[i]->resize_and_fill(new_nrows);
+    }
+    nrows = new_nrows;
+  }
+}
+
+
+
 void DataTable::replace_rowindex(const RowIndex& newri) {
   if (newri.isabsent() && rowindex.isabsent()) return;
   rowindex = newri;
   nrows = rowindex.length();
-  for (int i = 0; i < ncols; ++i) {
+  for (int64_t i = 0; i < ncols; ++i) {
     columns[i]->replace_rowindex(rowindex);
   }
 }

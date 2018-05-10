@@ -53,6 +53,8 @@ class RowIndexImpl {
     virtual int64_t nth(int64_t i) const = 0;
     virtual RowIndexImpl* uplift_from(RowIndexImpl*) = 0;
     virtual RowIndexImpl* inverse(int64_t nrows) const = 0;
+    virtual void shrink(int64_t n) = 0;
+    virtual RowIndexImpl* shrunk(int64_t n) = 0;
     virtual size_t memory_footprint() const = 0;
     virtual bool verify_integrity(IntegrityCheckContext&) const;
 
@@ -85,6 +87,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int64_t* indices64() const { return ind64.data(); }
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
     RowIndexImpl* inverse(int64_t nrows) const override;
+    void shrink(int64_t n) override;
+    RowIndexImpl* shrunk(int64_t n) override;
     size_t memory_footprint() const override;
     bool verify_integrity(IntegrityCheckContext&) const override;
 
@@ -122,6 +126,8 @@ class SliceRowIndexImpl : public RowIndexImpl {
     int64_t nth(int64_t i) const override;
     RowIndexImpl* uplift_from(RowIndexImpl*) override;
     RowIndexImpl* inverse(int64_t nrows) const override;
+    void shrink(int64_t n) override;
+    RowIndexImpl* shrunk(int64_t n) override;
     size_t memory_footprint() const override;
     bool verify_integrity(IntegrityCheckContext&) const override;
 
@@ -140,8 +146,9 @@ class RowIndex {
     RowIndexImpl* impl;
 
   public:
-    RowIndex() : impl(nullptr) {}
+    RowIndex();
     RowIndex(const RowIndex&);
+    RowIndex(RowIndex&&);
     RowIndex& operator=(const RowIndex&);
     ~RowIndex();
 
@@ -209,6 +216,7 @@ class RowIndex {
     void set_groups(arr32_t&& g) { impl->groups = std::move(g); }
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }
+    bool operator!=(const RowIndex& other) { return impl != other.impl; }
     operator bool() const { return impl != nullptr; }
 
     bool isabsent() const { return impl == nullptr; }
@@ -242,6 +250,16 @@ class RowIndex {
     RowIndex uplift(const RowIndex& other) const;
 
     void clear(bool keep_groups);
+
+    /**
+     * Reduce the size of the RowIndex to `nrows` elements. The second parameter
+     * indicates the number of columns in the DataTable to which the RowIndex
+     * belongs. Since each Column in the DataTable carries a copy of the
+     * RowIndex. Knowing the number of columns allows us to know when the
+     * RowIndex can be safely modified in-place, and when it cannot.
+     */
+    void shrink(int64_t nrows, int64_t ncols);
+
     size_t memory_footprint() const;
 
     /**
@@ -253,7 +271,7 @@ class RowIndex {
     bool verify_integrity(IntegrityCheckContext&) const;
 
   private:
-    RowIndex(RowIndexImpl* rii) : impl(rii) {}
+    RowIndex(RowIndexImpl* rii);
     ArrayRowIndexImpl* impl_asarray() const {
       return static_cast<ArrayRowIndexImpl*>(impl);
     }
