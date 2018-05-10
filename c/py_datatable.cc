@@ -247,6 +247,17 @@ PyObject* delete_columns(obj* self, PyObject* args) {
 
 
 
+PyObject* resize_rows(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  int64_t new_nrows;
+  if (!PyArg_ParseTuple(args, "l:resize_rows", &new_nrows)) return nullptr;
+
+  dt->resize_rows(new_nrows);
+  return none();
+}
+
+
+
 PyObject* replace_rowindex(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   PyObject* arg1;
@@ -438,6 +449,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(check),
   METHODv(column),
   METHODv(delete_columns),
+  METHODv(resize_rows),
   METHODv(replace_rowindex),
   METHODv(rbind),
   METHODv(cbind),

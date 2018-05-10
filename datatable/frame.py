@@ -116,6 +116,10 @@ class Frame(object):
     # Property setters
     #---------------------------------------------------------------------------
 
+    @nrows.setter
+    def nrows(self, n):
+        self.resize(n)
+
     @names.setter
     @typed()
     def names(self, newnames: Union[List[Optional[str]],
@@ -597,6 +601,16 @@ class Frame(object):
         cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
+
+    @typed(nrows=int)
+    def resize(self, nrows):
+        # TODO: support multiple modes of resizing:
+        #   - fill with NAs
+        #   - tile existing values
+        if nrows < 0:
+            raise TValueError("Cannot resize to %d rows" % nrows)
+        self._nrows = nrows
+        self._dt.resize_rows(nrows)
 
 
     #---------------------------------------------------------------------------
