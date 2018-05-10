@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - rbind()-ing now works on columns of all types (including between any types).
 - Added `dt.rbind()` function to perform out-of-place row binding.
+- Added ability to change the number of rows in a Frame.
 
 #### Fixed
 - Ensure that fread only emits messages to Python from the master thread.
