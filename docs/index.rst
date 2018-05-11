@@ -16,8 +16,6 @@ H2O's Datatable is a Python package for manipulating 2-dimensional tabular data 
 
 Currently `datatable` is in the Alpha stage and is undergoing active development. The API may be unstable; some of the core features are incomplete and/or missing. 
 
-Python 3.5+ is required.
-
 **Have Questions?**
 
 If you have questions about using Driverless AI, post them on the `H2O Stream Google Group <https://groups.google.com/forum/#!forum/h2ostream>`__.
@@ -27,5 +25,5 @@ If you have questions about using Driverless AI, post them on the `H2O Stream Go
    :maxdepth: 2
    :caption: Installation
 
-   installing
+   install
 
