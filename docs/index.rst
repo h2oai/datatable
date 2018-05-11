@@ -26,7 +26,7 @@ We invite anyone who is interested to contribute, whether through pull requests,
 
 **Have Questions?**
 
-If you have questions about using ``datatable``, post them on Stack Overflow using the [datatable] [python] tags at http://stackoverflow.com/questions/tagged/datatable+python.
+If you have questions about using ``datatable``, post them on Stack Overflow using the ``[datatable] [python]`` tags at http://stackoverflow.com/questions/tagged/datatable+python.
 
 
 .. toctree::
