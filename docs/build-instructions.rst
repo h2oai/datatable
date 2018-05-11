@@ -1,9 +1,7 @@
-Build Instructions
-------------------
+Build from Source
+-----------------
 
-These instructions describe how to build datatable from source.
-
-The key component needed for building the ``datatable`` package is the `Clang/Llvm <https://releases.llvm.org/download.html>`__ distribution. The same distribution is also required for building the ``llvmlite`` package, which is a prerequisite for ``datatable``. Note that the ``clang`` compiler which is shipped with MacOS is too old, and in particular it doesn't have support for the OpenMP technology.
+The key component needed for building the ``datatable`` package from source is the `Clang/Llvm <https://releases.llvm.org/download.html>`__ distribution. The same distribution is also required for building the ``llvmlite`` package, which is a prerequisite for ``datatable``. Note that the ``clang`` compiler which is shipped with MacOS is too old, and in particular it doesn't have support for the OpenMP technology.
 
 Installing the ``Clang/Llvm`` distribution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,8 +21,8 @@ For example, on Ubuntu after downloading ``clang+llvm-4.0.0-x86_64-linux-gnu-ubu
 
 You probably also want to put the last ``export`` line into your ``~/.bash_profile``.
 
-Building ``datatable``
-~~~~~~~~~~~~~~~~~~~~~~
+Building datatable
+~~~~~~~~~~~~~~~~~~
 
 1. Verify that you have Python 3.5 or above:
 
@@ -39,7 +37,7 @@ Building ``datatable``
    $ virtualenv --python=python3.6 ~/py36
    $ source ~/py36/bin/activate
 
-2. Build the datatable:
+2. Build datatable:
 
  ::
   
@@ -75,7 +73,7 @@ Troubleshooting
 
        $ pip install llvmlite
 
-   Consult the ``llvmlite``'s `installation guide <http://llvmlite.pydata.org/en/latest/admin-guide/install.html>`__ for additional information.
+   Consult the ``llvmlite`` `Installation Guide <http://llvmlite.pydata.org/en/latest/admin-guide/install.html>`__ for additional information.
 
 -  On OS-X, if you are getting an error ``fatal error: 'sys/mman.h' file not found`` or similar, this can be fixed by installing the Xcode Command Line Tools:
 
