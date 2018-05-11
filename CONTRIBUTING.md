@@ -40,8 +40,7 @@ There are plenty of ways to contribute, not only by submitting new code! Reporti
 We are open to new enhancements/feature requests!
 
 * Just like with bugs, please check whether there is already an existing issue in the tracker.
-* If not then you can reach out to us on the [H2O Stream Google Gruop](https://groups.google.com/forum/#!forum/h2ostream) and start a conversation or
-create a new issue with an appropriate label (`feature request` or `enhancement`).
+* If not, then you can reach create a new issue with an appropriate label (`feature request` or `enhancement`).
 * Use a descriptive, but concise title.
 * Start of by stating what would this improvement fix/enhance and why would it be useful.
 * Provide as detailed a description as possible (but do not write a novel).

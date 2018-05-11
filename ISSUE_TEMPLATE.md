@@ -1,4 +1,4 @@
-Please do not use issues to ask questions. For questions use either [H2O Stream Google Group](https://groups.google.com/forum/#!forum/h2ostream).
+Please do not use issues to ask questions. Post your questions on [StackOverflow](http://stackoverflow.com/questions/tagged/datatable+python) using the ``[datatable] [python]`` tags.
 
 GitHub issues are used for:
 
