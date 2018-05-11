@@ -174,9 +174,5 @@ def getReleaseDownloadLinksText(final folder, final s3PathPrefix) {
 
 }
 
-def getReleaseBucket(final targetFolder, final versionText) {
-    return "s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/"
-}
-
 return this
 

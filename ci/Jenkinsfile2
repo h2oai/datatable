@@ -17,7 +17,7 @@ properties([
 
 RELEASE_BRANCH_PREFIX = 'rel-'
 
-H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
+CREDS_ID = 'h2o-ops-personal-auth-token'
 
 def DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
 
@@ -108,7 +108,11 @@ def needsLargerTest
 SOURCE_DIR = "/home/0xdiag"
 TARGET_DIR = "/tmp/pydatatable_large_data"
 
-S3_FOLDER_STABLE = 'stable'
+
+BUCKET = 'h2o-release'
+STABLE_FOLDER = 'datatable/stale'
+S3_URL_STABLE = "s3://${BUCKET}/${STABLE_FOLDER}"
+HTTPS_URL_STABLE = "https://${BUCKET}.s3.amazonaws.com/${STABLE_FOLDER}"
 
 // Data map for linking into container
 def linkMap = [
@@ -131,7 +135,7 @@ BUILD_MATRIX.each { platform, config ->
 
             cleanWs()
             def buildStageName = "Build ${platform}"
-            withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, buildStageName) {
+            withCustomCommitStates(scm, CREDS_ID, buildStageName) {
                 stage(buildStageName) {
                     dir(buildDir) {
                         unstash 'datatable-sources'
@@ -152,7 +156,7 @@ BUILD_MATRIX.each { platform, config ->
                 }
                 def coverageStageName = "Coverage ${platform}"
                 coverageStageName = appendLargeTestsSuffixIfRequired(coverageStageName, needsLargerTest)
-                withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, coverageStageName) {
+                withCustomCommitStates(scm, CREDS_ID, coverageStageName) {
                     stage(coverageStageName) {
                         def coverageClosure = {
                             project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
@@ -173,7 +177,7 @@ BUILD_MATRIX.each { platform, config ->
                     def testStageName = "Test ${platform} with ${testEnv}"
                     if (config.test && !params.DISABLE_TESTS) {
                         testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
-                        withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
+                        withCustomCommitStates(scm, CREDS_ID, testStageName) {
                             stage(testStageName) {
                                 dir(testDir) {
                                     unstash 'datatable-sources'
@@ -314,8 +318,8 @@ ansiColor('xterm') {
                             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
                                 docker.image("docker.h2o.ai/s3cmd").inside {
                                     sh """
-                                        s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}/
-                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}/
+                                        s3cmd put -P ${publishS3Dir}/dist/*.whl ${getS3TargetUrl(versionText)}
+                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz ${getS3TargetUrl(versionText)}
                                     """
                                 }
                             }
@@ -326,13 +330,13 @@ ansiColor('xterm') {
                         dumpInfo()
                         docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
                             docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
-                                withCredentials([string(credentialsId: 'h2o-ops-personal-auth-token', variable: 'GITHUB_TOKEN')]) {
+                                withCredentials([string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
                                     def releaseMsg = """v${versionText}
 
 ${project.getChangelogPartForVersion(versionText, "${publishS3Dir}/CHANGELOG.md")}
 ---
-${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "https://h2o-release.s3.amazonaws.com/datatable/${S3_FOLDER_STABLE}/datatable-${versionText}")}
+${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "${getHTTPSTargetUrl(versionText)}")}
 """
                                     writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: releaseMsg)
                                     sh """
@@ -361,6 +365,14 @@ def uploadToS3(artifact, versionText, platformDir) {
         platform = platformDir
         isRelease = true
     }
+}
+
+def getS3TargetUrl(final versionText) {
+    return "${S3_URL_STABLE}/datatable-${versionText}/"
+}
+
+def getHTTPSTargetUrl(final versionText) {
+    return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
 }
 
 def getVenvActivationCmd(final platform, final venvName) {
