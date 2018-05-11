@@ -423,6 +423,14 @@ def test_resize_rows1():
     assert f0.topython() == [[]] * 5
 
 
+def test_resize_rows_nastrs():
+    f0 = dt.Frame(["foo", None, None, None, "gar"])
+    f0.nrows = 3
+    assert f0.topython() == [["foo", None, None]]
+    f0.nrows = 10
+    assert f0.topython() == [["foo"] + [None] * 9]
+
+
 def test_resize_view_slice():
     f0 = dt.Frame(range(100))
     f1 = f0[8::2, :]

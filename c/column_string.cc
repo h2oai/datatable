@@ -368,15 +368,16 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
     throw ValueError() << "Nrows is too big for a str32 column: " << new_nrows;
   }
 
+  size_t znrows = static_cast<size_t>(new_nrows);
   size_t old_strbuf_size = strbuf->size();
-  size_t old_mbuf_size = mbuf->size();
   size_t new_strbuf_size = old_strbuf_size;
-  size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(new_nrows) + 1);
+  size_t new_mbuf_size = sizeof(T) * (znrows + 1);
   if (old_nrows == 1) {
-    new_strbuf_size = old_strbuf_size * (size_t) new_nrows;
+    new_strbuf_size = old_strbuf_size * znrows;
   }
   if (diff_rows < 0) {
-    new_strbuf_size = mbuf->get_elem<T>(new_nrows + 1);
+    T lastoff = mbuf->get_elem<T>(new_nrows + 1);
+    new_strbuf_size = static_cast<size_t>(std::abs(lastoff));
   }
 
   // Resize the offsets buffer
