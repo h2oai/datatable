@@ -26,7 +26,7 @@ We invite anyone who is interested to contribute, whether through pull requests,
 
 **Have Questions?**
 
-If you have questions about using Driverless AI, post them on the `H2O Stream Google Group <https://groups.google.com/forum/#!forum/h2ostream>`__.
+If you have questions about using ``datatable``, post them on Stack Overflow using the [datatable] [python] tags at http://stackoverflow.com/questions/tagged/datatable+python.
 
 
 .. toctree::
