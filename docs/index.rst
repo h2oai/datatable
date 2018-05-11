@@ -37,6 +37,7 @@ If you have questions about using Driverless AI, post them on the `H2O Stream Go
 
 .. toctree::
    :maxdepth: 2
-   :caption: Using
+   :caption: Common Tasks
+
    using-datatable
 
