@@ -1,7 +1,7 @@
 Installation
 ============
 
-This section describes how to install the H2O datatable.
+This section describes how to install H2O's ``datatable``.
 
 Requirements
 ------------
@@ -11,7 +11,7 @@ Requirements
 Install on Mac OS X
 -------------------
 
-Run the following command to install datatable on Mac OS X.
+Run the following command to install ``datatable`` on Mac OS X.
 
 ::
 
@@ -20,7 +20,7 @@ Run the following command to install datatable on Mac OS X.
 Install on Linux
 ----------------
 
-Run one of the following commands to retrieve the datatable whl file for Linux environments.
+Run one of the following commands to retrieve the ``datatable`` whl file for Linux environments.
 
 ::
 

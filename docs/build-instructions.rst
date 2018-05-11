@@ -10,9 +10,9 @@ Installing the ``Clang/Llvm`` distribution
 2. Extract the downloaded archive into any suitable location on your hard drive.
 3. Create one of the environment variables ``LLVM4`` / ``LLVM5`` / ``LLVM6`` (depending on the version of Clang/Llvm that you installed). The variable should point to the directory where you placed the Clang/Llvm distribution.
 
-For example, on Ubuntu after downloading ``clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz`` the sequence of steps might look like:
+ For example, on Ubuntu after downloading ``clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz`` the sequence of steps might look like:
 
-::
+ ::
 
     $ mv clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.10.tar.xz  /opt
     $ cd /opt
@@ -21,8 +21,8 @@ For example, on Ubuntu after downloading ``clang+llvm-4.0.0-x86_64-linux-gnu-ubu
 
 You probably also want to put the last ``export`` line into your ``~/.bash_profile``.
 
-Building datatable
-~~~~~~~~~~~~~~~~~~
+Building ``datatable``
+~~~~~~~~~~~~~~~~~~~~~~
 
 1. Verify that you have Python 3.5 or above:
 
@@ -37,7 +37,7 @@ Building datatable
    $ virtualenv --python=python3.6 ~/py36
    $ source ~/py36/bin/activate
 
-2. Build datatable:
+2. Build ``datatable``:
 
  ::
   
@@ -69,7 +69,7 @@ Troubleshooting
 
 -  If you run into installation errors with ``llvmlite`` dependency, then your best bet is to attempt to install it manually before trying to build ``datatable``:
 
-    ::
+   ::
 
        $ pip install llvmlite
 
@@ -77,6 +77,6 @@ Troubleshooting
 
 -  On OS-X, if you are getting an error ``fatal error: 'sys/mman.h' file not found`` or similar, this can be fixed by installing the Xcode Command Line Tools:
 
-   :: bash
+   ::
 
        $ xcode-select --install

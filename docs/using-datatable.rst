@@ -6,7 +6,7 @@ This section describes common functionality and commands that you can run in ``d
 Create Frame
 ------------
 
-You can create a Frame from a variety of sources, including ``numpy`` arrays, ``pandas`` DataFrames, raw python objects, etc:
+You can create a Frame from a variety of sources, including ``numpy`` arrays, ``pandas`` DataFrames, raw Python objects, etc:
    
 ::
 
@@ -17,7 +17,7 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 Convert a Frame
 ---------------
 
-Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame, or a pure-python object:
+Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame, or a pure Python object:
 
 ::
 
@@ -47,14 +47,14 @@ The ``datatable`` parser
 Write the Frame
 ---------------
 
-Write Frame's content into a ``csv`` file (also multi-threaded):
+Write the Frame's content into a ``csv`` file (also multi-threaded):
 
 ::
 
    df.to_csv("out.csv")
 
-Save Frame
-----------
+Save a Frame
+------------
 
 Save a Frame into a binary format on disk, then open it later instantly, regardless of the data size:
 
@@ -124,7 +124,7 @@ Filter rows via an expression using the following. In this example, ``mean``, ``
 Compute Columnar Expressions
 ----------------------------
 
--  Compute columnar expressions using:
+Compute columnar expressions using:
 
 ::
 
