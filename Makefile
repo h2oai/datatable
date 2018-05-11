@@ -159,7 +159,7 @@ ifeq ($(PLATFORM),x86_64_ubuntu)
     ARCH_SUBST = $(ARCH)
 endif
 
-Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
+Dockerfile-centos7.$(PLATFORM): ci/Dockerfile-centos7.in
 	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
 
 Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
@@ -193,7 +193,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 #
 # Ubuntu image - will be removed
 #
-Dockerfile-ubuntu.$(PLATFORM): Dockerfile-ubuntu.in
+Dockerfile-ubuntu.$(PLATFORM): ci/Dockerfile-ubuntu.in
 	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
 
 Dockerfile-ubuntu.$(PLATFORM).tag: Dockerfile-ubuntu.$(PLATFORM)
