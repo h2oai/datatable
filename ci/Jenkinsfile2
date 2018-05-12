@@ -8,7 +8,7 @@ def utilsLib = new Utils()
 
 properties([
         parameters([
-                booleanParam(name: 'BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
+                booleanParam(name: 'BUILD_PPC64LE', defaultValue: true, description: '[BUILD] Trigger build of PPC64le artifacts'),
                 booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
                 booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
         ]),
@@ -25,8 +25,8 @@ def X86_64_LINUX_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_u
 
 EXPECTED_SHAS = [
         files : [
-                'Dockerfile-ubuntu.in' : '47087215fe899c38e12037e2d91dd4202988e98c',
-                'Dockerfile-centos7.in': 'cac8444c631555cff6b291f30cbc330c917cb0fe',
+                'ci/Dockerfile-ubuntu.in' : '47087215fe899c38e12037e2d91dd4202988e98c',
+                'ci/Dockerfile-centos7.in': 'cac8444c631555cff6b291f30cbc330c917cb0fe',
         ]
 ]
 
@@ -47,7 +47,7 @@ def PPC64LE_PLATFORM = 'ppc64le_linux'
 def PPC64LE_BUILD_CONF = platformDefaults + centosDefaults + [
         node       : 'ibm-power',
         coverage   : false,
-        test       : true,
+        test       : false,
         dockerImage: "docker.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:${DOCKER_IMAGE_TAG}"
 ]
 
