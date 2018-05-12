@@ -242,7 +242,7 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   dt->delete_columns(cols_to_remove, ncols);
 
   dtfree(cols_to_remove);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -253,7 +253,7 @@ PyObject* resize_rows(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "l:resize_rows", &new_nrows)) return nullptr;
 
   dt->resize_rows(new_nrows);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -266,7 +266,41 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
   RowIndex newri = PyObj(arg1).as_rowindex();
 
   dt->replace_rowindex(newri);
-  return none();
+  Py_RETURN_NONE;
+}
+
+
+
+PyObject* replace_column_slice(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  int64_t start, count, step;
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "lllO:replace_column_slice",
+                        &start, &count, &step, &arg1)) return nullptr;
+  DataTable* repl = PyObj(arg1).as_datatable();
+  int64_t rrows = repl->nrows;
+  int64_t rcols = repl->ncols;
+
+  if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
+    throw ValueError() << "Invalid slice " << start << "/" << count
+                       << "/" << step << " for a Frame with " << dt->ncols
+                       << " columns";
+  }
+  if (rrows != dt->nrows || !(rcols == count || rcols == 1)) {
+    throw ValueError() << "Invalid replacement Frame: expected [" <<
+      dt->nrows << " x " << count << "], but received [" << rrows <<
+      " x " << rcols << "]";
+  }
+
+  dt->reify();  // noop if `dt` is not a view
+  repl->reify();
+
+  for (int64_t i = 0; i < count; ++i) {
+    int64_t j = start + i * step;
+    delete dt->columns[j];
+    dt->columns[j] = repl->columns[i % rcols]->shallowcopy();
+  }
+  Py_RETURN_NONE;
 }
 
 
@@ -318,7 +352,7 @@ PyObject* rbind(obj* self, PyObject* args) {
 
   dtfree(cols_to_append);
   dtfree(dts);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -344,7 +378,7 @@ PyObject* cbind(obj* self, PyObject* args) {
   if (ret == nullptr) return nullptr;
 
   dtfree(dts);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -419,7 +453,7 @@ PyObject* apply_na_mask(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O&", &unwrap, &mask)) return nullptr;
 
   dt->apply_na_mask(mask);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -428,7 +462,7 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "|i:use_stype_for_buffers", &st))
     return nullptr;
   self->use_stype_for_buffers = static_cast<SType>(st);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -451,6 +485,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(delete_columns),
   METHODv(resize_rows),
   METHODv(replace_rowindex),
+  METHODv(replace_column_slice),
   METHODv(rbind),
   METHODv(cbind),
   METHODv(sort),

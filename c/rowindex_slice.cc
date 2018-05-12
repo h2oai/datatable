@@ -12,6 +12,22 @@
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 
 
+/**
+ * Helper function to verify that
+ *     0 <= start, count, start + (count-1)*step <= max
+ * (note that `max` is inclusive).
+ */
+bool check_slice_triple(int64_t start, int64_t count, int64_t step, int64_t max)
+{
+  // Note: computing `start + step*(count - 1)` may potentially overflow, we
+  // must therefore use a safer version.
+  return (start >= 0) &&
+         (count >= 0) &&
+         (count <= 1 || step >= -start/(count - 1)) &&
+         (count <= 1 || step <= (max - start)/(count - 1));
+}
+
+
 
 //------------------------------------------------------------------------------
 // SliceRowIndexImpl implementation
@@ -43,9 +59,7 @@ SliceRowIndexImpl::SliceRowIndexImpl(int64_t i0, int64_t n, int64_t di) {
  */
 void SliceRowIndexImpl::check_triple(int64_t start, int64_t count, int64_t step)
 {
-  if (start < 0 || count < 0 ||
-      (count > 1 && step < -(start/(count - 1))) ||
-      (count > 1 && step > (INT64_MAX - start)/(count - 1))) {
+  if (!check_slice_triple(start, count, step, INT64_MAX)) {
     throw ValueError() << "Invalid RowIndex slice [" << start << "/"
                        << count << "/" << step << "]";
   }

@@ -31,7 +31,7 @@ class ColumnSetNode:
 
     def __init__(self, ee):
         self._engine = ee
-        self._column_names = tuple()
+        self._names = tuple()
 
     @property
     def dt(self):
@@ -39,10 +39,13 @@ class ColumnSetNode:
 
     @property
     def column_names(self):
-        return self._column_names
+        return self._names
 
     def execute(self):
         self._engine.columns = self._compute_columns()
+
+    def execute_update(self, dt, replacement):
+        raise NotImplementedError
 
     def _compute_columns(self):
         raise NotImplementedError
@@ -59,7 +62,7 @@ class SliceCSNode(ColumnSetNode):
         self._start = start
         self._step = step
         self._count = count
-        self._column_names = self._make_column_names()
+        self._names = self._make_column_names()
 
     def __repr__(self):
         return ("<datatable.graph.SliceCSNode %d/%d/%d>"
@@ -89,6 +92,14 @@ class SliceCSNode(ColumnSetNode):
         return res
 
 
+    def execute_update(self, dt, replacement):
+        dt.internal.replace_column_slice(self._start, self._count, self._step,
+                                         replacement.internal)
+        # Clear cached stypes/ltypes; No need to update names
+        dt._stypes = None
+        dt._ltypes = None
+
+
     def get_list(self):
         start, count, step = self._start, self._count, self._step
         if step > 0:
@@ -113,11 +124,11 @@ class ArrayCSNode(ColumnSetNode):
     def __init__(self, ee, elems, colnames):
         super().__init__(ee)
         self._elems = elems
-        self._column_names = colnames
+        self._names = colnames
 
     def __repr__(self):
         return ("<datatable.graph.ArrayCSNode [%s]>"
-                % ", ".join("%d (%r)" % (self._elems[i], self._column_names[i])
+                % ", ".join("%d (%r)" % (self._elems[i], self._names[i])
                             for i in range(len(self._elems))))
 
     def _compute_columns(self):
@@ -136,7 +147,7 @@ class MixedCSNode(ColumnSetNode):
     def __init__(self, ee, elems, names):
         super().__init__(ee)
         self._elems = elems
-        self._column_names = names
+        self._names = names
         self._rowindex = None
         expr_elems = []
         for elem in elems:
