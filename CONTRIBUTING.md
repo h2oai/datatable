@@ -4,10 +4,6 @@ This document is a set of guidelines for contributors, nothing is set in stone s
 
 ### Table of contents
 
-[Code of conduct](#code-of-conduct)
-
-[Other important resources](#other-important-documents)
-
 [How to contribute](#how-to-contribute)
 
 * [Reporting bugs](#reporting-bugs)
@@ -21,9 +17,6 @@ This document is a set of guidelines for contributors, nothing is set in stone s
 * [Python style guidelines](#python-style-guidelines)
 * [Documentation style guidelines](#documentation-style-guidelines)
 
-## Code of conduct
-
-First and foremost please read our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## How to contribute
 
@@ -72,18 +65,18 @@ Preferable message structure (from: http://git-scm.com/book/ch5-2.html):
 
 > ```
 > Short (50 chars or less) summary of changes
-> 
+>
 > More detailed explanatory text, if necessary.  Wrap it to about 72
 > characters or so.  In some contexts, the first line is treated as the
 > subject of an email and the rest of the text as the body.  The blank
 > line separating the summary from the body is critical (unless you omit
 > the body entirely); tools like rebase can get confused if you run the
 > two together.
-> 
+>
 > Further paragraphs come after blank lines.
-> 
+>
 >   - Bullet points are okay, too
-> 
+>
 >   - Typically a hyphen or asterisk is used for the bullet, preceded by a
 >     single space, with blank lines in between, but conventions vary here
 > ```
@@ -92,7 +85,6 @@ Preferable message structure (from: http://git-scm.com/book/ch5-2.html):
 * Use imperative mode in the first line i.e. "Fix", "Add", "Change" instead of "Fixed", "Added", "Changed".
 * Second line blank.
 * Add issue/pull request number in the message.
-* When fixing typos and documentation include [ci skip] in the commit message (to be implemented).
 * Don't end the summary line with a period.
 * If you are having trouble describing what a commit does, make sure it does not include several logical changes or bug fixes.
 Should that be the case please split it up into several commits using `git add -p`.
