@@ -1,35 +1,21 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Is something not right? Let us know.
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+- Did you find a bug in datatable, or maybe the bug found you?
+   Tell us what it is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+- How to reproduce the bug?
+   **This part is the most important**. Please provide a code snippet which, when executed in console,
+   demonstrates the problem. If necessary, attach any data files to the issue.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+- What was the expected behavior?
+   In case it is not obvious, please tell us what result should your code produce.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+- Your environment?
+   What is your datatable version, python version, and operating system? 
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+- Tag the issue with [bug] or [segfault] (depending on whether it crashes Python or not)
+   Thank you for contributing, and sorry for any inconvenience...
