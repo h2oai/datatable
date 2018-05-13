@@ -1,17 +1,15 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest an idea for new `datatable` functionality
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
-
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**
-Add any other context or screenshots about the feature request here.
+- Is there something datatable can't do just yet, but you think it'd be nice if it did?
+  Tell us what it is.
+- Is it related to some problem you're trying to solve?
+  We might be able to suggest a workaround or an alternative solution until your feature is implemented.
+- What do you think the API for your feature should be?
+  Should this be a function / method / special syntax / etc? If this is a function, what arguments it might take, 
+  and what their types should be. Provide as much or as little details as you'd like.
+- Tag your request with `improve` label.
+- Thanks for contributing, we appreciate your input!
