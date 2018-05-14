@@ -142,6 +142,21 @@ DECLARE_METHOD(
   "Replace the current rowindex on the datatable with the new one.")
 
 DECLARE_METHOD(
+  replace_column_slice,
+  "replace_column_slice(start, count, step, replacement)\n\n"
+  "Replace a slice of columns in the current DataTable with the columns\n"
+  "from the provided DataTable (which must be conformant).\n")
+
+DECLARE_METHOD(
+  replace_column_array,
+  "replace_column_array(arr, replacement)\n\n"
+  "Replace a selection of columns in the current DataTable with the columns\n"
+  "from the `replacement` DataTable. The array `arr` contains the list of\n"
+  "column indices to be replaced. It may also contain indices that are out\n"
+  "of bounds for the current DataTable -- those indicate columns that should\n"
+  "be appended rather than replaced.\n")
+
+DECLARE_METHOD(
   rbind,
   "Append rows of other datatables to the current")
 

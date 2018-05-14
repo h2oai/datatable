@@ -323,4 +323,7 @@ void RowIndex::strided_loop(
 }
 
 
+bool check_slice_triple(int64_t start, int64_t cnt, int64_t step, int64_t max);
+
+
 #endif
