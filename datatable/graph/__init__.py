@@ -76,13 +76,13 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
                     # fall-through to the update_mode
             if update_mode:
                 if allrows:
-                    print("Add / replace columns; cols=%r" % colsnode)
+                    # print("Add / replace columns; cols=%r" % colsnode)
                     if isinstance(replacement, (int, float, str, type(None))):
                         replacement = datatable.Frame([replacement])
                         replacement.resize(dt.nrows)
                     elif not isinstance(replacement, datatable.Frame):
                         replacement = datatable.Frame(replacement)
-                    print("Replacement = %r" % replacement)
+                    # print("Replacement = %r" % replacement)
                     colsnode.execute_update(dt, replacement)
                 return
 

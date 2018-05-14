@@ -138,6 +138,21 @@ class ArrayCSNode(ColumnSetNode):
     def get_list(self):
         return self._elems
 
+    def execute_update(self, dt, replacement):
+        n = dt.ncols
+        dt.internal.replace_column_array(self._elems, replacement.internal)
+        new_names = list(dt.names)
+        for i in range(len(self._elems)):
+            j = self._elems[i]
+            name = self._names[i]
+            if j == -1:
+                n += 1
+                new_names.append(name)
+            else:
+                new_names[j] = name
+        dt._fill_from_dt(dt.internal, names=new_names)
+        assert dt.ncols == n
+
 
 
 #===============================================================================
@@ -215,7 +230,7 @@ def make_columnset(arg, ee, new_cols_allowed=False):
         elif isinstance(pcol, tuple):
             return SliceCSNode(ee, *pcol)
         elif isinstance(pcol, NewColumnExpr):
-            return ArrayCSNode(ee, [dt.ncols], [arg])
+            return ArrayCSNode(ee, [-1], [arg])
         else:
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
             return MixedCSNode(ee, [pcol], names=["V0"])

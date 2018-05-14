@@ -274,10 +274,10 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
 PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   int64_t start, count, step;
-  PyObject* arg1;
+  PyObject* arg4;
   if (!PyArg_ParseTuple(args, "lllO:replace_column_slice",
-                        &start, &count, &step, &arg1)) return nullptr;
-  DataTable* repl = PyObj(arg1).as_datatable();
+                        &start, &count, &step, &arg4)) return nullptr;
+  DataTable* repl = PyObj(arg4).as_datatable();
   int64_t rrows = repl->nrows;
   int64_t rcols = repl->ncols;
 
@@ -303,6 +303,54 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
+
+PyObject* replace_column_array(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject *arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "OO:replace_column_array", &arg1, &arg2))
+      return nullptr;
+  PyyList cols(arg1);
+  DataTable* repl = PyObj(arg2).as_datatable();
+  int64_t rrows = repl->nrows;
+  size_t rcols = static_cast<size_t>(repl->ncols);
+
+  if (rrows != dt->nrows || !(rcols == cols.size() || rcols == 1)) {
+    throw ValueError() << "Invalid replacement Frame: expected [" <<
+      dt->nrows << " x " << cols.size() << "], but received [" << rrows <<
+      " x " << rcols << "]";
+  }
+
+  dt->reify();
+  repl->reify();
+
+  int64_t num_new_cols = 0;
+  for (size_t i = 0; i < cols.size(); ++i) {
+    PyObj item = cols[i];
+    int64_t j = item.as_int64();
+    num_new_cols += (j == -1);
+    if (j < -1 || j >= dt->ncols) {
+      throw ValueError() << "Invalid index for a replacement column: " << j;
+    }
+  }
+  if (num_new_cols) {
+    size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols + 1)
+                     * sizeof(Column*);
+    dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
+  }
+  for (size_t i = 0; i < cols.size(); ++i) {
+    PyObj item = cols[i];
+    int64_t j = item.as_int64();
+    if (j == -1) {
+      j = dt->ncols++;
+    } else {
+      delete dt->columns[j];
+    }
+    dt->columns[j] = repl->columns[i % rcols]->shallowcopy();
+  }
+  dt->columns[dt->ncols] = nullptr;
+
+  Py_RETURN_NONE;
+}
 
 
 PyObject* rbind(obj* self, PyObject* args) {
@@ -486,6 +534,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(resize_rows),
   METHODv(replace_rowindex),
   METHODv(replace_column_slice),
+  METHODv(replace_column_array),
   METHODv(rbind),
   METHODv(cbind),
   METHODv(sort),
