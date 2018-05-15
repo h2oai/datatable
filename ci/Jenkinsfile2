@@ -18,6 +18,8 @@ properties([
 RELEASE_BRANCH_PREFIX = 'rel-'
 
 CREDS_ID = 'h2o-ops-personal-auth-token'
+GITCONFIG_CRED_ID = 'master-gitconfig'
+RSA_CRED_ID = 'master-id-rsa'
 
 def DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
 
@@ -329,8 +331,8 @@ ansiColor('xterm') {
                     stage('GitHub Release') {
                         dumpInfo()
                         docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                            docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init -v /home/jenkins/.ssh:/home/jenkins/.ssh:ro -v /home/jenkins/.gitconfig:/home/jenkins/.gitconfig:ro") {
-                                withCredentials([string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
+                            docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init") {
+                                withCredentials([file(credentialsId: RSA_CRED_ID, variable: 'ID_RSA_PATH'), file(credentialsId: GITCONFIG_CRED_ID, variable: 'GITCONFIG_PATH'), string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
                                     final def releaseMsgFile = "release-msg.md"
                                     def releaseMsg = """v${versionText}
 
@@ -340,9 +342,13 @@ ${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "${getHTTPSTargetU
 """
                                     writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: releaseMsg)
                                     sh """
+                                        mkdir -p ~/.ssh
+                                        cp \${ID_RSA_PATH} ~/.ssh/id_rsa
+                                        cp \${GITCONFIG_PATH} ~/.gitconfig
                                         cd ${publishS3Dir}
-                                        hub release create -d -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}" 
+                                        hub release create -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}"
                                     """
+                                    echo readFile("${publishS3Dir}/${releaseMsgFile}")
                                 }
                             }
                         }
