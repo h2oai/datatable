@@ -112,7 +112,7 @@ TARGET_DIR = "/tmp/pydatatable_large_data"
 
 
 BUCKET = 'h2o-release'
-STABLE_FOLDER = 'datatable/stale'
+STABLE_FOLDER = 'datatable/stable'
 S3_URL_STABLE = "s3://${BUCKET}/${STABLE_FOLDER}"
 HTTPS_URL_STABLE = "https://${BUCKET}.s3.amazonaws.com/${STABLE_FOLDER}"
 
