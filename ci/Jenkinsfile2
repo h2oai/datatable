@@ -70,7 +70,7 @@ def BUILD_MATRIX = [
         x86_64_macos  : platformDefaults + [
                 node: 'osx',
                 env : [
-                        "LLVM4=/usr/local/opt/llvm",
+                        "LLVM4=/usr/local/opt/llvm@4",
                         "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"
                 ],
         ]
