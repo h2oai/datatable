@@ -274,21 +274,24 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
 PyObject* replace_column_slice(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   int64_t start, count, step;
-  PyObject* arg4;
-  if (!PyArg_ParseTuple(args, "lllO:replace_column_slice",
-                        &start, &count, &step, &arg4)) return nullptr;
-  DataTable* repl = PyObj(arg4).as_datatable();
+  PyObject *arg4, *arg5;
+  if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
+                        &start, &count, &step, &arg4, &arg5)) return nullptr;
+  RowIndex rows_ri = PyObj(arg4).as_rowindex();
+  DataTable* repl = PyObj(arg5).as_datatable();
   int64_t rrows = repl->nrows;
   int64_t rcols = repl->ncols;
+  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
 
   if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
     throw ValueError() << "Invalid slice " << start << "/" << count
                        << "/" << step << " for a Frame with " << dt->ncols
                        << " columns";
   }
-  if (rrows != dt->nrows || !(rcols == count || rcols == 1)) {
+  bool ok = (rrows == rrows2 || rrows == 1) && (rcols == count || rcols == 1);
+  if (!ok) {
     throw ValueError() << "Invalid replacement Frame: expected [" <<
-      dt->nrows << " x " << count << "], but received [" << rrows <<
+      rrows2 << " x " << count << "], but received [" << rrows <<
       " x " << rcols << "]";
   }
 
@@ -297,8 +300,13 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
 
   for (int64_t i = 0; i < count; ++i) {
     int64_t j = start + i * step;
-    delete dt->columns[j];
-    dt->columns[j] = repl->columns[i % rcols]->shallowcopy();
+    Column* replcol = repl->columns[i % rcols];
+    if (rows_ri) {
+      dt->columns[j]->replace_values(rows_ri, replcol);
+    } else {
+      delete dt->columns[j];
+      dt->columns[j] = replcol->shallowcopy();
+    }
   }
   Py_RETURN_NONE;
 }
@@ -306,17 +314,21 @@ PyObject* replace_column_slice(obj* self, PyObject* args) {
 
 PyObject* replace_column_array(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject *arg1, *arg2;
-  if (!PyArg_ParseTuple(args, "OO:replace_column_array", &arg1, &arg2))
+  PyObject *arg1, *arg2, *arg3;
+  if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
       return nullptr;
   PyyList cols(arg1);
-  DataTable* repl = PyObj(arg2).as_datatable();
+  RowIndex rows_ri = PyObj(arg2).as_rowindex();
+  DataTable* repl = PyObj(arg3).as_datatable();
   int64_t rrows = repl->nrows;
   size_t rcols = static_cast<size_t>(repl->ncols);
+  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
 
-  if (rrows != dt->nrows || !(rcols == cols.size() || rcols == 1)) {
+  bool ok = (rrows == rrows2 || rrows == 1) &&
+            (rcols == cols.size() || rcols == 1);
+  if (!ok) {
     throw ValueError() << "Invalid replacement Frame: expected [" <<
-      dt->nrows << " x " << cols.size() << "], but received [" << rrows <<
+      rrows2 << " x " << cols.size() << "], but received [" << rrows <<
       " x " << rcols << "]";
   }
 
@@ -333,6 +345,10 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
     }
   }
   if (num_new_cols) {
+    if (rows_ri) {
+      throw ValueError() << "Cannot assign to column(s) that are outside of "
+                            "the Frame: " << rows_ri;
+    }
     size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols + 1)
                      * sizeof(Column*);
     dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
@@ -340,12 +356,17 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
   for (size_t i = 0; i < cols.size(); ++i) {
     PyObj item = cols[i];
     int64_t j = item.as_int64();
-    if (j == -1) {
-      j = dt->ncols++;
+    Column* replcol = repl->columns[i % rcols];
+    if (rows_ri) {
+      dt->columns[j]->replace_values(rows_ri, replcol);
     } else {
-      delete dt->columns[j];
+      if (j == -1) {
+        j = dt->ncols++;
+      } else {
+        delete dt->columns[j];
+      }
+      dt->columns[j] = replcol->shallowcopy();
     }
-    dt->columns[j] = repl->columns[i % rcols]->shallowcopy();
   }
   dt->columns[dt->ncols] = nullptr;
 

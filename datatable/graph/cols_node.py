@@ -93,8 +93,9 @@ class SliceCSNode(ColumnSetNode):
 
 
     def execute_update(self, dt, replacement):
+        ri = self._engine.rowindex
         dt.internal.replace_column_slice(self._start, self._count, self._step,
-                                         replacement.internal)
+                                         ri, replacement.internal)
         # Clear cached stypes/ltypes; No need to update names
         dt._stypes = None
         dt._ltypes = None
@@ -140,7 +141,8 @@ class ArrayCSNode(ColumnSetNode):
 
     def execute_update(self, dt, replacement):
         n = dt.ncols
-        dt.internal.replace_column_array(self._elems, replacement.internal)
+        ri = self._engine.rowindex
+        dt.internal.replace_column_array(self._elems, ri, replacement.internal)
         new_names = list(dt.names)
         for i in range(len(self._elems)):
             j = self._elems[i]
@@ -190,6 +192,9 @@ class MixedCSNode(ColumnSetNode):
                        e.evaluate_eager(ee)
                        for e in self._elems]
             return core.columns_from_columns(columns)
+
+    def execute_update(self):
+        raise TValueError("Cannot execute update on computed columns")
 
 
 

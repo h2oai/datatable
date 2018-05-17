@@ -35,6 +35,17 @@ def test_assign_column_array():
     assert f0.ltypes == (dt.ltype.bool,) * 3
 
 
+def test_assign_single_cell():
+    f0 = dt.Frame([[1, 5, 7, 10], [3, 14, -2, 0]])
+    for i in range(4):
+        for j in range(2):
+            f0[i, j] = i + j
+    assert f0.internal.check()
+    assert f0.ltypes == (dt.ltype.int, ) * 2
+    assert f0.topython() == [[0, 1, 2, 3], [1, 2, 3, 4]]
+
+
+
 def test_assign_to_view():
     f0 = dt.Frame({"A": range(10)})
     f1 = f0[::2, :]

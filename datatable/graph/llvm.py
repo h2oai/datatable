@@ -65,7 +65,7 @@ class Llvm:
     #---------------------------------------------------------------------------
 
     def _find_clang(self):
-        for evar in ["LLVM4", "LLVM5"]:
+        for evar in ["LLVM4", "LLVM5", "LLVM6"]:
             if evar not in os.environ:
                 curdir = os.path.dirname(os.path.abspath(__file__))
                 d = os.path.abspath(os.path.join(curdir, "..", evar.lower()))
