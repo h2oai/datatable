@@ -17,7 +17,9 @@ properties([
 
 RELEASE_BRANCH_PREFIX = 'rel-'
 
-H2O_OPS_TOKEN_CREDS_ID = 'h2o-ops-personal-auth-token'
+CREDS_ID = 'h2o-ops-personal-auth-token'
+GITCONFIG_CRED_ID = 'master-gitconfig'
+RSA_CRED_ID = 'master-id-rsa'
 
 def DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
 
@@ -70,7 +72,7 @@ def BUILD_MATRIX = [
         x86_64_macos  : platformDefaults + [
                 node: 'osx',
                 env : [
-                        "LLVM4=/usr/local/opt/llvm",
+                        "LLVM4=/usr/local/opt/llvm@4",
                         "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"
                 ],
         ]
@@ -108,6 +110,12 @@ def needsLargerTest
 SOURCE_DIR = "/home/0xdiag"
 TARGET_DIR = "/tmp/pydatatable_large_data"
 
+
+BUCKET = 'h2o-release'
+STABLE_FOLDER = 'datatable/stable'
+S3_URL_STABLE = "s3://${BUCKET}/${STABLE_FOLDER}"
+HTTPS_URL_STABLE = "https://${BUCKET}.s3.amazonaws.com/${STABLE_FOLDER}"
+
 // Data map for linking into container
 def linkMap = [
         "Data"     : "h2oai-benchmarks/Data",
@@ -118,6 +126,9 @@ def linkMap = [
 
 def dockerArgs = createDockerArgs(linkMap, SOURCE_DIR, TARGET_DIR)
 
+/////////////////////////////////////
+// Build, Coverage and Test stages //
+/////////////////////////////////////
 def stages = [:]
 BUILD_MATRIX.each { platform, config ->
     stages[platform] = {
@@ -126,7 +137,7 @@ BUILD_MATRIX.each { platform, config ->
 
             cleanWs()
             def buildStageName = "Build ${platform}"
-            withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, buildStageName) {
+            withCustomCommitStates(scm, CREDS_ID, buildStageName) {
                 stage(buildStageName) {
                     dir(buildDir) {
                         unstash 'datatable-sources'
@@ -147,7 +158,7 @@ BUILD_MATRIX.each { platform, config ->
                 }
                 def coverageStageName = "Coverage ${platform}"
                 coverageStageName = appendLargeTestsSuffixIfRequired(coverageStageName, needsLargerTest)
-                withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, coverageStageName) {
+                withCustomCommitStates(scm, CREDS_ID, coverageStageName) {
                     stage(coverageStageName) {
                         def coverageClosure = {
                             project.coverage(coverageDir, platform, getVenvActivationCmd(platform, DEFAULT_PY36_ENV), BUILD_MATRIX[platform]['env'], false, TARGET_DIR)
@@ -168,7 +179,7 @@ BUILD_MATRIX.each { platform, config ->
                     def testStageName = "Test ${platform} with ${testEnv}"
                     if (config.test && !params.DISABLE_TESTS) {
                         testStageName = appendLargeTestsSuffixIfRequired(testStageName, needsLargerTest)
-                        withCustomCommitStates(scm, H2O_OPS_TOKEN_CREDS_ID, testStageName) {
+                        withCustomCommitStates(scm, CREDS_ID, testStageName) {
                             stage(testStageName) {
                                 dir(testDir) {
                                     unstash 'datatable-sources'
@@ -198,11 +209,16 @@ BUILD_MATRIX.each { platform, config ->
     }
 }
 
+////////////////////////
+// Main pipeline code //
+////////////////////////
 ansiColor('xterm') {
     timestamps {
         if (isPrJob()) {
             cancelPreviousBuilds()
         }
+
+        // Checkout, apply patch and stash sources
         node('linux') {
             stage('Init') {
                 checkout scm
@@ -217,6 +233,8 @@ ansiColor('xterm') {
                     manager.addBadge("warning.gif", "Large tests required")
                 }
                 stash 'datatable-sources'
+                stash includes: "CHANGELOG.md", name: 'CHANGELOG'
+
                 docker.image(X86_64_LINUX_DOCKER_IMAGE).inside {
                     def dockerfileSHAsString = ""
                     EXPECTED_SHAS.files.each { filename, sha ->
@@ -238,63 +256,100 @@ ansiColor('xterm') {
             }
         }
 
+        // Build, Coverage and Test stages for all platforms
         parallel stages
 
-        // Publish into S3 all snapshots versions
+        def versionText = null
+        def publishS3Dir = 'publish-s3'
+        // If building master or rel-* branch, publish to S3
         if (doPublish()) {
+            // Build and archive sdist wheel and read information required for following stages.
             node('docker && !mr-0xc8') {
-
                 final def buildDir = 'build-sdist'
                 stage('Build sdist') {
                     dir(buildDir) {
                         unstash 'datatable-sources'
                     }
-                    // Specify build Closure
+                    // read additional information for following stages
+                    unstash 'VERSION'
+                    versionText = readFile("build/dist/VERSION.txt").trim()
+
                     def buildClosure = {
                         project.buildSDist(buildDir, CI_VERSION_SUFFIX, getVenvActivationCmd(LINUX_PLATFORM, DEFAULT_PY36_ENV))
                     }
                     callInEnv(X86_64_LINUX_DOCKER_IMAGE, dockerArgs, buildClosure)
                 }
+            }
 
-                def publishS3Dir = 'publish-s3'
+            if (versionText == null || versionText.trim() == '') {
+                error 'Version cannot be read'
+            }
 
+            // Always publish to artifacts.h2o.ai
+            node('master') {
                 stage('Publish snapshot to S3') {
                     cleanWs()
                     dumpInfo()
-
                     project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                    unstash 'VERSION'
-                    sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-
-                    def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-
                     BUILD_MATRIX.each { platform, config ->
                         uploadToS3("${publishS3Dir}/dist/*${project.getWheelPlatformName(platform)}*", versionText, project.getS3PlatformName(platform))
                         uploadToS3("${publishS3Dir}/dist/*.tar.gz", versionText, project.getS3PlatformName(platform))
                     }
                 }
+            }
 
-                stage('Publish to public S3') {
+            // If we are building rel-* branch, ask for user confirmation in order to promote this build. Given approval,
+            // artifacts will be copied to h2o-release and a GitHub release will be created.
+            if (isRelease()) {
+                timeout(unit: 'HOURS', time: 24) {
+                    input('Promote build?')
+                }
+                node('master') {
                     cleanWs()
-                    dumpInfo()
+                    // git repository and CHANGELOG.md must be present in order to create GitHub Release
+                    dir(publishS3Dir) {
+                        checkout scm
+                        unstash 'CHANGELOG'
+                    }
+                    project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
 
-                    def targetFolder = 'nightly'
-                    if (isRelease()) {
-                        targetFolder = 'stable'
+                    final def publishPublicS3StageName = 'Publish to public S3'
+                    stage(publishPublicS3StageName) {
+                        dumpInfo()
+                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                                docker.image("docker.h2o.ai/s3cmd").inside {
+                                    sh """
+                                        s3cmd put -P ${publishS3Dir}/dist/*.whl ${getS3TargetUrl(versionText)}
+                                        s3cmd put -P ${publishS3Dir}/dist/*.tar.gz ${getS3TargetUrl(versionText)}
+                                    """
+                                }
+                            }
+                        }
                     }
 
-                    docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
-                            docker.image("docker.h2o.ai/s3cmd").inside {
-                                project.pullFilesFromArch('build/dist/**/*.whl, build-sdist/dist/**/*.tar.gz', "${publishS3Dir}/dist")
-                                unstash 'VERSION'
-                                sh "echo 'Stashed files:' && cd ${publishS3Dir} && find dist"
-                                def versionText = utilsLib.getCommandOutput("cat build/dist/VERSION.txt")
-                                sh """
-                                   ls
-                                   s3cmd put -P ${publishS3Dir}/dist/*.whl s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                                   s3cmd put -P ${publishS3Dir}/dist/*.tar.gz s3://h2o-release/datatable/${targetFolder}/datatable-${versionText}/
-                               """
+                    stage('GitHub Release') {
+                        dumpInfo()
+                        docker.withRegistry("https://docker.h2o.ai", "docker.h2o.ai") {
+                            docker.image('docker.h2o.ai/opsh2oai/hub').inside("--init") {
+                                withCredentials([file(credentialsId: RSA_CRED_ID, variable: 'ID_RSA_PATH'), file(credentialsId: GITCONFIG_CRED_ID, variable: 'GITCONFIG_PATH'), string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
+                                    final def releaseMsgFile = "release-msg.md"
+                                    def releaseMsg = """v${versionText}
+
+${project.getChangelogPartForVersion(versionText, "${publishS3Dir}/CHANGELOG.md")}
+---
+${project.getReleaseDownloadLinksText("${publishS3Dir}/dist", "${getHTTPSTargetUrl(versionText)}")}
+"""
+                                    writeFile(file: "${publishS3Dir}/${releaseMsgFile}", text: releaseMsg)
+                                    sh """
+                                        mkdir -p ~/.ssh
+                                        cp \${ID_RSA_PATH} ~/.ssh/id_rsa
+                                        cp \${GITCONFIG_PATH} ~/.gitconfig
+                                        cd ${publishS3Dir}
+                                        hub release create -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}"
+                                    """
+                                    echo readFile("${publishS3Dir}/${releaseMsgFile}")
+                                }
                             }
                         }
                     }
@@ -304,6 +359,9 @@ ansiColor('xterm') {
     }
 }
 
+//////////////////////
+// Helper functions //
+//////////////////////
 def uploadToS3(artifact, versionText, platformDir) {
     s3upDocker {
         localArtifact = artifact
@@ -313,6 +371,14 @@ def uploadToS3(artifact, versionText, platformDir) {
         platform = platformDir
         isRelease = true
     }
+}
+
+def getS3TargetUrl(final versionText) {
+    return "${S3_URL_STABLE}/datatable-${versionText}/"
+}
+
+def getHTTPSTargetUrl(final versionText) {
+    return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
 }
 
 def getVenvActivationCmd(final platform, final venvName) {
