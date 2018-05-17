@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.4.0)
 #### Added
 - rbind()-ing now works on columns of all types (including between any types).
-- Added `dt.rbind()` function to perform out-of-place row binding.
-- Added ability to change the number of rows in a Frame.
+- `dt.rbind()` function to perform out-of-place row binding.
+- ability to change the number of rows in a Frame.
+- ability to modify a Frame in-place by assigning.
 
 #### Fixed
 - Ensure that fread only emits messages to Python from the master thread.
