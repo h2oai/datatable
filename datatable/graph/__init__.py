@@ -12,7 +12,6 @@ from .groupby_node import make_groupby
 from .sort_node import make_sort
 from .dtproxy import f
 from datatable.utils.typechecks import TValueError
-from datatable.lib import core
 
 __all__ = ("make_datatable",
            "make_groupby",
@@ -75,15 +74,19 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
                     replacement = None
                     # fall-through to the update_mode
             if update_mode:
-                if allrows:
-                    # print("Add / replace columns; cols=%r" % colsnode)
-                    if isinstance(replacement, (int, float, str, type(None))):
-                        replacement = datatable.Frame([replacement])
+                # Without `materialize`, when an update is applied to a view,
+                # `rowsnode.execute()` will merge the rowindex implied by
+                # `rowsnode` with its parent's rowindex. This will cause the
+                # parent's data to be updated, which is wrong.
+                dt.materialize()
+                if isinstance(replacement, (int, float, str, type(None))):
+                    replacement = datatable.Frame([replacement])
+                    if allrows:
                         replacement.resize(dt.nrows)
-                    elif not isinstance(replacement, datatable.Frame):
-                        replacement = datatable.Frame(replacement)
-                    # print("Replacement = %r" % replacement)
-                    colsnode.execute_update(dt, replacement)
+                elif not isinstance(replacement, datatable.Frame):
+                    replacement = datatable.Frame(replacement)
+                rowsnode.execute()
+                colsnode.execute_update(dt, replacement)
                 return
 
         rowsnode.execute()

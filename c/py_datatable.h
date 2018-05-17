@@ -143,18 +143,24 @@ DECLARE_METHOD(
 
 DECLARE_METHOD(
   replace_column_slice,
-  "replace_column_slice(start, count, step, replacement)\n\n"
+  "replace_column_slice(start, count, step, repl_at, replacement)\n\n"
   "Replace a slice of columns in the current DataTable with the columns\n"
-  "from the provided DataTable (which must be conformant).\n")
+  "from the provided DataTable `replacement` (which must be conformant).\n"
+  "The values will be written at locations given by the RowIndex\n"
+  "`repl_at`. This RowIndex may be missing, indicating that all values\n"
+  "have to be replaced.\n")
 
 DECLARE_METHOD(
   replace_column_array,
-  "replace_column_array(arr, replacement)\n\n"
+  "replace_column_array(arr, repl_at, replacement)\n\n"
   "Replace a selection of columns in the current DataTable with the columns\n"
   "from the `replacement` DataTable. The array `arr` contains the list of\n"
   "column indices to be replaced. It may also contain indices that are out\n"
   "of bounds for the current DataTable -- those indicate columns that should\n"
-  "be appended rather than replaced.\n")
+  "be appended rather than replaced.\n"
+  "The RowIndex `repl_at`, if present, specifies rows at which the values\n"
+  "have to be replaced. If `repl_at` is given, then `arr` cannot contain\n"
+  "out-of-bounds column indices.\n")
 
 DECLARE_METHOD(
   rbind,

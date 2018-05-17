@@ -5,6 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import datatable as dt
+from datatable import f
 
 
 
@@ -33,6 +34,24 @@ def test_assign_column_array():
     assert f0.topython() == [list(range(10)), [False] * 10, [False] * 10]
     f0["A"] = None
     assert f0.ltypes == (dt.ltype.bool,) * 3
+
+
+def test_assign_single_cell():
+    f0 = dt.Frame([[1, 5, 7, 10], [3, 14, -2, 0]])
+    for i in range(4):
+        for j in range(2):
+            f0[i, j] = i + j
+    assert f0.internal.check()
+    assert f0.ltypes == (dt.ltype.int, ) * 2
+    assert f0.topython() == [[0, 1, 2, 3], [1, 2, 3, 4]]
+
+
+def test_assign_filtered():
+    f0 = dt.Frame({"A": range(10)})
+    f0[f.A < 5, :] = -1
+    assert f0.topython() == [[-1, -1, -1, -1, -1, 5, 6, 7, 8, 9]]
+    f0[f.A < 0, :] = None
+    assert f0.topython() == [[None, None, None, None, None, 5, 6, 7, 8, 9]]
 
 
 def test_assign_to_view():

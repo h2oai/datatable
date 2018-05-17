@@ -352,6 +352,13 @@ void StringColumn<T>::reify() {
 }
 
 
+template <typename T>
+void StringColumn<T>::replace_values(
+    RowIndex replace_at, const Column* replace_with)
+{
+  // TODO
+}
+
 
 template <typename T>
 void StringColumn<T>::resize_and_fill(int64_t new_nrows)

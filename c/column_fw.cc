@@ -260,6 +260,7 @@ void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
   if (stats != nullptr) stats->reset();
 }
 
+
 template <typename T>
 void FwColumn<T>::fill_na() {
   // `reify` will copy extraneous data, so we implement our own reification here
@@ -274,6 +275,39 @@ void FwColumn<T>::fill_na() {
     vals[i] = na;
   }
   ri.clear(false);
+}
+
+
+template <typename T>
+void FwColumn<T>::replace_values(
+    RowIndex replace_at, const Column* replace_with)
+{
+  if (mbuf->is_readonly()) {
+    MemoryBuffer* mbuf0 = mbuf;
+    mbuf = mbuf0->deepcopy();
+    mbuf0->release();
+  }
+  if (replace_with->stype() != stype()) {
+    replace_with = replace_with->cast(stype());
+  }
+
+  int64_t replace_n = replace_at.length();
+  T* data_src = static_cast<T*>(replace_with->data());
+  T* data_dest = elements();
+  if (replace_with->nrows == 1) {
+    T value = *data_src;
+    replace_at.strided_loop(0, replace_n, 1,
+      [&](int64_t i) {
+        data_dest[i] = value;
+      });
+  } else {
+    xassert(replace_with->nrows == replace_n);
+    replace_at.strided_loop(0, replace_n, 1,
+      [&](int64_t i) {
+        data_dest[i] = *data_src;
+        ++data_src;
+      });
+  }
 }
 
 

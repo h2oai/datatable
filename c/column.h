@@ -157,6 +157,19 @@ public:
   Column* cast(SType, MemoryBuffer* mb = nullptr) const;
 
   /**
+   * Replace values at positions given by the RowIndex `replace_at` with
+   * values taken from the Column `replace_with`. The ltype of the replacement
+   * column should be compatible with the current, and its number of rows
+   * should be either 1 or equal to the length of `replace_at` (which must not
+   * be empty).
+   * The values are replaced in-place, if possible (if reference count is 1),
+   * or otherwise the copy of a column is created and returned, and the
+   * current Column object is deleted.
+   */
+  virtual void replace_values(
+    RowIndex replace_at, const Column* replace_with) = 0;
+
+  /**
    * Appends the provided columns to the bottom of the current column and
    * returns the resulting column. This method is equivalent to `list.append()`
    * in Python or `rbind()` in R.
@@ -308,6 +321,7 @@ public:
   size_t elemsize() const override;
   bool is_fixedwidth() const override;
   virtual void reify() override;
+  virtual void replace_values(RowIndex at, const Column* with) override;
 
 protected:
   void init_data() override;
@@ -341,7 +355,7 @@ class BoolColumn : public FwColumn<int8_t>
 {
 public:
   BoolColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~BoolColumn();
+  virtual ~BoolColumn() override;
   SType stype() const override;
 
   int8_t min() const;
@@ -394,7 +408,7 @@ template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
   IntColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~IntColumn();
+  virtual ~IntColumn() override;
   virtual SType stype() const override;
 
   T min() const;
@@ -456,7 +470,7 @@ template <typename T> class RealColumn : public FwColumn<T>
 {
 public:
   RealColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~RealColumn();
+  virtual ~RealColumn() override;
   virtual SType stype() const override;
 
   T min() const;
@@ -535,7 +549,7 @@ class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
   PyObjectColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~PyObjectColumn();
+  virtual ~PyObjectColumn() override;
   virtual SType stype() const override;
 
 protected:
@@ -577,7 +591,7 @@ template <typename T> class StringColumn : public Column
 public:
   StringColumn(int64_t nrows,
       MemoryBuffer* offbuf = nullptr, MemoryBuffer* strbuf = nullptr);
-  virtual ~StringColumn();
+  virtual ~StringColumn() override;
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
   void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
@@ -602,6 +616,7 @@ public:
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   Column* deepcopy() const override;
+  void replace_values(RowIndex at, const Column* with) override;
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Column") const override;
@@ -661,6 +676,7 @@ public:
   void resize_and_fill(int64_t) override {}
   void rbind_impl(std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
+  void replace_values(RowIndex, const Column*) {}
 protected:
   VoidColumn() {}
   void init_data() override {}
