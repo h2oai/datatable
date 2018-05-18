@@ -780,11 +780,11 @@ void GenericReader::report_columns_to_python() {
 
 
 DataTablePtr GenericReader::makeDatatable() {
-  Column** ccols = NULL;
+  Column** ccols = nullptr;
   size_t ncols = columns.size();
   size_t ocols = columns.nColumnsInOutput();
   ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
-  ccols[ocols] = NULL;
+  ccols[ocols] = nullptr;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInOutput) continue;

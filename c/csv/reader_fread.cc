@@ -59,7 +59,7 @@ FreadTokenizer FreadReader::makeTokenizer(
     field64* target, const char* anchor) const
 {
   return {
-    .ch = NULL,
+    .ch = nullptr,
     .target = target,
     .anchor = anchor,
     .eof = eof,
@@ -769,7 +769,7 @@ FreadLocalParseContext::FreadLocalParseContext(
       freader(f),
       columns(f.columns),
       shmutex(mut),
-      tokenizer(f.makeTokenizer(tbuf, NULL)),
+      tokenizer(f.makeTokenizer(tbuf, nullptr)),
       parsers(ParserLibrary::get_parser_fns())
 {
   ttime_push = 0;

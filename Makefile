@@ -613,7 +613,7 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

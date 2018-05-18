@@ -235,7 +235,7 @@ public:
 
 private:
   MemoryMemBuf();
-  virtual ~MemoryMemBuf();
+  virtual ~MemoryMemBuf() override;
 };
 
 
@@ -402,7 +402,7 @@ public:
   ) const override;
 
 protected:
-  virtual ~OvermapMemBuf();
+  virtual ~OvermapMemBuf() override;
   void memmap() override;
 };
 

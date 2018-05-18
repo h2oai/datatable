@@ -144,7 +144,7 @@ double PyObj::as_double() const {
 
 
 const char* PyObj::as_cstring() const {
-  return as_cstring(NULL);
+  return as_cstring(nullptr);
 }
 
 const char* PyObj::as_cstring(size_t* size) const {

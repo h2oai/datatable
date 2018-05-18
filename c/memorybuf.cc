@@ -360,7 +360,7 @@ void MemmapMemBuf::memmap()
   //
   int attempts = 3;
   while (attempts--) {
-    mmp = mmap(/* address = */ NULL,
+    mmp = mmap(/* address = */ nullptr,
                /* length = */ mmpsize,
                /* protection = */ PROT_WRITE|PROT_READ,
                /* flags = */ create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE,

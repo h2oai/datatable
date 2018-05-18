@@ -63,7 +63,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
       ++j;
     }
   }
-  columns[j] = NULL;
+  columns[j] = nullptr;
   // This may not be the same as `j` if there were repeating columns
   ncols = j;
   columns = static_cast<Column**>(realloc(columns, sizeof(Column*) * (size_t) (j + 1)));
@@ -275,7 +275,7 @@ bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
     col->verify_integrity(icc, col_name);
   }
 
-  if (columns[ncols] != NULL) {
+  if (columns[ncols] != nullptr) {
     // Memory was allocated for `ncols+1` columns, but the last element
     // was not set to NULL.
     // Note that if `cols` array was under-allocated and `malloc_size`

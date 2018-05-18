@@ -181,7 +181,7 @@ class FreadLocalParseContext : public LocalParseContext
                            dt::shared_mutex&);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
-    virtual ~FreadLocalParseContext();
+    virtual ~FreadLocalParseContext() override;
 
     virtual void push_buffers() override;
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
@@ -204,7 +204,7 @@ class FreadChunkedReader : public ChunkedDataReader {
     {
       types = types_;
     }
-    virtual ~FreadChunkedReader() {}
+    virtual ~FreadChunkedReader() override {}
 
     virtual void read_all() override {
       ChunkedDataReader::read_all();

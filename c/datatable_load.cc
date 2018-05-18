@@ -27,9 +27,9 @@
 DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string& path)
 {
     int64_t ncols = colspec->nrows;
-    Column** columns = NULL;
+    Column** columns = nullptr;
     dtmalloc(columns, Column*, ncols + 1);
-    columns[ncols] = NULL;
+    columns[ncols] = nullptr;
 
     if (colspec->ncols != 3 && colspec->ncols != 5) {
         throw ValueError() << "colspec table should have had 3 or 5 columns, "

@@ -31,7 +31,7 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   PyObject* arg1;
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "OO:from_list", &arg1, &arg2))
-    return NULL;
+    return nullptr;
   PyyList srcs = PyObj(arg1);
   PyyList types = PyObj(arg2);
 
@@ -41,7 +41,7 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   }
 
   size_t ncols = srcs.size();
-  Column** cols = NULL;
+  Column** cols = nullptr;
   dtcalloc(cols, Column*, ncols + 1);
 
   // Check validity of the data and construct the output columnset.

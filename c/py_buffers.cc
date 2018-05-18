@@ -368,16 +368,16 @@ static int dt_getbuffer_no_cols(
 {
   XInfo* xinfo = nullptr;
   xinfo = new XInfo();
-  view->buf = NULL;
+  view->buf = nullptr;
   view->obj = incref(reinterpret_cast<PyObject*>(self));
   view->len = 0;
   view->readonly = 0;
   view->itemsize = 1;
-  view->format = REQ_FORMAT(flags) ? strB : NULL;
+  view->format = REQ_FORMAT(flags) ? strB : nullptr;
   view->ndim = 2;
-  view->shape = REQ_ND(flags) ? xinfo->shape : NULL;
-  view->strides = REQ_STRIDES(flags) ? xinfo->strides : NULL;
-  view->suboffsets = NULL;
+  view->shape = REQ_ND(flags) ? xinfo->shape : nullptr;
+  view->strides = REQ_STRIDES(flags) ? xinfo->strides : nullptr;
+  view->suboffsets = nullptr;
   view->internal = xinfo;
   return 0;
 }
@@ -524,9 +524,9 @@ static int getbuffer_DataTable(
 
     if (REQ_INDIRECT(flags)) {
         size_t elemsize = stype_info[stype].elemsize;
-        Py_ssize_t *info = NULL;
+        Py_ssize_t *info = nullptr;
         dtmalloc_g(info, Py_ssize_t, 6);
-        void **buf = NULL;
+        void **buf = nullptr;
         dtmalloc_g(buf, void*, ncols);
         for (int i = 0; i < ncols; i++) {
             dt->columns[i]->incref();
@@ -538,7 +538,7 @@ static int getbuffer_DataTable(
         view->len = ncols * dt->nrows * elemsize;
         view->readonly = 1;
         view->itemsize = elemsize;
-        view->format = REQ_FORMAT(flags)? format_from_stype(stype) : NULL;
+        view->format = REQ_FORMAT(flags)? format_from_stype(stype) : nullptr;
         view->ndim = 2;
         info[0] = ncols;
         info[1] = dt->nrows;

@@ -39,7 +39,7 @@ public:
 
   CsvColumn(Column *col) {
     data = col->data();
-    strbuf = NULL;
+    strbuf = nullptr;
     writer = writers_per_stype[col->stype()];
     if (!writer) {
       throw ValueError() << "Cannot write type " << col->stype();
@@ -590,7 +590,7 @@ void init_csvwrite_constants() {
 
   for (int i = 0; i < DT_STYPES_COUNT; i++) {
     bytes_per_stype[i] = 0;
-    writers_per_stype[i] = NULL;
+    writers_per_stype[i] = nullptr;
   }
   bytes_per_stype[ST_BOOLEAN_I1]      = 1;  // 1
   bytes_per_stype[ST_INTEGER_I1]      = 5;  // -100, -0x7F

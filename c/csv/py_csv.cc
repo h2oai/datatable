@@ -23,9 +23,8 @@
 
 PyObject* write_csv(PyObject*, PyObject* args)
 {
-  PyObject *pywriter = NULL;
-  PyObject *result = NULL;
-  if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter)) return NULL;
+  PyObject* pywriter;
+  if (!PyArg_ParseTuple(args, "O:write_csv", &pywriter)) return nullptr;
   PyObj pywr(pywriter);
 
   DataTable* dt = pywr.attr("datatable").as_datatable();
@@ -61,6 +60,7 @@ PyObject* write_csv(PyObject*, PyObject* args)
   cwriter.write();
 
   // Post-process the result
+  PyObject* result = nullptr;
   if (filename.empty()) {
     WritableBuffer *wb = cwriter.get_output_buffer();
     MemoryWritableBuffer *mb = dynamic_cast<MemoryWritableBuffer*>(wb);

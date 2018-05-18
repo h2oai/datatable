@@ -318,7 +318,7 @@ void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
 
 
 LocalParseContext::~LocalParseContext() {
-  xassert(used_nrows == 0);
+  if (used_nrows != 0) printf("used_nrows!=0 in ~LocalParseContext()\n");
   free(tbuf);
 }
 

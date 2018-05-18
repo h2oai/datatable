@@ -760,12 +760,12 @@ ParserLibrary::ParserLibrary() {
 //------------------------------------------------------------------------------
 
 ParserIterable ParserLibrary::successor_types(PT pt) const {
-  return ParserIterable(pt, *this);
+  return ParserIterable(pt);
 }
 
 
-ParserIterable::ParserIterable(PT pt, const ParserLibrary& pl)
-  : plib(pl), ptype(pt) {}
+ParserIterable::ParserIterable(PT pt)
+  : ptype(pt) {}
 
 ParserIterator ParserIterable::begin() const {
   return ParserIterator(ptype);
