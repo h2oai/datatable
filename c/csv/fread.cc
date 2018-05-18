@@ -137,7 +137,7 @@ DataTablePtr FreadReader::read()
             sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
     }
 
-    const char* firstJumpEnd = NULL; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
+    const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
     int topNumLines = 0;      // the most number of lines with the same number of fields, so far
     int topNumFields = 0;     // how many fields that was, to resolve ties
     int8_t topQuoteRule = -1;  // which quote rule that was
@@ -186,7 +186,7 @@ DataTablePtr FreadReader::read()
           numLines[i]++;
         }
         if (numFields[0] == -1) continue;
-        if (firstJumpEnd == NULL) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+        if (firstJumpEnd == nullptr) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
         if (topQuoteRule < 0) topQuoteRule = quoteRule;
         bool updated = false;
         int nmax = 0;

@@ -111,11 +111,11 @@ class FileWritableBuffer : public WritableBuffer
 
 public:
   FileWritableBuffer(const std::string &path);
-  virtual ~FileWritableBuffer();
+  virtual ~FileWritableBuffer() override;
 
-  virtual size_t prep_write(size_t n, const void *src);
-  virtual void write_at(size_t pos, size_t n, const void *src);
-  virtual void finalize();
+  virtual size_t prep_write(size_t n, const void *src) override;
+  virtual void write_at(size_t pos, size_t n, const void *src) override;
+  virtual void finalize() override;
 };
 
 
@@ -134,11 +134,11 @@ protected:
 
 public:
   ThreadsafeWritableBuffer();
-  virtual ~ThreadsafeWritableBuffer();
+  virtual ~ThreadsafeWritableBuffer() override;
 
-  virtual size_t prep_write(size_t n, const void *src);
-  virtual void write_at(size_t pos, size_t n, const void *src);
-  virtual void finalize();
+  virtual size_t prep_write(size_t n, const void *src) override;
+  virtual void write_at(size_t pos, size_t n, const void *src) override;
+  virtual void finalize() override;
 };
 
 
@@ -149,7 +149,7 @@ class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 {
 public:
   MemoryWritableBuffer(size_t size);
-  virtual ~MemoryWritableBuffer();
+  ~MemoryWritableBuffer() override;
 
   /**
    * Return memory buffer that was written. This method may only be called
@@ -174,7 +174,7 @@ class MmapWritableBuffer : public ThreadsafeWritableBuffer
 
 public:
   MmapWritableBuffer(const std::string& path, size_t size);
-  ~MmapWritableBuffer();
+  ~MmapWritableBuffer() override;
 
 private:
   void realloc(size_t newsize) override;

@@ -13,13 +13,13 @@
 
 namespace pycolumn
 {
-PyObject* fn_hexview = NULL;  // see datatablemodule.c/pyregister_function
+PyObject* fn_hexview = nullptr;  // see datatablemodule.c/pyregister_function
 
 
 pycolumn::obj* from_column(Column* col, pydatatable::obj* pydt, int64_t idx)
 {
   PyObject* coltype = reinterpret_cast<PyObject*>(&pycolumn::type);
-  PyObject* pyobj = PyObject_CallObject(coltype, NULL);
+  PyObject* pyobj = PyObject_CallObject(coltype, nullptr);
   auto pycol = reinterpret_cast<pycolumn::obj*>(pyobj);
   if (!pycol || !col) throw PyError();
   pycol->ref = col->shallowcopy();
@@ -112,10 +112,10 @@ PyObject* get_nrows(pycolumn::obj* self) {
 //==============================================================================
 
 PyObject* save_to_disk(pycolumn::obj* self, PyObject* args) {
-  PyObject* arg1 = NULL;
-  PyObject* arg2 = NULL;
+  PyObject* arg1 = nullptr;
+  PyObject* arg2 = nullptr;
   if (!PyArg_ParseTuple(args, "OO:save_to_disk", &arg1, &arg2))
-    return NULL;
+    return nullptr;
   PyObj pyfilename(arg1);
   PyObj pystrategy(arg2);
 
@@ -147,8 +147,8 @@ static void dealloc(pycolumn::obj* self)
 {
   delete self->ref;
   Py_XDECREF(self->pydt);
-  self->ref = NULL;
-  self->pydt = NULL;
+  self->ref = nullptr;
+  self->pydt = nullptr;
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -167,64 +167,64 @@ static PyGetSetDef column_getseters[] = {
   GETTER(meta),
   GETTER(refcount),
   GETTER(nrows),
-  {NULL, NULL, NULL, NULL, NULL}
+  {nullptr, nullptr, nullptr, nullptr, nullptr}
 };
 
 static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
   METHOD0(hexview),
-  {NULL, NULL, 0, NULL}
+  {nullptr, nullptr, 0, nullptr}
 };
 
 PyTypeObject type = {
-  PyVarObject_HEAD_INIT(NULL, 0)
+  PyVarObject_HEAD_INIT(nullptr, 0)
   cls_name,                           /* tp_name */
   sizeof(pycolumn::obj),              /* tp_basicsize */
   0,                                  /* tp_itemsize */
   DESTRUCTOR,                         /* tp_dealloc */
-  0,                                  /* tp_print */
-  0,                                  /* tp_getattr */
-  0,                                  /* tp_setattr */
-  0,                                  /* tp_compare */
-  0,                                  /* tp_repr */
-  0,                                  /* tp_as_number */
-  0,                                  /* tp_as_sequence */
-  0,                                  /* tp_as_mapping */
-  0,                                  /* tp_hash  */
-  0,                                  /* tp_call */
-  0,                                  /* tp_str */
-  0,                                  /* tp_getattro */
-  0,                                  /* tp_setattro */
+  nullptr,                            /* tp_print */
+  nullptr,                            /* tp_getattr */
+  nullptr,                            /* tp_setattr */
+  nullptr,                            /* tp_compare */
+  nullptr,                            /* tp_repr */
+  nullptr,                            /* tp_as_number */
+  nullptr,                            /* tp_as_sequence */
+  nullptr,                            /* tp_as_mapping */
+  nullptr,                            /* tp_hash  */
+  nullptr,                            /* tp_call */
+  nullptr,                            /* tp_str */
+  nullptr,                            /* tp_getattro */
+  nullptr,                            /* tp_setattro */
   &pycolumn::as_buffer,               /* tp_as_buffer; see py_buffers.c */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
   cls_doc,                            /* tp_doc */
-  0,                                  /* tp_traverse */
-  0,                                  /* tp_clear */
-  0,                                  /* tp_richcompare */
-  0,                                  /* tp_weaklistoffset */
-  0,                                  /* tp_iter */
-  0,                                  /* tp_iternext */
+  nullptr,                            /* tp_traverse */
+  nullptr,                            /* tp_clear */
+  nullptr,                            /* tp_richcompare */
+  0      ,                            /* tp_weaklistoffset */
+  nullptr,                            /* tp_iter */
+  nullptr,                            /* tp_iternext */
   column_methods,                     /* tp_methods */
-  0,                                  /* tp_members */
+  nullptr,                            /* tp_members */
   column_getseters,                   /* tp_getset */
-  0,                                  /* tp_base */
-  0,                                  /* tp_dict */
-  0,                                  /* tp_descr_get */
-  0,                                  /* tp_descr_set */
+  nullptr,                            /* tp_base */
+  nullptr,                            /* tp_dict */
+  nullptr,                            /* tp_descr_get */
+  nullptr,                            /* tp_descr_set */
   0,                                  /* tp_dictoffset */
-  0,                                  /* tp_init */
-  0,                                  /* tp_alloc */
-  0,                                  /* tp_new */
-  0,                                  /* tp_free */
-  0,                                  /* tp_is_gc */
-  0,                                  /* tp_bases */
-  0,                                  /* tp_mro */
-  0,                                  /* tp_cache */
-  0,                                  /* tp_subclasses */
-  0,                                  /* tp_weaklist */
-  0,                                  /* tp_del */
+  nullptr,                            /* tp_init */
+  nullptr,                            /* tp_alloc */
+  nullptr,                            /* tp_new */
+  nullptr,                            /* tp_free */
+  nullptr,                            /* tp_is_gc */
+  nullptr,                            /* tp_bases */
+  nullptr,                            /* tp_mro */
+  nullptr,                            /* tp_cache */
+  nullptr,                            /* tp_subclasses */
+  nullptr,                            /* tp_weaklist */
+  nullptr,                            /* tp_del */
   0,                                  /* tp_version_tag */
-  0,                                  /* tp_finalize */
+  nullptr,                            /* tp_finalize */
 };
 
 

@@ -299,7 +299,7 @@ void MmapWritableBuffer::map(int fd, size_t size) {
     allocsize = 0;
     return;
   }
-  buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  buffer = mmap(nullptr, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
     buffer = nullptr;
     throw RuntimeError() << "Memory map failed for file " << filename

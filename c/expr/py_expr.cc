@@ -18,14 +18,14 @@ PyObject* expr_binaryop(PyObject*, PyObject* args)
   PyObject* arg1;
   PyObject* arg2;
   if (!PyArg_ParseTuple(args, "iOO:expr_binaryop", &opcode, &arg1, &arg2))
-    return NULL;
+    return nullptr;
   PyObj py_lhs(arg1);
   PyObj py_rhs(arg2);
 
   Column* lhs = py_lhs.as_column();
   Column* rhs = py_rhs.as_column();
   Column* res = expr::binaryop(opcode, lhs, rhs);
-  return pycolumn::from_column(res, NULL, 0);
+  return pycolumn::from_column(res, nullptr, 0);
 }
 
 
@@ -59,7 +59,7 @@ PyObject* expr_column(PyObject*, PyObject* args)
   }
   Column* col = dt->columns[index]->shallowcopy(ri);
   col->reify();
-  return pycolumn::from_column(col, NULL, 0);
+  return pycolumn::from_column(col, nullptr, 0);
 }
 
 

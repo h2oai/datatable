@@ -148,7 +148,7 @@ static PyObject* stype_notimpl(Column *col, UNUSED(int64_t row))
 {
     PyErr_Format(PyExc_NotImplementedError,
                  "Cannot stringify column of type %d", col->stype());
-    return NULL;
+    return nullptr;
 }
 
 
@@ -167,12 +167,12 @@ int init_py_types(PyObject*)
     py_ltype_names[LT_OBJECT]   = PyUnicode_FromString("obj");
 
     for (int i = 0; i < DT_LTYPES_COUNT; i++) {
-        if (py_ltype_names[i] == NULL) return 0;
+        if (py_ltype_names[i] == nullptr) return 0;
     }
 
     for (int i = 0; i < DT_STYPES_COUNT; i++) {
         py_stype_names[i] = PyUnicode_FromString(stype_info[i].code);
-        if (py_stype_names[i] == NULL) return 0;
+        if (py_stype_names[i] == nullptr) return 0;
     }
 
     py_stype_formatters[ST_VOID]               = stype_notimpl;
@@ -206,7 +206,7 @@ void init_py_stype_objs(PyObject* stype_enum)
   for (int i = 0; i < DT_STYPES_COUNT; i++) {
     // The call may raise an exception -- that's ok
     py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
-    if (py_stype_objs[i] == NULL) {
+    if (py_stype_objs[i] == nullptr) {
       PyErr_Clear();
       py_stype_objs[i] = none();
     }
@@ -218,7 +218,7 @@ void init_py_ltype_objs(PyObject* ltype_enum)
   for (int i = 0; i < DT_LTYPES_COUNT; i++) {
     // The call may raise an exception -- that's ok
     py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
-    if (py_ltype_objs[i] == NULL) {
+    if (py_ltype_objs[i] == nullptr) {
       PyErr_Clear();
       py_ltype_objs[i] = none();
     }

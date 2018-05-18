@@ -54,14 +54,14 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
 {
   pydatatable::obj *pydt;
   DataTable *dt;
-  PyObject *stypes = NULL, *ltypes = NULL, *view = NULL;
+  PyObject *stypes = nullptr, *ltypes = nullptr, *view = nullptr;
   int n_init_cols = 0;
   int64_t row0, row1, col0, col1;
   int64_t column = -1;
 
   // Parse arguments and check their validity
   static const char* kwlist[] =
-    {"dt", "row0", "row1", "col0", "col1", "column", NULL};
+    {"dt", "row0", "row1", "col0", "col1", "column", nullptr};
   int ret = PyArg_ParseTupleAndKeywords(
     args, kwds, "O!nnnn|n:DataWindow.__init__", const_cast<char **>(kwlist),
     &pydatatable::type, &pydt, &row0, &row1, &col0, &col1, &column
@@ -69,7 +69,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   if (!ret) return -1;
 
   try {
-  dt = pydt == NULL? NULL : pydt->ref;
+  dt = pydt == nullptr? nullptr : pydt->ref;
   if (column >= 0) {
     return _init_hexview(self, dt, column, row0, row1, col0, col1);
   }
@@ -91,19 +91,19 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   int rindex_is_arr32 = rindex.isarr32();
   int rindex_is_arr64 = rindex.isarr64();
   int rindex_is_slice = rindex.isslice();
-  const int32_t* rindexarr32 = rindex_is_arr32? rindex.indices32() : NULL;
-  const int64_t* rindexarr64 = rindex_is_arr64? rindex.indices64() : NULL;
+  const int32_t* rindexarr32 = rindex_is_arr32? rindex.indices32() : nullptr;
+  const int64_t* rindexarr64 = rindex_is_arr64? rindex.indices64() : nullptr;
   int64_t rindexstart = rindex_is_slice? rindex.slice_start() : 0;
   int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 
   // Create and fill-in the `data` list
   view = PyList_New((Py_ssize_t) ncols);
-  if (view == NULL) goto fail;
+  if (view == nullptr) goto fail;
   for (int64_t i = col0; i < col1; ++i) {
     Column *col = dt->columns[i];
 
     PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
-    if (py_coldata == NULL) goto fail;
+    if (py_coldata == nullptr) goto fail;
     PyList_SET_ITEM(view, n_init_cols++, py_coldata);
 
     int n_init_rows = 0;
@@ -113,7 +113,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
                rindex_is_arr64? (int64_t) rindexarr64[j] :
                       rindexstart + rindexstep * j;
       PyObject *value = py_stype_formatters[col->stype()](col, irow);
-      if (value == NULL) goto fail;
+      if (value == nullptr) goto fail;
       PyList_SET_ITEM(py_coldata, n_init_rows++, value);
     }
   }
@@ -121,7 +121,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   // Create and fill-in the `stypes` list
   stypes = PyList_New((Py_ssize_t) ncols);
   ltypes = PyList_New((Py_ssize_t) ncols);
-  if (stypes == NULL || ltypes == NULL) goto fail;
+  if (stypes == nullptr || ltypes == nullptr) goto fail;
   for (int64_t i = col0; i < col1; i++) {
     Column *col = dt->columns[i];
     SType stype = col->stype();
@@ -156,9 +156,9 @@ static int _init_hexview(
   obj* self, DataTable* dt, int64_t colidx,
   int64_t row0, int64_t row1, int64_t col0, int64_t col1)
 {
-  PyObject *viewdata = NULL;
-  PyObject *ltypes = NULL;
-  PyObject *stypes = NULL;
+  PyObject *viewdata = nullptr;
+  PyObject *ltypes = nullptr;
+  PyObject *stypes = nullptr;
 
   try {
   if (colidx < 0 || colidx >= dt->ncols) {
@@ -313,43 +313,54 @@ static PyGetSetDef getsetters[] = {
 
 
 PyTypeObject type = {
-  PyVarObject_HEAD_INIT(NULL, 0)
+  PyVarObject_HEAD_INIT(nullptr, 0)
   cls_name,                           /* tp_name */
   sizeof(obj),                        /* tp_basicsize */
   0,                                  /* tp_itemsize */
   DESTRUCTOR,                         /* tp_dealloc */
-  0,                                  /* tp_print */
-  0,                                  /* tp_getattr */
-  0,                                  /* tp_setattr */
-  0,                                  /* tp_compare */
-  0,                                  /* tp_repr */
-  0,                                  /* tp_as_number */
-  0,                                  /* tp_as_sequence */
-  0,                                  /* tp_as_mapping */
-  0,                                  /* tp_hash  */
-  0,                                  /* tp_call */
-  0,                                  /* tp_str */
-  0,                                  /* tp_getattro */
-  0,                                  /* tp_setattro */
-  0,                                  /* tp_as_buffer */
+  nullptr,                            /* tp_print */
+  nullptr,                            /* tp_getattr */
+  nullptr,                            /* tp_setattr */
+  nullptr,                            /* tp_compare */
+  nullptr,                            /* tp_repr */
+  nullptr,                            /* tp_as_number */
+  nullptr,                            /* tp_as_sequence */
+  nullptr,                            /* tp_as_mapping */
+  nullptr,                            /* tp_hash  */
+  nullptr,                            /* tp_call */
+  nullptr,                            /* tp_str */
+  nullptr,                            /* tp_getattro */
+  nullptr,                            /* tp_setattro */
+  nullptr,                            /* tp_as_buffer */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
   cls_doc,                            /* tp_doc */
-  0,                                  /* tp_traverse */
-  0,                                  /* tp_clear */
-  0,                                  /* tp_richcompare */
+  nullptr,                            /* tp_traverse */
+  nullptr,                            /* tp_clear */
+  nullptr,                            /* tp_richcompare */
   0,                                  /* tp_weaklistoffset */
-  0,                                  /* tp_iter */
-  0,                                  /* tp_iternext */
-  0,                                  /* tp_methods */
-  0,                                  /* tp_members */
+  nullptr,                            /* tp_iter */
+  nullptr,                            /* tp_iternext */
+  nullptr,                            /* tp_methods */
+  nullptr,                            /* tp_members */
   getsetters,                         /* tp_getset */
-  0,                                  /* tp_base */
-  0,                                  /* tp_dict */
-  0,                                  /* tp_descr_get */
-  0,                                  /* tp_descr_set */
+  nullptr,                            /* tp_base */
+  nullptr,                            /* tp_dict */
+  nullptr,                            /* tp_descr_get */
+  nullptr,                            /* tp_descr_set */
   0,                                  /* tp_dictoffset */
   CONSTRUCTOR,                        /* tp_init */
-  0,0,0,0,0,0,0,0,0,0,0,0
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  0,
+  nullptr,
 };
 
 

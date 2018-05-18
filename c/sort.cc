@@ -804,7 +804,7 @@ class SortContext {
     size_t   _nradixes = nradixes;
     size_t   _strstart = strstart;
     int32_t  ggoff0    = make_groups? gg.cumulative_size() : 0;
-    int32_t* ggdata0   = make_groups? gg.data() : 0;
+    int32_t* ggdata0   = make_groups? gg.data() : nullptr;
     size_t   zelemsize = static_cast<size_t>(elemsize);
 
     // First, determine the sizes of ranges corresponding to each radix that

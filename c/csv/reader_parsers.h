@@ -161,14 +161,13 @@ class ParserIterator {
 
 class ParserIterable {
   private:
-    const ParserLibrary& plib;
     const PT ptype;
     int64_t : 56;
 
   public:
     using iterator = ParserIterator;
 
-    ParserIterable(PT pt, const ParserLibrary& pl);
+    ParserIterable(PT pt);
     iterator begin() const;
     iterator end() const;
 };

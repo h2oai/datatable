@@ -676,7 +676,7 @@ public:
   void resize_and_fill(int64_t) override {}
   void rbind_impl(std::vector<const Column*>&, int64_t, bool) override {}
   void apply_na_mask(const BoolColumn*) override {}
-  void replace_values(RowIndex, const Column*) {}
+  void replace_values(RowIndex, const Column*) override {}
 protected:
   VoidColumn() {}
   void init_data() override {}
