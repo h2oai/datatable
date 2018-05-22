@@ -15,6 +15,7 @@
 #include "writebuf.h"
 
 class MemoryRangeImpl;
+class ViewedMRI;
 class IntegrityCheckContext;
 
 
@@ -229,7 +230,11 @@ class MemoryRange
     // the current `impl` with a new `MemoryMRI` object of size `newsize`,
     // containing copy of first `copysize` bytes of the `impl`'s data. It is
     // assumed that `copysize ≤ newsize`.
+    // The no-arguments form does pure copy (i.e. newsize = copysize = bufsize)
     void materialize(size_t newsize, size_t copysize);
+    void materialize();
+
+    // void convert_to_viewed();
 };
 
 
