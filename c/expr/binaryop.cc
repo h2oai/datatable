@@ -68,9 +68,12 @@ enum OpMode {
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
 static void map_n_to_n(int64_t row0, int64_t row1, void** params) {
-  LT* lhs_data = static_cast<LT*>(static_cast<Column*>(params[0])->data());
-  RT* rhs_data = static_cast<RT*>(static_cast<Column*>(params[1])->data());
-  VT* res_data = static_cast<VT*>(static_cast<Column*>(params[2])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  Column* col2 = static_cast<Column*>(params[2]);
+  const LT* lhs_data = static_cast<const LT*>(col0->data());
+  const RT* rhs_data = static_cast<const RT*>(col1->data());
+  VT* res_data = static_cast<VT*>(col2->data_w());
   for (int64_t i = row0; i < row1; ++i) {
     res_data[i] = OP(lhs_data[i], rhs_data[i]);
   }
@@ -78,9 +81,12 @@ static void map_n_to_n(int64_t row0, int64_t row1, void** params) {
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
 static void map_n_to_1(int64_t row0, int64_t row1, void** params) {
-  LT* lhs_data = static_cast<LT*>(static_cast<Column*>(params[0])->data());
-  RT rhs_value = static_cast<RT*>(static_cast<Column*>(params[1])->data())[0];
-  VT* res_data = static_cast<VT*>(static_cast<Column*>(params[2])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  Column* col2 = static_cast<Column*>(params[2]);
+  const LT* lhs_data = static_cast<const LT*>(col0->data());
+  RT rhs_value = static_cast<const RT*>(col1->data())[0];
+  VT* res_data = static_cast<VT*>(col2->data_w());
   for (int64_t i = row0; i < row1; ++i) {
     res_data[i] = OP(lhs_data[i], rhs_value);
   }
@@ -88,9 +94,12 @@ static void map_n_to_1(int64_t row0, int64_t row1, void** params) {
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
 static void map_1_to_n(int64_t row0, int64_t row1, void** params) {
-  LT lhs_value = static_cast<LT*>(static_cast<Column*>(params[0])->data())[0];
-  RT* rhs_data = static_cast<RT*>(static_cast<Column*>(params[1])->data());
-  VT* res_data = static_cast<VT*>(static_cast<Column*>(params[2])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  Column* col2 = static_cast<Column*>(params[2]);
+  LT lhs_value = static_cast<const LT*>(col0->data())[0];
+  const RT* rhs_data = static_cast<const RT*>(col1->data());
+  VT* res_data = static_cast<VT*>(col2->data_w());
   for (int64_t i = row0; i < row1; ++i) {
     res_data[i] = OP(lhs_value, rhs_data[i]);
   }

@@ -25,8 +25,10 @@ enum OpCode {
 
 template<typename IT, typename OT, OT (*OP)(IT)>
 static void map_n(int64_t row0, int64_t row1, void** params) {
-  IT* arg_data = static_cast<IT*>(static_cast<Column*>(params[0])->data());
-  OT* res_data = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const IT* arg_data = static_cast<const IT*>(col0->data());
+  OT* res_data = static_cast<OT*>(col1->data_w());
   for (int64_t i = row0; i < row1; ++i) {
     res_data[i] = OP(arg_data[i]);
   }
@@ -34,9 +36,10 @@ static void map_n(int64_t row0, int64_t row1, void** params) {
 
 template<typename IT, typename OT, OT (*OP)(IT)>
 static void strmap_n(int64_t row0, int64_t row1, void** params) {
-  auto scol = static_cast<StringColumn<IT>*>(params[0]);
-  IT* arg_data = scol->offsets();
-  OT* res_data = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  StringColumn<IT>* col0 = static_cast<StringColumn<IT>*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const IT* arg_data = col0->offsets();
+  OT* res_data = static_cast<OT*>(col1->data_w());
   for (int64_t i = row0; i < row1; ++i) {
     res_data[i] = OP(arg_data[i]);
   }

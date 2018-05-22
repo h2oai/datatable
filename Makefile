@@ -260,6 +260,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
 	memorybuf.o               \
+	memrange.o                \
 	mmm.o                     \
 	options.o                 \
 	py_buffers.o              \
@@ -348,9 +349,13 @@ $(BUILDDIR)/encodings.h: c/encodings.h
 	@echo • Refreshing c/encodings.h
 	@cp c/encodings.h $@
 
-$(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/mmm.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/memrange.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/mmm.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/memorybuf.h
 	@cp c/memorybuf.h $@
+
+$(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
+	@echo • Refreshing c/memrange.h
+	@cp c/memrange.h $@
 
 $(BUILDDIR)/mmm.h: c/mmm.h
 	@echo • Refreshing c/mmm.h
@@ -440,7 +445,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h $(BUILDDIR)/utils/shared_mutex.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -638,6 +643,10 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/file.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

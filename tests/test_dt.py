@@ -476,6 +476,7 @@ def test_resize_bad():
 #-------------------------------------------------------------------------------
 
 @pytest.mark.run(order=7)
+@pytest.mark.skip()
 def test_column_hexview(dt0, patched_terminal, capsys):
     assert dt0.internal.column(0).data_pointer
     dt.options.display.interactive_hint = False

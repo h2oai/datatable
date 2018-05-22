@@ -10,6 +10,7 @@
 #include <Python.h>
 #include <stdbool.h>
 #include <string>
+#include "memrange.h"
 #include "datatable_check.h"
 #include "mmm.h"
 #include "writebuf.h"
@@ -192,6 +193,22 @@ protected:
   virtual ~MemoryBuffer();  // Private, use membuf->release() instead
 };
 
+
+
+class MemoryBuffet {
+  MemoryBuffer* buf;
+public:
+  MemoryBuffet() : buf(nullptr) {}
+  MemoryBuffet(MemoryBuffer* mb) : buf(mb) {}
+  MemoryBuffet& operator=(MemoryBuffer* mb) { buf = mb; return *this; }
+  ~MemoryBuffet() { /* if (buf) buf->release(); */ }
+  MemoryBuffer* operator->() const { return buf; }
+  operator MemoryBuffer*() { return buf; }
+  operator bool() const { return buf != nullptr; }
+  bool operator==(const MemoryBuffet& o) { return buf == o.buf; }
+  bool verify_integrity(IntegrityCheckContext& icc) const { return buf->verify_integrity(icc); }
+  void release() {}
+};
 
 
 

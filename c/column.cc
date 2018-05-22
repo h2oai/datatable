@@ -17,8 +17,7 @@
 
 
 Column::Column(int64_t nrows_)
-    : mbuf(nullptr),
-      stats(nullptr),
+    : stats(nullptr),
       nrows(nrows_) {}
 
 
@@ -73,8 +72,7 @@ Column* Column::new_mmap_column(SType stype, int64_t nrows,
  */
 void Column::save_to_disk(const std::string& filename,
                           WritableBuffer::Strategy strategy) {
-  xassert(mbuf != nullptr);
-  mbuf->save_to_disk(filename, strategy);
+  mbuf.save_to_disk(filename, strategy);
 }
 
 
@@ -114,11 +112,11 @@ Column* Column::new_xbuf_column(SType stype,
 /**
  * Construct a column using existing MemoryBuffers.
  */
-Column* Column::new_mbuf_column(SType stype, MemoryBuffer* mbuf,
+Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf,
                                 MemoryBuffer* strbuf)
 {
   Column* col = new_column(stype);
-  col->replace_buffer(mbuf, strbuf);
+  col->replace_buffer(std::move(mbuf), strbuf);
   return col;
 }
 
@@ -129,7 +127,7 @@ Column* Column::new_mbuf_column(SType stype, MemoryBuffer* mbuf,
 Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
   Column* col = new_column(stype());
   col->nrows = nrows;
-  col->mbuf = mbuf->shallowcopy();
+  col->mbuf = mbuf;
   // TODO: also copy Stats object
 
   if (new_rowindex) {
@@ -142,38 +140,12 @@ Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
 }
 
 
-
-/**
- * Make a "deep" copy of the column. The column created with this method will
- * have memory-type MT_DATA and refcount of 1.
- */
-Column* Column::deepcopy() const
-{
-  // TODO: it appears this method is not used anywhere...
-  Column* col = new_column(stype());
-  col->nrows = nrows;
-  col->mbuf = mbuf->deepcopy();
-  col->ri = rowindex();  // this is shallow copy. Do we need deep?
-  // TODO: deep copy stats when implemented
-  return col;
-}
-
-
-
 size_t Column::alloc_size() const {
-  return mbuf->size();
+  return mbuf.size();
 }
 
 PyObject* Column::mbuf_repr() const {
-  return mbuf->pyrepr();
-}
-
-int Column::mbuf_refcount() const {
-  return mbuf->get_refcount();
-}
-
-MemoryBuffer* Column::mbuf_shallowcopy() const {
-  return mbuf->shallowcopy();
+  return mbuf.pyrepr();
 }
 
 
@@ -225,7 +197,6 @@ void Column::replace_rowindex(const RowIndex& newri) {
 
 Column::~Column() {
   delete stats;
-  if (mbuf) mbuf->release();
 }
 
 
@@ -237,7 +208,7 @@ Column::~Column() {
 size_t Column::memory_footprint() const
 {
   size_t sz = sizeof(*this);
-  sz += mbuf->memory_footprint();
+  sz += mbuf.memory_footprint();
   // sz += ri.memory_footprint();
   if (stats) sz += stats->memory_footprint();
   return sz;
@@ -299,7 +270,11 @@ PyObject* Column::nmodal_pyscalar() const { return int_to_py(nmodal()); }
 // Casting
 //------------------------------------------------------------------------------
 
-Column* Column::cast(SType new_stype, MemoryBuffer* mb) const {
+Column* Column::cast(SType new_stype) const {
+  return cast(new_stype, MemoryRange());
+}
+
+Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
   if (new_stype == stype()) {
     return shallowcopy();
   }
@@ -308,10 +283,10 @@ Column* Column::cast(SType new_stype, MemoryBuffer* mb) const {
     throw RuntimeError() << "Cannot cast a column with rowindex";
   }
   Column *res = nullptr;
-  if (mb) {
+  if (mr) {
     res = Column::new_column(new_stype);
     res->nrows = nrows;
-    res->mbuf = mb;
+    res->mbuf = std::move(mr);
   } else {
     res = Column::new_data_column(new_stype, nrows);
   }
@@ -378,10 +353,10 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   if (nrows < 0) {
     icc << name << " has a negative value for `nrows`: " <<  nrows << end;
   }
-  if (mbuf == nullptr) {
-    icc << name << " has a null internal memory buffer" << end;
+  if (mbuf) {
+    mbuf.verify_integrity(icc);
   } else {
-    mbuf->verify_integrity(icc);
+    icc << name << " has a null internal memory buffer" << end;
   }
   if (icc.has_errors(nerrors)) return false;
 
@@ -390,8 +365,7 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   int64_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
-  RowIndex col_rz(rowindex());
-  if (col_rz.isabsent()) {
+  if (ri.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
       icc << "Mismatch between reported number of rows: " << name
@@ -401,22 +375,22 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   }
   else {
     // RowIndex check
-    bool ok = col_rz.verify_integrity(icc);
+    bool ok = ri.verify_integrity(icc);
     if (!ok) return false;
 
     // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != col_rz.length()) {
+    if (nrows != ri.length()) {
       icc << "Mismatch in reported number of rows: " << name << " has "
           << "nrows=" << nrows << ", while its rowindex.length="
-          << col_rz.length() << end;
+          << ri.length() << end;
     }
 
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
-    if (col_rz.max() >= mbuf_nrows && col_rz.max() > 0) {
+    if (ri.max() >= mbuf_nrows && ri.max() > 0) {
       icc << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
-          << col_rz.max() << ", and nrows(membuf)=" << mbuf_nrows << end;
+          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows << end;
     }
   }
   if (icc.has_errors(nerrors)) return false;

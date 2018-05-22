@@ -87,8 +87,8 @@ bool GReaderColumn::isstring() const {
   return ParserLibrary::info(type).isstring();
 }
 
-MemoryBuffer* GReaderColumn::extract_databuf() {
-  MemoryBuffer* r = mbuf;
+MemoryRange GReaderColumn::extract_databuf() {
+  MemoryRange r(mbuf->size(), mbuf->get(), /* own = */ true);
   mbuf = nullptr;
   return r;
 }

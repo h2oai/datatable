@@ -49,8 +49,8 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     StringColumn<int32_t>* cols =
         static_cast<StringColumn<int32_t>*>(colspec->columns[1]);
 
-    int32_t* offf = colf->offsets();
-    int32_t* offs = cols->offsets();
+    const int32_t* offf = colf->offsets();
+    const int32_t* offs = cols->offsets();
 
     std::string rootdir(path);
     if (!(rootdir.empty() || rootdir.back() == '/'))

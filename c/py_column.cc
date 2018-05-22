@@ -93,10 +93,10 @@ PyObject* get_meta(pycolumn::obj*) {
 }
 
 
-PyObject* get_refcount(pycolumn::obj* self) {
+PyObject* get_refcount(pycolumn::obj*) {
   // "-1" because self->ref is a shallow copy of the "original" column, and
   // therefore it holds an extra reference to the data buffer.
-  return PyLong_FromLong(self->ref->mbuf_refcount() - 1);
+  return PyLong_FromLong(/*self->ref->mbuf_refcount()*/ - 1);
 }
 
 

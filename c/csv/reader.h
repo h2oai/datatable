@@ -15,6 +15,7 @@
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
 #include "memorybuf.h"    // MemoryBuffer
+#include "memrange.h"     // MemoryRange
 #include "writebuf.h"     // WritableBuffer
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
@@ -67,7 +68,7 @@ class GReaderColumn {
     bool isstring() const;
     void* data() const { return mbuf->get(); }
     void allocate(size_t nrows);
-    MemoryBuffer* extract_databuf();
+    MemoryRange extract_databuf();
     MemoryBuffer* extract_strbuf();
     void convert_to_str64();
     PyObj py_descriptor() const;
