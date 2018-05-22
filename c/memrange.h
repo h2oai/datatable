@@ -64,10 +64,11 @@ class MemoryRange
     MemoryRangeImpl* impl;
 
   public:
-    // Basic copy & move constructors.
+    // Basic copy & move constructors / assignment operators.
     // The copy constructor creates a shallow copy (similar to shared_ptr).
     // The move constructor leaves the source object in a state where the
     // only legal operation is to destruct that object.
+    //
     MemoryRange();
     MemoryRange(const MemoryRange&);
     MemoryRange(MemoryRange&&);
@@ -110,12 +111,68 @@ class MemoryRange
     MemoryRange(const std::string& path);
     MemoryRange(size_t n, const std::string& path, int fd = -1);
 
+    // Basic properties of the MemoryRange:
+    //
+    // size()
+    //   Size of the memory in bytes.
+    //
+    // operator bool()
+    //   Return true if the memory allocation is non-empty, i.e. size() > 0.
+    //
+    // is_writeable()
+    //   Return true if modifying data in this MemoryRange is allowed. This may
+    //   return false in one of the two cases: (1) either the data is inherently
+    //   read-only (e.g. opened from a file, or from external memory region
+    //   passed via pybuffers interface); or (2) reference count on the data is
+    //   greater than 1.
+    //
+    // is_resizable()
+    //   Is it possible to resize the data? If the data is resizable, then it
+    //   is also writeable, but not the other way around.
+    //
+    // is_pyobjects()
+    //   The data is marked as an array of `PyObject*`s. This case receives
+    //   special treatment during memory allocation / deallocation / resizing /
+    //   copying in order to maintain correct reference counters on those
+    //   `PyObject*`s. The data is not allowed to be uninitialized; it will be
+    //   filled with `Py_None`s during resizing.
+    //
+    // memory_footprint()
+    //   Return total size in bytes taken by this MemoryRange object. This
+    //   includes the size of the memory buffer itself, plus the sizes of all
+    //   auxiliary variables.
+    //
     size_t size() const;
+    operator bool() const;
     bool is_writeable() const;
     bool is_resizable() const;
     bool is_pyobjects() const;
-    operator bool() const;
+    size_t memory_footprint() const;
 
+    // Main data accessors
+    //
+    // rptr()
+    // rptr(offset)
+    //   Return the internal data pointer as `const void*`, i.e. as read-only
+    //   memory. This always returns `impl->bufdata`, unmodified.
+    //
+    // wptr()
+    // wptr(offset)
+    //   Return the internal data pointer as `void*`, i.e. suitable for writing.
+    //   This will return `impl->bufdata` if and only if `is_writeable()` is
+    //   true, otherwise `impl` will be replaced with a new copy of the data
+    //   and only then the new data pointer will be returned. This implements
+    //   the Copy-on-Write semantics.
+    //
+    // get_element<T>(i)
+    // set_element<T>(i, value)
+    //   Getter/setter for individual entries in the memory buffer when it is
+    //   viewed as an array `T[]`. These methods perform bounds checks on `i`,
+    //   and therefore should not be used in performance-critical code.
+    //   If the MemoryRange is marked as "pyobjects" then the getter will return
+    //   a "borrowed reference" object, while the setter will "steal" the
+    //   ownership of `value`.
+    //
     const void* rptr() const;
     const void* rptr(size_t offset) const;
     void* wptr();
@@ -123,22 +180,55 @@ class MemoryRange
     template <typename T> T get_element(int64_t i) const;
     template <typename T> void set_element(int64_t i, T value);
 
+    // MemoryRange manipulators
+    //
+    // set_pyobjects(clear_data)
+    //   Marks the MemoryRange as "pyobjects" (there is no function to remove
+    //   such a mark). The flag `clear_data` controls what to do with the
+    //   existing data. If the flag is true, then current data is cleared and
+    //   the buffer is filled with `Py_None` objects. In this case the data
+    //   buffer must be writeable. If the flag is `false`, then the user says
+    //   that the data buffer already contains valid `PyObject*` objects that
+    //   should not be cleared. The function returns `this` for convenience.
+    //
+    // resize(newsize, keep_data)
+    //   Change the size of the buffer. This will be done in-place if
+    //   `is_resizable()` is true, otherwise `impl` will be replaced with a
+    //   new memory buffer that is both writeable and resizable. The boolean
+    //   flag `keep_data` is a hint from the user whether he/she cares about
+    //   the existing data in the buffer or not. If this flag is false
+    //   (default is true) then the implementation *may* replace the current
+    //   data with garbage bytes or it may leave them intact.
+    //
+    // save_to_disk(file, strategy)
+    //   Write the content of the memory range to `file`. If the file already
+    //   exists, it will be overwritten.
+    //
+    //
     MemoryRange& set_pyobjects(bool clear_data);
-
     MemoryRange& resize(size_t newsize, bool keep_data = true);
-
-    // Write the content of the memory range to `file`. If the file already
-    // exists, it will be overwritten.
     void save_to_disk(
       const std::string& file,
       WritableBuffer::Strategy strategy = WritableBuffer::Strategy::Auto
     );
 
+    // Utility functions
+    //
+    // pyrepr()
+    //   Return PyObject* containing `repr()` string of this object. [Not sure
+    //   if this function ought to exist].
+    //
+    // verify_integrity(icc)
+    //   Check internal validity of this object.
+    //
     PyObject* pyrepr() const;
-    size_t memory_footprint() const;
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
   private:
+    // Helper function for dealing with non-writeable objects. It will replace
+    // the current `impl` with a new `MemoryMRI` object of size `newsize`,
+    // containing copy of first `copysize` bytes of the `impl`'s data. It is
+    // assumed that `copysize ≤ newsize`.
     void materialize(size_t newsize, size_t copysize);
 };
 

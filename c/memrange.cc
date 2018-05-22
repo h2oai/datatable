@@ -31,6 +31,7 @@
       MemoryRangeImpl();
       inline void release();
 
+      virtual void init() {}
       virtual void resize(size_t n) = 0;
       virtual size_t memory_footprint() const = 0;
       virtual const char* name() const = 0;
@@ -93,6 +94,7 @@
       MmapMRI(size_t n, const std::string& path, int fd);
       MmapMRI(size_t n, const std::string& path, int fd, bool create);
 
+      void init() override;
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "mmap"; }
@@ -105,7 +107,7 @@
 // Main `MemoryRange` class
 //==============================================================================
 
-  //---- Basic constructors ------------
+  //---- Basic constructors ----------------------
 
   MemoryRange::MemoryRange() {
     impl = new MemoryMRI(0);
@@ -141,7 +143,7 @@
   }
 
 
-  //---- Factory constructors ----------
+  //---- Factory constructors --------------------
 
   MemoryRange::MemoryRange(size_t n) {
     impl = new MemoryMRI(n);
@@ -169,22 +171,7 @@
   }
 
 
-
-  MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
-    size_t n = impl->bufsize / sizeof(PyObject*);
-    xassert(n * sizeof(PyObject*) == impl->bufsize);
-    xassert(this->is_writeable());
-    if (clear_data) {
-      PyObject** data = static_cast<PyObject**>(impl->bufdata);
-      for (size_t i = 0; i < n; ++i) {
-        data[i] = Py_None;
-      }
-      Py_None->ob_refcnt += n;
-    }
-    impl->pyobjects = true;
-    return *this;
-  }
-
+  //---- Basic properties ------------------------
 
   MemoryRange::operator bool() const {
     return (impl->bufsize != 0);
@@ -206,15 +193,21 @@
     return impl->bufsize;
   }
 
+  size_t MemoryRange::memory_footprint() const {
+    return sizeof(MemoryRange) + impl->memory_footprint();
+  }
 
+
+  //---- Main data accessors ---------------------
 
   const void* MemoryRange::rptr() const {
+    if (!impl->bufdata) impl->init();
     return impl->bufdata;
   }
 
   const void* MemoryRange::rptr(size_t offset) const {
-    return static_cast<const void*>(
-              static_cast<const char*>(impl->bufdata) + offset);
+    const char* ptr0 = static_cast<const char*>(rptr());
+    return static_cast<const void*>(ptr0 + offset);
   }
 
   void* MemoryRange::wptr() {
@@ -225,9 +218,27 @@
   }
 
   void* MemoryRange::wptr(size_t offset) {
-    return static_cast<void*>(static_cast<char*>(wptr()) + offset);
+    char* ptr0 = static_cast<char*>(wptr());
+    return static_cast<void*>(ptr0 + offset);
   }
 
+
+  //---- MemoryRange manipulators ----------------
+
+  MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
+    size_t n = impl->bufsize / sizeof(PyObject*);
+    xassert(n * sizeof(PyObject*) == impl->bufsize);
+    xassert(this->is_writeable());
+    if (clear_data) {
+      PyObject** data = static_cast<PyObject**>(impl->bufdata);
+      for (size_t i = 0; i < n; ++i) {
+        data[i] = Py_None;
+      }
+      Py_None->ob_refcnt += n;
+    }
+    impl->pyobjects = true;
+    return *this;
+  }
 
   MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
     size_t oldsize = impl->bufsize;
@@ -258,27 +269,7 @@
   }
 
 
-  void MemoryRange::materialize(size_t newsize, size_t copysize) {
-    xassert(newsize >= copysize);
-    MemoryMRI* newimpl = new MemoryMRI(newsize);
-    if (copysize) {
-      std::memcpy(newimpl->bufdata, impl->bufdata, copysize);
-    }
-    if (impl->pyobjects) {
-      newimpl->pyobjects = true;
-      PyObject** newdata = static_cast<PyObject**>(newimpl->bufdata);
-      size_t n_new = newsize / sizeof(PyObject*);
-      size_t n_copy = copysize / sizeof(PyObject*);
-      size_t i = 0;
-      for (; i < n_copy; ++i) Py_INCREF(newdata[i]);
-      for (; i < n_new; ++i) newdata[i] = Py_None;
-      Py_None->ob_refcnt += n_new - n_copy;
-    }
-    impl->release();
-    impl = newimpl;
-  }
-
-
+  //---- Utility functions -----------------------
 
   void MemoryRange::save_to_disk(const std::string& path,
                                   WritableBuffer::Strategy strategy)
@@ -292,10 +283,6 @@
     return PyUnicode_FromFormat("<MemoryRange:%s %p+%zu (ref=%zu)>",
                                 impl->name(), impl->bufdata, impl->bufsize,
                                 impl->refcount);
-  }
-
-  size_t MemoryRange::memory_footprint() const {
-    return sizeof(MemoryRange) + impl->memory_footprint();
   }
 
   bool MemoryRange::verify_integrity(IntegrityCheckContext& icc) const {
@@ -343,8 +330,28 @@
     return true;
   }
 
+  void MemoryRange::materialize(size_t newsize, size_t copysize) {
+    xassert(newsize >= copysize);
+    MemoryMRI* newimpl = new MemoryMRI(newsize);
+    if (copysize) {
+      std::memcpy(newimpl->bufdata, impl->bufdata, copysize);
+    }
+    if (impl->pyobjects) {
+      newimpl->pyobjects = true;
+      PyObject** newdata = static_cast<PyObject**>(newimpl->bufdata);
+      size_t n_new = newsize / sizeof(PyObject*);
+      size_t n_copy = copysize / sizeof(PyObject*);
+      size_t i = 0;
+      for (; i < n_copy; ++i) Py_INCREF(newdata[i]);
+      for (; i < n_new; ++i) newdata[i] = Py_None;
+      Py_None->ob_refcnt += n_new - n_copy;
+    }
+    impl->release();
+    impl = newimpl;
+  }
 
-  //---- Element getters/setters -------
+
+  //---- Element getters/setters -----------------
 
   static void _oob_check(int64_t i, size_t size, size_t elemsize) {
     if (i < 0 || static_cast<size_t>(i + 1) * elemsize > size) {
@@ -561,6 +568,10 @@
     : MmapMRI(n, path, fileno, true) {}
 
   MmapMRI::MmapMRI(size_t n, const std::string& path, int fileno, bool create) {
+
+  }
+
+  void MmapMRI::init() {
 
   }
 
