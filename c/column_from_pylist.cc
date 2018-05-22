@@ -474,6 +474,9 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
     }
   }
   Column* col = Column::new_column(static_cast<SType>(stype));
+  if (stype == ST_OBJECT_PYPTR) {
+    membuf.set_pyobjects(/* clear_data = */ false);
+  }
   col->replace_buffer(std::move(membuf), strbuf);
   return col;
 }

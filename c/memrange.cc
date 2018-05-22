@@ -173,7 +173,7 @@
   MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
     size_t n = impl->bufsize / sizeof(PyObject*);
     xassert(n * sizeof(PyObject*) == impl->bufsize);
-    xassert(this->is_writable());
+    xassert(this->is_writeable());
     if (clear_data) {
       PyObject** data = static_cast<PyObject**>(impl->bufdata);
       for (size_t i = 0; i < n; ++i) {
@@ -190,8 +190,12 @@
     return (impl->bufsize != 0);
   }
 
-  bool MemoryRange::is_writable() const {
+  bool MemoryRange::is_writeable() const {
     return (impl->refcount == 1) && impl->writeable;
+  }
+
+  bool MemoryRange::is_resizable() const {
+    return (impl->refcount == 1) && impl->resizable;
   }
 
   bool MemoryRange::is_pyobjects() const {
@@ -214,11 +218,8 @@
   }
 
   void* MemoryRange::wptr() {
-    if (!is_writable()) {
-      MemoryMRI* newimpl = new MemoryMRI(impl->bufsize);
-      std::memcpy(newimpl->bufdata, impl->bufdata, impl->bufsize);
-      impl->release();
-      impl = newimpl;
+    if (!is_writeable()) {
+      materialize(impl->bufsize, impl->bufsize);
     }
     return impl->bufdata;
   }
@@ -229,38 +230,52 @@
 
 
   MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
-    bool pyobj_mode = impl->pyobjects;
-    if (newsize == impl->bufsize) {}
-    else if (newsize) {
-      size_t currsize = impl->bufsize;
-      if (is_writable()) {
-        if (pyobj_mode && newsize < currsize) {
-          // TODO
-        }
-        impl->resize(newsize);
-      } else {
-        MemoryMRI* newimpl = new MemoryMRI(newsize);
-        if (keep_data) {
-          size_t copysize = std::min(newsize, currsize);
-          std::memcpy(newimpl->bufdata, impl->bufdata, copysize);
-          if (pyobj_mode) {
-            newimpl->pyobjects = true;
-            PyObject** newdata = static_cast<PyObject**>(newimpl->bufdata);
-            size_t n = copysize / sizeof(PyObject*);
-            for (size_t i = 0; i < n; ++i) {
-              Py_INCREF(newdata[i]);
-            }
+    size_t oldsize = impl->bufsize;
+    if (newsize != oldsize) {
+      if (is_resizable()) {
+        if (impl->pyobjects) {
+          size_t n_old = oldsize / sizeof(PyObject*);
+          size_t n_new = newsize / sizeof(PyObject*);
+          if (n_new < n_old) {
+            PyObject** data = static_cast<PyObject**>(impl->bufdata);
+            for (size_t i = n_new; i < n_old; ++i) Py_DECREF(data[i]);
           }
+          impl->resize(newsize);
+          if (n_new > n_old) {
+            PyObject** data = static_cast<PyObject**>(impl->bufdata);
+            for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
+            Py_None->ob_refcnt += n_new - n_old;
+          }
+        } else {
+          impl->resize(newsize);
         }
-        impl->release();
-        impl = newimpl;
+      } else {
+        size_t copysize = keep_data? std::min(newsize, oldsize) : 0;
+        materialize(newsize, copysize);
       }
-    } else {
-      impl->release();
-      impl = new MemoryMRI(0);
-      impl->pyobjects = pyobj_mode;
     }
     return *this;
+  }
+
+
+  void MemoryRange::materialize(size_t newsize, size_t copysize) {
+    xassert(newsize >= copysize);
+    MemoryMRI* newimpl = new MemoryMRI(newsize);
+    if (copysize) {
+      std::memcpy(newimpl->bufdata, impl->bufdata, copysize);
+    }
+    if (impl->pyobjects) {
+      newimpl->pyobjects = true;
+      PyObject** newdata = static_cast<PyObject**>(newimpl->bufdata);
+      size_t n_new = newsize / sizeof(PyObject*);
+      size_t n_copy = copysize / sizeof(PyObject*);
+      size_t i = 0;
+      for (; i < n_copy; ++i) Py_INCREF(newdata[i]);
+      for (; i < n_new; ++i) newdata[i] = Py_None;
+      Py_None->ob_refcnt += n_new - n_copy;
+    }
+    impl->release();
+    impl = newimpl;
   }
 
 
@@ -284,6 +299,20 @@
   }
 
   bool MemoryRange::verify_integrity(IntegrityCheckContext& icc) const {
+    if (!impl) {
+      icc << "NULL implementation object in MemoryRange" << icc.end();
+      return false;
+    }
+    if (impl->refcount <= 0) {
+      icc << "Refcount in MemoryRange is non-positive: "
+          << impl->refcount << icc.end();
+      return false;
+    }
+    if (!impl->bufdata && impl->bufsize) {
+      icc << "MemoryRange has bufdata=NULL but size = " << impl->bufsize
+          << icc.end();
+      return false;
+    }
     return true;
   }
 
@@ -428,6 +457,7 @@
     bufdata = const_cast<void*>(ptr);
     bufsize = size;
     pybufinfo = pybuf;
+    resizable = false;
   }
 
   ExternalMRI::ExternalMRI(size_t n, const void* ptr)
@@ -474,7 +504,7 @@
   ViewMRI::ViewMRI(size_t n, MemoryRange& src, size_t offs)
     : source(src), offset(offs)
   {
-    xassert(src.is_writable());
+    xassert(src.is_writeable());
     xassert(offs + n <= src.size());
     bufdata = src.wptr(offs);
     bufsize = n;

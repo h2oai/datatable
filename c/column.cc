@@ -353,11 +353,7 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
   if (nrows < 0) {
     icc << name << " has a negative value for `nrows`: " <<  nrows << end;
   }
-  if (mbuf) {
-    mbuf.verify_integrity(icc);
-  } else {
-    icc << name << " has a null internal memory buffer" << end;
-  }
+  mbuf.verify_integrity(icc);
   if (icc.has_errors(nerrors)) return false;
 
   // data_nrows() may use the value in `meta`, so `meta` should be checked

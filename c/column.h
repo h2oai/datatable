@@ -563,6 +563,7 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
+  void replace_buffer(MemoryRange&&, MemoryBuffer*) override;
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 

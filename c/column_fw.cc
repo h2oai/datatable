@@ -21,7 +21,9 @@ template <typename T>
 FwColumn<T>::FwColumn() : Column(0) {}
 
 template <typename T>
-FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {}
+FwColumn<T>::FwColumn(int64_t nrows_) : Column(nrows_) {
+  mbuf.resize(elemsize() * static_cast<size_t>(nrows_));
+}
 
 template <typename T>
 FwColumn<T>::FwColumn(int64_t nrows_, MemoryRange&& mr) : Column(nrows_) {
@@ -84,7 +86,6 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 
 template <typename T>
 void FwColumn<T>::replace_buffer(MemoryRange&& new_mbuf, MemoryBuffer*) {
-  xassert(new_mbuf);
   if (new_mbuf.size() % sizeof(T)) {
     throw RuntimeError() << "New buffer has invalid size " << new_mbuf.size();
   }
@@ -157,7 +158,7 @@ void FwColumn<T>::reify() {
     // the new buffer.
     size_t start = static_cast<size_t>(ri.slice_start());
     const void* src = mbuf.rptr(start * elemsize);
-    void* dest = mbuf.is_writable()
+    void* dest = mbuf.is_writeable()
         ? mbuf.wptr()
         : newmr.resize(newsize).wptr();
     std::memmove(dest, src, newsize);
@@ -168,7 +169,7 @@ void FwColumn<T>::reify() {
     // only if we know that the indices are monotonically increasing (otherwise
     // there is a risk of scrambling the data).
     const T* data_src = static_cast<const T*>(mbuf.rptr());
-    T* data_dest = mbuf.is_writable() && ascending
+    T* data_dest = mbuf.is_writeable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
     ri.strided_loop(0, nrows, 1,
@@ -229,8 +230,9 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   char* resptr0 = resptr;
   size_t rows_to_fill = 0;
   if (col_empty) {
-    resptr += old_alloc_size;
     rows_to_fill = old_nrows;
+  } else {
+    resptr += old_alloc_size;
   }
   for (const Column* col : columns) {
     if (col->stype() == ST_VOID) {

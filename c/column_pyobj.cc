@@ -50,6 +50,12 @@ void PyObjectColumn::fill_na() {
 }
 
 
+void PyObjectColumn::replace_buffer(MemoryRange&& new_mbuf, MemoryBuffer* sb) {
+  xassert(new_mbuf.is_pyobjects());
+  FwColumn<PyObject*>::replace_buffer(std::move(new_mbuf), sb);
+}
+
+
 void PyObjectColumn::resize_and_fill(int64_t new_nrows) {
   if (new_nrows == nrows) return;
 
@@ -102,7 +108,7 @@ void PyObjectColumn::rbind_impl(
   // Copy the data
   PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());
   PyObject** dest_data0 = dest_data;
-  if (col_empty) {
+  if (!col_empty) {
     dest_data += old_nrows;
   }
   for (const Column* col : columns) {

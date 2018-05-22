@@ -297,8 +297,7 @@ struct XInfo {
  *   - creates a shallow copy of the Column (together with its buffer), and
  *     stores it in the `XInfo` struct.
  */
-static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags)
-{
+static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags) {
   XInfo* xinfo = nullptr;
   Column* col = self->ref;
 
@@ -318,7 +317,7 @@ static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags)
   xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
   xinfo->stype = col->stype();
 
-  view->buf = xinfo->mbuf.wptr();
+  view->buf = const_cast<void*>(xinfo->mbuf.rptr());
   view->obj = reinterpret_cast<PyObject*>(self);
   view->len = static_cast<Py_ssize_t>(xinfo->mbuf.size());
   view->itemsize = xinfo->strides[0];
@@ -342,8 +341,7 @@ static int getbuffer_Column(pycolumn::obj* self, Py_buffer* view, int flags)
  * This function MUST NOT decrement view->obj (== self), since it is done by
  * Python in `PyBuffer_Release()`.
  */
-static void releasebuffer_Column(pycolumn::obj*, Py_buffer* view)
-{
+static void releasebuffer_Column(pycolumn::obj*, Py_buffer* view) {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   delete xinfo;
   view->internal = nullptr;
@@ -395,7 +393,7 @@ static int dt_getbuffer_1_col(
   xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf.size());
   xinfo->stype = col->stype();
 
-  view->buf = xinfo->mbuf.wptr();
+  view->buf = const_cast<void*>(xinfo->mbuf.rptr());
   view->obj = incref(reinterpret_cast<PyObject*>(self));
   view->len = xinfo->strides[1];
   view->readonly = 1;
@@ -496,7 +494,7 @@ static int getbuffer_DataTable(
   xinfo->stype = stype;
 
   // Fill in the `view` struct
-  view->buf = xinfo->mbuf.wptr();
+  view->buf = const_cast<void*>(xinfo->mbuf.rptr());
   view->obj = incref(reinterpret_cast<PyObject*>(self));
   view->len = static_cast<Py_ssize_t>(xinfo->mbuf.size());
   view->readonly = 0;

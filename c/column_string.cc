@@ -62,7 +62,7 @@ StringColumn<T>::StringColumn(int64_t n, MemoryRange&& mb, MemoryBuffer* sb)
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  xassert(!ri && !mbuf && !strbuf);
+  xassert(!ri && !strbuf);
   strbuf = new MemoryMemBuf(0);
   mbuf = MemoryRange((static_cast<size_t>(nrows) + 1) * sizeof(T));
   mbuf.set_element<T>(0, -1);
@@ -145,28 +145,21 @@ void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
                           STRINGIFY(sizeof(T));
   }
   if (new_offbuf.get_element<T>(0) != -1) {
-    throw ValueError() << "Cannot use `new_offbuf` as an \"offsets\" buffer: "
+    throw ValueError() << "Cannot use `new_offbuf` as an `offsets` buffer: "
                           "first element of this array is not -1: got "
                        << new_offbuf.get_element<T>(0);
   }
-  if (new_strbuf->size() !=
-      static_cast<size_t>(abs(new_offbuf.get_element<T>(new_nrows)) - 1)) {
+  size_t lastoff = static_cast<size_t>(
+                      std::abs(new_offbuf.get_element<T>(new_nrows)) - 1);
+  if (new_strbuf->size() != lastoff) {
     throw ValueError() << "The size of `new_strbuf` does not correspond to the"
-                       << " last offset of `new_offbuff`: expected "
-                       << new_strbuf->size() << ", got "
-                       << abs(new_offbuf.get_element<T>(new_nrows)) - 1;
+                          " last offset of `new_offbuff`: expected "
+                       << new_strbuf->size() << ", got " << lastoff;
   }
-  // MemoryBuffer* t = new_offbuf->shallowcopy();
-  // if (mbuf) mbuf->release();
-  // mbuf = t;
-  // t = new_strbuf->shallowcopy();
-  // if (strbuf) strbuf->release();
-  // strbuf = t;
-
   if (strbuf) strbuf->release();
-  nrows = new_nrows;
-  mbuf = std::move(new_offbuf);
   strbuf = new_strbuf;
+  mbuf = std::move(new_offbuf);
+  nrows = new_nrows;
 }
 
 
@@ -435,7 +428,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
   strbuf = strbuf->safe_resize(new_strbuf_size);
-  xassert(mbuf.is_writable());
+  xassert(mbuf.is_writeable());
   xassert(!strbuf->is_readonly());
   nrows = new_nrows;
   T* offs = offsets_w();

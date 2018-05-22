@@ -104,17 +104,19 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
 
 template<typename IT, typename OT>
 inline static MemoryBuffer* cast_str_helper(
-  int64_t nrows, const IT* src, OT* toffsets)
+  const RealColumn<IT>* src, StringColumn<OT>* target)
 {
-  size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT) * 2;
+  const IT* src_data = src->elements_r();
+  OT* toffsets = target->offsets_w();
+  size_t exp_size = static_cast<size_t>(src->nrows) * sizeof(IT) * 2;
   MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   OT offset = 1;
   toffsets[-1] = -1;
-  for (int64_t i = 0; i < nrows; ++i) {
-    IT x = src[i];
+  for (int64_t i = 0; i < src->nrows; ++i) {
+    IT x = src_data[i];
     if (ISNA<IT>(x)) {
       toffsets[i] = -offset;
     } else {
@@ -171,20 +173,14 @@ void RealColumn<T>::cast_into(IntColumn<int64_t>* target) const {
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<int32_t>* target) const {
-  MemoryRange data = target->data_buf();
-  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(
-      this->nrows, this->elements_r(), target->offsets_w()
-  );
-  target->replace_buffer(std::move(data), strbuf);
+  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(this, target);
+  target->replace_buffer(target->data_buf(), strbuf);
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<int64_t>* target) const {
-  MemoryRange data = target->data_buf();
-  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(
-      this->nrows, this->elements_r(), target->offsets_w()
-  );
-  target->replace_buffer(std::move(data), strbuf);
+  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(this, target);
+  target->replace_buffer(target->data_buf(), strbuf);
 }
 
 template <>

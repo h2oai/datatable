@@ -385,23 +385,29 @@ def test_object_column():
 def test_object_column2():
     df = dt.Frame([None, nan, 3, "srsh"])
     f0 = df.countna()
+    assert f0.internal.check()
     assert f0.stypes == (stype.int64, )
-    assert f0.topython() == [[2]]
+    assert f0.scalar() == 2
     f1 = df.min()
+    assert f1.internal.check()
     assert f1.stypes == (stype.obj64, )
-    assert f1.topython() == [[None]]
+    assert f1.scalar() == None
     f2 = df.max()
+    assert f2.internal.check()
     assert f2.stypes == (stype.obj64, )
-    assert f2.topython() == [[None]]
+    assert f2.scalar() == None
     f3 = df.sum()
+    assert f3.internal.check()
     assert f3.stypes == (stype.obj64, )
-    assert f3.topython() == [[None]]
+    assert f3.scalar() == None
     f4 = df.mean()
+    assert f4.internal.check()
     assert f4.stypes == (stype.float64, )
-    assert f4.topython() == [[None]]
+    assert f4.scalar() == None
     f5 = df.sd()
+    assert f5.internal.check()
     assert f5.stypes == (stype.float64, )
-    assert f5.topython() == [[None]]
+    assert f5.scalar() == None
     with pytest.raises(NotImplementedError):
         df.mode()
     with pytest.raises(NotImplementedError):

@@ -210,22 +210,20 @@ void IntColumn<T>::cast_into(RealColumn<double>* target) const {
 
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<int32_t>* target) const {
-  MemoryRange data = target->data_buf();
-  int32_t* offsets = static_cast<int32_t*>(data.wptr()) + 1;
+  int32_t* offsets = target->offsets_w();
   MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(
       this->nrows, this->elements_r(), offsets
   );
-  target->replace_buffer(std::move(data), strbuf);
+  target->replace_buffer(target->data_buf(), strbuf);
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<int64_t>* target) const {
-  MemoryRange data = target->data_buf();
-  int64_t* offsets = static_cast<int64_t*>(data.wptr()) + 1;
+  int64_t* offsets = target->offsets_w();
   MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(
       this->nrows, this->elements_r(), offsets
   );
-  target->replace_buffer(std::move(data), strbuf);
+  target->replace_buffer(target->data_buf(), strbuf);
 }
 
 template <typename T>

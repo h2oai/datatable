@@ -111,7 +111,8 @@ class MemoryRange
     MemoryRange(size_t n, const std::string& path, int fd = -1);
 
     size_t size() const;
-    bool is_writable() const;
+    bool is_writeable() const;
+    bool is_resizable() const;
     bool is_pyobjects() const;
     operator bool() const;
 
@@ -134,10 +135,11 @@ class MemoryRange
     );
 
     PyObject* pyrepr() const;
-
     size_t memory_footprint() const;
-
     bool verify_integrity(IntegrityCheckContext& icc) const;
+
+  private:
+    void materialize(size_t newsize, size_t copysize);
 };
 
 
