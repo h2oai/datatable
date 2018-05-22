@@ -55,7 +55,7 @@
       Py_buffer* pybufinfo;
 
     public:
-      ExternalMRI(size_t n, const void* ptr);
+      ExternalMRI(size_t n, void* ptr);
       ExternalMRI(size_t n, const void* ptr, Py_buffer* pybuf);
       ExternalMRI(const char* str);
 
@@ -313,6 +313,33 @@
           << icc.end();
       return false;
     }
+    if (impl->resizable && !impl->writeable) {
+      icc << "MemoryRange is resizable but not writeable" << icc.end();
+      return false;
+    }
+    if (impl->pyobjects) {
+      size_t n = impl->bufsize / sizeof(PyObject*);
+      if (impl->bufsize != n * sizeof(PyObject*)) {
+        icc << "MemoryRange is marked as containing PyObjects, but its "
+               "size is " << impl->bufsize << ", not a multiple of "
+            << sizeof(PyObject*) << icc.end();
+        return false;
+      }
+      PyObject** elements = static_cast<PyObject**>(impl->bufdata);
+      for (size_t i = 0; i < n; ++i) {
+        if (elements[i] == nullptr) {
+          icc << "Element " << i << " in pyobjects MemoryRange is NULL"
+              << icc.end();
+          return false;
+        }
+        if (elements[i]->ob_refcnt <= 0) {
+          icc << "Reference count on PyObject at index " << i << " in "
+                 "MemoryRange is "
+              << static_cast<int64_t>(elements[i]->ob_refcnt) << icc.end();
+          return false;
+        }
+      }
+    }
     return true;
   }
 
@@ -458,10 +485,12 @@
     bufsize = size;
     pybufinfo = pybuf;
     resizable = false;
+    writeable = false;
   }
 
-  ExternalMRI::ExternalMRI(size_t n, const void* ptr)
-      : ExternalMRI(n, ptr, nullptr) {}
+  ExternalMRI::ExternalMRI(size_t n, void* ptr) : ExternalMRI(n, ptr, nullptr) {
+    writeable = true;
+  }
 
   ExternalMRI::ExternalMRI(const char* str)
       : ExternalMRI(strlen(str) + 1, str, nullptr) {}
