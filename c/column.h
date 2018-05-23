@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 #include <Python.h>
-#include "memorybuf.h"
+#include "memrange.h"     // MemoryRange
 #include "py_types.h"
 #include "python/list.h"
 #include "rowindex.h"

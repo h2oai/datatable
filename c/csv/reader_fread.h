@@ -13,7 +13,7 @@
 #include "csv/reader.h"
 #include "csv/reader_parsers.h"
 #include "csv/py_csv.h"
-#include "memorybuf.h"
+#include "memrange.h"
 #include "utils/shared_mutex.h"
 
 class FreadLocalParseContext;

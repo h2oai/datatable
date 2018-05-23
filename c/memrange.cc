@@ -32,6 +32,7 @@
 
     public:
       MemoryRangeImpl();
+      virtual ~MemoryRangeImpl();
       virtual void release();
 
       virtual void resize(size_t) {}
@@ -40,7 +41,6 @@
       virtual size_t memory_footprint() const = 0;
       virtual const char* name() const = 0;
       virtual bool verify_integrity(IntegrityCheckContext& icc) const;
-      virtual ~MemoryRangeImpl();
   };
 
 
@@ -48,12 +48,12 @@
     public:
       MemoryMRI(size_t n);
       MemoryMRI(size_t n, void* ptr);
+      ~MemoryMRI() override;
 
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "ram"; }
       bool verify_integrity(IntegrityCheckContext& icc) const override;
-      ~MemoryMRI() override;
   };
 
 
@@ -65,11 +65,11 @@
       ExternalMRI(size_t n, void* ptr);
       ExternalMRI(size_t n, const void* ptr, Py_buffer* pybuf);
       ExternalMRI(const char* str);
+      ~ExternalMRI() override;
 
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "ext"; }
-      ~ExternalMRI() override;
   };
 
 
@@ -158,7 +158,7 @@
       MmapMRI(const std::string& path);
       MmapMRI(size_t n, const std::string& path, int fd);
       MmapMRI(size_t n, const std::string& path, int fd, bool create);
-      ~MmapMRI();
+      virtual ~MmapMRI() override;
 
       void* ptr() const override;
       size_t size() const override;
@@ -168,9 +168,26 @@
       size_t memory_footprint() const override;
       const char* name() const override { return "mmap"; }
 
-    private:
-      void memmap();
+    protected:
+      virtual void memmap();
       void memunmap();
+  };
+
+
+  class OvermapMRI : public MmapMRI {
+    private:
+      void* xbuf;
+      size_t xbuf_size;
+
+    public:
+      OvermapMRI(const std::string& path, size_t n, int fd = -1);
+      ~OvermapMRI() override;
+
+      virtual size_t memory_footprint() const override;
+      const char* name() const override { return "omap"; }
+
+    protected:
+      void memmap() override;
   };
 
 
@@ -241,6 +258,10 @@
 
   MemoryRange::MemoryRange(size_t n, const std::string& path, int fd) {
     impl = new MmapMRI(n, path, fd);
+  }
+
+  MemoryRange::MemoryRange(const std::string& path, size_t extra_n, int fd) {
+    impl = new OvermapMRI(path, extra_n, fd);
   }
 
 
@@ -867,11 +888,102 @@
 
 
 
+
+//==============================================================================
+// OvermapMRI
+//==============================================================================
+
+  OvermapMRI::OvermapMRI(const std::string& path, size_t xn, int fd)
+      : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn) {}
+
+
+  void OvermapMRI::memmap() {
+    MmapMRI::memmap();
+    if (xbuf_size == 0) return;
+    if (!bufdata) return;
+
+    // The parent's constructor has opened a memory-mapped region of size
+    // `filesize + xn`. This, however, is not always enough:
+    // | A file is mapped in multiples of the page size. For a file that is
+    // | not a multiple of the page size, the remaining memory is 0ed when
+    // | mapped, and writes to that region are not written out to the file.
+    //
+    // Thus, when `filesize` is *not* a multiple of pagesize, then the
+    // memory mapping will have some writable "scratch" space at the end,
+    // filled with '\0' bytes. We check -- if this space is large enough to
+    // hold `xn` bytes, then don't do anything extra. If not (for example
+    // when `filesize` is an exact multiple of `pagesize`), then attempt to
+    // read/write past physical end of file wil fail with a BUS error -- despite
+    // the fact that the map was overallocated for the extra `xn` bytes:
+    // | Use of a mapped region can result in these signals:
+    // | SIGBUS:
+    // |   Attempted access to a portion of the buffer that does not
+    // |   correspond to the file (for example, beyond the end of the file)
+    //
+    // In order to circumvent this, we allocate a new memory-mapped region of size
+    // `xn` and placed at address `buf + filesize`. In theory, this should always
+    // succeed because we over-allocated `buf` by `xn` bytes; and even though
+    // those extra bytes are not readable/writable, at least there is a guarantee
+    // that it is not occupied by anyone else. Now, `mmap()` documentation
+    // explicitly allows to declare mappings that overlap each other:
+    // | MAP_ANONYMOUS:
+    // |   The mapping is not backed by any file; its contents are
+    // |   initialized to zero. The fd argument is ignored.
+    // | MAP_FIXED
+    // |   Don't interpret addr as a hint: place the mapping at exactly
+    // |   that address.  `addr` must be a multiple of the page size. If
+    // |   the memory region specified by addr and len overlaps pages of
+    // |   any existing mapping(s), then the overlapped part of the existing
+    // |   mapping(s) will be discarded.
+    //
+    size_t xn = xbuf_size;
+    size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+    size_t filesize = size() - xn;
+    // How much to add to filesize to align it to a page boundary
+    size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
+    if (xn > gapsize) {
+      void* target = static_cast<void*>(
+                        static_cast<char*>(bufdata) + filesize + gapsize);
+      xbuf_size = xn - gapsize;
+      xbuf = mmap(/* address = */ target,
+                  /* size = */ xbuf_size,
+                  /* protection = */ PROT_WRITE|PROT_READ,
+                  /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
+                  /* file descriptor, ignored */ -1,
+                  /* offset, ignored */ 0);
+      if (xbuf == MAP_FAILED) {
+        throw RuntimeError() << "Cannot allocate additional " << xbuf_size
+                             << " bytes at address " << target << ": " << Errno;
+      }
+    }
+  }
+
+
+  OvermapMRI::~OvermapMRI() {
+    if (!xbuf) return;
+    int ret = munmap(xbuf, xbuf_size);
+    if (ret) {
+      printf("Cannot unmap extra memory %p: [errno %d] %s",
+             xbuf, errno, std::strerror(errno));
+    }
+  }
+
+
+  size_t OvermapMRI::memory_footprint() const {
+    return MmapMRI::memory_footprint() - sizeof(MmapMRI) +
+           xbuf_size + sizeof(OvermapMRI);
+  }
+
+  // Check that resizable = false
+
+
+
 //==============================================================================
 // Template instantiations
 //==============================================================================
 
   template int32_t MemoryRange::get_element(int64_t) const;
   template int64_t MemoryRange::get_element(int64_t) const;
+  template void MemoryRange::set_element(int64_t, char);
   template void MemoryRange::set_element(int64_t, int32_t);
   template void MemoryRange::set_element(int64_t, int64_t);

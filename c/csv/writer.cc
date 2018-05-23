@@ -14,7 +14,7 @@
 #include "column.h"
 #include "csv/toa.h"
 #include "datatable.h"
-#include "memorybuf.h"
+#include "memrange.h"
 #include "utils/omp.h"
 #include "types.h"
 #include "utils.h"

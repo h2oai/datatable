@@ -111,6 +111,7 @@ class MemoryRange
     MemoryRange(size_t n, MemoryRange& src, size_t offset);
     MemoryRange(const std::string& path);
     MemoryRange(size_t n, const std::string& path, int fd = -1);
+    MemoryRange(const std::string& path, size_t nextra, int fd = -1);
 
     // Basic properties of the MemoryRange:
     //
@@ -242,6 +243,7 @@ template <> void MemoryRange::set_element(int64_t, PyObject*);
 extern template int32_t MemoryRange::get_element(int64_t) const;
 extern template int64_t MemoryRange::get_element(int64_t) const;
 extern template void MemoryRange::set_element(int64_t, PyObject*);
+extern template void MemoryRange::set_element(int64_t, char);
 extern template void MemoryRange::set_element(int64_t, int32_t);
 extern template void MemoryRange::set_element(int64_t, int64_t);
 

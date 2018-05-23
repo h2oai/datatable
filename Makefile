@@ -259,7 +259,6 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/py_expr.o            \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
-	memorybuf.o               \
 	memrange.o                \
 	mmm.o                     \
 	options.o                 \
@@ -329,7 +328,7 @@ $(BUILDDIR)/capi.h: c/capi.h
 	@echo • Refreshing c/capi.h
 	@cp c/capi.h $@
 
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/column.h
 	@cp c/column.h $@
 
@@ -348,10 +347,6 @@ $(BUILDDIR)/datatable_check.h: c/datatable_check.h
 $(BUILDDIR)/encodings.h: c/encodings.h
 	@echo • Refreshing c/encodings.h
 	@cp c/encodings.h $@
-
-$(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/memrange.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/mmm.h $(BUILDDIR)/writebuf.h
-	@echo • Refreshing c/memorybuf.h
-	@cp c/memorybuf.h $@
 
 $(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/memrange.h
@@ -425,7 +420,7 @@ $(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
 	@echo • Refreshing c/csv/dtoa.h
 	@cp c/csv/dtoa.h $@
 
-$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Refreshing c/csv/fread.h
 	@cp c/csv/fread.h $@
 
@@ -445,7 +440,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -453,7 +448,7 @@ $(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h
 	@echo • Refreshing c/csv/reader_arff.h
 	@cp c/csv/reader_arff.h $@
 
-$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/shared_mutex.h
+$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/csv/reader_fread.h
 	@cp c/csv/reader_fread.h $@
 
@@ -594,7 +589,7 @@ $(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -642,10 +637,6 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/file.h
-	@echo • Compiling $<
-	@$(CC) -c $< $(CCFLAGS) -o $@
-
 $(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
@@ -674,7 +665,7 @@ $(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
