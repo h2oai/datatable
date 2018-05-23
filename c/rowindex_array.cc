@@ -11,7 +11,7 @@
 #include <limits>              // std::numeric_limits
 #include "column.h"            // Column, BoolColumn
 #include "datatable_check.h"   // IntegrityCheckContext
-#include "memorybuf.h"         // MemoryBuffer, ExternalMemBuf
+#include "memrange.h"          // MemoryRange
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "utils/omp.h"

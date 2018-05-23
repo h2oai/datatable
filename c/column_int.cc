@@ -13,18 +13,6 @@
 
 
 
-// template <typename T>
-// IntColumn<T>::IntColumn() : FwColumn<T>() {}
-
-// template <typename T>
-// IntColumn<T>::IntColumn(int64_t nrows_, MemoryBuffer* mb) :
-//     FwColumn<T>(nrows_, mb) {}
-
-
-// template <typename T>
-// IntColumn<T>::~IntColumn() {}
-
-
 template <typename T>
 SType IntColumn<T>::stype() const {
   return stype_integer(sizeof(T));

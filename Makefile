@@ -718,7 +718,7 @@ $(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

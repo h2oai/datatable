@@ -528,18 +528,13 @@ extern template class RealColumn<double>;
  * supported by other columns. Manipulations with this column almost invariably
  * go through Python runtime, and hence are single-threaded and slow.
  *
- * When any `PyObject*` value is stored in this column's `mbuf`, its reference
- * count should be incremented (via `Py_INCREF`). When a value is removed or
- * replaced in `mbuf`, it should be decref'd. However! we do not increase
- * ref-count of each element when making a shallow copy of the column (this
- * would be too expensive). Consequently, the Column's destructor should
- * decref elements in `mbuf` if and only if that `mbuf` is not shared with any
- * other column (and when it is the last owner of `mbuf`, it should decref all
- * its elements, regardless of the current RowIndex). Also, we do not decref
- * the pointers when `mbuf` is "ExternalMemoryBuffer", under the presumption
- * that this external buffer must be managed by the external owner of that
- * buffer (hopefully the owner recognizes that the buffer contains `PyObject*`s,
- * otherwise a memory leak would occur...)
+ * The `mbuf` array for this Column must be marked as "pyobjects" (see
+ * documentation for MemoryRange). In practice it means that:
+ *   * Only real python objects may be stored, not NULL pointers.
+ *   * All stored `PyObject*`s must have their reference counts incremented.
+ *   * When a value is removed or replaced in `mbuf`, it should be decref'd.
+ * The `mbuf`'s API already respects these rules, however the user must also
+ * obey them when manipulating the data manually.
  */
 class PyObjectColumn : public FwColumn<PyObject*>
 {

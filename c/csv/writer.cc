@@ -405,7 +405,7 @@ void CsvWriter::write()
   t_write_data = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
-  // C string; otherwise truncate MemoryBuffer to the final size.
+  // C string; otherwise truncate WritableBuffer to the final size.
   VLOG("Finalizing output at size %s\n", filesize_to_str(wb->size()));
   if (path.empty()) {
     char c = '\0';
