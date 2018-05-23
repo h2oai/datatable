@@ -32,8 +32,9 @@
 
     public:
       MemoryRangeImpl();
-      virtual ~MemoryRangeImpl();
+      virtual ~MemoryRangeImpl() {}
       virtual void release();
+      void clear_pyobjects();
 
       virtual void resize(size_t) {}
       virtual size_t size() const { return bufsize; }
@@ -458,7 +459,7 @@
       writeable(true),
       resizable(true) {}
 
-  MemoryRangeImpl::~MemoryRangeImpl() {
+  void MemoryRangeImpl::clear_pyobjects() {
     // If memory buffer contains `PyObject*`s, then they must be DECREFed
     // before being deleted.
     if (bufdata && pyobjects) {
@@ -471,7 +472,10 @@
   }
 
   void MemoryRangeImpl::release() {
-    if (--refcount == 0) delete this;
+    if (--refcount == 0) {
+      clear_pyobjects();
+      delete this;
+    }
   }
 
   bool MemoryRangeImpl::verify_integrity(IntegrityCheckContext& icc) const {
@@ -697,6 +701,7 @@
     if (--refcount == 0) {
       source_memoryrange = nullptr;
       if (view_refcount == 0) {
+        clear_pyobjects();
         delete this;
       }
     }
