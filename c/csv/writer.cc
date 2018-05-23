@@ -14,7 +14,7 @@
 #include "column.h"
 #include "csv/toa.h"
 #include "datatable.h"
-#include "memorybuf.h"
+#include "memrange.h"
 #include "utils/omp.h"
 #include "types.h"
 #include "utils.h"
@@ -33,8 +33,8 @@ static writer_fn writers_per_stype[DT_STYPES_COUNT];
 // TODO: replace with classes that derive from CsvColumn and implement write()
 class CsvColumn {
 public:
-  void* data;
-  char* strbuf;
+  const void* data;
+  const char* strbuf;
   writer_fn writer;
 
   CsvColumn(Column *col) {
@@ -61,7 +61,7 @@ public:
   // This should only be called on a CsvColumn of type i4s / i8s!
   template <typename T>
   size_t strsize(int64_t row0, int64_t row1) {
-    T* offsets = reinterpret_cast<T*>(data) - 1;
+    const T* offsets = static_cast<const T*>(data) - 1;
     return static_cast<size_t>(abs(offsets[row1]) - abs(offsets[row0]));
   }
 };
@@ -77,7 +77,7 @@ public:
 //=================================================================================================
 
 static void write_b1(char** pch, CsvColumn* col, int64_t row) {
-  int8_t value = reinterpret_cast<int8_t*>(col->data)[row];
+  int8_t value = static_cast<const int8_t*>(col->data)[row];
   **pch = static_cast<char>(value) + '0';
   *pch += (value != NA_I1);
 }
@@ -85,7 +85,7 @@ static void write_b1(char** pch, CsvColumn* col, int64_t row) {
 
 template <typename T>
 void write_iN(char** pch, CsvColumn* col, int64_t row) {
-  T value = reinterpret_cast<T*>(col->data)[row];
+  T value = static_cast<const T*>(col->data)[row];
   if (ISNA<T>(value)) return;
   toa<T>(pch, value);
 }
@@ -94,8 +94,8 @@ void write_iN(char** pch, CsvColumn* col, int64_t row) {
 template <typename T>
 void write_str(char** pch, CsvColumn* col, int64_t row)
 {
-  T offset1 = ((T*) col->data)[row];
-  T offset0 = abs(((T*) col->data)[row - 1]);
+  T offset1 = (static_cast<const T*>(col->data))[row];
+  T offset0 = abs((static_cast<const T*>(col->data))[row - 1]);
   char *ch = *pch;
 
   if (offset1 < 0) return;
@@ -105,9 +105,9 @@ void write_str(char** pch, CsvColumn* col, int64_t row)
     *pch = ch + 2;
     return;
   }
-  const uint8_t *strstart = reinterpret_cast<uint8_t*>(col->strbuf) + offset0;
-  const uint8_t *strend = reinterpret_cast<uint8_t*>(col->strbuf) + offset1;
-  const uint8_t *sch = strstart;
+  const uint8_t* strstart = reinterpret_cast<const uint8_t*>(col->strbuf) + offset0;
+  const uint8_t* strend = reinterpret_cast<const uint8_t*>(col->strbuf) + offset1;
+  const uint8_t* sch = strstart;
   if (*sch == 32) goto quote;
   while (sch < strend) {  // ',' is 44, '"' is 34
     uint8_t c = *sch;
@@ -137,7 +137,7 @@ static char hexdigits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
 static void write_f8_hex(char** pch, CsvColumn* col, int64_t row)
 {
   // Read the value as if it was uint64_t
-  uint64_t value = static_cast<uint64_t*>(col->data)[row];
+  uint64_t value = static_cast<const uint64_t*>(col->data)[row];
   char *ch = *pch;
 
   if (value & F64_SIGN_MASK) {
@@ -184,7 +184,7 @@ static void write_f8_hex(char** pch, CsvColumn* col, int64_t row)
 static void write_f4_hex(char** pch, CsvColumn* col, int64_t row)
 {
   // Read the value as if it was uint32_t
-  uint32_t value = static_cast<uint32_t*>(col->data)[row];
+  uint32_t value = static_cast<const uint32_t*>(col->data)[row];
   char *ch = *pch;
 
   if (value & F32_SIGN_MASK) {
@@ -405,7 +405,7 @@ void CsvWriter::write()
   t_write_data = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
-  // C string; otherwise truncate MemoryBuffer to the final size.
+  // C string; otherwise truncate WritableBuffer to the final size.
   VLOG("Finalizing output at size %s\n", filesize_to_str(wb->size()));
   if (path.empty()) {
     char c = '\0';

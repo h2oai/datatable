@@ -11,7 +11,7 @@
 #include <limits>              // std::numeric_limits
 #include "column.h"            // Column, BoolColumn
 #include "datatable_check.h"   // IntegrityCheckContext
-#include "memorybuf.h"         // MemoryBuffer, ExternalMemBuf
+#include "memrange.h"          // MemoryRange
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "utils/omp.h"
@@ -272,7 +272,7 @@ void ArrayRowIndexImpl::set_min_max(const dt::array<T>& arr, bool sorted) {
 
 
 void ArrayRowIndexImpl::init_from_boolean_column(BoolColumn* col) {
-  int8_t* data = col->elements();
+  const int8_t* data = col->elements_r();
   length = col->sum();  // total # of 1s in the column
   size_t zlen = static_cast<size_t>(length);
 
@@ -323,17 +323,19 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
   if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::RI_ARR32;
     ind32.resize(zn);
-    MemoryBuffer* xbuf = new ExternalMemBuf(ind32.data(), zn * 4);
     // Column cast either converts the data, or memcpy-es it. The `col3`s data
     // will be written into `xbuf`, which is just a view onto `ind32`. Also,
     // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
     // the column is destructed.
-    col3 = col2->cast(ST_INTEGER_I4, xbuf);
+    MemoryRange xbuf(zn * sizeof(int32_t), ind32.data(), /*owned = */ false);
+    xassert(xbuf.is_writeable());
+    col3 = col2->cast(ST_INTEGER_I4, std::move(xbuf));
   } else {
     type = RowIndexType::RI_ARR64;
     ind64.resize(zn);
-    MemoryBuffer* xbuf = new ExternalMemBuf(ind64.data(), zn * 8);
-    col3 = col2->cast(ST_INTEGER_I8, xbuf);
+    MemoryRange xbuf(zn * sizeof(int64_t), ind64.data(), /*owned = */ false);
+    xassert(xbuf.is_writeable());
+    col3 = col2->cast(ST_INTEGER_I8, std::move(xbuf));
   }
 
   delete col2;

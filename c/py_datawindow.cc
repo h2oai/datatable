@@ -179,11 +179,10 @@ static int _init_hexview(
   // Window dimensions
   int64_t ncols = col1 - col0;
   int64_t nrows = row1 - row0;
-  // printf("ncols = %ld, nrows = %ld\n", ncols, nrows);
 
-  uint8_t *coldata = (uint8_t*) add_ptr(column->data(), 16 * row0);
-  uint8_t *coldata_end = (uint8_t*) add_ptr(column->data(), column->alloc_size());
-  // printf("coldata = %p, end = %p\n", coldata, coldata_end);
+  const uint8_t* ptr0 = static_cast<const uint8_t*>(column->data());
+  const uint8_t* coldata = ptr0 + 16 * row0;
+  const uint8_t* coldata_end = ptr0 + column->alloc_size();
   viewdata = PyList_New(ncols);
   if (!viewdata) goto fail;
   for (int i = 0; i < ncols; i++) {
@@ -193,7 +192,7 @@ static int _init_hexview(
 
     if (i < 16) {
       for (int j = 0; j < nrows; j++) {
-        uint8_t *ch = coldata + i + (j * 16);
+        const uint8_t* ch = coldata + i + (j * 16);
         PyList_SET_ITEM(py_coldata, j,
           incref(ch < coldata_end? hexcodes[*ch] : hexcodes[256]));
       }
@@ -202,7 +201,7 @@ static int _init_hexview(
       for (int j = 0; j < nrows; j++) {
         char buf[16];
         for (int k = 0; k < 16; k++) {
-          uint8_t *ch = coldata + k + (j * 16);
+          const uint8_t* ch = coldata + k + (j * 16);
           buf[k] = ch >= coldata_end? ' ' :
                (*ch < 0x20 ||( *ch >= 0x7F && *ch < 0xA0))? '.' :
                (char) *ch;

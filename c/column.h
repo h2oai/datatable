@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 #include <Python.h>
-#include "memorybuf.h"
+#include "memrange.h"     // MemoryRange
 #include "py_types.h"
 #include "python/list.h"
 #include "rowindex.h"
@@ -50,9 +50,8 @@ template <typename T> class StringColumn;
  * Parameters
  * ----------
  * mbuf
- *     Raw data buffer in NFF format, its interpretation depends on the subclass
- *     of the current class, but generally it's a plain array of primitive C
- *     types (such as int32_t or double).
+ *     Raw data buffer, generally it's a plain array of primitive C types
+ *     (such as `int32_t` or `double`).
  *
  * ri
  *     RowIndex applied to the column's data. All access to the contents of the
@@ -71,7 +70,7 @@ template <typename T> class StringColumn;
 class Column
 {
 protected:
-  MemoryBuffer* mbuf;
+  MemoryRange mbuf;
   RowIndex ri;
   mutable Stats* stats;
 
@@ -84,27 +83,30 @@ public:
   static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
-  static Column* new_mbuf_column(SType, MemoryBuffer*, MemoryBuffer*);
+  static Column* new_mbuf_column(SType, MemoryRange&&);
+  static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
-  virtual void replace_buffer(MemoryBuffer*, MemoryBuffer*) = 0;
+  virtual void replace_buffer(MemoryRange&&);
+  virtual void replace_buffer(MemoryRange&&, MemoryRange&&);
 
   virtual SType stype() const = 0;
   virtual size_t elemsize() const = 0;
   virtual bool is_fixedwidth() const = 0;
 
   void replace_rowindex(const RowIndex& newri);
-  void* data() const { return mbuf->get(); }
-  void* data_at(size_t i) const { return mbuf->at(i); }
-  const RowIndex& rowindex() const { return ri; }
-  size_t alloc_size() const;
-  virtual int64_t data_nrows() const = 0;
+
+  MemoryRange data_buf() const { return mbuf; }
+  const void* data() const { return mbuf.rptr(); }
+  void* data_w() { return mbuf.wptr(); }
   PyObject* mbuf_repr() const;
-  int mbuf_refcount() const;
-  MemoryBuffer* mbuf_shallowcopy() const;
+  size_t alloc_size() const;
+
+  const RowIndex& rowindex() const { return ri; }
+  virtual int64_t data_nrows() const = 0;
   size_t memory_footprint() const;
   RowIndex sort(bool make_groups) const;
 
@@ -142,19 +144,18 @@ public:
   virtual Column* shallowcopy(const RowIndex& new_rowindex) const;
   Column* shallowcopy() const { return shallowcopy(RowIndex()); }
 
-  virtual Column* deepcopy() const;
-
   /**
    * Factory method to cast the current column into the given `stype`. If a
    * column is cast into its own stype, a shallow copy is returned. Otherwise,
    * this method constructs a new column of the provided stype and writes the
    * converted data into it.
    *
-   * If the MemoryBuffer is provided, then that buffer will be used in the
+   * If the MemoryRange is provided, then that buffer will be used in the
    * creation of the resulting column (the Column will assume ownership of the
-   * provided MemoryBuffer).
+   * provided MemoryRange).
    */
-  Column* cast(SType, MemoryBuffer* mb = nullptr) const;
+  Column* cast(SType stype) const;
+  Column* cast(SType stype, MemoryRange&& mr) const;
 
   /**
    * Replace values at positions given by the RowIndex `replace_at` with
@@ -309,9 +310,11 @@ private:
 template <typename T> class FwColumn : public Column
 {
 public:
-  FwColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
-  T* elements() const;
+  FwColumn(int64_t nrows);
+  FwColumn(int64_t nrows, MemoryRange&&);
+  void replace_buffer(MemoryRange&&) override;
+  const T* elements_r() const;
+  T* elements_w();
   T get_elem(int64_t i) const;
   void set_elem(int64_t i, T value);
 
@@ -354,8 +357,7 @@ extern template class FwColumn<PyObject*>;
 class BoolColumn : public FwColumn<int8_t>
 {
 public:
-  BoolColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~BoolColumn() override;
+  using FwColumn<int8_t>::FwColumn;
   SType stype() const override;
 
   int8_t min() const;
@@ -379,7 +381,6 @@ public:
   PyObject* sd_pyscalar() const override;
 
 protected:
-  BoolColumn();
   BooleanStats* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -407,8 +408,7 @@ protected:
 template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
-  IntColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~IntColumn() override;
+  using FwColumn<T>::FwColumn;
   virtual SType stype() const override;
 
   T min() const;
@@ -434,7 +434,6 @@ public:
   PyObject* sd_pyscalar() const override;
 
 protected:
-  IntColumn();
   IntegerStats<T>* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -469,8 +468,7 @@ extern template class IntColumn<int64_t>;
 template <typename T> class RealColumn : public FwColumn<T>
 {
 public:
-  RealColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~RealColumn() override;
+  using FwColumn<T>::FwColumn;
   virtual SType stype() const override;
 
   T min() const;
@@ -494,8 +492,6 @@ public:
   PyObject* sd_pyscalar() const override;
 
 protected:
-  RealColumn();
-
   RealStats<T>* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -532,24 +528,19 @@ extern template class RealColumn<double>;
  * supported by other columns. Manipulations with this column almost invariably
  * go through Python runtime, and hence are single-threaded and slow.
  *
- * When any `PyObject*` value is stored in this column's `mbuf`, its reference
- * count should be incremented (via `Py_INCREF`). When a value is removed or
- * replaced in `mbuf`, it should be decref'd. However! we do not increase
- * ref-count of each element when making a shallow copy of the column (this
- * would be too expensive). Consequently, the Column's destructor should
- * decref elements in `mbuf` if and only if that `mbuf` is not shared with any
- * other column (and when it is the last owner of `mbuf`, it should decref all
- * its elements, regardless of the current RowIndex). Also, we do not decref
- * the pointers when `mbuf` is "ExternalMemoryBuffer", under the presumption
- * that this external buffer must be managed by the external owner of that
- * buffer (hopefully the owner recognizes that the buffer contains `PyObject*`s,
- * otherwise a memory leak would occur...)
+ * The `mbuf` array for this Column must be marked as "pyobjects" (see
+ * documentation for MemoryRange). In practice it means that:
+ *   * Only real python objects may be stored, not NULL pointers.
+ *   * All stored `PyObject*`s must have their reference counts incremented.
+ *   * When a value is removed or replaced in `mbuf`, it should be decref'd.
+ * The `mbuf`'s API already respects these rules, however the user must also
+ * obey them when manipulating the data manually.
  */
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
-  PyObjectColumn(int64_t nrows, MemoryBuffer* = nullptr);
-  virtual ~PyObjectColumn() override;
+  PyObjectColumn(int64_t nrows);
+  PyObjectColumn(int64_t nrows, MemoryRange&&);
   virtual SType stype() const override;
 
 protected:
@@ -569,6 +560,7 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
+  void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
@@ -586,15 +578,14 @@ protected:
 
 template <typename T> class StringColumn : public Column
 {
-  MemoryBuffer *strbuf;
+  MemoryRange strbuf;
 
 public:
-  StringColumn(int64_t nrows,
-      MemoryBuffer* offbuf = nullptr, MemoryBuffer* strbuf = nullptr);
-  virtual ~StringColumn() override;
+  StringColumn(int64_t nrows);
+  StringColumn(int64_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
-  void replace_buffer(MemoryBuffer*, MemoryBuffer*) override;
+  void replace_buffer(MemoryRange&&, MemoryRange&&) override;
 
   SType stype() const override;
   size_t elemsize() const override;
@@ -606,16 +597,15 @@ public:
 
   size_t datasize() const;
   int64_t data_nrows() const override;
-  static size_t padding(size_t datasize);
-  char* strdata() const;
-  T* offsets() const;
+  const char* strdata() const;
+  const T* offsets() const;
+  T* offsets_w();
 
   CString mode() const;
   PyObject* mode_pyscalar() const override;
   Column* mode_column() const override;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
-  Column* deepcopy() const override;
   void replace_values(RowIndex at, const Column* with) override;
 
   bool verify_integrity(IntegrityCheckContext&,
@@ -667,7 +657,6 @@ class VoidColumn : public Column
 {
 public:
   VoidColumn(int64_t nrows) : Column(nrows) {}
-  void replace_buffer(MemoryBuffer*, MemoryBuffer*) override {}
   SType stype() const override { return ST_VOID; }
   size_t elemsize() const override { return 0; }
   bool is_fixedwidth() const override { return true; }

@@ -999,10 +999,10 @@ void FreadLocalParseContext::postprocess() {
                   quoteRule == 1? '\\' : 0xFF;
   size_t nstrcols = strbufs.size();
   for (size_t k = 0; k < nstrcols; ++k) {
-    MemoryBuffer* strdest = strbufs[k].mbuf;
+    MemoryRange& strdest = strbufs[k].mbuf;
     field64* lo = tbuf + strbufs[k].idx8;
     int32_t off = 1;
-    size_t bufsize = strbufs[k].mbuf->size();
+    size_t bufsize = strdest.size();
     for (size_t n = 0; n < used_nrows; n++) {
       int32_t len = lo->str32.length;
       if (len > 0) {
@@ -1010,10 +1010,11 @@ void FreadLocalParseContext::postprocess() {
         size_t zoff = static_cast<size_t>(off);
         if (bufsize < zlen * 3 + zoff) {
           bufsize = bufsize * 2 + zlen * 3;
-          strdest->resize(bufsize);
+          strdest.resize(bufsize);
         }
         const uint8_t* src = zanchor + lo->str32.offset;
-        uint8_t* dest = static_cast<uint8_t*>(strdest->at(off - 1));
+        uint8_t* dest = static_cast<uint8_t*>(
+                          strdest.wptr(static_cast<size_t>(off) - 1));
         int res = check_escaped_string(src, zlen, echar);
         if (res == 0) {
           memcpy(dest, src, zlen);
@@ -1057,7 +1058,7 @@ void FreadLocalParseContext::orderBuffer() {
     size_t sz = static_cast<size_t>(abs(lastOffset) - 1);
 
     WritableBuffer* wb = columns[i].strdata;
-    size_t write_at = wb->prep_write(sz, strbufs[k].mbuf->get());
+    size_t write_at = wb->prep_write(sz, strbufs[k].mbuf.rptr());
     strbufs[k].ptr = write_at;
     strbufs[k].sz = sz;
     if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
@@ -1080,9 +1081,9 @@ void FreadLocalParseContext::push_buffers() {
   double t0 = verbose? wallclock() : 0;
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0, k = 0; i < ncols; i++) {
-    const GReaderColumn& col = columns[i];
+    GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
-    void* data = col.data();
+    void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
 
     if (col.typeBumped) {
@@ -1095,7 +1096,7 @@ void FreadLocalParseContext::push_buffers() {
       size_t sz = sb.sz;
       field64* lo = tbuf + sb.idx8;
 
-      wb->write_at(ptr, sz, sb.mbuf->get());
+      wb->write_at(ptr, sz, sb.mbuf.rptr());
 
       if (elemsize == 4) {
         int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;

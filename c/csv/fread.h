@@ -11,7 +11,7 @@
 #include <stdlib.h>  // size_t
 #include "utils.h"
 #include "utils/omp.h"
-#include "memorybuf.h"
+#include "memrange.h"
 #include "csv/reader.h"
 
 extern const long double pow10lookup[701];
@@ -101,35 +101,27 @@ typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 //         other threads is allowed to initiate a memcopy.
 //
 struct StrBuf {
-  MemoryBuffer* mbuf;
+  MemoryRange mbuf;
   size_t idx8;
   size_t idxdt;
   size_t ptr;
   size_t sz;
 
   StrBuf(size_t allocsize, size_t i8, size_t idt) {
-    mbuf = new MemoryMemBuf(allocsize);
+    mbuf.resize(allocsize);
     ptr = 0;
     idx8 = i8;
     idxdt = idt;
   }
 
   StrBuf(StrBuf&& other) {
-    mbuf = other.mbuf;
+    mbuf = std::move(other.mbuf);
     ptr = other.ptr;
     idx8 = other.idx8;
     idxdt = other.idxdt;
-    other.mbuf = nullptr;
   }
 
   StrBuf(const StrBuf&) = delete;
-
-  ~StrBuf() {
-    if (mbuf) {
-      mbuf->release();
-      mbuf = nullptr;
-    }
-  }
 };
 
 

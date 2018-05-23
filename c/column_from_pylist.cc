@@ -38,11 +38,11 @@ extern PyObject* Py_Zero;
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(PyyList& list, MemoryBuffer* membuf, size_t& from)
+static bool parse_as_bool(PyyList& list, MemoryRange& membuf, size_t& from)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows);
-  int8_t* outdata = static_cast<int8_t*>(membuf->get());
+  membuf.resize(nrows);
+  int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   // Use the fact that Python stores small integers as singletons, and thus
   // in order to check whether a PyObject* is integer 0 or 1 it's enough to
@@ -73,11 +73,11 @@ static bool parse_as_bool(PyyList& list, MemoryBuffer* membuf, size_t& from)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(PyyList& list, MemoryBuffer* membuf)
+static void force_as_bool(PyyList& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows);
-  int8_t* outdata = static_cast<int8_t*>(membuf->get());
+  membuf.resize(nrows);
+  int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
     PyObj item = list[i];
@@ -103,11 +103,11 @@ static void force_as_bool(PyyList& list, MemoryBuffer* membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(PyyList& list, MemoryBuffer* membuf, size_t& from)
+static bool parse_as_int(PyyList& list, MemoryRange& membuf, size_t& from)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf->get());
+  membuf.resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
   for (int j = 0; j < 2; ++j) {
@@ -144,11 +144,11 @@ static bool parse_as_int(PyyList& list, MemoryBuffer* membuf, size_t& from)
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(PyyList& list, MemoryBuffer* membuf)
+static void force_as_int(PyyList& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf->get());
+  membuf.resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
     PyObj item = list[i];
@@ -172,11 +172,11 @@ static void force_as_int(PyyList& list, MemoryBuffer* membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(PyyList& list, MemoryBuffer* membuf, size_t& from)
+static bool parse_as_double(PyyList& list, MemoryRange& membuf, size_t& from)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows * sizeof(double));
-  double* outdata = static_cast<double*>(membuf->get());
+  membuf.resize(nrows * sizeof(double));
+  double* outdata = static_cast<double*>(membuf.wptr());
 
   int overflow = 0;
   for (int j = 0; j < 2; ++j) {
@@ -208,11 +208,11 @@ static bool parse_as_double(PyyList& list, MemoryBuffer* membuf, size_t& from)
 
 
 template <typename T>
-static void force_as_real(PyyList& list, MemoryBuffer* membuf)
+static void force_as_real(PyyList& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf->get());
+  membuf.resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
   for (size_t i = 0; i < nrows; ++i) {
@@ -240,15 +240,15 @@ static void force_as_real(PyyList& list, MemoryBuffer* membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(PyyList& list, MemoryBuffer* offbuf,
-                         MemoryBuffer*& strbuf)
+static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
+                         MemoryRange& strbuf)
 {
   size_t nrows = list.size();
-  offbuf->resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf->get()) + 1;
+  offbuf.resize((nrows + 1) * sizeof(T));
+  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
   offsets[-1] = -1;
-  if (strbuf == nullptr) {
-    strbuf = new MemoryMemBuf(nrows * 4);  // arbitrarily 4 chars per element
+  if (!strbuf) {
+    strbuf.resize(nrows * 4);  // arbitrarily 4 chars per element
   }
 
   T curr_offset = 1;
@@ -272,12 +272,12 @@ static bool parse_as_str(PyyList& list, MemoryBuffer* offbuf,
           break;
         }
         // Resize the strbuf if necessary
-        if (strbuf->size() < static_cast<size_t>(next_offset)) {
+        if (strbuf.size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
-          strbuf->resize(static_cast<size_t>(newsize));
+          strbuf.resize(static_cast<size_t>(newsize));
         }
-        memcpy(strbuf->at(curr_offset - 1), cstr, len);
+        std::memcpy(strbuf.wptr(static_cast<size_t>(curr_offset) - 1), cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -287,12 +287,11 @@ static bool parse_as_str(PyyList& list, MemoryBuffer* offbuf,
   }
   if (i < nrows) {
     if (std::is_same<T, int64_t>::value) {
-      strbuf->release();
-      strbuf = nullptr;
+      strbuf.resize(0);
     }
     return false;
   } else {
-    strbuf->resize(static_cast<size_t>(curr_offset - 1));
+    strbuf.resize(static_cast<size_t>(curr_offset - 1));
     return true;
   }
 }
@@ -311,19 +310,19 @@ static bool parse_as_str(PyyList& list, MemoryBuffer* offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(PyyList& list, MemoryBuffer* offbuf,
-                         MemoryBuffer*& strbuf)
+static void force_as_str(PyyList& list, MemoryRange& offbuf,
+                         MemoryRange& strbuf)
 {
   size_t nrows = list.size();
   if (nrows > std::numeric_limits<T>::max()) {
     throw ValueError()
       << "Cannot store " << nrows << " elements in a str32 column";
   }
-  offbuf->resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf->get()) + 1;
+  offbuf.resize((nrows + 1) * sizeof(T));
+  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
   offsets[-1] = -1;
-  if (strbuf == nullptr) {
-    strbuf = new MemoryMemBuf(nrows * 4);
+  if (!strbuf) {
+    strbuf.resize(nrows * 4);
   }
 
   T curr_offset = 1;
@@ -348,12 +347,12 @@ static void force_as_str(PyyList& list, MemoryBuffer* offbuf,
           offsets[i] = -curr_offset;
           continue;
         }
-        if (strbuf->size() < static_cast<size_t>(next_offset)) {
+        if (strbuf.size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
-          strbuf->resize(static_cast<size_t>(newsize));
+          strbuf.resize(static_cast<size_t>(newsize));
         }
-        memcpy(strbuf->at(curr_offset - 1), cstr, len);
+        std::memcpy(strbuf.wptr(static_cast<size_t>(curr_offset) - 1), cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -362,7 +361,7 @@ static void force_as_str(PyyList& list, MemoryBuffer* offbuf,
       offsets[i] = -curr_offset;
     }
   }
-  strbuf->resize(static_cast<size_t>(curr_offset - 1));
+  strbuf.resize(static_cast<size_t>(curr_offset - 1));
 }
 
 
@@ -371,11 +370,11 @@ static void force_as_str(PyyList& list, MemoryBuffer* offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(PyyList& list, MemoryBuffer* membuf)
+static bool parse_as_pyobj(PyyList& list, MemoryRange& membuf)
 {
   size_t nrows = list.size();
-  membuf->resize(nrows * sizeof(PyObject*));
-  PyObject** outdata = static_cast<PyObject**>(membuf->get());
+  membuf.resize(nrows * sizeof(PyObject*));
+  PyObject** outdata = static_cast<PyObject**>(membuf.wptr());
 
   for (size_t i = 0; i < nrows; ++i) {
     PyObj item = list[i];
@@ -432,8 +431,8 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
     throw ValueError() << "Cannot fix both stype and ltype";
   }
 
-  MemoryBuffer* membuf = new MemoryMemBuf(0);
-  MemoryBuffer* strbuf = nullptr;
+  MemoryRange membuf(0);
+  MemoryRange strbuf(0);
   int stype = find_next_stype(0, stype0, ltype0);
   size_t i = 0;
   while (stype) {
@@ -474,6 +473,13 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
     }
   }
   Column* col = Column::new_column(static_cast<SType>(stype));
-  col->replace_buffer(membuf, strbuf);
+  if (stype == ST_OBJECT_PYPTR) {
+    membuf.set_pyobjects(/* clear_data = */ false);
+  }
+  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+    col->replace_buffer(std::move(membuf), std::move(strbuf));
+  } else {
+    col->replace_buffer(std::move(membuf));
+  }
   return col;
 }

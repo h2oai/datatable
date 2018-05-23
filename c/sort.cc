@@ -334,7 +334,7 @@ class SortContext {
    * the addition is done as addition of unsigned bytes (i.e. modulo 256).
    */
   void _initB(const Column* col) {
-    uint8_t* xi = static_cast<uint8_t*>(col->data());
+    const uint8_t* xi = static_cast<const uint8_t*>(col->data());
     uint8_t* xo = new uint8_t[n];
     x = static_cast<void*>(xo);
     elemsize = 1;
@@ -381,7 +381,7 @@ class SortContext {
   void _initI_impl(const Column* col, T min) {
     TI una = static_cast<TI>(GETNA<T>());
     TI umin = static_cast<TI>(min);
-    TI* xi = static_cast<TI*>(col->data());
+    const TI* xi = static_cast<const TI*>(col->data());
     TO* xo = new TO[n];
     x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
@@ -433,7 +433,7 @@ class SortContext {
    */
   template <typename TO>
   void _initF(const Column* col) {
-    TO* xi = static_cast<TO*>(col->data());
+    const TO* xi = static_cast<const TO*>(col->data());
     TO* xo = new TO[n];
     x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
@@ -478,9 +478,9 @@ class SortContext {
   template <typename T>
   void _initS(const Column* col) {
     auto scol = static_cast<const StringColumn<T>*>(col);
-    strdata = reinterpret_cast<uint8_t*>(scol->strdata());
-    T* offs = scol->offsets();
-    stroffs = static_cast<void*>(offs);
+    strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
+    const T* offs = scol->offsets();
+    stroffs = static_cast<const void*>(offs);
     strtype = sizeof(T) / 4;
     strstart = 0;
     uint8_t* xo = new uint8_t[n];

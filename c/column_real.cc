@@ -10,16 +10,6 @@
 #include "utils/omp.h"
 #include "py_utils.h"
 
-template <typename T>
-RealColumn<T>::RealColumn() : FwColumn<T>() {}
-
-template <typename T>
-RealColumn<T>::RealColumn(int64_t nrows_, MemoryBuffer* mb) :
-    FwColumn<T>(nrows_, mb) {}
-
-
-template <typename T>
-RealColumn<T>::~RealColumn() {}
 
 
 template <typename T>
@@ -102,6 +92,7 @@ template <typename T> PyObject* RealColumn<T>::sd_pyscalar() const { return floa
 //------------------------------------------------------------------------------
 // Type casts
 //------------------------------------------------------------------------------
+typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template<typename IT, typename OT>
 inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
@@ -113,18 +104,20 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
 }
 
 template<typename IT, typename OT>
-inline static MemoryBuffer* cast_str_helper(
-  int64_t nrows, const IT* src, OT* toffsets)
+inline static MemoryRange cast_str_helper(
+  const RealColumn<IT>* src, StringColumn<OT>* target)
 {
-  size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT) * 2;
-  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  const IT* src_data = src->elements_r();
+  OT* toffsets = target->offsets_w();
+  size_t exp_size = static_cast<size_t>(src->nrows) * sizeof(IT) * 2;
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
   OT offset = 1;
   toffsets[-1] = -1;
-  for (int64_t i = 0; i < nrows; ++i) {
-    IT x = src[i];
+  for (int64_t i = 0; i < src->nrows; ++i) {
+    IT x = src_data[i];
     if (ISNA<IT>(x)) {
       toffsets[i] = -offset;
     } else {
@@ -141,17 +134,15 @@ inline static MemoryBuffer* cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
-  MemoryBuffer* res = wb->get_mbuf();
-  delete wb;
-  return res;
+  return wb->get_mbuf();
 }
 
 
 template <typename T>
 void RealColumn<T>::cast_into(BoolColumn* target) const {
   constexpr int8_t na_trg = GETNA<int8_t>();
-  T* src_data = this->elements();
-  int8_t* trg_data = target->elements();
+  const T* src_data = this->elements_r();
+  int8_t* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
@@ -161,46 +152,40 @@ void RealColumn<T>::cast_into(BoolColumn* target) const {
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int8_t>* target) const {
-  cast_helper<T, int8_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int8_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int16_t>* target) const {
-  cast_helper<T, int16_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int16_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int32_t>* target) const {
-  cast_helper<T, int32_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int32_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(IntColumn<int64_t>* target) const {
-  cast_helper<T, int64_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int64_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<int32_t>* target) const {
-  MemoryBuffer* data = target->mbuf_shallowcopy();
-  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(
-      this->nrows, this->elements(), target->offsets()
-  );
-  target->replace_buffer(data, strbuf);
+  MemoryRange strbuf = cast_str_helper<T, int32_t>(this, target);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<int64_t>* target) const {
-  MemoryBuffer* data = target->mbuf_shallowcopy();
-  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(
-      this->nrows, this->elements(), target->offsets()
-  );
-  target->replace_buffer(data, strbuf);
+  MemoryRange strbuf = cast_str_helper<T, int64_t>(this, target);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <>
 void RealColumn<float>::cast_into(RealColumn<double>* target) const {
-  float* src_data = this->elements();
-  double* trg_data = target->elements();
+  const float* src_data = this->elements_r();
+  double* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     trg_data[i] = static_cast<double>(src_data[i]);
@@ -209,8 +194,8 @@ void RealColumn<float>::cast_into(RealColumn<double>* target) const {
 
 template <>
 void RealColumn<double>::cast_into(RealColumn<float>* target) const {
-  double* src_data = this->elements();
-  float* trg_data = target->elements();
+  const double* src_data = this->elements_r();
+  float* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     trg_data[i] = static_cast<float>(src_data[i]);
@@ -219,18 +204,18 @@ void RealColumn<double>::cast_into(RealColumn<float>* target) const {
 
 template <>
 void RealColumn<float>::cast_into(RealColumn<float>* target) const {
-  memcpy(target->data(), this->data(), alloc_size());
+  std::memcpy(target->data_w(), this->data(), alloc_size());
 }
 
 template <>
 void RealColumn<double>::cast_into(RealColumn<double>* target) const {
-  memcpy(target->data(), this->data(), alloc_size());
+  std::memcpy(target->data_w(), this->data(), alloc_size());
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(PyObjectColumn* target) const {
-  T* src_data = this->elements();
-  PyObject** trg_data = target->elements();
+  const T* src_data = this->elements_r();
+  PyObject** trg_data = target->elements_w();
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     trg_data[i] = ISNA<T>(x)? none()

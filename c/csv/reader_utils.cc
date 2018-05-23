@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 
 GReaderColumn::GReaderColumn() {
-  mbuf = nullptr;
   strdata = nullptr;
   type = PT::Mu;
   rtype = RT::RAuto;
@@ -31,15 +30,14 @@ GReaderColumn::GReaderColumn() {
 }
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
-  : mbuf(o.mbuf), name(std::move(o.name)), strdata(o.strdata), type(o.type),
-    rtype(o.rtype), typeBumped(o.typeBumped),
-    presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer) {
-  o.mbuf = nullptr;
+  : mbuf(std::move(o.mbuf)), name(std::move(o.name)), strdata(o.strdata),
+    type(o.type), rtype(o.rtype), typeBumped(o.typeBumped),
+    presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer)
+{
   o.strdata = nullptr;
 }
 
 GReaderColumn::~GReaderColumn() {
-  if (mbuf) mbuf->release();
   delete strdata;
 }
 
@@ -48,16 +46,12 @@ void GReaderColumn::allocate(size_t nrows) {
   if (!presentInOutput) return;
   bool col_is_string = isstring();
   size_t allocsize = (nrows + col_is_string) * elemsize();
-  if (mbuf) {
-    mbuf->resize(allocsize);
-  } else {
-    mbuf = new MemoryMemBuf(allocsize);
-  }
+  mbuf.resize(allocsize);
   if (col_is_string) {
     if (elemsize() == 4)
-      mbuf->set_elem<int32_t>(0, -1);
+      mbuf.set_element<int32_t>(0, -1);
     else
-      mbuf->set_elem<int64_t>(0, -1);
+      mbuf.set_element<int64_t>(0, -1);
     if (!strdata) {
       strdata = new MemoryWritableBuffer(allocsize);
     }
@@ -87,21 +81,19 @@ bool GReaderColumn::isstring() const {
   return ParserLibrary::info(type).isstring();
 }
 
-MemoryBuffer* GReaderColumn::extract_databuf() {
-  MemoryBuffer* r = mbuf;
-  mbuf = nullptr;
-  return r;
+MemoryRange GReaderColumn::extract_databuf() {
+  return std::move(mbuf);
 }
 
-MemoryBuffer* GReaderColumn::extract_strbuf() {
-  if (!(strdata && isstring())) return nullptr;
+MemoryRange GReaderColumn::extract_strbuf() {
+  if (!(strdata && isstring())) return MemoryRange();
   // TODO: make get_mbuf() method available on WritableBuffer itself
   strdata->finalize();
   return strdata->get_mbuf();
 }
 
 size_t GReaderColumn::getAllocSize() const {
-  return (mbuf? mbuf->size() : 0) +
+  return mbuf.memory_footprint() +
          (strdata? strdata->size() : 0) +
          name.size() + sizeof(*this);
 }
@@ -109,16 +101,15 @@ size_t GReaderColumn::getAllocSize() const {
 
 void GReaderColumn::convert_to_str64() {
   xassert(type == PT::Str32);
-  size_t nelems = mbuf->size() / sizeof(int32_t);
-  MemoryBuffer* new_mbuf = new MemoryMemBuf(nelems * sizeof(int64_t));
-  int32_t* old_data = static_cast<int32_t*>(mbuf->get());
-  int64_t* new_data = static_cast<int64_t*>(new_mbuf->get());
+  size_t nelems = mbuf.size() / sizeof(int32_t);
+  MemoryRange new_mbuf(nelems * sizeof(int64_t));
+  const int32_t* old_data = static_cast<const int32_t*>(mbuf.rptr());
+  int64_t* new_data = static_cast<int64_t*>(new_mbuf.wptr());
   for (size_t i = 0; i < nelems; ++i) {
     new_data[i] = old_data[i];
   }
   type = PT::Str64;
-  mbuf->release();
-  mbuf = new_mbuf->shallowcopy();
+  mbuf = std::move(new_mbuf);
 }
 
 

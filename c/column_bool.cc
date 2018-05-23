@@ -11,17 +11,6 @@
 
 
 
-//------------------------------------------------------------------------------
-// Constructors
-//------------------------------------------------------------------------------
-
-BoolColumn::BoolColumn() : FwColumn<int8_t>() {}
-
-BoolColumn::BoolColumn(int64_t nrows_, MemoryBuffer* mb) :
-    FwColumn<int8_t>(nrows_, mb) {}
-
-BoolColumn::~BoolColumn() {}
-
 
 SType BoolColumn::stype() const {
   return ST_BOOLEAN_I1;
@@ -94,8 +83,9 @@ PyObject* BoolColumn::sd_pyscalar() const { return float_to_py(sd()); }
 //------------------------------------------------------------------------------
 // Type casts
 //------------------------------------------------------------------------------
+typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
-template<typename T>
+template <typename T>
 inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < nrows; ++i) {
@@ -104,12 +94,12 @@ inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
   }
 }
 
-template<typename T>
-inline static MemoryBuffer* cast_str_helper(
+template <typename T>
+inline static MemoryRange cast_str_helper(
   int64_t nrows, const int8_t* src, T* toffsets)
 {
   size_t exp_size = static_cast<size_t>(nrows);
-  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
@@ -132,60 +122,58 @@ inline static MemoryBuffer* cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
-  MemoryBuffer* res = wb->get_mbuf();
-  delete wb;
-  return res;
+  return wb->get_mbuf();
 }
 
 
 void BoolColumn::cast_into(BoolColumn* target) const {
-  memcpy(target->data(), data(), alloc_size());
+  std::memcpy(target->data_w(), data(), alloc_size());
 }
 
 void BoolColumn::cast_into(IntColumn<int8_t>* target) const {
-  memcpy(target->data(), data(), alloc_size());
+  std::memcpy(target->data_w(), data(), alloc_size());
 }
 
 void BoolColumn::cast_into(IntColumn<int16_t>* target) const {
-  cast_helper<int16_t>(nrows, this->elements(), target->elements());
+  cast_helper<int16_t>(nrows, this->elements_r(), target->elements_w());
 }
 
 void BoolColumn::cast_into(IntColumn<int32_t>* target) const {
-  cast_helper<int32_t>(nrows, this->elements(), target->elements());
+  cast_helper<int32_t>(nrows, this->elements_r(), target->elements_w());
 }
 
 void BoolColumn::cast_into(IntColumn<int64_t>* target) const {
-  cast_helper<int64_t>(nrows, this->elements(), target->elements());
+  cast_helper<int64_t>(nrows, this->elements_r(), target->elements_w());
 }
 
 void BoolColumn::cast_into(RealColumn<float>* target) const {
-  cast_helper<float>(nrows, this->elements(), target->elements());
+  cast_helper<float>(nrows, this->elements_r(), target->elements_w());
 }
 
 void BoolColumn::cast_into(RealColumn<double>* target) const {
-  cast_helper<double>(nrows, this->elements(), target->elements());
+  cast_helper<double>(nrows, this->elements_r(), target->elements_w());
 }
 
 void BoolColumn::cast_into(PyObjectColumn* target) const {
-  int8_t*    src_data = this->elements();
-  PyObject** trg_data = target->elements();
+  const int8_t* src_data = this->elements_r();
+  PyObject**    trg_data = target->elements_w();
   for (int64_t i = 0; i < nrows; ++i) {
     trg_data[i] = bool_to_py(src_data[i]);
   }
 }
 
 void BoolColumn::cast_into(StringColumn<int32_t>* target) const {
-  MemoryBuffer* data = target->mbuf_shallowcopy();
-  int32_t* offsets = target->offsets();
-  MemoryBuffer* strbuf = cast_str_helper<int32_t>(nrows, elements(), offsets);
-  target->replace_buffer(data, strbuf);
+  MemoryRange data = target->data_buf();
+  int32_t* offsets = static_cast<int32_t*>(data.wptr()) + 1;
+  MemoryRange strbuf = cast_str_helper<int32_t>(nrows, elements_r(), offsets);
+  target->replace_buffer(std::move(data), std::move(strbuf));
 }
 
 void BoolColumn::cast_into(StringColumn<int64_t>* target) const {
-  MemoryBuffer* data = target->mbuf_shallowcopy();
-  int64_t* offsets = target->offsets();
-  MemoryBuffer* strbuf = cast_str_helper<int64_t>(nrows, elements(), offsets);
-  target->replace_buffer(data, strbuf);
+  MemoryRange data = target->data_buf();
+  int64_t* offsets = static_cast<int64_t*>(data.wptr()) + 1;
+  MemoryRange strbuf = cast_str_helper<int64_t>(nrows, elements_r(), offsets);
+  target->replace_buffer(std::move(data), std::move(strbuf));
 }
 
 
@@ -204,7 +192,7 @@ bool BoolColumn::verify_integrity(IntegrityCheckContext& icc,
 
   // Check that all elements in column are either 0, 1, or NA_I1
   int64_t mbuf_nrows = data_nrows();
-  int8_t *vals = elements();
+  const int8_t* vals = elements_r();
   for (int64_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {

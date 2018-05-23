@@ -11,7 +11,7 @@
 #include <string>      // std::string
 #include "utils/file.h"
 
-class MemoryMemBuf;
+class MemoryRange;
 
 
 
@@ -157,7 +157,7 @@ public:
    * it will be the responsibility of the caller to handle it.
    */
   void* get_cptr();
-  MemoryMemBuf* get_mbuf();
+  MemoryRange get_mbuf();
   std::string get_string();
 
 private:

@@ -52,51 +52,43 @@ PyObject* string_to_py(const CString& x) {
 }
 
 
-static PyObject* stype_boolean_i8_tostring(Column *col, int64_t row)
-{
-    int8_t x = ((int8_t*)col->data())[row];
-    return x == 0? incref(Py_False) :
-           x == 1? incref(Py_True) : none();
+static PyObject* stype_boolean_i8_tostring(Column* col, int64_t row) {
+  int8_t x = static_cast<const int8_t*>(col->data())[row];
+  return x == 0? incref(Py_False) :
+         x == 1? incref(Py_True) : none();
 }
 
-static PyObject* stype_integer_i8_tostring(Column *col, int64_t row)
-{
-    int8_t x = ((int8_t*)col->data())[row];
-    return x == NA_I1? none() : PyLong_FromLong(x);
+static PyObject* stype_integer_i8_tostring(Column* col, int64_t row) {
+  int8_t x = static_cast<const int8_t*>(col->data())[row];
+  return ISNA<int8_t>(x)? none() : PyLong_FromLong(x);
 }
 
-static PyObject* stype_integer_i16_tostring(Column *col, int64_t row)
-{
-    int16_t x = ((int16_t*)col->data())[row];
-    return x == NA_I2? none() : PyLong_FromLong(x);
+static PyObject* stype_integer_i16_tostring(Column* col, int64_t row) {
+  int16_t x = static_cast<const int16_t*>(col->data())[row];
+  return ISNA<int16_t>(x)? none() : PyLong_FromLong(x);
 }
 
-static PyObject* stype_integer_i32_tostring(Column *col, int64_t row)
-{
-    int32_t x = ((int32_t*)col->data())[row];
-    return x == NA_I4? none() : PyLong_FromLong(x);
+static PyObject* stype_integer_i32_tostring(Column* col, int64_t row) {
+  int32_t x = static_cast<const int32_t*>(col->data())[row];
+  return ISNA<int32_t>(x)? none() : PyLong_FromLong(x);
 }
 
-static PyObject* stype_integer_i64_tostring(Column *col, int64_t row)
-{
-    int64_t x = ((int64_t*)col->data())[row];
-    return x == NA_I8? none() : PyLong_FromLongLong(x);
+static PyObject* stype_integer_i64_tostring(Column* col, int64_t row) {
+  int64_t x = static_cast<const int64_t*>(col->data())[row];
+  return ISNA<int64_t>(x)? none() : PyLong_FromLongLong(x);
 }
 
-static PyObject* stype_real_f32_tostring(Column *col, int64_t row)
-{
-    float x = ((float*)col->data())[row];
-    return ISNA_F4(x)? none() : PyFloat_FromDouble((double)x);
+static PyObject* stype_real_f32_tostring(Column* col, int64_t row) {
+  float x = static_cast<const float*>(col->data())[row];
+  return ISNA<float>(x)? none() : PyFloat_FromDouble(static_cast<double>(x));
 }
 
-static PyObject* stype_real_f64_tostring(Column *col, int64_t row)
-{
-    double x = ((double*)col->data())[row];
-    return ISNA_F8(x)? none() : PyFloat_FromDouble(x);
+static PyObject* stype_real_f64_tostring(Column* col, int64_t row) {
+  double x = static_cast<const double*>(col->data())[row];
+  return ISNA<double>(x)? none() : PyFloat_FromDouble(x);
 }
 
-static PyObject* stype_real_i16_tostring(UNUSED(Column *col), UNUSED(int64_t row))
-{
+static PyObject* stype_real_i16_tostring(Column*, int64_t) {
     /*DecimalMeta *meta = (DecimalMeta*) col->meta;
     int16_t x = ((int16_t*)col->data())[row];
     if (x == NA_I2) return none();
@@ -105,8 +97,7 @@ static PyObject* stype_real_i16_tostring(UNUSED(Column *col), UNUSED(int64_t row
     return none();
 }
 
-static PyObject* stype_real_i32_tostring(UNUSED(Column *col), UNUSED(int64_t row))
-{
+static PyObject* stype_real_i32_tostring(Column*, int64_t) {
     /*DecimalMeta *meta = (DecimalMeta*) col->meta;
     int32_t x = ((int32_t*)col->data())[row];
     if (x == NA_I4) return none();
@@ -115,8 +106,7 @@ static PyObject* stype_real_i32_tostring(UNUSED(Column *col), UNUSED(int64_t row
     return none();
 }
 
-static PyObject* stype_real_i64_tostring(UNUSED(Column *col), UNUSED(int64_t row))
-{
+static PyObject* stype_real_i64_tostring(Column*, int64_t) {
     /*DecimalMeta *meta = (DecimalMeta*) col->meta;
     int64_t x = ((int64_t*)col->data())[row];
     if (x == NA_I8) return none();
@@ -126,10 +116,9 @@ static PyObject* stype_real_i64_tostring(UNUSED(Column *col), UNUSED(int64_t row
 }
 
 template <typename T>
-static PyObject* stype_vchar_T_tostring(Column *col, int64_t row)
-{
+static PyObject* stype_vchar_T_tostring(Column* col, int64_t row) {
   StringColumn<T>* str_col = static_cast<StringColumn<T>*>(col);
-  T* offsets = str_col->offsets();
+  const T* offsets = str_col->offsets();
   if (offsets[row] < 0)
       return none();
   T start = abs(offsets[row - 1]);
@@ -138,13 +127,14 @@ static PyObject* stype_vchar_T_tostring(Column *col, int64_t row)
       static_cast<size_t>(start), len);
 }
 
-
-static PyObject* stype_object_pyptr_tostring(Column *col, int64_t row)
+static PyObject* stype_object_pyptr_tostring(Column* col, int64_t row)
 {
-    return incref(((PyObject**)col->data())[row]);
+  PyObject* x = static_cast<PyObject* const*>(col->data())[row];
+  Py_INCREF(x);
+  return x;
 }
 
-static PyObject* stype_notimpl(Column *col, UNUSED(int64_t row))
+static PyObject* stype_notimpl(Column* col, UNUSED(int64_t row))
 {
     PyErr_Format(PyExc_NotImplementedError,
                  "Cannot stringify column of type %d", col->stype());

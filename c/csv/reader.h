@@ -14,7 +14,7 @@
 #include <vector>         // std::vector
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
-#include "memorybuf.h"    // MemoryBuffer
+#include "memrange.h"     // MemoryRange
 #include "writebuf.h"     // WritableBuffer
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
@@ -41,7 +41,7 @@ class GenericReader;
  */
 class GReaderColumn {
   private:
-    MemoryBuffer* mbuf;
+    MemoryRange mbuf;
     static PyTypeObject* NameTypePyTuple;
 
   public:
@@ -65,10 +65,11 @@ class GReaderColumn {
     size_t elemsize() const;
     size_t getAllocSize() const;
     bool isstring() const;
-    void* data() const { return mbuf->get(); }
+    const void* data_r() const { return mbuf.rptr(); }
+    void* data_w() { return mbuf.wptr(); }
     void allocate(size_t nrows);
-    MemoryBuffer* extract_databuf();
-    MemoryBuffer* extract_strbuf();
+    MemoryRange extract_databuf();
+    MemoryRange extract_strbuf();
     void convert_to_str64();
     PyObj py_descriptor() const;
     static void init_nametypepytuple();
@@ -175,7 +176,7 @@ class GenericReader
   //   Line number (within the original input) of the `offset` pointer.
   //
   public:
-    MemoryBuffer* input_mbuf;
+    MemoryRange input_mbuf;
     const char* sof;
     const char* eof;
     size_t line;

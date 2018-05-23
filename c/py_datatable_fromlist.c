@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "py_datatable.h"
 #include "column.h"
-#include "memorybuf.h"
 #include "py_types.h"
 #include "py_utils.h"
 #include "python/list.h"
