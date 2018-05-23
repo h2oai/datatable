@@ -11,7 +11,6 @@
 #include <mutex>               // std::mutex, std::lock_guard
 #include <sys/mman.h>          // mmap, munmap
 #include "datatable_check.h"   // IntegrityCheckContext
-#include "memorybuf.h"         // ?
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 #include "utils/exceptions.h"  // ValueError, MemoryError
 
@@ -22,11 +21,9 @@
 //==============================================================================
 
   class MemoryRangeImpl {
-    protected:
+    public:
       void*  bufdata;
       size_t bufsize;
-
-    public:
       int    refcount;
       bool   pyobjects;
       bool   writeable;
@@ -79,7 +76,42 @@
   // ViewMRI represents a memory range which is a part of a larger memory
   // region controlled by MemoryRange `source`.
   //
-  // TODO: needs more work!
+  // Typical use-case: memory-map a file, then carve out varioues regions of
+  // that file as separate MemoryRange objects for each column. Another example:
+  // when converting to Numpy, allocate a large contiguous chunk of memory,
+  // then split it into separate memory buffers for each column, and cast the
+  // existing Frame into those prepared column buffers.
+  //
+  // TODO: needs more thought!
+  //
+  // Problem: after a window onto a MemoryRange is created, the source
+  // MemoryRange will have refcount = 2, which means it will make a copy
+  // whenever someone asks for a writeable pointer.
+  // Currently we're solving it by keeping a ref `&source` instead of a
+  // proper shallow copy, and by requesting `rptr` and const-casting it.
+  // However this is very error-prone and hacky.
+  //
+  // Better solution is to use the following approach:
+  // 1) When a window onto MemoryRange is created, the source's `impl` is
+  //    replaced with a `ViewedMRI` object, which carries a reference to the
+  //    original impl, but otherwise is marked as non-resizable and read-only.
+  // 2) Each window (ViewMRI) carries a reference to the ViewedMRI, but those
+  //    references are counted in a separate field (view_refcount).
+  // 3) When view_refounct of a ViewedMRI object reaches 0, it means there are
+  //    no longer any views onto the original MemoryRange object, and the
+  //    original `impl` can be restored. This is provided the original
+  //    MemoryRange object still exists.
+  // 4) When refcount of a ViewedMRI object becomes 0, it means the original
+  //    MemoryRange object has disappeared. However if view_refcount is > 0
+  //    the ViewedMRI should still survive.
+  // -----
+  // This is what the current implementation is supposed to be doing.
+  // The unresolved question remains as to what should happen if the original
+  // MemoryRange object is copied; and for example the original object is
+  // destroyed while the copy remains. In order to account for this we might
+  // need `impl->acquire()` / `impl->release()` methods to accept the
+  // MemoryRange* argument; and also to keep around the complete list of all
+  // pointers that refer to the ViewedMRI instead of a simple refcount...
   //
   class ViewMRI : public MemoryRangeImpl {
     private:
@@ -609,7 +641,11 @@
       icc << "View MemoryRange cannot be marked as resizable" << icc.end();
       return false;
     }
-
+    if (source.rptr(offset) != bufdata) {
+      icc << "Invalid data pointer in View MemoryRange: should be "
+          << source.rptr(offset) << " but actual pointer is " << bufdata;
+      return false;
+    }
     return true;
   }
 
@@ -839,4 +875,3 @@
   template int64_t MemoryRange::get_element(int64_t) const;
   template void MemoryRange::set_element(int64_t, int32_t);
   template void MemoryRange::set_element(int64_t, int64_t);
-  template void MemoryRange::set_element(int64_t, PyObject*);

@@ -646,7 +646,7 @@ $(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
