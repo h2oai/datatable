@@ -790,8 +790,8 @@ DataTablePtr GenericReader::makeDatatable() {
     if (!col.presentInOutput) continue;
     SType stype = ParserLibrary::info(col.type).stype;
     MemoryRange databuf = col.extract_databuf();
-    MemoryBuffer* strbuf = col.extract_strbuf();
-    ccols[j] = Column::new_mbuf_column(stype, std::move(databuf), strbuf);
+    MemoryRange strbuf = col.extract_strbuf();
+    ccols[j] = Column::new_mbuf_column(stype, std::move(databuf), std::move(strbuf));
     j++;
   }
   return DataTablePtr(new DataTable(ccols));

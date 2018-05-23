@@ -19,40 +19,33 @@
 static std::string path_str(const std::string& path);
 
 template <typename T>
-StringColumn<T>::StringColumn() : Column(0) {
-  strbuf = nullptr;
-}
+StringColumn<T>::StringColumn() : Column(0) {}
 
 template <typename T>
 StringColumn<T>::StringColumn(int64_t nrows_)
-  : StringColumn<T>(nrows_, MemoryRange(), nullptr) {}
+  : StringColumn<T>(nrows_, MemoryRange(), MemoryRange()) {}
 
 
 template <typename T>
-StringColumn<T>::StringColumn(int64_t n, MemoryRange&& mb, MemoryBuffer* sb)
+StringColumn<T>::StringColumn(int64_t n, MemoryRange&& mb, MemoryRange&& sb)
   : Column(n)
 {
   size_t exp_off_size = sizeof(T) * (static_cast<size_t>(n) + 1);
   if (mb) {
-    if (sb == nullptr) {
-      throw Error()
-        << "String buffer cannot be null when offset buffer is defined";
-    }
     xassert(mb.size() == exp_off_size);
     xassert(mb.get_element<T>(0) == -1);
-    xassert(sb->size() == static_cast<size_t>(abs(mb.get_element<T>(n)) - 1));
+    xassert(sb.size() == static_cast<size_t>(abs(mb.get_element<T>(n)) - 1));
   } else {
-    if (sb != nullptr) {
+    if (sb) {
       throw Error()
         << "String buffer cannot be defined when offset buffer is null";
     }
-    sb = new MemoryMemBuf(0);
     mb = MemoryRange(exp_off_size);
     mb.set_element<T>(0, -1);
   }
 
   mbuf = std::move(mb);
-  strbuf = sb;
+  strbuf = std::move(sb);
 }
 
 
@@ -62,23 +55,22 @@ StringColumn<T>::StringColumn(int64_t n, MemoryRange&& mb, MemoryBuffer* sb)
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  xassert(!ri && !strbuf);
-  strbuf = new MemoryMemBuf(0);
+  xassert(!ri);
   mbuf = MemoryRange((static_cast<size_t>(nrows) + 1) * sizeof(T));
   mbuf.set_element<T>(0, -1);
 }
 
 template <typename T>
 void StringColumn<T>::init_mmap(const std::string& filename) {
-  xassert(!ri && !strbuf);
-  strbuf = new MemmapMemBuf(path_str(filename), 0);
+  xassert(!ri);
+  strbuf = MemoryRange(0, path_str(filename));
   mbuf = MemoryRange((static_cast<size_t>(nrows) + 1) * sizeof(T), filename);
   mbuf.set_element<T>(0, -1);
 }
 
 template <typename T>
 void StringColumn<T>::open_mmap(const std::string& filename) {
-  xassert(!ri && !strbuf);
+  xassert(!ri);
 
   mbuf = MemoryRange(filename);
 
@@ -92,14 +84,12 @@ void StringColumn<T>::open_mmap(const std::string& filename) {
 
   std::string filename_str = path_str(filename);
 
-  strbuf = new MemmapMemBuf(filename_str);
+  strbuf = MemoryRange(filename_str);
   size_t exp_strbuf_size =
       static_cast<size_t>(abs(mbuf.get_element<T>(nrows)) - 1);
 
-  if (strbuf->size() != exp_strbuf_size) {
-    size_t strbuf_size = strbuf->size();
-    // mbuf->release();
-    strbuf->release();
+  if (strbuf.size() != exp_strbuf_size) {
+    size_t strbuf_size = strbuf.size();
     throw Error() << "File \"" << filename_str <<
       "\" cannot be used to create a column with " << nrows <<
       " rows. Expected file size of " << exp_strbuf_size <<
@@ -120,25 +110,23 @@ void StringColumn<T>::init_xbuf(Py_buffer*) {
 template <typename T>
 void StringColumn<T>::save_to_disk(const std::string& filename,
                                    WritableBuffer::Strategy strategy) {
-  xassert(strbuf);
   mbuf.save_to_disk(filename, strategy);
-  strbuf->save_to_disk(path_str(filename), strategy);
+  strbuf.save_to_disk(path_str(filename), strategy);
 }
 
 template <typename T>
 Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
   Column* newcol = Column::shallowcopy(new_rowindex);
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
-  col->strbuf = strbuf->shallowcopy();
+  col->strbuf = strbuf;
   return col;
 }
 
 
 template <typename T>
 void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
-                                     MemoryBuffer* new_strbuf)
+                                     MemoryRange&& new_strbuf)
 {
-  xassert(new_strbuf != nullptr);
   int64_t new_nrows = new_offbuf.size()/sizeof(T) - 1;
   if (new_offbuf.size() % sizeof(T)) {
     throw ValueError() << "The size of `new_offbuf` is not a multiple of "
@@ -151,13 +139,12 @@ void StringColumn<T>::replace_buffer(MemoryRange&& new_offbuf,
   }
   size_t lastoff = static_cast<size_t>(
                       std::abs(new_offbuf.get_element<T>(new_nrows)) - 1);
-  if (new_strbuf->size() != lastoff) {
+  if (new_strbuf.size() != lastoff) {
     throw ValueError() << "The size of `new_strbuf` does not correspond to the"
                           " last offset of `new_offbuff`: expected "
-                       << new_strbuf->size() << ", got " << lastoff;
+                       << new_strbuf.size() << ", got " << lastoff;
   }
-  if (strbuf) strbuf->release();
-  strbuf = new_strbuf;
+  strbuf = std::move(new_strbuf);
   mbuf = std::move(new_offbuf);
   nrows = new_nrows;
 }
@@ -181,12 +168,6 @@ bool StringColumn<T>::is_fixedwidth() const {
 
 
 template <typename T>
-StringColumn<T>::~StringColumn() {
-  if (strbuf) strbuf->release();
-}
-
-
-template <typename T>
 size_t StringColumn<T>::datasize() const{
   size_t sz = mbuf.size();
   const T* end = static_cast<const T*>(mbuf.rptr(sz));
@@ -200,8 +181,8 @@ int64_t StringColumn<T>::data_nrows() const {
 }
 
 template <typename T>
-char* StringColumn<T>::strdata() const {
-  return static_cast<char*>(strbuf->get()) - 1;
+const char* StringColumn<T>::strdata() const {
+  return static_cast<const char*>(strbuf.rptr()) - 1;
 }
 
 template <typename T>
@@ -224,7 +205,7 @@ void StringColumn<T>::reify() {
 
   size_t new_mbuf_size = (ri.zlength() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
-  MemoryBuffer* new_strbuf = strbuf;
+  MemoryRange new_strbuf(strbuf);
   MemoryRange new_mbuf(new_mbuf_size);
   T* offs_dest = static_cast<T*>(new_mbuf.wptr());
   offs_dest[0] = -1;
@@ -235,11 +216,11 @@ void StringColumn<T>::reify() {
     T off0 = std::abs(data_src[-1]);
     T off1 = std::abs(data_src[nrows - 1]);
     new_strbuf_size = static_cast<size_t>(off1 - off0);
-    if (strbuf->is_readonly()) {
-      new_strbuf = new MemoryMemBuf(new_strbuf_size);
-      std::memcpy(new_strbuf->get(), strdata() + off0, new_strbuf_size);
+    if (!strbuf.is_writeable()) {
+      new_strbuf = MemoryRange(new_strbuf_size);
+      std::memcpy(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
     } else {
-      std::memmove(new_strbuf->get(), strdata() + off0, new_strbuf_size);
+      std::memmove(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
     }
     --off0;
     for (int64_t i = 0; i < nrows; ++i) {
@@ -249,15 +230,15 @@ void StringColumn<T>::reify() {
   } else if (ascending) {
     // Special case: We can still do this in-place
     // (assuming the buffers are not read-only)
-    if (strbuf->is_readonly())
-      new_strbuf = new MemoryMemBuf(strbuf->size()); // We don't know the actual size yet
-                                                     // but it can't be larger than this
+    if (!strbuf.is_writeable())
+      new_strbuf = MemoryRange(strbuf.size()); // We don't know the actual size yet
+                                               // but it can't be larger than this
     T step = static_cast<T>(ri.slice_step());
     T start = static_cast<T>(ri.slice_start());
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
-    char* str_src = strdata();
-    char* str_dest = static_cast<char*>(new_strbuf->get());
+    const char* str_src = strdata();
+    char* str_dest = static_cast<char*>(new_strbuf.wptr());
     // We know that the resulting strbuf/mbuf size will be smaller, so no need to
     // worry about resizing beforehand
     T prev_off = 1;
@@ -276,7 +257,7 @@ void StringColumn<T>::reify() {
       }
     }
     new_strbuf_size = static_cast<size_t>(
-        str_dest - static_cast<char*>(new_strbuf->get()));
+        str_dest - static_cast<const char*>(new_strbuf.rptr()));
     // Note: We can also do a special case with slice.step = 0, but we have to
     //       be careful about cases where nrows > T_MAX
   } else {
@@ -290,9 +271,9 @@ void StringColumn<T>::reify() {
         }
       });
     new_strbuf_size = static_cast<size_t>(strs_size);
-    new_strbuf = new MemoryMemBuf(new_strbuf_size);
-    char *strs_src = strdata();
-    char *strs_dest = static_cast<char*>(new_strbuf->get());
+    new_strbuf = MemoryRange(new_strbuf_size);
+    const char* strs_src = strdata();
+    char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 1;
     ri.strided_loop(0, nrows, 1,
       [&](int64_t i) {
@@ -313,13 +294,9 @@ void StringColumn<T>::reify() {
       });
   }
 
+  new_strbuf.resize(new_strbuf_size);
   mbuf = std::move(new_mbuf);
-  if (new_strbuf == strbuf) {
-    strbuf->resize(new_strbuf_size);
-  } else {
-    strbuf->release();
-    strbuf = new_strbuf;
-  }
+  strbuf = std::move(new_strbuf);
   ri.clear(true);
 }
 
@@ -348,7 +325,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
   }
 
   size_t znrows = static_cast<size_t>(new_nrows);
-  size_t old_strbuf_size = strbuf->size();
+  size_t old_strbuf_size = strbuf.size();
   size_t new_strbuf_size = old_strbuf_size;
   size_t new_mbuf_size = sizeof(T) * (znrows + 1);
   if (old_nrows == 1) {
@@ -363,32 +340,23 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
   mbuf.resize(new_mbuf_size);
 
   if (diff_rows < 0) {
-    if (new_strbuf_size != old_strbuf_size) {
-      strbuf = strbuf->safe_resize(new_strbuf_size);
-    }
+    strbuf.resize(new_strbuf_size);
   } else {
     // Replicate the value, or fill with NAs
     T* offsets = static_cast<T*>(mbuf.wptr());
     ++offsets;
     if (old_nrows == 1 && offsets[0] > 0) {
-      MemoryBuffer* new_strbuf = strbuf;
-      if (strbuf->is_readonly()) {
-        new_strbuf = new MemoryMemBuf(new_strbuf_size);
-      } else {
-        new_strbuf->resize(new_strbuf_size);
-      }
-      char* str_src = static_cast<char*>(strbuf->get());
-      char* str_dest = static_cast<char*>(new_strbuf->get());
+      MemoryRange new_strbuf = strbuf;
+      new_strbuf.resize(new_strbuf_size);
+      const char* str_src = static_cast<const char*>(strbuf.rptr());
+      char* str_dest = static_cast<char*>(new_strbuf.wptr());
       T src_len = static_cast<T>(old_strbuf_size);
       for (T i = 0; i < new_nrows; ++i) {
-        memcpy(str_dest, str_src, old_strbuf_size);
+        std::memcpy(str_dest, str_src, old_strbuf_size);
         str_dest += old_strbuf_size;
         offsets[i] = 1 + (i + 1) * src_len;
       }
-      if (new_strbuf != strbuf) {
-        strbuf->release();
-        strbuf = new_strbuf;
-      }
+      strbuf = new_strbuf;
     } else {
       if (old_nrows == 1) xassert(old_strbuf_size == 0);
       T na = -static_cast<T>(old_strbuf_size + 1);
@@ -410,7 +378,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   size_t old_nrows = static_cast<size_t>(nrows);
   size_t new_strbuf_size = 0;     // size of the string data region
   if (!col_empty) {
-    new_strbuf_size += strbuf->size();
+    new_strbuf_size += strbuf.size();
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     const Column* col = columns[i];
@@ -421,15 +389,14 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
       col = columns[i];
     }
     // TODO: replace with datasize(). But: what if col is not a string?
-    new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf->size();
+    new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf.size();
   }
   size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(new_nrows) + 1);
 
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
-  strbuf = strbuf->safe_resize(new_strbuf_size);
-  xassert(mbuf.is_writeable());
-  xassert(!strbuf->is_readonly());
+  strbuf.resize(new_strbuf_size);
+  xassert(mbuf.is_writeable() && strbuf.is_writeable());
   nrows = new_nrows;
   T* offs = offsets_w();
 
@@ -460,9 +427,10 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
         T off = col_offsets[j];
         *offs++ = off > 0? off + curr_offset : off - curr_offset;
       }
-      MemoryBuffer* col_strbuf = static_cast<const StringColumn<T>*>(col)->strbuf;
-      memcpy(strbuf->at(curr_offset), col_strbuf->get(), col_strbuf->size());
-      curr_offset += col_strbuf->size();
+      const MemoryRange& col_strbuf = static_cast<const StringColumn<T>*>(col)->strbuf;
+      void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
+      std::memcpy(target, col_strbuf.rptr(), col_strbuf.size());
+      curr_offset += col_strbuf.size();
     }
     delete col;
   }
@@ -476,7 +444,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
 template <typename T>
 void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
   const int8_t* maskdata = mask->elements_r();
-  char* strdata = this->strdata();
+  char* strdata = static_cast<char*>(strbuf.wptr()) - 1;
   T* offsets = this->offsets_w();
 
   // How much to reduce the offsets by due to some strings turning into NAs
@@ -507,7 +475,7 @@ template <typename T>
 void StringColumn<T>::fill_na() {
   // Perform a mini reify (the actual `reify` method will copy string and offset
   // data, both of which is extraneous for this method)
-  strbuf = strbuf->safe_resize(0);
+  strbuf.resize(0);
   size_t new_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
   mbuf.resize(new_mbuf_size, /* keep_data = */ false);
   T* off_data = offsets_w();
@@ -546,8 +514,8 @@ Column* StringColumn<T>::mode_column() const {
   auto col = new StringColumn<T>(1);
   if (m.size >= 0) {
     col->mbuf.set_element(1, static_cast<T>(m.size) + 1);
-    col->strbuf->resize(static_cast<size_t>(m.size));
-    std::memcpy(col->strbuf->get(), m.ch, static_cast<size_t>(m.size));
+    col->strbuf.resize(static_cast<size_t>(m.size));
+    std::memcpy(col->strbuf.wptr(), m.ch, static_cast<size_t>(m.size));
   } else {
     col->mbuf.set_element(1, static_cast<T>(-1));
   }
@@ -563,7 +531,7 @@ Column* StringColumn<T>::mode_column() const {
 
 template <typename T>
 void StringColumn<T>::cast_into(PyObjectColumn* target) const {
-  char* strdata = this->strdata();
+  const char* strdata = this->strdata();
   const T* offsets = this->offsets();
   PyObject** trg_data = target->elements_w();
 
@@ -583,21 +551,20 @@ void StringColumn<T>::cast_into(PyObjectColumn* target) const {
 
 template <>
 void StringColumn<int32_t>::cast_into(StringColumn<int64_t>* target) const {
-  MemoryBuffer* strdata_buf = strbuf->shallowcopy();
   const int32_t* src_data = this->offsets() - 1;
   int64_t* trg_data = target->offsets_w() - 1;
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i <= this->nrows; ++i) {
     trg_data[i] = static_cast<int32_t>(src_data[i]);
   }
-  target->replace_buffer(target->data_buf(), strdata_buf);
+  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
 }
 
 template <>
 void StringColumn<int64_t>::cast_into(StringColumn<int64_t>* target) const {
   size_t alloc_size = sizeof(int64_t) * static_cast<size_t>(1 + this->nrows);
   std::memcpy(target->data_w(), this->data(), alloc_size);
-  target->replace_buffer(target->data_buf(), strbuf->shallowcopy());
+  target->replace_buffer(target->data_buf(), MemoryRange(strbuf));
 }
 
 
@@ -615,11 +582,6 @@ bool StringColumn<T>::verify_integrity(
   int nerrors = icc.n_errors();
   auto end = icc.end();
 
-  if (strbuf == nullptr) {
-    icc << "String data section in " << name << " is null" << end;
-    return true;
-  }
-
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
   const unsigned char *cdata = (unsigned char*) strdata();
@@ -634,9 +596,9 @@ bool StringColumn<T>::verify_integrity(
   int64_t mbuf_nrows = data_nrows();
   strdata_size = static_cast<size_t>(abs(str_offsets[mbuf_nrows - 1]) - 1);
 
-  if (strbuf->size() != strdata_size) {
+  if (strbuf.size() != strdata_size) {
     icc << "Size of string data section in " << name << " does not correspond"
-        << " to the magnitude of the final offset: size = " << strbuf->size()
+        << " to the magnitude of the final offset: size = " << strbuf.size()
         << ", expected " << strdata_size << end;
     return true;
   }

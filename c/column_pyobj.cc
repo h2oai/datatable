@@ -50,9 +50,9 @@ void PyObjectColumn::fill_na() {
 }
 
 
-void PyObjectColumn::replace_buffer(MemoryRange&& new_mbuf, MemoryBuffer* sb) {
+void PyObjectColumn::replace_buffer(MemoryRange&& new_mbuf) {
   xassert(new_mbuf.is_pyobjects());
-  FwColumn<PyObject*>::replace_buffer(std::move(new_mbuf), sb);
+  FwColumn<PyObject*>::replace_buffer(std::move(new_mbuf));
 }
 
 

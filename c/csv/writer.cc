@@ -34,7 +34,7 @@ static writer_fn writers_per_stype[DT_STYPES_COUNT];
 class CsvColumn {
 public:
   const void* data;
-  char* strbuf;
+  const char* strbuf;
   writer_fn writer;
 
   CsvColumn(Column *col) {
@@ -105,8 +105,8 @@ void write_str(char** pch, CsvColumn* col, int64_t row)
     *pch = ch + 2;
     return;
   }
-  const uint8_t* strstart = reinterpret_cast<uint8_t*>(col->strbuf) + offset0;
-  const uint8_t* strend = reinterpret_cast<uint8_t*>(col->strbuf) + offset1;
+  const uint8_t* strstart = reinterpret_cast<const uint8_t*>(col->strbuf) + offset0;
+  const uint8_t* strend = reinterpret_cast<const uint8_t*>(col->strbuf) + offset1;
   const uint8_t* sch = strstart;
   if (*sch == 32) goto quote;
   while (sch < strend) {  // ',' is 44, '"' is 34

@@ -241,14 +241,14 @@ static void force_as_real(PyyList& list, MemoryRange& membuf)
 
 template <typename T>
 static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
-                         MemoryBuffer*& strbuf)
+                         MemoryRange& strbuf)
 {
   size_t nrows = list.size();
   offbuf.resize((nrows + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
   offsets[-1] = -1;
-  if (strbuf == nullptr) {
-    strbuf = new MemoryMemBuf(nrows * 4);  // arbitrarily 4 chars per element
+  if (!strbuf) {
+    strbuf.resize(nrows * 4);  // arbitrarily 4 chars per element
   }
 
   T curr_offset = 1;
@@ -272,12 +272,12 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
           break;
         }
         // Resize the strbuf if necessary
-        if (strbuf->size() < static_cast<size_t>(next_offset)) {
+        if (strbuf.size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
-          strbuf->resize(static_cast<size_t>(newsize));
+          strbuf.resize(static_cast<size_t>(newsize));
         }
-        memcpy(strbuf->at(curr_offset - 1), cstr, len);
+        std::memcpy(strbuf.wptr(static_cast<size_t>(curr_offset) - 1), cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -287,12 +287,11 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
   }
   if (i < nrows) {
     if (std::is_same<T, int64_t>::value) {
-      strbuf->release();
-      strbuf = nullptr;
+      strbuf.resize(0);
     }
     return false;
   } else {
-    strbuf->resize(static_cast<size_t>(curr_offset - 1));
+    strbuf.resize(static_cast<size_t>(curr_offset - 1));
     return true;
   }
 }
@@ -312,7 +311,7 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
  */
 template <typename T>
 static void force_as_str(PyyList& list, MemoryRange& offbuf,
-                         MemoryBuffer*& strbuf)
+                         MemoryRange& strbuf)
 {
   size_t nrows = list.size();
   if (nrows > std::numeric_limits<T>::max()) {
@@ -322,8 +321,8 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
   offbuf.resize((nrows + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
   offsets[-1] = -1;
-  if (strbuf == nullptr) {
-    strbuf = new MemoryMemBuf(nrows * 4);
+  if (!strbuf) {
+    strbuf.resize(nrows * 4);
   }
 
   T curr_offset = 1;
@@ -348,12 +347,12 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
           offsets[i] = -curr_offset;
           continue;
         }
-        if (strbuf->size() < static_cast<size_t>(next_offset)) {
+        if (strbuf.size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
-          strbuf->resize(static_cast<size_t>(newsize));
+          strbuf.resize(static_cast<size_t>(newsize));
         }
-        memcpy(strbuf->at(curr_offset - 1), cstr, len);
+        std::memcpy(strbuf.wptr(static_cast<size_t>(curr_offset) - 1), cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -362,7 +361,7 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
       offsets[i] = -curr_offset;
     }
   }
-  strbuf->resize(static_cast<size_t>(curr_offset - 1));
+  strbuf.resize(static_cast<size_t>(curr_offset - 1));
 }
 
 
@@ -433,7 +432,7 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
   }
 
   MemoryRange membuf(0);
-  MemoryBuffer* strbuf = nullptr;
+  MemoryRange strbuf(0);
   int stype = find_next_stype(0, stype0, ltype0);
   size_t i = 0;
   while (stype) {
@@ -477,6 +476,10 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
   if (stype == ST_OBJECT_PYPTR) {
     membuf.set_pyobjects(/* clear_data = */ false);
   }
-  col->replace_buffer(std::move(membuf), strbuf);
+  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+    col->replace_buffer(std::move(membuf), std::move(strbuf));
+  } else {
+    col->replace_buffer(std::move(membuf));
+  }
   return col;
 }

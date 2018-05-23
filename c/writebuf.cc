@@ -11,7 +11,7 @@
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
-#include "memorybuf.h"
+#include "memrange.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
 #include "utils.h"
@@ -255,10 +255,10 @@ void* MemoryWritableBuffer::get_cptr()
 }
 
 
-MemoryMemBuf* MemoryWritableBuffer::get_mbuf() {
+MemoryRange MemoryWritableBuffer::get_mbuf() {
   size_t size = allocsize;
   void* ptr = get_cptr();
-  return new MemoryMemBuf(ptr, size);
+  return MemoryRange(size, ptr, /* own = */ true);
 }
 
 

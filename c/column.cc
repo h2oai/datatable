@@ -110,15 +110,39 @@ Column* Column::new_xbuf_column(SType stype,
 
 
 /**
- * Construct a column using existing MemoryBuffers.
+ * Construct a column using existing MemoryRanges.
  */
-Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf,
-                                MemoryBuffer* strbuf)
-{
+Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   Column* col = new_column(stype);
-  col->replace_buffer(std::move(mbuf), strbuf);
+  col->replace_buffer(std::move(mbuf));
   return col;
 }
+
+Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf,
+                                MemoryRange&& strbuf)
+{
+  Column* col = new_column(stype);
+  if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
+    col->replace_buffer(std::move(mbuf), std::move(strbuf));
+  } else {
+    xassert(!strbuf);
+    col->replace_buffer(std::move(mbuf));
+  }
+  return col;
+}
+
+
+
+void Column::replace_buffer(MemoryRange&&) {
+  throw RuntimeError()
+    << "replace_buffer(mr) not valid for Column of type " << stype();
+}
+
+void Column::replace_buffer(MemoryRange&&, MemoryRange&&) {
+  throw RuntimeError()
+    << "replace_buffer(mr1, mr2) not valid for Column of type " << stype();
+}
+
 
 
 /**
@@ -365,7 +389,7 @@ bool Column::verify_integrity(IntegrityCheckContext& icc,
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
       icc << "Mismatch between reported number of rows: " << name
-          << " has nrows=" << nrows << " but MemoryBuffer has data for "
+          << " has nrows=" << nrows << " but MemoryRange has data for "
           << mbuf_nrows << " rows" << end;
     }
   }

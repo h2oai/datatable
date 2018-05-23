@@ -93,8 +93,8 @@ MemoryRange GReaderColumn::extract_databuf() {
   return r;
 }
 
-MemoryBuffer* GReaderColumn::extract_strbuf() {
-  if (!(strdata && isstring())) return nullptr;
+MemoryRange GReaderColumn::extract_strbuf() {
+  if (!(strdata && isstring())) return MemoryRange();
   // TODO: make get_mbuf() method available on WritableBuffer itself
   strdata->finalize();
   return strdata->get_mbuf();

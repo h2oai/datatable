@@ -157,9 +157,9 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   uint32_t* input = reinterpret_cast<uint32_t*>(view->buf);
 
   size_t maxsize = static_cast<size_t>(view->len);
-  MemoryBuffer* strbuf = new MemoryMemBuf(maxsize);
+  MemoryRange strbuf(maxsize);
   MemoryRange offbuf(static_cast<size_t>(nrows + 1) * 4);
-  char* strptr = static_cast<char*>(strbuf->get());
+  char* strptr = static_cast<char*>(strbuf.wptr());
   int32_t* offptr = static_cast<int32_t*>(offbuf.wptr());
   *offptr++ = -1;
   int32_t offset = 1;
@@ -171,8 +171,8 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
     *offptr++ = offset;
   }
 
-  strbuf->resize(static_cast<size_t>(offset - 1));
-  return new StringColumn<int32_t>(nrows, std::move(offbuf), strbuf);
+  strbuf.resize(static_cast<size_t>(offset - 1));
+  return new StringColumn<int32_t>(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -211,9 +211,9 @@ static Column* try_to_resolve_object_column(Column* col)
   // Otherwise the column is all-strings: convert it into *STRING stype.
   size_t strbuf_size = static_cast<size_t>(total_length);
   MemoryRange offbuf((static_cast<size_t>(nrows) + 1) * sizeof(int32_t));
-  MemoryBuffer* strbuf = new MemoryMemBuf(strbuf_size);
+  MemoryRange strbuf(strbuf_size);
   int32_t* offsets = static_cast<int32_t*>(offbuf.wptr());
-  char* strs = static_cast<char*>(strbuf->get());
+  char* strs = static_cast<char*>(strbuf.wptr());
 
   offsets[0] = -1;
   ++offsets;
@@ -227,8 +227,8 @@ static Column* try_to_resolve_object_column(Column* col)
       size_t sz = static_cast<size_t>(PyBytes_Size(z));
       if (offset + sz > strbuf_size) {
         strbuf_size = static_cast<size_t>(1.5 * strbuf_size);
-        strbuf->resize(strbuf_size);
-        strs = static_cast<char*>(strbuf->get()); // Location may have changed
+        strbuf.resize(strbuf_size);
+        strs = static_cast<char*>(strbuf.wptr()); // Location may have changed
       }
       std::memcpy(strs + offset, PyBytes_AsString(z), sz);
       Py_DECREF(z);
@@ -237,9 +237,9 @@ static Column* try_to_resolve_object_column(Column* col)
     }
   }
 
-  strbuf->resize(offset);
+  strbuf.resize(offset);
   delete col;
-  return new StringColumn<int32_t>(nrows, std::move(offbuf), strbuf);
+  return new StringColumn<int32_t>(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 

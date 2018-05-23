@@ -83,6 +83,7 @@ PyObject* BoolColumn::sd_pyscalar() const { return float_to_py(sd()); }
 //------------------------------------------------------------------------------
 // Type casts
 //------------------------------------------------------------------------------
+typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template <typename T>
 inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
@@ -94,11 +95,11 @@ inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
 }
 
 template <typename T>
-inline static MemoryBuffer* cast_str_helper(
+inline static MemoryRange cast_str_helper(
   int64_t nrows, const int8_t* src, T* toffsets)
 {
   size_t exp_size = static_cast<size_t>(nrows);
-  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
@@ -121,9 +122,7 @@ inline static MemoryBuffer* cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
-  MemoryBuffer* res = wb->get_mbuf();
-  delete wb;
-  return res;
+  return wb->get_mbuf();
 }
 
 
@@ -166,15 +165,15 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
 void BoolColumn::cast_into(StringColumn<int32_t>* target) const {
   MemoryRange data = target->data_buf();
   int32_t* offsets = static_cast<int32_t*>(data.wptr()) + 1;
-  MemoryBuffer* strbuf = cast_str_helper<int32_t>(nrows, elements_r(), offsets);
-  target->replace_buffer(std::move(data), strbuf);
+  MemoryRange strbuf = cast_str_helper<int32_t>(nrows, elements_r(), offsets);
+  target->replace_buffer(std::move(data), std::move(strbuf));
 }
 
 void BoolColumn::cast_into(StringColumn<int64_t>* target) const {
   MemoryRange data = target->data_buf();
   int64_t* offsets = static_cast<int64_t*>(data.wptr()) + 1;
-  MemoryBuffer* strbuf = cast_str_helper<int64_t>(nrows, elements_r(), offsets);
-  target->replace_buffer(std::move(data), strbuf);
+  MemoryRange strbuf = cast_str_helper<int64_t>(nrows, elements_r(), offsets);
+  target->replace_buffer(std::move(data), std::move(strbuf));
 }
 
 

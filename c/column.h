@@ -83,13 +83,15 @@ public:
   static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
-  static Column* new_mbuf_column(SType, MemoryRange&&, MemoryBuffer*);
+  static Column* new_mbuf_column(SType, MemoryRange&&);
+  static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
-  virtual void replace_buffer(MemoryRange&&, MemoryBuffer*) = 0;
+  virtual void replace_buffer(MemoryRange&&);
+  virtual void replace_buffer(MemoryRange&&, MemoryRange&&);
 
   virtual SType stype() const = 0;
   virtual size_t elemsize() const = 0;
@@ -148,9 +150,9 @@ public:
    * this method constructs a new column of the provided stype and writes the
    * converted data into it.
    *
-   * If the MemoryBuffer is provided, then that buffer will be used in the
+   * If the MemoryRange is provided, then that buffer will be used in the
    * creation of the resulting column (the Column will assume ownership of the
-   * provided MemoryBuffer).
+   * provided MemoryRange).
    */
   Column* cast(SType stype) const;
   Column* cast(SType stype, MemoryRange&& mr) const;
@@ -310,7 +312,7 @@ template <typename T> class FwColumn : public Column
 public:
   FwColumn(int64_t nrows);
   FwColumn(int64_t nrows, MemoryRange&&);
-  void replace_buffer(MemoryRange&&, MemoryBuffer*) override;
+  void replace_buffer(MemoryRange&&) override;
   const T* elements_r() const;
   T* elements_w();
   T get_elem(int64_t i) const;
@@ -563,7 +565,7 @@ protected:
   // void cast_into(StringColumn<int32_t>*) const;
   // void cast_into(StringColumn<int64_t>*) const;
 
-  void replace_buffer(MemoryRange&&, MemoryBuffer*) override;
+  void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
                   bool isempty) override;
 
@@ -581,15 +583,14 @@ protected:
 
 template <typename T> class StringColumn : public Column
 {
-  MemoryBuffer *strbuf;
+  MemoryRange strbuf;
 
 public:
   StringColumn(int64_t nrows);
-  StringColumn(int64_t nrows, MemoryRange&& offbuf, MemoryBuffer* strbuf);
-  virtual ~StringColumn() override;
+  StringColumn(int64_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
                     WritableBuffer::Strategy strategy) override;
-  void replace_buffer(MemoryRange&&, MemoryBuffer*) override;
+  void replace_buffer(MemoryRange&&, MemoryRange&&) override;
 
   SType stype() const override;
   size_t elemsize() const override;
@@ -601,7 +602,7 @@ public:
 
   size_t datasize() const;
   int64_t data_nrows() const override;
-  char* strdata() const;
+  const char* strdata() const;
   const T* offsets() const;
   T* offsets_w();
 
@@ -661,7 +662,6 @@ class VoidColumn : public Column
 {
 public:
   VoidColumn(int64_t nrows) : Column(nrows) {}
-  void replace_buffer(MemoryRange&&, MemoryBuffer*) override {}
   SType stype() const override { return ST_VOID; }
   size_t elemsize() const override { return 0; }
   bool is_fixedwidth() const override { return true; }

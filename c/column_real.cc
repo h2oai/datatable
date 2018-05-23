@@ -92,6 +92,7 @@ template <typename T> PyObject* RealColumn<T>::sd_pyscalar() const { return floa
 //------------------------------------------------------------------------------
 // Type casts
 //------------------------------------------------------------------------------
+typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template<typename IT, typename OT>
 inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
@@ -103,13 +104,13 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
 }
 
 template<typename IT, typename OT>
-inline static MemoryBuffer* cast_str_helper(
+inline static MemoryRange cast_str_helper(
   const RealColumn<IT>* src, StringColumn<OT>* target)
 {
   const IT* src_data = src->elements_r();
   OT* toffsets = target->offsets_w();
   size_t exp_size = static_cast<size_t>(src->nrows) * sizeof(IT) * 2;
-  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
@@ -133,9 +134,7 @@ inline static MemoryBuffer* cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
-  MemoryBuffer* res = wb->get_mbuf();
-  delete wb;
-  return res;
+  return wb->get_mbuf();
 }
 
 
@@ -173,14 +172,14 @@ void RealColumn<T>::cast_into(IntColumn<int64_t>* target) const {
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<int32_t>* target) const {
-  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(this, target);
-  target->replace_buffer(target->data_buf(), strbuf);
+  MemoryRange strbuf = cast_str_helper<T, int32_t>(this, target);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <typename T>
 void RealColumn<T>::cast_into(StringColumn<int64_t>* target) const {
-  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(this, target);
-  target->replace_buffer(target->data_buf(), strbuf);
+  MemoryRange strbuf = cast_str_helper<T, int64_t>(this, target);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <>

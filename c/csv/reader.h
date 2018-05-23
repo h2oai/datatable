@@ -69,7 +69,7 @@ class GReaderColumn {
     void* data() const { return mbuf->get(); }
     void allocate(size_t nrows);
     MemoryRange extract_databuf();
-    MemoryBuffer* extract_strbuf();
+    MemoryRange extract_strbuf();
     void convert_to_str64();
     PyObj py_descriptor() const;
     static void init_nametypepytuple();

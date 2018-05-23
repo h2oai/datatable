@@ -120,6 +120,7 @@ template <typename T> PyObject* IntColumn<T>::sd_pyscalar() const { return float
 //------------------------------------------------------------------------------
 // Type casts
 //------------------------------------------------------------------------------
+typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template<typename IT, typename OT>
 inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
@@ -131,11 +132,11 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
 }
 
 template<typename IT, typename OT>
-inline static MemoryBuffer* cast_str_helper(
+inline static MemoryRange cast_str_helper(
   int64_t nrows, const IT* src, OT* toffsets)
 {
   size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT);
-  MemoryWritableBuffer* wb = new MemoryWritableBuffer(exp_size);
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
@@ -159,9 +160,7 @@ inline static MemoryBuffer* cast_str_helper(
   wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
   wb->finalize();
   delete[] tmpbuf;
-  MemoryBuffer* res = wb->get_mbuf();
-  delete wb;
-  return res;
+  return wb->get_mbuf();
 }
 
 
@@ -211,19 +210,19 @@ void IntColumn<T>::cast_into(RealColumn<double>* target) const {
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<int32_t>* target) const {
   int32_t* offsets = target->offsets_w();
-  MemoryBuffer* strbuf = cast_str_helper<T, int32_t>(
+  MemoryRange strbuf = cast_str_helper<T, int32_t>(
       this->nrows, this->elements_r(), offsets
   );
-  target->replace_buffer(target->data_buf(), strbuf);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(StringColumn<int64_t>* target) const {
   int64_t* offsets = target->offsets_w();
-  MemoryBuffer* strbuf = cast_str_helper<T, int64_t>(
+  MemoryRange strbuf = cast_str_helper<T, int64_t>(
       this->nrows, this->elements_r(), offsets
   );
-  target->replace_buffer(target->data_buf(), strbuf);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <typename T>
