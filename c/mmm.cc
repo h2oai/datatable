@@ -25,53 +25,42 @@ MemoryMapManager* MemoryMapManager::get() {
 
 
 void MemoryMapManager::add_entry(MemoryMapWorker* obj, size_t mmapsize) {
-  xassert(!entries.empty());
   entries.push_back(MmmEntry(mmapsize, obj));
   obj->save_entry_index(entries.size() - 1);
 }
 
 
-void MemoryMapManager::del_entry(size_t i, MemoryMapWorker* obj) {
-  xassert(i > 0);
-  xassert(i < entries.size());
-  if (entries[i].obj != obj) {
-    throw RuntimeError() << "Data corruption in MemoryMapManager: "
-       << "entry " << i << " is {.size=" << entries[i].size
-       << ", .obj=" << entries[i].obj << "}, but referred from object " << obj;
-  }
+// Careful not to throw any exceptions here: this method is called from
+// MmapMRI's destructor, and an uncaught exception will cause SIGABRT.
+void MemoryMapManager::del_entry(size_t i) {
   // Move the last entry into the now-empty slot <i>
-  std::swap(entries[i], entries[entries.size() - 1]);
+  std::swap(entries[i], entries.back());
   entries[i].obj->save_entry_index(i);
   entries.pop_back();
-  xassert(!entries.empty());
+}
+
+
+bool MemoryMapManager::check_entry(size_t i, const MemoryMapWorker* obj) {
+  return (i > 0 && i < entries.size() && entries[i].obj == obj);
 }
 
 
 void MemoryMapManager::freeup_memory() {
   size_t size0 = entries.size();
-  xassert(size0 > 0);
   // Sort the entries by size in descending order
   sort_entries();
-  size_t size1 = entries.size();
-  xassert(size1 == size0);
   // Evict the entries at the top of the array
   for (size_t j = 0; j < n_entries_to_purge; ++j) {
     if (entries.size() <= 1) break;
     entries.back().obj->evict();
-    size_t s = entries.size();
-    xassert(s == size0 - j);
+    xassert(entries.size() == size0 - j);
     entries.pop_back();
   }
-  size_t size2 = entries.size();
-  xassert(size2 > 0);
-  xassert(size2 < size1 || (size2 == 1 && size1 == 1));
 }
 
 
 void MemoryMapManager::sort_entries() {
-  auto start = entries.begin() + 1;
-  auto end = entries.end();  //start + static_cast<ptrdiff_t>(count);
-  std::sort(start, end);
+  std::sort(entries.begin() + 1, entries.end());
   for (size_t i = 1; i < entries.size(); ++i) {
     entries[i].obj->save_entry_index(i);
   }

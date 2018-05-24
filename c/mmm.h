@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_MMM_H
-#define dt_MMM_H
+#ifndef dt_MMM_h
+#define dt_MMM_h
 #include <vector>
 
 
@@ -36,9 +36,9 @@ class MemoryMapManager {
 public:
   static MemoryMapManager* get();
   void add_entry(MemoryMapWorker* obj, size_t size);
-  void del_entry(size_t i, MemoryMapWorker* obj);
+  void del_entry(size_t i);
   void freeup_memory();
-  bool check(size_t i, MemoryMapWorker* obj) { return entries[i].obj == obj; }
+  bool check_entry(size_t i, const MemoryMapWorker* obj);
 
 private:
   static const size_t n_entries_to_purge = 128;

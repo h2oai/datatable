@@ -168,6 +168,7 @@
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "mmap"; }
+      bool verify_integrity(IntegrityCheckContext& icc) const override;
 
     protected:
       virtual void memmap();
@@ -855,26 +856,25 @@
       }
     }
     mapped = true;
-    xassert(mmm_index > 0);
-    xassert(MemoryMapManager::get()->check(mmm_index, this));
+    xassert(mmm_index);
   }
 
 
   void MmapMRI::memunmap() {
     if (!mapped) return;
     if (bufdata) {
-    int ret = munmap(bufdata, bufsize);
-    if (ret) {
-      // Cannot throw exceptions from a destructor, so just print a message
-      printf("Error unmapping the view of file: [errno %d] %s. Resources may "
-             "have not been freed properly.", errno, std::strerror(errno));
+      int ret = munmap(bufdata, bufsize);
+      if (ret) {
+        // Cannot throw exceptions from a destructor, so just print a message
+        printf("Error unmapping the view of file: [errno %d] %s. Resources may "
+               "have not been freed properly.", errno, std::strerror(errno));
+      }
+      bufdata = nullptr;
     }
-}
-    bufdata = nullptr;
     mapped = false;
     bufsize = 0;
     if (mmm_index) {
-      MemoryMapManager::get()->del_entry(mmm_index, this);
+      MemoryMapManager::get()->del_entry(mmm_index);
       mmm_index = 0;
     }
   }
@@ -894,7 +894,7 @@
 
   void MmapMRI::save_entry_index(size_t i) {
     mmm_index = i;
-    xassert(MemoryMapManager::get()->check(mmm_index, this));
+    xassert(MemoryMapManager::get()->check_entry(mmm_index, this));
   }
 
   void MmapMRI::evict() {
@@ -903,6 +903,39 @@
     xassert(!mapped && !mmm_index);
   }
 
+  bool MmapMRI::verify_integrity(IntegrityCheckContext& icc) const {
+    bool ok = MemoryRangeImpl::verify_integrity(icc);
+    if (!ok) return false;
+    if (mapped) {
+      if (!MemoryMapManager::get()->check_entry(mmm_index, this)) {
+        icc << "Mmap MemoryRange is not properly registered with the "
+               "MemoryMapManager: mmm_index = " << mmm_index << icc.end();
+        return false;
+      }
+      if (bufsize == 0 && bufdata) {
+        icc << "Mmap MemoryRange has size = 0 but data pointer is: "
+            << bufdata << icc.end();
+        return false;
+      }
+      if (bufsize && !bufdata) {
+        icc << "Mmap MemoryRange has size = " << bufsize << " and marked as "
+               "mapped, however its data pointer is NULL";
+        return false;
+      }
+    } else {
+      if (mmm_index) {
+        icc << "Mmap MemoryRange is not mapped but its mmm_index = "
+            << mmm_index << icc.end();
+        return false;
+      }
+      if (bufsize || bufdata) {
+        icc << "Mmap MemoryRange is not mapped but its size = " << bufsize
+            << " and data pointer = " << bufdata << icc.end();
+        return false;
+      }
+    }
+    return true;
+  }
 
 
 
