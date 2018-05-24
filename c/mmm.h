@@ -22,19 +22,23 @@ class MmmEntry {
 public:
   size_t size;
   MemoryMapWorker* obj;
+
+  MmmEntry() : size(0), obj(nullptr) {}
+  MmmEntry(size_t s , MemoryMapWorker* o) : size(s), obj(o) {}
+  ~MmmEntry() { size = 0; obj = nullptr; }
+  bool operator<(const MmmEntry& rhs) const { return size > rhs.size; }
 };
 
 
 class MemoryMapManager {
   std::vector<MmmEntry> entries;  // 0th entry always remains empty.
-  size_t count;  // Number of items currently in the `entries` array.
-                 // The entries are at indices 1 .. count
 
 public:
   static MemoryMapManager* get();
   void add_entry(MemoryMapWorker* obj, size_t size);
-  void del_entry(size_t i);
+  void del_entry(size_t i, MemoryMapWorker* obj);
   void freeup_memory();
+  bool check(size_t i, MemoryMapWorker* obj) { return entries[i].obj == obj; }
 
 private:
   static const size_t n_entries_to_purge = 128;

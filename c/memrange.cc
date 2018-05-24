@@ -749,6 +749,7 @@
     writeable = create;
     resizable = create;
     temporary_file = create;
+    mmm_index = 0;
   }
 
   MmapMRI::~MmapMRI() {
@@ -799,6 +800,7 @@
       // if memory size is 0 then mmp can be NULL as nobody is going to read
       // from it anyways.
       bufsize = 0;
+      bufdata = nullptr;
       mapped = true;
       return;
     }
@@ -834,13 +836,16 @@
                      /* fd = */ file.descriptor(),
                      /* offset = */ 0);
       if (bufdata == MAP_FAILED) {
+        bufdata = nullptr;
         if (errno == 12) {  // release some memory and try again
           MemoryMapManager::get()->freeup_memory();
-          continue;
+          if (attempts) {
+            errno = 0;
+            continue;
+          }
         }
         // Exception is thrown from the constructor -> the base class'
         // destructor will be called, which checks that `bufdata` is null.
-        bufdata = nullptr;
         throw RuntimeError() << "Memory-map failed for file " << file.cname()
                              << " of size " << filesize
                              << " +" << bufsize - filesize << Errno;
@@ -850,22 +855,26 @@
       }
     }
     mapped = true;
+    xassert(mmm_index > 0);
+    xassert(MemoryMapManager::get()->check(mmm_index, this));
   }
 
 
   void MmapMRI::memunmap() {
-    if (!bufdata) return;
+    if (!mapped) return;
+    if (bufdata) {
     int ret = munmap(bufdata, bufsize);
     if (ret) {
       // Cannot throw exceptions from a destructor, so just print a message
       printf("Error unmapping the view of file: [errno %d] %s. Resources may "
              "have not been freed properly.", errno, std::strerror(errno));
     }
+}
     bufdata = nullptr;
     mapped = false;
     bufsize = 0;
     if (mmm_index) {
-      MemoryMapManager::get()->del_entry(mmm_index);
+      MemoryMapManager::get()->del_entry(mmm_index, this);
       mmm_index = 0;
     }
   }
@@ -885,10 +894,12 @@
 
   void MmapMRI::save_entry_index(size_t i) {
     mmm_index = i;
+    xassert(MemoryMapManager::get()->check(mmm_index, this));
   }
 
   void MmapMRI::evict() {
     memunmap();
+    xassert(!mapped && !mmm_index);
   }
 
 
