@@ -641,7 +641,7 @@ $(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/mmm.o : c/mmm.cc $(BUILDDIR)/mmm.h
+$(BUILDDIR)/mmm.o : c/mmm.cc $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

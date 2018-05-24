@@ -168,6 +168,7 @@
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "mmap"; }
+      bool verify_integrity(IntegrityCheckContext& icc) const override;
 
     protected:
       virtual void memmap();
@@ -749,6 +750,7 @@
     writeable = create;
     resizable = create;
     temporary_file = create;
+    mmm_index = 0;
   }
 
   MmapMRI::~MmapMRI() {
@@ -799,6 +801,7 @@
       // if memory size is 0 then mmp can be NULL as nobody is going to read
       // from it anyways.
       bufsize = 0;
+      bufdata = nullptr;
       mapped = true;
       return;
     }
@@ -834,13 +837,16 @@
                      /* fd = */ file.descriptor(),
                      /* offset = */ 0);
       if (bufdata == MAP_FAILED) {
+        bufdata = nullptr;
         if (errno == 12) {  // release some memory and try again
           MemoryMapManager::get()->freeup_memory();
-          continue;
+          if (attempts) {
+            errno = 0;
+            continue;
+          }
         }
         // Exception is thrown from the constructor -> the base class'
         // destructor will be called, which checks that `bufdata` is null.
-        bufdata = nullptr;
         throw RuntimeError() << "Memory-map failed for file " << file.cname()
                              << " of size " << filesize
                              << " +" << bufsize - filesize << Errno;
@@ -850,18 +856,21 @@
       }
     }
     mapped = true;
+    xassert(mmm_index);
   }
 
 
   void MmapMRI::memunmap() {
-    if (!bufdata) return;
-    int ret = munmap(bufdata, bufsize);
-    if (ret) {
-      // Cannot throw exceptions from a destructor, so just print a message
-      printf("Error unmapping the view of file: [errno %d] %s. Resources may "
-             "have not been freed properly.", errno, std::strerror(errno));
+    if (!mapped) return;
+    if (bufdata) {
+      int ret = munmap(bufdata, bufsize);
+      if (ret) {
+        // Cannot throw exceptions from a destructor, so just print a message
+        printf("Error unmapping the view of file: [errno %d] %s. Resources may "
+               "have not been freed properly.", errno, std::strerror(errno));
+      }
+      bufdata = nullptr;
     }
-    bufdata = nullptr;
     mapped = false;
     bufsize = 0;
     if (mmm_index) {
@@ -885,12 +894,48 @@
 
   void MmapMRI::save_entry_index(size_t i) {
     mmm_index = i;
+    xassert(MemoryMapManager::get()->check_entry(mmm_index, this));
   }
 
   void MmapMRI::evict() {
+    mmm_index = 0;  // prevent from sending del_entry() signal back
     memunmap();
+    xassert(!mapped && !mmm_index);
   }
 
+  bool MmapMRI::verify_integrity(IntegrityCheckContext& icc) const {
+    bool ok = MemoryRangeImpl::verify_integrity(icc);
+    if (!ok) return false;
+    if (mapped) {
+      if (!MemoryMapManager::get()->check_entry(mmm_index, this)) {
+        icc << "Mmap MemoryRange is not properly registered with the "
+               "MemoryMapManager: mmm_index = " << mmm_index << icc.end();
+        return false;
+      }
+      if (bufsize == 0 && bufdata) {
+        icc << "Mmap MemoryRange has size = 0 but data pointer is: "
+            << bufdata << icc.end();
+        return false;
+      }
+      if (bufsize && !bufdata) {
+        icc << "Mmap MemoryRange has size = " << bufsize << " and marked as "
+               "mapped, however its data pointer is NULL";
+        return false;
+      }
+    } else {
+      if (mmm_index) {
+        icc << "Mmap MemoryRange is not mapped but its mmm_index = "
+            << mmm_index << icc.end();
+        return false;
+      }
+      if (bufsize || bufdata) {
+        icc << "Mmap MemoryRange is not mapped but its size = " << bufsize
+            << " and data pointer = " << bufdata << icc.end();
+        return false;
+      }
+    }
+    return true;
+  }
 
 
 

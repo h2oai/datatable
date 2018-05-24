@@ -7,15 +7,14 @@
 //------------------------------------------------------------------------------
 #include "mmm.h"
 #include <algorithm>
+#include "utils/assert.h"
+#include "utils/exceptions.h"
 
 
 
 MemoryMapManager::MemoryMapManager(size_t nelems) {
-  count = 0;
   entries.reserve(nelems);
-  for (size_t i = 0; i < nelems; ++i) {
-    entries[i].size = 0;
-  }
+  entries.push_back(MmmEntry());
 }
 
 
@@ -26,53 +25,45 @@ MemoryMapManager* MemoryMapManager::get() {
 
 
 void MemoryMapManager::add_entry(MemoryMapWorker* obj, size_t mmapsize) {
-  count++;
-  if (count == entries.size()) {
-    entries.reserve(count * 2);
-  }
-  entries[count].size = mmapsize;
-  entries[count].obj = obj;
-  obj->save_entry_index(count);
+  entries.push_back(MmmEntry(mmapsize, obj));
+  obj->save_entry_index(entries.size() - 1);
 }
 
 
+// Careful not to throw any exceptions here: this method is called from
+// MmapMRI's destructor, and an uncaught exception will cause SIGABRT.
 void MemoryMapManager::del_entry(size_t i) {
-  if (i == 0) return;
-  if (i < count) {
-    // Move the last entry into the now-empty slot <i>
-    entries[i].size = entries[count].size;
-    entries[i].obj = entries[count].obj;
-    entries[count].obj->save_entry_index(i);
-  }
-  entries[count].size = 0;
-  entries[count].obj = nullptr;
-  count--;
+  // Move the last entry into the now-empty slot <i>
+  std::swap(entries[i], entries.back());
+  entries[i].obj->save_entry_index(i);
+  entries.pop_back();
+}
+
+
+bool MemoryMapManager::check_entry(size_t i, const MemoryMapWorker* obj) {
+  return (i > 0 && i < entries.size() && entries[i].obj == obj);
 }
 
 
 void MemoryMapManager::freeup_memory() {
+  size_t size0 = entries.size();
   // Sort the entries by size in descending order
   sort_entries();
   // Evict the entries at the top of the array
-  size_t i = count - 1;
-  size_t last_i = (i >= n_entries_to_purge)? i - n_entries_to_purge : 0;
-  for (;;) {
-    entries[i].obj->evict();
-    entries[i].obj = nullptr;
-    entries[i].size = 0;
-    if (i == last_i) break;
-    --i;
+  for (size_t j = 0; j < n_entries_to_purge; ++j) {
+    if (entries.size() <= 1) break;
+    entries.back().obj->evict();
+    xassert(entries.size() == size0 - j);
+    entries.pop_back();
   }
-  count = last_i;
 }
 
 
 void MemoryMapManager::sort_entries() {
-  auto start = entries.begin() + 1;
-  auto end = start + static_cast<ptrdiff_t>(count);
-  std::sort(start, end, [](const MmmEntry& a, const MmmEntry& b) -> bool {
-    return a.size >= b.size;
-  });
+  std::sort(entries.begin() + 1, entries.end());
+  for (size_t i = 1; i < entries.size(); ++i) {
+    entries[i].obj->save_entry_index(i);
+  }
 }
 
 
