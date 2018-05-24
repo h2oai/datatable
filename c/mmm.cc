@@ -48,15 +48,23 @@ void MemoryMapManager::del_entry(size_t i, MemoryMapWorker* obj) {
 
 
 void MemoryMapManager::freeup_memory() {
+  size_t size0 = entries.size();
+  xassert(size0 > 0);
   // Sort the entries by size in descending order
   sort_entries();
+  size_t size1 = entries.size();
+  xassert(size1 == size0);
   // Evict the entries at the top of the array
   for (size_t j = 0; j < n_entries_to_purge; ++j) {
     if (entries.size() <= 1) break;
     entries.back().obj->evict();
+    size_t s = entries.size();
+    xassert(s == size0 - j);
     entries.pop_back();
   }
-  xassert(!entries.empty());
+  size_t size2 = entries.size();
+  xassert(size2 > 0);
+  xassert(size2 < size1 || (size2 == 1 && size1 == 1));
 }
 
 

@@ -898,6 +898,7 @@
   }
 
   void MmapMRI::evict() {
+    mmm_index = 0;  // prevent from sending del_entry() signal back
     memunmap();
     xassert(!mapped && !mmm_index);
   }
