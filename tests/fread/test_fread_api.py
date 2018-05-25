@@ -210,6 +210,21 @@ def test_fread_gz_file(tempfile, capsys):
     os.unlink(gzfile)
 
 
+def test_fread_bz2_file(tempfile, capsys):
+    import bz2
+    bzfile = tempfile + ".bz2"
+    with bz2.open(bzfile, "wb") as f:
+        f.write(b"A\n11\n22\n33\n")
+    try:
+        d0 = dt.fread(bzfile, verbose=True)
+        out, err = capsys.readouterr()
+        assert d0.internal.check()
+        assert d0.topython() == [[11, 22, 33]]
+        assert ("Extracting %s into memory" % bzfile) in out
+    finally:
+        os.remove(bzfile)
+
+
 def test_fread_zip_file_1(tempfile, capsys):
     import zipfile
     zfname = tempfile + ".zip"

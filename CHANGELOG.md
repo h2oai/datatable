@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   cells.
 - `dt.__git_version__` variable containing the commit hash from which the
   package was built.
+- ability to read .bz2 compressed files with fread.
+
 
 #### Fixed
 - Ensure that fread only emits messages to Python from the master thread.
