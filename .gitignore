@@ -45,3 +45,7 @@ temp/
 microbench/sort/sort
 microbench/writecsv/writecsv
 microbench/fread/fread
+
+
+# Auto-generated files
+datatable/__git__.py

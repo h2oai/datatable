@@ -16,8 +16,14 @@ from .options import options
 from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
+try:
+    from .__git__ import __git_revision__
+except:
+    __git_revision__ = ""
 
-__all__ = ("__version__", "Frame", "max", "mean", "min", "open", "sd",
+
+__all__ = ("__version__", "__git_revision__",
+           "Frame", "max", "mean", "min", "open", "sd",
            "isna", "fread", "GenericReader", "save", "stype", "ltype", "f",
            "TypeError", "ValueError", "DataTable", "options",
            "bool8", "int8", "int16", "int32", "int64",

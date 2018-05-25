@@ -83,6 +83,27 @@ def get_test_dependencies():
     ]
 
 
+def make_git_version_file():
+    import subprocess
+    if not os.path.isdir(".git"):
+        return
+    out = subprocess.check_output(["git", "rev-parse", "HEAD"])
+    githash = out.decode("ascii").strip()
+    with open("datatable/__git__.py", "w", encoding="utf-8") as o:
+        o.write(
+            "#!/usr/bin/env python3\n"
+            "# © H2O.ai 2018; -*- encoding: utf-8 -*-\n"
+            "#   This Source Code Form is subject to the terms of the\n"
+            "#   Mozilla Public License, v2.0. If a copy of the MPL was\n"
+            "#   not distributed with this file, You can obtain one at\n"
+            "#   http://mozilla.org/MPL/2.0/.\n"
+            "# ----------------------------------------------------------\n"
+            "# This file was auto-generated from setup.py\n\n"
+            "__git_revision__ = \'%s\'\n"
+            % githash)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Determine compiler settings
@@ -349,6 +370,7 @@ print("Setting environment variables:", file=stderr)
 for n in ["CC", "CXX", "LDFLAGS", "ARCHFLAGS", "LLVM_CONFIG"]:
     print("  %s = %s" % (n, os.environ.get(n, "")), file=stderr)
 
+make_git_version_file()
 
 
 #-------------------------------------------------------------------------------
