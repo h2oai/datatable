@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - ability to change the number of rows in a Frame.
 - ability to modify a Frame in-place by assigning new values to particular
   cells.
+- `dt.__git_version__` variable containing the commit hash from which the
+  package was built.
 
 #### Fixed
 - Ensure that fread only emits messages to Python from the master thread.
