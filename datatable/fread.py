@@ -374,6 +374,13 @@ class GenericReader(object):
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
+        elif ext == ".bz2":
+            import bz2
+            zf = bz2.open(filename, mode="rb")
+            if self._verbose:
+                self.logger.debug("Extracting %s into memory" % filename)
+            self._text = zf.read()
+
         elif ext == ".xz":
             import lzma
             zf = lzma.open(filename, mode="rb")
