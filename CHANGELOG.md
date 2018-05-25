@@ -8,7 +8,10 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.4.0)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.5.0)
+
+
+### [v0.5.0](https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0) — 2018-05-25
 #### Added
 - rbind()-ing now works on columns of all types (including between any types).
 - `dt.rbind()` function to perform out-of-place row binding.
@@ -18,7 +21,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `dt.__git_version__` variable containing the commit hash from which the
   package was built.
 - ability to read .bz2 compressed files with fread.
-
 
 #### Fixed
 - Ensure that fread only emits messages to Python from the master thread.
