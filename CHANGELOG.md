@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fread can now properly recognize quoted NA strings.
 - Fixed error when unbounded f-expressions were printed to console.
 - Fixed problems when operating with too many memory-mapped Frames at once.
+- Fixed incorrect groupby calculation in some rare cases.
 
 
 ### [v0.4.0](https://github.com/h2oai/datatable/compare/0.4.0...v0.3.2) — 2018-05-07
