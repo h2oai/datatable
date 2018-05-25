@@ -168,6 +168,9 @@ def test_h2o3_bigdata(f):
         # files with 36M columns
         os.path.join("testng", "newsgroup_train1.csv"),
         os.path.join("testng", "newsgroup_validation1.csv"),
+        # broken CRC zip files
+        os.path.join("jira", "tenThousandCat50C.csv.zip"),
+        os.path.join("jira", "tenThousandCat100C.csv.zip"),
     }
     filledna_files = {
         os.path.join("lending-club", "LoanStats3a.csv"),

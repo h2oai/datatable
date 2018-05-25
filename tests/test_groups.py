@@ -153,7 +153,7 @@ def test_groupby_large_random_integers(seed):
     chunks = ([random.sample(range(n0), random.randint(1, n0))] +
               [random.sample([0] * 100 + list(range(256)), random.randint(1, 20))
                for i in range(ngrps1)])
-    n = int(random.expovariate(0.0001))
+    n = int(random.expovariate(0.0001)) + 10
     sample = [sum(random.choice(chunks[i]) << (8*i) for i in range(len(chunks)))
               for _ in range(n)]
     nuniques = len(set(sample))
