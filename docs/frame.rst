@@ -1,9 +1,9 @@
 Python API
 ==========
 
-:mod:`H2OFrame`
+:mod:`Frame`
 ----------------
-.. autoclass:: dt.frame.Frame
+.. autoclass:: dt.Frame
     :members:
     :undoc-members:
 
