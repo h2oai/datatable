@@ -41,3 +41,11 @@ If you have questions about using ``datatable``, post them on Stack Overflow usi
 
    using-datatable
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Python API
+
+   frame.rst
+
+   
+
