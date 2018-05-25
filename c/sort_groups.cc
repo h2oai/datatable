@@ -81,6 +81,7 @@ void GroupGatherer::from_chunks(radix_range* rrmap, size_t nradixes) {
     dest_off += grp_size;
   }
   count = static_cast<int32_t>(dest_off);
+  xassert(count > 0);
   cumsize = groups[count - 1];
 }
 

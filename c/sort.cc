@@ -866,7 +866,7 @@ class SortContext {
           rrmap[rri].size = static_cast<size_t>(gg.size()) | GROUPED;
         }
       } else {
-        nsmallgroups++;
+        nsmallgroups += (sz > 1);
         if (sz > size0) size0 = sz;
       }
     }
@@ -942,7 +942,7 @@ class SortContext {
 
     // Consolidate groups into a single contiguous chunk
     if (make_groups) {
-      gg.from_chunks(rrmap, nradixes);
+      gg.from_chunks(rrmap, _nradixes);
     }
 
     delete[] rrmap;

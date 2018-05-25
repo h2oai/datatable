@@ -143,3 +143,21 @@ def test_groups_large2_str(n, seed):
     f1 = f0(groupby="A")
     assert f1.internal.check()
     assert f1.internal.rowindex.ngroups == len(set(src))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+def test_groupby_large_random_integers(seed):
+    random.seed(seed)
+    ngrps1 = random.choice([1, 1, 2, 2, 2, 3, 4, 5])
+    n0 = 1 << random.choice([1, 1, 2, 2, 2, 3, 3, 3, 4, 5, 6, 7])
+    chunks = ([random.sample(range(n0), random.randint(1, n0))] +
+              [random.sample([0] * 100 + list(range(256)), random.randint(1, 20))
+               for i in range(ngrps1)])
+    n = int(random.expovariate(0.0001))
+    sample = [sum(random.choice(chunks[i]) << (8*i) for i in range(len(chunks)))
+              for _ in range(n)]
+    nuniques = len(set(sample))
+    f0 = dt.Frame(sample)
+    assert f0.nunique1() == nuniques
+    f1 = dt.rbind(*([f0] * random.randint(2, 20)))
+    assert f1.nunique1() == nuniques
