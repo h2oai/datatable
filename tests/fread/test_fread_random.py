@@ -33,7 +33,7 @@ def make_seeds():
     n = 25
     if (os.environ.get(root_env_name, "") != "" and
             os.environ.get(env_coverage, "") == ""):
-        n = 500
+        n = 100
     return [random.randint(0, 2**31) for _ in range(n)]
 
 
@@ -72,6 +72,9 @@ def test_fread_omnibus(seed):
         assert len(coldata) == nrows
         if coltype != dt.ltype.int and all(is_intlike(x) for x in coldata):
             coltype = dt.ltype.int
+        if (coltype not in [dt.ltype.real, dt.ltype.int] and
+                all(is_reallike(x) for x in coldata)):
+            coltype = dt.ltype.real
         # Check 'bool' last, since ['0', '1'] is both int-like and bool-like
         if coltype != dt.ltype.bool and all_boollike(coldata):
             coltype = dt.ltype.bool
@@ -116,15 +119,15 @@ def test_fread_omnibus(seed):
             o.write(text)
         with open("omnibus.params", "w") as o:
             del params["text"]
-            o.write("params = %r\n"
-                    "exp.shape = (%d, %d)\n"
-                    "exp.names = %r\n"
-                    "exp.types = %r\n"
-                    % (params, nrows, ncols, colnames, coltypes))
+            o.write("params = %r\n\n"
+                    "exp_shape = (%d, %d)\n"
+                    "exp_names = %r\n"
+                    "exp_types = %r\n"
+                    % (params, nrows, ncols, tuple(colnames), tuple(coltypes)))
             if d0:
-                o.write("act.shape = %r\n"
-                        "act.names = %r\n"
-                        "act.types = %r\n"
+                o.write("act_shape = %r\n"
+                        "act_names = %r\n"
+                        "act_types = %r\n"
                         % (d0.shape, d0.names, d0.ltypes))
         raise
 
@@ -145,9 +148,21 @@ def all_boollike(coldata):
 
 
 def is_intlike(x):
-    x = x.strip()
-    return x.isdigit() or (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
-                           x[1:-1].isdigit()) or x == ""
+    x = x.strip().strip('"\'')
+    return (x.isdigit() or
+            (len(x) > 2 and x[0] == x[-1] and x[0] in "'\"" and
+                               x[1:-1].isdigit()) or
+            x == "" or
+            x == '""' or
+            x == "''")
+
+def is_reallike(x):
+    x = x.strip().strip('"\'')
+    try:
+        float(x)
+        return True
+    except:
+        return False
 
 
 def generate_int_column(allparams):

@@ -27,12 +27,12 @@
 DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string& path)
 {
     int64_t ncols = colspec->nrows;
-    Column** columns = NULL;
+    Column** columns = nullptr;
     dtmalloc(columns, Column*, ncols + 1);
-    columns[ncols] = NULL;
+    columns[ncols] = nullptr;
 
-    if (colspec->ncols != 3) {
-        throw ValueError() << "colspec table should have had 3 columns, "
+    if (colspec->ncols != 3 && colspec->ncols != 5) {
+        throw ValueError() << "colspec table should have had 3 or 5 columns, "
                            << "but " << colspec->ncols << " were passed";
     }
     SType stypef = colspec->columns[0]->stype();
@@ -49,30 +49,21 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     StringColumn<int32_t>* cols =
         static_cast<StringColumn<int32_t>*>(colspec->columns[1]);
 
-    int32_t* offf = colf->offsets();
-    int32_t* offs = cols->offsets();
+    const int32_t* offf = colf->offsets();
+    const int32_t* offs = cols->offsets();
 
+    std::string rootdir(path);
+    if (!(rootdir.empty() || rootdir.back() == '/'))
+      rootdir += "/";
 
-    /*static char filename[1001];
-    static char metastr[101];
-    size_t len = path.length();
-    if (len > 900) {
-        throw ValueError() << "The path is too long: " << path;
-    }*/
     for (int64_t i = 0; i < ncols; ++i)
     {
         // Extract filename
         size_t fsta = static_cast<size_t>(abs(offf[i - 1]));
         size_t fend = static_cast<size_t>(abs(offf[i]));
         size_t flen = static_cast<size_t>(fend - fsta);
-        /*if (flen > 100) {
-            throw ValueError() << "Filename is too long: " << flen;
-        }
-        memcpy(ffilename, colf->data_at(static_cast<size_t>(fsta)), (size_t) flen);
-        ffilename[flen] = '\0';*/
-        std::string filename(path);
-        if (!(filename.empty() || filename.back() == '/'))
-          filename += "/";
+
+        std::string filename = rootdir;
         filename.append(colf->strdata() + fsta, flen);
 
         // Extract stype

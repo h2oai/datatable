@@ -56,13 +56,20 @@ DECLARE_FUNCTION(
   "is_debug_mode()\n\n",
   HOMEFLAG)
 
+DECLARE_FUNCTION(
+  has_omp_support,
+  "has_omp_support()\n\n"
+  "Returns True if datatable was built with OMP support, and False otherwise.\n"
+  "Without OMP datatable will be significantly slower, performing all\n"
+  "operations in single-threaded mode.\n",
+  HOMEFLAG)
 
 
 PyObject* exec_function(PyObject* self, PyObject* args) {
   void* fnptr;
-  PyObject* fnargs = NULL;
+  PyObject* fnargs = nullptr;
   if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
-      return NULL;
+      return nullptr;
 
   return ((PyCFunction) fnptr)(self, fnargs);
 }
@@ -70,9 +77,9 @@ PyObject* exec_function(PyObject* self, PyObject* args) {
 
 PyObject* register_function(PyObject*, PyObject *args) {
   int n = -1;
-  PyObject* fnref = NULL;
+  PyObject* fnref = nullptr;
   if (!PyArg_ParseTuple(args, "iO:register_function", &n, &fnref))
-      return NULL;
+      return nullptr;
 
   if (!PyCallable_Check(fnref)) {
     throw TypeError() << "parameter `fn` must be callable";
@@ -96,7 +103,7 @@ PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
   const int SIZE = 6;
   int i = 0;
   PyObject *res = PyTuple_New(SIZE);
-  if (!res) return NULL;
+  if (!res) return nullptr;
 
   ADD(_dt_malloc);
   ADD(_dt_realloc);
@@ -114,7 +121,7 @@ PyObject* get_integer_sizes(PyObject*, PyObject*) {
   const int SIZE = 5;
   int i = 0;
   PyObject *res = PyTuple_New(SIZE);
-  if (!res) return NULL;
+  if (!res) return nullptr;
 
   ADD(sizeof(short int));
   ADD(sizeof(int));
@@ -133,6 +140,14 @@ PyObject* is_debug_mode(PyObject*, PyObject*) {
     return incref(Py_True);
   #else
     return incref(Py_False);
+  #endif
+}
+
+PyObject* has_omp_support(PyObject*, PyObject*) {
+  #ifdef DTNOOPENMP
+    return incref(Py_False);
+  #else
+    return incref(Py_True);
   #endif
 }
 
@@ -170,8 +185,9 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(expr_reduceop),
     METHODv(expr_unaryop),
     METHOD0(is_debug_mode),
+    METHOD0(has_omp_support),
 
-    {NULL, NULL, 0, NULL}  /* Sentinel */
+    {nullptr, nullptr, 0, nullptr}  /* Sentinel */
 };
 
 static PyModuleDef datatablemodule = {
@@ -181,7 +197,12 @@ static PyModuleDef datatablemodule = {
     -1,            /* size of per-interpreter state of the module, or -1
                       if the module keeps state in global variables */
     DatatableModuleMethods,
-    0,0,0,0,
+
+    // https://docs.python.org/3/c-api/module.html#multi-phase-initialization
+    nullptr,       /* m_slots */
+    nullptr,       /* m_traverse */
+    nullptr,       /* m_clear */
+    nullptr,       /* m_free */
 };
 
 
@@ -196,16 +217,16 @@ PyInit__datatable(void) {
 
     // Instantiate module object
     PyObject* m = PyModule_Create(&datatablemodule);
-    if (m == NULL) return NULL;
+    if (m == nullptr) return nullptr;
 
     // Initialize submodules
-    if (!init_py_types(m)) return NULL;
-    if (!pydatawindow::static_init(m)) return NULL;
-    if (!pycolumn::static_init(m)) return NULL;
-    if (!pycolumnset::static_init(m)) return NULL;
-    if (!pydatatable::static_init(m)) return NULL;
-    if (!pyrowindex::static_init(m)) return NULL;
-    if (!init_py_encodings(m)) return NULL;
+    if (!init_py_types(m)) return nullptr;
+    if (!pydatawindow::static_init(m)) return nullptr;
+    if (!pycolumn::static_init(m)) return nullptr;
+    if (!pycolumnset::static_init(m)) return nullptr;
+    if (!pydatatable::static_init(m)) return nullptr;
+    if (!pyrowindex::static_init(m)) return nullptr;
+    if (!init_py_encodings(m)) return nullptr;
 
     return m;
 }

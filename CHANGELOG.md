@@ -8,7 +8,53 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.3.0)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.5.0)
+
+
+### [v0.5.0](https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0) — 2018-05-25
+#### Added
+- rbind()-ing now works on columns of all types (including between any types).
+- `dt.rbind()` function to perform out-of-place row binding.
+- ability to change the number of rows in a Frame.
+- ability to modify a Frame in-place by assigning new values to particular
+  cells.
+- `dt.__git_version__` variable containing the commit hash from which the
+  package was built.
+- ability to read .bz2 compressed files with fread.
+
+#### Fixed
+- Ensure that fread only emits messages to Python from the master thread.
+- Fread can now properly recognize quoted NA strings.
+- Fixed error when unbounded f-expressions were printed to console.
+- Fixed problems when operating with too many memory-mapped Frames at once.
+- Fixed incorrect groupby calculation in some rare cases.
+
+
+### [v0.4.0](https://github.com/h2oai/datatable/compare/0.4.0...v0.3.2) — 2018-05-07
+#### Added
+- Fread now parses integers with thousands separator (e.g. "1,000").
+- Added option `fread.anonymize` which forces fread to anonymize all user input
+  in the verbose logs / error messages.
+- Allow type-casts from booleans / integers / floats into strings.
+
+
+### [v0.3.2](https://github.com/h2oai/datatable/compare/0.3.2...v0.3.1) — 2018-04-25
+#### Added
+- Implemented sorting for `str64` columns.
+- write_csv can now write columns of type `str64`.
+- Fread can now accept a list of files to read, or a glob pattern.
+- Added `dt.lib.core.has_omp_support()` to check whether `datatable` was
+  built with OMP support or not.
+- Save per-column min/max information in the NFF format.
+
+#### Fixed
+- Fix the source distribution (`sdist`) by including all the files that are
+  required for building from source.
+- Install no longer fails with `llvmlite 0.23.0` package.
+- Fixed a stall in fread when using single-threaded mode with fill=True.
+
+
+### [v0.3.1](https://github.com/h2oai/datatable/compare/0.3.1...v0.3.0) — 2018-04-20
 #### Added
 - Added ability to delete rows from a view Frame.
 - Implement countna() function for `obj64` columns.
@@ -17,6 +63,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   This method is noop if applied to a non-view Frame.
 - Several internal options to fine-tune the performance of sorting algorithm.
 - Significantly improved performance of sorting doubles.
+- fread can now read string columns that are larger than 2GB in size.
+- fread can now accept a list/tuple of stypes for its `columns` parameter.
+- improved logic for auto-assigning column names when they are missing.
+- fread now supports reading files that contain NUL characters.
+- Added global settings `options.frame.names_auto_index` and
+  `options.frame.names_auto_prefix` to control automatic column name
+  generation in a Frame.
 
 #### Changed
 - When creating a column of "object" type, we will now coerce float "nan"
@@ -24,6 +77,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Renamed fread's parameter `strip_white` into `strip_whitespace`.
 - Eliminated all `assert()` statements from C code, and replaced them with
   exception throws.
+- Default column names, if none given by the user, are "C0", "C1", "C2", ...
+  for both `fread` and `Frame` constructor.
+- function-valued `columns` parameter in fread has been changed: if previously
+  the function was invoked for every column, now it receives the list of all
+  columns at once, and is expected to return a modified list (or dict / set /
+  etc). Each column description in the list that the function receives carries
+  the columns name and stype, in the future `format` field will also be added.
 
 #### Fixed
 - fread will no longer consume excessive amounts of memory when reading a file
@@ -42,7 +102,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed sorting of 1-row view frames.
 
 
-### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) - 2018-03-19
+### [v0.3.0](https://github.com/h2oai/datatable/compare/0.3.0...v0.2.2) — 2018-03-19
 #### Added
 - Method `df.tonumpy()` now has argument `stype` which will force conversion into
   a numpy array of the specific stype.

@@ -36,7 +36,7 @@ void DataTable::rbind(DataTable** dts, int** cols, int ndts, int64_t new_ncols)
   for (int64_t i = ncols; i < new_ncols; ++i) {
     columns[i] = new VoidColumn(nrows);
   }
-  columns[new_ncols] = NULL;
+  columns[new_ncols] = nullptr;
 
   int64_t new_nrows = nrows;
   for (int i = 0; i < ndts; ++i) {

@@ -61,7 +61,7 @@ void set_value(void * __restrict__ ptr, const void * __restrict__ value,
                size_t sz, size_t count)
 {
   if (count == 0) return;
-  if (value == NULL) {
+  if (value == nullptr) {
     *(unsigned char *)ptr = 0xFF;
     count *= sz;
     sz = 1;
@@ -92,7 +92,7 @@ void set_value(void * __restrict__ ptr, const void * __restrict__ value,
   #include <sys/time.h>
   double wallclock(void) {
     struct timeval tv;
-    int ret = gettimeofday(&tv, NULL);
+    int ret = gettimeofday(&tv, nullptr);
     return ret == 0? 1.0 * tv.tv_sec + 1e-6 * tv.tv_usec : 0;
   }
 #endif

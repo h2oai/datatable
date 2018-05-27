@@ -1,6 +1,9 @@
 BUILDDIR := build/fast
 PYTHON   ?= python
 MODULE   ?= .
+ifdef JENKINS_URL
+PYTEST_FLAGS := -vv -s
+endif
 
 # Platform details
 OS       := $(shell uname | tr A-Z a-z)
@@ -11,7 +14,7 @@ PLATFORM := $(ARCH)-$(OS)
 DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug build_noomp bi coverage fast dist
+		benchmark debug bi coverage fast dist
 .SECONDARY: main-fast
 
 
@@ -58,7 +61,7 @@ test:
 	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra --maxfail=10 \
+	$(PYTHON) -m pytest -ra --maxfail=10 $(PYTEST_FLAGS) \
 		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
@@ -79,11 +82,6 @@ asan:
 	DTASAN=1 \
 	$(MAKE) fast
 	$(MAKE) install
-
-build_noomp:
-	DTNOOPENMP=1 \
-	$(MAKE) build
-
 
 bi:
 	$(MAKE) build
@@ -113,8 +111,8 @@ coverage:
 dist: build
 	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
 
-dist_noomp: build_noomp
-	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
+sdist:
+	$(PYTHON) setup.py sdist
 
 version:
 	@$(PYTHON) setup.py --version
@@ -127,18 +125,20 @@ version:
 DIST_DIR = dist
 
 ARCH := $(shell arch)
-PLATFORM := $(ARCH)-centos7
+OS_NAME ?= centos7
+PLATFORM := $(ARCH)_$(OS_NAME)
 
+DOCKER_REPO_NAME ?= docker.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
-CONTAINER_NAME ?= opsh2oai/dai-datatable$(CONTAINER_NAME_SUFFIX)
+CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
 
 PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
-BUILD_NUM ?= local
-BUILD_NUM_SUFFIX = .$(BUILD_NUM)
-VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_NUM_SUFFIX)
-CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/+/-/g')
+BUILD_ID ?= local
+BUILD_ID_SUFFIX = .$(BUILD_ID)
+VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
+CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
@@ -146,23 +146,35 @@ CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
 
 ARCH_SUBST = undefined
 FROM_SUBST = undefined
-ifeq ($(ARCH),x86_64)
+ifeq ($(PLATFORM),x86_64_centos7)
     FROM_SUBST = centos:7
     ARCH_SUBST = $(ARCH)
 endif
-ifeq ($(ARCH),ppc64le)
+ifeq ($(PLATFORM),ppc64le_centos7)
     FROM_SUBST = ibmcom\/centos-ppc64le
     ARCH_SUBST = $(ARCH)
 endif
+ifeq ($(PLATFORM),x86_64_ubuntu)
+    FROM_SUBST = x86_64_linux
+    ARCH_SUBST = $(ARCH)
+endif
 
-Dockerfile-centos7.$(PLATFORM): Dockerfile-centos7.in
+Dockerfile-centos7.$(PLATFORM): ci/Dockerfile-centos7.in
 	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
 
-centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
+Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
 	docker build \
 		-t $(CONTAINER_NAME_TAG) \
 		-f Dockerfile-centos7.$(PLATFORM) \
 		.
+	echo $(CONTAINER_NAME_TAG) > $@
+
+centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
+
+centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
+	docker push $(CONTAINER_NAME_TAG)
+
+centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	make clean
 	docker run \
 		--rm \
@@ -174,35 +186,38 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM)
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
 		$(CONTAINER_NAME_TAG) \
 		-c 'make dist'
-	rm -fr build.output.tmp
-	mkdir build.output.tmp
-	mv $(DIST_DIR)/*.whl build.output.tmp
-	make clean
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX).noomp" \
-		$(CONTAINER_NAME_TAG) \
-		-c 'make dist_noomp'
-	mv $(DIST_DIR)/*.whl build.output.tmp
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
-	mv build.output.tmp/* $(DIST_DIR)/$(PLATFORM)
-	rmdir build.output.tmp
+	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
+
+#
+# Ubuntu image - will be removed
+#
+Dockerfile-ubuntu.$(PLATFORM): ci/Dockerfile-ubuntu.in
+	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
+
+Dockerfile-ubuntu.$(PLATFORM).tag: Dockerfile-ubuntu.$(PLATFORM)
+	docker build \
+		-t $(CONTAINER_NAME_TAG) \
+		-f Dockerfile-ubuntu.$(PLATFORM) \
+		.
+	echo $(CONTAINER_NAME_TAG) > $@
+
+ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
+
+ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
+	docker push $(CONTAINER_NAME_TAG)
 
 # Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
 mrproper_in_docker: mrproper
 
 printvars:
-	@echo $(PLATFORM)
-	@echo $(PROJECT_VERSION)
-	@echo $(VERSION)
-	@echo $(CONTAINER_TAG)
+	@echo PLATFORM=$(PLATFORM)
+	@echo PROJECT_VERSION=$(PROJECT_VERSION)
+	@echo VERSION=$(VERSION)
+	@echo CONTAINER_TAG=$(CONTAINER_TAG)
+	@echo CONTAINER_NAME=$(CONTAINER_NAME)
 
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
@@ -244,7 +259,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/py_expr.o            \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
-	memorybuf.o               \
+	memrange.o                \
 	mmm.o                     \
 	options.o                 \
 	py_buffers.o              \
@@ -260,6 +275,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	python/float.o            \
 	python/list.o             \
 	python/long.o             \
+	python/string.o           \
 	rowindex.o                \
 	rowindex_array.o          \
 	rowindex_slice.o          \
@@ -312,7 +328,7 @@ $(BUILDDIR)/capi.h: c/capi.h
 	@echo • Refreshing c/capi.h
 	@cp c/capi.h $@
 
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/column.h
 	@cp c/column.h $@
 
@@ -332,9 +348,9 @@ $(BUILDDIR)/encodings.h: c/encodings.h
 	@echo • Refreshing c/encodings.h
 	@cp c/encodings.h $@
 
-$(BUILDDIR)/memorybuf.h: c/memorybuf.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/mmm.h $(BUILDDIR)/writebuf.h
-	@echo • Refreshing c/memorybuf.h
-	@cp c/memorybuf.h $@
+$(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
+	@echo • Refreshing c/memrange.h
+	@cp c/memrange.h $@
 
 $(BUILDDIR)/mmm.h: c/mmm.h
 	@echo • Refreshing c/mmm.h
@@ -400,16 +416,11 @@ $(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
 	@echo • Refreshing c/writebuf.h
 	@cp c/writebuf.h $@
 
-
-$(BUILDDIR)/csv/chunks.h: c/csv/chunks.h
-	@echo • Refreshing c/csv/chunks.h
-	@cp c/csv/chunks.h $@
-
 $(BUILDDIR)/csv/dtoa.h: c/csv/dtoa.h
 	@echo • Refreshing c/csv/dtoa.h
 	@cp c/csv/dtoa.h $@
 
-$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/fread.h: c/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Refreshing c/csv/fread.h
 	@cp c/csv/fread.h $@
 
@@ -421,11 +432,15 @@ $(BUILDDIR)/csv/itoa.h: c/csv/itoa.h
 	@echo • Refreshing c/csv/itoa.h
 	@cp c/csv/itoa.h $@
 
+$(BUILDDIR)/csv/toa.h: c/csv/toa.h $(BUILDDIR)/csv/dtoa.h $(BUILDDIR)/csv/itoa.h
+	@echo • Refreshing c/csv/toa.h
+	@cp c/csv/toa.h $@
+
 $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 
@@ -433,11 +448,11 @@ $(BUILDDIR)/csv/reader_arff.h: c/csv/reader_arff.h $(BUILDDIR)/csv/reader.h
 	@echo • Refreshing c/csv/reader_arff.h
 	@cp c/csv/reader_arff.h $@
 
-$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memorybuf.h
+$(BUILDDIR)/csv/reader_fread.h: c/csv/reader_fread.h $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/csv/reader_fread.h
 	@cp c/csv/reader_fread.h $@
 
-$(BUILDDIR)/csv/reader_parsers.h: c/csv/reader_parsers.h $(BUILDDIR)/csv/fread.h
+$(BUILDDIR)/csv/reader_parsers.h: c/csv/reader_parsers.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/csv/reader_parsers.h
 	@cp c/csv/reader_parsers.h $@
 
@@ -462,6 +477,10 @@ $(BUILDDIR)/python/list.h: c/python/list.h $(BUILDDIR)/utils/pyobj.h
 $(BUILDDIR)/python/long.h: c/python/long.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/long.h
 	@cp c/python/long.h $@
+
+$(BUILDDIR)/python/string.h: c/python/string.h $(BUILDDIR)/utils/pyobj.h
+	@echo • Refreshing c/python/string.h
+	@cp c/python/string.h $@
 
 
 $(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
@@ -518,15 +537,15 @@ $(BUILDDIR)/column_fw.o : c/column_fw.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils.
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_real.o : c/column_real.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/column_real.o : c/column_real.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -538,11 +557,11 @@ $(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/uti
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/chunks.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/csv/chunks.o : c/csv/chunks.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/shared_mutex.h
+$(BUILDDIR)/csv/fread.o : c/csv/fread.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/freadLookups.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -550,7 +569,7 @@ $(BUILDDIR)/csv/py_csv.o : c/csv/py_csv.cc $(BUILDDIR)/options.h $(BUILDDIR)/csv
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/options.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader.o : c/csv/reader.cc $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_arff.h $(BUILDDIR)/csv/reader_fread.h $(BUILDDIR)/encodings.h $(BUILDDIR)/options.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -562,15 +581,15 @@ $(BUILDDIR)/csv/reader_fread.o : c/csv/reader_fread.cc $(BUILDDIR)/column.h $(BU
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/csv/reader_parsers.o : c/csv/reader_parsers.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/reader_utils.o : c/csv/reader_utils.cc $(BUILDDIR)/csv/fread.h $(BUILDDIR)/csv/reader.h $(BUILDDIR)/csv/reader_parsers.h $(BUILDDIR)/python/long.h $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/dtoa.h $(BUILDDIR)/csv/itoa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/csv/writer.o : c/csv/writer.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/toa.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -594,7 +613,7 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.c $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -618,11 +637,11 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memorybuf.o : c/memorybuf.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/mmm.o : c/mmm.cc $(BUILDDIR)/mmm.h
+$(BUILDDIR)/mmm.o : c/mmm.cc $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -646,7 +665,7 @@ $(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -674,7 +693,7 @@ $(BUILDDIR)/python/float.o : c/python/float.cc $(BUILDDIR)/python/float.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/python/list.o : c/python/list.cc $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -682,11 +701,15 @@ $(BUILDDIR)/python/long.o : c/python/long.cc $(BUILDDIR)/python/long.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/python/string.o : c/python/string.cc $(BUILDDIR)/python/string.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memorybuf.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/rowindex.o : c/rowindex.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/rowindex_array.o : c/rowindex_array.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -726,10 +749,10 @@ $(BUILDDIR)/utils/file.o : c/utils/file.cc $(BUILDDIR)/utils.h $(BUILDDIR)/utils
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memorybuf.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@

@@ -11,14 +11,14 @@
 #include <stdlib.h>  // size_t
 #include "utils.h"
 #include "utils/omp.h"
-#include "memorybuf.h"
+#include "memrange.h"
 #include "csv/reader.h"
 
 extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
 extern const uint8_t allowedseps[128];
-const char* strlim(const char* ch, size_t limit);
 
+#define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
 
 
 struct FreadTokenizer {
@@ -63,11 +63,13 @@ struct FreadTokenizer {
 
   bool LFpresent;
 
-  void skip_white();
+  void skip_whitespace();
+  void skip_whitespace_at_line_start();
   bool end_of_field();
   const char* end_NA_string(const char*);
   int countfields();
   bool skip_eol();
+  bool at_eof() const { return ch == eof; }
 };
 
 typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
@@ -99,35 +101,27 @@ typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
 //         other threads is allowed to initiate a memcopy.
 //
 struct StrBuf {
-  MemoryBuffer* mbuf;
+  MemoryRange mbuf;
   size_t idx8;
   size_t idxdt;
   size_t ptr;
   size_t sz;
 
   StrBuf(size_t allocsize, size_t i8, size_t idt) {
-    mbuf = new MemoryMemBuf(allocsize);
+    mbuf.resize(allocsize);
     ptr = 0;
     idx8 = i8;
     idxdt = idt;
   }
 
   StrBuf(StrBuf&& other) {
-    mbuf = other.mbuf;
+    mbuf = std::move(other.mbuf);
     ptr = other.ptr;
     idx8 = other.idx8;
     idxdt = other.idxdt;
-    other.mbuf = nullptr;
   }
 
   StrBuf(const StrBuf&) = delete;
-
-  ~StrBuf() {
-    if (mbuf) {
-      mbuf->release();
-      mbuf = nullptr;
-    }
-  }
 };
 
 

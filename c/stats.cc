@@ -83,7 +83,7 @@ template <typename T, typename A>
 void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   int64_t nrows = col->nrows;
   const RowIndex& rowindex = col->rowindex();
-  T* data = static_cast<T*>(col->data());
+  const T* data = static_cast<const T*>(col->data());
   int64_t count_notna = 0;
   double mean = 0;
   double m2 = 0;
@@ -154,7 +154,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
 
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
-  T* coldata = static_cast<T*>(col->data());
+  const T* coldata = static_cast<const T*>(col->data());
   RowIndex ri = col->sort(true);
   const arr32_t& groups = ri.get_groups();
   size_t n_groups = ri.get_ngroups();
@@ -289,8 +289,8 @@ template class IntegerStats<int64_t>;
  */
 void BooleanStats::compute_numerical_stats(const Column *col) {
   int64_t count0 = 0, count1 = 0;
-  int8_t* data = static_cast<int8_t*>(col->data());
   int64_t nrows = col->nrows;
+  const int8_t* data = static_cast<const int8_t*>(col->data());
   const RowIndex& rowindex = col->rowindex();
   #pragma omp parallel
   {
@@ -351,7 +351,7 @@ void StringStats<T>::compute_countna(const Column* col) {
   const RowIndex& rowindex = col->rowindex();
   int64_t nrows = scol->nrows;
   int64_t countna = 0;
-  T* data = scol->offsets();
+  const T* data = scol->offsets();
 
   #pragma omp parallel
   {
@@ -378,7 +378,7 @@ void StringStats<T>::compute_countna(const Column* col) {
 template <typename T>
 void StringStats<T>::compute_sorted_stats(const Column* col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
-  T* offsets = scol->offsets();
+  const T* offsets = scol->offsets();
   RowIndex ri = col->sort(true);
   const arr32_t& groups = ri.get_groups();
   size_t n_groups = ri.get_ngroups();
@@ -440,7 +440,7 @@ void PyObjectStats::compute_countna(const Column* col) {
   const RowIndex& rowindex = col->rowindex();
   int64_t nrows = col->nrows;
   int64_t countna = 0;
-  PyObject** data = static_cast<PyObject**>(col->data());
+  PyObject* const* data = static_cast<PyObject* const*>(col->data());
 
   #pragma omp parallel
   {

@@ -8,15 +8,16 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
-#include <stdint.h>
 #include <stdlib.h>   // strtod
 #include <strings.h>  // strcasecmp
 #include <cerrno>     // errno
 #include <cstring>    // std::memcmp
+#include "encodings.h"
 #include "options.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
-
+#include "python/long.h"
+#include "python/string.h"
 
 
 //------------------------------------------------------------------------------
@@ -24,10 +25,12 @@
 //------------------------------------------------------------------------------
 
 GenericReader::GenericReader(const PyObj& pyrdr) {
-  mbuf = nullptr;
-  offset = 0;
-  offend = 0;
+  sof = nullptr;
+  eof = nullptr;
   line = 0;
+  cr_is_newline = 0;
+  printout_anonymize = config::fread_anonymize;
+  printout_escape_unicode = false;
   freader = pyrdr;
   src_arg = pyrdr.attr("src");
   file_arg = pyrdr.attr("file");
@@ -49,6 +52,7 @@ GenericReader::GenericReader(const PyObj& pyrdr) {
   init_skipstring();
   init_stripwhite();
   init_skipblanklines();
+  init_overridecolumntypes();
 }
 
 // Copy-constructor will copy only the essential parts
@@ -70,18 +74,19 @@ GenericReader::GenericReader(const GenericReader& g) {
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
+  override_column_types   = g.override_column_types;
+  printout_anonymize      = g.printout_anonymize;
+  printout_escape_unicode = g.printout_escape_unicode;
   // Runtime parameters
-  mbuf    = g.mbuf? g.mbuf->shallowcopy() : nullptr;
-  offset  = g.offset;
-  offend  = g.offend;
+  input_mbuf = g.input_mbuf;
+  sof     = g.sof;
+  eof     = g.eof;
   line    = g.line;
   logger  = g.logger;   // for verbose messages / warnings
   freader = g.freader;  // for progress function / override columns
 }
 
-GenericReader::~GenericReader() {
-  if (mbuf) mbuf->release();
-}
+GenericReader::~GenericReader() {}
 
 
 void GenericReader::init_verbose() {
@@ -90,19 +95,21 @@ void GenericReader::init_verbose() {
 }
 
 void GenericReader::init_nthreads() {
-  int32_t nth = freader.attr("nthreads").as_int32();
-  if (ISNA<int32_t>(nth)) {
-    nthreads = config::nthreads;
-    trace("Using default %d threads", nthreads);
-  } else {
-    nthreads = nth;
-    int32_t maxth = omp_get_max_threads();
-    if (nthreads > maxth) nthreads = maxth;
-    if (nthreads <= 0) nthreads += maxth;
-    if (nthreads <= 0) nthreads = 1;
-    trace("Using %d threads (requested=%d, max.available=%d)",
-          nthreads, nth, maxth);
-  }
+  #ifdef DTNOOPENMP
+    nthreads = 1;
+    trace("Using 1 thread because datatable was built without OMP support");
+  #else
+    int32_t nth = freader.attr("nthreads").as_int32();
+    if (ISNA<int32_t>(nth)) {
+      nthreads = config::nthreads;
+      trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
+    } else {
+      nthreads = config::normalize_nthreads(nth);
+      int maxth = config::normalize_nthreads(0);
+      trace("Using %d thread%s (requested=%d, max.available=%d)",
+            nthreads, (nthreads==1? "" : "s"), nth, maxth);
+    }
+  #endif
 }
 
 void GenericReader::init_fill() {
@@ -123,8 +130,8 @@ void GenericReader::init_maxnrows() {
 
 void GenericReader::init_skiptoline() {
   int64_t n = freader.attr("skip_to_line").as_int64();
-  skip_to_line = (n < 0)? 0 : n;
-  if (n > 1) trace("skip_to_line = %lld", static_cast<long long>(n));
+  skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
+  if (n > 1) trace("skip_to_line = %zu", n);
 }
 
 void GenericReader::init_sep() {
@@ -263,6 +270,10 @@ void GenericReader::init_skipblanklines() {
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
+void GenericReader::init_overridecolumntypes() {
+  override_column_types = !freader.attr("_columns").is_none();
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -292,16 +303,13 @@ DataTablePtr GenericReader::read()
 
 //------------------------------------------------------------------------------
 
-const char* GenericReader::dataptr() const {
-  return static_cast<const char*>(mbuf->at(offset));
-}
-
 size_t GenericReader::datasize() const {
-  return mbuf->size() - offset - offend;
+  return static_cast<size_t>(eof - sof);
 }
 
 bool GenericReader::extra_byte_accessible() const {
-  return (offend > 0);
+  const char* ptr = static_cast<const char*>(input_mbuf.rptr());
+  return (eof < ptr + input_mbuf.size());
 }
 
 
@@ -336,70 +344,224 @@ void GenericReader::_message(
     RESTORE_WARNINGS()
   }
 
-  try {
-    Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
-    PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
-                                       "backslashreplace");  // new ref
-    if (!pymsg) throw PyError();
-    logger.invoke(method, "(O)", pymsg);
-    Py_XDECREF(pymsg);
-  } catch (const std::exception&) {
-    // ignore any exceptions
+  if (omp_get_thread_num() == 0) {
+    try {
+      Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
+      PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
+                                         "backslashreplace");  // new ref
+      if (!pymsg) throw PyError();
+      logger.invoke(method, "(O)", pymsg);
+      Py_XDECREF(pymsg);
+    } catch (const std::exception&) {
+      // ignore any exceptions
+    }
+  } else {
+    if (strcmp(method, "debug") == 0) {
+      delayed_message += msg;
+    } else {
+      // delayed_warning not implemented yet
+    }
   }
 }
 
+void GenericReader::progress(double progress, int statuscode) {
+  xassert(omp_get_thread_num() == 0);
+  freader.invoke("_progress", "(di)", progress, statuscode);
+}
 
+void GenericReader::emit_delayed_messages() {
+  xassert(omp_get_thread_num() == 0);
+  if (delayed_message.size()) {
+    trace("%s", delayed_message.c_str());
+    delayed_message.clear();
+  }
+  // delayed_warning not implemented
+}
+
+
+static void print_byte(uint8_t c, char*& out) {
+  *out++ = '\\';
+  if (c == '\n') *out++ = 'n';
+  else if (c == '\r') *out++ = 'r';
+  else if (c == '\t') *out++ = 't';
+  else {
+    int d0 = int(c & 0xF);
+    int d1 = int(c >> 4);
+    *out++ = 'x';
+    *out++ = static_cast<char>((d1 < 10 ? '0' : 'A' - 10) + d1);
+    *out++ = static_cast<char>((d0 < 10 ? '0' : 'A' - 10) + d0);
+  }
+}
+
+/**
+ * Extract an input line starting from `ch` and until an end of line, or until
+ * an end of file, or until `limit` characters have been printed, whichever
+ * comes first. This function returns the string copied into an internal static
+ * buffer. It can be called more than once, provided that the total size of all
+ * requested strings does not exceed `BUFSIZE`.
+ *
+ * The function will attempt to escape all non-printable characters. It can
+ * optionally escape all unicode characters too; or anonymize all text content.
+ */
+const char* GenericReader::repr_source(const char* ch, size_t limit) const {
+  return repr_binary(ch, eof, limit);
+}
+
+
+const char* GenericReader::repr_binary(
+  const char* ch, const char* endch, size_t limit) const
+{
+  static constexpr size_t BUFSIZE = 1002;
+  static char buf[BUFSIZE + 10];
+  static size_t pos = 0;
+
+  if (pos + limit + 1 > BUFSIZE) pos = 0;
+  char* ptr = buf + pos;
+  char* out = ptr;
+  char* end = ptr + limit;
+  char* saved = ptr;
+  bool stopped_at_newline = false;
+  while (out < end) {
+    stopped_at_newline = true;
+    saved = out;
+    if (ch == endch) break;
+    uint8_t c = static_cast<uint8_t>(*ch++);
+
+    // Stop at a newline
+    if (c == '\n') break;
+    if (c == '\r') {
+      if (cr_is_newline) break;
+      if (ch < endch     && ch[0] == '\n') break;  // \r\n
+      if (ch + 1 < endch && ch[0] == '\r' && ch[1] == '\n') break;  // \r\r\n
+    }
+    stopped_at_newline = false;
+
+    // Control characters
+    if (c < 0x20) {
+      print_byte(c, out);
+    }
+
+    // Normal ASCII characters
+    else if (c < 0x80) {
+      *out++ = (printout_anonymize && c >= '1' && c <= '9')? '1' :
+               (printout_anonymize && c >= 'a' && c <= 'z')? 'a' :
+               (printout_anonymize && c >= 'A' && c <= 'Z')? 'A' :
+               static_cast<char>(c);
+    }
+
+    // Unicode (UTF-8) characters
+    else if (c < 0xF8) {
+      auto usrc = reinterpret_cast<const uint8_t*>(ch - 1);
+      size_t cp_bytes = (c < 0xE0)? 2 : (c < 0xF0)? 3 : 4;
+      bool cp_valid = (ch + cp_bytes - 2 < endch) &&
+                      is_valid_utf8(usrc, cp_bytes);
+      if (!cp_valid || printout_escape_unicode) {
+        print_byte(c, out);
+      } else if (printout_anonymize) {
+        *out++ = 'U';
+        ch += cp_bytes - 1;
+      } else {
+        // Copy the unicode character
+        *out++ = static_cast<char>(c);
+        *out++ = *ch++;
+        if (cp_bytes >= 3) *out++ = *ch++;
+        if (cp_bytes == 4) *out++ = *ch++;
+      }
+    }
+
+    // Invalid bytes
+    else {
+      print_byte(c, out);
+    }
+  }
+  if (out > end) out = saved;
+  if (!stopped_at_newline) {
+    out[-1] = '.';
+    out[-2] = '.';
+    out[-3] = '.';
+  }
+  *out++ = '\0';
+  pos += static_cast<size_t>(out - ptr);
+  return ptr;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Input handling
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
-  offset = 0;
-  offend = 0;
-  line = 1;
+  size_t size = 0;
+  const void* text = nullptr;
+  const char* filename = nullptr;
+  size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
-    mbuf = new OvermapMemBuf(src, 1, fileno);
-    size_t sz = mbuf->size();
+    input_mbuf = MemoryRange(src, /* extra = */ 1, fileno);
+    size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
-      *(mbuf->getstr() + sz) = '\0';
+      static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
+      extra_byte = 1;
     }
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
-    return;
-  }
-  size_t size = 0;
-  const char* text = text_arg.as_cstring(&size);
-  if (text) {
-    mbuf = new ExternalMemBuf(text, size + 1);
-    return;
-  }
-  const char* filename = file_arg.as_cstring();
-  if (filename) {
-    mbuf = new OvermapMemBuf(filename, 1);
-    size_t sz = mbuf->size();
+
+  } else if ((text = text_arg.as_cstring(&size))) {
+    input_mbuf = MemoryRange(size + 1, const_cast<void*>(text),
+                             /* owned = */ false);
+    extra_byte = 1;
+
+  } else if ((filename = file_arg.as_cstring())) {
+    input_mbuf = MemoryRange(filename, /* extra = */ 1);
+    size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
-      *(mbuf->getstr() + sz) = '\0';
+      static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
+      extra_byte = 1;
     }
     trace("File \"%s\" opened, size: %zu", filename, sz);
-    return;
+
+  } else {
+    throw RuntimeError() << "No input given to the GenericReader";
   }
-  throw RuntimeError() << "No input given to the GenericReader";
+  line = 1;
+  sof = static_cast<char*>(input_mbuf.wptr());
+  eof = sof + input_mbuf.size() - extra_byte;
+  if (eof) xassert(*eof == '\0');
+
+  if (verbose) {
+    trace("==== file sample ====");
+    const char* ch = sof;
+    for (int i = 0; i < 5 && ch < eof; i++) {
+      trace("%s", repr_source(ch, 100));
+      while (ch < eof) {
+        char c = *ch++;
+        // simplified newline sequence. TODO: replace with `skip_eol()`
+        if (c == '\n' || c == '\r') {
+          if ((*ch == '\r' || *ch == '\n') && *ch != c) ch++;
+          break;
+        }
+      }
+    }
+    trace("=====================");
+  }
 }
 
 
 /**
  * Check whether the input contains BOM (Byte Order Mark), and if so skip it
- * modifying `offset`. If BOM indicates UTF-16 file, then recode the file into
+ * modifying `sof`. If BOM indicates UTF-16 file, then recode the file into
  * UTF-8 (we cannot read UTF-16 directly).
  *
  * See: https://en.wikipedia.org/wiki/Byte_order_mark
  */
 void GenericReader::detect_and_skip_bom() {
   size_t sz = datasize();
-  const char* ch = dataptr();
+  const char* ch = sof;
   if (!sz) return;
   if (sz >= 3 && ch[0]=='\xEF' && ch[1]=='\xBB' && ch[2]=='\xBF') {
-    offset += 3;
+    sof += 3;
     trace("UTF-8 byte order mark EF BB BF found at the start of the file "
           "and skipped");
   } else
@@ -417,7 +579,7 @@ void GenericReader::detect_and_skip_bom() {
  * However if `strip_whitespace` is false, then we want to remove empty lines
  * only, leaving the initial spaces on the last line.
  *
- * This function modifies `offset` so that it points to: (1) the first
+ * This function modifies `sof` so that it points to: (1) the first
  * non-whitespace character in the file, if strip_whitespace is true; or (2) the
  * first character on the first line that contains any non-whitespace
  * characters, if strip_whitespace is false.
@@ -428,13 +590,11 @@ void GenericReader::detect_and_skip_bom() {
  *
  *     _ _ _ _ ␤ _ ⇥ _ H e l l o …
  *
- * If strip_whitespace=true, then this function will move the offset to
+ * If strip_whitespace=true, then this function will move the `sof` to
  * character H; whereas if strip_whitespace=false, this function will move the
- * offset to the first space after '␤'.
+ * `sof` to the first space after '␤'.
  */
 void GenericReader::skip_initial_whitespace() {
-  const char* sof = dataptr();         // start-of-file
-  const char* eof = sof + datasize();  // end-of-file
   const char* ch = sof;
   if (!sof) return;
   while ((ch < eof) && (*ch <= ' ') &&
@@ -448,15 +608,13 @@ void GenericReader::skip_initial_whitespace() {
   }
   if (ch > sof) {
     size_t doffset = static_cast<size_t>(ch - sof);
-    offset += doffset;
+    sof = ch;
     trace("Skipped %zu initial whitespace character(s)", doffset);
   }
 }
 
 
 void GenericReader::skip_trailing_whitespace() {
-  const char* sof = dataptr();
-  const char* eof = sof + datasize();
   const char* ch = eof - 1;
   if (!sof) return;
   // Skip characters \0 and Ctrl+Z
@@ -465,7 +623,7 @@ void GenericReader::skip_trailing_whitespace() {
   }
   if (ch < eof - 1) {
     size_t d = static_cast<size_t>(eof - 1 - ch);
-    offend += d;
+    eof = ch + 1;
     if (d > 1) {
       trace("Skipped %zu trailing whitespace characters", d);
     }
@@ -475,8 +633,6 @@ void GenericReader::skip_trailing_whitespace() {
 
 void GenericReader::skip_to_line_number() {
   if (skip_to_line <= line) return;
-  const char* sof = dataptr();
-  const char* eof = sof + datasize();
   const char* ch = sof;
   while (ch < eof && line < skip_to_line) {
     char c = *ch;
@@ -489,7 +645,7 @@ void GenericReader::skip_to_line_number() {
     }
   }
   if (ch > sof) {
-    offset += static_cast<size_t>(ch - sof);
+    sof = ch;
     trace("Skipped to line %zd in the file", line);
   }
 }
@@ -498,8 +654,6 @@ void GenericReader::skip_to_line_number() {
 void GenericReader::skip_to_line_with_string() {
   const char* const ss = skip_to_string;
   if (!ss) return;
-  const char* sof = dataptr();
-  const char* eof = sof + datasize();
   const char* ch = sof;
   const char* line_start = sof;
   while (ch < eof) {
@@ -508,7 +662,7 @@ void GenericReader::skip_to_line_with_string() {
       while (ss[d] != '\0' && ch + d < eof && ch[d] == ss[d]) d++;
       if (ss[d] == '\0') {
         if (line_start > sof) {
-          offset += static_cast<size_t>(line_start - sof);
+          sof = line_start;
           trace("Skipped to line %zd containing skip_to_string = \"%s\"",
                 line, ss);
         }
@@ -532,12 +686,11 @@ void GenericReader::skip_to_line_with_string() {
 
 DataTablePtr GenericReader::read_empty_input() {
   size_t size = datasize();
-  const char* sof = dataptr();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
-    Column** columns = static_cast<Column**>(malloc(sizeof(Column*)));
-    columns[0] = nullptr;
-    return DataTablePtr(new DataTable(columns));
+    Column** cols = static_cast<Column**>(malloc(sizeof(Column*)));
+    cols[0] = nullptr;
+    return DataTablePtr(new DataTable(cols));
   }
   return nullptr;
 }
@@ -549,8 +702,7 @@ DataTablePtr GenericReader::read_empty_input() {
  * thrown.
  */
 void GenericReader::detect_improper_files() {
-  const char* ch = dataptr();
-  const char* eof = ch + datasize();
+  const char* ch = sof;  // dataptr();
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
     throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
@@ -560,24 +712,87 @@ void GenericReader::detect_improper_files() {
 
 
 void GenericReader::decode_utf16() {
-  const char* ch = dataptr();
+  const char* ch = sof;
   size_t size = datasize();
   if (!size) return;
-  if (ch[size - 1] == '\0') size--;
 
   Py_ssize_t ssize = static_cast<Py_ssize_t>(size);
   int byteorder = 0;
-  tempstr = PyObj::fromPyObjectNewRef(
-    PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder)
-  );
+  tempstr = PyObj(PyUnicode_DecodeUTF16(ch, ssize, "replace", &byteorder));
   PyObject* t = tempstr.as_pyobject();  // new ref
   // borrowed ref, belongs to PyObject `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
-  mbuf->release();
-  mbuf = new ExternalMemBuf(buf, static_cast<size_t>(ssize) + 1);
-  offset = 0;
-  offend = 0;
+  input_mbuf = MemoryRange(static_cast<size_t>(ssize) + 1,
+                           const_cast<void*>(static_cast<const void*>(buf)),
+                           /* own = */ false);
+  sof = static_cast<char*>(input_mbuf.wptr());
+  eof = sof + ssize + 1;
   // the object `t` remains alive within `tempstr`
   Py_DECREF(t);
 }
 
+
+
+void GenericReader::report_columns_to_python() {
+  size_t ncols = columns.size();
+
+  if (override_column_types) {
+    PyyList colDescriptorList(ncols);
+    for (size_t i = 0; i < ncols; i++) {
+      colDescriptorList[i] = columns[i].py_descriptor();
+    }
+
+    PyyList newTypesList =
+      freader.invoke("_override_columns0", "(O)",
+                     colDescriptorList.release());
+
+    if (newTypesList) {
+      for (size_t i = 0; i < ncols; i++) {
+        PyObj elem = newTypesList[i];
+        columns[i].rtype = static_cast<RT>(elem.as_int64());  // unsafe?
+        // Temporary
+        switch (columns[i].rtype) {
+          case RDrop:    columns[i].type = PT::Str32; break;
+          case RAuto:    break;
+          case RBool:    columns[i].type = PT::Bool01; break;
+          case RInt:     columns[i].type = PT::Int32; break;
+          case RInt32:   columns[i].type = PT::Int32; break;
+          case RInt64:   columns[i].type = PT::Int64; break;
+          case RFloat:   columns[i].type = PT::Float32Hex; break;
+          case RFloat32: columns[i].type = PT::Float32Hex; break;
+          case RFloat64: columns[i].type = PT::Float64Plain; break;
+          case RStr:     columns[i].type = PT::Str32; break;
+          case RStr32:   columns[i].type = PT::Str32; break;
+          case RStr64:   columns[i].type = PT::Str64; break;
+        }
+      }
+    }
+
+  } else {
+    PyyList colNamesList(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      colNamesList[i] = PyyString(columns[i].get_name());
+    }
+    freader.invoke("_set_column_names", "(O)", colNamesList.release());
+  }
+}
+
+
+
+DataTablePtr GenericReader::makeDatatable() {
+  Column** ccols = nullptr;
+  size_t ncols = columns.size();
+  size_t ocols = columns.nColumnsInOutput();
+  ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
+  ccols[ocols] = nullptr;
+  for (size_t i = 0, j = 0; i < ncols; ++i) {
+    GReaderColumn& col = columns[i];
+    if (!col.presentInOutput) continue;
+    SType stype = ParserLibrary::info(col.type).stype;
+    MemoryRange databuf = col.extract_databuf();
+    MemoryRange strbuf = col.extract_strbuf();
+    ccols[j] = Column::new_mbuf_column(stype, std::move(databuf), std::move(strbuf));
+    j++;
+  }
+  return DataTablePtr(new DataTable(ccols));
+}

@@ -9,7 +9,7 @@ from datatable.graph.dtproxy import f
 from .base_expr import BaseExpr
 from .binary_expr import BinaryOpExpr
 from .cast_expr import CastExpr
-from .column_expr import ColSelectorExpr
+from .column_expr import ColSelectorExpr, NewColumnExpr
 from .isna_expr import isna
 from .literal_expr import LiteralExpr
 from .mean_expr import MeanReducer, mean
@@ -27,6 +27,7 @@ __all__ = (
     "BinaryOpExpr",
     "CastExpr",
     "ColSelectorExpr",
+    "NewColumnExpr",
     "f",
     "BaseExpr",
     "LiteralExpr",

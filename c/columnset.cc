@@ -115,7 +115,7 @@ Column** columns_from_mixed(
     } else {
       SType stype = (SType)(-spec[i]);
       columns[i] = Column::new_data_column(stype, nrows);
-      out[j] = columns[i]->data();
+      out[j] = columns[i]->data_w();
       j++;
     }
   }

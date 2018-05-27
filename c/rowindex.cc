@@ -9,12 +9,17 @@
 #include <cstring>     // std::memcpy
 #include "datatable_check.h"
 #include "utils.h"
+#include "utils/assert.h"
 #include "utils/omp.h"
 
 
 //==============================================================================
-// Base RowIndex class
+// Construction
 //==============================================================================
+
+RowIndex::RowIndex() : impl(nullptr) {}
+
+RowIndex::RowIndex(RowIndexImpl* rii) : impl(rii) {}
 
 // copy-constructor, performs shallow copying
 RowIndex::RowIndex(const RowIndex& other) {
@@ -24,26 +29,20 @@ RowIndex::RowIndex(const RowIndex& other) {
 
 // assignment operator, performs shallow copying
 RowIndex& RowIndex::operator=(const RowIndex& other) {
-  clear(false);
+  if (impl) impl->release();
   impl = other.impl;
   if (impl) impl->acquire();
   return *this;
 }
 
-RowIndex::~RowIndex() {
-  if (impl) impl->release();
+// move-constructor
+RowIndex::RowIndex(RowIndex&& other) {
+  impl = other.impl;
+  other.impl = nullptr;
 }
 
-void RowIndex::clear(bool keep_groups) {
-  if (keep_groups && impl && impl->groups) {
-    RowIndexImpl* new_impl = new SliceRowIndexImpl(0, impl->length, 1);
-    swap(new_impl->groups, impl->groups);
-    impl->release();
-    impl = new_impl;
-  } else {
-    if (impl) impl->release();
-    impl = nullptr;
-  }
+RowIndex::~RowIndex() {
+  if (impl) impl->release();
 }
 
 
@@ -81,6 +80,36 @@ RowIndex RowIndex::from_filterfn64(filterfn64* f, int64_t n, bool sorted) {
 
 RowIndex RowIndex::from_column(Column* col) {
   return RowIndex(new ArrayRowIndexImpl(col));
+}
+
+
+
+//==============================================================================
+// API
+//==============================================================================
+
+void RowIndex::clear(bool keep_groups) {
+  if (keep_groups && impl && impl->groups) {
+    RowIndexImpl* new_impl = new SliceRowIndexImpl(0, impl->length, 1);
+    swap(new_impl->groups, impl->groups);
+    impl->release();
+    impl = new_impl;
+  } else {
+    if (impl) impl->release();
+    impl = nullptr;
+  }
+}
+
+
+void RowIndex::shrink(int64_t nrows, int64_t ncols) {
+  xassert(impl && impl->refcount >= ncols + 1);
+  if (impl->refcount == ncols + 1) {
+    impl->shrink(nrows);
+  } else {
+    impl->refcount--;
+    impl = impl->shrunk(nrows);
+    xassert(impl->refcount == 1);
+  }
 }
 
 

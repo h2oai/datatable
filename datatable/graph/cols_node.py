@@ -9,7 +9,7 @@ import types
 from datatable.lib import core
 from .context import LlvmEvaluationEngine
 from .iterator_node import MapNode
-from datatable.expr import BaseExpr, ColSelectorExpr
+from datatable.expr import BaseExpr, ColSelectorExpr, NewColumnExpr
 from datatable.graph.dtproxy import f
 from datatable.types import ltype, stype
 from datatable.utils.misc import plural_form as plural
@@ -31,7 +31,7 @@ class ColumnSetNode:
 
     def __init__(self, ee):
         self._engine = ee
-        self._column_names = tuple()
+        self._names = tuple()
 
     @property
     def dt(self):
@@ -39,10 +39,13 @@ class ColumnSetNode:
 
     @property
     def column_names(self):
-        return self._column_names
+        return self._names
 
     def execute(self):
         self._engine.columns = self._compute_columns()
+
+    def execute_update(self, dt, replacement):
+        raise NotImplementedError
 
     def _compute_columns(self):
         raise NotImplementedError
@@ -59,8 +62,11 @@ class SliceCSNode(ColumnSetNode):
         self._start = start
         self._step = step
         self._count = count
-        self._column_names = self._make_column_names()
+        self._names = self._make_column_names()
 
+    def __repr__(self):
+        return ("<datatable.graph.SliceCSNode %d/%d/%d>"
+                % (self._start, self._count, self._step))
 
     def _make_column_names(self):
         if self._step == 0:
@@ -84,6 +90,15 @@ class SliceCSNode(ColumnSetNode):
         res = core.columns_from_slice(self.dt.internal, self._engine.rowindex,
                                       self._start, self._count, self._step)
         return res
+
+
+    def execute_update(self, dt, replacement):
+        ri = self._engine.rowindex
+        dt.internal.replace_column_slice(self._start, self._count, self._step,
+                                         ri, replacement.internal)
+        # Clear cached stypes/ltypes; No need to update names
+        dt._stypes = None
+        dt._ltypes = None
 
 
     def get_list(self):
@@ -110,7 +125,12 @@ class ArrayCSNode(ColumnSetNode):
     def __init__(self, ee, elems, colnames):
         super().__init__(ee)
         self._elems = elems
-        self._column_names = colnames
+        self._names = colnames
+
+    def __repr__(self):
+        return ("<datatable.graph.ArrayCSNode [%s]>"
+                % ", ".join("%d (%r)" % (self._elems[i], self._names[i])
+                            for i in range(len(self._elems))))
 
     def _compute_columns(self):
         return core.columns_from_array(self.dt.internal, self._engine.rowindex,
@@ -118,6 +138,22 @@ class ArrayCSNode(ColumnSetNode):
 
     def get_list(self):
         return self._elems
+
+    def execute_update(self, dt, replacement):
+        n = dt.ncols
+        ri = self._engine.rowindex
+        dt.internal.replace_column_array(self._elems, ri, replacement.internal)
+        new_names = list(dt.names)
+        for i in range(len(self._elems)):
+            j = self._elems[i]
+            name = self._names[i]
+            if j == -1:
+                n += 1
+                new_names.append(name)
+            else:
+                new_names[j] = name
+        dt._fill_from_dt(dt.internal, names=new_names)
+        assert dt.ncols == n
 
 
 
@@ -128,7 +164,7 @@ class MixedCSNode(ColumnSetNode):
     def __init__(self, ee, elems, names):
         super().__init__(ee)
         self._elems = elems
-        self._column_names = names
+        self._names = names
         self._rowindex = None
         expr_elems = []
         for elem in elems:
@@ -157,12 +193,15 @@ class MixedCSNode(ColumnSetNode):
                        for e in self._elems]
             return core.columns_from_columns(columns)
 
+    def execute_update(self):
+        raise TValueError("Cannot execute update on computed columns")
+
 
 
 
 #===============================================================================
 
-def make_columnset(arg, ee, _nested=False):
+def make_columnset(arg, ee, new_cols_allowed=False):
     """
     Create a :class:`CSNode` object from the provided expression.
 
@@ -177,27 +216,26 @@ def make_columnset(arg, ee, _nested=False):
 
     ee: EvalutionEngine
         Expression evaluation engine.
-
-    _nested: bool
-        Internal flag which is set to True on the first recursive call.
     """
     dt = ee.dt
 
     if arg is None or arg is Ellipsis:
         return SliceCSNode(ee, 0, dt.ncols, 1)
 
-    if arg is True or arg is False:
-        # Note: True/False are integer objects in Python, hence this test has
-        # to be performed before `isinstance(arg, int)` below.
-        raise TTypeError("A boolean cannot be used as a column selector")
-
     if isinstance(arg, (int, str, slice, BaseExpr)):
+        if isinstance(arg, bool):
+            # Note: True/False are integer objects in Python, however we do
+            # not want to treat `df[True]` as the second column in `df`.
+            raise TTypeError("A boolean cannot be used as a column selector")
+
         # Type of the processed column is `U(int, (int, int, int), BaseExpr)`
-        pcol = process_column(arg, dt)
+        pcol = process_column(arg, dt, new_cols_allowed)
         if isinstance(pcol, int):
             return SliceCSNode(ee, pcol, 1, 1)
         elif isinstance(pcol, tuple):
             return SliceCSNode(ee, *pcol)
+        elif isinstance(pcol, NewColumnExpr):
+            return ArrayCSNode(ee, [-1], [arg])
         else:
             assert isinstance(pcol, BaseExpr), "pcol: %r" % (pcol,)
             return MixedCSNode(ee, [pcol], names=["V0"])
@@ -252,9 +290,9 @@ def make_columnset(arg, ee, _nested=False):
         else:
             return MixedCSNode(ee, outcols, colnames)
 
-    if isinstance(arg, types.FunctionType) and not _nested:
+    if isinstance(arg, types.FunctionType):
         res = arg(f)
-        return make_columnset(res, ee, _nested=True)
+        return make_columnset(res, ee)
 
     if isinstance(arg, (type, ltype)):
         ltypes = dt.ltypes
@@ -281,7 +319,7 @@ def make_columnset(arg, ee, _nested=False):
 
 
 
-def process_column(col, df):
+def process_column(col, df, new_cols_allowed=False):
     """
     Helper function to verify the validity of a single column selector.
 
@@ -300,8 +338,14 @@ def process_column(col, df):
                 .format(col=col, ncolumns=plural(ncols, "column")))
 
     if isinstance(col, str):
-        # This raises an exception if `col` cannot be found in the dataframe
-        return df.colindex(col)
+        if new_cols_allowed:
+            try:
+                # This raises an exception if `col` cannot be found
+                return df.colindex(col)
+            except TValueError:
+                return NewColumnExpr(col)
+        else:
+            return df.colindex(col)
 
     if isinstance(col, slice):
         start = col.start

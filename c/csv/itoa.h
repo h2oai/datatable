@@ -23,9 +23,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_csv_ITOA_H
-#define dt_csv_ITOA_H
-#include <stdint.h>
+#ifndef dt_CSV_ITOA_h
+#define dt_CSV_ITOA_h
+
 
 const char gDigitsLut[200] = {
   '0','0','0','1','0','2','0','3','0','4','0','5','0','6','0','7','0','8','0','9',

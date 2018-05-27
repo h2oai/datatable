@@ -8,6 +8,8 @@
 #include "csv/reader.h"
 #include "csv/fread.h"   // temporary
 #include "csv/reader_parsers.h"
+#include "python/string.h"
+#include "python/long.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/omp.h"
@@ -19,24 +21,23 @@
 //------------------------------------------------------------------------------
 
 GReaderColumn::GReaderColumn() {
-  mbuf = nullptr;
   strdata = nullptr;
-  type = 0;
+  type = PT::Mu;
+  rtype = RT::RAuto;
   typeBumped = false;
   presentInOutput = true;
   presentInBuffer = true;
 }
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
-  : mbuf(o.mbuf), name(std::move(o.name)), strdata(o.strdata), type(o.type),
-    typeBumped(o.typeBumped), presentInOutput(o.presentInOutput),
-    presentInBuffer(o.presentInBuffer) {
-  o.mbuf = nullptr;
+  : mbuf(std::move(o.mbuf)), name(std::move(o.name)), strdata(o.strdata),
+    type(o.type), rtype(o.rtype), typeBumped(o.typeBumped),
+    presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer)
+{
   o.strdata = nullptr;
 }
 
 GReaderColumn::~GReaderColumn() {
-  if (mbuf) mbuf->release();
   delete strdata;
 }
 
@@ -45,13 +46,12 @@ void GReaderColumn::allocate(size_t nrows) {
   if (!presentInOutput) return;
   bool col_is_string = isstring();
   size_t allocsize = (nrows + col_is_string) * elemsize();
-  if (mbuf) {
-    mbuf->resize(allocsize);
-  } else {
-    mbuf = new MemoryMemBuf(allocsize);
-  }
+  mbuf.resize(allocsize);
   if (col_is_string) {
-    mbuf->set_elem<int32_t>(0, -1);
+    if (elemsize() == 4)
+      mbuf.set_element<int32_t>(0, -1);
+    else
+      mbuf.set_element<int64_t>(0, -1);
     if (!strdata) {
       strdata = new MemoryWritableBuffer(allocsize);
     }
@@ -62,6 +62,17 @@ const char* GReaderColumn::typeName() const {
   return ParserLibrary::info(type).name.data();
 }
 
+const std::string& GReaderColumn::get_name() const {
+  return name;
+}
+
+const char* GReaderColumn::repr_name(const GenericReader& g) const {
+  const char* start = name.c_str();
+  const char* end = start + name.size();
+  return g.repr_binary(start, end, 25);
+}
+
+
 size_t GReaderColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(type).elemsize);
 }
@@ -70,23 +81,77 @@ bool GReaderColumn::isstring() const {
   return ParserLibrary::info(type).isstring();
 }
 
-MemoryBuffer* GReaderColumn::extract_databuf() {
-  MemoryBuffer* r = mbuf;
-  mbuf = nullptr;
-  return r;
+MemoryRange GReaderColumn::extract_databuf() {
+  return std::move(mbuf);
 }
 
-MemoryBuffer* GReaderColumn::extract_strbuf() {
-  if (!(strdata && isstring())) return nullptr;
+MemoryRange GReaderColumn::extract_strbuf() {
+  if (!(strdata && isstring())) return MemoryRange();
   // TODO: make get_mbuf() method available on WritableBuffer itself
   strdata->finalize();
   return strdata->get_mbuf();
 }
 
 size_t GReaderColumn::getAllocSize() const {
-  return (mbuf? mbuf->size() : 0) +
+  return mbuf.memory_footprint() +
          (strdata? strdata->size() : 0) +
          name.size() + sizeof(*this);
+}
+
+
+void GReaderColumn::convert_to_str64() {
+  xassert(type == PT::Str32);
+  size_t nelems = mbuf.size() / sizeof(int32_t);
+  MemoryRange new_mbuf(nelems * sizeof(int64_t));
+  const int32_t* old_data = static_cast<const int32_t*>(mbuf.rptr());
+  int64_t* new_data = static_cast<int64_t*>(new_mbuf.wptr());
+  for (size_t i = 0; i < nelems; ++i) {
+    new_data[i] = old_data[i];
+  }
+  type = PT::Str64;
+  mbuf = std::move(new_mbuf);
+}
+
+
+PyTypeObject* GReaderColumn::NameTypePyTuple = nullptr;
+
+void GReaderColumn::init_nametypepytuple() {
+  if (NameTypePyTuple) return;
+  static const char* tuple_name = "column_descriptor";
+  static const char* field0 = "name";
+  static const char* field1 = "type";
+  PyStructSequence_Field* fields = new PyStructSequence_Field[3];
+  fields[0].name = const_cast<char*>(field0);
+  fields[1].name = const_cast<char*>(field1);
+  fields[2].name = nullptr;
+  fields[0].doc = nullptr;
+  fields[1].doc = nullptr;
+  fields[2].doc = nullptr;
+  PyStructSequence_Desc* desc = new PyStructSequence_Desc;
+  desc->name = const_cast<char*>(tuple_name);
+  desc->doc = nullptr;
+  desc->fields = fields;
+  desc->n_in_sequence = 2;
+  // Do not use PyStructSequence_NewType, because it is buggy
+  // (see https://lists.gt.net/python/bugs/1320383)
+  NameTypePyTuple = new PyTypeObject;
+  PyStructSequence_InitType2(NameTypePyTuple, desc);
+
+  // clean up
+  delete[] fields;
+  delete desc;
+}
+
+
+PyObj GReaderColumn::py_descriptor() const {
+  if (!NameTypePyTuple) init_nametypepytuple();
+  PyObject* nt_tuple = PyStructSequence_New(NameTypePyTuple);  // new ref
+  if (!nt_tuple) throw PyError();
+  PyObject* stype = py_stype_objs[ParserLibrary::info(type).stype];
+  Py_INCREF(stype);
+  PyStructSequence_SetItem(nt_tuple, 0, PyyString(name).release());
+  PyStructSequence_SetItem(nt_tuple, 1, stype);
+  return PyObj(std::move(nt_tuple));
 }
 
 
@@ -99,7 +164,11 @@ GReaderColumns::GReaderColumns() noexcept
     : std::vector<GReaderColumn>(), allocnrows(0) {}
 
 
-void GReaderColumns::allocate(size_t nrows) {
+size_t GReaderColumns::get_nrows() const {
+  return allocnrows;
+}
+
+void GReaderColumns::set_nrows(size_t nrows) {
   size_t ncols = size();
   for (size_t i = 0; i < ncols; ++i) {
     (*this)[i].allocate(nrows);
@@ -108,16 +177,35 @@ void GReaderColumns::allocate(size_t nrows) {
 }
 
 
-std::unique_ptr<int8_t[]> GReaderColumns::getTypes() const {
-  size_t n = size();
-  std::unique_ptr<int8_t[]> res(new int8_t[n]);
-  for (size_t i = 0; i < n; ++i) {
-    res[i] = (*this)[i].type;
-  }
+std::unique_ptr<PT[]> GReaderColumns::getTypes() const {
+  std::unique_ptr<PT[]> res(new PT[size()]);
+  saveTypes(res);
   return res;
 }
 
-void GReaderColumns::setType(int8_t type) {
+void GReaderColumns::saveTypes(std::unique_ptr<PT[]>& types) const {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    types[i] = (*this)[i].type;
+  }
+}
+
+bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    if (types[i] != (*this)[i].type) return false;
+  }
+  return true;
+}
+
+void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
+  size_t n = size();
+  for (size_t i = 0; i < n; ++i) {
+    (*this)[i].type = types[i];
+  }
+}
+
+void GReaderColumns::setType(PT type) {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
     (*this)[i].type = type;
@@ -147,247 +235,46 @@ const char* GReaderColumns::printTypes() const {
   return out;
 }
 
-size_t GReaderColumns::nOutputs() const {
-  size_t nouts = 0;
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    nouts += (*this)[i].presentInOutput;
+size_t GReaderColumns::nColumnsInOutput() const {
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.presentInOutput;
   }
-  return nouts;
+  return n;
+}
+
+size_t GReaderColumns::nColumnsInBuffer() const {
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.presentInBuffer;
+  }
+  return n;
+}
+
+size_t GReaderColumns::nColumnsToReread() const {
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.typeBumped;
+  }
+  return n;
 }
 
 size_t GReaderColumns::nStringColumns() const {
-  size_t nstrs = 0;
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    nstrs += (*this)[i].isstring();
+  size_t n = 0;
+  for (const GReaderColumn& col : *this) {
+    n += col.isstring();
   }
-  return nstrs;
+  return n;
 }
 
 size_t GReaderColumns::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    allocsize += (*this)[i].getAllocSize();
+  for (const GReaderColumn& col : *this) {
+    allocsize += col.getAllocSize();
   }
   return allocsize;
 }
 
-
-
-//------------------------------------------------------------------------------
-// ChunkedDataReader
-//------------------------------------------------------------------------------
-
-ChunkedDataReader::ChunkedDataReader() {
-  inputptr = nullptr;
-  inputsize = 0;
-  inputline = 1;
-  chunksize = 0;
-  nchunks = 0;
-  chunks_contiguous = true;
-  max_nrows = std::numeric_limits<size_t>::max();
-  alloc_nrows = 0;
-  nthreads = omp_get_max_threads();
-}
-
-ChunkedDataReader::~ChunkedDataReader() {}
-
-
-void ChunkedDataReader::set_input(const char* ptr, size_t size, int64_t line) {
-  inputptr = ptr;
-  inputsize = size;
-  inputline = line;
-}
-
-
-void ChunkedDataReader::compute_chunking_strategy() {
-  if (nchunks == 0) {
-    nchunks = nthreads <= 1? 1 : 3 * static_cast<size_t>(nthreads);
-  }
-  chunksize = inputsize / nchunks;
-}
-
-
-// Default implementation merely moves the pointer to the beginning of the
-// next line.
-// const char* ChunkedDataReader::adjust_chunk_start(
-//     const char* ch, const char* end
-// ) {
-//   while (ch < end) {
-//     if (*ch == '\r' || *ch == '\n') {
-//       ch += 1 + (ch[0] + ch[1] == '\r' + '\n');
-//       break;
-//     }
-//     ch++;
-//   }
-//   return ch;
-// }
-
-
-void ChunkedDataReader::read_all()
-{
-  /*
-  const char* const inputend = inputptr + inputsize;
-  if (!inputptr || !inputend) return;
-  xassert(alloc_nrows <= max_nrows);
-  //
-  // Thread-common state
-  // -------------------
-  // last_chunkend
-  //   The position where the last thread finished reading its chunk. This
-  //   variable is only meaningful inside the "ordered" section, where the
-  //   threads are ordered among themselves and the notion of "last thread" is
-  //   well-defined. This variable is also used to ensure that all input content
-  //   was properly read, and nothing was skipped.
-  //
-  //
-  const char* last_chunkend = inputptr;
-  bool stop_team = false;
-  bool stop_soft = false;
-  size_t chunkdist = 0;
-  size_t chunk0 = 0;
-  size_t nrows_total = 0;
-
-  #pragma omp parallel num_threads(nthreads)
-  {
-    #pragma omp master
-    {
-      nthreads = omp_get_num_threads();
-      compute_chunking_strategy();  // sets nchunks and possibly chunksize
-      xassert(nchunks > 0);
-      if (chunks_contiguous) {
-        chunksize = chunkdist = inputsize / nchunks;
-      } else {
-        xassert(chunksize > 0 && chunksize <= inputsize);
-        if (nchunks > 1) {
-          chunkdist = (inputsize - chunksize) / (nchunks - 1);
-        }
-      }
-    }
-    // Wait for chunking calculations, in case LocalParseContext needs them...
-    #pragma omp barrier
-
-    LocalParseContextPtr tctx = init_thread_context();
-    const char* tend;
-    size_t tnrows;
-
-    start_reading:;
-    #pragma omp for ordered schedule(dynamic) nowait
-    for (size_t i = chunk0; i < nchunks; ++i) {
-      if (stop_team) continue;
-      tctx->push_buffers();
-
-      // Determine chunkstart & chunkend
-      const char* chunkstart = nthreads > 1 ? inputptr + i * chunkdist
-                                            : last_chunkend;
-      const char* chunkend = i < nchunks - 1 ? chunkstart + chunksize
-                                             : inputend;
-      if (nthreads > 1) {
-        adjust_chunk_boundaries(chunkstart, chunkend, i);
-      }
-
-      // tend = tctx->read_chunk(chunkstart, chunkend);
-      tnrows = tctx->get_nrows();
-      xassert(tend >= chunkend);
-
-      // Artificial loop makes it easy to quickly exit the "ordered" section.
-      #pragma omp ordered
-      do {
-        // If "hard stop" was requested by a previous thread while this thread
-        // was waiting in the queue to enter the ordered section, then we
-        // dismiss the current thread's data.
-        if (stop_team && !stop_soft) {
-          tctx->set_nrows(0);
-          break;
-        }
-        // If `adjust_chunk_start()` above did not find the correct starting
-        // point, then the data that was read is incorrect (and if reading
-        // produced any errors, those might also be invalid). In this case we
-        // simply disregard all the data read so far, and re-read the chunk
-        // from the "correct" place. We are forced to do re-reading in a slow
-        // way, blocking all other threads, but this case should really almost
-        // never happen (and if it does, slight slowdown is a small price to
-        // pay).
-        if (chunkstart != last_chunkend && chunks_contiguous) {
-          tctx->set_nrows(0);
-          chunkstart = last_chunkend;
-          // tend = tctx->read_chunk(chunkstart, chunkend);
-          tnrows = tctx->get_nrows();
-        }
-        size_t row0 = nrows_total;
-        nrows_total += tnrows;
-        last_chunkend = tend;
-        // Since alloc_nrows never exceeds max_nrows, this if check is same as
-        // ``nrows_total >= max_nrows || nrows_total > alloc_nrows``.
-        if (nrows_total >= alloc_nrows) {
-          // If this thread reaches or exceeds the requested max_nrows, then
-          // no subsequent thread's data is needed: request a "hard stop".
-          // However this thread's data still needs to be ordered and pushed.
-          // Also it could be that `max_nrows > alloc_nrows`, and that case
-          // has to be handled too (then we'll have both `stop_hard = true`
-          // and `stop_soft = true`).
-          if (nrows_total >= max_nrows) {
-            tnrows -= nrows_total - max_nrows;
-            nrows_total = max_nrows;
-            tctx->set_nrows(tnrows);
-            last_chunkend = inputend;
-            stop_team = true;
-          }
-          // If the total number of rows read exceeds the allocated storage
-          // space, then request a "soft stop" so that the current and all
-          // queued threads can safely finish reading their pieces. Note that
-          // as subsequent threads enter the ordered section, all of them will
-          // also reach this if clause, in the end `chunk0` will point to the
-          // first unread chunk.
-          if (nrows_total > alloc_nrows) {
-            chunk0 = i + 1;
-            stop_soft = true;
-            stop_team = true;
-          }
-        }
-        // Allow each thread to perform any ordering it needs.
-        tctx->order(row0);
-      } while (0);  // #pragma omp ordered
-    } // #pragma omp ordered for nowait
-
-    // Push the remaining data in the buffers
-    if (!stop_team) {
-      tctx->push_buffers();
-    }
-
-    // Make all threads wait at this point. We want to wait after the last
-    // thread has pushed its buffers (hence "nowait" in the omp-for-loop above).
-    // At the same time, the case "nrows_total > alloc_nrows" below requires
-    // that no thread was accessing the global buffer which will be reallocared.
-    #pragma omp barrier
-
-    // When the number of rows read exceeds the amount of allocated rows, then
-    // reallocate the output columns and go back to the top of the reading loop.
-    // The reallocation is done from the master thread, while all other threads
-    // wait until it is complete. However we do not want to leave the parallel
-    // region so as not to lose the data in each thread's buffer.
-    if (nrows_total > alloc_nrows) {
-      #pragma omp master
-      {
-        size_t new_alloc_nrows = nrows_total;
-        if (chunk0 < nchunks) {
-          new_alloc_nrows = static_cast<size_t>(1.2 * nrows_total *
-                                                nchunks / chunk0);
-        }
-        xassert(new_alloc_nrows >= nrows_total);
-        realloc_columns(new_alloc_nrows);
-        alloc_nrows = new_alloc_nrows;
-        stop_team = false;
-        stop_soft = false;
-      }
-      #pragma omp barrier
-      goto start_reading;
-    }
-  } // #omp parallel
-  */
-}
 
 
 
@@ -422,7 +309,7 @@ void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
 
 
 LocalParseContext::~LocalParseContext() {
-  xassert(used_nrows == 0);
+  if (used_nrows != 0) printf("used_nrows!=0 in ~LocalParseContext()\n");
   free(tbuf);
 }
 
@@ -510,4 +397,5 @@ void StrBuf2::resize(size_t newsize) {
                          << " bytes for a temporary buffer";
   }
 }
+
 

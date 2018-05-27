@@ -242,7 +242,18 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   dt->delete_columns(cols_to_remove, ncols);
 
   dtfree(cols_to_remove);
-  return none();
+  Py_RETURN_NONE;
+}
+
+
+
+PyObject* resize_rows(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  int64_t new_nrows;
+  if (!PyArg_ParseTuple(args, "l:resize_rows", &new_nrows)) return nullptr;
+
+  dt->resize_rows(new_nrows);
+  Py_RETURN_NONE;
 }
 
 
@@ -255,9 +266,112 @@ PyObject* replace_rowindex(obj* self, PyObject* args) {
   RowIndex newri = PyObj(arg1).as_rowindex();
 
   dt->replace_rowindex(newri);
-  return none();
+  Py_RETURN_NONE;
 }
 
+
+
+PyObject* replace_column_slice(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  int64_t start, count, step;
+  PyObject *arg4, *arg5;
+  if (!PyArg_ParseTuple(args, "lllOO:replace_column_slice",
+                        &start, &count, &step, &arg4, &arg5)) return nullptr;
+  RowIndex rows_ri = PyObj(arg4).as_rowindex();
+  DataTable* repl = PyObj(arg5).as_datatable();
+  int64_t rrows = repl->nrows;
+  int64_t rcols = repl->ncols;
+  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+
+  if (!check_slice_triple(start, count, step, dt->ncols - 1)) {
+    throw ValueError() << "Invalid slice " << start << "/" << count
+                       << "/" << step << " for a Frame with " << dt->ncols
+                       << " columns";
+  }
+  bool ok = (rrows == rrows2 || rrows == 1) && (rcols == count || rcols == 1);
+  if (!ok) {
+    throw ValueError() << "Invalid replacement Frame: expected [" <<
+      rrows2 << " x " << count << "], but received [" << rrows <<
+      " x " << rcols << "]";
+  }
+
+  dt->reify();  // noop if `dt` is not a view
+  repl->reify();
+
+  for (int64_t i = 0; i < count; ++i) {
+    int64_t j = start + i * step;
+    Column* replcol = repl->columns[i % rcols];
+    if (rows_ri) {
+      dt->columns[j]->replace_values(rows_ri, replcol);
+    } else {
+      delete dt->columns[j];
+      dt->columns[j] = replcol->shallowcopy();
+    }
+  }
+  Py_RETURN_NONE;
+}
+
+
+PyObject* replace_column_array(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject *arg1, *arg2, *arg3;
+  if (!PyArg_ParseTuple(args, "OOO:replace_column_array", &arg1, &arg2, &arg3))
+      return nullptr;
+  PyyList cols(arg1);
+  RowIndex rows_ri = PyObj(arg2).as_rowindex();
+  DataTable* repl = PyObj(arg3).as_datatable();
+  int64_t rrows = repl->nrows;
+  size_t rcols = static_cast<size_t>(repl->ncols);
+  int64_t rrows2 = rows_ri? rows_ri.length() : dt->nrows;
+
+  bool ok = (rrows == rrows2 || rrows == 1) &&
+            (rcols == cols.size() || rcols == 1);
+  if (!ok) {
+    throw ValueError() << "Invalid replacement Frame: expected [" <<
+      rrows2 << " x " << cols.size() << "], but received [" << rrows <<
+      " x " << rcols << "]";
+  }
+
+  dt->reify();
+  repl->reify();
+
+  int64_t num_new_cols = 0;
+  for (size_t i = 0; i < cols.size(); ++i) {
+    PyObj item = cols[i];
+    int64_t j = item.as_int64();
+    num_new_cols += (j == -1);
+    if (j < -1 || j >= dt->ncols) {
+      throw ValueError() << "Invalid index for a replacement column: " << j;
+    }
+  }
+  if (num_new_cols) {
+    if (rows_ri) {
+      throw ValueError() << "Cannot assign to column(s) that are outside of "
+                            "the Frame: " << rows_ri;
+    }
+    size_t newsize = static_cast<size_t>(dt->ncols + num_new_cols + 1)
+                     * sizeof(Column*);
+    dt->columns = static_cast<Column**>(realloc(dt->columns, newsize));
+  }
+  for (size_t i = 0; i < cols.size(); ++i) {
+    PyObj item = cols[i];
+    int64_t j = item.as_int64();
+    Column* replcol = repl->columns[i % rcols];
+    if (rows_ri) {
+      dt->columns[j]->replace_values(rows_ri, replcol);
+    } else {
+      if (j == -1) {
+        j = dt->ncols++;
+      } else {
+        delete dt->columns[j];
+      }
+      dt->columns[j] = replcol->shallowcopy();
+    }
+  }
+  dt->columns[dt->ncols] = nullptr;
+
+  Py_RETURN_NONE;
+}
 
 
 PyObject* rbind(obj* self, PyObject* args) {
@@ -307,7 +421,7 @@ PyObject* rbind(obj* self, PyObject* args) {
 
   dtfree(cols_to_append);
   dtfree(dts);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -333,7 +447,7 @@ PyObject* cbind(obj* self, PyObject* args) {
   if (ret == nullptr) return nullptr;
 
   dtfree(dts);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -408,7 +522,7 @@ PyObject* apply_na_mask(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O&", &unwrap, &mask)) return nullptr;
 
   dt->apply_na_mask(mask);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -417,7 +531,7 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "|i:use_stype_for_buffers", &st))
     return nullptr;
   self->use_stype_for_buffers = static_cast<SType>(st);
-  return none();
+  Py_RETURN_NONE;
 }
 
 
@@ -438,7 +552,10 @@ static PyMethodDef datatable_methods[] = {
   METHODv(check),
   METHODv(column),
   METHODv(delete_columns),
+  METHODv(resize_rows),
   METHODv(replace_rowindex),
+  METHODv(replace_column_slice),
+  METHODv(replace_column_array),
   METHODv(rbind),
   METHODv(cbind),
   METHODv(sort),
@@ -485,49 +602,49 @@ PyTypeObject type = {
   sizeof(pydatatable::obj),           /* tp_basicsize */
   0,                                  /* tp_itemsize */
   DESTRUCTOR,                         /* tp_dealloc */
-  0,                                  /* tp_print */
-  0,                                  /* tp_getattr */
-  0,                                  /* tp_setattr */
-  0,                                  /* tp_compare */
-  0,                                  /* tp_repr */
-  0,                                  /* tp_as_number */
-  0,                                  /* tp_as_sequence */
-  0,                                  /* tp_as_mapping */
-  0,                                  /* tp_hash  */
-  0,                                  /* tp_call */
-  0,                                  /* tp_str */
-  0,                                  /* tp_getattro */
-  0,                                  /* tp_setattro */
+  nullptr,                            /* tp_print */
+  nullptr,                            /* tp_getattr */
+  nullptr,                            /* tp_setattr */
+  nullptr,                            /* tp_compare */
+  nullptr,                            /* tp_repr */
+  nullptr,                            /* tp_as_number */
+  nullptr,                            /* tp_as_sequence */
+  nullptr,                            /* tp_as_mapping */
+  nullptr,                            /* tp_hash  */
+  nullptr,                            /* tp_call */
+  nullptr,                            /* tp_str */
+  nullptr,                            /* tp_getattro */
+  nullptr,                            /* tp_setattro */
   &pydatatable::as_buffer,            /* tp_as_buffer;  see py_buffers.cc */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
   cls_doc,                            /* tp_doc */
-  0,                                  /* tp_traverse */
-  0,                                  /* tp_clear */
-  0,                                  /* tp_richcompare */
+  nullptr,                            /* tp_traverse */
+  nullptr,                            /* tp_clear */
+  nullptr,                            /* tp_richcompare */
   0,                                  /* tp_weaklistoffset */
-  0,                                  /* tp_iter */
-  0,                                  /* tp_iternext */
+  nullptr,                            /* tp_iter */
+  nullptr,                            /* tp_iternext */
   datatable_methods,                  /* tp_methods */
-  0,                                  /* tp_members */
+  nullptr,                            /* tp_members */
   datatable_getseters,                /* tp_getset */
-  0,                                  /* tp_base */
-  0,                                  /* tp_dict */
-  0,                                  /* tp_descr_get */
-  0,                                  /* tp_descr_set */
+  nullptr,                            /* tp_base */
+  nullptr,                            /* tp_dict */
+  nullptr,                            /* tp_descr_get */
+  nullptr,                            /* tp_descr_set */
   0,                                  /* tp_dictoffset */
-  0,                                  /* tp_init */
-  0,                                  /* tp_alloc */
-  0,                                  /* tp_new */
-  0,                                  /* tp_free */
-  0,                                  /* tp_is_gc */
-  0,                                  /* tp_bases */
-  0,                                  /* tp_mro */
-  0,                                  /* tp_cache */
-  0,                                  /* tp_subclasses */
-  0,                                  /* tp_weaklist */
-  0,                                  /* tp_del */
+  nullptr,                            /* tp_init */
+  nullptr,                            /* tp_alloc */
+  nullptr,                            /* tp_new */
+  nullptr,                            /* tp_free */
+  nullptr,                            /* tp_is_gc */
+  nullptr,                            /* tp_bases */
+  nullptr,                            /* tp_mro */
+  nullptr,                            /* tp_cache */
+  nullptr,                            /* tp_subclasses */
+  nullptr,                            /* tp_weaklist */
+  nullptr,                            /* tp_del */
   0,                                  /* tp_version_tag */
-  0,                                  /* tp_finalize */
+  nullptr,                            /* tp_finalize */
 };
 
 

@@ -4,10 +4,12 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import enum
+import glob
 import os
 import pathlib
-import psutil
 import re
+import shutil
 import tempfile
 import urllib.request
 import warnings
@@ -15,30 +17,23 @@ from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
 from datatable.lib import core
 from datatable.frame import Frame
+from datatable.options import options
 from datatable.utils.typechecks import (typed, U, TValueError, TTypeError,
                                         DatatableWarning)
 from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
-from datatable.types import stype
+from datatable.types import stype, ltype
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 _log_color = term.bright_black
-
-TColName = Union[str, type(...)]
-TColType = Union[str, type]
-TColumnsSpec = Union[
-    None,
-    slice,
-    range,
-    Set[str],
-    List[Union[None, str, Tuple[str, TColType]]],
-    Dict[TColName, Union[None, TColName, Tuple[TColName, TColType]]],
-    Callable[[str], Union[None, bool, str]],
-    Callable[[int, str], Union[None, bool, str]],
-    Callable[[int, str, str], Union[None, bool, str, Tuple[str, TColType]]]
-]
-
+_url_regex = re.compile(r"(?:https?|ftp|file)://")
+_glob_regex = re.compile(r"[\*\?\[\]]")
 
 
 def fread(
@@ -91,8 +86,9 @@ class GenericReader(object):
         self._file = None           # type: str
         self._files = None          # type: List[str]
         self._fileno = None         # type: int
-        self._tempfile = None       # type: str
+        self._tempfiles = []        # type: List[str]
         self._tempdir = None        # type: str
+        self._tempdir_own = False   # type: bool
         self._text = None           # type: Union[str, bytes]
         self._sep = None            # type: str
         self._dec = None            # type: str
@@ -123,9 +119,11 @@ class GenericReader(object):
         if na_strings is None:
             na_strings = ["NA"]
         if "_tempdir" in args:
-            self._tempdir = args.pop("_tempdir")
+            self.tempdir = args.pop("_tempdir")
         self.verbose = verbose
         self.logger = logger
+        if verbose:
+            self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
         self.columns = columns
         self.sep = sep
@@ -148,11 +146,6 @@ class GenericReader(object):
             if not callable(progress):
                 raise TTypeError("`progress_fn` argument should be a function")
             self._progress = progress
-        if "_tempfile" in args:
-            self._tempfile = args.pop("_tempfile")
-            self._file = self._tempfile
-        if "_fileno" in args:
-            self._fileno = args.pop("_fileno")
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
@@ -160,7 +153,7 @@ class GenericReader(object):
 
 
     #---------------------------------------------------------------------------
-    # Parameter helpers
+    # Resolve from various sources
     #---------------------------------------------------------------------------
 
     def _resolve_source(self, anysource, file, text, cmd, url):
@@ -193,37 +186,42 @@ class GenericReader(object):
     def _resolve_source_any(self, src):
         if src is None:
             return
-        if isinstance(src, (str, bytes)):
+        is_str = isinstance(src, str)
+        if is_str or isinstance(src, bytes):
             # If there are any control characters (such as \n or \r) in the
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
                 if self.verbose:
-                    self.logger.debug("  Source has length %d characters, and "
-                                      "will be treated as raw text" % len(src))
+                    self.logger.debug("Input has length %d characters, "
+                                      "treating it as raw text" % len(src))
                 self._resolve_source_text(src)
             else:
-                fn = ord if isinstance(src, str) else int
-                for i, ch in enumerate(src):
+                fn = ord if is_str else int
+                for ch in src:
                     ccode = fn(ch)
                     if ccode < 0x20:
                         if self.verbose:
-                            self.logger.debug("  Character %d in the input is "
-                                              "%r, treating input as raw text"
-                                              % (i, chr(ccode)))
+                            self.logger.debug("Input contains '\\x%02X', "
+                                              "treating it as raw text" % ccode)
                         self._resolve_source_text(src)
                         return
-                if (isinstance(src, str) and
-                        re.match(r"(?:https?|ftp|file)://", src)):
+                if is_str and re.match(_url_regex, src):
                     if self.verbose:
-                        self.logger.debug("  Input is a URL.")
+                        self.logger.debug("Input is a URL.")
                     self._resolve_source_url(src)
+                elif is_str and re.search(_glob_regex, src):
+                    if self.verbose:
+                        self.logger.debug("Input is a glob pattern.")
+                    self._resolve_source_list_of_files(glob.glob(src))
                 else:
                     if self.verbose:
-                        self.logger.debug("  Input is assumed to be a "
+                        self.logger.debug("Input is assumed to be a "
                                           "file name.")
                     self._resolve_source_file(src)
         elif isinstance(src, _pathlike) or hasattr(src, "read"):
             self._resolve_source_file(src)
+        elif isinstance(src, (list, tuple)):
+            self._resolve_source_list_of_files(src)
         else:
             raise TTypeError("Unknown type for the first argument in fread: %r"
                              % type(src))
@@ -307,6 +305,14 @@ class GenericReader(object):
         self._resolve_archive(file)
 
 
+    def _resolve_source_list_of_files(self, files_list):
+        self._files = []
+        for s in files_list:
+            self._resolve_source_file(s)
+            entry = (self._src, self._file, self._fileno, self._text)
+            self._files.append(entry)
+
+
     def _resolve_source_cmd(self, cmd):
         if cmd is None:
             return
@@ -321,13 +327,9 @@ class GenericReader(object):
     def _resolve_source_url(self, url):
         if url is None:
             return
-        tempdir = self._tempdir
-        if tempdir is None:
-            tempdir = tempfile.mkdtemp()
-            self._tempdir = tempdir
-        targetfile = tempfile.mktemp(dir=tempdir)
+        targetfile = tempfile.mktemp(dir=self.tempdir)
         urllib.request.urlretrieve(url, filename=targetfile)
-        self._tempfile = targetfile
+        self._tempfiles.append(targetfile)
         self._file = targetfile
         self._src = url
 
@@ -360,23 +362,30 @@ class GenericReader(object):
                 raise TValueError("Zip file %s is empty" % filename)
             self._tempdir = tempfile.mkdtemp()
             if self._verbose:
-                self.logger.debug("  Extracting %s to temporary directory %s"
+                self.logger.debug("Extracting %s to temporary directory %s"
                                   % (filename, self._tempdir))
-            self._tempfile = zf.extract(zff[0], path=self._tempdir)
-            self._file = self._tempfile
+            self._tempfiles.append(zf.extract(zff[0], path=self._tempdir))
+            self._file = self._tempfiles[-1]
 
         elif ext == ".gz":
             import gzip
             zf = gzip.GzipFile(filename, mode="rb")
             if self._verbose:
-                self.logger.debug("  Extracting %s into memory" % filename)
+                self.logger.debug("Extracting %s into memory" % filename)
+            self._text = zf.read()
+
+        elif ext == ".bz2":
+            import bz2
+            zf = bz2.open(filename, mode="rb")
+            if self._verbose:
+                self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
         elif ext == ".xz":
             import lzma
             zf = lzma.open(filename, mode="rb")
             if self._verbose:
-                self.logger.debug("  Extracting %s into memory" % filename)
+                self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
 
         elif ext == ".xlsx" or ext == ".xls":
@@ -384,6 +393,35 @@ class GenericReader(object):
 
         else:
             self._file = filename
+
+
+    def _process_excel_file(self, filename):
+        try:
+            import xlrd
+        except ImportError:
+            raise TValueError("Module `xlrd` is required in order to read "
+                              "Excel file '%s'. You can install this module "
+                              "by running `pip install xlrd` in the command "
+                              "line." % filename)
+        if self._result is None:
+            self._result = {}
+        wb = xlrd.open_workbook(filename)
+        for ws in wb.sheets():
+            # If the worksheet is empty, skip it
+            if ws.ncols == 0:
+                continue
+            # Assume first row contains headers
+            colnames = ws.row_values(0)
+            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
+                                           -stype.str32.value)
+                     for i in range(ws.ncols)]
+            colset = core.columns_from_columns(cols0)
+            res = Frame(colset.to_datatable(), names=colnames)
+            self._result[ws.name] = res
+        if len(self._result) == 0:
+            self._result = None
+        if len(self._result) == 1:
+            self._result = [*self._result.values()][0]
 
 
     #---------------------------------------------------------------------------
@@ -454,11 +492,24 @@ class GenericReader(object):
 
 
     @property
+    def tempdir(self):
+        if self._tempdir is None:
+            self._tempdir = tempfile.mkdtemp()
+            self._tempdir_own = True
+        return self._tempdir
+
+    @tempdir.setter
+    @typed(tempdir=str)
+    def tempdir(self, tempdir):
+        self._tempdir = tempdir
+        self._tempdir_own = False
+
+
+    @property
     def columns(self):
         return self._columns
 
     @columns.setter
-    @typed(columns=TColumnsSpec)
     def columns(self, columns):
         self._columns = columns or None
 
@@ -646,21 +697,33 @@ class GenericReader(object):
         self._logger = l
 
 
+    #---------------------------------------------------------------------------
+
     def read(self):
-        if self._result:
-            return self._result
-        _dt = core.gread(self)
-        dt = Frame(_dt, names=self._colnames)
-        if self._tempfile:
-            if self._verbose:
-                self.logger.debug("Removing temporary file %s"
-                                  % self._tempfile)
-            try:
-                os.remove(self._tempfile)
-                os.rmdir(self._tempdir)
-            except OSError as e:
-                self.logger.warning("Failed to remove temporary files: %r" % e)
-        return dt
+        try:
+            if self._result:
+                return self._result
+            if self._files:
+                res = {}
+                for src, filename, fileno, txt in self._files:
+                    self._src = src
+                    self._file = filename
+                    self._fileno = fileno
+                    self._txt = txt
+                    self._colnames = None
+                    try:
+                        _dt = core.gread(self)
+                        dt = Frame(_dt, names=self._colnames)
+                        res[src] = dt
+                    except Exception as e:
+                        res[src] = e
+                return res
+            else:
+                _dt = core.gread(self)
+                dt = Frame(_dt, names=self._colnames)
+                return dt
+        finally:
+            self._clear_temporary_files()
 
 
     #---------------------------------------------------------------------------
@@ -715,19 +778,19 @@ class GenericReader(object):
         handle a dataset of the requested size.
         """
         if self.verbose and estimated_size > 1:
-            self.logger.debug("  The Frame is estimated to require %s bytes"
+            self.logger.debug("The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
-        if estimated_size < 1024:
+        if estimated_size < 1024 or psutil is None:
             return None
         vm = psutil.virtual_memory()
         if self.verbose:
-            self.logger.debug("  Memory available = %s (out of %s)"
+            self.logger.debug("Memory available = %s (out of %s)"
                               % (humanize_bytes(vm.available),
                                  humanize_bytes(vm.total)))
         if (estimated_size < vm.available and self._save_to is None or
                 self._save_to == "memory"):
             if self.verbose:
-                self.logger.debug("  Frame will be loaded into memory")
+                self.logger.debug("Frame will be loaded into memory")
             return None
         else:
             if self._save_to:
@@ -737,12 +800,12 @@ class GenericReader(object):
                 tmpdir = tempfile.mkdtemp()
             du = psutil.disk_usage(tmpdir)
             if self.verbose:
-                self.logger.debug("  Free disk space on drive %s = %s"
+                self.logger.debug("Free disk space on drive %s = %s"
                                   % (os.path.splitdrive(tmpdir)[0] or "/",
                                      humanize_bytes(du.free)))
             if du.free > estimated_size or self._save_to:
                 if self.verbose:
-                    self.logger.debug("  Frame will be stored in %s"
+                    self.logger.debug("Frame will be stored in %s"
                                       % tmpdir)
                 return tmpdir
         raise RuntimeError("The Frame is estimated to require at lest %s "
@@ -772,187 +835,182 @@ class GenericReader(object):
                 print("Warning: unknown encoding %s" % tty_encoding)
 
 
-    def _override_columns(self, colnames, coltypes):
-        assert len(colnames) == len(coltypes)
-        n = len(colnames)
-        colspec = self._columns
-        self._colnames = []
+    def _clear_temporary_files(self):
+        for f in self._tempfiles:
+            try:
+                if self._verbose:
+                    self.logger.debug("Removing temporary file %s" % f)
+                os.remove(f)
+            except OSError as e:
+                self.logger.warning("Failed to remove a temporary file: %r" % e)
+        if self._tempdir_own:
+            shutil.rmtree(self._tempdir, ignore_errors=True)
 
-        if colspec is None:
-            self._colnames = colnames
-            return
 
+
+    #---------------------------------------------------------------------------
+    # Process `columns` argument
+    #---------------------------------------------------------------------------
+
+    def _set_column_names(self, colnames):
+        """
+        Invoked by `gread` from C++ to inform the class about the detected
+        column names. This method is a simplified version of
+        `_override_columns`, and will only be invoked if `self._columns` is
+        None.
+        """
+        self._colnames = colnames
+
+
+    def _override_columns0(self, coldescs):
+        return self._override_columns1(self._columns, coldescs)
+
+
+    def _override_columns1(self, colspec, coldescs):
         if isinstance(colspec, (slice, range)):
-            if isinstance(colspec, slice):
-                start, count, step = normalize_slice(colspec, n)
-            else:
-                t = normalize_range(colspec, n)
-                if t is None:
-                    raise TValueError("Invalid range iterator for a file with "
-                                      "%d columns: %r" % (n, colspec))
-                start, count, step = t
-            if step <= 0:
-                raise TValueError("Cannot use slice/range with negative step "
-                                  "for column filter: %r" % colspec)
-            for i in range(n):
-                if (i - start) % step == 0 and i < start + count * step:
-                    self._colnames.append(colnames[i])
-                else:
-                    coltypes[i] = 0
-            return
+            return self._apply_columns_slice(colspec, coldescs)
 
         if isinstance(colspec, set):
-            # Make a copy of the `colspec`, in order to check whether all the
-            # columns requested by the user were found, and issue a warning
-            # otherwise.
-            colsfound = set(colspec)
-            for i in range(n):
-                if colnames[i] in colspec:
-                    if colnames[i] in colsfound:
-                        colsfound.remove(colnames[i])
-                    self._colnames.append(colnames[i])
-                else:
-                    coltypes[i] = 0
-            if colsfound:
-                self.logger.warning("Column(s) %r not found in the input file"
-                                    % list(colsfound))
-            return
+            return self._apply_columns_set(colspec, coldescs)
 
-        if isinstance(colspec, list):
-            nn = len(colspec)
-            if n != nn:
-                raise TValueError("Input file contains %s, whereas `columns` "
-                                  "parameter specifies only %s"
-                                  % (plural(n, "column"), plural(nn, "column")))
-            for i in range(n):
-                entry = colspec[i]
-                if entry is None:
-                    coltypes[i] = 0
-                elif isinstance(entry, str):
-                    self._colnames.append(entry)
-                else:
-                    assert isinstance(entry, tuple)
-                    newname, newtype = entry
-                    self._colnames.append(newname)
-                    coltypes[i] = _coltypes.get(newtype)
-                    if not coltypes[i]:
-                        raise TValueError("Unknown type %r used as an override "
-                                          "for column %r" % (newtype, newname))
-            return
+        if isinstance(colspec, (list, tuple)):
+            return self._apply_columns_list(colspec, coldescs)
 
         if isinstance(colspec, dict):
-            for i in range(n):
-                name = colnames[i]
-                if name in colspec:
-                    entry = colspec[name]
-                else:
-                    entry = colspec.get(..., ...)
-                if entry is None:
-                    coltypes[i] = 0
-                elif entry is Ellipsis:
-                    self._colnames.append(name)
-                elif isinstance(entry, str):
-                    self._colnames.append(entry)
-                else:
-                    assert isinstance(entry, tuple)
-                    newname, newtype = entry
-                    if newname is Ellipsis:
-                        newname = name
-                    self._colnames.append(newname)
-                    coltypes[i] = _coltypes.get(newtype)
-                    if not coltypes[i]:
-                        raise TValueError("Unknown type %r used as an override "
-                                          "for column %r" % (newtype, newname))
+            return self._apply_columns_dict(colspec, coldescs)
 
-        if callable(colspec) and hasattr(colspec, "__code__"):
-            nargs = colspec.__code__.co_argcount
+        if callable(colspec):
+            return self._apply_columns_function(colspec, coldescs)
 
-            if nargs == 1:
-                for i in range(n):
-                    ret = colspec(colnames[i])
-                    if ret is None or ret is False:
-                        coltypes[i] = 0
-                    elif ret is True:
-                        self._colnames.append(colnames[i])
-                    elif isinstance(ret, str):
-                        self._colnames.append(ret)
-                    else:
-                        raise TValueError("Function passed as the `columns` "
-                                          "argument was expected to return a "
-                                          "`Union[None, bool, str]` but "
-                                          "instead returned value %r" % (ret,))
-                return
-
-            if nargs == 2:
-                for i in range(n):
-                    ret = colspec(i, colnames[i])
-                    if ret is None or ret is False:
-                        coltypes[i] = 0
-                    elif ret is True:
-                        self._colnames.append(colnames[i])
-                    elif isinstance(ret, str):
-                        self._colnames.append(ret)
-                    else:
-                        raise TValueError("Function passed as the `columns` "
-                                          "argument was expected to return a "
-                                          "`Union[None, bool, str]` but "
-                                          "instead returned value %r" % (ret,))
-                return
-
-            if nargs == 3:
-                for i in range(n):
-                    typ = _coltypes_strs[coltypes[i]]
-                    ret = colspec(i, colnames[i], typ)
-                    if ret is None or ret is False:
-                        coltypes[i] = 0
-                    elif ret is True:
-                        self._colnames.append(colnames[i])
-                    elif isinstance(ret, str):
-                        self._colnames.append(ret)
-                    elif isinstance(ret, tuple) and len(ret) == 2:
-                        newname, newtype = ret
-                        self._colnames.append(newname)
-                        coltypes[i] = _coltypes.get(newtype)
-                    else:
-                        raise TValueError("Function passed as the `columns` "
-                                          "argument was expected to return a "
-                                          "`Union[None, bool, str, Tuple[str, "
-                                          "Union[str, type]]]` but "
-                                          "instead returned value %r" % ret)
-                return
-
-            raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
-                               % colspec)
+        raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
+                           % colspec)
 
 
-    def _process_excel_file(self, filename):
-        try:
-            import xlrd
-        except ImportError:
-            raise TValueError("Module `xlrd` is required in order to read "
-                              "Excel file '%s'. You can install this module "
-                              "by running `pip install xlrd` in the command "
-                              "line." % filename)
-        self._result = []
-        wb = xlrd.open_workbook(filename)
-        for ws in wb.sheets():
-            # If the worksheet is empty, skip it
-            if ws.ncols == 0:
-                continue
-            # Assume first row contains headers
-            colnames = ws.row_values(0)
-            cols0 = [core.column_from_list(ws.col_values(i, start_rowx=1),
-                                           -stype.str32.value)
-                     for i in range(ws.ncols)]
-            colset = core.columns_from_columns(cols0)
-            res = Frame(colset.to_datatable(), names=colnames)
-            self._result.append(res)
-        if len(self._result) == 0:
-            self._result = 0
-        if len(self._result) == 1:
-            self._result = self._result[0]
+    def _apply_columns_slice(self, colslice, colsdesc):
+        n = len(colsdesc)
+
+        if isinstance(colslice, slice):
+            start, count, step = normalize_slice(colslice, n)
+        else:
+            t = normalize_range(colslice, n)
+            if t is None:
+                raise TValueError("Invalid range iterator for a file with "
+                                  "%d columns: %r" % (n, colslice))
+            start, count, step = t
+        if step <= 0:
+            raise TValueError("Cannot use slice/range with negative step "
+                              "for column filter: %r" % colslice)
+
+        colnames = [None] * count
+        coltypes = [rtype.rdrop.value] * n
+        for j in range(count):
+            i = start + j * step
+            colnames[j] = colsdesc[i].name
+            coltypes[i] = rtype.rauto.value
+        self._colnames = colnames
+        return coltypes
 
 
+    def _apply_columns_set(self, colset, colsdesc):
+        n = len(colsdesc)
+        # Make a copy of the `colset` in order to check whether all the
+        # columns requested by the user were found, and issue a warning
+        # otherwise.
+        requested_cols = colset.copy()
+        colnames = []
+        coltypes = [rtype.rdrop.value] * n
+        for i in range(n):
+            colname = colsdesc[i][0]
+            if colname in colset:
+                requested_cols.discard(colname)
+                colnames.append(colname)
+                coltypes[i] = rtype.rauto.value
+        if requested_cols:
+            self.logger.warning("Column(s) %r not found in the input file"
+                                % list(requested_cols))
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_list(self, collist, colsdesc):
+        n = len(colsdesc)
+        nn = len(collist)
+        if n != nn:
+            raise TValueError("Input file contains %s, whereas `columns` "
+                              "parameter specifies only %s"
+                              % (plural(n, "column"), plural(nn, "column")))
+        colnames = []
+        coltypes = [rtype.rdrop.value] * n
+        for i in range(n):
+            entry = collist[i]
+            if entry is None or entry is False:
+                pass
+            elif entry is True or entry is Ellipsis:
+                colnames.append(colsdesc[i].name)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, str):
+                colnames.append(entry)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, (stype, ltype, type)):
+                colnames.append(colsdesc[i].name)
+                coltypes[i] = _rtypes_map[entry].value
+            elif isinstance(entry, tuple):
+                newname, newtype = entry
+                if newtype not in _rtypes_map:
+                    raise TValueError("Unknown type %r used as an override "
+                                      "for column %r" % (newtype, newname))
+                colnames.append(newname)
+                coltypes[i] = _rtypes_map[newtype].value
+            else:
+                raise TTypeError("Entry `columns[%d]` has invalid type %r"
+                                 % (i, entry.__class__.__name__))
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_dict(self, colsdict, colsdesc):
+        default_entry = colsdict.get(..., ...)
+        colnames = []
+        coltypes = [rtype.rdrop.value] * len(colsdesc)
+        for i in range(len(colsdesc)):
+            name = colsdesc[i].name
+            entry = colsdict.get(name, default_entry)
+            if entry is None:
+                pass  # coltype is already "drop"
+            elif entry is Ellipsis:
+                colnames.append(name)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, str):
+                colnames.append(entry)
+                coltypes[i] = rtype.rauto.value
+            elif isinstance(entry, (stype, ltype, type)):
+                colnames.append(name)
+                coltypes[i] = _rtypes_map[entry].value
+            elif isinstance(entry, tuple):
+                newname, newtype = entry
+                colnames.append(newname)
+                coltypes[i] = _rtypes_map[newtype].value
+                assert isinstance(newname, str)
+                if not coltypes[i]:
+                    raise TValueError("Unknown type %r used as an override "
+                                      "for column %r" % (newtype, newname))
+            else:
+                raise TTypeError("Unknown value %r for column '%s' in "
+                                 "columns descriptor" % (entry, name))
+        self._colnames = colnames
+        return coltypes
+
+
+    def _apply_columns_function(self, colsfn, colsdesc):
+        res = colsfn(colsdesc)
+        return self._override_columns1(res, colsdesc)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Helper classes
+#-------------------------------------------------------------------------------
 
 class FreadWarning(DatatableWarning):
     pass
@@ -960,6 +1018,8 @@ class FreadWarning(DatatableWarning):
 
 class _DefaultLogger:
     def debug(self, message):
+        if message[0] != "[":
+            message = "  " + message
         print(_log_color(message), flush=True)
 
     def warning(self, message):
@@ -970,45 +1030,59 @@ class _DefaultLogger:
 _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)
 
+options.register_option(
+    "fread.anonymize", xtype=bool, default=False, core=True)
 
 
 
 #-------------------------------------------------------------------------------
-# Directly corresponds to `PT` enum in "reader_parsers.h"
-_coltypes_strs = [
-    "drop",      # 0
-    "bool8n",    # 1
-    "bool8u",    # 2
-    "bool8t",    # 3
-    "bool8l",    # 4
-    "int32",     # 5
-    "int64",     # 6
-    "float32x",  # 7
-    "float64",   # 8
-    "float64e",  # 9
-    "float64x",  # 10
-    "str",       # 11
-]
 
-_coltypes = {k: _coltypes_strs.index(v) for (k, v) in [
-    (bool,       "bool8n"),
-    (int,        "int32"),
-    (float,      "float64"),
-    (str,        "str"),
-    ("bool",     "bool8n"),
-    ("bool8",    "bool8n"),
-    ("bool8n",   "bool8n"),
-    ("bool8u",   "bool8u"),
-    ("bool8t",   "bool8t"),
-    ("bool8l",   "bool8l"),
-    ("int",      "int32"),
-    ("int32",    "int32"),
-    ("int64",    "int64"),
-    ("float32x", "float32x"),
-    ("float",    "float64"),
-    ("float64",  "float64"),
-    ("float64e", "float64e"),
-    ("float64x", "float64x"),
-    ("str",      "str"),
-    ("drop",     "drop"),
-]}
+# Corresponds to RT enum in "reader_parsers.h"
+class rtype(enum.Enum):
+    rdrop    = 0
+    rauto    = 1
+    rbool    = 2
+    rint     = 3
+    rint32   = 4
+    rint64   = 5
+    rfloat   = 6
+    rfloat32 = 7
+    rfloat64 = 8
+    rstr     = 9
+    rstr32   = 10
+    rstr64   = 11
+
+
+_rtypes_map = {
+    None:          rtype.rdrop,
+    bool:          rtype.rbool,
+    int:           rtype.rint,
+    float:         rtype.rfloat,
+    str:           rtype.rstr,
+    "drop":        rtype.rdrop,
+    "bool":        rtype.rbool,
+    "auto":        rtype.rauto,
+    "bool8":       rtype.rbool,
+    "logical":     rtype.rbool,
+    "int":         rtype.rint,
+    "integer":     rtype.rint,
+    "int32":       rtype.rint32,
+    "int64":       rtype.rint64,
+    "float":       rtype.rfloat,
+    "float32":     rtype.rfloat32,
+    "float64":     rtype.rfloat64,
+    "str":         rtype.rstr,
+    "str32":       rtype.rstr32,
+    "str64":       rtype.rstr64,
+    stype.bool8:   rtype.rbool,
+    stype.int32:   rtype.rint32,
+    stype.int64:   rtype.rint64,
+    stype.float32: rtype.rfloat32,
+    stype.float64: rtype.rfloat64,
+    stype.str32:   rtype.rstr32,
+    stype.str64:   rtype.rstr64,
+    ltype.bool:    rtype.rbool,
+    ltype.int:     rtype.rint,
+    ltype.real:    rtype.rfloat,
+    ltype.str:     rtype.rstr,
+}

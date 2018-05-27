@@ -36,8 +36,10 @@ constexpr T infinity() {
 
 template<typename IT, typename OT>
 static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
-  IT* inputs = static_cast<IT*>(static_cast<Column*>(params[0])->data());
-  OT* outputs = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const IT* inputs = static_cast<const IT*>(col0->data());
+  OT* outputs = static_cast<OT*>(col1->data_w());
   OT sum = 0;
   int64_t cnt = 0;
   OT delta = 0;
@@ -64,8 +66,10 @@ static void mean_skipna(const int32_t* groups, int32_t grp, void** params) {
 // Welford algorithm
 template<typename IT, typename OT>
 static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
-  IT* inputs = static_cast<IT*>(static_cast<Column*>(params[0])->data());
-  OT* outputs = static_cast<OT*>(static_cast<Column*>(params[1])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const IT* inputs = static_cast<const IT*>(col0->data());
+  OT* outputs = static_cast<OT*>(col1->data_w());
   OT mean = 0;
   OT m2 = 0;
   int64_t cnt = 0;
@@ -91,8 +95,10 @@ static void stdev_skipna(const int32_t* groups, int32_t grp, void** params) {
 
 template<typename T>
 static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
-  T* inputs = static_cast<T*>(static_cast<Column*>(params[0])->data());
-  T* outputs = static_cast<T*>(static_cast<Column*>(params[1])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const T* inputs = static_cast<const T*>(col0->data());
+  T* outputs = static_cast<T*>(col1->data_w());
   T res = infinity<T>();
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
@@ -113,8 +119,10 @@ static void min_skipna(const int32_t* groups, int32_t grp, void** params) {
 
 template<typename T>
 static void max_skipna(const int32_t* groups, int32_t grp, void** params) {
-  T* inputs = static_cast<T*>(static_cast<Column*>(params[0])->data());
-  T* outputs = static_cast<T*>(static_cast<Column*>(params[1])->data());
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const T* inputs = static_cast<const T*>(col0->data());
+  T* outputs = static_cast<T*>(col1->data_w());
   T res = -infinity<T>();
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];

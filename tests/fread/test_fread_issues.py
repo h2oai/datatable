@@ -8,20 +8,22 @@
 # on GitHub. The test cases are expected to all be reasonably small.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import os
 import pytest
 import random
 import re
+from tests import find_file, same_iterables
 
 
 #-------------------------------------------------------------------------------
 
 def test_issue_R1113():
-    # Loosely based on #1113 in R
+    # Based on #1113 in R, test 1555.1-11
     txt = ("ITER    THETA1    THETA2   MCMC\n"
            "        -11000 -2.50000E+00  2.30000E+00    345678.20255 \n"
            "        -10999 -2.49853E+01  3.79270E+02    -195780.43911\n"
            "        -10998 1.95957E-01  4.16522E+00    7937.13048")
-    d0 = dt.fread(txt)
+    d0 = dt.fread(txt, verbose=True)
     assert d0.internal.check()
     assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
@@ -30,21 +32,41 @@ def test_issue_R1113():
                              [-2.5, -24.9853, 0.195957],
                              [2.3, 379.270, 4.16522],
                              [345678.20255, -195780.43911, 7937.13048]]
+    # `strip_whitespace` has no effect when `sep == ' '`
+    d1 = dt.fread(txt, strip_whitespace=False)
+    assert d1.internal.check()
+    assert d1.names == d0.names
+    assert d1.topython() == d0.topython()
+    # Check that whitespace is not removed from column names either
+    d2 = dt.fread(text=" ITER,    THETA1,       THETA2", strip_whitespace=False)
+    d3 = dt.fread(text=" ITER  ,  THETA1   ,    THETA2", strip_whitespace=False)
+    d4 = dt.fread(text=' ITER  ,  THETA1  ,   "THETA2"', strip_whitespace=False)
+    assert d2.names == (" ITER", "    THETA1", "       THETA2")
+    assert d3.names == (" ITER  ", "  THETA1   ", "    THETA2")
+    assert d4.names == (' ITER  ', '  THETA1  ', '   "THETA2"')
+
 
 
 def test_issue_R2106():
     """skip_blank_lines and fill parameters in single-column file."""
     # See also: #R2535
     src = "A\n1\n5\n\n12\n18\n\n"
+    src2 = "A\n1\n5\nNA\n12\n18\nNA\n"
     d0 = dt.fread(src)
     d1 = dt.fread(src, skip_blank_lines=True)
     d2 = dt.fread(src, skip_blank_lines=True, fill=True)
+    d3 = dt.fread(src2, na_strings=[""])
+    d4 = dt.fread(src2, na_strings=["NA"])
     assert d0.internal.check()
     assert d1.internal.check()
     assert d2.internal.check()
+    assert d3.internal.check()
+    assert d4.internal.check()
     assert d0.topython() == [[1, 5, None, 12, 18, None]]
     assert d1.topython() == [[1, 5, 12, 18]]
     assert d2.topython() == [[1, 5, 12, 18]]
+    assert d3.topython() == [["1", "5", "NA", "12", "18", "NA"]]
+    assert d4.topython() == [[1, 5, None, 12, 18, None]]
 
 
 def test_issue_R2196():
@@ -77,7 +99,8 @@ def test_issue_R2287(v):
     """
     with pytest.raises(Exception) as e:
         dt.fread("A,B\nfoo,1\nbar" + v)
-    assert ('Expecting 2 fields but found 1: "bar%s"' % v) in str(e)
+    assert 'expected 2 but found only 1' in str(e)
+    assert ('<<bar%s>>' % v) in str(e)
 
 
 def test_issue_R2299():
@@ -89,7 +112,7 @@ def test_issue_R2299():
            "3,4\n" * 5000)
     with pytest.raises(Exception) as e:
         dt.fread(src)
-    assert re.search("Too few fields on row .+: expected 2 but found only 1",
+    assert re.search("Too few fields on line 102: expected 2 but found only 1",
                      str(e))
 
 
@@ -179,6 +202,18 @@ def test_issue_R2542():
     d0 = dt.fread("A\r1\r\r\r2\r")
     assert d0.internal.check()
     assert d0.topython() == [[1, None, None, 2]]
+
+
+def test_issue_R2666():
+    # Explicitly specified sep should not be ignored
+    d0 = dt.fread("1;2;3\n4\n5;6", sep=";", fill=True)
+    d1 = dt.fread("1;2;3\n4\n5",   sep=";", fill=True)
+    d2 = dt.fread("1;2;3\n;4\n5",  sep=";", fill=True)
+    d3 = dt.fread("1;2;3\n4\n;5",  sep=";", fill=True)
+    assert d0.topython() == [[1, 4, 5],    [2, None, 6],    [3, None, None]]
+    assert d1.topython() == [[1, 4, 5],    [2, None, None], [3, None, None]]
+    assert d2.topython() == [[1, None, 5], [2, 4, None],    [3, None, None]]
+    assert d3.topython() == [[1, 4, None], [2, None, 5],    [3, None, None]]
 
 
 
@@ -282,6 +317,7 @@ def test_issue_664(capsys):
                  skip_blank_lines=True)
     out, err = capsys.readouterr()
     assert "Too few rows allocated" not in out
+    assert "we know nrows=3 exactly" in out
     assert f.internal.check()
     assert f.shape == (3, 3)
     assert f.topython() == [["x", "A", "y"],
@@ -369,3 +405,79 @@ def test_issue720(seed):
     assert d0.names == ("A", "B")
     assert d0.ltypes == (dt.ltype.str, dt.ltype.str)
     assert d0.topython() == [src0, src1]
+
+
+def test_issuee786():
+    df = dt.fread('"A","B"\n', sep="")
+    assert df.internal.check()
+    assert df.shape == (0, 1)
+    assert df.names == ('"A","B"',)
+    assert df.topython() == [[]]
+
+
+def test_issue939(capsys):
+    df = dt.fread("""
+             1,9ff4ed3a-6b00-4130-9aca-2ed897305fd1,1
+             2,ac1e1ca3-5ca8-438a-85a4-8175ed5bb7ec,1
+             3,6870f256-e145-4d75-adb0-99ccb77d5d3a,0
+             4,d8da52c1-d145-4dff-b3d1-127c6eb75d40,1
+             5,,0
+             6,2e1d193f-d1da-4664-8a2b-ffdfe0aa7be3,0
+    1000010407,89e68530-422e-43ba-bd00-aa3d8f2cfcaa,1
+    1000024046,4055a53b-411f-46f0-9d2e-cf03bc95c080,0
+    1000054511,49d14d8e-5c42-439d-b4a8-995e25b1602f,0
+    1000065922,4e31b8aa-4aa9-4e8b-be8f-5cc6323235b4,0
+    1000066478,2e1d193f-d1da-4664-8a2b-ffdfe0aa7be3,0
+    1000067268,25ce1456-546d-4e35-bddc-d571b26581ea,0
+     100007536,d8da52c1-d145-4dff-b3d1-127c6eb75d40,1
+    1000079839,6870f256-e145-4d75-adb0-99ccb77d5d3a,0
+      10000913,ac1e1ca3-5ca8-438a-85a4-8175ed5bb7ec,0
+    1000104538,9ff4ed3a-6b00-4130-9aca-2ed897305fd1,1
+             7,00000000-0000-0000-0000-000000000000,0
+             9,FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF,1
+
+    """, verbose=True)
+    assert df.internal.check()
+    assert df.names == ("C0", "C1", "C2")
+    assert df.shape == (18, 3)
+    assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)
+    out, err = capsys.readouterr()
+    assert "`header` determined to be False" in out
+    assert "Sampled 18 rows" in out
+    assert "Type codes (jump 000): isb" in out
+    assert "columns need to be re-read" not in out
+    assert "column needs to be re-read" not in out
+
+
+def test_issue998():
+    src = find_file("h2o-3", "bigdata", "laptop", "higgs_head_2M.csv")
+    # The file is 1.46GB in size. I could not find a smaller file that exhibits
+    # this problem... The issue only appeared in single-threaded mode, so we
+    # have to read this file slowly. On my laptop, this test runs in about 8s.
+    f0 = dt.fread(src, nthreads=1, fill=True, na_strings=["-999"])
+    assert f0.shape == (2000000, 29)
+    assert f0.names == tuple("C%d" % i for i in range(f0.ncols))
+    assert f0.stypes == (dt.stype.float64,) * f0.ncols
+    assert same_iterables(
+        f0.sum().topython(),
+        [[1058818.0], [1981919.6107614636], [701.7858121241807],
+         [-195.48500674014213], [1996390.3476011853], [-1759.5364254778178],
+         [1980743.446578741], [-1108.7512905876065], [1712.947751407064],
+         [2003064.4534490108], [1985100.3810670376], [1190.8404791812281],
+         [384.00605312064], [1998592.0739881992], [1984490.1900614202],
+         [2033.9754767678387], [-1028.0810855487362], [2001341.0813384056],
+         [1971311.3271338642], [-943.92552991907], [-1079.3848229270661],
+         [1996588.295421958], [2068619.2163415626], [2049516.5437491536],
+         [2100795.4839400873], [2019540.6562294513], [1946283.046177674],
+         [2066298.020782411], [1919714.12131235]])
+
+
+def test_issue1030():
+    # The file contains unterminated quote character, which had resulted in
+    # a crash in verbose mode (due to incorrect use of `snprintf`).
+    lines = ["6,7,8,9,3,4,5\n"] * 100000
+    lines[0] = "A,B,C,D,E,F\n"
+    lines[3333] = '3,"45,99,-3,7,0\n'
+    src = "".join(lines)
+    with pytest.raises(RuntimeError):
+        dt.fread(src, verbose=True)

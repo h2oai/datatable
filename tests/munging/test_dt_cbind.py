@@ -38,7 +38,7 @@ def test_cbind_simple():
     dt_compute_stats(d0, d1)
     with pytest.warns(UserWarning):
         d0.cbind(d1)
-    dr = dt.Frame([[1, 2, 3], [4, 5, 6]], names=["C1", "C2"])
+    dr = dt.Frame([[1, 2, 3], [4, 5, 6]], names=["C0", "C1"])
     assert_equals(d0, dr)
 
 
@@ -92,7 +92,7 @@ def test_cbind_forced1():
     dt_compute_stats(d0, d1)
     with pytest.warns(UserWarning):
         d0.cbind(d1, force=True)
-    dr = dt.Frame([[1, 2, 3], [4, 5, None]], names=["C1", "C2"])
+    dr = dt.Frame([[1, 2, 3], [4, 5, None]], names=["C0", "C1"])
     assert_equals(d0, dr)
 
 

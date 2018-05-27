@@ -12,19 +12,18 @@
 #include <stdint.h>     // int32_t, etc
 #include <stdio.h>      // printf
 #include "column.h"
-#include "csv/dtoa.h"
-#include "csv/itoa.h"
+#include "csv/toa.h"
 #include "datatable.h"
-#include "memorybuf.h"
+#include "memrange.h"
 #include "utils/omp.h"
 #include "types.h"
 #include "utils.h"
 
 
 class CsvColumn;
-static void write_string(char **pch, const char *value);
+static void write_string(char** pch, const char* value);
 
-typedef void (*writer_fn)(char **pch, CsvColumn* col, int64_t row);
+typedef void (*writer_fn)(char** pch, CsvColumn* col, int64_t row);
 
 static size_t bytes_per_stype[DT_STYPES_COUNT];
 static writer_fn writers_per_stype[DT_STYPES_COUNT];
@@ -34,13 +33,13 @@ static writer_fn writers_per_stype[DT_STYPES_COUNT];
 // TODO: replace with classes that derive from CsvColumn and implement write()
 class CsvColumn {
 public:
-  void *data;
-  char *strbuf;
+  const void* data;
+  const char* strbuf;
   writer_fn writer;
 
   CsvColumn(Column *col) {
     data = col->data();
-    strbuf = NULL;
+    strbuf = nullptr;
     writer = writers_per_stype[col->stype()];
     if (!writer) {
       throw ValueError() << "Cannot write type " << col->stype();
@@ -49,15 +48,20 @@ public:
       strbuf = static_cast<StringColumn<int32_t>*>(col)->strdata();
       data = static_cast<StringColumn<int32_t>*>(col)->offsets();
     }
+    else if (col->stype() == ST_STRING_I8_VCHAR) {
+      strbuf = static_cast<StringColumn<int64_t>*>(col)->strdata();
+      data = static_cast<StringColumn<int64_t>*>(col)->offsets();
+    }
   }
 
-  void write(char **pch, int64_t row) {
+  void write(char** pch, int64_t row) {
     writer(pch, this, row);
   }
 
-  // This should only be called on a CsvColumn of type i4s!
+  // This should only be called on a CsvColumn of type i4s / i8s!
+  template <typename T>
   size_t strsize(int64_t row0, int64_t row1) {
-    int32_t *offsets = reinterpret_cast<int32_t*>(data) - 1;
+    const T* offsets = static_cast<const T*>(data) - 1;
     return static_cast<size_t>(abs(offsets[row1]) - abs(offsets[row0]));
   }
 };
@@ -72,83 +76,26 @@ public:
 // experiments and benchmarks.
 //=================================================================================================
 
-static void write_b1(char **pch, CsvColumn *col, int64_t row)
-{
-  int8_t value = reinterpret_cast<int8_t*>(col->data)[row];
+static void write_b1(char** pch, CsvColumn* col, int64_t row) {
+  int8_t value = static_cast<const int8_t*>(col->data)[row];
   **pch = static_cast<char>(value) + '0';
   *pch += (value != NA_I1);
 }
 
 
-static void write_i1(char **pch, CsvColumn *col, int64_t row)
-{
-  int value = static_cast<int>(reinterpret_cast<int8_t*>(col->data)[row]);
-  char *ch = *pch;
-  if (value == NA_I1) return;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  if (value >= 100) {  // the range of `value` is up to 127
-    *ch++ = '1';
-    int d = value/10;
-    *ch++ = static_cast<char>(d) - 10 + '0';
-    value -= d*10;
-  } else if (value >= 10) {
-    int d = value/10;
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d*10;
-  }
-  *ch++ = static_cast<char>(value) + '0';
-  *pch = ch;
+template <typename T>
+void write_iN(char** pch, CsvColumn* col, int64_t row) {
+  T value = static_cast<const T*>(col->data)[row];
+  if (ISNA<T>(value)) return;
+  toa<T>(pch, value);
 }
 
 
-static void write_i2(char **pch, CsvColumn *col, int64_t row)
+template <typename T>
+void write_str(char** pch, CsvColumn* col, int64_t row)
 {
-  int value = ((int16_t*) col->data)[row];
-  if (value == 0) {
-    *((*pch)++) = '0';
-    return;
-  }
-  if (value == NA_I2) return;
-  char *ch = *pch;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  int r = (value < 1000)? 2 : 4;
-  for (; value < DIVS32[r]; r--);
-  for (; r; r--) {
-    int d = value / DIVS32[r];
-    *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS32[r];
-  }
-  *ch = static_cast<char>(value) + '0';
-  *pch = ch + 1;
-}
-
-
-static void write_i4(char **pch, CsvColumn *col, int64_t row)
-{
-  int32_t value = ((int32_t*) col->data)[row];
-  if (value == NA_I4) return;
-  itoa(pch, value);
-}
-
-
-static void write_i8(char **pch, CsvColumn *col, int64_t row)
-{
-  int64_t value = ((int64_t*) col->data)[row];
-  if (value == NA_I8) return;
-  ltoa(pch, value);
-}
-
-
-static void write_s4(char **pch, CsvColumn *col, int64_t row)
-{
-  int32_t offset1 = ((int32_t*) col->data)[row];
-  int32_t offset0 = abs(((int32_t*) col->data)[row - 1]);
+  T offset1 = (static_cast<const T*>(col->data))[row];
+  T offset0 = abs((static_cast<const T*>(col->data))[row - 1]);
   char *ch = *pch;
 
   if (offset1 < 0) return;
@@ -158,9 +105,9 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
     *pch = ch + 2;
     return;
   }
-  const uint8_t *strstart = reinterpret_cast<uint8_t*>(col->strbuf) + offset0;
-  const uint8_t *strend = reinterpret_cast<uint8_t*>(col->strbuf) + offset1;
-  const uint8_t *sch = strstart;
+  const uint8_t* strstart = reinterpret_cast<const uint8_t*>(col->strbuf) + offset0;
+  const uint8_t* strend = reinterpret_cast<const uint8_t*>(col->strbuf) + offset1;
+  const uint8_t* sch = strstart;
   if (*sch == 32) goto quote;
   while (sch < strend) {  // ',' is 44, '"' is 34
     uint8_t c = *sch;
@@ -187,10 +134,10 @@ static void write_s4(char **pch, CsvColumn *col, int64_t row)
 
 static char hexdigits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
+static void write_f8_hex(char** pch, CsvColumn* col, int64_t row)
 {
   // Read the value as if it was uint64_t
-  uint64_t value = static_cast<uint64_t*>(col->data)[row];
+  uint64_t value = static_cast<const uint64_t*>(col->data)[row];
   char *ch = *pch;
 
   if (value & F64_SIGN_MASK) {
@@ -234,10 +181,10 @@ static void write_f8_hex(char **pch, CsvColumn *col, int64_t row)
 }
 
 
-static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
+static void write_f4_hex(char** pch, CsvColumn* col, int64_t row)
 {
   // Read the value as if it was uint32_t
-  uint32_t value = static_cast<uint32_t*>(col->data)[row];
+  uint32_t value = static_cast<const uint32_t*>(col->data)[row];
   char *ch = *pch;
 
   if (value & F32_SIGN_MASK) {
@@ -275,12 +222,12 @@ static void write_f4_hex(char **pch, CsvColumn *col, int64_t row)
 }
 
 
-static void write_f8_dec(char **pch, CsvColumn *col, int64_t row) {
+static void write_f8_dec(char** pch, CsvColumn* col, int64_t row) {
   double value = ((double*) col->data)[row];
   dtoa(pch, value);
 }
 
-static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
+static void write_f4_dec(char** pch, CsvColumn* col, int64_t row) {
   float value = ((float*) col->data)[row];
   ftoa(pch, value);
 }
@@ -291,7 +238,7 @@ static void write_f4_dec(char **pch, CsvColumn *col, int64_t row) {
  * "writer" -- instead it may be used to write extra data to the file, such
  * as headers/footers.
  */
-static void write_string(char **pch, const char *value)
+static void write_string(char** pch, const char *value)
 {
   char *ch = *pch;
   const char *sch = value;
@@ -362,7 +309,8 @@ void CsvWriter::write()
   write_column_names();
   determine_chunking_strategy(bytes_total, nrows);
   create_column_writers(ncols);
-  size_t nstrcols = strcolumns.size();
+  size_t nstrcols32 = strcolumns32.size();
+  size_t nstrcols64 = strcolumns64.size();
 
   OmpExceptionManager oem;
   #define OMPCODE(code)  try { code } catch (...) { oem.capture_exception(); }
@@ -410,8 +358,11 @@ void CsvWriter::write()
         // by 2 in order to account for the possibility that the buffer may
         // expand twice in size (if every character needs to be escaped).
         size_t reqsize = 0;
-        for (size_t col = 0; col < nstrcols; col++) {
-          reqsize += strcolumns[col]->strsize(row0, row1);
+        for (size_t col = 0; col < nstrcols32; col++) {
+          reqsize += strcolumns32[col]->strsize<int32_t>(row0, row1);
+        }
+        for (size_t col = 0; col < nstrcols64; col++) {
+          reqsize += strcolumns64[col]->strsize<int64_t>(row0, row1);
         }
         reqsize *= 2;
         reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
@@ -454,7 +405,7 @@ void CsvWriter::write()
   t_write_data = checkpoint();
 
   // Done writing; if writing to stdout then append '\0' to make it a regular
-  // C string; otherwise truncate MemoryBuffer to the final size.
+  // C string; otherwise truncate WritableBuffer to the final size.
   VLOG("Finalizing output at size %s\n", filesize_to_str(wb->size()));
   if (path.empty()) {
     char c = '\0';
@@ -623,9 +574,8 @@ void CsvWriter::create_column_writers(size_t ncols)
     SType stype = dtcol->stype();
     CsvColumn *csvcol = new CsvColumn(dtcol);
     columns.push_back(csvcol);
-    if (stype == ST_STRING_I4_VCHAR || stype == ST_STRING_I8_VCHAR) {
-      strcolumns.push_back(csvcol);
-    }
+    if (stype == ST_STRING_I4_VCHAR) strcolumns32.push_back(csvcol);
+    if (stype == ST_STRING_I8_VCHAR) strcolumns64.push_back(csvcol);
   }
   t_prepare_for_writing = checkpoint();
 }
@@ -640,7 +590,7 @@ void init_csvwrite_constants() {
 
   for (int i = 0; i < DT_STYPES_COUNT; i++) {
     bytes_per_stype[i] = 0;
-    writers_per_stype[i] = NULL;
+    writers_per_stype[i] = nullptr;
   }
   bytes_per_stype[ST_BOOLEAN_I1]      = 1;  // 1
   bytes_per_stype[ST_INTEGER_I1]      = 5;  // -100, -0x7F
@@ -653,11 +603,12 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 
   writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
-  writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_i1;
-  writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_i2;
-  writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_i4;
-  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_i8;
+  writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_iN<int8_t>;
+  writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_iN<int16_t>;
+  writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_iN<int32_t>;
+  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_iN<int64_t>;
   writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_dec;
   writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_dec;
-  writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_s4;
+  writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_str<int32_t>;
+  writers_per_stype[ST_STRING_I8_VCHAR] = (writer_fn) write_str<int64_t>;
 }

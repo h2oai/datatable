@@ -6,20 +6,11 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "column.h"
-#include "utils/omp.h"
+#include "csv/toa.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "utils/omp.h"
 
-template <typename T>
-IntColumn<T>::IntColumn() : FwColumn<T>() {}
-
-template <typename T>
-IntColumn<T>::IntColumn(int64_t nrows_, MemoryBuffer* mb) :
-    FwColumn<T>(nrows_, mb) {}
-
-
-template <typename T>
-IntColumn<T>::~IntColumn() {}
 
 
 template <typename T>
@@ -117,6 +108,7 @@ template <typename T> PyObject* IntColumn<T>::sd_pyscalar() const { return float
 //------------------------------------------------------------------------------
 // Type casts
 //------------------------------------------------------------------------------
+typedef std::unique_ptr<MemoryWritableBuffer> MWBPtr;
 
 template<typename IT, typename OT>
 inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
@@ -127,12 +119,45 @@ inline static void cast_helper(int64_t nrows, const IT* src, OT* trg) {
   }
 }
 
+template<typename IT, typename OT>
+inline static MemoryRange cast_str_helper(
+  int64_t nrows, const IT* src, OT* toffsets)
+{
+  size_t exp_size = static_cast<size_t>(nrows) * sizeof(IT);
+  auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
+  char* tmpbuf = new char[1024];
+  char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
+  char* ch = tmpbuf;
+  OT offset = 1;
+  toffsets[-1] = -1;
+  for (int64_t i = 0; i < nrows; ++i) {
+    IT x = src[i];
+    if (ISNA<IT>(x)) {
+      toffsets[i] = -offset;
+    } else {
+      char* ch0 = ch;
+      toa<IT>(&ch, x);
+      offset += ch - ch0;
+      toffsets[i] = offset;
+      if (ch > tmpend) {
+        wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+        ch = tmpbuf;
+      }
+    }
+  }
+  wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);
+  wb->finalize();
+  delete[] tmpbuf;
+  return wb->get_mbuf();
+}
+
+
 template <typename T>
 void IntColumn<T>::cast_into(BoolColumn* target) const {
   constexpr T na_src = GETNA<T>();
   constexpr int8_t na_trg = GETNA<int8_t>();
-  T* src_data = this->elements();
-  int8_t* trg_data = target->elements();
+  const T* src_data = this->elements_r();
+  int8_t* trg_data = target->elements_w();
   #pragma omp parallel for schedule(static)
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
@@ -142,39 +167,57 @@ void IntColumn<T>::cast_into(BoolColumn* target) const {
 
 template <typename T>
 void IntColumn<T>::cast_into(IntColumn<int8_t>* target) const {
-  cast_helper<T, int8_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int8_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(IntColumn<int16_t>* target) const {
-  cast_helper<T, int16_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int16_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(IntColumn<int32_t>* target) const {
-  cast_helper<T, int32_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int32_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(IntColumn<int64_t>* target) const {
-  cast_helper<T, int64_t>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, int64_t>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(RealColumn<float>* target) const {
-  cast_helper<T, float>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, float>(this->nrows, this->elements_r(), target->elements_w());
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(RealColumn<double>* target) const {
-  cast_helper<T, double>(this->nrows, this->elements(), target->elements());
+  cast_helper<T, double>(this->nrows, this->elements_r(), target->elements_w());
+}
+
+template <typename T>
+void IntColumn<T>::cast_into(StringColumn<int32_t>* target) const {
+  int32_t* offsets = target->offsets_w();
+  MemoryRange strbuf = cast_str_helper<T, int32_t>(
+      this->nrows, this->elements_r(), offsets
+  );
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
+}
+
+template <typename T>
+void IntColumn<T>::cast_into(StringColumn<int64_t>* target) const {
+  int64_t* offsets = target->offsets_w();
+  MemoryRange strbuf = cast_str_helper<T, int64_t>(
+      this->nrows, this->elements_r(), offsets
+  );
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 template <typename T>
 void IntColumn<T>::cast_into(PyObjectColumn* target) const {
   constexpr T na_src = GETNA<T>();
-  T* src_data = this->elements();
-  PyObject** trg_data = target->elements();
+  const T* src_data = this->elements_r();
+  PyObject** trg_data = target->elements_w();
   for (int64_t i = 0; i < this->nrows; ++i) {
     T x = src_data[i];
     // PyLong_FromInt64 is declared in "py_types.h" as an alias for either
@@ -187,22 +230,22 @@ void IntColumn<T>::cast_into(PyObjectColumn* target) const {
 
 template <>
 void IntColumn<int8_t>::cast_into(IntColumn<int8_t>* target) const {
-  memcpy(target->data(), this->data(), alloc_size());
+  std::memcpy(target->data_w(), this->data(), alloc_size());
 }
 
 template <>
 void IntColumn<int16_t>::cast_into(IntColumn<int16_t>* target) const {
-  memcpy(target->data(), this->data(), alloc_size());
+  std::memcpy(target->data_w(), this->data(), alloc_size());
 }
 
 template <>
 void IntColumn<int32_t>::cast_into(IntColumn<int32_t>* target) const {
-  memcpy(target->data(), this->data(), alloc_size());
+  std::memcpy(target->data_w(), this->data(), alloc_size());
 }
 
 template <>
 void IntColumn<int64_t>::cast_into(IntColumn<int64_t>* target) const {
-  memcpy(target->data(), this->data(), alloc_size());
+  std::memcpy(target->data_w(), this->data(), alloc_size());
 }
 
 

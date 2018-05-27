@@ -81,6 +81,7 @@ void GroupGatherer::from_chunks(radix_range* rrmap, size_t nradixes) {
     dest_off += grp_size;
   }
   count = static_cast<int32_t>(dest_off);
+  xassert(count > 0);
   cumsize = groups[count - 1];
 }
 
@@ -107,3 +108,4 @@ template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint8_t*, const int32_t*, int32_t, int32_t*, size_t);
+template void GroupGatherer::from_data(const uint8_t*, const int64_t*, int64_t, int32_t*, size_t);

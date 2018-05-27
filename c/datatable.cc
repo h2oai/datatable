@@ -63,7 +63,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
       ++j;
     }
   }
-  columns[j] = NULL;
+  columns[j] = nullptr;
   // This may not be the same as `j` if there were repeating columns
   ncols = j;
   columns = static_cast<Column**>(realloc(columns, sizeof(Column*) * (size_t) (j + 1)));
@@ -72,11 +72,33 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 
 
 
+void DataTable::resize_rows(int64_t new_nrows) {
+  if (rowindex) {
+    if (new_nrows < nrows) {
+      rowindex.shrink(new_nrows, ncols);
+      replace_rowindex(rowindex);
+      return;
+    }
+    if (new_nrows > nrows) {
+      reify();
+      // fall-through
+    }
+  }
+  if (new_nrows != nrows) {
+    for (int64_t i = 0; i < ncols; ++i) {
+      columns[i]->resize_and_fill(new_nrows);
+    }
+    nrows = new_nrows;
+  }
+}
+
+
+
 void DataTable::replace_rowindex(const RowIndex& newri) {
   if (newri.isabsent() && rowindex.isabsent()) return;
   rowindex = newri;
   nrows = rowindex.length();
-  for (int i = 0; i < ncols; ++i) {
+  for (int64_t i = 0; i < ncols; ++i) {
     columns[i]->replace_rowindex(rowindex);
   }
 }
@@ -253,7 +275,7 @@ bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
     col->verify_integrity(icc, col_name);
   }
 
-  if (columns[ncols] != NULL) {
+  if (columns[ncols] != nullptr) {
     // Memory was allocated for `ncols+1` columns, but the last element
     // was not set to NULL.
     // Note that if `cols` array was under-allocated and `malloc_size`

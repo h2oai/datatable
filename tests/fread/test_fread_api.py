@@ -11,7 +11,7 @@
 import pytest
 import datatable as dt
 import os
-from datatable import ltype
+from datatable import ltype, stype
 
 
 
@@ -77,8 +77,7 @@ def test_fread_from_anysource_as_text1(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     assert d0.internal.check()
-    assert ("Character 1 in the input is '\\n', treating input as raw text"
-            in out)
+    assert "Input contains '\\x0A', treating it as raw text" in out
 
 
 def test_fread_from_anysource_as_text2(capsys):
@@ -87,8 +86,8 @@ def test_fread_from_anysource_as_text2(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     assert d0.internal.check()
-    assert ("Source has length %d characters, and will be treated as "
-            "raw text" % len(src)) in out
+    assert ("Input has length %d characters, treating it as raw text"
+            % len(src)) in out
 
 
 def test_fread_from_anysource_as_text3(capsys):
@@ -97,8 +96,7 @@ def test_fread_from_anysource_as_text3(capsys):
     out, err = capsys.readouterr()
     assert d0.internal.check()
     assert d0.topython() == [[1, 5], [2, 4], [3, 3]]
-    assert ("Character 5 in the input is '\\n', treating input as raw text"
-            in out)
+    assert "Input contains '\\x0A', treating it as raw text" in out
 
 
 def test_fread_from_anysource_as_file1(tempfile, capsys):
@@ -212,6 +210,21 @@ def test_fread_gz_file(tempfile, capsys):
     os.unlink(gzfile)
 
 
+def test_fread_bz2_file(tempfile, capsys):
+    import bz2
+    bzfile = tempfile + ".bz2"
+    with bz2.open(bzfile, "wb") as f:
+        f.write(b"A\n11\n22\n33\n")
+    try:
+        d0 = dt.fread(bzfile, verbose=True)
+        out, err = capsys.readouterr()
+        assert d0.internal.check()
+        assert d0.topython() == [[11, 22, 33]]
+        assert ("Extracting %s into memory" % bzfile) in out
+    finally:
+        os.remove(bzfile)
+
+
 def test_fread_zip_file_1(tempfile, capsys):
     import zipfile
     zfname = tempfile + ".zip"
@@ -319,6 +332,39 @@ def test_fread_bad_source_cmd():
     assert "Invalid parameter `cmd` in fread: expected str" in str(e)
 
 
+def test_fread_from_glob(tempfile):
+    base, ext = os.path.splitext(tempfile)
+    if not ext:
+        ext = ".csv"
+    pattern = base + "*" + ext
+    tempfiles = ["".join([base, str(i), ext]) for i in range(10)]
+    try:
+        for j in range(10):
+            with open(tempfiles[j], "w") as f:
+                f.write("A,B,C\n0,0,0\n%d,%d,%d\n"
+                        % (j, j * 2 + 1, (j + 3) * 17 % 23))
+        res = dt.fread(pattern)
+        assert len(res) == 10
+        assert set(res.keys()) == set(tempfiles)
+        assert all(isinstance(f, dt.Frame) for f in res.values())
+        assert all(f.internal.check() for f in res.values())
+        assert all(f.names == ("A", "B", "C") for f in res.values())
+        assert all(f.shape == (2, 3) for f in res.values())
+        df = dt.Frame().rbind(*[res[f] for f in tempfiles])
+        assert df.internal.check()
+        assert df.names == ("A", "B", "C")
+        assert df.shape == (20, 3)
+        assert df.topython() == [
+            [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9],
+            [0, 1, 0, 3, 0, 5, 0, 7, 0, 9, 0, 11, 0, 13, 0, 15, 0, 17, 0, 19],
+            [0, 5, 0, 22, 0, 16, 0, 10, 0, 4, 0, 21, 0, 15, 0, 9, 0, 3, 0, 20]
+        ]
+    finally:
+        for f in tempfiles:
+            os.remove(f)
+
+
+
 
 #-------------------------------------------------------------------------------
 # `columns`
@@ -369,6 +415,15 @@ def test_fread_columns_list3():
     assert d0.internal.check()
     assert d0.names == ("foo", )
     assert d0.topython() == [["1"]]
+
+
+def test_fread_list_of_types():
+    d0 = dt.fread(text="A,B,C\n1,2,3",
+                  columns=(stype.int32, stype.float64, stype.str32))
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.stypes == (stype.int32, stype.float64, stype.str32)
+    assert d0.topython() == [[1], [2.0], ["3"]]
 
 
 def test_fread_columns_list_bad1():
@@ -430,7 +485,7 @@ def test_fread_columns_dict2():
 
 def test_fread_columns_dict3():
     d0 = dt.fread(text="A,B,C\n1,2,3",
-                  columns={"A": ("foo", float), "B": (..., str), "C": None})
+                  columns={"A": ("foo", float), "B": str, "C": None})
     assert d0.names == ("foo", "B")
     assert d0.ltypes == (ltype.real, ltype.str)
     assert d0.topython() == [[1.0], ["2"]]
@@ -439,16 +494,17 @@ def test_fread_columns_dict3():
 def test_fread_columns_fn1():
     text = ("A1,A2,A3,A4,A5,x16,b333\n"
             "5,4,3,2,1,0,0\n")
-    d0 = dt.fread(text=text, columns=lambda col: int(col[1:]) % 2 == 0)
+    d0 = dt.fread(text=text, columns=lambda cols: [int(col.name[1:]) % 2 == 0
+                                                   for col in cols])
     assert d0.internal.check()
     assert d0.names == ("A2", "A4", "x16")
     assert d0.topython() == [[4], [2], [0]]
 
 
 def test_fread_columns_fn3():
-    d0 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, int))
-    d1 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, float))
-    d2 = dt.fread('A,B\n"1","2"', columns=lambda i, name, type: (name, str))
+    d0 = dt.fread('A,B\n"1","2"', columns=lambda cols: [int] * len(cols))
+    d1 = dt.fread('A,B\n"1","2"', columns=lambda cols: [float] * len(cols))
+    d2 = dt.fread('A,B\n"1","2"', columns=lambda cols: [str] * len(cols))
     assert d0.internal.check()
     assert d1.internal.check()
     assert d2.internal.check()
@@ -493,6 +549,18 @@ def test_sep_newline():
     assert d0.topython() == d1.topython() == [["1,2;3 ,5"]]
 
 
+@pytest.mark.parametrize("sep", [None, ";", ",", "|", "\n", "*"])
+def test_sep_selection(sep):
+    src = "A;B;C|D,E\n1;3;4|5,6\n2;4;6|8,10\n"
+    d0 = dt.fread(src, sep=sep)
+    # It is not clear whether ';' should be the winning sep here. Comma (',') is
+    # also a viable choice, since it has higher preference over ';'
+    if sep is None:
+        sep = ";"
+    assert d0.internal.check()
+    assert d0.names == tuple("A;B;C|D,E".split(sep))
+
+
 def test_sep_invalid():
     with pytest.raises(TypeError) as e:
         dt.fread("A,,B\n", sep=12)
@@ -524,6 +592,7 @@ def test_fread_skip_blank_lines_true():
     assert d0.topython() == [[1, 3], [2, 4]]
 
 
+@pytest.mark.xfail()
 def test_fread_skip_blank_lines_false():
     inp = "A,B\n1,2\n  \n\n3,4\n"
     with pytest.warns(UserWarning) as ws:
@@ -780,3 +849,45 @@ def test_nastrings_invalid(na):
     with pytest.raises(Exception) as e:
         dt.fread("A\n1", na_strings=[na])
     assert "has whitespace or control characters" in str(e)
+
+
+
+#-------------------------------------------------------------------------------
+# `anonymize`
+#-------------------------------------------------------------------------------
+
+def test_anonymize1(capsys):
+    try:
+        src = ("Якби ви знали, паничі,\n"
+               "Де люде плачуть живучи,\n"
+               "То ви б елегій не творили\n"
+               "Та марне бога б не хвалили,\n"
+               "На наші сльози сміючись.\n")
+        d0 = dt.fread(src, sep="", verbose=True)
+        out, err = capsys.readouterr()
+        assert "На наші сльози сміючись." in out
+        dt.options.fread.anonymize = True
+        d1 = dt.fread(src, sep="", verbose=True)
+        out, err = capsys.readouterr()
+        assert "На наші сльози сміючись." not in out
+        assert "UU UUUU UUUUUU UUUUUUUU." in out
+    finally:
+        dt.options.fread.anonymize = False
+
+
+def test_anonymize2(capsys):
+    try:
+        lines = ["secret code"] + [str(j) for j in range(10000)]
+        lines[111] = "boo"
+        src = "\n".join(lines)
+        d0 = dt.fread(src, verbose=True)
+        out, err = capsys.readouterr()
+        assert "secret code" in out
+        assert "Column 1 (secret code)" in out
+        dt.options.fread.anonymize = True
+        d0 = dt.fread(src, verbose=True)
+        out, err = capsys.readouterr()
+        assert "Column 1 (secret code)" not in out
+        assert "Column 1 (aaaaaa aaaa)" in out
+    finally:
+        dt.options.fread.anonymize = False

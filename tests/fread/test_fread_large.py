@@ -10,8 +10,9 @@
 #-------------------------------------------------------------------------------
 import os
 import pytest
-import datatable
+import datatable as dt
 import zipfile
+from tests import find_file
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -35,7 +36,7 @@ def failed(reason, id=None):
 # Function returns a collection of FUNCTIONS. Each function returns a
 # unique file path str (or calls pytest.fail).
 # This prevents pytest from completely aborting if a failure occurs here.
-def get_file_list(*path):
+def get_file_list(*path, skip=None):
     if os.environ.get(env_coverage, None):
         return [skipped("Large tests disabled in COVERAGE mode")]
     d = os.environ.get(root_env_name, "")
@@ -50,6 +51,10 @@ def get_file_list(*path):
     good_extensions = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv",
                        ".psv", ".scsv", ".hive"]
     bad_extensions = {".gif", ".jpg", ".jpeg", ".pdf", ".svg"}
+    if skip:
+        rem = set(os.path.join(rootdir, f) for f in skip)
+    else:
+        rem = set()
     out = set()
     for dirname, subdirs, files in os.walk(rootdir):
         for filename in files:
@@ -59,6 +64,8 @@ def get_file_list(*path):
             except ValueError:
                 ext = ""
             if ext in bad_extensions:
+                continue
+            if f in rem:
                 continue
             if f.endswith(".dat.gz"):
                 continue
@@ -70,10 +77,18 @@ def get_file_list(*path):
                     continue
                 if f + ".zip" in out:
                     out.remove(f + ".zip")
-                out.add(param(f))
+                if f + ".gz" in out:
+                    out.remove(f + ".gz")
+                try:
+                    open(f, "rb")
+                    out.add(param(f))
+                except Exception as e:
+                    out.add(skipped("%s: '%s'" % (e.__class__.__name__, f), id=f))
             else:
                 out.add(skipped("Invalid file: '%s'" % f, id=f))
     return out
+
+
 
 # Fixture hack. Pair with the return values of get_file_list()
 @pytest.fixture()
@@ -90,7 +105,7 @@ def f(request):
                          indirect=True)
 def test_h2oai_benchmarks(f):
     try:
-        d = datatable.fread(f)
+        d = dt.fread(f)
         assert d.internal.check()
     except zipfile.BadZipFile:
         pytest.skip("Bad zip file error")
@@ -125,7 +140,7 @@ def test_h2o3_smalldata(f):
         params = {}
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
-        d0 = datatable.fread(f, **params)
+        d0 = dt.fread(f, **params)
         assert d0.internal.check()
 
 
@@ -148,6 +163,14 @@ def test_h2o3_bigdata(f):
         os.path.join("jira", "re0.wc.arff.txt.zip"),
         os.path.join("jira", "rotterdam.csv.zip"),
         os.path.join("parser", "hexdev_497", "milsongs_csv.zip"),
+        # requires `comment` parameter
+        os.path.join("new-poker-hand.full.311M.txt"),
+        # files with 36M columns
+        os.path.join("testng", "newsgroup_train1.csv"),
+        os.path.join("testng", "newsgroup_validation1.csv"),
+        # broken CRC zip files
+        os.path.join("jira", "tenThousandCat50C.csv.zip"),
+        os.path.join("jira", "tenThousandCat100C.csv.zip"),
     }
     filledna_files = {
         os.path.join("lending-club", "LoanStats3a.csv"),
@@ -165,13 +188,30 @@ def test_h2o3_bigdata(f):
         params = {}
         if any(ff in f for ff in filledna_files):
             params["fill"] = True
-        d0 = datatable.fread(f, **params)
+        d0 = dt.fread(f, **params)
         assert d0.internal.check()
 
 
 
-@pytest.mark.parametrize("f", get_file_list("h2o-3", "fread"),
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "fread", skip={"1206FUT.txt"}),
                          indirect=True)
-def test_h2o3_fread(f):
-    d0 = datatable.fread(f)
+def test_fread_all(f):
+    d0 = dt.fread(f)
     assert d0.internal.check()
+
+
+def test_fread_1206FUT():
+    # Based on R test 901.*
+    f = find_file("h2o-3", "fread", "1206FUT.txt")
+    d0 = dt.fread(f, strip_whitespace=True)
+    d1 = dt.fread(f, strip_whitespace=False)
+    assert d0.internal.check()
+    assert d1.internal.check()
+    assert d0.shape == d1.shape == (308, 21)
+    assert d0.names == d1.names
+    assert d0.stypes == d1.stypes
+    p0 = d0.topython()
+    p1 = d1.topython()
+    assert p0[:-1] == p1[:-1]
+    assert p0[-1] == [""] * 10 + ["A"] * 298
+    assert p1[-1] == [" "] * 10 + ["A"] * 298

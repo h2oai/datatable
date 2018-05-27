@@ -8,6 +8,7 @@
 #include "python/list.h"
 #include "python/long.h"
 #include "python/float.h"
+#include "utils/assert.h"
 #include "utils/exceptions.h"
 
 
@@ -89,6 +90,7 @@ PyyListEntry::PyyListEntry(PyObject* pylist, Py_ssize_t index)
 
 
 PyyListEntry& PyyListEntry::operator=(PyObject* s) {
+  xassert(list);
   PyList_SET_ITEM(list, i, s);
   return *this;
 }
@@ -102,11 +104,17 @@ PyyListEntry& PyyListEntry::operator=(const PyObj& o) {
 
 
 PyObject* PyyListEntry::get() const {
+  xassert(list);
   return PyList_GET_ITEM(list, i);
 }
 
 
-PyyListEntry::operator PyObj() const { return PyObj(get()); }
+PyyListEntry::operator PyObj() const {
+  // Variable `entry` cannot be inlined, otherwise PyObj constructor will
+  // assume that the reference to PyObject* can be stolen.
+  PyObject* entry = get();  // borrowed ref
+  return PyObj(entry);
+}
 PyyListEntry::operator PyyList() const { return PyyList(get()); }
 PyyListEntry::operator PyyLong() const { return PyyLong(get()); }
 PyyListEntry::operator PyyFloat() const { return PyyFloat(get()); }

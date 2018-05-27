@@ -6,31 +6,37 @@
 //  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //------------------------------------------------------------------------------
 
+GENERIC_VERSION_REGEX = /^### \[v(\d+\.)+\d\].*/
+
 def buildAll(stageDir, platform, ciVersionSuffix, py36VenvCmd, py35VenvCmd, extraEnv) {
     dumpInfo()
 
     final def ompLogFile = "stage_build_with_omp_on_${platform}_output.log"
-    final def noompLogFile = "stage_build_with_noomp_on_${platform}_output.log"
 
     sh "mkdir -p ${stageDir}"
 
     // build and archive the omp version for Python 3.6
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'dist', ompLogFile)
     arch "${stageDir}/dist/**/*.whl"
-    // build and archive the noomp version for Python 3.6
-    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv, py36VenvCmd, 'dist_noomp', noompLogFile)
-    arch "${stageDir}/dist/**/*.whl"
 
-    // build and archive the omp version for Python 3.6
+    // build and archive the omp version for Python 3.5
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py35VenvCmd, 'dist', ompLogFile)
-    arch "${stageDir}/dist/**/*.whl"
-    // build and archive the noomp version for Python 3.6
-    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}.noomp"] + extraEnv, py35VenvCmd, 'dist_noomp', noompLogFile)
     arch "${stageDir}/dist/**/*.whl"
 
     // build and stash the version
     buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"] + extraEnv, py36VenvCmd, 'version', 'dist/VERSION.txt')
     stash includes: "${stageDir}/dist/VERSION.txt", name: 'VERSION'
+
+    // Archive logs
+    arch "${stageDir}/stage_build_*.log"
+}
+
+def buildSDist(stageDir, ciVersionSuffix, py36VenvCmd) {
+    final def sDistLogFile = "stage_build_sdist_output.log"
+
+    // build and archive the sdist
+    buildTarget(stageDir, ["CI_VERSION_SUFFIX=${ciVersionSuffix}"], py36VenvCmd, 'sdist', sDistLogFile)
+    arch "${stageDir}/dist/**/*.tar.gz"
 
     // Archive logs
     arch "${stageDir}/stage_build_*.log"
@@ -56,11 +62,16 @@ def coverage(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetData
     }
 
     withEnv(extEnv + extraEnv) {
-        sh """
-            cd ${stageDir}
-            ${venvCmd}
-            make coverage
-        """
+        try {
+            sh """
+                cd ${stageDir}
+                ${venvCmd}
+                make coverage
+            """
+        } finally {
+            // Archive core dump log
+            arch "/tmp/cores/*"
+        }
     }
     testReport "${stageDir}/build/coverage-c", "${platform} coverage report for C"
     testReport "${stageDir}/build/coverage-py", "${platform} coverage report for Python"
@@ -78,11 +89,13 @@ def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir)
                 rm -rf datatable
                 ${venvCmd}
                 pyVersion=\$(python --version 2>&1 | egrep -o '[0-9]\\.[0-9]' | tr -d '.')
-                pip install --no-cache-dir --upgrade `find dist -name "datatable-*cp\${pyVersion}*${getWheelPlatformName(platform)}*" | grep -v noomp`
+                pip install --no-cache-dir --upgrade `find dist -name "datatable-*cp\${pyVersion}*${getWheelPlatformName(platform)}*"`
                 make test MODULE=datatable
             """
         }
     } finally {
+        // Archive core dump log
+        arch "/tmp/cores/*"
         junit testResults: "${stageDir}/build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
@@ -124,6 +137,41 @@ def pullFilesFromArch(final String filter, final String targetDir) {
           target              : "${targetDir}/",
           flatten             : true
     ])
+}
+
+def getChangelogPartForVersion(final version, final changelogPath = 'CHANGELOG.md') {
+    if (version == null || version.trim().isEmpty()) {
+        error 'Version must be set'
+    }
+
+    echo "Reading changelog from ${changelogPath}"
+    def changelogLines = readFile(changelogPath).readLines()
+
+    def startIndex = changelogLines.findIndexOf {
+        it ==~ /^### \[v${version}\].*/
+    }
+    if (startIndex == -1) {
+        error 'Cannot find Changelog for this version'
+    }
+
+    def endIndex = startIndex
+    if ((startIndex + 1) < changelogLines.size() - 1) {
+        endIndex = startIndex + changelogLines[(startIndex + 1)..-1].findIndexOf {
+            it ==~ GENERIC_VERSION_REGEX
+        }
+    }
+
+    return changelogLines[startIndex..endIndex].join('\n').trim()
+}
+
+def getReleaseDownloadLinksText(final folder, final s3PathPrefix) {
+    def files = sh(script: "cd ${folder} && find . \\( -name '*.whl' -o -name '*.tar.gz' \\) -printf '%P\n'", returnStdout: true).trim().readLines()
+    def resultLines = ['## Download links ##', '']
+    files.each { file ->
+        resultLines += "- [${file}](${s3PathPrefix}/${file})"
+    }
+    return resultLines.join('\n').trim()
+
 }
 
 return this

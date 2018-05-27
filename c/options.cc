@@ -23,9 +23,10 @@ size_t sort_max_chunk_length = 1 << 20;
 int8_t sort_max_radix_bits = 16;
 int8_t sort_over_radix_bits = 16;
 int32_t sort_nthreads = 1;
+bool fread_anonymize = false;
 
 
-static int32_t normalize_nthreads(int32_t nth) {
+int32_t normalize_nthreads(int32_t nth) {
   // Initialize `max_threads` only once, on the first run. This is because we
   // use `omp_set_num_threads` below, and once it was used,
   // `omp_get_max_threads` will return that number, and we won't be able to
@@ -88,6 +89,10 @@ void set_sort_nthreads(int32_t n) {
   sort_nthreads = normalize_nthreads(n);
 }
 
+void set_fread_anonymize(int8_t v) {
+  fread_anonymize = v;
+}
+
 
 
 PyObject* set_option(PyObject*, PyObject* args) {
@@ -121,6 +126,9 @@ PyObject* set_option(PyObject*, PyObject* args) {
 
   } else if (name == "core_logger") {
     set_core_logger(value.as_pyobject());
+
+  } else if (name == "fread.anonymize") {
+    set_fread_anonymize(value.as_bool());
 
   } else {
     throw ValueError() << "Unknown option `" << name << "`";

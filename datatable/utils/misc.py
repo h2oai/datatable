@@ -71,7 +71,7 @@ def normalize_slice(e, n):
     :returns: tuple ``(start, count, step)`` derived from ``e``.
     """
     if n == 0:
-        return (0, 0, 0)
+        return (0, 0, 1)
 
     step = e.step
     if step is None or step == 0:

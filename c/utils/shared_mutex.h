@@ -85,26 +85,39 @@ class shared_lock {
     bool exclusive;
     uint64_t : 56;
 
-  private:
-    shared_lock(shared_mutex& m) : mutex(m), exclusive(false) {
-      mutex.lock_shared();
+  public:
+    shared_lock(shared_mutex& m, bool excl = false)
+      : mutex(m), exclusive(excl)
+    {
+      if (exclusive) {
+        mutex.lock();
+      } else {
+        mutex.lock_shared();
+      }
     }
 
     ~shared_lock() {
-      if (exclusive) mutex.unlock();
-      else mutex.unlock_shared();
+      if (exclusive) {
+        mutex.unlock();
+      } else {
+        mutex.unlock_shared();
+      }
     }
 
     void exclusive_start() {
-      mutex.unlock_shared();
-      mutex.lock();
-      exclusive = true;
+      if (!exclusive) {
+        mutex.unlock_shared();
+        mutex.lock();
+        exclusive = true;
+      }
     }
 
     void exclusive_end() {
-      mutex.unlock();
-      mutex.lock_shared();
-      exclusive = false;
+      if (exclusive) {
+        mutex.unlock();
+        mutex.lock_shared();
+        exclusive = false;
+      }
     }
 };
 

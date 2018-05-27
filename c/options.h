@@ -20,7 +20,9 @@ extern size_t sort_max_chunk_length;
 extern int8_t sort_max_radix_bits;
 extern int8_t sort_over_radix_bits;
 extern int32_t sort_nthreads;
+extern bool fread_anonymize;
 
+int32_t normalize_nthreads(int32_t nth);
 void set_nthreads(int32_t n);
 void set_core_logger(PyObject*);
 void set_sort_insert_method_threshold(int64_t n);
@@ -29,6 +31,7 @@ void set_sort_max_chunk_length(int64_t n);
 void set_sort_max_radix_bits(int64_t n);
 void set_sort_over_radix_bits(int64_t n);
 void set_sort_nthreads(int32_t n);
+void set_fread_anonymize(int8_t v);
 
 
 DECLARE_FUNCTION(

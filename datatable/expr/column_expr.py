@@ -48,8 +48,11 @@ class ColSelectorExpr(BaseExpr):
         # The only reason we don't always use the latter form is to improve
         # code readability during debugging.
         #
-        colname = self._dtexpr.names[self._colid]
-        if len(colname) > 12 or not colname.isalnum() or colname.isdigit():
+        if self._dtexpr.get_datatable():
+            colname = self._dtexpr.names[self._colid]
+            if len(colname) > 12 or not colname.isalnum() or colname.isdigit():
+                colname = str(self._colid)
+        else:
             colname = str(self._colid)
         return str(self._dtexpr) + "_" + colname
 
@@ -111,3 +114,18 @@ class ColSelectorExpr(BaseExpr):
         dt = self._dtexpr.get_datatable()
         ri = ee.rowindex
         return core.expr_column(dt.internal, self._colid, ri)
+
+
+
+
+class NewColumnExpr(BaseExpr):
+    __slots__ = ["_name"]
+
+    def __init__(self, name):
+        self._name = name
+
+    def __str__(self):
+        return self._name
+
+    def resolve(self):
+        pass

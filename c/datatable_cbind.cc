@@ -38,7 +38,7 @@ DataTable* DataTable::cbind(DataTable **dts, int ndts)
 
     // Append columns from `dts` into the "main" datatable
     dtrealloc(columns, Column*, t_ncols + 1);
-    columns[t_ncols] = NULL;
+    columns[t_ncols] = nullptr;
     int64_t j = ncols;
     for (int i = 0; i < ndts; ++i) {
         int64_t ncolsi = dts[i]->ncols;

@@ -11,7 +11,7 @@
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
-#include "memorybuf.h"
+#include "memrange.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
 #include "utils.h"
@@ -255,10 +255,10 @@ void* MemoryWritableBuffer::get_cptr()
 }
 
 
-MemoryMemBuf* MemoryWritableBuffer::get_mbuf() {
+MemoryRange MemoryWritableBuffer::get_mbuf() {
   size_t size = allocsize;
   void* ptr = get_cptr();
-  return new MemoryMemBuf(ptr, size);
+  return MemoryRange(size, ptr, /* own = */ true);
 }
 
 
@@ -299,7 +299,7 @@ void MmapWritableBuffer::map(int fd, size_t size) {
     allocsize = 0;
     return;
   }
-  buffer = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  buffer = mmap(nullptr, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
     buffer = nullptr;
     throw RuntimeError() << "Memory map failed for file " << filename

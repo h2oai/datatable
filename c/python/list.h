@@ -33,7 +33,7 @@ class PyyListEntry {
     PyObject* as_new_ref() const;
 
   private:
-    PyObject* get() const;
+    PyObject* get() const;  // returns a borrowed ref
 };
 
 

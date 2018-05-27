@@ -13,10 +13,13 @@
 #include "csv/reader.h"
 #include "csv/reader_parsers.h"
 #include "csv/py_csv.h"
-#include "memorybuf.h"
+#include "memrange.h"
+#include "utils/shared_mutex.h"
 
 class FreadLocalParseContext;
 class FreadChunkedReader;
+class ChunkedDataReader;
+class ColumnTypeDetectionChunkster;
 
 
 //------------------------------------------------------------------------------
@@ -29,6 +32,7 @@ class FreadChunkedReader;
  */
 class FreadObserver {
   public:
+    const GenericReader& g;
     double t_start;
     double t_initialized;
     double t_parse_parameters_detected;
@@ -47,16 +51,17 @@ class FreadObserver {
     size_t n_cols_reread;
     size_t allocation_size;
     size_t read_data_nthreads;
-    std::vector<std::string> type_bump_messages;
+    std::vector<std::string> messages;
 
   public:
-    FreadObserver();
+    FreadObserver(const GenericReader&);
     ~FreadObserver();
 
-    void type_bump_info(size_t icol, const GReaderColumn& col, int8_t new_type,
+    void type_bump_info(size_t icol, const GReaderColumn& col, PT new_type,
                         const char* field, int64_t len, int64_t lineno);
+    void str64_bump(size_t icol, const GReaderColumn& col);
 
-    void report(const GenericReader&);
+    void report();
 };
 
 
@@ -80,13 +85,13 @@ class FreadReader : public GenericReader
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
   ParserLibrary parserlib;
-  GReaderColumns columns;
+  const ParserFnPtr* parsers;
   FreadObserver fo;
   char* targetdir;
-  const char* sof;
-  const char* eof;
   size_t allocnrow;
   double meanLineLen;
+  size_t first_jump_size;
+  size_t n_sample_lines;
 
   //----- Parse parameters -----------------------------------------------------
   // quoteRule:
@@ -110,13 +115,12 @@ class FreadReader : public GenericReader
   int64_t : 40;
 
 public:
-  FreadReader(const GenericReader&);
+  explicit FreadReader(const GenericReader&);
   ~FreadReader();
 
   DataTablePtr read();
 
   // Simple getters
-  int get_nthreads() const { return nthreads; }
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return columns.size(); }
 
@@ -125,12 +129,17 @@ public:
 private:
   void parse_column_names(FreadTokenizer& ctx);
   void detect_sep(FreadTokenizer& ctx);
-  void userOverride();
-  void progress(double progress, int status = 0);
-  DataTablePtr makeDatatable();
+
+  void detect_lf();
+  void skip_preamble();
+  void detect_column_types();
+  void detect_header();
+  int64_t parse_single_line(FreadTokenizer&);
 
   friend FreadLocalParseContext;
   friend FreadChunkedReader;
+  friend ChunkedDataReader;
+  friend ColumnTypeDetectionChunkster;
 };
 
 
@@ -156,28 +165,67 @@ class FreadLocalParseContext : public LocalParseContext
     bool skipEmptyLines;
     bool numbersMayBeNAs;
     int64_t : 48;
-    size_t n_type_bumps;
     double ttime_push;
     double ttime_read;
-    int8_t* types;
+    PT* types;
 
     FreadReader& freader;
     GReaderColumns& columns;
+    dt::shared_mutex& shmutex;
     std::vector<StrBuf> strbufs;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 
   public:
-    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, int8_t*);
+    FreadLocalParseContext(size_t bcols, size_t brows, FreadReader&, PT* types,
+                           dt::shared_mutex&);
     FreadLocalParseContext(const FreadLocalParseContext&) = delete;
     FreadLocalParseContext& operator=(const FreadLocalParseContext&) = delete;
-    virtual ~FreadLocalParseContext();
+    virtual ~FreadLocalParseContext() override;
+
     virtual void push_buffers() override;
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();
     void orderBuffer() override;
 };
 
+
+
+
+
+class FreadChunkedReader : public ChunkedDataReader {
+  private:
+    FreadReader& f;
+    PT* types;
+
+  public:
+    FreadChunkedReader(FreadReader& reader, PT* types_)
+      : ChunkedDataReader(reader, reader.get_mean_line_len()), f(reader)
+    {
+      types = types_;
+    }
+    virtual ~FreadChunkedReader() override {}
+
+    virtual void read_all() override {
+      ChunkedDataReader::read_all();
+      f.fo.read_data_nthreads = static_cast<size_t>(nthreads);
+    }
+
+    bool next_good_line_start(
+      const ChunkCoordinates& cc, FreadTokenizer& tokenizer) const;
+
+  protected:
+    virtual std::unique_ptr<LocalParseContext> init_thread_context() override {
+      size_t trows = std::max<size_t>(nrows_allocated / chunkCount, 4);
+      size_t tcols = f.columns.nColumnsInBuffer();
+      return std::unique_ptr<LocalParseContext>(
+                new FreadLocalParseContext(tcols, trows, f, types, shmutex));
+    }
+
+    void adjust_chunk_coordinates(
+      ChunkCoordinates& cc, LocalParseContext* ctx) const override;
+
+};
 
 
 

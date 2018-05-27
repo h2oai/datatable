@@ -7,18 +7,22 @@
 import datatable
 from .rows_node import AllRFNode, SortedRFNode
 from .cols_node import SliceCSNode, ArrayCSNode
-from .sort_node import SortNode
-from .groupby_node import make_groupby
 from .context import make_engine
+from .groupby_node import make_groupby
+from .sort_node import make_sort
 from .dtproxy import f
 from datatable.utils.typechecks import TValueError
 
-__all__ = ("make_datatable", "resolve_selector")
+__all__ = ("make_datatable",
+           "make_groupby",
+           "make_sort",
+           "resolve_selector",
+           "SliceCSNode")
 
 
 
 def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
-                   mode=None):
+                   mode=None, replacement=None):
     """
     Implementation of the `Frame.__call__()` method.
 
@@ -26,12 +30,15 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
     evaluating various transformations when they are applied to a target
     Frame.
     """
+    update_mode = mode == "update"
+    delete_mode = mode == "delete"
     with f.bind_datatable(dt):
         ee = make_engine(engine, dt)
         ee.rowindex = dt.internal.rowindex
         rowsnode = ee.make_rowfilter(rows)
         grbynode = ee.make_groupby(groupby)
-        colsnode = ee.make_columnset(select)
+        colsnode = ee.make_columnset(select,
+                                     new_cols_allowed=update_mode)
         sortnode = ee.make_sort(sort)
 
         if sortnode:
@@ -42,28 +49,45 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
                     "Cannot yet apply sort argument to a view datatable or "
                     "combine with rows / groupby argument.")
 
-        if mode == "delete":
+        if delete_mode or update_mode:
             assert grbynode is None
             allcols = isinstance(colsnode, SliceCSNode) and colsnode.is_all()
             allrows = isinstance(rowsnode, AllRFNode)
-            if allrows:
-                if allcols:
-                    dt._fill_from_dt(dt.__class__().internal)
+            if delete_mode:
+                if allrows:
+                    if allcols:
+                        dt.__init__(None)
+                        return
+                    if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
+                        colslist = sorted(set(colsnode.get_list()))
+                        dt._delete_columns(colslist)
+                        return
+                    raise TValueError("Cannot delete non-existing columns")
+                elif allcols:
+                    rowsnode.negate()
+                    rowsnode.execute()
+                    dt.internal.replace_rowindex(ee.rowindex)
+                    dt._nrows = dt.internal.nrows
                     return
-                if isinstance(colsnode, (SliceCSNode, ArrayCSNode)):
-                    colslist = sorted(set(colsnode.get_list()))
-                    dt._delete_columns(colslist)
-                    return
-                raise TValueError("Cannot delete non-existing columns")
-            elif allcols:
-                rowsnode.negate()
+                else:
+                    update_mode = True
+                    replacement = None
+                    # fall-through to the update_mode
+            if update_mode:
+                # Without `materialize`, when an update is applied to a view,
+                # `rowsnode.execute()` will merge the rowindex implied by
+                # `rowsnode` with its parent's rowindex. This will cause the
+                # parent's data to be updated, which is wrong.
+                dt.materialize()
+                if isinstance(replacement, (int, float, str, type(None))):
+                    replacement = datatable.Frame([replacement])
+                    if allrows:
+                        replacement.resize(dt.nrows)
+                elif not isinstance(replacement, datatable.Frame):
+                    replacement = datatable.Frame(replacement)
                 rowsnode.execute()
-                dt.internal.replace_rowindex(ee.rowindex)
-                dt._nrows = dt.internal.nrows
+                colsnode.execute_update(dt, replacement)
                 return
-            else:
-                raise NotImplementedError("Deleting rows + columns from a Frame"
-                                          " is not supported yet")
 
         rowsnode.execute()
         if grbynode:

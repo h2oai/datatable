@@ -12,15 +12,105 @@
 #include <memory>         // std::unique_ptr
 #include <string>         // std::string
 #include <vector>         // std::vector
-#include "csv/chunks.h"
 #include "column.h"       // Column
 #include "datatable.h"    // DataTable
-#include "memorybuf.h"    // MemoryBuffer
+#include "memrange.h"     // MemoryRange
 #include "writebuf.h"     // WritableBuffer
 #include "utils/pyobj.h"
+#include "utils/shared_mutex.h"
+
+enum PT : uint8_t;
+enum RT : uint8_t;
+class GenericReader;
+
+
+//------------------------------------------------------------------------------
+// GReaderColumn
+//------------------------------------------------------------------------------
+
+/**
+ * Information about a single input column in a GenericReader. An "input column"
+ * means a collection of fields at the same index on every line in the input.
+ * All these fields are assumed to have a common underlying type.
+ *
+ * An input column usually translates into an output column in a DataTable
+ * returned to the user. The exception to this are "dropped" columns. They are
+ * marked with `presentInOutput = false` flag (and have rtype RT::RDrop).
+ *
+ * Implemented in "csv/reader_utils.cc".
+ */
+class GReaderColumn {
+  private:
+    MemoryRange mbuf;
+    static PyTypeObject* NameTypePyTuple;
+
+  public:
+    std::string name;
+    MemoryWritableBuffer* strdata;
+    PT type;
+    RT rtype;
+    bool typeBumped;
+    bool presentInOutput;
+    bool presentInBuffer;
+    int32_t : 24;
+
+  public:
+    GReaderColumn();
+    GReaderColumn(const GReaderColumn&) = delete;
+    GReaderColumn(GReaderColumn&&);
+    virtual ~GReaderColumn();
+    const char* typeName() const;
+    const std::string& get_name() const;
+    const char* repr_name(const GenericReader& g) const;
+    size_t elemsize() const;
+    size_t getAllocSize() const;
+    bool isstring() const;
+    const void* data_r() const { return mbuf.rptr(); }
+    void* data_w() { return mbuf.wptr(); }
+    void allocate(size_t nrows);
+    MemoryRange extract_databuf();
+    MemoryRange extract_strbuf();
+    void convert_to_str64();
+    PyObj py_descriptor() const;
+    static void init_nametypepytuple();
+};
 
 
 
+
+//------------------------------------------------------------------------------
+// GReaderColumns
+//------------------------------------------------------------------------------
+
+class GReaderColumns : public std::vector<GReaderColumn> {
+  private:
+    size_t allocnrows;
+
+  public:
+    GReaderColumns() noexcept;
+
+    std::unique_ptr<PT[]> getTypes() const;
+    void saveTypes(std::unique_ptr<PT[]>& types) const;
+    bool sameTypes(std::unique_ptr<PT[]>& types) const;
+    void setTypes(const std::unique_ptr<PT[]>& types);
+    void setType(PT type);
+    const char* printTypes() const;
+
+    size_t nColumnsInOutput() const;
+    size_t nColumnsInBuffer() const;
+    size_t nColumnsToReread() const;
+    size_t nStringColumns() const;
+    size_t totalAllocSize() const;
+
+    size_t get_nrows() const;
+    void set_nrows(size_t nrows);
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// GenericReader (main class)
 //------------------------------------------------------------------------------
 
 /**
@@ -66,7 +156,7 @@ class GenericReader
     char    dec;
     char    quote;
     size_t  max_nrows;
-    int64_t skip_to_line;
+    size_t  skip_to_line;
     int8_t  header;
     bool    strip_whitespace;
     bool    skip_blank_lines;
@@ -74,7 +164,10 @@ class GenericReader
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
-    int : 8;
+    bool    override_column_types;
+    bool    printout_anonymize;
+    bool    printout_escape_unicode;
+    size_t : 48;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -82,6 +175,16 @@ class GenericReader
   // line:
   //   Line number (within the original input) of the `offset` pointer.
   //
+  public:
+    MemoryRange input_mbuf;
+    const char* sof;
+    const char* eof;
+    size_t line;
+    int32_t fileno;
+    bool cr_is_newline;
+    int : 24;
+    GReaderColumns columns;
+
   private:
     PyObj logger;
     PyObj freader;
@@ -91,13 +194,12 @@ class GenericReader
     PyObj skipstring_arg;
     PyObj tempstr;
 
-  protected:
-    MemoryBuffer* mbuf;
-    size_t offset;
-    size_t offend;
-    int64_t line;
-    int32_t fileno;
-    int : 32;
+    // If `trace()` cannot display a message immediately (because it was not
+    // sent from the main thread), it will be temporarily stored in this
+    // variable. Call `emit_delayed_messages()` from the master thread to send
+    // these messages to the frontend.
+    mutable std::string delayed_message;
+    // std::string delayed_warning;
 
   //---- Public API ----
   public:
@@ -117,7 +219,7 @@ class GenericReader
      *
      * is guaranteed to be readable, provided the region is not empty.
      */
-    const char* dataptr() const;
+    const char* dataptr() const { return sof; }
     size_t datasize() const;
 
     /**
@@ -134,6 +236,11 @@ class GenericReader
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;
+    void progress(double progress, int status = 0);
+    void emit_delayed_messages();
+
+    const char* repr_source(const char* ch, size_t limit) const;
+    const char* repr_binary(const char* ch, const char* end, size_t limit) const;
 
   // Helper functions
   private:
@@ -151,7 +258,9 @@ class GenericReader
     void init_skipstring();
     void init_stripwhite();
     void init_skipblanklines();
+    void init_overridecolumntypes();
 
+  protected:
     void open_input();
     void detect_and_skip_bom();
     void skip_initial_whitespace();
@@ -159,6 +268,7 @@ class GenericReader
     void skip_to_line_number();
     void skip_to_line_with_string();
     void decode_utf16();
+    void report_columns_to_python();
 
     void _message(const char* method, const char* format, va_list args) const;
 
@@ -168,6 +278,7 @@ class GenericReader
   //---- Inherited API ----
   protected:
     GenericReader(const GenericReader&);
+    DataTablePtr makeDatatable();
 };
 
 
@@ -235,6 +346,40 @@ union field64 {
 
 
 //------------------------------------------------------------------------------
+// ChunkCoordinates struct
+//------------------------------------------------------------------------------
+
+/**
+ * Helper struct containing the beginning / end for a chunk.
+ *
+ * Additional flags `true_start` and `true_end` indicate whether the beginning /
+ * end of the chunk are known with certainty or guessed.
+ */
+struct ChunkCoordinates {
+  const char* start;
+  const char* end;
+  bool true_start;
+  bool true_end;
+  size_t : 48;
+
+  ChunkCoordinates()
+    : start(nullptr), end(nullptr), true_start(false), true_end(false) {}
+  ChunkCoordinates(const char* s, const char* e)
+    : start(s), end(e), true_start(false), true_end(false) {}
+  ChunkCoordinates& operator=(const ChunkCoordinates& cc) {
+    start = cc.start;
+    end = cc.end;
+    true_start = cc.true_start;
+    true_end = cc.true_end;
+    return *this;
+  }
+
+  operator bool() const { return end == nullptr; }
+};
+
+
+
+//------------------------------------------------------------------------------
 // LocalParseContext
 //------------------------------------------------------------------------------
 
@@ -281,112 +426,115 @@ typedef std::unique_ptr<LocalParseContext> LocalParseContextPtr;
 
 
 
-//------------------------------------------------------------------------------
-// GReaderColumn
-//------------------------------------------------------------------------------
-
-/**
- * Information about a single input column in a GenericReader. An "input column"
- * means a collection of fields at the same index on every line in the input.
- * All these fields are assumed to have a common underlying type.
- *
- * An input column usually translates into an output column in a DataTable
- * returned to the user. The exception to this are "dropped" columns. They are
- * marked with `presentInOutput = false` flag (and have type PT::Drop).
- *
- * Implemented in "csv/reader_utils.cc".
- */
-class GReaderColumn {
-  private:
-    MemoryBuffer* mbuf;
-
-  public:
-    std::string name;
-    MemoryWritableBuffer* strdata;
-    int8_t type;
-    bool typeBumped;
-    bool presentInOutput;
-    bool presentInBuffer;
-    int32_t : 32;
-
-  public:
-    GReaderColumn();
-    GReaderColumn(const GReaderColumn&) = delete;
-    GReaderColumn(GReaderColumn&&);
-    virtual ~GReaderColumn();
-    const char* typeName() const;
-    size_t elemsize() const;
-    size_t getAllocSize() const;
-    bool isstring() const;
-    void* data() const { return mbuf->get(); }
-    void allocate(size_t nrows);
-    MemoryBuffer* extract_databuf();
-    MemoryBuffer* extract_strbuf();
-};
-
-
-
-//------------------------------------------------------------------------------
-// GReaderColumns
-//------------------------------------------------------------------------------
-
-class GReaderColumns : public std::vector<GReaderColumn> {
-  private:
-    size_t allocnrows;
-
-  public:
-    GReaderColumns() noexcept;
-    void allocate(size_t nrows);
-    std::unique_ptr<int8_t[]> getTypes() const;
-    void setType(int8_t type);
-    const char* printTypes() const;
-    size_t nOutputs() const;
-    size_t nStringColumns() const;
-    size_t totalAllocSize() const;
-    size_t nrows() const { return allocnrows; }
-};
-
-
 
 //------------------------------------------------------------------------------
 // ChunkedDataReader
 //------------------------------------------------------------------------------
 
-class ChunkedDataReader
-{
-  private:
-    // the data is read from here:
-    const char* inputptr;
-    size_t inputsize;
-    int64_t inputline;
+/**
+ * This class' responsibility is to execute parallel reading of its input,
+ * ensuring that the data integrity is maintained.
+ */
+class ChunkedDataReader {
+  protected:
+    size_t chunkSize;
+    size_t chunkCount;
+    const char* inputStart;
+    const char* inputEnd;
+    const char* lastChunkEnd;
+    double lineLength;
 
-    // and saved into here, via the intermediate buffers TLocalParseContext, that
-    // are instantiated within the read_all() method:
-    std::vector<GReaderColumn> cols;
-
-    // Additional parameters
-    size_t max_nrows;
-    size_t alloc_nrows;
-
-    // Runtime parameters:
-    size_t chunksize;
-    size_t nchunks;
+  protected:
+    GenericReader& g;
+    dt::shared_mutex shmutex;
+    size_t nrows_max;
+    size_t nrows_allocated;
+    size_t nrows_written;
     int nthreads;
-    bool chunks_contiguous;
-    int : 24;
+    int : 32;
 
-public:
-  ChunkedDataReader();
-  virtual ~ChunkedDataReader();
-  void set_input(const char* ptr, size_t size, int64_t line);
+  public:
+    ChunkedDataReader(GenericReader& reader, double len);
+    ChunkedDataReader(const ChunkedDataReader&) = delete;
+    ChunkedDataReader& operator=(const ChunkedDataReader&) = delete;
+    virtual ~ChunkedDataReader() {}
 
-  virtual LocalParseContextPtr init_thread_context() = 0;
-  virtual void realloc_columns(size_t n) = 0;
-  virtual void compute_chunking_strategy();
-  virtual void adjust_chunk_boundaries(
-      const char*& start, const char*& end, size_t ichunk) = 0;
-  void read_all();
+    /**
+     * Main function that reads all data from the input.
+     */
+    virtual void read_all();
+
+
+  protected:
+    /**
+     * Determine coordinates (start and end) of the `i`-th chunk. The index `i`
+     * must be in the range [0..chunkCount).
+     *
+     * The optional `LocalParseContext` instance may be needed for some
+     * implementations of `ChunkedDataReader` in order to perform additional
+     * parsing using a thread-local context.
+     *
+     * The method `compute_chunk_boundaries()` may be called in-parallel,
+     * assuming that different invocation receive different `ctx` objects.
+     */
+    ChunkCoordinates compute_chunk_boundaries(
+      size_t i, LocalParseContext* ctx) const;
+
+    /**
+     * This method can be overridden in derived classes in order to implement
+     * more advanced chunk boundaries detection. This method will be called from
+     * within `compute_chunk_boundaries()` only.
+     * This method should modify `cc` by-reference; making sure not to alter
+     * `start` / `end` if the flags `true_start` / `true_end` are set.
+     */
+    virtual void adjust_chunk_coordinates(
+      ChunkCoordinates& cc, LocalParseContext* ctx) const;
+
+    /**
+     * Return an instance of a `LocalParseContext` class. Implementations of
+     * `ChunkedDataReader` are expected to override this method to return
+     * appropriate subclasses of `LocalParseContext`.
+     */
+    virtual LocalParseContextPtr init_thread_context() = 0;
+
+
+  private:
+    void determine_chunking_strategy();
+
+    /**
+     * Return the fraction of the input that was parsed, as a number between
+     * 0 and 1.0.
+     */
+    double work_done_amount() const;
+
+    /**
+     * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
+     * Argument `i` contains the index of the chunk that was read last (this
+     * helps with determining the new number of rows), and `new_allocnrow` is
+     * the minimal number of rows to reallocate to.
+     *
+     * This method is thread-safe.
+     */
+    void realloc_output_columns(size_t i, size_t new_allocnrow);
+
+    /**
+     * Ensure that the chunks were placed properly. This method must be called
+     * from the #ordered section. It takes three arguments: `acc` the *actual*
+     * coordinates of the chunk just read; `xcc` the coordinates that were
+     * *expected*; and `ctx` the thread-local parse context.
+     *
+     * If the chunk was ordered properly (i.e. started reading from the place
+     * were the previous chunk ended), then this method updates the internal
+     * `lastChunkEnd` variable and returns.
+     *
+     * Otherwise, it re-parses the chunk with correct coordinates. When doing
+     * so, it will set `xcc.true_start` to true, thus informing the chunk
+     * parser that the coordinates that it received are true.
+     */
+    void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
+                     LocalParseContextPtr& ctx);
 };
+
 
 
 #endif

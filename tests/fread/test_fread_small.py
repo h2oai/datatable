@@ -240,6 +240,54 @@ def test_int_even_longer():
                              [float(src2)]]
 
 
+def test_int_with_thousand_sep():
+    d0 = dt.fread("A;B;C\n"
+                  "5;100;3,378,149\n"
+                  "0000;1,234;0001,999\n"
+                  "295;500,005;7,134,930\n")
+    assert d0.internal.check()
+    assert d0.shape == (3, 3)
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[5, 0, 295],
+                             [100, 1234, 500005],
+                             [3378149, 1999, 7134930]]
+
+
+def test_int_with_thousand_sep2():
+    d0 = dt.fread("A,B,C\n"
+                  '3,200,998\n'
+                  '"4,785",11,"9,560,293"\n'
+                  '17,835,000\n'
+                  ',"1,549,048,733,295,668",5354\n')
+    assert d0.internal.check()
+    assert d0.stypes == (dt.int32, dt.int64, dt.int32)
+    assert d0.topython() == [[3, 4785, 17, None],
+                             [200, 11, 835, 1549048733295668],
+                             [998, 9560293, 0, 5354]]
+
+
+def test_int_with_thousand_sep_not_really():
+    bad_ints = [",345",
+                "1234,567",
+                "13,4,488",
+                "17,9500,136",
+                "2,300,4,800",
+                "9,4482",
+                "3,800027",
+                "723,012,00",
+                "900,534,2",
+                "967,300,",
+                "24,,500"]
+    names = tuple("B%d" % i for i in range(len(bad_ints)))
+    src = ("\t".join(names) + "\n" +
+           "\t".join('"%s"' % x for x in bad_ints) + "\n")
+    d0 = dt.fread(src)
+    assert d0.names == names
+    assert d0.stypes == (dt.str32,) * len(bad_ints)
+    assert d0.topython() == [[x] for x in bad_ints]
+
+
+
 def test_float_ext_literals1():
     inf = math.inf
     d0 = dt.fread("A\n+Inf\nINF\n-inf\n-Infinity\n1.3e2")
@@ -293,6 +341,13 @@ def test_float_many_zeros():
     assert d0.topython() == [[4.49548e-47]]
 
 
+def test_invalid_int_numbers():
+    d0 = dt.fread('A,B,C\n1,+,4\n2,-,5\n3,-,6\n')
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.topython() == [[1, 2, 3], ["+", "-", "-"], [4, 5, 6]]
+
+
 def test_invalid_float_numbers():
     d0 = dt.fread("A,B,C,D,E,F\n.,+.,.e,.e+,0e,e-3\n")
     assert d0.internal.check()
@@ -301,7 +356,7 @@ def test_invalid_float_numbers():
 
 
 #-------------------------------------------------------------------------------
-# Empty / tiny files
+# Tiny files
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
@@ -345,7 +400,7 @@ def test_1x2_empty():
     d0 = dt.fread(text=",")
     assert d0.internal.check()
     assert d0.shape == (1, 2)  # should this be 0x2 ?
-    assert d0.names == ("V0", "V1")
+    assert d0.names == ("C0", "C1")
 
 
 def test_headers_line():
@@ -378,6 +433,13 @@ def test_fread_single_number2():
     assert f.internal.check()
     assert f.shape == (1, 1)
     assert f.topython() == [[345.12]]
+
+
+def test_fread_two_numbers():
+    f = dt.fread("12.34\n56.78")
+    assert f.internal.check()
+    assert f.shape == (2, 1)
+    assert f.topython() == [[12.34, 56.78]]
 
 
 def test_1x1_na():
@@ -446,7 +508,7 @@ def test_fread2():
         """)
     assert f.shape == (3, 4)
     assert f.names == ("A", "B", "C", "D")
-    assert f.ltypes == (dt.ltype.int, dt.ltype.int, dt.ltype.int, dt.ltype.real)
+    assert f.ltypes == (ltype.int, ltype.int, ltype.int, ltype.real)
 
 
 def test_runaway_quote():
@@ -636,6 +698,68 @@ def test_whitespace_nas():
                              [2.3, 1, None, 0]]
 
 
+def test_quoted_na_strings():
+    # Check that na strings are recognized regardless from whether they
+    # were quoted or not. See issue #1014
+    d0 = dt.fread('A,   B,   C\n'
+                  'foo, bar, caw\n'
+                  'nan, inf, "inf"\n', na_strings=["nan", "inf"])
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.ltypes == (dt.ltype.str,) * 3
+    assert d0.topython() == [["foo", None], ["bar", None], ["caw", None]]
+
+
+def test_clashing_column_names():
+    # there should be no warning; and first column should be C2
+    d0 = dt.fread("""C2\n1,2,3,4,5,6,7\n""")
+    assert d0.internal.check()
+    assert d0.shape == (1, 7)
+    assert d0.names == ("C2", "C3", "C4", "C5", "C6", "C7", "C8")
+
+
+def test_clashing_column_names2():
+    # there should be no warnings; and the second column should retain its name
+    d0 = dt.fread("""
+        ,C0,,,
+        1,2,3,4,5
+        6,7,8,9,0
+        """)
+    assert d0.internal.check()
+    assert d0.shape == (2, 5)
+    assert d0.names == ("C1", "C0", "C2", "C3", "C4")
+
+
+def test_nuls1():
+    d0 = dt.fread("A,B\0\n1,2\n")
+    assert d0.internal.check()
+    # Special characters are replaced in column names
+    assert d0.names == ("A", "B.")
+    assert d0.shape == (1, 2)
+    assert d0.topython() == [[1], [2]]
+
+
+def test_nuls2():
+    d0 = dt.fread("A,B\nfoo,ba\0r\nalpha,beta\0\ngamma\0,delta\n")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B")
+    assert d0.shape == (3, 2)
+    assert d0.topython() == [["foo", "alpha", "gamma\0"],
+                             ["ba\0r", "beta\0", "delta"]]
+
+def test_nuls3():
+    lines = ["%02d,%d,%d\0" % (i, i % 3, 20 - i) for i in range(10)]
+    src = "\n".join(["a,b,c"] + lines + [""])
+    d0 = dt.fread(src, verbose=True)
+    assert d0.internal.check()
+    assert d0.shape == (10, 3)
+    assert d0.names == ("a", "b", "c")
+    assert d0.topython() == [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                             [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
+                             ["%d\0" % i for i in range(20, 10, -1)]]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Medium-size files (generated)
@@ -710,6 +834,49 @@ def test_random_data(seed, tempfile):
     assert res[5] == src[5]
 
 
+def test_int64s_and_typebumps(capsys):
+    # Based on R tests 897-899
+    n = 2222
+    names = ("i32", "i64", "i64-2", "f64-1", "f64-2",
+             "s32", "s32-2", "s32-3", "s32-4")
+    src = [list(range(n)),  # i32
+           [2**40 * 7 * i for i in range(n)],  # i64
+           list(range(n)),  # i64-2
+           list(range(n)),  # f64-1
+           [2**40 * 11 * i for i in range(n)],  # f64-2
+           ["f" + "o" * (i % 5 + 1) for i in range(n)],  # s32
+           list(range(n)),  # s32-2
+           [str(j * 100) for j in range(n)],  # s32-3
+           [str(i / 100) for i in range(n)]  # s32-4
+           ]
+    src[2][111] = 4568034971487098  # i64-2s
+    src[3][111] += 0.11  # f64-1
+    src[4][111] = 11111111111111.11  #  f64-2
+    src[6][111] = "111e"  # s32-2
+    src[7][111] = "1111111111111111111111"  # s32-3
+    src[8][111] = "1.23e"
+    text = ",".join(names) + "\n" + \
+           "\n".join(",".join(str(src[j][i]) for j in range(len(src)))
+                     for i in range(n))
+    f0 = dt.fread(text, verbose=True)
+    out, err = capsys.readouterr()
+    assert f0.names == names
+    assert f0.shape == (n, len(names))
+    assert f0.stypes == (stype.int32, stype.int64, stype.int64,
+                         stype.float64, stype.float64,
+                         stype.str32, stype.str32, stype.str32, stype.str32)
+    assert "6 columns need to be re-read" in out
+    assert "Column 3 (i64-2) bumped from Int32 to Int64" in out
+    assert "Column 9 (s32-4) bumped from Float64 to Str32 due to " \
+           "<<1.23e>> on row 111" in out
+    f1 = dt.fread(text, verbose=True, columns=f0.stypes)
+    out, err = capsys.readouterr()
+    assert f1.stypes == f0.stypes
+    assert not re.search("columns? needs? to be re-?read", out)
+    assert "bumped from" not in out
+
+
+
 def test_almost_nodata(capsys):
     # Test datasets where the field is almost always empty
     n = 5111
@@ -725,7 +892,7 @@ def test_almost_nodata(capsys):
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.topython() == [[2017] * n, m, ["foo"] * n]
     print(out)
-    assert ("Column 2 (B) bumped from Bool8/numeric to Str32 "
+    assert ("Column 2 (B) bumped from Unknown to Str32 "
             "due to <<gotcha>> on row 109" in out)
 
 
@@ -809,7 +976,7 @@ def test_too_few_rows():
     src = "\n".join(lines)
     with pytest.raises(RuntimeError) as e:
         dt.fread(src, verbose=True)
-    assert ("Too few fields on row 111: expected 3 but found only 1"
+    assert ("Too few fields on line 112: expected 3 but found only 1"
             in str(e.value))
 
 
@@ -819,5 +986,5 @@ def test_too_many_rows():
     src = "\n".join(lines)
     with pytest.raises(RuntimeError) as e:
         dt.fread(src, verbose=True)
-    assert ("Too many fields on row 111: expected 3 but more are present"
+    assert ("Too many fields on line 112: expected 3 but more are present"
             in str(e.value))

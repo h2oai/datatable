@@ -155,6 +155,9 @@
  *   For string columns only, these are pointers `col->strdata()` and
  *   `col->offsets()` respectively.
  *
+ * strtype
+ *   0 when sorting non-strings, 1 if sorting str32, 2 if sorting str64
+ *
  * strstart
  *   For string columns only, this is the position within the string that is
  *   currently being tested. More specifically, at the beginning of a
@@ -231,7 +234,7 @@ class SortContext {
     size_t*  histogram;
     GroupGatherer gg;
     const uint8_t* strdata;
-    const int32_t* stroffs;
+    const void* stroffs;
     size_t strstart;
     size_t n;
     size_t nth;
@@ -243,8 +246,9 @@ class SortContext {
     int8_t next_elemsize;
     int8_t nsigbits;
     int8_t shift;
+    int8_t strtype;
     bool use_order;
-    int : 24;
+    int : 16;
 
   public:
   SortContext(const Column* col, bool make_groups) {
@@ -253,6 +257,7 @@ class SortContext {
     histogram = nullptr;
     strdata = nullptr;
     histogram_size = 0;
+    strtype = 0;
 
     nth = static_cast<size_t>(config::sort_nthreads);
     n = static_cast<size_t>(col->nrows);
@@ -277,6 +282,7 @@ class SortContext {
       case ST_REAL_F4:    _initF<uint32_t>(col); break;
       case ST_REAL_F8:    _initF<uint64_t>(col); break;
       case ST_STRING_I4_VCHAR: _initS<int32_t>(col); break;
+      case ST_STRING_I8_VCHAR: _initS<int64_t>(col); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -328,7 +334,7 @@ class SortContext {
    * the addition is done as addition of unsigned bytes (i.e. modulo 256).
    */
   void _initB(const Column* col) {
-    uint8_t* xi = static_cast<uint8_t*>(col->data());
+    const uint8_t* xi = static_cast<const uint8_t*>(col->data());
     uint8_t* xo = new uint8_t[n];
     x = static_cast<void*>(xo);
     elemsize = 1;
@@ -375,7 +381,7 @@ class SortContext {
   void _initI_impl(const Column* col, T min) {
     TI una = static_cast<TI>(GETNA<T>());
     TI umin = static_cast<TI>(min);
-    TI* xi = static_cast<TI*>(col->data());
+    const TI* xi = static_cast<const TI*>(col->data());
     TO* xo = new TO[n];
     x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
@@ -427,7 +433,7 @@ class SortContext {
    */
   template <typename TO>
   void _initF(const Column* col) {
-    TO* xi = static_cast<TO*>(col->data());
+    const TO* xi = static_cast<const TO*>(col->data());
     TO* xo = new TO[n];
     x = static_cast<void*>(xo);
     elemsize = sizeof(TO);
@@ -462,7 +468,7 @@ class SortContext {
   /**
    * For strings, we fill array `x` with the values of the first 2 characters in
    * each string. We also set up auxiliary variables `strdata`, `stroffs`,
-   * `strstart`.
+   * `strstart` and `strtype`.
    *
    * More specifically, for each string item, if it is NA then we map it to 0;
    * if it is an empty string we map it to 1, otherwise we map it to `ch[i] + 2`
@@ -472,16 +478,17 @@ class SortContext {
   template <typename T>
   void _initS(const Column* col) {
     auto scol = static_cast<const StringColumn<T>*>(col);
-    strdata = reinterpret_cast<uint8_t*>(scol->strdata());
-    T* offs = scol->offsets();
-    stroffs = static_cast<int32_t*>(offs);  // ???
+    strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
+    const T* offs = scol->offsets();
+    stroffs = static_cast<const void*>(offs);
+    strtype = sizeof(T) / 4;
     strstart = 0;
     uint8_t* xo = new uint8_t[n];
     x = static_cast<void*>(xo);
     elemsize = 1;
     nsigbits = 8;
 
-    int maxlen = 0;
+    T maxlen = 0;
     #pragma omp parallel for schedule(static) num_threads(nth) \
             reduction(max:maxlen)
     for (size_t j = 0; j < n; ++j) {
@@ -626,9 +633,11 @@ class SortContext {
     if (!next_o) {
       next_o = new int32_t[n];
     }
-    if (strdata) {
-      if (next_x) _reorder_str();
-      else _reorder_impl<uint8_t, char, false>();
+    if (strtype) {
+      if (next_x) {
+        if (strtype == 1) _reorder_str<int32_t>();
+        else              _reorder_str<int64_t>();
+      } else _reorder_impl<uint8_t, char, false>();
     } else {
       switch (elemsize) {
         case 8:
@@ -683,12 +692,13 @@ class SortContext {
     xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
-  void _reorder_str() {
+  template <typename T> void _reorder_str() {
     uint8_t* xi = static_cast<uint8_t*>(x);
     uint8_t* xo = static_cast<uint8_t*>(next_x);
-    const int32_t ss = static_cast<int32_t>(strstart) + 1;
+    const T sstart = static_cast<T>(strstart) + 1;
+    const T* soffs = static_cast<const T*>(stroffs);
 
-    int32_t maxlen = 0;
+    T maxlen = 0;
     #pragma omp parallel for schedule(dynamic) num_threads(nth) \
             reduction(max:maxlen)
     for (size_t i = 0; i < nchunks; ++i) {
@@ -699,9 +709,9 @@ class SortContext {
         size_t k = tcounts[xi[j]]++;
         xassert(k < n);
         int32_t w = use_order? o[j] : static_cast<int32_t>(j);
-        int32_t offend = stroffs[w];
-        int32_t offstart = std::abs(stroffs[w - 1]) + ss;
-        int32_t len = offend - offstart;
+        T offend = soffs[w];
+        T offstart = std::abs(soffs[w - 1]) + sstart;
+        T len = offend - offstart;
         xo[k] = len > 0? strdata[offstart] + 2 : 1;
         next_o[k] = w;
         if (len > maxlen) maxlen = len;
@@ -794,7 +804,7 @@ class SortContext {
     size_t   _nradixes = nradixes;
     size_t   _strstart = strstart;
     int32_t  ggoff0    = make_groups? gg.cumulative_size() : 0;
-    int32_t* ggdata0   = make_groups? gg.data() : 0;
+    int32_t* ggdata0   = make_groups? gg.data() : nullptr;
     size_t   zelemsize = static_cast<size_t>(elemsize);
 
     // First, determine the sizes of ranges corresponding to each radix that
@@ -856,7 +866,7 @@ class SortContext {
           rrmap[rri].size = static_cast<size_t>(gg.size()) | GROUPED;
         }
       } else {
-        nsmallgroups++;
+        nsmallgroups += (sz > 1);
         if (sz > size0) size0 = sz;
       }
     }
@@ -874,7 +884,6 @@ class SortContext {
     // sort each of them independently using a simpler insertion sort
     // method.
     size_t nthreads = std::min(nth, nsmallgroups);
-    int32_t ss = static_cast<int32_t>(_strstart + 1);
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
@@ -905,15 +914,21 @@ class SortContext {
           if (make_groups) {
             tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
           }
-          if (strdata) {
-            insert_sort_keys_str(strdata, stroffs, ss, to, oo, tn, tgg);
-          } else {
+          if (strtype == 0) {
             switch (_elemsize) {
               case 1: insert_sort_keys<>(static_cast<uint8_t*>(tx), to, oo, tn, tgg); break;
               case 2: insert_sort_keys<>(static_cast<uint16_t*>(tx), to, oo, tn, tgg); break;
               case 4: insert_sort_keys<>(static_cast<uint32_t*>(tx), to, oo, tn, tgg); break;
               case 8: insert_sort_keys<>(static_cast<uint64_t*>(tx), to, oo, tn, tgg); break;
             }
+          } else if (strtype == 1) {
+            const int32_t* soffs = static_cast<const int32_t*>(stroffs);
+            int32_t ss = static_cast<int32_t>(_strstart + 1);
+            insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg);
+          } else {
+            const int64_t* soffs = static_cast<const int64_t*>(stroffs);
+            int64_t ss = static_cast<int64_t>(_strstart + 1);
+            insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg);
           }
           if (make_groups) {
             rrmap[i].size = static_cast<size_t>(tgg.size());
@@ -927,7 +942,7 @@ class SortContext {
 
     // Consolidate groups into a single contiguous chunk
     if (make_groups) {
-      gg.from_chunks(rrmap, nradixes);
+      gg.from_chunks(rrmap, _nradixes);
     }
 
     delete[] rrmap;
@@ -943,31 +958,39 @@ class SortContext {
   void kinsert_sort() {
     arr32_t tmparr(n);
     int32_t* tmp = tmparr.data();
-    if (strdata) {
-      int32_t nn = static_cast<int32_t>(n);
-      insert_sort_keys_str(strdata, stroffs, 0, o, tmp, nn, gg);
-    } else {
+    int32_t nn = static_cast<int32_t>(n);
+    if (strtype == 0) {
       switch (elemsize) {
         case 1: _insert_sort_keys<uint8_t >(tmp); break;
         case 2: _insert_sort_keys<uint16_t>(tmp); break;
         case 4: _insert_sort_keys<uint32_t>(tmp); break;
         case 8: _insert_sort_keys<uint64_t>(tmp); break;
       }
+    } else if (strtype == 1) {
+      const int32_t* soffs = static_cast<const int32_t*>(stroffs);
+      insert_sort_keys_str(strdata, soffs, int32_t(0), o, tmp, nn, gg);
+    } else {
+      const int64_t* soffs = static_cast<const int64_t*>(stroffs);
+      insert_sort_keys_str(strdata, soffs, int64_t(0), o, tmp, nn, gg);
     }
-
   }
 
   void vinsert_sort() {
-    if (strdata) {
-      int32_t nn = static_cast<int32_t>(n);
-      insert_sort_values_str(strdata, stroffs, 0, o, nn, gg);
-    } else {
+    if (strtype == 0) {
       switch (elemsize) {
         case 1: _insert_sort_values<uint8_t >(); break;
         case 2: _insert_sort_values<uint16_t>(); break;
         case 4: _insert_sort_values<uint32_t>(); break;
         case 8: _insert_sort_values<uint64_t>(); break;
       }
+    } else if (strtype == 1) {
+      int32_t nn = static_cast<int32_t>(n);
+      const int32_t* soffs = static_cast<const int32_t*>(stroffs);
+      insert_sort_values_str(strdata, soffs, int32_t(0), o, nn, gg);
+    } else {
+      int32_t nn = static_cast<int32_t>(n);
+      const int64_t* soffs = static_cast<const int64_t*>(stroffs);
+      insert_sort_values_str(strdata, soffs, int64_t(0), o, nn, gg);
     }
   }
 

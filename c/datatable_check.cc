@@ -15,10 +15,11 @@
  * such functionality.
  */
 size_t array_size(void *ptr, size_t elemsize) {
-    #ifdef MALLOC_SIZE_UNAVAILABLE
+  #ifdef MALLOC_SIZE_UNAVAILABLE
     return 0;
-    #endif
-    return ptr == NULL? 0 : malloc_size(ptr) / elemsize;
+  #else
+    return ptr == nullptr? 0 : malloc_size(ptr) / elemsize;
+  #endif
 }
 
 

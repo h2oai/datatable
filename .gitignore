@@ -13,13 +13,14 @@ datatable/lib/*
 *.egg-info/
 
 
-# Coverage reports
+# Coverage reports / tests
 pycov/
 ccov/
 .coverage
 coverage.xml
 coverage.info
 .benchmarks
+.pytest_cache/
 
 
 # Sphinx documentation
@@ -44,3 +45,7 @@ temp/
 microbench/sort/sort
 microbench/writecsv/writecsv
 microbench/fread/fread
+
+
+# Auto-generated files
+datatable/__git__.py

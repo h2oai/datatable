@@ -9,14 +9,19 @@
 #define dt_CSV_READER_PARSERS_h
 #include <string>
 #include <vector>
-#include "csv/fread.h"
+#include <Python.h>
+#include "types.h"
+
+struct FreadTokenizer;
+class GReaderColumn;
+typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
+typedef PyObject* (*FormatGeneratorFn)(GReaderColumn& col);
 
 
 // In order to add a new type:
 //   - implement a new parser function `void (*)(FreadTokenizer&)`
 //   - add a new identifier into `enum PT`
 //   - declare this parser in `ParserLibrary::init_parsers()`
-//   - add items in `_coltypes_strs` and `_coltypes` in "fread.py"
 //   - update `test_fread_fillna1` in test_fread.py to include the new type
 //
 
@@ -35,31 +40,69 @@ void parse_string(FreadTokenizer&);
 
 
 //------------------------------------------------------------------------------
+// Do not use "enum class" here: we want these enums to be implicitly
+// convertible into integers, so that we can use them as array indices.
 
-enum class PT : uint8_t {
-  Drop,
-  // Mu,
+/**
+ * Parse Type -- each identifier corresponds to one of the parser functions
+ * listed above.
+ */
+enum PT : uint8_t {
+  Mu,
   Bool01,
   BoolU,
   BoolT,
   BoolL,
   Int32,
+  Int32Sep,
   Int64,
+  Int64Sep,
   // Float32Plain,
   Float32Hex,
   Float64Plain,
   Float64Ext,
   Float64Hex,
   Str32,
-  // Str64,
+  Str64,
 };
 
 
-enum class BT : uint8_t {
+/**
+ * Bump Type -- this describes transition between different parsers:
+ *   Simple - values read by the previous parser can be used as-is with the
+ *            new parser. For example, changing from PT::Float64Plain to
+ *            PT::Float64Ext.
+ *   Normal - values read by the previous parser can be losslessly converted
+ *            into the values produced by the new parser. For example,
+ *            transition from PT::Int32 to PT::Int64.
+ *   Reread - values read by the previous parser cannot be converted, so the
+ *            entire column has to be re-read.
+ */
+enum BT : uint8_t {
   None   = 0,
   Simple = 1,
   Normal = 2,
   Reread = 3,
+};
+
+
+/**
+ * Requested Type -- column type as requested by the user; each may correspond
+ * to one or more parse types.
+ */
+enum RT : uint8_t {
+  RDrop    = 0,
+  RAuto    = 1,
+  RBool    = 2,
+  RInt     = 3,
+  RInt32   = 4,
+  RInt64   = 5,
+  RFloat   = 6,
+  RFloat32 = 7,
+  RFloat64 = 8,
+  RStr     = 9,
+  RStr32   = 10,
+  RStr64   = 11,
 };
 
 
@@ -74,19 +117,19 @@ class ParserInfo {
   public:
     ParserFnPtr fn;
     std::string name;
-    char code;
-    int8_t elemsize;
-    SType stype;
-    PT id;
-    int32_t : 32;
+    char        code;
+    int8_t      elemsize;
+    SType       stype;
+    PT          id;
+    int : 32;
 
-    ParserInfo() : fn(nullptr), code(0), id(PT::Drop) {}
+    ParserInfo() : fn(nullptr), code(0) {}
     ParserInfo(PT id_, const char* name_, char code_, int8_t sz_, SType st_,
                ParserFnPtr ptr)
       : fn(ptr), name(name_), code(code_), elemsize(sz_), stype(st_), id(id_) {}
 
     const char* cname() const { return name.data(); }
-    bool isstring() const { return id == PT::Str32; }
+    bool isstring() const { return id >= PT::Str32; }
 };
 
 
@@ -118,14 +161,13 @@ class ParserIterator {
 
 class ParserIterable {
   private:
-    const ParserLibrary& plib;
     const PT ptype;
     int64_t : 56;
 
   public:
     using iterator = ParserIterator;
 
-    ParserIterable(PT pt, const ParserLibrary& pl);
+    ParserIterable(PT pt);
     iterator begin() const;
     iterator end() const;
 };
@@ -144,7 +186,7 @@ class ParserLibrary {
     int64_t : 64;
 
   public:
-    static constexpr size_t num_parsers = static_cast<size_t>(PT::Str32) + 1;
+    static constexpr size_t num_parsers = static_cast<size_t>(PT::Str64) + 1;
     ParserLibrary();
     ParserLibrary(const ParserLibrary&) = delete;
     void operator=(const ParserLibrary&) = delete;
@@ -154,7 +196,7 @@ class ParserLibrary {
     static const ParserFnPtr* get_parser_fns() { return parser_fns; }
     static const ParserInfo* get_parser_infos() { return parsers; }
     static const ParserInfo& info(size_t i) { return parsers[i]; }
-    static const ParserInfo& info(int8_t i) { return parsers[i]; }
+    static const ParserInfo& info(PT i) { return parsers[i]; }
 };
 
 

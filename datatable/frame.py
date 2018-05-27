@@ -8,13 +8,13 @@ import collections
 import re
 import sys
 import time
-from typing import Tuple, Dict, List, Union
+from typing import Tuple, Dict, List, Union, Optional
 
 from datatable.lib import core
 import datatable
 from .widget import DataFrameWidget
 
-from datatable.dt_append import rbind as dt_rbind, cbind as dt_cbind
+from datatable.dt_append import _rbind, _cbind
 from datatable.nff import save as dt_save
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import load_module
@@ -116,9 +116,14 @@ class Frame(object):
     # Property setters
     #---------------------------------------------------------------------------
 
+    @nrows.setter
+    def nrows(self, n):
+        self.resize(n)
+
     @names.setter
     @typed()
-    def names(self, newnames: Union[List[str], Tuple[str, ...]]):
+    def names(self, newnames: Union[List[Optional[str]],
+                                    Tuple[Optional[str], ...]]):
         """Rename the columns of the Frame."""
         self.rename(newnames)
 
@@ -189,6 +194,8 @@ class Frame(object):
             self._fill_from_pandas(src, names)
         elif is_type(src, NumpyArray_t):
             self._fill_from_numpy(src, names=names)
+        elif src is Ellipsis:
+            self._fill_from_list([42], "?", None)
         else:
             raise TTypeError("Cannot create Frame from %r" % src)
 
@@ -226,10 +233,8 @@ class Frame(object):
         self._stypes = None
         self._ltypes = None
         if not names:
-            names = tuple("C%d" % (i + 1) for i in range(self._ncols))
-        names, inames = Frame._dedup_names(names)
-        self._names = names
-        self._inames = inames
+            names = [None] * self._ncols
+        self._names, self._inames = Frame._dedup_names(names)
 
 
     def _fill_from_pandas(self, pddf, names=None):
@@ -279,20 +284,31 @@ class Frame(object):
             dt = core.datatable_from_buffers([arr[:, i] for i in range(ncols)])
 
         if names is None:
-            names = ["C%d" % i for i in range(1, ncols + 1)]
+            names = [None] * ncols
         self._fill_from_dt(dt, names=names)
 
 
     @staticmethod
     def _dedup_names(names) -> Tuple[Tuple[str, ...], Dict[str, int]]:
-        re0 = re.compile(r"[\x00-\x1F]+")
+        if not names:
+            return tuple(), dict()
         inames = {}
         tnames = []
         dupnames = []
+        min_c = options.frame.names_auto_index
+        prefix = options.frame.names_auto_prefix
+        fill_default_names = False
         for i, name in enumerate(names):
-            name = re.sub(re0, ".", name)
+            if not name:
+                fill_default_names = True
+                tnames.append(None)  # Placeholder, filled in below
+                continue
+            if name[:len(prefix)] == prefix and name[len(prefix):].isdigit():
+                min_c = max(min_c, int(name[len(prefix):]) + 1)
+            else:
+                name = re.sub(_dedup_names_re0, ".", name)
             if name in inames:
-                mm = re.match(r"^(.*)(\d+)$", name)
+                mm = re.match(_dedup_names_re1, name)
                 if mm:
                     base = mm.group(1)
                     count = int(mm.group(2)) + 1
@@ -308,6 +324,13 @@ class Frame(object):
                 newname = name
             inames[newname] = i
             tnames.append(newname)
+        if fill_default_names:
+            for i, name in enumerate(names):
+                if not name:
+                    newname = prefix + str(min_c)
+                    tnames[i] = newname
+                    inames[newname] = i
+                    min_c += 1
         if dupnames:
             dtwarn("Duplicate column names found: %r. They were assigned "
                    "unique names." % dupnames)
@@ -482,26 +505,35 @@ class Frame(object):
         Simpler version than __call__, but allows slice literals.
 
         Example:
-            dt[5]        # 6-th column
-            dt[5, :]     # 6-th row
-            dt[:10, -1]  # first 10 rows of the last column
-            dt[::-1]     # all rows of the datatable in reverse order
+            df[5]        # 6-th column
+            df[5, :]     # 6-th row
+            df[:10, -1]  # first 10 rows of the last column
+            df[::-1, :]  # all rows of the Frame in reverse order
         etc.
         """
         rows, cols = resolve_selector(item)
         return make_datatable(self, rows, cols)
 
 
+    def __setitem__(self, item, value):
+        """
+        Update values in Frame, in-place.
+        """
+        rows, cols = resolve_selector(item)
+        return make_datatable(self, rows, cols, mode="update",
+                              replacement=value)
+
+
     def __delitem__(self, item):
         """
-        Delete columns / rows from the datatable.
+        Delete columns / rows from the Frame.
 
         Example:
-            del dt["colA"]
-            del dt[:, ["A", "B"]]
-            del dt[::2]
-            del dt["col5":"col9"]
-            del dt[(i for i in range(dt.ncols) if i % 3 <= 1)]
+            del df["colA"]
+            del df[:, ["A", "B"]]
+            del df[::2]
+            del df["col5":"col9"]
+            del df[(i for i in range(df.ncols) if i % 3 <= 1)]
         """
         drows, dcols = resolve_selector(item)
         return make_datatable(self, drows, dcols, mode="delete")
@@ -551,9 +583,9 @@ class Frame(object):
 
 
     # Methods defined externally
-    append = dt_rbind
-    rbind = dt_rbind
-    cbind = dt_cbind
+    append = _rbind
+    rbind = _rbind
+    cbind = _cbind
     to_csv = write_csv
     save = dt_save
 
@@ -578,6 +610,16 @@ class Frame(object):
         cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
+
+    @typed(nrows=int)
+    def resize(self, nrows):
+        # TODO: support multiple modes of resizing:
+        #   - fill with NAs
+        #   - tile existing values
+        if nrows < 0:
+            raise TValueError("Cannot resize to %d rows" % nrows)
+        self._nrows = nrows
+        self._dt.resize_rows(nrows)
 
 
     #---------------------------------------------------------------------------
@@ -873,6 +915,11 @@ class Frame(object):
 
 
 
+_dedup_names_re0 = re.compile(r"[\x00-\x1F]+")
+_dedup_names_re1 = re.compile(r"^(.*)(\d+)$")
+
+
+
 #-------------------------------------------------------------------------------
 # Global settings
 #-------------------------------------------------------------------------------
@@ -941,3 +988,19 @@ options.register_option(
 
 options.register_option(
     "sort.nthreads", xtype=int, default=4, core=True)
+
+options.register_option(
+    "frame.names_auto_index", xtype=int, default=0, core=False,
+    doc="When Frame needs to auto-name columns, they will be assigned "
+        "names C0, C1, C2, ... by default. This option allows you to "
+        "control the starting index in this sequence. For example, setting "
+        "options.frame.names_auto_index=1 will cause the columns to be "
+        "named C1, C2, C3, ...")
+
+options.register_option(
+    "frame.names_auto_prefix", xtype=str, default="C", core=False,
+    doc="When Frame needs to auto-name columns, they will be assigned "
+        "names C0, C1, C2, ... by default. This option allows you to "
+        "control the prefix used in this sequence. For example, setting "
+        "options.frame.names_auto_prefix='Z' will cause the columns to be "
+        "named Z0, Z1, Z2, ...")
