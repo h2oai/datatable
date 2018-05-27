@@ -86,6 +86,8 @@ class DataTable {
     DataTable* sum_datatable() const;
     DataTable* mean_datatable() const;
     DataTable* sd_datatable() const;
+    DataTable* skew_datatable() const;
+    DataTable* kurt_datatable() const;
     DataTable* countna_datatable() const;
     DataTable* nunique_datatable() const;
     DataTable* nmodal_datatable() const;

@@ -255,6 +255,8 @@ int64_t Column::nmodal() const  { return get_stats()->nmodal(this); }
  */
 Column* Column::mean_column() const { return new_na_column(ST_REAL_F8, 1); }
 Column* Column::sd_column() const   { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::skew_column() const   { return new_na_column(ST_REAL_F8, 1); }
+Column* Column::kurt_column() const   { return new_na_column(ST_REAL_F8, 1); }
 Column* Column::min_column() const  { return new_na_column(stype(), 1); }
 Column* Column::max_column() const  { return new_na_column(stype(), 1); }
 Column* Column::mode_column() const { throw NotImplError(); }
@@ -280,6 +282,8 @@ Column* Column::nmodal_column() const {
 
 PyObject* Column::mean_pyscalar() const { return none(); }
 PyObject* Column::sd_pyscalar() const { return none(); }
+PyObject* Column::skew_pyscalar() const { return none(); }
+PyObject* Column::kurt_pyscalar() const { return none(); 
 PyObject* Column::min_pyscalar() const { return none(); }
 PyObject* Column::max_pyscalar() const { return none(); }
 PyObject* Column::mode_pyscalar() const { throw NotImplError(); }

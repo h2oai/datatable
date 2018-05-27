@@ -20,6 +20,8 @@ enum Stat {
   Sum,
   Mean,
   StDev,
+  Skew,
+  Kurt,
   Min,
   Qt25,
   Median,
@@ -123,6 +125,8 @@ class NumericalStats : public Stats {
   protected:
     double _mean;
     double _sd;
+    double _skew;
+    double _kurt;
     A _sum;
     T _min;
     T _max;
@@ -134,6 +138,8 @@ class NumericalStats : public Stats {
 
     double mean(const Column*);
     double stdev(const Column*);
+    double skew(const Column*);
+    double kurt(const Column*);
     T min(const Column*);
     T max(const Column*);
     T mode(const Column*);

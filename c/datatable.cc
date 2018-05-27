@@ -205,6 +205,8 @@ DataTable* DataTable::nunique_datatable() const { return _statdt(&Column::nuniqu
 DataTable* DataTable::nmodal_datatable() const  { return _statdt(&Column::nmodal_column); }
 DataTable* DataTable::mean_datatable() const    { return _statdt(&Column::mean_column); }
 DataTable* DataTable::sd_datatable() const      { return _statdt(&Column::sd_column); }
+DataTable* DataTable::skew_datatable() const    { return _statdt(&Column::skew_column); }
+DataTable* DataTable::kurt_datatable() const    { return _statdt(&Column::kurt_column); }
 DataTable* DataTable::min_datatable() const     { return _statdt(&Column::min_column); }
 DataTable* DataTable::max_datatable() const     { return _statdt(&Column::max_column); }
 DataTable* DataTable::mode_datatable() const    { return _statdt(&Column::mode_column); }

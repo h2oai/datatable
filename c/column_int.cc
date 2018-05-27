@@ -36,7 +36,8 @@ template <typename T> T       IntColumn<T>::mode() const { return get_stats()->m
 template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->stdev(this); }
-
+template <typename T> double  IntColumn<T>::skew() const   { return get_stats()->skew(this); }
+template <typename T> double  IntColumn<T>::kurt() const   { return get_stats()->kurt(this); }
 
 // Retrieve stat value as a column
 template <typename T>
@@ -81,6 +82,19 @@ Column* IntColumn<T>::sd_column() const {
   return col;
 }
 
+template <typename T>
+Column* IntColumn<T>::skew_column() const {
+  RealColumn<double>* col = new RealColumn<double>(1);
+  col->set_elem(0, skew());
+  return col;
+}
+
+template <typename T>
+Column* IntColumn<T>::kurt_column() const {
+  RealColumn<double>* col = new RealColumn<double>(1);
+  col->set_elem(0, kurt());
+  return col;
+}
 
 template <typename T>
 int64_t IntColumn<T>::min_int64() const {
