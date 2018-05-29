@@ -259,6 +259,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/py_expr.o            \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
+	groupby.o                 \
 	memrange.o                \
 	mmm.o                     \
 	options.o                 \
@@ -328,7 +329,7 @@ $(BUILDDIR)/capi.h: c/capi.h
 	@echo • Refreshing c/capi.h
 	@cp c/capi.h $@
 
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/groupby.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/column.h
 	@cp c/column.h $@
 
@@ -347,6 +348,10 @@ $(BUILDDIR)/datatable_check.h: c/datatable_check.h
 $(BUILDDIR)/encodings.h: c/encodings.h
 	@echo • Refreshing c/encodings.h
 	@cp c/encodings.h $@
+
+$(BUILDDIR)/groupby.h: c/groupby.h $(BUILDDIR)/memrange.h
+	@echo • Refreshing c/groupby.h
+	@cp c/groupby.h $@
 
 $(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/memrange.h
@@ -634,6 +639,10 @@ $(BUILDDIR)/expr/reduceop.o : c/expr/reduceop.cc $(BUILDDIR)/expr/py_expr.h $(BU
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/types.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/groupby.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

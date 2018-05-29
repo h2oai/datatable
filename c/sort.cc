@@ -1022,7 +1022,7 @@ class SortContext {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
+RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
 {
   if (colindices.size() != 1) {
     throw NotImplError() << "Sorting by multiple columns is not supported yet";
@@ -1036,7 +1036,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
                             "datatable with >2**31 rows";
   }
   Column* col0 = columns[colindices[0]];
-  return col0->sort(make_groups);
+  return col0->sort(out_grps);
 }
 
 
@@ -1053,7 +1053,7 @@ static RowIndex sort_tiny(const Column* col, bool make_groups) {
 }
 
 
-RowIndex Column::sort(bool make_groups) const {
+RowIndex Column::sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, make_groups);
   }

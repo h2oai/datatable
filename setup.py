@@ -198,6 +198,7 @@ def get_extra_compile_flags():
     elif "DTASAN" in os.environ:
         flags += ["-g", "-ggdb", "-O0",
                   "-fsanitize=address",
+                  "-fno-omit-frame-pointer",
                   "-fsanitize-address-use-after-scope",
                   "-shared-libasan"]
     elif "DTCOVERAGE" in os.environ:
