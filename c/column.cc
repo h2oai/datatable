@@ -283,7 +283,7 @@ Column* Column::nmodal_column() const {
 PyObject* Column::mean_pyscalar() const { return none(); }
 PyObject* Column::sd_pyscalar() const { return none(); }
 PyObject* Column::skew_pyscalar() const { return none(); }
-PyObject* Column::kurt_pyscalar() const { return none(); 
+PyObject* Column::kurt_pyscalar() const { return none(); }
 PyObject* Column::min_pyscalar() const { return none(); }
 PyObject* Column::max_pyscalar() const { return none(); }
 PyObject* Column::mode_pyscalar() const { throw NotImplError(); }
