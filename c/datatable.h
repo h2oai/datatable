@@ -55,6 +55,7 @@ class DataTable {
     int64_t  nrows;
     int64_t  ncols;
     RowIndex rowindex;
+    Groupby  groupby;
     Column** columns;
 
   public:

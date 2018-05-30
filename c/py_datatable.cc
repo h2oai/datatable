@@ -461,8 +461,11 @@ PyObject* sort(obj* self, PyObject* args) {
 
   arr32_t cols(1);
   cols[0] = idx;
-  RowIndex ri = dt->sortby(cols, make_groups);
-  return pyrowindex::wrap(ri);
+  Groupby grpby;
+  RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);
+  // return pyrowindex::wrap(ri);
+  return Py_BuildValue("NN", pyrowindex::wrap(ri),
+                             make_groups? pygroupby::wrap(grpby) : none());
 }
 
 
