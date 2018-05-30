@@ -1,9 +1,9 @@
 Python API
 ==========
 
-:mod:`Frame`
+:class:`Frame`
 ----------------
-.. autoclass:: dt.Frame
+.. autoclass:: datatable.Frame
     :members:
     :undoc-members:
 
