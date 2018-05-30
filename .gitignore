@@ -49,3 +49,4 @@ microbench/fread/fread
 
 # Auto-generated files
 datatable/__git__.py
+.asan/
