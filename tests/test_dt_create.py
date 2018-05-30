@@ -11,7 +11,7 @@
 import math
 import pytest
 import datatable as dt
-from datatable import ltype, stype
+from datatable import ltype, stype, DatatableWarning
 from tests import same_iterables, list_equals, assert_equals
 
 
@@ -410,7 +410,7 @@ def test_issue_409():
 
 
 def test_duplicate_names1():
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1], [2], [3]], names=["A", "A", "A"])
         assert d.names == ("A", "A.1", "A.2")
     assert len(ws) == 1
@@ -418,7 +418,7 @@ def test_duplicate_names1():
 
 
 def test_duplicate_names2():
-    with pytest.warns(UserWarning):
+    with pytest.warns(DatatableWarning):
         d = dt.Frame([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
         assert d.names == ("A", "A.1", "A.2", "A.3")
 

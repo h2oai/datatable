@@ -8,6 +8,7 @@ import shutil
 import pytest
 import tempfile
 import datatable as dt
+from datatable import DatatableWarning
 from tests import assert_equals
 
 
@@ -59,7 +60,7 @@ def test_obj_columns(tempdir):
     assert d0.internal.check()
     assert d0.ltypes == (dt.ltype.int, dt.ltype.obj)
     assert d0.shape == (4, 2)
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(DatatableWarning) as ws:
         d0.save(tempdir)
     assert len(ws) == 1
     assert "Column 'B' of type obj64 was not saved" in ws[0].message.args[0]

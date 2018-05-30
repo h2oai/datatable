@@ -11,7 +11,7 @@
 import pytest
 import datatable as dt
 import os
-from datatable import ltype, stype
+from datatable import ltype, stype, DatatableWarning, FreadWarning
 
 
 
@@ -246,7 +246,7 @@ def test_fread_zip_file_multi(tempfile):
         zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
         zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
         zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(FreadWarning) as ws:
         d0 = dt.fread(zfname)
         d1 = dt.fread(zfname + "/data2.csv")
         d2 = dt.fread(zfname + "/data3.csv")
@@ -456,7 +456,7 @@ def test_fread_columns_set1():
 
 
 def test_fread_columns_set2():
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(DatatableWarning) as ws:
         d0 = dt.fread(text="A,B,A\n1,2,3\n", columns={"A"})
     assert d0.names == ("A", "A.1")
     assert d0.topython() == [[1], [3]]
@@ -465,7 +465,7 @@ def test_fread_columns_set2():
 
 
 def test_fread_columns_set_bad():
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(FreadWarning) as ws:
         dt.fread(text="A,B,C\n1,2,3", columns={"A", "foo"})
     assert len(ws) == 1
     assert "Column(s) ['foo'] not found in the input" in ws[0].message.args[0]
@@ -595,7 +595,7 @@ def test_fread_skip_blank_lines_true():
 @pytest.mark.xfail()
 def test_fread_skip_blank_lines_false():
     inp = "A,B\n1,2\n  \n\n3,4\n"
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(DatatableWarning) as ws:
         d1 = dt.fread(text=inp, skip_blank_lines=False)
         assert d1.internal.check()
         assert d1.shape == (1, 2)
