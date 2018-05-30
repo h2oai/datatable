@@ -704,7 +704,7 @@ DataTablePtr GenericReader::read_empty_input() {
 void GenericReader::detect_improper_files() {
   const char* ch = sof;  // dataptr();
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
-  if (std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
+  if (ch + 15 < eof && std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
     throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
         << "open it in a browser and then save in a plain text format.";
   }

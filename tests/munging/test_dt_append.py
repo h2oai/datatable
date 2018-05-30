@@ -11,7 +11,7 @@ import pytest
 import types
 import datatable as dt
 from tests import assert_equals
-from datatable import stype
+from datatable import stype, DatatableWarning
 
 
 #-------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ def test_not_inplace():
 
 def test_repeating_names():
     # Warnings about repeated names -- ignore
-    with pytest.warns(UserWarning):
+    with pytest.warns(DatatableWarning):
         dt0 = dt.Frame([[5], [6], [7], [4]], names=["x", "y", "x", "x"])
         dt1 = dt.Frame([[4], [3], [2]], names=["y", "x", "x"])
         dtr = dt.Frame([[5, 3], [6, 4], [7, 2], [4, None]],

@@ -26,6 +26,7 @@ all:
 
 
 clean::
+	rm -rf .asan
 	rm -rf .cache
 	rm -rf .eggs
 	rm -rf build
@@ -58,7 +59,6 @@ test_install:
 
 
 test:
-	$(MAKE) test_install
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
 	$(PYTHON) -m pytest -ra --maxfail=10 $(PYTEST_FLAGS) \
@@ -77,11 +77,23 @@ debug:
 	$(MAKE) build
 	$(MAKE) install
 
-asan:
+
+# In order to run with Address Sanitizer:
+#	$ make clean
+#   $ make asan_env
+#   $ source .asan/bin/activate
+#   $ make asan
+#   $ make install
+#   $ make test
+# (note that `make test_install` doesn't work due to py-cpuinfo crashing
+# in Asan).
+
+asan_env:
 	$(MAKE) clean
-	DTASAN=1 \
-	$(MAKE) fast
-	$(MAKE) install
+	bash -x ci/asan-env.sh
+
+asan:
+	DTASAN=1 $(MAKE) fast
 
 bi:
 	$(MAKE) build
