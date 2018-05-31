@@ -84,7 +84,7 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
  void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
    int64_t nrows = col->nrows;
    const RowIndex& rowindex = col->rowindex();
-   T* data = static_cast<T*>(col->data());
+   const T* data = static_cast<const T*>(col->data());
    int64_t count_notna = 0;
    double mean = 0;
    double m2 = 0;
@@ -117,13 +117,13 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
          if (ISNA<T>(x)) return;
          n1 = t_count_notna;
          ++t_count_notna;
-         n2 = t_count_notna // readability
+         n2 = t_count_notna; // readability
          t_sum += static_cast<A>(x);
          if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
          if (x > t_max) t_max = x;
          double delta = static_cast<double>(x) - t_mean;
          double delta_n = static_cast<double>(delta) / t_count_notna;
-         double delta_n2 = static_cast<double>(delta_n) * static_cast<double>(delta_n);
+         double delta_n2 = delta_n * delta_n;
          double term1 = delta * delta_n * static_cast<double>(n1);
          t_mean += delta / t_count_notna;
          double delta2 = static_cast<double>(x) - t_mean;
@@ -143,7 +143,7 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
          if (t_min < min) min = t_min;
          if (t_max > max) max = t_max;
          double delta = mean - t_mean;
-         double delta2 = delta*delta;
+         double delta2 = delta * delta;
          double delta3 = delta2 * delta;
          double delta4 = delta2 * delta2;
          double a_m2 = m2;
@@ -172,7 +172,6 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
 
          // Running mean
          mean = static_cast<double>(sum) / count_notna;
-
        }
      }
    }
