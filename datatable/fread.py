@@ -373,6 +373,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
+            if self._verbose:
+                self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".bz2":
             import bz2
@@ -380,6 +382,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
+            if self._verbose:
+                self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xz":
             import lzma
@@ -387,6 +391,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
+            if self._verbose:
+                self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xlsx" or ext == ".xls":
             self._process_excel_file(filename)
