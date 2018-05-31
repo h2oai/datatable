@@ -441,11 +441,10 @@ void FreadReader::detect_column_types()
         // know that the start is correct).
         if (j == 0) {
           chunkster.last_row_end = eof;
-          n_sample_lines--;
         } else {
           columns.setTypes(saved_types);
-          break;
         }
+        break;
       }
       n_sample_lines++;
       chunkster.last_row_end = tch;
@@ -708,7 +707,7 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
     if (i >= ncols) {
       columns.push_back(GReaderColumn());
     }
-    if (zlen > 0) {
+    if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
       int res = check_escaped_string(usrc, zlen, echar);
       if (res == 0) {

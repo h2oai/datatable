@@ -9,6 +9,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.5.0)
+#### Added
+- fread will detect feather file and issue an appropriate error message.
+- when fread extracts data from archives into memory, it will now display
+  the size of the extracted data in verbose mode.
+
+#### Fixed
+- fread will no longer emit an error if there is an NA string in the header.
+- if the input contains excessively long lines, fread will no longer waste time
+  printing a sample of first 5 lines in verbose mode.
+- fixed wrong calculation of mean / standard deviation of line length in fread
+  if the sample contained broken lines.
 
 
 ### [v0.5.0](https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0) — 2018-05-25
