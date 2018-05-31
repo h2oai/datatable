@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #define dt_PY_GROUPBY_cc
 #include "py_groupby.h"
+#include "python/list.h"
 #include "utils/pyobj.h"
 
 namespace pygroupby
@@ -27,6 +28,13 @@ PyObject* wrap(const Groupby& grpby) {
   return pygby;
 }
 
+Groupby* unwrap(PyObject* object) {
+  if (!object || !PyObject_TypeCheck(object, &pygroupby::type)) {
+    throw TypeError() << "Expected object of type Groupby";
+  }
+  return ((pygroupby::obj*)object)->ref;
+}
+
 
 
 //==============================================================================
@@ -34,7 +42,7 @@ PyObject* wrap(const Groupby& grpby) {
 //==============================================================================
 
 PyObject* get_ngroups(obj* self) {
-  return PyLong_FromLongLong(self->ref->ngroups());
+  return PyLong_FromSize_t(self->ref->ngroups());
 }
 
 PyObject* get_sizes(obj* self) {

@@ -282,6 +282,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	py_datatable_fromlist.o   \
 	py_datawindow.o           \
 	py_encodings.o            \
+	py_groupby.o              \
 	py_rowindex.o             \
 	py_types.o                \
 	py_utils.o                \
@@ -397,6 +398,10 @@ $(BUILDDIR)/py_encodings.h: c/py_encodings.h $(BUILDDIR)/encodings.h
 	@echo • Refreshing c/py_encodings.h
 	@cp c/py_encodings.h $@
 
+$(BUILDDIR)/py_groupby.h: c/py_groupby.h $(BUILDDIR)/groupby.h $(BUILDDIR)/py_utils.h
+	@echo • Refreshing c/py_groupby.h
+	@cp c/py_groupby.h $@
+
 $(BUILDDIR)/py_rowindex.h: c/py_rowindex.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h
 	@echo • Refreshing c/py_rowindex.h
 	@cp c/py_rowindex.h $@
@@ -478,7 +483,7 @@ $(BUILDDIR)/csv/writer.h: c/csv/writer.h $(BUILDDIR)/datatable.h $(BUILDDIR)/uti
 	@cp c/csv/writer.h $@
 
 
-$(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/groupby.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/expr/py_expr.h
 	@cp c/expr/py_expr.h $@
 
@@ -500,7 +505,7 @@ $(BUILDDIR)/python/string.h: c/python/string.h $(BUILDDIR)/utils/pyobj.h
 	@cp c/python/string.h $@
 
 
-$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/array.h
 	@cp c/utils/array.h $@
 
@@ -630,7 +635,7 @@ $(BUILDDIR)/datatable_rbind.o : c/datatable_rbind.cc $(BUILDDIR)/column.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDDIR)/csv/py_csv.h $(BUILDDIR)/csv/writer.h $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/options.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -682,7 +687,7 @@ $(BUILDDIR)/py_columnset.o : c/py_columnset.cc $(BUILDDIR)/columnset.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -695,6 +700,10 @@ $(BUILDDIR)/py_datawindow.o : c/py_datawindow.cc $(BUILDDIR)/datatable.h $(BUILD
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/py_encodings.o : c/py_encodings.c $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/py_groupby.o : c/py_groupby.cc $(BUILDDIR)/py_groupby.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/python/list.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -770,7 +779,7 @@ $(BUILDDIR)/utils/file.o : c/utils/file.cc $(BUILDDIR)/utils.h $(BUILDDIR)/utils
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/float.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

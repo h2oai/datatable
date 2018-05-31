@@ -12,11 +12,12 @@
 
 class Groupby {
   private:
-    MemoryRange data;
+    MemoryRange offsets;
     size_t n;
 
   public:
     Groupby();
+    Groupby(size_t _n, MemoryRange&& _offs);
     Groupby(const Groupby&) = default;
     Groupby(Groupby&&) = default;
     Groupby& operator=(const Groupby&) = default;

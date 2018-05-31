@@ -15,6 +15,7 @@
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datawindow.h"
+#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"

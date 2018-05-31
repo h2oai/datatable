@@ -164,7 +164,7 @@ void DataTable::reify() {
   for (int64_t i = 0; i < ncols; ++i) {
     columns[i]->reify();
   }
-  rowindex.clear(true);
+  rowindex.clear();
 }
 
 

@@ -165,32 +165,6 @@ PyObject* get_max(obj* self) {
   return PyLong_FromLongLong(self->ref->max());
 }
 
-PyObject* get_ngroups(obj* self) {
-  size_t ng = self->ref->get_ngroups();
-  return PyLong_FromLongLong(static_cast<long long>(ng));
-}
-
-PyObject* get_group_sizes(obj* self) {
-  size_t ng = self->ref->get_ngroups();
-  if (!ng) return none();
-  const arr32_t& groups = self->ref->get_groups();
-  PyyList res(ng);
-  for (size_t i = 0; i < ng; ++i) {
-    res[i] = PyLong_FromLongLong(groups[i + 1] - groups[i]);
-  }
-  return res.release();
-}
-
-PyObject* get_group_offsets(obj* self) {
-  size_t ng = self->ref->get_ngroups();
-  if (!ng) return none();
-  const arr32_t& groups = self->ref->get_groups();
-  PyyList res(ng + 1);
-  for (size_t i = 0; i < ng + 1; ++i) {
-    res[i] = PyLong_FromLongLong(groups[i]);
-  }
-  return res.release();
-}
 
 
 
@@ -284,9 +258,6 @@ static PyGetSetDef rowindex_getsetters[] = {
   GETTER(nrows),
   GETTER(min),
   GETTER(max),
-  GETTER(ngroups),
-  GETTER(group_sizes),
-  GETTER(group_offsets),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
 };
 

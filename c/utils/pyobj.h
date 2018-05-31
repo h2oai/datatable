@@ -15,6 +15,7 @@
 class DataTable;
 class Column;
 class RowIndex;
+class Groupby;
 class PyyList;
 class PyyLong;
 class PyyFloat;
@@ -116,6 +117,7 @@ public:
 
   DataTable* as_datatable() const;
   Column* as_column() const;
+  Groupby* as_groupby() const;
 
   /**
    * Assuming the underlying object is pyrowindex::obj, return its RowIndex

@@ -11,8 +11,12 @@
 Groupby::Groupby() : n(0) {}
 
 
+Groupby::Groupby(size_t _n, MemoryRange&& _offs)
+  : offsets(std::move(_offs)), n(_n) {}
+
+
 const int32_t* Groupby::offsets_r() const {
-  return static_cast<const int32_t*>(data.rptr());
+  return static_cast<const int32_t*>(offsets.rptr());
 }
 
 

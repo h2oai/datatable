@@ -34,7 +34,7 @@ extern PyTypeObject type;
 // Internal helper functions
 int static_init(PyObject* module);
 PyObject* wrap(const Groupby& src);
-
+Groupby* unwrap(PyObject* object);
 
 
 //---- Generic info ------------------------------------------------------------
