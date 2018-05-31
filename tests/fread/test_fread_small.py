@@ -759,6 +759,15 @@ def test_nuls3():
                              ["%d\0" % i for i in range(20, 10, -1)]]
 
 
+def test_headers_with_na():
+    # Conceivably, this file can also be recognized as `header=False`, owing
+    # to the fact that there is an NA value in the first line.
+    d = dt.fread("A,B,NA\n"
+                 "1,2,3\n")
+    assert d.internal.check()
+    assert d.names == ("A", "B", "C0")
+    assert d.topython() == [[1], [2], [3]]
+
 
 
 #-------------------------------------------------------------------------------

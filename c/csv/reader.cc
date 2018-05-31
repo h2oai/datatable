@@ -474,7 +474,7 @@ const char* GenericReader::repr_binary(
       print_byte(c, out);
     }
   }
-  if (out > end) out = saved;
+  if (out > end) out = end;
   if (!stopped_at_newline) {
     out[-1] = '.';
     out[-2] = '.';
@@ -533,15 +533,25 @@ void GenericReader::open_input() {
   if (verbose) {
     trace("==== file sample ====");
     const char* ch = sof;
+    bool newline = true;
     for (int i = 0; i < 5 && ch < eof; i++) {
-      trace("%s", repr_source(ch, 100));
-      while (ch < eof) {
+      if (newline) trace("%s", repr_source(ch, 100));
+      else         trace("...%s", repr_source(ch, 97));
+      const char* start = ch;
+      const char* end = std::min(eof, ch + 10000);
+      while (ch < end) {
         char c = *ch++;
         // simplified newline sequence. TODO: replace with `skip_eol()`
         if (c == '\n' || c == '\r') {
           if ((*ch == '\r' || *ch == '\n') && *ch != c) ch++;
           break;
         }
+      }
+      if (ch == end && ch < eof) {
+        ch = start + 100;
+        newline = false;
+      } else {
+        newline = true;
       }
     }
     trace("=====================");
@@ -702,11 +712,18 @@ DataTablePtr GenericReader::read_empty_input() {
  * thrown.
  */
 void GenericReader::detect_improper_files() {
-  const char* ch = sof;  // dataptr();
+  const char* ch = sof;
+  // --- detect HTML ---
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (ch + 15 < eof && std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
     throw RuntimeError() << src_arg.as_cstring() << " is an HTML file. Please "
         << "open it in a browser and then save in a plain text format.";
+  }
+  // --- detect Feather ---
+  if (sof + 8 < eof && std::memcmp(sof, "FEA1", 4) == 0
+                    && std::memcmp(eof - 4, "FEA1", 4) == 0) {
+    throw RuntimeError() << src_arg.as_cstring() << " is a feather file, it "
+        "cannot be read with fread.";
   }
 }
 
