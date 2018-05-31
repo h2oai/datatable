@@ -1044,7 +1044,7 @@ RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
 static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   int64_t i = col->rowindex().nth(0);
   if (out_grps) {
-    *out_grps = Groupby();
+    *out_grps = Groupby::single_group(col->nrows);
   }
   return RowIndex::from_slice(i, col->nrows, 1);
 }

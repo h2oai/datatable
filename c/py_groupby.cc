@@ -29,7 +29,9 @@ PyObject* wrap(const Groupby& grpby) {
 }
 
 Groupby* unwrap(PyObject* object) {
-  if (!object || !PyObject_TypeCheck(object, &pygroupby::type)) {
+  if (!object) throw PyError();
+  if (object == Py_None) return nullptr;
+  if (!PyObject_TypeCheck(object, &pygroupby::type)) {
     throw TypeError() << "Expected object of type Groupby";
   }
   return ((pygroupby::obj*)object)->ref;
@@ -45,7 +47,7 @@ PyObject* get_ngroups(obj* self) {
   return PyLong_FromSize_t(self->ref->ngroups());
 }
 
-PyObject* get_sizes(obj* self) {
+PyObject* get_group_sizes(obj* self) {
   Groupby* grpby = self->ref;
   size_t ng = grpby->ngroups();
   const int32_t* offsets = grpby->offsets_r();
@@ -56,11 +58,11 @@ PyObject* get_sizes(obj* self) {
   return res.release();
 }
 
-PyObject* get_offsets(obj* self) {
+PyObject* get_group_offsets(obj* self) {
   Groupby* grpby = self->ref;
   size_t ng = grpby->ngroups();
   const int32_t* offsets = grpby->offsets_r();
-  PyyList res(ng);
+  PyyList res(ng + 1);
   for (size_t i = 0; i <= ng; ++i) {
     res[i] = PyLong_FromLongLong(offsets[i]);
   }
@@ -87,8 +89,8 @@ static void dealloc(obj* self) {
 
 static PyGetSetDef groupby_getsetters[] = {
   GETTER(ngroups),
-  GETTER(sizes),
-  GETTER(offsets),
+  GETTER(group_sizes),
+  GETTER(group_offsets),
   {nullptr, nullptr, nullptr, nullptr, nullptr}  /* sentinel */
 };
 

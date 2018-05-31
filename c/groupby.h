@@ -22,6 +22,7 @@ class Groupby {
     Groupby(Groupby&&) = default;
     Groupby& operator=(const Groupby&) = default;
     Groupby& operator=(Groupby&&) = default;
+    static Groupby single_group(int64_t nrows);
 
     const int32_t* offsets_r() const;
     size_t ngroups() const;

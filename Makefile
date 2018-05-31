@@ -659,7 +659,7 @@ $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUIL
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/groupby.h
+$(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/groupby.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

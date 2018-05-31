@@ -74,7 +74,13 @@ PyObject* expr_reduceop(PyObject*, PyObject* args)
 
   Column* col = pyarg1.as_column();
   Groupby* grpby = pyarg2.as_groupby();
-  Column* res = expr::reduceop(opcode, col, *grpby);
+  Column* res = nullptr;
+  if (grpby) {
+    res = expr::reduceop(opcode, col, *grpby);
+  } else {
+    Groupby gb = Groupby::single_group(col->nrows);
+    res = expr::reduceop(opcode, col, gb);
+  }
   return pycolumn::from_column(res, nullptr, 0);
 }
 

@@ -87,7 +87,11 @@ DECLARE_GETTER(
 
 DECLARE_GETTER(
   rowindex,
-  "Row index of the view datatable, or None if this is not a view datatable")
+  "Row index of the view Frame, or None if this is not a view Frame")
+
+DECLARE_GETSET(
+  groupby,
+  "Groupby applied to the Frame, or None if no groupby was applied")
 
 DECLARE_GETTER(
   datatable_ptr,

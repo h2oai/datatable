@@ -117,6 +117,23 @@ void log_call(const char* msg);
   )                                                                            \
 
 
+#define DECLARE_GETSET(fn, docstring)                                          \
+  PyObject* get_##fn(BASECLS* self);                                           \
+  int set_##fn(BASECLS* self, PyObject* value);                                \
+  WHEN(HOMEFLAG,                                                               \
+    static char doc_get_##fn[] = docstring;                                    \
+    static char name_get_##fn[] = #fn;                                         \
+    ES_FUNCTION(                                                               \
+      static PyObject* safe_get_##fn(BASECLS* self, void*),                    \
+      get_##fn(self),                                                          \
+      STRINGIFY(CLSNAME) "." #fn)                                              \
+    ES_INT_FUNCTION(                                                           \
+      static int safe_set_##fn(BASECLS* self, PyObject* value, void*),         \
+      set_##fn(self, value),                                                   \
+      STRINGIFY(CLSNAME) "." #fn)                                              \
+  )                                                                            \
+
+
 #define DECLARE_REPR()                                                         \
   WHEN(HOMEFLAG,                                                               \
     static PyObject* repr(BASECLS* self);                                      \
@@ -162,16 +179,6 @@ void log_call(const char* msg);
 #define CONSTRUCTOR (initproc)safe_init
 #define REPR (reprfunc)safe_repr
 
-
-#define DT_DOCS(name, doc) \
-    static char dtdoc_##name[] = doc; \
-    static char dtvar_##name[] = #name;
-
-#define DT_GETSETTER(name) \
-    {dtvar_##name, (getter)get_##name, NULL, dtdoc_##name, NULL}
-
-#define DT_METHOD1(name) \
-    {dtvar_##name, (PyCFunction)meth_##name, METH_VARARGS, dtdoc_##name}
 
 
 PyObject* none(void);

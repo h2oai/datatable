@@ -55,11 +55,11 @@ DECLARE_GETTER(
   "Number of groups in the groupby")
 
 DECLARE_GETTER(
-  sizes,
+  group_sizes,
   "The array of group sizes")
 
 DECLARE_GETTER(
-  offsets,
+  group_offsets,
   "The cumulative array of group sizes in the groupby. The length of the\n"
   "array is `ngroups + 1`, and the first element is always 0.")
 

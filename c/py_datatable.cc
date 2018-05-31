@@ -140,6 +140,19 @@ PyObject* get_rowindex(obj* self) {
 }
 
 
+PyObject* get_groupby(obj* self) {
+  Groupby& gb = self->ref->groupby;
+  return gb.ngroups()? pygroupby::wrap(gb) : none();
+}
+
+
+int set_groupby(obj* self, PyObject* value) {
+  Groupby* gb = pygroupby::unwrap(value);
+  self->ref->replace_groupby(gb? *gb : Groupby());
+  return 0;
+}
+
+
 PyObject* get_datatable_ptr(obj* self) {
   return PyLong_FromLongLong((long long int)self->ref);
 }
@@ -594,6 +607,7 @@ static PyGetSetDef datatable_getseters[] = {
   GETTER(stypes),
   GETTER(isview),
   GETTER(rowindex),
+  GETSET(groupby),
   GETTER(rowindex_type),
   GETTER(datatable_ptr),
   GETTER(alloc_size),
