@@ -7,7 +7,7 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean
+from datatable import f, mean, min, max
 
 
 
@@ -117,6 +117,14 @@ def test_groups1():
     f2 = f0[:, mean(f.B), "A"]
     assert f2.stypes == f1.stypes
     assert f2.topython() == f1.topython()
+
+
+def test_groups_multiple():
+    f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
+                   "size": [5, 2, 7, 13, 0]})
+    f1 = f0[:, [min(f.size), max(f.size)], "color"]
+    assert f1.internal.check()
+    assert f1.topython() == [[2, 0, 5], [2, 7, 13]]
 
 
 

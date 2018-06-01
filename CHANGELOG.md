@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - when fread extracts data from archives into memory, it will now display
   the size of the extracted data in verbose mode.
 - syntax `DT[i, j, by]` is now supported.
+- multiple reduction operators can now be performed at once.
 
 #### Fixed
 - fread will no longer emit an error if there is an NA string in the header.
