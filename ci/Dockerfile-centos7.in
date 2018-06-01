@@ -10,9 +10,18 @@ RUN \
         ncurses-devel \
         zlib-devel \
         wget \
-        bzip2 && \
-    wget -q https://repo.continuum.io/miniconda/Miniconda3-4.3.27-Linux-ARCH_SUBST.sh && \
-    bash Miniconda3-4.3.27-Linux-ARCH_SUBST.sh -b -p /opt/h2oai/dai/python && \
+        bzip2
+
+RUN \
+    mkdir -p /opt/h2oai/dai
+
+RUN \
+    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-python/build-python-2/ARCH_SUBST-centos7DEBUG_SUBST/python.tar && \
+    tar xvf python.tar && \
+    mv python /opt/h2oai/dai && \
+    rm -f python.tar
+
+RUN \
     wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps-llvm/1.0-master-21/ARCH_SUBST-centos7/llvm.tar.bz2 && \
     tar xvf llvm.tar.bz2 && \
     cp -r llvm/* /opt/h2oai/dai/ && \
@@ -20,30 +29,12 @@ RUN \
 
 ENV LLVM4=/opt/h2oai/dai
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
+ENV LD_LIBRARY_PATH=/opt/h2oai/dai/python/lib:$LD_LIBRARY_PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV PATH=$LLVM4/bin:$PATH
 ENV PANDAS_VERSION=0.20.0
 
-RUN pip install llvmlite==0.20.0 wheel virtualenv && \
-    \
-    conda create -n datatable-py35-with-pandas python=3.5 && \
-    . activate datatable-py35-with-pandas && \
-    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
-    . deactivate && \
-    \
-    conda create -n datatable-py36-with-pandas python=3.6 && \
-    . activate datatable-py36-with-pandas && \
-    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
-    . deactivate && \
-    \
-    conda create -n datatable-py36-with-numpy python=3.6 && \
-    . activate datatable-py36-with-numpy && \
-    pip install --no-cache-dir numpy && \
-    . deactivate && \
-    \
-    conda create -n datatable-py36 python=3.6 && \
-    \
-    chmod -R a+w /opt/h2oai/dai/python/envs
+RUN pip install llvmlite==0.20.0 wheel virtualenv
 
 RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
 
