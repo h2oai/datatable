@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fread will detect feather file and issue an appropriate error message.
 - when fread extracts data from archives into memory, it will now display
   the size of the extracted data in verbose mode.
+- syntax `DT[i, j, by]` is now supported.
 
 #### Fixed
 - fread will no longer emit an error if there is an NA string in the header.
