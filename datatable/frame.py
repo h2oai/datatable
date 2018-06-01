@@ -511,16 +511,16 @@ class Frame(object):
             df[::-1, :]  # all rows of the Frame in reverse order
         etc.
         """
-        rows, cols = resolve_selector(item)
-        return make_datatable(self, rows, cols)
+        rows, cols, grby = resolve_selector(item)
+        return make_datatable(self, rows, cols, grby)
 
 
     def __setitem__(self, item, value):
         """
         Update values in Frame, in-place.
         """
-        rows, cols = resolve_selector(item)
-        return make_datatable(self, rows, cols, mode="update",
+        rows, cols, grby = resolve_selector(item)
+        return make_datatable(self, rows, cols, grby, mode="update",
                               replacement=value)
 
 
@@ -535,7 +535,7 @@ class Frame(object):
             del df["col5":"col9"]
             del df[(i for i in range(df.ncols) if i % 3 <= 1)]
         """
-        drows, dcols = resolve_selector(item)
+        drows, dcols, grby = resolve_selector(item)
         return make_datatable(self, drows, dcols, mode="delete")
 
 

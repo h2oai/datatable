@@ -106,13 +106,16 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
 
 def resolve_selector(item):
     rows = None
+    grby = None
     if isinstance(item, tuple):
         if len(item) == 1:
             cols = item[0]
         elif len(item) == 2:
             rows, cols = item
+        elif len(item) == 3:
+            rows, cols, grby = item
         else:
             raise TValueError("Selector %r is not supported" % (item, ))
     else:
         cols = item
-    return (rows, cols)
+    return (rows, cols, grby)

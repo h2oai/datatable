@@ -114,6 +114,9 @@ def test_groups1():
     f1 = f0(select=mean(f.B), groupby=f.A)
     assert f1.stypes == (dt.float64,)
     assert f1.topython() == [[3.8, 2.0, 5.0]]
+    f2 = f0[:, mean(f.B), "A"]
+    assert f2.stypes == f1.stypes
+    assert f2.topython() == f1.topython()
 
 
 
