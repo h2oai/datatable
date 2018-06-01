@@ -143,9 +143,10 @@ class GenericReader(object):
             self.sep = args.pop("separator")
         if "progress_fn" in args:
             progress = args.pop("progress_fn")
-            if not callable(progress):
+            if progress is None or callable(progress):
+                self._progress = progress
+            else:
                 raise TTypeError("`progress_fn` argument should be a function")
-            self._progress = progress
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
