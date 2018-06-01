@@ -30,7 +30,7 @@ class SingleColumnSortNode(SortNode):
 
     def make_rowindex(self):
         _dt = self.engine.dt.internal
-        rowindex = _dt.sort(self._colidx)
+        rowindex = _dt.sort(self._colidx)[0]
         return rowindex
 
 

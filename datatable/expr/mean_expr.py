@@ -35,7 +35,7 @@ class MeanReducer(BaseExpr):
     def evaluate_eager(self, ee):
         col = self.expr.evaluate_eager(ee)
         opcode = reduce_opcodes["mean"]
-        return core.expr_reduceop(opcode, col)
+        return core.expr_reduceop(opcode, col, ee.groupby)
 
 
     def __str__(self):

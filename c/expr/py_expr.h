@@ -9,6 +9,7 @@
 #define dt_EXPR_PY_EXPR_h
 #include "py_utils.h"
 #include "column.h"
+#include "groupby.h"
 
 
 DECLARE_FUNCTION(
@@ -32,8 +33,9 @@ DECLARE_FUNCTION(
 
 DECLARE_FUNCTION(
   expr_reduceop,
-  "expr_reduceop(op, col)\n\n"
-  "Compute a reduction over the provided column.\n",
+  "expr_reduceop(op, col, groupby)\n\n"
+  "Compute a reduction over the provided column, using the provided Groupby\n"
+  "object.\n",
   dt_EXPR_PY_EXPR_CC)
 
 DECLARE_FUNCTION(
@@ -51,7 +53,7 @@ typedef void (*gmapperfn)(const int32_t* groups, int32_t grp, void** params);
 
 Column* unaryop(int opcode, Column* arg);
 Column* binaryop(int opcode, Column* lhs, Column* rhs);
-Column* reduceop(int opcode, Column* arg);
+Column* reduceop(int opcode, Column* arg, const Groupby& groupby);
 
 };
 

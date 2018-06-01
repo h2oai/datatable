@@ -15,6 +15,7 @@
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datawindow.h"
+#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
@@ -136,6 +137,19 @@ PyObject* get_rowindex_type(obj* self) {
 PyObject* get_rowindex(obj* self) {
   RowIndex& ri = self->ref->rowindex;
   return ri.isabsent()? none() : pyrowindex::wrap(ri);
+}
+
+
+PyObject* get_groupby(obj* self) {
+  Groupby& gb = self->ref->groupby;
+  return gb.ngroups()? pygroupby::wrap(gb) : none();
+}
+
+
+int set_groupby(obj* self, PyObject* value) {
+  Groupby* gb = pygroupby::unwrap(value);
+  self->ref->replace_groupby(gb? *gb : Groupby());
+  return 0;
 }
 
 
@@ -461,8 +475,11 @@ PyObject* sort(obj* self, PyObject* args) {
 
   arr32_t cols(1);
   cols[0] = idx;
-  RowIndex ri = dt->sortby(cols, make_groups);
-  return pyrowindex::wrap(ri);
+  Groupby grpby;
+  RowIndex ri = dt->sortby(cols, make_groups? &grpby : nullptr);
+  // return pyrowindex::wrap(ri);
+  return Py_BuildValue("NN", pyrowindex::wrap(ri),
+                             make_groups? pygroupby::wrap(grpby) : none());
 }
 
 
@@ -590,6 +607,7 @@ static PyGetSetDef datatable_getseters[] = {
   GETTER(stypes),
   GETTER(isview),
   GETTER(rowindex),
+  GETSET(groupby),
   GETTER(rowindex_type),
   GETTER(datatable_ptr),
   GETTER(alloc_size),

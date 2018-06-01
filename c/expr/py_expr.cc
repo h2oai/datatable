@@ -66,13 +66,21 @@ PyObject* expr_column(PyObject*, PyObject* args)
 PyObject* expr_reduceop(PyObject*, PyObject* args)
 {
   int opcode;
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "iO:expr_reduceop", &opcode, &arg1))
+  PyObject* arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "iOO:expr_reduceop", &opcode, &arg1, &arg2))
     return nullptr;
   PyObj pyarg1(arg1);
+  PyObj pyarg2(arg2);
 
   Column* col = pyarg1.as_column();
-  Column* res = expr::reduceop(opcode, col);
+  Groupby* grpby = pyarg2.as_groupby();
+  Column* res = nullptr;
+  if (grpby) {
+    res = expr::reduceop(opcode, col, *grpby);
+  } else {
+    Groupby gb = Groupby::single_group(col->nrows);
+    res = expr::reduceop(opcode, col, gb);
+  }
   return pycolumn::from_column(res, nullptr, 0);
 }
 

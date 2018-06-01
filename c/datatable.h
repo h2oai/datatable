@@ -55,6 +55,7 @@ class DataTable {
     int64_t  nrows;
     int64_t  ncols;
     RowIndex rowindex;
+    Groupby  groupby;
     Column** columns;
 
   public:
@@ -64,6 +65,7 @@ class DataTable {
     void resize_rows(int64_t n);
     void apply_na_mask(DataTable* mask);
     void replace_rowindex(const RowIndex& newri);
+    void replace_groupby(const Groupby& newgb);
     void reify();
     void rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
@@ -78,7 +80,7 @@ class DataTable {
      * If `make_groups` is true, then in addition to sorting, the grouping
      * information will be computed and stored with the RowIndex.
      */
-    RowIndex sortby(const arr32_t& colindices, bool make_groups) const;
+    RowIndex sortby(const arr32_t& colindices, Groupby* out_grps) const;
 
     DataTable* min_datatable() const;
     DataTable* max_datatable() const;

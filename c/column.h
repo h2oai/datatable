@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <Python.h>
+#include "groupby.h"
 #include "memrange.h"     // MemoryRange
 #include "py_types.h"
 #include "python/list.h"
@@ -108,7 +109,8 @@ public:
   const RowIndex& rowindex() const { return ri; }
   virtual int64_t data_nrows() const = 0;
   size_t memory_footprint() const;
-  RowIndex sort(bool make_groups) const;
+
+  RowIndex sort(Groupby* out_groups) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with

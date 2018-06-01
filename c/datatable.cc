@@ -104,6 +104,16 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 }
 
 
+void DataTable::replace_groupby(const Groupby& newgb) {
+  int32_t last_offset = newgb.offsets_r()[newgb.ngroups()];
+  if (last_offset != nrows) {
+    throw ValueError() << "Cannot apply Groupby of " << last_offset << " rows "
+      "to a Frame with " << nrows << " rows";
+  }
+  groupby = newgb;
+}
+
+
 
 /**
  * Free memory occupied by the :class:`DataTable` object. This function should
@@ -164,7 +174,7 @@ void DataTable::reify() {
   for (int64_t i = 0; i < ncols; ++i) {
     columns[i]->reify();
   }
-  rowindex.clear(true);
+  rowindex.clear();
 }
 
 

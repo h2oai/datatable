@@ -172,12 +172,12 @@ static gmapperfn resolve0(int opcode, SType stype) {
 // External API
 //------------------------------------------------------------------------------
 
-Column* reduceop(int opcode, Column* arg)
+Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
 {
   SType arg_type = arg->stype();
   SType res_type = opcode == OpCode::Min || opcode == OpCode::Max ||
                    arg_type == ST_REAL_F4 ? arg_type : ST_REAL_F8;
-  int32_t ngrps = static_cast<int32_t>(arg->rowindex().get_ngroups());
+  int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
   if (ngrps == 0) ngrps = 1;
 
   void* params[2];
@@ -192,7 +192,7 @@ Column* reduceop(int opcode, Column* arg)
   }
 
   int32_t _grps[2] = {0, static_cast<int32_t>(arg->nrows)};
-  const int32_t* grps = ngrps == 1? _grps : arg->rowindex().get_groups().data();
+  const int32_t* grps = ngrps == 1? _grps : groupby.offsets_r();
   for (int32_t g = 0; g < ngrps; ++g) {
     (*fn)(grps, g, params);
   }

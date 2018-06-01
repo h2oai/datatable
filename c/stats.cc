@@ -155,9 +155,10 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
 template <typename T, typename A>
 void NumericalStats<T, A>::compute_sorted_stats(const Column* col) {
   const T* coldata = static_cast<const T*>(col->data());
-  RowIndex ri = col->sort(true);
-  const arr32_t& groups = ri.get_groups();
-  size_t n_groups = ri.get_ngroups();
+  Groupby grpby;
+  RowIndex ri = col->sort(&grpby);
+  const int32_t* groups = grpby.offsets_r();
+  size_t n_groups = grpby.ngroups();
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if
   // we did not yet compute the NA count for the column, we can do so now by
@@ -379,9 +380,10 @@ template <typename T>
 void StringStats<T>::compute_sorted_stats(const Column* col) {
   const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
   const T* offsets = scol->offsets();
-  RowIndex ri = col->sort(true);
-  const arr32_t& groups = ri.get_groups();
-  size_t n_groups = ri.get_ngroups();
+  Groupby grpby;
+  RowIndex ri = col->sort(&grpby);
+  const int32_t* groups = grpby.offsets_r();
+  size_t n_groups = grpby.ngroups();
 
   if (!_computed.test(Stat::NaCount)) {
     T off0 = offsets[ri.nth(0)];

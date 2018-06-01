@@ -88,16 +88,9 @@ RowIndex RowIndex::from_column(Column* col) {
 // API
 //==============================================================================
 
-void RowIndex::clear(bool keep_groups) {
-  if (keep_groups && impl && impl->groups) {
-    RowIndexImpl* new_impl = new SliceRowIndexImpl(0, impl->length, 1);
-    swap(new_impl->groups, impl->groups);
-    impl->release();
-    impl = new_impl;
-  } else {
-    if (impl) impl->release();
-    impl = nullptr;
-  }
+void RowIndex::clear() {
+  if (impl) impl->release();
+  impl = nullptr;
 }
 
 
@@ -110,12 +103,6 @@ void RowIndex::shrink(int64_t nrows, int64_t ncols) {
     impl = impl->shrunk(nrows);
     xassert(impl->refcount == 1);
   }
-}
-
-
-size_t RowIndex::get_ngroups() const {
-  if (!impl || !impl->groups) return 0;
-  return impl->groups.size() - 1;
 }
 
 

@@ -297,7 +297,7 @@ void StringColumn<T>::reify() {
   new_strbuf.resize(new_strbuf_size);
   mbuf = std::move(new_mbuf);
   strbuf = std::move(new_strbuf);
-  ri.clear(true);
+  ri.clear();
 }
 
 
@@ -483,7 +483,7 @@ void StringColumn<T>::fill_na() {
   for (int64_t i = -1; i < nrows; ++i) {
     off_data[i] = -1;
   }
-  ri.clear(false);
+  ri.clear();
 }
 
 
@@ -584,8 +584,8 @@ bool StringColumn<T>::verify_integrity(
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
-  const unsigned char *cdata = (unsigned char*) strdata();
-  const T *str_offsets = offsets();
+  const uint8_t* cdata = reinterpret_cast<const uint8_t*>(strdata());
+  const T* str_offsets = offsets();
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != -1) {

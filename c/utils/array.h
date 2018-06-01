@@ -9,8 +9,8 @@
 #define dt_UTILS_ARRAY_h
 #include <algorithm>   // std::swap
 #include <cstdlib>     // std::realloc, std::free
+#include "memrange.h"
 #include "utils/exceptions.h"
-
 
 namespace dt
 {
@@ -72,6 +72,14 @@ template <typename T> class array
       res.x = reinterpret_cast<S*>(x);
       x = nullptr;
       return res;
+    }
+
+    MemoryRange to_memoryrange() {
+      void* ptr = x;
+      size_t size = sizeof(T) * n;
+      x = nullptr;
+      n = 0;
+      return MemoryRange(size, ptr, /* own = */ true);
     }
 
     // Standard operators

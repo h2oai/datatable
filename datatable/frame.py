@@ -606,7 +606,7 @@ class Frame(object):
         remains unmodified.
         """
         idx = self.colindex(by)
-        ri = self._dt.sort(idx)
+        ri = self._dt.sort(idx)[0]
         cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
