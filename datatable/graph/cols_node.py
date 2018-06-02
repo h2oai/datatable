@@ -200,8 +200,10 @@ class MixedCSNode(ColumnSetNode):
                     else:
                         n_reduce_cols += elem.is_reduce_expr(ee)
                 expand_dataset = (n_reduce_cols < ncols)
-                columns = [None] * ncols
-                for i, elem in enumerate(self._elems):
+                columns = ee.groupby_cols + self._elems
+                self._names = ([ee.dt.names[i] for i in ee.groupby_cols] +
+                               self._names)
+                for i, elem in enumerate(columns):
                     if isinstance(elem, int):
                         col = core.expr_column(_dt, elem, _ri)
                         if not expand_dataset:

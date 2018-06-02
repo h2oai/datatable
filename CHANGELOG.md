@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - multiple reduction operators can now be performed at once.
 - in groupby, reduction columns can now be combined with regular or computed
   columns.
+- during grouping, group keys are now added automatically to the select list.
 
 #### Fixed
 - fread will no longer emit an error if there is an NA string in the header.
