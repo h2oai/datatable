@@ -19,6 +19,7 @@ enum OpCode {
   Min   = 2,
   Max   = 3,
   Stdev = 4,
+  First = 5,
 };
 
 template<typename T>
@@ -27,6 +28,26 @@ constexpr T infinity() {
          ? std::numeric_limits<T>::infinity()
          : std::numeric_limits<T>::max();
 }
+
+
+//------------------------------------------------------------------------------
+// "First" reducer
+//------------------------------------------------------------------------------
+
+static Column* reduce_first(Column* arg, const Groupby& groupby) {
+  if (arg->nrows == 0) {
+    return Column::new_data_column(arg->stype(), 0);
+  }
+  size_t ngrps = groupby.ngroups();
+  arr32_t indices(ngrps);
+  // TODO: avoid copy (by allowing RowIndex to be created from a MemoryRange)
+  std::memcpy(indices.data(), groupby.offsets_r(), ngrps * sizeof(int32_t));
+  RowIndex ri = RowIndex::from_array32(std::move(indices), true);
+  Column* res = arg->shallowcopy(ri);
+  res->reify();
+  return res;
+}
+
 
 
 
@@ -174,6 +195,9 @@ static gmapperfn resolve0(int opcode, SType stype) {
 
 Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
 {
+  if (opcode == OpCode::First) {
+    return reduce_first(arg, groupby);
+  }
   SType arg_type = arg->stype();
   SType res_type = opcode == OpCode::Min || opcode == OpCode::Max ||
                    arg_type == ST_REAL_F4 ? arg_type : ST_REAL_F8;

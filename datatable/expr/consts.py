@@ -132,4 +132,5 @@ reduce_opcodes = {
     "min": 2,
     "max": 3,
     "stdev": 4,
+    "first": 5,
 }

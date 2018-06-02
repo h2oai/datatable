@@ -25,6 +25,9 @@ class Isna(BaseExpr):
         self._arg.resolve()
         self._stype = stype.bool8
 
+    def is_reduce_expr(self, ee):
+        return self._arg.is_reduce_expr(ee)
+
     def evaluate_eager(self, ee):
         arg = self._arg.evaluate_eager(ee)
         opcode = unary_op_codes["isna"]

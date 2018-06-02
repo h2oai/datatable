@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   the size of the extracted data in verbose mode.
 - syntax `DT[i, j, by]` is now supported.
 - multiple reduction operators can now be performed at once.
+- in groupby, reduction columns can now be combined with regular or computed
+  columns.
 
 #### Fixed
 - fread will no longer emit an error if there is an NA string in the header.

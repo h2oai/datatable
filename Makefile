@@ -362,7 +362,7 @@ $(BUILDDIR)/encodings.h: c/encodings.h
 	@echo • Refreshing c/encodings.h
 	@cp c/encodings.h $@
 
-$(BUILDDIR)/groupby.h: c/groupby.h $(BUILDDIR)/memrange.h
+$(BUILDDIR)/groupby.h: c/groupby.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h
 	@echo • Refreshing c/groupby.h
 	@cp c/groupby.h $@
 

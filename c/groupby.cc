@@ -43,3 +43,24 @@ const int32_t* Groupby::offsets_r() const {
 size_t Groupby::ngroups() const {
   return n;
 }
+
+
+const RowIndex& Groupby::ungroup_rowindex() {
+  if (!ungroup_ri) compute_ungroup_rowindex();
+  return ungroup_ri;
+}
+
+
+void Groupby::compute_ungroup_rowindex() {
+  const int32_t* offs = offsets_r();
+  int32_t nrows = offs[n];
+  arr32_t indices(static_cast<size_t>(nrows));
+  int32_t* data = indices.data();
+  int32_t j = 0;
+  for (size_t i = 0; i < n; ++i) {
+    int32_t upto = offs[i + 1];
+    int32_t ii = static_cast<int32_t>(i);
+    while (j < upto) data[j++] = ii;
+  }
+  ungroup_ri = RowIndex::from_array32(std::move(indices), /* sorted = */ true);
+}

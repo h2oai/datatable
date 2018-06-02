@@ -15,12 +15,13 @@ from .llvm import llvm
 #===============================================================================
 
 class EvaluationEngine:
-    __slots__ = ["dt", "rowindex", "groupby", "columns"]
+    __slots__ = ["dt", "rowindex", "groupby", "groupby_cols", "columns"]
 
     def __init__(self, dt):
         self.dt = dt
         self.rowindex = None
         self.groupby = None
+        self.groupby_cols = None
         self.columns = None
 
     def is_compiled(self):
