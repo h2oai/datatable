@@ -14,6 +14,7 @@ from .isna_expr import isna
 from .literal_expr import LiteralExpr
 from .mean_expr import MeanReducer, mean
 from .minmax_expr import MinMaxReducer, min, max
+from .reduce_expr import ReduceExpr, sum
 from .relop_expr import RelationalOpExpr
 from .sd_expr import StdevReducer, sd
 from .unary_expr import UnaryOpExpr
@@ -23,6 +24,7 @@ __all__ = (
     "mean",
     "min",
     "sd",
+    "sum",
     "isna",
     "BinaryOpExpr",
     "CastExpr",
@@ -33,6 +35,7 @@ __all__ = (
     "LiteralExpr",
     "MeanReducer",
     "MinMaxReducer",
+    "ReduceExpr",
     "RelationalOpExpr",
     "StdevReducer",
     "UnaryOpExpr",

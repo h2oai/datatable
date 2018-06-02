@@ -20,6 +20,7 @@ enum OpCode {
   Max   = 3,
   Stdev = 4,
   First = 5,
+  Sum   = 6,
 };
 
 template<typename T>
@@ -48,6 +49,29 @@ static Column* reduce_first(Column* arg, const Groupby& groupby) {
   return res;
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Sum calculation
+//------------------------------------------------------------------------------
+
+template<typename IT, typename OT>
+static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
+  Column* col0 = static_cast<Column*>(params[0]);
+  Column* col1 = static_cast<Column*>(params[1]);
+  const IT* inputs = static_cast<const IT*>(col0->data());
+  OT* outputs = static_cast<OT*>(col1->data_w());
+  OT sum = 0;
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+  for (int32_t i = row0; i < row1; ++i) {
+    IT x = inputs[i];
+    if (ISNA<IT>(x)) continue;
+    sum += static_cast<OT>(x);
+  }
+  outputs[grp] = sum;
+}
 
 
 
@@ -169,12 +193,25 @@ static gmapperfn resolve1(int opcode) {
     case OpCode::Min:   return min_skipna<T1>;
     case OpCode::Max:   return max_skipna<T1>;
     case OpCode::Stdev: return stdev_skipna<T1, T2>;
+    case OpCode::Sum:   return sum_skipna<T1, T2>;
     default:            return nullptr;
   }
 }
 
 
 static gmapperfn resolve0(int opcode, SType stype) {
+  if (opcode == OpCode::Sum) {
+    switch (stype) {
+      case ST_BOOLEAN_I1:
+      case ST_INTEGER_I1:  return sum_skipna<int8_t, int64_t>;
+      case ST_INTEGER_I2:  return sum_skipna<int16_t, int64_t>;
+      case ST_INTEGER_I4:  return sum_skipna<int32_t, int64_t>;
+      case ST_INTEGER_I8:  return sum_skipna<int64_t, int64_t>;
+      case ST_REAL_F4:     return sum_skipna<float, double>;
+      case ST_REAL_F8:     return sum_skipna<double, double>;
+      default:             return nullptr;
+    }
+  }
   switch (stype) {
     case ST_BOOLEAN_I1:
     case ST_INTEGER_I1:  return resolve1<int8_t, double>(opcode);
@@ -201,6 +238,13 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
   SType arg_type = arg->stype();
   SType res_type = opcode == OpCode::Min || opcode == OpCode::Max ||
                    arg_type == ST_REAL_F4 ? arg_type : ST_REAL_F8;
+  if (opcode == OpCode::Sum) {
+    if (arg_type == ST_REAL_F4 || arg_type == ST_REAL_F8) {
+      res_type = ST_REAL_F8;
+    } else {
+      res_type = ST_INTEGER_I8;
+    }
+  }
   int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
   if (ngrps == 0) ngrps = 1;
 
