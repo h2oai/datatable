@@ -9,7 +9,7 @@ from datatable.graph.dtproxy import f
 from .__version__ import version as __version__
 from .dt_append import rbind, cbind
 from .frame import Frame
-from .expr import mean, min, max, sd, isna
+from .expr import mean, min, max, sd, isna, sum
 from .fread import fread, GenericReader, FreadWarning
 from .nff import save, open
 from .options import options
@@ -24,7 +24,7 @@ except:
 
 
 __all__ = ("__version__", "__git_revision__",
-           "Frame", "max", "mean", "min", "open", "sd",
+           "Frame", "max", "mean", "min", "open", "sd", "sum",
            "isna", "fread", "GenericReader", "save", "stype", "ltype", "f",
            "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
            "DataTable", "options",

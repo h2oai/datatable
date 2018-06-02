@@ -7,7 +7,7 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max
+from datatable import f, mean, min, max, sum
 
 
 
@@ -135,6 +135,21 @@ def test_groups_autoexpand():
     assert f1.topython() == [["blue", "green", "green", "red", "red"],
                              [2.0, 3.5, 3.5, 9.0, 9.0],
                              [2, 7, 0, 5, 13]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# Test different reducers
+#-------------------------------------------------------------------------------
+
+def test_reduce_sum():
+    f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
+                   "size": [5, 2, 7, 13, -1]})
+    f1 = f0[:, sum(f.size), f.color]
+    assert f1.internal.check()
+    assert f1.topython() == [["blue", "green", "red"],
+                             [2, 6, 18]]
 
 
 
