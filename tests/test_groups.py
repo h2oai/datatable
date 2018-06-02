@@ -48,7 +48,7 @@ def test_groups_internal2():
 
 def test_groups_internal3():
     f0 = dt.Frame({"A": [1, 2, 1, 3, 2, 2, 2, 1, 3, 1], "B": range(10)})
-    f1 = f0(select=[f.A, "B", f.A + f.B], groupby="A")
+    f1 = f0(select=["B", f.A + f.B], groupby="A")
     assert f1.internal.check()
     assert f1.topython() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
                              [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
@@ -112,8 +112,8 @@ def test_groups1():
     f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
     f1 = f0(select=mean(f.B), groupby=f.A)
-    assert f1.stypes == (dt.float64,)
-    assert f1.topython() == [[3.8, 2.0, 5.0]]
+    assert f1.stypes == (dt.int8, dt.float64,)
+    assert f1.topython() == [[1, 2, 3], [3.8, 2.0, 5.0]]
     f2 = f0[:, mean(f.B), "A"]
     assert f2.stypes == f1.stypes
     assert f2.topython() == f1.topython()
@@ -124,13 +124,13 @@ def test_groups_multiple():
                    "size": [5, 2, 7, 13, 0]})
     f1 = f0[:, [min(f.size), max(f.size)], "color"]
     assert f1.internal.check()
-    assert f1.topython() == [[2, 0, 5], [2, 7, 13]]
+    assert f1.topython() == [["blue", "green", "red"], [2, 0, 5], [2, 7, 13]]
 
 
 def test_groups_autoexpand():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, 0]})
-    f1 = f0[:, [f.color, mean(f.size), "size"], f.color]
+    f1 = f0[:, [mean(f.size), "size"], f.color]
     assert f1.internal.check()
     assert f1.topython() == [["blue", "green", "green", "red", "red"],
                              [2.0, 3.5, 3.5, 9.0, 9.0],
