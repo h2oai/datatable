@@ -19,6 +19,7 @@ class SimpleGroupbyNode:
         rowindex, groupby = df.internal.sort(self._col, True)
         self._engine.rowindex = rowindex
         self._engine.groupby = groupby
+        self._engine.groupby_cols = [self._col]
 
 
 

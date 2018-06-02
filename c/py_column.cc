@@ -33,8 +33,7 @@ pycolumn::obj* from_column(Column* col, pydatatable::obj* pydt, int64_t idx)
 int unwrap(PyObject* object, Column** address) {
   if (!object) return 0;
   if (!PyObject_TypeCheck(object, &pycolumn::type)) {
-    PyErr_SetString(PyExc_TypeError, "Expected object of type Column");
-    return 0;
+    throw TypeError() << "Expected object of type Column";
   }
   *address = ((pycolumn::obj*)object)->ref;
   return 1;
@@ -143,6 +142,25 @@ PyObject* hexview(pycolumn::obj* self, PyObject*)
 }
 
 
+PyObject* ungroup(pycolumn::obj* self, PyObject* args)
+{
+  PyObject* arg1 = nullptr;
+  if (!PyArg_ParseTuple(args, "O:ungroup", &arg1)) return nullptr;
+  PyObj pygby(arg1);
+
+  Column* col = self->ref;
+  Groupby* groupby = pygby.as_groupby();
+  if (static_cast<size_t>(col->nrows) != groupby->ngroups()) {
+    throw ValueError() << "Cannot 'ungroup' a Column with " << col->nrows
+      << " rows using a Groupby with " << groupby->ngroups() << " groups";
+  }
+  const RowIndex& ungroup_ri = groupby->ungroup_rowindex();
+  Column* ucol = col->shallowcopy(ungroup_ri);
+  ucol->reify();
+  return from_column(ucol, nullptr, 0);
+}
+
+
 static void dealloc(pycolumn::obj* self)
 {
   delete self->ref;
@@ -173,6 +191,7 @@ static PyGetSetDef column_getseters[] = {
 static PyMethodDef column_methods[] = {
   METHODv(save_to_disk),
   METHOD0(hexview),
+  METHODv(ungroup),
   {nullptr, nullptr, 0, nullptr}
 };
 

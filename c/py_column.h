@@ -100,6 +100,13 @@ DECLARE_METHOD(
   "hexview()\n\n"
   "View column's internal data as hex bytes.\n")
 
+DECLARE_METHOD(
+  ungroup,
+  "ungroup(groupby)\n\n"
+  "Return this Column expanded with each row repeated as many times as there\n"
+  "are elements in the corresponding group of the `groupby`. The number of\n"
+  "rows in the current Column must be equal to the number of groups.\n")
+
 
 //---- Python API --------------------------------------------------------------
 
