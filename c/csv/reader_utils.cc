@@ -134,8 +134,9 @@ void GReaderColumn::init_nametypepytuple() {
   desc->n_in_sequence = 2;
   // Do not use PyStructSequence_NewType, because it is buggy
   // (see https://lists.gt.net/python/bugs/1320383)
-  NameTypePyTuple = new PyTypeObject;
-  PyStructSequence_InitType2(NameTypePyTuple, desc);
+  // The memory must also be cleared because https://bugs.python.org/issue33742
+  NameTypePyTuple = new PyTypeObject();
+  PyStructSequence_InitType(NameTypePyTuple, desc);
 
   // clean up
   delete[] fields;
