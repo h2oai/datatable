@@ -16,14 +16,14 @@ RUN \
     mkdir -p /opt/h2oai/dai
 
 RUN \
-    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-python/build-python-2/ARCH_SUBST-centos7DEBUG_SUBST/python.tar && \
-    tar xvf python.tar && \
+    wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-python/build-python-4/ARCH_SUBST-centos7DEBUG_SUBST/python.tar && \
+    tar xf python.tar && \
     mv python /opt/h2oai/dai && \
     rm -f python.tar
 
 RUN \
     wget -q https://s3.amazonaws.com/artifacts.h2o.ai/releases/ai/h2o/dai-thirdparty-deps-llvm/1.0-master-21/ARCH_SUBST-centos7/llvm.tar.bz2 && \
-    tar xvf llvm.tar.bz2 && \
+    tar xf llvm.tar.bz2 && \
     cp -r llvm/* /opt/h2oai/dai/ && \
     rm -rf llvm*
 
