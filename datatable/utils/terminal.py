@@ -19,6 +19,8 @@ class MyTerminal(blessed.Terminal):
     def __init__(self):
         super().__init__()
         self.override_width = 0
+        self.jupyter = None
+        self._check_ipython()
 
     @property
     def width(self):
@@ -32,6 +34,18 @@ class MyTerminal(blessed.Terminal):
         tt = blessed.Terminal(force_styling=None)
         tt.override_width = self.override_width
         self.__dict__, tt.__dict__ = tt.__dict__, self.__dict__
+
+    def _check_ipython(self):
+        try:
+            import IPython
+            import ipykernel
+            ipy = IPython.get_ipython()
+            if ipy and isinstance(ipy, ipykernel.zmqshell.ZMQInteractiveShell):
+                self._encoding = "UTF8"
+                self.jupyter = ipy
+        except:
+            pass
+
 
 
 # Save current locale settings

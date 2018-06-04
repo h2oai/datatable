@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   printing a sample of first 5 lines in verbose mode.
 - fixed wrong calculation of mean / standard deviation of line length in fread
   if the sample contained broken lines.
+- frame view will no longer get stuck in a Jupyter notebook.
 
 
 ### [v0.5.0](https://github.com/h2oai/datatable/compare/v0.5.0...v0.4.0) — 2018-05-25
