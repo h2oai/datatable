@@ -68,6 +68,8 @@ class DataFrameWidget(object):
         self._adjust_viewport()
 
         # Display state
+        if term.jupyter:
+            interactive = False
         self._n_displayed_lines = 0
         self._show_types = 0
         self._show_navbar = options.display.interactive_hint and interactive
