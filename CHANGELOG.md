@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   columns.
 - during grouping, group keys are now added automatically to the select list.
 - implement `sum()` reducer.
+- `==` operator now works for string columns too.
 
 #### Fixed
 - fread will no longer emit an error if there is an NA string in the header.

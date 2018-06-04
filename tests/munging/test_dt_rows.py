@@ -593,6 +593,24 @@ def test_rows_stdev():
     assert df1.topython() == [[4, 5, 6, 7, 8, 9]]
 
 
+def test_rows_strequal():
+    df0 = dt.Frame([["a", "bcd", "foo", None, "bee", "xia", "good"],
+                    ["a", "bcD", "fooo", None, None, "xia", "evil"]],
+                   names=["A", "B"])
+    df1 = df0(f.A == f.B, engine="eager")
+    df2 = df0(f.A != f.B, engine="eager")
+    df3 = df0(f.A == "foo", engine="eager")
+    df4 = df0("bcD" == f.B, engine="eager")
+    assert df1.internal.check()
+    assert df2.internal.check()
+    assert df1.topython() == [["a", None, "xia"]] * 2
+    assert df2.topython() == [["bcd", "foo", "bee", "good"],
+                              ["bcD", "fooo", None, "evil"]]
+    assert df3.topython() == [["foo"], ["fooo"]]
+    assert df4.topython() == [["bcd"], ["bcD"]]
+
+
+
 
 #-------------------------------------------------------------------------------
 # Selectors applied to view DataTables
