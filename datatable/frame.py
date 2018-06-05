@@ -981,7 +981,7 @@ options.register_option(
     "sort.max_chunk_length", xtype=int, default=1024, core=True)
 
 options.register_option(
-    "sort.max_radix_bits", xtype=int, default=8, core=True)
+    "sort.max_radix_bits", xtype=int, default=12, core=True)
 
 options.register_option(
     "sort.over_radix_bits", xtype=int, default=8, core=True)
