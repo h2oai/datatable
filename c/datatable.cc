@@ -31,10 +31,9 @@ DataTable::DataTable(Column** cols)
   nrows = cols[0]->nrows;
 
   for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
-    // TODO: restore, once Column also uses RowIndex
-    // if (rowindex != col->rowindex()) {
-    //   throw ValueError() << "Mismatched RowIndex in Column " << ncols;
-    // }
+    if (rowindex != col->rowindex()) {
+      throw ValueError() << "Mismatched RowIndex in Column " << ncols;
+    }
     if (nrows != col->nrows) {
       throw ValueError() << "Mismatched length in Column " << ncols << ": "
                          << "found " << col->nrows << ", expected " << nrows;

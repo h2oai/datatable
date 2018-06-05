@@ -592,7 +592,7 @@ def test_fread_skip_blank_lines_true():
     assert d0.topython() == [[1, 3], [2, 4]]
 
 
-@pytest.mark.xfail()
+@pytest.mark.skip("Issue #838")
 def test_fread_skip_blank_lines_false():
     inp = "A,B\n1,2\n  \n\n3,4\n"
     with pytest.warns(DatatableWarning) as ws:

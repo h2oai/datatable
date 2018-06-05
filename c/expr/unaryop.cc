@@ -135,6 +135,7 @@ static mapperfn resolve0(SType stype, int opcode) {
 Column* unaryop(int opcode, Column* arg)
 {
   if (opcode == OpCode::Plus) return arg->shallowcopy();
+  arg->reify();
 
   SType arg_type = arg->stype();
   SType res_type = arg_type;
