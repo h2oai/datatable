@@ -20,6 +20,8 @@
 namespace config {
   extern PyObject* logger;
 };
+extern double logger_timer;
+extern char logger_msg[];
 void log_call(const char* msg);
 
 
@@ -27,9 +29,13 @@ void log_call(const char* msg);
   decl {                                                                       \
     try {                                                                      \
       if (config::logger) {                                                    \
-        log_call("call: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "call %s", log_msg);                        \
+        log_call(logger_msg);                                                  \
+        logger_timer = wallclock();                                            \
         PyObject* res = call;                                                  \
-        log_call("done: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "done %s in %.3f ms",                       \
+                 log_msg, (wallclock() - logger_timer) * 1000.0);              \
+        log_call(logger_msg);                                                  \
         return res;                                                            \
       } else {                                                                 \
         return call;                                                           \
@@ -45,9 +51,13 @@ void log_call(const char* msg);
   decl {                                                                       \
     try {                                                                      \
       if (config::logger) {                                                    \
-        log_call("call: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "call %s", log_msg);                        \
+        log_call(logger_msg);                                                  \
+        logger_timer = wallclock();                                            \
         call;                                                                  \
-        log_call("done: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "done %s in %.3f ms",                       \
+                 log_msg, (wallclock() - logger_timer) * 1000.0);              \
+        log_call(logger_msg);                                                  \
       } else {                                                                 \
         call;                                                                  \
       }                                                                        \
@@ -61,9 +71,13 @@ void log_call(const char* msg);
   decl {                                                                       \
     try {                                                                      \
       if (config::logger) {                                                    \
-        log_call("call: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "call %s", log_msg);                        \
+        log_call(logger_msg);                                                  \
+        logger_timer = wallclock();                                            \
         int res = call;                                                        \
-        log_call("done: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "done %s in %.3f ms",                       \
+                 log_msg, (wallclock() - logger_timer) * 1000.0);              \
+        log_call(logger_msg);                                                  \
         return res;                                                            \
       } else {                                                                 \
         return call;                                                           \
