@@ -475,6 +475,8 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
 
 Column* binaryop(int opcode, Column* lhs, Column* rhs)
 {
+  lhs->reify();
+  rhs->reify();
   int64_t lhs_nrows = lhs->nrows;
   int64_t rhs_nrows = rhs->nrows;
   SType lhs_type = lhs->stype();
