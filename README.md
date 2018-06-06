@@ -68,10 +68,10 @@ pip install datatable
 On Linux you can install a binary distribution as
 ```
 # If you have Python 3.5
-pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.5.0/datatable-0.5.0-cp35-cp35m-linux_x86_64.whl
+pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.6.0/datatable-0.6.0-cp35-cp35m-linux_x86_64.whl
 
 # If you have Python 3.6
-pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.5.0/datatable-0.5.0-cp36-cp36m-linux_x86_64.whl
+pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.6.0/datatable-0.6.0-cp36-cp36m-linux_x86_64.whl
 ```
 
 On all other platforms a source distribution will be needed. For more information see [Build instructions](https://github.com/h2oai/datatable/wiki/Build-instructions).
