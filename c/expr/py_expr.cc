@@ -38,6 +38,7 @@ PyObject* expr_cast(PyObject*, PyObject* args)
   PyObj pyarg(arg1);
 
   Column* col = pyarg.as_column();
+  col->reify();
   Column* res = col->cast(static_cast<SType>(stype));
   return pycolumn::from_column(res, nullptr, 0);
 }
