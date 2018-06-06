@@ -8,7 +8,10 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.5.0)
+### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.6.0)
+
+
+### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
 #### Added
 - fread will detect feather file and issue an appropriate error message.
 - when fread extracts data from archives into memory, it will now display
