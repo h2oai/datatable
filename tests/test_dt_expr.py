@@ -194,3 +194,11 @@ def test_cast_to_str(src):
     assert dt1.stypes == (dt.str32,) * dt0.ncols
     assert dt2.stypes == (dt.str64,) * dt0.ncols
     assert dt1.topython()[0] == [to_str(x) for x in src]
+
+
+def test_cast_view():
+    df0 = dt.Frame({"A": [1, 2, 3]})
+    df1 = df0[::-1, :][:, dt.float32(f.A)]
+    assert df1.internal.check()
+    assert df1.stypes == (dt.float32,)
+    assert df1.topython() == [[3.0, 2.0, 1.0]]
