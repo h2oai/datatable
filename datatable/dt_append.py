@@ -11,7 +11,7 @@ from datatable.utils.typechecks import typed, Frame_t, TValueError
 def rbind(*frames, force=False, bynames=True):
     return _rbind(dt.Frame(), *frames, force=force, bynames=bynames)
 
-def cbind(self, *frames, force=False):
+def cbind(*frames, force=False):
     return _cbind(dt.Frame(), *frames, force=force)
 
 
