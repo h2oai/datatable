@@ -445,6 +445,28 @@ def test_fread_columns_list_bad3():
            in str(e)
 
 
+def test_fread_columns_list_bad4():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns=[stype.str32, None, stype.float64])
+    assert d0.names == ("A", "C")
+    assert d0.topython() == [["01", "002"], [3.14, 6.28]]
+    with pytest.raises(RuntimeError) as e:
+        dt.fread(src, columns=[str, float, float])
+    assert "Attempt to override column 2 \"B\" of inherent type 'Str32' " \
+           in str(e)
+    with pytest.raises(ValueError) as e:
+        dt.fread(src, columns=[str, str])
+    assert ("Input file contains 3 columns, whereas `columns` parameter "
+            "specifies only 2 columns" in str(e.value))
+
+
+def test_fread_columns_list_bad5():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    with pytest.raises(TypeError) as e:
+        dt.fread(src, columns=list(range(3)))
+    assert "Entry `columns[0]` has invalid type 'int'" in str(e.value)
+
+
 def test_fread_columns_set1():
     text = ("C1,C2,C3,C4\n"
             "1,3.3,7,\"Alice\"\n"
@@ -489,6 +511,40 @@ def test_fread_columns_dict3():
     assert d0.names == ("foo", "B")
     assert d0.ltypes == (ltype.real, ltype.str)
     assert d0.topython() == [[1.0], ["2"]]
+
+
+def test_fread_columns_dict4():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns={"C": str})
+    assert d0.names == ("A", "B", "C")
+    assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
+    assert d0.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d1 = dt.fread(src, columns={"C": str, "A": float})
+    assert d1.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d1.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d2 = dt.fread(src, columns={"C": str, "A": ltype.real})
+    assert d2.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d2.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+
+
+def test_fread_columns_dict_reverse():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns={str: "C", ltype.real: ["A"]})
+    assert d0.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d0.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d1 = dt.fread(src, columns={str: slice(2, None), ltype.real: ["A"]})
+    assert d1.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d1.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d2 = dt.fread(src, columns={str: slice(None)})
+    assert d2.ltypes == (ltype.str, ltype.str, ltype.str)
+    assert d2.topython() == [["01", "002"], ["foo", "bar"], ["3.140", "6.28000"]]
+
+
+def test_fread_columns_type():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns=str)
+    assert d0.ltypes == (ltype.str, ltype.str, ltype.str)
+    assert d0.topython() == [["01", "002"], ["foo", "bar"], ["3.140", "6.28000"]]
 
 
 def test_fread_columns_fn1():
