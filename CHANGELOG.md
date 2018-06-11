@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Fixed
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.
 - Fix bug with applying a cast expression to a view column.
+- Fix occasional memory errors caused by a lack of available mmap handles.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
