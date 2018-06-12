@@ -106,9 +106,9 @@ PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
   PyObject *res = PyTuple_New(SIZE);
   if (!res) return nullptr;
 
-  ADD(_dt_malloc);
-  ADD(_dt_realloc);
-  ADD(_dt_free);
+  ADD(dt::malloc<void>);
+  ADD(dt::realloc<void>);
+  ADD(dt::free);
   ADD(datatable_get_column_data);
   ADD(datatable_unpack_slicerowindex);
   ADD(datatable_unpack_arrayrowindex);

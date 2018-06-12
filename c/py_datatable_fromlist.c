@@ -40,8 +40,8 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   }
 
   size_t ncols = srcs.size();
-  Column** cols = nullptr;
-  dtcalloc(cols, Column*, ncols + 1);
+  Column** cols = static_cast<Column**>(std::calloc(ncols + 1, sizeof(Column*)));
+  if (!cols) throw MemoryError();
 
   // Check validity of the data and construct the output columnset.
   size_t nrows = 0;

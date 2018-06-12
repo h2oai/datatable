@@ -70,19 +70,18 @@ PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
   if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
     return nullptr;
 
-  int n = static_cast<int>(PyList_Size(list));
-  Column** columns = nullptr;
-  dtmalloc(columns, Column*, n + 1);
+  int64_t n = static_cast<int64_t>(PyList_Size(list));
+  Column** columns = dt::amalloc<Column*>(n + 1);
   columns[n] = nullptr;
 
-  for (int i = 0; i < n; ++i) {
+  for (int64_t i = 0; i < n; ++i) {
     PyObject* item = PyList_GET_ITEM(list, i);
     if (!PyObject_CheckBuffer(item)) {
       throw ValueError() << "Element " << i << " in the list of sources "
                          << "does not support PyBuffers (PEP-3118) interface";
     }
-    Py_buffer* view;
-    dtcalloc(view, Py_buffer, 1);
+    Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
+    if (!view) throw MemoryError();
 
     // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
     // the `view->format` field should be filled; and PyBUF_ND will fill the
@@ -517,10 +516,8 @@ static int getbuffer_DataTable(
 
     if (REQ_INDIRECT(flags)) {
         size_t elemsize = stype_info[stype].elemsize;
-        Py_ssize_t *info = nullptr;
-        dtmalloc_g(info, Py_ssize_t, 6);
-        void **buf = nullptr;
-        dtmalloc_g(buf, void*, ncols);
+        Py_ssize_t *info = dt::amalloc<Py_ssize_t>(6);
+        void** buf = dt::amalloc<void*>(ncols);
         for (int i = 0; i < ncols; i++) {
             dt->columns[i]->incref();
             buf[i] = dt->columns[i]->data;

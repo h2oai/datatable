@@ -43,13 +43,13 @@ DataTable::DataTable(Column** cols)
 
 
 
-DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
+DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
 {
   if (n == 0) return this;
   qsort(cols_to_remove, (size_t)n, sizeof(int), _compare_ints);
   int j = 0;
   int next_col_to_remove = cols_to_remove[0];
-  int k = 0;
+  int64_t k = 0;
   for (int i = 0; i < ncols; ++i) {
     if (i == next_col_to_remove) {
       delete columns[i];

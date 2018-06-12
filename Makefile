@@ -299,6 +299,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	stats.o                   \
 	types.o                   \
 	utils.o                   \
+	utils/alloc.o             \
 	utils/exceptions.o        \
 	utils/file.o              \
 	utils/pyobj.o             \
@@ -434,7 +435,7 @@ $(BUILDDIR)/utils.h: c/utils.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils.h
 	@cp c/utils.h $@
 
-$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/writebuf.h
 	@cp c/writebuf.h $@
 
@@ -505,7 +506,11 @@ $(BUILDDIR)/python/string.h: c/python/string.h $(BUILDDIR)/utils/pyobj.h
 	@cp c/python/string.h $@
 
 
-$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/utils/alloc.h: c/utils/alloc.h
+	@echo • Refreshing c/utils/alloc.h
+	@cp c/utils/alloc.h $@
+
+$(BUILDDIR)/utils/array.h: c/utils/array.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils/array.h
 	@cp c/utils/array.h $@
 
@@ -563,7 +568,7 @@ $(BUILDDIR)/column_int.o : c/column_int.cc $(BUILDDIR)/column.h $(BUILDDIR)/csv/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils.h
+$(BUILDDIR)/column_pyobj.o : c/column_pyobj.cc $(BUILDDIR)/column.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -575,7 +580,7 @@ $(BUILDDIR)/column_string.o : c/column_string.cc $(BUILDDIR)/column.h $(BUILDDIR
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/columnset.o : c/columnset.cc $(BUILDDIR)/columnset.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -663,7 +668,7 @@ $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
+$(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/datatable_check.h $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -747,7 +752,7 @@ $(BUILDDIR)/rowindex_slice.o : c/rowindex_slice.cc $(BUILDDIR)/datatable_check.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/options.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
+$(BUILDDIR)/sort.o : c/sort.cc $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/options.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/sort.h $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -771,6 +776,10 @@ $(BUILDDIR)/utils.o : c/utils.c $(BUILDDIR)/utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
+$(BUILDDIR)/utils/alloc.o : c/utils/alloc.cc $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils/exceptions.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
 $(BUILDDIR)/utils/exceptions.o : c/utils/exceptions.cc $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
@@ -783,6 +792,6 @@ $(BUILDDIR)/utils/pyobj.o : c/utils/pyobj.cc $(BUILDDIR)/py_column.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/writebuf.o : c/writebuf.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/omp.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@

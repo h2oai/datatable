@@ -134,11 +134,11 @@ static PyObject* stype_object_pyptr_tostring(Column* col, int64_t row)
   return x;
 }
 
-static PyObject* stype_notimpl(Column* col, UNUSED(int64_t row))
+static PyObject* stype_notimpl(Column* col, int64_t)
 {
-    PyErr_Format(PyExc_NotImplementedError,
-                 "Cannot stringify column of type %d", col->stype());
-    return nullptr;
+  PyErr_Format(PyExc_NotImplementedError,
+               "Cannot stringify column of type %d", col->stype());
+  return nullptr;
 }
 
 

@@ -61,14 +61,14 @@ class DataTable {
   public:
     DataTable(Column**);
     ~DataTable();
-    DataTable* delete_columns(int*, int);
+    DataTable* delete_columns(int*, int64_t);
     void resize_rows(int64_t n);
     void apply_na_mask(DataTable* mask);
     void replace_rowindex(const RowIndex& newri);
     void replace_groupby(const Groupby& newgb);
     void reify();
-    void rbind(DataTable**, int**, int, int64_t);
-    DataTable* cbind(DataTable**, int);
+    void rbind(DataTable**, int**, int64_t, int64_t);
+    DataTable* cbind(DataTable**, int64_t);
     size_t memory_footprint();
 
     /**
