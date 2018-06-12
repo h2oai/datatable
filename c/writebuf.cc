@@ -119,90 +119,43 @@ void FileWritableBuffer::finalize()
 //==============================================================================
 
 ThreadsafeWritableBuffer::ThreadsafeWritableBuffer()
-  : buffer(nullptr), allocsize(0), nlocks(0) {}
+  : buffer(nullptr), allocsize(0) {}
 
 
 ThreadsafeWritableBuffer::~ThreadsafeWritableBuffer() {}
 
 
-size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*)
-{
+size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*) {
   size_t pos = bytes_written;
-  bytes_written += n;
+  size_t nbw = pos + n;
 
-  // In the rare case when we need to reallocate the underlying buffer (because
-  // more space is needed than originally anticipated), this will block until
-  // all other threads finish writing their chunks, and only then proceed with
-  // the reallocation. Otherwise, reallocating the memory when some other thread
-  // is writing into it leads to very-hard-to-debug crashes...
-  while (bytes_written > allocsize) {
-    size_t newsize = bytes_written * 2;
-    int lockv = 1;
-    // (1) wait until no other process is writing into the buffer
-    while (lockv) {
-      #pragma omp atomic read
-      lockv = nlocks;
-    }
-    // (2) make `numuses` negative, indicating that no other thread may
-    //     initiate a memcopy operation for now.
-    #pragma omp atomic capture
-    { lockv = nlocks; nlocks -= 1000000; }
-    // (3) The only case when `lockv != 0` is if another thread started memcopy
-    //     operation in-between steps (1) and (2) above. In that case we restore
-    //     the previous value of `numuses` and repeat the loop.
-    //     Otherwise (and it is the most common case) we reallocate the buffer
-    //     and only then restore the `numuses` variable.
-    if (lockv == 0) {
-      this->realloc(newsize);
-    }
-    #pragma omp atomic update
-    nlocks += 1000000;
+  if (nbw > allocsize) {
+    dt::shared_lock lock(shmutex, /* exclusive = */ true);
+    size_t newsize = nbw * 2;
+    this->realloc(newsize);
+    xassert(allocsize >= newsize);
   }
 
+  bytes_written = nbw;
   return pos;
 }
 
 
-void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src)
-{
-  xassert(pos + n <= allocsize);
-  bool done = false;
-  while (!done) {
-    int lockv;
-    #pragma omp atomic capture
-    lockv = nlocks++;
-    if (lockv >= 0) {
-      void* target = static_cast<void*>(static_cast<char*>(buffer) + pos);
-      std::memcpy(target, src, n);
-      done = true;
-    }
-    #pragma omp atomic update
-    nlocks--;
+void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
+  if (pos + n > allocsize) {
+    throw RuntimeError() << "Attempt to write at pos=" << pos << " chunk of "
+      "length " << n << ", however the buffer is allocated for " << allocsize
+      << " bytes only";
   }
+  dt::shared_lock lock(shmutex, /* exclusive = */ false);
+  char* target = static_cast<char*>(buffer) + pos;
+  std::memcpy(target, src, n);
 }
 
 
-void ThreadsafeWritableBuffer::finalize()
-{
-  int lockv = 1;
-  while (lockv) {
-    #pragma omp atomic read
-    lockv = nlocks;
-  }
-  while (allocsize > bytes_written) {
-    lockv = 1;
-    while (lockv) {
-      #pragma omp atomic read
-      lockv = nlocks;
-    }
-    #pragma omp atomic capture
-    { lockv = nlocks; nlocks -= 1000000; }
-    if (lockv == 0) {
-      this->realloc(bytes_written);
-    }
-    #pragma omp atomic update
-    nlocks += 1000000;
-  }
+void ThreadsafeWritableBuffer::finalize() {
+  dt::shared_lock lock(shmutex, /* exclusive = */ true);
+  this->realloc(bytes_written);
 }
 
 
@@ -218,9 +171,8 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
 }
 
 
-MemoryWritableBuffer::~MemoryWritableBuffer()
-{
-  std::free(buffer);
+MemoryWritableBuffer::~MemoryWritableBuffer() {
+  dt::free(buffer);
 }
 
 

@@ -435,7 +435,7 @@ $(BUILDDIR)/utils.h: c/utils.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Refreshing c/utils.h
 	@cp c/utils.h $@
 
-$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h
+$(BUILDDIR)/writebuf.h: c/writebuf.h $(BUILDDIR)/utils/file.h $(BUILDDIR)/utils/shared_mutex.h
 	@echo • Refreshing c/writebuf.h
 	@cp c/writebuf.h $@
 
