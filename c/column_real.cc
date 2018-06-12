@@ -35,7 +35,8 @@ template <typename T> T      RealColumn<T>::mode() const  { return get_stats()->
 template <typename T> double RealColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double RealColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double RealColumn<T>::sd() const   { return get_stats()->stdev(this); }
-
+template <typename T> double RealColumn<T>::skew() const { return get_stats()->skew(this); }
+template <typename T> double RealColumn<T>::kurt() const   { return get_stats()->kurt(this); }
 
 // Retrieve stat value as a column
 template <typename T>
@@ -80,13 +81,28 @@ Column* RealColumn<T>::sd_column() const {
   return col;
 }
 
+template <typename T>
+Column* RealColumn<T>::skew_column() const {
+  RealColumn<double>* col = new RealColumn<double>(1);
+  col->set_elem(0, skew());
+  return col;
+}
+
+template <typename T>
+Column* RealColumn<T>::kurt_column() const {
+  RealColumn<double>* col = new RealColumn<double>(1);
+  col->set_elem(0, kurt());
+  return col;
+}
+
 template <typename T> PyObject* RealColumn<T>::min_pyscalar() const { return float_to_py(min()); }
 template <typename T> PyObject* RealColumn<T>::max_pyscalar() const { return float_to_py(max()); }
 template <typename T> PyObject* RealColumn<T>::mode_pyscalar() const { return float_to_py(mode()); }
 template <typename T> PyObject* RealColumn<T>::sum_pyscalar() const { return float_to_py(sum()); }
 template <typename T> PyObject* RealColumn<T>::mean_pyscalar() const { return float_to_py(mean()); }
 template <typename T> PyObject* RealColumn<T>::sd_pyscalar() const { return float_to_py(sd()); }
-
+template <typename T> PyObject* RealColumn<T>::skew_pyscalar() const { return float_to_py(skew()); }
+template <typename T> PyObject* RealColumn<T>::kurt_pyscalar() const { return float_to_py(kurt()); }
 
 
 //------------------------------------------------------------------------------

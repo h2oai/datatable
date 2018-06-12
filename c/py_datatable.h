@@ -216,6 +216,14 @@ DECLARE_METHOD(
   "Get the standard deviation for each column in the DataTable")
 
 DECLARE_METHOD(
+  get_skew,
+  "Get the skew for each column in the DataTable")
+
+DECLARE_METHOD(
+  get_kurt,
+  "Get the kurtosis for each column in the DataTable")
+
+DECLARE_METHOD(
   get_countna,
   "Get the NA count for each column in the DataTable")
 

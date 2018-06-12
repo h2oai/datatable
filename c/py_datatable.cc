@@ -489,6 +489,8 @@ PyObject* get_max    (obj* self, PyObject*) { return wrap(self->ref->max_datatab
 PyObject* get_mode   (obj* self, PyObject*) { return wrap(self->ref->mode_datatable()); }
 PyObject* get_mean   (obj* self, PyObject*) { return wrap(self->ref->mean_datatable()); }
 PyObject* get_sd     (obj* self, PyObject*) { return wrap(self->ref->sd_datatable()); }
+PyObject* get_skew   (obj* self, PyObject*) { return wrap(self->ref->skew_datatable()); }
+PyObject* get_kurt   (obj* self, PyObject*) { return wrap(self->ref->kurt_datatable()); }
 PyObject* get_sum    (obj* self, PyObject*) { return wrap(self->ref->sum_datatable()); }
 PyObject* get_countna(obj* self, PyObject*) { return wrap(self->ref->countna_datatable()); }
 PyObject* get_nunique(obj* self, PyObject*) { return wrap(self->ref->nunique_datatable()); }
@@ -582,6 +584,8 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(get_sum),
   METHOD0(get_mean),
   METHOD0(get_sd),
+  METHOD0(get_skew),
+  METHOD0(get_kurt),
   METHOD0(get_countna),
   METHOD0(get_nunique),
   METHOD0(get_nmodal),

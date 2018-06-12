@@ -77,6 +77,7 @@ bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
 
 /**
  * Standard deviation and mean computations are done using Welford's method.
+ * Ditto for skewness and kurtosis computations.
  * (Source: https://www.johndcook.com/blog/standard_deviation)
  */
 template <typename T, typename A>
@@ -87,6 +88,8 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   int64_t count_notna = 0;
   double mean = 0;
   double m2 = 0;
+  double m3 = 0;
+  double m4 = 0;
   A sum = 0;
   T min = infinity<T>();
   T max = -infinity<T>();
@@ -96,8 +99,14 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     int ith = omp_get_thread_num();  // current thread index
     int nth = omp_get_num_threads(); // total number of threads
     int64_t t_count_notna = 0;
+    int64_t n1 = 0;
+    int64_t n2 = 0; // added for readability
     double t_mean = 0;
     double t_m2 = 0;
+    double t_m3 = 0;
+    double t_m4 = 0;
+    double t_m2_helper = 0;
+
     A t_sum = 0;
     T t_min = infinity<T>();
     T t_max = -infinity<T>();
@@ -106,14 +115,23 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
       [&](int64_t i) {
         T x = data[i];
         if (ISNA<T>(x)) return;
+        n1 = t_count_notna;
         ++t_count_notna;
+        n2 = t_count_notna; // readability
         t_sum += static_cast<A>(x);
         if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
         if (x > t_max) t_max = x;
         double delta = static_cast<double>(x) - t_mean;
+        double delta_n = static_cast<double>(delta) / t_count_notna;
+        double delta_n2 = delta_n * delta_n;
+        double term1 = delta * delta_n * static_cast<double>(n1);
         t_mean += delta / t_count_notna;
         double delta2 = static_cast<double>(x) - t_mean;
+        t_m4 += term1 * delta_n2 * (n2 * n2 - 3 * n2 + 3);
+        t_m4 += 6 * delta_n2 * t_m2_helper - 4 * delta_n * t_m3;
+        t_m3 += (term1 * delta_n * (n2 - 2) - 3 * delta_n * t_m2_helper);
         t_m2 += delta * delta2;
+        t_m2_helper += term1;
       });
 
     #pragma omp critical
@@ -125,7 +143,33 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
         if (t_min < min) min = t_min;
         if (t_max > max) max = t_max;
         double delta = mean - t_mean;
-        m2 += t_m2 + delta * delta * (nold / count_notna * t_count_notna);
+        double delta2 = delta * delta;
+        double delta3 = delta2 * delta;
+        double delta4 = delta2 * delta2;
+        double a_m2 = m2;
+        double a_m3 = m3;
+        double a_m4 = m4;
+        double b_m2 = t_m2;
+        double b_m3 = t_m3;
+        double b_m4 = t_m4;
+        // readibility for counts
+        int64_t a_n = nold;
+        int64_t b_n = t_count_notna;
+        int64_t c_n = count_notna;
+
+        // Running SD
+        m2 += t_m2 + delta2 * (nold / count_notna * t_count_notna);
+
+        // Running Skewness
+        m3 += t_m3 + delta3 * a_n * b_n * (a_n - b_n)/(c_n * c_n);
+        m3 += 3.0 * delta * (a_n * b_m2 - b_n * a_m2)/c_n;
+
+        // Running Kurtosis
+        m4 += t_m4 + delta4 * a_n * b_n * (a_n * a_n - a_n * b_n + b_n * b_n)/(pow(c_n,3));
+        m4 += 6 * delta2 * (a_n * a_n * b_m2 + b_n * b_n * a_m2) / (c_n*c_n);
+        m4 += 4 * delta * (a_n * b_m3 - b_n * a_m3) / c_n;
+
+        // Running mean
         mean = static_cast<double>(sum) / count_notna;
       }
     }
@@ -134,7 +178,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
   _countna = nrows - count_notna;
   if (count_notna == 0) {
     _min = _max = GETNA<T>();
-    _mean = _sd = GETNA<double>();
+    _mean = _sd = _skew = _kurt = GETNA<double>();
     _sum = 0;
   } else {
     _min = min;
@@ -142,12 +186,16 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     _sum = sum;
     _mean = mean;
     _sd = count_notna > 1 ? std::sqrt(m2 / (count_notna - 1)) : 0;
+    _skew = count_notna > 1 ? std::sqrt(count_notna) * m3/std::pow(m2,1.5) : 0;
+    _kurt = count_notna > 1 ? (static_cast<double>(m4)*count_notna)/(m2*m2) : 0;
   }
   _computed.set(Stat::Min);
   _computed.set(Stat::Max);
   _computed.set(Stat::Sum);
   _computed.set(Stat::Mean);
   _computed.set(Stat::StDev);
+  _computed.set(Stat::Skew);
+  _computed.set(Stat::Kurt);
   _computed.set(Stat::NaCount);
 }
 
@@ -226,6 +274,17 @@ double NumericalStats<T, A>::stdev(const Column* col) {
   return _sd;
 }
 
+template <typename T, typename A>
+double NumericalStats<T, A>::skew(const Column* col) {
+  if (!_computed.test(Stat::Skew)) compute_numerical_stats(col);
+  return _skew;
+}
+
+template <typename T, typename A>
+double NumericalStats<T, A>::kurt(const Column* col) {
+  if (!_computed.test(Stat::Kurt)) compute_numerical_stats(col);
+  return _kurt;
+}
 
 template<typename T, typename A>
 void NumericalStats<T, A>::compute_countna(const Column* col) {
@@ -252,6 +311,8 @@ void RealStats<T>::compute_numerical_stats(const Column *col) {
   NumericalStats<T, double>::compute_numerical_stats(col);
   if (std::isinf(this->_min) || std::isinf(this->_max)) {
     this->_sd = GETNA<double>();
+    this->_skew = GETNA<double>();
+    this->_kurt = GETNA<double>();
     this->_mean = std::isinf(this->_min) && this->_min < 0 &&
                   std::isinf(this->_max) && this->_max > 0
         ? GETNA<double>()
