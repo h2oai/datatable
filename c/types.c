@@ -23,12 +23,6 @@ dt_static_assert(sizeof(void*) == sizeof(size_t),
 dt_static_assert(sizeof(void*) == sizeof(int64_t),
                  "size(int64_t) != size(void*)");
 
-dt_static_assert(SIZEOF(int) == sizeof(int), "Wrong SIZEOF(int) expansion");
-dt_static_assert(SIZEOF(void) == 1, "Wrong SIZEOF(void) expansion");
-dt_static_assert(SIZEOF(void*) == sizeof(void*),
-                 "Wrong SIZEOF(void*) expansion");
-dt_static_assert(SIZEOF(int64_t) == sizeof(int64_t),
-                 "Wrong SIZEOF(int64_t) expansion");
 dt_static_assert(sizeof(int8_t) == 1, "int8_t should be 1-byte");
 dt_static_assert(sizeof(int16_t) == 2, "int16_t should be 2-byte");
 dt_static_assert(sizeof(int32_t) == 4, "int32_t should be 4-byte");

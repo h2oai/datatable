@@ -44,65 +44,6 @@ PyObject* decref(PyObject *x) {
 }
 
 
-void* _dt_malloc(size_t n)
-{
-    if (!n) return nullptr;
-    void *res = malloc(n);
-    if (res == nullptr) {
-        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);
-    }
-    return res;
-}
-
-
-void* _dt_realloc(void *ptr, size_t n)
-{
-    if (!n) return nullptr;
-    void *res = realloc(ptr, n);
-    if (res == nullptr) {
-        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes", n);
-    }
-    return res;
-}
-
-
-void* _dt_calloc(size_t n, size_t size)
-{
-    if (!n) return nullptr;
-    void *res = calloc(n, size);
-    if (res == nullptr) {
-        PyErr_Format(PyExc_MemoryError, "Failed to allocate %zd bytes",
-                     n * size);
-    }
-    return res;
-}
-
-
-void _dt_free(void *ptr)
-{
-    free(ptr);
-}
-
-
-__attribute__ ((format(printf, 1, 2)))
-void _dt_err_r(const char *format, ...)
-{
-    va_list vargs;
-    va_start(vargs, format);
-    PyErr_FormatV(PyExc_RuntimeError, format, vargs);
-    va_end(vargs);
-}
-
-
-__attribute__ ((format(printf, 1, 2)))
-void _dt_err_v(const char *format, ...)
-{
-    va_list vargs;
-    va_start(vargs, format);
-    PyErr_FormatV(PyExc_ValueError, format, vargs);
-    va_end(vargs);
-}
-
 
 void log_call(const char* msg) {
   if (!config::logger) return;

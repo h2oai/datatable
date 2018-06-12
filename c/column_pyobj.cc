@@ -6,7 +6,6 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "column.h"
-#include "utils.h"          // set_value, add_ptr
 #include "utils/assert.h"
 
 

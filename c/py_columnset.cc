@@ -80,8 +80,7 @@ PyObject* columns_from_array(PyObject*, PyObject *args)
   RowIndex rowindex = PyObj(arg2).as_rowindex();
 
   int64_t ncols = PyList_Size(elems);
-  int64_t* indices = nullptr;
-  dtmalloc(indices, int64_t, ncols);
+  int64_t* indices = dt::amalloc<int64_t>(ncols);
   for (int64_t i = 0; i < ncols; i++) {
     PyObject* elem = PyList_GET_ITEM(elems, i);
     indices[i] = (int64_t) PyLong_AsSize_t(elem);
@@ -106,9 +105,7 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
 
   columnset_mapfn* fnptr = (columnset_mapfn*) rawptr;
   int64_t ncols = PyList_Size(pyspec);
-  int64_t* spec = nullptr;
-
-  dtmalloc(spec, int64_t, ncols);
+  int64_t* spec = dt::amalloc<int64_t>(ncols);
   for (int64_t i = 0; i < ncols; i++) {
     PyObject* elem = PyList_GET_ITEM(pyspec, i);
     if (PyLong_CheckExact(elem)) {
@@ -129,14 +126,13 @@ PyObject* columns_from_columns(PyObject*, PyObject* args)
     return nullptr;
 
   int64_t ncols = PyList_Size(col_list);
-  Column** columns;
-  dtmalloc(columns, Column*, ncols + 1);
+  Column** columns = dt::amalloc<Column*>(ncols + 1);
   for (int64_t i = 0; i < ncols; ++i) {
     PyObject* elem = PyList_GET_ITEM(col_list, i);
     int ret = pycolumn::unwrap(elem, columns + i);
     if (!ret) {
       for (int64_t j = 0; j < i; ++j) delete columns[j];
-      dtfree(columns);
+      dt::free(columns);
       return nullptr;
     }
     reinterpret_cast<pycolumn::obj*>(elem)->ref = nullptr;

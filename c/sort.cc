@@ -119,6 +119,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "utils.h"
+#include "utils/alloc.h"
 #include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
@@ -566,8 +567,7 @@ class SortContext {
   void build_histogram() {
     size_t counts_size = nchunks * nradixes;
     if (histogram_size < counts_size) {
-      histogram = static_cast<size_t*>(
-        std::realloc(histogram, counts_size * sizeof(size_t)));
+      histogram = dt::arealloc<size_t>(histogram, counts_size);
       histogram_size = counts_size;
     }
     std::memset(histogram, 0, counts_size * sizeof(size_t));
@@ -854,9 +854,10 @@ class SortContext {
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
         n = sz;
-        x = add_ptr(_x, off * zelemsize);
+        x = static_cast<void*>(static_cast<char*>(_x) + off * zelemsize);
         o = _o + off;
-        next_x = add_ptr(_next_x, off * zelemsize);
+        next_x = static_cast<void*>(
+                    static_cast<char*>(_next_x) + off * zelemsize);
         next_o = _next_o + off;
         elemsize = _elemsize;
         if (make_groups) {

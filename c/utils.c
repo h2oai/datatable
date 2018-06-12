@@ -9,11 +9,6 @@
 #include <stdint.h>
 
 
-int64_t min(int64_t a, int64_t b) { return a < b? a : b; }
-int64_t max(int64_t a, int64_t b) { return a > b? a : b; }
-float max_f4(float a, float b) { return a < b? b : a; }
-
-
 namespace dt {
 
 /**
@@ -71,7 +66,8 @@ void set_value(void * __restrict__ ptr, const void * __restrict__ value,
   size_t final_sz = sz * count;
   for (size_t i = sz; i < final_sz; i <<= 1) {
     size_t writesz = i < final_sz - i ? i : final_sz - i;
-    memcpy(add_ptr(ptr, i), ptr, writesz);
+    void* dest = static_cast<void*>(static_cast<char*>(ptr) + i);
+    memcpy(dest, ptr, writesz);
   }
 }
 

@@ -7,11 +7,11 @@
 //------------------------------------------------------------------------------
 #include "memrange.h"
 #include <cerrno>              // errno
-#include <cstdlib>             // std::malloc, std::free
 #include <mutex>               // std::mutex, std::lock_guard
 #include <sys/mman.h>          // mmap, munmap
 #include "datatable_check.h"   // IntegrityCheckContext
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
+#include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
 
 
@@ -532,13 +532,8 @@
 //==============================================================================
 
   MemoryMRI::MemoryMRI(size_t n) {
-    if (n) {
-      bufsize = n;
-      bufdata = std::malloc(n);
-      if (bufdata == nullptr) {
-        throw MemoryError() << "Unable to allocate memory of size " << n;
-      }
-    }
+    bufsize = n;
+    bufdata = dt::malloc<void>(n);
   }
 
   MemoryMRI::MemoryMRI(size_t n, void* ptr) {
@@ -558,38 +553,8 @@
   }
 
   void MemoryMRI::resize(size_t n) {
-    // The documentation for `void* realloc(void* ptr, size_t new_size);` says
-    // the following:
-    // | If there is not enough memory, the old memory block is not freed and
-    // | null pointer is returned.
-    // | If new_size is zero, the behavior is implementation defined (null
-    // | pointer may be returned (in which case the old memory block may or may
-    // | not be freed), or some non-null pointer may be returned that may not be
-    // | used to access storage). Support for zero size is deprecated as of
-    // | C11 DR 400.
     if (n == bufsize) return;
-    if (n) {
-      int attempts = 3;
-      void* ptr = nullptr;
-      while (true) {
-        ptr = std::realloc(bufdata, n);
-        if (ptr) break;
-        if (errno == 12 && attempts--) {
-          // Occasionally, `realloc()` may fail if the system ran out of
-          // memmap resources. It's unclear why, but freeing up some of memmap
-          // handles sometime allows `realloc()` to succeed.
-          MemoryMapManager::get()->freeup_memory();
-          errno = 0;
-        } else {
-          throw MemoryError()
-            << "Unable to reallocate memory to size " << n << Errno;
-        }
-      }
-      bufdata = ptr;
-    } else if (bufdata) {
-      std::free(bufdata);
-      bufdata = nullptr;
-    }
+    bufdata = dt::realloc(bufdata, n);
     bufsize = n;
   }
 

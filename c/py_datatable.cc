@@ -246,16 +246,15 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "O!:delete_columns", &PyList_Type, &list))
     return nullptr;
 
-  int ncols = (int) PyList_Size(list);
-  int *cols_to_remove = nullptr;
-  dtmalloc(cols_to_remove, int, ncols);
-  for (int i = 0; i < ncols; i++) {
+  int64_t ncols = static_cast<int64_t>(PyList_Size(list));
+  int* cols_to_remove = dt::amalloc<int>(ncols);
+  for (int64_t i = 0; i < ncols; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
     cols_to_remove[i] = (int) PyLong_AsLong(item);
   }
   dt->delete_columns(cols_to_remove, ncols);
 
-  dtfree(cols_to_remove);
+  dt::free(cols_to_remove);
   Py_RETURN_NONE;
 }
 
@@ -390,19 +389,17 @@ PyObject* replace_column_array(obj* self, PyObject* args) {
 
 PyObject* rbind(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  int final_ncols;
+  int64_t final_ncols;
   PyObject* list;
-  if (!PyArg_ParseTuple(args, "iO!:delete_columns",
+  if (!PyArg_ParseTuple(args, "lO!:delete_columns",
                         &final_ncols, &PyList_Type, &list))
     return nullptr;
 
-  int ndts = (int) PyList_Size(list);
-  DataTable** dts = nullptr;
-  dtmalloc(dts, DataTable*, ndts);
-  int** cols_to_append = nullptr;
-  dtmalloc(cols_to_append, int*, final_ncols);
-  for (int i = 0; i < final_ncols; i++) {
-    dtmalloc(cols_to_append[i], int, ndts);
+  int64_t ndts = static_cast<int64_t>(PyList_Size(list));
+  DataTable** dts = dt::amalloc<DataTable*>(ndts);
+  int** cols_to_append = dt::amalloc<int*>(final_ncols);
+  for (int64_t i = 0; i < final_ncols; i++) {
+    cols_to_append[i] = dt::amalloc<int>(ndts);
   }
   for (int i = 0; i < ndts; i++) {
     PyObject* item = PyList_GET_ITEM(list, i);
@@ -433,8 +430,8 @@ PyObject* rbind(obj* self, PyObject* args) {
 
   dt->rbind(dts, cols_to_append, ndts, final_ncols);
 
-  dtfree(cols_to_append);
-  dtfree(dts);
+  dt::free(cols_to_append);
+  dt::free(dts);
   Py_RETURN_NONE;
 }
 
@@ -445,10 +442,9 @@ PyObject* cbind(obj* self, PyObject* args) {
                         &PyList_Type, &pydts)) return nullptr;
 
   DataTable* dt = self->ref;
-  int ndts = (int) PyList_Size(pydts);
-  DataTable** dts = nullptr;
-  dtmalloc(dts, DataTable*, ndts);
-  for (int i = 0; i < ndts; i++) {
+  int64_t ndts = static_cast<int64_t>(PyList_Size(pydts));
+  DataTable** dts = dt::amalloc<DataTable*>(ndts);
+  for (int64_t i = 0; i < ndts; i++) {
     PyObject* elem = PyList_GET_ITEM(pydts, i);
     if (!PyObject_TypeCheck(elem, &type)) {
       PyErr_Format(PyExc_ValueError,
@@ -460,7 +456,7 @@ PyObject* cbind(obj* self, PyObject* args) {
   DataTable* ret = dt->cbind( dts, ndts);
   if (ret == nullptr) return nullptr;
 
-  dtfree(dts);
+  dt::free(dts);
   Py_RETURN_NONE;
 }
 
@@ -521,8 +517,7 @@ PyObject* materialize(obj* self, PyObject*) {
     return nullptr;
   }
 
-  Column** cols = nullptr;
-  dtmalloc(cols, Column*, dt->ncols + 1);
+  Column** cols = dt::amalloc<Column*>(dt->ncols + 1);
   for (int64_t i = 0; i < dt->ncols; ++i) {
     cols[i] = dt->columns[i]->shallowcopy();
     if (cols[i] == nullptr) return nullptr;

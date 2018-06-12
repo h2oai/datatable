@@ -7,9 +7,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_ARRAY_h
 #define dt_UTILS_ARRAY_h
-#include <algorithm>   // std::swap
-#include <cstdlib>     // std::realloc, std::free
+#include <algorithm>      // std::swap
 #include "memrange.h"
+#include "utils/alloc.h"  // dt::realloc
 #include "utils/exceptions.h"
 
 namespace dt
@@ -55,7 +55,7 @@ template <typename T> class array
     array(size_t len = 0) : x(nullptr), n(0), owned(true) { resize(len); }
     array(size_t len, const T* ptr)
       : x(const_cast<T*>(ptr)), n(len), owned(false) {}
-    ~array() { if (owned) std::free(x); }
+    ~array() { if (owned) dt::free(x); }
     // copy-constructor and assignment are forbidden
     array(const array<T>&) = delete;
     array<T>& operator=(const array<T>&) = delete;
@@ -104,18 +104,7 @@ template <typename T> class array
       if (!owned) {
         throw MemoryError() << "Cannot resize array: not owned";
       }
-      if (newn == 0) {
-        std::free(x);
-        x = nullptr;
-        n = 0;
-        return;
-      }
-      T* newx = static_cast<T*>(std::realloc(x, sizeof(T) * newn));
-      if (!newx) {
-        throw MemoryError() << "Unable to allocate " << sizeof(T) * newn
-                            << " bytes";
-      }
-      x = newx;
+      x = dt::arealloc<T>(x, newn);
       n = newn;
     }
 };

@@ -91,7 +91,7 @@ class MemoryRange
     //   when it is no longer needed, but not before the MemoryRange object is
     //   deleted. However, if `own` is true, then the MemoryRange object will
     //   take ownership of that pointer. In this case the `ptr` should have had
-    //   been allocated using `std::malloc`.
+    //   been allocated using `dt::malloc`.
     //
     // MemoryRange(n, ptr, pybuf)
     //   Create MemoryRange from a pointer `ptr` to a memory buffer of size `n`

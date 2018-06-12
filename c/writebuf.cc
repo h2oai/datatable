@@ -6,12 +6,12 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "writebuf.h"
-#include <cstdlib>     // std::realloc
 #include <cstring>     // std::memcpy
 #include <errno.h>     // errno
 #include <sys/mman.h>  // mmap
 #include <unistd.h>    // write
 #include "memrange.h"
+#include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
 #include "utils/omp.h"
 #include "utils.h"
@@ -214,13 +214,7 @@ void ThreadsafeWritableBuffer::finalize()
 MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
   : ThreadsafeWritableBuffer()
 {
-  if (size) {
-    buffer = std::malloc(size);
-    allocsize = size;
-    if (!buffer) {
-      throw MemoryError() << "Unable to allocate memory of size " << size;
-    }
-  }
+  this->realloc(size);
 }
 
 
@@ -232,17 +226,8 @@ MemoryWritableBuffer::~MemoryWritableBuffer()
 
 void MemoryWritableBuffer::realloc(size_t newsize)
 {
-  if (newsize) {
-    buffer = std::realloc(buffer, newsize);
-    allocsize = newsize;
-    if (!buffer) {
-      throw MemoryError() << "Unable to allocate memory of size " << newsize;
-    }
-  } else {
-    std::free(buffer);
-    buffer = nullptr;
-    allocsize = 0;
-  }
+  buffer = dt::realloc(buffer, newsize);
+  allocsize = newsize;
 }
 
 
