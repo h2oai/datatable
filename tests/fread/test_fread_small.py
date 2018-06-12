@@ -617,6 +617,52 @@ def test_different_line_endings(eol):
     assert d0.topython() == [[None, 1, 2, 3], ["koo", "vi", "mu", "yay"]]
 
 
+def test_fread_quoting():
+    d0 = dt.fread("A,B,C,D\n1,3,ghu,5\n2,4,zifuh,667")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C", "D")
+    assert d0.topython() == [[1, 2], [3, 4], ["ghu", "zifuh"], [5, 667]]
+    d1 = dt.fread('A,B,C,D\n1,3,pq[q,5\n2,4,"dflb",6')
+    assert d1.internal.check()
+    assert d1.names == ("A", "B", "C", "D")
+    assert d1.topython() == [[1, 2], [3, 4], ["pq[q", "dflb"], [5, 6]]
+    d2 = dt.fread('A,B,C,D\n1,3,nib,5\n2,4,"la,la,la,la",6')
+    assert d2.internal.check()
+    assert d2.names == ("A", "B", "C", "D")
+    assert d2.topython() == [[1, 2], [3, 4], ["nib", "la,la,la,la"], [5, 6]]
+    d3 = dt.fread('A,B,C,D\n1,3,foo,5\n2,4,"ba,\\"r,",6')
+    assert d3.internal.check()
+    assert d3.names == ("A", "B", "C", "D")
+    assert d3.topython() == [[1, 2], [3, 4], ["foo", "ba,\"r,"], [5, 6]]
+
+
+def test_fread_default_colnames():
+    """Check that columns with missing headers get assigned proper names."""
+    f0 = dt.fread('A,B,,D\n1,3,foo,5\n2,4,bar,6\n')
+    assert f0.internal.check()
+    assert f0.shape == (2, 4)
+    assert f0.names == ("A", "B", "C0", "D")
+    f1 = dt.fread('0,2,,4\n1,3,foo,5\n2,4,bar,6\n')
+    assert f1.internal.check()
+    assert f1.shape == (3, 4)
+    assert f1.names == ("C0", "C1", "C2", "C3")
+    f2 = dt.fread('A,B,C\nD,E,F\n', header=True)
+    assert f2.internal.check()
+    assert f2.names == ("A", "B", "C")
+    f3 = dt.fread('A,B,\nD,E,F\n', header=True)
+    assert f3.internal.check()
+    assert f3.names == ("A", "B", "C0")
+
+
+
+def test_fread_na_field():
+    d0 = dt.fread("A,B,C\n1,3,\n2,4,\n")
+    assert d0.internal.check()
+    assert d0.names == ("A", "B", "C")
+    assert d0.stypes == (stype.int32, stype.int32, stype.bool8)
+    assert d0.topython() == [[1, 2], [3, 4], [None, None]]
+
+
 def test_last_quoted_field():
     d0 = dt.fread('A,B,C\n'
                   '1,5,17\n'
@@ -758,6 +804,15 @@ def test_nuls3():
                              [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
                              ["%d\0" % i for i in range(20, 10, -1)]]
 
+
+def test_headers_with_na():
+    # Conceivably, this file can also be recognized as `header=False`, owing
+    # to the fact that there is an NA value in the first line.
+    d = dt.fread("A,B,NA\n"
+                 "1,2,3\n")
+    assert d.internal.check()
+    assert d.names == ("A", "B", "C0")
+    assert d.topython() == [[1], [2], [3]]
 
 
 

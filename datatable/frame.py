@@ -511,16 +511,16 @@ class Frame(object):
             df[::-1, :]  # all rows of the Frame in reverse order
         etc.
         """
-        rows, cols = resolve_selector(item)
-        return make_datatable(self, rows, cols)
+        rows, cols, grby = resolve_selector(item)
+        return make_datatable(self, rows, cols, grby)
 
 
     def __setitem__(self, item, value):
         """
         Update values in Frame, in-place.
         """
-        rows, cols = resolve_selector(item)
-        return make_datatable(self, rows, cols, mode="update",
+        rows, cols, grby = resolve_selector(item)
+        return make_datatable(self, rows, cols, grby, mode="update",
                               replacement=value)
 
 
@@ -535,7 +535,7 @@ class Frame(object):
             del df["col5":"col9"]
             del df[(i for i in range(df.ncols) if i % 3 <= 1)]
         """
-        drows, dcols = resolve_selector(item)
+        drows, dcols, grby = resolve_selector(item)
         return make_datatable(self, drows, dcols, mode="delete")
 
 
@@ -606,7 +606,7 @@ class Frame(object):
         remains unmodified.
         """
         idx = self.colindex(by)
-        ri = self._dt.sort(idx)
+        ri = self._dt.sort(idx)[0]
         cs = core.columns_from_slice(self._dt, ri, 0, self._ncols, 1)
         _dt = cs.to_datatable()
         return Frame(_dt, names=self.names)
@@ -981,7 +981,7 @@ options.register_option(
     "sort.max_chunk_length", xtype=int, default=1024, core=True)
 
 options.register_option(
-    "sort.max_radix_bits", xtype=int, default=8, core=True)
+    "sort.max_radix_bits", xtype=int, default=12, core=True)
 
 options.register_option(
     "sort.over_radix_bits", xtype=int, default=8, core=True)

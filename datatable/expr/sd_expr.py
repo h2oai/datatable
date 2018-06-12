@@ -20,6 +20,9 @@ class StdevReducer(BaseExpr):
         self.expr = expr
         self.skipna = skipna
 
+    def is_reduce_expr(self, ee):
+        return True
+
     def resolve(self):
         self.expr.resolve()
         self._stype = ops_rules.get(("sd", self.expr.stype), None)
@@ -31,7 +34,7 @@ class StdevReducer(BaseExpr):
     def evaluate_eager(self, ee):
         col = self.expr.evaluate_eager(ee)
         opcode = reduce_opcodes["stdev"]
-        return core.expr_reduceop(opcode, col)
+        return core.expr_reduceop(opcode, col, ee.groupby)
 
 
     def __str__(self):

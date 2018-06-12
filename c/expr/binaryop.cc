@@ -55,9 +55,10 @@ enum OpCode {
 };
 
 enum OpMode {
+  Error = 0,
   N_to_N = 1,
   N_to_One = 2,
-  One_to_N = 3
+  One_to_N = 3,
 };
 
 
@@ -104,6 +105,54 @@ static void map_1_to_n(int64_t row0, int64_t row1, void** params) {
     res_data[i] = OP(lhs_value, rhs_data[i]);
   }
 }
+
+
+template<typename T0, typename T1, typename T2,
+         T2 (*OP)(T0, T0, const char*, T1, T1, const char*)>
+static void strmap_n_to_n(int64_t row0, int64_t row1, void** params) {
+  auto col0 = static_cast<StringColumn<T0>*>(params[0]);
+  auto col1 = static_cast<StringColumn<T1>*>(params[1]);
+  auto col2 = static_cast<Column*>(params[2]);
+  const T0* offsets0 = col0->offsets();
+  const T1* offsets1 = col1->offsets();
+  const char* strdata0 = col0->strdata();
+  const char* strdata1 = col1->strdata();
+  T2* res_data = static_cast<T2*>(col2->data_w());
+  T0 str0start = std::abs(offsets0[row0 - 1]);
+  T1 str1start = std::abs(offsets1[row0 - 1]);
+  for (int64_t i = row0; i < row1; ++i) {
+    T0 str0end = offsets0[i];
+    T1 str1end = offsets1[i];
+    res_data[i] = OP(str0start, str0end, strdata0,
+                     str1start, str1end, strdata1);
+    str0start = std::abs(str0end);
+    str1start = std::abs(str1end);
+  }
+}
+
+
+template<typename T0, typename T1, typename T2,
+         T2 (*OP)(T0, T0, const char*, T1, T1, const char*)>
+static void strmap_n_to_1(int64_t row0, int64_t row1, void** params) {
+  auto col0 = static_cast<StringColumn<T0>*>(params[0]);
+  auto col1 = static_cast<StringColumn<T1>*>(params[1]);
+  auto col2 = static_cast<Column*>(params[2]);
+  const T0* offsets0 = col0->offsets();
+  const T1* offsets1 = col1->offsets();
+  const char* strdata0 = col0->strdata();
+  const char* strdata1 = col1->strdata();
+  T0 str0start = std::abs(offsets0[row0 - 1]);
+  T1 str1start = 1;
+  T1 str1end = offsets1[0];
+  T2* res_data = static_cast<T2*>(col2->data_w());
+  for (int64_t i = row0; i < row1; ++i) {
+    T0 str0end = offsets0[i];
+    res_data[i] = OP(str0start, str0end, strdata0,
+                     str1start, str1end, strdata1);
+    str0start = std::abs(str0end);
+  }
+}
+
 
 
 
@@ -203,6 +252,47 @@ inline static int8_t op_le(LT x, RT y) {  // x <= y
          (x_isna && y_isna);
 }
 
+template<typename T1, typename T2>
+inline static int8_t strop_eq(T1 start1, T1 end1, const char* strdata1,
+                              T2 start2, T2 end2, const char* strdata2) {
+  if (end1 > 0 && end2 > 0) {
+    if (end1 - start1 == end2 - start2) {
+      const char* ch1 = strdata1 + start1;
+      const char* ch2 = strdata2 + start2;
+      const char* end = strdata1 + end1;
+      while (ch1 < end) {
+        if (*ch1++ != *ch2++) return 0;
+      }
+      return 1;
+    } else {
+      return 0;
+    }
+  } else {
+    return (end1 < 0) && (end2 < 0);
+  }
+}
+
+template<typename T1, typename T2>
+inline static int8_t strop_ne(T1 start1, T1 end1, const char* strdata1,
+                              T2 start2, T2 end2, const char* strdata2) {
+  if (end1 > 0 && end2 > 0) {
+    if (end1 - start1 == end2 - start2) {
+      const char* ch1 = strdata1 + start1;
+      const char* ch2 = strdata2 + start2;
+      const char* end = strdata1 + end1;
+      while (ch1 < end) {
+        if (*ch1++ != *ch2++) return 1;
+      }
+      return 0;
+    } else {
+      return 1;
+    }
+  } else {
+    return (end1 > 0) || (end2 > 0);
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -215,6 +305,19 @@ static mapperfn resolve2(OpMode mode) {
     case N_to_N:   return map_n_to_n<LT, RT, VT, OP>;
     case N_to_One: return map_n_to_1<LT, RT, VT, OP>;
     case One_to_N: return map_1_to_n<LT, RT, VT, OP>;
+    case Error:    return nullptr;
+
+  }
+}
+
+template<typename T0, typename T1, typename T2,
+         T2 (*OP)(T0, T0, const char*, T1, T1, const char*)>
+static mapperfn resolve2str(OpMode mode) {
+  switch (mode) {
+    case N_to_N:   return strmap_n_to_n<T0, T1, T2, OP>;
+    case N_to_One: return strmap_n_to_1<T0, T1, T2, OP>;
+    // case One_to_N: return map_1_to_n<T0, T1, T2, OP>;
+    default:       return nullptr;
   }
 }
 
@@ -248,11 +351,29 @@ static mapperfn resolve1(int opcode, SType stype, void** params, int64_t nrows, 
     case OpCode::GreaterOrEqual: return resolve2<LT, RT, int8_t, op_ge<LT, RT, VT>>(mode);
     case OpCode::LessOrEqual:    return resolve2<LT, RT, int8_t, op_le<LT, RT, VT>>(mode);
   }
+  delete static_cast<Column*>(params[2]);
+  return nullptr;
+}
+
+
+template<typename T0, typename T1>
+static mapperfn resolve1str(int opcode, void** params, int64_t nrows, OpMode mode) {
+  if (mode == OpMode::One_to_N) {
+    mode = OpMode::N_to_One;
+    std::swap(params[0], params[1]);
+  }
+  params[2] = Column::new_data_column(ST_BOOLEAN_I1, nrows);
+  switch (opcode) {
+    case OpCode::Equal:    return resolve2str<T0, T1, int8_t, strop_eq<T0, T1>>(mode);
+    case OpCode::NotEqual: return resolve2str<T0, T1, int8_t, strop_ne<T0, T1>>(mode);
+  }
+  delete static_cast<Column*>(params[2]);
   return nullptr;
 }
 
 
 static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** params, int64_t nrows, OpMode mode) {
+  if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case ST_BOOLEAN_I1:
     case ST_INTEGER_I1:
@@ -333,6 +454,14 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
       }
       break;
 
+    case ST_STRING_I4_VCHAR:
+      switch (rhs_type) {
+        case ST_STRING_I4_VCHAR: return resolve1str<int32_t, int32_t>(opcode, params, nrows, mode);
+        case ST_STRING_I8_VCHAR: return resolve1str<int32_t, int64_t>(opcode, params, nrows, mode);
+        default: break;
+      }
+      break;
+
     default:
       break;
   }
@@ -346,6 +475,8 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
 
 Column* binaryop(int opcode, Column* lhs, Column* rhs)
 {
+  lhs->reify();
+  rhs->reify();
   int64_t lhs_nrows = lhs->nrows;
   int64_t rhs_nrows = rhs->nrows;
   SType lhs_type = lhs->stype();
@@ -356,15 +487,10 @@ Column* binaryop(int opcode, Column* lhs, Column* rhs)
   params[2] = nullptr;
 
   mapperfn mapfn = nullptr;
-  if (lhs_nrows == rhs_nrows) {
-    mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows, OpMode::N_to_N);
-  }
-  else if (rhs_nrows == 1) {
-    mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows, OpMode::N_to_One);
-  }
-  else if (lhs_nrows == 1) {
-    mapfn = resolve0(lhs_type, rhs_type, opcode, params, rhs_nrows, OpMode::One_to_N);
-  }
+  mapfn = resolve0(lhs_type, rhs_type, opcode, params, lhs_nrows,
+                   lhs_nrows == rhs_nrows? OpMode::N_to_N :
+                   rhs_nrows == 1? OpMode::N_to_One :
+                   lhs_nrows == 1? OpMode::One_to_N : OpMode::Error);
   if (!mapfn) {
     throw RuntimeError()
       << "Unable to apply op " << opcode << " to column1(stype=" << lhs_type

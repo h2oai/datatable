@@ -11,7 +11,7 @@
 import pytest
 import datatable as dt
 import os
-from datatable import ltype, stype
+from datatable import ltype, stype, DatatableWarning, FreadWarning
 
 
 
@@ -246,7 +246,7 @@ def test_fread_zip_file_multi(tempfile):
         zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
         zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
         zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(FreadWarning) as ws:
         d0 = dt.fread(zfname)
         d1 = dt.fread(zfname + "/data2.csv")
         d2 = dt.fread(zfname + "/data3.csv")
@@ -445,6 +445,28 @@ def test_fread_columns_list_bad3():
            in str(e)
 
 
+def test_fread_columns_list_bad4():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns=[stype.str32, None, stype.float64])
+    assert d0.names == ("A", "C")
+    assert d0.topython() == [["01", "002"], [3.14, 6.28]]
+    with pytest.raises(RuntimeError) as e:
+        dt.fread(src, columns=[str, float, float])
+    assert "Attempt to override column 2 \"B\" of inherent type 'Str32' " \
+           in str(e)
+    with pytest.raises(ValueError) as e:
+        dt.fread(src, columns=[str, str])
+    assert ("Input file contains 3 columns, whereas `columns` parameter "
+            "specifies only 2 columns" in str(e.value))
+
+
+def test_fread_columns_list_bad5():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    with pytest.raises(TypeError) as e:
+        dt.fread(src, columns=list(range(3)))
+    assert "Entry `columns[0]` has invalid type 'int'" in str(e.value)
+
+
 def test_fread_columns_set1():
     text = ("C1,C2,C3,C4\n"
             "1,3.3,7,\"Alice\"\n"
@@ -456,7 +478,7 @@ def test_fread_columns_set1():
 
 
 def test_fread_columns_set2():
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(DatatableWarning) as ws:
         d0 = dt.fread(text="A,B,A\n1,2,3\n", columns={"A"})
     assert d0.names == ("A", "A.1")
     assert d0.topython() == [[1], [3]]
@@ -465,7 +487,7 @@ def test_fread_columns_set2():
 
 
 def test_fread_columns_set_bad():
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(FreadWarning) as ws:
         dt.fread(text="A,B,C\n1,2,3", columns={"A", "foo"})
     assert len(ws) == 1
     assert "Column(s) ['foo'] not found in the input" in ws[0].message.args[0]
@@ -489,6 +511,40 @@ def test_fread_columns_dict3():
     assert d0.names == ("foo", "B")
     assert d0.ltypes == (ltype.real, ltype.str)
     assert d0.topython() == [[1.0], ["2"]]
+
+
+def test_fread_columns_dict4():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns={"C": str})
+    assert d0.names == ("A", "B", "C")
+    assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
+    assert d0.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d1 = dt.fread(src, columns={"C": str, "A": float})
+    assert d1.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d1.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d2 = dt.fread(src, columns={"C": str, "A": ltype.real})
+    assert d2.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d2.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+
+
+def test_fread_columns_dict_reverse():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns={str: "C", ltype.real: ["A"]})
+    assert d0.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d0.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d1 = dt.fread(src, columns={str: slice(2, None), ltype.real: ["A"]})
+    assert d1.ltypes == (ltype.real, ltype.str, ltype.str)
+    assert d1.topython() == [[1, 2], ["foo", "bar"], ["3.140", "6.28000"]]
+    d2 = dt.fread(src, columns={str: slice(None)})
+    assert d2.ltypes == (ltype.str, ltype.str, ltype.str)
+    assert d2.topython() == [["01", "002"], ["foo", "bar"], ["3.140", "6.28000"]]
+
+
+def test_fread_columns_type():
+    src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
+    d0 = dt.fread(src, columns=str)
+    assert d0.ltypes == (ltype.str, ltype.str, ltype.str)
+    assert d0.topython() == [["01", "002"], ["foo", "bar"], ["3.140", "6.28000"]]
 
 
 def test_fread_columns_fn1():
@@ -592,10 +648,10 @@ def test_fread_skip_blank_lines_true():
     assert d0.topython() == [[1, 3], [2, 4]]
 
 
-@pytest.mark.xfail()
+@pytest.mark.skip("Issue #838")
 def test_fread_skip_blank_lines_false():
     inp = "A,B\n1,2\n  \n\n3,4\n"
-    with pytest.warns(UserWarning) as ws:
+    with pytest.warns(DatatableWarning) as ws:
         d1 = dt.fread(text=inp, skip_blank_lines=False)
         assert d1.internal.check()
         assert d1.shape == (1, 2)

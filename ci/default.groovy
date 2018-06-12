@@ -90,7 +90,8 @@ def test(stageDir, platform, venvCmd, extraEnv, invokeLargeTests, targetDataDir)
                 ${venvCmd}
                 pyVersion=\$(python --version 2>&1 | egrep -o '[0-9]\\.[0-9]' | tr -d '.')
                 pip install --no-cache-dir --upgrade `find dist -name "datatable-*cp\${pyVersion}*${getWheelPlatformName(platform)}*"`
-                make test MODULE=datatable
+                make test_install MODULE=datatable
+                make test
             """
         }
     } finally {

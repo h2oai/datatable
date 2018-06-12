@@ -13,6 +13,8 @@
 #include "py_datatable.h"
 #include "py_utils.h"
 
+double logger_timer;
+char logger_msg[1000];
 
 /**
  * Create and return a new instance of python's None object

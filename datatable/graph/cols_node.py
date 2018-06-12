@@ -10,6 +10,7 @@ from datatable.lib import core
 from .context import LlvmEvaluationEngine
 from .iterator_node import MapNode
 from datatable.expr import BaseExpr, ColSelectorExpr, NewColumnExpr
+from datatable.expr.consts import reduce_opcodes
 from datatable.graph.dtproxy import f
 from datatable.types import ltype, stype
 from datatable.utils.misc import plural_form as plural
@@ -188,9 +189,34 @@ class MixedCSNode(ColumnSetNode):
             ee = self._engine
             _dt = ee.dt.internal
             _ri = ee.rowindex
-            columns = [core.expr_column(_dt, e, _ri) if isinstance(e, int) else
-                       e.evaluate_eager(ee)
-                       for e in self._elems]
+            ncols = len(self._elems)
+            if ee.groupby:
+                opfirst = reduce_opcodes["first"]
+                n_reduce_cols = 0
+                for elem in self._elems:
+                    if isinstance(elem, int):
+                        is_groupby_col = elem in ee.groupby_cols
+                        n_reduce_cols += is_groupby_col
+                    else:
+                        n_reduce_cols += elem.is_reduce_expr(ee)
+                expand_dataset = (n_reduce_cols < ncols)
+                columns = ee.groupby_cols + self._elems
+                self._names = ([ee.dt.names[i] for i in ee.groupby_cols] +
+                               self._names)
+                for i, elem in enumerate(columns):
+                    if isinstance(elem, int):
+                        col = core.expr_column(_dt, elem, _ri)
+                        if not expand_dataset:
+                            col = core.expr_reduceop(opfirst, col, ee.groupby)
+                    else:
+                        col = elem.evaluate_eager(ee)
+                        if expand_dataset and elem.is_reduce_expr(ee):
+                            col = col.ungroup(ee.groupby)
+                    columns[i] = col
+            else:
+                columns = [core.expr_column(_dt, e, _ri) if isinstance(e, int)
+                           else e.evaluate_eager(ee)
+                           for e in self._elems]
             return core.columns_from_columns(columns)
 
     def execute_update(self):

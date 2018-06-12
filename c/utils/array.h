@@ -9,8 +9,8 @@
 #define dt_UTILS_ARRAY_h
 #include <algorithm>   // std::swap
 #include <cstdlib>     // std::realloc, std::free
+#include "memrange.h"
 #include "utils/exceptions.h"
-
 
 namespace dt
 {
@@ -48,10 +48,14 @@ template <typename T> class array
   private:
     T* x;
     size_t n;
+    bool owned;
+    int64_t : 56;
 
   public:
-    array(size_t len = 0) : x(nullptr), n(0) { resize(len); }
-    ~array() { std::free(x); }
+    array(size_t len = 0) : x(nullptr), n(0), owned(true) { resize(len); }
+    array(size_t len, const T* ptr)
+      : x(const_cast<T*>(ptr)), n(len), owned(false) {}
+    ~array() { if (owned) std::free(x); }
     // copy-constructor and assignment are forbidden
     array(const array<T>&) = delete;
     array<T>& operator=(const array<T>&) = delete;
@@ -64,14 +68,24 @@ template <typename T> class array
       using std::swap;
       swap(first.x, second.x);
       swap(first.n, second.n);
+      swap(first.owned, second.owned);
     }
 
     template <typename S> array<S> cast() {
       array<S> res;
       res.n = n * sizeof(T) / sizeof(S);
       res.x = reinterpret_cast<S*>(x);
+      res.owned = owned;
       x = nullptr;
       return res;
+    }
+
+    MemoryRange to_memoryrange() {
+      void* ptr = x;
+      size_t size = sizeof(T) * n;
+      x = nullptr;
+      n = 0;
+      return MemoryRange(size, ptr, /* own = */ owned);
     }
 
     // Standard operators
@@ -87,6 +101,9 @@ template <typename T> class array
 
     void resize(size_t newn) {
       if (newn == n) return;
+      if (!owned) {
+        throw MemoryError() << "Cannot resize array: not owned";
+      }
       if (newn == 0) {
         std::free(x);
         x = nullptr;

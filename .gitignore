@@ -45,7 +45,9 @@ temp/
 microbench/sort/sort
 microbench/writecsv/writecsv
 microbench/fread/fread
+microbench/groupby/groupby
 
 
 # Auto-generated files
 datatable/__git__.py
+.asan/

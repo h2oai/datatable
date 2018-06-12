@@ -95,6 +95,8 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
 
         colsnode.execute()
         res_dt = ee.columns.to_datatable()
+        if grbynode and res_dt.nrows == dt.nrows:
+            res_dt.groupby = ee.groupby
         return datatable.Frame(res_dt, names=colsnode.column_names)
 
     raise RuntimeError("Unable to calculate the result")  # pragma: no cover
@@ -104,13 +106,16 @@ def make_datatable(dt, rows, select, groupby=None, sort=None, engine=None,
 
 def resolve_selector(item):
     rows = None
+    grby = None
     if isinstance(item, tuple):
         if len(item) == 1:
             cols = item[0]
         elif len(item) == 2:
             rows, cols = item
+        elif len(item) == 3:
+            rows, cols, grby = item
         else:
             raise TValueError("Selector %r is not supported" % (item, ))
     else:
         cols = item
-    return (rows, cols)
+    return (rows, cols, grby)

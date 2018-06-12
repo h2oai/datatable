@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <Python.h>
+#include "groupby.h"
 #include "memrange.h"     // MemoryRange
 #include "py_types.h"
 #include "python/list.h"
@@ -108,7 +109,8 @@ public:
   const RowIndex& rowindex() const { return ri; }
   virtual int64_t data_nrows() const = 0;
   size_t memory_footprint() const;
-  RowIndex sort(bool make_groups) const;
+
+  RowIndex sort(Groupby* out_groups) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
@@ -225,6 +227,8 @@ public:
   virtual Column* sum_column() const;
   virtual Column* mean_column() const;
   virtual Column* sd_column() const;
+  virtual Column* skew_column() const;
+  virtual Column* kurt_column() const;
   virtual Column* countna_column() const;
   virtual Column* nunique_column() const;
   virtual Column* nmodal_column() const;
@@ -235,6 +239,8 @@ public:
   virtual PyObject* sum_pyscalar() const;
   virtual PyObject* mean_pyscalar() const;
   virtual PyObject* sd_pyscalar() const;
+  virtual PyObject* skew_pyscalar() const;
+  virtual PyObject* kurt_pyscalar() const;
   virtual PyObject* countna_pyscalar() const;
   virtual PyObject* nunique_pyscalar() const;
   virtual PyObject* nmodal_pyscalar() const;
@@ -380,7 +386,7 @@ public:
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
 
-protected:
+  protected:
   BooleanStats* get_stats() const override;
 
   void cast_into(BoolColumn*) const override;
@@ -417,6 +423,8 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
+  double skew() const;
+  double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
 
@@ -426,12 +434,16 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  Column* skew_column() const override;
+  Column* kurt_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
+  PyObject* skew_pyscalar() const override;
+  PyObject* kurt_pyscalar() const override;
 
 protected:
   IntegerStats<T>* get_stats() const override;
@@ -477,6 +489,8 @@ public:
   double sum() const;
   double mean() const;
   double sd() const;
+  double skew() const;
+  double kurt() const;
 
   Column* min_column() const override;
   Column* max_column() const override;
@@ -484,12 +498,16 @@ public:
   Column* sum_column() const override;
   Column* mean_column() const override;
   Column* sd_column() const override;
+  Column* skew_column() const override;
+  Column* kurt_column() const override;
   PyObject* min_pyscalar() const override;
   PyObject* max_pyscalar() const override;
   PyObject* mode_pyscalar() const override;
   PyObject* sum_pyscalar() const override;
   PyObject* mean_pyscalar() const override;
   PyObject* sd_pyscalar() const override;
+  PyObject* skew_pyscalar() const override;
+  PyObject* kurt_pyscalar() const override;
 
 protected:
   RealStats<T>* get_stats() const override;

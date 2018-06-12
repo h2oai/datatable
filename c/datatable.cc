@@ -31,10 +31,9 @@ DataTable::DataTable(Column** cols)
   nrows = cols[0]->nrows;
 
   for (Column* col = cols[++ncols]; cols[ncols] != nullptr; ++ncols) {
-    // TODO: restore, once Column also uses RowIndex
-    // if (rowindex != col->rowindex()) {
-    //   throw ValueError() << "Mismatched RowIndex in Column " << ncols;
-    // }
+    if (rowindex != col->rowindex()) {
+      throw ValueError() << "Mismatched RowIndex in Column " << ncols;
+    }
     if (nrows != col->nrows) {
       throw ValueError() << "Mismatched length in Column " << ncols << ": "
                          << "found " << col->nrows << ", expected " << nrows;
@@ -104,6 +103,16 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 }
 
 
+void DataTable::replace_groupby(const Groupby& newgb) {
+  int32_t last_offset = newgb.offsets_r()[newgb.ngroups()];
+  if (last_offset != nrows) {
+    throw ValueError() << "Cannot apply Groupby of " << last_offset << " rows "
+      "to a Frame with " << nrows << " rows";
+  }
+  groupby = newgb;
+}
+
+
 
 /**
  * Free memory occupied by the :class:`DataTable` object. This function should
@@ -164,7 +173,7 @@ void DataTable::reify() {
   for (int64_t i = 0; i < ncols; ++i) {
     columns[i]->reify();
   }
-  rowindex.clear(true);
+  rowindex.clear();
 }
 
 
@@ -205,6 +214,8 @@ DataTable* DataTable::nunique_datatable() const { return _statdt(&Column::nuniqu
 DataTable* DataTable::nmodal_datatable() const  { return _statdt(&Column::nmodal_column); }
 DataTable* DataTable::mean_datatable() const    { return _statdt(&Column::mean_column); }
 DataTable* DataTable::sd_datatable() const      { return _statdt(&Column::sd_column); }
+DataTable* DataTable::skew_datatable() const    { return _statdt(&Column::skew_column); }
+DataTable* DataTable::kurt_datatable() const    { return _statdt(&Column::kurt_column); }
 DataTable* DataTable::min_datatable() const     { return _statdt(&Column::min_column); }
 DataTable* DataTable::max_datatable() const     { return _statdt(&Column::max_column); }
 DataTable* DataTable::mode_datatable() const    { return _statdt(&Column::mode_column); }

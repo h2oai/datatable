@@ -569,9 +569,21 @@
     // | C11 DR 400.
     if (n == bufsize) return;
     if (n) {
-      void* ptr = std::realloc(bufdata, n);
-      if (!ptr) {
-        throw MemoryError() << "Unable to reallocate memory to size " << n;
+      int attempts = 3;
+      void* ptr = nullptr;
+      while (true) {
+        ptr = std::realloc(bufdata, n);
+        if (ptr) break;
+        if (errno == 12 && attempts--) {
+          // Occasionally, `realloc()` may fail if the system ran out of
+          // memmap resources. It's unclear why, but freeing up some of memmap
+          // handles sometime allows `realloc()` to succeed.
+          MemoryMapManager::get()->freeup_memory();
+          errno = 0;
+        } else {
+          throw MemoryError()
+            << "Unable to reallocate memory to size " << n << Errno;
+        }
       }
       bufdata = ptr;
     } else if (bufdata) {
@@ -630,7 +642,7 @@
   }
 
   void ExternalMRI::resize(size_t) {
-    throw Error() << "Unable to resize ExternalMRI buffer";
+    throw Error() << "Unable to resize an ExternalMRI buffer";
   }
 
   size_t ExternalMRI::memory_footprint() const {

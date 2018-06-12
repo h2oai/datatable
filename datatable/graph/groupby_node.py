@@ -5,7 +5,7 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 from .cols_node import process_column
-from datatable.utils.typechecks import TTypeError, TValueError
+from datatable.utils.typechecks import TTypeError
 
 
 class SimpleGroupbyNode:
@@ -16,8 +16,10 @@ class SimpleGroupbyNode:
 
     def execute(self):
         df = self._engine.dt
-        rowindex = df.internal.sort(self._col, True)
+        rowindex, groupby = df.internal.sort(self._col, True)
         self._engine.rowindex = rowindex
+        self._engine.groupby = groupby
+        self._engine.groupby_cols = [self._col]
 
 
 

@@ -87,7 +87,11 @@ DECLARE_GETTER(
 
 DECLARE_GETTER(
   rowindex,
-  "Row index of the view datatable, or None if this is not a view datatable")
+  "Row index of the view Frame, or None if this is not a view Frame")
+
+DECLARE_GETSET(
+  groupby,
+  "Groupby applied to the Frame, or None if no groupby was applied")
 
 DECLARE_GETTER(
   datatable_ptr,
@@ -210,6 +214,14 @@ DECLARE_METHOD(
 DECLARE_METHOD(
   get_sd,
   "Get the standard deviation for each column in the DataTable")
+
+DECLARE_METHOD(
+  get_skew,
+  "Get the skew for each column in the DataTable")
+
+DECLARE_METHOD(
+  get_kurt,
+  "Get the kurtosis for each column in the DataTable")
 
 DECLARE_METHOD(
   get_countna,

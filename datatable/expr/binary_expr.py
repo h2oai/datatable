@@ -42,6 +42,10 @@ class BinaryOpExpr(BaseExpr):
         return "(%s %s %s)" % (self._lhs, self._op, self._rhs)
 
 
+    def is_reduce_expr(self, ee):
+        return self._lhs.is_reduce_expr(ee) and self._rhs.is_reduce_expr(ee)
+
+
     #---------------------------------------------------------------------------
     # LLVM evaluation
     #---------------------------------------------------------------------------

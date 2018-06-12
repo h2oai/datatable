@@ -143,9 +143,10 @@ class GenericReader(object):
             self.sep = args.pop("separator")
         if "progress_fn" in args:
             progress = args.pop("progress_fn")
-            if not callable(progress):
+            if progress is None or callable(progress):
+                self._progress = progress
+            else:
                 raise TTypeError("`progress_fn` argument should be a function")
-            self._progress = progress
         if args:
             raise TTypeError("Unknown argument(s) %r in FReader(...)"
                              % list(args.keys()))
@@ -373,6 +374,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
+            if self._verbose:
+                self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".bz2":
             import bz2
@@ -380,6 +383,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
+            if self._verbose:
+                self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xz":
             import lzma
@@ -387,6 +392,8 @@ class GenericReader(object):
             if self._verbose:
                 self.logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
+            if self._verbose:
+                self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xlsx" or ext == ".xls":
             self._process_excel_file(filename)
@@ -879,9 +886,14 @@ class GenericReader(object):
         if isinstance(colspec, dict):
             return self._apply_columns_dict(colspec, coldescs)
 
+        if isinstance(colspec, (type, stype, ltype)):
+            newcs = {colspec: slice(None)}
+            return self._apply_columns_dict(newcs, coldescs)
+
         if callable(colspec):
             return self._apply_columns_function(colspec, coldescs)
 
+        print(colspec, coldescs)
         raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
                            % colspec)
 
@@ -972,6 +984,32 @@ class GenericReader(object):
         default_entry = colsdict.get(..., ...)
         colnames = []
         coltypes = [rtype.rdrop.value] * len(colsdesc)
+        new_entries = {}
+        for key, val in colsdict.items():
+            if isinstance(key, (type, stype, ltype)):
+                if isinstance(val, str):
+                    val = [val]
+                if isinstance(val, slice):
+                    val = [colsdesc[i].name
+                           for i in range(*val.indices(len(colsdesc)))]
+                if isinstance(val, range):
+                    val = [colsdesc[i].name for i in val]
+                if isinstance(val, (list, tuple, set)):
+                    for entry in val:
+                        if not isinstance(entry, str):
+                            raise TTypeError(
+                                "Type %s in the `columns` parameter should map"
+                                " to a string or list of strings (column names)"
+                                "; however it contains an entry %r"
+                                % (key, entry))
+                        if entry in colsdict:
+                            continue
+                        new_entries[entry] = key
+                else:
+                    raise TTypeError(
+                        "Unknown entry %r for %s in `columns`" % (val, key))
+        if new_entries:
+            colsdict = {**colsdict, **new_entries}
         for i in range(len(colsdesc)):
             name = colsdesc[i].name
             entry = colsdict.get(name, default_entry)

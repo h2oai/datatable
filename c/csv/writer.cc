@@ -223,12 +223,12 @@ static void write_f4_hex(char** pch, CsvColumn* col, int64_t row)
 
 
 static void write_f8_dec(char** pch, CsvColumn* col, int64_t row) {
-  double value = ((double*) col->data)[row];
+  double value = static_cast<const double*>(col->data)[row];
   dtoa(pch, value);
 }
 
 static void write_f4_dec(char** pch, CsvColumn* col, int64_t row) {
-  float value = ((float*) col->data)[row];
+  float value = static_cast<const float*>(col->data)[row];
   ftoa(pch, value);
 }
 

@@ -41,7 +41,6 @@ class RowIndexImpl {
     int64_t length;
     int64_t min;
     int64_t max;
-    arr32_t groups;
 
     RowIndexImpl()
       : type(RowIndexType::RI_UNKNOWN),
@@ -211,10 +210,6 @@ class RowIndex {
 
     static RowIndex from_column(Column* col);
 
-    size_t get_ngroups() const;
-    const arr32_t& get_groups() const { return impl->groups; }
-    void set_groups(arr32_t&& g) { impl->groups = std::move(g); }
-
     bool operator==(const RowIndex& other) { return impl == other.impl; }
     bool operator!=(const RowIndex& other) { return impl != other.impl; }
     operator bool() const { return impl != nullptr; }
@@ -249,7 +244,7 @@ class RowIndex {
      */
     RowIndex uplift(const RowIndex& other) const;
 
-    void clear(bool keep_groups);
+    void clear();
 
     /**
      * Reduce the size of the RowIndex to `nrows` elements. The second parameter

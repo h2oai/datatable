@@ -40,3 +40,33 @@ def test_fread_headers_against_mu():
     assert f0.internal.check()
     assert f0.names == ("C0", "C1", "C2")
     assert f0.topython() == [["A", "", ""], [100, 300, 500], [2, 4, 6]]
+
+
+def test_fread_headers_with_blanks():
+    f0 = dt.fread("""
+        02-FEB-2009,09:55:04:962,PE,36,500,44,200,,2865
+        02-FEB-2009,09:55:04:987,PE,108.75,200,111,50,,2865
+        02-FEB-2009,09:55:04:939,CE,31.1,3000,36.55,200,,2865
+        """)
+    assert f0.internal.check()
+    assert f0.names == ("C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8")
+    assert f0[:, -2:].topython() == [[None] * 3, [2865] * 3]
+
+
+
+#-------------------------------------------------------------------------------
+# Detect separator
+#-------------------------------------------------------------------------------
+
+def test_detect_sep1():
+    """Test that comma is detected as sep, not space."""
+    f0 = dt.fread("""
+        Date Time,Open,High,Low,Close,Volume
+        2007/01/01 22:51:00,5683,5683,5673,5673,64
+        2007/01/01 22:52:00,5675,5676,5674,5674,17
+        2007/01/01 22:53:00,5674,5674,5673,5674,42
+        """)
+    assert f0.internal.check()
+    assert f0.shape == (3, 6)
+    assert f0.names == ("Date Time", "Open", "High", "Low", "Close", "Volume")
+    assert f0["Open"].topython() == [[5683, 5675, 5674]]

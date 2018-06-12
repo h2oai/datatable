@@ -313,11 +313,12 @@ class SortContext {
   }
 
 
-  RowIndex get_result() {
+  RowIndex get_result(Groupby* out_grps) {
     RowIndex res = RowIndex::from_array32(std::move(order));
-    if (groups) {
-      groups.resize(static_cast<size_t>(gg.size() + 1));
-      res.set_groups(std::move(groups));
+    if (out_grps) {
+      size_t ngrps = static_cast<size_t>(gg.size());
+      groups.resize(ngrps + 1);
+      *out_grps = Groupby(ngrps, groups.to_memoryrange());
     }
     return res;
   }
@@ -1022,7 +1023,7 @@ class SortContext {
  * The function returns nullptr if there is a runtime error (for example an
  * intermediate buffer cannot be allocated).
  */
-RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
+RowIndex DataTable::sortby(const arr32_t& colindices, Groupby* out_grps) const
 {
   if (colindices.size() != 1) {
     throw NotImplError() << "Sorting by multiple columns is not supported yet";
@@ -1036,28 +1037,24 @@ RowIndex DataTable::sortby(const arr32_t& colindices, bool make_groups) const
                             "datatable with >2**31 rows";
   }
   Column* col0 = columns[colindices[0]];
-  return col0->sort(make_groups);
+  return col0->sort(out_grps);
 }
 
 
-static RowIndex sort_tiny(const Column* col, bool make_groups) {
+static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
   int64_t i = col->rowindex().nth(0);
-  RowIndex res = RowIndex::from_slice(i, col->nrows, 1);
-  if (make_groups) {
-    arr32_t grps(static_cast<size_t>(col->nrows) + 1);
-    grps[0] = 0;
-    if (col->nrows) grps[1] = 1;
-    res.set_groups(std::move(grps));
+  if (out_grps) {
+    *out_grps = Groupby::single_group(col->nrows);
   }
-  return res;
+  return RowIndex::from_slice(i, col->nrows, 1);
 }
 
 
-RowIndex Column::sort(bool make_groups) const {
+RowIndex Column::sort(Groupby* out_grps) const {
   if (nrows <= 1) {
-    return sort_tiny(this, make_groups);
+    return sort_tiny(this, out_grps);
   }
-  SortContext sc(this, make_groups);
+  SortContext sc(this, (out_grps != nullptr));
   sc.do_sort();
-  return sc.get_result();
+  return sc.get_result(out_grps);
 }

@@ -37,8 +37,13 @@ class LiteralExpr(BaseExpr):
                 self._stype = stype.float32
             else:
                 self._stype = stype.float64
+        elif isinstance(arg, str):
+            self._stype = stype.str32
         else:
             raise TypeError("Cannot use value %r in the expression" % arg)
+
+    def is_reduce_expr(self, ee):
+        return True
 
     def resolve(self):
         pass

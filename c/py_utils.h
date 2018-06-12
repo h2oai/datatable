@@ -20,6 +20,8 @@
 namespace config {
   extern PyObject* logger;
 };
+extern double logger_timer;
+extern char logger_msg[];
 void log_call(const char* msg);
 
 
@@ -27,9 +29,13 @@ void log_call(const char* msg);
   decl {                                                                       \
     try {                                                                      \
       if (config::logger) {                                                    \
-        log_call("call: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "call %s", log_msg);                        \
+        log_call(logger_msg);                                                  \
+        logger_timer = wallclock();                                            \
         PyObject* res = call;                                                  \
-        log_call("done: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "done %s in %.3f ms",                       \
+                 log_msg, (wallclock() - logger_timer) * 1000.0);              \
+        log_call(logger_msg);                                                  \
         return res;                                                            \
       } else {                                                                 \
         return call;                                                           \
@@ -45,9 +51,13 @@ void log_call(const char* msg);
   decl {                                                                       \
     try {                                                                      \
       if (config::logger) {                                                    \
-        log_call("call: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "call %s", log_msg);                        \
+        log_call(logger_msg);                                                  \
+        logger_timer = wallclock();                                            \
         call;                                                                  \
-        log_call("done: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "done %s in %.3f ms",                       \
+                 log_msg, (wallclock() - logger_timer) * 1000.0);              \
+        log_call(logger_msg);                                                  \
       } else {                                                                 \
         call;                                                                  \
       }                                                                        \
@@ -61,9 +71,13 @@ void log_call(const char* msg);
   decl {                                                                       \
     try {                                                                      \
       if (config::logger) {                                                    \
-        log_call("call: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "call %s", log_msg);                        \
+        log_call(logger_msg);                                                  \
+        logger_timer = wallclock();                                            \
         int res = call;                                                        \
-        log_call("done: " log_msg);                                            \
+        snprintf(logger_msg, 1000, "done %s in %.3f ms",                       \
+                 log_msg, (wallclock() - logger_timer) * 1000.0);              \
+        log_call(logger_msg);                                                  \
         return res;                                                            \
       } else {                                                                 \
         return call;                                                           \
@@ -117,6 +131,23 @@ void log_call(const char* msg);
   )                                                                            \
 
 
+#define DECLARE_GETSET(fn, docstring)                                          \
+  PyObject* get_##fn(BASECLS* self);                                           \
+  int set_##fn(BASECLS* self, PyObject* value);                                \
+  WHEN(HOMEFLAG,                                                               \
+    static char doc_get_##fn[] = docstring;                                    \
+    static char name_get_##fn[] = #fn;                                         \
+    ES_FUNCTION(                                                               \
+      static PyObject* safe_get_##fn(BASECLS* self, void*),                    \
+      get_##fn(self),                                                          \
+      STRINGIFY(CLSNAME) "." #fn)                                              \
+    ES_INT_FUNCTION(                                                           \
+      static int safe_set_##fn(BASECLS* self, PyObject* value, void*),         \
+      set_##fn(self, value),                                                   \
+      STRINGIFY(CLSNAME) "." #fn)                                              \
+  )                                                                            \
+
+
 #define DECLARE_REPR()                                                         \
   WHEN(HOMEFLAG,                                                               \
     static PyObject* repr(BASECLS* self);                                      \
@@ -162,16 +193,6 @@ void log_call(const char* msg);
 #define CONSTRUCTOR (initproc)safe_init
 #define REPR (reprfunc)safe_repr
 
-
-#define DT_DOCS(name, doc) \
-    static char dtdoc_##name[] = doc; \
-    static char dtvar_##name[] = #name;
-
-#define DT_GETSETTER(name) \
-    {dtvar_##name, (getter)get_##name, NULL, dtdoc_##name, NULL}
-
-#define DT_METHOD1(name) \
-    {dtvar_##name, (PyCFunction)meth_##name, METH_VARARGS, dtdoc_##name}
 
 
 PyObject* none(void);

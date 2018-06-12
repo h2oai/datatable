@@ -184,7 +184,7 @@ void FwColumn<T>::reify() {
   } else {
     mbuf.resize(newsize);
   }
-  ri.clear(true);
+  ri.clear();
 }
 
 
@@ -288,7 +288,7 @@ void FwColumn<T>::fill_na() {
   for (int64_t i = 0; i < nrows; ++i) {
     vals[i] = GETNA<T>();
   }
-  ri.clear(false);
+  ri.clear();
 }
 
 

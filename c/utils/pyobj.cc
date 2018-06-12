@@ -8,6 +8,7 @@
 #include "utils/pyobj.h"
 #include "py_column.h"
 #include "py_datatable.h"
+#include "py_groupby.h"
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "python/float.h"
@@ -215,6 +216,11 @@ Column* PyObj::as_column() const {
   int ret = pycolumn::unwrap(obj, &col);
   if (!ret) throw Error();
   return col;
+}
+
+
+Groupby* PyObj::as_groupby() const {
+  return pygroupby::unwrap(obj);
 }
 
 

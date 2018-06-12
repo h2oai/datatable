@@ -41,5 +41,5 @@ RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
 # A separated layer to collect core dumps
 RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores
 
-COPY clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
+COPY ci/clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
 

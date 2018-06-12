@@ -37,21 +37,30 @@ update applies.
   implemented).
 - Commit the changes with commit message `Release v{MN0}` and push the branch.
   On GitHub, create a new pull request from this branch.
-- Wait for the PR to finish all tests / checks successfully. If not, push
-  additional commits into this branch to fix any emergent problems.
+- Wait for the PR to finish all (but one) tests / checks successfully. If not,
+  push additional commits into this branch to fix any emergent problems. One
+  check will remain in the "pending" state until you manually complete it -
+  see the next step.
+- Click on the pending task to go to Jenkins. On the very bottom, there should
+  be a prompt whether this build should be promoted (if the prompt is not there,
+  the build might be still in progress or has failed). Click proceed — this
+  will upload the artifacts to `s3://h2o-release/datatable/stable/datatable-{MN0}/`
+  and draft a GitHub release.
 - Merge the PR into master, but **DO NOT delete the branch**. This branch
   should be kept forever.
-- Go to Jenkins and open the Console Output (make sure to be outside of 
-  BlueOcean UI). On the very bottom, there should be a prompt whether this 
-  build should be promoted (if the prompt is not there, the build might be 
-  still in progress or has failed). Click proceed — this will upload the 
-  artifacts to `s3://h2o-release/datatable/stable/datatable-{MN0}/` and 
-  draft a GitHub release. 
-- Go to [Releases](https://github.com/h2oai/datatable/releases) on GitHub — 
-  there should be a draft of the latest release. Click `Edit`. Review the 
-  changelog and artifacts, and if everything is correct click 
-  `Publish Release` on the bottom of the page.
-- ??? use `twine upload` to make the new release available on PyPi
+- Go to [Releases](https://github.com/h2oai/datatable/releases) on GitHub —
+  there should be a new latest release. Review the changelog and artifacts, and
+  check that everything is in order.
+- From the Release page download 3 artifacts: one `.tar.gz` source distribution,
+  and two `_macosx_*.whl` distributions (for python 3.5 and 3.6). Then upload
+  them onto PyPI:
+  ```
+  ls ~/Downloads/datatable-{MN0}*
+  twine upload ~/Downloads/datatable-{MN0}*
+  ```
+- go to https://pypi.org/manage/project/datatable/releases/ and check that the
+  release was uploaded successfully.
+- ??? documentation update
 
 
 
@@ -75,8 +84,8 @@ version with some bug fixes. Do not add new functionality into a patch release
   immediately preceding the `[v{MMM}] ...` line. Add a description of the
   changes being introduced in this patch.
 - Commit the changes, and push the commit to GitHub.
-- Wait for tests to finish (fix problems if some checks fail), then go to Jenkins 
-  and do the same procedure as in case of new minor version (approve the prompt 
+- Wait for tests to finish (fix problems if some checks fail), then go to Jenkins
+  and do the same procedure as in case of new minor version (approve the prompt
   in console, review and publish the GitHub release draft).
 - ???
 
@@ -95,13 +104,13 @@ in the minor version release section, the following might be needed:
     - "will be removed in version {MAJOR+1}"
     - "will be changed in version {MAJOR+1}"
     - "will become deprecated in version {MAJOR+1}"
-    
+
   and make those changes accordingly.
-  
+
 - Update `CHANGELOG.md` noting all functionality that was removed/ changed/
   deprecated.
-  
+
 - Publish a blog post outlining all main improvements since the previous major
   release.
-  
+
 - Make a twitter announcement on @pydatatable

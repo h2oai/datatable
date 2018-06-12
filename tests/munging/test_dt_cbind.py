@@ -8,7 +8,7 @@ import pytest
 import types
 import datatable as dt
 from tests import assert_equals
-from datatable import stype
+from datatable import stype, DatatableWarning, cbind
 
 
 def dt_compute_stats(*dts):
@@ -36,7 +36,7 @@ def test_cbind_simple():
     d0 = dt.Frame([1, 2, 3])
     d1 = dt.Frame([4, 5, 6])
     dt_compute_stats(d0, d1)
-    with pytest.warns(UserWarning):
+    with pytest.warns(DatatableWarning):
         d0.cbind(d1)
     dr = dt.Frame([[1, 2, 3], [4, 5, 6]], names=["C0", "C1"])
     assert_equals(d0, dr)
@@ -59,7 +59,7 @@ def test_cbind_empty2():
 def test_cbind_self():
     d0 = dt.Frame({"fun": [1, 2, 3]})
     dt_compute_stats(d0)
-    with pytest.warns(UserWarning):
+    with pytest.warns(DatatableWarning):
         d0.cbind(d0).cbind(d0).cbind(d0)
     dr = dt.Frame([[1, 2, 3]] * 8,
                   names=["fun"] + ["fun.%d" % i for i in range(1, 8)])
@@ -90,7 +90,7 @@ def test_cbind_forced1():
     d0 = dt.Frame([1, 2, 3])
     d1 = dt.Frame([4, 5])
     dt_compute_stats(d0, d1)
-    with pytest.warns(UserWarning):
+    with pytest.warns(DatatableWarning):
         d0.cbind(d1, force=True)
     dr = dt.Frame([[1, 2, 3], [4, 5, None]], names=["C0", "C1"])
     assert_equals(d0, dr)
@@ -196,3 +196,14 @@ def test_cbind_1row_none():
     d0.cbind(d1)
     dr = dt.Frame({"A": [1, 2, 3, 4], "B": [None, None, None, "f"]})[:-1, :]
     assert_equals(d0, dr)
+
+
+def test_cbind_method():
+    d0 = dt.Frame({"A": [1, 2, 3]})
+    d1 = dt.Frame({"B": list('abc')})
+    d2 = dt.Frame({"C": [5.6, 7.1, -3.3]})
+    dr = dt.cbind(d0, d1, d2)
+    assert dr.names == ("A", "B", "C")
+    res = dt.Frame([[1, 2, 3], ["a", "b", "c"], [5.6, 7.1, -3.3]],
+                   names=("A", "B", "C"))
+    assert_equals(dr, res)
