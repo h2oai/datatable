@@ -14,8 +14,8 @@
 #include "utils/exceptions.h"
 #include "writebuf.h"
 
-class MemoryRangeImpl;
 class ViewedMRI;
+class BaseMRI;
 class IntegrityCheckContext;
 
 
@@ -26,13 +26,20 @@ class IntegrityCheckContext;
 /**
  * MemoryRange class represents a contiguous chunk of memory. This memory
  * chunk may be shared across multiple MemoryRange instances: this allows
- * MemoryRange objects to be copied easily.
+ * MemoryRange objects to be copied with negligible overhead.
  *
- * Internally, MemoryRange is implemented by one of the MemoryRangeImpl
- * backends. There are implementations for:
+ * Internally, MemoryRange object contains a single member: pointer to a
+ * `MemoryRangeObject` structure. This structure in turn contains a pointer
+ * to a `BaseMRI` object and a refcounter. The `BaseMRI` object is instantiated
+ * from one of the derived classes (representing different backends):
  *   - plain memory storage (MemoryMRI);
  *   - memory owned by an external source (ExternalMRI);
- *   - view onto another MemoryRange (ViewMRI).
+ *   - view onto another MemoryRange (ViewMRI);
+ *   - MemoryRange that is currently being "viewed" (ViewedMRI);
+ *   - memory-mapped file (MmapMRI).
+ * This 2-tiered structure allows us to replace an internal `BaseMRI` object
+ * with another implementation, if needed -- without having to modify any of
+ * the user-facing `MemoryRange` objects.
  *
  * The class implements Copy-on-Write semantics: if a user wants to write into
  * the memory buffer contained in a MemoryRange object, and that memory buffer
@@ -62,7 +69,8 @@ class IntegrityCheckContext;
 class MemoryRange
 {
   private:
-    MemoryRangeImpl* impl;
+    struct internal;
+    std::shared_ptr<internal> o;
 
   public:
     // Basic copy & move constructors / assignment operators.
@@ -71,11 +79,10 @@ class MemoryRange
     // only legal operation is to destruct that object.
     //
     MemoryRange();
-    MemoryRange(const MemoryRange&);
-    MemoryRange(MemoryRange&&);
-    MemoryRange& operator=(const MemoryRange&);
-    MemoryRange& operator=(MemoryRange&&);
-    ~MemoryRange();
+    MemoryRange(const MemoryRange&) = default;
+    MemoryRange(MemoryRange&&) = default;
+    MemoryRange& operator=(const MemoryRange&) = default;
+    MemoryRange& operator=(MemoryRange&&) = default;
 
     // Factory constructors:
     //
@@ -179,6 +186,8 @@ class MemoryRange
     const void* rptr(size_t offset) const;
     void* wptr();
     void* wptr(size_t offset);
+    void* xptr() const;
+    void* xptr(size_t offset) const;
     template <typename T> T get_element(int64_t i) const;
     template <typename T> void set_element(int64_t i, T value);
 
@@ -236,6 +245,7 @@ class MemoryRange
     void materialize();
 
     // void convert_to_viewed();
+    friend BaseMRI;
 };
 
 

@@ -346,8 +346,7 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
     T* offsets = static_cast<T*>(mbuf.wptr());
     ++offsets;
     if (old_nrows == 1 && offsets[0] > 0) {
-      MemoryRange new_strbuf = strbuf;
-      new_strbuf.resize(new_strbuf_size);
+      MemoryRange new_strbuf(new_strbuf_size);
       const char* str_src = static_cast<const char*>(strbuf.rptr());
       char* str_dest = static_cast<char*>(new_strbuf.wptr());
       T src_len = static_cast<T>(old_strbuf_size);

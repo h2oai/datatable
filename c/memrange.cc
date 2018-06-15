@@ -20,20 +20,19 @@
 // Implementation classes
 //==============================================================================
 
-  class MemoryRangeImpl {
+  class BaseMRI {
     public:
       void*  bufdata;
       size_t bufsize;
-      int    refcount;
       bool   pyobjects;
       bool   writeable;
       bool   resizable;
-      int: 8;
+      int64_t: 40;
+      MemoryRange::internal* parent;
 
     public:
-      MemoryRangeImpl();
-      virtual ~MemoryRangeImpl() {}
-      virtual void release();
+      BaseMRI();
+      virtual ~BaseMRI();
       void clear_pyobjects();
 
       virtual void resize(size_t) {}
@@ -45,7 +44,16 @@
   };
 
 
-  class MemoryMRI : public MemoryRangeImpl {
+  struct MemoryRange::internal {
+    std::unique_ptr<BaseMRI> impl;
+
+    internal(BaseMRI*&& _impl) : impl(_impl) {
+      impl->parent = this;
+    }
+  };
+
+
+  class MemoryMRI : public BaseMRI {
     public:
       MemoryMRI(size_t n);
       MemoryMRI(size_t n, void* ptr);
@@ -58,7 +66,7 @@
   };
 
 
-  class ExternalMRI : public MemoryRangeImpl {
+  class ExternalMRI : public BaseMRI {
     private:
       Py_buffer* pybufinfo;
 
@@ -77,7 +85,7 @@
   // ViewMRI represents a memory range which is a part of a larger memory
   // region controlled by MemoryRange `source`.
   //
-  // Typical use-case: memory-map a file, then carve out varioues regions of
+  // Typical use-case: memory-map a file, then carve out various regions of
   // that file as separate MemoryRange objects for each column. Another example:
   // when converting to Numpy, allocate a large contiguous chunk of memory,
   // then split it into separate memory buffers for each column, and cast the
@@ -114,7 +122,7 @@
   // MemoryRange* argument; and also to keep around the complete list of all
   // pointers that refer to the ViewedMRI instead of a simple refcount...
   //
-  class ViewMRI : public MemoryRangeImpl {
+  class ViewMRI : public BaseMRI {
     private:
       const MemoryRange& source;
       size_t offset;
@@ -128,15 +136,15 @@
       bool verify_integrity(IntegrityCheckContext& icc) const override;
   };
   /*
-  class ViewedMRI : public MemoryRangeImpl {
+  class ViewedMRI : public BaseMRI {
     private:
       MemoryRange* source_memoryrange;
-      MemoryRangeImpl* original_impl;
+      BaseMRI* original_impl;
       int view_refcount;
       int : 32;
 
     public:
-      ViewedMRI(MemoryRange* src, MemoryRangeImpl* impl);
+      ViewedMRI(MemoryRange* src, BaseMRI* impl);
       void release() override;
       void release_view();
       size_t memory_footprint() const override { return 0; }
@@ -146,7 +154,7 @@
   */
 
 
-  class MmapMRI : public MemoryRangeImpl, MemoryMapWorker {
+  class MmapMRI : public BaseMRI, MemoryMapWorker {
     private:
       const std::string filename;
       size_t mmm_index;
@@ -199,105 +207,76 @@
 // Main `MemoryRange` class
 //==============================================================================
 
-  //---- Basic constructors ----------------------
+  //---- Constructors ----------------------------
 
   MemoryRange::MemoryRange() {
-    impl = new MemoryMRI(0);
+    o = std::make_shared<internal>(new MemoryMRI(0));
   }
-
-  MemoryRange::MemoryRange(const MemoryRange& other) {
-    impl = other.impl;
-    impl->refcount++;
-  }
-
-  MemoryRange::MemoryRange(MemoryRange&& other) {
-    impl = other.impl;
-    other.impl = nullptr;
-  }
-
-  MemoryRange& MemoryRange::operator=(const MemoryRange& other) {
-    impl->release();
-    impl = other.impl;
-    impl->refcount++;
-    return *this;
-  }
-
-  MemoryRange& MemoryRange::operator=(MemoryRange&& other) {
-    impl->release();
-    impl = other.impl;
-    other.impl = nullptr;
-    return *this;
-  }
-
-  MemoryRange::~MemoryRange() {
-    // impl can be NULL if its content was moved out via `std::move()`
-    if (impl) impl->release();
-  }
-
-
-  //---- Factory constructors --------------------
 
   MemoryRange::MemoryRange(size_t n) {
-    impl = new MemoryMRI(n);
+    o = std::make_shared<internal>(new MemoryMRI(n));
   }
 
   MemoryRange::MemoryRange(size_t n, void* ptr, bool own) {
-    if (own) impl = new MemoryMRI(n, ptr);
-    else     impl = new ExternalMRI(n, ptr);
+    if (own) {
+      o = std::make_shared<internal>(new MemoryMRI(n, ptr));
+    } else {
+      o = std::make_shared<internal>(new ExternalMRI(n, ptr));
+    }
   }
 
   MemoryRange::MemoryRange(size_t n, const void* ptr, Py_buffer* pb) {
-    impl = new ExternalMRI(n, ptr, pb);
+    o = std::make_shared<internal>(new ExternalMRI(n, ptr, pb));
   }
 
   MemoryRange::MemoryRange(size_t n, MemoryRange& src, size_t offset) {
-    impl = new ViewMRI(n, src, offset);
+    o = std::make_shared<internal>(new ViewMRI(n, src, offset));
   }
 
   MemoryRange::MemoryRange(const std::string& path) {
-    impl = new MmapMRI(path);
+    o = std::make_shared<internal>(new MmapMRI(path));
   }
 
   MemoryRange::MemoryRange(size_t n, const std::string& path, int fd) {
-    impl = new MmapMRI(n, path, fd);
+    o = std::make_shared<internal>(new MmapMRI(n, path, fd));
   }
 
   MemoryRange::MemoryRange(const std::string& path, size_t extra_n, int fd) {
-    impl = new OvermapMRI(path, extra_n, fd);
+    o = std::make_shared<internal>(new OvermapMRI(path, extra_n, fd));
   }
 
 
   //---- Basic properties ------------------------
 
   MemoryRange::operator bool() const {
-    return (impl->size() != 0);
+    return (o->impl->size() != 0);
   }
 
   bool MemoryRange::is_writeable() const {
-    return (impl->refcount == 1) && impl->writeable;
+    return (o.use_count() == 1) && o->impl->writeable;
   }
 
   bool MemoryRange::is_resizable() const {
-    return (impl->refcount == 1) && impl->resizable;
+    return (o.use_count() == 1) && o->impl->resizable;
   }
 
   bool MemoryRange::is_pyobjects() const {
-    return impl->pyobjects;
+    return o->impl->pyobjects;
   }
 
   size_t MemoryRange::size() const {
-    return impl->size();
+    return o->impl->size();
   }
 
   size_t MemoryRange::memory_footprint() const {
-    return sizeof(MemoryRange) + impl->memory_footprint();
+    return sizeof(MemoryRange) + sizeof(internal) + o->impl->memory_footprint();
   }
 
 
   //---- Main data accessors ---------------------
 
   const void* MemoryRange::rptr() const {
-    return impl->ptr();
+    return o->impl->ptr();
   }
 
   const void* MemoryRange::rptr(size_t offset) const {
@@ -307,7 +286,7 @@
 
   void* MemoryRange::wptr() {
     if (!is_writeable()) materialize();
-    return impl->ptr();
+    return o->impl->ptr();
   }
 
   void* MemoryRange::wptr(size_t offset) {
@@ -315,43 +294,55 @@
     return static_cast<void*>(ptr0 + offset);
   }
 
+  void* MemoryRange::xptr() const {
+    if (!is_writeable()) {
+      throw RuntimeError() << "Cannot write into this MemoryRange object: "
+        "refcount=" << o.use_count() << ", writeable=" << o->impl->writeable;
+    }
+    return o->impl->ptr();
+  }
+
+  void* MemoryRange::xptr(size_t offset) const {
+    return static_cast<void*>(static_cast<char*>(xptr()) + offset);
+  }
+
 
   //---- MemoryRange manipulators ----------------
 
   MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
-    size_t n = impl->size() / sizeof(PyObject*);
-    xassert(n * sizeof(PyObject*) == impl->size());
+    size_t n = o->impl->size() / sizeof(PyObject*);
+    xassert(n * sizeof(PyObject*) == o->impl->size());
     xassert(this->is_writeable());
     if (clear_data) {
-      PyObject** data = static_cast<PyObject**>(impl->ptr());
+      PyObject** data = static_cast<PyObject**>(o->impl->ptr());
       for (size_t i = 0; i < n; ++i) {
         data[i] = Py_None;
       }
       Py_None->ob_refcnt += n;
     }
-    impl->pyobjects = true;
+    o->impl->pyobjects = true;
     return *this;
   }
 
   MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
-    size_t oldsize = impl->size();
+    size_t oldsize = o->impl->size();
     if (newsize != oldsize) {
       if (is_resizable()) {
-        if (impl->pyobjects) {
+        if (o->impl->pyobjects) {
           size_t n_old = oldsize / sizeof(PyObject*);
           size_t n_new = newsize / sizeof(PyObject*);
           if (n_new < n_old) {
-            PyObject** data = static_cast<PyObject**>(impl->ptr());
+            PyObject** data = static_cast<PyObject**>(o->impl->ptr());
             for (size_t i = n_new; i < n_old; ++i) Py_DECREF(data[i]);
           }
-          impl->resize(newsize);
+          o->impl->resize(newsize);
           if (n_new > n_old) {
-            PyObject** data = static_cast<PyObject**>(impl->ptr());
+            PyObject** data = static_cast<PyObject**>(o->impl->ptr());
             for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
             Py_None->ob_refcnt += n_new - n_old;
           }
         } else {
-          impl->resize(newsize);
+          o->impl->resize(newsize);
         }
       } else {
         size_t copysize = keep_data? std::min(newsize, oldsize) : 0;
@@ -367,27 +358,27 @@
   void MemoryRange::save_to_disk(const std::string& path,
                                   WritableBuffer::Strategy strategy)
   {
-    auto wb = WritableBuffer::create_target(path, impl->size(), strategy);
-    wb->write(impl->size(), impl->ptr());
+    auto wb = WritableBuffer::create_target(path, o->impl->size(), strategy);
+    wb->write(o->impl->size(), o->impl->ptr());
   }
 
 
   PyObject* MemoryRange::pyrepr() const {
     return PyUnicode_FromFormat("<MemoryRange:%s %p+%zu (ref=%zu)>",
-                                impl->name(), impl->ptr(), impl->size(),
-                                impl->refcount);
+                                o->impl->name(), o->impl->ptr(), o->impl->size(),
+                                o.use_count());
   }
 
   bool MemoryRange::verify_integrity(IntegrityCheckContext& icc) const {
-    if (!impl) {
+    if (!o || !o->impl) {
       icc << "NULL implementation object in MemoryRange" << icc.end();
       return false;
     }
-    return impl->verify_integrity(icc);
+    return o->impl->verify_integrity(icc);
   }
 
   void MemoryRange::materialize() {
-    size_t s = impl->size();
+    size_t s = o->impl->size();
     materialize(s, s);
   }
 
@@ -395,9 +386,9 @@
     xassert(newsize >= copysize);
     MemoryMRI* newimpl = new MemoryMRI(newsize);
     if (copysize) {
-      std::memcpy(newimpl->ptr(), impl->ptr(), copysize);
+      std::memcpy(newimpl->ptr(), o->impl->ptr(), copysize);
     }
-    if (impl->pyobjects) {
+    if (o->impl->pyobjects) {
       newimpl->pyobjects = true;
       PyObject** newdata = static_cast<PyObject**>(newimpl->ptr());
       size_t n_new = newsize / sizeof(PyObject*);
@@ -407,8 +398,7 @@
       for (; i < n_new; ++i) newdata[i] = Py_None;
       Py_None->ob_refcnt += n_new - n_copy;
     }
-    impl->release();
-    impl = newimpl;
+    o = std::make_shared<internal>(std::move(newimpl));
   }
 
 
@@ -449,41 +439,41 @@
 
 
 //==============================================================================
-// MemoryRangeImpl
+// BaseMRI
 //==============================================================================
 
-  MemoryRangeImpl::MemoryRangeImpl()
+  BaseMRI::BaseMRI()
     : bufdata(nullptr),
       bufsize(0),
-      refcount(1),
       pyobjects(false),
       writeable(true),
       resizable(true) {}
 
-  void MemoryRangeImpl::clear_pyobjects() {
+  BaseMRI::~BaseMRI() {
+    if (pyobjects) {
+      printf("pyobjects not properly cleared\n");
+    }
+  }
+
+  // This method must be called by the destructors of the derived classes. The
+  // reason this code is not in the ~BaseMRI is because it is the derived
+  // classes who handle freeing of `bufdata`, and clearing PyObjects must
+  // happen before that.
+  //
+  void BaseMRI::clear_pyobjects() {
     // If memory buffer contains `PyObject*`s, then they must be DECREFed
     // before being deleted.
-    if (bufdata && pyobjects) {
+    if (pyobjects) {
       PyObject** items = static_cast<PyObject**>(bufdata);
       size_t n = bufsize / sizeof(PyObject*);
       for (size_t i = 0; i < n; ++i) {
         Py_DECREF(items[i]);
       }
+      pyobjects = false;
     }
   }
 
-  void MemoryRangeImpl::release() {
-    if (--refcount == 0) {
-      clear_pyobjects();
-      delete this;
-    }
-  }
-
-  bool MemoryRangeImpl::verify_integrity(IntegrityCheckContext& icc) const {
-    if (refcount <= 0) {
-      icc << "Invalid refcount in MemoryRange: " << refcount << icc.end();
-      return false;
-    }
+  bool BaseMRI::verify_integrity(IntegrityCheckContext& icc) const {
     if (!bufdata && bufsize) {
       icc << "MemoryRange has bufdata = NULL but size = " << bufsize
           << icc.end();
@@ -545,6 +535,7 @@
   }
 
   MemoryMRI::~MemoryMRI() {
+    clear_pyobjects();
     std::free(bufdata);
   }
 
@@ -559,7 +550,7 @@
   }
 
   bool MemoryMRI::verify_integrity(IntegrityCheckContext& icc) const {
-    bool ok = MemoryRangeImpl::verify_integrity(icc);
+    bool ok = BaseMRI::verify_integrity(icc);
     if (!ok) return false;
     if (bufsize) {
       size_t actual_allocsize = malloc_size(bufdata);
@@ -582,9 +573,8 @@
 
   ExternalMRI::ExternalMRI(size_t size, const void* ptr, Py_buffer* pybuf) {
     if (!ptr && size > 0) {
-      throw ValueError() << "Unallocated buffer supplied to the ExternalMRI "
-                         << "constructor. Expected memory region of size "
-                         << size;
+      throw RuntimeError() << "Unallocated buffer supplied to the ExternalMRI "
+          "constructor. Expected memory region of size " << size;
     }
     bufdata = const_cast<void*>(ptr);
     bufsize = size;
@@ -601,6 +591,9 @@
       : ExternalMRI(strlen(str) + 1, str, nullptr) {}
 
   ExternalMRI::~ExternalMRI() {
+    // If the buffer contained pyobjects, leave them as-is and do not attempt
+    // to DECREF (this is up to the external owner).
+    pyobjects = false;
     if (pybufinfo) {
       PyBuffer_Release(pybufinfo);
     }
@@ -638,7 +631,7 @@
   void ViewMRI::resize(size_t) { throw Error(); }
 
   bool ViewMRI::verify_integrity(IntegrityCheckContext& icc) const {
-    bool ok = MemoryRangeImpl::verify_integrity(icc);
+    bool ok = BaseMRI::verify_integrity(icc);
     if (!ok) return false;
     if (resizable) {
       icc << "View MemoryRange cannot be marked as resizable" << icc.end();
@@ -660,7 +653,7 @@
 //==============================================================================
 
   /*
-  ViewedMRI::ViewedMRI(MemoryRange* src, MemoryRangeImpl* impl) {
+  ViewedMRI::ViewedMRI(MemoryRange* src, BaseMRI* impl) {
     source_memoryrange = src;
     original_impl = impl;
     bufdata = original_impl->bufdata;
@@ -881,7 +874,7 @@
   }
 
   bool MmapMRI::verify_integrity(IntegrityCheckContext& icc) const {
-    bool ok = MemoryRangeImpl::verify_integrity(icc);
+    bool ok = BaseMRI::verify_integrity(icc);
     if (!ok) return false;
     if (mapped) {
       if (!MemoryMapManager::get()->check_entry(mmm_index, this)) {
