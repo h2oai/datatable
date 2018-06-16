@@ -310,7 +310,9 @@ void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
 
 
 LocalParseContext::~LocalParseContext() {
-  if (used_nrows != 0) printf("used_nrows!=0 in ~LocalParseContext()\n");
+  if (used_nrows != 0) {
+    printf("Assertion error in ~LocalParseContext(): used_nrows != 0\n");
+  }
   free(tbuf);
 }
 

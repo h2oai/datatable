@@ -208,6 +208,7 @@ void ChunkedDataReader::read_all()
       try {
         tctx->push_buffers();
       } catch (...) {
+        tctx->used_nrows = 0;
         oem.capture_exception();
       }
     }
