@@ -35,7 +35,7 @@ constexpr T infinity() {
 // "First" reducer
 //------------------------------------------------------------------------------
 
-static Column* reduce_first(Column* arg, const Groupby& groupby) {
+static Column* reduce_first(const Column* arg, const Groupby& groupby) {
   if (arg->nrows == 0) {
     return Column::new_data_column(arg->stype(), 0);
   }
