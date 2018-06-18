@@ -288,35 +288,6 @@ class GenericReader
 //------------------------------------------------------------------------------
 
 /**
- * Per-column per-thread temporary string buffers used to assemble processed
- * string data. This buffer is used as a "staging ground" where the string data
- * is being stored / postprocessed before being transferred to the "main"
- * string buffer in a Column. Such 2-stage process is needed for the multi-
- * threaded string data writing.
- *
- * Members of this struct:
- *   .strdata -- memory region where the string data is stored.
- *   .allocsize -- allocation size of this memory buffer.
- *   .usedsize -- amount of memory already in use in the buffer.
- *   .writepos -- position in the global string data buffer where the current
- *       buffer's data should be moved. This value is returned from
- *       `WritableBuffer::prep_write()`.
- */
-struct StrBuf2 {
-  char* strdata;
-  size_t allocsize;
-  size_t usedsize;
-  size_t writepos;
-  int64_t colidx;
-
-  StrBuf2(int64_t i);
-  ~StrBuf2();
-  void resize(size_t newsize);
-};
-
-
-
-/**
  * "Relative string": a string defined as an offset+length relative to some
  * anchor point (which has to be provided separately). This is the internal data
  * structure for reading strings from a file.
@@ -406,19 +377,17 @@ class LocalParseContext {
     size_t tbuf_nrows;
     size_t used_nrows;
     size_t row0;
-    // std::vector<StrBuf2> strbufs;
 
   public:
     LocalParseContext(size_t ncols, size_t nrows);
     virtual ~LocalParseContext();
-    virtual field64* next_row();
+
     virtual void push_buffers() = 0;
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void orderBuffer() = 0; // { row0 = r0; }
-    virtual size_t get_nrows() { return used_nrows; }
-    virtual void set_nrows(size_t n) { used_nrows = n; }
+    virtual void orderBuffer() = 0;
 
-  public:
+    size_t get_nrows() const;
+    void set_nrows(size_t n);
     void allocate_tbuf(size_t ncols, size_t nrows);
 };
 

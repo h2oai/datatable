@@ -293,6 +293,14 @@ LocalParseContext::LocalParseContext(size_t ncols, size_t nrows) {
 }
 
 
+LocalParseContext::~LocalParseContext() {
+  if (used_nrows != 0) {
+    printf("Assertion error in ~LocalParseContext(): used_nrows != 0\n");
+  }
+  dt::free(tbuf);
+}
+
+
 void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
   size_t old_size = tbuf? (tbuf_ncols * tbuf_nrows + 1) * sizeof(field64) : 0;
   size_t new_size = (ncols * nrows + 1) * sizeof(field64);
@@ -309,96 +317,13 @@ void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
 }
 
 
-LocalParseContext::~LocalParseContext() {
-  if (used_nrows != 0) {
-    printf("Assertion error in ~LocalParseContext(): used_nrows != 0\n");
-  }
-  free(tbuf);
+size_t LocalParseContext::get_nrows() const {
+  return used_nrows;
 }
 
 
-// void LocalParseContext::prepare_strbufs(const std::vector<ColumnSpec>& columns) {
-//   size_t ncols = columns.size();
-//   for (size_t i = 0; i < ncols; ++i) {
-//     if (columns[i].type == ColumnSpec::Type::String) {
-//       strbufs.push_back(StrBuf2(static_cast<int64_t>(i)));
-//     }
-//   }
-// }
-
-
-field64* LocalParseContext::next_row() {
-  if (used_nrows == tbuf_nrows) {
-    allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
-  }
-  return tbuf + (used_nrows++) * tbuf_ncols;
+void LocalParseContext::set_nrows(size_t n) {
+  xassert(n <= used_nrows);
+  used_nrows = n;
 }
-
-
-void LocalParseContext::push_buffers()
-{
-  if (used_nrows == 0) return;
-  /*
-  size_t rowsize8 = ctx.rowsize / 8;
-  for (size_t i = 0, j = 0, k = 0; i < colspec.size(); ++i) {
-    auto coltype = colspec[i].type;
-    if (coltype == ColumnSpec::Type::Drop) {
-      continue;
-    }
-    if (coltype == ColumnSpec::Type::String) {
-      StrBuf2& sb = ctx.strbufs[k];
-      outcols[j].strdata->write_at(sb.writepos, sb.usedsize, sb.strdata);
-      sb.usedsize = 0;
-
-      int32_t* dest = static_cast<int32_t*>(outcols[j].data);
-      RelStr* src = static_cast<RelStr*>(ctx.tbuf);
-      int32_t offset = abs(dest[-1]);
-      for (int64_t row = 0; row < ctx.used_nrows; ++row) {
-        int32_t o = src->offset;
-        dest[row] = o >= 0? o + offset : o - offset;
-        src += rowsize8;
-      }
-      k++;
-    } else {
-      // ... 3 cases, depending on colsize
-    }
-    j++;
-  }
-  */
-  used_nrows = 0;
-}
-
-
-
-
-
-//------------------------------------------------------------------------------
-// StrBuf2
-//------------------------------------------------------------------------------
-
-StrBuf2::StrBuf2(int64_t i) {
-  colidx = i;
-  writepos = 0;
-  usedsize = 0;
-  allocsize = 1024;
-  strdata = static_cast<char*>(malloc(allocsize));
-  if (!strdata) {
-    throw RuntimeError()
-          << "Unable to allocate 1024 bytes for a temporary buffer";
-  }
-}
-
-StrBuf2::~StrBuf2() {
-  free(strdata);
-}
-
-void StrBuf2::resize(size_t newsize) {
-  strdata = static_cast<char*>(realloc(strdata, newsize));
-  allocsize = newsize;
-  if (!strdata) {
-    throw RuntimeError() << "Unable to allocate " << newsize
-                         << " bytes for a temporary buffer";
-  }
-}
-
 
