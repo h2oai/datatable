@@ -232,7 +232,17 @@ class Frame(object):
         # Clear the memorized values, in case they were already computed.
         self._stypes = None
         self._ltypes = None
-        if not names:
+        if names:
+            if isinstance(names, str):
+                names = [names]
+            if not isinstance(names, (tuple, list)):
+                raise TTypeError("The `names` parameter should be either a "
+                                 "tuple or a list, not %r" % type(names))
+            if len(names) != self._ncols:
+                raise TValueError("The length of the `names` parameter (%d) "
+                                  "does not match the number of columns in the "
+                                  "Frame (%d)" % (len(names), self._ncols))
+        else:
             names = [None] * self._ncols
         self._names, self._inames = Frame._dedup_names(names)
 
@@ -303,6 +313,9 @@ class Frame(object):
                 fill_default_names = True
                 tnames.append(None)  # Placeholder, filled in below
                 continue
+            if not isinstance(name, str):
+                raise TTypeError("Invalid `names` list: element %d is not a "
+                                 "string" % i)
             if name[:len(prefix)] == prefix and name[len(prefix):].isdigit():
                 min_c = max(min_c, int(name[len(prefix):]) + 1)
             else:

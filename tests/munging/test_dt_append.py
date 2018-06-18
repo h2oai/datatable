@@ -132,13 +132,13 @@ def test_repeating_names():
         assert_equals(dt0, dtr)
 
         dt0 = dt.Frame({"a": [23]})
-        dt1 = dt.Frame([[2], [4], [8]], names="aaa")
-        dtr = dt.Frame([[23, 2], [None, 4], [None, 8]], names="aaa")
+        dt1 = dt.Frame([[2], [4], [8]], names=["a"] * 3)
+        dtr = dt.Frame([[23, 2], [None, 4], [None, 8]], names=("a",) * 3)
         dt0.rbind(dt1, force=True)
         assert_equals(dt0, dtr)
 
-        dt0 = dt.Frame([[22], [44], [88]], names="aba")
-        dt1 = dt.Frame([[2], [4], [8]], names="aaa")
+        dt0 = dt.Frame([[22], [44], [88]], names=list("aba"))
+        dt1 = dt.Frame([[2], [4], [8]], names=list("aaa"))
         dtr = dt.Frame([[22, 2], [44, None], [88, 4], [None, 8]],
                        names=["a", "b", "a", "a"])
         dt0.rbind(dt1, force=True)
