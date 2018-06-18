@@ -138,7 +138,7 @@ def test_dt_getitem(dt0):
 
 # Not a fixture: create a new datatable each time this function is called
 def smalldt():
-    return dt.Frame([[i] for i in range(16)], names="ABCDEFGHIJKLMNOP")
+    return dt.Frame([[i] for i in range(16)], names=list("ABCDEFGHIJKLMNOP"))
 
 def test_del_0cols():
     d0 = smalldt()

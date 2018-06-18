@@ -29,7 +29,7 @@ def test_create_from_list():
 
 
 def test_create_from_list_of_lists():
-    d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names="ABC")
+    d1 = dt.Frame([[1, 2], [True, False], [.3, -0]], names=list("ABC"))
     assert d1.shape == (2, 3)
     assert d1.names == ("A", "B", "C")
     assert d1.ltypes == (ltype.int, ltype.bool, ltype.real)
@@ -197,6 +197,47 @@ def test_create_as_str64():
     assert d0.stypes == (stype.str64, )
     assert d0.shape == (10, 1)
     assert d0.topython() == [[str(n) for n in range(10)]]
+
+
+
+#-------------------------------------------------------------------------------
+# Create with names
+#-------------------------------------------------------------------------------
+
+def test_create_names0():
+    d0 = dt.Frame(range(10), names="xyz")
+    d1 = dt.Frame(range(10), names=["xyz"])
+    d2 = dt.Frame(range(10), names=("xyz",))
+    assert d0.shape == d1.shape == d2.shape == (10, 1)
+    assert d0.names == d1.names == d2.names == ("xyz",)
+
+
+def test_create_names_bad1():
+    with pytest.raises(ValueError) as e:
+        dt.Frame(range(10), names=["a", "b"])
+    assert ("The length of the `names` parameter (2) does not match the "
+            "number of columns in the Frame (1)" in str(e.value))
+
+
+def test_create_names_bad2():
+    with pytest.raises(ValueError) as e:
+        dt.Frame([[1], [2], [3]], names="xyz")
+    assert ("The length of the `names` parameter (1) does not match the "
+            "number of columns in the Frame (3)" in str(e.value))
+
+
+def test_create_names_bad3():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(range(5), names={"x": 1})
+    assert ("The `names` parameter should be either a tuple or a list"
+            in str(e.value))
+
+
+def test_create_names_bad4():
+    with pytest.raises(TypeError) as e:
+        dt.Frame(range(5), names=[3])
+    assert ("Invalid `names` list: element 0 is not a string"
+            in str(e.value))
 
 
 
