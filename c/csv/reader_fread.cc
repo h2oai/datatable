@@ -768,7 +768,7 @@ FreadLocalParseContext::FreadLocalParseContext(
       freader(f),
       columns(f.columns),
       shmutex(mut),
-      tokenizer(f.makeTokenizer(tbuf, nullptr)),
+      tokenizer(f.makeTokenizer(tbuf.data(), nullptr)),
       parsers(ParserLibrary::get_parser_fns())
 {
   ttime_push = 0;
@@ -818,13 +818,13 @@ void FreadLocalParseContext::read_chunk(
   const char*& tch = tokenizer.ch;
   tch = cc.start;
   used_nrows = 0;
-  tokenizer.target = tbuf;
+  tokenizer.target = tbuf.data();
   tokenizer.anchor = anchor = cc.start;
 
   while (tch < cc.end) {
     if (used_nrows == tbuf_nrows) {
       allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
-      tokenizer.target = tbuf + used_nrows * tbuf_ncols;
+      tokenizer.target = tbuf.data() + used_nrows * tbuf_ncols;
     }
     const char* tlineStart = tch;  // for error message
     const char* fieldStart = tch;
@@ -999,7 +999,7 @@ void FreadLocalParseContext::postprocess() {
   size_t nstrcols = strbufs.size();
   for (size_t k = 0; k < nstrcols; ++k) {
     MemoryRange& strdest = strbufs[k].mbuf;
-    field64* lo = tbuf + strbufs[k].idx8;
+    field64* lo = tbuf.data() + strbufs[k].idx8;
     int32_t off = 1;
     size_t bufsize = strdest.size();
     for (size_t n = 0; n < used_nrows; n++) {
@@ -1093,7 +1093,7 @@ void FreadLocalParseContext::push_buffers() {
       StrBuf& sb = strbufs[k];
       size_t ptr = sb.ptr;
       size_t sz = sb.sz;
-      field64* lo = tbuf + sb.idx8;
+      field64* lo = tbuf.data() + sb.idx8;
 
       wb->write_at(ptr, sz, sb.mbuf.rptr());
 
@@ -1117,7 +1117,7 @@ void FreadLocalParseContext::push_buffers() {
       k++;
 
     } else {
-      const field64* src = tbuf + j;
+      const field64* src = tbuf.data() + j;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(data) + row0;
         for (size_t r = 0; r < used_nrows; r++) {

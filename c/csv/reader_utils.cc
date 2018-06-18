@@ -283,13 +283,13 @@ size_t GReaderColumns::totalAllocSize() const {
 // LocalParseContext
 //------------------------------------------------------------------------------
 
-LocalParseContext::LocalParseContext(size_t ncols, size_t nrows) {
-  tbuf = nullptr;
-  tbuf_ncols = 0;
-  tbuf_nrows = 0;
+LocalParseContext::LocalParseContext(size_t ncols, size_t nrows)
+  : tbuf(ncols * nrows + 1)
+{
+  tbuf_ncols = ncols;
+  tbuf_nrows = nrows;
   used_nrows = 0;
   row0 = 0;
-  allocate_tbuf(ncols, nrows);
 }
 
 
@@ -297,21 +297,11 @@ LocalParseContext::~LocalParseContext() {
   if (used_nrows != 0) {
     printf("Assertion error in ~LocalParseContext(): used_nrows != 0\n");
   }
-  dt::free(tbuf);
 }
 
 
 void LocalParseContext::allocate_tbuf(size_t ncols, size_t nrows) {
-  size_t old_size = tbuf? (tbuf_ncols * tbuf_nrows + 1) * sizeof(field64) : 0;
-  size_t new_size = (ncols * nrows + 1) * sizeof(field64);
-  if (new_size > old_size) {
-    void* tbuf_raw = realloc(tbuf, new_size);
-    if (!tbuf_raw) {
-      throw MemoryError() << "Cannot allocate " << new_size
-                          << " bytes for a temporary buffer";
-    }
-    tbuf = static_cast<field64*>(tbuf_raw);
-  }
+  tbuf.resize(ncols * nrows + 1);
   tbuf_ncols = ncols;
   tbuf_nrows = nrows;
 }

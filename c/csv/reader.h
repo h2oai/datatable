@@ -16,6 +16,7 @@
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
 #include "writebuf.h"     // WritableBuffer
+#include "utils/array.h"
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
 
@@ -372,7 +373,7 @@ struct ChunkCoordinates {
  */
 class LocalParseContext {
   public:
-    field64* tbuf;
+    dt::array<field64> tbuf;
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;
