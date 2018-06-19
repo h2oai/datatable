@@ -36,15 +36,16 @@ class MyTerminal(blessed.Terminal):
         self.__dict__, tt.__dict__ = tt.__dict__, self.__dict__
 
     def _check_ipython(self):
-        try:
-            import IPython
-            import ipykernel
+        # When running inside a Jupyter notebook, IPython and ipykernel will
+        # already be preloaded (in sys.modules). We don't want to try to
+        # import them, because it adds unnecessary startup delays.
+        if "IPython" in sys.modules and "ipykernel" in sys.modules:
+            IPython = sys.modules["IPython"]
+            ipykernel = sys.modules["ipykernel"]
             ipy = IPython.get_ipython()
             if ipy and isinstance(ipy, ipykernel.zmqshell.ZMQInteractiveShell):
                 self._encoding = "UTF8"
                 self.jupyter = ipy
-        except:
-            pass
 
 
 

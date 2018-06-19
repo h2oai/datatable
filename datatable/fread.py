@@ -11,7 +11,6 @@ import pathlib
 import re
 import shutil
 import tempfile
-import urllib.request
 import warnings
 from typing import List, Union, Callable, Optional, Tuple, Dict, Set
 
@@ -326,13 +325,13 @@ class GenericReader(object):
 
 
     def _resolve_source_url(self, url):
-        if url is None:
-            return
-        targetfile = tempfile.mktemp(dir=self.tempdir)
-        urllib.request.urlretrieve(url, filename=targetfile)
-        self._tempfiles.append(targetfile)
-        self._file = targetfile
-        self._src = url
+        if url is not None:
+            import urllib.request
+            targetfile = tempfile.mktemp(dir=self.tempdir)
+            urllib.request.urlretrieve(url, filename=targetfile)
+            self._tempfiles.append(targetfile)
+            self._file = targetfile
+            self._src = url
 
 
     def _resolve_archive(self, filename, subpath=None):

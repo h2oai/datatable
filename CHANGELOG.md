@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed memory leak in groupby operations.
 - `names` parameter in Frame constructor is now checked for correctness.
 - Fix a bug in fread with QR bump occurring out-of-sample.
+- `import datatable` now takes only 0.13s, down from 0.6s.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
