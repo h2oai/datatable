@@ -34,7 +34,7 @@ def c_stypes():
         * ltype (str): name of the C enum constant with the LType corresponding
           to the current SType
 
-    This dictionary is made from files "c/types.h" and "c/types.c".
+    This dictionary is made from files "c/types.h" and "c/types.cc".
     """
     stypes = {}
 
@@ -48,8 +48,8 @@ def c_stypes():
     for name, i in re.findall(r"(\w+)\s*=\s*(\d+)", txt2):
         stypes[name] = {"sname": name, "itype": int(i)}
 
-    # Load info from types.c file
-    file2 = os.path.join(os.path.dirname(__file__), "..", "c", "types.c")
+    # Load info from types.cc file
+    file2 = os.path.join(os.path.dirname(__file__), "..", "c", "types.cc")
     with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
     mm = re.findall(r"STI\((\w+),\s*"

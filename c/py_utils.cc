@@ -21,8 +21,8 @@ char logger_msg[1000];
  * (actually, this reuses Py_None singleton, increasing its REFCNT)
  */
 PyObject* none(void) {
-    Py_INCREF(Py_None);
-    return Py_None;
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 
@@ -30,8 +30,8 @@ PyObject* none(void) {
  * Increment reference count of PyObject `x`, and then return it.
  */
 PyObject* incref(PyObject *x) {
-    Py_XINCREF(x);
-    return x;
+  Py_XINCREF(x);
+  return x;
 }
 
 
@@ -39,8 +39,8 @@ PyObject* incref(PyObject *x) {
  * Decrement reference count of PyObject `x`, and then return NULL.
  */
 PyObject* decref(PyObject *x) {
-    Py_XDECREF(x);
-    return nullptr;
+  Py_XDECREF(x);
+  return nullptr;
 }
 
 

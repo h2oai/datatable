@@ -26,29 +26,22 @@ static void initialize_map(uint32_t *map, int n, const char *encoding)
   }
 }
 
-int decode_iso8859(const unsigned char *__restrict__ src, int len,
-                   unsigned char *__restrict__ dest)
-{
-    return decode_sbcs(src, len, dest, iso8859_map);
+int decode_iso8859(const uint8_t* src, int len, uint8_t* dest) {
+  return decode_sbcs(src, len, dest, iso8859_map);
 }
 
-int decode_win1252(const unsigned char *__restrict__ src, int len,
-                   unsigned char *__restrict__ dest)
-{
-    return decode_sbcs(src, len, dest, win1252_map);
+int decode_win1252(const uint8_t* src, int len, uint8_t* dest) {
+  return decode_sbcs(src, len, dest, win1252_map);
 }
 
-int decode_win1251(const unsigned char *__restrict__ src, int len,
-                   unsigned char *__restrict__ dest)
-{
-    return decode_sbcs(src, len, dest, win1251_map);
+int decode_win1251(const uint8_t* src, int len, uint8_t* dest) {
+  return decode_sbcs(src, len, dest, win1251_map);
 }
 
 
 
 // Module initialization
-int init_py_encodings(PyObject*)
-{
+int init_py_encodings(PyObject*) {
   initialize_map(win1252_map, 256, "Windows-1252");
   initialize_map(win1251_map, 256, "Windows-1251");
   initialize_map(iso8859_map, 256, "ISO8859");

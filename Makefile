@@ -315,7 +315,7 @@ fast:
 	$(eval EXTEXT := $(shell python setup.py get_EXTEXT))
 	$(eval export CC CCFLAGS LDFLAGS EXTEXT)
 	@echo • Checking dependencies graph
-	@python fastcheck.py
+	@python ci/fastcheck.py
 	@$(MAKE) --no-print-directory main-fast
 
 post-fast:
@@ -644,7 +644,7 @@ $(BUILDDIR)/datatablemodule.o : c/datatablemodule.cc $(BUILDDIR)/capi.h $(BUILDD
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/encodings.o : c/encodings.c $(BUILDDIR)/encodings.h
+$(BUILDDIR)/encodings.o : c/encodings.cc $(BUILDDIR)/encodings.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -696,7 +696,7 @@ $(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.c $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
+$(BUILDDIR)/py_datatable_fromlist.o : c/py_datatable_fromlist.cc $(BUILDDIR)/column.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/list.h $(BUILDDIR)/python/long.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -704,7 +704,7 @@ $(BUILDDIR)/py_datawindow.o : c/py_datawindow.cc $(BUILDDIR)/datatable.h $(BUILD
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_encodings.o : c/py_encodings.c $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/py_encodings.o : c/py_encodings.cc $(BUILDDIR)/py_encodings.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -716,11 +716,11 @@ $(BUILDDIR)/py_rowindex.o : c/py_rowindex.cc $(BUILDDIR)/py_column.h $(BUILDDIR)
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_types.o : c/py_types.c $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/column.h
+$(BUILDDIR)/py_types.o : c/py_types.cc $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/column.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_utils.o : c/py_utils.c $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_utils.o : c/py_utils.cc $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
@@ -768,11 +768,11 @@ $(BUILDDIR)/stats.o : c/stats.cc $(BUILDDIR)/column.h $(BUILDDIR)/rowindex.h $(B
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/types.o : c/types.c $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
+$(BUILDDIR)/types.o : c/types.cc $(BUILDDIR)/types.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/assert.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/utils.o : c/utils.c $(BUILDDIR)/utils.h
+$(BUILDDIR)/utils.o : c/utils.cc $(BUILDDIR)/utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
