@@ -5,7 +5,9 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
 import pytest
+import subprocess
 import sys
+import time
 import datatable as dt
 from datatable import stype, ltype, f, isna
 from tests import same_iterables, list_equals
@@ -48,6 +50,39 @@ def assert_valueerror(datatable, rows, error_message):
 #-------------------------------------------------------------------------------
 # Run the tests
 #-------------------------------------------------------------------------------
+
+@pytest.mark.run(order=0.8)
+def test_dt_loadtime():
+    # Check that datatable's loading time is not too big. At the time of writing
+    # this test, `t1 - t0` was ≈ 0.133s on a MacBook Pro laptop, and `t0` was
+    # ≈ 0.05s.
+    t0 = time.time()
+    out = subprocess.check_output([sys.executable, "-c", ""])
+    t0 = time.time() - t0
+    assert out == b""
+    t1 = time.time()
+    out = subprocess.check_output([sys.executable, "-c", "import datatable"])
+    t1 = time.time() - t1
+    assert out == b""
+    assert t1 - t0 < max(0.25, 5 * t0)
+
+
+@pytest.mark.run(order=0.9)
+def test_dt_dependencies():
+    # This test checks how many dependencies `datatable` needs to load at
+    # startup. At the time of writing this test, the count was 168.
+    # The boundary of 200 may need to be revised upwards at some point (if
+    # new dependencies or source files are added), or downwards, if we eliminate
+    # some of the heavy dependent packages as blessed, llvmlite, typesentry.
+    n = subprocess.check_output([sys.executable, "-c",
+                                 "import sys; "
+                                 "set1 = set(sys.modules); "
+                                 "import datatable; "
+                                 "set2 = set(sys.modules); "
+                                 "assert 'numpy' not in set2; "
+                                 "print(len(set2-set1), end='')"])
+    assert int(n) < 200
+
 
 @pytest.mark.run(order=1)
 def test_dt_properties(dt0):
