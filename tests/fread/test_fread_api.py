@@ -86,7 +86,7 @@ def test_fread_from_anysource_as_text2(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     assert d0.internal.check()
-    assert ("Input has length %d characters, treating it as raw text"
+    assert ("Input is a string of length %d, treating it as raw text"
             % len(src)) in out
 
 

@@ -463,7 +463,7 @@ $(BUILDDIR)/csv/py_csv.h: c/csv/py_csv.h $(BUILDDIR)/py_utils.h
 	@echo • Refreshing c/csv/py_csv.h
 	@cp c/csv/py_csv.h $@
 
-$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/csv/reader.h: c/csv/reader.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/memrange.h $(BUILDDIR)/utils/array.h $(BUILDDIR)/utils/pyobj.h $(BUILDDIR)/utils/shared_mutex.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/csv/reader.h
 	@cp c/csv/reader.h $@
 

@@ -16,6 +16,7 @@
 #include "datatable.h"    // DataTable
 #include "memrange.h"     // MemoryRange
 #include "writebuf.h"     // WritableBuffer
+#include "utils/array.h"
 #include "utils/pyobj.h"
 #include "utils/shared_mutex.h"
 
@@ -288,35 +289,6 @@ class GenericReader
 //------------------------------------------------------------------------------
 
 /**
- * Per-column per-thread temporary string buffers used to assemble processed
- * string data. This buffer is used as a "staging ground" where the string data
- * is being stored / postprocessed before being transferred to the "main"
- * string buffer in a Column. Such 2-stage process is needed for the multi-
- * threaded string data writing.
- *
- * Members of this struct:
- *   .strdata -- memory region where the string data is stored.
- *   .allocsize -- allocation size of this memory buffer.
- *   .usedsize -- amount of memory already in use in the buffer.
- *   .writepos -- position in the global string data buffer where the current
- *       buffer's data should be moved. This value is returned from
- *       `WritableBuffer::prep_write()`.
- */
-struct StrBuf2 {
-  char* strdata;
-  size_t allocsize;
-  size_t usedsize;
-  size_t writepos;
-  int64_t colidx;
-
-  StrBuf2(int64_t i);
-  ~StrBuf2();
-  void resize(size_t newsize);
-};
-
-
-
-/**
  * "Relative string": a string defined as an offset+length relative to some
  * anchor point (which has to be provided separately). This is the internal data
  * structure for reading strings from a file.
@@ -384,6 +356,10 @@ struct ChunkCoordinates {
 //------------------------------------------------------------------------------
 
 /**
+ * This is a helper class for ChunkedDataReader (see below). It carries
+ * variables that will be local to each thread during the parallel reading of
+ * the input.
+ *
  * tbuf
  *   Output buffer. Within the buffer the data is stored in row-major order,
  *   i.e. in the same order as in the original CSV file. We view the buffer as
@@ -401,24 +377,26 @@ struct ChunkCoordinates {
  */
 class LocalParseContext {
   public:
-    field64* tbuf;
+    struct SInfo { size_t start, size, write_at; };
+
+    dt::array<field64> tbuf;
+    dt::array<uint8_t> sbuf;
+    dt::array<SInfo> strinfo;
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;
     size_t row0;
-    // std::vector<StrBuf2> strbufs;
 
   public:
     LocalParseContext(size_t ncols, size_t nrows);
     virtual ~LocalParseContext();
-    virtual field64* next_row();
+
     virtual void push_buffers() = 0;
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void orderBuffer() = 0; // { row0 = r0; }
-    virtual size_t get_nrows() { return used_nrows; }
-    virtual void set_nrows(size_t n) { used_nrows = n; }
+    virtual void orderBuffer() = 0;
 
-  public:
+    size_t get_nrows() const;
+    void set_nrows(size_t n);
     void allocate_tbuf(size_t ncols, size_t nrows);
 };
 

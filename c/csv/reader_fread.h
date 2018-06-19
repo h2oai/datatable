@@ -116,7 +116,6 @@ class FreadReader : public GenericReader
 
 public:
   explicit FreadReader(const GenericReader&);
-  ~FreadReader();
 
   DataTablePtr read();
 
@@ -172,7 +171,6 @@ class FreadLocalParseContext : public LocalParseContext
     FreadReader& freader;
     GReaderColumns& columns;
     dt::shared_mutex& shmutex;
-    std::vector<StrBuf> strbufs;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 
