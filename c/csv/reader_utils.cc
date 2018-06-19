@@ -284,7 +284,7 @@ size_t GReaderColumns::totalAllocSize() const {
 //------------------------------------------------------------------------------
 
 LocalParseContext::LocalParseContext(size_t ncols, size_t nrows)
-  : tbuf(ncols * nrows + 1)
+  : tbuf(ncols * nrows + 1), sbuf(0), strinfo(ncols)
 {
   tbuf_ncols = ncols;
   tbuf_nrows = nrows;

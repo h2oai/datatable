@@ -356,6 +356,10 @@ struct ChunkCoordinates {
 //------------------------------------------------------------------------------
 
 /**
+ * This is a helper class for ChunkedDataReader (see below). It carries
+ * variables that will be local to each thread during the parallel reading of
+ * the input.
+ *
  * tbuf
  *   Output buffer. Within the buffer the data is stored in row-major order,
  *   i.e. in the same order as in the original CSV file. We view the buffer as
@@ -373,7 +377,11 @@ struct ChunkCoordinates {
  */
 class LocalParseContext {
   public:
+    struct SInfo { size_t start, size, write_at; };
+
     dt::array<field64> tbuf;
+    dt::array<uint8_t> sbuf;
+    dt::array<SInfo> strinfo;
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;

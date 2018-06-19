@@ -1043,3 +1043,18 @@ def test_too_many_rows():
         dt.fread(src, verbose=True)
     assert ("Too many fields on line 112: expected 3 but more are present"
             in str(e.value))
+
+
+def test_qr_bump_out_of_sample(capsys):
+    lines = ["123,abcd\n"] * 3000
+    lines[137] = '-1,"This" is not funny\n'
+    src = "".join(lines)
+    d0 = dt.fread(src, verbose=True)
+    out, err = capsys.readouterr()
+    assert "sep = ','" in out
+    assert "Quote rule = 0" in out
+    assert d0.shape == (3000, 2)
+    pysrc = [[123] * 3000, ["abcd"] * 3000]
+    pysrc[0][137] = -1
+    pysrc[1][137] = '"This" is not funny'
+    assert d0.topython() == pysrc

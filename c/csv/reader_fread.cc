@@ -50,10 +50,6 @@ FreadReader::FreadReader(const GenericReader& g)
   fo.input_size = input_size;
 }
 
-FreadReader::~FreadReader() {
-  // free(strbufs);
-}
-
 
 FreadTokenizer FreadReader::makeTokenizer(
     field64* target, const char* anchor) const
@@ -781,16 +777,6 @@ FreadLocalParseContext::FreadLocalParseContext(
   fill = f.fill;
   skipEmptyLines = f.skip_blank_lines;
   numbersMayBeNAs = f.number_is_na;
-  size_t ncols = columns.size();
-  size_t bufsize = std::min(size_t(4096), f.datasize() / (ncols + 1));
-  for (size_t i = 0, j = 0; i < ncols; ++i) {
-    GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
-    if (col.isstring() && !col.typeBumped) {
-      strbufs.push_back(StrBuf(bufsize, j, i));
-    }
-    ++j;
-  }
 }
 
 FreadLocalParseContext::~FreadLocalParseContext() {
@@ -907,6 +893,7 @@ void FreadLocalParseContext::read_chunk(
               newType = static_cast<PT>(newType + 1);
             } else {
               tokenizer.quoteRule++;
+              newType = PT::Str32;
             }
             tch = fieldStart;
           } else {
@@ -996,78 +983,88 @@ void FreadLocalParseContext::postprocess() {
   const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
-  size_t nstrcols = strbufs.size();
-  for (size_t k = 0; k < nstrcols; ++k) {
-    MemoryRange& strdest = strbufs[k].mbuf;
-    field64* lo = tbuf.data() + strbufs[k].idx8;
-    int32_t off = 1;
-    size_t bufsize = strdest.size();
-    for (size_t n = 0; n < used_nrows; n++) {
-      int32_t len = lo->str32.length;
-      if (len > 0) {
-        size_t zlen = static_cast<size_t>(len);
-        size_t zoff = static_cast<size_t>(off);
-        if (bufsize < zlen * 3 + zoff) {
-          bufsize = bufsize * 2 + zlen * 3;
-          strdest.resize(bufsize);
-        }
-        const uint8_t* src = zanchor + lo->str32.offset;
-        uint8_t* dest = static_cast<uint8_t*>(
-                          strdest.wptr(static_cast<size_t>(off) - 1));
-        int res = check_escaped_string(src, zlen, echar);
-        if (res == 0) {
-          memcpy(dest, src, zlen);
-          off += zlen;
-          lo->str32.offset = off;
-        } else if (res == 1) {
-          int newlen = decode_escaped_csv_string(src, len, dest, echar);
-          off += static_cast<size_t>(newlen);
-          lo->str32.offset = off;
-        } else {
-          int newlen = decode_win1252(src, len, dest);
+  int32_t output_offset = 0;
+  for (size_t i = 0, j = 0; i < columns.size(); ++i) {
+    GReaderColumn& col = columns[i];
+    if (!col.presentInBuffer) continue;
+    if (col.isstring() && !col.typeBumped) {
+      strinfo[j].start = static_cast<size_t>(output_offset);
+      field64* coldata = tbuf.data() + j;
+      for (size_t n = 0; n < used_nrows; ++n) {
+        // Initially, offsets of all entries are given relative to `zanchor`.
+        // If a string is NA, its length will be INT_MIN.
+        int32_t entry_offset = coldata->str32.offset;
+        int32_t entry_length = coldata->str32.length;
+        if (entry_length > 0) {
+          size_t zlen = static_cast<size_t>(entry_length);
+          if (sbuf.size() < zlen * 3 + static_cast<size_t>(output_offset)) {
+            sbuf.resize(size_t((2 - 1.0*n/used_nrows)*sbuf.size()) + zlen*3);
+          }
+          uint8_t* dest = sbuf.data() + output_offset;
+          const uint8_t* src = zanchor + entry_offset;
+          int res = check_escaped_string(src, zlen, echar);
+          int32_t newlen = entry_length;
+          if (res == 0) {
+            // The most common case: the string is correct UTF-8 and does not
+            // require un-escaping. Leave the entry as-is
+            std::memcpy(dest, src, zlen);
+          } else if (res == 1) {
+            // Valid UTF-8, but requires un-escaping
+            newlen = decode_escaped_csv_string(src, entry_length, dest, echar);
+          } else {
+            // Invalid UTF-8
+            newlen = decode_win1252(src, entry_length, dest);
+            xassert(newlen > 0);
+            newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
+          }
           xassert(newlen > 0);
-          newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
-          off += static_cast<size_t>(newlen);
-          lo->str32.offset = off;
+          output_offset += newlen;
+          coldata->str32.length = newlen;
+          coldata->str32.offset = output_offset;
+        } else if (entry_length == 0) {
+          coldata->str32.offset = output_offset;
+        } else {
+          xassert(coldata->str32.isna());
+          coldata->str32.offset = -output_offset;
         }
-      } else if (len == 0) {
-        lo->str32.offset = off;
-      } else {
-        xassert(lo->str32.isna());
-        lo->str32.offset = -off;
+        coldata += tbuf_ncols;
+        xassert(static_cast<size_t>(output_offset) <= sbuf.size());
       }
-      lo += tbuf_ncols;
     }
-    strbufs[k].ptr = static_cast<size_t>(off - 1);
+    ++j;
   }
 }
 
 
 void FreadLocalParseContext::orderBuffer() {
   if (!used_nrows) return;
-  size_t nstrcols = strbufs.size();
-  for (size_t k = 0; k < nstrcols; ++k) {
-    size_t i = strbufs[k].idxdt;
-    size_t j8 = strbufs[k].idx8;
-    // Compute `sz` (the size of the string content in the buffer) from the
-    // offset of the last element. Typically this would be the same as
-    // `strbufs[k].ptr`, however in rare cases when `used_nrows` have changed
-    // from the time the buffer was post-processed, this may be different.
-    int32_t lastOffset = tbuf[j8 + tbuf_ncols * (used_nrows - 1)].str32.offset;
-    size_t sz = static_cast<size_t>(abs(lastOffset) - 1);
+  for (size_t i = 0, j = 0; i < columns.size(); ++i) {
+    GReaderColumn& col = columns[i];
+    if (!col.presentInBuffer) continue;
+    if (col.isstring() && !col.typeBumped) {
+      // Compute the size of the string content in the buffer `sz` from the
+      // offset of the last element. This quantity cannot be calculated in the
+      // postprocess() step, since `used_nrows` may some times change affecting
+      // this size after the post-processing.
+      int32_t offset0 = static_cast<int32_t>(strinfo[j].start);
+      int32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
+      size_t sz = static_cast<size_t>(abs(offsetL) - offset0);
+      strinfo[j].size = sz;
 
-    WritableBuffer* wb = columns[i].strdata;
-    size_t write_at = wb->prep_write(sz, strbufs[k].mbuf.rptr());
-    strbufs[k].ptr = write_at;
-    strbufs[k].sz = sz;
-    if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
-      dt::shared_lock lock(shmutex, /* exclusive = */ true);
-      columns[i].convert_to_str64();
-      types[i] = PT::Str64;
-      if (verbose) {
-        freader.fo.str64_bump(i, columns[i]);
+      WritableBuffer* wb = col.strdata;
+      size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
+      strinfo[j].write_at = write_at;
+
+      if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
+        dt::shared_lock lock(shmutex, /* exclusive = */ true);
+        columns[i].convert_to_str64();
+        types[i] = PT::Str64;
+        if (verbose) {
+          freader.fo.str64_bump(i, columns[i]);
+        }
       }
     }
+    ++j;
   }
 }
 
@@ -1079,7 +1076,7 @@ void FreadLocalParseContext::push_buffers() {
 
   double t0 = verbose? wallclock() : 0;
   size_t ncols = columns.size();
-  for (size_t i = 0, j = 0, k = 0; i < ncols; i++) {
+  for (size_t i = 0, j = 0; i < ncols; i++) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
     void* data = col.data_w();
@@ -1090,31 +1087,28 @@ void FreadLocalParseContext::push_buffers() {
       // any attempt to write the data may fail with data corruption
     } else if (col.isstring()) {
       WritableBuffer* wb = col.strdata;
-      StrBuf& sb = strbufs[k];
-      size_t ptr = sb.ptr;
-      size_t sz = sb.sz;
-      field64* lo = tbuf.data() + sb.idx8;
+      SInfo& si = strinfo[j];
+      field64* lo = tbuf.data() + j;
 
-      wb->write_at(ptr, sz, sb.mbuf.rptr());
+      wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
 
       if (elemsize == 4) {
         int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
-        int32_t iptr = static_cast<int32_t>(ptr);
+        int32_t delta = static_cast<int32_t>(si.write_at) + 1 - si.start;
         for (size_t n = 0; n < used_nrows; ++n) {
           int32_t soff = lo->str32.offset;
-          *dest++ = (soff < 0)? soff - iptr : soff + iptr;
+          *dest++ = (soff < 0)? soff - delta : soff + delta;
           lo += tbuf_ncols;
         }
       } else {
         int64_t* dest = static_cast<int64_t*>(data) + row0 + 1;
-        int64_t iptr = static_cast<int64_t>(ptr);
+        int64_t delta = static_cast<int64_t>(si.write_at) + 1 - si.start;
         for (size_t n = 0; n < used_nrows; ++n) {
           int64_t soff = lo->str32.offset;
-          *dest++ = (soff < 0)? soff - iptr : soff + iptr;
+          *dest++ = (soff < 0)? soff - delta : soff + delta;
           lo += tbuf_ncols;
         }
       }
-      k++;
 
     } else {
       const field64* src = tbuf.data() + j;

@@ -193,7 +193,7 @@ class GenericReader(object):
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
                 if self.verbose:
-                    self.logger.debug("Input has length %d characters, "
+                    self.logger.debug("Input is a string of length %d, "
                                       "treating it as raw text" % len(src))
                 self._resolve_source_text(src)
             else:
