@@ -1094,7 +1094,7 @@ void FreadLocalParseContext::push_buffers() {
 
       if (elemsize == 4) {
         int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
-        int32_t delta = static_cast<int32_t>(si.write_at) + 1 - si.start;
+        int32_t delta = static_cast<int32_t>(si.write_at + 1 - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
           int32_t soff = lo->str32.offset;
           *dest++ = (soff < 0)? soff - delta : soff + delta;
@@ -1102,7 +1102,7 @@ void FreadLocalParseContext::push_buffers() {
         }
       } else {
         int64_t* dest = static_cast<int64_t*>(data) + row0 + 1;
-        int64_t delta = static_cast<int64_t>(si.write_at) + 1 - si.start;
+        int64_t delta = static_cast<int64_t>(si.write_at + 1 - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
           int64_t soff = lo->str32.offset;
           *dest++ = (soff < 0)? soff - delta : soff + delta;
