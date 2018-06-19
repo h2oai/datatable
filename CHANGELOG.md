@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.
 - Fix bug with applying a cast expression to a view column.
 - Fix occasional memory errors caused by a lack of available mmap handles.
+- Fixed memory leak in groupby operations.
+- `names` parameter in Frame constructor is now checked for correctness.
 - Fix a bug in fread with QR bump occurring out-of-sample.
 
 

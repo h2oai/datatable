@@ -22,7 +22,7 @@ pycolumn::obj* from_column(Column* col, pydatatable::obj* pydt, int64_t idx)
   PyObject* pyobj = PyObject_CallObject(coltype, nullptr);
   auto pycol = reinterpret_cast<pycolumn::obj*>(pyobj);
   if (!pycol || !col) throw PyError();
-  pycol->ref = col->shallowcopy();
+  pycol->ref = pydt? col->shallowcopy() : col;
   pycol->pydt = pydt;
   pycol->colidx = idx;
   Py_XINCREF(pydt);
