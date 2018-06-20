@@ -220,6 +220,161 @@ ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
 ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
+ARCH_NAME ?= $(shell uname -m)
+DOCKER_IMAGE_TAG ?= 0.3.2-PR-996.3
+CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
+UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
+
+centos7_build_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		$(CUSTOM_ARGS) \
+		$(CENTOS_DOCKER_IMAGE_NAME) \
+		-c ". activate $(BUILD_VENV) && \
+			make dist"
+
+centos7_build_py36_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
+
+centos7_build_py35_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
+
+centos7_version_in_docker:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		$(CUSTOM_ARGS) \
+		$(CENTOS_DOCKER_IMAGE_NAME) \
+		-c ". activate datatable-py36-with-pandas && \
+			python --version && \
+			mkdir -p dist && \
+			make version > dist/VERSION.txt && \
+			cat dist/VERSION.txt"
+
+centos7_test_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(CENTOS_DOCKER_IMAGE_NAME) \
+		-c ". activate $(TEST_VENV) && \
+			python --version && \
+			pip install --no-cache-dir --upgrade dist/*.whl && \
+			make MODULE=datatable test_install && \
+			make test"
+
+centos7_test_py36_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
+
+centos7_test_py35_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py35-with-pandas centos7_test_in_docker_impl
+
+centos7_test_py36_with_numpy_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-numpy centos7_test_in_docker_impl
+
+centos7_test_py36_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36 centos7_test_in_docker_impl
+
+ubuntu_build_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/$(BUILD_VENV)/bin/activate && \
+			python --version && \
+			make dist"
+
+ubuntu_build_sdist_in_docker:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
+			python --version && \
+			make sdist"
+
+ubuntu_build_py36_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
+
+ubuntu_build_py35_in_docker:
+	$(MAKE) BUILD_VENV=datatable-py35-with-pandas ubuntu_build_in_docker_impl
+
+ubuntu_coverage_py36_with_pandas_in_docker:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
+			python --version && \
+			make coverage"
+
+ubuntu_test_in_docker_impl:
+	docker run \
+		--rm \
+		--init \
+		-u `id -u`:`id -g` \
+		-v `pwd`:/dot \
+		-w /dot \
+		--entrypoint /bin/bash \
+		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+		$(CUSTOM_ARGS) \
+		$(UBUNTU_DOCKER_IMAGE_NAME) \
+		-c ". /envs/$(TEST_VENV)/bin/activate && \
+			python --version && \
+			pip freeze && \
+			pip install --no-cache-dir dist/*.whl && \
+			python --version && \
+			make MODULE=datatable test_install && \
+			make test"
+
+ubuntu_test_py36_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl
+
+ubuntu_test_py35_with_pandas_in_docker:
+	$(MAKE) TEST_VENV=datatable-py35-with-pandas ubuntu_test_in_docker_impl
+
+ubuntu_test_py36_with_numpy_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36-with-numpy ubuntu_test_in_docker_impl
+
+ubuntu_test_py36_in_docker:
+	$(MAKE) TEST_VENV=datatable-py36 ubuntu_test_in_docker_impl
+
 # Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
 mrproper_in_docker: mrproper
@@ -234,8 +389,8 @@ printvars:
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
 
-
-
+dummy:
+	@echo $(CI_VERSION_SUFFIX)
 #-------------------------------------------------------------------------------
 # "Fast" (but fragile) datatable build
 #-------------------------------------------------------------------------------
