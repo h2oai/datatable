@@ -28,6 +28,13 @@ def py36():
 
 
 @pytest.fixture(scope="session")
+def nocov():
+    """Skip this test when running in the 'coverage' mode"""
+    if "DTCOVERAGE" in os.environ:
+        pytest.skip("Disabled under COVERAGE mode")
+
+
+@pytest.fixture(scope="session")
 def pandas():
     """
     This fixture returns pandas module, or if unavailable marks test as skipped.

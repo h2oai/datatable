@@ -171,7 +171,6 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pyrowindex::rowindex_from_filterfn),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
-    METHODv(pydatatable::datatable_from_buffers),
     METHODv(pydatatable::install_buffer_hooks),
     METHODv(config::set_option),
     METHODv(gread),

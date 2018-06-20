@@ -63,87 +63,63 @@ static char strB[] = "B";
 // Construct a DataTable from a list of objects implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-// Declared in py_datatable.h; becomes method in datatable module.
-PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
+Column* Column::from_buffer(PyObject* buffer)
 {
-  PyObject* list = nullptr;
-  if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
-    return nullptr;
+  Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
+  if (!view) throw MemoryError();
 
-  int64_t n = static_cast<int64_t>(PyList_Size(list));
-  Column** columns = dt::amalloc<Column*>(n + 1);
-  columns[n] = nullptr;
-
-  for (int64_t i = 0; i < n; ++i) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    if (!PyObject_CheckBuffer(item)) {
-      throw ValueError() << "Element " << i << " in the list of sources "
-                         << "does not support PyBuffers (PEP-3118) interface";
-    }
-    Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
-    if (!view) throw MemoryError();
-
-    // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
-    // the `view->format` field should be filled; and PyBUF_ND will fill the
-    // `view->shape` information (while `strides` and `suboffsets` will be
-    // nullptr).
-    int ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_ND);
-    if (ret != 0) {
-      PyErr_Clear();  // otherwise system functions may fail later on
-      ret = PyObject_GetBuffer(item, view, PyBUF_FORMAT | PyBUF_STRIDES);
-    }
-    if (ret != 0) {
-      if (PyErr_Occurred()) {
-        throw PyError();
-      } else {
-        throw RuntimeError() << "Unable to retrieve buffer for column " << i;
-      }
-    }
-    if (view->ndim != 1) {
-      throw NotImplError()
-        << "Buffer " << i << " in the list of buffers has ndim=" << view->ndim
-        << ", whereas only 1D buffers are supported";
-    }
-
-    SType stype = stype_from_format(view->format, view->itemsize);
-    int64_t nrows = view->len / view->itemsize;
-
-    if (stype == ST_STRING_I4_VCHAR) {
-      columns[i] = convert_fwchararray_to_column(view);
-    } else if (view->strides == nullptr) {
-      columns[i] = Column::new_xbuf_column(stype, nrows, view);
-    } else {
-      columns[i] = Column::new_data_column(stype, nrows);
-      int64_t stride = view->strides[0] / view->itemsize;
-      if (view->itemsize == 8) {
-        int64_t* out = static_cast<int64_t*>(columns[i]->data_w());
-        int64_t* inp = static_cast<int64_t*>(view->buf);
-        for (int64_t j = 0; j < nrows; ++j)
-          out[j] = inp[j * stride];
-      } else if (view->itemsize == 4) {
-        int32_t* out = static_cast<int32_t*>(columns[i]->data_w());
-        int32_t* inp = static_cast<int32_t*>(view->buf);
-        for (int64_t j = 0; j < nrows; ++j)
-          out[j] = inp[j * stride];
-      } else if (view->itemsize == 2) {
-        int16_t* out = static_cast<int16_t*>(columns[i]->data_w());
-        int16_t* inp = static_cast<int16_t*>(view->buf);
-        for (int64_t j = 0; j < nrows; ++j)
-          out[j] = inp[j * stride];
-      } else if (view->itemsize == 1) {
-        int8_t* out = static_cast<int8_t*>(columns[i]->data_w());
-        int8_t* inp = static_cast<int8_t*>(view->buf);
-        for (int64_t j = 0; j < nrows; ++j)
-          out[j] = inp[j * stride];
-      }
-    }
-    if (columns[i]->stype() == ST_OBJECT_PYPTR) {
-      columns[i] = try_to_resolve_object_column(columns[i]);
-    }
+  // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
+  // the `view->format` field should be filled; and PyBUF_ND will fill the
+  // `view->shape` information (while `strides` and `suboffsets` will be
+  // nullptr).
+  int ret = PyObject_GetBuffer(buffer, view, PyBUF_FORMAT | PyBUF_ND);
+  if (ret != 0) {
+    PyErr_Clear();  // otherwise system functions may fail later on
+    ret = PyObject_GetBuffer(buffer, view, PyBUF_FORMAT | PyBUF_STRIDES);
+    if (ret != 0) throw PyError();
+  }
+  if (view->ndim != 1) {
+    throw NotImplError() << "Source buffer has ndim=" << view->ndim
+      << ", however only 1-D buffers are supported";
   }
 
-  DataTable* dt = new DataTable(columns);
-  return pydatatable::wrap(dt);
+  SType stype = stype_from_format(view->format, view->itemsize);
+  int64_t nrows = view->len / view->itemsize;
+
+  Column* res = nullptr;
+  if (stype == ST_STRING_I4_VCHAR) {
+    res = convert_fwchararray_to_column(view);
+  } else if (view->strides == nullptr) {
+    res = Column::new_xbuf_column(stype, nrows, view);
+  } else {
+    res = Column::new_data_column(stype, nrows);
+    int64_t stride = view->strides[0] / view->itemsize;
+    if (view->itemsize == 8) {
+      int64_t* out = static_cast<int64_t*>(res->data_w());
+      int64_t* inp = static_cast<int64_t*>(view->buf);
+      for (int64_t j = 0; j < nrows; ++j)
+        out[j] = inp[j * stride];
+    } else if (view->itemsize == 4) {
+      int32_t* out = static_cast<int32_t*>(res->data_w());
+      int32_t* inp = static_cast<int32_t*>(view->buf);
+      for (int64_t j = 0; j < nrows; ++j)
+        out[j] = inp[j * stride];
+    } else if (view->itemsize == 2) {
+      int16_t* out = static_cast<int16_t*>(res->data_w());
+      int16_t* inp = static_cast<int16_t*>(view->buf);
+      for (int64_t j = 0; j < nrows; ++j)
+        out[j] = inp[j * stride];
+    } else if (view->itemsize == 1) {
+      int8_t* out = static_cast<int8_t*>(res->data_w());
+      int8_t* inp = static_cast<int8_t*>(view->buf);
+      for (int64_t j = 0; j < nrows; ++j)
+        out[j] = inp[j * stride];
+    }
+  }
+  if (res->stype() == ST_OBJECT_PYPTR) {
+    res = try_to_resolve_object_column(res);
+  }
+  return res;
 }
 
 

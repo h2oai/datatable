@@ -298,15 +298,6 @@ DECLARE_FUNCTION(
   "install_buffer_hooks(...)\n\n",
   PY_BUFFERS_cc)
 
-DECLARE_FUNCTION(
-  datatable_from_buffers,
-  "datatable_from_buffers(buffers: List)\n\n"
-  "Load datatable from a list of Python objects supporting Buffers protocol.\n"
-  "This is typically a list of numpy arrays, and this function is invoked\n"
-  "when converting a pandas DataFrame into a DataTable (each column in pandas\n"
-  "has its own type, and is backed by a separate numpy array).\n",
-  PY_BUFFERS_cc)
-
 
 };
 #undef BASECLS

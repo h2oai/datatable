@@ -205,7 +205,7 @@ class Frame(object):
             e = src[i]
             if isinstance(e, range):
                 src[i] = list(e)
-            elif isinstance(e, list):
+            elif isinstance(e, list) or is_type(e, NumpyArray_t):
                 pass
             else:
                 if i == 0:
@@ -265,7 +265,7 @@ class Frame(object):
                 assert coldtype.isnative
             if coldtype.char == 'e' and str(coldtype) == "float16":
                 colarrays[i] = colarrays[i].astype("float32")
-        dt = core.datatable_from_buffers(colarrays)
+        dt = core.datatable_from_list(colarrays, None)
         self._fill_from_dt(dt, names=names)
 
 
@@ -285,13 +285,13 @@ class Frame(object):
 
         ncols = arr.shape[1]
         if is_type(arr, NumpyMaskedArray_t):
-            dt = core.datatable_from_buffers([arr.data[:, i]
-                                              for i in range(ncols)])
-            mask = core.datatable_from_buffers([arr.mask[:, i]
-                                                for i in range(ncols)])
+            dt = core.datatable_from_list([arr.data[:, i]
+                                           for i in range(ncols)], None)
+            mask = core.datatable_from_list([arr.mask[:, i]
+                                             for i in range(ncols)], None)
             dt.apply_na_mask(mask)
         else:
-            dt = core.datatable_from_buffers([arr[:, i] for i in range(ncols)])
+            dt = core.datatable_from_list([arr[:, i] for i in range(ncols)], None)
 
         if names is None:
             names = [None] * ncols

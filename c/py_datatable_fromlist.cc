@@ -40,27 +40,32 @@ PyObject* pydatatable::datatable_from_list(PyObject*, PyObject* args)
   }
 
   size_t ncols = srcs.size();
-  Column** cols = static_cast<Column**>(std::calloc(ncols + 1, sizeof(Column*)));
+  Column** cols = static_cast<Column**>(std::calloc(ncols + 1, sizeof(void*)));
   if (!cols) throw MemoryError();
 
   // Check validity of the data and construct the output columnset.
-  size_t nrows = 0;
+  int64_t nrows = 0;
   for (size_t i = 0; i < ncols; ++i) {
     PyObj item = srcs[i];
-    if (!item.is_list()) {
+    if (item.is_buffer()) {
+      cols[i] = Column::from_buffer(item.data());
+    } else if (item.is_list()) {
+      PyyList list = item;
+      int stype = 0;
+      if (types) {
+        PyyLong t = types[i];
+        stype = t.value<int32_t>();
+      }
+      cols[i] = Column::from_pylist(list, stype);
+    } else {
       throw ValueError() << "Source list is not list-of-lists";
     }
-    PyyList list = item;
-    if (i == 0) nrows = list.size();
-    if (list.size() != nrows) {
-      throw ValueError() << "Source lists have variable number of rows";
+    if (i == 0) nrows = cols[i]->nrows;
+    if (cols[i]->nrows != nrows) {
+      throw ValueError() << "Column " << i << " has different number of "
+        << "rows (" << cols[i]->nrows << ") than the preceding columns ("
+        << nrows << ")";
     }
-    int stype = 0;
-    if (types) {
-      PyyLong t = types[i];
-      stype = t.value<int32_t>();
-    }
-    cols[i] = Column::from_pylist(list, stype);
   }
 
   return pydatatable::wrap(new DataTable(cols));
