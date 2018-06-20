@@ -52,7 +52,7 @@ def assert_valueerror(datatable, rows, error_message):
 #-------------------------------------------------------------------------------
 
 @pytest.mark.run(order=0.8)
-def test_dt_loadtime():
+def test_dt_loadtime(nocov):
     # Check that datatable's loading time is not too big. At the time of writing
     # this test, `t1 - t0` was ≈ 0.133s on a MacBook Pro laptop, and `t0` was
     # ≈ 0.05s.
