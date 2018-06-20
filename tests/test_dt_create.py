@@ -429,8 +429,8 @@ def test_create_from_dict_of_numpy_arrays(numpy):
                    "C": numpy.random.randn(67)})
     assert df.internal.check()
     assert df.shape == (67, 3)
-    assert df.names == ("A", "B", "C")
     assert df.stypes == (stype.float64,) * 3
+    assert same_iterables(df.names, ("A", "B", "C"))
 
 
 def test_create_from_mixed_sources(numpy):
@@ -440,8 +440,9 @@ def test_create_from_mixed_sources(numpy):
                    "D": numpy.array([5, 8, 1, 3, 5813], dtype="int32")})
     assert df.internal.check()
     assert df.shape == (5, 4)
-    assert df.names == ("A", "B", "C", "D")
-    assert df.stypes == (stype.float64, stype.int8, stype.str32, stype.int32)
+    assert same_iterables(df.names, ("A", "B", "C", "D"))
+    assert same_iterables(df.stypes,
+                          (stype.float64, stype.int8, stype.str32, stype.int32))
 
 
 
