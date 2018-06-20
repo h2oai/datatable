@@ -114,6 +114,7 @@ public:
    * own the returned reference.
    */
   PyObject* as_pyobject() const;
+  PyObject* data() const { return obj; }
 
   DataTable* as_datatable() const;
   Column* as_column() const;
@@ -172,6 +173,7 @@ public:
   bool is_float() const  { return PyFloat_Check(obj); }
   bool is_list() const   { return PyList_Check(obj); }
   bool is_string() const { return PyUnicode_Check(obj); }
+  bool is_buffer() const { return PyObject_CheckBuffer(obj); }
 
   operator PyyList() const;
   operator PyyLong() const;

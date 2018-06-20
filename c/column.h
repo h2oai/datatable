@@ -87,6 +87,7 @@ public:
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
+  static Column* from_buffer(PyObject* buffer);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;

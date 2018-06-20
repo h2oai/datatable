@@ -205,7 +205,7 @@ class Frame(object):
             e = src[i]
             if isinstance(e, range):
                 src[i] = list(e)
-            elif isinstance(e, list):
+            elif isinstance(e, list) or is_type(e, NumpyArray_t):
                 pass
             else:
                 if i == 0:

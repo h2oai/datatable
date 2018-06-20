@@ -414,6 +414,35 @@ def test_create_from_numpy_float16(numpy):
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
 
+def test_create_from_list_of_numpy_arrays(numpy):
+    df = dt.Frame([numpy.random.randint(2**30, size=100),
+                   numpy.random.randn(100)], names=["A", "B"])
+    assert df.internal.check()
+    assert df.shape == (100, 2)
+    assert df.names == ("A", "B")
+    assert df.stypes == (stype.int64, stype.float64)
+
+
+def test_create_from_dict_of_numpy_arrays(numpy):
+    df = dt.Frame({"A": numpy.random.randn(67),
+                   "B": numpy.random.randn(67),
+                   "C": numpy.random.randn(67)})
+    assert df.internal.check()
+    assert df.shape == (67, 3)
+    assert df.names == ("A", "B", "C")
+    assert df.stypes == (stype.float64,) * 3
+
+
+def test_create_from_mixed_sources(numpy):
+    df = dt.Frame({"A": numpy.random.randn(5),
+                   "B": range(5),
+                   "C": ["foo", "baw", "garrgh", "yex", "fin"],
+                   "D": numpy.array([5, 8, 1, 3, 5813], dtype="int32")})
+    assert df.internal.check()
+    assert df.shape == (5, 4)
+    assert df.names == ("A", "B", "C", "D")
+    assert df.stypes == (stype.float64, stype.int8, stype.str32, stype.int32)
+
 
 
 #-------------------------------------------------------------------------------
