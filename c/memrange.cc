@@ -645,11 +645,13 @@
       icc << "ViewMRI cannot be marked as resizable" << icc.end();
       return false;
     }
-    // if (source.rptr(offset) != bufdata) {
-    //   icc << "Invalid data pointer in View MemoryRange: should be "
-    //       << source.rptr(offset) << " but actual pointer is " << bufdata;
-    //   return false;
-    // }
+    void* base_ptr = static_cast<void*>(
+                        static_cast<char*>(base->bufdata) + offset);
+    if (base_ptr != bufdata) {
+      icc << "Invalid data pointer in View MemoryRange: should be "
+          << base_ptr << " but actual pointer is " << bufdata;
+      return false;
+    }
     return true;
   }
 

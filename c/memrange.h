@@ -173,6 +173,12 @@ class MemoryRange
     //   and only then the new data pointer will be returned. This implements
     //   the Copy-on-Write semantics.
     //
+    // xptr()
+    // xptr(offset)
+    //   Similar to `wptr()`: return a `void*` pointer suitable for writing. The
+    //   difference is that if the underlying implementation is not writable, an
+    //   exception will be raised instead of creating a Copy-on-Write.
+    //
     // get_element<T>(i)
     // set_element<T>(i, value)
     //   Getter/setter for individual entries in the memory buffer when it is
