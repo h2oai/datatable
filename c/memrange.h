@@ -244,8 +244,8 @@ class MemoryRange
     void materialize(size_t newsize, size_t copysize);
     void materialize();
 
-    // void convert_to_viewed();
     friend BaseMRI;
+    friend ViewedMRI;
 };
 
 

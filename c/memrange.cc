@@ -28,7 +28,6 @@
       bool   writeable;
       bool   resizable;
       int64_t: 40;
-      MemoryRange::internal* parent;
 
     public:
       BaseMRI();
@@ -47,9 +46,7 @@
   struct MemoryRange::internal {
     std::unique_ptr<BaseMRI> impl;
 
-    internal(BaseMRI*&& _impl) : impl(_impl) {
-      impl->parent = this;
-    }
+    internal(BaseMRI*&& _impl) : impl(_impl) {}
   };
 
 
@@ -124,34 +121,37 @@
   //
   class ViewMRI : public BaseMRI {
     private:
-      const MemoryRange& source;
       size_t offset;
+      ViewedMRI* base;
 
     public:
       ViewMRI(size_t n, MemoryRange& src, size_t offset);
+      virtual ~ViewMRI() override;
 
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "view"; }
       bool verify_integrity(IntegrityCheckContext& icc) const override;
   };
-  /*
+
+
   class ViewedMRI : public BaseMRI {
     private:
-      MemoryRange* source_memoryrange;
+      std::shared_ptr<MemoryRange::internal> parent;
       BaseMRI* original_impl;
-      int view_refcount;
-      int : 32;
+      size_t refcount;
 
     public:
-      ViewedMRI(MemoryRange* src, BaseMRI* impl);
-      void release() override;
-      void release_view();
+      static ViewedMRI* acquire_viewed(MemoryRange& src);
+      void release();
+
+      bool is_writable() const;
       size_t memory_footprint() const override { return 0; }
       const char* name() const override { return "viewed"; }
-      ~ViewedMRI() override;
-  };
-  */
+
+    private:
+      ViewedMRI(MemoryRange& src);
+    };
 
 
   class MmapMRI : public BaseMRI, MemoryMapWorker {
@@ -614,34 +614,42 @@
 // ViewMRI
 //==============================================================================
 
-  ViewMRI::ViewMRI(size_t n, MemoryRange& src, size_t offs)
-    : source(src), offset(offs)
-  {
+  ViewMRI::ViewMRI(size_t n, MemoryRange& src, size_t offs) {
     xassert(offs + n <= src.size());
+    base = ViewedMRI::acquire_viewed(src);
+    offset = offs;
     bufdata = const_cast<void*>(src.rptr(offs));
     bufsize = n;
     resizable = false;
-    writeable = src.is_writeable();
+    writeable = base->is_writable();
+    pyobjects = src.is_pyobjects();
+  }
+
+  ViewMRI::~ViewMRI() {
+    base->release();
+    pyobjects = false;
   }
 
   size_t ViewMRI::memory_footprint() const {
     return sizeof(ViewMRI) + bufsize;
   }
 
-  void ViewMRI::resize(size_t) { throw Error(); }
+  void ViewMRI::resize(size_t) {
+    throw RuntimeError() << "ViewMRI cannot be resized";
+  }
 
   bool ViewMRI::verify_integrity(IntegrityCheckContext& icc) const {
     bool ok = BaseMRI::verify_integrity(icc);
     if (!ok) return false;
     if (resizable) {
-      icc << "View MemoryRange cannot be marked as resizable" << icc.end();
+      icc << "ViewMRI cannot be marked as resizable" << icc.end();
       return false;
     }
-    if (source.rptr(offset) != bufdata) {
-      icc << "Invalid data pointer in View MemoryRange: should be "
-          << source.rptr(offset) << " but actual pointer is " << bufdata;
-      return false;
-    }
+    // if (source.rptr(offset) != bufdata) {
+    //   icc << "Invalid data pointer in View MemoryRange: should be "
+    //       << source.rptr(offset) << " but actual pointer is " << bufdata;
+    //   return false;
+    // }
     return true;
   }
 
@@ -652,52 +660,40 @@
 // ViewedMRI
 //==============================================================================
 
-  /*
-  ViewedMRI::ViewedMRI(MemoryRange* src, BaseMRI* impl) {
-    source_memoryrange = src;
-    original_impl = impl;
-    bufdata = original_impl->bufdata;
-    bufsize = original_impl->bufsize;
-    pyobjects = original_impl->pyobjects;
+  ViewedMRI::ViewedMRI(MemoryRange& src) {
+    BaseMRI* implptr = src.o->impl.release();
+    src.o->impl.reset(this);
+    parent = src.o;  // copy std::shared_ptr
+    original_impl = implptr;
+    refcount = 0;
+    bufdata = implptr->bufdata;
+    bufsize = implptr->bufsize;
+    pyobjects = implptr->pyobjects;
     writeable = false;
     resizable = false;
-    view_refcount = 0;
   }
 
-  ViewedMRI::~ViewedMRI() {
-    if (original_impl) original_impl->release();
+  ViewedMRI* ViewedMRI::acquire_viewed(MemoryRange& src) {
+    BaseMRI* implptr = src.o->impl.get();
+    ViewedMRI* viewedptr = dynamic_cast<ViewedMRI*>(implptr);
+    if (!viewedptr) {
+      viewedptr = new ViewedMRI(src);
+    }
+    viewedptr->refcount++;
+    return viewedptr;
   }
 
   void ViewedMRI::release() {
     if (--refcount == 0) {
-      source_memoryrange = nullptr;
-      if (view_refcount == 0) {
-        clear_pyobjects();
-        delete this;
-      }
-    }
-  }
-
-  void ViewedMRI::release_view() {
-    if (--view_refcount == 0) {
-      if (refcount != 0) {
-        // TODO: restore
-        // source_memoryrange->impl = original_impl;
-        original_impl = nullptr;
-      }
+      parent->impl.release();
+      parent->impl.reset(original_impl);
       delete this;
     }
   }
 
-  void MemoryRange::convert_to_viewed() {
-    if (dynamic_cast<ViewedMRI*>(impl)) return;
-    if (impl->refcount != 1) {
-      // Possibly we could materialize the MemoryRange instead
-      throw Error() << "Refcount for MemoryRange is > 1, cannot apply view";
-    }
-    impl = new ViewedMRI(this, this->impl);
+  bool ViewedMRI::is_writable() const {
+    return original_impl->writeable;
   }
-  */
 
 
 
