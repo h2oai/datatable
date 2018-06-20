@@ -134,15 +134,31 @@ version:
 # CentOS7 build
 #-------------------------------------------------------------------------------
 
+H2O_BUILD_TYPE ?= release
+ifeq ($(H2O_BUILD_TYPE),release)
+    PLATFORM_DEBUG_SUFFIX =
+    DEBUG_SUBST =
+    H2O_BUILD_TYPE_DEFINED = 1
+endif
+ifeq ($(H2O_BUILD_TYPE),debug)
+    PLATFORM_DEBUG_SUFFIX = -debug
+    DEBUG_SUBST = -debug
+    H2O_BUILD_TYPE_DEFINED = 1
+endif
+ifneq ($(H2O_BUILD_TYPE_DEFINED),1)
+    $(error H2O_BUILD_TYPE must be 'release' or 'debug')
+endif
+GEN_DOCKERFILE = Dockerfile-centos7.$(PLATFORM).gen
+
 DIST_DIR = dist
 
 ARCH := $(shell arch)
 OS_NAME ?= centos7
-PLATFORM := $(ARCH)_$(OS_NAME)
+PLATFORM := $(ARCH)-$(OS_NAME)$(PLATFORM_DEBUG_SUFFIX)
 
 DOCKER_REPO_NAME ?= docker.h2o.ai
-CONTAINER_NAME_SUFFIX ?= -$(USER)
-CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
+CONTAINER_REPO_SUFFIX ?= -$(USER)
+CONTAINER_REPO ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_REPO_SUFFIX)
 
 PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -152,41 +168,41 @@ BUILD_ID_SUFFIX = .$(BUILD_ID)
 VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
 CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
 
-CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
+CONTAINER_REPO_TAG = $(CONTAINER_REPO):$(CONTAINER_TAG)
 
 CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
 
 ARCH_SUBST = undefined
 FROM_SUBST = undefined
-ifeq ($(PLATFORM),x86_64_centos7)
+ifeq ($(ARCH),x86_64)
     FROM_SUBST = centos:7
     ARCH_SUBST = $(ARCH)
 endif
-ifeq ($(PLATFORM),ppc64le_centos7)
+ifeq ($(ARCH),ppc64le)
     FROM_SUBST = ibmcom\/centos-ppc64le
     ARCH_SUBST = $(ARCH)
 endif
-ifeq ($(PLATFORM),x86_64_ubuntu)
-    FROM_SUBST = x86_64_linux
-    ARCH_SUBST = $(ARCH)
-endif
 
-Dockerfile-centos7.$(PLATFORM): ci/Dockerfile-centos7.in
-	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
+$(GEN_DOCKERFILE): ci/Dockerfile-centos7.in
+	cat $< \
+	| sed 's/FROM_SUBST/$(FROM_SUBST)/'g \
+	| sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' \
+	| sed 's/DEBUG_SUBST/$(DEBUG_SUBST)/g' \
+	> $@
 
-Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
+$(GEN_DOCKERFILE).tag: $(GEN_DOCKERFILE)
 	docker build \
-		-t $(CONTAINER_NAME_TAG) \
-		-f Dockerfile-centos7.$(PLATFORM) \
+		-t $(CONTAINER_REPO_TAG) \
+		-f $(GEN_DOCKERFILE) \
 		.
-	echo $(CONTAINER_NAME_TAG) > $@
+	echo $(CONTAINER_REPO_TAG) > $@
 
-centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
+centos7_docker_build: $(GEN_DOCKERFILE).tag
 
-centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
-	docker push $(CONTAINER_NAME_TAG)
+centos7_docker_publish: $(GEN_DOCKERFILE).tag
+	docker push $(CONTAINER_REPO_TAG)
 
-centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
+centos7_in_docker: $(GEN_DOCKERFILE).tag
 	make clean
 	docker run \
 		--rm \
@@ -196,29 +212,11 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 		-w /dot \
 		--entrypoint /bin/bash \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		$(CONTAINER_NAME_TAG) \
+		$(CONTAINER_REPO_TAG) \
 		-c 'make dist'
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
 	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
-
-#
-# Ubuntu image - will be removed
-#
-Dockerfile-ubuntu.$(PLATFORM): ci/Dockerfile-ubuntu.in
-	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
-
-Dockerfile-ubuntu.$(PLATFORM).tag: Dockerfile-ubuntu.$(PLATFORM)
-	docker build \
-		-t $(CONTAINER_NAME_TAG) \
-		-f Dockerfile-ubuntu.$(PLATFORM) \
-		.
-	echo $(CONTAINER_NAME_TAG) > $@
-
-ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
-
-ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
-	docker push $(CONTAINER_NAME_TAG)
 
 # Note:  We don't actually need to run mrproper in docker (as root) because
 #        the build step runs as the user.  But keep the API for consistency.
@@ -228,11 +226,11 @@ printvars:
 	@echo PLATFORM=$(PLATFORM)
 	@echo PROJECT_VERSION=$(PROJECT_VERSION)
 	@echo VERSION=$(VERSION)
+	@echo CONTAINER_REPO=$(CONTAINER_REPO)
 	@echo CONTAINER_TAG=$(CONTAINER_TAG)
-	@echo CONTAINER_NAME=$(CONTAINER_NAME)
 
 clean::
-	rm -f Dockerfile-centos7.$(PLATFORM)
+	rm -f Dockerfile*.gen*
 
 
 
