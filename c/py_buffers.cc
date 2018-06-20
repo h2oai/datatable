@@ -63,31 +63,6 @@ static char strB[] = "B";
 // Construct a DataTable from a list of objects implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-// Declared in py_datatable.h; becomes method in datatable module.
-PyObject* pydatatable::datatable_from_buffers(PyObject*, PyObject* args)
-{
-  PyObject* list = nullptr;
-  if (!PyArg_ParseTuple(args, "O!:from_buffers", &PyList_Type, &list))
-    return nullptr;
-
-  int64_t n = static_cast<int64_t>(PyList_Size(list));
-  Column** columns = dt::amalloc<Column*>(n + 1);
-  columns[n] = nullptr;
-
-  for (int64_t i = 0; i < n; ++i) {
-    PyObject* item = PyList_GET_ITEM(list, i);
-    if (!PyObject_CheckBuffer(item)) {
-      throw ValueError() << "Element " << i << " in the list of sources "
-                         << "does not support PyBuffers (PEP-3118) interface";
-    }
-    columns[i] = Column::from_buffer(item);
-  }
-
-  DataTable* dt = new DataTable(columns);
-  return pydatatable::wrap(dt);
-}
-
-
 Column* Column::from_buffer(PyObject* buffer)
 {
   Py_buffer* view = static_cast<Py_buffer*>(std::calloc(1, sizeof(Py_buffer)));
