@@ -25,7 +25,7 @@
       void*  bufdata;
       size_t bufsize;
       bool   pyobjects;
-      bool   writeable;
+      bool   writable;
       bool   resizable;
       int64_t: 40;
 
@@ -92,7 +92,7 @@
   //
   // Problem: after a window onto a MemoryRange is created, the source
   // MemoryRange will have refcount = 2, which means it will make a copy
-  // whenever someone asks for a writeable pointer.
+  // whenever someone asks for a writable pointer.
   // Currently we're solving it by keeping a ref `&source` instead of a
   // proper shallow copy, and by requesting `rptr` and const-casting it.
   // However this is very error-prone and hacky.
@@ -252,8 +252,8 @@
     return (o->impl->size() != 0);
   }
 
-  bool MemoryRange::is_writeable() const {
-    return (o.use_count() == 1) && o->impl->writeable;
+  bool MemoryRange::is_writable() const {
+    return (o.use_count() == 1) && o->impl->writable;
   }
 
   bool MemoryRange::is_resizable() const {
@@ -285,7 +285,7 @@
   }
 
   void* MemoryRange::wptr() {
-    if (!is_writeable()) materialize();
+    if (!is_writable()) materialize();
     return o->impl->ptr();
   }
 
@@ -295,9 +295,9 @@
   }
 
   void* MemoryRange::xptr() const {
-    if (!is_writeable()) {
+    if (!is_writable()) {
       throw RuntimeError() << "Cannot write into this MemoryRange object: "
-        "refcount=" << o.use_count() << ", writeable=" << o->impl->writeable;
+        "refcount=" << o.use_count() << ", writable=" << o->impl->writable;
     }
     return o->impl->ptr();
   }
@@ -312,7 +312,7 @@
   MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
     size_t n = o->impl->size() / sizeof(PyObject*);
     xassert(n * sizeof(PyObject*) == o->impl->size());
-    xassert(this->is_writeable());
+    xassert(this->is_writable());
     if (clear_data) {
       PyObject** data = static_cast<PyObject**>(o->impl->ptr());
       for (size_t i = 0; i < n; ++i) {
@@ -446,7 +446,7 @@
     : bufdata(nullptr),
       bufsize(0),
       pyobjects(false),
-      writeable(true),
+      writable(true),
       resizable(true) {}
 
   BaseMRI::~BaseMRI() {
@@ -484,8 +484,8 @@
           << icc.end();
       return false;
     }
-    if (resizable && !writeable) {
-      icc << "MemoryRange is resizable but not writeable" << icc.end();
+    if (resizable && !writable) {
+      icc << "MemoryRange is resizable but not writable" << icc.end();
       return false;
     }
     if (pyobjects) {
@@ -580,11 +580,11 @@
     bufsize = size;
     pybufinfo = pybuf;
     resizable = false;
-    writeable = false;
+    writable = false;
   }
 
   ExternalMRI::ExternalMRI(size_t n, void* ptr) : ExternalMRI(n, ptr, nullptr) {
-    writeable = true;
+    writable = true;
   }
 
   ExternalMRI::ExternalMRI(const char* str)
@@ -621,7 +621,7 @@
     bufdata = const_cast<void*>(src.rptr(offs));
     bufsize = n;
     resizable = false;
-    writeable = base->is_writable();
+    writable = base->is_writable();
     pyobjects = src.is_pyobjects();
   }
 
@@ -669,7 +669,7 @@
     bufdata = implptr->bufdata;
     bufsize = implptr->bufsize;
     pyobjects = implptr->pyobjects;
-    writeable = false;
+    writable = false;
     resizable = false;
   }
 
@@ -692,7 +692,7 @@
   }
 
   bool ViewedMRI::is_writable() const {
-    return original_impl->writeable;
+    return original_impl->writable;
   }
 
 
@@ -713,7 +713,7 @@
   {
     bufdata = nullptr;
     bufsize = n;
-    writeable = create;
+    writable = create;
     resizable = create;
     temporary_file = create;
     mmm_index = 0;

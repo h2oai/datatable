@@ -128,7 +128,7 @@ class MemoryRange
     // operator bool()
     //   Return true if the memory allocation is non-empty, i.e. size() > 0.
     //
-    // is_writeable()
+    // is_writable()
     //   Return true if modifying data in this MemoryRange is allowed. This may
     //   return false in one of the two cases: (1) either the data is inherently
     //   read-only (e.g. opened from a file, or from external memory region
@@ -153,7 +153,7 @@ class MemoryRange
     //
     size_t size() const;
     operator bool() const;
-    bool is_writeable() const;
+    bool is_writable() const;
     bool is_resizable() const;
     bool is_pyobjects() const;
     size_t memory_footprint() const;
@@ -168,7 +168,7 @@ class MemoryRange
     // wptr()
     // wptr(offset)
     //   Return the internal data pointer as `void*`, i.e. suitable for writing.
-    //   This will return `impl->bufdata` if and only if `is_writeable()` is
+    //   This will return `impl->bufdata` if and only if `is_writable()` is
     //   true, otherwise `impl` will be replaced with a new copy of the data
     //   and only then the new data pointer will be returned. This implements
     //   the Copy-on-Write semantics.

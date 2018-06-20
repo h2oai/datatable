@@ -158,7 +158,7 @@ void FwColumn<T>::reify() {
     // the new buffer.
     size_t start = static_cast<size_t>(ri.slice_start());
     const void* src = mbuf.rptr(start * elemsize);
-    void* dest = mbuf.is_writeable()
+    void* dest = mbuf.is_writable()
         ? mbuf.wptr()
         : newmr.resize(newsize).wptr();
     std::memmove(dest, src, newsize);
@@ -169,7 +169,7 @@ void FwColumn<T>::reify() {
     // only if we know that the indices are monotonically increasing (otherwise
     // there is a risk of scrambling the data).
     const T* data_src = static_cast<const T*>(mbuf.rptr());
-    T* data_dest = mbuf.is_writeable() && ascending
+    T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
     ri.strided_loop(0, nrows, 1,

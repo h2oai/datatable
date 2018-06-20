@@ -216,7 +216,7 @@ void StringColumn<T>::reify() {
     T off0 = std::abs(data_src[-1]);
     T off1 = std::abs(data_src[nrows - 1]);
     new_strbuf_size = static_cast<size_t>(off1 - off0);
-    if (!strbuf.is_writeable()) {
+    if (!strbuf.is_writable()) {
       new_strbuf = MemoryRange(new_strbuf_size);
       std::memcpy(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
     } else {
@@ -230,7 +230,7 @@ void StringColumn<T>::reify() {
   } else if (ascending) {
     // Special case: We can still do this in-place
     // (assuming the buffers are not read-only)
-    if (!strbuf.is_writeable())
+    if (!strbuf.is_writable())
       new_strbuf = MemoryRange(strbuf.size()); // We don't know the actual size yet
                                                // but it can't be larger than this
     T step = static_cast<T>(ri.slice_step());
@@ -395,7 +395,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
   strbuf.resize(new_strbuf_size);
-  xassert(mbuf.is_writeable() && strbuf.is_writeable());
+  xassert(mbuf.is_writable() && strbuf.is_writable());
   nrows = new_nrows;
   T* offs = offsets_w();
 
