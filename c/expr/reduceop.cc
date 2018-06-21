@@ -21,6 +21,7 @@ enum OpCode {
   Stdev = 4,
   First = 5,
   Sum   = 6,
+  Count = 7,
 };
 
 template<typename T>
@@ -71,6 +72,21 @@ static void sum_skipna(const int32_t* groups, int32_t grp, void** params) {
     sum += static_cast<OT>(x);
   }
   outputs[grp] = sum;
+}
+
+//------------------------------------------------------------------------------
+// Count calculation
+//------------------------------------------------------------------------------
+
+template<typename IT, typename OT>
+static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
+  Column* col1 = static_cast<Column*>(params[1]);
+  OT* outputs = static_cast<OT*>(col1->data_w());
+
+  int32_t row0 = groups[grp];
+  int32_t row1 = groups[grp + 1];
+
+  outputs[grp] = row1 - row0;
 }
 
 
@@ -194,6 +210,7 @@ static gmapperfn resolve1(int opcode) {
     case OpCode::Max:   return max_skipna<T1>;
     case OpCode::Stdev: return stdev_skipna<T1, T2>;
     case OpCode::Sum:   return sum_skipna<T1, T2>;
+    case OpCode::Count: return count_skipna<T1, T2>;
     default:            return nullptr;
   }
 }
@@ -212,6 +229,22 @@ static gmapperfn resolve0(int opcode, SType stype) {
       default:             return nullptr;
     }
   }
+
+  if (opcode == OpCode::Count) {
+    switch (stype) {
+      case ST_BOOLEAN_I1:
+      case ST_INTEGER_I1:  		return count_skipna<int8_t, int64_t>;
+      case ST_INTEGER_I2:  		return count_skipna<int16_t, int64_t>;
+      case ST_INTEGER_I4:  		return count_skipna<int32_t, int64_t>;
+      case ST_INTEGER_I8: 		return count_skipna<int64_t, int64_t>;
+      case ST_REAL_F4:     		return count_skipna<float, int64_t>;
+      case ST_REAL_F8:     		return count_skipna<double, int64_t>;
+      case ST_STRING_I4_VCHAR:  return count_skipna<int32_t, int64_t>;
+      case ST_STRING_I8_VCHAR:  return count_skipna<int64_t, int64_t>;
+      default:             		return nullptr;
+    }
+  }
+
   switch (stype) {
     case ST_BOOLEAN_I1:
     case ST_INTEGER_I1:  return resolve1<int8_t, double>(opcode);
@@ -245,6 +278,11 @@ Column* reduceop(int opcode, Column* arg, const Groupby& groupby)
       res_type = ST_INTEGER_I8;
     }
   }
+
+  if (opcode == OpCode::Count) {
+    res_type = ST_INTEGER_I8;
+  }
+
   int32_t ngrps = static_cast<int32_t>(groupby.ngroups());
   if (ngrps == 0) ngrps = 1;
 

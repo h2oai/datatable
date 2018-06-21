@@ -259,7 +259,20 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
+PyObject* aggregate(obj* self, PyObject* args) {
+  printf("call: py_datatable.cc PyObject* aggregate(obj* self, PyObject* args)\n");
 
+  double epsilon;
+  int64_t n_bins, nx_bins, ny_bins;
+
+  if (!PyArg_ParseTuple(args, "dlll:aggregate",
+                        &epsilon, &n_bins, &nx_bins, &ny_bins)) return nullptr;
+
+  DataTable* dt = self->ref;
+  dt->aggregate(epsilon, n_bins, nx_bins, ny_bins);
+
+  Py_RETURN_NONE;
+}
 
 PyObject* resize_rows(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
@@ -569,6 +582,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(check),
   METHODv(column),
   METHODv(delete_columns),
+  METHODv(aggregate),
   METHODv(resize_rows),
   METHODv(replace_rowindex),
   METHODv(replace_column_slice),

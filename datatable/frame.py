@@ -550,8 +550,13 @@ class Frame(object):
             newnames += self.names[(cols[i - 1] + 1):cols[i]]
         newnames += self.names[cols[-1] + 1:]
         self._fill_from_dt(self._dt, names=newnames)
-
-
+        
+        
+    def aggregate(self, epsilon=1.0e-15, n_bins=500, nx_bins=50, ny_bins=50):
+        print('call: frame.py aggregate(self)')
+        self._dt.aggregate(epsilon, n_bins, nx_bins, ny_bins)
+        self.__init__(self.internal)
+        
 
     @typed(name=U(str, int))
     def colindex(self, name):

@@ -70,6 +70,15 @@ class DataTable {
     void rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
     size_t memory_footprint();
+    DataTable* aggregate(double, int64_t, int64_t, int64_t);
+    DataTable* aggregate1D(double, int64_t);
+    DataTable* aggregate2D(double, int64_t, int64_t);
+    void aggregate1DContinuous(double, int64_t);
+    void aggregate2DContinuous(double, int64_t, int64_t);
+    void aggregate1DCategorical(int64_t);
+    void aggregate2DCategorical(int64_t, int64_t);
+    void aggregate2DMixed(double, int64_t, int64_t);
+    void aggregateND();
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding
