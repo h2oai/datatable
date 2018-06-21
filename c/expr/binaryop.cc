@@ -117,16 +117,18 @@ static void strmap_n_to_n(int64_t row0, int64_t row1, void** params) {
   const T1* offsets1 = col1->offsets();
   const char* strdata0 = col0->strdata();
   const char* strdata1 = col1->strdata();
+  constexpr T0 NONA0 = StringColumn<T0>::NONA;
+  constexpr T1 NONA1 = StringColumn<T1>::NONA;
   T2* res_data = static_cast<T2*>(col2->data_w());
-  T0 str0start = std::abs(offsets0[row0 - 1]);
-  T1 str1start = std::abs(offsets1[row0 - 1]);
-  for (int64_t i = row0; i < row1; ++i) {
+  T0 str0start = offsets0[row0] & NONA0;
+  T1 str1start = offsets1[row0] & NONA1;
+  for (int64_t i = row0 + 1; i <= row1; ++i) {
     T0 str0end = offsets0[i];
     T1 str1end = offsets1[i];
     res_data[i] = OP(str0start, str0end, strdata0,
                      str1start, str1end, strdata1);
-    str0start = std::abs(str0end);
-    str1start = std::abs(str1end);
+    str0start = str0end & NONA0;
+    str1start = str1end & NONA1;
   }
 }
 
@@ -141,15 +143,16 @@ static void strmap_n_to_1(int64_t row0, int64_t row1, void** params) {
   const T1* offsets1 = col1->offsets();
   const char* strdata0 = col0->strdata();
   const char* strdata1 = col1->strdata();
-  T0 str0start = std::abs(offsets0[row0 - 1]);
-  T1 str1start = 1;
-  T1 str1end = offsets1[0];
+  constexpr T0 NONA0 = ~GETNA<T0>();
+  T0 str0start = offsets0[row0] & NONA0;
+  T1 str1start = 0;
+  T1 str1end = offsets1[1];
   T2* res_data = static_cast<T2*>(col2->data_w());
   for (int64_t i = row0; i < row1; ++i) {
     T0 str0end = offsets0[i];
     res_data[i] = OP(str0start, str0end, strdata0,
                      str1start, str1end, strdata1);
-    str0start = std::abs(str0end);
+    str0start = str0end & NONA0;
   }
 }
 
@@ -255,7 +258,9 @@ inline static int8_t op_le(LT x, RT y) {  // x <= y
 template<typename T1, typename T2>
 inline static int8_t strop_eq(T1 start1, T1 end1, const char* strdata1,
                               T2 start2, T2 end2, const char* strdata2) {
-  if (end1 > 0 && end2 > 0) {
+  constexpr T1 NAMASK1 = StringColumn<T1>::NAMASK;
+  constexpr T2 NAMASK2 = StringColumn<T2>::NAMASK;
+  if ((end1 & NAMASK1) == 0 && (end2 & NAMASK2) == 0) {
     if (end1 - start1 == end2 - start2) {
       const char* ch1 = strdata1 + start1;
       const char* ch2 = strdata2 + start2;
@@ -268,14 +273,16 @@ inline static int8_t strop_eq(T1 start1, T1 end1, const char* strdata1,
       return 0;
     }
   } else {
-    return (end1 < 0) && (end2 < 0);
+    return (end1 & NAMASK1) && (end2 & NAMASK2);
   }
 }
 
 template<typename T1, typename T2>
 inline static int8_t strop_ne(T1 start1, T1 end1, const char* strdata1,
                               T2 start2, T2 end2, const char* strdata2) {
-  if (end1 > 0 && end2 > 0) {
+  constexpr T1 NAMASK1 = StringColumn<T1>::NAMASK;
+  constexpr T2 NAMASK2 = StringColumn<T2>::NAMASK;
+  if ((end1 & NAMASK1) == 0 && (end2 & NAMASK2) == 0) {
     if (end1 - start1 == end2 - start2) {
       const char* ch1 = strdata1 + start1;
       const char* ch2 = strdata2 + start2;
@@ -288,7 +295,7 @@ inline static int8_t strop_ne(T1 start1, T1 end1, const char* strdata1,
       return 1;
     }
   } else {
-    return (end1 > 0) || (end2 > 0);
+    return (end1 & NAMASK1) == 0 || (end2 & NAMASK2) == 0;
   }
 }
 
@@ -456,8 +463,8 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, int opcode, void** para
 
     case ST_STRING_I4_VCHAR:
       switch (rhs_type) {
-        case ST_STRING_I4_VCHAR: return resolve1str<int32_t, int32_t>(opcode, params, nrows, mode);
-        case ST_STRING_I8_VCHAR: return resolve1str<int32_t, int64_t>(opcode, params, nrows, mode);
+        case ST_STRING_I4_VCHAR: return resolve1str<uint32_t, uint32_t>(opcode, params, nrows, mode);
+        case ST_STRING_I8_VCHAR: return resolve1str<uint32_t, uint64_t>(opcode, params, nrows, mode);
         default: break;
       }
       break;

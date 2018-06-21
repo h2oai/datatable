@@ -124,8 +124,8 @@ static mapperfn resolve0(SType stype, int opcode) {
     case ST_INTEGER_I8: return resolve1<int64_t>(opcode);
     case ST_REAL_F4:    return resolve1<float>(opcode);
     case ST_REAL_F8:    return resolve1<double>(opcode);
-    case ST_STRING_I4_VCHAR: return resolve_str<int32_t>(opcode);
-    case ST_STRING_I8_VCHAR: return resolve_str<int64_t>(opcode);
+    case ST_STRING_I4_VCHAR: return resolve_str<uint32_t>(opcode);
+    case ST_STRING_I8_VCHAR: return resolve_str<uint64_t>(opcode);
     default: break;
   }
   return nullptr;

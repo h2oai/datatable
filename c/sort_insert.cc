@@ -40,8 +40,8 @@ int compare_offstrings(
     const uint8_t* strdata, T aoff0, T aoff1, T boff0, T boff1)
 {
   // Handle NAs and empty strings
-  if (boff1 < 0) return aoff1 < 0? 0 : -1;
-  if (aoff1 < 0) return 1;
+  if (ISNA<T>(boff1)) return ISNA<T>(aoff1)? 0 : -1;
+  if (ISNA<T>(aoff1)) return 1;
   T lena = aoff1 - aoff0;
   T lenb = boff1 - boff0;
   if (lenb <= 0) return lena <= 0? 0 : -1;
@@ -146,12 +146,12 @@ void insert_sort_keys_str(
   int j;
   tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
-    T off0i = std::abs(stroffs[o[i]-1]) + strstart;
-    T off1i = stroffs[o[i]];
+    T off0i = stroffs[o[i]] + strstart;
+    T off1i = stroffs[o[i] + 1];
     for (j = i; j > 0; --j) {
       V k = tmp[j - 1];
-      T off0k = std::abs(stroffs[o[k]-1]) + strstart;
-      T off1k = stroffs[o[k]];
+      T off0k = stroffs[o[k]] + strstart;
+      T off1k = stroffs[o[k] + 1];
       int cmp = compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
       tmp[j] = tmp[j-1];
@@ -176,12 +176,12 @@ void insert_sort_values_str(
   int j;
   o[0] = 0;
   for (int i = 1; i < n; ++i) {
-    T off0i = std::abs(stroffs[i-1]) + strstart;
-    T off1i = stroffs[i];
+    T off0i = stroffs[i] + strstart;
+    T off1i = stroffs[i + 1];
     for (j = i; j > 0; j--) {
       V k = o[j - 1];
-      T off0k = std::abs(stroffs[k-1]) + strstart;
-      T off1k = stroffs[k];
+      T off0k = stroffs[k] + strstart;
+      T off1k = stroffs[k + 1];
       int cmp = compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
       o[j] = o[j-1];
@@ -209,9 +209,9 @@ template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-template void insert_sort_keys_str(const uint8_t*, const int32_t*, int32_t, int32_t*, int32_t*, int, GroupGatherer&);
-template void insert_sort_values_str(const uint8_t*, const int32_t*, int32_t, int32_t*, int, GroupGatherer&);
-template void insert_sort_keys_str(const uint8_t*, const int64_t*, int64_t, int32_t*, int32_t*, int, GroupGatherer&);
-template void insert_sort_values_str(const uint8_t*, const int64_t*, int64_t, int32_t*, int, GroupGatherer&);
-template int compare_offstrings(const uint8_t*, int32_t, int32_t, int32_t, int32_t);
-template int compare_offstrings(const uint8_t*, int64_t, int64_t, int64_t, int64_t);
+template void insert_sort_keys_str(  const uint8_t*, const uint32_t*, uint32_t, int32_t*, int32_t*, int, GroupGatherer&);
+template void insert_sort_values_str(const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&);
+template void insert_sort_keys_str(  const uint8_t*, const uint64_t*, uint64_t, int32_t*, int32_t*, int, GroupGatherer&);
+template void insert_sort_values_str(const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&);
+template int compare_offstrings(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
+template int compare_offstrings(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);

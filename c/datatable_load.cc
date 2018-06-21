@@ -43,13 +43,12 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
                            << stypes;
     }
 
-    StringColumn<int32_t>* colf =
-        static_cast<StringColumn<int32_t>*>(colspec->columns[0]);
-    StringColumn<int32_t>* cols =
-        static_cast<StringColumn<int32_t>*>(colspec->columns[1]);
+    auto colf = static_cast<StringColumn<uint32_t>*>(colspec->columns[0]);
+    auto cols = static_cast<StringColumn<uint32_t>*>(colspec->columns[1]);
 
-    const int32_t* offf = colf->offsets();
-    const int32_t* offs = cols->offsets();
+    const uint32_t* offf = colf->offsets();
+    const uint32_t* offs = cols->offsets();
+    constexpr uint32_t NONA = StringColumn<uint32_t>::NONA;
 
     std::string rootdir(path);
     if (!(rootdir.empty() || rootdir.back() == '/'))
@@ -58,16 +57,16 @@ DataTable* DataTable::load(DataTable* colspec, int64_t nrows, const std::string&
     for (int64_t i = 0; i < ncols; ++i)
     {
         // Extract filename
-        size_t fsta = static_cast<size_t>(abs(offf[i - 1]));
-        size_t fend = static_cast<size_t>(abs(offf[i]));
+        size_t fsta = static_cast<size_t>(offf[i]);
+        size_t fend = static_cast<size_t>(offf[i + 1] & NONA);
         size_t flen = static_cast<size_t>(fend - fsta);
 
         std::string filename = rootdir;
         filename.append(colf->strdata() + fsta, flen);
 
         // Extract stype
-        size_t ssta = static_cast<size_t>(abs(offs[i - 1]));
-        size_t send = static_cast<size_t>(abs(offs[i]));
+        size_t ssta = static_cast<size_t>(offs[i]);
+        size_t send = static_cast<size_t>(offs[i + 1] & NONA);
         size_t slen = static_cast<size_t>(send - ssta);
         if (!(slen == 3 || slen==2)) {
             throw ValueError() << "Incorrect stype's length: " << slen;

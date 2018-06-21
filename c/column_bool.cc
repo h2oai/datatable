@@ -103,12 +103,12 @@ inline static MemoryRange cast_str_helper(
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
-  T offset = 1;
-  toffsets[-1] = -1;
+  T offset = 0;
+  toffsets[0] = 0;
   for (int64_t i = 0; i < nrows; ++i) {
     int8_t x = src[i];
     if (ISNA<int8_t>(x)) {
-      toffsets[i] = -offset;
+      toffsets[i] = offset | StringColumn<T>::NAMASK;
     } else {
       *ch++ = '0' + x;
       offset++;
@@ -162,17 +162,17 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
   }
 }
 
-void BoolColumn::cast_into(StringColumn<int32_t>* target) const {
+void BoolColumn::cast_into(StringColumn<uint32_t>* target) const {
   MemoryRange data = target->data_buf();
-  int32_t* offsets = static_cast<int32_t*>(data.wptr()) + 1;
-  MemoryRange strbuf = cast_str_helper<int32_t>(nrows, elements_r(), offsets);
+  uint32_t* offsets = static_cast<uint32_t*>(data.wptr());
+  MemoryRange strbuf = cast_str_helper<uint32_t>(nrows, elements_r(), offsets);
   target->replace_buffer(std::move(data), std::move(strbuf));
 }
 
-void BoolColumn::cast_into(StringColumn<int64_t>* target) const {
+void BoolColumn::cast_into(StringColumn<uint64_t>* target) const {
   MemoryRange data = target->data_buf();
-  int64_t* offsets = static_cast<int64_t*>(data.wptr()) + 1;
-  MemoryRange strbuf = cast_str_helper<int64_t>(nrows, elements_r(), offsets);
+  uint64_t* offsets = static_cast<uint64_t*>(data.wptr());
+  MemoryRange strbuf = cast_str_helper<uint64_t>(nrows, elements_r(), offsets);
   target->replace_buffer(std::move(data), std::move(strbuf));
 }
 

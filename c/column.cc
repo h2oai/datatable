@@ -31,8 +31,8 @@ Column* Column::new_column(SType stype) {
     case ST_INTEGER_I8:      return new IntColumn<int64_t>();
     case ST_REAL_F4:         return new RealColumn<float>();
     case ST_REAL_F8:         return new RealColumn<double>();
-    case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
-    case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
+    case ST_STRING_I4_VCHAR: return new StringColumn<uint32_t>();
+    case ST_STRING_I8_VCHAR: return new StringColumn<uint64_t>();
     case ST_OBJECT_PYPTR:    return new PyObjectColumn();
     default:
       throw ValueError() << "Unable to create a column of SType = " << stype;
@@ -326,8 +326,8 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
     case ST_INTEGER_I8:      cast_into(static_cast<IntColumn<int64_t>*>(res)); break;
     case ST_REAL_F4:         cast_into(static_cast<RealColumn<float>*>(res)); break;
     case ST_REAL_F8:         cast_into(static_cast<RealColumn<double>*>(res)); break;
-    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<int32_t>*>(res)); break;
-    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<int64_t>*>(res)); break;
+    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<uint32_t>*>(res)); break;
+    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<uint64_t>*>(res)); break;
     case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn*>(res)); break;
     default:
       throw ValueError() << "Unable to cast into stype = " << new_stype;
@@ -356,10 +356,10 @@ void Column::cast_into(RealColumn<float>*) const {
 void Column::cast_into(RealColumn<double>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into double";
 }
-void Column::cast_into(StringColumn<int32_t>*) const {
+void Column::cast_into(StringColumn<uint32_t>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into str32";
 }
-void Column::cast_into(StringColumn<int64_t>*) const {
+void Column::cast_into(StringColumn<uint64_t>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into str64";
 }
 void Column::cast_into(PyObjectColumn*) const {

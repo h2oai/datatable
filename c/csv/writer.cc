@@ -45,12 +45,12 @@ public:
       throw ValueError() << "Cannot write type " << col->stype();
     }
     if (col->stype() == ST_STRING_I4_VCHAR) {
-      strbuf = static_cast<StringColumn<int32_t>*>(col)->strdata();
-      data = static_cast<StringColumn<int32_t>*>(col)->offsets();
+      strbuf = static_cast<StringColumn<uint32_t>*>(col)->strdata();
+      data = static_cast<StringColumn<uint32_t>*>(col)->offsets();
     }
     else if (col->stype() == ST_STRING_I8_VCHAR) {
-      strbuf = static_cast<StringColumn<int64_t>*>(col)->strdata();
-      data = static_cast<StringColumn<int64_t>*>(col)->offsets();
+      strbuf = static_cast<StringColumn<uint64_t>*>(col)->strdata();
+      data = static_cast<StringColumn<uint64_t>*>(col)->offsets();
     }
   }
 
@@ -61,8 +61,9 @@ public:
   // This should only be called on a CsvColumn of type i4s / i8s!
   template <typename T>
   size_t strsize(int64_t row0, int64_t row1) {
-    const T* offsets = static_cast<const T*>(data) - 1;
-    return static_cast<size_t>(abs(offsets[row1]) - abs(offsets[row0]));
+    const T* offsets = static_cast<const T*>(data);
+    return static_cast<size_t>(offsets[row1] - offsets[row0])
+           & StringColumn<T>::NONA;
   }
 };
 
@@ -359,10 +360,10 @@ void CsvWriter::write()
         // expand twice in size (if every character needs to be escaped).
         size_t reqsize = 0;
         for (size_t col = 0; col < nstrcols32; col++) {
-          reqsize += strcolumns32[col]->strsize<int32_t>(row0, row1);
+          reqsize += strcolumns32[col]->strsize<uint32_t>(row0, row1);
         }
         for (size_t col = 0; col < nstrcols64; col++) {
-          reqsize += strcolumns64[col]->strsize<int64_t>(row0, row1);
+          reqsize += strcolumns64[col]->strsize<uint64_t>(row0, row1);
         }
         reqsize *= 2;
         reqsize += fixed_size_per_row * static_cast<size_t>(row1 - row0);
@@ -456,10 +457,10 @@ size_t CsvWriter::estimate_output_size()
   size_t total_columns_size = 0;
   for (size_t i = 0; i < ncols; i++) {
     Column *col = dt->columns[i];
-    if (auto scol32 = dynamic_cast<StringColumn<int32_t>*>(col)) {
+    if (auto scol32 = dynamic_cast<StringColumn<uint32_t>*>(col)) {
       total_string_size += scol32->datasize();
     } else
-    if (auto scol64 = dynamic_cast<StringColumn<int64_t>*>(col)) {
+    if (auto scol64 = dynamic_cast<StringColumn<uint64_t>*>(col)) {
       total_string_size += scol64->datasize();
     }
     SType stype = col->stype();

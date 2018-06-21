@@ -245,19 +245,20 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
 {
   size_t nrows = list.size();
   offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
-  offsets[-1] = -1;
+  T* offsets = static_cast<T*>(offbuf.wptr());
+  offsets[0] = 0;
   if (!strbuf) {
     strbuf.resize(nrows * 4);  // arbitrarily 4 chars per element
   }
+  char* strptr = static_cast<char*>(strbuf.xptr());
 
-  T curr_offset = 1;
+  T curr_offset = 0;
   size_t i = 0;
   for (i = 0; i < nrows; ++i) {
     PyObj item = list[i];
 
     if (item.is_none()) {
-      offsets[i] = -curr_offset;
+      offsets[i] = curr_offset | StringColumn<T>::NAMASK;
       continue;
     }
     if (item.is_string()) {
@@ -276,8 +277,9 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
           strbuf.resize(static_cast<size_t>(newsize));
+          strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strbuf.wptr(static_cast<size_t>(curr_offset) - 1), cstr, len);
+        std::memcpy(strptr + curr_offset, cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -291,7 +293,7 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
     }
     return false;
   } else {
-    strbuf.resize(static_cast<size_t>(curr_offset - 1));
+    strbuf.resize(static_cast<size_t>(curr_offset));
     return true;
   }
 }
@@ -319,18 +321,19 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
       << "Cannot store " << nrows << " elements in a str32 column";
   }
   offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
+  T* offsets = static_cast<T*>(offbuf.wptr());
   offsets[-1] = -1;
   if (!strbuf) {
     strbuf.resize(nrows * 4);
   }
+  char* strptr = static_cast<char*>(strbuf.xptr());
 
   T curr_offset = 1;
   for (size_t i = 0; i < nrows; ++i) {
     PyObj item = list[i];
 
     if (item.is_none()) {
-      offsets[i] = -curr_offset;
+      offsets[i] = curr_offset | StringColumn<T>::NAMASK;
       continue;
     }
     if (!item.is_string()) {
@@ -351,17 +354,18 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
           double newsize = static_cast<double>(next_offset) *
                            (static_cast<double>(nrows) / (i + 1)) * 1.1;
           strbuf.resize(static_cast<size_t>(newsize));
+          strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strbuf.wptr(static_cast<size_t>(curr_offset) - 1), cstr, len);
+        std::memcpy(strptr + curr_offset, cstr, len);
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
       continue;
     } else {
-      offsets[i] = -curr_offset;
+      offsets[i] = curr_offset | StringColumn<T>::NAMASK;
     }
   }
-  strbuf.resize(static_cast<size_t>(curr_offset - 1));
+  strbuf.resize(static_cast<size_t>(curr_offset));
 }
 
 
@@ -446,8 +450,8 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
         case ST_INTEGER_I8:      force_as_int<int64_t>(list, membuf); break;
         case ST_REAL_F4:         force_as_real<float>(list, membuf); break;
         case ST_REAL_F8:         force_as_real<double>(list, membuf); break;
-        case ST_STRING_I4_VCHAR: force_as_str<int32_t>(list, membuf, strbuf); break;
-        case ST_STRING_I8_VCHAR: force_as_str<int64_t>(list, membuf, strbuf); break;
+        case ST_STRING_I4_VCHAR: force_as_str<uint32_t>(list, membuf, strbuf); break;
+        case ST_STRING_I8_VCHAR: force_as_str<uint64_t>(list, membuf, strbuf); break;
         case ST_OBJECT_PYPTR:    parse_as_pyobj(list, membuf); break;
         default:
           throw RuntimeError()
@@ -463,8 +467,8 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
         case ST_INTEGER_I4:      ret = parse_as_int<int32_t>(list, membuf, i); break;
         case ST_INTEGER_I8:      ret = parse_as_int<int64_t>(list, membuf, i); break;
         case ST_REAL_F8:         ret = parse_as_double(list, membuf, i); break;
-        case ST_STRING_I4_VCHAR: ret = parse_as_str<int32_t>(list, membuf, strbuf); break;
-        case ST_STRING_I8_VCHAR: ret = parse_as_str<int64_t>(list, membuf, strbuf); break;
+        case ST_STRING_I4_VCHAR: ret = parse_as_str<uint32_t>(list, membuf, strbuf); break;
+        case ST_STRING_I8_VCHAR: ret = parse_as_str<uint64_t>(list, membuf, strbuf); break;
         case ST_OBJECT_PYPTR:    ret = parse_as_pyobj(list, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }

@@ -147,7 +147,7 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset - 1));
-  return new StringColumn<int32_t>(nrows, std::move(offbuf), std::move(strbuf));
+  return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -214,7 +214,7 @@ static Column* try_to_resolve_object_column(Column* col)
 
   strbuf.resize(offset);
   delete col;
-  return new StringColumn<int32_t>(nrows, std::move(offbuf), std::move(strbuf));
+  return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 

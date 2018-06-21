@@ -423,7 +423,7 @@ void StringStats<T>::compute_countna(const Column* col) {
 
     rowindex.strided_loop(ith, nrows, nth,
       [&](int64_t i) {
-        tcountna += data[i] < 0;
+        tcountna += data[i] >> (sizeof(T)*8 - 1);
       });
 
     #pragma omp critical
@@ -448,7 +448,7 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
 
   if (!_computed.test(Stat::NaCount)) {
     T off0 = offsets[ri.nth(0)];
-    _countna = off0 < 0? groups[1] : 0;
+    _countna = ISNA<T>(off0)? groups[1] : 0;
     _computed.set(Stat::NaCount);
   }
 
@@ -468,10 +468,10 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
 
   if (max_grpsize) {
     int64_t i = ri.nth(groups[best_igrp]);
-    T o0 = std::abs(offsets[i - 1]);
+    T o0 = offsets[i] & ~GETNA<T>();
     _nmodal = max_grpsize;
     _mode.ch = scol->strdata() + o0;
-    _mode.size = offsets[i] - o0;
+    _mode.size = (offsets[i + 1] & ~GETNA<T>()) - o0;
   } else {
     _nmodal = 0;
     _mode.ch = nullptr;
@@ -489,8 +489,8 @@ CString StringStats<T>::mode(const Column* col) {
 }
 
 
-template class StringStats<int32_t>;
-template class StringStats<int64_t>;
+template class StringStats<uint32_t>;
+template class StringStats<uint64_t>;
 
 
 

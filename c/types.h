@@ -412,13 +412,7 @@ typedef struct EnumMeta {     // ST_STRING_UX_ENUM
 
 /**
  * NA constants
- *
- * Integer-based NAs can be compared by value (e.g. `x == NA_I4`), whereas
- * floating-point NAs require special functions `ISNA_F4(x)` and `ISNA_F8(x)`.
  */
-
-#define NA_F4_BITS 0x7F8007A2u
-#define NA_F8_BITS 0x7FF00000000007A2ull
 
 constexpr int8_t   NA_I1 = INT8_MIN;
 constexpr int16_t  NA_I2 = INT16_MIN;
@@ -428,22 +422,10 @@ constexpr uint8_t  NA_U1 = UINT8_MAX;
 constexpr uint16_t NA_U2 = UINT16_MAX;
 constexpr uint32_t NA_U4 = UINT32_MAX;
 constexpr uint64_t NA_U8 = UINT64_MAX;
+constexpr uint32_t NA_S4 = uint32_t(1) << 31;
+constexpr uint64_t NA_S8 = uint64_t(1) << 63;
 constexpr float    NA_F4 = std::numeric_limits<float>::quiet_NaN();
 constexpr double   NA_F8 = std::numeric_limits<double>::quiet_NaN();
-
-int ISNA_F4(float x);
-int ISNA_F8(double x);
-
-#define ISNA_I1(x)  ((int8_t)(x)   == NA_I1)
-#define ISNA_I2(x)  ((int16_t)(x)  == NA_I2)
-#define ISNA_I4(x)  ((int32_t)(x)  == NA_I4)
-#define ISNA_I8(x)  ((int64_t)(x)  == NA_I8)
-#define ISNA_U1(x)  ((uint8_t)(x)  == NA_U1)
-#define ISNA_U2(x)  ((uint16_t)(x) == NA_U2)
-#define ISNA_U4(x)  ((uint32_t)(x) == NA_U4)
-#define ISNA_F4(x)  (isnan(x))
-#define ISNA_F8(x)  (isnan(x))
-
 
 /**
  * GETNA function
@@ -456,9 +438,8 @@ template<> constexpr int8_t   GETNA() { return NA_I1; }
 template<> constexpr int16_t  GETNA() { return NA_I2; }
 template<> constexpr int32_t  GETNA() { return NA_I4; }
 template<> constexpr int64_t  GETNA() { return NA_I8; }
-template<> constexpr uint8_t  GETNA() { return NA_U1; }
-template<> constexpr uint16_t GETNA() { return NA_U2; }
-template<> constexpr uint32_t GETNA() { return NA_U4; }
+template<> constexpr uint32_t GETNA() { return NA_S4; }
+template<> constexpr uint64_t GETNA() { return NA_S8; }
 template<> constexpr float    GETNA() { return NA_F4; }
 template<> constexpr double   GETNA() { return NA_F8; }
 template<> constexpr PyObject* GETNA() { return Py_None; }
@@ -470,13 +451,12 @@ template<> constexpr PyObject* GETNA() { return Py_None; }
  */
 template <typename T>
            inline bool ISNA(T)          { return true;       }
-template<> inline bool ISNA(int8_t x)   { return ISNA_I1(x); }
-template<> inline bool ISNA(int16_t x)  { return ISNA_I2(x); }
-template<> inline bool ISNA(int32_t x)  { return ISNA_I4(x); }
-template<> inline bool ISNA(int64_t x)  { return ISNA_I8(x); }
-template<> inline bool ISNA(uint8_t x)  { return ISNA_U1(x); }
-template<> inline bool ISNA(uint16_t x) { return ISNA_U2(x); }
-template<> inline bool ISNA(uint32_t x) { return ISNA_U4(x); }
+template<> inline bool ISNA(int8_t x)   { return x == NA_I1; }
+template<> inline bool ISNA(int16_t x)  { return x == NA_I2; }
+template<> inline bool ISNA(int32_t x)  { return x == NA_I4; }
+template<> inline bool ISNA(int64_t x)  { return x == NA_I8; }
+template<> inline bool ISNA(uint32_t x) { return (x & NA_S4); }
+template<> inline bool ISNA(uint64_t x) { return (x & NA_S8); }
 template<> inline bool ISNA(float x)    { return isnan(x); }
 template<> inline bool ISNA(double x)   { return isnan(x); }
 template<> inline bool ISNA(PyObject* x) { return x == Py_None; }

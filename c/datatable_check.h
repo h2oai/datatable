@@ -38,6 +38,8 @@ public:
   IntegrityCheckContext& operator<<(int32_t);
   IntegrityCheckContext& operator<<(int8_t);
   IntegrityCheckContext& operator<<(size_t);
+  IntegrityCheckContext& operator<<(uint64_t);
+  IntegrityCheckContext& operator<<(uint32_t);
   void operator<<(const EndOfError&);
 };
 
