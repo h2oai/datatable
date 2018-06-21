@@ -46,7 +46,7 @@
   struct MemoryRange::internal {
     std::unique_ptr<BaseMRI> impl;
 
-    internal(BaseMRI*&& _impl) : impl(_impl) {}
+    internal(BaseMRI* _impl) : impl(std::move(_impl)) {}
   };
 
 
@@ -68,7 +68,7 @@
       Py_buffer* pybufinfo;
 
     public:
-      ExternalMRI(size_t n, void* ptr);
+      ExternalMRI(size_t n, const void* ptr);
       ExternalMRI(size_t n, const void* ptr, Py_buffer* pybuf);
       ExternalMRI(const char* str);
       ~ExternalMRI() override;
@@ -209,40 +209,48 @@
 
   //---- Constructors ----------------------------
 
-  MemoryRange::MemoryRange() {
-    o = std::make_shared<internal>(new MemoryMRI(0));
+  MemoryRange::MemoryRange(BaseMRI* impl) {
+    o = std::make_shared<internal>(impl);
   }
 
-  MemoryRange::MemoryRange(size_t n) {
-    o = std::make_shared<internal>(new MemoryMRI(n));
+  MemoryRange::MemoryRange() : MemoryRange(new MemoryMRI(0)) {}
+
+  MemoryRange MemoryRange::mem(size_t n) {
+    return MemoryRange(new MemoryMRI(n));
   }
 
-  MemoryRange::MemoryRange(size_t n, void* ptr, bool own) {
-    if (own) {
-      o = std::make_shared<internal>(new MemoryMRI(n, ptr));
-    } else {
-      o = std::make_shared<internal>(new ExternalMRI(n, ptr));
-    }
+  MemoryRange MemoryRange::mem(int64_t n) {
+    return MemoryRange(new MemoryMRI(static_cast<size_t>(n)));
   }
 
-  MemoryRange::MemoryRange(size_t n, const void* ptr, Py_buffer* pb) {
-    o = std::make_shared<internal>(new ExternalMRI(n, ptr, pb));
+  MemoryRange MemoryRange::acquire(void* ptr, size_t n) {
+    return MemoryRange(new MemoryMRI(n, ptr));
   }
 
-  MemoryRange::MemoryRange(size_t n, MemoryRange& src, size_t offset) {
-    o = std::make_shared<internal>(new ViewMRI(n, src, offset));
+  MemoryRange MemoryRange::external(const void* ptr, size_t n) {
+    return MemoryRange(new ExternalMRI(n, ptr));
   }
 
-  MemoryRange::MemoryRange(const std::string& path) {
-    o = std::make_shared<internal>(new MmapMRI(path));
+  MemoryRange MemoryRange::external(const void* ptr, size_t n, Py_buffer* pb) {
+    return MemoryRange(new ExternalMRI(n, ptr, pb));
   }
 
-  MemoryRange::MemoryRange(size_t n, const std::string& path, int fd) {
-    o = std::make_shared<internal>(new MmapMRI(n, path, fd));
+  MemoryRange MemoryRange::view(MemoryRange& src, size_t n, size_t offset) {
+    return MemoryRange(new ViewMRI(n, src, offset));
   }
 
-  MemoryRange::MemoryRange(const std::string& path, size_t extra_n, int fd) {
-    o = std::make_shared<internal>(new OvermapMRI(path, extra_n, fd));
+  MemoryRange MemoryRange::mmap(const std::string& path) {
+    return MemoryRange(new MmapMRI(path));
+  }
+
+  MemoryRange MemoryRange::mmap(const std::string& path, size_t n, int fd) {
+    return MemoryRange(new MmapMRI(n, path, fd));
+  }
+
+  MemoryRange MemoryRange::overmap(const std::string& path, size_t extra_n,
+                                   int fd)
+  {
+    return MemoryRange(new OvermapMRI(path, extra_n, fd));
   }
 
 
@@ -583,7 +591,9 @@
     writable = false;
   }
 
-  ExternalMRI::ExternalMRI(size_t n, void* ptr) : ExternalMRI(n, ptr, nullptr) {
+  ExternalMRI::ExternalMRI(size_t n, const void* ptr)
+    : ExternalMRI(n, ptr, nullptr)
+  {
     writable = true;
   }
 

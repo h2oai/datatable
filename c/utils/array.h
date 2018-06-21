@@ -85,7 +85,8 @@ template <typename T> class array
       size_t size = sizeof(T) * n;
       x = nullptr;
       n = 0;
-      return MemoryRange(size, ptr, /* own = */ owned);
+      if (owned) return MemoryRange::acquire(ptr, size);
+      else       return MemoryRange::external(ptr, size);
     }
 
     // Standard operators

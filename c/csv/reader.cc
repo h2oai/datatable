@@ -498,7 +498,7 @@ void GenericReader::open_input() {
   size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.as_cstring();
-    input_mbuf = MemoryRange(src, /* extra = */ 1, fileno);
+    input_mbuf = MemoryRange::overmap(src, /* extra = */ 1, fileno);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
@@ -508,12 +508,11 @@ void GenericReader::open_input() {
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
 
   } else if ((text = text_arg.as_cstring(&size))) {
-    input_mbuf = MemoryRange(size + 1, const_cast<void*>(text),
-                             /* owned = */ false);
+    input_mbuf = MemoryRange::external(text, size + 1);
     extra_byte = 1;
 
   } else if ((filename = file_arg.as_cstring())) {
-    input_mbuf = MemoryRange(filename, /* extra = */ 1);
+    input_mbuf = MemoryRange::overmap(filename, /* extra = */ 1);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
@@ -739,9 +738,9 @@ void GenericReader::decode_utf16() {
   PyObject* t = tempstr.as_pyobject();  // new ref
   // borrowed ref, belongs to PyObject `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
-  input_mbuf = MemoryRange(static_cast<size_t>(ssize) + 1,
-                           const_cast<void*>(static_cast<const void*>(buf)),
-                           /* own = */ false);
+  input_mbuf = MemoryRange::external(
+                  const_cast<void*>(static_cast<const void*>(buf)),
+                  static_cast<size_t>(ssize) + 1);
   sof = static_cast<char*>(input_mbuf.wptr());
   eof = sof + ssize + 1;
   // the object `t` remains alive within `tempstr`

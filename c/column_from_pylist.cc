@@ -431,8 +431,8 @@ Column* Column::from_pylist(PyyList& list, int stype0, int ltype0)
     throw ValueError() << "Cannot fix both stype and ltype";
   }
 
-  MemoryRange membuf(0);
-  MemoryRange strbuf(0);
+  MemoryRange membuf;
+  MemoryRange strbuf;
   int stype = find_next_stype(0, stype0, ltype0);
   size_t i = 0;
   while (stype) {

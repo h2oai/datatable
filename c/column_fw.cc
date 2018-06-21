@@ -50,13 +50,13 @@ void FwColumn<T>::init_data() {
 template <typename T>
 void FwColumn<T>::init_mmap(const std::string& filename) {
   xassert(!ri);
-  mbuf = MemoryRange(static_cast<size_t>(nrows) * elemsize(), filename);
+  mbuf = MemoryRange::mmap(filename, static_cast<size_t>(nrows) * elemsize());
 }
 
 template <typename T>
 void FwColumn<T>::open_mmap(const std::string& filename) {
   xassert(!ri);
-  mbuf = MemoryRange(filename);
+  mbuf = MemoryRange::mmap(filename);
   size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
   if (mbuf.size() != exp_size) {
     throw Error() << "File \"" << filename <<
@@ -77,7 +77,7 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
                   << ", expected " << exp_buf_len;
   }
   const void* ptr = pybuffer->buf;
-  mbuf = MemoryRange(exp_buf_len, ptr, pybuffer);
+  mbuf = MemoryRange::external(ptr, exp_buf_len, pybuffer);
 }
 
 

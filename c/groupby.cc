@@ -27,7 +27,7 @@ Groupby::Groupby(size_t _n, MemoryRange&& _offs) {
 
 
 Groupby Groupby::single_group(int64_t nrows) {
-  MemoryRange mr(2 * sizeof(int32_t));
+  MemoryRange mr = MemoryRange::mem(2 * sizeof(int32_t));
   mr.set_element<int32_t>(0, 0);
   mr.set_element<int32_t>(1, static_cast<int32_t>(nrows));
   size_t n = nrows? 1 : 0;

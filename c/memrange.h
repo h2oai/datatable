@@ -112,13 +112,16 @@ class MemoryRange
     //   view is positioned at `offset` from the beginning of `src`s buffer,
     //   and has the length `n`.
     //
-    MemoryRange(size_t n);
-    MemoryRange(size_t n, void* ptr, bool own);
-    MemoryRange(size_t n, const void* ptr, Py_buffer* pybuf);
-    MemoryRange(size_t n, MemoryRange& src, size_t offset);
-    MemoryRange(const std::string& path);
-    MemoryRange(size_t n, const std::string& path, int fd = -1);
-    MemoryRange(const std::string& path, size_t nextra, int fd = -1);
+    static MemoryRange mem(size_t n);
+    static MemoryRange mem(int64_t n);
+    static MemoryRange acquire(void* ptr, size_t n);
+    static MemoryRange external(const void* ptr, size_t n);
+    static MemoryRange external(const void* ptr, size_t n, Py_buffer* pybuf);
+    static MemoryRange view(MemoryRange& src, size_t n, size_t offset);
+    static MemoryRange mmap(const std::string& path);
+    static MemoryRange mmap(const std::string& path, size_t n, int fd = -1);
+    static MemoryRange overmap(const std::string& path, size_t nextra,
+                               int fd = -1);
 
     // Basic properties of the MemoryRange:
     //
@@ -242,6 +245,8 @@ class MemoryRange
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
   private:
+    explicit MemoryRange(BaseMRI* impl);
+
     // Helper function for dealing with non-writeable objects. It will replace
     // the current `impl` with a new `MemoryMRI` object of size `newsize`,
     // containing copy of first `copysize` bytes of the `impl`'s data. It is
