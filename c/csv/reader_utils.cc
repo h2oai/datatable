@@ -102,7 +102,7 @@ size_t GReaderColumn::getAllocSize() const {
 void GReaderColumn::convert_to_str64() {
   xassert(type == PT::Str32);
   size_t nelems = mbuf.size() / sizeof(int32_t);
-  MemoryRange new_mbuf(nelems * sizeof(int64_t));
+  MemoryRange new_mbuf = MemoryRange::mem(nelems * sizeof(int64_t));
   const int32_t* old_data = static_cast<const int32_t*>(mbuf.rptr());
   int64_t* new_data = static_cast<int64_t*>(new_mbuf.wptr());
   for (size_t i = 0; i < nelems; ++i) {

@@ -238,7 +238,6 @@ def _init_numpy_transforms():
     global _numpy_init_attempted
     global _stype_2_dtype
     _numpy_init_attempted = True
-    print("Importing numpy...")
     try:
         import numpy as np
         _stype_2_dtype = {

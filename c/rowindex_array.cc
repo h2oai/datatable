@@ -327,14 +327,14 @@ void ArrayRowIndexImpl::init_from_integer_column(Column* col) {
     // will be written into `xbuf`, which is just a view onto `ind32`. Also,
     // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
     // the column is destructed.
-    MemoryRange xbuf(zn * sizeof(int32_t), ind32.data(), /*owned = */ false);
-    xassert(xbuf.is_writeable());
+    MemoryRange xbuf = MemoryRange::external(ind32.data(), zn * sizeof(int32_t));
+    xassert(xbuf.is_writable());
     col3 = col2->cast(ST_INTEGER_I4, std::move(xbuf));
   } else {
     type = RowIndexType::RI_ARR64;
     ind64.resize(zn);
-    MemoryRange xbuf(zn * sizeof(int64_t), ind64.data(), /*owned = */ false);
-    xassert(xbuf.is_writeable());
+    MemoryRange xbuf = MemoryRange::external(ind64.data(), zn * sizeof(int64_t));
+    xassert(xbuf.is_writable());
     col3 = col2->cast(ST_INTEGER_I8, std::move(xbuf));
   }
 

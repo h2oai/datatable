@@ -132,8 +132,8 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   uint32_t* input = reinterpret_cast<uint32_t*>(view->buf);
 
   size_t maxsize = static_cast<size_t>(view->len);
-  MemoryRange strbuf(maxsize);
-  MemoryRange offbuf(static_cast<size_t>(nrows + 1) * 4);
+  MemoryRange strbuf = MemoryRange::mem(maxsize);
+  MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
   char* strptr = static_cast<char*>(strbuf.wptr());
   int32_t* offptr = static_cast<int32_t*>(offbuf.wptr());
   *offptr++ = -1;
@@ -185,8 +185,8 @@ static Column* try_to_resolve_object_column(Column* col)
 
   // Otherwise the column is all-strings: convert it into *STRING stype.
   size_t strbuf_size = static_cast<size_t>(total_length);
-  MemoryRange offbuf((static_cast<size_t>(nrows) + 1) * sizeof(int32_t));
-  MemoryRange strbuf(strbuf_size);
+  MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
+  MemoryRange strbuf = MemoryRange::mem(strbuf_size);
   int32_t* offsets = static_cast<int32_t*>(offbuf.wptr());
   char* strs = static_cast<char*>(strbuf.wptr());
 
@@ -425,7 +425,7 @@ static int getbuffer_DataTable(
   xassert(!stype_info[stype].varwidth);
   size_t elemsize = stype_info[stype].elemsize;
   size_t colsize = nrows * elemsize;
-  MemoryRange memr(ncols * colsize);
+  MemoryRange memr = MemoryRange::mem(ncols * colsize);
   const char* fmt = format_from_stype(stype);
 
   // Construct the data buffer
@@ -441,7 +441,7 @@ static int getbuffer_DataTable(
       // ExternelMemBuf object is documented to be readonly; however in
       // practice it can still be written to, just not resized (this is
       // hacky, maybe fix in the future).
-      MemoryRange xmb(colsize, memr, i*colsize);
+      MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
       // Now we create a `newcol` by casting `col` into `stype`, using
       // the buffer `xmb`. Since `xmb` already has the correct size, this
       // is possible. The effect of this call is that `newcol` will be

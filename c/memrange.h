@@ -14,7 +14,7 @@
 #include "utils/exceptions.h"
 #include "writebuf.h"
 
-class MemoryRangeImpl;
+class BaseMRI;
 class ViewedMRI;
 class IntegrityCheckContext;
 
@@ -26,19 +26,26 @@ class IntegrityCheckContext;
 /**
  * MemoryRange class represents a contiguous chunk of memory. This memory
  * chunk may be shared across multiple MemoryRange instances: this allows
- * MemoryRange objects to be copied easily.
+ * MemoryRange objects to be copied with negligible overhead.
  *
- * Internally, MemoryRange is implemented by one of the MemoryRangeImpl
- * backends. There are implementations for:
+ * Internally, MemoryRange object contains just a single `shared_ptr<internal>`
+ * object `o`. This shared pointer allows `MemoryRange` to be easily copyable.
+ * The "internal" struct contains a `unique_ptr<BaseMRI> impl` pointer, whereas
+ * the BaseMRI object can actually be instantiated into any of the derived
+ * classes (representing different backends):
  *   - plain memory storage (MemoryMRI);
  *   - memory owned by an external source (ExternalMRI);
- *   - view onto another MemoryRange (ViewMRI).
+ *   - view onto another MemoryRange (ViewMRI);
+ *   - MemoryRange that is currently being "viewed" (ViewedMRI);
+ *   - memory-mapped file (MmapMRI).
+ * This 2-tiered structure allows us to replace the internal `BaseMRI` object
+ * with another implementation, if needed -- without having to modify any of
+ * the user-facing `MemoryRange` objects.
  *
  * The class implements Copy-on-Write semantics: if a user wants to write into
  * the memory buffer contained in a MemoryRange object, and that memory buffer
  * is currently shared with other MemoryRange instances, then the class will
- * first replace the current memory buffer with a new copy belonging only to
- * the current class.
+ * first replace its internal impl with a writable copy of the memory buffer.
  *
  * The class may also be marked as "containing PyObjects". In this case the
  * contents of the buffer will receive special treatment:
@@ -62,7 +69,8 @@ class IntegrityCheckContext;
 class MemoryRange
 {
   private:
-    MemoryRangeImpl* impl;
+    struct internal;
+    std::shared_ptr<internal> o;
 
   public:
     // Basic copy & move constructors / assignment operators.
@@ -71,47 +79,63 @@ class MemoryRange
     // only legal operation is to destruct that object.
     //
     MemoryRange();
-    MemoryRange(const MemoryRange&);
-    MemoryRange(MemoryRange&&);
-    MemoryRange& operator=(const MemoryRange&);
-    MemoryRange& operator=(MemoryRange&&);
-    ~MemoryRange();
+    MemoryRange(const MemoryRange&) = default;
+    MemoryRange(MemoryRange&&) = default;
+    MemoryRange& operator=(const MemoryRange&) = default;
+    MemoryRange& operator=(MemoryRange&&) = default;
 
     // Factory constructors:
     //
-    // MemoryRange(n)
+    // MemoryRange::mem(n)
     //   Allocate memory region of size `n` in memory (on the heap). The memory
     //   will be freed when the MemoryRange object goes out of scope (assuming
     //   no shallow copies were created).
     //
-    // MemoryRange(n, ptr, own)
+    // MemoryRange::acquire(ptr, n)
     //   Create MemoryRange from an existing pointer `ptr` to a memory buffer
-    //   of size `n`. If `own` is false, the ownership of the pointer will
-    //   not be assumed: the caller will be responsible for deallocating `ptr`
-    //   when it is no longer needed, but not before the MemoryRange object is
-    //   deleted. However, if `own` is true, then the MemoryRange object will
-    //   take ownership of that pointer. In this case the `ptr` should have had
-    //   been allocated using `dt::malloc`.
+    //   of size `n`. The ownership of `ptr` will be transferred to the
+    //   MemoryRange object. In this case the `ptr` should have had been
+    //   allocated using `dt::malloc`.
     //
-    // MemoryRange(n, ptr, pybuf)
+    // MemoryRange::external(ptr, n)
+    //   Create MemoryRange from an existing pointer `ptr` to a memory buffer
+    //   of size `n`, however the ownership of the pointer will not be assumed:
+    //   the caller will be responsible for deallocating `ptr` when it is no
+    //   longer in use, but not before the MemoryRange object is deleted.
+    //
+    // MemoryRange::external(ptr, n, pybuf)
     //   Create MemoryRange from a pointer `ptr` to a memory buffer of size `n`
     //   and using `pybuf` as the guard for the memory buffer's lifetime. The
     //   `pybuf` here is a `Py_buffer` struct used to implement Python buffers
     //   interface. The MemoryRange object created in this way is neither
     //   writeable nor resizeable.
     //
-    // MemoryRange(n, src, offset)
+    // MemoryRange::view(src, n, offset)
     //   Create MemoryRange as a "view" onto another MemoryRange `src`. The
     //   view is positioned at `offset` from the beginning of `src`s buffer,
     //   and has the length `n`.
     //
-    MemoryRange(size_t n);
-    MemoryRange(size_t n, void* ptr, bool own);
-    MemoryRange(size_t n, const void* ptr, Py_buffer* pybuf);
-    MemoryRange(size_t n, MemoryRange& src, size_t offset);
-    MemoryRange(const std::string& path);
-    MemoryRange(size_t n, const std::string& path, int fd = -1);
-    MemoryRange(const std::string& path, size_t nextra, int fd = -1);
+    // MemoryRange:mmap(path)
+    //   Create MemoryRange by mem-mapping a file given by the `path`.
+    //
+    // MemoryRange::mmap(path, n, [fd])
+    //   Create a file of size `n` at `path`, and then memory-map it.
+    //
+    // MemoryRange::overmap(path, nextra)
+    //   Similar to `mmap(path)`, but the memmap will return a buffer
+    //   over-allocated for `nextra` bytes above the size of the file. This is
+    //   used mostly in fread.
+    //
+    static MemoryRange mem(size_t n);
+    static MemoryRange mem(int64_t n);
+    static MemoryRange acquire(void* ptr, size_t n);
+    static MemoryRange external(const void* ptr, size_t n);
+    static MemoryRange external(const void* ptr, size_t n, Py_buffer* pybuf);
+    static MemoryRange view(MemoryRange& src, size_t n, size_t offset);
+    static MemoryRange mmap(const std::string& path);
+    static MemoryRange mmap(const std::string& path, size_t n, int fd = -1);
+    static MemoryRange overmap(const std::string& path, size_t nextra,
+                               int fd = -1);
 
     // Basic properties of the MemoryRange:
     //
@@ -121,7 +145,7 @@ class MemoryRange
     // operator bool()
     //   Return true if the memory allocation is non-empty, i.e. size() > 0.
     //
-    // is_writeable()
+    // is_writable()
     //   Return true if modifying data in this MemoryRange is allowed. This may
     //   return false in one of the two cases: (1) either the data is inherently
     //   read-only (e.g. opened from a file, or from external memory region
@@ -146,7 +170,7 @@ class MemoryRange
     //
     size_t size() const;
     operator bool() const;
-    bool is_writeable() const;
+    bool is_writable() const;
     bool is_resizable() const;
     bool is_pyobjects() const;
     size_t memory_footprint() const;
@@ -161,10 +185,16 @@ class MemoryRange
     // wptr()
     // wptr(offset)
     //   Return the internal data pointer as `void*`, i.e. suitable for writing.
-    //   This will return `impl->bufdata` if and only if `is_writeable()` is
+    //   This will return `impl->bufdata` if and only if `is_writable()` is
     //   true, otherwise `impl` will be replaced with a new copy of the data
     //   and only then the new data pointer will be returned. This implements
     //   the Copy-on-Write semantics.
+    //
+    // xptr()
+    // xptr(offset)
+    //   Similar to `wptr()`: return a `void*` pointer suitable for writing. The
+    //   difference is that if the underlying implementation is not writable, an
+    //   exception will be raised instead of creating a Copy-on-Write.
     //
     // get_element<T>(i)
     // set_element<T>(i, value)
@@ -179,6 +209,8 @@ class MemoryRange
     const void* rptr(size_t offset) const;
     void* wptr();
     void* wptr(size_t offset);
+    void* xptr() const;
+    void* xptr(size_t offset) const;
     template <typename T> T get_element(int64_t i) const;
     template <typename T> void set_element(int64_t i, T value);
 
@@ -227,6 +259,8 @@ class MemoryRange
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
   private:
+    explicit MemoryRange(BaseMRI* impl);
+
     // Helper function for dealing with non-writeable objects. It will replace
     // the current `impl` with a new `MemoryMRI` object of size `newsize`,
     // containing copy of first `copysize` bytes of the `impl`'s data. It is
@@ -235,7 +269,7 @@ class MemoryRange
     void materialize(size_t newsize, size_t copysize);
     void materialize();
 
-    // void convert_to_viewed();
+    friend ViewedMRI;
 };
 
 

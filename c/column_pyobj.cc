@@ -35,7 +35,7 @@ SType PyObjectColumn::stype() const {
 // opening, we'll just fill the column with NAs.
 void PyObjectColumn::open_mmap(const std::string&) {
   xassert(!ri);
-  mbuf = MemoryRange(static_cast<size_t>(nrows) * sizeof(PyObject*))
+  mbuf = MemoryRange::mem(static_cast<size_t>(nrows) * sizeof(PyObject*))
          .set_pyobjects(/*clear_data = */ true);
 }
 
