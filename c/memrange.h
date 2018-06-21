@@ -14,8 +14,8 @@
 #include "utils/exceptions.h"
 #include "writebuf.h"
 
-class ViewedMRI;
 class BaseMRI;
+class ViewedMRI;
 class IntegrityCheckContext;
 
 
@@ -28,24 +28,24 @@ class IntegrityCheckContext;
  * chunk may be shared across multiple MemoryRange instances: this allows
  * MemoryRange objects to be copied with negligible overhead.
  *
- * Internally, MemoryRange object contains a single member: pointer to a
- * `MemoryRangeObject` structure. This structure in turn contains a pointer
- * to a `BaseMRI` object and a refcounter. The `BaseMRI` object is instantiated
- * from one of the derived classes (representing different backends):
+ * Internally, MemoryRange object contains just a single `shared_ptr<internal>`
+ * object `o`. This shared pointer allows `MemoryRange` to be easily copyable.
+ * The "internal" struct contains a `unique_ptr<BaseMRI> impl` pointer, whereas
+ * the BaseMRI object can actually be instantiated into any of the derived
+ * classes (representing different backends):
  *   - plain memory storage (MemoryMRI);
  *   - memory owned by an external source (ExternalMRI);
  *   - view onto another MemoryRange (ViewMRI);
  *   - MemoryRange that is currently being "viewed" (ViewedMRI);
  *   - memory-mapped file (MmapMRI).
- * This 2-tiered structure allows us to replace an internal `BaseMRI` object
+ * This 2-tiered structure allows us to replace the internal `BaseMRI` object
  * with another implementation, if needed -- without having to modify any of
  * the user-facing `MemoryRange` objects.
  *
  * The class implements Copy-on-Write semantics: if a user wants to write into
  * the memory buffer contained in a MemoryRange object, and that memory buffer
  * is currently shared with other MemoryRange instances, then the class will
- * first replace the current memory buffer with a new copy belonging only to
- * the current class.
+ * first replace its internal impl with a writable copy of the memory buffer.
  *
  * The class may also be marked as "containing PyObjects". In this case the
  * contents of the buffer will receive special treatment:
@@ -86,31 +86,45 @@ class MemoryRange
 
     // Factory constructors:
     //
-    // MemoryRange(n)
+    // MemoryRange::mem(n)
     //   Allocate memory region of size `n` in memory (on the heap). The memory
     //   will be freed when the MemoryRange object goes out of scope (assuming
     //   no shallow copies were created).
     //
-    // MemoryRange(n, ptr, own)
+    // MemoryRange::acquire(ptr, n)
     //   Create MemoryRange from an existing pointer `ptr` to a memory buffer
-    //   of size `n`. If `own` is false, the ownership of the pointer will
-    //   not be assumed: the caller will be responsible for deallocating `ptr`
-    //   when it is no longer needed, but not before the MemoryRange object is
-    //   deleted. However, if `own` is true, then the MemoryRange object will
-    //   take ownership of that pointer. In this case the `ptr` should have had
-    //   been allocated using `dt::malloc`.
+    //   of size `n`. The ownership of `ptr` will be transferred to the
+    //   MemoryRange object. In this case the `ptr` should have had been
+    //   allocated using `dt::malloc`.
     //
-    // MemoryRange(n, ptr, pybuf)
+    // MemoryRange::external(ptr, n)
+    //   Create MemoryRange from an existing pointer `ptr` to a memory buffer
+    //   of size `n`, however the ownership of the pointer will not be assumed:
+    //   the caller will be responsible for deallocating `ptr` when it is no
+    //   longer in use, but not before the MemoryRange object is deleted.
+    //
+    // MemoryRange::external(ptr, n, pybuf)
     //   Create MemoryRange from a pointer `ptr` to a memory buffer of size `n`
     //   and using `pybuf` as the guard for the memory buffer's lifetime. The
     //   `pybuf` here is a `Py_buffer` struct used to implement Python buffers
     //   interface. The MemoryRange object created in this way is neither
     //   writeable nor resizeable.
     //
-    // MemoryRange(n, src, offset)
+    // MemoryRange::view(src, n, offset)
     //   Create MemoryRange as a "view" onto another MemoryRange `src`. The
     //   view is positioned at `offset` from the beginning of `src`s buffer,
     //   and has the length `n`.
+    //
+    // MemoryRange:mmap(path)
+    //   Create MemoryRange by mem-mapping a file given by the `path`.
+    //
+    // MemoryRange::mmap(path, n, [fd])
+    //   Create a file of size `n` at `path`, and then memory-map it.
+    //
+    // MemoryRange::overmap(path, nextra)
+    //   Similar to `mmap(path)`, but the memmap will return a buffer
+    //   over-allocated for `nextra` bytes above the size of the file. This is
+    //   used mostly in fread.
     //
     static MemoryRange mem(size_t n);
     static MemoryRange mem(int64_t n);
@@ -255,7 +269,6 @@ class MemoryRange
     void materialize(size_t newsize, size_t copysize);
     void materialize();
 
-    friend BaseMRI;
     friend ViewedMRI;
 };
 
