@@ -76,8 +76,6 @@ Error& Error::operator<<(int64_t v)            { error << v; return *this; }
 Error& Error::operator<<(int32_t v)            { error << v; return *this; }
 Error& Error::operator<<(int8_t v)             { error << v; return *this; }
 Error& Error::operator<<(size_t v)             { error << v; return *this; }
-Error& Error::operator<<(uint64_t v)           { error << v; return *this; }
-Error& Error::operator<<(uint32_t v)           { error << v; return *this; }
 #ifdef __APPLE__
   Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
 #endif
