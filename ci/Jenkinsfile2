@@ -5,11 +5,21 @@
 // DISCLAIMER: Code in this pipeline is currently "unwinded" for better readability of non-Jenkins users. //
 //                                                                                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-@Library('test-shared-library@1.2') _
+@Library('test-shared-library@1.3') _
 
 import ai.h2o.ci.Utils
+import ai.h2o.ci.buildsummary.StagesSummary
+import ai.h2o.ci.buildsummary.DetailsSummary
+import ai.h2o.ci.BuildResult
 
 def utilsLib = new Utils()
+
+BuildResult result = BuildResult.FAILURE
+
+// initialize build summary
+buildSummary('https://github.com/h2oai/datatable', true)
+// use default StagesSummary implementation
+buildSummary.get().addStagesSummary(this, new StagesSummary())
 
 ///////////////
 // CONSTANTS //
@@ -77,9 +87,10 @@ ansiColor('xterm') {
         }
         timeout(time: 120, unit: 'MINUTES') {
             // Checkout stage
-            stage('Checkout') {
-                node(NODE_LABEL) {
-                    dir ('checkout') {
+            node(NODE_LABEL) {
+                def stageDir = 'checkout'
+                buildSummary.stageWithSummary('Checkout', stageDir) {
+                    dir (stageDir) {
                         def scmEnv = checkout scm
                         env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '').replaceAll('/', '_')
                         if (doPPC()) {
@@ -122,11 +133,11 @@ ansiColor('xterm') {
             // Build stages
             parallel([
                 'Build on x86_64_centos7': {
-                    stage('Build on x86_64_centos7') {
-                        node(NODE_LABEL) {
+                    node(NODE_LABEL) {
+                        final stageDir = 'build-x86_64_centos7'
+                        buildSummary.stageWithSummary('Build on x86_64_centos7', stageDir) {
                             cleanWs()
                             dumpInfo()
-                            final stageDir = 'build-x86_64_centos7'
                             dir(stageDir) {
                                 unstash 'datatable-sources'
                                 withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
@@ -147,11 +158,12 @@ ansiColor('xterm') {
                     }
                 },
                 'Build on x86_64_macos': {
-                    stage('Build on x86_64_macos') {
-                        node(OSX_NODE_LABEL) {
+                    node(OSX_NODE_LABEL) {
+                        def stageDir = 'build-x86_64_macos'
+                        buildSummary.stageWithSummary('Build on x86_64_macos', stageDir) {
                             cleanWs()
 							dumpInfo()
-                            dir('build-x86_64_macos') {
+                            dir(stageDir) {
                                 unstash 'datatable-sources'
                                 withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
                                     sh """
@@ -175,12 +187,12 @@ ansiColor('xterm') {
                 },
                 'Build on ppc64le_centos7': {
                     if (doPPC()) {
-                        stage('Build on ppc64le_centos7') {
-                            node(PPC_NODE_LABEL) {
+                        node(PPC_NODE_LABEL) {
+                            final stageDir = 'build-ppc64le_centos7'
+                            buildSummary.stageWithSummary('Build on ppc64le_centos7', stageDir) {
                                 if(doPPC()) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'build-ppc64le_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
@@ -204,11 +216,11 @@ ansiColor('xterm') {
             if (!params.DISABLE_COVERAGE) {
                 parallel ([
                     'Coverage on x86_64_linux': {
-                        stage('Coverage on x86_64_linux') {
-                            node(NODE_LABEL) {
+                        node(NODE_LABEL) {
+                            final stageDir = 'coverage-x86_64_linux'
+                            buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'coverage-x86_64_linux'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
@@ -223,11 +235,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Coverage on x86_64_macos': {
-                        stage('Coverage on x86_64_macos') {
-                            node(OSX_NODE_LABEL) {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'coverage-x86_64_osx'
+                            buildSummary.stageWithSummary('Coverage on x86_64_macos', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'coverage-x86_64_osx'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     withEnv(OSX_ENV) {
@@ -248,11 +260,11 @@ ansiColor('xterm') {
             if (!params.DISABLE_TESTS) {
                 parallel ([
                     'Test Py36 with Pandas on x86_64_linux': {
-                        stage('Test Py36 with Pandas on x86_64_linux') {
-                            node(NODE_LABEL) {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_linux'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_linux', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'test-x86_64_linux'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_centos7-py36-whl'
@@ -262,11 +274,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py35 with Pandas on x86_64_linux': {
-                        stage('Test Py35 with Pandas on x86_64_linux') {
-                            node(NODE_LABEL) {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_linux'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_linux', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'test-x86_64_linux'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_centos7-py35-whl'
@@ -277,11 +289,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 with Numpy on x86_64_linux': {
                         if(!isPrJob()) {
-                            stage('Test Py36 with Numpy on x86_64_linux') {
-                                node(NODE_LABEL) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_linux'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_linux', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-x86_64_linux'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_centos7-py36-whl'
@@ -295,11 +307,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 on x86_64_linux': {
                         if(!isPrJob()) {
-                            stage('Test Py36 on x86_64_linux') {
-                                node(NODE_LABEL) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_linux'
+                                buildSummary.stageWithSummary('Test Py36 on x86_64_linux', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-x86_64_linux'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_centos7-py36-whl'
@@ -312,11 +324,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Pandas on x86_64_centos7': {
-                        stage('Test Py36 with Pandas on x86_64_centos7') {
-                            node(NODE_LABEL) {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_centos7'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_centos7', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'test-x86_64_centos7'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_centos7-py36-whl'
@@ -326,11 +338,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py35 with Pandas on x86_64_centos7': {
-                        stage('Test Py35 with Pandas on x86_64_centos7') {
-                            node(NODE_LABEL) {
+                        node(NODE_LABEL) {
+                            final stageDir = 'test-x86_64_centos7'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_centos7', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'test-x86_64_centos7'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_centos7-py35-whl'
@@ -341,11 +353,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 with Numpy on x86_64_centos7': {
                         if (!isPrJob()) {
-                            stage('Test Py36 with Numpy on x86_64_centos7') {
-                                node(NODE_LABEL) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_centos7'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_centos7', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-x86_64_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_centos7-py36-whl'
@@ -359,11 +371,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 on x86_64_centos7': {
                         if (!isPrJob()) {
-                            stage('Test Py36 on x86_64_centos7') {
-                                node(NODE_LABEL) {
+                            node(NODE_LABEL) {
+                                final stageDir = 'test-x86_64_centos7'
+                                buildSummary.stageWithSummary('Test Py36 on x86_64_centos7', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-x86_64_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_centos7-py36-whl'
@@ -376,12 +388,12 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Pandas on ppc64le_centos7': {
-                        stage('Test Py36 with Pandas on ppc64le_centos7') {
-                            node(PPC_NODE_LABEL) {
+                        node(PPC_NODE_LABEL) {
+                            final stageDir = 'test-ppc64le_centos7'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on ppc64le_centos7') {
                                 if (doPPC()) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'ppc64le_centos7-py36-whl'
@@ -392,12 +404,12 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py35 with Pandas on ppc64le_centos7': {
-                        stage('Test Py35 with Pandas on ppc64le_centos7') {
-                            node(PPC_NODE_LABEL) {
+                        node(PPC_NODE_LABEL) {
+                            final stageDir = 'test-ppc64le_centos7'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on ppc64le_centos7', stageDir) {
                                 if (doPPC()) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'ppc64le_centos7-py35-whl'
@@ -409,11 +421,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 with Numpy on ppc64le_centos7': {
                         if (!isPrJob() && doPPC()) {
-                            stage('Test Py36 with Numpy on ppc64le_centos7') {
-                                node(PPC_NODE_LABEL) {
+                            node(PPC_NODE_LABEL) {
+                                final stageDir = 'test-ppc64le_centos7'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on ppc64le_centos7', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'ppc64le_centos7-py36-whl'
@@ -427,11 +439,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 on ppc64le_centos7': {
                         if (!isPrJob() && doPPC()) {
-                            stage('Test Py36 on ppc64le_centos7') {
-                                node(PPC_NODE_LABEL) {
+                            node(PPC_NODE_LABEL) {
+                                final stageDir = 'test-ppc64le_centos7'
+                                buildSummary.stageWithSummary('Test Py36 on ppc64le_centos7', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'ppc64le_centos7-py36-whl'
@@ -444,11 +456,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Pandas on x86_64_osx': {
-                        stage('Test Py36 with Pandas on x86_64_osx') {
-                            node(OSX_NODE_LABEL) {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'test-x86_64_osx'
+                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_osx', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'test-x86_64_osx'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_osx-py36-whl'
@@ -458,11 +470,11 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py35 with Pandas on x86_64_osx': {
-                        stage('Test Py35 with Pandas on x86_64_osx') {
-                            node(OSX_NODE_LABEL) {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'test-x86_64_osx'
+                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_osx', stageDir) {
                                 cleanWs()
                                 dumpInfo()
-                                final stageDir = 'test-x86_64_osx'
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_osx-py35-whl'
@@ -473,11 +485,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 with Numpy on x86_64_osx': {
                         if (!isPrJob()) {
-                            stage('Test Py36 with Numpy on x86_64_osx') {
-                                node(OSX_NODE_LABEL) {
+                            node(OSX_NODE_LABEL) {
+                                final stageDir = 'test-x86_64_osx'
+                                buildSummary.stageWithSummary('Test Py36 with Numpy on x86_64_osx', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-x86_64_osx'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_osx-py36-whl'
@@ -491,11 +503,11 @@ ansiColor('xterm') {
                     },
                     'Test Py36 on x86_64_osx': {
                         if (!isPrJob()) {
-                            stage('Test Py36 on x86_64_osx') {
-                                node(OSX_NODE_LABEL) {
+                            node(OSX_NODE_LABEL) {
+                                final stageDir = 'test-x86_64_osx'
+                                buildSummary.stageWithSummary('Test Py36 on x86_64_osx', stageDir) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-x86_64_osx'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_osx-py36-whl'
@@ -511,12 +523,13 @@ ansiColor('xterm') {
             }
             // Build sdist
             if (doPublish()) {
-                stage ('Build sdist') {
-                    node(NODE_LABEL) {
+                node(NODE_LABEL) {
+                    def stageDir = 'build-sdist'
+                    buildSummary.stageWithSummary ('Build sdist', stageDir) {
                         cleanWs()
                         dumpInfo()
                         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                            dir ('build-sdist') {
+                            dir (stageDir) {
                                 unstash 'datatable-sources'
                                 unstash 'VERSION'
                                 sh "make ubuntu_build_sdist_in_docker"
@@ -529,11 +542,12 @@ ansiColor('xterm') {
             }
             // Publish snapshot to S3
             if (doPublish()) {
-                stage('Publish Snapshot to S3') {
-                    node(RELEASE_NODE_LABEL) {
+                node(RELEASE_NODE_LABEL) {
+                    def stageDir = 'publish-snapshot'
+                    buildSummary.stageWithSummary('Publish Snapshot to S3', stageDir) {
                         cleanWs()
                         dumpInfo()
-                        dir('publish-snapshot') {
+                        dir(stageDir) {
 
                             dir('x86_64-centos7') {
                                 unstash 'x86_64_centos7-py36-whl'
@@ -591,14 +605,15 @@ ansiColor('xterm') {
             }
             // Release to S3 and GitHub
             if (isRelease()) {
-                stage('Release') {
-                    node(RELEASE_NODE_LABEL) {
+                node(RELEASE_NODE_LABEL) {
+                    def stageDir = 'release'
+                    buildSummary.stageWithSummary('Release', stageDir) {
                         timeout(unit: 'HOURS', time: 24) {
                             input('Promote build?')
                         }
                         cleanWs()
                         dumpInfo()
-                        dir('release') {
+                        dir(stageDir) {
                             checkout scm
                             unstash 'CHANGELOG'
                             unstash 'VERSION'
