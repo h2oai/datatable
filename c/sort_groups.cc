@@ -50,12 +50,12 @@ void GroupGatherer::from_data(
   const uint8_t* strdata, const T* stroffs, T start, V* o, size_t n)
 {
   if (n == 0) return;
-  T olast0 = stroffs[o[0]] + start;
-  T olast1 = stroffs[o[0] + 1];
+  T olast0 = (stroffs[o[0] - 1] + start) & ~GETNA<T>();
+  T olast1 = stroffs[o[0]];
   size_t lasti = 0;
   for (size_t i = 1; i < n; ++i) {
-    T ocurr0 = stroffs[o[i]] + start;
-    T ocurr1 = stroffs[o[i] + 1];
+    T ocurr0 = (stroffs[o[i] - 1] + start) & ~GETNA<T>();
+    T ocurr1 = stroffs[o[i]];
     if (compare_offstrings(strdata, olast0, olast1, ocurr0, ocurr1)) {
       push(i - lasti);
       olast0 = ocurr0;

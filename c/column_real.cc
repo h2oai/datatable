@@ -130,16 +130,16 @@ inline static MemoryRange cast_str_helper(
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
-  OT offset = 1;
-  toffsets[-1] = -1;
+  OT offset = 0;
+  toffsets[-1] = 0;
   for (int64_t i = 0; i < src->nrows; ++i) {
     IT x = src_data[i];
     if (ISNA<IT>(x)) {
-      toffsets[i] = -offset;
+      toffsets[i] = offset | GETNA<OT>();
     } else {
       char* ch0 = ch;
       toa<IT>(&ch, x);
-      offset += ch - ch0;
+      offset += static_cast<OT>(ch - ch0);
       toffsets[i] = offset;
       if (ch > tmpend) {
         wb->write(static_cast<size_t>(ch - tmpbuf), tmpbuf);

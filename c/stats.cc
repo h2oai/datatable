@@ -468,10 +468,10 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
 
   if (max_grpsize) {
     int64_t i = ri.nth(groups[best_igrp]);
-    T o0 = offsets[i] & ~GETNA<T>();
+    T o0 = offsets[i - 1] & ~GETNA<T>();
     _nmodal = max_grpsize;
     _mode.ch = scol->strdata() + o0;
-    _mode.size = (offsets[i + 1] & ~GETNA<T>()) - o0;
+    _mode.size = offsets[i] - o0;
   } else {
     _nmodal = 0;
     _mode.ch = nullptr;

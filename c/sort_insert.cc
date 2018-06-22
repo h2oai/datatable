@@ -146,12 +146,12 @@ void insert_sort_keys_str(
   int j;
   tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
-    T off0i = stroffs[o[i]] + strstart;
-    T off1i = stroffs[o[i] + 1];
+    T off0i = (stroffs[o[i] - 1] + strstart) & ~GETNA<T>();
+    T off1i = stroffs[o[i]];
     for (j = i; j > 0; --j) {
       V k = tmp[j - 1];
-      T off0k = stroffs[o[k]] + strstart;
-      T off1k = stroffs[o[k] + 1];
+      T off0k = (stroffs[o[k] - 1] + strstart) & ~GETNA<T>();
+      T off1k = stroffs[o[k]];
       int cmp = compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
       tmp[j] = tmp[j-1];
@@ -176,12 +176,12 @@ void insert_sort_values_str(
   int j;
   o[0] = 0;
   for (int i = 1; i < n; ++i) {
-    T off0i = stroffs[i] + strstart;
-    T off1i = stroffs[i + 1];
+    T off0i = (stroffs[i - 1] + strstart) & ~GETNA<T>();
+    T off1i = stroffs[i];
     for (j = i; j > 0; j--) {
       V k = o[j - 1];
-      T off0k = stroffs[k] + strstart;
-      T off1k = stroffs[k + 1];
+      T off0k = (stroffs[k] + strstart) & ~GETNA<T>();
+      T off1k = stroffs[k];
       int cmp = compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
       o[j] = o[j-1];

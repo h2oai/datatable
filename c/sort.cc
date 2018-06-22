@@ -495,11 +495,11 @@ class SortContext {
             reduction(max:maxlen)
     for (size_t j = 0; j < n; ++j) {
       int32_t k = use_order? o[j] : static_cast<int32_t>(j);
-      T offstart = offs[k];
-      if (ISNA<T>(offstart)) {
+      T offend = offs[k];
+      if (ISNA<T>(offend)) {
         xo[j] = 0;
       } else {
-        T offend = offs[k + 1] & ~GETNA<T>();
+        T offstart = offs[k - 1] & ~GETNA<T>();
         T len = offend - offstart;
         xo[j] = len > 0? strdata[offstart] + 2 : 1;
         if (len > maxlen) maxlen = len;
@@ -710,8 +710,8 @@ class SortContext {
         size_t k = tcounts[xi[j]]++;
         xassert(k < n);
         int32_t w = use_order? o[j] : static_cast<int32_t>(j);
-        T offstart = soffs[w];
-        T offend = (soffs[w + 1] & ~GETNA<T>()) + sstart;
+        T offend = soffs[w];
+        T offstart = (soffs[w - 1] & ~GETNA<T>()) + sstart;
         T len = offend - offstart;
         xo[k] = len > 0? strdata[offstart] + 2 : 1;
         next_o[k] = w;
