@@ -264,7 +264,7 @@ def _init_numpy_transforms():
             (np.dtype("object"), stype.obj64),
         ])
     except ImportError:
-        raise RuntimeError("numpy module is not installed")
+        pass
 
 
 _stype_2_struct = {
