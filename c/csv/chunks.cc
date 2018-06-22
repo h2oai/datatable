@@ -152,7 +152,7 @@ void ChunkedDataReader::read_all()
     // Main data reading loop
     #pragma omp for ordered schedule(dynamic)
     for (size_t i = 0; i < chunkCount; ++i) {
-      if (oem.exception_caught()) continue;
+      if (oem.stop_requested()) continue;
       try {
         if (tMaster) g.emit_delayed_messages();
         if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
@@ -170,7 +170,10 @@ void ChunkedDataReader::read_all()
 
       #pragma omp ordered
       do {
-        if (oem.exception_caught()) break;
+        if (oem.stop_requested()) {
+          tctx->used_nrows = 0;
+          break;
+        }
         try {
           tctx->row0 = nrows_written;
           order_chunk(tacc, txcc, tctx);
@@ -182,6 +185,7 @@ void ChunkedDataReader::read_all()
               // the output, just truncate the rows in the current chunk.
               tctx->used_nrows = nrows_allocated - nrows_written;
               nrows_new = nrows_allocated;
+              oem.stop_iterations();
             } else {
               realloc_output_columns(i, nrows_new);
             }

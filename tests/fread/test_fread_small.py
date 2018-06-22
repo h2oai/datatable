@@ -14,6 +14,7 @@ import os
 import pytest
 import random
 import re
+import time
 from tests import random_string, list_equals
 
 
@@ -1001,10 +1002,17 @@ def test_round_filesize(tempfile, mul, eol):
 
 def test_maxnrows_on_large_dataset():
     src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(1000000))
+    t0 = time.time()
     d0 = dt.fread(src, max_nrows=5)
+    t0 = time.time() - t0
     assert d0.internal.check()
     assert d0.shape == (5, 3)
     assert d0.topython() == [[0, 1, 2, 3, 4], ["x"] * 5, [True] * 5]
+    t1 = time.time()
+    d1 = dt.fread(src)
+    t1 = time.time() - t1
+    assert t0 < t1 / 2, ("Reading with max_nrows=5 should be faster than "
+                         "reading the whole dataset")
 
 
 def test_typebumps(capsys):

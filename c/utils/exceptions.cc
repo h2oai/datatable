@@ -76,6 +76,8 @@ Error& Error::operator<<(int64_t v)            { error << v; return *this; }
 Error& Error::operator<<(int32_t v)            { error << v; return *this; }
 Error& Error::operator<<(int8_t v)             { error << v; return *this; }
 Error& Error::operator<<(size_t v)             { error << v; return *this; }
+Error& Error::operator<<(uint64_t v)           { error << v; return *this; }
+Error& Error::operator<<(uint32_t v)           { error << v; return *this; }
 #ifdef __APPLE__
   Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
 #endif
@@ -180,29 +182,37 @@ void init_exceptions() {
 
 OmpExceptionManager::OmpExceptionManager() : ptr(nullptr) {}
 
-bool OmpExceptionManager::exception_caught() {
+
+bool OmpExceptionManager::stop_requested() const {
+  return stop;
+}
+
+bool OmpExceptionManager::exception_caught() const {
   return bool(ptr);
 }
 
 void OmpExceptionManager::capture_exception() {
   std::unique_lock<std::mutex> guard(this->lock);
   if (!ptr) ptr = std::current_exception();
+  stop = true;
 }
 
-void OmpExceptionManager::rethrow_exception_if_any() {
+void OmpExceptionManager::stop_iterations() {
+  std::unique_lock<std::mutex> guard(this->lock);
+  stop = true;
+}
+
+void OmpExceptionManager::rethrow_exception_if_any() const {
   if (ptr) std::rethrow_exception(ptr);
 }
 
-bool OmpExceptionManager::is_keyboard_interrupt() {
+bool OmpExceptionManager::is_keyboard_interrupt() const {
   if (!ptr) return false;
   bool ret = false;
   try {
     std::rethrow_exception(ptr);
   } catch (PyError& e) {
     ret = e.is_keyboard_interrupt();
-    capture_exception();
-  } catch (...) {
-    capture_exception();
-  }
+  } catch (...) {}
   return ret;
 }
