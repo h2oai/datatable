@@ -93,12 +93,11 @@ template <typename T>
 static PyObject* stype_vchar_T_tostring(Column* col, int64_t row) {
   StringColumn<T>* str_col = static_cast<StringColumn<T>*>(col);
   const T* offsets = str_col->offsets();
-  if (ISNA<T>(offsets[row]))
-      return none();
-  T start = offsets[row];
-  T len = (offsets[row + 1] & StringColumn<T>::NONA) - start;
-  return PyUnicode_FromStringAndSize(str_col->strdata() +
-      static_cast<size_t>(start), len);
+  T end = offsets[row];
+  if (ISNA<T>(end)) return none();
+  T start = offsets[row - 1] & ~GETNA<T>();
+  T len = end - start;
+  return PyUnicode_FromStringAndSize(str_col->strdata() + start, len);
 }
 
 static PyObject* stype_object_pyptr_tostring(Column* col, int64_t row)

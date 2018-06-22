@@ -135,9 +135,9 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
   MemoryRange strbuf = MemoryRange::mem(maxsize);
   MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
   char* strptr = static_cast<char*>(strbuf.wptr());
-  int32_t* offptr = static_cast<int32_t*>(offbuf.wptr());
-  *offptr++ = -1;
-  int32_t offset = 1;
+  uint32_t* offptr = static_cast<uint32_t*>(offbuf.wptr());
+  *offptr++ = 0;
+  uint32_t offset = 0;
   for (int64_t j = 0; j < nrows; ++j) {
     uint32_t* start = input + j*stride;
     int64_t bytes_len = utf32_to_utf8(start, k, strptr);
@@ -146,7 +146,7 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
     *offptr++ = offset;
   }
 
-  strbuf.resize(static_cast<size_t>(offset - 1));
+  strbuf.resize(static_cast<size_t>(offset));
   return new StringColumn<uint32_t>(nrows, std::move(offbuf), std::move(strbuf));
 }
 
@@ -187,16 +187,16 @@ static Column* try_to_resolve_object_column(Column* col)
   size_t strbuf_size = static_cast<size_t>(total_length);
   MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
   MemoryRange strbuf = MemoryRange::mem(strbuf_size);
-  int32_t* offsets = static_cast<int32_t*>(offbuf.wptr());
+  uint32_t* offsets = static_cast<uint32_t*>(offbuf.wptr());
   char* strs = static_cast<char*>(strbuf.wptr());
 
-  offsets[0] = -1;
+  offsets[0] = 0;
   ++offsets;
 
-  size_t offset = 0;
+  uint32_t offset = 0;
   for (int64_t i = 0; i < nrows; ++i) {
     if (data[i] == Py_None) {
-      offsets[i] = static_cast<int32_t>(-offset - 1);
+      offsets[i] = offset | GETNA<uint32_t>();
     } else {
       PyObject *z = PyUnicode_AsEncodedString(data[i], "utf-8", "strict");
       size_t sz = static_cast<size_t>(PyBytes_Size(z));
@@ -208,7 +208,7 @@ static Column* try_to_resolve_object_column(Column* col)
       std::memcpy(strs + offset, PyBytes_AsString(z), sz);
       Py_DECREF(z);
       offset += sz;
-      offsets[i] = static_cast<int32_t>(offset + 1);
+      offsets[i] = offset;
     }
   }
 

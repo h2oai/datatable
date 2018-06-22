@@ -245,8 +245,8 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
 {
   size_t nrows = list.size();
   offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr());
-  offsets[0] = 0;
+  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
+  offsets[-1] = 0;
   if (!strbuf) {
     strbuf.resize(nrows * 4);  // arbitrarily 4 chars per element
   }
@@ -258,7 +258,7 @@ static bool parse_as_str(PyyList& list, MemoryRange& offbuf,
     PyObj item = list[i];
 
     if (item.is_none()) {
-      offsets[i] = curr_offset | StringColumn<T>::NAMASK;
+      offsets[i] = curr_offset | GETNA<T>();
       continue;
     }
     if (item.is_string()) {
@@ -321,19 +321,19 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
       << "Cannot store " << nrows << " elements in a str32 column";
   }
   offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr());
-  offsets[-1] = -1;
+  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
+  offsets[-1] = 0;
   if (!strbuf) {
     strbuf.resize(nrows * 4);
   }
   char* strptr = static_cast<char*>(strbuf.xptr());
 
-  T curr_offset = 1;
+  T curr_offset = 0;
   for (size_t i = 0; i < nrows; ++i) {
     PyObj item = list[i];
 
     if (item.is_none()) {
-      offsets[i] = curr_offset | StringColumn<T>::NAMASK;
+      offsets[i] = curr_offset | GETNA<T>();
       continue;
     }
     if (!item.is_string()) {
@@ -347,7 +347,7 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
         T next_offset = curr_offset + tlen;
         if (std::is_same<T, int32_t>::value &&
             (static_cast<size_t>(tlen) != len || next_offset < curr_offset)) {
-          offsets[i] = -curr_offset;
+          offsets[i] = curr_offset | GETNA<T>();
           continue;
         }
         if (strbuf.size() < static_cast<size_t>(next_offset)) {
@@ -362,10 +362,10 @@ static void force_as_str(PyyList& list, MemoryRange& offbuf,
       offsets[i] = curr_offset;
       continue;
     } else {
-      offsets[i] = curr_offset | StringColumn<T>::NAMASK;
+      offsets[i] = curr_offset | GETNA<T>();
     }
   }
-  strbuf.resize(static_cast<size_t>(curr_offset));
+  strbuf.resize(curr_offset);
 }
 
 

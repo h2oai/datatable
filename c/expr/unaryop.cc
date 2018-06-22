@@ -61,11 +61,6 @@ inline static int8_t op_isna(T x) {
 }
 
 template<typename T>
-inline static int8_t strop_isna(T x) {
-  return (x < 0);
-}
-
-template<typename T>
 struct Inverse {
   inline static T impl(T x) {
     return ISNA<T>(x) ? x : ~x;
@@ -107,7 +102,7 @@ static mapperfn resolve1(int opcode) {
 template<typename T>
 static mapperfn resolve_str(int opcode) {
   if (opcode == OpCode::IsNa) {
-    return strmap_n<T, int8_t, strop_isna<T>>;
+    return strmap_n<T, int8_t, op_isna<T>>;
   }
   return nullptr;
 }
