@@ -1046,7 +1046,7 @@ void FreadLocalParseContext::orderBuffer() {
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may some times change affecting
       // this size after the post-processing.
-      uint32_t offset0 = static_cast<int32_t>(strinfo[j].start);
+      uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
       uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
       size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
       strinfo[j].size = sz;

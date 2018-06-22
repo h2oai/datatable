@@ -497,12 +497,16 @@ class SortContext {
       int32_t k = use_order? o[j] : static_cast<int32_t>(j);
       T offend = offs[k];
       if (ISNA<T>(offend)) {
-        xo[j] = 0;
+        xo[j] = 0;    // NA string
       } else {
         T offstart = offs[k - 1] & ~GETNA<T>();
-        T len = offend - offstart;
-        xo[j] = len > 0? strdata[offstart] + 2 : 1;
-        if (len > maxlen) maxlen = len;
+        if (offend > offstart) {
+          xo[j] = strdata[offstart] + 2;
+          T len = offend - offstart;
+          if (len > maxlen) maxlen = len;
+        } else {
+          xo[j] = 1;  // empty string
+        }
       }
     }
     next_elemsize = (maxlen > 1);
@@ -712,10 +716,15 @@ class SortContext {
         int32_t w = use_order? o[j] : static_cast<int32_t>(j);
         T offend = soffs[w];
         T offstart = (soffs[w - 1] & ~GETNA<T>()) + sstart;
-        T len = offend - offstart;
-        xo[k] = len > 0? strdata[offstart] + 2 : 1;
+        xassert(!ISNA<T>(offend));
+        if (offend > offstart) {
+          xo[k] = strdata[offstart] + 2;
+          T len = offend - offstart;
+          if (len > maxlen) maxlen = len;
+        } else {
+          xo[k] = 1;  // string is shorter than sstart
+        }
         next_o[k] = w;
-        if (len > maxlen) maxlen = len;
       }
     }
     next_elemsize = maxlen > 0;

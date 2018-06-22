@@ -42,11 +42,11 @@ int compare_offstrings(
   // Handle NAs and empty strings
   if (ISNA<T>(boff1)) return ISNA<T>(aoff1)? 0 : -1;
   if (ISNA<T>(aoff1)) return 1;
+  if (boff1 <= boff0) return aoff1 <= aoff0? 0 : -1;
+  if (aoff1 <= aoff0) return 1;
+
   T lena = aoff1 - aoff0;
   T lenb = boff1 - boff0;
-  if (lenb <= 0) return lena <= 0? 0 : -1;
-  if (lena <= 0) return 1;
-
   for (T t = 0; t < lena; ++t) {
     if (t == lenb) return -1;  // b is shorter than a
     uint8_t ca = strdata[aoff0 + t];
@@ -180,7 +180,7 @@ void insert_sort_values_str(
     T off1i = stroffs[i];
     for (j = i; j > 0; j--) {
       V k = o[j - 1];
-      T off0k = (stroffs[k] + strstart) & ~GETNA<T>();
+      T off0k = (stroffs[k - 1] + strstart) & ~GETNA<T>();
       T off1k = stroffs[k];
       int cmp = compare_offstrings(strdata, off0i, off1i, off0k, off1k);
       if (cmp != 1) break;
