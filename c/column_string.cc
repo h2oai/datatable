@@ -585,7 +585,7 @@ bool StringColumn<T>::verify_integrity(
   }
 
   int64_t mbuf_nrows = data_nrows();
-  strdata_size = static_cast<size_t>(str_offsets[mbuf_nrows - 1] & NONA);
+  strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   if (strbuf.size() != strdata_size) {
     icc << "Size of string data section in " << name << " does not correspond"

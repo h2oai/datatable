@@ -600,9 +600,6 @@ template <typename T> class StringColumn : public Column
   MemoryRange strbuf;
 
 public:
-  static constexpr T NAMASK = T(1) << (sizeof(T)*8 - 1);
-  static constexpr T NONA   = ~NAMASK;
-
   StringColumn(int64_t nrows);
   StringColumn(int64_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void save_to_disk(const std::string& filename,
