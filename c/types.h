@@ -177,34 +177,30 @@ typedef enum LType {
  * -----------------------------------------------------------------------------
  *
  * ST_STRING_I4_VCHAR
- *     elem: int32_t (4 bytes) + unsigned char[]
- *     NA:   negative numbers
- *     meta: `offoff` (long int)
- *     Variable-width strings. The data buffer has the following structure:
- *     First comes a section with string data: all non-NA strings are UTF-8
- *     encoded and placed end-to-end. This section is padded by 0xFF bytes so
- *     that it has a length which is a multiple of 8. Then come 4 bytes
- *     representing int32_t value -1. After that comes the array of int32_t
- *     primitives representing offsets of each string in the buffer.
- *     In particular, each entry is 2 + the offset of the last byte of the
- *     string within the data buffer. NA strings are encoded as negation of the
- *     previous string's entry.
- *     Thus, i'th string is NA if its offset is negative, otherwise its a valid
- *     string whose starting offset is `start(i) = abs(off(i-1)) - 1`,
- *     ending offset is `end(i) = off(i) - 1`, and `len(i) = end(i) - start(i)`.
+ *     elem: uint32_t (4 bytes) + unsigned char[]
+ *     NA:   (1 << 31) mask
+ *     Variable-width strings. The data consists of 2 buffers:
+ *       1) string data. All non-NA strings are UTF-8 encoded and placed e
+ *          nd-to-end.
+ *       2) offsets. This is an array of uint32_t's representing offsets of
+ *          each string in buffer 1). This array has nrows + 1 elements, with
+ *          first element being 0, second element containing the end offset of
+ *          the first string, ..., until the last element which stores the end
+ *          offset of the last string. NA strings are encoded as the previous
+ *          offset + NA mask (which is 1<<31).
+ *     Thus, i-th string is NA if its highest bit is set, or otherwise it's a
+ *     valid string whose starting offset is `start(i) = off(i-1) & ~(1<<31)`,
+ *     ending offset is `end(i) = off(i)`, and `len(i) = end(i) - start(i)`.
+ *
  *     For example, a column with 4 values `[NA, "hello", "", NA]` will be
- *     encoded as a buffer of size 28 = (0 + 5 + 0 + 0) + (3) + 4 + (4 * 4):
- *         data = h e l l o 0xFF 0xFF 0xFF <-1> <-1> <6> <6> <-6>
- *         meta = 12
- *     (where "<n>" denotes the 4-byte sequence encoding integer `n`).
- *     Meta information stores the offset of the section with offsets. Thus the
- *     total buffer size is always `offoff` + 4 * `nrows`.
- *     Note: 0xFF is used for padding because it's not a valid UTF-8 byte.
+ *     encoded as a string buffer of size 5 = (0 + 5 + 0 + 0) and offsets
+ *     buffer containing 5 uint32_t's:
+ *         strbuf  = [h e l l o]
+ *         offsets = [0, 1<<31, 5, 5, 5|(1<<31)]
  *
  * ST_STRING_I8_VCHAR
- *     elem: int64_t (8 bytes) + unsigned char[]
- *     NA:   negative numbers
- *     meta: `offoff` (long int)
+ *     elem: uint64_t (8 bytes) + unsigned char[]
+ *     NA:   (1 << 63) mask
  *     Variable-width strings: same as ST_STRING_I4_VCHAR but use 64-bit
  *     offsets.
  *
