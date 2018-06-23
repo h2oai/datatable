@@ -79,6 +79,15 @@ void StringColumn<T>::open_mmap(const std::string& filename) {
         " rows. Expected file size of " << exp_mbuf_size <<
         " bytes, actual size is " << mbuf.size() << " bytes";
   }
+  if (mbuf.get_element<T>(0) != 0) {
+    // Recode old format of string storage
+    T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
+    offsets[-1] = 0;
+    for (int64_t i = 0; i < nrows; ++i) {
+      T x = offsets[i];
+      offsets[i] = ISNA<T>(x)? GETNA<T>() - x - 1 : x - 1;
+    }
+  }
 
   std::string filename_str = path_str(filename);
 
