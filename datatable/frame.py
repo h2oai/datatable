@@ -551,11 +551,12 @@ class Frame(object):
         newnames += self.names[cols[-1] + 1:]
         self._fill_from_dt(self._dt, names=newnames)
         
-        
+    @typed(n_bins=int,nx_bins=int,ny_bins=int)
     def aggregate(self, epsilon=1.0e-15, n_bins=500, nx_bins=50, ny_bins=50):
         print('call: frame.py aggregate(self)')
-        self._dt.aggregate(epsilon, n_bins, nx_bins, ny_bins)
-        self.__init__(self.internal)
+        dt_agg = self._dt.aggregate(epsilon, n_bins, nx_bins, ny_bins)
+        return Frame(dt_agg)
+        #self.__init__(self.internal)
         
 
     @typed(name=U(str, int))

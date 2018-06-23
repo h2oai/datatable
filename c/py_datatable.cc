@@ -263,15 +263,17 @@ PyObject* aggregate(obj* self, PyObject* args) {
   printf("call: py_datatable.cc PyObject* aggregate(obj* self, PyObject* args)\n");
 
   double epsilon;
-  int64_t n_bins, nx_bins, ny_bins;
+  int32_t n_bins, nx_bins, ny_bins;
 
-  if (!PyArg_ParseTuple(args, "dlll:aggregate",
+  if (!PyArg_ParseTuple(args, "diii:aggregate",
                         &epsilon, &n_bins, &nx_bins, &ny_bins)) return nullptr;
 
   DataTable* dt = self->ref;
-  dt->aggregate(epsilon, n_bins, nx_bins, ny_bins);
+  DataTable* dt_agg = self->ref;
 
-  Py_RETURN_NONE;
+  dt_agg = dt->aggregate(epsilon, n_bins, nx_bins, ny_bins);
+
+  return wrap(dt_agg);
 }
 
 PyObject* resize_rows(obj* self, PyObject* args) {

@@ -71,139 +71,171 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 }
 
 
-DataTable* DataTable::aggregate(double epsilon, int64_t n_bins, int64_t nx_bins, int64_t ny_bins) {
+DataTable* DataTable::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins, int32_t ny_bins) {
   printf("call: void DataTable::aggregate()\n");
 
-  DataTable** dts = nullptr;
+  DataTable* dt = nullptr;
   Column** cols = nullptr;
 
-  dtmalloc(cols, Column*, 2);
-  dtmalloc(dts, DataTable*, 1);
+  dtmalloc(cols, Column*, ncols + 2);
 
-  cols[0] = Column::new_data_column(ST_INTEGER_I8, nrows);
-  cols[1] = nullptr;
-  dts[0] = new DataTable(cols);
+  for (int32_t i = 0; i < ncols; ++i) {
+    cols[i] = columns[i]->shallowcopy();
+  }
 
-  DataTable* ret = this->cbind(dts, 1);
-  if (ret == nullptr) return nullptr;
-  dtfree(dts);
+  cols[ncols] = Column::new_data_column(ST_INTEGER_I4, nrows);
+  cols[ncols + 1] = nullptr;
+  dt = new DataTable(cols);
 
   switch (ncols) {
-    case 2 : aggregate1D(epsilon, n_bins); break;
-    case 3 : aggregate2D(epsilon, nx_bins, ny_bins); break;
-  	default: aggregateND();
+    case 1:  return aggregate1D(dt, epsilon, n_bins);
+    case 2:  return aggregate2D(dt, epsilon, nx_bins, ny_bins);
+    default: return aggregateND(dt);
   }
-
-  return this;
 }
 
 
-DataTable* DataTable::aggregate1D(double epsilon, int64_t n_bins) {
+DataTable* DataTable::aggregate1D(DataTable* dt, double epsilon, int32_t n_bins) {
   printf("call: void DataTable::aggregate1D()\n");
 
-  LType ltype = stype_info[columns[0]->stype()].ltype;
+  LType ltype = stype_info[dt->columns[0]->stype()].ltype;
 
   switch (ltype) {
-	  case LT_INTEGER :
-	  case LT_REAL 	  : aggregate1DContinuous(epsilon, n_bins); break;
-  	  case LT_STRING  : aggregate1DCategorical(n_bins); break;
-  	  default 		  : return nullptr;
+    case LT_INTEGER:
+    case LT_REAL:    aggregate1DContinuous(dt, epsilon, n_bins); break;
+    case LT_STRING:  aggregate1DCategorical(dt, n_bins); break;
+    default:         return nullptr;
   }
 
-  return nullptr;
+  return dt;
 }
 
 
-DataTable* DataTable::aggregate2D(double epsilon, int64_t nx_bins, int64_t ny_bins) {
+DataTable* DataTable::aggregate2D(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
   printf("call: void DataTable::aggregate2D()\n");
 
-  LType ltype0 = stype_info[columns[0]->stype()].ltype;
-  LType ltype1 = stype_info[columns[1]->stype()].ltype;
+  LType ltype0 = stype_info[dt->columns[0]->stype()].ltype;
+  LType ltype1 = stype_info[dt->columns[1]->stype()].ltype;
 
   switch (ltype0) {
-	case LT_INTEGER :
-	case LT_REAL 	: {  
-		  	  	  	  	 switch (ltype1) {
-		  	  	  	  	   case LT_INTEGER :
-		  	  	  	  	   case LT_REAL    : aggregate2DContinuous(epsilon, nx_bins, ny_bins); break;
-		  	  	  	  	   case LT_STRING  : aggregate2DMixed(epsilon, nx_bins, ny_bins); break;
-		  	  	  	  	   default 		   : return nullptr;
-		  	  	  	  	 }
-	  	  	  	  	  }
-	  	  	  	  	  break;
+    case LT_INTEGER:
+    case LT_REAL:    {
+                        switch (ltype1) {
+                          case LT_INTEGER:
+                          case LT_REAL:    aggregate2DContinuous(dt, epsilon, nx_bins, ny_bins); break;
+                          case LT_STRING:  aggregate2DMixed(dt, epsilon, nx_bins, ny_bins); break;
+                          default:         return nullptr;
+                        }
+                      }
+                      break;
 
-	case LT_STRING  : {
-		  	  	  	     switch (ltype1) {
-		  	  	  	  	   case LT_INTEGER :
-		  	  	  	  	   case LT_REAL    : aggregate2DMixed(epsilon, nx_bins, ny_bins); break;
-		  	  	  	  	   case LT_STRING  : aggregate2DCategorical(nx_bins, ny_bins); break;
-		  	  	  	  	   default 		   : return nullptr;
-		  	  	  	  	 }
-	  	  	  	  	  }
-	  	  	  	  	  break;
+    case LT_STRING:  {
+                        switch (ltype1) {
+                          case LT_INTEGER:
+                          case LT_REAL:    aggregate2DMixed(dt, epsilon, nx_bins, ny_bins); break;
+                          case LT_STRING:  aggregate2DCategorical(dt, nx_bins, ny_bins); break;
+                          default:         return nullptr;
+                        }
+                      }
+                      break;
 
-    default 		: return nullptr;
+    default:          return nullptr;
   }
 
-  return nullptr;
+  return dt;
 }
 
 
-void DataTable::aggregate1DContinuous(double epsilon, int64_t n_bins) {
+void DataTable::aggregate1DContinuous(DataTable* dt, double epsilon, int32_t n_bins) {
   printf("call: void DataTable::aggregate1DContinuous()\n");
 
-  RealColumn<double>* c0 = (RealColumn<double>*) columns[0]->cast(ST_REAL_F8);
-  IntColumn<int64_t>* c1 = (IntColumn<int64_t>*) columns[1];
-  int64_t idx_bin;
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0]->cast(ST_REAL_F8);
+  IntColumn<int32_t>* c1 = (IntColumn<int32_t>*) dt->columns[1];
+  int32_t idx_bin;
 
-  for (int64_t i = 0; i < nrows; ++i) {
-	 idx_bin = (int64_t) (n_bins * (1 - epsilon) * (c0->get_elem(i) - c0->min()) / (c0->max() - c0->min()));
-	 c1->set_elem(i, idx_bin);
+  for (int32_t i = 0; i < nrows; ++i) {
+    idx_bin = (int32_t) (n_bins * (1 - epsilon) * (c0->get_elem(i) - c0->min()) / (c0->max() - c0->min()));
+    c1->set_elem(i, idx_bin);
   }
 }
 
 
-void DataTable::aggregate2DContinuous(double epsilon, int64_t nx_bins, int64_t ny_bins) {
+void DataTable::aggregate2DContinuous(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
   printf("call: void DataTable::aggregate2DContinuous()\n");
 
-  RealColumn<double>* c0 = (RealColumn<double>*) columns[0]->cast(ST_REAL_F8);
-  RealColumn<double>* c1 = (RealColumn<double>*) columns[1]->cast(ST_REAL_F8);
-  IntColumn<int64_t>* c2 = (IntColumn<int64_t>*) columns[2];
-  int64_t id_bin, idx_bin, idy_bin;
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0]->cast(ST_REAL_F8);
+  RealColumn<double>* c1 = (RealColumn<double>*) dt->columns[1]->cast(ST_REAL_F8);
+  IntColumn<int32_t>* c2 = (IntColumn<int32_t>*) dt->columns[2];
+  int32_t id_bin, idx_bin, idy_bin;
 
-  for (int64_t i = 0; i < nrows; ++i) {
-	 idx_bin =  (int64_t) (nx_bins * (1 - epsilon) * (c0->get_elem(i) - c0->min()) / (c0->max() - c0->min()));
-	 idy_bin = (int64_t) (ny_bins * (1 - epsilon) * (c1->get_elem(i) - c1->min()) / (c1->max() - c1->min()));
-	 id_bin = nx_bins * idy_bin + idx_bin;
-	 c2->set_elem(i, id_bin);
+  for (int32_t i = 0; i < nrows; ++i) {
+    idx_bin =  (int32_t) (nx_bins * (1 - epsilon) * (c0->get_elem(i) - c0->min()) / (c0->max() - c0->min()));
+    idy_bin = (int32_t) (ny_bins * (1 - epsilon) * (c1->get_elem(i) - c1->min()) / (c1->max() - c1->min()));
+    id_bin = nx_bins * idy_bin + idx_bin;
+    c2->set_elem(i, id_bin);
   }
 }
 
 
-void DataTable::aggregate1DCategorical(int64_t n_bins) {
-	printf("call: void DataTable::aggregate1DCategorical()\n");
-	// C++ implementation of Python's df(select=[first(f.C0),count(f.C0)],groupby="C0") to follow
-	// count, first and groupby for one column are already implemented
+void DataTable::aggregate1DCategorical(DataTable* dt, int32_t n_bins /* not sure how to use n_bins for the moment */) {
+  printf("call: void DataTable::aggregate1DCategorical()\n");
+
+  IntColumn<int32_t>* c1 = (IntColumn<int32_t>*) dt->columns[1];
+  arr32_t cols(1);
+  Groupby grpby;
+
+  cols[0] = 0;
+  RowIndex ri_group = dt->sortby(cols, &grpby);
+  const RowIndex ri_ungroup = grpby.ungroup_rowindex();
+  const int32_t* i_group = ri_group.indices32();
+  const int32_t* i_ungroup = ri_ungroup.indices32();
+
+  for (int32_t i = 0; i < nrows; ++i) {
+    c1->set_elem(i_group[i], i_ungroup[i]);
+  }
+// need to store ri somehow
+// dt->replace_rowindex(ri);
 }
 
 
-void DataTable::aggregate2DCategorical(int64_t nx_bins, int64_t ny_bins) {
-	printf("call: void DataTable::aggregate2DCategorical()\n");
-	// C++ implementation of something like df(select=[first(f.C0),first(f.C1),count(f.C0,f.C1)],groupby="C0,C1") to follow
-	// groupby can't do more than one column for the moment, see #1082
+
+void DataTable::aggregate2DCategorical(DataTable* dt, int32_t nx_bins, int32_t ny_bins) {
+  printf("call: void DataTable::aggregate2DCategorical()\n");
+  // C++ implementation of something like df(select=[first(f.C0),first(f.C1),count(f.C0,f.C1)],groupby="C0,C1") to follow
+  // groupby can't do more than one column for the moment, see #1082
 }
 
 
-void DataTable::aggregate2DMixed(double epsilon, int64_t nx_bins, int64_t ny_bins) {
-	printf("call: void DataTable::aggregate2DMixed()\n");
+void DataTable::aggregate2DMixed(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
+  printf("call: void DataTable::aggregate2DMixed()\n");
+  // For the moment assuming that the first column is continuous
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0]->cast(ST_REAL_F8);
+  IntColumn<int32_t>* c2 = (IntColumn<int32_t>*) dt->columns[2];
+  int32_t id_bin, idx_bin;
+  arr32_t cols(1);
+  Groupby grpby;
+
+  cols[0] = 1;
+  RowIndex ri_group = dt->sortby(cols, &grpby);
+  const RowIndex ri_ungroup = grpby.ungroup_rowindex();
+  const int32_t* i_group = ri_group.indices32();
+  const int32_t* i_ungroup = ri_ungroup.indices32();
+
+  for (int32_t i = 0; i < nrows; ++i) {
+    idx_bin =  (int64_t) (nx_bins * (1 - epsilon) * (c0->get_elem(i_group[i]) - c0->min()) / (c0->max() - c0->min()));
+    id_bin = nx_bins * i_ungroup[i] + idx_bin;
+    c2->set_elem(i_group[i], id_bin);
+  }
 }
 
 
-void DataTable::aggregateND() {
-	printf("call: void DataTable::aggregateND()\n");
-	// Implement Leland's algorithm for N-dimensional aggregation, see for more details
-	// [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
-	// [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
+DataTable* DataTable::aggregateND(DataTable* dt) {
+  printf("call: void DataTable::aggregateND()\n");
+  // Implement Leland's algorithm for N-dimensional aggregation, see for more details
+  // [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
+  // [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
+
+  return dt;
 }
 
 
