@@ -96,7 +96,7 @@ static PyObject* stype_vchar_T_tostring(Column* col, int64_t row) {
   T end = offsets[row];
   if (ISNA<T>(end)) return none();
   T start = offsets[row - 1] & ~GETNA<T>();
-  T len = end - start;
+  auto len = static_cast<Py_ssize_t>(end - start);
   return PyUnicode_FromStringAndSize(str_col->strdata() + start, len);
 }
 

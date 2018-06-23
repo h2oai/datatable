@@ -227,8 +227,8 @@ void StringColumn<T>::reify() {
     if (!strbuf.is_writable())
       new_strbuf = MemoryRange::mem(strbuf.size()); // We don't know the actual size yet
                                                     // but it can't be larger than this
-    T step = static_cast<T>(ri.slice_step());
-    T start = static_cast<T>(ri.slice_start());
+    int64_t step = ri.slice_step();
+    int64_t start = ri.slice_start();
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     const char* str_src = strdata();
@@ -236,7 +236,7 @@ void StringColumn<T>::reify() {
     // We know that the resulting strbuf/mbuf size will be smaller, so no need to
     // worry about resizing beforehand
     T prev_off = 0;
-    for (T i = 0, j = start; i < nrows; ++i, j += step) {
+    for (int64_t i = 0, j = start; i < nrows; ++i, j += step) {
       if (ISNA<T>(offs1[j])) {
         offs_dest[i] = prev_off | GETNA<T>();
       } else {
@@ -340,10 +340,10 @@ void StringColumn<T>::resize_and_fill(int64_t new_nrows)
       const char* str_src = static_cast<const char*>(strbuf.rptr());
       char* str_dest = static_cast<char*>(new_strbuf.wptr());
       T src_len = static_cast<T>(old_strbuf_size);
-      for (T i = 0; i < new_nrows; ++i) {
+      for (int64_t i = 0; i < new_nrows; ++i) {
         std::memcpy(str_dest, str_src, old_strbuf_size);
         str_dest += old_strbuf_size;
-        offsets[i] = (i + 1) * src_len;
+        offsets[i] = static_cast<T>(i + 1) * src_len;
       }
       strbuf = new_strbuf;
     } else {
@@ -390,7 +390,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   T* offs = offsets_w();
 
   // Move the original offsets
-  T rows_to_fill = 0;  // how many rows need to be filled with NAs
+  int64_t rows_to_fill = 0;  // how many rows need to be filled with NAs
   T curr_offset = 0;   // Current offset within string data section
   offs[-1] = 0;
   if (col_empty) {
@@ -530,7 +530,7 @@ void StringColumn<T>::cast_into(PyObjectColumn* target) const {
     if (ISNA<T>(off_end)) {
       trg_data[i] = none();
     } else {
-      T len = off_end - prev_offset;
+      auto len = static_cast<Py_ssize_t>(off_end - prev_offset);
       trg_data[i] = PyUnicode_FromStringAndSize(strdata + prev_offset, len);
       prev_offset = off_end;
     }

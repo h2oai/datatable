@@ -137,7 +137,7 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
     #pragma omp critical
     {
       if (t_count_notna > 0) {
-        double nold = static_cast<double>(count_notna);
+        int64_t nold = count_notna;
         count_notna += t_count_notna;
         sum += t_sum;
         if (t_min < min) min = t_min;
@@ -148,17 +148,15 @@ void NumericalStats<T, A>::compute_numerical_stats(const Column* col) {
         double delta4 = delta2 * delta2;
         double a_m2 = m2;
         double a_m3 = m3;
-        double a_m4 = m4;
         double b_m2 = t_m2;
         double b_m3 = t_m3;
-        double b_m4 = t_m4;
         // readibility for counts
         int64_t a_n = nold;
         int64_t b_n = t_count_notna;
         int64_t c_n = count_notna;
 
         // Running SD
-        m2 += t_m2 + delta2 * (nold / count_notna * t_count_notna);
+        m2 += t_m2 + delta2 * (1.0 * a_n / count_notna * t_count_notna);
 
         // Running Skewness
         m3 += t_m3 + delta3 * a_n * b_n * (a_n - b_n)/(c_n * c_n);
@@ -470,8 +468,9 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
     int64_t i = ri.nth(groups[best_igrp]);
     T o0 = offsets[i - 1] & ~GETNA<T>();
     _nmodal = max_grpsize;
+    // FIXME: this is dangerous, what if strdata() pointer changes for any reason?
     _mode.ch = scol->strdata() + o0;
-    _mode.size = offsets[i] - o0;
+    _mode.size = static_cast<int64_t>(offsets[i] - o0);
   } else {
     _nmodal = 0;
     _mode.ch = nullptr;

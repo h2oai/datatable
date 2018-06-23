@@ -983,21 +983,21 @@ void FreadLocalParseContext::postprocess() {
   const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
-  int32_t output_offset = 0;
+  uint32_t output_offset = 0;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
     if (col.isstring() && !col.typeBumped) {
-      strinfo[j].start = static_cast<size_t>(output_offset);
+      strinfo[j].start = output_offset;
       field64* coldata = tbuf.data() + j;
       for (size_t n = 0; n < used_nrows; ++n) {
         // Initially, offsets of all entries are given relative to `zanchor`.
         // If a string is NA, its length will be INT_MIN.
-        int32_t entry_offset = coldata->str32.offset;
+        uint32_t entry_offset = coldata->str32.offset;
         int32_t entry_length = coldata->str32.length;
         if (entry_length > 0) {
           size_t zlen = static_cast<size_t>(entry_length);
-          if (sbuf.size() < zlen * 3 + static_cast<size_t>(output_offset)) {
+          if (sbuf.size() < zlen * 3 + output_offset) {
             sbuf.resize(size_t((2 - 1.0*n/used_nrows)*sbuf.size()) + zlen*3);
           }
           uint8_t* dest = sbuf.data() + output_offset;
@@ -1018,7 +1018,7 @@ void FreadLocalParseContext::postprocess() {
             newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
           }
           xassert(newlen > 0);
-          output_offset += newlen;
+          output_offset += static_cast<uint32_t>(newlen);
           coldata->str32.length = newlen;
           coldata->str32.offset = output_offset;
         } else if (entry_length == 0) {
@@ -1028,7 +1028,7 @@ void FreadLocalParseContext::postprocess() {
           coldata->str32.offset = output_offset | GETNA<uint32_t>();
         }
         coldata += tbuf_ncols;
-        xassert(static_cast<size_t>(output_offset) <= sbuf.size());
+        xassert(output_offset <= sbuf.size());
       }
     }
     ++j;
