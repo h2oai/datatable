@@ -39,16 +39,34 @@ void ChunkedDataReader::determine_chunking_strategy() {
   size_t inputSize = static_cast<size_t>(inputEnd - inputStart);
   size_t size1000 = static_cast<size_t>(1000 * lineLength);
   size_t zThreads = static_cast<size_t>(nthreads);
+  double maxrowsSize = nrows_max * lineLength;
+  bool inputSize_reduced = false;
+  if (nrows_max < 1000000 && maxrowsSize < inputSize) {
+    inputSize = static_cast<size_t>(maxrowsSize * 1.5) + 1;
+    inputSize_reduced = true;
+  }
   chunkSize = std::max<size_t>(size1000, 1 << 18);
   chunkCount = std::max<size_t>(inputSize / chunkSize, 1);
   if (chunkCount > zThreads) {
     chunkCount = zThreads * (1 + (chunkCount - 1)/zThreads);
+    chunkSize = inputSize / chunkCount;
   } else {
     nthreads = static_cast<int>(chunkCount);
-    g.trace("Number of threads reduced to %d because data is small",
-            nthreads);
+    chunkSize = inputSize / chunkCount;
+    if (inputSize_reduced) {
+      // If chunkCount is 1 then we'll attempt to read the whole input
+      // with the first chunk, which is not what we want...
+      chunkCount++;
+      g.trace("Number of threads reduced to %d because due to max_nrows=%zu "
+              "we estimate the amount of data to be read will be small",
+              nthreads, nrows_max);
+    } else {
+      g.trace("Number of threads reduced to %d because data is small",
+              nthreads);
+    }
   }
-  chunkSize = inputSize / chunkCount;
+  g.trace("The input will be read in %zu chunks of size %zu each",
+          chunkCount, chunkSize);
 }
 
 
@@ -152,7 +170,7 @@ void ChunkedDataReader::read_all()
     // Main data reading loop
     #pragma omp for ordered schedule(dynamic)
     for (size_t i = 0; i < chunkCount; ++i) {
-      if (oem.exception_caught()) continue;
+      if (oem.stop_requested()) continue;
       try {
         if (tMaster) g.emit_delayed_messages();
         if (tShowAlways || (tShowProgress && wallclock() >= tShowWhen)) {
@@ -170,7 +188,10 @@ void ChunkedDataReader::read_all()
 
       #pragma omp ordered
       do {
-        if (oem.exception_caught()) break;
+        if (oem.stop_requested()) {
+          tctx->used_nrows = 0;
+          break;
+        }
         try {
           tctx->row0 = nrows_written;
           order_chunk(tacc, txcc, tctx);
@@ -182,6 +203,7 @@ void ChunkedDataReader::read_all()
               // the output, just truncate the rows in the current chunk.
               tctx->used_nrows = nrows_allocated - nrows_written;
               nrows_new = nrows_allocated;
+              oem.stop_iterations();
             } else {
               realloc_output_columns(i, nrows_new);
             }
