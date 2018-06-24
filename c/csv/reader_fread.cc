@@ -983,21 +983,21 @@ void FreadLocalParseContext::postprocess() {
   const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
-  int32_t output_offset = 0;
+  uint32_t output_offset = 0;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
     if (col.isstring() && !col.typeBumped) {
-      strinfo[j].start = static_cast<size_t>(output_offset);
+      strinfo[j].start = output_offset;
       field64* coldata = tbuf.data() + j;
       for (size_t n = 0; n < used_nrows; ++n) {
         // Initially, offsets of all entries are given relative to `zanchor`.
         // If a string is NA, its length will be INT_MIN.
-        int32_t entry_offset = coldata->str32.offset;
+        uint32_t entry_offset = coldata->str32.offset;
         int32_t entry_length = coldata->str32.length;
         if (entry_length > 0) {
           size_t zlen = static_cast<size_t>(entry_length);
-          if (sbuf.size() < zlen * 3 + static_cast<size_t>(output_offset)) {
+          if (sbuf.size() < zlen * 3 + output_offset) {
             sbuf.resize(size_t((2 - 1.0*n/used_nrows)*sbuf.size()) + zlen*3);
           }
           uint8_t* dest = sbuf.data() + output_offset;
@@ -1018,17 +1018,17 @@ void FreadLocalParseContext::postprocess() {
             newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
           }
           xassert(newlen > 0);
-          output_offset += newlen;
+          output_offset += static_cast<uint32_t>(newlen);
           coldata->str32.length = newlen;
           coldata->str32.offset = output_offset;
         } else if (entry_length == 0) {
           coldata->str32.offset = output_offset;
         } else {
           xassert(coldata->str32.isna());
-          coldata->str32.offset = -output_offset;
+          coldata->str32.offset = output_offset | GETNA<uint32_t>();
         }
         coldata += tbuf_ncols;
-        xassert(static_cast<size_t>(output_offset) <= sbuf.size());
+        xassert(output_offset <= sbuf.size());
       }
     }
     ++j;
@@ -1046,9 +1046,9 @@ void FreadLocalParseContext::orderBuffer() {
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may some times change affecting
       // this size after the post-processing.
-      int32_t offset0 = static_cast<int32_t>(strinfo[j].start);
-      int32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
-      size_t sz = static_cast<size_t>(abs(offsetL) - offset0);
+      uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
+      uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
+      size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
       strinfo[j].size = sz;
 
       WritableBuffer* wb = col.strdata;
@@ -1093,19 +1093,19 @@ void FreadLocalParseContext::push_buffers() {
       wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
 
       if (elemsize == 4) {
-        int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
-        int32_t delta = static_cast<int32_t>(si.write_at + 1 - si.start);
+        uint32_t* dest = static_cast<uint32_t*>(data) + row0 + 1;
+        uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
-          int32_t soff = lo->str32.offset;
-          *dest++ = (soff < 0)? soff - delta : soff + delta;
+          uint32_t soff = lo->str32.offset;
+          *dest++ = soff + delta;
           lo += tbuf_ncols;
         }
       } else {
-        int64_t* dest = static_cast<int64_t*>(data) + row0 + 1;
-        int64_t delta = static_cast<int64_t>(si.write_at + 1 - si.start);
+        uint64_t* dest = static_cast<uint64_t*>(data) + row0 + 1;
+        uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
-          int64_t soff = lo->str32.offset;
-          *dest++ = (soff < 0)? soff - delta : soff + delta;
+          uint64_t soff = lo->str32.offset;
+          *dest++ = soff + delta;
           lo += tbuf_ncols;
         }
       }

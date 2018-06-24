@@ -93,12 +93,11 @@ template <typename T>
 static PyObject* stype_vchar_T_tostring(Column* col, int64_t row) {
   StringColumn<T>* str_col = static_cast<StringColumn<T>*>(col);
   const T* offsets = str_col->offsets();
-  if (offsets[row] < 0)
-      return none();
-  T start = abs(offsets[row - 1]);
-  T len = offsets[row] - start;
-  return PyUnicode_FromStringAndSize(str_col->strdata() +
-      static_cast<size_t>(start), len);
+  T end = offsets[row];
+  if (ISNA<T>(end)) return none();
+  T start = offsets[row - 1] & ~GETNA<T>();
+  auto len = static_cast<Py_ssize_t>(end - start);
+  return PyUnicode_FromStringAndSize(str_col->strdata() + start, len);
 }
 
 static PyObject* stype_object_pyptr_tostring(Column* col, int64_t row)
@@ -150,8 +149,8 @@ int init_py_types(PyObject*)
   py_stype_formatters[ST_REAL_I2]            = stype_notimpl;
   py_stype_formatters[ST_REAL_I4]            = stype_notimpl;
   py_stype_formatters[ST_REAL_I8]            = stype_notimpl;
-  py_stype_formatters[ST_STRING_I4_VCHAR]    = stype_vchar_T_tostring<int32_t>;
-  py_stype_formatters[ST_STRING_I8_VCHAR]    = stype_vchar_T_tostring<int64_t>;
+  py_stype_formatters[ST_STRING_I4_VCHAR]    = stype_vchar_T_tostring<uint32_t>;
+  py_stype_formatters[ST_STRING_I8_VCHAR]    = stype_vchar_T_tostring<uint64_t>;
   py_stype_formatters[ST_STRING_FCHAR]       = stype_notimpl;
   py_stype_formatters[ST_STRING_U1_ENUM]     = stype_notimpl;
   py_stype_formatters[ST_STRING_U2_ENUM]     = stype_notimpl;

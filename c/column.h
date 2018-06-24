@@ -282,8 +282,8 @@ protected:
   virtual void cast_into(IntColumn<int64_t>*) const;
   virtual void cast_into(RealColumn<float>*) const;
   virtual void cast_into(RealColumn<double>*) const;
-  virtual void cast_into(StringColumn<int32_t>*) const;
-  virtual void cast_into(StringColumn<int64_t>*) const;
+  virtual void cast_into(StringColumn<uint32_t>*) const;
+  virtual void cast_into(StringColumn<uint64_t>*) const;
   virtual void cast_into(PyObjectColumn*) const;
 
 
@@ -398,8 +398,8 @@ public:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<int32_t>*) const override;
-  void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
   bool verify_integrity(IntegrityCheckContext&,
                         const std::string& name = "Column") const override;
@@ -457,8 +457,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<int32_t>*) const override;
-  void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
   using Column::stats;
   using Column::mbuf;
@@ -521,8 +521,8 @@ protected:
   void cast_into(RealColumn<float>*) const override;
   void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  void cast_into(StringColumn<int32_t>*) const override;
-  void cast_into(StringColumn<int64_t>*) const override;
+  void cast_into(StringColumn<uint32_t>*) const override;
+  void cast_into(StringColumn<uint64_t>*) const override;
 
   using Column::stats;
   using Column::new_data_column;
@@ -576,8 +576,8 @@ protected:
   // void cast_into(RealColumn<float>*) const override;
   // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<int32_t>*) const;
-  // void cast_into(StringColumn<int64_t>*) const;
+  // void cast_into(StringColumn<uint32_t>*) const;
+  // void cast_into(StringColumn<uint64_t>*) const;
 
   void replace_buffer(MemoryRange&&) override;
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
@@ -650,8 +650,8 @@ protected:
   // void cast_into(RealColumn<float>*) const override;
   // void cast_into(RealColumn<double>*) const override;
   void cast_into(PyObjectColumn*) const override;
-  // void cast_into(StringColumn<int32_t>*) const;
-  void cast_into(StringColumn<int64_t>*) const override;
+  // void cast_into(StringColumn<uint32_t>*) const;
+  void cast_into(StringColumn<uint64_t>*) const override;
   void fill_na() override;
 
   //int verify_meta_integrity(std::vector<char>*, int, const char* = "Column") const override;
@@ -661,10 +661,10 @@ protected:
 };
 
 
-template <> void StringColumn<int32_t>::cast_into(StringColumn<int64_t>*) const;
-template <> void StringColumn<int64_t>::cast_into(StringColumn<int64_t>*) const;
-extern template class StringColumn<int32_t>;
-extern template class StringColumn<int64_t>;
+template <> void StringColumn<uint32_t>::cast_into(StringColumn<uint64_t>*) const;
+template <> void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>*) const;
+extern template class StringColumn<uint32_t>;
+extern template class StringColumn<uint64_t>;
 
 
 

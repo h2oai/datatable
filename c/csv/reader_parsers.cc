@@ -614,7 +614,7 @@ void parse_string(FreadTokenizer& ctx) {
       // TODO - speed up by avoiding end_NA_string when there are none
       ctx.target->str32.setna();
     } else {
-      ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
+      ctx.target->str32.offset = static_cast<uint32_t>(fieldStart - ctx.anchor);
       ctx.target->str32.length = fieldLen;
     }
     return;
@@ -686,7 +686,7 @@ void parse_string(FreadTokenizer& ctx) {
     ctx.target->str32.setna();
   } else {
     ctx.target->str32.length = fieldLen;
-    ctx.target->str32.offset = static_cast<int32_t>(fieldStart - ctx.anchor);
+    ctx.target->str32.offset = static_cast<uint32_t>(fieldStart - ctx.anchor);
   }
   if (*ch==quote) {
     ctx.ch = ch + 1;

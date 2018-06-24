@@ -237,8 +237,8 @@ class StringStats : public Stats {
     virtual void compute_sorted_stats(const Column*) override;
 };
 
-extern template class StringStats<int32_t>;
-extern template class StringStats<int64_t>;
+extern template class StringStats<uint32_t>;
+extern template class StringStats<uint64_t>;
 
 
 

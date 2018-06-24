@@ -96,19 +96,21 @@ inline static void cast_helper(int64_t nrows, const int8_t* src, T* trg) {
 
 template <typename T>
 inline static MemoryRange cast_str_helper(
-  int64_t nrows, const int8_t* src, T* toffsets)
+  const BoolColumn* src, StringColumn<T>* target)
 {
-  size_t exp_size = static_cast<size_t>(nrows);
+  const int8_t* src_data = src->elements_r();
+  T* toffsets = target->offsets_w();
+  size_t exp_size = static_cast<size_t>(src->nrows);
   auto wb = MWBPtr(new MemoryWritableBuffer(exp_size));
   char* tmpbuf = new char[1024];
   char* tmpend = tmpbuf + 1000;  // Leave at least 24 spare chars in buffer
   char* ch = tmpbuf;
-  T offset = 1;
-  toffsets[-1] = -1;
-  for (int64_t i = 0; i < nrows; ++i) {
-    int8_t x = src[i];
+  T offset = 0;
+  toffsets[-1] = 0;
+  for (int64_t i = 0; i < src->nrows; ++i) {
+    int8_t x = src_data[i];
     if (ISNA<int8_t>(x)) {
-      toffsets[i] = -offset;
+      toffsets[i] = offset | GETNA<T>();
     } else {
       *ch++ = '0' + x;
       offset++;
@@ -162,18 +164,14 @@ void BoolColumn::cast_into(PyObjectColumn* target) const {
   }
 }
 
-void BoolColumn::cast_into(StringColumn<int32_t>* target) const {
-  MemoryRange data = target->data_buf();
-  int32_t* offsets = static_cast<int32_t*>(data.wptr()) + 1;
-  MemoryRange strbuf = cast_str_helper<int32_t>(nrows, elements_r(), offsets);
-  target->replace_buffer(std::move(data), std::move(strbuf));
+void BoolColumn::cast_into(StringColumn<uint32_t>* target) const {
+  MemoryRange strbuf = cast_str_helper<uint32_t>(this, target);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
-void BoolColumn::cast_into(StringColumn<int64_t>* target) const {
-  MemoryRange data = target->data_buf();
-  int64_t* offsets = static_cast<int64_t*>(data.wptr()) + 1;
-  MemoryRange strbuf = cast_str_helper<int64_t>(nrows, elements_r(), offsets);
-  target->replace_buffer(std::move(data), std::move(strbuf));
+void BoolColumn::cast_into(StringColumn<uint64_t>* target) const {
+  MemoryRange strbuf = cast_str_helper<uint64_t>(this, target);
+  target->replace_buffer(target->data_buf(), std::move(strbuf));
 }
 
 

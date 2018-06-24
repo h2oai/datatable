@@ -49,9 +49,9 @@ void GReaderColumn::allocate(size_t nrows) {
   mbuf.resize(allocsize);
   if (col_is_string) {
     if (elemsize() == 4)
-      mbuf.set_element<int32_t>(0, -1);
+      mbuf.set_element<int32_t>(0, 0);
     else
-      mbuf.set_element<int64_t>(0, -1);
+      mbuf.set_element<int64_t>(0, 0);
     if (!strdata) {
       strdata = new MemoryWritableBuffer(allocsize);
     }
