@@ -252,7 +252,11 @@ class ColumnTypeDetectionChunkster {
     void determine_chunking_strategy() {
       size_t chunk0_size = f.first_jump_size;
       size_t input_size = static_cast<size_t>(f.eof - f.sof);
-      if (chunk0_size == 0 || chunk0_size == input_size) {
+      if (f.max_nrows < std::numeric_limits<size_t>::max()) {
+        nchunks = 1;
+        f.trace("Number of sampling jump points = 1 because max_nrows "
+                "parameter is used");
+      } else if (chunk0_size == 0 || chunk0_size == input_size) {
         nchunks = 1;
         f.trace("Number of sampling jump points = 1 because input is less "
                 "than 100 lines");
@@ -404,6 +408,7 @@ void FreadReader::detect_column_types()
   double sumLenSq = 0.0;
   int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
   int maxLen = -1;
+  int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 99)) + 1;
 
   // Start with all columns having the smallest possible type
   columns.setType(PT::Mu);
@@ -419,7 +424,7 @@ void FreadReader::detect_column_types()
 
     columns.saveTypes(saved_types);
 
-    for (int i = 0; i < JUMPLINES; ++i) {
+    for (int i = 0; i < rows_to_sample; ++i) {
       if (tch >= eof) break;
       const char* lineStart = tch;
       int64_t incols = parse_single_line(fctx);
@@ -501,7 +506,6 @@ void FreadReader::detect_column_types()
       trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
       estnrow = allocnrow = max_nrows;
     }
-    trace("=====");
   }
   fo.n_lines_sampled = n_sample_lines;
 }

@@ -180,7 +180,7 @@ void init_exceptions() {
 
 //==============================================================================
 
-OmpExceptionManager::OmpExceptionManager() : ptr(nullptr) {}
+OmpExceptionManager::OmpExceptionManager() : ptr(nullptr), stop(false) {}
 
 
 bool OmpExceptionManager::stop_requested() const {

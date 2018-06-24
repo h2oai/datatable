@@ -1003,7 +1003,7 @@ def test_round_filesize(tempfile, mul, eol):
 def test_maxnrows_on_large_dataset():
     src = "A,B,C\n" + "\n".join("%06d,x,1" % i for i in range(1000000))
     t0 = time.time()
-    d0 = dt.fread(src, max_nrows=5)
+    d0 = dt.fread(src, max_nrows=5, verbose=True)
     t0 = time.time() - t0
     assert d0.internal.check()
     assert d0.shape == (5, 3)
