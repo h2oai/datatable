@@ -351,6 +351,9 @@ def test_rbind_all_stypes():
             assert f1.nrows == len(sources[st1]) + len(sources[st2])
             assert f3.shape == f1.shape
             assert f1.topython() == f3.topython()
+            del f1
+            del f2
+            del f3
 
 
 def test_rbind_modulefn():

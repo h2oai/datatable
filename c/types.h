@@ -177,34 +177,30 @@ typedef enum LType {
  * -----------------------------------------------------------------------------
  *
  * ST_STRING_I4_VCHAR
- *     elem: int32_t (4 bytes) + unsigned char[]
- *     NA:   negative numbers
- *     meta: `offoff` (long int)
- *     Variable-width strings. The data buffer has the following structure:
- *     First comes a section with string data: all non-NA strings are UTF-8
- *     encoded and placed end-to-end. This section is padded by 0xFF bytes so
- *     that it has a length which is a multiple of 8. Then come 4 bytes
- *     representing int32_t value -1. After that comes the array of int32_t
- *     primitives representing offsets of each string in the buffer.
- *     In particular, each entry is 2 + the offset of the last byte of the
- *     string within the data buffer. NA strings are encoded as negation of the
- *     previous string's entry.
- *     Thus, i'th string is NA if its offset is negative, otherwise its a valid
- *     string whose starting offset is `start(i) = abs(off(i-1)) - 1`,
- *     ending offset is `end(i) = off(i) - 1`, and `len(i) = end(i) - start(i)`.
+ *     elem: uint32_t (4 bytes) + unsigned char[]
+ *     NA:   (1 << 31) mask
+ *     Variable-width strings. The data consists of 2 buffers:
+ *       1) string data. All non-NA strings are UTF-8 encoded and placed e
+ *          nd-to-end.
+ *       2) offsets. This is an array of uint32_t's representing offsets of
+ *          each string in buffer 1). This array has nrows + 1 elements, with
+ *          first element being 0, second element containing the end offset of
+ *          the first string, ..., until the last element which stores the end
+ *          offset of the last string. NA strings are encoded as the previous
+ *          offset + NA mask (which is 1<<31).
+ *     Thus, i-th string is NA if its highest bit is set, or otherwise it's a
+ *     valid string whose starting offset is `start(i) = off(i-1) & ~(1<<31)`,
+ *     ending offset is `end(i) = off(i)`, and `len(i) = end(i) - start(i)`.
+ *
  *     For example, a column with 4 values `[NA, "hello", "", NA]` will be
- *     encoded as a buffer of size 28 = (0 + 5 + 0 + 0) + (3) + 4 + (4 * 4):
- *         data = h e l l o 0xFF 0xFF 0xFF <-1> <-1> <6> <6> <-6>
- *         meta = 12
- *     (where "<n>" denotes the 4-byte sequence encoding integer `n`).
- *     Meta information stores the offset of the section with offsets. Thus the
- *     total buffer size is always `offoff` + 4 * `nrows`.
- *     Note: 0xFF is used for padding because it's not a valid UTF-8 byte.
+ *     encoded as a string buffer of size 5 = (0 + 5 + 0 + 0) and offsets
+ *     buffer containing 5 uint32_t's:
+ *         strbuf  = [h e l l o]
+ *         offsets = [0, 1<<31, 5, 5, 5|(1<<31)]
  *
  * ST_STRING_I8_VCHAR
- *     elem: int64_t (8 bytes) + unsigned char[]
- *     NA:   negative numbers
- *     meta: `offoff` (long int)
+ *     elem: uint64_t (8 bytes) + unsigned char[]
+ *     NA:   (1 << 63) mask
  *     Variable-width strings: same as ST_STRING_I4_VCHAR but use 64-bit
  *     offsets.
  *
@@ -412,13 +408,7 @@ typedef struct EnumMeta {     // ST_STRING_UX_ENUM
 
 /**
  * NA constants
- *
- * Integer-based NAs can be compared by value (e.g. `x == NA_I4`), whereas
- * floating-point NAs require special functions `ISNA_F4(x)` and `ISNA_F8(x)`.
  */
-
-#define NA_F4_BITS 0x7F8007A2u
-#define NA_F8_BITS 0x7FF00000000007A2ull
 
 constexpr int8_t   NA_I1 = INT8_MIN;
 constexpr int16_t  NA_I2 = INT16_MIN;
@@ -428,22 +418,10 @@ constexpr uint8_t  NA_U1 = UINT8_MAX;
 constexpr uint16_t NA_U2 = UINT16_MAX;
 constexpr uint32_t NA_U4 = UINT32_MAX;
 constexpr uint64_t NA_U8 = UINT64_MAX;
+constexpr uint32_t NA_S4 = uint32_t(1) << 31;
+constexpr uint64_t NA_S8 = uint64_t(1) << 63;
 constexpr float    NA_F4 = std::numeric_limits<float>::quiet_NaN();
 constexpr double   NA_F8 = std::numeric_limits<double>::quiet_NaN();
-
-int ISNA_F4(float x);
-int ISNA_F8(double x);
-
-#define ISNA_I1(x)  ((int8_t)(x)   == NA_I1)
-#define ISNA_I2(x)  ((int16_t)(x)  == NA_I2)
-#define ISNA_I4(x)  ((int32_t)(x)  == NA_I4)
-#define ISNA_I8(x)  ((int64_t)(x)  == NA_I8)
-#define ISNA_U1(x)  ((uint8_t)(x)  == NA_U1)
-#define ISNA_U2(x)  ((uint16_t)(x) == NA_U2)
-#define ISNA_U4(x)  ((uint32_t)(x) == NA_U4)
-#define ISNA_F4(x)  (isnan(x))
-#define ISNA_F8(x)  (isnan(x))
-
 
 /**
  * GETNA function
@@ -456,9 +434,8 @@ template<> constexpr int8_t   GETNA() { return NA_I1; }
 template<> constexpr int16_t  GETNA() { return NA_I2; }
 template<> constexpr int32_t  GETNA() { return NA_I4; }
 template<> constexpr int64_t  GETNA() { return NA_I8; }
-template<> constexpr uint8_t  GETNA() { return NA_U1; }
-template<> constexpr uint16_t GETNA() { return NA_U2; }
-template<> constexpr uint32_t GETNA() { return NA_U4; }
+template<> constexpr uint32_t GETNA() { return NA_S4; }
+template<> constexpr uint64_t GETNA() { return NA_S8; }
 template<> constexpr float    GETNA() { return NA_F4; }
 template<> constexpr double   GETNA() { return NA_F8; }
 template<> constexpr PyObject* GETNA() { return Py_None; }
@@ -470,13 +447,12 @@ template<> constexpr PyObject* GETNA() { return Py_None; }
  */
 template <typename T>
            inline bool ISNA(T)          { return true;       }
-template<> inline bool ISNA(int8_t x)   { return ISNA_I1(x); }
-template<> inline bool ISNA(int16_t x)  { return ISNA_I2(x); }
-template<> inline bool ISNA(int32_t x)  { return ISNA_I4(x); }
-template<> inline bool ISNA(int64_t x)  { return ISNA_I8(x); }
-template<> inline bool ISNA(uint8_t x)  { return ISNA_U1(x); }
-template<> inline bool ISNA(uint16_t x) { return ISNA_U2(x); }
-template<> inline bool ISNA(uint32_t x) { return ISNA_U4(x); }
+template<> inline bool ISNA(int8_t x)   { return x == NA_I1; }
+template<> inline bool ISNA(int16_t x)  { return x == NA_I2; }
+template<> inline bool ISNA(int32_t x)  { return x == NA_I4; }
+template<> inline bool ISNA(int64_t x)  { return x == NA_I8; }
+template<> inline bool ISNA(uint32_t x) { return (x & NA_S4); }
+template<> inline bool ISNA(uint64_t x) { return (x & NA_S8); }
 template<> inline bool ISNA(float x)    { return isnan(x); }
 template<> inline bool ISNA(double x)   { return isnan(x); }
 template<> inline bool ISNA(PyObject* x) { return x == Py_None; }

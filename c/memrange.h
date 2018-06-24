@@ -276,10 +276,14 @@ class MemoryRange
 template <> void MemoryRange::set_element(int64_t, PyObject*);
 extern template int32_t MemoryRange::get_element(int64_t) const;
 extern template int64_t MemoryRange::get_element(int64_t) const;
+extern template uint32_t MemoryRange::get_element(int64_t) const;
+extern template uint64_t MemoryRange::get_element(int64_t) const;
 extern template void MemoryRange::set_element(int64_t, PyObject*);
 extern template void MemoryRange::set_element(int64_t, char);
 extern template void MemoryRange::set_element(int64_t, int32_t);
 extern template void MemoryRange::set_element(int64_t, int64_t);
+extern template void MemoryRange::set_element(int64_t, uint32_t);
+extern template void MemoryRange::set_element(int64_t, uint64_t);
 
 
 #endif

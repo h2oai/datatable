@@ -38,6 +38,10 @@ public:
   IntegrityCheckContext& operator<<(int32_t);
   IntegrityCheckContext& operator<<(int8_t);
   IntegrityCheckContext& operator<<(size_t);
+  IntegrityCheckContext& operator<<(uint32_t);
+  #ifdef __APPLE__
+    IntegrityCheckContext& operator<<(uint64_t);
+  #endif
   void operator<<(const EndOfError&);
 };
 

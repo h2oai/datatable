@@ -96,6 +96,20 @@ IntegrityCheckContext& IntegrityCheckContext::operator<<(size_t num) {
   return *this;
 }
 
+IntegrityCheckContext& IntegrityCheckContext::operator<<(uint32_t num) {
+  if (num_errors < max_errors)
+    error_stream << num;
+  return *this;
+}
+
+#ifdef __APPLE__
+  IntegrityCheckContext& IntegrityCheckContext::operator<<(uint64_t num) {
+    if (num_errors < max_errors)
+      error_stream << num;
+    return *this;
+  }
+#endif
+
 void IntegrityCheckContext::operator<<(const EndOfError&) {
   if (num_errors < max_errors)
     error_stream << "\n";

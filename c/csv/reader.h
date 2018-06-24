@@ -294,7 +294,7 @@ class GenericReader
  * structure for reading strings from a file.
  */
 struct RelStr {
-  int32_t offset;
+  uint32_t offset;
   int32_t length;
 
   bool isna() { return length == std::numeric_limits<int32_t>::min(); }
