@@ -107,14 +107,18 @@ class OmpExceptionManager
 {
   std::exception_ptr ptr;
   std::mutex lock;
+  bool stop;
+  size_t : 56;
 
 public:
   OmpExceptionManager();
-  bool exception_caught();
-  void capture_exception();
-  void rethrow_exception_if_any();
 
-  bool is_keyboard_interrupt();
+  bool stop_requested() const;
+  bool exception_caught() const;
+  bool is_keyboard_interrupt() const;
+  void capture_exception();
+  void stop_iterations();
+  void rethrow_exception_if_any() const;
 };
 
 
