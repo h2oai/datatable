@@ -25,7 +25,7 @@ RSA_CRED_ID = 'master-id-rsa'
 DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
 X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
 EXPECTED_SHAS = [
-        files : [
+        files: [
                 'ci/Dockerfile-ubuntu.in' : '47087215fe899c38e12037e2d91dd4202988e98c',
                 'ci/Dockerfile-centos7.in': 'ae1ef9a0b3a665ea311c3a627108bd51ebcc3b93',
         ]
@@ -42,10 +42,10 @@ S3_URL_STABLE = "s3://${BUCKET}/${STABLE_FOLDER}"
 HTTPS_URL_STABLE = "https://${BUCKET}.s3.amazonaws.com/${STABLE_FOLDER}"
 // Data map for linking into container
 LINK_MAP = [
-    "Data"     : "h2oai-benchmarks/Data",
-    "smalldata": "h2o-3/smalldata",
-    "bigdata"  : "h2o-3/bigdata",
-    "fread"    : "h2o-3/fread",
+        "Data"     : "h2oai-benchmarks/Data",
+        "smalldata": "h2o-3/smalldata",
+        "bigdata"  : "h2o-3/bigdata",
+        "fread"    : "h2o-3/fread",
 ]
 
 // Computed version suffix
@@ -62,12 +62,12 @@ def versionText
 // PIPELINE //
 //////////////
 properties([
-    parameters([
-        booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
-        booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
-        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
-    ]),
-    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
+        parameters([
+                booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
+                booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
+                booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
+        ]),
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
 
 ansiColor('xterm') {
@@ -79,7 +79,7 @@ ansiColor('xterm') {
             // Checkout stage
             stage('Checkout') {
                 node(NODE_LABEL) {
-                    dir ('checkout') {
+                    dir('checkout') {
                         def scmEnv = checkout scm
                         env.BRANCH_NAME = scmEnv['GIT_BRANCH'].replaceAll('origin/', '').replaceAll('/', '_')
                         if (doPPC()) {
@@ -121,163 +121,134 @@ ansiColor('xterm') {
             }
             // Build stages
             parallel([
-                'Build on x86_64_centos7': {
-                    stage('Build on x86_64_centos7') {
-                        node(NODE_LABEL) {
-                            cleanWs()
-                            dumpInfo()
-                            final stageDir = 'build-x86_64_centos7'
-                            dir(stageDir) {
-                                unstash 'datatable-sources'
-                                withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                    sh "make clean && make centos7_build_py36_in_docker"
-                                    stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh "make clean && make centos7_build_py35_in_docker"
-                                    stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh "make centos7_version_in_docker"
-                                    stash name: 'VERSION', includes: "dist/VERSION.txt"
-                                    arch "dist/VERSION.txt"
-                                    versionText = readFile('dist/VERSION.txt').trim()
-                                    echo "Version is: ${versionText}"
+                    'Build on x86_64_centos7' : {
+                        stage('Build on x86_64_centos7') {
+                            node(NODE_LABEL) {
+                                cleanWs()
+                                dumpInfo()
+                                final stageDir = 'build-x86_64_centos7'
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                                        sh "make clean && make centos7_build_py36_in_docker"
+                                        stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
+                                        sh "make clean && make centos7_build_py35_in_docker"
+                                        stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
+                                        sh "make centos7_version_in_docker"
+                                        stash name: 'VERSION', includes: "dist/VERSION.txt"
+                                        arch "dist/VERSION.txt"
+                                        versionText = readFile('dist/VERSION.txt').trim()
+                                        echo "Version is: ${versionText}"
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                'Build on x86_64_macos': {
-                    stage('Build on x86_64_macos') {
-                        node(OSX_NODE_LABEL) {
-                            cleanWs()
-							dumpInfo()
-                            dir('build-x86_64_macos') {
-                                unstash 'datatable-sources'
-                                withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
-                                    sh """
+                    },
+                    'Build on x86_64_macos'   : {
+                        stage('Build on x86_64_macos') {
+                            node(OSX_NODE_LABEL) {
+                                cleanWs()
+                                dumpInfo()
+                                dir('build-x86_64_macos') {
+                                    unstash 'datatable-sources'
+                                    withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
+                                        sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
                                         make clean
                                         make BRANCH_NAME=${env.BRANCH_NAME} dist
                                     """
-                                    stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
+                                        stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
                                         sh """
                                             . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
                                             make clean
                                             make BRANCH_NAME=${env.BRANCH_NAME} dist
                                         """
-                                    stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                }
-                            }
-                        }
-                    }
-                },
-                'Build on ppc64le_centos7': {
-                    if (doPPC()) {
-                        stage('Build on ppc64le_centos7') {
-                            node(PPC_NODE_LABEL) {
-                                if(doPPC()) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    final stageDir = 'build-ppc64le_centos7'
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                            sh "make clean && make centos7_build_py36_in_docker"
-                                            stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
-                                            arch "dist/*.whl"
-                                            sh "make clean && make centos7_build_py35_in_docker"
-                                            stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
-                                            arch "dist/*.whl"
-                                        }
+                                        stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
+                                        arch "dist/*.whl"
                                     }
-                                } else {
-                                    echo 'Build on ppc64le_centos7 SKIPPED'
-                                }
-                            }
-                        }
-                    }
-                }
-            ])
-            // Coverage stages
-            if (!params.DISABLE_COVERAGE) {
-                parallel ([
-                    'Coverage on x86_64_linux': {
-                        stage('Coverage on x86_64_linux') {
-                            node(NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'coverage-x86_64_linux'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    try {
-                                        sh "make CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
-                                    } finally {
-                                        arch "/tmp/cores/*"
-                                    }
-                                    testReport "build/coverage-c", "x86_64_linux coverage report for C"
-                                    testReport "build/coverage-py", "x86_64_linux coverage report for Python"
                                 }
                             }
                         }
                     },
-                    'Coverage on x86_64_macos': {
-                        stage('Coverage on x86_64_macos') {
-                            node(OSX_NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'coverage-x86_64_osx'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    withEnv(OSX_ENV) {
-                                        sh """
-                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                            make coverage
-                                        """
+                    'Build on ppc64le_centos7': {
+                        if (doPPC()) {
+                            stage('Build on ppc64le_centos7') {
+                                node(PPC_NODE_LABEL) {
+                                    if (doPPC()) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'build-ppc64le_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
+                                                sh "make clean && make centos7_build_py36_in_docker"
+                                                stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
+                                                arch "dist/*.whl"
+                                                sh "make clean && make centos7_build_py35_in_docker"
+                                                stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
+                                                arch "dist/*.whl"
+                                            }
+                                        }
+                                    } else {
+                                        echo 'Build on ppc64le_centos7 SKIPPED'
                                     }
-                                    testReport "build/coverage-c", "x86_64_osx coverage report for C"
-                                    testReport "build/coverage-py", "x86_64_osx coverage report for Python"
                                 }
                             }
                         }
                     }
+            ])
+            // Coverage stages
+            if (!params.DISABLE_COVERAGE) {
+                parallel([
+                        'Coverage on x86_64_linux': {
+                            stage('Coverage on x86_64_linux') {
+                                node(NODE_LABEL) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    final stageDir = 'coverage-x86_64_linux'
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        try {
+                                            sh "make CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        } finally {
+                                            arch "/tmp/cores/*"
+                                        }
+                                        testReport "build/coverage-c", "x86_64_linux coverage report for C"
+                                        testReport "build/coverage-py", "x86_64_linux coverage report for Python"
+                                    }
+                                }
+                            }
+                        },
+                        'Coverage on x86_64_macos': {
+                            stage('Coverage on x86_64_macos') {
+                                node(OSX_NODE_LABEL) {
+                                    cleanWs()
+                                    dumpInfo()
+                                    final stageDir = 'coverage-x86_64_osx'
+                                    dir(stageDir) {
+                                        unstash 'datatable-sources'
+                                        withEnv(OSX_ENV) {
+                                            sh """
+                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
+                                            make coverage
+                                        """
+                                        }
+                                        testReport "build/coverage-c", "x86_64_osx coverage report for C"
+                                        testReport "build/coverage-py", "x86_64_osx coverage report for Python"
+                                    }
+                                }
+                            }
+                        }
                 ])
             }
             // Test stages
             if (!params.DISABLE_TESTS) {
-                parallel ([
-                    'Test Py36 with Pandas on x86_64_linux': {
-                        stage('Test Py36 with Pandas on x86_64_linux') {
-                            node(NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'test-x86_64_linux'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py36-whl'
-                                    testInDocker('ubuntu_test_py36_with_pandas_in_docker', needsLargerTest)
-                                }
-                            }
-                        }
-                    },
-                    'Test Py35 with Pandas on x86_64_linux': {
-                        stage('Test Py35 with Pandas on x86_64_linux') {
-                            node(NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'test-x86_64_linux'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py35-whl'
-                                    testInDocker('ubuntu_test_py35_with_pandas_in_docker', needsLargerTest)
-                                }
-                            }
-                        }
-                    },
-                    'Test Py36 with Numpy on x86_64_linux': {
-                        if(!isPrJob()) {
-                            stage('Test Py36 with Numpy on x86_64_linux') {
+                parallel([
+                        'Test Py36 with Pandas on x86_64_linux'   : {
+                            stage('Test Py36 with Pandas on x86_64_linux') {
                                 node(NODE_LABEL) {
                                     cleanWs()
                                     dumpInfo()
@@ -285,63 +256,63 @@ ansiColor('xterm') {
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('ubuntu_test_py36_with_numpy_in_docker', needsLargerTest)
+                                        testInDocker('ubuntu_test_py36_with_pandas_in_docker', needsLargerTest)
                                     }
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 with Numpy on x86_64_linux - SKIPPED'
-                        }
-                    },
-                    'Test Py36 on x86_64_linux': {
-                        if(!isPrJob()) {
-                            stage('Test Py36 on x86_64_linux') {
+                        },
+                        'Test Py35 with Pandas on x86_64_linux'   : {
+                            stage('Test Py35 with Pandas on x86_64_linux') {
                                 node(NODE_LABEL) {
                                     cleanWs()
                                     dumpInfo()
                                     final stageDir = 'test-x86_64_linux'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
-                                        unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('ubuntu_test_py36_in_docker', needsLargerTest)
+                                        unstash 'x86_64_centos7-py35-whl'
+                                        testInDocker('ubuntu_test_py35_with_pandas_in_docker', needsLargerTest)
                                     }
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 on x86_64_linux - SKIPPED'
-                        }
-                    },
-                    'Test Py36 with Pandas on x86_64_centos7': {
-                        stage('Test Py36 with Pandas on x86_64_centos7') {
-                            node(NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'test-x86_64_centos7'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py36-whl'
-                                    testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
+                        },
+                        'Test Py36 with Numpy on x86_64_linux'    : {
+                            if (!isPrJob()) {
+                                stage('Test Py36 with Numpy on x86_64_linux') {
+                                    node(NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-x86_64_linux'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'x86_64_centos7-py36-whl'
+                                            testInDocker('ubuntu_test_py36_with_numpy_in_docker', needsLargerTest)
+                                        }
+                                    }
                                 }
+                            } else {
+                                echo 'Test Py36 with Numpy on x86_64_linux - SKIPPED'
                             }
-                        }
-                    },
-                    'Test Py35 with Pandas on x86_64_centos7': {
-                        stage('Test Py35 with Pandas on x86_64_centos7') {
-                            node(NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'test-x86_64_centos7'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py35-whl'
-                                    testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
+                        },
+                        'Test Py36 on x86_64_linux'               : {
+                            if (!isPrJob()) {
+                                stage('Test Py36 on x86_64_linux') {
+                                    node(NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-x86_64_linux'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'x86_64_centos7-py36-whl'
+                                            testInDocker('ubuntu_test_py36_in_docker', needsLargerTest)
+                                        }
+                                    }
                                 }
+                            } else {
+                                echo 'Test Py36 on x86_64_linux - SKIPPED'
                             }
-                        }
-                    },
-                    'Test Py36 with Numpy on x86_64_centos7': {
-                        if (!isPrJob()) {
-                            stage('Test Py36 with Numpy on x86_64_centos7') {
+                        },
+                        'Test Py36 with Pandas on x86_64_centos7' : {
+                            stage('Test Py36 with Pandas on x86_64_centos7') {
                                 node(NODE_LABEL) {
                                     cleanWs()
                                     dumpInfo()
@@ -349,131 +320,131 @@ ansiColor('xterm') {
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
-                                    }
-                                }
-                            }
-                        } else {
-                            echo 'Test Py36 with Numpy on x86_64_centos7 - SKIPPED'
-                        }
-                    },
-                    'Test Py36 on x86_64_centos7': {
-                        if (!isPrJob()) {
-                            stage('Test Py36 on x86_64_centos7') {
-                                node(NODE_LABEL) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    final stageDir = 'test-x86_64_centos7'
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'x86_64_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_in_docker', needsLargerTest)
-                                    }
-                                }
-                            }
-                        } else {
-                            echo 'Test Py36 on x86_64_centos7 - SKIPPED'
-                        }
-                    },
-                    'Test Py36 with Pandas on ppc64le_centos7': {
-                        stage('Test Py36 with Pandas on ppc64le_centos7') {
-                            node(PPC_NODE_LABEL) {
-                                if (doPPC()) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py36-whl'
                                         testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
                                     }
                                 }
                             }
-                        }
-                    },
-                    'Test Py35 with Pandas on ppc64le_centos7': {
-                        stage('Test Py35 with Pandas on ppc64le_centos7') {
-                            node(PPC_NODE_LABEL) {
-                                if (doPPC()) {
+                        },
+                        'Test Py35 with Pandas on x86_64_centos7' : {
+                            stage('Test Py35 with Pandas on x86_64_centos7') {
+                                node(NODE_LABEL) {
                                     cleanWs()
                                     dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
+                                    final stageDir = 'test-x86_64_centos7'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py35-whl'
+                                        unstash 'x86_64_centos7-py35-whl'
                                         testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
                                     }
                                 }
                             }
-                        }
-                    },
-                    'Test Py36 with Numpy on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC()) {
-                            stage('Test Py36 with Numpy on ppc64le_centos7') {
+                        },
+                        'Test Py36 with Numpy on x86_64_centos7'  : {
+                            if (!isPrJob()) {
+                                stage('Test Py36 with Numpy on x86_64_centos7') {
+                                    node(NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-x86_64_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'x86_64_centos7-py36-whl'
+                                            testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
+                                        }
+                                    }
+                                }
+                            } else {
+                                echo 'Test Py36 with Numpy on x86_64_centos7 - SKIPPED'
+                            }
+                        },
+                        'Test Py36 on x86_64_centos7'             : {
+                            if (!isPrJob()) {
+                                stage('Test Py36 on x86_64_centos7') {
+                                    node(NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-x86_64_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'x86_64_centos7-py36-whl'
+                                            testInDocker('centos7_test_py36_in_docker', needsLargerTest)
+                                        }
+                                    }
+                                }
+                            } else {
+                                echo 'Test Py36 on x86_64_centos7 - SKIPPED'
+                            }
+                        },
+                        'Test Py36 with Pandas on ppc64le_centos7': {
+                            stage('Test Py36 with Pandas on ppc64le_centos7') {
                                 node(PPC_NODE_LABEL) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
+                                    if (doPPC()) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-ppc64le_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'ppc64le_centos7-py36-whl'
+                                            testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
+                                        }
                                     }
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 with Numpy on ppc64le_centos7 - SKIPPED'
-                        }
-                    },
-                    'Test Py36 on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC()) {
-                            stage('Test Py36 on ppc64le_centos7') {
+                        },
+                        'Test Py35 with Pandas on ppc64le_centos7': {
+                            stage('Test Py35 with Pandas on ppc64le_centos7') {
                                 node(PPC_NODE_LABEL) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    final stageDir = 'test-ppc64le_centos7'
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        unstash 'ppc64le_centos7-py36-whl'
-                                        testInDocker('centos7_test_py36_in_docker', needsLargerTest)
+                                    if (doPPC()) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-ppc64le_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'ppc64le_centos7-py35-whl'
+                                            testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
+                                        }
                                     }
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 on ppc64le_centos7 - SKIPPED'
-                        }
-                    },
-                    'Test Py36 with Pandas on x86_64_osx': {
-                        stage('Test Py36 with Pandas on x86_64_osx') {
-                            node(OSX_NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'test-x86_64_osx'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64_osx-py36-whl'
-                                    testOSX('datatable-py36-with-pandas', needsLargerTest)
+                        },
+                        'Test Py36 with Numpy on ppc64le_centos7' : {
+                            if (!isPrJob() && doPPC()) {
+                                stage('Test Py36 with Numpy on ppc64le_centos7') {
+                                    node(PPC_NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-ppc64le_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'ppc64le_centos7-py36-whl'
+                                            testInDocker('centos7_test_py36_with_numpy_in_docker', needsLargerTest)
+                                        }
+                                    }
                                 }
+                            } else {
+                                echo 'Test Py36 with Numpy on ppc64le_centos7 - SKIPPED'
                             }
-                        }
-                    },
-                    'Test Py35 with Pandas on x86_64_osx': {
-                        stage('Test Py35 with Pandas on x86_64_osx') {
-                            node(OSX_NODE_LABEL) {
-                                cleanWs()
-                                dumpInfo()
-                                final stageDir = 'test-x86_64_osx'
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64_osx-py35-whl'
-                                    testOSX('datatable-py35-with-pandas', needsLargerTest)
+                        },
+                        'Test Py36 on ppc64le_centos7'            : {
+                            if (!isPrJob() && doPPC()) {
+                                stage('Test Py36 on ppc64le_centos7') {
+                                    node(PPC_NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-ppc64le_centos7'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'ppc64le_centos7-py36-whl'
+                                            testInDocker('centos7_test_py36_in_docker', needsLargerTest)
+                                        }
+                                    }
                                 }
+                            } else {
+                                echo 'Test Py36 on ppc64le_centos7 - SKIPPED'
                             }
-                        }
-                    },
-                    'Test Py36 with Numpy on x86_64_osx': {
-                        if (!isPrJob()) {
-                            stage('Test Py36 with Numpy on x86_64_osx') {
+                        },
+                        'Test Py36 with Pandas on x86_64_osx'     : {
+                            stage('Test Py36 with Pandas on x86_64_osx') {
                                 node(OSX_NODE_LABEL) {
                                     cleanWs()
                                     dumpInfo()
@@ -481,42 +452,71 @@ ansiColor('xterm') {
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         unstash 'x86_64_osx-py36-whl'
-                                        testOSX('datatable-py36-with-numpy', needsLargerTest)
+                                        testOSX('datatable-py36-with-pandas', needsLargerTest)
                                     }
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 with Numpy on x86_64_osx - SKIPPED'
-                        }
-                    },
-                    'Test Py36 on x86_64_osx': {
-                        if (!isPrJob()) {
-                            stage('Test Py36 on x86_64_osx') {
+                        },
+                        'Test Py35 with Pandas on x86_64_osx'     : {
+                            stage('Test Py35 with Pandas on x86_64_osx') {
                                 node(OSX_NODE_LABEL) {
                                     cleanWs()
                                     dumpInfo()
                                     final stageDir = 'test-x86_64_osx'
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
-                                        unstash 'x86_64_osx-py36-whl'
-                                        testOSX('datatable-py36', needsLargerTest)
+                                        unstash 'x86_64_osx-py35-whl'
+                                        testOSX('datatable-py35-with-pandas', needsLargerTest)
                                     }
                                 }
                             }
-                        } else {
-                            echo 'Test Py36 on x86_64_osx - SKIPPED'
-                        }
-                    },
+                        },
+                        'Test Py36 with Numpy on x86_64_osx'      : {
+                            if (!isPrJob()) {
+                                stage('Test Py36 with Numpy on x86_64_osx') {
+                                    node(OSX_NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-x86_64_osx'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'x86_64_osx-py36-whl'
+                                            testOSX('datatable-py36-with-numpy', needsLargerTest)
+                                        }
+                                    }
+                                }
+                            } else {
+                                echo 'Test Py36 with Numpy on x86_64_osx - SKIPPED'
+                            }
+                        },
+                        'Test Py36 on x86_64_osx'                 : {
+                            if (!isPrJob()) {
+                                stage('Test Py36 on x86_64_osx') {
+                                    node(OSX_NODE_LABEL) {
+                                        cleanWs()
+                                        dumpInfo()
+                                        final stageDir = 'test-x86_64_osx'
+                                        dir(stageDir) {
+                                            unstash 'datatable-sources'
+                                            unstash 'x86_64_osx-py36-whl'
+                                            testOSX('datatable-py36', needsLargerTest)
+                                        }
+                                    }
+                                }
+                            } else {
+                                echo 'Test Py36 on x86_64_osx - SKIPPED'
+                            }
+                        },
                 ])
             }
             // Build sdist
             if (doPublish()) {
-                stage ('Build sdist') {
+                stage('Build sdist') {
                     node(NODE_LABEL) {
                         cleanWs()
                         dumpInfo()
                         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                            dir ('build-sdist') {
+                            dir('build-sdist') {
                                 unstash 'datatable-sources'
                                 unstash 'VERSION'
                                 sh "make ubuntu_build_sdist_in_docker"
@@ -616,6 +616,9 @@ ansiColor('xterm') {
                                     sh """
                                         s3cmd put -P release/dist/*.whl ${S3_URL_STABLE}/datatable-${versionText}/
                                         s3cmd put -P release/dist/*.tar.gz ${S3_URL_STABLE}/datatable-${versionText}/
+                                        TARGET=s3://h2o-release/datatable/stable/datatable-${versionText}/.whl
+                                        LINK=s3://h2o-release/datatable/stable/datatable-${versionText}.html 
+                                        ./ci/generate-stable-links.sh "${TARGET}" "${LINK}"
                                     """
                                 }
                             }
@@ -634,7 +637,11 @@ ${project.getReleaseDownloadLinksText("release/dist", "${getHTTPSTargetUrl(versi
                                         cp \${ID_RSA_PATH} ~/.ssh/id_rsa
                                         cp \${GITCONFIG_PATH} ~/.gitconfig
                                         cd release
-                                        hub release create -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}"
+                                        hub release create -f ${
+                                        releaseMsgFile
+                                    } \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${
+                                        versionText
+                                    }"
                                     """
                                     echo readFile("release/${releaseMsgFile}").trim()
                                 }
