@@ -15,8 +15,8 @@ The latest stable build link generator.
  $0 <S3 TARGET> <FORWARD FILE> [<DRY RUN COMMAND>]
 
  Parameters:
-   S3 TARGET       - S3 location of forward target (e.g., s3://h2o-release/datatable/datatable-1.2.3.tgz
-   FORWARD FILE    - S3 location of forward file (e.g., s3://h2o-release/datatable/latest-datatable.html
+   S3 TARGET       - S3 location of forward target (e.g., s3://h2o-release/datatable/stable/datatable-1.2.3.tgz
+   FORWARD FILE    - S3 location of forward file (e.g., s3://h2o-release/datatable/stable/latest-datatable.html
    DRY RUN COMMAND - optional command to prepend before executing s3cmd
 
 EOF
@@ -52,5 +52,3 @@ Forward generated:
   To  : ${HTTPS_TARGET}
 EOF
 echo -en "\033[0;39m"
-
-
