@@ -616,8 +616,9 @@ ansiColor('xterm') {
                                     sh """
                                         s3cmd put -P release/dist/*.whl ${S3_URL_STABLE}/datatable-${versionText}/
                                         s3cmd put -P release/dist/*.tar.gz ${S3_URL_STABLE}/datatable-${versionText}/
-                                        TARGET=s3://h2o-release/datatable/stable/datatable-${versionText}/.whl
-                                        LINK=s3://h2o-release/datatable/stable/datatable-${versionText}.html 
+                                        
+                                        TARGET=s3://h2o-release/datatable/stable/datatable-${versionText}
+                                        LINK=s3://h2o-release/datatable/stable/latest-stable-datatable.html
                                         ./ci/generate-stable-links.sh "${TARGET}" "${LINK}"
                                     """
                                 }
