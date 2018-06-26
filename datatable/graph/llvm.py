@@ -7,7 +7,6 @@
 import os
 import re
 import subprocess
-from llvmlite import binding
 from datatable.utils.terminal import term
 from datatable.utils.typechecks import TValueError
 
@@ -16,15 +15,12 @@ __all__ = ("llvm", )
 
 
 class Llvm:
-    __slots__ = ["_clang", "_engine"]
+    __slots__ = ["_clang", "_engine", "_initialized"]
 
     def __init__(self):
-        self._clang = self._find_clang()
-        if self._clang:
-            self._engine = self._create_execution_engine()
-        else:
-            # LLVM/CLang engine not available
-            self._engine = None
+        self._clang = None
+        self._engine = None
+        self._initialized = False
 
 
     #---------------------------------------------------------------------------
@@ -33,7 +29,8 @@ class Llvm:
 
     @property
     def available(self):
-        return self._clang
+        self._init_all()
+        return bool(self._clang)
 
 
     def jit(self, cc, func_names):
@@ -64,6 +61,16 @@ class Llvm:
     # Initialization
     #---------------------------------------------------------------------------
 
+    def _init_all(self):
+        if not self._initialized:
+            self._initialized = True
+            try:
+                self._clang = self._find_clang()
+                self._engine = self._create_execution_engine()
+            except:
+                self._clang = None
+                self._engine = None
+
     def _find_clang(self):
         for evar in ["LLVM4", "LLVM5", "LLVM6"]:
             if evar not in os.environ:
@@ -82,6 +89,9 @@ class Llvm:
         Create an ExecutionEngine suitable for JIT code generation on the host
         CPU. The engine is reusable for any number of modules.
         """
+        from llvmlite import binding
+        if not self._clang:
+            return None
         # Initialization...
         binding.initialize()
         binding.initialize_native_target()
