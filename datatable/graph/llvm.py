@@ -7,7 +7,6 @@
 import os
 import re
 import subprocess
-from llvmlite import binding
 from datatable.utils.terminal import term
 from datatable.utils.typechecks import TValueError
 
@@ -16,15 +15,13 @@ __all__ = ("llvm", )
 
 
 class Llvm:
-    __slots__ = ["_clang", "_engine"]
+    __slots__ = ["_clang", "_engine", "_binding", "_initialized"]
 
     def __init__(self):
-        self._clang = self._find_clang()
-        if self._clang:
-            self._engine = self._create_execution_engine()
-        else:
-            # LLVM/CLang engine not available
-            self._engine = None
+        self._clang = None
+        self._engine = None
+        self._binding = None
+        self._initialized = False
 
 
     #---------------------------------------------------------------------------
@@ -33,10 +30,12 @@ class Llvm:
 
     @property
     def available(self):
-        return self._clang
+        self._init_all()
+        return bool(self._clang)
 
 
     def jit(self, cc, func_names):
+        self._init_all()
         try:
             llvmir = self._c_to_llvm(cc)
             self._compile_llvmir(llvmir)
@@ -64,6 +63,16 @@ class Llvm:
     # Initialization
     #---------------------------------------------------------------------------
 
+    def _init_all(self):
+        if not self._initialized:
+            self._initialized = True
+            try:
+                self._clang = self._find_clang()
+                self._engine = self._create_execution_engine()
+            except:
+                self._clang = None
+                self._engine = None
+
     def _find_clang(self):
         for evar in ["LLVM4", "LLVM5", "LLVM6"]:
             if evar not in os.environ:
@@ -82,6 +91,9 @@ class Llvm:
         Create an ExecutionEngine suitable for JIT code generation on the host
         CPU. The engine is reusable for any number of modules.
         """
+        from llvmlite import binding
+        if not self._clang:
+            return None
         # Initialization...
         binding.initialize()
         binding.initialize_native_target()
@@ -92,6 +104,7 @@ class Llvm:
         # And an execution engine with an empty backing module
         backing_mod = binding.parse_assembly("")
         engine = binding.create_mcjit_compiler(backing_mod, target_machine)
+        self._binding = binding
         return engine
 
 
@@ -114,7 +127,7 @@ class Llvm:
 
 
     def _compile_llvmir(self, llvm_code):
-        m = binding.parse_assembly(llvm_code)
+        m = self._binding.parse_assembly(llvm_code)
         m.verify()
         self._engine.add_module(m)
         self._engine.finalize_object()
