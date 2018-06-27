@@ -15,11 +15,12 @@ __all__ = ("llvm", )
 
 
 class Llvm:
-    __slots__ = ["_clang", "_engine", "_initialized"]
+    __slots__ = ["_clang", "_engine", "_binding", "_initialized"]
 
     def __init__(self):
         self._clang = None
         self._engine = None
+        self._binding = None
         self._initialized = False
 
 
@@ -34,6 +35,7 @@ class Llvm:
 
 
     def jit(self, cc, func_names):
+        self._init_all()
         try:
             llvmir = self._c_to_llvm(cc)
             self._compile_llvmir(llvmir)
@@ -102,6 +104,7 @@ class Llvm:
         # And an execution engine with an empty backing module
         backing_mod = binding.parse_assembly("")
         engine = binding.create_mcjit_compiler(backing_mod, target_machine)
+        self._binding = binding
         return engine
 
 
@@ -124,7 +127,7 @@ class Llvm:
 
 
     def _compile_llvmir(self, llvm_code):
-        m = binding.parse_assembly(llvm_code)
+        m = self._binding.parse_assembly(llvm_code)
         m.verify()
         self._engine.add_module(m)
         self._engine.finalize_object()
