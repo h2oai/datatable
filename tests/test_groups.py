@@ -137,6 +137,26 @@ def test_groups_autoexpand():
                              [2, 7, 0, 5, 13]]
 
 
+def test_groupby_with_filter1():
+    f0 = dt.Frame({"KEY": [1, 2, 1, 2, 1, 2], "X": [-10, 2, 3, 0, 1, -7]})
+    f1 = f0[f.X > 0, sum(f.X), f.KEY]
+    assert f1.topython() == [[1, 2], [4, 2]]
+
+
+def test_groupby_with_filter2():
+    # Check that rowindex works even when applied to a view
+    n = 10000
+    src0 = [random.getrandbits(2) for _ in range(n)]
+    src1 = [random.gauss(1, 1) for _ in range(n)]
+    f0 = dt.Frame({"key": src0, "val": src1})
+    f1 = f0[f.val >= 0, :]
+    f2 = f1[f.val <= 2, sum(f.val), f.key]
+    answer = [sum(src1[i] for i in range(n)
+                  if src0[i] == key and 0 <= src1[i] <= 2)
+              for key in range(4)]
+    assert f2.topython() == [[0, 1, 2, 3], answer]
+
+
 
 
 #-------------------------------------------------------------------------------

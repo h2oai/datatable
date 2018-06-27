@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### [Unreleased](https://github.com/h2oai/datatable/compare/HEAD...v0.6.0)
 #### Added
 - Frame can now be created from a list/dict of numpy arrays.
+- Filters can now be used together with groupby expressions.
 
 #### Fixed
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.
