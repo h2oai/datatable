@@ -67,40 +67,40 @@ void StringColumn<T>::init_mmap(const std::string& filename) {
 }
 
 template <typename T>
-void StringColumn<T>::open_mmap(const std::string& filename) {
+void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
   xassert(!ri);
+  std::string filename_str = path_str(filename);
 
   mbuf = MemoryRange::mmap(filename);
+  strbuf = MemoryRange::mmap(filename_str);
 
-  size_t exp_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
-  if (mbuf.size() != exp_mbuf_size) {
-    throw Error() << "File \"" << filename <<
-        "\" cannot be used to create a column with " << nrows <<
-        " rows. Expected file size of " << exp_mbuf_size <<
-        " bytes, actual size is " << mbuf.size() << " bytes";
-  }
-  if (mbuf.get_element<T>(0) != 0) {
-    // Recode old format of string storage
-    T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
-    offsets[-1] = 0;
-    for (int64_t i = 0; i < nrows; ++i) {
-      T x = offsets[i];
-      offsets[i] = ISNA<T>(x)? GETNA<T>() - x - 1 : x - 1;
+  // size_t exp_mbuf_size = sizeof(T) * (static_cast<size_t>(nrows) + 1);
+  // if (mbuf.size() != exp_mbuf_size) {
+  //   throw Error() << "File \"" << filename <<
+  //       "\" cannot be used to create a column with " << nrows <<
+  //       " rows. Expected file size of " << exp_mbuf_size <<
+  //       " bytes, actual size is " << mbuf.size() << " bytes";
+  // }
+  if (recode) {
+    if (mbuf.get_element<T>(0) != 0) {
+      // Recode old format of string storage
+      T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
+      offsets[-1] = 0;
+      for (int64_t i = 0; i < nrows; ++i) {
+        T x = offsets[i];
+        offsets[i] = ISNA<T>(x)? GETNA<T>() - x - 1 : x - 1;
+      }
     }
   }
 
-  std::string filename_str = path_str(filename);
-
-  strbuf = MemoryRange::mmap(filename_str);
-  size_t exp_strbuf_size = (mbuf.get_element<T>(nrows) & ~GETNA<T>());
-
-  if (strbuf.size() != exp_strbuf_size) {
-    size_t strbuf_size = strbuf.size();
-    throw Error() << "File \"" << filename_str <<
-      "\" cannot be used to create a column with " << nrows <<
-      " rows. Expected file size of " << exp_strbuf_size <<
-      " bytes, actual size is " << strbuf_size << " bytes";
-  }
+  // size_t exp_strbuf_size = (mbuf.get_element<T>(nrows) & ~GETNA<T>());
+  // if (strbuf.size() != exp_strbuf_size) {
+  //   size_t strbuf_size = strbuf.size();
+  //   throw Error() << "File \"" << filename_str <<
+  //     "\" cannot be used to create a column with " << nrows <<
+  //     " rows. Expected file size of " << exp_strbuf_size <<
+  //     " bytes, actual size is " << strbuf_size << " bytes";
+  // }
 }
 
 // Not implemented (should it be?) see method signature in `Column` for
