@@ -73,10 +73,11 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
   DataTable* colspec;
   int64_t nrows;
   const char* path;
-  if (!PyArg_ParseTuple(args, "O&ns:datatable_load",
-                        &unwrap, &colspec, &nrows, &path))
+  int recode;
+  if (!PyArg_ParseTuple(args, "O&nsi:datatable_load",
+                        &unwrap, &colspec, &nrows, &path, &recode))
     return nullptr;
-  return wrap(DataTable::load(colspec, nrows, path));
+  return wrap(DataTable::load(colspec, nrows, path, recode));
 }
 
 

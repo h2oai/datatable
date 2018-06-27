@@ -97,7 +97,7 @@ class DataTable {
     bool verify_integrity(IntegrityCheckContext& icc) const;
 
     static DataTable* load(DataTable* schema, int64_t nrows,
-                           const std::string& path);
+                           const std::string& path, bool recode);
 
   private:
     DataTable* _statdt(colmakerfn f) const;

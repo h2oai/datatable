@@ -82,7 +82,8 @@ public:
   static Column* new_data_column(SType, int64_t nrows);
   static Column* new_na_column(SType, int64_t nrows);
   static Column* new_mmap_column(SType, int64_t nrows, const std::string& filename);
-  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename);
+  static Column* open_mmap_column(SType, int64_t nrows, const std::string& filename,
+                                  bool recode = false);
   static Column* new_xbuf_column(SType, int64_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
@@ -259,7 +260,7 @@ protected:
   Column(int64_t nrows = 0);
   virtual void init_data() = 0;
   virtual void init_mmap(const std::string& filename) = 0;
-  virtual void open_mmap(const std::string& filename) = 0;
+  virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(std::vector<const Column*>& columns,
                           int64_t nrows, bool isempty) = 0;
@@ -336,7 +337,7 @@ public:
 protected:
   void init_data() override;
   void init_mmap(const std::string& filename) override;
-  void open_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
@@ -566,7 +567,7 @@ protected:
   PyObjectColumn();
   // TODO: This should be corrected when PyObjectStats is implemented
   PyObjectStats* get_stats() const override;
-  void open_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename, bool) override;
 
   // void cast_into(BoolColumn*) const override;
   // void cast_into(IntColumn<int8_t>*) const override;
@@ -634,7 +635,7 @@ protected:
   StringColumn();
   void init_data() override;
   void init_mmap(const std::string& filename) override;
-  void open_mmap(const std::string& filename) override;
+  void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
   void rbind_impl(std::vector<const Column*>& columns, int64_t nrows,
@@ -689,7 +690,7 @@ protected:
   VoidColumn() {}
   void init_data() override {}
   void init_mmap(const std::string&) override {}
-  void open_mmap(const std::string&) override {}
+  void open_mmap(const std::string&, bool) override {}
   void init_xbuf(Py_buffer*) override {}
 
   Stats* get_stats() const override { return nullptr; }

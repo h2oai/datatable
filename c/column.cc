@@ -86,11 +86,11 @@ void Column::save_to_disk(const std::string& filename,
  * valid values, and that the extra parameters match the buffer's contents).
  */
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
-                                 const std::string& filename)
+                                 const std::string& filename, bool recode)
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->open_mmap(filename);
+  col->open_mmap(filename, recode);
   return col;
 }
 
