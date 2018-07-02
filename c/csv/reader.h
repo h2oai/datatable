@@ -42,11 +42,11 @@ class GenericReader;
  */
 class GReaderColumn {
   private:
-    MemoryRange mbuf;
+    std::string name;
+    MemoryRange databuf;
+    MemoryWritableBuffer* strbuf;
 
   public:
-    std::string name;
-    MemoryWritableBuffer* strdata;
     PT type;
     RT rtype;
     bool typeBumped;
@@ -59,19 +59,28 @@ class GReaderColumn {
     GReaderColumn(const GReaderColumn&) = delete;
     GReaderColumn(GReaderColumn&&);
     virtual ~GReaderColumn();
-    const char* typeName() const;
-    const std::string& get_name() const;
-    const char* repr_name(const GenericReader& g) const;
-    size_t elemsize() const;
-    size_t getAllocSize() const;
-    bool isstring() const;
-    const void* data_r() const { return mbuf.rptr(); }
-    void* data_w() { return mbuf.wptr(); }
+
+    // Column's data
     void allocate(size_t nrows);
+    const void* data_r() const;
+    void* data_w();
+    WritableBuffer* strdata_w();
     MemoryRange extract_databuf();
     MemoryRange extract_strbuf();
+
+    // Column's name
+    const std::string& get_name() const noexcept;
+    void set_name(std::string&& newname) noexcept;
+    void swap_names(GReaderColumn& other) noexcept;
+    const char* repr_name(const GenericReader& g) const;  // static ptr
+
+    const char* typeName() const;
+    size_t elemsize() const;
+    bool isstring() const;
     void convert_to_str64();
     PyObj py_descriptor() const;
+
+    size_t memory_footprint() const;
 };
 
 

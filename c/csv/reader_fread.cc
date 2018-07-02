@@ -711,7 +711,7 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
       int res = check_escaped_string(usrc, zlen, echar);
       if (res == 0) {
-        columns[i].name = std::string(start, zlen);
+        columns[i].set_name(std::string(start, zlen));
       } else {
         char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
@@ -723,7 +723,8 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
           newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
         }
         xassert(newlen > 0);
-        columns[i].name = std::string(newsrc, static_cast<size_t>(newlen));
+        zlen = static_cast<size_t>(newlen);
+        columns[i].set_name(std::string(newsrc, zlen));
         delete[] newsrc;
       }
     }
@@ -748,9 +749,9 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
 
   if (sep == ' ' && ncols_found == ncols - 1) {
     for (size_t j = ncols - 1; j > 0; j--){
-      columns[j].name.swap(columns[j-1].name);
+      columns[j].swap_names(columns[j-1]);
     }
-    columns[0].name = "index";
+    columns[0].set_name("index");
   }
 }
 
@@ -1055,7 +1056,7 @@ void FreadLocalParseContext::orderBuffer() {
       size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
       strinfo[j].size = sz;
 
-      WritableBuffer* wb = col.strdata;
+      WritableBuffer* wb = col.strdata_w();
       size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
 
@@ -1090,7 +1091,7 @@ void FreadLocalParseContext::push_buffers() {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
     } else if (col.isstring()) {
-      WritableBuffer* wb = col.strdata;
+      WritableBuffer* wb = col.strdata_w();
       SInfo& si = strinfo[j];
       field64* lo = tbuf.data() + j;
 

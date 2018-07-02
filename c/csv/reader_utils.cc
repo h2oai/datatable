@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 
 GReaderColumn::GReaderColumn() {
-  strdata = nullptr;
+  strbuf = nullptr;
   type = PT::Mu;
   rtype = RT::RAuto;
   typeBumped = false;
@@ -30,46 +30,82 @@ GReaderColumn::GReaderColumn() {
 }
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
-  : mbuf(std::move(o.mbuf)), name(std::move(o.name)), strdata(o.strdata),
+  : name(std::move(o.name)), databuf(std::move(o.databuf)), strbuf(o.strbuf),
     type(o.type), rtype(o.rtype), typeBumped(o.typeBumped),
     presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer)
 {
-  o.strdata = nullptr;
+  o.strbuf = nullptr;
 }
 
 GReaderColumn::~GReaderColumn() {
-  delete strdata;
+  delete strbuf;
 }
 
+
+//---- Column's data -------------------
 
 void GReaderColumn::allocate(size_t nrows) {
   if (!presentInOutput) return;
   bool col_is_string = isstring();
   size_t allocsize = (nrows + col_is_string) * elemsize();
-  mbuf.resize(allocsize);
+  databuf.resize(allocsize);
   if (col_is_string) {
     if (elemsize() == 4)
-      mbuf.set_element<int32_t>(0, 0);
+      databuf.set_element<int32_t>(0, 0);
     else
-      mbuf.set_element<int64_t>(0, 0);
-    if (!strdata) {
-      strdata = new MemoryWritableBuffer(allocsize);
+      databuf.set_element<int64_t>(0, 0);
+    if (!strbuf) {
+      strbuf = new MemoryWritableBuffer(allocsize);
     }
   }
 }
 
-const char* GReaderColumn::typeName() const {
-  return ParserLibrary::info(type).name.data();
+const void* GReaderColumn::data_r() const {
+  return databuf.rptr();
 }
 
-const std::string& GReaderColumn::get_name() const {
+void* GReaderColumn::data_w() {
+  return databuf.wptr();
+}
+
+WritableBuffer* GReaderColumn::strdata_w() {
+  return strbuf;
+}
+
+MemoryRange GReaderColumn::extract_databuf() {
+  return std::move(databuf);
+}
+
+MemoryRange GReaderColumn::extract_strbuf() {
+  if (!(strbuf && isstring())) return MemoryRange();
+  strbuf->finalize();
+  return strbuf->get_mbuf();
+}
+
+
+//---- Column's name -------------------
+
+const std::string& GReaderColumn::get_name() const noexcept {
   return name;
+}
+
+void GReaderColumn::set_name(std::string&& newname) noexcept {
+  name = std::move(newname);
+}
+
+void GReaderColumn::swap_names(GReaderColumn& other) noexcept {
+  name.swap(other.name);
 }
 
 const char* GReaderColumn::repr_name(const GenericReader& g) const {
   const char* start = name.c_str();
   const char* end = start + name.size();
   return g.repr_binary(start, end, 25);
+}
+
+
+const char* GReaderColumn::typeName() const {
+  return ParserLibrary::info(type).name.data();
 }
 
 
@@ -81,35 +117,18 @@ bool GReaderColumn::isstring() const {
   return ParserLibrary::info(type).isstring();
 }
 
-MemoryRange GReaderColumn::extract_databuf() {
-  return std::move(mbuf);
-}
-
-MemoryRange GReaderColumn::extract_strbuf() {
-  if (!(strdata && isstring())) return MemoryRange();
-  // TODO: make get_mbuf() method available on WritableBuffer itself
-  strdata->finalize();
-  return strdata->get_mbuf();
-}
-
-size_t GReaderColumn::getAllocSize() const {
-  return mbuf.memory_footprint() +
-         (strdata? strdata->size() : 0) +
-         name.size() + sizeof(*this);
-}
-
 
 void GReaderColumn::convert_to_str64() {
   xassert(type == PT::Str32);
-  size_t nelems = mbuf.size() / sizeof(int32_t);
+  size_t nelems = databuf.size() / sizeof(int32_t);
   MemoryRange new_mbuf = MemoryRange::mem(nelems * sizeof(int64_t));
-  const int32_t* old_data = static_cast<const int32_t*>(mbuf.rptr());
+  const int32_t* old_data = static_cast<const int32_t*>(databuf.rptr());
   int64_t* new_data = static_cast<int64_t*>(new_mbuf.wptr());
   for (size_t i = 0; i < nelems; ++i) {
     new_data[i] = old_data[i];
   }
   type = PT::Str64;
-  mbuf = std::move(new_mbuf);
+  databuf = std::move(new_mbuf);
 }
 
 
@@ -148,6 +167,13 @@ PyObj GReaderColumn::py_descriptor() const {
   PyStructSequence_SetItem(nt_tuple, 1, stype);
   return PyObj(std::move(nt_tuple));
 }
+
+size_t GReaderColumn::memory_footprint() const {
+  return databuf.memory_footprint() +
+         (strbuf? strbuf->size() : 0) +
+         name.size() + sizeof(*this);
+}
+
 
 
 
@@ -265,7 +291,7 @@ size_t GReaderColumns::nStringColumns() const {
 size_t GReaderColumns::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
   for (const GReaderColumn& col : *this) {
-    allocsize += col.getAllocSize();
+    allocsize += col.memory_footprint();
   }
   return allocsize;
 }
