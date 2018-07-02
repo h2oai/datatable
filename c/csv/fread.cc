@@ -298,19 +298,17 @@ DataTablePtr FreadReader::read()
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
-      if (col.rtype == RT::RDrop) {
+      if (col.is_dropped()) {
         ndropped++;
-        col.presentInOutput = false;
-        col.presentInBuffer = false;
         continue;
       } else {
-        if (col.type < oldtypes[i]) {
+        if (col.ptype < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
                "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
                i+1, col.repr_name(*this), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
         }
-        nUserBumped += (col.type != oldtypes[i]);
+        nUserBumped += (col.ptype != oldtypes[i]);
       }
     }
     if (verbose) {
@@ -352,7 +350,7 @@ DataTablePtr FreadReader::read()
 
       for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
       for (size_t i = 0; i < ncols; i++) {
-        typeCounts[columns[i].type]++;
+        typeCounts[columns[i].ptype]++;
       }
 
       size_t ncols_to_reread = columns.nColumnsToReread();

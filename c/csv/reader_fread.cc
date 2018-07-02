@@ -333,7 +333,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    PT coltype = j < ncols ? columns[j].type : PT::Str32;
+    PT coltype = j < ncols ? columns[j].get_ptype() : PT::Str32;
     while (true) {
       // Try to parse using the regular field parser
       tch = fieldStart;
@@ -368,7 +368,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       // Finally, bump the column's type and try again
       // TODO: replace with proper PT iteration
       coltype = static_cast<PT>(coltype + 1);
-      if (j < ncols) columns[j].type = coltype;
+      if (j < ncols) columns[j].ptype = coltype;
     }
     j++;
 
@@ -917,7 +917,7 @@ void FreadLocalParseContext::read_chunk(
                                       static_cast<int64_t>(row0 + used_nrows));
           }
           types[j] = newType;
-          columns[j].type = newType;
+          columns[j].ptype = newType;
           columns[j].typeBumped = true;
         }
         tokenizer.target += columns[j].presentInBuffer;
@@ -927,7 +927,7 @@ void FreadLocalParseContext::read_chunk(
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
-          if (columns[j-1].isstring() && columns[j-1].presentInBuffer &&
+          if (columns[j-1].is_string() && columns[j-1].presentInBuffer &&
               tokenizer.target[-1].str32.length == 0) {
             tokenizer.target[-1].str32.setna();
           }
@@ -992,7 +992,7 @@ void FreadLocalParseContext::postprocess() {
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
-    if (col.isstring() && !col.typeBumped) {
+    if (col.is_string() && !col.typeBumped) {
       strinfo[j].start = output_offset;
       field64* coldata = tbuf.data() + j;
       for (size_t n = 0; n < used_nrows; ++n) {
@@ -1046,7 +1046,7 @@ void FreadLocalParseContext::orderBuffer() {
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
-    if (col.isstring() && !col.typeBumped) {
+    if (col.is_string() && !col.typeBumped) {
       // Compute the size of the string content in the buffer `sz` from the
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may some times change affecting
@@ -1060,7 +1060,7 @@ void FreadLocalParseContext::orderBuffer() {
       size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
 
-      if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
+      if (columns[i].ptype == PT::Str32 && write_at + sz > 0x80000000) {
         dt::shared_lock lock(shmutex, /* exclusive = */ true);
         columns[i].convert_to_str64();
         types[i] = PT::Str64;
@@ -1090,7 +1090,7 @@ void FreadLocalParseContext::push_buffers() {
     if (col.typeBumped) {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
-    } else if (col.isstring()) {
+    } else if (col.is_string()) {
       WritableBuffer* wb = col.strdata_w();
       SInfo& si = strinfo[j];
       field64* lo = tbuf.data() + j;
@@ -1440,8 +1440,7 @@ void FreadObserver::type_bump_info(
   char temp[BUF_SIZE + 1];
   int n = snprintf(temp, BUF_SIZE,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %llu",
-    icol, col.repr_name(g),
-    ParserLibrary::info(col.type).cname(),
+    icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
     static_cast<int>(len), field, lineno);
   n = std::min(n, BUF_SIZE);

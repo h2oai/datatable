@@ -765,25 +765,9 @@ void GenericReader::report_columns_to_python() {
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
         PyObj elem = newTypesList[i];
-        columns[i].rtype = static_cast<RT>(elem.as_int64());  // unsafe?
-        // Temporary
-        switch (columns[i].rtype) {
-          case RDrop:    columns[i].type = PT::Str32; break;
-          case RAuto:    break;
-          case RBool:    columns[i].type = PT::Bool01; break;
-          case RInt:     columns[i].type = PT::Int32; break;
-          case RInt32:   columns[i].type = PT::Int32; break;
-          case RInt64:   columns[i].type = PT::Int64; break;
-          case RFloat:   columns[i].type = PT::Float32Hex; break;
-          case RFloat32: columns[i].type = PT::Float32Hex; break;
-          case RFloat64: columns[i].type = PT::Float64Plain; break;
-          case RStr:     columns[i].type = PT::Str32; break;
-          case RStr32:   columns[i].type = PT::Str32; break;
-          case RStr64:   columns[i].type = PT::Str64; break;
-        }
+        columns[i].set_rtype(elem.as_int64());
       }
     }
-
   } else {
     PyyList colNamesList(ncols);
     for (size_t i = 0; i < ncols; ++i) {
@@ -804,10 +788,10 @@ DataTablePtr GenericReader::makeDatatable() {
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInOutput) continue;
-    SType stype = ParserLibrary::info(col.type).stype;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();
-    ccols[j] = Column::new_mbuf_column(stype, std::move(databuf), std::move(strbuf));
+    ccols[j] = Column::new_mbuf_column(col.get_stype(), std::move(databuf),
+                                       std::move(strbuf));
     j++;
   }
   return DataTablePtr(new DataTable(ccols));

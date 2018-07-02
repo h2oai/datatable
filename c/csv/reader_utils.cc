@@ -22,7 +22,7 @@
 
 GReaderColumn::GReaderColumn() {
   strbuf = nullptr;
-  type = PT::Mu;
+  ptype = PT::Mu;
   rtype = RT::RAuto;
   typeBumped = false;
   presentInOutput = true;
@@ -31,7 +31,7 @@ GReaderColumn::GReaderColumn() {
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
   : name(std::move(o.name)), databuf(std::move(o.databuf)), strbuf(o.strbuf),
-    type(o.type), rtype(o.rtype), typeBumped(o.typeBumped),
+    rtype(o.rtype), ptype(o.ptype), typeBumped(o.typeBumped),
     presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer)
 {
   o.strbuf = nullptr;
@@ -46,7 +46,7 @@ GReaderColumn::~GReaderColumn() {
 
 void GReaderColumn::allocate(size_t nrows) {
   if (!presentInOutput) return;
-  bool col_is_string = isstring();
+  bool col_is_string = is_string();
   size_t allocsize = (nrows + col_is_string) * elemsize();
   databuf.resize(allocsize);
   if (col_is_string) {
@@ -77,7 +77,7 @@ MemoryRange GReaderColumn::extract_databuf() {
 }
 
 MemoryRange GReaderColumn::extract_strbuf() {
-  if (!(strbuf && isstring())) return MemoryRange();
+  if (!(strbuf && is_string())) return MemoryRange();
   strbuf->finalize();
   return strbuf->get_mbuf();
 }
@@ -104,22 +104,59 @@ const char* GReaderColumn::repr_name(const GenericReader& g) const {
 }
 
 
+//---- Column's type -------------------
+
+bool GReaderColumn::is_string() const {
+  return ParserLibrary::info(ptype).isstring();
+}
+
+bool GReaderColumn::is_dropped() const {
+  return rtype == RT::RDrop;
+}
+
+PT GReaderColumn::get_ptype() const {
+  return ptype;
+}
+
+SType GReaderColumn::get_stype() const {
+  return ParserLibrary::info(ptype).stype;
+}
+
+void GReaderColumn::set_rtype(int64_t it) {
+  rtype = static_cast<RT>(it);
+  // Temporary
+  switch (rtype) {
+    case RDrop:
+      ptype = PT::Str32;
+      presentInOutput = false;
+      presentInBuffer = false;
+      break;
+    case RAuto:    break;
+    case RBool:    ptype = PT::Bool01; break;
+    case RInt:     ptype = PT::Int32; break;
+    case RInt32:   ptype = PT::Int32; break;
+    case RInt64:   ptype = PT::Int64; break;
+    case RFloat:   ptype = PT::Float32Hex; break;
+    case RFloat32: ptype = PT::Float32Hex; break;
+    case RFloat64: ptype = PT::Float64Plain; break;
+    case RStr:     ptype = PT::Str32; break;
+    case RStr32:   ptype = PT::Str32; break;
+    case RStr64:   ptype = PT::Str64; break;
+  }
+}
+
 const char* GReaderColumn::typeName() const {
-  return ParserLibrary::info(type).name.data();
+  return ParserLibrary::info(ptype).name.data();
 }
 
 
 size_t GReaderColumn::elemsize() const {
-  return static_cast<size_t>(ParserLibrary::info(type).elemsize);
-}
-
-bool GReaderColumn::isstring() const {
-  return ParserLibrary::info(type).isstring();
+  return static_cast<size_t>(ParserLibrary::info(ptype).elemsize);
 }
 
 
 void GReaderColumn::convert_to_str64() {
-  xassert(type == PT::Str32);
+  xassert(ptype == PT::Str32);
   size_t nelems = databuf.size() / sizeof(int32_t);
   MemoryRange new_mbuf = MemoryRange::mem(nelems * sizeof(int64_t));
   const int32_t* old_data = static_cast<const int32_t*>(databuf.rptr());
@@ -127,7 +164,7 @@ void GReaderColumn::convert_to_str64() {
   for (size_t i = 0; i < nelems; ++i) {
     new_data[i] = old_data[i];
   }
-  type = PT::Str64;
+  ptype = PT::Str64;
   databuf = std::move(new_mbuf);
 }
 
@@ -161,7 +198,7 @@ PyObj GReaderColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = py_stype_objs[ParserLibrary::info(type).stype];
+  PyObject* stype = py_stype_objs[ParserLibrary::info(ptype).stype];
   Py_INCREF(stype);
   PyStructSequence_SetItem(nt_tuple, 0, PyyString(name).release());
   PyStructSequence_SetItem(nt_tuple, 1, stype);
@@ -207,14 +244,14 @@ std::unique_ptr<PT[]> GReaderColumns::getTypes() const {
 void GReaderColumns::saveTypes(std::unique_ptr<PT[]>& types) const {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
-    types[i] = (*this)[i].type;
+    types[i] = (*this)[i].get_ptype();
   }
 }
 
 bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
-    if (types[i] != (*this)[i].type) return false;
+    if (types[i] != (*this)[i].get_ptype()) return false;
   }
   return true;
 }
@@ -222,14 +259,14 @@ bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
 void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
-    (*this)[i].type = types[i];
+    (*this)[i].ptype = types[i];
   }
 }
 
 void GReaderColumns::setType(PT type) {
   size_t n = size();
   for (size_t i = 0; i < n; ++i) {
-    (*this)[i].type = type;
+    (*this)[i].ptype = type;
   }
 }
 
@@ -241,7 +278,7 @@ const char* GReaderColumns::printTypes() const {
   size_t ncols = size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[(*this)[i].type].code;
+    *ch++ = parsers[(*this)[i].get_ptype()].code;
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -250,7 +287,7 @@ const char* GReaderColumns::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[(*this)[i].type].code;
+      *ch++ = parsers[(*this)[i].get_ptype()].code;
   }
   *ch = '\0';
   return out;
@@ -283,7 +320,7 @@ size_t GReaderColumns::nColumnsToReread() const {
 size_t GReaderColumns::nStringColumns() const {
   size_t n = 0;
   for (const GReaderColumn& col : *this) {
-    n += col.isstring();
+    n += col.is_string();
   }
   return n;
 }

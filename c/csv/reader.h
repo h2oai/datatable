@@ -45,10 +45,10 @@ class GReaderColumn {
     std::string name;
     MemoryRange databuf;
     MemoryWritableBuffer* strbuf;
+    RT rtype;
 
   public:
-    PT type;
-    RT rtype;
+    PT ptype;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
@@ -74,9 +74,14 @@ class GReaderColumn {
     void swap_names(GReaderColumn& other) noexcept;
     const char* repr_name(const GenericReader& g) const;  // static ptr
 
+    // Column's type(s)
+    bool is_string() const;
+    bool is_dropped() const;
+    PT get_ptype() const;
+    SType get_stype() const;
+    void set_rtype(int64_t it);
     const char* typeName() const;
     size_t elemsize() const;
-    bool isstring() const;
     void convert_to_str64();
     PyObj py_descriptor() const;
 
