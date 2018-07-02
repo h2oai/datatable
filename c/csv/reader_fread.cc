@@ -540,9 +540,7 @@ void FreadReader::detect_header() {
       fill = true;
       trace("Setting `fill` to True because the header contains more columns "
             "than the data.");
-      for (int64_t j = sncols; j < ncols_header; ++j) {
-        columns.push_back(GReaderColumn());
-      }
+      columns.add_columns(static_cast<size_t>(ncols_header - sncols));
     }
     return;
   }
@@ -705,7 +703,7 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
     size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
-      columns.push_back(GReaderColumn());
+      columns.add_columns(1);
     }
     if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);

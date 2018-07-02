@@ -218,55 +218,72 @@ size_t GReaderColumn::memory_footprint() const {
 // GReaderColumns
 //------------------------------------------------------------------------------
 
-GReaderColumns::GReaderColumns() noexcept
-    : std::vector<GReaderColumn>(), allocnrows(0) {}
+GReaderColumns::GReaderColumns() noexcept : allocnrows(0) {}
 
 
-size_t GReaderColumns::get_nrows() const {
+size_t GReaderColumns::size() const noexcept {
+  return cols.size();
+}
+
+size_t GReaderColumns::get_nrows() const noexcept {
   return allocnrows;
 }
 
 void GReaderColumns::set_nrows(size_t nrows) {
-  size_t ncols = size();
-  for (size_t i = 0; i < ncols; ++i) {
-    (*this)[i].allocate(nrows);
+  for (auto& col : cols) {
+    col.allocate(nrows);
   }
   allocnrows = nrows;
 }
 
 
+GReaderColumn& GReaderColumns::operator[](size_t i) & {
+  return cols[i];
+}
+
+const GReaderColumn& GReaderColumns::operator[](size_t i) const & {
+  return cols[i];
+}
+
+void GReaderColumns::add_columns(size_t n) {
+  cols.reserve(cols.size() + n);
+  for (size_t i = 0; i < n; ++i) {
+    cols.push_back(GReaderColumn());
+  }
+}
+
+
 std::unique_ptr<PT[]> GReaderColumns::getTypes() const {
-  std::unique_ptr<PT[]> res(new PT[size()]);
+  std::unique_ptr<PT[]> res(new PT[cols.size()]);
   saveTypes(res);
   return res;
 }
 
 void GReaderColumns::saveTypes(std::unique_ptr<PT[]>& types) const {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    types[i] = (*this)[i].get_ptype();
+  size_t i = 0;
+  for (const auto& col : cols) {
+    types[i++] = col.get_ptype();
   }
 }
 
 bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    if (types[i] != (*this)[i].get_ptype()) return false;
+  size_t i = 0;
+  for (const auto& col : cols) {
+    if (types[i++] != col.get_ptype()) return false;
   }
   return true;
 }
 
 void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    (*this)[i].ptype = types[i];
+  size_t i = 0;
+  for (auto& col : cols) {
+    col.ptype = types[i++];
   }
 }
 
 void GReaderColumns::setType(PT type) {
-  size_t n = size();
-  for (size_t i = 0; i < n; ++i) {
-    (*this)[i].ptype = type;
+  for (auto& col : cols) {
+    col.ptype = type;
   }
 }
 
@@ -278,7 +295,7 @@ const char* GReaderColumns::printTypes() const {
   size_t ncols = size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[(*this)[i].get_ptype()].code;
+    *ch++ = parsers[cols[i].get_ptype()].code;
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -287,7 +304,7 @@ const char* GReaderColumns::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[(*this)[i].get_ptype()].code;
+      *ch++ = parsers[cols[i].get_ptype()].code;
   }
   *ch = '\0';
   return out;
@@ -295,7 +312,7 @@ const char* GReaderColumns::printTypes() const {
 
 size_t GReaderColumns::nColumnsInOutput() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
+  for (const auto& col : cols) {
     n += col.presentInOutput;
   }
   return n;
@@ -303,7 +320,7 @@ size_t GReaderColumns::nColumnsInOutput() const {
 
 size_t GReaderColumns::nColumnsInBuffer() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
+  for (const auto& col : cols) {
     n += col.presentInBuffer;
   }
   return n;
@@ -311,7 +328,7 @@ size_t GReaderColumns::nColumnsInBuffer() const {
 
 size_t GReaderColumns::nColumnsToReread() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
+  for (const auto& col : cols) {
     n += col.typeBumped;
   }
   return n;
@@ -319,7 +336,7 @@ size_t GReaderColumns::nColumnsToReread() const {
 
 size_t GReaderColumns::nStringColumns() const {
   size_t n = 0;
-  for (const GReaderColumn& col : *this) {
+  for (const auto& col : cols) {
     n += col.is_string();
   }
   return n;
@@ -327,7 +344,7 @@ size_t GReaderColumns::nStringColumns() const {
 
 size_t GReaderColumns::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
-  for (const GReaderColumn& col : *this) {
+  for (const auto& col : cols) {
     allocsize += col.memory_footprint();
   }
   return allocsize;

@@ -95,12 +95,22 @@ class GReaderColumn {
 // GReaderColumns
 //------------------------------------------------------------------------------
 
-class GReaderColumns : public std::vector<GReaderColumn> {
+class GReaderColumns {
   private:
+    std::vector<GReaderColumn> cols;
     size_t allocnrows;
 
   public:
     GReaderColumns() noexcept;
+
+    size_t size() const noexcept;
+    size_t get_nrows() const noexcept;
+    void set_nrows(size_t nrows);
+
+    GReaderColumn& operator[](size_t i) &;
+    const GReaderColumn& operator[](size_t i) const &;
+
+    void add_columns(size_t n);
 
     std::unique_ptr<PT[]> getTypes() const;
     void saveTypes(std::unique_ptr<PT[]>& types) const;
@@ -114,9 +124,6 @@ class GReaderColumns : public std::vector<GReaderColumn> {
     size_t nColumnsToReread() const;
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
-
-    size_t get_nrows() const;
-    void set_nrows(size_t nrows);
 };
 
 

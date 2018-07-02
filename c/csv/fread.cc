@@ -240,10 +240,7 @@ DataTablePtr FreadReader::read()
     xassert(ncols >= 1 && line >= 1);
 
     // Create vector of Column objects
-    columns.reserve(static_cast<size_t>(ncols));
-    for (int i = 0; i < ncols; i++) {
-      columns.push_back(GReaderColumn());
-    }
+    columns.add_columns(static_cast<size_t>(ncols));
 
     first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
