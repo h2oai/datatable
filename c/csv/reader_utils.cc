@@ -113,40 +113,34 @@ void GReaderColumn::convert_to_str64() {
 }
 
 
-PyTypeObject* GReaderColumn::NameTypePyTuple = nullptr;
-
-void GReaderColumn::init_nametypepytuple() {
-  if (NameTypePyTuple) return;
+static PyTypeObject* init_nametypepytuple() {
   static const char* tuple_name = "column_descriptor";
   static const char* field0 = "name";
   static const char* field1 = "type";
-  PyStructSequence_Field* fields = new PyStructSequence_Field[3];
+  PyStructSequence_Desc desc;
+  PyStructSequence_Field fields[3];
   fields[0].name = const_cast<char*>(field0);
   fields[1].name = const_cast<char*>(field1);
   fields[2].name = nullptr;
   fields[0].doc = nullptr;
   fields[1].doc = nullptr;
   fields[2].doc = nullptr;
-  PyStructSequence_Desc* desc = new PyStructSequence_Desc;
-  desc->name = const_cast<char*>(tuple_name);
-  desc->doc = nullptr;
-  desc->fields = fields;
-  desc->n_in_sequence = 2;
+  desc.name = const_cast<char*>(tuple_name);
+  desc.doc = nullptr;
+  desc.fields = fields;
+  desc.n_in_sequence = 2;
   // Do not use PyStructSequence_NewType, because it is buggy
   // (see https://lists.gt.net/python/bugs/1320383)
   // The memory must also be cleared because https://bugs.python.org/issue33742
-  NameTypePyTuple = new PyTypeObject();
-  PyStructSequence_InitType(NameTypePyTuple, desc);
-
-  // clean up
-  delete[] fields;
-  delete desc;
+  auto res = new PyTypeObject();
+  PyStructSequence_InitType(res, &desc);
+  return res;
 }
 
 
 PyObj GReaderColumn::py_descriptor() const {
-  if (!NameTypePyTuple) init_nametypepytuple();
-  PyObject* nt_tuple = PyStructSequence_New(NameTypePyTuple);  // new ref
+  static PyTypeObject* name_type_pytuple = init_nametypepytuple();
+  PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
   PyObject* stype = py_stype_objs[ParserLibrary::info(type).stype];
   Py_INCREF(stype);

@@ -43,7 +43,6 @@ class GenericReader;
 class GReaderColumn {
   private:
     MemoryRange mbuf;
-    static PyTypeObject* NameTypePyTuple;
 
   public:
     std::string name;
@@ -73,7 +72,6 @@ class GReaderColumn {
     MemoryRange extract_strbuf();
     void convert_to_str64();
     PyObj py_descriptor() const;
-    static void init_nametypepytuple();
 };
 
 
