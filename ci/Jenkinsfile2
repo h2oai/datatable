@@ -656,6 +656,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
         sh """
             env
             rm -rf datatable
+            mkdir -p /tmp/cores
             make ${makeOpts} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
@@ -677,7 +678,6 @@ def testOSX(final environment, final needsLargerTest) {
             """
         }
     } finally {
-        sh 'find /tmp/cores || true'
         arch "/tmp/cores/*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
