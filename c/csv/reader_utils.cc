@@ -173,6 +173,12 @@ size_t GReaderColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(ptype).elemsize);
 }
 
+void GReaderColumn::reset_type_bumped() {
+  typeBumped = false;
+}
+
+
+//---- Misc ----------------------------
 
 void GReaderColumn::convert_to_str64() {
   xassert(ptype == PT::Str32);
@@ -186,7 +192,6 @@ void GReaderColumn::convert_to_str64() {
   ptype = PT::Str64;
   databuf = std::move(new_mbuf);
 }
-
 
 static PyTypeObject* init_nametypepytuple() {
   static const char* tuple_name = "column_descriptor";
@@ -211,7 +216,6 @@ static PyTypeObject* init_nametypepytuple() {
   PyStructSequence_InitType(res, &desc);
   return res;
 }
-
 
 PyObj GReaderColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
@@ -374,7 +378,7 @@ size_t GReaderColumns::nColumnsInBuffer() const {
 size_t GReaderColumns::nColumnsToReread() const {
   size_t n = 0;
   for (const auto& col : cols) {
-    n += col.typeBumped;
+    n += col.is_type_bumped();
   }
   return n;
 }

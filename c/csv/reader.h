@@ -47,9 +47,9 @@ class GReaderColumn {
     MemoryWritableBuffer* strbuf;
     PT ptype;
     RT rtype;
+    bool typeBumped;
 
   public:
-    bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
     int32_t : 24;
@@ -102,10 +102,11 @@ class GReaderColumn {
     bool is_dropped() const;
     bool is_type_bumped() const;
     size_t elemsize() const;
+    void reset_type_bumped();
 
+    // Misc
     void convert_to_str64();
     PyObj py_descriptor() const;
-
     size_t memory_footprint() const;
 };
 
