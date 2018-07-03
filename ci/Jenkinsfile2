@@ -675,6 +675,7 @@ def testOSX(final environment, final needsLargerTest) {
             """
         }
     } finally {
+        sh 'find /tmp/cores || true'
         arch "/tmp/cores/*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
