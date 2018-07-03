@@ -58,6 +58,8 @@ def dockerArgs = createDockerArgs()
 // String with current version
 def versionText
 
+def makeOpts = "CI=1"
+
 //////////////
 // PIPELINE //
 //////////////
@@ -131,13 +133,13 @@ ansiColor('xterm') {
                             dir(stageDir) {
                                 unstash 'datatable-sources'
                                 withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                    sh "make clean && make centos7_build_py36_in_docker"
+                                    sh "make ${makeOpts} clean && make ${makeOpts} centos7_build_py36_in_docker"
                                     stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    sh "make clean && make centos7_build_py35_in_docker"
+                                    sh "make ${makeOpts} clean && make ${makeOpts} centos7_build_py35_in_docker"
                                     stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    sh "make centos7_version_in_docker"
+                                    sh "make ${makeOpts} centos7_version_in_docker"
                                     stash name: 'VERSION', includes: "dist/VERSION.txt"
                                     arch "dist/VERSION.txt"
                                     versionText = readFile('dist/VERSION.txt').trim()
@@ -157,15 +159,15 @@ ansiColor('xterm') {
                                 withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                        make clean
-                                        make BRANCH_NAME=${env.BRANCH_NAME} dist
+                                        make ${makeOpts} clean
+                                        make ${makeOpts} BRANCH_NAME=${env.BRANCH_NAME} dist
                                     """
                                     stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                         sh """
                                             . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
-                                            make clean
-                                            make BRANCH_NAME=${env.BRANCH_NAME} dist
+                                            make ${makeOpts} clean
+                                            make ${makeOpts} BRANCH_NAME=${env.BRANCH_NAME} dist
                                         """
                                     stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
@@ -185,10 +187,10 @@ ansiColor('xterm') {
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                            sh "make clean && make centos7_build_py36_in_docker"
+                                            sh "make ${makeOpts} clean && make ${makeOpts} centos7_build_py36_in_docker"
                                             stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
                                             arch "dist/*.whl"
-                                            sh "make clean && make centos7_build_py35_in_docker"
+                                            sh "make ${makeOpts} clean && make ${makeOpts} centos7_build_py35_in_docker"
                                             stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
                                             arch "dist/*.whl"
                                         }
@@ -213,7 +215,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
-                                        sh "make CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        sh "make ${makeOpts} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
                                         arch "/tmp/cores/*"
                                     }
@@ -234,7 +236,7 @@ ansiColor('xterm') {
                                     withEnv(OSX_ENV) {
                                         sh """
                                             . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                            make coverage
+                                            make ${makeOpts} coverage
                                         """
                                     }
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
@@ -520,7 +522,7 @@ ansiColor('xterm') {
                             dir ('build-sdist') {
                                 unstash 'datatable-sources'
                                 unstash 'VERSION'
-                                sh "make ubuntu_build_sdist_in_docker"
+                                sh "make ${makeOpts} ubuntu_build_sdist_in_docker"
                                 stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
                                 arch "dist/*.tar.gz"
                             }
@@ -654,7 +656,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
         sh """
             env
             rm -rf datatable
-            make CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
+            make ${makeOpts} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
         arch "/tmp/cores/*"
@@ -670,8 +672,8 @@ def testOSX(final environment, final needsLargerTest) {
                 rm -rf datatable
                 . ${OSX_CONDA_ACTIVATE_PATH} ${environment}
                 pip install --no-cache-dir --upgrade dist/*.whl
-                make test_install MODULE=datatable
-                make test
+                make ${makeOpts} test_install MODULE=datatable
+                make ${makeOpts} test
             """
         }
     } finally {

@@ -1,7 +1,7 @@
 BUILDDIR := build/fast
 PYTHON   ?= python
 MODULE   ?= .
-ifdef JENKINS_URL
+ifneq ($(CI),)
 PYTEST_FLAGS := -vv -s
 endif
 
@@ -16,7 +16,6 @@ DIST_DIR := dist/$(PLATFORM)
 .PHONY: all clean mrproper build install uninstall test_install test \
 		benchmark debug bi coverage fast dist
 .SECONDARY: main-fast
-
 
 all:
 	$(MAKE) clean
@@ -237,7 +236,7 @@ centos7_build_in_docker_impl:
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(BUILD_VENV) && \
-			make dist"
+			make CI=$(CI) dist"
 
 centos7_build_py36_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
@@ -259,7 +258,7 @@ centos7_version_in_docker:
 		-c ". activate datatable-py36-with-pandas && \
 			python --version && \
 			mkdir -p dist && \
-			make version > dist/VERSION.txt && \
+			make CI=$(CI) version > dist/VERSION.txt && \
 			cat dist/VERSION.txt"
 
 centos7_test_in_docker_impl:
@@ -276,8 +275,8 @@ centos7_test_in_docker_impl:
 		-c ". activate $(TEST_VENV) && \
 			python --version && \
 			pip install --no-cache-dir --upgrade dist/*.whl && \
-			make MODULE=datatable test_install && \
-			make test"
+			make CI=$(CI) MODULE=datatable test_install && \
+			make test CI=$(CI)"
 
 centos7_test_py36_with_pandas_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
@@ -305,7 +304,7 @@ ubuntu_build_in_docker_impl:
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/$(BUILD_VENV)/bin/activate && \
 			python --version && \
-			make dist"
+			make CI=$(CI) dist"
 
 ubuntu_build_sdist_in_docker:
 	docker run \
@@ -321,7 +320,7 @@ ubuntu_build_sdist_in_docker:
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
-			make sdist"
+			make CI=$(CI) sdist"
 
 ubuntu_build_py36_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
@@ -342,7 +341,7 @@ ubuntu_coverage_py36_with_pandas_in_docker:
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
-			make coverage"
+			make CI=$(CI) coverage"
 
 ubuntu_test_in_docker_impl:
 	docker run \
@@ -360,8 +359,8 @@ ubuntu_test_in_docker_impl:
 			pip freeze && \
 			pip install --no-cache-dir dist/*.whl && \
 			python --version && \
-			make MODULE=datatable test_install && \
-			make test"
+			make CI=$(CI) MODULE=datatable test_install && \
+			make CI=$(CI) test"
 
 ubuntu_test_py36_with_pandas_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl
