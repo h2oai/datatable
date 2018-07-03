@@ -173,12 +173,20 @@ bool GReaderColumn::is_in_output() const {
   return presentInOutput;
 }
 
+bool GReaderColumn::is_in_buffer() const {
+  return presentInBuffer;
+}
+
 size_t GReaderColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(ptype).elemsize);
 }
 
 void GReaderColumn::reset_type_bumped() {
   typeBumped = false;
+}
+
+void GReaderColumn::set_in_buffer(bool f) {
+  presentInBuffer = f;
 }
 
 
@@ -374,7 +382,7 @@ size_t GReaderColumns::nColumnsInOutput() const {
 size_t GReaderColumns::nColumnsInBuffer() const {
   size_t n = 0;
   for (const auto& col : cols) {
-    n += col.presentInBuffer;
+    n += col.is_in_buffer();
   }
   return n;
 }

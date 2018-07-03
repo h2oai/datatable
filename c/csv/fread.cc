@@ -351,14 +351,10 @@ DataTablePtr FreadReader::read()
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
           if (!col.is_in_output()) continue;
-          if (col.is_type_bumped()) {
-            // column was bumped due to out-of-sample type exception
-            col.reset_type_bumped();
-            col.presentInBuffer = true;
-            n_type_bump_cols++;
-          } else {
-            col.presentInBuffer = false;
-          }
+          bool bumped = col.is_type_bumped();
+          col.reset_type_bumped();
+          col.set_in_buffer(bumped);
+          n_type_bump_cols += bumped;
         }
         firstTime = false;
         if (verbose) {

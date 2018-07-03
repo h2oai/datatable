@@ -831,7 +831,7 @@ void FreadLocalParseContext::read_chunk(
         fieldStart = tch;
         parsers[types[j]](tokenizer);
         if (*tch != sep) break;
-        tokenizer.target += columns[j].presentInBuffer;
+        tokenizer.target += columns[j].is_in_buffer();
         tch++;
         j++;
       }
@@ -843,7 +843,7 @@ void FreadLocalParseContext::read_chunk(
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
       else if (tokenizer.skip_eol() && j < ncols) {
-        tokenizer.target += columns[j].presentInBuffer;
+        tokenizer.target += columns[j].is_in_buffer();
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
@@ -915,14 +915,14 @@ void FreadLocalParseContext::read_chunk(
           types[j] = *ptype_iter;
           columns[j].set_ptype(ptype_iter);
         }
-        tokenizer.target += columns[j].presentInBuffer;
+        tokenizer.target += columns[j].is_in_buffer();
         j++;
         if (*tch==sep) { tch++; continue; }
         if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
-          if (columns[j-1].is_string() && columns[j-1].presentInBuffer &&
+          if (columns[j-1].is_string() && columns[j-1].is_in_buffer() &&
               tokenizer.target[-1].str32.length == 0) {
             tokenizer.target[-1].str32.setna();
           }
@@ -986,7 +986,7 @@ void FreadLocalParseContext::postprocess() {
   uint32_t output_offset = 0;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
+    if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
       field64* coldata = tbuf.data() + j;
@@ -1040,7 +1040,7 @@ void FreadLocalParseContext::orderBuffer() {
   if (!used_nrows) return;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
+    if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       // Compute the size of the string content in the buffer `sz` from the
       // offset of the last element. This quantity cannot be calculated in the
@@ -1078,7 +1078,7 @@ void FreadLocalParseContext::push_buffers() {
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0; i < ncols; i++) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
+    if (!col.is_in_buffer()) continue;
     void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
 
