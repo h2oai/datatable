@@ -350,7 +350,7 @@ DataTablePtr FreadReader::read()
         size_t n_type_bump_cols = 0;
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
-          if (!col.presentInOutput) continue;
+          if (!col.is_in_output()) continue;
           if (col.is_type_bumped()) {
             // column was bumped due to out-of-sample type exception
             col.reset_type_bumped();

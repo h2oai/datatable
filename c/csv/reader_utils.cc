@@ -169,6 +169,10 @@ bool GReaderColumn::is_type_bumped() const {
   return typeBumped;
 }
 
+bool GReaderColumn::is_in_output() const {
+  return presentInOutput;
+}
+
 size_t GReaderColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(ptype).elemsize);
 }
@@ -362,7 +366,7 @@ const char* GReaderColumns::printTypes() const {
 size_t GReaderColumns::nColumnsInOutput() const {
   size_t n = 0;
   for (const auto& col : cols) {
-    n += col.presentInOutput;
+    n += col.is_in_output();
   }
   return n;
 }

@@ -48,9 +48,9 @@ class GReaderColumn {
     PT ptype;
     RT rtype;
     bool typeBumped;
+    bool presentInOutput;
 
   public:
-    bool presentInOutput;
     bool presentInBuffer;
     int32_t : 24;
 
@@ -101,6 +101,7 @@ class GReaderColumn {
     bool is_string() const;
     bool is_dropped() const;
     bool is_type_bumped() const;
+    bool is_in_output() const;
     size_t elemsize() const;
     void reset_type_bumped();
 

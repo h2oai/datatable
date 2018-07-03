@@ -787,7 +787,7 @@ DataTablePtr GenericReader::makeDatatable() {
   ccols[ocols] = nullptr;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInOutput) continue;
+    if (!col.is_in_output()) continue;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();
     ccols[j] = Column::new_mbuf_column(col.get_stype(), std::move(databuf),
