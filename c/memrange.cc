@@ -749,6 +749,7 @@
     #pragma clang diagnostic ignored "-Wexit-time-destructors"
     static std::mutex mmp_mutex;
     std::lock_guard<std::mutex> lock(mmp_mutex);
+    if (mapped) return;
 
     bool create = temporary_file;
     size_t n = bufsize;
@@ -907,7 +908,10 @@
 //==============================================================================
 
   OvermapMRI::OvermapMRI(const std::string& path, size_t xn, int fd)
-      : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn) {}
+      : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
+  {
+    writable = true;
+  }
 
 
   void OvermapMRI::memmap() {

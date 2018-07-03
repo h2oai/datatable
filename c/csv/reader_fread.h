@@ -131,6 +131,7 @@ private:
 
   void detect_lf();
   void skip_preamble();
+  void detect_sep_and_qr();
   void detect_column_types();
   void detect_header();
   int64_t parse_single_line(FreadTokenizer&);

@@ -215,3 +215,10 @@ def test_fread_1206FUT():
     assert p0[:-1] == p1[:-1]
     assert p0[-1] == [""] * 10 + ["A"] * 298
     assert p1[-1] == [" "] * 10 + ["A"] * 298
+
+
+def test_fread_maxnrows_with_large_file():
+    f = find_file("h2o-3", "bigdata", "laptop", "airlines_all.05p.csv")
+    d0 = dt.fread(f, max_nrows=111)
+    assert d0.internal.check()
+    assert d0.nrows == 111

@@ -77,6 +77,7 @@ GenericReader::GenericReader(const GenericReader& g) {
   override_column_types   = g.override_column_types;
   printout_anonymize      = g.printout_anonymize;
   printout_escape_unicode = g.printout_escape_unicode;
+  t_open_input = g.t_open_input;
   // Runtime parameters
   input_mbuf = g.input_mbuf;
   sof     = g.sof;
@@ -492,6 +493,7 @@ const char* GenericReader::repr_binary(
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
+  double t0 = wallclock();
   size_t size = 0;
   const void* text = nullptr;
   const char* filename = nullptr;
@@ -516,7 +518,7 @@ void GenericReader::open_input() {
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
-      static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
+      static_cast<char*>(input_mbuf.xptr())[sz] = '\0';
       extra_byte = 1;
     }
     trace("File \"%s\" opened, size: %zu", filename, sz);
@@ -555,6 +557,7 @@ void GenericReader::open_input() {
     }
     trace("=====================");
   }
+  t_open_input = wallclock() - t0;
 }
 
 

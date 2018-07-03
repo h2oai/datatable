@@ -18,8 +18,6 @@ extern const long double pow10lookup[701];
 extern const uint8_t hexdigits[256];
 extern const uint8_t allowedseps[128];
 
-#define JUMPLINES 100    // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
-
 
 struct FreadTokenizer {
   // Pointer to the current parsing location
@@ -71,59 +69,6 @@ struct FreadTokenizer {
   bool skip_eol();
   bool at_eof() const { return ch == eof; }
 };
-
-typedef void (*ParserFnPtr)(FreadTokenizer& ctx);
-
-
-
-
-
-// Per-column per-thread temporary string buffers used to assemble processed
-// string data. Length = `nstrcols`. Each element in this array has the
-// following fields:
-//     .buf -- memory region where all string data is stored.
-//     .size -- allocation size of this memory buffer.
-//     .ptr -- the `postprocessBuffer` stores here the total amount of string
-//         data currently held in the buffer; while the `orderBuffer` function
-//         puts here the offset within the global string buffer where the
-//         current buffer should be copied to.
-//     .idx8 -- index of the current column within the `buff8` array.
-//     .idxdt -- index of the current column within the output DataTable.
-//     .numuses -- synchronization lock. The purpose of this variable is to
-//         prevent race conditions between threads that do memcpy, and another
-//         thread that needs to realloc the underlying buffer. Without the lock,
-//         if one thread is performing a mem-copy and the other thread wants to
-//         reallocs the buffer, then the first thread will segfault in the
-//         middle of its operation. In order to prevent this, we use this
-//         `.numuses` variable: when positive it shows the number of threads
-//         that are currently writing to the same buffer. However when this
-//         variable is negative, it means the buffer is being realloced, and no
-//         other threads is allowed to initiate a memcopy.
-//
-struct StrBuf {
-  MemoryRange mbuf;
-  size_t idx8;
-  size_t idxdt;
-  size_t ptr;
-  size_t sz;
-
-  StrBuf(size_t allocsize, size_t i8, size_t idt) {
-    mbuf.resize(allocsize);
-    ptr = 0;
-    idx8 = i8;
-    idxdt = idt;
-  }
-
-  StrBuf(StrBuf&& other) {
-    mbuf = std::move(other.mbuf);
-    ptr = other.ptr;
-    idx8 = other.idx8;
-    idxdt = other.idxdt;
-  }
-
-  StrBuf(const StrBuf&) = delete;
-};
-
 
 
 #endif
