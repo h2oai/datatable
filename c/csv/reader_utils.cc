@@ -31,7 +31,7 @@ GReaderColumn::GReaderColumn() {
 
 GReaderColumn::GReaderColumn(GReaderColumn&& o)
   : name(std::move(o.name)), databuf(std::move(o.databuf)), strbuf(o.strbuf),
-    rtype(o.rtype), ptype(o.ptype), typeBumped(o.typeBumped),
+    ptype(o.ptype), rtype(o.rtype), typeBumped(o.typeBumped),
     presentInOutput(o.presentInOutput), presentInBuffer(o.presentInBuffer)
 {
   o.strbuf = nullptr;
@@ -58,10 +58,6 @@ void GReaderColumn::allocate(size_t nrows) {
       strbuf = new MemoryWritableBuffer(allocsize);
     }
   }
-}
-
-const void* GReaderColumn::data_r() const {
-  return databuf.rptr();
 }
 
 void* GReaderColumn::data_w() {
@@ -106,20 +102,29 @@ const char* GReaderColumn::repr_name(const GenericReader& g) const {
 
 //---- Column's type -------------------
 
-bool GReaderColumn::is_string() const {
-  return ParserLibrary::info(ptype).isstring();
-}
-
-bool GReaderColumn::is_dropped() const {
-  return rtype == RT::RDrop;
-}
-
 PT GReaderColumn::get_ptype() const {
   return ptype;
 }
 
 SType GReaderColumn::get_stype() const {
   return ParserLibrary::info(ptype).stype;
+}
+
+GReaderColumn::ptype_iterator
+GReaderColumn::get_ptype_iterator(int8_t* qr_ptr) const {
+  return GReaderColumn::ptype_iterator(ptype, rtype, qr_ptr);
+}
+
+void GReaderColumn::set_ptype(const GReaderColumn::ptype_iterator& it) {
+  xassert(rtype == it.get_rtype());
+  ptype = *it;
+  typeBumped = true;
+}
+
+// Set .ptype to the provided value, disregarding the restrictions imposed
+// by the .rtype field.
+void GReaderColumn::force_ptype(PT new_ptype) {
+  ptype = new_ptype;
 }
 
 void GReaderColumn::set_rtype(int64_t it) {
@@ -149,6 +154,20 @@ const char* GReaderColumn::typeName() const {
   return ParserLibrary::info(ptype).name.data();
 }
 
+
+//---- Column info ---------------------
+
+bool GReaderColumn::is_string() const {
+  return ParserLibrary::info(ptype).isstring();
+}
+
+bool GReaderColumn::is_dropped() const {
+  return rtype == RT::RDrop;
+}
+
+bool GReaderColumn::is_type_bumped() const {
+  return typeBumped;
+}
 
 size_t GReaderColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(ptype).elemsize);
@@ -211,6 +230,32 @@ size_t GReaderColumn::memory_footprint() const {
          name.size() + sizeof(*this);
 }
 
+
+//---- ptype_iterator ------------------
+
+GReaderColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
+  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
+
+PT GReaderColumn::ptype_iterator::operator*() const {
+  return curr_ptype;
+}
+
+RT GReaderColumn::ptype_iterator::get_rtype() const {
+  return rtype;
+}
+
+GReaderColumn::ptype_iterator& GReaderColumn::ptype_iterator::operator++() {
+  if (curr_ptype < PT::Str32) {
+    curr_ptype = static_cast<PT>(curr_ptype + 1);
+  } else {
+    *pqr = *pqr + 1;
+  }
+  return *this;
+}
+
+bool GReaderColumn::ptype_iterator::has_incremented() const {
+  return curr_ptype != orig_ptype;
+}
 
 
 
@@ -277,13 +322,13 @@ bool GReaderColumns::sameTypes(std::unique_ptr<PT[]>& types) const {
 void GReaderColumns::setTypes(const std::unique_ptr<PT[]>& types) {
   size_t i = 0;
   for (auto& col : cols) {
-    col.ptype = types[i++];
+    col.force_ptype(types[i++]);
   }
 }
 
 void GReaderColumns::setType(PT type) {
   for (auto& col : cols) {
-    col.ptype = type;
+    col.force_ptype(type);
   }
 }
 

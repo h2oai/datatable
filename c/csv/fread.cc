@@ -295,17 +295,18 @@ DataTablePtr FreadReader::read()
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
+      col.typeBumped = false;
       if (col.is_dropped()) {
         ndropped++;
         continue;
       } else {
-        if (col.ptype < oldtypes[i]) {
+        if (col.get_ptype() < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
                "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
                i+1, col.repr_name(*this), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
         }
-        nUserBumped += (col.ptype != oldtypes[i]);
+        nUserBumped += (col.get_ptype() != oldtypes[i]);
       }
     }
     if (verbose) {
@@ -330,7 +331,6 @@ DataTablePtr FreadReader::read()
   // [6] Read the data
   //*********************************************************************************************
   bool firstTime = true;
-  int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
 
   std::unique_ptr<PT[]> typesPtr = columns.getTypes();
   PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
@@ -344,12 +344,6 @@ DataTablePtr FreadReader::read()
     if (firstTime) {
       fo.t_data_read = fo.t_data_reread = wallclock();
       size_t ncols = columns.size();
-
-      for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
-      for (size_t i = 0; i < ncols; i++) {
-        typeCounts[columns[i].ptype]++;
-      }
-
       size_t ncols_to_reread = columns.nColumnsToReread();
       if (ncols_to_reread) {
         fo.n_cols_reread += ncols_to_reread;

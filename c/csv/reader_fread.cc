@@ -329,15 +329,19 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
 
   size_t ncols = columns.size();
   size_t j = 0;
+  GReaderColumn dummy_col;
+  dummy_col.force_ptype(PT::Str32);
+
   while (true) {
+    GReaderColumn& col = j < ncols ? columns[j] : dummy_col;
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    PT coltype = j < ncols ? columns[j].get_ptype() : PT::Str32;
+    auto ptype_iter = col.get_ptype_iterator(&fctx.quoteRule);
     while (true) {
       // Try to parse using the regular field parser
       tch = fieldStart;
-      parsers[coltype](fctx);
+      parsers[*ptype_iter](fctx);
       fctx.skip_whitespace();
       if (fctx.end_of_field()) break;
 
@@ -347,7 +351,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       fctx.skip_whitespace();
       if (fctx.end_of_field()) break;
 
-      if (ParserLibrary::info(coltype).isstring()) {
+      if (ParserLibrary::info(*ptype_iter).isstring()) {
         // Do not bump the quote rule, since we cannot be sure that the jump
         // was reliable. Instead, we'll defer quote rule bumping to regular
         // file reading.
@@ -357,7 +361,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       // Try to parse as quoted field
       if (*fieldStart == quote) {
         tch = fieldStart + 1;
-        parsers[coltype](fctx);
+        parsers[*ptype_iter](fctx);
         if (*tch == quote) {
           tch++;
           fctx.skip_whitespace();
@@ -366,9 +370,10 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       }
 
       // Finally, bump the column's type and try again
-      // TODO: replace with proper PT iteration
-      coltype = static_cast<PT>(coltype + 1);
-      if (j < ncols) columns[j].ptype = coltype;
+      ++ptype_iter;
+    }
+    if (j < ncols && ptype_iter.has_incremented()) {
+      col.set_ptype(ptype_iter);
     }
     j++;
 
@@ -858,13 +863,12 @@ void FreadLocalParseContext::read_chunk(
     if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        PT oldType = types[j];
-        PT newType = oldType;
+        auto ptype_iter = columns[j].get_ptype_iterator(&tokenizer.quoteRule);
 
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(newType).isstring()) {
+          if (!ParserLibrary::info(*ptype_iter).isstring()) {
             tokenizer.skip_whitespace();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
@@ -872,7 +876,7 @@ void FreadLocalParseContext::read_chunk(
             if (!tokenizer.end_of_field()) tch = afterSpace;
             if (*tch==quote) { quoted=true; tch++; }
           }
-          parsers[newType](tokenizer);
+          parsers[*ptype_iter](tokenizer);
           if (quoted) {
             if (*tch==quote) tch++;
             else goto typebump;
@@ -891,13 +895,7 @@ void FreadLocalParseContext::read_chunk(
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
           if (cc.true_start) {
-            // TODO: replace with proper type iteration
-            if (newType + 1 < ParserLibrary::num_parsers) {
-              newType = static_cast<PT>(newType + 1);
-            } else {
-              tokenizer.quoteRule++;
-              newType = PT::Str32;
-            }
+            ++ptype_iter;
             tch = fieldStart;
           } else {
             return;
@@ -907,16 +905,15 @@ void FreadLocalParseContext::read_chunk(
         // Type-bump. This may only happen if cc.true_start is true, which flag
         // is only set to true on one thread at a time. Thus, there is no need
         // for "critical" section here.
-        if (newType != oldType) {
+        if (ptype_iter.has_incremented()) {
           xassert(cc.true_start);
           if (verbose) {
-            freader.fo.type_bump_info(j + 1, columns[j], newType, fieldStart,
+            freader.fo.type_bump_info(j + 1, columns[j], *ptype_iter, fieldStart,
                                       tch - fieldStart,
                                       static_cast<int64_t>(row0 + used_nrows));
           }
-          types[j] = newType;
-          columns[j].ptype = newType;
-          columns[j].typeBumped = true;
+          types[j] = *ptype_iter;
+          columns[j].set_ptype(ptype_iter);
         }
         tokenizer.target += columns[j].presentInBuffer;
         j++;
@@ -990,7 +987,7 @@ void FreadLocalParseContext::postprocess() {
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
-    if (col.is_string() && !col.typeBumped) {
+    if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
       field64* coldata = tbuf.data() + j;
       for (size_t n = 0; n < used_nrows; ++n) {
@@ -1044,7 +1041,7 @@ void FreadLocalParseContext::orderBuffer() {
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
     if (!col.presentInBuffer) continue;
-    if (col.is_string() && !col.typeBumped) {
+    if (col.is_string() && !col.is_type_bumped()) {
       // Compute the size of the string content in the buffer `sz` from the
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may some times change affecting
@@ -1058,12 +1055,12 @@ void FreadLocalParseContext::orderBuffer() {
       size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
 
-      if (columns[i].ptype == PT::Str32 && write_at + sz > 0x80000000) {
+      if (col.get_ptype() == PT::Str32 && write_at + sz > 0x80000000) {
         dt::shared_lock lock(shmutex, /* exclusive = */ true);
-        columns[i].convert_to_str64();
+        col.convert_to_str64();
         types[i] = PT::Str64;
         if (verbose) {
-          freader.fo.str64_bump(i, columns[i]);
+          freader.fo.str64_bump(i, col);
         }
       }
     }
@@ -1085,7 +1082,7 @@ void FreadLocalParseContext::push_buffers() {
     void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
 
-    if (col.typeBumped) {
+    if (col.is_type_bumped()) {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
     } else if (col.is_string()) {

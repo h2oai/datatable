@@ -45,14 +45,29 @@ class GReaderColumn {
     std::string name;
     MemoryRange databuf;
     MemoryWritableBuffer* strbuf;
+    PT ptype;
     RT rtype;
 
   public:
-    PT ptype;
     bool typeBumped;
     bool presentInOutput;
     bool presentInBuffer;
     int32_t : 24;
+
+    class ptype_iterator {
+      private:
+        int8_t* pqr;
+        RT rtype;
+        PT orig_ptype;
+        PT curr_ptype;
+        int64_t : 40;
+      public:
+        ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
+        PT operator*() const;
+        ptype_iterator& operator++();
+        bool has_incremented() const;
+        RT get_rtype() const;
+    };
 
   public:
     GReaderColumn();
@@ -62,7 +77,6 @@ class GReaderColumn {
 
     // Column's data
     void allocate(size_t nrows);
-    const void* data_r() const;
     void* data_w();
     WritableBuffer* strdata_w();
     MemoryRange extract_databuf();
@@ -75,13 +89,20 @@ class GReaderColumn {
     const char* repr_name(const GenericReader& g) const;  // static ptr
 
     // Column's type(s)
-    bool is_string() const;
-    bool is_dropped() const;
     PT get_ptype() const;
     SType get_stype() const;
+    ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
+    void set_ptype(const ptype_iterator& it);
+    void force_ptype(PT new_ptype);
     const char* typeName() const;
+
+    // Column info
+    bool is_string() const;
+    bool is_dropped() const;
+    bool is_type_bumped() const;
     size_t elemsize() const;
+
     void convert_to_str64();
     PyObj py_descriptor() const;
 
