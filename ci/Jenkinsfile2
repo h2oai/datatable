@@ -65,7 +65,8 @@ properties([
     parameters([
         booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
         booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
-        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
+        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage'),
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -276,7 +277,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_linux': {
-                        if(!isPrJob()) {
+                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 with Numpy on x86_64_linux') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -294,7 +295,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on x86_64_linux': {
-                        if(!isPrJob()) {
+                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on x86_64_linux') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -340,7 +341,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_centos7': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 with Numpy on x86_64_centos7') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -358,7 +359,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on x86_64_centos7': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on x86_64_centos7') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -408,7 +409,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC()) {
+                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 with Numpy on ppc64le_centos7') {
                                 node(PPC_NODE_LABEL) {
                                     cleanWs()
@@ -426,7 +427,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC()) {
+                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on ppc64le_centos7') {
                                 node(PPC_NODE_LABEL) {
                                     cleanWs()
@@ -472,7 +473,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_osx': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR)  {
                             stage('Test Py36 with Numpy on x86_64_osx') {
                                 node(OSX_NODE_LABEL) {
                                     cleanWs()
@@ -490,7 +491,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on x86_64_osx': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on x86_64_osx') {
                                 node(OSX_NODE_LABEL) {
                                     cleanWs()
@@ -701,7 +702,7 @@ def isModified(pattern) {
 }
 
 def doPPC() {
-    return !isPrJob() || params.FORCE_BUILD_PPC64LE
+    return !isPrJob() || params.FORCE_BUILD_PPC64LE || params.FORCE_ALL_TESTS_IN_PR
 }
 
 def doPublish() {
