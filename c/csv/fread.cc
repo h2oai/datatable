@@ -240,10 +240,7 @@ DataTablePtr FreadReader::read()
     xassert(ncols >= 1 && line >= 1);
 
     // Create vector of Column objects
-    columns.reserve(static_cast<size_t>(ncols));
-    for (int i = 0; i < ncols; i++) {
-      columns.push_back(GReaderColumn());
-    }
+    columns.add_columns(static_cast<size_t>(ncols));
 
     first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
@@ -298,19 +295,18 @@ DataTablePtr FreadReader::read()
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       GReaderColumn& col = columns[i];
-      if (col.rtype == RT::RDrop) {
+      col.reset_type_bumped();
+      if (col.is_dropped()) {
         ndropped++;
-        col.presentInOutput = false;
-        col.presentInBuffer = false;
         continue;
       } else {
-        if (col.type < oldtypes[i]) {
+        if (col.get_ptype() < oldtypes[i]) {
           // FIXME: if the user wants to override the type, let them
           STOP("Attempt to override column %d \"%s\" of inherent type '%s' down to '%s' which will lose accuracy. " \
                "If this was intended, please coerce to the lower type afterwards. Only overrides to a higher type are permitted.",
                i+1, col.repr_name(*this), ParserLibrary::info(oldtypes[i]).cname(), col.typeName());
         }
-        nUserBumped += (col.type != oldtypes[i]);
+        nUserBumped += (col.get_ptype() != oldtypes[i]);
       }
     }
     if (verbose) {
@@ -335,7 +331,6 @@ DataTablePtr FreadReader::read()
   // [6] Read the data
   //*********************************************************************************************
   bool firstTime = true;
-  int typeCounts[ParserLibrary::num_parsers];  // used for verbose output
 
   std::unique_ptr<PT[]> typesPtr = columns.getTypes();
   PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
@@ -349,27 +344,17 @@ DataTablePtr FreadReader::read()
     if (firstTime) {
       fo.t_data_read = fo.t_data_reread = wallclock();
       size_t ncols = columns.size();
-
-      for (size_t i = 0; i < ParserLibrary::num_parsers; ++i) typeCounts[i] = 0;
-      for (size_t i = 0; i < ncols; i++) {
-        typeCounts[columns[i].type]++;
-      }
-
       size_t ncols_to_reread = columns.nColumnsToReread();
       if (ncols_to_reread) {
         fo.n_cols_reread += ncols_to_reread;
         size_t n_type_bump_cols = 0;
         for (size_t j = 0; j < ncols; j++) {
           GReaderColumn& col = columns[j];
-          if (!col.presentInOutput) continue;
-          if (col.typeBumped) {
-            // column was bumped due to out-of-sample type exception
-            col.typeBumped = false;
-            col.presentInBuffer = true;
-            n_type_bump_cols++;
-          } else {
-            col.presentInBuffer = false;
-          }
+          if (!col.is_in_output()) continue;
+          bool bumped = col.is_type_bumped();
+          col.reset_type_bumped();
+          col.set_in_buffer(bumped);
+          n_type_bump_cols += bumped;
         }
         firstTime = false;
         if (verbose) {
