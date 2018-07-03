@@ -717,6 +717,7 @@ def createDockerArgs() {
     LINK_MAP.each { key, value ->
         out += "-v ${SOURCE_DIR}/${key}:${TARGET_DIR}/${value} "
     }
+    out += "--privileged --ulimit core=-1 "
     return out
 }
 
