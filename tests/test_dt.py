@@ -64,7 +64,7 @@ def test_dt_loadtime(nocov):
     out = subprocess.check_output([sys.executable, "-c", "import datatable"])
     t1 = time.time() - t1
     assert out == b""
-    assert t1 - t0 < max(0.3, 6 * t0)
+    assert t1 - t0 < max(0.5, 6 * t0)
 
 
 @pytest.mark.run(order=0.9)
