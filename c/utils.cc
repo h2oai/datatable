@@ -169,3 +169,38 @@ const char* humanize_number(size_t num) {
   output[len] = '\0';
   return output;
 }
+
+
+/**
+ * Return the size of the array `ptr`, or 0 if the platform doesn't allow
+ * such functionality.
+ */
+size_t array_size(void *ptr, size_t elemsize) {
+  #ifdef MALLOC_SIZE_UNAVAILABLE
+    return 0;
+  #else
+    return ptr == nullptr? 0 : malloc_size(ptr) / elemsize;
+  #endif
+}
+
+
+char*
+repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
+    static char buf[101];
+    int i = 0;
+    for (const unsigned char *ptr = ptr0; ptr < ptr1; ptr++) {
+        if (*ptr >= 0x20 && *ptr < 0x7F)
+            buf[i++] = (char) *ptr;
+        else {
+            int8_t d0 = (*ptr) & 0xF;
+            int8_t d1 = (*ptr) >> 4;
+            buf[i++] = '\\';
+            buf[i++] = 'x';
+            buf[i++] = d1 <= 9? ('0' + d1) : ('A' + d1 - 10);
+            buf[i++] = d0 <= 9? ('0' + d0) : ('A' + d0 - 10);
+        }
+        if (i >= 95) break;
+    }
+    buf[i] = '\0';
+    return buf;
+}

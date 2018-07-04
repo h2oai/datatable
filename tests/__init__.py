@@ -102,8 +102,8 @@ def assert_equals(datatable1, datatable2):
     """
     Helper function to assert that 2 datatables are equal to each other.
     """
-    assert datatable1.internal.check()
-    assert datatable2.internal.check()
+    datatable1.internal.check()
+    datatable2.internal.check()
     assert datatable1.shape == datatable2.shape
     assert same_iterables(datatable1.names, datatable2.names)
     assert same_iterables(datatable1.stypes, datatable2.stypes)

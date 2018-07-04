@@ -106,7 +106,7 @@ def f(request):
 def test_h2oai_benchmarks(f):
     try:
         d = dt.fread(f)
-        assert d.internal.check()
+        d.internal.check()
     except zipfile.BadZipFile:
         pytest.skip("Bad zip file error")
 
@@ -141,7 +141,7 @@ def test_h2o3_smalldata(f):
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
         d0 = dt.fread(f, **params)
-        assert d0.internal.check()
+        d0.internal.check()
 
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"),
@@ -189,7 +189,7 @@ def test_h2o3_bigdata(f):
         if any(ff in f for ff in filledna_files):
             params["fill"] = True
         d0 = dt.fread(f, **params)
-        assert d0.internal.check()
+        d0.internal.check()
 
 
 
@@ -197,7 +197,7 @@ def test_h2o3_bigdata(f):
                          indirect=True)
 def test_fread_all(f):
     d0 = dt.fread(f)
-    assert d0.internal.check()
+    d0.internal.check()
 
 
 def test_fread_1206FUT():
@@ -205,8 +205,8 @@ def test_fread_1206FUT():
     f = find_file("h2o-3", "fread", "1206FUT.txt")
     d0 = dt.fread(f, strip_whitespace=True)
     d1 = dt.fread(f, strip_whitespace=False)
-    assert d0.internal.check()
-    assert d1.internal.check()
+    d0.internal.check()
+    d1.internal.check()
     assert d0.shape == d1.shape == (308, 21)
     assert d0.names == d1.names
     assert d0.stypes == d1.stypes
@@ -220,5 +220,5 @@ def test_fread_1206FUT():
 def test_fread_maxnrows_with_large_file():
     f = find_file("h2o-3", "bigdata", "laptop", "airlines_all.05p.csv")
     d0 = dt.fread(f, max_nrows=111)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.nrows == 111

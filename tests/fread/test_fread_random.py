@@ -109,7 +109,7 @@ def test_fread_omnibus(seed):
     try:
         params["text"] = text
         d0 = dt.fread(**params)
-        assert d0.internal.check()
+        d0.internal.check()
         assert d0.shape == (nrows, ncols)
         assert d0.names == tuple(colnames)
         if nrows:
