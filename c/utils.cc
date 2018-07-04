@@ -82,9 +82,10 @@ void set_value(void * __restrict__ ptr, const void * __restrict__ value,
   double wallclock(void) {
     struct timespec tp;
     int ret = 1;
-    if (__builtin_available(macos 10.12, *)) {
-      ret = clock_gettime(CLOCK_REALTIME, &tp);
-    }
+    #ifdef __APPLE__
+      if (__builtin_available(macos 10.12, *))
+    #endif
+    ret = clock_gettime(CLOCK_REALTIME, &tp);
     return ret == 0? 1.0 * tp.tv_sec + 1e-9 * tp.tv_nsec : 0;
   }
 #else
