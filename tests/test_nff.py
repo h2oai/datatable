@@ -57,7 +57,7 @@ def test_obj_columns(tempdir):
     src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}]
     d0 = dt.Frame([src1, src2], names=["A", "B"])
     print("Saved to %s" % tempdir)
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.ltypes == (dt.ltype.int, dt.ltype.obj)
     assert d0.shape == (4, 2)
     with pytest.warns(DatatableWarning) as ws:
@@ -66,7 +66,7 @@ def test_obj_columns(tempdir):
     assert "Column 'B' of type obj64 was not saved" in ws[0].message.args[0]
     del d0
     d1 = dt.open(tempdir)
-    assert d1.internal.check()
+    d1.internal.check()
     assert d1.shape == (4, 1)
     assert d1.names == ("A", )
     assert d1.topython() == [src1]

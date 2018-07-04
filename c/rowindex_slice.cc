@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "rowindex.h"
 #include <algorithm>           // std::swap, std::move
-#include "datatable_check.h"   // IntegrityCheckContext
 #include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 
@@ -213,21 +212,18 @@ size_t SliceRowIndexImpl::memory_footprint() const {
 
 
 
-bool SliceRowIndexImpl::verify_integrity(IntegrityCheckContext& icc) const {
-  if (!RowIndexImpl::verify_integrity(icc)) return false;
-  auto end = icc.end();
+void SliceRowIndexImpl::verify_integrity() const {
+  RowIndexImpl::verify_integrity();
 
   if (type != RowIndexType::RI_SLICE) {
-    icc << "Invalid type = " << type << " in a SliceRowIndex" << end;
-    return false;
+    throw AssertionError() << "Invalid type = " << type << " in a SliceRowIndex";
   }
 
   try {
     check_triple(start, length, step);
   } catch (const Error&) {
-    icc << "Invalid slice rowindex: " << start << "/" << length << "/"
-        << step << end;
-    return false;
+    throw AssertionError()
+        << "Invalid slice rowindex: " << start << "/" << length << "/" << step;
   }
 
   if (length > 0) {
@@ -235,11 +231,9 @@ bool SliceRowIndexImpl::verify_integrity(IntegrityCheckContext& icc) const {
     int64_t maxrow = start + step * (length - 1);
     if (step < 0) std::swap(minrow, maxrow);
     if (min != minrow || max != maxrow) {
-      icc << "Invalid min/max values in slice row index " << start << "/"
-          << length << "/" << step << ": min = " << min << ", max = "
-          << max << end;
+      throw AssertionError()
+          << "Invalid min/max values in a Slice RowIndex " << start << "/"
+          << length << "/" << step << ": min = " << min << ", max = " << max;
     }
   }
-
-  return true;
 }

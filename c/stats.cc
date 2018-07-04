@@ -56,17 +56,16 @@ size_t Stats::memory_footprint() const {
 }
 
 
-// TODO: implement
 void Stats::merge_stats(const Stats*) {
+  // TODO: implement
 }
 
 
 /**
  * See DataTable::verify_integrity for method description
  */
-// TODO: implement
-bool Stats::verify_integrity(IntegrityCheckContext&, const std::string&) const {
-  return true;
+void Stats::verify_integrity(const Column*) const {
+  // TODO: implement (#1143)
 }
 
 

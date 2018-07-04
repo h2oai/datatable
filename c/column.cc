@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <cstdlib>     // atoll
-#include "datatable_check.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -372,57 +371,46 @@ void Column::cast_into(PyObjectColumn*) const {
 // Integrity checks
 //------------------------------------------------------------------------------
 
-bool Column::verify_integrity(IntegrityCheckContext& icc,
-                              const std::string& name) const
-{
-  int nerrors = icc.n_errors();
-  auto end = icc.end();
-
+void Column::verify_integrity(const std::string& name) const {
   if (nrows < 0) {
-    icc << name << " has a negative value for `nrows`: " <<  nrows << end;
+    throw AssertionError()
+      << name << " has a negative value for nrows: " << nrows;
   }
-  mbuf.verify_integrity(icc);
-  if (icc.has_errors(nerrors)) return false;
+  mbuf.verify_integrity();
+  ri.verify_integrity();
 
-  // data_nrows() may use the value in `meta`, so `meta` should be checked
-  // before using this method
   int64_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
   if (ri.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
-      icc << "Mismatch between reported number of rows: " << name
+      throw AssertionError()
+          << "Mismatch between reported number of rows: " << name
           << " has nrows=" << nrows << " but MemoryRange has data for "
-          << mbuf_nrows << " rows" << end;
+          << mbuf_nrows << " rows";
     }
   }
   else {
-    // RowIndex check
-    bool ok = ri.verify_integrity(icc);
-    if (!ok) return false;
-
     // Check that the length of the RowIndex corresponds to `nrows`
     if (nrows != ri.length()) {
-      icc << "Mismatch in reported number of rows: " << name << " has "
+      throw AssertionError()
+          << "Mismatch in reported number of rows: " << name << " has "
           << "nrows=" << nrows << ", while its rowindex.length="
-          << ri.length() << end;
+          << ri.length();
     }
-
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
     if (ri.max() >= mbuf_nrows && ri.max() > 0) {
-      icc << "Maximum row number in the rowindex of " << name << " exceeds the "
+      throw AssertionError()
+          << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
-          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows << end;
+          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows;
     }
   }
-  if (icc.has_errors(nerrors)) return false;
 
   // Check Stats
-  if (stats != nullptr) { // Stats are allowed to be null
-    bool r = stats->verify_integrity(icc);
-    if (!r) return false;
+  if (stats) { // Stats are allowed to be null
+    stats->verify_integrity(this);
   }
-  return !icc.has_errors(nerrors);
 }

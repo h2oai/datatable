@@ -10,7 +10,6 @@
 #include <limits> // numeric_limits::max()
 #include "py_utils.h"
 #include "utils.h"
-#include "datatable_check.h"
 #include "encodings.h"
 #include "utils/assert.h"
 
@@ -574,13 +573,8 @@ void StringColumn<uint64_t>::cast_into(StringColumn<uint64_t>* target) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-bool StringColumn<T>::verify_integrity(
-    IntegrityCheckContext& icc, const std::string& name) const
-{
-  bool r = Column::verify_integrity(icc, name);
-  if (!r) return false;
-  int nerrors = icc.n_errors();
-  auto end = icc.end();
+void StringColumn<T>::verify_integrity(const std::string& name) const {
+  Column::verify_integrity(name);
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
@@ -589,18 +583,18 @@ bool StringColumn<T>::verify_integrity(
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != 0) {
-    icc << "Offsets section in (string) " << name << " is not preceded by "
-        << "number 0" << end;
+    throw AssertionError()
+        << "Offsets section in (string) " << name << " does not start with 0";
   }
 
   int64_t mbuf_nrows = data_nrows();
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   if (strbuf.size() != strdata_size) {
-    icc << "Size of string data section in " << name << " does not correspond"
-        << " to the magnitude of the final offset: size = " << strbuf.size()
-        << ", expected " << strdata_size << end;
-    return true;
+    throw AssertionError()
+        << "Size of string data section in " << name << " does not correspond"
+           " to the magnitude of the final offset: size = " << strbuf.size()
+        << ", expected " << strdata_size;
   }
 
   // Check for the validity of each offset
@@ -609,25 +603,26 @@ bool StringColumn<T>::verify_integrity(
     T oj = str_offsets[i];
     if (ISNA<T>(oj)) {
       if (oj != (lastoff | GETNA<T>())) {
-        icc << "Offset of NA String in row " << i << " of " << name << " does not"
-            << " have the same magnitude as the previous offset: offset = " << oj
-            << ", previous offset = " << lastoff << end;
+        throw AssertionError()
+            << "Offset of NA String in row " << i << " of " << name
+            << " does not have the same magnitude as the previous offset: "
+               "offset = " << oj << ", previous offset = " << lastoff;
       }
     } else {
       if (oj < lastoff) {
-        icc << "String offset in row " << i << " of " << name << " cannot be less"
-            << " than the previous offset: offset = " << oj << ", previous offset"
-            << " = " << lastoff << end;
+        throw AssertionError()
+            << "String offset in row " << i << " of " << name
+            << " cannot be less than the previous offset: offset = " << oj
+            << ", previous offset = " << lastoff;
       }
       if (!is_valid_utf8(cdata + lastoff, static_cast<size_t>(oj - lastoff))) {
-        icc << "Invalid UTF-8 string in row " << i << " of " << name << ": "
-            << repr_utf8(cdata + lastoff, cdata + oj) << end;
+        throw AssertionError()
+            << "Invalid UTF-8 string in row " << i << " of " << name << ": "
+            << repr_utf8(cdata + lastoff, cdata + oj);
       }
       lastoff = oj;
     }
   }
-
-  return !icc.has_errors(nerrors);
 }
 
 

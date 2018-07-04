@@ -16,13 +16,13 @@ def test_columns_rows():
 
     df1 = df0[::2, f.A + f.B]
     df2 = df0[::2, :][:, f.A + f.B]
-    assert df1.internal.check()
-    assert df2.internal.check()
+    df1.internal.check()
+    df2.internal.check()
     assert df1.topython() == [[0, 6, 12, 18, 24]]
     assert df2.topython() == [[0, 6, 12, 18, 24]]
 
     df3 = df0[::-2, {"res": f.A * f.B}]
     df4 = df0[::2, :][::-1, :][:, f.A * f.B]
-    assert df3.internal.check()
-    assert df4.internal.check()
+    df3.internal.check()
+    df4.internal.check()
     assert df3.topython() == [[162, 98, 50, 18, 2]]

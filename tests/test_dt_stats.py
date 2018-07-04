@@ -60,7 +60,7 @@ def t_min(t):
 def test_min(src):
     dt0 = dt.Frame(src)
     dtr = dt0.min()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.names == dt0.names
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
@@ -71,7 +71,7 @@ def test_min(src):
 def test_dt_str():
     dt0 = dt.Frame([[1, 5, 3, 9, -2], list("abcde")])
     dtr = dt0.min()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.topython() == [[-2], [None]]
 
 
@@ -92,7 +92,7 @@ def t_max(t):
 def test_max(src):
     dt0 = dt.Frame(src)
     dtr = dt0.max()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.names == dt0.names
     assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
@@ -121,7 +121,7 @@ def sum_stype(st):
 def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == (sum_stype(dt0.stypes[0]), )
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
@@ -145,7 +145,7 @@ def t_mean(t):
 def test_dt_mean(src):
     dt0 = dt.Frame(src)
     dtr = dt0.mean()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dt0.names == dtr.names
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
@@ -169,7 +169,7 @@ def test_dt_mean(src):
 def test_dt_mean_special_cases(src, res):
     dt0 = dt.Frame(src)
     dtr = dt0.mean()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dt0.names == dtr.names
     assert dtr.stypes == (stype.float64,)
     assert dtr.shape == (1, 1)
@@ -196,7 +196,7 @@ def t_sd(t):
 def test_dt_sd(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sd()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == (stype.float64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
@@ -214,7 +214,7 @@ def test_dt_sd(src):
 def test_dt_sd_special_cases(src, res):
     dt0 = dt.Frame(src)
     dtr = dt0.sd()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == (stype.float64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
@@ -240,7 +240,7 @@ def test_dt_count_na(src):
         dt0 = dt.Frame(src)
         ans = t_count_na(src)
     dtr = dt0.countna()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
@@ -265,7 +265,7 @@ def test_dt_n_unique(src):
         dt0 = dt.Frame(src)
         ans = n_unique(src)
     dtr = dt0.nunique()
-    assert dtr.internal.check()
+    dtr.internal.check()
     assert dtr.stypes == (stype.int64, )
     assert dtr.shape == (1, 1)
     assert dtr.names == dt0.names
@@ -303,8 +303,8 @@ def test_mode(src):
     dtm = f0.mode()
     dtn = f0.nmodal()
     modal_count, modal_values = t_mode(src)
-    assert dtm.internal.check()
-    assert dtn.internal.check()
+    dtm.internal.check()
+    dtn.internal.check()
     assert dtm.shape == dtn.shape == (1, 1)
     assert dtm.names == dtn.names == f0.names
     assert dtm.stypes == f0.stypes
@@ -354,8 +354,8 @@ def test_bad_call():
 def test_empty_frame(st):
     f0 = dt.Frame([], stype=st)
     f1 = dt.Frame([None], stype=st)
-    assert f0.internal.check()
-    assert f1.internal.check()
+    f0.internal.check()
+    f1.internal.check()
     assert f0.stypes == f1.stypes == (st, )
     assert f0.countna1() == 0
     assert f0.nunique1() == 0
@@ -367,7 +367,7 @@ def test_empty_frame(st):
 
 def test_object_column():
     df = dt.Frame([None, nan, 3, "srsh"])
-    assert df.internal.check()
+    df.internal.check()
     assert df.countna1() == 2
     assert df.min1() is None
     assert df.max1() is None
@@ -385,27 +385,27 @@ def test_object_column():
 def test_object_column2():
     df = dt.Frame([None, nan, 3, "srsh"])
     f0 = df.countna()
-    assert f0.internal.check()
+    f0.internal.check()
     assert f0.stypes == (stype.int64, )
     assert f0.scalar() == 2
     f1 = df.min()
-    assert f1.internal.check()
+    f1.internal.check()
     assert f1.stypes == (stype.obj64, )
     assert f1.scalar() == None
     f2 = df.max()
-    assert f2.internal.check()
+    f2.internal.check()
     assert f2.stypes == (stype.obj64, )
     assert f2.scalar() == None
     f3 = df.sum()
-    assert f3.internal.check()
+    f3.internal.check()
     assert f3.stypes == (stype.obj64, )
     assert f3.scalar() == None
     f4 = df.mean()
-    assert f4.internal.check()
+    f4.internal.check()
     assert f4.stypes == (stype.float64, )
     assert f4.scalar() == None
     f5 = df.sd()
-    assert f5.internal.check()
+    f5.internal.check()
     assert f5.stypes == (stype.float64, )
     assert f5.scalar() == None
     with pytest.raises(NotImplementedError):

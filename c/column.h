@@ -249,12 +249,10 @@ public:
   virtual PyObject* mode_pyscalar() const;
 
   /**
-   * Check that the data in this Column object is correct. Use the provided
-   * `IntegrityCheckContext` to report any errors, and `name` is the name of
-   * the column to be used in the output messages.
+   * Check that the data in this Column object is correct. `name` is the name of
+   * the column to be used in the diagnostic messages.
    */
-  virtual bool verify_integrity(IntegrityCheckContext&,
-                                const std::string& name = "Column") const;
+  virtual void verify_integrity(const std::string& name) const;
 
 protected:
   Column(int64_t nrows = 0);
@@ -402,8 +400,7 @@ public:
   void cast_into(StringColumn<uint32_t>*) const override;
   void cast_into(StringColumn<uint64_t>*) const override;
 
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& name = "Column") const override;
+  void verify_integrity(const std::string& name) const override;
 
   using Column::mbuf;
   friend Column;
@@ -628,8 +625,7 @@ public:
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
   void replace_values(RowIndex at, const Column* with) override;
 
-  bool verify_integrity(IntegrityCheckContext&,
-                        const std::string& name = "Column") const override;
+  void verify_integrity(const std::string& name) const override;
 
 protected:
   StringColumn();

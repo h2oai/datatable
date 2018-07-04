@@ -119,12 +119,9 @@ DECLARE_METHOD(
 
 DECLARE_METHOD(
   check,
-  "check(stream=STDOUT)\n\n"
-  "Check the DataTable for internal consistency. Returns False if any\n"
-  "internal problem is found, or True otherwise.\n"
-  "This method accepts a single optional parameter 'stream', which should be\n"
-  "a file-like object where the error messages if any will be written. If \n"
-  "this parameter is not given, then errors will be written to STDOUT.\n"
+  "check()\n\n"
+  "Check the DataTable for internal consistency. Raises an AssertionError if\n"
+  "any internal problem is found.\n"
 )
 
 DECLARE_METHOD(

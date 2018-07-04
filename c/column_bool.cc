@@ -180,13 +180,8 @@ void BoolColumn::cast_into(StringColumn<uint64_t>* target) const {
 // Integrity checks
 //------------------------------------------------------------------------------
 
-bool BoolColumn::verify_integrity(IntegrityCheckContext& icc,
-                                  const std::string& name) const
-{
-  bool r = FwColumn<int8_t>::verify_integrity(icc, name);
-  if (!r) return false;
-  int nerrors = icc.n_errors();
-  auto end = icc.end();
+void BoolColumn::verify_integrity(const std::string& name) const {
+  FwColumn<int8_t>::verify_integrity(name);
 
   // Check that all elements in column are either 0, 1, or NA_I1
   int64_t mbuf_nrows = data_nrows();
@@ -194,9 +189,8 @@ bool BoolColumn::verify_integrity(IntegrityCheckContext& icc,
   for (int64_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
-      icc << "(Boolean) " << name << " has value " << val << " in row " << i
-          << end;
+      throw AssertionError()
+          << "(Boolean) " << name << " has value " << val << " in row " << i;
     }
   }
-  return !icc.has_errors(nerrors);
 }

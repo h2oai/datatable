@@ -11,7 +11,6 @@
 #include <iostream>
 #include <vector>
 #include "datatable.h"
-#include "datatable_check.h"
 #include "py_column.h"
 #include "py_columnset.h"
 #include "py_datawindow.h"
@@ -201,26 +200,10 @@ PyObject* to_scalar(obj* self, PyObject*) {
 }
 
 
-PyObject* check(obj* self, PyObject* args) {
+PyObject* check(obj* self, PyObject*) {
   DataTable* dt = self->ref;
-  PyObject* stream = nullptr;
-
-  if (!PyArg_ParseTuple(args, "|O:check", &stream)) return nullptr;
-
-  IntegrityCheckContext icc(200);
-  dt->verify_integrity(icc);
-  if (icc.has_errors()) {
-    if (stream) {
-      PyObject* ret = PyObject_CallMethod(stream, "write", "s",
-                                          icc.errors().str().c_str());
-      if (ret == nullptr) return nullptr;
-      Py_DECREF(ret);
-    }
-    else {
-      std::cout << icc.errors().str();
-    }
-  }
-  return incref(icc.has_errors()? Py_False : Py_True);
+  dt->verify_integrity();
+  return none();
 }
 
 
@@ -564,7 +547,7 @@ static void dealloc(obj* self) {
 static PyMethodDef datatable_methods[] = {
   METHODv(window),
   METHOD0(to_scalar),
-  METHODv(check),
+  METHOD0(check),
   METHODv(column),
   METHODv(delete_columns),
   METHODv(resize_rows),

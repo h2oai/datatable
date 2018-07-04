@@ -87,7 +87,7 @@ def test_dt_dependencies():
 @pytest.mark.run(order=1)
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
-    assert dt0.internal.check()
+    dt0.internal.check()
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
@@ -178,14 +178,14 @@ def smalldt():
 def test_del_0cols():
     d0 = smalldt()
     del d0[[]]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 16)
     assert d0.topython() == smalldt().topython()
 
 def test_del_1col_str_1():
     d0 = smalldt()
     del d0["A"]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(1, 16)]
     assert d0.names == tuple("BCDEFGHIJKLMNOP")
@@ -193,7 +193,7 @@ def test_del_1col_str_1():
 def test_del_1col_str_2():
     d0 = smalldt()
     del d0["B"]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(16) if i != 1]
     assert d0.names == tuple("ACDEFGHIJKLMNOP")
@@ -201,7 +201,7 @@ def test_del_1col_str_2():
 def test_del_1col_str_3():
     d0 = smalldt()
     del d0["P"]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.topython() == [[i] for i in range(16) if i != 15]
     assert d0.names == tuple("ABCDEFGHIJKLMNO")
@@ -209,14 +209,14 @@ def test_del_1col_str_3():
 def test_del_1col_int():
     d0 = smalldt()
     del d0[-1]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 15)
     assert d0.names == tuple("ABCDEFGHIJKLMNO")
 
 def test_del_cols_strslice():
     d0 = smalldt()
     del d0["E":"K"]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 9)
     assert d0.names == tuple("ABCDLMNOP")
     assert d0.topython() == [[0], [1], [2], [3], [11], [12], [13], [14], [15]]
@@ -224,7 +224,7 @@ def test_del_cols_strslice():
 def test_del_cols_intslice1():
     d0 = smalldt()
     del d0[::2]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("BDFHJLNP")
     assert d0.topython() == [[i] for i in range(1, 16, 2)]
@@ -232,7 +232,7 @@ def test_del_cols_intslice1():
 def test_del_cols_intslice2():
     d0 = smalldt()
     del d0[::-2]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 8)
     assert d0.names == tuple("ACEGIKMO")
     assert d0.topython() == [[i] for i in range(0, 16, 2)]
@@ -240,34 +240,34 @@ def test_del_cols_intslice2():
 def test_del_cols_all():
     d0 = smalldt()
     del d0[:]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.names == tuple()
     assert d0.shape == (0, 0)
 
 def test_del_cols_list():
     d0 = smalldt()
     del d0[[0, 3, 0, 5, 0, 9]]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.names == tuple("BCEGHIKLMNOP")
     assert d0.shape == (1, 12)
 
 def test_del_cols_multislice():
     d0 = smalldt()
     del d0[[slice(10), 12, -1]]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.names == tuple("KLNO")
     assert d0.shape == (1, 4)
 
 def test_del_cols_generator():
     d0 = smalldt()
     del d0[(i**2 for i in range(4))]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.names == tuple("CDFGHIKLMNOP")
 
 def test_del_cols_with_allrows():
     d0 = smalldt()
     del d0[:, ["A", "B", "C"]]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (1, 13)
     assert d0.names == tuple("DEFGHIJKLMNOP")
 
@@ -295,14 +295,14 @@ def test_delitem_invalid_selectors():
 def test_del_rows_single():
     d0 = dt.Frame(range(10))
     del d0[3, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [[0, 1, 2, 4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_slice0():
     d0 = dt.Frame(range(10))
     del d0[:3, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (7, 1)
     assert d0.topython() == [list(range(3, 10))]
 
@@ -310,7 +310,7 @@ def test_del_rows_slice0():
 def test_del_rows_slice1():
     d0 = dt.Frame(range(10))
     del d0[-4:, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (6, 1)
     assert d0.topython() == [list(range(10 - 4))]
 
@@ -318,7 +318,7 @@ def test_del_rows_slice1():
 def test_del_rows_slice2():
     d0 = dt.Frame(range(10))
     del d0[2:6, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (6, 1)
     assert d0.topython() == [[0, 1, 6, 7, 8, 9]]
 
@@ -326,7 +326,7 @@ def test_del_rows_slice2():
 def test_del_rows_slice_empty():
     d0 = dt.Frame(range(10))
     del d0[4:4, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (10, 1)
     assert d0.topython() == [list(range(10))]
 
@@ -336,35 +336,35 @@ def test_del_rows_slice_reverse():
     s0 = list(range(10))
     del d0[:4:-1, :]
     del s0[:4:-1]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [s0]
 
 
 def test_del_rows_slice_all():
     d0 = dt.Frame(range(10))
     del d0[::-1, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (0, 1)
 
 
 def test_del_all():
     d0 = dt.Frame(range(10))
     del d0[:, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.shape == (0, 0)
 
 
 def test_del_rows_slice_step():
     d0 = dt.Frame(range(10))
     del d0[::3, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [[1, 2, 4, 5, 7, 8]]
 
 
 def test_del_rows_array():
     d0 = dt.Frame(range(10))
     del d0[[0, 7, 8], :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [[1, 2, 3, 4, 5, 6, 9]]
 
 
@@ -372,21 +372,21 @@ def test_del_rows_array():
 def test_del_rows_array_unordered():
     d0 = dt.Frame(range(10))
     del d0[[3, 1, 5, 2, 2, 0, -1], :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [[4, 6, 7, 8]]
 
 
 def test_del_rows_filter():
     d0 = dt.Frame(range(10), names=["A"], stype="int32")
     del d0[f.A < 4, :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [[4, 5, 6, 7, 8, 9]]
 
 
 def test_del_rows_nas():
     d0 = dt.Frame({"A": [1, 5, None, 12, 7, None, -3]})
     del d0[isna(f.A), :]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.topython() == [[1, 5, 12, 7, -3]]
 
 
@@ -582,7 +582,7 @@ def test_rename_setter():
     d0 = dt.Frame([[7], [2], [5]])
     d0.names = ("A", "B", "E")
     d0.names = ["a", "c", "e"]
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.names == ("a", "c", "e")
     assert d0.colindex("a") == 0
     assert d0.colindex("c") == 1
@@ -634,7 +634,7 @@ def test_topandas_nas():
                    [249, None, 30000, 1, None],
                    [4587074, None, 109348, 1394, -343],
                    [None, None, None, None, 134918374091834]])
-    assert d0.internal.check()
+    d0.internal.check()
     assert d0.stypes == (dt.stype.bool8, dt.stype.int8, dt.stype.int16,
                          dt.stype.int32, dt.stype.int64)
     p0 = d0.topandas()

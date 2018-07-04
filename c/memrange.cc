@@ -9,8 +9,8 @@
 #include <cerrno>              // errno
 #include <mutex>               // std::mutex, std::lock_guard
 #include <sys/mman.h>          // mmap, munmap
-#include "datatable_check.h"   // IntegrityCheckContext
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
+#include "utils.h"             // malloc_size
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
 
@@ -39,7 +39,7 @@
       virtual void* ptr() const { return bufdata; }
       virtual size_t memory_footprint() const = 0;
       virtual const char* name() const = 0;
-      virtual bool verify_integrity(IntegrityCheckContext& icc) const;
+      virtual void verify_integrity() const;
   };
 
 
@@ -59,7 +59,7 @@
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "ram"; }
-      bool verify_integrity(IntegrityCheckContext& icc) const override;
+      void verify_integrity() const override;
   };
 
 
@@ -116,7 +116,7 @@
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "view"; }
-      bool verify_integrity(IntegrityCheckContext& icc) const override;
+      void verify_integrity() const override;
   };
 
 
@@ -161,7 +161,7 @@
       void resize(size_t n) override;
       size_t memory_footprint() const override;
       const char* name() const override { return "mmap"; }
-      bool verify_integrity(IntegrityCheckContext& icc) const override;
+      void verify_integrity() const override;
 
     protected:
       virtual void memmap();
@@ -362,12 +362,11 @@
                                 o.use_count());
   }
 
-  bool MemoryRange::verify_integrity(IntegrityCheckContext& icc) const {
+  void MemoryRange::verify_integrity() const {
     if (!o || !o->impl) {
-      icc << "NULL implementation object in MemoryRange" << icc.end();
-      return false;
+      throw AssertionError() << "NULL implementation object in MemoryRange";
     }
-    return o->impl->verify_integrity(icc);
+    o->impl->verify_integrity();
   }
 
   void MemoryRange::materialize() {
@@ -466,45 +465,38 @@
     }
   }
 
-  bool BaseMRI::verify_integrity(IntegrityCheckContext& icc) const {
+  void BaseMRI::verify_integrity() const {
     if (!bufdata && bufsize) {
-      icc << "MemoryRange has bufdata = NULL but size = " << bufsize
-          << icc.end();
-      return false;
+      throw AssertionError()
+          << "MemoryRange has bufdata = NULL but size = " << bufsize;
     }
     if (bufdata && !bufsize) {
-      icc << "MemoryRange has bufdata = " << bufdata << " but size = 0"
-          << icc.end();
-      return false;
+      throw AssertionError()
+          << "MemoryRange has bufdata = " << bufdata << " but size = 0";
     }
     if (resizable && !writable) {
-      icc << "MemoryRange is resizable but not writable" << icc.end();
-      return false;
+      throw AssertionError() << "MemoryRange is resizable but not writable";
     }
     if (pyobjects) {
       size_t n = bufsize / sizeof(PyObject*);
       if (bufsize != n * sizeof(PyObject*)) {
-        icc << "MemoryRange is marked as containing PyObjects, but its "
-               "size is " << bufsize << ", not a multiple of "
-            << sizeof(PyObject*) << icc.end();
-        return false;
+        throw AssertionError()
+            << "MemoryRange is marked as containing PyObjects, but its size is "
+            << bufsize << ", not a multiple of " << sizeof(PyObject*);
       }
       PyObject** elements = static_cast<PyObject**>(bufdata);
       for (size_t i = 0; i < n; ++i) {
         if (elements[i] == nullptr) {
-          icc << "Element " << i << " in pyobjects MemoryRange is NULL"
-              << icc.end();
-          return false;
+          throw AssertionError()
+              << "Element " << i << " in pyobjects MemoryRange is NULL";
         }
         if (elements[i]->ob_refcnt <= 0) {
-          icc << "Reference count on PyObject at index " << i << " in "
-                 "MemoryRange is "
-              << static_cast<int64_t>(elements[i]->ob_refcnt) << icc.end();
-          return false;
+          throw AssertionError()
+              << "Reference count on PyObject at index " << i
+              << " in MemoryRange is " << elements[i]->ob_refcnt;
         }
       }
     }
-    return true;
   }
 
 
@@ -542,19 +534,17 @@
     bufsize = n;
   }
 
-  bool MemoryMRI::verify_integrity(IntegrityCheckContext& icc) const {
-    bool ok = BaseMRI::verify_integrity(icc);
-    if (!ok) return false;
+  void MemoryMRI::verify_integrity() const {
+    BaseMRI::verify_integrity();
     if (bufsize) {
       size_t actual_allocsize = malloc_size(bufdata);
       if (bufsize > actual_allocsize) {
-        icc << "MemoryRange has bufsize = " << bufsize << ", while the internal"
-               " buffer was allocated for " << actual_allocsize << " bytes only"
-            << icc.end();
-        return false;
+        throw AssertionError()
+            << "MemoryRange has bufsize = " << bufsize
+            << ", while the internal buffer was allocated for "
+            << actual_allocsize << " bytes only";
       }
     }
-    return true;
   }
 
 
@@ -633,21 +623,18 @@
     throw RuntimeError() << "ViewMRI cannot be resized";
   }
 
-  bool ViewMRI::verify_integrity(IntegrityCheckContext& icc) const {
-    bool ok = BaseMRI::verify_integrity(icc);
-    if (!ok) return false;
+  void ViewMRI::verify_integrity() const {
+    BaseMRI::verify_integrity();
     if (resizable) {
-      icc << "ViewMRI cannot be marked as resizable" << icc.end();
-      return false;
+      throw AssertionError() << "ViewMRI cannot be marked as resizable";
     }
     void* base_ptr = static_cast<void*>(
                         static_cast<char*>(base->bufdata) + offset);
     if (base_ptr != bufdata) {
-      icc << "Invalid data pointer in View MemoryRange: should be "
+      throw AssertionError()
+          << "Invalid data pointer in View MemoryRange: should be "
           << base_ptr << " but actual pointer is " << bufdata;
-      return false;
     }
-    return true;
   }
 
 
@@ -867,38 +854,35 @@
     xassert(!mapped && !mmm_index);
   }
 
-  bool MmapMRI::verify_integrity(IntegrityCheckContext& icc) const {
-    bool ok = BaseMRI::verify_integrity(icc);
-    if (!ok) return false;
+  void MmapMRI::verify_integrity() const {
+    BaseMRI::verify_integrity();
     if (mapped) {
       if (!MemoryMapManager::get()->check_entry(mmm_index, this)) {
-        icc << "Mmap MemoryRange is not properly registered with the "
-               "MemoryMapManager: mmm_index = " << mmm_index << icc.end();
-        return false;
+        throw AssertionError()
+            << "Mmap MemoryRange is not properly registered with the "
+               "MemoryMapManager: mmm_index = " << mmm_index;
       }
       if (bufsize == 0 && bufdata) {
-        icc << "Mmap MemoryRange has size = 0 but data pointer is: "
-            << bufdata << icc.end();
-        return false;
+        throw AssertionError()
+            << "Mmap MemoryRange has size = 0 but data pointer is: " << bufdata;
       }
       if (bufsize && !bufdata) {
-        icc << "Mmap MemoryRange has size = " << bufsize << " and marked as "
-               "mapped, however its data pointer is NULL";
-        return false;
+        throw AssertionError()
+            << "Mmap MemoryRange has size = " << bufsize
+            << " and marked as mapped, however its data pointer is NULL";
       }
     } else {
       if (mmm_index) {
-        icc << "Mmap MemoryRange is not mapped but its mmm_index = "
-            << mmm_index << icc.end();
-        return false;
+        throw AssertionError()
+            << "Mmap MemoryRange is not mapped but its mmm_index = "
+            << mmm_index;
       }
       if (bufsize || bufdata) {
-        icc << "Mmap MemoryRange is not mapped but its size = " << bufsize
-            << " and data pointer = " << bufdata << icc.end();
-        return false;
+        throw AssertionError()
+            << "Mmap MemoryRange is not mapped but its size = " << bufsize
+            << " and data pointer = " << bufdata;
       }
     }
-    return true;
   }
 
 

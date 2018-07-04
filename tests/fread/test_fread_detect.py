@@ -19,14 +19,14 @@ import datatable as dt
 def test_fread_headers_less1():
     # Number of headers is less than the number of columns
     f0 = dt.fread("A\n10,5,foo,1\n11,-3,bar,2\n")
-    assert f0.internal.check()
+    f0.internal.check()
     assert f0.names == ("A", "C0", "C1", "C2")
     assert f0.topython() == [[10, 11], [5, -3], ["foo", "bar"], [1, 2]]
 
 
 def test_fread_headers_less2():
     f0 = dt.fread("A,B\n10,5,foo,1\n11,-3,bar,2\n")
-    assert f0.internal.check()
+    f0.internal.check()
     assert f0.names == ("A", "B", "C0", "C1")
     assert f0.topython() == [[10, 11], [5, -3], ["foo", "bar"], [1, 2]]
 
@@ -37,7 +37,7 @@ def test_fread_headers_against_mu():
     # first column is empty. "Empty" type should be considered equivalent to
     # string (or any other) for the purpose of headers detection.
     f0 = dt.fread("A,100,2\n,300,4\n,500,6\n")
-    assert f0.internal.check()
+    f0.internal.check()
     assert f0.names == ("C0", "C1", "C2")
     assert f0.topython() == [["A", "", ""], [100, 300, 500], [2, 4, 6]]
 
@@ -48,7 +48,7 @@ def test_fread_headers_with_blanks():
         02-FEB-2009,09:55:04:987,PE,108.75,200,111,50,,2865
         02-FEB-2009,09:55:04:939,CE,31.1,3000,36.55,200,,2865
         """)
-    assert f0.internal.check()
+    f0.internal.check()
     assert f0.names == ("C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8")
     assert f0[:, -2:].topython() == [[None] * 3, [2865] * 3]
 
@@ -66,7 +66,7 @@ def test_detect_sep1():
         2007/01/01 22:52:00,5675,5676,5674,5674,17
         2007/01/01 22:53:00,5674,5674,5673,5674,42
         """)
-    assert f0.internal.check()
+    f0.internal.check()
     assert f0.shape == (3, 6)
     assert f0.names == ("Date Time", "Open", "High", "Low", "Close", "Volume")
     assert f0["Open"].topython() == [[5683, 5675, 5674]]
