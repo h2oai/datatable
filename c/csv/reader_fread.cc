@@ -222,6 +222,152 @@ class HypothesisNoQC : public Hypothesis {
 void FreadReader::detect_sep(FreadTokenizer&) {
 }
 
+/**
+ * [2] Auto detect separator, quoting rule, first line and ncols, simply,
+ *     using jump 0 only.
+ */
+void FreadReader::detect_sep_and_qr() {
+  if (verbose) trace("[2] Detect separator, quoting rule, and ncolumns");
+  // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
+  constexpr int JUMPLINES = 100;
+
+  int nseps;
+  char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
+  char topSep;             // which sep matches the input best so far
+  // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
+
+  if (sep == '\xFF') {   // '\xFF' means 'auto'
+    nseps = (int) strlen(seps);
+    topSep = '\xFE';     // '\xFE' means single-column mode
+  } else {
+    // Cannot use '\n' as a separator, because it prevents us from proper
+    // detection of line endings
+    if (sep == '\n') sep = '\xFE';
+    seps[0] = sep;
+    seps[1] = '\0';
+    topSep = sep;
+    nseps = 1;
+    trace("Using supplied sep '%s'",
+          sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
+  }
+
+  const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
+  int topNumLines = 0;      // the most number of lines with the same number of fields, so far
+  int topNumFields = 0;     // how many fields that was, to resolve ties
+  int8_t topQuoteRule = -1;  // which quote rule that was
+  int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
+                            //   (when fill=true, the max is usually the header row and is the longest but there are more
+                            //    lines of fewer)
+
+  field64 trash;
+  FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
+  const char*& tch = ctx.ch;
+
+  // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
+  // covers the header row, at this stage we don't know if it's present), and
+  // detect the number of fields on each line. If several consecutive lines
+  // have the same number of fields, we'll call them a "contiguous group of
+  // lines". Arrays `numFields` and `numLines` contain information about each
+  // contiguous group of lines encountered while scanning the first JUMPLINES
+  // + 1 lines: 'numFields` gives the count of fields in each group, and
+  // `numLines` has the number of lines in each group.
+  int numFields[JUMPLINES+1];
+  int numLines[JUMPLINES+1];
+  for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
+    for (int s=0; s<nseps; s++) {
+      sep = seps[s];
+      whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
+      ctx.ch = sof;
+      ctx.sep = sep;
+      ctx.whiteChar = whiteChar;
+      ctx.quoteRule = quoteRule;
+      // if (verbose) trace("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
+      for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
+      int i=-1; // The slot we're counting the currently contiguous consistent ncols
+      int thisLine=0, lastncol=-1;
+      while (tch < eof && thisLine++ < JUMPLINES) {
+        // Compute num columns and move `tch` to the start of next line
+        int thisncol = ctx.countfields();
+        if (thisncol < 0) {
+          // invalid file with this sep and quote rule; abort
+          numFields[0] = -1;
+          break;
+        }
+        if (thisncol != lastncol) {  // new contiguous consistent ncols started
+          numFields[++i] = thisncol;
+          lastncol = thisncol;
+        }
+        numLines[i]++;
+      }
+      if (numFields[0] == -1) continue;
+      if (firstJumpEnd == nullptr) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+      if (topQuoteRule < 0) topQuoteRule = quoteRule;
+      bool updated = false;
+      int nmax = 0;
+
+      i = -1;
+      while (numLines[++i]) {
+        if (numFields[i] > nmax) {  // for fill=true to know max number of columns
+          nmax = numFields[i];
+        }
+        if ( numFields[i]>1 &&
+            (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
+            ((numLines[i]>topNumLines) ||   // most number of consistent ncols wins
+             (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
+             //                                       ^ ties in numLines resolved by numFields (more fields win)
+             //                                                           ^ but don't resolve a tie with a higher quote
+             //                                                             rule unless the sep is different too: #2404, #2839
+          topNumLines = numLines[i];
+          topNumFields = numFields[i];
+          topSep = sep;
+          topQuoteRule = quoteRule;
+          topNmax = nmax;
+          firstJumpEnd = tch;  // So that after the header we know how many bytes jump point 0 is
+          updated = true;
+          // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
+          // updated flag is just to print once.
+        } else if (topNumFields == 0 && nseps == 1 && quoteRule != 2) {
+          topNumFields = numFields[i];
+          topSep = sep;
+          topQuoteRule = quoteRule;
+          topNmax = nmax;
+        }
+      }
+      if (verbose && updated) {
+        trace(sep<' '? "sep='\\x%02x' with %d lines of %d fields using quote rule %d" :
+                       "sep='%c' with %d lines of %d fields using quote rule %d",
+              sep, topNumLines, topNumFields, topQuoteRule);
+      }
+    }
+  }
+  if (!topNumFields) topNumFields = 1;
+  xassert(firstJumpEnd && topQuoteRule >= 0);
+  quoteRule = ctx.quoteRule = topQuoteRule;
+  sep = ctx.sep = topSep;
+  whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
+  if (sep==' ' && !fill) {
+    trace("sep=' ' detected, setting fill to True");
+    fill = 1;
+  }
+
+  int ncols = fill? topNmax : topNumFields;
+  xassert(ncols >= 1 && line >= 1);
+
+  // Create vector of Column objects
+  columns.add_columns(static_cast<size_t>(ncols));
+
+  first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
+
+  if (verbose) {
+    trace("Detected %d columns", ncols);
+    if (sep == '\xFE') trace("sep = <single-column mode>");
+    else if (sep >= ' ') trace("sep = '%c'", sep);
+    else trace("sep = '\\x%02x'", int(sep));
+    trace("Quote rule = %d", quoteRule);
+    fo.t_parse_parameters_detected = wallclock();
+  }
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -500,7 +646,7 @@ void FreadReader::detect_column_types()
       trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
             allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
     }
-    if (nChunks==1) {
+    if (tch == eof) {
       if (header == 1) n_sample_lines--;
       estnrow = allocnrow = n_sample_lines;
       trace("All rows were sampled since file is small so we know nrows=%zd exactly", estnrow);
@@ -1365,7 +1511,7 @@ void FreadObserver::report() {
           t_data_read <= t_data_reread &&
           t_data_reread <= t_end &&
           read_data_nthreads > 0);
-  double total_time = std::max(t_end - t_start, 1e-6);
+  double total_time = std::max(t_end - t_start + g.t_open_input, 1e-6);
   int    total_minutes = static_cast<int>(total_time/60);
   double total_seconds = total_time - total_minutes * 60;
   double params_time = t_parse_parameters_detected - t_initialized;
@@ -1388,7 +1534,9 @@ void FreadObserver::report() {
           humanize_number(n_cols_read), (n_cols_read == 1 ? "" : "s"),
           filesize_to_str(input_size),
           total_minutes, total_seconds);
-  g.trace(" = %*.3fs (%2.0f%%) detecting parse parameters", p,
+  g.trace(" = %*.3fs (%2.0f%%) memory-mapping input file", p,
+          g.t_open_input, 100 * g.t_open_input / total_time);
+  g.trace(" + %*.3fs (%2.0f%%) detecting parse parameters", p,
           params_time, 100 * params_time / total_time);
   g.trace(" + %*.3fs (%2.0f%%) detecting column types using %s sample rows", p,
           types_time, 100 * types_time / total_time,

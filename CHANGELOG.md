@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 #### Added
 - Frame can now be created from a list/dict of numpy arrays.
 - Filters can now be used together with groupby expressions.
+- fread's verbose output now includes time for opening the input file.
 
 #### Fixed
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.
@@ -22,6 +23,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fix a bug in fread with QR bump occurring out-of-sample.
 - `import datatable` now takes only 0.13s, down from 0.6s.
 - fread no longer wastes time reading the full input, if max_nrows option is used.
+- fix bug where max_nrows parameter was sometimes causing a seg.fault
+- fix fread performance bug caused by memory-mapped file being accidentally
+  copied into RAM.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05

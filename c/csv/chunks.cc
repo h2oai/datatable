@@ -198,11 +198,13 @@ void ChunkedDataReader::read_all()
 
           size_t nrows_new = nrows_written + tctx->used_nrows;
           if (nrows_new > nrows_allocated) {
-            if (nrows_allocated == nrows_max) {
-              // nrows_allocated is the same as nrows_max, no need to reallocate
+            if (nrows_new > nrows_max) {
+              // more rows read than nrows_max, no need to reallocate
               // the output, just truncate the rows in the current chunk.
-              tctx->used_nrows = nrows_allocated - nrows_written;
-              nrows_new = nrows_allocated;
+              xassert(nrows_max >= nrows_written);
+              tctx->used_nrows = nrows_max - nrows_written;
+              nrows_new = nrows_max;
+              realloc_output_columns(i, nrows_new);
               oem.stop_iterations();
             } else {
               realloc_output_columns(i, nrows_new);

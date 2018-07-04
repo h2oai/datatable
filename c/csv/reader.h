@@ -227,6 +227,7 @@ class GenericReader
     bool cr_is_newline;
     int : 24;
     GReaderColumns columns;
+    double t_open_input{ 0 };
 
   private:
     PyObj logger;
