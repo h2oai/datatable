@@ -229,7 +229,6 @@ def get_extra_compile_flags():
         "-Wno-switch-enum",
         "-Wno-old-style-cast",
         "-Wno-nested-anon-types",
-        "-Wno-c99-extensions",
         "-Wno-weak-vtables",  # TODO: Remove
         "-Wno-weak-template-vtables",
     ]
