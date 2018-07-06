@@ -1,18 +1,37 @@
+#-------------------------------------------------------------------------------
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# © H2O.ai 2018
+#-------------------------------------------------------------------------------
+# In order to compile, run:
+#   $ capnp compile -oc++ jay.capnp
+#   $ mv jay.capnp.c++ jay.capnp.cc
+#
+# Then, in file "jay.capnp.cc" replace line
+#   #include "jay.capnp.h"
+# with
+#   #include "jay/jay.capnp.h"
+#
+# Finally, in file "jay.capnp.h" replace all occurrences of
+# `-9223372036854775808ll` with `INT64_MIN`.
+#
+#-------------------------------------------------------------------------------
 @0x9bf7c057bfbac576;
 
 using Cxx = import "/capnp/c++.capnp";
 $Cxx.namespace("jay");
 
-const naInt64 :Int64 = -9223372036854775807;
 
-struct Frame {
+struct Frame @0xcad7df991f5731d7 {
   nrows       @0 :Int64;
   ncols       @1 :Int64;
   columns     @2 :List(Column);
 }
 
 
-struct Column {
+struct Column @0xbcafaabda033c3e0 {
   name        @0 :Text;
   nullcount   @1 :UInt64;
   description @2 :Text;
@@ -41,8 +60,8 @@ struct Column {
     }
     int64         :group {
       data    @16 :Buffer;       # [Int64]
-      min     @17 :Int64 = .naInt64;
-      max     @18 :Int64 = .naInt64;
+      min     @17 :Int64 = -9223372036854775808;
+      max     @18 :Int64 = -9223372036854775808;
     }
     float32       :group {
       data    @19 :Buffer;       # [Float32]
@@ -65,7 +84,7 @@ struct Column {
   }
 }
 
-struct Buffer {
+struct Buffer @0xe1bb4a93d544a7c5 {
   offset @0 :UInt64;
   length @1 :UInt64;
 }

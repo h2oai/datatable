@@ -50,20 +50,30 @@ void DataTable::save_jay(const std::string& path,
                          const std::vector<std::string>& colnames)
 {
   reify();
+  int64_t n_obj_cols = 0;
+  for (int64_t i = 0; i < ncols; ++i) {
+    n_obj_cols += (columns[i]->stype() == ST_OBJECT_PYPTR);
+  }
+
   auto wb = WritableBuffer::create_target(path, memory_footprint(),
-                                          WritableBuffer::Strategy::Write);
+                                          WritableBuffer::Strategy::Auto);
   wb->write(8, "JAY1\0\0\0\0");
 
   capnp::MallocMessageBuilder message;
 
   auto frame = message.initRoot<jay::Frame>();
   frame.setNrows(nrows);
-  frame.setNcols(ncols);
+  frame.setNcols(ncols - n_obj_cols);
 
-  auto zcols = static_cast<unsigned int>(ncols);
+  auto zcols = static_cast<unsigned int>(ncols - n_obj_cols);
   auto msg_columns = frame.initColumns(zcols);
-  for (unsigned int i = 0; i < zcols; ++i) {
-    columns[i]->save_jay(colnames[i], msg_columns[i], wb);
+  unsigned int j = 0;
+  for (size_t i = 0; i < static_cast<size_t>(ncols); ++i) {
+    if (columns[i]->stype() == ST_OBJECT_PYPTR) {
+      Warning() << "Column '" << colnames[i] << "' of type obj64 was not saved";
+    } else {
+      columns[i]->save_jay(colnames[i], msg_columns[j++], wb);
+    }
   }
   xassert((wb->size() & 7) == 0);
 
@@ -160,4 +170,3 @@ void Column::save_jay(
     }
   }
 }
-
