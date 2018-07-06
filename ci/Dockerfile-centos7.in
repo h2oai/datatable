@@ -52,3 +52,13 @@ RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores
 
 COPY ci/clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
 
+RUN \
+    curl -O https://capnproto.org/capnproto-c++-0.6.1.tar.gz \
+    && tar zxf capnproto-c++-0.6.1.tar.gz \
+    && cd capnproto-c++-0.6.1 \
+    && ./configure \
+    && make -j6 check \
+    && make install \
+    && rm -rf capnproto-c++-0.6.1* \
+    && ldconfig /usr/local/lib
+

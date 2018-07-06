@@ -43,3 +43,9 @@ script:
 
 git:
   depth: 2
+
+addons:
+  apt:
+    update: true
+    packages:
+    - capnproto
