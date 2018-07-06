@@ -218,8 +218,6 @@ def get_extra_compile_flags():
     #       corruption and careless enum definition expansion.
     #   -Wfloat-equal: this warning is just plain wrong...
     #       Comparing x == 0 or x == 1 is always safe.
-    #   -Wgnu-statement-expression: we use GNU statement-as-
-    #       expression syntax in some macros...
     #   -Wswitch-enum: generates spurious warnings about missing
     #       cases even if `default` clause is present. -Wswitch
     #       does not suffer from this drawback.
@@ -229,7 +227,6 @@ def get_extra_compile_flags():
         "-Weverything",
         "-Wno-covered-switch-default",
         "-Wno-float-equal",
-        "-Wno-gnu-statement-expression",
         "-Wno-switch-enum",
         "-Wno-old-style-cast",
         "-Wno-c++98-compat-pedantic",
