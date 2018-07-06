@@ -13,6 +13,7 @@
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
+#include <random>
 
 // avoid circular dependency between .h files
 class Column;
@@ -70,15 +71,24 @@ class DataTable {
     void rbind(DataTable**, int**, int, int64_t);
     DataTable* cbind(DataTable**, int);
     size_t memory_footprint();
-    DataTable* aggregate(double, int32_t, int32_t, int32_t);
-    DataTable* aggregate1D(DataTable* dt, double, int32_t);
-    DataTable* aggregate2D(DataTable* dt, double, int32_t, int32_t);
-    DataTable* aggregateND(DataTable* dt);
-    void aggregate1DContinuous(DataTable* dt, double, int32_t);
-    void aggregate2DContinuous(DataTable* dt, double, int32_t, int32_t);
-    void aggregate1DCategorical(DataTable* dt, int32_t);
-    void aggregate2DCategorical(DataTable* dt, int32_t, int32_t);
-    void aggregate2DMixed(DataTable* dt, double, int32_t, int32_t);
+
+    DataTable* aggregate(double, int32_t, int32_t, int32_t, int32_t, int32_t);
+    DataTable* aggregate_1d(DataTable* dt, double, int32_t);
+    DataTable* aggregate_2d(DataTable* dt, double, int32_t, int32_t);
+    DataTable* aggregate_nd(DataTable* dt, int32_t, int32_t);
+    void aggregate_1d_continuous(DataTable* dt, double, int32_t);
+    void aggregate_2d_continuous(DataTable* dt, double, int32_t, int32_t);
+    void aggregate_1d_categorical(DataTable* dt, int32_t);
+    void aggregate_2d_categorical(DataTable* dt, int32_t, int32_t);
+    void aggregate_2d_mixed(DataTable* dt, bool, double, int32_t, int32_t);
+
+    void normalize_row(DataTable* dt, double*, int32_t);
+    double calculate_distance(double*, double*, int64_t, double);
+    void adjust_radius(DataTable*, int32_t, double&);
+    double* generate_pmatrix(int32_t, int32_t);
+    void project_row(DataTable* dt, double*, int32_t, double*, int32_t);
+//    double** generate_pmatrix(int32_t, int32_t);
+//    void project_row(DataTable* dt, double*, int32_t, double**, int32_t);
 
 
     /**

@@ -260,18 +260,16 @@ PyObject* delete_columns(obj* self, PyObject* args) {
 }
 
 PyObject* aggregate(obj* self, PyObject* args) {
-  printf("call: py_datatable.cc PyObject* aggregate(obj* self, PyObject* args)\n");
-
   double epsilon;
-  int32_t n_bins, nx_bins, ny_bins;
+  int32_t n_bins, nx_bins, ny_bins, max_dimensions, seed;
 
-  if (!PyArg_ParseTuple(args, "diii:aggregate",
-                        &epsilon, &n_bins, &nx_bins, &ny_bins)) return nullptr;
+  if (!PyArg_ParseTuple(args, "diiiii:aggregate",
+                        &epsilon, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
 
   DataTable* dt = self->ref;
   DataTable* dt_agg = self->ref;
 
-  dt_agg = dt->aggregate(epsilon, n_bins, nx_bins, ny_bins);
+  dt_agg = dt->aggregate(epsilon, n_bins, nx_bins, ny_bins, max_dimensions, seed);
 
   return wrap(dt_agg);
 }

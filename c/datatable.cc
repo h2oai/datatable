@@ -71,16 +71,20 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int n)
 }
 
 
-DataTable* DataTable::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins, int32_t ny_bins) {
-  printf("call: void DataTable::aggregate()\n");
-
+DataTable* DataTable::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins, int32_t ny_bins, int32_t max_dimensions, int32_t seed) {
   DataTable* dt = nullptr;
   Column** cols = nullptr;
 
   dtmalloc(cols, Column*, ncols + 2);
 
   for (int32_t i = 0; i < ncols; ++i) {
-    cols[i] = columns[i]->shallowcopy();
+    LType ltype = stype_info[columns[i]->stype()].ltype;
+	switch (ltype) {
+	  case LT_BOOLEAN:
+	  case LT_INTEGER:
+	  case LT_REAL:    cols[i] = columns[i]->cast(ST_REAL_F8); break;
+	  default:         cols[i] = columns[i]->shallowcopy();
+	}
   }
 
   cols[ncols] = Column::new_data_column(ST_INTEGER_I4, nrows);
@@ -88,42 +92,41 @@ DataTable* DataTable::aggregate(double epsilon, int32_t n_bins, int32_t nx_bins,
   dt = new DataTable(cols);
 
   switch (ncols) {
-    case 1:  return aggregate1D(dt, epsilon, n_bins);
-    case 2:  return aggregate2D(dt, epsilon, nx_bins, ny_bins);
-    default: return aggregateND(dt);
+    case 1:  return aggregate_1d(dt, epsilon, n_bins);
+    case 2:  return aggregate_2d(dt, epsilon, nx_bins, ny_bins);
+    default: return aggregate_nd(dt, max_dimensions, seed);
   }
 }
 
 
-DataTable* DataTable::aggregate1D(DataTable* dt, double epsilon, int32_t n_bins) {
-  printf("call: void DataTable::aggregate1D()\n");
-
+DataTable* DataTable::aggregate_1d(DataTable* dt, double epsilon, int32_t n_bins) {
   LType ltype = stype_info[dt->columns[0]->stype()].ltype;
 
   switch (ltype) {
+    case LT_BOOLEAN:
     case LT_INTEGER:
-    case LT_REAL:    aggregate1DContinuous(dt, epsilon, n_bins); break;
-    case LT_STRING:  aggregate1DCategorical(dt, n_bins); break;
-    default:         return nullptr;
+    case LT_REAL:     aggregate_1d_continuous(dt, epsilon, n_bins); break;
+    case LT_STRING:   aggregate_1d_categorical(dt, n_bins); break;
+    default:          return nullptr;
   }
 
   return dt;
 }
 
 
-DataTable* DataTable::aggregate2D(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  printf("call: void DataTable::aggregate2D()\n");
-
+DataTable* DataTable::aggregate_2d(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
   LType ltype0 = stype_info[dt->columns[0]->stype()].ltype;
   LType ltype1 = stype_info[dt->columns[1]->stype()].ltype;
 
   switch (ltype0) {
+    case LT_BOOLEAN:
     case LT_INTEGER:
     case LT_REAL:    {
                         switch (ltype1) {
+                          case LT_BOOLEAN:
                           case LT_INTEGER:
-                          case LT_REAL:    aggregate2DContinuous(dt, epsilon, nx_bins, ny_bins); break;
-                          case LT_STRING:  aggregate2DMixed(dt, epsilon, nx_bins, ny_bins); break;
+                          case LT_REAL:    aggregate_2d_continuous(dt, epsilon, nx_bins, ny_bins); break;
+                          case LT_STRING:  aggregate_2d_mixed(dt, 0, epsilon, nx_bins, ny_bins); break;
                           default:         return nullptr;
                         }
                       }
@@ -131,9 +134,10 @@ DataTable* DataTable::aggregate2D(DataTable* dt, double epsilon, int32_t nx_bins
 
     case LT_STRING:  {
                         switch (ltype1) {
+                          case LT_BOOLEAN:
                           case LT_INTEGER:
-                          case LT_REAL:    aggregate2DMixed(dt, epsilon, nx_bins, ny_bins); break;
-                          case LT_STRING:  aggregate2DCategorical(dt, nx_bins, ny_bins); break;
+                          case LT_REAL:    aggregate_2d_mixed(dt, 1, epsilon, nx_bins, ny_bins); break;
+                          case LT_STRING:  aggregate_2d_categorical(dt, nx_bins, ny_bins); break;
                           default:         return nullptr;
                         }
                       }
@@ -146,40 +150,37 @@ DataTable* DataTable::aggregate2D(DataTable* dt, double epsilon, int32_t nx_bins
 }
 
 
-void DataTable::aggregate1DContinuous(DataTable* dt, double epsilon, int32_t n_bins) {
-  printf("call: void DataTable::aggregate1DContinuous()\n");
-
-  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0]->cast(ST_REAL_F8);
+void DataTable::aggregate_1d_continuous(DataTable* dt, double epsilon, int32_t n_bins) {
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0];
   IntColumn<int32_t>* c1 = (IntColumn<int32_t>*) dt->columns[1];
   int32_t idx_bin;
+  double norm_factor = n_bins * (1 - epsilon) / (c0->max() - c0->min());
 
   for (int32_t i = 0; i < nrows; ++i) {
-    idx_bin = (int32_t) (n_bins * (1 - epsilon) * (c0->get_elem(i) - c0->min()) / (c0->max() - c0->min()));
+	idx_bin = (int32_t) (norm_factor * (c0->get_elem(i) - c0->min()));
     c1->set_elem(i, idx_bin);
   }
 }
 
 
-void DataTable::aggregate2DContinuous(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  printf("call: void DataTable::aggregate2DContinuous()\n");
-
-  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0]->cast(ST_REAL_F8);
-  RealColumn<double>* c1 = (RealColumn<double>*) dt->columns[1]->cast(ST_REAL_F8);
+void DataTable::aggregate_2d_continuous(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0];
+  RealColumn<double>* c1 = (RealColumn<double>*) dt->columns[1];
   IntColumn<int32_t>* c2 = (IntColumn<int32_t>*) dt->columns[2];
   int32_t id_bin, idx_bin, idy_bin;
+  double normx_factor = nx_bins * (1 - epsilon) / (c0->max() - c0->min());
+  double normy_factor = ny_bins * (1 - epsilon) / (c1->max() - c1->min());
 
   for (int32_t i = 0; i < nrows; ++i) {
-    idx_bin =  (int32_t) (nx_bins * (1 - epsilon) * (c0->get_elem(i) - c0->min()) / (c0->max() - c0->min()));
-    idy_bin = (int32_t) (ny_bins * (1 - epsilon) * (c1->get_elem(i) - c1->min()) / (c1->max() - c1->min()));
+    idx_bin =  (int32_t) (normx_factor * (c0->get_elem(i) - c0->min())) ;
+    idy_bin = (int32_t) (normy_factor * (c1->get_elem(i) - c1->min()));
     id_bin = nx_bins * idy_bin + idx_bin;
     c2->set_elem(i, id_bin);
   }
 }
 
 
-void DataTable::aggregate1DCategorical(DataTable* dt, int32_t n_bins /* not sure how to use n_bins for the moment */) {
-  printf("call: void DataTable::aggregate1DCategorical()\n");
-
+void DataTable::aggregate_1d_categorical(DataTable* dt, int32_t n_bins /* not sure how to use n_bins for the moment */) {
   IntColumn<int32_t>* c1 = (IntColumn<int32_t>*) dt->columns[1];
   arr32_t cols(1);
   Groupby grpby;
@@ -193,50 +194,211 @@ void DataTable::aggregate1DCategorical(DataTable* dt, int32_t n_bins /* not sure
   for (int32_t i = 0; i < nrows; ++i) {
     c1->set_elem(i_group[i], i_ungroup[i]);
   }
-// need to store ri somehow
-// dt->replace_rowindex(ri);
+// TODO: store ri somehow to be reused for groupping with dt->replace_rowindex(ri);
 }
 
 
-
-void DataTable::aggregate2DCategorical(DataTable* dt, int32_t nx_bins, int32_t ny_bins) {
-  printf("call: void DataTable::aggregate2DCategorical()\n");
-  // C++ implementation of something like df(select=[first(f.C0),first(f.C1),count(f.C0,f.C1)],groupby="C0,C1") to follow
-  // groupby can't do more than one column for the moment, see #1082
+void DataTable::aggregate_2d_categorical(DataTable* dt, int32_t nx_bins, int32_t ny_bins /* not sure how to use ny_bins for the moment */) {
+// TODO: C++ implementation of something like df(select=[first(f.C0),first(f.C1),count(f.C0,f.C1)],groupby="C0,C1") to follow
+// groupby can't do more than one column for the moment, see #1082
 }
 
 
-void DataTable::aggregate2DMixed(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  printf("call: void DataTable::aggregate2DMixed()\n");
-  // For the moment assuming that the first column is continuous
-  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0]->cast(ST_REAL_F8);
+void DataTable::aggregate_2d_mixed(DataTable* dt, bool cont_index, double epsilon, int32_t nx_bins, int32_t ny_bins) {
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[cont_index];
   IntColumn<int32_t>* c2 = (IntColumn<int32_t>*) dt->columns[2];
   int32_t id_bin, idx_bin;
   arr32_t cols(1);
   Groupby grpby;
 
-  cols[0] = 1;
+  cols[0] = !cont_index;
   RowIndex ri_group = dt->sortby(cols, &grpby);
   const RowIndex ri_ungroup = grpby.ungroup_rowindex();
   const int32_t* i_group = ri_group.indices32();
   const int32_t* i_ungroup = ri_ungroup.indices32();
 
+  double normx_factor = nx_bins * (1 - epsilon) / (c0->max() - c0->min());
+
   for (int32_t i = 0; i < nrows; ++i) {
-    idx_bin =  (int64_t) (nx_bins * (1 - epsilon) * (c0->get_elem(i_group[i]) - c0->min()) / (c0->max() - c0->min()));
+    idx_bin =  (int32_t) (normx_factor * (c0->get_elem(i_group[i]) - c0->min()));
     id_bin = nx_bins * i_ungroup[i] + idx_bin;
     c2->set_elem(i_group[i], id_bin);
   }
 }
 
 
-DataTable* DataTable::aggregateND(DataTable* dt) {
-  printf("call: void DataTable::aggregateND()\n");
-  // Implement Leland's algorithm for N-dimensional aggregation, see for more details
-  // [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
-  // [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
+void DataTable::adjust_radius(DataTable* dt, int32_t mcols, double& radius) {
+  double diff = 0;
+  for (int i = 0; i < ncols; ++i) {
+    RealColumn<double>* ci = (RealColumn<double>*) dt->columns[i];
+    diff += (ci->max() - ci->min()) * (ci->max() - ci->min());
+  }
+
+  diff /= ncols;
+  radius = .05 * log(mcols);
+  if (diff > 10000.0) radius *= .4;
+}
+
+// Leland's algorithm for N-dimensional aggregation, see [1-2] for more details
+// [1] https://www.cs.uic.edu/~wilkinson/Publications/outliers.pdf
+// [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
+DataTable* DataTable::aggregate_nd(DataTable* dt, int32_t mcols, int32_t seed) {
+  size_t exemplar_id = 0;
+  int64_t ndims = min(mcols, ncols);
+  double* exemplar = new double[ndims];
+  double* member = new double[ndims];
+  double* pmatrix = nullptr;
+//  double** pmatrix = nullptr;
+  std::vector<double*> exemplars;
+  double delta, radius = .025 * ncols, distance = 0.0;
+  IntColumn<int32_t>* c = (IntColumn<int32_t>*) dt->columns[ncols];
+
+  if (ncols > mcols) {
+    adjust_radius(dt, mcols, radius);
+    pmatrix = generate_pmatrix(mcols, seed);
+    project_row(dt, exemplar, 0, pmatrix, mcols);
+  } else normalize_row(dt, exemplar, 0);
+
+  delta = radius * radius;
+  exemplars.push_back(exemplar);
+  c->set_elem(0, 0);
+
+  for (int32_t i = 1; i < nrows; ++i) {
+    double min_distance = std::numeric_limits<double>::max();
+    if (ncols > mcols) project_row(dt, member, i, pmatrix, mcols);
+    else normalize_row(dt, member, i);
+
+    for (size_t j = 0; j < exemplars.size(); ++j) {
+      distance = calculate_distance(member, exemplars[j], ndims, delta);
+
+      if (distance < min_distance) {
+        min_distance = distance;
+        exemplar_id = j;
+        if (min_distance < delta) {
+          break;
+        }
+      }
+    }
+
+    if (min_distance < delta) {
+      c->set_elem(i, (int32_t) exemplar_id);
+    } else {
+      c->set_elem(i, (int32_t) exemplars.size());
+      exemplars.push_back(member);
+      member = new double[ndims];
+    }
+  }
+
+  delete[] member;
+  for (size_t i= 0; i < exemplars.size(); ++i) {
+    delete[] exemplars[i];
+  }
+
+  delete[] pmatrix;
+//  if (pmatrix != nullptr) {
+//    for (int32_t i = 0; i < ncols; ++i) {
+//      delete[] pmatrix[i];
+//    }
+//  }
 
   return dt;
 }
+
+double DataTable::calculate_distance(double* e1, double* e2, int64_t ndims, double delta) {
+  double sum = 0.0;
+  int32_t n = 0;
+
+  for (int i = 0; i < ndims; ++i) {
+    if (ISNA<double>(e1[i]) || ISNA<double>(e2[i])) continue;
+    ++n;
+    sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
+    if (sum > delta) return sum;
+  }
+
+  return sum * ndims / n;
+}
+
+
+void DataTable::normalize_row(DataTable* dt, double* r, int32_t row_id) {
+  for (int32_t i = 0; i < ncols; ++i) {
+    RealColumn<double>* c = (RealColumn<double>*) dt->columns[i];
+    r[i] =  (c->get_elem(row_id) - c->min()) / (c->max() - c->min());
+  }
+}
+
+
+double* DataTable::generate_pmatrix(int32_t mcols, int32_t seed) {
+  std::default_random_engine generator;
+  double* pmatrix;
+
+  if (!seed) {
+    std::random_device rd;
+    seed = rd();
+  }
+
+  generator.seed(seed);
+  std::normal_distribution<double> distribution(0.0, 1.0);
+
+  pmatrix = new double[ncols*mcols];
+  for (int32_t i = 0; i < ncols*mcols; ++i) {
+    pmatrix[i] = distribution(generator);
+  }
+
+  return pmatrix;
+}
+
+
+void DataTable::project_row(DataTable* dt, double* r, int32_t row_id, double* pmatrix, int32_t mcols) {
+  std::memset(r, 0, ((size_t) mcols) * sizeof(double));
+
+  for (int32_t i = 0; i < ncols*mcols; ++i) {
+    RealColumn<double>* c = (RealColumn<double>*) dt->columns[i / mcols];
+    if (!ISNA<double>(c->get_elem(row_id))) {
+      r[i % mcols] +=  pmatrix[i] * (c->get_elem(row_id) - c->min()) / (c->max() - c->min());
+// TODO: handle missing values and do r[j] /= n normalization at the end
+    }
+  }
+}
+
+
+//double** DataTable::generate_pmatrix(int32_t mcols, int32_t seed) {
+//  std::default_random_engine generator;
+//  double** pmatrix;
+//
+//  if (!seed) {
+//    std::random_device rd;
+//    seed = rd();
+//  }
+//
+//  generator.seed(seed);
+//  std::normal_distribution<double> distribution(0.0, 1.0);
+//
+//  pmatrix = new double*[ncols];
+//
+//  for (int32_t i = 0; i < ncols; ++i) {
+//    pmatrix[i] = new double[mcols];
+//    for (int32_t j = 0; j < mcols; ++j) {
+//      pmatrix[i][j] = distribution(generator);
+//    }
+//  }
+//
+//  return pmatrix;
+//}
+//
+//
+//void DataTable::project_row(DataTable* dt, double* r, int32_t row_id, double** pmatrix, int32_t mcols) {
+//  std::memset(r, 0, ((size_t) mcols) * sizeof(double));
+//
+//  for (int32_t i = 0; i < ncols; ++i) {
+//    RealColumn<double>* c = (RealColumn<double>*) dt->columns[i];
+//    for (int32_t j = 0; j < mcols; ++j) {
+//      if (!ISNA<double>(c->get_elem(row_id))) {
+//        r[j] +=  pmatrix[i][j] * (c->get_elem(row_id) - c->min()) / (c->max() - c->min());
+//// TODO: handle missing values and do r[j] /= n normalization at the end
+//      }
+//    }
+//  }
+//}
 
 
 void DataTable::resize_rows(int64_t new_nrows) {
