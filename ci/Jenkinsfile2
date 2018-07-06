@@ -660,8 +660,8 @@ def testInDocker(final testTarget, final needsLargerTest) {
             make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
-        sh 'find /tmp/cores/'
-        arch "/tmp/cores/*.*"
+        sh 'mkdir -p build/cores && mv /tmp/cores/* build/cores'
+        arch "build/cores/*.*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
