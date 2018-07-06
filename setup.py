@@ -254,8 +254,12 @@ def get_extra_link_args():
              "-Wl,-rpath,%s" % get_rpath()]
 
     flags += ["-fopenmp"]
-
     flags += ["-lcapnp", "-lkj"]
+
+    # Omit all symbol information from the output
+    # ld warns that this option is obsolete and is ignored. However with this
+    # option the size of the executable is ~25% smaller...
+    flags += ["-s"]
 
     if sys.platform == "linux":
         flags += ["-lc++"]
