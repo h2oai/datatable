@@ -414,3 +414,27 @@ void Column::verify_integrity(const std::string& name) const {
     stats->verify_integrity(this);
   }
 }
+
+
+
+//==============================================================================
+// VoidColumn
+//==============================================================================
+
+VoidColumn::VoidColumn() {}
+VoidColumn::VoidColumn(int64_t nrows) : Column(nrows) {}
+SType VoidColumn::stype() const { return ST_VOID; }
+size_t VoidColumn::elemsize() const { return 0; }
+bool VoidColumn::is_fixedwidth() const { return true; }
+int64_t VoidColumn::data_nrows() const { return nrows; }
+void VoidColumn::reify() {}
+void VoidColumn::resize_and_fill(int64_t) {}
+void VoidColumn::rbind_impl(std::vector<const Column*>&, int64_t, bool) {}
+void VoidColumn::apply_na_mask(const BoolColumn*) {}
+void VoidColumn::replace_values(RowIndex, const Column*) {}
+void VoidColumn::init_data() {}
+void VoidColumn::init_mmap(const std::string&) {}
+void VoidColumn::open_mmap(const std::string&, bool) {}
+void VoidColumn::init_xbuf(Py_buffer*) {}
+Stats* VoidColumn::get_stats() const { return nullptr; }
+void VoidColumn::fill_na() {}

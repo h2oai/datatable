@@ -50,6 +50,8 @@ FreadReader::FreadReader(const GenericReader& g)
   fo.input_size = input_size;
 }
 
+FreadReader::~FreadReader() {}
+
 
 FreadTokenizer FreadReader::makeTokenizer(
     field64* target, const char* anchor) const
@@ -78,6 +80,7 @@ FreadTokenizer FreadReader::makeTokenizer(
 //
 // This entire section is WIP
 //------------------------------------------------------------------------------
+/*
 class HypothesisNoQC;
 class HypothesisQC;
 class HypothesisPool;
@@ -208,6 +211,7 @@ class HypothesisNoQC : public Hypothesis {
       return sep_weight;
     }
 };
+*/
 
 /**
  * QR = 0: no embedded quote chars allowed
