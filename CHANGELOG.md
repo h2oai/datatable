@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Frame can now be created from a list/dict of numpy arrays.
 - Filters can now be used together with groupby expressions.
 - fread's verbose output now includes time for opening the input file.
+- Added ability to read/write Jay files.
 
 #### Fixed
 - Fixed a bug in dt.cbind() where the first Frame in the list was ignored.

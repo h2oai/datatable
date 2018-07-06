@@ -212,6 +212,8 @@ def get_extra_compile_flags():
     if "-O0" in flags:
         flags += ["-DDTDEBUG"]
 
+    flags += ["-DCAPNP_LITE"]
+
     # Ignored warnings:
     #   -Wc++98-compat-pedantic:
     #   -Wc99-extensions: since we're targeting C++11, there is no need to
@@ -252,6 +254,8 @@ def get_extra_link_args():
              "-Wl,-rpath,%s" % get_rpath()]
 
     flags += ["-fopenmp"]
+
+    flags += ["-lcapnp", "-lkj"]
 
     if sys.platform == "linux":
         flags += ["-lc++"]

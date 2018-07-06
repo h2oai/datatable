@@ -23,23 +23,31 @@ def _stringify(x):
     return str(x)
 
 
-@typed(dest=str, _strategy=str)
-def save(self, dest, _strategy="auto"):
+@typed(dest=str, format=str, _strategy=str)
+def save(self, dest, format="nff", _strategy="auto"):
     """
-    Save Frame in binary NFF format.
+    Save Frame in binary NFF/Jay format.
 
     :param dest: destination where the Frame should be saved.
+    :param format: either "nff" or "jay"
     :param _strategy: one of "mmap", "write" or "auto"
     """
     if _strategy not in ("auto", "write", "mmap"):
         raise TValueError("Invalid parameter _strategy: only 'write' / 'mmap' "
                           "/ 'auto' are allowed")
+    if format not in ("nff", "jay"):
+        raise TValueError("Invalid parameter `format`: only 'nff' or 'jay' "
+                          "are supported")
     dest = os.path.expanduser(dest)
     if os.path.exists(dest):
         # raise ValueError("Path %s already exists" % dest)
         pass
     else:
         os.makedirs(dest)
+
+    if format == "jay":
+        self.internal.save_jay(dest, self.names)
+        return
 
     self.materialize()
     mins = self.min().topython()
@@ -79,8 +87,10 @@ def open(path):
         if not path.startswith("/"):
             msg += " (current directory = %s)" % os.getcwd()
         raise ValueError(msg)
+
     if not os.path.isdir(path):
-        raise ValueError("%s is not a directory" % path)
+        _dt, colnames = core.open_jay(path)
+        return dt.Frame(_dt, names=colnames)
 
     nff_version = None
     nrows = 0

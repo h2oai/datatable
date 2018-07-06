@@ -92,6 +92,7 @@ class Stats {
 
     bool is_computed(Stat s) const;
     void reset();
+    void set_countna(int64_t n);
     virtual void merge_stats(const Stats*);
 
     virtual size_t memory_footprint() const = 0;
@@ -142,6 +143,9 @@ class NumericalStats : public Stats {
     T max(const Column*);
     T mode(const Column*);
     A sum(const Column*);
+
+    void set_min(T value);
+    void set_max(T value);
 
   protected:
     // Helper method that computes min, max, sum, mean, sd, and countna

@@ -18,6 +18,8 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "python/string.h"
+
 
 namespace pydatatable
 {
@@ -64,6 +66,7 @@ int unwrap(PyObject* object, DataTable** address) {
 }
 
 
+
 //==============================================================================
 // Generic Python API
 //==============================================================================
@@ -79,6 +82,24 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
   return wrap(DataTable::load(colspec, nrows, path, recode));
 }
 
+
+PyObject* open_jay(PyObject*, PyObject* args) {
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
+  std::string filename = PyObj(arg1).as_string();
+
+  std::vector<std::string> colnames;
+  DataTable* dt = DataTable::open_jay(filename, colnames);
+  PyObject* pydt = wrap(dt);
+
+  PyyList collist(colnames.size());
+  for (size_t i = 0; i < colnames.size(); ++i) {
+    collist[i] = PyyString(colnames[i]);
+  }
+  PyObject* pylist = collist.release();
+
+  return Py_BuildValue("OO", pydt, pylist);
+}
 
 
 
@@ -534,6 +555,23 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
 }
 
 
+PyObject* save_jay(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2)) return nullptr;
+  std::string filename = PyObj(arg1).as_string();
+  std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
+
+  if (colnames.size() != static_cast<size_t>(dt->ncols)) {
+    throw ValueError()
+      << "The list of column names has wrong length: " << colnames.size();
+  }
+
+  dt->save_jay(filename, colnames);
+  Py_RETURN_NONE;
+}
+
+
 static void dealloc(obj* self) {
   delete self->ref;
   Py_TYPE(self)->tp_free(self);
@@ -581,6 +619,7 @@ static PyMethodDef datatable_methods[] = {
   METHOD0(materialize),
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
+  METHODv(save_jay),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 
