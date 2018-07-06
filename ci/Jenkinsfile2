@@ -22,12 +22,12 @@ RELEASE_BRANCH_PREFIX = 'rel-'
 CREDS_ID = 'h2o-ops-personal-auth-token'
 GITCONFIG_CRED_ID = 'master-gitconfig'
 RSA_CRED_ID = 'master-id-rsa'
-DOCKER_IMAGE_TAG = '0.3.2-PR-996.3'
+DOCKER_IMAGE_TAG = '0.6.0-PR-1147.4'
 X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
 EXPECTED_SHAS = [
         files : [
-                'ci/Dockerfile-ubuntu.in' : '47087215fe899c38e12037e2d91dd4202988e98c',
-                'ci/Dockerfile-centos7.in': 'ae1ef9a0b3a665ea311c3a627108bd51ebcc3b93',
+                'ci/Dockerfile-ubuntu.in' : 'c4d38fd01807c6427b40bd87d54365d2b272805e',
+                'ci/Dockerfile-centos7.in': '9a6957ba2b23762bcfe2162634717297c9e477f6',
         ]
 ]
 
