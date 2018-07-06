@@ -24,6 +24,8 @@ public:
   MemoryMapWorker* obj;
 
   MmmEntry() : size(0), obj(nullptr) {}
+  MmmEntry(MmmEntry&&) = default;
+  MmmEntry& operator=(MmmEntry&&) = default;
   MmmEntry(size_t s , MemoryMapWorker* o) : size(s), obj(o) {}
   ~MmmEntry() { size = 0; obj = nullptr; }
   bool operator<(const MmmEntry& rhs) const { return size > rhs.size; }

@@ -221,8 +221,6 @@ def get_extra_compile_flags():
     #   -Wswitch-enum: generates spurious warnings about missing
     #       cases even if `default` clause is present. -Wswitch
     #       does not suffer from this drawback.
-    #   -Wdeprecated: warning about compiling .c files under C++
-    #       mode... we should just rename those files at some point.
     flags += [
         "-Weverything",
         "-Wno-covered-switch-default",
@@ -232,7 +230,6 @@ def get_extra_compile_flags():
         "-Wno-c++98-compat-pedantic",
         "-Wno-nested-anon-types",
         "-Wno-c99-extensions",
-        "-Wno-deprecated",
         "-Wno-weak-vtables",  # TODO: Remove
         "-Wno-weak-template-vtables",
     ]
