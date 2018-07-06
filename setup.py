@@ -222,12 +222,12 @@ def get_extra_compile_flags():
     #       cases even if `default` clause is present. -Wswitch
     #       does not suffer from this drawback.
     flags += [
-        "-Weverything",
+        "-Wall",
+        "-Wextra",
         "-Wno-covered-switch-default",
         "-Wno-float-equal",
         "-Wno-switch-enum",
         "-Wno-old-style-cast",
-        "-Wno-c++98-compat-pedantic",
         "-Wno-nested-anon-types",
         "-Wno-c99-extensions",
         "-Wno-weak-vtables",  # TODO: Remove
