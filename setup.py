@@ -213,9 +213,9 @@ def get_extra_compile_flags():
         flags += ["-DDTDEBUG"]
 
     # Ignored warnings:
-    #   -Wcovered-switch-default: we add `default` statement to
-    #       an exhaustive switch to guard against memory
-    #       corruption and careless enum definition expansion.
+    #   -Wc++98-compat-pedantic:
+    #   -Wc99-extensions: since we're targeting C++11, there is no need to
+    #       worry about compatibility with earlier C++ versions.
     #   -Wfloat-equal: this warning is just plain wrong...
     #       Comparing x == 0 or x == 1 is always safe.
     #   -Wswitch-enum: generates spurious warnings about missing
@@ -225,7 +225,6 @@ def get_extra_compile_flags():
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
-        "-Wno-covered-switch-default",
         "-Wno-float-equal",
         "-Wno-switch-enum",
         "-Wno-old-style-cast",
