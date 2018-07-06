@@ -25,8 +25,9 @@ void exception_to_python(const std::exception&);
 
 class Error : public std::exception
 {
-  std::ostringstream error;
-  PyObject* pycls;  // This pointer acts as an enum...
+  protected:
+    std::ostringstream error;
+    PyObject* pycls;  // This pointer acts as an enum...
 
 public:
   Error(PyObject* cls = PyExc_Exception);
@@ -91,7 +92,17 @@ Error AssertionError();
 
 void replace_typeError(PyObject* obj);
 void replace_valueError(PyObject* obj);
+void replace_dtWarning(PyObject* obj);
 void init_exceptions();
+
+
+//------------------------------------------------------------------------------
+
+class Warning : public Error {
+  public:
+    Warning();
+    ~Warning() override;
+};
 
 
 //------------------------------------------------------------------------------

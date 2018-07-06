@@ -40,9 +40,8 @@ def save(self, dest, format="nff", _strategy="auto"):
                           "are supported")
     dest = os.path.expanduser(dest)
     if os.path.exists(dest):
-        # raise ValueError("Path %s already exists" % dest)
         pass
-    else:
+    elif format == "nff":
         os.makedirs(dest)
 
     if format == "jay":

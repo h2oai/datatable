@@ -50,6 +50,4 @@ microbench/groupby/groupby
 
 # Auto-generated files
 datatable/__git__.py
-c/jay/jay.capnp.cc
-c/jay/jay.capnp.h
 .asan/

@@ -91,6 +91,7 @@ PyObject* register_function(PyObject*, PyObject *args) {
   else if (n == 3) init_py_ltype_objs(fnref);
   else if (n == 4) replace_typeError(fnref);
   else if (n == 5) replace_valueError(fnref);
+  else if (n == 6) replace_dtWarning(fnref);
   else {
     throw ValueError() << "Incorrect function index: " << n;
   }

@@ -338,6 +338,9 @@ os.environ["CC"] = os.environ["CXX"] = get_cc(True)
 if "DTCOVERAGE" in os.environ and sys.platform == "linux":
     os.environ["LDSHARED"] = clang
 
+if "MACOSX_DEPLOYMENT_TARGET" not in os.environ and sys.platform == "darwin":
+    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
+
 # Compute runtime libpath with respect to bundled LLVM libraries
 if sys.platform == "darwin":
     extra_libs = ["libomp.dylib"]
