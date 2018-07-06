@@ -9,6 +9,7 @@ compiler:
 before_install:
   - ( test -d "$LLVM4" && test "$(ls -A $LLVM4)") || ( wget -O llvm4.tar.xz "http://releases.llvm.org/4.0.0/clang+llvm-4.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM4" && tar xf llvm4.tar.xz -C "$LLVM4" --strip-components 1 )
   - sudo cp $LLVM4/lib/libomp.so /usr/lib
+  - ci/install-capnproto.sh
 
 env:
   global:
@@ -44,8 +45,3 @@ script:
 git:
   depth: 2
 
-addons:
-  apt:
-    update: true
-    packages:
-    - capnproto
