@@ -88,6 +88,7 @@ void DataTable::save_jay(const std::string& path,
 
   wb->write(8, &metaSize);
   wb->write(8, "\0\0\0\0JAY1");
+  wb->finalize();
 }
 
 
