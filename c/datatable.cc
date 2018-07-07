@@ -152,13 +152,13 @@ DataTable* DataTable::aggregate_2d(DataTable* dt, double epsilon, int32_t nx_bin
 
 void DataTable::aggregate_1d_continuous(DataTable* dt, double epsilon, int32_t n_bins) {
   RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0];
-  IntColumn<int32_t>* c1 = (IntColumn<int32_t>*) dt->columns[1];
-  int32_t idx_bin;
+  double* d_c0 = static_cast<double*>(dt->columns[0]->data_w());
+  int32_t* d_c1 = static_cast<int32_t*>(dt->columns[1]->data_w());
+
   double norm_factor = n_bins * (1 - epsilon) / (c0->max() - c0->min());
 
   for (int32_t i = 0; i < nrows; ++i) {
-	idx_bin = (int32_t) (norm_factor * (c0->get_elem(i) - c0->min()));
-    c1->set_elem(i, idx_bin);
+    d_c1[i] = (int32_t) (norm_factor * (d_c0[i] - c0->min()));
   }
 }
 
@@ -166,63 +166,92 @@ void DataTable::aggregate_1d_continuous(DataTable* dt, double epsilon, int32_t n
 void DataTable::aggregate_2d_continuous(DataTable* dt, double epsilon, int32_t nx_bins, int32_t ny_bins) {
   RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[0];
   RealColumn<double>* c1 = (RealColumn<double>*) dt->columns[1];
-  IntColumn<int32_t>* c2 = (IntColumn<int32_t>*) dt->columns[2];
-  int32_t id_bin, idx_bin, idy_bin;
+  double* d_c0 = static_cast<double*>(dt->columns[0]->data_w());
+  double* d_c1 = static_cast<double*>(dt->columns[1]->data_w());
+  int32_t* d_c2 = static_cast<int32_t*>(dt->columns[2]->data_w());
+
+  int32_t idx_bin, idy_bin;
   double normx_factor = nx_bins * (1 - epsilon) / (c0->max() - c0->min());
   double normy_factor = ny_bins * (1 - epsilon) / (c1->max() - c1->min());
 
   for (int32_t i = 0; i < nrows; ++i) {
-    idx_bin =  (int32_t) (normx_factor * (c0->get_elem(i) - c0->min())) ;
-    idy_bin = (int32_t) (normy_factor * (c1->get_elem(i) - c1->min()));
-    id_bin = nx_bins * idy_bin + idx_bin;
-    c2->set_elem(i, id_bin);
+    idx_bin =  (int32_t) (normx_factor * (d_c0[i] - c0->min())) ;
+    idy_bin = (int32_t) (normy_factor * (d_c1[i] - c1->min()));
+    d_c2[i] = nx_bins * idy_bin + idx_bin;
   }
 }
 
 
 void DataTable::aggregate_1d_categorical(DataTable* dt, int32_t n_bins /* not sure how to use n_bins for the moment */) {
-  IntColumn<int32_t>* c1 = (IntColumn<int32_t>*) dt->columns[1];
   arr32_t cols(1);
-  Groupby grpby;
 
   cols[0] = 0;
-  RowIndex ri_group = dt->sortby(cols, &grpby);
-  const RowIndex ri_ungroup = grpby.ungroup_rowindex();
-  const int32_t* i_group = ri_group.indices32();
-  const int32_t* i_ungroup = ri_ungroup.indices32();
+  Groupby grpby0;
+  RowIndex ri0 = dt->sortby(cols, &grpby0);
+  const int32_t* group_indices_0 = ri0.indices32();
 
-  for (int32_t i = 0; i < nrows; ++i) {
-    c1->set_elem(i_group[i], i_ungroup[i]);
+  int32_t* d_c1 = static_cast<int32_t*>(dt->columns[1]->data_w());
+  const int32_t* offsets0 = grpby0.offsets_r();
+
+  for (size_t i = 0; i < grpby0.ngroups(); ++i) {
+    for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
+      d_c1[group_indices_0[j]] = (int32_t) i;
+    }
   }
 // TODO: store ri somehow to be reused for groupping with dt->replace_rowindex(ri);
 }
 
 
 void DataTable::aggregate_2d_categorical(DataTable* dt, int32_t nx_bins, int32_t ny_bins /* not sure how to use ny_bins for the moment */) {
-// TODO: C++ implementation of something like df(select=[first(f.C0),first(f.C1),count(f.C0,f.C1)],groupby="C0,C1") to follow
-// groupby can't do more than one column for the moment, see #1082
+  arr32_t cols(1);
+
+  cols[0] = 0;
+  Groupby grpby0;
+  RowIndex ri0 = dt->sortby(cols, &grpby0);
+  const int32_t* group_indices_0 = ri0.indices32();
+
+  cols[0] = 1;
+  Groupby grpby1;
+  RowIndex ri1 = dt->sortby(cols, &grpby1);
+  const int32_t* group_indices_1 = ri1.indices32();
+
+  int32_t* d_c2 = static_cast<int32_t*>(dt->columns[2]->data_w());
+  const int32_t* offsets0 = grpby0.offsets_r();
+  const int32_t* offsets1 = grpby1.offsets_r();
+
+  for (size_t i = 0; i < grpby0.ngroups(); ++i) {
+    for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
+      d_c2[group_indices_0[j]] = (int32_t) (grpby1.ngroups() * i);
+    }
+  }
+
+  for (size_t i = 0; i < grpby1.ngroups(); ++i) {
+    for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
+      d_c2[group_indices_1[j]] += (int32_t) i;
+    }
+  }
+// TODO: store ri1 and ri2 somehow to be reused for groupping with dt->replace_rowindex(ri);
 }
 
 
 void DataTable::aggregate_2d_mixed(DataTable* dt, bool cont_index, double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[cont_index];
-  IntColumn<int32_t>* c2 = (IntColumn<int32_t>*) dt->columns[2];
-  int32_t id_bin, idx_bin;
   arr32_t cols(1);
-  Groupby grpby;
 
   cols[0] = !cont_index;
-  RowIndex ri_group = dt->sortby(cols, &grpby);
-  const RowIndex ri_ungroup = grpby.ungroup_rowindex();
-  const int32_t* i_group = ri_group.indices32();
-  const int32_t* i_ungroup = ri_ungroup.indices32();
+  Groupby grpby0;
+  RowIndex ri0 = dt->sortby(cols, &grpby0);
+  const int32_t* group_indices_0 = ri0.indices32();
 
+  RealColumn<double>* c0 = (RealColumn<double>*) dt->columns[cont_index];
+  double* d_c0 = static_cast<double*>(dt->columns[cont_index]->data_w());
+  int32_t* d_c2 = static_cast<int32_t*>(dt->columns[2]->data_w());
+  const int32_t* offsets0 = grpby0.offsets_r();
   double normx_factor = nx_bins * (1 - epsilon) / (c0->max() - c0->min());
 
-  for (int32_t i = 0; i < nrows; ++i) {
-    idx_bin =  (int32_t) (normx_factor * (c0->get_elem(i_group[i]) - c0->min()));
-    id_bin = nx_bins * i_ungroup[i] + idx_bin;
-    c2->set_elem(i_group[i], id_bin);
+  for (size_t i = 0; i < grpby0.ngroups(); ++i) {
+    for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
+      d_c2[group_indices_0[j]] = nx_bins * (int32_t) (i) + (int32_t) (normx_factor * (d_c0[group_indices_0[j]] - c0->min()));
+	}
   }
 }
 
@@ -251,7 +280,7 @@ DataTable* DataTable::aggregate_nd(DataTable* dt, int32_t mcols, int32_t seed) {
 //  double** pmatrix = nullptr;
   std::vector<double*> exemplars;
   double delta, radius = .025 * ncols, distance = 0.0;
-  IntColumn<int32_t>* c = (IntColumn<int32_t>*) dt->columns[ncols];
+  int32_t* d_cn = static_cast<int32_t*>(dt->columns[ncols]->data_w());
 
   if (ncols > mcols) {
     adjust_radius(dt, mcols, radius);
@@ -261,7 +290,7 @@ DataTable* DataTable::aggregate_nd(DataTable* dt, int32_t mcols, int32_t seed) {
 
   delta = radius * radius;
   exemplars.push_back(exemplar);
-  c->set_elem(0, 0);
+  d_cn[0] = 0;
 
   for (int32_t i = 1; i < nrows; ++i) {
     double min_distance = std::numeric_limits<double>::max();
@@ -281,9 +310,9 @@ DataTable* DataTable::aggregate_nd(DataTable* dt, int32_t mcols, int32_t seed) {
     }
 
     if (min_distance < delta) {
-      c->set_elem(i, (int32_t) exemplar_id);
+      d_cn[i] = (int32_t) exemplar_id;
     } else {
-      c->set_elem(i, (int32_t) exemplars.size());
+      d_cn[i] = (int32_t) exemplars.size();
       exemplars.push_back(member);
       member = new double[ndims];
     }
