@@ -277,7 +277,7 @@ void ChunkedDataReader::realloc_output_columns(size_t ichunk, size_t new_alloc)
   nrows_allocated = new_alloc;
   g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
-  dt::shared_lock(shmutex, /* exclusive = */ true);
+  dt::shared_lock lock(shmutex, /* exclusive = */ true);
   g.columns.set_nrows(nrows_allocated);
 }
 

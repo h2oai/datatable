@@ -650,7 +650,7 @@ void FreadReader::detect_column_types()
       trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
             allocnrow, estnrow, static_cast<int>(100.0*allocnrow/estnrow-100.0));
     }
-    if (tch == eof) {
+    if (nChunks == 1 && tch == eof) {
       if (header == 1) n_sample_lines--;
       estnrow = allocnrow = n_sample_lines;
       trace("All rows were sampled since file is small so we know nrows=%zd exactly", estnrow);
