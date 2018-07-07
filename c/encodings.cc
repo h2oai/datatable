@@ -5,34 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <cstring>
 #include <string.h>
 #include "encodings.h"
 
-
-// characters re-interpreted as hex digits (or 99 for characters that are not
-// valid digits). Thus, this table maps
-//   '0' .. '9'  into  0 .. 9
-//   'a' .. 'f'  into  10 .. 15
-//   'A' .. 'F'  into  10 .. 15
-//   everything else into 99
-static const uint8_t hexdigits[256] = {
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x00 - 0x0F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x10 - 0x1F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x20 - 0x2F
-  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  99, 99, 99, 99, 99, 99,  // 0x30 - 0x3F
-  99, 10, 11, 12, 13, 14, 15, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x40 - 0x4F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x50 - 0x5F
-  99, 10, 11, 12, 13, 14, 15, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x60 - 0x6F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x70 - 0x7F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x80 - 0x8F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0x90 - 0x9F
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xA0 - 0xAF
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xB0 - 0xBF
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xC0 - 0xCF
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xD0 - 0xDF
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,  // 0xE0 - 0xEF
-  99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99   // 0xF0 - 0xFF
-};
+extern const uint8_t hexdigits[256];  // defined in c/csv/freadLookups.h
 
 
 
@@ -65,21 +42,21 @@ int decode_sbcs(
     const unsigned char *__restrict__ src, int len,
     unsigned char *__restrict__ dest, uint32_t *map
 ) {
-  const unsigned char *end = src + len;
-  unsigned char *d = dest;
+  const unsigned char* end = src + len;
+  unsigned char* d = dest;
   for (; src < end; src++) {
     unsigned char ch = *src;
     if (ch < 0x80) {
       *d++ = ch;
     } else {
       uint32_t m = map[ch];
-      if (m == 0) return -(int)(1 + d - dest);
+      if (m == 0) return -static_cast<int>(1 + d - dest);
       int s = 2 + ((m & 0xFF0000) != 0);
-      memcpy(d, &m, (size_t) s);
+      std::memcpy(d, &m, static_cast<size_t>(s));
       d += s;
     }
   }
-  return (int)(d - dest);
+  return static_cast<int>(d - dest);
 }
 
 

@@ -221,13 +221,14 @@ def get_extra_compile_flags():
     #   -Wswitch-enum: generates spurious warnings about missing
     #       cases even if `default` clause is present. -Wswitch
     #       does not suffer from this drawback.
+    #   -Wweak-template-vtables: this waning's purpose is unclear, and it
+    #       is also unclear how to prevent it...
     flags += [
         "-Weverything",
         "-Wno-c++98-compat-pedantic",
         "-Wno-c99-extensions",
         "-Wno-float-equal",
         "-Wno-switch-enum",
-        "-Wno-old-style-cast",
         "-Wno-weak-template-vtables",
     ]
     return flags

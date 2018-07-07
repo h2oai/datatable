@@ -45,7 +45,7 @@ DataTable::DataTable(Column** cols)
 DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
 {
   if (n == 0) return this;
-  qsort(cols_to_remove, (size_t)n, sizeof(int), _compare_ints);
+  qsort(cols_to_remove, static_cast<size_t>(n), sizeof(int), _compare_ints);
   int j = 0;
   int next_col_to_remove = cols_to_remove[0];
   int64_t k = 0;
@@ -64,7 +64,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
   columns[j] = nullptr;
   // This may not be the same as `j` if there were repeating columns
   ncols = j;
-  columns = static_cast<Column**>(realloc(columns, sizeof(Column*) * (size_t) (j + 1)));
+  columns = dt::realloc(columns, sizeof(Column*) * static_cast<size_t>(j + 1));
   return this;
 }
 
@@ -128,8 +128,8 @@ DataTable::~DataTable()
 
 // Comparator function to sort integers using `qsort`
 static inline int _compare_ints(const void *a, const void *b) {
-  const int x = *(const int*)a;
-  const int y = *(const int*)b;
+  const int x = *static_cast<const int*>(a);
+  const int y = *static_cast<const int*>(b);
   return (x > y) - (x < y);
 }
 
@@ -181,7 +181,7 @@ size_t DataTable::memory_footprint()
 {
   size_t sz = 0;
   sz += sizeof(*this);
-  sz += (size_t)(ncols + 1) * sizeof(Column*);
+  sz += static_cast<size_t>(ncols + 1) * sizeof(Column*);
   if (rowindex.isabsent()) {
     for (int i = 0; i < ncols; ++i) {
       sz += columns[i]->memory_footprint();

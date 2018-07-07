@@ -34,7 +34,7 @@ Groupby* unwrap(PyObject* object) {
   if (!PyObject_TypeCheck(object, &pygroupby::type)) {
     throw TypeError() << "Expected object of type Groupby";
   }
-  return ((pygroupby::obj*)object)->ref;
+  return static_cast<pygroupby::obj*>(object)->ref;
 }
 
 
@@ -151,8 +151,9 @@ PyTypeObject type = {
 int static_init(PyObject *module) {
   type.tp_new = PyType_GenericNew;
   if (PyType_Ready(&type) < 0) return 0;
-  Py_INCREF(&type);
-  PyModule_AddObject(module, "Groupby", (PyObject*) &type);
+  PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
+  Py_INCREF(typeobj);
+  PyModule_AddObject(module, "Groupby", typeobj);
   return 1;
 }
 

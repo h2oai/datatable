@@ -263,7 +263,7 @@ class SortContext {
     nth = static_cast<size_t>(config::sort_nthreads);
     n = static_cast<size_t>(col->nrows);
     order = (col->rowindex()).extract_as_array32();
-    use_order = (bool) order;
+    use_order = static_cast<bool>(order);
     if (!use_order) order.resize(n);
     o = order.data();
     if (make_groups) {

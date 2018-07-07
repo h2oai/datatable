@@ -156,7 +156,7 @@ static void force_as_int(PyyList& list, MemoryRange& membuf)
       outdata[i] = GETNA<T>();
       continue;
     }
-    PyyLong litem = item.is_long()? (PyyLong)item : item.__int__();
+    PyyLong litem = item.is_long()? static_cast<PyyLong>(item) : item.__int__();
     outdata[i] = litem.masked_value<T>();
   }
 }

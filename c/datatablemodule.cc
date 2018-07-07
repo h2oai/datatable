@@ -72,7 +72,7 @@ PyObject* exec_function(PyObject* self, PyObject* args) {
   if (!PyArg_ParseTuple(args, "l|O:exec_function", &fnptr, &fnargs))
       return nullptr;
 
-  return ((PyCFunction) fnptr)(self, fnargs);
+  return reinterpret_cast<PyCFunction>(fnptr)(self, fnargs);
 }
 
 
@@ -98,7 +98,8 @@ PyObject* register_function(PyObject*, PyObject *args) {
 }
 
 
-#define ADD(f) PyTuple_SetItem(res, i++, PyLong_FromSize_t((size_t) (f)))
+#define ADD(f) \
+  PyTuple_SetItem(res, i++, PyLong_FromSize_t(reinterpret_cast<size_t>(f)))
 
 PyObject* get_internal_function_ptrs(PyObject*, PyObject*) {
   const int SIZE = 6;

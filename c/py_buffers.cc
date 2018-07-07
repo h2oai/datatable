@@ -53,8 +53,8 @@ static char strB[] = "B";
 
 #define DECLARE_BUFFERS_STRUCT(STRUCTNAME, CLSNAME)                            \
   PyBufferProcs STRUCTNAME = {                                                 \
-    (getbufferproc) safe_getbuffer_##CLSNAME,                                  \
-    (releasebufferproc) safe_releasebuffer_##CLSNAME,                          \
+    reinterpret_cast<getbufferproc>(safe_getbuffer_##CLSNAME),                 \
+    reinterpret_cast<releasebufferproc>(safe_releasebuffer_##CLSNAME),         \
   };
 
 

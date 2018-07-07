@@ -89,8 +89,7 @@ extern template int nlz(uint8_t);
     zMAKE_PRAGMA(GCC diagnostic pop)
 
 
-void set_value(void * __restrict__ ptr, const void * __restrict__ value,
-               size_t sz, size_t count);
+void set_value(void* ptr, const void* value, size_t sz, size_t count);
 
 
 

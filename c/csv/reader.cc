@@ -786,7 +786,7 @@ DataTablePtr GenericReader::makeDatatable() {
   Column** ccols = nullptr;
   size_t ncols = columns.size();
   size_t ocols = columns.nColumnsInOutput();
-  ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
+  ccols = dt::malloc<Column*>((ocols + 1) * sizeof(Column*));
   ccols[ocols] = nullptr;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];

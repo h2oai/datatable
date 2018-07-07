@@ -97,12 +97,12 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   int64_t rindexstep = rindex_is_slice? rindex.slice_step() : 0;
 
   // Create and fill-in the `data` list
-  view = PyList_New((Py_ssize_t) ncols);
+  view = PyList_New(ncols);
   if (view == nullptr) goto fail;
   for (int64_t i = col0; i < col1; ++i) {
     Column *col = dt->columns[i];
 
-    PyObject *py_coldata = PyList_New((Py_ssize_t) nrows);
+    PyObject *py_coldata = PyList_New(nrows);
     if (py_coldata == nullptr) goto fail;
     PyList_SET_ITEM(view, n_init_cols++, py_coldata);
 
@@ -110,7 +110,7 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
     for (int64_t j = row0; j < row1; ++j) {
       int64_t irow = no_rindex? j :
                rindex_is_arr32? rindexarr32[j] :
-               rindex_is_arr64? (int64_t) rindexarr64[j] :
+               rindex_is_arr64? rindexarr64[j] :
                       rindexstart + rindexstep * j;
       PyObject *value = py_stype_formatters[col->stype()](col, irow);
       if (value == nullptr) goto fail;
@@ -119,8 +119,8 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   }
 
   // Create and fill-in the `stypes` list
-  stypes = PyList_New((Py_ssize_t) ncols);
-  ltypes = PyList_New((Py_ssize_t) ncols);
+  stypes = PyList_New(ncols);
+  ltypes = PyList_New(ncols);
   if (stypes == nullptr || ltypes == nullptr) goto fail;
   for (int64_t i = col0; i < col1; i++) {
     Column *col = dt->columns[i];
@@ -134,13 +134,13 @@ static int _init_(obj* self, PyObject* args, PyObject* kwds)
   self->row1 = row1;
   self->col0 = col0;
   self->col1 = col1;
-  self->types = (PyListObject*) ltypes;
-  self->stypes = (PyListObject*) stypes;
-  self->data = (PyListObject*) view;
+  self->types = reinterpret_cast<PyListObject*>(ltypes);
+  self->stypes = reinterpret_cast<PyListObject*>(stypes);
+  self->data = reinterpret_cast<PyListObject*>(view);
   return 0;
   } catch (const std::exception& e) {
-  exception_to_python(e);
-  // fall-through into 'fail'
+    exception_to_python(e);
+    // fall-through into 'fail'
   }
 
   fail:
@@ -167,7 +167,7 @@ static int _init_hexview(
   }
   Column *column = dt->columns[colidx];
 
-  int64_t maxrows = ((int64_t) column->alloc_size() + 15) >> 4;
+  int64_t maxrows = (static_cast<int64_t>(column->alloc_size()) + 15) >> 4;
   if (col0 < 0 || col1 < col0 || col1 > 17 ||
     row0 < 0 || row1 < row0 || row1 > maxrows) {
     PyErr_Format(PyExc_ValueError,
@@ -203,8 +203,8 @@ static int _init_hexview(
         for (int k = 0; k < 16; k++) {
           const uint8_t* ch = coldata + k + (j * 16);
           buf[k] = ch >= coldata_end? ' ' :
-               (*ch < 0x20 ||( *ch >= 0x7F && *ch < 0xA0))? '.' :
-               (char) *ch;
+               (*ch < 0x20 || (*ch >= 0x7F && *ch < 0xA0))? '.' :
+               static_cast<char>(*ch);
         }
         PyObject *str = PyUnicode_Decode(buf, 16, "Latin1", "strict");
         if (!str) goto fail;
@@ -226,13 +226,13 @@ static int _init_hexview(
   self->row1 = row1;
   self->col0 = col0;
   self->col1 = col1;
-  self->data = (PyListObject*) viewdata;
-  self->types = (PyListObject*) ltypes;
-  self->stypes = (PyListObject*) stypes;
+  self->data = reinterpret_cast<PyListObject*>(viewdata);
+  self->types = reinterpret_cast<PyListObject*>(ltypes);
+  self->stypes = reinterpret_cast<PyListObject*>(stypes);
   return 0;
   } catch (const std::exception& e) {
-  exception_to_python(e);
-  // fall-through into 'fail'
+    exception_to_python(e);
+    // fall-through into 'fail'
   }
 
   fail:
@@ -292,7 +292,7 @@ static void dealloc(obj* self)
   Py_XDECREF(self->data);
   Py_XDECREF(self->types);
   Py_XDECREF(self->stypes);
-  Py_TYPE(self)->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 
@@ -367,8 +367,9 @@ PyTypeObject type = {
 int static_init(PyObject* module) {
   type.tp_new = PyType_GenericNew;
   if (PyType_Ready(&type) < 0) return 0;
-  Py_INCREF(&type);
-  PyModule_AddObject(module, "DataWindow", (PyObject*) &type);
+  PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
+  Py_INCREF(typeobj);
+  PyModule_AddObject(module, "DataWindow", typeobj);
 
   for (int i = 0; i < 256; i++) {
     int8_t d0 = i & 0x0F;

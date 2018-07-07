@@ -84,11 +84,12 @@ void init_types(void)
       stype_upcast_map[stype2][stype1] = stypeR;
 
   for (int i = 1; i < DT_STYPES_COUNT; i++) {
-    stype_upcast_map[i][0] = stype_info[i].varwidth? ST_OBJECT_PYPTR : (SType)i;
-    stype_upcast_map[0][i] = stype_info[i].varwidth? ST_OBJECT_PYPTR : (SType)i;
+    SType i_stype = static_cast<SType>(i);
+    stype_upcast_map[i][0] = stype_info[i].varwidth? ST_OBJECT_PYPTR : i_stype;
+    stype_upcast_map[0][i] = stype_info[i].varwidth? ST_OBJECT_PYPTR : i_stype;
     for (int j = 1; j < DT_STYPES_COUNT; j++) {
       stype_upcast_map[i][j] =
-        stype_info[i].varwidth || i != j ? ST_OBJECT_PYPTR : (SType)i;
+        stype_info[i].varwidth || i != j ? ST_OBJECT_PYPTR : i_stype;
     }
   }
   UPCAST(ST_BOOLEAN_I1, ST_INTEGER_I1,  ST_INTEGER_I1)
