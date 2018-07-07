@@ -381,13 +381,8 @@ struct ChunkCoordinates {
     : start(nullptr), end(nullptr), true_start(false), true_end(false) {}
   ChunkCoordinates(const char* s, const char* e)
     : start(s), end(e), true_start(false), true_end(false) {}
-  ChunkCoordinates& operator=(const ChunkCoordinates& cc) {
-    start = cc.start;
-    end = cc.end;
-    true_start = cc.true_start;
-    true_end = cc.true_end;
-    return *this;
-  }
+  ChunkCoordinates(const ChunkCoordinates&) = default;
+  ChunkCoordinates& operator=(const ChunkCoordinates&) = default;
 
   operator bool() const { return end == nullptr; }
 };

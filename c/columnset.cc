@@ -114,7 +114,7 @@ Column** columns_from_mixed(
     if (spec[i] >= 0) {
       columns[i] = dt->columns[spec[i]]->shallowcopy();
     } else {
-      SType stype = (SType)(-spec[i]);
+      SType stype = static_cast<SType>(-spec[i]);
       columns[i] = Column::new_data_column(stype, nrows);
       out[j] = columns[i]->data_w();
       j++;

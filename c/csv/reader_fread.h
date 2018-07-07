@@ -116,6 +116,7 @@ class FreadReader : public GenericReader
 
 public:
   explicit FreadReader(const GenericReader&);
+  virtual ~FreadReader() override;
 
   DataTablePtr read();
 

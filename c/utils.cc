@@ -52,22 +52,20 @@ template int nlz(uint8_t);
  * fill with 0xFF bytes instead.
  * This is used for filling the columns with NAs.
  */
-void set_value(void * __restrict__ ptr, const void * __restrict__ value,
-               size_t sz, size_t count)
-{
+void set_value(void* ptr, const void* value, size_t sz, size_t count) {
   if (count == 0) return;
   if (value == nullptr) {
-    *(unsigned char *)ptr = 0xFF;
+    *static_cast<unsigned char *>(ptr) = 0xFF;
     count *= sz;
     sz = 1;
   } else {
-    memcpy(ptr, value, sz);
+    std::memcpy(ptr, value, sz);
   }
   size_t final_sz = sz * count;
   for (size_t i = sz; i < final_sz; i <<= 1) {
     size_t writesz = i < final_sz - i ? i : final_sz - i;
     void* dest = static_cast<void*>(static_cast<char*>(ptr) + i);
-    memcpy(dest, ptr, writesz);
+    std::memcpy(dest, ptr, writesz);
   }
 }
 
@@ -119,7 +117,7 @@ const char* filesize_to_str(size_t fsize)
   static char suffixes[NSUFFIXES] = {'P', 'T', 'G', 'M', 'K'};
   static char output[BUFFSIZE];
   static const char one_byte[] = "1 byte";
-  llu lsize = (llu) fsize;
+  llu lsize = static_cast<llu>(fsize);
   for (int i = 0; i <= NSUFFIXES; i++) {
     int shift = (NSUFFIXES - i) * 10;
     if ((fsize >> shift) == 0) continue;
@@ -135,7 +133,7 @@ const char* filesize_to_str(size_t fsize)
       }
     } else {
       snprintf(output, BUFFSIZE, "%.*f%cB",
-               ndigits, (double)fsize / (1 << shift), suffixes[i]);
+               ndigits, static_cast<double>(fsize) / (1 << shift), suffixes[i]);
       return output;
     }
   }
@@ -190,7 +188,7 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     int i = 0;
     for (const unsigned char *ptr = ptr0; ptr < ptr1; ptr++) {
         if (*ptr >= 0x20 && *ptr < 0x7F)
-            buf[i++] = (char) *ptr;
+            buf[i++] = static_cast<char>(*ptr);
         else {
             int8_t d0 = (*ptr) & 0xF;
             int8_t d1 = (*ptr) >> 4;

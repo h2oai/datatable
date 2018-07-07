@@ -83,7 +83,7 @@ PyObject* columns_from_array(PyObject*, PyObject *args)
   int64_t* indices = dt::amalloc<int64_t>(ncols);
   for (int64_t i = 0; i < ncols; i++) {
     PyObject* elem = PyList_GET_ITEM(elems, i);
-    indices[i] = (int64_t) PyLong_AsSize_t(elem);
+    indices[i] = static_cast<int64_t>(PyLong_AsSize_t(elem));
   }
 
   Column** columns = columns_from_array(dt, rowindex, indices, ncols);
@@ -103,7 +103,7 @@ PyObject* columns_from_mixed(PyObject*, PyObject *args)
                         &nrows, &rawptr))
     return nullptr;
 
-  columnset_mapfn* fnptr = (columnset_mapfn*) rawptr;
+  columnset_mapfn* fnptr = reinterpret_cast<columnset_mapfn*>(rawptr);
   int64_t ncols = PyList_Size(pyspec);
   int64_t* spec = dt::amalloc<int64_t>(ncols);
   for (int64_t i = 0; i < ncols; i++) {
@@ -166,7 +166,7 @@ static void dealloc(obj* self)
     }
     free(self->columns);
   }
-  Py_TYPE(self)->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 
@@ -251,7 +251,7 @@ int static_init(PyObject* module)
   if (PyType_Ready(&type) < 0) return 0;
   PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
   Py_INCREF(typeobj);
-  PyModule_AddObject(module, "ColumnSet", (PyObject*) &type);
+  PyModule_AddObject(module, "ColumnSet", typeobj);
   return 1;
 }
 

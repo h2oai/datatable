@@ -669,30 +669,28 @@ extern template class StringColumn<uint64_t>;
 
 // "Fake" column, its only use is to serve as a placeholder for a Column with an
 // unknown type. This column cannot be put into a DataTable.
-class VoidColumn : public Column
-{
-public:
-  VoidColumn(int64_t nrows) : Column(nrows) {}
-  SType stype() const override { return ST_VOID; }
-  size_t elemsize() const override { return 0; }
-  bool is_fixedwidth() const override { return true; }
-  int64_t data_nrows() const override { return nrows; }
-  void reify() override {}
-  void resize_and_fill(int64_t) override {}
-  void rbind_impl(std::vector<const Column*>&, int64_t, bool) override {}
-  void apply_na_mask(const BoolColumn*) override {}
-  void replace_values(RowIndex, const Column*) override {}
-protected:
-  VoidColumn() {}
-  void init_data() override {}
-  void init_mmap(const std::string&) override {}
-  void open_mmap(const std::string&, bool) override {}
-  void init_xbuf(Py_buffer*) override {}
+class VoidColumn : public Column {
+  public:
+    VoidColumn(int64_t nrows);
+    SType stype() const override;
+    size_t elemsize() const override;
+    bool is_fixedwidth() const override;
+    int64_t data_nrows() const override;
+    void reify() override;
+    void resize_and_fill(int64_t) override;
+    void rbind_impl(std::vector<const Column*>&, int64_t, bool) override;
+    void apply_na_mask(const BoolColumn*) override;
+    void replace_values(RowIndex, const Column*) override;
+  protected:
+    VoidColumn();
+    void init_data() override;
+    void init_mmap(const std::string&) override;
+    void open_mmap(const std::string&, bool) override;
+    void init_xbuf(Py_buffer*) override;
+    Stats* get_stats() const override;
+    void fill_na() override;
 
-  Stats* get_stats() const override { return nullptr; }
-  void fill_na() override {}
-
-  friend Column;
+    friend Column;
 };
 
 

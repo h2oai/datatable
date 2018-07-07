@@ -26,8 +26,8 @@ protected:
 public:
   enum class Strategy : int8_t { Auto, Mmap, Write };
 
-  WritableBuffer(): bytes_written(0) {}
-  virtual ~WritableBuffer() {}
+  WritableBuffer();
+  virtual ~WritableBuffer();
 
   /**
    * Factory method for instantiating one of the `WritableBuffer` derived

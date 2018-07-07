@@ -609,13 +609,13 @@ void init_csvwrite_constants() {
   bytes_per_stype[ST_STRING_I4_VCHAR] = 2;  // ""
   bytes_per_stype[ST_STRING_I8_VCHAR] = 2;  // ""
 
-  writers_per_stype[ST_BOOLEAN_I1] = (writer_fn) write_b1;
-  writers_per_stype[ST_INTEGER_I1] = (writer_fn) write_iN<int8_t>;
-  writers_per_stype[ST_INTEGER_I2] = (writer_fn) write_iN<int16_t>;
-  writers_per_stype[ST_INTEGER_I4] = (writer_fn) write_iN<int32_t>;
-  writers_per_stype[ST_INTEGER_I8] = (writer_fn) write_iN<int64_t>;
-  writers_per_stype[ST_REAL_F4]    = (writer_fn) write_f4_dec;
-  writers_per_stype[ST_REAL_F8]    = (writer_fn) write_f8_dec;
-  writers_per_stype[ST_STRING_I4_VCHAR] = (writer_fn) write_str<uint32_t>;
-  writers_per_stype[ST_STRING_I8_VCHAR] = (writer_fn) write_str<uint64_t>;
+  writers_per_stype[ST_BOOLEAN_I1] = write_b1;
+  writers_per_stype[ST_INTEGER_I1] = write_iN<int8_t>;
+  writers_per_stype[ST_INTEGER_I2] = write_iN<int16_t>;
+  writers_per_stype[ST_INTEGER_I4] = write_iN<int32_t>;
+  writers_per_stype[ST_INTEGER_I8] = write_iN<int64_t>;
+  writers_per_stype[ST_REAL_F4]    = write_f4_dec;
+  writers_per_stype[ST_REAL_F8]    = write_f8_dec;
+  writers_per_stype[ST_STRING_I4_VCHAR] = write_str<uint32_t>;
+  writers_per_stype[ST_STRING_I8_VCHAR] = write_str<uint64_t>;
 }

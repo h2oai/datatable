@@ -70,7 +70,9 @@ class PyError : public Error
 
 public:
   PyError();
-  ~PyError() override;
+  PyError(PyError&&);
+  virtual ~PyError() override;
+
   void topython() const override;
   bool is_keyboard_interrupt() const;
 };

@@ -137,6 +137,15 @@ PyError::PyError() {
   PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
 }
 
+PyError::PyError(PyError&& other) : Error(std::move(other)) {
+  exc_type = other.exc_type;
+  exc_value = other.exc_value;
+  exc_traceback = other.exc_traceback;
+  other.exc_type = nullptr;
+  other.exc_value = nullptr;
+  other.exc_traceback = nullptr;
+}
+
 PyError::~PyError() {
   Py_XDECREF(exc_type);
   Py_XDECREF(exc_value);

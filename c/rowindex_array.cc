@@ -182,7 +182,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(filterfn32* ff, int64_t n, bool sorted) {
       #pragma omp ordered
       {
         out_offset = out_length;
-        out_length += (size_t) buf_length;
+        out_length += static_cast<size_t>(buf_length);
       }
     }
     // Note: if the underlying array is small, then some threads may have

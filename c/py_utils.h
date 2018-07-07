@@ -179,19 +179,38 @@ void log_call(const char* msg);
 
 
 #define METHOD0(fn)                                                            \
-  {fn##_name, (PyCFunction)fn##_safe, METH_NOARGS, fn##_doc}
+  {fn##_name,                                                                  \
+   reinterpret_cast<PyCFunction>(fn##_safe),                                   \
+   METH_NOARGS,                                                                \
+   fn##_doc}
 #define METHODv(fn)                                                            \
-  {fn##_name, (PyCFunction)fn##_safe, METH_VARARGS, fn##_doc}
+  {fn##_name,                                                                  \
+   reinterpret_cast<PyCFunction>(fn##_safe),                                   \
+   METH_VARARGS,                                                               \
+   fn##_doc}
 #define METHODo(fn)                                                            \
-  {fn##_name, (PyCFunction)fn##_safe, METH_O, fn##_doc}
+  {fn##_name,                                                                  \
+   reinterpret_cast<PyCFunction>(fn##_safe),                                   \
+   METH_O,                                                                     \
+   fn##_doc}
 #define GETTER(fn)                                                             \
-  {name_get_##fn, (getter)safe_get_##fn, NULL, doc_get_##fn, NULL}
+  {name_get_##fn,                                                              \
+   reinterpret_cast<getter>(safe_get_##fn),                                    \
+   nullptr,                                                                    \
+   doc_get_##fn,                                                               \
+   nullptr}
 #define GETSET(fn)                                                             \
-  {name_get_##fn, (getter)safe_get_##fn, (setter)safe_set_##fn,                \
-   doc_get_##fn, NULL}
-#define DESTRUCTOR (destructor)safe_dealloc
-#define CONSTRUCTOR (initproc)safe_init
-#define REPR (reprfunc)safe_repr
+  {name_get_##fn,                                                              \
+   reinterpret_cast<getter>(safe_get_##fn),                                    \
+   reinterpret_cast<setter>(safe_set_##fn),                                    \
+   doc_get_##fn,                                                               \
+   nullptr}
+#define DESTRUCTOR                                                             \
+   reinterpret_cast<destructor>(safe_dealloc)
+#define CONSTRUCTOR                                                            \
+   reinterpret_cast<initproc>(safe_init)
+#define REPR                                                                   \
+   reinterpret_cast<reprfunc>(safe_repr)
 
 
 

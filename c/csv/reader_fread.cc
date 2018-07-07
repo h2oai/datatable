@@ -50,6 +50,8 @@ FreadReader::FreadReader(const GenericReader& g)
   fo.input_size = input_size;
 }
 
+FreadReader::~FreadReader() {}
+
 
 FreadTokenizer FreadReader::makeTokenizer(
     field64* target, const char* anchor) const
@@ -78,6 +80,7 @@ FreadTokenizer FreadReader::makeTokenizer(
 //
 // This entire section is WIP
 //------------------------------------------------------------------------------
+/*
 class HypothesisNoQC;
 class HypothesisQC;
 class HypothesisPool;
@@ -208,6 +211,7 @@ class HypothesisNoQC : public Hypothesis {
       return sep_weight;
     }
 };
+*/
 
 /**
  * QR = 0: no embedded quote chars allowed
@@ -237,7 +241,7 @@ void FreadReader::detect_sep_and_qr() {
   // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
 
   if (sep == '\xFF') {   // '\xFF' means 'auto'
-    nseps = (int) strlen(seps);
+    nseps = static_cast<int>(strlen(seps));
     topSep = '\xFE';     // '\xFE' means single-column mode
   } else {
     // Cannot use '\n' as a separator, because it prevents us from proper
@@ -600,7 +604,7 @@ void FreadReader::detect_column_types()
       }
       n_sample_lines++;
       chunkster.last_row_end = tch;
-      int thisLineLen = (int)(tch - lineStart);
+      int thisLineLen = static_cast<int>(tch - lineStart);
       xassert(thisLineLen >= 0);
       sumLen += thisLineLen;
       sumLenSq += thisLineLen*thisLineLen;
@@ -644,7 +648,7 @@ void FreadReader::detect_column_types()
       trace("Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
       trace("Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
       trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
-            allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+            allocnrow, estnrow, static_cast<int>(100.0*allocnrow/estnrow-100.0));
     }
     if (tch == eof) {
       if (header == 1) n_sample_lines--;

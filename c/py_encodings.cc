@@ -14,13 +14,14 @@ static uint32_t win1252_map[256];
 static uint32_t win1251_map[256];
 static uint32_t iso8859_map[256];
 
-static void initialize_map(uint32_t *map, int n, const char *encoding)
+static void initialize_map(uint32_t* map, int n, const char* encoding)
 {
-  for (int i = 0; i < n; i++) {
-    PyObject *string = PyUnicode_Decode((const char*)&i, 4, encoding, "replace");
-    PyObject *bytes = PyUnicode_AsEncodedString(string, "utf-8", "replace");
+  for (int32_t i = 0; i < n; i++) {
+    const char* i_as_str = reinterpret_cast<const char*>(&i);
+    PyObject* string = PyUnicode_Decode(i_as_str, 4, encoding, "replace");
+    PyObject* bytes = PyUnicode_AsEncodedString(string, "utf-8", "replace");
     char *raw = PyBytes_AsString(bytes);  // borrowed ref
-    memcpy(map + i, raw, 4);
+    std::memcpy(map + i, raw, 4);
     Py_DECREF(string);
     Py_DECREF(bytes);
   }

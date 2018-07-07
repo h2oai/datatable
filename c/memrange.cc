@@ -131,7 +131,7 @@
       void release();
 
       bool is_writable() const;
-      size_t memory_footprint() const override { return 0; }
+      size_t memory_footprint() const override;
       const char* name() const override { return "viewed"; }
 
     private:
@@ -679,6 +679,9 @@
     return original_impl->writable;
   }
 
+  size_t ViewedMRI::memory_footprint() const {
+    return 0;
+  }
 
 
 
