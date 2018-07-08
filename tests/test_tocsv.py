@@ -102,6 +102,16 @@ def test_issue507(tempfile, col, scol):
     assert open(tempfile, "rb").read() == exp_text.encode()
 
 
+def test_view_to_csv():
+    df0 = dt.Frame([range(10), range(0, 20, 2)], names=["A", "B"])
+    df1 = df0[::2, :]
+    txt1 = df1.to_csv()
+    df1.materialize()
+    txt2 = df1.to_csv()
+    assert txt1 == txt2
+
+
+
 
 #-------------------------------------------------------------------------------
 # Test writing different data types
@@ -321,4 +331,3 @@ def test_save_str64():
         "baar,q\n"
         "ba,\n"
         ",bvqpoeqnperoin;dj\n")
-

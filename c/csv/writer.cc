@@ -377,14 +377,17 @@ void CsvWriter::write()
         }
 
         // Write the data in rows row0..row1 and in all columns
-        char *thch = thbuf;
-        for (int64_t row = row0; row < row1; row++) {
-          for (size_t col = 0; col < ncols; col++) {
-            columns[col]->write(&thch, row);
-            *thch++ = ',';
-          }
-          thch[-1] = '\n';
-        }
+        char* thch = thbuf;
+        dt->rowindex.strided_loop(row0, row1, 1,
+          [&](int64_t row) {
+            for (size_t col = 0; col < ncols; col++) {
+              columns[col]->write(&thch, row);
+              *thch++ = ',';
+            }
+            thch[-1] = '\n';
+          });
+        // for (int64_t row = row0; row < row1; row++) {
+        // }
         th_write_size = static_cast<size_t>(thch - thbuf);
       } catch (...) {
         oem.capture_exception();

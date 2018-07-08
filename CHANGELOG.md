@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - fix fread performance bug caused by memory-mapped file being accidentally
   copied into RAM.
 - fix rare crash in fread when resizing the number of rows.
+- fix saving view frames to csv.
 
 
 ### [v0.6.0](https://github.com/h2oai/datatable/compare/v0.6.0...v0.5.0) — 2018-06-05
