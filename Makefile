@@ -271,6 +271,7 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/py_expr.o            \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
+	extras/aggregator.o       \
 	groupby.o                 \
 	memrange.o                \
 	mmm.o                     \
@@ -487,6 +488,9 @@ $(BUILDDIR)/expr/py_expr.h: c/expr/py_expr.h $(BUILDDIR)/column.h $(BUILDDIR)/gr
 	@echo • Refreshing c/expr/py_expr.h
 	@cp c/expr/py_expr.h $@
 
+$(BUILDDIR)/extras/aggregator.h: c/extras/aggregator.h $(BUILDDIR)/column.h $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h
+	@echo • Refreshing c/extras/aggregator.h
+	@cp c/extras/aggregator.h $@
 
 $(BUILDDIR)/python/float.h: c/python/float.h $(BUILDDIR)/utils/pyobj.h
 	@echo • Refreshing c/python/float.h
@@ -658,6 +662,10 @@ $(BUILDDIR)/expr/reduceop.o : c/expr/reduceop.cc $(BUILDDIR)/expr/py_expr.h $(BU
 $(BUILDDIR)/expr/unaryop.o : c/expr/unaryop.cc $(BUILDDIR)/expr/py_expr.h $(BUILDDIR)/types.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
+	
+$(BUILDDIR)/extras/aggregator.o : c/extras/aggregator.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/types.h $(BUILDDIR)/utils/omp.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
 
 $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/groupby.h
 	@echo • Compiling $<
@@ -687,7 +695,7 @@ $(BUILDDIR)/py_columnset.o : c/py_columnset.cc $(BUILDDIR)/columnset.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/datatable_check.h $(BUILDDIR)/extras/aggregator.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

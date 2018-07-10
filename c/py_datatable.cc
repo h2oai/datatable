@@ -19,6 +19,7 @@
 #include "py_rowindex.h"
 #include "py_types.h"
 #include "py_utils.h"
+#include "extras/aggregator.h"
 
 namespace pydatatable
 {
@@ -259,20 +260,24 @@ PyObject* delete_columns(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
+
+
 PyObject* aggregate(obj* self, PyObject* args) {
   double epsilon;
-  int32_t n_bins, nx_bins, ny_bins, max_dimensions, seed;
+  int32_t n_bins, nx_bins, ny_bins, max_dimensions;
+  unsigned int seed;
 
-  if (!PyArg_ParseTuple(args, "diiiii:aggregate",
+  if (!PyArg_ParseTuple(args, "diiiiI:aggregate",
                         &epsilon, &n_bins, &nx_bins, &ny_bins, &max_dimensions, &seed)) return nullptr;
 
-  DataTable* dt = self->ref;
-  DataTable* dt_agg = self->ref;
+  DataTable* dt;
+  Aggregator* agg = new Aggregator(self->ref);
+  dt = agg->aggregate(epsilon, n_bins, nx_bins, ny_bins, max_dimensions, seed);
 
-  dt_agg = dt->aggregate(epsilon, n_bins, nx_bins, ny_bins, max_dimensions, seed);
-
-  return wrap(dt_agg);
+  return wrap(dt);
 }
+
+
 
 PyObject* resize_rows(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
