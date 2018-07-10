@@ -388,8 +388,6 @@ printvars:
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
 
-dummy:
-	@echo $(CI_VERSION_SUFFIX)
 #-------------------------------------------------------------------------------
 # "Fast" (but fragile) datatable build
 #-------------------------------------------------------------------------------
