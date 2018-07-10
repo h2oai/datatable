@@ -660,7 +660,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
             make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
-        sh 'mkdir -p build/cores && mv -f /tmp/cores/* build/cores'
+        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true' 
         arch "build/cores/*.*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
@@ -679,7 +679,6 @@ def testOSX(final environment, final needsLargerTest) {
             """
         }
     } finally {
-        arch "/tmp/cores/*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
