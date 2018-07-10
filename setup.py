@@ -182,7 +182,7 @@ def get_extra_compile_flags():
     flags += ["-std=gnu++11", "-stdlib=libc++", "-x", "c++"]
 
     # Path to source files / Python include files
-    flags += ["-Ic",
+    flags += ["-Ic", "-Ic/jay",
               "-I" + os.path.join(sys.prefix, "include")]
 
     # Include path to C++ header files

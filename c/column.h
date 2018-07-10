@@ -23,6 +23,9 @@ class DataTable;
 class BoolColumn;
 class PyObjectColumn;
 class FreadReader;  // used as a friend
+namespace flatbuffers { class FlatBufferBuilder; }
+namespace flatbuffers { template <class T> struct Offset; }
+namespace fbjay { struct Column; }
 template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
@@ -213,6 +216,9 @@ public:
 
   void save_jay(const std::string& name, jay::Column::Builder msg_col,
                 std::unique_ptr<WritableBuffer>& wb);
+  flatbuffers::Offset<fbjay::Column>
+  save_jay_fb(const std::string& name, flatbuffers::FlatBufferBuilder&,
+              std::unique_ptr<WritableBuffer>&);
 
   int64_t countna() const;
   int64_t nunique() const;

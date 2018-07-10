@@ -8,11 +8,13 @@
 #include <capnp/message.h>
 #include <capnp/serialize.h>
 #include "jay/jay.capnp.h"
+#include "jay/jay_generated.h"
 #include "datatable.h"
 #include "utils/assert.h"
 #include "writebuf.h"
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
+
 
 
 static void saveMemoryRange(
@@ -31,6 +33,24 @@ static void saveMemoryRange(
   buffer.setOffset(pos - 8);
   buffer.setLength(len);
 }
+
+static fbjay::Buffer saveMemoryRange(
+    const MemoryRange* mbuf, WritableBufferPtr& wb)
+{
+  if (!mbuf) return fbjay::Buffer();
+  size_t len = mbuf->size();
+  const void* data = mbuf->rptr();
+  size_t pos = wb->prep_write(len, data);
+  wb->write_at(pos, len, data);
+  xassert(pos >= 8);
+  if (len & 7) {  // Align the buffer to 8-byte boundary
+    uint64_t zero = 0;
+    wb->write(8 - (len & 7), &zero);
+  }
+
+  return fbjay::Buffer(pos - 8, len);
+}
+
 
 
 template <typename T, typename A, typename TBuilder>
@@ -81,6 +101,48 @@ void DataTable::save_jay(const std::string& path,
   auto metaBytes = meta.asBytes();
   auto metaSize = static_cast<size_t>(metaBytes.end() - metaBytes.begin());
   wb->write(metaSize, metaBytes.begin());
+  if (metaSize & 7) {
+    wb->write(8 - (metaSize & 7), "\0\0\0\0\0\0\0");
+    metaSize += 8 - (metaSize & 7);
+  }
+
+  wb->write(8, &metaSize);
+  wb->write(8, "\0\0\0\0JAY1");
+  wb->finalize();
+}
+
+
+
+void DataTable::save_jay_fb(const std::string& path,
+                         const std::vector<std::string>& colnames)
+{
+  reify();
+
+  auto wb = WritableBuffer::create_target(path, memory_footprint(),
+                                          WritableBuffer::Strategy::Auto);
+  wb->write(8, "JAY1\0\0\0\0");
+
+  flatbuffers::FlatBufferBuilder fbb(1024);
+
+  std::vector<flatbuffers::Offset<fbjay::Column>> msg_columns;
+  for (size_t i = 0; i < static_cast<size_t>(ncols); ++i) {
+    if (columns[i]->stype() == ST_OBJECT_PYPTR) {
+      Warning() << "Column '" << colnames[i] << "' of type obj64 was not saved";
+    } else {
+      msg_columns.push_back(columns[i]->save_jay_fb(colnames[i], fbb, wb));
+    }
+  }
+  xassert((wb->size() & 7) == 0);
+
+  auto frame = fbjay::CreateFrameDirect(fbb,
+                  static_cast<size_t>(nrows),
+                  msg_columns.size(),
+                  &msg_columns);
+  fbb.Finish(frame);
+
+  uint8_t* metaBytes = fbb.GetBufferPointer();
+  size_t   metaSize = fbb.GetSize();
+  wb->write(metaSize, metaBytes);
   if (metaSize & 7) {
     wb->write(8 - (metaSize & 7), "\0\0\0\0\0\0\0");
     metaSize += 8 - (metaSize & 7);
@@ -170,4 +232,81 @@ void Column::save_jay(
       throw NotImplError() << "Cannot save column of type " << stype();
     }
   }
+}
+
+
+
+
+flatbuffers::Offset<fbjay::Column>
+Column::save_jay_fb(
+    const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
+    WritableBufferPtr& wb)
+{
+  // using StatsBool8   = NumericalStats<int8_t, int64_t>;
+  // using StatsInt8    = NumericalStats<int8_t, int64_t>;
+  // using StatsInt16   = NumericalStats<int16_t, int64_t>;
+  // using StatsInt32   = NumericalStats<int32_t, int64_t>;
+  // using StatsInt64   = NumericalStats<int64_t, int64_t>;
+  // using StatsFloat32 = NumericalStats<float, double>;
+  // using StatsFloat64 = NumericalStats<double, double>;
+  fbjay::Type fbtype;
+  fbjay::Stats stats_type = fbjay::Stats_NONE;
+  MemoryRange* strdata_ptr = nullptr;
+  switch (stype()) {
+    case ST_BOOLEAN_I1: {
+      fbtype = fbjay::Type_Bool8;
+      // stats_type = fbjay::Stats_Bool;
+      break;
+    }
+    case ST_INTEGER_I1: {
+      fbtype = fbjay::Type_Int8;
+      break;
+    }
+    case ST_INTEGER_I2: {
+      fbtype = fbjay::Type_Int16;
+      break;
+    }
+    case ST_INTEGER_I4: {
+      fbtype = fbjay::Type_Int32;
+      break;
+    }
+    case ST_INTEGER_I8: {
+      fbtype = fbjay::Type_Int64;
+      break;
+    }
+    case ST_REAL_F4: {
+      fbtype = fbjay::Type_Float32;
+      break;
+    }
+    case ST_REAL_F8: {
+      fbtype = fbjay::Type_Float64;
+      break;
+    }
+    case ST_STRING_I4_VCHAR: {
+      fbtype = fbjay::Type_Str32;
+      strdata_ptr = &(static_cast<StringColumn<uint32_t>*>(this)->strbuf);
+      break;
+    }
+    case ST_STRING_I8_VCHAR: {
+      fbtype = fbjay::Type_Str64;
+      strdata_ptr = &(static_cast<StringColumn<uint64_t>*>(this)->strbuf);
+      break;
+    }
+    default: {
+      throw NotImplError() << "Cannot save column of type " << stype();
+    }
+  }
+
+  fbjay::Buffer saved_mbuf = saveMemoryRange(&mbuf, wb);
+  fbjay::Buffer saved_strdata = saveMemoryRange(strdata_ptr, wb);
+  return fbjay::CreateColumnDirect(
+            fbb,
+            fbtype,
+            &saved_mbuf,
+            strdata_ptr? &saved_strdata : nullptr,
+            name.c_str(),
+            static_cast<uint64_t>(countna()),
+            stats_type
+            /* flatbuffers::Offset<void> stats = 0 */
+            );
 }

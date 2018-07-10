@@ -524,6 +524,10 @@ $(BUILDDIR)/jay/jay.capnp.h: c/jay/jay.capnp.h
 	@echo • Refreshing c/jay/jay.capnp.h
 	@cp c/jay/jay.capnp.h $@
 
+$(BUILDDIR)/jay/jay_generated.h: c/jay/jay_generated.h
+	@echo • Refreshing c/jay/jay_generated.h
+	@cp c/jay/jay_generated.h $@
+
 $(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/memrange.h
 	@cp c/memrange.h $@
@@ -829,7 +833,7 @@ $(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/jay/save_jay.o : c/jay/save_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay.capnp.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/jay/save_jay.o : c/jay/save_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay.capnp.h $(BUILDDIR)/jay/jay_generated.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

@@ -571,6 +571,22 @@ PyObject* save_jay(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
+PyObject* save_jay_fb(obj* self, PyObject* args) {
+  DataTable* dt = self->ref;
+  PyObject* arg1, *arg2;
+  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2)) return nullptr;
+  std::string filename = PyObj(arg1).as_string();
+  std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
+
+  if (colnames.size() != static_cast<size_t>(dt->ncols)) {
+    throw ValueError()
+      << "The list of column names has wrong length: " << colnames.size();
+  }
+
+  dt->save_jay_fb(filename, colnames);
+  Py_RETURN_NONE;
+}
+
 
 static void dealloc(obj* self) {
   delete self->ref;
@@ -620,6 +636,7 @@ static PyMethodDef datatable_methods[] = {
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
+  METHODv(save_jay_fb),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 

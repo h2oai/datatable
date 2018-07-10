@@ -196,6 +196,12 @@ DECLARE_METHOD(
   "save_jay(file, colnames)\n\n"
   "Save DataTable into a .jay file.\n")
 
+DECLARE_METHOD(
+  save_jay_fb,
+  "save_jay(file, colnames)\n\n"
+  "Save DataTable into a .jay file.\n")
+
+
 
 DECLARE_METHOD(
    get_min,

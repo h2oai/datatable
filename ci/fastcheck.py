@@ -25,6 +25,7 @@ def get_files():
         for f in filenames:
             fullname = os.path.join(dirpath, f)
             if f.endswith(".h"):
+                if "flatbuffers" in dirpath: continue
                 headers.append(fullname)
             elif f.endswith(".c") or f.endswith(".cc"):
                 sources.append(fullname)
@@ -47,6 +48,7 @@ def find_includes(filename):
             if line.startswith("#"):
                 mm = re.match(rx_include, line)
                 if mm:
+                    if mm.group(1) == "flatbuffers/flatbuffers.h": continue
                     includename = os.path.join("c", mm.group(1))
                     includes.append(includename)
     return includes

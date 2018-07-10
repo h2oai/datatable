@@ -1,0 +1,65 @@
+
+
+namespace fbjay;
+
+
+//------------------------------------------------------------------------------
+// Types
+//------------------------------------------------------------------------------
+
+enum Type : uint8 {
+  Bool8,
+  Int8,
+  Int16,
+  Int32,
+  Int64,
+  Float32,
+  Float64,
+  Str32,
+  Str64,
+}
+
+union Stats {
+  Bool    : StatsBool,
+  Int8    : StatsInt8,
+  Int16   : StatsInt16,
+  Int32   : StatsInt32,
+  Int64   : StatsInt64,
+  Float32 : StatsFloat32,
+  Float64 : StatsFloat64,
+}
+
+struct StatsBool    { min: int8;    max: int8;    }
+struct StatsInt8    { min: int8;    max: int8;    }
+struct StatsInt16   { min: int16;   max: int16;   }
+struct StatsInt32   { min: int32;   max: int32;   }
+struct StatsInt64   { min: int64;   max: int64;   }
+struct StatsFloat32 { min: float32; max: float32; }
+struct StatsFloat64 { min: float64; max: float64; }
+
+
+//------------------------------------------------------------------------------
+// Main
+//------------------------------------------------------------------------------
+
+table Frame {
+  nrows:   uint64;
+  ncols:   uint64;
+  columns: [Column];
+}
+
+table Column {
+  type:      Type;
+  data:      Buffer;
+  strdata:   Buffer;
+  name:      string;
+  nullcount: uint64;
+  stats:     Stats;
+}
+
+struct Buffer {
+  offset: uint64;
+  length: uint64;
+}
+
+root_type Frame;
