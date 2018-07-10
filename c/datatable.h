@@ -9,7 +9,6 @@
 #define dt_DATATABLE_h
 #include <vector>
 #include <string>
-#include "datatable_check.h"
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
@@ -94,10 +93,10 @@ class DataTable {
     DataTable* nunique_datatable() const;
     DataTable* nmodal_datatable() const;
 
-    bool verify_integrity(IntegrityCheckContext& icc) const;
+    void verify_integrity() const;
 
     static DataTable* load(DataTable* schema, int64_t nrows,
-                           const std::string& path);
+                           const std::string& path, bool recode);
 
   private:
     DataTable* _statdt(colmakerfn f) const;

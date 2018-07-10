@@ -126,7 +126,8 @@ void parse_int32_simple(FreadTokenizer& ctx) {
   // possibly with a sign), which can be checked via `ch > start`.
   // If `sf == 10`, then we explicitly check for overflow ≤2147483647.
   if ((sf? sf < 10 : ch > start) || (sf == 10 && acc <= INT32_MAX)) {
-    ctx.target->int32 = negative? -(int32_t)acc : (int32_t)acc;
+    ctx.target->int32 = negative? -static_cast<int32_t>(acc)
+                                :  static_cast<int32_t>(acc);
     ctx.ch = ch;
   } else {
     ctx.target->int32 = NA_INT32;
@@ -232,7 +233,8 @@ void parse_int64_simple(FreadTokenizer& ctx) {
   // At the same time `uint64_t` can hold values up to 18446744073709551615,
   // which is sufficient to hold any 19-digit values (even 10**19 - 1).
   if ((sf? sf < 19 : ch > start) || (sf == 19 && acc <= INT64_MAX)) {
-    ctx.target->int64 = negative? -(int64_t)acc : (int64_t)acc;
+    ctx.target->int64 = negative? -static_cast<int64_t>(acc)
+                                :  static_cast<int64_t>(acc);
     ctx.ch = ch;
   } else {
     ctx.target->int64 = NA_INT64;
@@ -450,11 +452,11 @@ void parse_float64_extended(FreadTokenizer& ctx) {
   }
   if (ch[0]=='N' && (ch[1]=='A' || ch[1]=='a') && ch[2]=='N' && (ch += 3)) {
     if (ch[-2]=='a' && (*ch=='%' || *ch=='Q' || *ch=='S')) ch++;
-    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
+    while (static_cast<uint_fast8_t>(*ch-'0') < 10) ch++;
     goto return_nan;
   }
   if ((ch[0]=='q' || ch[0]=='s') && ch[1]=='N' && ch[2]=='a' && ch[3]=='N' && (ch += 4)) {
-    while ((uint_fast8_t)(*ch-'0') < 10) ch++;
+    while (static_cast<uint_fast8_t>(*ch-'0') < 10) ch++;
     goto return_nan;
   }
   if (ch[0]=='1' && ch[1]=='.' && ch[2]=='#') {
@@ -605,7 +607,7 @@ void parse_string(FreadTokenizer& ctx) {
       ch++;  // sep, \r, \n or \0 will end
     }
     ctx.ch = ch;
-    int fieldLen = (int)(ch-fieldStart);
+    int fieldLen = static_cast<int>(ch - fieldStart);
     if (ctx.strip_whitespace) {   // TODO:  do this if and the next one together once in bulk afterwards before push
       while(fieldLen>0 && ch[-1]==' ') { fieldLen--; ch--; }
       // this space can't be sep otherwise it would have stopped the field earlier inside end_of_field()
@@ -614,7 +616,7 @@ void parse_string(FreadTokenizer& ctx) {
       // TODO - speed up by avoiding end_NA_string when there are none
       ctx.target->str32.setna();
     } else {
-      ctx.target->str32.offset = (int32_t)(fieldStart - ctx.anchor);
+      ctx.target->str32.offset = static_cast<uint32_t>(fieldStart - ctx.anchor);
       ctx.target->str32.length = fieldLen;
     }
     return;
@@ -686,7 +688,7 @@ void parse_string(FreadTokenizer& ctx) {
     ctx.target->str32.setna();
   } else {
     ctx.target->str32.length = fieldLen;
-    ctx.target->str32.offset = static_cast<int32_t>(fieldStart - ctx.anchor);
+    ctx.target->str32.offset = static_cast<uint32_t>(fieldStart - ctx.anchor);
   }
   if (*ch==quote) {
     ctx.ch = ch + 1;

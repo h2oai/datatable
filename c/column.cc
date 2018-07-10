@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include <cstdlib>     // atoll
-#include "datatable_check.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -31,8 +30,8 @@ Column* Column::new_column(SType stype) {
     case ST_INTEGER_I8:      return new IntColumn<int64_t>();
     case ST_REAL_F4:         return new RealColumn<float>();
     case ST_REAL_F8:         return new RealColumn<double>();
-    case ST_STRING_I4_VCHAR: return new StringColumn<int32_t>();
-    case ST_STRING_I8_VCHAR: return new StringColumn<int64_t>();
+    case ST_STRING_I4_VCHAR: return new StringColumn<uint32_t>();
+    case ST_STRING_I8_VCHAR: return new StringColumn<uint64_t>();
     case ST_OBJECT_PYPTR:    return new PyObjectColumn();
     default:
       throw ValueError() << "Unable to create a column of SType = " << stype;
@@ -86,11 +85,11 @@ void Column::save_to_disk(const std::string& filename,
  * valid values, and that the extra parameters match the buffer's contents).
  */
 Column* Column::open_mmap_column(SType stype, int64_t nrows,
-                                 const std::string& filename)
+                                 const std::string& filename, bool recode)
 {
   Column* col = new_column(stype);
   col->nrows = nrows;
-  col->open_mmap(filename);
+  col->open_mmap(filename, recode);
   return col;
 }
 
@@ -326,8 +325,8 @@ Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
     case ST_INTEGER_I8:      cast_into(static_cast<IntColumn<int64_t>*>(res)); break;
     case ST_REAL_F4:         cast_into(static_cast<RealColumn<float>*>(res)); break;
     case ST_REAL_F8:         cast_into(static_cast<RealColumn<double>*>(res)); break;
-    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<int32_t>*>(res)); break;
-    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<int64_t>*>(res)); break;
+    case ST_STRING_I4_VCHAR: cast_into(static_cast<StringColumn<uint32_t>*>(res)); break;
+    case ST_STRING_I8_VCHAR: cast_into(static_cast<StringColumn<uint64_t>*>(res)); break;
     case ST_OBJECT_PYPTR:    cast_into(static_cast<PyObjectColumn*>(res)); break;
     default:
       throw ValueError() << "Unable to cast into stype = " << new_stype;
@@ -356,10 +355,10 @@ void Column::cast_into(RealColumn<float>*) const {
 void Column::cast_into(RealColumn<double>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into double";
 }
-void Column::cast_into(StringColumn<int32_t>*) const {
+void Column::cast_into(StringColumn<uint32_t>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into str32";
 }
-void Column::cast_into(StringColumn<int64_t>*) const {
+void Column::cast_into(StringColumn<uint64_t>*) const {
   throw ValueError() << "Cannot cast " << stype() << " into str64";
 }
 void Column::cast_into(PyObjectColumn*) const {
@@ -372,57 +371,70 @@ void Column::cast_into(PyObjectColumn*) const {
 // Integrity checks
 //------------------------------------------------------------------------------
 
-bool Column::verify_integrity(IntegrityCheckContext& icc,
-                              const std::string& name) const
-{
-  int nerrors = icc.n_errors();
-  auto end = icc.end();
-
+void Column::verify_integrity(const std::string& name) const {
   if (nrows < 0) {
-    icc << name << " has a negative value for `nrows`: " <<  nrows << end;
+    throw AssertionError()
+      << name << " has a negative value for nrows: " << nrows;
   }
-  mbuf.verify_integrity(icc);
-  if (icc.has_errors(nerrors)) return false;
+  mbuf.verify_integrity();
+  ri.verify_integrity();
 
-  // data_nrows() may use the value in `meta`, so `meta` should be checked
-  // before using this method
   int64_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
   if (ri.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
     if (nrows != mbuf_nrows) {
-      icc << "Mismatch between reported number of rows: " << name
+      throw AssertionError()
+          << "Mismatch between reported number of rows: " << name
           << " has nrows=" << nrows << " but MemoryRange has data for "
-          << mbuf_nrows << " rows" << end;
+          << mbuf_nrows << " rows";
     }
   }
   else {
-    // RowIndex check
-    bool ok = ri.verify_integrity(icc);
-    if (!ok) return false;
-
     // Check that the length of the RowIndex corresponds to `nrows`
     if (nrows != ri.length()) {
-      icc << "Mismatch in reported number of rows: " << name << " has "
+      throw AssertionError()
+          << "Mismatch in reported number of rows: " << name << " has "
           << "nrows=" << nrows << ", while its rowindex.length="
-          << ri.length() << end;
+          << ri.length();
     }
-
     // Check that the maximum value of the RowIndex does not exceed the maximum
     // row number in the memory buffer
     if (ri.max() >= mbuf_nrows && ri.max() > 0) {
-      icc << "Maximum row number in the rowindex of " << name << " exceeds the "
+      throw AssertionError()
+          << "Maximum row number in the rowindex of " << name << " exceeds the "
           << "number of rows in the underlying memory buffer: max(rowindex)="
-          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows << end;
+          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows;
     }
   }
-  if (icc.has_errors(nerrors)) return false;
 
   // Check Stats
-  if (stats != nullptr) { // Stats are allowed to be null
-    bool r = stats->verify_integrity(icc);
-    if (!r) return false;
+  if (stats) { // Stats are allowed to be null
+    stats->verify_integrity(this);
   }
-  return !icc.has_errors(nerrors);
 }
+
+
+
+//==============================================================================
+// VoidColumn
+//==============================================================================
+
+VoidColumn::VoidColumn() {}
+VoidColumn::VoidColumn(int64_t nrows) : Column(nrows) {}
+SType VoidColumn::stype() const { return ST_VOID; }
+size_t VoidColumn::elemsize() const { return 0; }
+bool VoidColumn::is_fixedwidth() const { return true; }
+int64_t VoidColumn::data_nrows() const { return nrows; }
+void VoidColumn::reify() {}
+void VoidColumn::resize_and_fill(int64_t) {}
+void VoidColumn::rbind_impl(std::vector<const Column*>&, int64_t, bool) {}
+void VoidColumn::apply_na_mask(const BoolColumn*) {}
+void VoidColumn::replace_values(RowIndex, const Column*) {}
+void VoidColumn::init_data() {}
+void VoidColumn::init_mmap(const std::string&) {}
+void VoidColumn::open_mmap(const std::string&, bool) {}
+void VoidColumn::init_xbuf(Py_buffer*) {}
+Stats* VoidColumn::get_stats() const { return nullptr; }
+void VoidColumn::fill_na() {}

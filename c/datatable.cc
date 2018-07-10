@@ -11,7 +11,6 @@
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
-#include "datatable_check.h"
 
 // Forward declarations
 static int _compare_ints(const void *a, const void *b);
@@ -46,7 +45,7 @@ DataTable::DataTable(Column** cols)
 DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
 {
   if (n == 0) return this;
-  qsort(cols_to_remove, (size_t)n, sizeof(int), _compare_ints);
+  qsort(cols_to_remove, static_cast<size_t>(n), sizeof(int), _compare_ints);
   int j = 0;
   int next_col_to_remove = cols_to_remove[0];
   int64_t k = 0;
@@ -65,7 +64,7 @@ DataTable* DataTable::delete_columns(int *cols_to_remove, int64_t n)
   columns[j] = nullptr;
   // This may not be the same as `j` if there were repeating columns
   ncols = j;
-  columns = static_cast<Column**>(realloc(columns, sizeof(Column*) * (size_t) (j + 1)));
+  columns = dt::realloc(columns, sizeof(Column*) * static_cast<size_t>(j + 1));
   return this;
 }
 
@@ -129,8 +128,8 @@ DataTable::~DataTable()
 
 // Comparator function to sort integers using `qsort`
 static inline int _compare_ints(const void *a, const void *b) {
-  const int x = *(const int*)a;
-  const int y = *(const int*)b;
+  const int x = *static_cast<const int*>(a);
+  const int y = *static_cast<const int*>(b);
   return (x > y) - (x < y);
 }
 
@@ -182,7 +181,7 @@ size_t DataTable::memory_footprint()
 {
   size_t sz = 0;
   sz += sizeof(*this);
-  sz += (size_t)(ncols + 1) * sizeof(Column*);
+  sz += static_cast<size_t>(ncols + 1) * sizeof(Column*);
   if (rowindex.isabsent()) {
     for (int i = 0; i < ncols; ++i) {
       sz += columns[i]->memory_footprint();
@@ -228,18 +227,15 @@ DataTable* DataTable::sum_datatable() const     { return _statdt(&Column::sum_co
  * Verify that all internal constraints in the DataTable hold, and that there
  * are no any inappropriate values/elements.
  */
-bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
-{
-  int nerrs = icc.n_errors();
-  auto end = icc.end();
-
-  // Check that the number of rows in nonnegative
+void DataTable::verify_integrity() const {
+  // Check that the number of rows/columns in nonnegative
   if (nrows < 0) {
-    icc << "DataTable has a negative value for `nrows`: " << nrows << end;
+    throw AssertionError()
+        << "DataTable has a negative value for `nrows`: " << nrows;
   }
-  // Check that the number of columns is nonnegative
   if (ncols < 0) {
-    icc << "DataTable has a negative value for `ncols`: " << ncols << end;
+    throw AssertionError()
+        << "DataTable has a negative value for `ncols`: " << ncols;
   }
 
   // Check the number of columns; the number of allocated columns should be
@@ -248,13 +244,13 @@ bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
   // because `malloc()` may allocate more than requested.
   size_t n_cols_allocd = array_size(columns, sizeof(Column*));
   if (!columns || !n_cols_allocd) {
-    icc << "DataTable.columns array of is not allocated" << end;
+    throw AssertionError() << "DataTable.columns array of is not allocated";
   }
   else if (ncols + 1 > static_cast<int64_t>(n_cols_allocd)) {
-    icc << "DataTable.columns array size is " << n_cols_allocd
-        << " whereas " << ncols + 1 << " columsn are expected." << end;
+    throw AssertionError()
+        << "DataTable.columns array size is " << n_cols_allocd
+        << " whereas " << ncols + 1 << " columsn are expected.";
   }
-  if (icc.has_errors(nerrs)) return false;
 
   /**
    * Check the structure and contents of the column array.
@@ -262,28 +258,27 @@ bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
    * DataTable's RowIndex and nrows are supposed to reflect the RowIndex and
    * nrows of each column, so we will just check that the datatable's values
    * are equal to those of each column.
-   **/
+   */
   for (int64_t i = 0; i < ncols; ++i) {
-    std::string col_name = "Column "_s + std::to_string(i);
+    std::string col_name = std::string("Column ") + std::to_string(i);
     Column* col = columns[i];
     if (col == nullptr) {
-      icc << col_name << " of DataTable is null" << end;
-      continue;
+      throw AssertionError() << col_name << " of DataTable is null";
     }
     // Make sure the column and the datatable have the same value for `nrows`
     if (nrows != col->nrows) {
-      icc << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
-          << ", while the DataTable has nrows=" << nrows << end;
+      throw AssertionError()
+          << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
+          << ", while the DataTable has nrows=" << nrows;
     }
     // Make sure the column and the datatable point to the same rowindex object
     // TODO: restore
     // if (rowindex != col->rowindex()) {
-    //   icc << "Mismatch in `rowindex`: " << col_name << ".rowindex = "
-    //       << col->rowindex() << ", while DataTable.rowindex=" << (rowindex)
-    //       << end;
+    //   throw AssertionError()
+    //       << "Mismatch in `rowindex`: " << col_name << ".rowindex = "
+    //       << col->rowindex() << ", while DataTable.rowindex=" << (rowindex);
     // }
-    // Column check
-    col->verify_integrity(icc, col_name);
+    col->verify_integrity(col_name);
   }
 
   if (columns[ncols] != nullptr) {
@@ -293,7 +288,7 @@ bool DataTable::verify_integrity(IntegrityCheckContext& icc) const
     // not available on this platform, then this might segfault... This is
     // unavoidable since if we skip the check and do `cols[ncols]` later on
     // then we will segfault anyways.
-    icc << "Last entry in the `columns` array of DataTable is not null" << end;
+    throw AssertionError()
+        << "Last entry in the `columns` array of DataTable is not null";
   }
-  return !icc.has_errors(nerrs);
 }

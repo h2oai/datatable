@@ -22,6 +22,11 @@
 // WritableBuffer
 //==============================================================================
 
+// Do not define ~WritableBuffer() inline in writebuf.h, because it triggers
+// the -Wweak-tables warning.
+WritableBuffer::WritableBuffer(): bytes_written(0) {}
+WritableBuffer::~WritableBuffer() {}
+
 
 // We use different strategy on MacOS than on other operating systems because
 // Macs' default file system HFS does not support sparse files, which means

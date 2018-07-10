@@ -89,7 +89,27 @@ extern template int nlz(uint8_t);
     zMAKE_PRAGMA(GCC diagnostic pop)
 
 
-void set_value(void * __restrict__ ptr, const void * __restrict__ value,
-               size_t sz, size_t count);
+void set_value(void* ptr, const void* value, size_t sz, size_t count);
+
+
+
+#ifdef __APPLE__
+  #include <malloc/malloc.h>  // size_t malloc_size(const void *)
+#elif defined _WIN32
+  #include <malloc.h>  // size_t _msize(void *)
+  #define malloc_size  _msize
+#elif defined __linux__
+  #include <malloc.h>  // size_t malloc_usable_size(void *) __THROW
+  #define malloc_size  malloc_usable_size
+#else
+  #define malloc_size(p)  0
+  #define MALLOC_SIZE_UNAVAILABLE
+#endif
+
+char* repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1);
+
+
+size_t array_size(void *ptr, size_t elemsize);
+
 
 #endif

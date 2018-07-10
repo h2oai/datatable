@@ -77,6 +77,7 @@ GenericReader::GenericReader(const GenericReader& g) {
   override_column_types   = g.override_column_types;
   printout_anonymize      = g.printout_anonymize;
   printout_escape_unicode = g.printout_escape_unicode;
+  t_open_input = g.t_open_input;
   // Runtime parameters
   input_mbuf = g.input_mbuf;
   sof     = g.sof;
@@ -492,6 +493,7 @@ const char* GenericReader::repr_binary(
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
+  double t0 = wallclock();
   size_t size = 0;
   const void* text = nullptr;
   const char* filename = nullptr;
@@ -516,7 +518,7 @@ void GenericReader::open_input() {
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
-      static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
+      static_cast<char*>(input_mbuf.xptr())[sz] = '\0';
       extra_byte = 1;
     }
     trace("File \"%s\" opened, size: %zu", filename, sz);
@@ -555,6 +557,7 @@ void GenericReader::open_input() {
     }
     trace("=====================");
   }
+  t_open_input = wallclock() - t0;
 }
 
 
@@ -765,25 +768,9 @@ void GenericReader::report_columns_to_python() {
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
         PyObj elem = newTypesList[i];
-        columns[i].rtype = static_cast<RT>(elem.as_int64());  // unsafe?
-        // Temporary
-        switch (columns[i].rtype) {
-          case RDrop:    columns[i].type = PT::Str32; break;
-          case RAuto:    break;
-          case RBool:    columns[i].type = PT::Bool01; break;
-          case RInt:     columns[i].type = PT::Int32; break;
-          case RInt32:   columns[i].type = PT::Int32; break;
-          case RInt64:   columns[i].type = PT::Int64; break;
-          case RFloat:   columns[i].type = PT::Float32Hex; break;
-          case RFloat32: columns[i].type = PT::Float32Hex; break;
-          case RFloat64: columns[i].type = PT::Float64Plain; break;
-          case RStr:     columns[i].type = PT::Str32; break;
-          case RStr32:   columns[i].type = PT::Str32; break;
-          case RStr64:   columns[i].type = PT::Str64; break;
-        }
+        columns[i].set_rtype(elem.as_int64());
       }
     }
-
   } else {
     PyyList colNamesList(ncols);
     for (size_t i = 0; i < ncols; ++i) {
@@ -799,15 +786,15 @@ DataTablePtr GenericReader::makeDatatable() {
   Column** ccols = nullptr;
   size_t ncols = columns.size();
   size_t ocols = columns.nColumnsInOutput();
-  ccols = (Column**) malloc((ocols + 1) * sizeof(Column*));
+  ccols = dt::malloc<Column*>((ocols + 1) * sizeof(Column*));
   ccols[ocols] = nullptr;
   for (size_t i = 0, j = 0; i < ncols; ++i) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInOutput) continue;
-    SType stype = ParserLibrary::info(col.type).stype;
+    if (!col.is_in_output()) continue;
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();
-    ccols[j] = Column::new_mbuf_column(stype, std::move(databuf), std::move(strbuf));
+    ccols[j] = Column::new_mbuf_column(col.get_stype(), std::move(databuf),
+                                       std::move(strbuf));
     j++;
   }
   return DataTablePtr(new DataTable(ccols));

@@ -102,6 +102,16 @@ def test_issue507(tempfile, col, scol):
     assert open(tempfile, "rb").read() == exp_text.encode()
 
 
+def test_view_to_csv():
+    df0 = dt.Frame([range(10), range(0, 20, 2)], names=["A", "B"])
+    df1 = df0[::2, :]
+    txt1 = df1.to_csv()
+    df1.materialize()
+    txt2 = df1.to_csv()
+    assert txt1 == txt2
+
+
+
 
 #-------------------------------------------------------------------------------
 # Test writing different data types
@@ -189,7 +199,7 @@ def test_save_hexdouble_subnormal():
            0.0, 1e-324, -0.0,
            -1e-323, -1e-300, -2.76e-312, -6.487202e-309]
     d = dt.Frame(src)
-    assert d.internal.check()
+    d.internal.check()
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]  # remove header & last \n
     assert hexxed == [pyhex(v) for v in src]
 
@@ -290,7 +300,7 @@ def test_save_strings():
             "\0bwahaha!", "?", "here be dragons"]
     d = dt.Frame([src1, src2], names=["A", "B"])
     assert d.stypes == (stype.str32, stype.str32)
-    assert d.internal.check()
+    d.internal.check()
     assert d.to_csv().split("\n") == [
         'A,B',
         'foo,""',
@@ -313,7 +323,7 @@ def test_save_str64():
     src = [["foo", "baar", "ba", None],
            ["idjfbn", "q", None, "bvqpoeqnperoin;dj"]]
     d = dt.Frame(src, stypes=(stype.str32, stype.str64), names=["F", "G"])
-    assert d.internal.check()
+    d.internal.check()
     assert d.stypes == (stype.str32, stype.str64)
     assert d.to_csv() == (
         "F,G\n"
@@ -321,4 +331,3 @@ def test_save_str64():
         "baar,q\n"
         "ba,\n"
         ",bvqpoeqnperoin;dj\n")
-

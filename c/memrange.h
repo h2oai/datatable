@@ -16,7 +16,6 @@
 
 class BaseMRI;
 class ViewedMRI;
-class IntegrityCheckContext;
 
 
 //==============================================================================
@@ -252,11 +251,11 @@ class MemoryRange
     //   Return PyObject* containing `repr()` string of this object. [Not sure
     //   if this function ought to exist].
     //
-    // verify_integrity(icc)
+    // verify_integrity()
     //   Check internal validity of this object.
     //
     PyObject* pyrepr() const;
-    bool verify_integrity(IntegrityCheckContext& icc) const;
+    void verify_integrity() const;
 
   private:
     explicit MemoryRange(BaseMRI* impl);
@@ -276,10 +275,14 @@ class MemoryRange
 template <> void MemoryRange::set_element(int64_t, PyObject*);
 extern template int32_t MemoryRange::get_element(int64_t) const;
 extern template int64_t MemoryRange::get_element(int64_t) const;
+extern template uint32_t MemoryRange::get_element(int64_t) const;
+extern template uint64_t MemoryRange::get_element(int64_t) const;
 extern template void MemoryRange::set_element(int64_t, PyObject*);
 extern template void MemoryRange::set_element(int64_t, char);
 extern template void MemoryRange::set_element(int64_t, int32_t);
 extern template void MemoryRange::set_element(int64_t, int64_t);
+extern template void MemoryRange::set_element(int64_t, uint32_t);
+extern template void MemoryRange::set_element(int64_t, uint64_t);
 
 
 #endif

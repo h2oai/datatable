@@ -213,32 +213,22 @@ def get_extra_compile_flags():
         flags += ["-DDTDEBUG"]
 
     # Ignored warnings:
-    #   -Wcovered-switch-default: we add `default` statement to
-    #       an exhaustive switch to guard against memory
-    #       corruption and careless enum definition expansion.
+    #   -Wc++98-compat-pedantic:
+    #   -Wc99-extensions: since we're targeting C++11, there is no need to
+    #       worry about compatibility with earlier C++ versions.
     #   -Wfloat-equal: this warning is just plain wrong...
     #       Comparing x == 0 or x == 1 is always safe.
-    #   -Wgnu-statement-expression: we use GNU statement-as-
-    #       expression syntax in some macros...
     #   -Wswitch-enum: generates spurious warnings about missing
     #       cases even if `default` clause is present. -Wswitch
     #       does not suffer from this drawback.
-    #   -Wdeprecated: warning about compiling .c files under C++
-    #       mode... we should just rename those files at some point.
+    #   -Wweak-template-vtables: this waning's purpose is unclear, and it
+    #       is also unclear how to prevent it...
     flags += [
         "-Weverything",
-        "-Wno-covered-switch-default",
-        "-Wno-float-equal",
-        "-Wno-gnu-statement-expression",
-        "-Wno-switch-enum",
-        "-Wno-old-style-cast",
         "-Wno-c++98-compat-pedantic",
-        "-Wno-nested-anon-types",
         "-Wno-c99-extensions",
-        "-Wno-deprecated",
-        "-Werror=implicit-function-declaration",
-        "-Werror=incompatible-pointer-types",
-        "-Wno-weak-vtables",  # TODO: Remove
+        "-Wno-float-equal",
+        "-Wno-switch-enum",
         "-Wno-weak-template-vtables",
     ]
     return flags

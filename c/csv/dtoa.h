@@ -836,7 +836,7 @@ static const uint32_t Atable32[256] = {
 inline void dtoa(char **pch, double dvalue)
 {
   char *ch = *pch;
-  uint64_t value = ((_dbl_u64){ .d = dvalue }).u;
+  uint64_t value = (_dbl_u64{ .d = dvalue }).u;
 
   if (value & F64_SIGN_MASK) {
     *ch++ = '-';
@@ -974,7 +974,7 @@ inline void dtoa(char **pch, double dvalue)
 inline void ftoa(char **pch, float fvalue)
 {
   char *ch = *pch;
-  uint32_t value = ((_flt_u32){ .f = fvalue }).u;
+  uint32_t value = (_flt_u32{ .f = fvalue }).u;
 
   if (value & F32_SIGN_MASK) {
     *ch++ = '-';

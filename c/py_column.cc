@@ -35,7 +35,7 @@ int unwrap(PyObject* object, Column** address) {
   if (!PyObject_TypeCheck(object, &pycolumn::type)) {
     throw TypeError() << "Expected object of type Column";
   }
-  *address = ((pycolumn::obj*)object)->ref;
+  *address = reinterpret_cast<pycolumn::obj*>(object)->ref;
   return 1;
 }
 
@@ -167,7 +167,7 @@ static void dealloc(pycolumn::obj* self)
   Py_XDECREF(self->pydt);
   self->ref = nullptr;
   self->pydt = nullptr;
-  Py_TYPE(self)->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 

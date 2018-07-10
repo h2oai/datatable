@@ -137,12 +137,12 @@ PyObject* rowindex_from_filterfn(PyObject*, PyObject* args)
                         &_fnptr, &_nrows))
       return nullptr;
 
-  int64_t nrows = (int64_t) _nrows;
+  int64_t nrows = static_cast<int64_t>(_nrows);
   if (nrows <= INT32_MAX) {
-    filterfn32 *fnptr = (filterfn32*)_fnptr;
+    filterfn32* fnptr = reinterpret_cast<filterfn32*>(_fnptr);
     return wrap(RowIndex::from_filterfn32(fnptr, nrows, 0));
   } else {
-    filterfn64 *fnptr = (filterfn64*)_fnptr;
+    filterfn64* fnptr = reinterpret_cast<filterfn64*>(_fnptr);
     return wrap(RowIndex::from_filterfn64(fnptr, nrows, 0));
   }
 }
@@ -325,8 +325,9 @@ PyTypeObject type = {
 int static_init(PyObject *module) {
   type.tp_new = PyType_GenericNew;
   if (PyType_Ready(&type) < 0) return 0;
-  Py_INCREF(&type);
-  PyModule_AddObject(module, "RowIndex", (PyObject*) &type);
+  PyObject* typeobj = reinterpret_cast<PyObject*>(&type);
+  Py_INCREF(typeobj);
+  PyModule_AddObject(module, "RowIndex", typeobj);
   return 1;
 }
 

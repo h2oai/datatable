@@ -66,17 +66,17 @@ def test_dt0_properties(dt0):
     assert str(dt0.internal.__class__) == "<class 'datatable.core.DataTable'>"
     assert dt0.internal.isview is False
     assert dt0.internal.rowindex_type is None
-    assert dt0.internal.check()
+    dt0.internal.check()
 
 
 def test_rows_ellipsis(dt0):
     """Both dt(...) and dt() should select all rows and all columns."""
     dt1 = dt0()
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (10, 3)
     assert not dt1.internal.isview
     dt1 = dt0(...)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (10, 3)
     assert not dt1.internal.isview
 
@@ -94,7 +94,7 @@ def test_rows_ellipsis(dt0):
 @pytest.mark.parametrize("i", range(-10, 10))
 def test_rows_integer1(dt0, i):
     dt1 = dt0(i)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (1, 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
@@ -148,7 +148,7 @@ def test_rows_integer_empty_dt():
                                              (slice(None, None, -1), 10)])
 def test_rows_slice1(dt0, sliceobj, nrows):
     dt1 = dt0(sliceobj)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
     assert nrows == 0 or is_slice(dt1)
@@ -191,7 +191,7 @@ def test_rows_slice3(dt0):
                                       range(9, -1, -1)])
 def test_rows_range1(dt0, rangeobj):
     dt1 = dt0(rangeobj)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (len(rangeobj), 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
@@ -219,7 +219,7 @@ def test_rows_generator(dt0):
     g = (i * 2 for i in range(4))
     assert type(g).__name__ == "generator"
     dt1 = dt0(g)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (4, 3)
     assert is_arr(dt1)
     assert_valueerror(dt0, (i if i % 3 < 2 else str(-i) for i in range(10)),
@@ -245,7 +245,7 @@ def test_rows_generator(dt0):
                           ([4, 9, 3, slice(7), range(10)], 20)])
 def test_rows_multislice(dt0, selector, nrows):
     dt1 = dt0(selector)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (nrows, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
@@ -282,7 +282,7 @@ def test_rows_multislice3(dt0):
 def test_rows_bool_column(dt0):
     col = dt.Frame([1, 0, 1, 1, None, 0, None, 1, 1, 0])
     dt1 = dt0(col)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
@@ -300,7 +300,7 @@ def test_rows_bool_numpy_array(dt0, numpy):
     arr = numpy.array([True, False, True, True, False,
                        False, True, False, False, True])
     dt1 = dt0(arr)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
@@ -335,7 +335,7 @@ def test_rows_bad_column(dt0):
 def test_rows_int_column(dt0):
     col = dt.Frame([0, 3, 0, 1])
     dt1 = dt0(rows=col)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (4, 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
@@ -347,7 +347,7 @@ def test_rows_int_column(dt0):
 def test_rows_int_numpy_array(dt0, numpy):
     arr = numpy.array([7, 1, 0, 3])
     dt1 = dt0(rows=arr)
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (4, 3)
     assert dt1.ltypes == dt0.ltypes
     assert dt1.topython() == [[None, 1, 0, None],
@@ -355,11 +355,11 @@ def test_rows_int_numpy_array(dt0, numpy):
                               [-14, 1, 5, 0.1]]
     arr2 = numpy.array([[7, 1, 0, 3]])
     dt2 = dt0(rows=arr2)
-    assert dt2.internal.check()
+    dt2.internal.check()
     assert dt1.shape == dt2.shape
     assert dt1.topython() == dt2.topython()
     dt3 = dt0(rows=numpy.array([[7], [1], [0], [3]]))
-    assert dt3.internal.check()
+    dt3.internal.check()
     assert dt3.shape == dt2.shape
     assert dt3.topython() == dt2.topython()
 
@@ -402,8 +402,8 @@ def test_rows_int_column_nas(dt0):
 def test_rows_function1(dt0):
     dt1 = dt0(lambda g: g.colA)
     dt2 = dt0(f.colA)
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.shape == dt2.shape == (5, 3)
     assert is_arr(dt1)
     assert as_list(dt1)[1] == [-11, 9, 0, 1, None]
@@ -412,7 +412,7 @@ def test_rows_function1(dt0):
 
 def test_rows_function2(dt0):
     dt1 = dt0(lambda g: [5, 7, 9])
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (3, 3)
     assert as_list(dt1)[1] == [0, -1, None]
 
@@ -420,8 +420,8 @@ def test_rows_function2(dt0):
 def test_rows_function3(dt0):
     dt1 = dt0(lambda g: g.colA < g.colB)
     dt2 = dt0[f.colA < f.colB, :]
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.shape == dt2.shape == (2, 3)
     assert dt1.topython() == dt2.topython() == [[0, 1], [7, 9], [5, 1.3]]
 
@@ -429,8 +429,8 @@ def test_rows_function3(dt0):
 def test_rows_function4(dt0):
     dt1 = dt0(lambda g: g.colB == 0)
     dt2 = dt0(f.colB == 0)
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.shape == dt2.shape == (2, 3)
     assert dt1.topython() == dt2.topython() == [[0, 1], [0, 0], [0, -2.6]]
 
@@ -450,7 +450,7 @@ def _fixture2():
     df1 = dt.Frame([[0, 1, 2, 3, 4, 5, 6, None, 7,    None, 9],
                     [3, 2, 1, 3, 4, 0, 2, None, None, 8,    9.0]],
                    names=["A", "B"])
-    assert df1.internal.check()
+    df1.internal.check()
     assert df1.ltypes == (ltype.int, ltype.real)
     assert df1.names == ("A", "B")
     return df1
@@ -459,8 +459,8 @@ def _fixture2():
 def test_rows_equal(df1):
     dt1 = df1(f.A == f.B, engine="eager")
     dt2 = df1(f.A == f.B, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[3, 4, None, 9],
                                                 [3, 4, None, 9]]
@@ -469,8 +469,8 @@ def test_rows_equal(df1):
 def test_rows_not_equal(df1):
     dt1 = df1(f.A != f.B, engine="eager")
     dt2 = df1(f.A != f.B, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[0, 1, 2, 5, 6, 7, None],
                                                 [3, 2, 1, 0, 2, None, 8]]
@@ -479,8 +479,8 @@ def test_rows_not_equal(df1):
 def test_rows_less_than(df1):
     dt1 = df1(f.A < f.B, engine="eager")
     dt2 = df1(f.A < f.B, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[0, 1],
                                                 [3, 2]]
@@ -489,8 +489,8 @@ def test_rows_less_than(df1):
 def test_rows_greater_than(df1):
     dt1 = df1(f.A > f.B, engine="eager")
     dt2 = df1(f.A > f.B, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[2, 5, 6],
                                                 [1, 0, 2]]
@@ -499,8 +499,8 @@ def test_rows_greater_than(df1):
 def test_rows_less_than_or_equal(df1):
     dt1 = df1(f.A <= f.B, engine="eager")
     dt2 = df1(f.A <= f.B, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[0, 1, 3, 4, None, 9],
                                                 [3, 2, 3, 4, None, 9]]
@@ -509,8 +509,8 @@ def test_rows_less_than_or_equal(df1):
 def test_rows_greater_than_or_equal(df1):
     dt1 = df1(f.A >= f.B, engine="eager")
     dt2 = df1(f.A >= f.B, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[2, 3, 4, 5, 6, None, 9],
                                                 [1, 3, 4, 0, 2, None, 9]]
@@ -518,8 +518,8 @@ def test_rows_greater_than_or_equal(df1):
 def test_rows_compare_to_scalar_gt(df1):
     dt1 = df1(f.A > 3, engine="eager")
     dt2 = df1(f.A > 3, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[4, 5, 6, 7, 9],
                                                 [4, 0, 2, None, 9]]
@@ -528,8 +528,8 @@ def test_rows_compare_to_scalar_gt(df1):
 def test_rows_compare_to_scalar_lt(df1):
     dt1 = df1(f.A < 3, engine="eager")
     dt2 = df1(f.A < 3, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[0, 1, 2],
                                                 [3, 2, 1]]
@@ -539,8 +539,8 @@ def test_rows_compare_to_scalar_lt(df1):
 def test_rows_compare_to_scalar_eq(df1):
     dt1 = df1(f.A == None, engine="eager")
     dt2 = df1(f.A == None, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[None, None],
                                                 [None, 8]]
@@ -549,8 +549,8 @@ def test_rows_compare_to_scalar_eq(df1):
 def test_rows_unary_minus(df1):
     dt1 = df1(-f.A < -3, engine="eager")
     dt2 = df1(-f.A < -3, engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[4, 5, 6, 7, 9],
                                                 [4, 0, 2, None, 9]]
@@ -560,8 +560,8 @@ def test_rows_isna(df1):
     from datatable import isna
     dt1 = df1(isna(f.A), engine="eager")
     dt2 = df1(isna(f.A), engine="llvm")
-    assert dt1.internal.check()
-    assert dt2.internal.check()
+    dt1.internal.check()
+    dt2.internal.check()
     assert dt1.names == dt2.names == df1.names
     assert dt1.topython() == dt2.topython() == [[None, None],
                                                 [None, 8]]
@@ -571,7 +571,7 @@ def test_rows_mean():
     from datatable import mean
     df0 = dt.Frame(range(10), names=["A"])
     df1 = df0(f.A > mean(f.A), engine="eager")
-    assert df1.internal.check()
+    df1.internal.check()
     assert df1.topython() == [[5, 6, 7, 8, 9]]
 
 
@@ -580,7 +580,7 @@ def test_rows_min_max():
     df0 = dt.Frame(range(10), names=["A"])
     # min = 0, max = 9
     df1 = df0(f.A > (min(f.A) + max(f.A)) / 2, engine="eager")
-    assert df1.internal.check()
+    df1.internal.check()
     assert df1.topython() == [[5, 6, 7, 8, 9]]
 
 
@@ -589,7 +589,7 @@ def test_rows_stdev():
     df0 = dt.Frame(range(10), names=["A"])
     # stdev = 3.0276
     df1 = df0(f.A > sd(f.A), engine="eager")
-    assert df1.internal.check()
+    df1.internal.check()
     assert df1.topython() == [[4, 5, 6, 7, 8, 9]]
 
 
@@ -601,8 +601,8 @@ def test_rows_strequal():
     df2 = df0(f.A != f.B, engine="eager")
     df3 = df0(f.A == "foo", engine="eager")
     df4 = df0("bcD" == f.B, engine="eager")
-    assert df1.internal.check()
-    assert df2.internal.check()
+    df1.internal.check()
+    df2.internal.check()
     assert df1.topython() == [["a", None, "xia"]] * 2
     assert df2.topython() == [["bcd", "foo", "bee", "good"],
                               ["bcD", "fooo", None, "evil"]]
@@ -621,7 +621,7 @@ def test_filter_on_view1():
     df1 = df0[::2, :]
     assert df1.shape == (25, 1)
     df2 = df1(f.A < 10)
-    assert df2.internal.check()
+    df2.internal.check()
     assert df2.internal.isview
     assert df2.topython() == [[0, 2, 4, 6, 8]]
 
@@ -630,7 +630,7 @@ def test_filter_on_view2():
     df0 = dt.Frame({"A": range(50)})
     df1 = df0[[5, 7, 9, 3, 1, 4, 12, 8, 11, -3], :]
     df2 = df1(rows=lambda g: g.A < 10)
-    assert df2.internal.check()
+    df2.internal.check()
     assert df2.internal.isview
     assert df2.topython() == [[5, 7, 9, 3, 1, 4, 8]]
 
@@ -640,29 +640,29 @@ def test_filter_on_view3():
     df1 = df0[::5, :]
     df2 = df1(f.A <= 10, engine="eager")
     df3 = df1(f.A <= 10, engine="llvm")
-    assert df2.internal.check()
-    assert df3.internal.check()
+    df2.internal.check()
+    df3.internal.check()
     assert df2.topython() == [[0, 5, 10]]
     assert df3.topython() == [[0, 5, 10]]
 
 
 def test_chained_slice(dt0):
     dt1 = dt0[::2, :]
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (5, 3)
     assert dt1.internal.rowindex_type == "slice"
     dt2 = dt1[::-1, :]
-    assert dt2.internal.check()
+    dt2.internal.check()
     assert dt2.shape == (5, 3)
     assert dt2.internal.rowindex_type == "slice"
     assert as_list(dt2)[1] == [1, 0, None, 9, 7]
     dt3 = dt1[2:4, :]
-    assert dt3.internal.check()
+    dt3.internal.check()
     assert dt3.shape == (2, 3)
     assert dt3.internal.rowindex_type == "slice"
     assert as_list(dt3) == [[0, 1], [None, 0], [100000, -2.6]]
     dt4 = dt1[(1, 0, 3, 2), :]
-    assert dt4.internal.check()
+    dt4.internal.check()
     assert dt4.shape == (4, 3)
     assert dt4.internal.rowindex_type == "arr32"
     assert as_list(dt4) == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
@@ -670,21 +670,21 @@ def test_chained_slice(dt0):
 
 def test_chained_array(dt0):
     dt1 = dt0[(2, 5, 1, 1, 1, 0), :]
-    assert dt1.internal.check()
+    dt1.internal.check()
     assert dt1.shape == (6, 3)
     assert dt1.internal.rowindex_type == "arr32"
     dt2 = dt1[::2, :]
-    assert dt2.internal.check()
+    dt2.internal.check()
     assert dt2.shape == (3, 3)
     assert dt2.internal.rowindex_type == "arr32"
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
     dt3 = dt1[::-1, :]
-    assert dt3.internal.check()
+    dt3.internal.check()
     assert dt3.shape == (6, 3)
     assert dt3.internal.rowindex_type == "arr32"
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
     dt4 = dt1[(2, 3, 0), :]
-    assert dt4.internal.check()
+    dt4.internal.check()
     assert dt4.shape == (3, 3)
     assert as_list(dt4) == [[1, 1, 1], [-11, -11, 9], [1, 1, 1.3]]
 
@@ -715,5 +715,5 @@ def test_issue689(tempdir):
     d1 = dt.open(tempdir)
     # Do not check d1! we want it to be lazy at this point
     d2 = d1(rows=lambda g: g[0] == 1)
-    assert d2.internal.check()
+    d2.internal.check()
     assert d2.shape == (n / 8, 1)

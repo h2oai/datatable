@@ -116,6 +116,7 @@ class FreadReader : public GenericReader
 
 public:
   explicit FreadReader(const GenericReader&);
+  virtual ~FreadReader() override;
 
   DataTablePtr read();
 
@@ -131,6 +132,7 @@ private:
 
   void detect_lf();
   void skip_preamble();
+  void detect_sep_and_qr();
   void detect_column_types();
   void detect_header();
   int64_t parse_single_line(FreadTokenizer&);

@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "rowindex.h"
 #include <cstring>     // std::memcpy
-#include "datatable_check.h"
 #include "utils.h"
 #include "utils/assert.h"
 #include "utils/omp.h"
@@ -166,35 +165,27 @@ size_t RowIndex::memory_footprint() const {
 }
 
 
-bool RowIndex::verify_integrity(IntegrityCheckContext& icc) const {
-  return impl? impl->verify_integrity(icc) : true;
+void RowIndex::verify_integrity() const {
+  if (impl) impl->verify_integrity();
 }
 
 
-bool RowIndexImpl::verify_integrity(IntegrityCheckContext& icc) const {
-  auto end = icc.end();
-
+void RowIndexImpl::verify_integrity() const {
   if (length < 0) {
-    icc << "RowIndex.length is negative: " << length << end;
-    return false;
+    throw AssertionError() << "RowIndex.length is negative: " << length;
   }
   if (refcount <= 0) {
-    icc << "RowIndex has invalid refcount: " << refcount << end;
-    return false;
+    throw AssertionError() << "RowIndex has invalid refcount: " << refcount;
   }
   if (length == 0 && (min || max)) {
-    icc << "RowIndex has length 0, but either min = " << min << " or max = "
-        << max << " are non-zero" << end;
-    return false;
+    throw AssertionError() << "RowIndex has length 0, but either min = " << min
+        << " or max = " << max << " are non-zero";
   }
   if (min < 0) {
-    icc << "min value in RowIndex is negative: " << min << end;
-    return false;
+    throw AssertionError() << "min value in RowIndex is negative: " << min;
   }
   if (min > max) {
-    icc << "min value in RowIndex is larger than max: min = " << min
-        << ", max = " << max << end;
-    return false;
+    throw AssertionError() << "min value in RowIndex is larger than max: min = "
+        << min << ", max = " << max;
   }
-  return true;
 }

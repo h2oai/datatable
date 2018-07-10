@@ -25,14 +25,11 @@ from datatable.utils.misc import (normalize_slice, normalize_range,
 from datatable.utils.misc import plural_form as plural
 from datatable.types import stype, ltype
 
-try:
-    import psutil
-except ImportError:
-    psutil = None
 
 _log_color = term.bright_black
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
 _glob_regex = re.compile(r"[\*\?\[\]]")
+_psutil_load_attempted = False
 
 
 def fread(
@@ -783,6 +780,14 @@ class GenericReader(object):
         exception if it determines that it cannot find a good strategy to
         handle a dataset of the requested size.
         """
+        global _psutil_load_attempted
+        if not _psutil_load_attempted:
+            _psutil_load_attempted = True
+            try:
+                import psutil
+            except ImportError:
+                psutil = None
+
         if self.verbose and estimated_size > 1:
             self.logger.debug("The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))

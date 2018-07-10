@@ -54,16 +54,16 @@ void FwColumn<T>::init_mmap(const std::string& filename) {
 }
 
 template <typename T>
-void FwColumn<T>::open_mmap(const std::string& filename) {
+void FwColumn<T>::open_mmap(const std::string& filename, bool) {
   xassert(!ri);
   mbuf = MemoryRange::mmap(filename);
-  size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
-  if (mbuf.size() != exp_size) {
-    throw Error() << "File \"" << filename <<
-        "\" cannot be used to create a column with " << nrows <<
-        " rows. Expected file size of " << exp_size <<
-        " bytes, actual size is " << mbuf.size() << " bytes";
-  }
+  // size_t exp_size = static_cast<size_t>(nrows) * sizeof(T);
+  // if (mbuf.size() != exp_size) {
+  //   throw Error() << "File \"" << filename <<
+  //       "\" cannot be used to create a column with " << nrows <<
+  //       " rows. Expected file size of " << exp_size <<
+  //       " bytes, actual size is " << mbuf.size() << " bytes";
+  // }
 }
 
 template <typename T>

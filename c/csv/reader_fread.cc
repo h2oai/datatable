@@ -50,6 +50,8 @@ FreadReader::FreadReader(const GenericReader& g)
   fo.input_size = input_size;
 }
 
+FreadReader::~FreadReader() {}
+
 
 FreadTokenizer FreadReader::makeTokenizer(
     field64* target, const char* anchor) const
@@ -78,6 +80,7 @@ FreadTokenizer FreadReader::makeTokenizer(
 //
 // This entire section is WIP
 //------------------------------------------------------------------------------
+/*
 class HypothesisNoQC;
 class HypothesisQC;
 class HypothesisPool;
@@ -208,6 +211,7 @@ class HypothesisNoQC : public Hypothesis {
       return sep_weight;
     }
 };
+*/
 
 /**
  * QR = 0: no embedded quote chars allowed
@@ -220,6 +224,152 @@ class HypothesisNoQC : public Hypothesis {
  * H2: QC = «'», starting with QR2 = 0
  */
 void FreadReader::detect_sep(FreadTokenizer&) {
+}
+
+/**
+ * [2] Auto detect separator, quoting rule, first line and ncols, simply,
+ *     using jump 0 only.
+ */
+void FreadReader::detect_sep_and_qr() {
+  if (verbose) trace("[2] Detect separator, quoting rule, and ncolumns");
+  // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
+  constexpr int JUMPLINES = 100;
+
+  int nseps;
+  char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
+  char topSep;             // which sep matches the input best so far
+  // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
+
+  if (sep == '\xFF') {   // '\xFF' means 'auto'
+    nseps = static_cast<int>(strlen(seps));
+    topSep = '\xFE';     // '\xFE' means single-column mode
+  } else {
+    // Cannot use '\n' as a separator, because it prevents us from proper
+    // detection of line endings
+    if (sep == '\n') sep = '\xFE';
+    seps[0] = sep;
+    seps[1] = '\0';
+    topSep = sep;
+    nseps = 1;
+    trace("Using supplied sep '%s'",
+          sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
+  }
+
+  const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
+  int topNumLines = 0;      // the most number of lines with the same number of fields, so far
+  int topNumFields = 0;     // how many fields that was, to resolve ties
+  int8_t topQuoteRule = -1;  // which quote rule that was
+  int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
+                            //   (when fill=true, the max is usually the header row and is the longest but there are more
+                            //    lines of fewer)
+
+  field64 trash;
+  FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
+  const char*& tch = ctx.ch;
+
+  // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
+  // covers the header row, at this stage we don't know if it's present), and
+  // detect the number of fields on each line. If several consecutive lines
+  // have the same number of fields, we'll call them a "contiguous group of
+  // lines". Arrays `numFields` and `numLines` contain information about each
+  // contiguous group of lines encountered while scanning the first JUMPLINES
+  // + 1 lines: 'numFields` gives the count of fields in each group, and
+  // `numLines` has the number of lines in each group.
+  int numFields[JUMPLINES+1];
+  int numLines[JUMPLINES+1];
+  for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
+    for (int s=0; s<nseps; s++) {
+      sep = seps[s];
+      whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
+      ctx.ch = sof;
+      ctx.sep = sep;
+      ctx.whiteChar = whiteChar;
+      ctx.quoteRule = quoteRule;
+      // if (verbose) trace("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
+      for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
+      int i=-1; // The slot we're counting the currently contiguous consistent ncols
+      int thisLine=0, lastncol=-1;
+      while (tch < eof && thisLine++ < JUMPLINES) {
+        // Compute num columns and move `tch` to the start of next line
+        int thisncol = ctx.countfields();
+        if (thisncol < 0) {
+          // invalid file with this sep and quote rule; abort
+          numFields[0] = -1;
+          break;
+        }
+        if (thisncol != lastncol) {  // new contiguous consistent ncols started
+          numFields[++i] = thisncol;
+          lastncol = thisncol;
+        }
+        numLines[i]++;
+      }
+      if (numFields[0] == -1) continue;
+      if (firstJumpEnd == nullptr) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+      if (topQuoteRule < 0) topQuoteRule = quoteRule;
+      bool updated = false;
+      int nmax = 0;
+
+      i = -1;
+      while (numLines[++i]) {
+        if (numFields[i] > nmax) {  // for fill=true to know max number of columns
+          nmax = numFields[i];
+        }
+        if ( numFields[i]>1 &&
+            (numLines[i]>1 || (/*blank line after single line*/numFields[i+1]==0)) &&
+            ((numLines[i]>topNumLines) ||   // most number of consistent ncols wins
+             (numLines[i]==topNumLines && numFields[i]>topNumFields && sep!=topSep && sep!=' '))) {
+             //                                       ^ ties in numLines resolved by numFields (more fields win)
+             //                                                           ^ but don't resolve a tie with a higher quote
+             //                                                             rule unless the sep is different too: #2404, #2839
+          topNumLines = numLines[i];
+          topNumFields = numFields[i];
+          topSep = sep;
+          topQuoteRule = quoteRule;
+          topNmax = nmax;
+          firstJumpEnd = tch;  // So that after the header we know how many bytes jump point 0 is
+          updated = true;
+          // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
+          // updated flag is just to print once.
+        } else if (topNumFields == 0 && nseps == 1 && quoteRule != 2) {
+          topNumFields = numFields[i];
+          topSep = sep;
+          topQuoteRule = quoteRule;
+          topNmax = nmax;
+        }
+      }
+      if (verbose && updated) {
+        trace(sep<' '? "sep='\\x%02x' with %d lines of %d fields using quote rule %d" :
+                       "sep='%c' with %d lines of %d fields using quote rule %d",
+              sep, topNumLines, topNumFields, topQuoteRule);
+      }
+    }
+  }
+  if (!topNumFields) topNumFields = 1;
+  xassert(firstJumpEnd && topQuoteRule >= 0);
+  quoteRule = ctx.quoteRule = topQuoteRule;
+  sep = ctx.sep = topSep;
+  whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
+  if (sep==' ' && !fill) {
+    trace("sep=' ' detected, setting fill to True");
+    fill = 1;
+  }
+
+  int ncols = fill? topNmax : topNumFields;
+  xassert(ncols >= 1 && line >= 1);
+
+  // Create vector of Column objects
+  columns.add_columns(static_cast<size_t>(ncols));
+
+  first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
+
+  if (verbose) {
+    trace("Detected %d columns", ncols);
+    if (sep == '\xFE') trace("sep = <single-column mode>");
+    else if (sep >= ' ') trace("sep = '%c'", sep);
+    else trace("sep = '\\x%02x'", int(sep));
+    trace("Quote rule = %d", quoteRule);
+    fo.t_parse_parameters_detected = wallclock();
+  }
 }
 
 
@@ -252,7 +402,11 @@ class ColumnTypeDetectionChunkster {
     void determine_chunking_strategy() {
       size_t chunk0_size = f.first_jump_size;
       size_t input_size = static_cast<size_t>(f.eof - f.sof);
-      if (chunk0_size == 0 || chunk0_size == input_size) {
+      if (f.max_nrows < std::numeric_limits<size_t>::max()) {
+        nchunks = 1;
+        f.trace("Number of sampling jump points = 1 because max_nrows "
+                "parameter is used");
+      } else if (chunk0_size == 0 || chunk0_size == input_size) {
         nchunks = 1;
         f.trace("Number of sampling jump points = 1 because input is less "
                 "than 100 lines");
@@ -325,15 +479,19 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
 
   size_t ncols = columns.size();
   size_t j = 0;
+  GReaderColumn dummy_col;
+  dummy_col.force_ptype(PT::Str32);
+
   while (true) {
+    GReaderColumn& col = j < ncols ? columns[j] : dummy_col;
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    PT coltype = j < ncols ? columns[j].type : PT::Str32;
+    auto ptype_iter = col.get_ptype_iterator(&fctx.quoteRule);
     while (true) {
       // Try to parse using the regular field parser
       tch = fieldStart;
-      parsers[coltype](fctx);
+      parsers[*ptype_iter](fctx);
       fctx.skip_whitespace();
       if (fctx.end_of_field()) break;
 
@@ -343,7 +501,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       fctx.skip_whitespace();
       if (fctx.end_of_field()) break;
 
-      if (ParserLibrary::info(coltype).isstring()) {
+      if (ParserLibrary::info(*ptype_iter).isstring()) {
         // Do not bump the quote rule, since we cannot be sure that the jump
         // was reliable. Instead, we'll defer quote rule bumping to regular
         // file reading.
@@ -353,7 +511,7 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       // Try to parse as quoted field
       if (*fieldStart == quote) {
         tch = fieldStart + 1;
-        parsers[coltype](fctx);
+        parsers[*ptype_iter](fctx);
         if (*tch == quote) {
           tch++;
           fctx.skip_whitespace();
@@ -362,9 +520,10 @@ int64_t FreadReader::parse_single_line(FreadTokenizer& fctx)
       }
 
       // Finally, bump the column's type and try again
-      // TODO: replace with proper PT iteration
-      coltype = static_cast<PT>(coltype + 1);
-      if (j < ncols) columns[j].type = coltype;
+      ++ptype_iter;
+    }
+    if (j < ncols && ptype_iter.has_incremented()) {
+      col.set_ptype(ptype_iter);
     }
     j++;
 
@@ -404,6 +563,7 @@ void FreadReader::detect_column_types()
   double sumLenSq = 0.0;
   int minLen = INT32_MAX;   // int_max so the first if(thisLen<minLen) is always true; similarly for max
   int maxLen = -1;
+  int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 99)) + 1;
 
   // Start with all columns having the smallest possible type
   columns.setType(PT::Mu);
@@ -419,7 +579,7 @@ void FreadReader::detect_column_types()
 
     columns.saveTypes(saved_types);
 
-    for (int i = 0; i < JUMPLINES; ++i) {
+    for (int i = 0; i < rows_to_sample; ++i) {
       if (tch >= eof) break;
       const char* lineStart = tch;
       int64_t incols = parse_single_line(fctx);
@@ -444,7 +604,7 @@ void FreadReader::detect_column_types()
       }
       n_sample_lines++;
       chunkster.last_row_end = tch;
-      int thisLineLen = (int)(tch - lineStart);
+      int thisLineLen = static_cast<int>(tch - lineStart);
       xassert(thisLineLen >= 0);
       sumLen += thisLineLen;
       sumLenSq += thisLineLen*thisLineLen;
@@ -488,9 +648,9 @@ void FreadReader::detect_column_types()
       trace("Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
       trace("Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
       trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
-            allocnrow, estnrow, (int)(100.0*allocnrow/estnrow-100.0));
+            allocnrow, estnrow, static_cast<int>(100.0*allocnrow/estnrow-100.0));
     }
-    if (nChunks==1) {
+    if (nChunks == 1 && tch == eof) {
       if (header == 1) n_sample_lines--;
       estnrow = allocnrow = n_sample_lines;
       trace("All rows were sampled since file is small so we know nrows=%zd exactly", estnrow);
@@ -501,7 +661,6 @@ void FreadReader::detect_column_types()
       trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
       estnrow = allocnrow = max_nrows;
     }
-    trace("=====");
   }
   fo.n_lines_sampled = n_sample_lines;
 }
@@ -536,9 +695,7 @@ void FreadReader::detect_header() {
       fill = true;
       trace("Setting `fill` to True because the header contains more columns "
             "than the data.");
-      for (int64_t j = sncols; j < ncols_header; ++j) {
-        columns.push_back(GReaderColumn());
-      }
+      columns.add_columns(static_cast<size_t>(ncols_header - sncols));
     }
     return;
   }
@@ -701,13 +858,13 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
     size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
-      columns.push_back(GReaderColumn());
+      columns.add_columns(1);
     }
     if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
       int res = check_escaped_string(usrc, zlen, echar);
       if (res == 0) {
-        columns[i].name = std::string(start, zlen);
+        columns[i].set_name(std::string(start, zlen));
       } else {
         char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
@@ -719,7 +876,8 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
           newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
         }
         xassert(newlen > 0);
-        columns[i].name = std::string(newsrc, static_cast<size_t>(newlen));
+        zlen = static_cast<size_t>(newlen);
+        columns[i].set_name(std::string(newsrc, zlen));
         delete[] newsrc;
       }
     }
@@ -744,9 +902,9 @@ void FreadReader::parse_column_names(FreadTokenizer& ctx) {
 
   if (sep == ' ' && ncols_found == ncols - 1) {
     for (size_t j = ncols - 1; j > 0; j--){
-      columns[j].name.swap(columns[j-1].name);
+      columns[j].swap_names(columns[j-1]);
     }
-    columns[0].name = "index";
+    columns[0].set_name("index");
   }
 }
 
@@ -823,7 +981,7 @@ void FreadLocalParseContext::read_chunk(
         fieldStart = tch;
         parsers[types[j]](tokenizer);
         if (*tch != sep) break;
-        tokenizer.target += columns[j].presentInBuffer;
+        tokenizer.target += columns[j].is_in_buffer();
         tch++;
         j++;
       }
@@ -835,7 +993,7 @@ void FreadLocalParseContext::read_chunk(
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
       else if (tokenizer.skip_eol() && j < ncols) {
-        tokenizer.target += columns[j].presentInBuffer;
+        tokenizer.target += columns[j].is_in_buffer();
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
@@ -855,13 +1013,12 @@ void FreadLocalParseContext::read_chunk(
     if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        PT oldType = types[j];
-        PT newType = oldType;
+        auto ptype_iter = columns[j].get_ptype_iterator(&tokenizer.quoteRule);
 
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(newType).isstring()) {
+          if (!ParserLibrary::info(*ptype_iter).isstring()) {
             tokenizer.skip_whitespace();
             const char* afterSpace = tch;
             tch = tokenizer.end_NA_string(tch);
@@ -869,7 +1026,7 @@ void FreadLocalParseContext::read_chunk(
             if (!tokenizer.end_of_field()) tch = afterSpace;
             if (*tch==quote) { quoted=true; tch++; }
           }
-          parsers[newType](tokenizer);
+          parsers[*ptype_iter](tokenizer);
           if (quoted) {
             if (*tch==quote) tch++;
             else goto typebump;
@@ -888,13 +1045,7 @@ void FreadLocalParseContext::read_chunk(
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
           if (cc.true_start) {
-            // TODO: replace with proper type iteration
-            if (newType + 1 < ParserLibrary::num_parsers) {
-              newType = static_cast<PT>(newType + 1);
-            } else {
-              tokenizer.quoteRule++;
-              newType = PT::Str32;
-            }
+            ++ptype_iter;
             tch = fieldStart;
           } else {
             return;
@@ -904,25 +1055,24 @@ void FreadLocalParseContext::read_chunk(
         // Type-bump. This may only happen if cc.true_start is true, which flag
         // is only set to true on one thread at a time. Thus, there is no need
         // for "critical" section here.
-        if (newType != oldType) {
+        if (ptype_iter.has_incremented()) {
           xassert(cc.true_start);
           if (verbose) {
-            freader.fo.type_bump_info(j + 1, columns[j], newType, fieldStart,
+            freader.fo.type_bump_info(j + 1, columns[j], *ptype_iter, fieldStart,
                                       tch - fieldStart,
                                       static_cast<int64_t>(row0 + used_nrows));
           }
-          types[j] = newType;
-          columns[j].type = newType;
-          columns[j].typeBumped = true;
+          types[j] = *ptype_iter;
+          columns[j].set_ptype(ptype_iter);
         }
-        tokenizer.target += columns[j].presentInBuffer;
+        tokenizer.target += columns[j].is_in_buffer();
         j++;
         if (*tch==sep) { tch++; continue; }
         if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
-          if (columns[j-1].isstring() && columns[j-1].presentInBuffer &&
+          if (columns[j-1].is_string() && columns[j-1].is_in_buffer() &&
               tokenizer.target[-1].str32.length == 0) {
             tokenizer.target[-1].str32.setna();
           }
@@ -983,21 +1133,21 @@ void FreadLocalParseContext::postprocess() {
   const uint8_t* zanchor = reinterpret_cast<const uint8_t*>(anchor);
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
-  int32_t output_offset = 0;
+  uint32_t output_offset = 0;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
-    if (col.isstring() && !col.typeBumped) {
-      strinfo[j].start = static_cast<size_t>(output_offset);
+    if (!col.is_in_buffer()) continue;
+    if (col.is_string() && !col.is_type_bumped()) {
+      strinfo[j].start = output_offset;
       field64* coldata = tbuf.data() + j;
       for (size_t n = 0; n < used_nrows; ++n) {
         // Initially, offsets of all entries are given relative to `zanchor`.
         // If a string is NA, its length will be INT_MIN.
-        int32_t entry_offset = coldata->str32.offset;
+        uint32_t entry_offset = coldata->str32.offset;
         int32_t entry_length = coldata->str32.length;
         if (entry_length > 0) {
           size_t zlen = static_cast<size_t>(entry_length);
-          if (sbuf.size() < zlen * 3 + static_cast<size_t>(output_offset)) {
+          if (sbuf.size() < zlen * 3 + output_offset) {
             sbuf.resize(size_t((2 - 1.0*n/used_nrows)*sbuf.size()) + zlen*3);
           }
           uint8_t* dest = sbuf.data() + output_offset;
@@ -1018,17 +1168,17 @@ void FreadLocalParseContext::postprocess() {
             newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
           }
           xassert(newlen > 0);
-          output_offset += newlen;
+          output_offset += static_cast<uint32_t>(newlen);
           coldata->str32.length = newlen;
           coldata->str32.offset = output_offset;
         } else if (entry_length == 0) {
           coldata->str32.offset = output_offset;
         } else {
           xassert(coldata->str32.isna());
-          coldata->str32.offset = -output_offset;
+          coldata->str32.offset = output_offset | GETNA<uint32_t>();
         }
         coldata += tbuf_ncols;
-        xassert(static_cast<size_t>(output_offset) <= sbuf.size());
+        xassert(output_offset <= sbuf.size());
       }
     }
     ++j;
@@ -1040,27 +1190,27 @@ void FreadLocalParseContext::orderBuffer() {
   if (!used_nrows) return;
   for (size_t i = 0, j = 0; i < columns.size(); ++i) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
-    if (col.isstring() && !col.typeBumped) {
+    if (!col.is_in_buffer()) continue;
+    if (col.is_string() && !col.is_type_bumped()) {
       // Compute the size of the string content in the buffer `sz` from the
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may some times change affecting
       // this size after the post-processing.
-      int32_t offset0 = static_cast<int32_t>(strinfo[j].start);
-      int32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
-      size_t sz = static_cast<size_t>(abs(offsetL) - offset0);
+      uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
+      uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
+      size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
       strinfo[j].size = sz;
 
-      WritableBuffer* wb = col.strdata;
+      WritableBuffer* wb = col.strdata_w();
       size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
 
-      if (columns[i].type == PT::Str32 && write_at + sz > 0x80000000) {
+      if (col.get_ptype() == PT::Str32 && write_at + sz > 0x80000000) {
         dt::shared_lock lock(shmutex, /* exclusive = */ true);
-        columns[i].convert_to_str64();
+        col.convert_to_str64();
         types[i] = PT::Str64;
         if (verbose) {
-          freader.fo.str64_bump(i, columns[i]);
+          freader.fo.str64_bump(i, col);
         }
       }
     }
@@ -1078,34 +1228,34 @@ void FreadLocalParseContext::push_buffers() {
   size_t ncols = columns.size();
   for (size_t i = 0, j = 0; i < ncols; i++) {
     GReaderColumn& col = columns[i];
-    if (!col.presentInBuffer) continue;
+    if (!col.is_in_buffer()) continue;
     void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
 
-    if (col.typeBumped) {
+    if (col.is_type_bumped()) {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
-    } else if (col.isstring()) {
-      WritableBuffer* wb = col.strdata;
+    } else if (col.is_string()) {
+      WritableBuffer* wb = col.strdata_w();
       SInfo& si = strinfo[j];
       field64* lo = tbuf.data() + j;
 
       wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
 
       if (elemsize == 4) {
-        int32_t* dest = static_cast<int32_t*>(data) + row0 + 1;
-        int32_t delta = static_cast<int32_t>(si.write_at + 1 - si.start);
+        uint32_t* dest = static_cast<uint32_t*>(data) + row0 + 1;
+        uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
-          int32_t soff = lo->str32.offset;
-          *dest++ = (soff < 0)? soff - delta : soff + delta;
+          uint32_t soff = lo->str32.offset;
+          *dest++ = soff + delta;
           lo += tbuf_ncols;
         }
       } else {
-        int64_t* dest = static_cast<int64_t*>(data) + row0 + 1;
-        int64_t delta = static_cast<int64_t>(si.write_at + 1 - si.start);
+        uint64_t* dest = static_cast<uint64_t*>(data) + row0 + 1;
+        uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
-          int64_t soff = lo->str32.offset;
-          *dest++ = (soff < 0)? soff - delta : soff + delta;
+          uint64_t soff = lo->str32.offset;
+          *dest++ = soff + delta;
           lo += tbuf_ncols;
         }
       }
@@ -1365,7 +1515,7 @@ void FreadObserver::report() {
           t_data_read <= t_data_reread &&
           t_data_reread <= t_end &&
           read_data_nthreads > 0);
-  double total_time = std::max(t_end - t_start, 1e-6);
+  double total_time = std::max(t_end - t_start + g.t_open_input, 1e-6);
   int    total_minutes = static_cast<int>(total_time/60);
   double total_seconds = total_time - total_minutes * 60;
   double params_time = t_parse_parameters_detected - t_initialized;
@@ -1388,7 +1538,9 @@ void FreadObserver::report() {
           humanize_number(n_cols_read), (n_cols_read == 1 ? "" : "s"),
           filesize_to_str(input_size),
           total_minutes, total_seconds);
-  g.trace(" = %*.3fs (%2.0f%%) detecting parse parameters", p,
+  g.trace(" = %*.3fs (%2.0f%%) memory-mapping input file", p,
+          g.t_open_input, 100 * g.t_open_input / total_time);
+  g.trace(" + %*.3fs (%2.0f%%) detecting parse parameters", p,
           params_time, 100 * params_time / total_time);
   g.trace(" + %*.3fs (%2.0f%%) detecting column types using %s sample rows", p,
           types_time, 100 * types_time / total_time,
@@ -1435,8 +1587,7 @@ void FreadObserver::type_bump_info(
   char temp[BUF_SIZE + 1];
   int n = snprintf(temp, BUF_SIZE,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %llu",
-    icol, col.repr_name(g),
-    ParserLibrary::info(col.type).cname(),
+    icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
     static_cast<int>(len), field, lineno);
   n = std::min(n, BUF_SIZE);

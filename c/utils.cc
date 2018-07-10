@@ -52,22 +52,20 @@ template int nlz(uint8_t);
  * fill with 0xFF bytes instead.
  * This is used for filling the columns with NAs.
  */
-void set_value(void * __restrict__ ptr, const void * __restrict__ value,
-               size_t sz, size_t count)
-{
+void set_value(void* ptr, const void* value, size_t sz, size_t count) {
   if (count == 0) return;
   if (value == nullptr) {
-    *(unsigned char *)ptr = 0xFF;
+    *static_cast<unsigned char *>(ptr) = 0xFF;
     count *= sz;
     sz = 1;
   } else {
-    memcpy(ptr, value, sz);
+    std::memcpy(ptr, value, sz);
   }
   size_t final_sz = sz * count;
   for (size_t i = sz; i < final_sz; i <<= 1) {
     size_t writesz = i < final_sz - i ? i : final_sz - i;
     void* dest = static_cast<void*>(static_cast<char*>(ptr) + i);
-    memcpy(dest, ptr, writesz);
+    std::memcpy(dest, ptr, writesz);
   }
 }
 
@@ -81,7 +79,11 @@ void set_value(void * __restrict__ ptr, const void * __restrict__ value,
   #include <time.h>
   double wallclock(void) {
     struct timespec tp;
-    int ret = clock_gettime(CLOCK_REALTIME, &tp);
+    int ret = 1;
+    #ifdef __APPLE__
+      if (__builtin_available(macos 10.12, *))
+    #endif
+    ret = clock_gettime(CLOCK_REALTIME, &tp);
     return ret == 0? 1.0 * tp.tv_sec + 1e-9 * tp.tv_nsec : 0;
   }
 #else
@@ -115,7 +117,7 @@ const char* filesize_to_str(size_t fsize)
   static char suffixes[NSUFFIXES] = {'P', 'T', 'G', 'M', 'K'};
   static char output[BUFFSIZE];
   static const char one_byte[] = "1 byte";
-  llu lsize = (llu) fsize;
+  llu lsize = static_cast<llu>(fsize);
   for (int i = 0; i <= NSUFFIXES; i++) {
     int shift = (NSUFFIXES - i) * 10;
     if ((fsize >> shift) == 0) continue;
@@ -131,7 +133,7 @@ const char* filesize_to_str(size_t fsize)
       }
     } else {
       snprintf(output, BUFFSIZE, "%.*f%cB",
-               ndigits, (double)fsize / (1 << shift), suffixes[i]);
+               ndigits, static_cast<double>(fsize) / (1 << shift), suffixes[i]);
       return output;
     }
   }
@@ -164,4 +166,39 @@ const char* humanize_number(size_t num) {
   }
   output[len] = '\0';
   return output;
+}
+
+
+/**
+ * Return the size of the array `ptr`, or 0 if the platform doesn't allow
+ * such functionality.
+ */
+size_t array_size(void *ptr, size_t elemsize) {
+  #ifdef MALLOC_SIZE_UNAVAILABLE
+    return 0;
+  #else
+    return ptr == nullptr? 0 : malloc_size(ptr) / elemsize;
+  #endif
+}
+
+
+char*
+repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
+    static char buf[101];
+    int i = 0;
+    for (const unsigned char *ptr = ptr0; ptr < ptr1; ptr++) {
+        if (*ptr >= 0x20 && *ptr < 0x7F)
+            buf[i++] = static_cast<char>(*ptr);
+        else {
+            int8_t d0 = (*ptr) & 0xF;
+            int8_t d1 = (*ptr) >> 4;
+            buf[i++] = '\\';
+            buf[i++] = 'x';
+            buf[i++] = d1 <= 9? ('0' + d1) : ('A' + d1 - 10);
+            buf[i++] = d0 <= 9? ('0' + d0) : ('A' + d0 - 10);
+        }
+        if (i >= 95) break;
+    }
+    buf[i] = '\0';
+    return buf;
 }
