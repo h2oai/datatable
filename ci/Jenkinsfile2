@@ -58,6 +58,8 @@ def dockerArgs = createDockerArgs()
 // String with current version
 def versionText
 
+MAKE_OPTS = "CI=1"
+
 //////////////
 // PIPELINE //
 //////////////
@@ -65,7 +67,8 @@ properties([
     parameters([
         booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
         booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
-        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage')
+        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage'),
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: true, description: '[BUILD] Trigger all tests even for PR')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -130,13 +133,13 @@ ansiColor('xterm') {
                             dir(stageDir) {
                                 unstash 'datatable-sources'
                                 withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                    sh "make clean && make centos7_build_py36_in_docker"
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                     stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    sh "make clean && make centos7_build_py35_in_docker"
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                     stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    sh "make centos7_version_in_docker"
+                                    sh "make ${MAKE_OPTS} centos7_version_in_docker"
                                     stash name: 'VERSION', includes: "dist/VERSION.txt"
                                     arch "dist/VERSION.txt"
                                     versionText = readFile('dist/VERSION.txt').trim()
@@ -156,15 +159,15 @@ ansiColor('xterm') {
                                 withEnv(OSX_ENV + "CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}") {
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                        make clean
-                                        make BRANCH_NAME=${env.BRANCH_NAME} dist
+                                        make ${MAKE_OPTS} clean
+                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
                                     """
                                     stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                         sh """
                                             . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
-                                            make clean
-                                            make BRANCH_NAME=${env.BRANCH_NAME} dist
+                                            make ${MAKE_OPTS} clean
+                                            make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
                                         """
                                     stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
@@ -184,10 +187,10 @@ ansiColor('xterm') {
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
                                         withEnv(["CI_VERSION_SUFFIX=${CI_VERSION_SUFFIX}"]) {
-                                            sh "make clean && make centos7_build_py36_in_docker"
+                                            sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                             stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
                                             arch "dist/*.whl"
-                                            sh "make clean && make centos7_build_py35_in_docker"
+                                            sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                             stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
                                             arch "dist/*.whl"
                                         }
@@ -212,7 +215,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
-                                        sh "make CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
                                         arch "/tmp/cores/*"
                                     }
@@ -233,7 +236,7 @@ ansiColor('xterm') {
                                     withEnv(OSX_ENV) {
                                         sh """
                                             . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                            make coverage
+                                            make ${MAKE_OPTS} coverage
                                         """
                                     }
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
@@ -276,7 +279,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_linux': {
-                        if(!isPrJob()) {
+                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 with Numpy on x86_64_linux') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -294,7 +297,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on x86_64_linux': {
-                        if(!isPrJob()) {
+                        if(!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on x86_64_linux') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -340,7 +343,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_centos7': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 with Numpy on x86_64_centos7') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -358,7 +361,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on x86_64_centos7': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on x86_64_centos7') {
                                 node(NODE_LABEL) {
                                     cleanWs()
@@ -408,7 +411,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC()) {
+                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 with Numpy on ppc64le_centos7') {
                                 node(PPC_NODE_LABEL) {
                                     cleanWs()
@@ -426,7 +429,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC()) {
+                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on ppc64le_centos7') {
                                 node(PPC_NODE_LABEL) {
                                     cleanWs()
@@ -472,7 +475,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on x86_64_osx': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR)  {
                             stage('Test Py36 with Numpy on x86_64_osx') {
                                 node(OSX_NODE_LABEL) {
                                     cleanWs()
@@ -490,7 +493,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on x86_64_osx': {
-                        if (!isPrJob()) {
+                        if (!isPrJob() || params.FORCE_ALL_TESTS_IN_PR) {
                             stage('Test Py36 on x86_64_osx') {
                                 node(OSX_NODE_LABEL) {
                                     cleanWs()
@@ -519,7 +522,7 @@ ansiColor('xterm') {
                             dir ('build-sdist') {
                                 unstash 'datatable-sources'
                                 unstash 'VERSION'
-                                sh "make ubuntu_build_sdist_in_docker"
+                                sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
                                 stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
                                 arch "dist/*.tar.gz"
                             }
@@ -653,10 +656,12 @@ def testInDocker(final testTarget, final needsLargerTest) {
         sh """
             env
             rm -rf datatable
-            make CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
+            mkdir -p /tmp/cores
+            make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
-        arch "/tmp/cores/*"
+        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true' 
+        arch "build/cores/*.*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
@@ -669,12 +674,11 @@ def testOSX(final environment, final needsLargerTest) {
                 rm -rf datatable
                 . ${OSX_CONDA_ACTIVATE_PATH} ${environment}
                 pip install --no-cache-dir --upgrade dist/*.whl
-                make test_install MODULE=datatable
-                make test
+                make ${MAKE_OPTS} test_install MODULE=datatable
+                make ${MAKE_OPTS} test
             """
         }
     } finally {
-        arch "/tmp/cores/*"
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
@@ -701,7 +705,7 @@ def isModified(pattern) {
 }
 
 def doPPC() {
-    return !isPrJob() || params.FORCE_BUILD_PPC64LE
+    return !isPrJob() || params.FORCE_BUILD_PPC64LE || params.FORCE_ALL_TESTS_IN_PR
 }
 
 def doPublish() {
@@ -717,6 +721,7 @@ def createDockerArgs() {
     LINK_MAP.each { key, value ->
         out += "-v ${SOURCE_DIR}/${key}:${TARGET_DIR}/${value} "
     }
+    out += "-v /tmp/cores:/tmp/cores "
     return out
 }
 
