@@ -1,3 +1,5 @@
+//------------------------------------------------------------------------------
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
@@ -12,9 +14,7 @@
 #include "types.h"
 
 
-Aggregator::Aggregator(DataTable* dt)
-  : dt_in(dt)
-{
+Aggregator::Aggregator(DataTable* dt) : dt_in(dt) {
   create_dt_out();
 }
 
@@ -55,7 +55,7 @@ DataTable* Aggregator::aggregate_1d(double epsilon, int32_t n_bins) {
     case LT_BOOLEAN:
     case LT_INTEGER:
     case LT_REAL:     aggregate_1d_continuous(epsilon, n_bins); break;
-    case LT_STRING:   aggregate_1d_categorical(n_bins); break;
+    case LT_STRING:   aggregate_1d_categorical(/*n_bins*/); break;
     default:          return nullptr;
   }
 
@@ -75,7 +75,7 @@ DataTable* Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_
                           case LT_BOOLEAN:
                           case LT_INTEGER:
                           case LT_REAL:    aggregate_2d_continuous(epsilon, nx_bins, ny_bins); break;
-                          case LT_STRING:  aggregate_2d_mixed(0, epsilon, nx_bins, ny_bins); break;
+                          case LT_STRING:  aggregate_2d_mixed(0, epsilon, nx_bins/*, ny_bins*/); break;
                           default:         return nullptr;
                         }
                       }
@@ -85,8 +85,8 @@ DataTable* Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_
                         switch (ltype1) {
                           case LT_BOOLEAN:
                           case LT_INTEGER:
-                          case LT_REAL:    aggregate_2d_mixed(1, epsilon, nx_bins, ny_bins); break;
-                          case LT_STRING:  aggregate_2d_categorical(nx_bins, ny_bins); break;
+                          case LT_REAL:    aggregate_2d_mixed(1, epsilon, nx_bins/*, ny_bins*/); break;
+                          case LT_STRING:  aggregate_2d_categorical(/*nx_bins, ny_bins*/); break;
                           default:         return nullptr;
                         }
                       }
@@ -100,22 +100,22 @@ DataTable* Aggregator::aggregate_2d(double epsilon, int32_t nx_bins, int32_t ny_
 
 
 void Aggregator::aggregate_1d_continuous(double epsilon, int32_t n_bins) {
-  RealColumn<double>* c0 = static_cast<RealColumn<double>*> (dt_out->columns[0]);
-  const double* d_c0 = static_cast<const double*> (dt_out->columns[0]->data());
-  int32_t* d_c1 = static_cast<int32_t*> (dt_out->columns[1]->data_w());
+  RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_out->columns[0]);
+  const double* d_c0 = static_cast<const double*>(dt_out->columns[0]->data());
+  int32_t* d_c1 = static_cast<int32_t*>(dt_out->columns[1]->data_w());
 
 //TODO: handle the case when the column is constant, i.e. min = max
   double norm_factor = n_bins * (1 - epsilon) / (c0->max() - c0->min());
 
   for (int32_t i = 0; i < dt_out->nrows; ++i) {
-    d_c1[i] = static_cast<int32_t> (norm_factor * (d_c0[i] - c0->min()));
+    d_c1[i] = static_cast<int32_t>(norm_factor * (d_c0[i] - c0->min()));
   }
 }
 
 
 void Aggregator::aggregate_2d_continuous(double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  RealColumn<double>* c0 = static_cast<RealColumn<double>*> (dt_out->columns[0]);
-  RealColumn<double>* c1 = static_cast<RealColumn<double>*> (dt_out->columns[1]);
+  RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_out->columns[0]);
+  RealColumn<double>* c1 = static_cast<RealColumn<double>*>(dt_out->columns[1]);
   double* d_c0 = static_cast<double*>(dt_out->columns[0]->data_w());
   double* d_c1 = static_cast<double*>(dt_out->columns[1]->data_w());
   int32_t* d_c2 = static_cast<int32_t*>(dt_out->columns[2]->data_w());
@@ -125,12 +125,13 @@ void Aggregator::aggregate_2d_continuous(double epsilon, int32_t nx_bins, int32_
   double normy_factor = ny_bins * (1 - epsilon) / (c1->max() - c1->min());
 
   for (int32_t i = 0; i < dt_out->nrows; ++i) {
-    d_c2[i] = static_cast<int32_t> (normy_factor * (d_c1[i] - c1->min())) * nx_bins + static_cast<int32_t> (normx_factor * (d_c0[i] - c0->min())) ;
+    d_c2[i] = static_cast<int32_t>(normy_factor * (d_c1[i] - c1->min())) * nx_bins +
+              static_cast<int32_t>(normx_factor * (d_c0[i] - c0->min()));
   }
 }
 
 
-void Aggregator::aggregate_1d_categorical(int32_t n_bins /* not sure how to use n_bins for the moment */) {
+void Aggregator::aggregate_1d_categorical(/*int32_t n_bins*/) {
   arr32_t cols(1);
 
   cols[0] = 0;
@@ -138,19 +139,19 @@ void Aggregator::aggregate_1d_categorical(int32_t n_bins /* not sure how to use 
   RowIndex ri0 = dt_out->sortby(cols, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
-  int32_t* d_c1 = static_cast<int32_t*> (dt_out->columns[1]->data_w());
+  int32_t* d_c1 = static_cast<int32_t*>(dt_out->columns[1]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_c1[group_indices_0[j]] = static_cast<int32_t> (i);
+      d_c1[group_indices_0[j]] = static_cast<int32_t>(i);
     }
   }
 // TODO: store ri somehow to be reused for groupping with dt->replace_rowindex(ri);
 }
 
 
-void Aggregator::aggregate_2d_categorical(int32_t nx_bins, int32_t ny_bins /* not sure how to use ny_bins for the moment */) {
+void Aggregator::aggregate_2d_categorical(/*int32_t nx_bins, int32_t ny_bins*/) {
   arr32_t cols(1);
 
   cols[0] = 0;
@@ -163,26 +164,26 @@ void Aggregator::aggregate_2d_categorical(int32_t nx_bins, int32_t ny_bins /* no
   RowIndex ri1 = dt_out->sortby(cols, &grpby1);
   const int32_t* group_indices_1 = ri1.indices32();
 
-  int32_t* d_c2 = static_cast<int32_t*> (dt_out->columns[2]->data_w());
+  int32_t* d_c2 = static_cast<int32_t*>(dt_out->columns[2]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
   const int32_t* offsets1 = grpby1.offsets_r();
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_c2[group_indices_0[j]] = static_cast<int32_t> (i);
+      d_c2[group_indices_0[j]] = static_cast<int32_t>(i);
     }
   }
 
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
-      d_c2[group_indices_1[j]] += static_cast<int32_t> (grpby0.ngroups() * i);
+      d_c2[group_indices_1[j]] += static_cast<int32_t>(grpby0.ngroups() * i);
     }
   }
-// TODO: store ri1 and ri2 somehow to be reused for groupping with dt->replace_rowindex(ri);
+//TODO: store ri1 and ri2 somehow to be reused for groupping with dt->replace_rowindex(ri);
 }
 
 
-void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_bins, int32_t ny_bins /* not sure how to use ny_bins for the moment */) {
+void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_bins/*, int32_t ny_bins*/) {
   arr32_t cols(1);
 
   cols[0] = !cont_index;
@@ -190,16 +191,17 @@ void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_
   RowIndex ri0 = dt_out->sortby(cols, &grpby0);
   const int32_t* group_indices_0 = ri0.indices32();
 
-  RealColumn<double>* c0 = static_cast<RealColumn<double>*> (dt_out->columns[cont_index]);
-  const double* d_c0 = static_cast<const double*> (dt_out->columns[cont_index]->data());
-  int32_t* d_c2 = static_cast<int32_t*> (dt_out->columns[2]->data_w());
+  RealColumn<double>* c0 = static_cast<RealColumn<double>*>(dt_out->columns[cont_index]);
+  const double* d_c0 = static_cast<const double*>(dt_out->columns[cont_index]->data());
+  int32_t* d_c2 = static_cast<int32_t*>(dt_out->columns[2]->data_w());
   const int32_t* offsets0 = grpby0.offsets_r();
   double normx_factor = nx_bins * (1 - epsilon) / (c0->max() - c0->min());
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_c2[group_indices_0[j]] = nx_bins * static_cast<int32_t> (i) + static_cast<int32_t> (normx_factor * (d_c0[group_indices_0[j]] - c0->min()));
-	}
+      d_c2[group_indices_0[j]] = nx_bins * static_cast<int32_t>(i) +
+                                 static_cast<int32_t>(normx_factor * (d_c0[group_indices_0[j]] - c0->min()));
+    }
   }
 }
 
@@ -243,9 +245,9 @@ DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
     }
 
     if (min_distance < delta) {
-      d_cn[i] = static_cast<int32_t> (exemplar_id);
+      d_cn[i] = static_cast<int32_t>(exemplar_id);
     } else {
-      d_cn[i] = static_cast<int32_t> (exemplars.size());
+      d_cn[i] = static_cast<int32_t>(exemplars.size());
       exemplars.push_back(member);
       member = new double[ndims];
     }
@@ -264,7 +266,7 @@ DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
 void Aggregator::adjust_radius(int32_t mcols, double& radius) {
   double diff = 0;
   for (int i = 0; i < dt_in->ncols; ++i) {
-    RealColumn<double>* ci = static_cast<RealColumn<double>*> (dt_out->columns[i]);
+    RealColumn<double>* ci = static_cast<RealColumn<double>*>(dt_out->columns[i]);
     diff += (ci->max() - ci->min()) * (ci->max() - ci->min());
   }
 
@@ -291,7 +293,7 @@ double Aggregator::calculate_distance(double* e1, double* e2, int64_t ndims, dou
 
 void Aggregator::normalize_row(double* r, int32_t row_id) {
   for (int32_t i = 0; i < dt_in->ncols; ++i) {
-    RealColumn<double>* c = static_cast<RealColumn<double>*> (dt_out->columns[i]);
+    RealColumn<double>* c = static_cast<RealColumn<double>*>(dt_out->columns[i]);
     const double* d_c = static_cast<const double*>(dt_out->columns[i]->data());
 
     r[i] =  (d_c[row_id] - c->min()) / (c->max() - c->min());
@@ -325,11 +327,11 @@ void Aggregator::project_row(double* r, int32_t row_id, double* pmatrix, int32_t
 
   for (int32_t i = 0; i < dt_in->ncols*mcols; ++i) {
     RealColumn<double>* c = static_cast<RealColumn<double>*> (dt_out->columns[i / mcols]);
-    const double* d_c = static_cast<const double*> (dt_out->columns[i / mcols]->data());
+    const double* d_c = static_cast<const double*>(dt_out->columns[i / mcols]->data());
 
     if (!ISNA<double>(d_c[row_id])) {
       r[i % mcols] +=  pmatrix[i] * (d_c[row_id] - c->min()) / (c->max() - c->min());
-// TODO: handle missing values and do r[j] /= n normalization at the end
+//TODO: handle missing values and do r[j] /= n normalization at the end
     }
   }
 }

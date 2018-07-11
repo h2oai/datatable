@@ -91,7 +91,7 @@ static void count_skipna(const int32_t* groups, int32_t grp, void** params) {
   int32_t row0 = groups[grp];
   int32_t row1 = groups[grp + 1];
 
-  outputs[grp] = row1 - row0;
+  outputs[grp] = static_cast<OT>(row1 - row0);
 }
 
 
@@ -242,15 +242,15 @@ static gmapperfn resolve0(int opcode, SType stype) {
   if (opcode == OpCode::Count) {
     switch (stype) {
       case ST_BOOLEAN_I1:
-      case ST_INTEGER_I1:  		return count_skipna<int8_t, int64_t>;
-      case ST_INTEGER_I2:  		return count_skipna<int16_t, int64_t>;
-      case ST_INTEGER_I4:  		return count_skipna<int32_t, int64_t>;
-      case ST_INTEGER_I8: 		return count_skipna<int64_t, int64_t>;
-      case ST_REAL_F4:     		return count_skipna<float, int64_t>;
-      case ST_REAL_F8:     		return count_skipna<double, int64_t>;
-      case ST_STRING_I4_VCHAR:  return count_skipna<int32_t, int64_t>;
-      case ST_STRING_I8_VCHAR:  return count_skipna<int64_t, int64_t>;
-      default:             		return nullptr;
+      case ST_INTEGER_I1:       return count_skipna<int8_t, uint64_t>;
+      case ST_INTEGER_I2:  		  return count_skipna<int16_t, uint64_t>;
+      case ST_INTEGER_I4:  		  return count_skipna<int32_t, uint64_t>;
+      case ST_INTEGER_I8: 		  return count_skipna<int64_t, uint64_t>;
+      case ST_REAL_F4:     		  return count_skipna<float, uint64_t>;
+      case ST_REAL_F8:     		  return count_skipna<double, uint64_t>;
+      case ST_STRING_I4_VCHAR:  return count_skipna<int32_t, uint64_t>;
+      case ST_STRING_I8_VCHAR:  return count_skipna<int64_t, uint64_t>;
+      default:                  return nullptr;
     }
   }
 

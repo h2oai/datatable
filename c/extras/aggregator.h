@@ -1,3 +1,5 @@
+//------------------------------------------------------------------------------
+// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
@@ -27,9 +29,9 @@ class Aggregator {
     DataTable* aggregate_nd(int32_t, unsigned int);
     void aggregate_1d_continuous(double, int32_t);
     void aggregate_2d_continuous(double, int32_t, int32_t);
-    void aggregate_1d_categorical(int32_t);
-    void aggregate_2d_categorical(int32_t, int32_t);
-    void aggregate_2d_mixed(bool, double, int32_t, int32_t);
+    void aggregate_1d_categorical(/*int32_t*/);
+    void aggregate_2d_categorical(/*int32_t, int32_t*/);
+    void aggregate_2d_mixed(bool, double, int32_t/*, int32_t*/);
 
     void normalize_row(double*, int32_t);
     double calculate_distance(double*, double*, int64_t, double);
