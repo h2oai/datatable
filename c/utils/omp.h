@@ -14,7 +14,10 @@
   #define omp_set_num_threads(n)
   #define omp_get_thread_num() 0
 #else
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wreserved-id-macro"
   #include <omp.h>
+  #pragma clang diagnostic pop
 #endif
 
 
