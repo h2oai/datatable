@@ -24,6 +24,7 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 ///////////////
 // CONSTANTS //
 ///////////////
+X86_64_BUILD_NODE_LABEL = "buildMachine"
 NODE_LABEL = 'docker && !mr-0xc8'
 OSX_NODE_LABEL = 'osx'
 PPC_NODE_LABEL = 'ibm-power'
@@ -91,7 +92,7 @@ ansiColor('xterm') {
         }
         timeout(time: 120, unit: 'MINUTES') {
             // Checkout stage
-            node(NODE_LABEL) {
+            node(X86_64_BUILD_NODE_LABEL) {
                 def stageDir = 'checkout'
                 buildSummary.stageWithSummary('Checkout', stageDir) {
                     dir (stageDir) {
@@ -137,7 +138,7 @@ ansiColor('xterm') {
             // Build stages
             parallel([
                 'Build on x86_64_centos7': {
-                    node(NODE_LABEL) {
+                    node(X86_64_BUILD_NODE_LABEL) {
                         final stageDir = 'build-x86_64_centos7'
                         buildSummary.stageWithSummary('Build on x86_64_centos7', stageDir) {
                             cleanWs()
