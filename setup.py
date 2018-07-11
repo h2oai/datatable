@@ -253,6 +253,12 @@ def get_extra_link_args():
 
     flags += ["-fopenmp"]
 
+    # Omit all symbol information from the output
+    # ld warns that this option is obsolete and is ignored. However with this
+    # option the size of the executable is ~25% smaller...
+    if "DTDEBUG" not in os.environ:
+        flags += ["-s"]
+
     if sys.platform == "linux":
         flags += ["-lc++"]
 
@@ -333,6 +339,9 @@ os.environ["CC"] = os.environ["CXX"] = get_cc(True)
 # is not used for some reason at linux
 if "DTCOVERAGE" in os.environ and sys.platform == "linux":
     os.environ["LDSHARED"] = clang
+
+if "MACOSX_DEPLOYMENT_TARGET" not in os.environ and sys.platform == "darwin":
+    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
 
 # Compute runtime libpath with respect to bundled LLVM libraries
 if sys.platform == "darwin":

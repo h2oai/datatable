@@ -16,7 +16,7 @@ CErrno Errno;
 
 static PyObject* type_error_class;
 static PyObject* value_error_class;
-
+static PyObject* datatable_warning_class;
 
 
 //==============================================================================
@@ -125,7 +125,7 @@ void Error::topython() const {
   // of scope. By contrast, `error.str().c_str()` returns a dangling pointer,
   // which usually works but sometimes doesn't...
   // See https://stackoverflow.com/questions/1374468
-  const std::string& errstr = error.str();
+  const std::string errstr = error.str();
   PyErr_SetString(pycls, errstr.c_str());
 }
 
@@ -176,13 +176,26 @@ Error NotImplError()   { return Error(PyExc_NotImplementedError); }
 Error IOError()        { return Error(PyExc_IOError); }
 Error AssertionError() { return Error(PyExc_AssertionError); }
 
-
 void replace_typeError(PyObject* obj) { type_error_class = obj; }
 void replace_valueError(PyObject* obj) { value_error_class = obj; }
+void replace_dtWarning(PyObject* obj) { datatable_warning_class = obj; }
 
 void init_exceptions() {
   type_error_class = PyExc_TypeError;
   value_error_class = PyExc_ValueError;
+  datatable_warning_class = PyExc_Warning;
+}
+
+
+
+//==============================================================================
+
+Warning::Warning()
+  : Error(datatable_warning_class) {}
+
+Warning::~Warning() {
+  const std::string errstr = error.str();
+  PyErr_WarnEx(pycls, errstr.c_str(), 1);
 }
 
 

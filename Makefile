@@ -220,7 +220,7 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
 ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.3.2-PR-996.3
+DOCKER_IMAGE_TAG ?= 0.6.0-PR-1147.4
 CENTOS_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
 UBUNTU_DOCKER_IMAGE_NAME ?= docker.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
 
@@ -423,6 +423,8 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
 	groupby.o                 \
+	jay/open_jay.o            \
+	jay/save_jay.o            \
 	memrange.o                \
 	mmm.o                     \
 	options.o                 \
@@ -494,7 +496,7 @@ $(BUILDDIR)/capi.h: c/capi.h
 	@echo • Refreshing c/capi.h
 	@cp c/capi.h $@
 
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/memrange.h $(BUILDDIR)/groupby.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/groupby.h $(BUILDDIR)/memrange.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/column.h
 	@cp c/column.h $@
 
@@ -513,6 +515,23 @@ $(BUILDDIR)/encodings.h: c/encodings.h
 $(BUILDDIR)/groupby.h: c/groupby.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h
 	@echo • Refreshing c/groupby.h
 	@cp c/groupby.h $@
+
+$(BUILDDIR)/jay/jay_generated.h: c/jay/jay_generated.h $(BUILDDIR)/lib/flatbuffers/flatbuffers.h
+	@echo • Refreshing c/jay/jay_generated.h
+	@cp c/jay/jay_generated.h $@
+
+$(BUILDDIR)/lib/flatbuffers/base.h: c/lib/flatbuffers/base.h $(BUILDDIR)/lib/flatbuffers/stl_emulation.h
+	@echo • Refreshing c/lib/flatbuffers/base.h
+	@cp c/lib/flatbuffers/base.h $@
+
+$(BUILDDIR)/lib/flatbuffers/flatbuffers.h: c/lib/flatbuffers/flatbuffers.h $(BUILDDIR)/lib/flatbuffers/base.h
+	@echo • Refreshing c/lib/flatbuffers/flatbuffers.h
+	@cp c/lib/flatbuffers/flatbuffers.h $@
+
+$(BUILDDIR)/lib/flatbuffers/stl_emulation.h: c/lib/flatbuffers/stl_emulation.h
+	@echo • Refreshing c/lib/flatbuffers/stl_emulation.h
+	@cp c/lib/flatbuffers/stl_emulation.h $@
+
 
 $(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
 	@echo • Refreshing c/memrange.h
@@ -811,6 +830,14 @@ $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
+$(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay_generated.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
+$(BUILDDIR)/jay/save_jay.o : c/jay/save_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay_generated.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/writebuf.h
+	@echo • Compiling $<
+	@$(CC) -c $< $(CCFLAGS) -o $@
+
 $(BUILDDIR)/memrange.o : c/memrange.cc $(BUILDDIR)/memrange.h $(BUILDDIR)/mmm.h $(BUILDDIR)/utils.h $(BUILDDIR)/utils/alloc.h $(BUILDDIR)/utils/exceptions.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
@@ -835,7 +862,7 @@ $(BUILDDIR)/py_columnset.o : c/py_columnset.cc $(BUILDDIR)/columnset.h $(BUILDDI
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h
+$(BUILDDIR)/py_datatable.o : c/py_datatable.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/py_column.h $(BUILDDIR)/py_columnset.h $(BUILDDIR)/py_datatable.h $(BUILDDIR)/py_datawindow.h $(BUILDDIR)/py_groupby.h $(BUILDDIR)/py_rowindex.h $(BUILDDIR)/py_types.h $(BUILDDIR)/py_utils.h $(BUILDDIR)/python/string.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

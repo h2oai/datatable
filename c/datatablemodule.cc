@@ -23,6 +23,8 @@
 #include "py_utils.h"
 #include "utils/assert.h"
 
+extern void init_jay();
+
 
 PyMODINIT_FUNC PyInit__datatable(void);
 extern PyObject* Py_One, *Py_Zero;
@@ -91,6 +93,7 @@ PyObject* register_function(PyObject*, PyObject *args) {
   else if (n == 3) init_py_ltype_objs(fnref);
   else if (n == 4) replace_typeError(fnref);
   else if (n == 5) replace_valueError(fnref);
+  else if (n == 6) replace_dtWarning(fnref);
   else {
     throw ValueError() << "Incorrect function index: " << n;
   }
@@ -172,6 +175,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pyrowindex::rowindex_from_filterfn),
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
+    METHODv(pydatatable::open_jay),
     METHODv(pydatatable::install_buffer_hooks),
     METHODv(config::set_option),
     METHODv(gread),
@@ -229,6 +233,7 @@ PyInit__datatable(void) {
     if (!pygroupby::static_init(m)) return nullptr;
     if (!pyrowindex::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
+    init_jay();
 
     return m;
 }
