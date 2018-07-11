@@ -26,8 +26,8 @@ DOCKER_IMAGE_TAG = '0.6.0-PR-1147.4'
 X86_64_CENTOS_DOCKER_IMAGE = "docker.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:${DOCKER_IMAGE_TAG}"
 EXPECTED_SHAS = [
         files : [
-                'ci/Dockerfile-ubuntu.in' : 'c4d38fd01807c6427b40bd87d54365d2b272805e',
-                'ci/Dockerfile-centos7.in': '9a6957ba2b23762bcfe2162634717297c9e477f6',
+                'ci/Dockerfile-ubuntu.in' : '6446a6d1dd63c14db76d273c00f861817a4464ba',
+                'ci/Dockerfile-centos7.in': 'c6bf8d1ac424f81f3742b96218c052ef3f1c834c',
         ]
 ]
 

@@ -51,8 +51,3 @@ RUN mv /opt/h2oai/dai/bin/clang++ /opt/h2oai/dai/bin/clang++2
 RUN mkdir -p /tmp/cores && chmod a+rwx /tmp/cores
 
 COPY ci/clang++_wrapper.sh /opt/h2oai/dai/bin/clang++
-
-# Install capnproto
-COPY ci/install-capnproto.sh /install-capnproto.sh
-RUN /install-capnproto.sh
-
