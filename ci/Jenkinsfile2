@@ -76,9 +76,10 @@ MAKE_OPTS = "CI=1"
 properties([
     parameters([
         booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts'),
-        booleanParam(name: 'DISABLE_TESTS', defaultValue: false, description: '[BUILD] Disable tests'),
+        booleanParam(name: 'DISABLE_ALL_TESTS', defaultValue: false, description: '[BUILD] Disable all tests'),
+        booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: true, description: '[BUILD] Disable PPC64LE tests'),
         booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage'),
-        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: true, description: '[BUILD] Trigger all tests even for PR')
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -260,7 +261,7 @@ ansiColor('xterm') {
                 ])
             }
             // Test stages
-            if (!params.DISABLE_TESTS) {
+            if (!params.DISABLE_ALL_TESTS) {
                 parallel ([
                     'Test Py36 with Pandas on x86_64_linux': {
                         node(NODE_LABEL) {
@@ -394,7 +395,7 @@ ansiColor('xterm') {
                         node(PPC_NODE_LABEL) {
                             final stageDir = 'test-ppc64le_centos7'
                             buildSummary.stageWithSummary('Test Py36 with Pandas on ppc64le_centos7') {
-                                if (doPPC()) {
+                                if (doPPC() && doTestPPC64LE()) {
                                     cleanWs()
                                     dumpInfo()
                                     dir(stageDir) {
@@ -410,7 +411,7 @@ ansiColor('xterm') {
                         node(PPC_NODE_LABEL) {
                             final stageDir = 'test-ppc64le_centos7'
                             buildSummary.stageWithSummary('Test Py35 with Pandas on ppc64le_centos7', stageDir) {
-                                if (doPPC()) {
+                                if (doPPC() && doTestPPC64LE()) {
                                     cleanWs()
                                     dumpInfo()
                                     dir(stageDir) {
@@ -423,7 +424,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 with Numpy on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
+                        if (!isPrJob() && doPPC() && doTestPPC64LE() || params.FORCE_ALL_TESTS_IN_PR) {
                             node(PPC_NODE_LABEL) {
                                 final stageDir = 'test-ppc64le_centos7'
                                 buildSummary.stageWithSummary('Test Py36 with Numpy on ppc64le_centos7', stageDir) {
@@ -441,7 +442,7 @@ ansiColor('xterm') {
                         }
                     },
                     'Test Py36 on ppc64le_centos7': {
-                        if (!isPrJob() && doPPC() || params.FORCE_ALL_TESTS_IN_PR) {
+                        if (!isPrJob() && doPPC() && doTestPPC64LE() || params.FORCE_ALL_TESTS_IN_PR) {
                             node(PPC_NODE_LABEL) {
                                 final stageDir = 'test-ppc64le_centos7'
                                 buildSummary.stageWithSummary('Test Py36 on ppc64le_centos7', stageDir) {
@@ -721,6 +722,11 @@ def isModified(pattern) {
 
 def doPPC() {
     return !isPrJob() || params.FORCE_BUILD_PPC64LE || params.FORCE_ALL_TESTS_IN_PR
+}
+
+def doTestPPC64LE() {
+    return !params.DISABLE_PPC64LE_TESTS
+
 }
 
 def doPublish() {
