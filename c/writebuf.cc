@@ -76,8 +76,9 @@ FileWritableBuffer::~FileWritableBuffer() {
 }
 
 
-size_t FileWritableBuffer::prep_write(size_t size, const void* src)
-{
+size_t FileWritableBuffer::prep_write(size_t size, const void* src) {
+  size_t pos = bytes_written;
+
   // See https://linux.die.net/man/2/write
   ssize_t r = ::write(file->descriptor(), src, size);
 
@@ -94,7 +95,7 @@ size_t FileWritableBuffer::prep_write(size_t size, const void* src)
                          << size << " bytes written";
   }
   bytes_written += size;
-  return bytes_written;
+  return pos;
 }
 
 
@@ -111,8 +112,7 @@ void FileWritableBuffer::write_at(size_t, size_t, const void*)
 }
 
 
-void FileWritableBuffer::finalize()
-{
+void FileWritableBuffer::finalize() {
   delete file;
   file = nullptr;
 }

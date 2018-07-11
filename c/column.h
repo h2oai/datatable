@@ -254,6 +254,19 @@ public:
    */
   virtual void verify_integrity(const std::string& name) const;
 
+  /**
+   * get_stats()
+   *   Getter method for this column's reference to `Stats`. If the reference
+   *   is null then the method will create a new Stats instance for this column
+   *   and return a pointer to said instance.
+   *
+   * get_stats_if_exist()
+   *   A simpler accessor than get_stats(): this will return either an existing
+   *   Stats object, or nullptr if the Stats were not initialized yet.
+   */
+  virtual Stats* get_stats() const = 0;
+  Stats* get_stats_if_exist() const { return stats; }
+
 protected:
   Column(int64_t nrows = 0);
   virtual void init_data() = 0;
@@ -294,13 +307,6 @@ protected:
    * to be an in-place operation.
    */
   virtual void fill_na() = 0;
-
-  /**
-   * Getter method for this column's reference to `Stats`. If the reference
-   * is null then the method will create a new Stats instance for this column
-   * and return a pointer to said instance.
-   */
-  virtual Stats* get_stats() const = 0;
 
 private:
   static Column* new_column(SType);
@@ -612,6 +618,7 @@ public:
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
 
+  MemoryRange str_buf() { return strbuf; }
   size_t datasize() const;
   int64_t data_nrows() const override;
   const char* strdata() const;

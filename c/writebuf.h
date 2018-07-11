@@ -69,7 +69,7 @@ public:
    * However in case when this is not possible, an implementation may actually
    * write out the provided buffer `src`.
    */
-  virtual size_t prep_write(size_t n, const void *src) = 0;
+  virtual size_t prep_write(size_t n, const void* src) = 0;
 
   /**
    * Write buffer `src` of size `n` at the position `pos` (this position should
@@ -80,7 +80,7 @@ public:
    * also allowed to call this method when another thread is performing
    * `prep_write()`.
    */
-  virtual void write_at(size_t pos, size_t n, const void *src) = 0;
+  virtual void write_at(size_t pos, size_t n, const void* src) = 0;
 
   /**
    * This method should be called when you're done writing to the buffer. It is
@@ -93,7 +93,7 @@ public:
    * Simple helper method for writing into the buffer in single-threaded
    * context.
    */
-  void write(size_t n, const void *src) {
+  void write(size_t n, const void* src) {
     write_at(prep_write(n, src), n, src);
   }
 
@@ -111,11 +111,11 @@ class FileWritableBuffer : public WritableBuffer
   File* file;
 
 public:
-  FileWritableBuffer(const std::string &path);
+  FileWritableBuffer(const std::string& path);
   virtual ~FileWritableBuffer() override;
 
-  virtual size_t prep_write(size_t n, const void *src) override;
-  virtual void write_at(size_t pos, size_t n, const void *src) override;
+  virtual size_t prep_write(size_t n, const void* src) override;
+  virtual void write_at(size_t pos, size_t n, const void* src) override;
   virtual void finalize() override;
 };
 
@@ -136,8 +136,8 @@ public:
   ThreadsafeWritableBuffer();
   virtual ~ThreadsafeWritableBuffer() override;
 
-  virtual size_t prep_write(size_t n, const void *src) override;
-  virtual void write_at(size_t pos, size_t n, const void *src) override;
+  virtual size_t prep_write(size_t n, const void* src) override;
+  virtual void write_at(size_t pos, size_t n, const void* src) override;
   virtual void finalize() override;
 };
 
