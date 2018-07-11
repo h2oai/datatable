@@ -210,12 +210,12 @@ ansiColor('xterm') {
                                             arch "dist/*.whl"
                                         }
                                     }
-                                } else {
-                                    echo 'Build on ppc64le_centos7 SKIPPED'
-                                    markSkipped("Build on ppc64le_centos7")
-                                }
+                                } 
                             }
                         }
+                    } else {
+                        echo 'Build on ppc64le_centos7 SKIPPED'
+                        markSkipped("Build on ppc64le_centos7")
                     }
                 }
             ])
