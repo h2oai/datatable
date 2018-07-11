@@ -754,6 +754,8 @@ def getHTTPSTargetUrl(final versionText) {
 }
 
 def markSkipped(String stageName) {
-    markStageWithTag(stageName, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
+    stage (stageName) {
+        markStageWithTag(STAGE_NAME, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
+    }
 }
 
