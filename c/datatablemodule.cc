@@ -23,6 +23,8 @@
 #include "py_utils.h"
 #include "utils/assert.h"
 
+extern void init_jay();
+
 
 PyMODINIT_FUNC PyInit__datatable(void);
 extern PyObject* Py_One, *Py_Zero;
@@ -174,6 +176,7 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
     METHODv(pydatatable::open_jay),
+    METHODv(pydatatable::open_jay_fb),
     METHODv(pydatatable::install_buffer_hooks),
     METHODv(config::set_option),
     METHODv(gread),
@@ -231,6 +234,7 @@ PyInit__datatable(void) {
     if (!pygroupby::static_init(m)) return nullptr;
     if (!pyrowindex::static_init(m)) return nullptr;
     if (!init_py_encodings(m)) return nullptr;
+    init_jay();
 
     return m;
 }

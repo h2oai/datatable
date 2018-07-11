@@ -14,7 +14,7 @@
 #include "writebuf.h"
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
-
+static fbjay::Type stype_to_jaytype[DT_STYPES_COUNT];
 
 
 static void saveMemoryRange(
@@ -64,6 +64,22 @@ void saveMinMax(NumericalStats<T, A>* stats, TBuilder builder) {
   }
 }
 
+
+
+template <typename T, typename A, typename StatBuilder>
+flatbuffers::Offset<void> saveStats(
+    Stats* stats, flatbuffers::FlatBufferBuilder& fbb)
+{
+  static_assert(std::is_constructible<StatBuilder, T, T>::value,
+                "Invalid StatBuilder class");
+  if (!stats ||
+      !(stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
+    return 0;
+  auto nstat = static_cast<NumericalStats<T, A>*>(stats);
+  StatBuilder ss(nstat->min(nullptr), nstat->max(nullptr));
+  flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
+  return o;
+}
 
 
 void DataTable::save_jay(const std::string& path,
@@ -242,71 +258,57 @@ Column::save_jay_fb(
     const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
     WritableBufferPtr& wb)
 {
-  // using StatsBool8   = NumericalStats<int8_t, int64_t>;
-  // using StatsInt8    = NumericalStats<int8_t, int64_t>;
-  // using StatsInt16   = NumericalStats<int16_t, int64_t>;
-  // using StatsInt32   = NumericalStats<int32_t, int64_t>;
-  // using StatsInt64   = NumericalStats<int64_t, int64_t>;
-  // using StatsFloat32 = NumericalStats<float, double>;
-  // using StatsFloat64 = NumericalStats<double, double>;
-  fbjay::Type fbtype;
-  fbjay::Stats stats_type = fbjay::Stats_NONE;
-  MemoryRange* strdata_ptr = nullptr;
+  fbjay::Stats jsttype = fbjay::Stats_NONE;
+  flatbuffers::Offset<void> jsto;
   switch (stype()) {
-    case ST_BOOLEAN_I1: {
-      fbtype = fbjay::Type_Bool8;
-      // stats_type = fbjay::Stats_Bool;
-      break;
-    }
-    case ST_INTEGER_I1: {
-      fbtype = fbjay::Type_Int8;
-      break;
-    }
-    case ST_INTEGER_I2: {
-      fbtype = fbjay::Type_Int16;
-      break;
-    }
-    case ST_INTEGER_I4: {
-      fbtype = fbjay::Type_Int32;
-      break;
-    }
-    case ST_INTEGER_I8: {
-      fbtype = fbjay::Type_Int64;
-      break;
-    }
-    case ST_REAL_F4: {
-      fbtype = fbjay::Type_Float32;
-      break;
-    }
-    case ST_REAL_F8: {
-      fbtype = fbjay::Type_Float64;
-      break;
-    }
-    case ST_STRING_I4_VCHAR: {
-      fbtype = fbjay::Type_Str32;
-      strdata_ptr = &(static_cast<StringColumn<uint32_t>*>(this)->strbuf);
-      break;
-    }
-    case ST_STRING_I8_VCHAR: {
-      fbtype = fbjay::Type_Str64;
-      strdata_ptr = &(static_cast<StringColumn<uint64_t>*>(this)->strbuf);
-      break;
-    }
-    default: {
-      throw NotImplError() << "Cannot save column of type " << stype();
-    }
+    case ST_BOOLEAN_I1: jsto = saveStats<int8_t,  int64_t, fbjay::StatsBool>(stats, fbb);    jsttype = fbjay::Stats_Bool; break;
+    case ST_INTEGER_I1: jsto = saveStats<int8_t,  int64_t, fbjay::StatsInt8>(stats, fbb);    jsttype = fbjay::Stats_Int8; break;
+    case ST_INTEGER_I2: jsto = saveStats<int16_t, int64_t, fbjay::StatsInt16>(stats, fbb);   jsttype = fbjay::Stats_Int16; break;
+    case ST_INTEGER_I4: jsto = saveStats<int32_t, int64_t, fbjay::StatsInt32>(stats, fbb);   jsttype = fbjay::Stats_Int32; break;
+    case ST_INTEGER_I8: jsto = saveStats<int64_t, int64_t, fbjay::StatsInt64>(stats, fbb);   jsttype = fbjay::Stats_Int64; break;
+    case ST_REAL_F4:    jsto = saveStats<float,   double,  fbjay::StatsFloat32>(stats, fbb); jsttype = fbjay::Stats_Float32; break;
+    case ST_REAL_F8:    jsto = saveStats<double,  double,  fbjay::StatsFloat64>(stats, fbb); jsttype = fbjay::Stats_Float64; break;
+    default: break;
   }
 
+  auto sname = fbb.CreateString(name.c_str());
+  fbjay::ColumnBuilder cbb(fbb);
+  cbb.add_type(stype_to_jaytype[stype()]);
+  cbb.add_name(sname);
+  cbb.add_nullcount(static_cast<uint64_t>(countna()));
+
   fbjay::Buffer saved_mbuf = saveMemoryRange(&mbuf, wb);
-  fbjay::Buffer saved_strdata = saveMemoryRange(strdata_ptr, wb);
-  return fbjay::CreateColumnDirect(
-            fbb,
-            fbtype,
-            &saved_mbuf,
-            strdata_ptr? &saved_strdata : nullptr,
-            name.c_str(),
-            static_cast<uint64_t>(countna()),
-            stats_type
-            /* flatbuffers::Offset<void> stats = 0 */
-            );
+  cbb.add_data(&saved_mbuf);
+  if (jsttype != fbjay::Stats_NONE) {
+    cbb.add_stats_type(jsttype);
+    cbb.add_stats(jsto);
+  }
+
+  if (stype() == ST_STRING_I4_VCHAR) {
+    auto scol = static_cast<StringColumn<uint32_t>*>(this);
+    fbjay::Buffer saved_strbuf = saveMemoryRange(&(scol->strbuf), wb);
+    cbb.add_strdata(&saved_strbuf);
+  }
+  if (stype() == ST_STRING_I8_VCHAR) {
+    auto scol = static_cast<StringColumn<uint64_t>*>(this);
+    fbjay::Buffer saved_strbuf = saveMemoryRange(&(scol->strbuf), wb);
+    cbb.add_strdata(&saved_strbuf);
+  }
+
+  return cbb.Finish();
+}
+
+
+/* Called once from datatablemodule.c */
+void init_jay();  // prevent -Wmissing-prototypes warning
+void init_jay() {
+  stype_to_jaytype[ST_BOOLEAN_I1]      = fbjay::Type_Bool8;
+  stype_to_jaytype[ST_INTEGER_I1]      = fbjay::Type_Int8;
+  stype_to_jaytype[ST_INTEGER_I2]      = fbjay::Type_Int16;
+  stype_to_jaytype[ST_INTEGER_I4]      = fbjay::Type_Int32;
+  stype_to_jaytype[ST_INTEGER_I8]      = fbjay::Type_Int64;
+  stype_to_jaytype[ST_REAL_F4]         = fbjay::Type_Float32;
+  stype_to_jaytype[ST_REAL_F8]         = fbjay::Type_Float64;
+  stype_to_jaytype[ST_STRING_I4_VCHAR] = fbjay::Type_Str32;
+  stype_to_jaytype[ST_STRING_I8_VCHAR] = fbjay::Type_Str64;
 }

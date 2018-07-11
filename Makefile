@@ -829,7 +829,7 @@ $(BUILDDIR)/jay/jay.capnp.o : c/jay/jay.capnp.cc $(BUILDDIR)/jay/jay.capnp.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay.capnp.h
+$(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay.capnp.h $(BUILDDIR)/jay/jay_generated.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

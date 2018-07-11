@@ -101,6 +101,25 @@ PyObject* open_jay(PyObject*, PyObject* args) {
   return Py_BuildValue("OO", pydt, pylist);
 }
 
+PyObject* open_jay_fb(PyObject*, PyObject* args) {
+  PyObject* arg1;
+  if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
+  std::string filename = PyObj(arg1).as_string();
+
+  std::vector<std::string> colnames;
+  DataTable* dt = DataTable::open_jay_fb(filename, colnames);
+  PyObject* pydt = wrap(dt);
+
+  PyyList collist(colnames.size());
+  for (size_t i = 0; i < colnames.size(); ++i) {
+    collist[i] = PyyString(colnames[i]);
+  }
+  PyObject* pylist = collist.release();
+
+  return Py_BuildValue("OO", pydt, pylist);
+}
+
+
 
 
 //==============================================================================

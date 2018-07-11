@@ -104,6 +104,8 @@ class DataTable {
                   const std::vector<std::string>& colnames);
     static DataTable* open_jay(const std::string& path,
                                std::vector<std::string>& colnames);
+    static DataTable* open_jay_fb(const std::string& path,
+                               std::vector<std::string>& colnames);
 
   private:
     DataTable* _statdt(colmakerfn f) const;

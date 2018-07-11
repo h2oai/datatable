@@ -308,6 +308,13 @@ DECLARE_FUNCTION(
   "where `colnames` is a list of column names.\n",
   HOMEFLAG)
 
+DECLARE_FUNCTION(
+  open_jay_fb,
+  "open_jay_fb(file)\n\n"
+  "Open DataTable from a .jay file, and return as a tuple (frame, colnames),\n"
+  "where `colnames` is a list of column names.\n",
+  HOMEFLAG)
+
 
 DECLARE_FUNCTION(
   install_buffer_hooks,

@@ -95,6 +95,8 @@ public:
   static Column* from_buffer(PyObject* buffer);
   static Column* from_jay(jay::Column::Reader jaycol, int64_t nrows,
                           MemoryRange& jaybuf);
+  static Column* from_jay_fb(const fbjay::Column* jaycol,
+                          MemoryRange& jaybuf);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
