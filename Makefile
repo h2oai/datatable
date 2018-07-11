@@ -426,7 +426,6 @@ fast_objects = $(addprefix $(BUILDDIR)/, \
 	expr/reduceop.o           \
 	expr/unaryop.o            \
 	groupby.o                 \
-	jay/jay.capnp.o           \
 	jay/open_jay.o            \
 	jay/save_jay.o            \
 	memrange.o                \
@@ -500,7 +499,7 @@ $(BUILDDIR)/capi.h: c/capi.h
 	@echo • Refreshing c/capi.h
 	@cp c/capi.h $@
 
-$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/groupby.h $(BUILDDIR)/jay/jay.capnp.h $(BUILDDIR)/memrange.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
+$(BUILDDIR)/column.h: c/column.h $(BUILDDIR)/groupby.h $(BUILDDIR)/memrange.h $(BUILDDIR)/py_types.h $(BUILDDIR)/python/list.h $(BUILDDIR)/rowindex.h $(BUILDDIR)/stats.h $(BUILDDIR)/types.h
 	@echo • Refreshing c/column.h
 	@cp c/column.h $@
 
@@ -520,10 +519,6 @@ $(BUILDDIR)/groupby.h: c/groupby.h $(BUILDDIR)/memrange.h $(BUILDDIR)/rowindex.h
 	@echo • Refreshing c/groupby.h
 	@cp c/groupby.h $@
 
-$(BUILDDIR)/jay/jay.capnp.h: c/jay/jay.capnp.h
-	@echo • Refreshing c/jay/jay.capnp.h
-	@cp c/jay/jay.capnp.h $@
-
 $(BUILDDIR)/jay/jay_generated.h: c/jay/jay_generated.h $(BUILDDIR)/lib/flatbuffers/flatbuffers.h
 	@echo • Refreshing c/jay/jay_generated.h
 	@cp c/jay/jay_generated.h $@
@@ -538,7 +533,7 @@ $(BUILDDIR)/lib/flatbuffers/flatbuffers.h: c/lib/flatbuffers/flatbuffers.h $(BUI
 
 $(BUILDDIR)/lib/flatbuffers/stl_emulation.h: c/lib/flatbuffers/stl_emulation.h
 	@echo • Refreshing c/lib/flatbuffers/stl_emulation.h
-	cp c/lib/flatbuffers/stl_emulation.h $@
+	@cp c/lib/flatbuffers/stl_emulation.h $@
 
 
 $(BUILDDIR)/memrange.h: c/memrange.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/writebuf.h
@@ -838,15 +833,11 @@ $(BUILDDIR)/groupby.o : c/groupby.cc $(BUILDDIR)/utils/exceptions.h $(BUILDDIR)/
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/jay/jay.capnp.o : c/jay/jay.capnp.cc $(BUILDDIR)/jay/jay.capnp.h
+$(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay_generated.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 
-$(BUILDDIR)/jay/open_jay.o : c/jay/open_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay.capnp.h $(BUILDDIR)/jay/jay_generated.h
-	@echo • Compiling $<
-	@$(CC) -c $< $(CCFLAGS) -o $@
-
-$(BUILDDIR)/jay/save_jay.o : c/jay/save_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay.capnp.h $(BUILDDIR)/jay/jay_generated.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/writebuf.h
+$(BUILDDIR)/jay/save_jay.o : c/jay/save_jay.cc $(BUILDDIR)/datatable.h $(BUILDDIR)/jay/jay_generated.h $(BUILDDIR)/utils/assert.h $(BUILDDIR)/writebuf.h
 	@echo • Compiling $<
 	@$(CC) -c $< $(CCFLAGS) -o $@
 

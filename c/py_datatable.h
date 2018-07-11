@@ -196,11 +196,6 @@ DECLARE_METHOD(
   "save_jay(file, colnames)\n\n"
   "Save DataTable into a .jay file.\n")
 
-DECLARE_METHOD(
-  save_jay_fb,
-  "save_jay(file, colnames)\n\n"
-  "Save DataTable into a .jay file.\n")
-
 
 
 DECLARE_METHOD(
@@ -304,13 +299,6 @@ DECLARE_FUNCTION(
 DECLARE_FUNCTION(
   open_jay,
   "open_jay(file)\n\n"
-  "Open DataTable from a .jay file, and return as a tuple (frame, colnames),\n"
-  "where `colnames` is a list of column names.\n",
-  HOMEFLAG)
-
-DECLARE_FUNCTION(
-  open_jay_fb,
-  "open_jay_fb(file)\n\n"
   "Open DataTable from a .jay file, and return as a tuple (frame, colnames),\n"
   "where `colnames` is a list of column names.\n",
   HOMEFLAG)

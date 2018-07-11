@@ -176,7 +176,6 @@ static PyMethodDef DatatableModuleMethods[] = {
     METHODv(pydatatable::datatable_from_list),
     METHODv(pydatatable::datatable_load),
     METHODv(pydatatable::open_jay),
-    METHODv(pydatatable::open_jay_fb),
     METHODv(pydatatable::install_buffer_hooks),
     METHODv(config::set_option),
     METHODv(gread),

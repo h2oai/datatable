@@ -82,7 +82,7 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
   return wrap(DataTable::load(colspec, nrows, path, recode));
 }
 
-
+/*
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
@@ -100,14 +100,15 @@ PyObject* open_jay(PyObject*, PyObject* args) {
 
   return Py_BuildValue("OO", pydt, pylist);
 }
+*/
 
-PyObject* open_jay_fb(PyObject*, PyObject* args) {
+PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
   if (!PyArg_ParseTuple(args, "O:open_jay_fb", &arg1)) return nullptr;
   std::string filename = PyObj(arg1).as_string();
 
   std::vector<std::string> colnames;
-  DataTable* dt = DataTable::open_jay_fb(filename, colnames);
+  DataTable* dt = DataTable::open_jay(filename, colnames);
   PyObject* pydt = wrap(dt);
 
   PyyList collist(colnames.size());
@@ -573,7 +574,6 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
   Py_RETURN_NONE;
 }
 
-
 PyObject* save_jay(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
   PyObject* arg1, *arg2;
@@ -587,22 +587,6 @@ PyObject* save_jay(obj* self, PyObject* args) {
   }
 
   dt->save_jay(filename, colnames);
-  Py_RETURN_NONE;
-}
-
-PyObject* save_jay_fb(obj* self, PyObject* args) {
-  DataTable* dt = self->ref;
-  PyObject* arg1, *arg2;
-  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2)) return nullptr;
-  std::string filename = PyObj(arg1).as_string();
-  std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
-
-  if (colnames.size() != static_cast<size_t>(dt->ncols)) {
-    throw ValueError()
-      << "The list of column names has wrong length: " << colnames.size();
-  }
-
-  dt->save_jay_fb(filename, colnames);
   Py_RETURN_NONE;
 }
 
@@ -655,7 +639,6 @@ static PyMethodDef datatable_methods[] = {
   METHODv(apply_na_mask),
   METHODv(use_stype_for_buffers),
   METHODv(save_jay),
-  METHODv(save_jay_fb),
   {nullptr, nullptr, 0, nullptr}           /* sentinel */
 };
 

@@ -5,9 +5,6 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <capnp/message.h>
-#include <capnp/serialize.h>
-#include "jay/jay.capnp.h"
 #include "jay/jay_generated.h"
 #include "datatable.h"
 #include "utils/assert.h"
@@ -16,23 +13,6 @@
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static fbjay::Type stype_to_jaytype[DT_STYPES_COUNT];
 
-
-static void saveMemoryRange(
-    const MemoryRange& mbuf, WritableBufferPtr& wb, jay::Buffer::Builder buffer)
-{
-  size_t len = mbuf.size();
-  const void* data = mbuf.rptr();
-  size_t pos = wb->prep_write(len, data);
-  wb->write_at(pos, len, data);
-  xassert(pos >= 8);
-  if (len & 7) {  // Align the buffer to 8-byte boundary
-    uint64_t zero = 0;
-    wb->write(8 - (len & 7), &zero);
-  }
-
-  buffer.setOffset(pos - 8);
-  buffer.setLength(len);
-}
 
 static fbjay::Buffer saveMemoryRange(
     const MemoryRange* mbuf, WritableBufferPtr& wb)
@@ -49,19 +29,6 @@ static fbjay::Buffer saveMemoryRange(
   }
 
   return fbjay::Buffer(pos - 8, len);
-}
-
-
-
-template <typename T, typename A, typename TBuilder>
-void saveMinMax(NumericalStats<T, A>* stats, TBuilder builder) {
-  if (!stats) return;
-  if (stats->is_computed(Stat::Min)) {
-    builder.setMin(stats->min(nullptr));
-  }
-  if (stats->is_computed(Stat::Max)) {
-    builder.setMax(stats->max(nullptr));
-  }
 }
 
 
@@ -86,53 +53,6 @@ void DataTable::save_jay(const std::string& path,
                          const std::vector<std::string>& colnames)
 {
   reify();
-  int64_t n_obj_cols = 0;
-  for (int64_t i = 0; i < ncols; ++i) {
-    n_obj_cols += (columns[i]->stype() == ST_OBJECT_PYPTR);
-  }
-
-  auto wb = WritableBuffer::create_target(path, memory_footprint(),
-                                          WritableBuffer::Strategy::Auto);
-  wb->write(8, "JAY1\0\0\0\0");
-
-  capnp::MallocMessageBuilder message;
-
-  auto frame = message.initRoot<jay::Frame>();
-  frame.setNrows(nrows);
-  frame.setNcols(ncols - n_obj_cols);
-
-  auto zcols = static_cast<unsigned int>(ncols - n_obj_cols);
-  auto msg_columns = frame.initColumns(zcols);
-  unsigned int j = 0;
-  for (size_t i = 0; i < static_cast<size_t>(ncols); ++i) {
-    if (columns[i]->stype() == ST_OBJECT_PYPTR) {
-      Warning() << "Column '" << colnames[i] << "' of type obj64 was not saved";
-    } else {
-      columns[i]->save_jay(colnames[i], msg_columns[j++], wb);
-    }
-  }
-  xassert((wb->size() & 7) == 0);
-
-  auto meta = capnp::messageToFlatArray(message);
-  auto metaBytes = meta.asBytes();
-  auto metaSize = static_cast<size_t>(metaBytes.end() - metaBytes.begin());
-  wb->write(metaSize, metaBytes.begin());
-  if (metaSize & 7) {
-    wb->write(8 - (metaSize & 7), "\0\0\0\0\0\0\0");
-    metaSize += 8 - (metaSize & 7);
-  }
-
-  wb->write(8, &metaSize);
-  wb->write(8, "\0\0\0\0JAY1");
-  wb->finalize();
-}
-
-
-
-void DataTable::save_jay_fb(const std::string& path,
-                         const std::vector<std::string>& colnames)
-{
-  reify();
 
   auto wb = WritableBuffer::create_target(path, memory_footprint(),
                                           WritableBuffer::Strategy::Auto);
@@ -145,7 +65,7 @@ void DataTable::save_jay_fb(const std::string& path,
     if (columns[i]->stype() == ST_OBJECT_PYPTR) {
       Warning() << "Column '" << colnames[i] << "' of type obj64 was not saved";
     } else {
-      msg_columns.push_back(columns[i]->save_jay_fb(colnames[i], fbb, wb));
+      msg_columns.push_back(columns[i]->save_jay(colnames[i], fbb, wb));
     }
   }
   xassert((wb->size() & 7) == 0);
@@ -170,7 +90,7 @@ void DataTable::save_jay_fb(const std::string& path,
 }
 
 
-
+/*
 void Column::save_jay(
     const std::string& name, jay::Column::Builder msg_col,
     WritableBufferPtr& wb)
@@ -249,12 +169,12 @@ void Column::save_jay(
     }
   }
 }
-
+*/
 
 
 
 flatbuffers::Offset<fbjay::Column>
-Column::save_jay_fb(
+Column::save_jay(
     const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
     WritableBufferPtr& wb)
 {

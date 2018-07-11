@@ -11,7 +11,6 @@
 #include <vector>
 #include <Python.h>
 #include "groupby.h"
-#include "jay/jay.capnp.h"
 #include "memrange.h"     // MemoryRange
 #include "py_types.h"
 #include "python/list.h"
@@ -93,9 +92,7 @@ public:
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
   static Column* from_buffer(PyObject* buffer);
-  static Column* from_jay(jay::Column::Reader jaycol, int64_t nrows,
-                          MemoryRange& jaybuf);
-  static Column* from_jay_fb(const fbjay::Column* jaycol,
+  static Column* from_jay(const fbjay::Column* jaycol,
                           MemoryRange& jaybuf);
 
   Column(const Column&) = delete;
@@ -216,11 +213,9 @@ public:
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
-  void save_jay(const std::string& name, jay::Column::Builder msg_col,
-                std::unique_ptr<WritableBuffer>& wb);
   flatbuffers::Offset<fbjay::Column>
-  save_jay_fb(const std::string& name, flatbuffers::FlatBufferBuilder&,
-              std::unique_ptr<WritableBuffer>&);
+  save_jay(const std::string& name, flatbuffers::FlatBufferBuilder&,
+           std::unique_ptr<WritableBuffer>&);
 
   int64_t countna() const;
   int64_t nunique() const;

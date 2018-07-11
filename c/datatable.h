@@ -100,11 +100,7 @@ class DataTable {
 
     void save_jay(const std::string& path,
                   const std::vector<std::string>& colnames);
-    void save_jay_fb(const std::string& path,
-                  const std::vector<std::string>& colnames);
     static DataTable* open_jay(const std::string& path,
-                               std::vector<std::string>& colnames);
-    static DataTable* open_jay_fb(const std::string& path,
                                std::vector<std::string>& colnames);
 
   private:

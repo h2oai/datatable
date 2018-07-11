@@ -35,7 +35,7 @@ def save(self, dest, format="nff", _strategy="auto"):
     if _strategy not in ("auto", "write", "mmap"):
         raise TValueError("Invalid parameter _strategy: only 'write' / 'mmap' "
                           "/ 'auto' are allowed")
-    if format not in ("nff", "jay", "jayfb"):
+    if format not in ("nff", "jay"):
         raise TValueError("Invalid parameter `format`: only 'nff' or 'jay' "
                           "are supported")
     dest = os.path.expanduser(dest)
@@ -46,9 +46,6 @@ def save(self, dest, format="nff", _strategy="auto"):
 
     if format == "jay":
         self.internal.save_jay(dest, self.names)
-        return
-    if format == "jayfb":
-        self.internal.save_jay_fb(dest, self.names)
         return
 
     self.materialize()
@@ -91,10 +88,7 @@ def open(path):
         raise ValueError(msg)
 
     if not os.path.isdir(path):
-        if path.endswith(".jay"):
-            _dt, colnames = core.open_jay(path)
-        else:
-            _dt, colnames = core.open_jay_fb(path)
+        _dt, colnames = core.open_jay(path)
         return dt.Frame(_dt, names=colnames)
 
     nff_version = None
