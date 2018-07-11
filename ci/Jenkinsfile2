@@ -11,6 +11,7 @@ import ai.h2o.ci.Utils
 import ai.h2o.ci.buildsummary.StagesSummary
 import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 def utilsLib = new Utils()
 
@@ -750,3 +751,8 @@ def createDockerArgs() {
 def getHTTPSTargetUrl(final versionText) {
     return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
 }
+
+def markSkipped(String stageName) {
+    Utils.markStageWithTag(stageName, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
+}
+
