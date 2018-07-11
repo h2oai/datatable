@@ -11,7 +11,7 @@ import ai.h2o.ci.Utils
 import ai.h2o.ci.buildsummary.StagesSummary
 import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
-import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+import static org.jenkinsci.plugins.pipeline.modeldefinition.Utils.markStageWithTag
 
 def utilsLib = new Utils()
 
@@ -212,6 +212,7 @@ ansiColor('xterm') {
                                     }
                                 } else {
                                     echo 'Build on ppc64le_centos7 SKIPPED'
+                                    markSkipped("Build on ppc64le_centos7")
                                 }
                             }
                         }
@@ -753,6 +754,6 @@ def getHTTPSTargetUrl(final versionText) {
 }
 
 def markSkipped(String stageName) {
-    Utils.markStageWithTag(stageName, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
+    markStageWithTag(stageName, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
 }
 
