@@ -4,14 +4,13 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 
-#include "datatable.h"
 #include "extras/aggregator.h"
 #include <stdlib.h>
 #include "utils/omp.h"
 #include "py_utils.h"
 #include "rowindex.h"
 #include "types.h"
-#include "datatable_check.h"
+
 
 Aggregator::Aggregator(DataTable* dt)
   : dt_in(dt)
@@ -20,8 +19,7 @@ Aggregator::Aggregator(DataTable* dt)
 }
 
 DataTable* Aggregator::create_dt_out() {
-  Column** cols = nullptr;
-  dtmalloc(cols, Column*, dt_in->ncols + 2);
+  Column** cols = dt::amalloc<Column*>(dt_in->ncols + 2);
 
   for (int32_t i = 0; i < dt_in->ncols; ++i) {
     LType ltype = stype_info[dt_in->columns[i]->stype()].ltype;
@@ -110,14 +108,14 @@ void Aggregator::aggregate_1d_continuous(double epsilon, int32_t n_bins) {
   double norm_factor = n_bins * (1 - epsilon) / (c0->max() - c0->min());
 
   for (int32_t i = 0; i < dt_out->nrows; ++i) {
-    d_c1[i] = (int32_t) (norm_factor * (d_c0[i] - c0->min()));
+    d_c1[i] = static_cast<int32_t> (norm_factor * (d_c0[i] - c0->min()));
   }
 }
 
 
 void Aggregator::aggregate_2d_continuous(double epsilon, int32_t nx_bins, int32_t ny_bins) {
-  RealColumn<double>* c0 = (RealColumn<double>*) dt_out->columns[0];
-  RealColumn<double>* c1 = (RealColumn<double>*) dt_out->columns[1];
+  RealColumn<double>* c0 = static_cast<RealColumn<double>*> (dt_out->columns[0]);
+  RealColumn<double>* c1 = static_cast<RealColumn<double>*> (dt_out->columns[1]);
   double* d_c0 = static_cast<double*>(dt_out->columns[0]->data_w());
   double* d_c1 = static_cast<double*>(dt_out->columns[1]->data_w());
   int32_t* d_c2 = static_cast<int32_t*>(dt_out->columns[2]->data_w());
@@ -127,7 +125,7 @@ void Aggregator::aggregate_2d_continuous(double epsilon, int32_t nx_bins, int32_
   double normy_factor = ny_bins * (1 - epsilon) / (c1->max() - c1->min());
 
   for (int32_t i = 0; i < dt_out->nrows; ++i) {
-    d_c2[i] = (int32_t) (normy_factor * (d_c1[i] - c1->min())) * nx_bins + (int32_t) (normx_factor * (d_c0[i] - c0->min())) ;
+    d_c2[i] = static_cast<int32_t> (normy_factor * (d_c1[i] - c1->min())) * nx_bins + static_cast<int32_t> (normx_factor * (d_c0[i] - c0->min())) ;
   }
 }
 
@@ -145,7 +143,7 @@ void Aggregator::aggregate_1d_categorical(int32_t n_bins /* not sure how to use 
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_c1[group_indices_0[j]] = (int32_t) i;
+      d_c1[group_indices_0[j]] = static_cast<int32_t> (i);
     }
   }
 // TODO: store ri somehow to be reused for groupping with dt->replace_rowindex(ri);
@@ -171,13 +169,13 @@ void Aggregator::aggregate_2d_categorical(int32_t nx_bins, int32_t ny_bins /* no
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_c2[group_indices_0[j]] = (int32_t) i;
+      d_c2[group_indices_0[j]] = static_cast<int32_t> (i);
     }
   }
 
   for (size_t i = 0; i < grpby1.ngroups(); ++i) {
     for (int32_t j = offsets1[i]; j < offsets1[i+1]; ++j) {
-      d_c2[group_indices_1[j]] += (int32_t) (grpby0.ngroups() * i);
+      d_c2[group_indices_1[j]] += static_cast<int32_t> (grpby0.ngroups() * i);
     }
   }
 // TODO: store ri1 and ri2 somehow to be reused for groupping with dt->replace_rowindex(ri);
@@ -200,7 +198,7 @@ void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_
 
   for (size_t i = 0; i < grpby0.ngroups(); ++i) {
     for (int32_t j = offsets0[i]; j < offsets0[i+1]; ++j) {
-      d_c2[group_indices_0[j]] = nx_bins * (int32_t) (i) + (int32_t) (normx_factor * (d_c0[group_indices_0[j]] - c0->min()));
+      d_c2[group_indices_0[j]] = nx_bins * static_cast<int32_t> (i) + static_cast<int32_t> (normx_factor * (d_c0[group_indices_0[j]] - c0->min()));
 	}
   }
 }
@@ -211,7 +209,7 @@ void Aggregator::aggregate_2d_mixed(bool cont_index, double epsilon, int32_t nx_
 // [2] https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/h2o/data/Aggregator.java
 DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
   size_t exemplar_id = 0;
-  int64_t ndims = min(mcols, dt_in->ncols);
+  int64_t ndims = std::min(mcols, static_cast<int32_t>(dt_in->ncols));
   double* exemplar = new double[ndims];
   double* member = new double[ndims];
   double* pmatrix = nullptr;
@@ -245,9 +243,9 @@ DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
     }
 
     if (min_distance < delta) {
-      d_cn[i] = (int32_t) exemplar_id;
+      d_cn[i] = static_cast<int32_t> (exemplar_id);
     } else {
-      d_cn[i] = (int32_t) exemplars.size();
+      d_cn[i] = static_cast<int32_t> (exemplars.size());
       exemplars.push_back(member);
       member = new double[ndims];
     }
@@ -266,7 +264,7 @@ DataTable* Aggregator::aggregate_nd(int32_t mcols, unsigned int seed) {
 void Aggregator::adjust_radius(int32_t mcols, double& radius) {
   double diff = 0;
   for (int i = 0; i < dt_in->ncols; ++i) {
-    RealColumn<double>* ci = (RealColumn<double>*) dt_out->columns[i];
+    RealColumn<double>* ci = static_cast<RealColumn<double>*> (dt_out->columns[i]);
     diff += (ci->max() - ci->min()) * (ci->max() - ci->min());
   }
 
@@ -323,11 +321,11 @@ double* Aggregator::generate_pmatrix(int32_t mcols, unsigned int seed) {
 
 
 void Aggregator::project_row(double* r, int32_t row_id, double* pmatrix, int32_t mcols) {
-  std::memset(r, 0, ((size_t) mcols) * sizeof(double));
+  std::memset(r, 0, static_cast<size_t>(mcols) * sizeof(double));
 
   for (int32_t i = 0; i < dt_in->ncols*mcols; ++i) {
-    RealColumn<double>* c = (RealColumn<double>*) dt_out->columns[i / mcols];
-    const double* d_c = static_cast<const double*>(dt_out->columns[i / mcols]->data());
+    RealColumn<double>* c = static_cast<RealColumn<double>*> (dt_out->columns[i / mcols]);
+    const double* d_c = static_cast<const double*> (dt_out->columns[i / mcols]->data());
 
     if (!ISNA<double>(d_c[row_id])) {
       r[i % mcols] +=  pmatrix[i] * (d_c[row_id] - c->min()) / (c->max() - c->min());

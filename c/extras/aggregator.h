@@ -5,11 +5,9 @@
 //------------------------------------------------------------------------------
 #include <vector>
 #include <string>
-#include "datatable_check.h"
 #include "rowindex.h"
 #include "types.h"
 #include "datatable.h"
-#include "column.h"
 #include <random>
 
 class Aggregator {
