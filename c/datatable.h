@@ -99,7 +99,8 @@ class DataTable {
                            const std::string& path, bool recode);
 
     void save_jay(const std::string& path,
-                  const std::vector<std::string>& colnames);
+                  const std::vector<std::string>& colnames,
+                  WritableBuffer::Strategy wstrategy);
     static DataTable* open_jay(const std::string& path,
                                std::vector<std::string>& colnames);
 

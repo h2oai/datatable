@@ -82,25 +82,6 @@ PyObject* datatable_load(PyObject*, PyObject* args) {
   return wrap(DataTable::load(colspec, nrows, path, recode));
 }
 
-/*
-PyObject* open_jay(PyObject*, PyObject* args) {
-  PyObject* arg1;
-  if (!PyArg_ParseTuple(args, "O:open_jay", &arg1)) return nullptr;
-  std::string filename = PyObj(arg1).as_string();
-
-  std::vector<std::string> colnames;
-  DataTable* dt = DataTable::open_jay(filename, colnames);
-  PyObject* pydt = wrap(dt);
-
-  PyyList collist(colnames.size());
-  for (size_t i = 0; i < colnames.size(); ++i) {
-    collist[i] = PyyString(colnames[i]);
-  }
-  PyObject* pylist = collist.release();
-
-  return Py_BuildValue("OO", pydt, pylist);
-}
-*/
 
 PyObject* open_jay(PyObject*, PyObject* args) {
   PyObject* arg1;
@@ -576,17 +557,23 @@ PyObject* use_stype_for_buffers(obj* self, PyObject* args) {
 
 PyObject* save_jay(obj* self, PyObject* args) {
   DataTable* dt = self->ref;
-  PyObject* arg1, *arg2;
-  if (!PyArg_ParseTuple(args, "OO:save_jay", &arg1, &arg2)) return nullptr;
+  PyObject* arg1, *arg2, *arg3;
+  if (!PyArg_ParseTuple(args, "OOO:save_jay", &arg1, &arg2, &arg3))
+    return nullptr;
+
   std::string filename = PyObj(arg1).as_string();
   std::vector<std::string> colnames = PyObj(arg2).as_stringlist();
+  std::string strategy = PyObj(arg3).as_string();
+  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
+                   (strategy == "write") ? WritableBuffer::Strategy::Write :
+                                           WritableBuffer::Strategy::Auto;
 
   if (colnames.size() != static_cast<size_t>(dt->ncols)) {
     throw ValueError()
       << "The list of column names has wrong length: " << colnames.size();
   }
 
-  dt->save_jay(filename, colnames);
+  dt->save_jay(filename, colnames, sstrategy);
   Py_RETURN_NONE;
 }
 

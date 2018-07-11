@@ -349,7 +349,7 @@
   //---- Utility functions -----------------------
 
   void MemoryRange::save_to_disk(const std::string& path,
-                                  WritableBuffer::Strategy strategy)
+                                 WritableBuffer::Strategy strategy)
   {
     auto wb = WritableBuffer::create_target(path, o->impl->size(), strategy);
     wb->write(o->impl->size(), o->impl->ptr());

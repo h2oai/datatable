@@ -22,9 +22,6 @@ class DataTable;
 class BoolColumn;
 class PyObjectColumn;
 class FreadReader;  // used as a friend
-namespace flatbuffers { class FlatBufferBuilder; }
-namespace flatbuffers { template <class T> struct Offset; }
-namespace fbjay { struct Column; }
 template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
@@ -92,8 +89,6 @@ public:
   static Column* new_mbuf_column(SType, MemoryRange&&, MemoryRange&&);
   static Column* from_pylist(PyyList& list, int stype0 = 0, int ltype0 = 0);
   static Column* from_buffer(PyObject* buffer);
-  static Column* from_jay(const fbjay::Column* jaycol,
-                          MemoryRange& jaybuf);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
@@ -213,10 +208,6 @@ public:
 
   virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
 
-  flatbuffers::Offset<fbjay::Column>
-  save_jay(const std::string& name, flatbuffers::FlatBufferBuilder&,
-           std::unique_ptr<WritableBuffer>&);
-
   int64_t countna() const;
   int64_t nunique() const;
   int64_t nmodal() const;
@@ -263,6 +254,19 @@ public:
    */
   virtual void verify_integrity(const std::string& name) const;
 
+  /**
+   * get_stats()
+   *   Getter method for this column's reference to `Stats`. If the reference
+   *   is null then the method will create a new Stats instance for this column
+   *   and return a pointer to said instance.
+   *
+   * get_stats_if_exist()
+   *   A simpler accessor than get_stats(): this will return either an existing
+   *   Stats object, or nullptr if the Stats were not initialized yet.
+   */
+  virtual Stats* get_stats() const = 0;
+  Stats* get_stats_if_exist() const { return stats; }
+
 protected:
   Column(int64_t nrows = 0);
   virtual void init_data() = 0;
@@ -303,13 +307,6 @@ protected:
    * to be an in-place operation.
    */
   virtual void fill_na() = 0;
-
-  /**
-   * Getter method for this column's reference to `Stats`. If the reference
-   * is null then the method will create a new Stats instance for this column
-   * and return a pointer to said instance.
-   */
-  virtual Stats* get_stats() const = 0;
 
 private:
   static Column* new_column(SType);
@@ -621,6 +618,7 @@ public:
   void resize_and_fill(int64_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
 
+  MemoryRange str_buf() { return strbuf; }
   size_t datasize() const;
   int64_t data_nrows() const override;
   const char* strdata() const;

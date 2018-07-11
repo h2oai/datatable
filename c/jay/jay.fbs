@@ -5,7 +5,13 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-namespace fbjay;
+// In order to compile:
+//     $ flatc --cpp jay.fbs
+//
+// then fix all warnings emitted by Clang
+//------------------------------------------------------------------------------
+namespace jay;
+
 
 
 //------------------------------------------------------------------------------
@@ -41,6 +47,7 @@ struct StatsInt32   { min: int32;   max: int32;   }
 struct StatsInt64   { min: int64;   max: int64;   }
 struct StatsFloat32 { min: float32; max: float32; }
 struct StatsFloat64 { min: float64; max: float64; }
+
 
 
 //------------------------------------------------------------------------------
